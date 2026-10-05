@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-//go:embed index.html assets
+//go:embed index.html all:assets
 var Assets embed.FS
 
 type Bridge struct {
@@ -43,7 +43,7 @@ func (b *Bridge) Show() contracts.Response {
 }
 
 func Qualify() (map[string]any, error) {
-	if _, err := Assets.ReadFile("assets/help/index.html"); err != nil {
+	if err := verifyHelp(); err != nil {
 		return nil, contracts.Fail("unavailable")
 	}
 	if _, err := Assets.ReadFile("assets/interface.css"); err != nil {

@@ -51,3 +51,5 @@ Setup precedes workspace/IPC. Workspace and shared app precede client integratio
 - [x] T021 Validate Windows directory security by binary SID/ACL semantics rather than SDDL text aliases, retaining exact current-user grants (FR-001, FR-003).
 
 - [x] T022 Preserve intentionally detached Windows owner lifetime across bounded qualification-client exits, without permitting ordinary supervised workers to break away (FR-004, FR-008).
+
+- [x] T023 Include underscore-prefixed offline help assets in the executable and validate referenced local assets across all embedded HTML pages (FR-010, SC-003).
