@@ -1,0 +1,555 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/speaker-dataset.schema.json",
+  "title": "Speaker training dataset snapshot",
+  "description": "Portable immutable training corpus selection. Source, speaker, attribution, transcript and preparation revisions are frozen; later training preparation binds final bytes in a separate manifest.",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "0.0.0",
+      "description": "Version of this portable document contract."
+    },
+    "kind": {
+      "const": "speaker-dataset",
+      "description": "Discriminator identifying an immutable speaker training dataset snapshot."
+    },
+    "workspace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Workspace owning the snapshot and every referenced member."
+    },
+    "dataset_snapshot_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Stable immutable training_dataset_snapshot identity."
+    },
+    "speaker_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Originating catalog speaker for this selected corpus."
+    },
+    "speaker_identity_revision": {
+      "$ref": "common.schema.json#/$defs/revision",
+      "description": "Exact identity revision used when selecting this speaker's corpus."
+    },
+    "catalog_revision": {
+      "$ref": "common.schema.json#/$defs/revision",
+      "description": "Catalog revision against which selection was resolved."
+    },
+    "created_at": {
+      "$ref": "common.schema.json#/$defs/utcInstant",
+      "description": "UTC instant when this snapshot was frozen."
+    },
+    "manifest_sha256": {
+      "$ref": "common.schema.json#/$defs/sha256",
+      "description": "Digest of the separately published canonical snapshot manifest, not a hash asserted over this transport envelope including itself."
+    },
+    "manifest_artifact": {
+      "$ref": "common.schema.json#/$defs/artifactReference",
+      "description": "Optional published artifact containing the canonical immutable snapshot manifest."
+    },
+    "selection": {
+      "$ref": "#/$defs/selection",
+      "description": "Complete frozen selection recipe and effective filters."
+    },
+    "preparation": {
+      "$ref": "#/$defs/preparation",
+      "description": "Requested preparation contract frozen before final training inputs are materialized."
+    },
+    "members": {
+      "type": "array",
+      "description": "Ordered included segment memberships; empty snapshots represent no matching corpus and do not imply runnable training.",
+      "items": {
+        "$ref": "#/$defs/member"
+      }
+    },
+    "exclusions": {
+      "type": "array",
+      "description": "Frozen excluded-segment decisions and their technical or user-supplied reasons.",
+      "items": {
+        "$ref": "#/$defs/exclusion"
+      }
+    },
+    "summary": {
+      "$ref": "#/$defs/summary",
+      "description": "Frozen corpus totals and diagnostic summary."
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions",
+      "description": "Namespaced dataset metadata preserved without altering immutable membership."
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "workspace_id",
+    "dataset_snapshot_id",
+    "speaker_id",
+    "speaker_identity_revision",
+    "catalog_revision",
+    "created_at",
+    "manifest_sha256",
+    "selection",
+    "preparation",
+    "members",
+    "exclusions",
+    "summary"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "selection": {
+      "type": "object",
+      "description": "Exact effective selection recipe, allowing automatic corpus selection without segment-by-segment approval.",
+      "properties": {
+        "recipe_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Stable selection recipe identity."
+        },
+        "recipe_revision": {
+          "$ref": "common.schema.json#/$defs/revision",
+          "description": "Frozen recipe revision."
+        },
+        "preset": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Readable preparation/diagnostic preset identity."
+        },
+        "preset_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version defining the chosen preset's behavior."
+        },
+        "attribution_bases": {
+          "type": "array",
+          "description": "Allowed assignment bases; an empty array includes every declared basis.",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One included attribution basis."
+          },
+          "uniqueItems": true
+        },
+        "source_asset_ids": {
+          "type": "array",
+          "description": "Optional source filter; an empty array covers the speaker's whole workspace corpus.",
+          "items": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "One included original media asset."
+          },
+          "uniqueItems": true
+        },
+        "languages": {
+          "type": "array",
+          "description": "Optional language filter; an empty array is language-independent.",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One declared language identifier."
+          },
+          "uniqueItems": true
+        },
+        "minimum_duration_us": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum original segment duration considered by this recipe."
+        },
+        "maximum_duration_us": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Maximum original segment duration considered by this recipe."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Upper segment-duration bound, or null when no upper bound is configured."
+        },
+        "explicitly_excluded_segment_ids": {
+          "type": "array",
+          "description": "User-selected exclusions applied automatically to this snapshot.",
+          "items": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Excluded stable segment identity."
+          },
+          "uniqueItems": true
+        },
+        "options": {
+          "$ref": "common.schema.json#/$defs/nonsecretOptions",
+          "description": "Adapter-specific filters and quality thresholds validated by the selected preset/adapter."
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions",
+          "description": "Namespaced custom selection rules with documented adapter interpretation."
+        }
+      },
+      "required": [
+        "recipe_id",
+        "recipe_revision",
+        "preset",
+        "preset_version",
+        "attribution_bases",
+        "source_asset_ids",
+        "languages",
+        "minimum_duration_us",
+        "maximum_duration_us",
+        "explicitly_excluded_segment_ids",
+        "options"
+      ],
+      "additionalProperties": false
+    },
+    "preparation": {
+      "type": "object",
+      "description": "Frozen requested preparation contract; final prepared bytes are bound by a separate immutable preparation manifest.",
+      "properties": {
+        "adapter_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Selected preparation adapter identity."
+        },
+        "contract_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version of the preparation request/result contract."
+        },
+        "adapter_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version of the selected adapter implementation."
+        },
+        "options": {
+          "$ref": "common.schema.json#/$defs/nonsecretOptions",
+          "description": "Exact audio preparation options without credentials or temporary paths."
+        },
+        "transcript_required": {
+          "type": "boolean",
+          "description": "Whether this training input requires selected transcript and alignment references."
+        },
+        "output_format": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Requested prepared audio format."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Requested audio format, or null when the adapter consumes source streams directly."
+        },
+        "sample_rate_hz": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Requested prepared sample rate in hertz."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Requested sample rate, or null when unchanged or not applicable."
+        },
+        "channel_count": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Requested prepared channel count."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Requested output channel count, or null when unchanged or not applicable."
+        }
+      },
+      "required": [
+        "adapter_id",
+        "contract_version",
+        "adapter_version",
+        "options",
+        "transcript_required",
+        "output_format",
+        "sample_rate_hz",
+        "channel_count"
+      ],
+      "additionalProperties": false
+    },
+    "member": {
+      "type": "object",
+      "description": "One included, ordered, immutable dataset member; all referenced revisions and source bytes are frozen.",
+      "properties": {
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Zero-based explicit order within this snapshot."
+        },
+        "segment_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Stable source segment identity."
+        },
+        "segment_revision": {
+          "$ref": "common.schema.json#/$defs/revision",
+          "description": "Exact segment boundary revision."
+        },
+        "source": {
+          "$ref": "speaker-segments.schema.json#/$defs/source",
+          "description": "Original byte/stream/channel identity and source interval."
+        },
+        "processing_run_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Diarization or segmentation run that produced the member interval."
+        },
+        "voice_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Run-local acoustic voice identity used by this member."
+        },
+        "attribution": {
+          "$ref": "speaker-segments.schema.json#/$defs/attribution",
+          "description": "Exact attribution and speaker identity revisions used for membership."
+        },
+        "transcript": {
+          "$ref": "speaker-segments.schema.json#/$defs/transcript",
+          "description": "Optional exact transcript/cue evidence; required by application validation when preparation.transcript_required is true."
+        },
+        "prepared_audio": {
+          "$ref": "speaker-segments.schema.json#/$defs/preparedAudio",
+          "description": "Any audio already materialized before this snapshot was frozen."
+        },
+        "diagnostics": {
+          "type": "array",
+          "description": "Technical findings observed when this member was selected.",
+          "items": {
+            "$ref": "speaker-segments.schema.json#/$defs/diagnostic",
+            "description": "One method-qualified selection finding."
+          }
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions",
+          "description": "Namespaced member annotations that preserve frozen core provenance."
+        }
+      },
+      "required": [
+        "ordinal",
+        "segment_id",
+        "segment_revision",
+        "source",
+        "processing_run_id",
+        "voice_id",
+        "attribution",
+        "diagnostics"
+      ],
+      "additionalProperties": false
+    },
+    "exclusion": {
+      "type": "object",
+      "description": "One explicit selection exclusion retained for explainable automatic corpus selection.",
+      "properties": {
+        "segment_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Stable segment excluded from this snapshot."
+        },
+        "segment_revision": {
+          "$ref": "common.schema.json#/$defs/revision",
+          "description": "Segment revision evaluated by this decision."
+        },
+        "reason_codes": {
+          "type": "array",
+          "description": "Declared reasons for exclusion, such as duplicate-source-span or configured-overlap-filter.",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One machine-readable reason code."
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Preset/adapter or user action responsible for the decision."
+        },
+        "method_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version of the method when this exclusion was computed."
+        },
+        "details": {
+          "$ref": "common.schema.json#/$defs/nonsecretOptions",
+          "description": "Nonsecret diagnostic values and effective thresholds explaining the decision."
+        }
+      },
+      "required": [
+        "segment_id",
+        "segment_revision",
+        "reason_codes",
+        "method",
+        "method_version",
+        "details"
+      ],
+      "additionalProperties": false
+    },
+    "summary": {
+      "type": "object",
+      "description": "Totals frozen when selection completes; the application verifies consistency against membership.",
+      "properties": {
+        "segment_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of included members."
+        },
+        "source_asset_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Distinct original source assets represented by included members."
+        },
+        "original_duration_us": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Sum of selected original intervals in integer microseconds after the recorded deduplication policy."
+        },
+        "prepared_duration_us": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Known prepared duration in integer microseconds."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Known prepared duration, or null until preparation is materialized."
+        },
+        "excluded_segment_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of excluded segment decisions retained in this snapshot."
+        },
+        "diagnostic_counts": {
+          "type": "object",
+          "description": "Counts keyed by declared technical diagnostic code.",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "languages": {
+          "type": "array",
+          "description": "Language identifiers observed or selected for the included corpus.",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One language identifier."
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "segment_count",
+        "source_asset_count",
+        "original_duration_us",
+        "prepared_duration_us",
+        "excluded_segment_count",
+        "diagnostic_counts",
+        "languages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "examples": [
+    {
+      "schema_version": "0.0.0",
+      "kind": "speaker-dataset",
+      "workspace_id": "00000000-0000-4000-8000-00000000000a",
+      "dataset_snapshot_id": "00000000-0000-4000-8000-00000000000b",
+      "speaker_id": "00000000-0000-4000-8000-000000000006",
+      "speaker_identity_revision": 1,
+      "catalog_revision": 1,
+      "created_at": {
+        "iso": "2026-10-04T20:01:00Z",
+        "unix_ns": 1791144060000000000
+      },
+      "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "selection": {
+        "recipe_id": "00000000-0000-4000-8000-00000000000c",
+        "recipe_revision": 1,
+        "preset": "speech-clean",
+        "preset_version": "1.0.0",
+        "attribution_bases": [],
+        "source_asset_ids": [],
+        "languages": [],
+        "minimum_duration_us": 0,
+        "maximum_duration_us": null,
+        "explicitly_excluded_segment_ids": [],
+        "options": {
+          "exclude_duplicate_source_spans": true
+        }
+      },
+      "preparation": {
+        "adapter_id": "example.audio-preparation",
+        "contract_version": "1",
+        "adapter_version": "1.0.0",
+        "options": {
+          "normalize": false
+        },
+        "transcript_required": false,
+        "output_format": "wav-pcm-s16le",
+        "sample_rate_hz": 16000,
+        "channel_count": 1
+      },
+      "members": [
+        {
+          "ordinal": 0,
+          "segment_id": "00000000-0000-4000-8000-000000000007",
+          "segment_revision": 1,
+          "source": {
+            "media_entry_id": "00000000-0000-4000-8000-000000000001",
+            "source_asset_id": "00000000-0000-4000-8000-000000000002",
+            "source_artifact": {
+              "artifact_id": "00000000-0000-4000-8000-000000000003",
+              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "byte_length": 640000
+            },
+            "stream_id": "00000000-0000-4000-8000-000000000004",
+            "stream_index": 0,
+            "channels": [
+              0
+            ],
+            "channel_policy": "preserve",
+            "interval": {
+              "start_us": 1000000,
+              "end_us": 3000000
+            }
+          },
+          "processing_run_id": "00000000-0000-4000-8000-000000000008",
+          "voice_id": "00000000-0000-4000-8000-000000000009",
+          "attribution": {
+            "attribution_id": "00000000-0000-4000-8000-000000000005",
+            "revision": 1,
+            "speaker_id": "00000000-0000-4000-8000-000000000006",
+            "speaker_identity_revision": 1,
+            "basis": "acoustic-comparison",
+            "method": "example.voice-matcher",
+            "confidence": {
+              "value": 0.88,
+              "scale": "unit-interval",
+              "method_version": "1.0.0"
+            }
+          },
+          "diagnostics": []
+        }
+      ],
+      "exclusions": [],
+      "summary": {
+        "segment_count": 1,
+        "source_asset_count": 1,
+        "original_duration_us": 2000000,
+        "prepared_duration_us": null,
+        "excluded_segment_count": 0,
+        "diagnostic_counts": {},
+        "languages": []
+      }
+    }
+  ]
+}

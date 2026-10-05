@@ -1,0 +1,1 @@
+self.__SSG_MANIFEST=new Set(["\u002Fdocs\u002F[version]","\u002Fdocs\u002F[version]\u002F[slug]","\u002Fdocs\u002F[version]\u002Freferences\u002F[reference]"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()

@@ -1,0 +1,190 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preload" href="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg" as="image"/><link rel="preload" href="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg" as="image"/><link rel="stylesheet" href="../../../_next/static/chunks/2f820ds2jcjl9.css" data-precedence="next"/><link rel="preload" href="../../../brand/theme.css" as="style"/><link rel="preload" href="../../../brand/fonts/fonts.css" as="style"/><meta name="color-scheme" content="light dark"/><link rel="icon" href="../../../brand/icons/web/favicon.ico"/><link rel="apple-touch-icon" href="../../../brand/icons/web/favicon-180x180.png"/><title>Product and requirements (v0.0.0) | insonic</title><meta name="description" content="Voice archives, speaker models, and connected knowledge."/><script src="../../../theme-init.js"></script><link rel="stylesheet" href="../../../brand/theme.css"/><link rel="stylesheet" href="../../../brand/fonts/fonts.css"/></head><body><div hidden=""><!--$--><!--/$--></div><a class="skip-link" href="#main">Skip to content</a><header class="site-header"><a class="brand-link" href="../../../index.html" aria-label="insonic home"><img class="theme-logo-light" src="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg" alt="insonic" width="240" height="64"/><img class="theme-logo-dark" src="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg" alt="insonic" width="240" height="64"/></a><nav aria-label="Main navigation"><a href="../../index.html">Documentation</a><a href="https://github.com/shruggietech/insonic">Repository</a><button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-label="Dark mode" aria-checked="false" title="Switch to dark theme"><svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"></path></svg><svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"></path></svg></button></nav></header><div class="docs-layout"><aside class="docs-sidebar"><nav aria-label="Documentation v0.0.0"><a class="version-label" href="../../index.html">v<!-- -->0.0.0<!-- --> · <!-- -->specification</a><ul><li><a href="../index/index.html">Start here</a></li><li><a href="index.html" aria-current="page">Product and requirements</a></li><li><a href="../architecture/index.html">System architecture</a></li><li><a href="../technology/index.html">Technology decisions</a></li><li><a href="../ingestion/index.html">Import, metadata and dates</a></li><li><a href="../media/index.html">Media and provenance</a></li><li><a href="../pipelines/index.html">Pipelines and adapters</a></li><li><a href="../subtitles/index.html">Cueson and subtitles</a></li><li><a href="../speakers/index.html">Speakers and terminology</a></li><li><a href="../voice-models/index.html">Speaker audio and voice models</a></li><li><a href="../graph/index.html">Queries, timeline and graph</a></li><li><a href="../storage/index.html">Installation and storage</a></li><li><a href="../schema/index.html">Storage and catalog schema</a></li><li><a href="../contracts/index.html">JSON contracts</a></li><li><a href="../security/index.html">Credentials and data access</a></li><li><a href="../desktop/index.html">CLI and desktop experience</a></li><li><a href="../development/index.html">Development workflow</a></li><li><a href="../releases/index.html">Brand, docs and releases</a></li><li><a href="../roadmap/index.html">Delivery outcomes</a></li><li><a href="../glossary/index.html">Glossary</a></li><li><a href="../changelog/index.html">Changelog</a></li></ul></nav></aside><main id="main" class="docs-main"><p class="eyebrow">insonic · v<!-- -->0.0.0</p><article class="prose"><h1 id="product-and-requirements">Product and requirements</h1>
+<h2 id="product-boundary">Product boundary</h2>
+<p>insonic owns orchestration, user configuration, the library catalog, processing history and the presentation of source-linked results. It integrates media tools, Cueson, model runtimes, storage and databases through explicit adapters. Local processing and hosted providers are both supported routes. Speaker-tagged audio segments across the library can form a user-elected training corpus; trained artifacts belong to their originating speaker records. Training is optional and never a prerequisite to using the library.</p>
+<p>Users can import local files or acquire user-targeted remote sources through acquisition adapters. Acquisition adapters declare supported protocols and services; failures explain unsupported formats or authentication requirements.</p>
+<p>The primary journey is Add media, Choose processing, Process, Explore. A user can begin without learning model servers, database syntax or pipeline internals. Advanced users can select models, endpoints, channels, storage/database backends, adapters and query parameters. The CLI defines core application operations, and the GUI wraps those operations with a parity goal; explicitly documented advanced or experimental capabilities may reach the GUI later.</p>
+<h2 id="requirement-map">Requirement map</h2>
+<p>Stable requirement IDs identify observable product behavior. The named contracts define acceptance.</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Required behavior</th>
+<th>Contract</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>R01</td>
+<td>Installable CLI on Windows, macOS and Linux</td>
+<td><a href="../technology/index.html">Technology</a>, <a href="../storage/index.html">storage</a></td>
+</tr>
+<tr>
+<td>R02</td>
+<td>CLI-first shared core; GUI installs CLI and maintains core parity, with documented advanced/experimental lag permitted</td>
+<td><a href="../desktop/index.html">Desktop</a></td>
+</tr>
+<tr>
+<td>R03</td>
+<td>Track audio and video originals, provenance and duplicates</td>
+<td><a href="../media/index.html">Media</a></td>
+</tr>
+<tr>
+<td>R04</td>
+<td>Acquire user-targeted sources through adapters</td>
+<td><a href="../pipelines/index.html">Pipelines</a></td>
+</tr>
+<tr>
+<td>R05</td>
+<td>Correlate optimized audio derivatives with original time and channels</td>
+<td><a href="../media/index.html">Media</a></td>
+</tr>
+<tr>
+<td>R06</td>
+<td>Accept optional subtitles for every supported media type</td>
+<td><a href="../subtitles/index.html">Subtitles</a></td>
+</tr>
+<tr>
+<td>R07</td>
+<td>Produce a correlated subtitle artifact for completed speech processing</td>
+<td><a href="../subtitles/index.html">Subtitles</a></td>
+</tr>
+<tr>
+<td>R08</td>
+<td>Require Cueson as the unified subtitle layer</td>
+<td><a href="../subtitles/index.html">Subtitles</a></td>
+</tr>
+<tr>
+<td>R09</td>
+<td>Configure user-defined pipelines with model and hosting overrides</td>
+<td><a href="../pipelines/index.html">Pipelines</a></td>
+</tr>
+<tr>
+<td>R10</td>
+<td>Provide practical local AI defaults including faster-whisper where suitable</td>
+<td><a href="../technology/index.html">Technology</a></td>
+</tr>
+<tr>
+<td>R11</td>
+<td>Store provider keys encrypted with usable setup and replacement</td>
+<td><a href="../security/index.html">Credentials</a></td>
+</tr>
+<tr>
+<td>R12</td>
+<td>Track voices, speakers, aliases and corrections</td>
+<td><a href="../speakers/index.html">Speakers</a></td>
+</tr>
+<tr>
+<td>R13</td>
+<td>Supply specialized terms and speaker names as transcription context</td>
+<td><a href="../speakers/index.html">Speakers</a></td>
+</tr>
+<tr>
+<td>R14</td>
+<td>Chunk source-backed speaker assertions through adapters into the configured graph database</td>
+<td><a href="../graph/index.html">Graph</a></td>
+</tr>
+<tr>
+<td>R15</td>
+<td>Organize application, workspaces, media and downloaded models</td>
+<td><a href="../storage/index.html">Storage</a></td>
+</tr>
+<tr>
+<td>R16</td>
+<td>Query assets, speakers, words and times through CLI and GUI</td>
+<td><a href="../graph/index.html">Graph</a>, <a href="../desktop/index.html">desktop</a></td>
+</tr>
+<tr>
+<td>R17</td>
+<td>Render a graphical timeline of all library media</td>
+<td><a href="../graph/index.html">Graph</a></td>
+</tr>
+<tr>
+<td>R18</td>
+<td>Save graph queries and render force-directed selected results</td>
+<td><a href="../graph/index.html">Graph</a></td>
+</tr>
+<tr>
+<td>R19</td>
+<td>Offer optional AI-assisted query suggestions through chosen adapters</td>
+<td><a href="../graph/index.html">Graph</a></td>
+</tr>
+<tr>
+<td>R20</td>
+<td>Use upstream-owned branded assets and manual scriptable updates</td>
+<td><a href="../releases/index.html">Releases</a></td>
+</tr>
+<tr>
+<td>R21</td>
+<td>Author versioned Markdown and compile static Next.js docs</td>
+<td><a href="../releases/index.html">Releases</a></td>
+</tr>
+<tr>
+<td>R22</td>
+<td>Ship release-matched offline docs in GUI packages</td>
+<td><a href="../releases/index.html">Releases</a></td>
+</tr>
+<tr>
+<td>R23</td>
+<td>Use Spec Kit slices and GitHub Issues, milestones and Projects</td>
+<td><a href="../development/index.html">Development</a></td>
+</tr>
+<tr>
+<td>R24</td>
+<td>Keep CI turnaround below ten minutes and use human-approved squash merges with branch deletion</td>
+<td><a href="../development/index.html">Development</a></td>
+</tr>
+<tr>
+<td>R25</td>
+<td>Maintain Keep a Changelog and brief release highlights ending with its link</td>
+<td><a href="../releases/index.html">Releases</a></td>
+</tr>
+<tr>
+<td>R26</td>
+<td>Retain source-timed speaker audio segments across the library and revisioned speaker corpus selections</td>
+<td><a href="../speakers/index.html">Speakers</a>, <a href="../voice-models/index.html">speaker audio</a></td>
+</tr>
+<tr>
+<td>R27</td>
+<td>Optionally train speaker-associated voice models and list/fetch their artifacts through CLI contracts</td>
+<td><a href="../voice-models/index.html">Voice models</a>, <a href="../schema/index.html">schema</a></td>
+</tr>
+<tr>
+<td>R28</td>
+<td>Capture immutable raw EXIF, container, stream and other available metadata before transforms, with field-level provenance</td>
+<td><a href="../media/index.html">Media</a>, <a href="../schema/index.html">schema</a></td>
+</tr>
+<tr>
+<td>R29</td>
+<td>Accept per-item origination dates, date-only values and explicit time zones through import flags and batch manifests</td>
+<td><a href="../media/index.html">Media</a>, <a href="../desktop/index.html">desktop</a></td>
+</tr>
+<tr>
+<td>R30</td>
+<td>Default to local filesystem storage and fully support generic S3-compatible object storage</td>
+<td><a href="../storage/index.html">Storage</a>, <a href="../schema/index.html">schema</a></td>
+</tr>
+<tr>
+<td>R31</td>
+<td>Default to SQLite and fully support PostgreSQL for operational state, metadata, settings and associations</td>
+<td><a href="../schema/index.html">Schema</a>, <a href="../storage/index.html">storage</a></td>
+</tr>
+<tr>
+<td>R32</td>
+<td>Default to LadybugDB and fully support ArcadeDB graph projections and querying</td>
+<td><a href="../graph/index.html">Graph</a>, <a href="../schema/index.html">schema</a></td>
+</tr>
+<tr>
+<td>R33</td>
+<td>Run configured import, transforms, attribution, jobs and elected training without mandatory per-item review</td>
+<td><a href="../pipelines/index.html">Pipelines</a>, <a href="../desktop/index.html">desktop</a>, <a href="../development/index.html">development</a></td>
+</tr>
+</tbody>
+</table>
+<h2 id="completion-and-exceptions">Completion and exceptions</h2>
+<p>Speech-capable input does not require supplied subtitles. Successful processing ends with a valid correlated transcript and an exportable subtitle file. Pending, cancelled and failed processing remains visible and resumable; it is never labelled complete. Music and ambient sound classifications may skip automatic speech work. Mixed media can still contain speech, and a user can force transcription or override a mistaken classification. Neither a model's classification nor the absence of speech confidence makes a file ineligible for the library.</p>
+<p>Keep uncertain speaker identities and uncertain calendar dates usable. The application records uncertainty explicitly instead of guessing. Direct querying and exploration work without AI query assistance enabled.</p>
+<p>Configured routines run without repeated approvals. Only the affected operation requires additional input when a date cannot be interpreted, a destructive effect is not already authorized, or a new external processing route has not been selected. Confidence filters and attribution policies are user-configurable automation inputs; uncertain results remain labelled and correctable without mandatory review queues.</p>
+<h2 id="delivery-dependencies">Delivery dependencies</h2>
+<p>Runtime, storage and media contracts establish the import-to-subtitle workflow on all three operating systems, with full S3-compatible storage and PostgreSQL support. Provider flexibility and speaker continuity support graph extraction, desktop exploration and optional speaker training. Model discovery and retrieval begin with CLI contracts; desktop presentation follows the shared operation model. See <a href="../roadmap/index.html">delivery outcomes</a> for dependencies. Multi-user collaboration and an insonic-hosted library service are outside these application contracts.</p>
+</article><nav class="page-navigation" aria-label="Previous and next page"><a href="../index/index.html">← <!-- -->Start here</a><a href="../architecture/index.html">System architecture<!-- --> →</a></nav></main><aside class="table-of-contents"><nav aria-label="On this page"><h2>On this page</h2><ul><li><a href="#product-boundary">Product boundary</a></li><li><a href="#requirement-map">Requirement map</a></li><li><a href="#completion-and-exceptions">Completion and exceptions</a></li><li><a href="#delivery-dependencies">Delivery dependencies</a></li></ul></nav></aside></div><!--$--><!--/$--><script src="../../../docs-runtime.js" defer=""></script><footer class="site-footer"><p>A <a href="https://shruggie.tech/">ShruggieTech</a> project.</p><p>Apache 2.0. Documentation versions are published with their corresponding releases.</p></footer><script src="../../../site-runtime.js" defer=""></script></body></html>

@@ -1,0 +1,57 @@
+1:"$Sreact.fragment"
+2:T107d,<h1 id="contributing">Contributing</h1>
+<h2 id="start-with-the-specification">Start with the specification</h2>
+<p>Read the <a href="/docs/v0.0.0/index/">v0.0.0 specification</a>, <a href="https://github.com/shruggietech/insonic/blob/main/.specify/memory/constitution.md">constitution</a> and <a href="/docs/v0.0.0/roadmap/">delivery outcomes</a>. Scope each change around an observable outcome. Numbered implementation plans live under <code>specs/</code> and are separate from the public documentation.</p>
+<h2 id="issues-and-work-slices">Issues and work slices</h2>
+<p>GitHub Issues, milestones and the project board are the primary progress record. Issues describe behavior and acceptance; Spec Kit artifacts record implementation decisions and tasks. Follow the <a href="/docs/v0.0.0/development/">development workflow</a>. Link the slice, affected issues and milestone in the pull request. Do not duplicate status in disconnected planning documents.</p>
+<p>User verification normally follows a release and arrives as versioned issues. Pre-release controlled automated checks still verify code contracts, integrity and buildability. Do not turn post-release observation into mandatory attended pre-release testing. Record what was checked and what remains unverified.</p>
+<h2 id="local-checks">Local checks</h2>
+<p>Use Node.js 22.12 or newer. <code>npm ci</code> at the repository root installs the schema-validation dependencies from its lockfile; <code>npm --prefix site ci</code> installs the documentation renderer.</p>
+<pre><code class="language-text">npm run check
+npm test
+npm --prefix site run build
+</code></pre>
+<p>CI runs these scopes in parallel jobs with caches and ten-minute timeouts. No live AI calls, media downloads or model inference belong in ordinary pull-request CI. Product tests and native packaging checks are proportional to changed behavior.</p>
+<p>Windows tooling must launch console children with <code>CREATE_NO_WINDOW</code> or equivalent and disable interactive prompts. Use literal argument arrays and redirected I/O. Direct Git and GitHub operations through a verified headless runner are allowed.</p>
+<h2 id="style-and-documentation">Style and documentation</h2>
+<p>Save UTF-8 without BOM and LF line endings. Use clear Markdown, one H1, soft-wrapped paragraphs and language-labelled code fences. Mermaid flowcharts use <code>TB</code>/<code>TD</code>. Add diagrams where systems would otherwise require complex prose. Keep the README compact and complete detail in versioned docs. Public docs describe authoritative contracts; slice codes and implementation evidence stay in <code>specs/</code>, and historical changes stay in <code>CHANGELOG.md</code>.</p>
+<p>Release software, documentation and the master JSON Schema with the same version. Prefer backward and forward compatibility where practical; document breaking changes in the changelog and concise release notes. For every major release, scan the complete documentation for technical vocabulary and refresh the glossary with definitions, primary learning references and links to the pages that use each term most heavily.</p>
+<p>Do not modify files under <code>brand/kit/</code> directly. Use the maintainer updater and read the upstream <a href="https://github.com/shruggietech/insonic/blob/main/brand/kit/enforcement/consumer-contract.json">consumer contract</a> before applying visual identity. User requirements govern product behavior; brand/tool implementation guidance does not authorize unrelated feature restrictions.</p>
+<h2 id="pull-requests-and-releases">Pull requests and releases</h2>
+<p>Use a focused branch, conventional commit/PR title and a concise description of changed behavior, validation and limitations. A human performs the standard squash merge after required checks pass. GitHub deletes merged branches automatically once configured. Automation must not merge its own feature work without the owner's authorization.</p>
+<p>Update <code>CHANGELOG.md</code> under Unreleased using Added, Changed, Deprecated, Removed, Fixed or Security as appropriate. Release notes are a short highlights reel ending with the master changelog link. See <a href="/docs/v0.0.0/releases/">release workflow</a>.</p>
+6:X
+b:X
+b:C
+0:{"buildId":"UP2DAMZFZGDq8wVxrOQfA","data":[{"rsc":["$","$1","c",{"children":[["$","main",null,{"id":"main","className":"landing","children":[["$","p",null,{"className":"eyebrow","children":["Repository reference · v","0.0.0"]}],["$","p",null,{"children":["$","a",null,{"href":"/docs/v0.0.0/index/","children":"← Return to documentation"}]}],["$","article",null,{"className":"prose","dangerouslySetInnerHTML":{"__html":"$2"}}],"$L3"]}],null,"$L4"]}],"isPartial":"$@5","staleTime":"$6","varyParams":null},{"rsc":"$L7","isPartial":"$@8","staleTime":"$6","varyParams":null},{"rsc":"$L9","isPartial":"$@a","staleTime":"$6","varyParams":"$b"},{"rsc":"$Lc","isPartial":"$@d","staleTime":"$6","varyParams":"$b"},{"rsc":"$Le","isPartial":"$@f","staleTime":"$6","varyParams":"$b"},{"rsc":"$L10","isPartial":"$@11","staleTime":"$6","varyParams":null},{"rsc":"$L12","isPartial":"$@13","staleTime":"$6","varyParams":null}],"isUpgradeableISRFallback":false,"a":"$@14","rootVaryParams":null,"needsRuntimeRequest":"$@15"}
+16:I[75049,["/_next/static/chunks/3r0pkompf71h8.js"],"OutletBoundary"]
+17:"$Sreact.suspense"
+19:I[75049,["/_next/static/chunks/3r0pkompf71h8.js"],"ViewportBoundary"]
+1a:I[75049,["/_next/static/chunks/3r0pkompf71h8.js"],"MetadataBoundary"]
+1b:I[36064,["/_next/static/chunks/3r0pkompf71h8.js"],"default"]
+1c:I[81497,["/_next/static/chunks/3r0pkompf71h8.js"],"default"]
+:HL["/_next/static/chunks/2f820ds2jcjl9.css","style"]
+:HL["/brand/theme.css","style"]
+:HL["/brand/fonts/fonts.css","style"]
+:HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","image"]
+:HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","image"]
+3:["$","p",null,{"children":[["$","a",null,{"href":"/reference-sources/v0.0.0/contributing-md.txt","children":"Read the bundled source"}]," · ",["$","a",null,{"href":"https://github.com/shruggietech/insonic/blob/main/CONTRIBUTING.md","children":"View upstream repository source"}]]}]
+4:["$","$L16",null,{"children":["$","$17",null,{"name":"Next.MetadataOutlet","children":"$@18"}]}]
+7:["$","$1","h",{"children":[null,["$","$L19",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L1a",null,{"children":["$","$17",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"CONTRIBUTING.md (v0.0.0) | insonic"}],["$","meta","1",{"name":"description","content":"Voice archives, speaker models, and connected knowledge."}]]}]}]}],null]}]
+9:["$","$1","c",{"children":[null,["$","$L1b",null,{"parallelRouterKey":"children","template":["$","$L1c",null,{}]}]]}]
+c:["$","$1","c",{"children":[null,["$","$L1b",null,{"parallelRouterKey":"children","template":["$","$L1c",null,{}]}]]}]
+e:["$","$1","c",{"children":[null,["$","$L1b",null,{"parallelRouterKey":"children","template":["$","$L1c",null,{}]}]]}]
+10:["$","$1","c",{"children":[null,[["$","$L1b",null,{"parallelRouterKey":"children","template":["$","$L1c",null,{}]}],["$","script",null,{"src":"/docs-runtime.js","defer":true}]]]}]
+12:["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2f820ds2jcjl9.css","precedence":"next"}],["$","script","script-0",{"src":"/_next/static/chunks/3r0pkompf71h8.js","async":true}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","meta",null,{"name":"color-scheme","content":"light dark"}],["$","script",null,{"src":"/theme-init.js"}],["$","link",null,{"rel":"stylesheet","href":"/brand/theme.css"}],["$","link",null,{"rel":"stylesheet","href":"/brand/fonts/fonts.css"}],["$","link",null,{"rel":"icon","href":"/brand/icons/web/favicon.ico"}],["$","link",null,{"rel":"apple-touch-icon","href":"/brand/icons/web/favicon-180x180.png"}]]}],["$","body",null,{"children":[["$","a",null,{"className":"skip-link","href":"#main","children":"Skip to content"}],["$","header",null,{"className":"site-header","children":[["$","a",null,{"className":"brand-link","href":"/","aria-label":"insonic home","children":[["$","img",null,{"className":"theme-logo-light","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","alt":"insonic","width":"240","height":"64"}],["$","img",null,{"className":"theme-logo-dark","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","alt":"insonic","width":"240","height":"64"}]]}],["$","nav",null,{"aria-label":"Main navigation","children":[["$","a",null,{"href":"/docs/","children":"Documentation"}],["$","a",null,{"href":"https://github.com/shruggietech/insonic","children":"Repository"}],["$","button",null,{"id":"theme-toggle","className":"theme-toggle","type":"button","role":"switch","aria-label":"Dark mode","aria-checked":"false","title":"Switch to dark theme","children":[["$","svg",null,{"className":"theme-icon-moon","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","aria-hidden":"true","children":["$","path",null,{"d":"M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"}]}],["$","svg",null,{"className":"theme-icon-sun","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","aria-hidden":"true","children":[["$","circle",null,{"cx":"12","cy":"12","r":"4"}],["$","path",null,{"d":"M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"}]]}]]}]]}]]}],["$","$L1b",null,{"parallelRouterKey":"children","template":["$","$L1c",null,{}],"notFound":[["$","main",null,{"id":"main","className":"landing","children":[["$","h1",null,{"children":"Page not found"}],["$","p",null,{"children":"This documentation page is unavailable."}],["$","a",null,{"href":"/docs/","children":"Browse documentation versions"}]]}],[]]}],["$","footer",null,{"className":"site-footer","children":[["$","p",null,{"children":["A ",["$","a",null,{"href":"https://shruggie.tech/","children":"ShruggieTech"}]," project."]}],["$","p",null,{"children":"Apache 2.0. Documentation versions are published with their corresponding releases."}]]}],["$","script",null,{"src":"/site-runtime.js","defer":true}]]}]]}]]}]
+18:null
+15:true
+6:300
+6:C
+14:0
+8:"$undefined"
+a:"$undefined"
+d:"$undefined"
+f:"$undefined"
+11:"$undefined"
+13:"$undefined"
+5:"$undefined"

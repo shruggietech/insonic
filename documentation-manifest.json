@@ -1,0 +1,95 @@
+{
+  "latest": "0.0.0",
+  "versions": [
+    {
+      "version": "0.0.0",
+      "status": "specification",
+      "pages": [
+        {
+          "slug": "index",
+          "title": "Start here"
+        },
+        {
+          "slug": "product",
+          "title": "Product and requirements"
+        },
+        {
+          "slug": "architecture",
+          "title": "System architecture"
+        },
+        {
+          "slug": "technology",
+          "title": "Technology decisions"
+        },
+        {
+          "slug": "ingestion",
+          "title": "Import, metadata and dates"
+        },
+        {
+          "slug": "media",
+          "title": "Media and provenance"
+        },
+        {
+          "slug": "pipelines",
+          "title": "Pipelines and adapters"
+        },
+        {
+          "slug": "subtitles",
+          "title": "Cueson and subtitles"
+        },
+        {
+          "slug": "speakers",
+          "title": "Speakers and terminology"
+        },
+        {
+          "slug": "voice-models",
+          "title": "Speaker audio and voice models"
+        },
+        {
+          "slug": "graph",
+          "title": "Queries, timeline and graph"
+        },
+        {
+          "slug": "storage",
+          "title": "Installation and storage"
+        },
+        {
+          "slug": "schema",
+          "title": "Storage and catalog schema"
+        },
+        {
+          "slug": "contracts",
+          "title": "JSON contracts"
+        },
+        {
+          "slug": "security",
+          "title": "Credentials and data access"
+        },
+        {
+          "slug": "desktop",
+          "title": "CLI and desktop experience"
+        },
+        {
+          "slug": "development",
+          "title": "Development workflow"
+        },
+        {
+          "slug": "releases",
+          "title": "Brand, docs and releases"
+        },
+        {
+          "slug": "roadmap",
+          "title": "Delivery outcomes"
+        },
+        {
+          "slug": "glossary",
+          "title": "Glossary"
+        },
+        {
+          "slug": "changelog",
+          "title": "Changelog"
+        }
+      ]
+    }
+  ]
+}

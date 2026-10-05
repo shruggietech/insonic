@@ -1,0 +1,241 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/artifact-manifest.schema.json",
+  "title": "insonic immutable artifact manifest",
+  "description": "Portable inventory of complete immutable bytes. Hosted model handles without downloadable bytes belong in the speaker-model contract and are not invented digest entries here.",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "0.0.0",
+      "description": "Version of the insonic document contract."
+    },
+    "kind": {
+      "const": "artifact-manifest",
+      "description": "Document discriminator used by the master registry."
+    },
+    "manifest_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Stable manifest identity."
+    },
+    "workspace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Workspace scope of all artifacts in this inventory."
+    },
+    "created_at": {
+      "$ref": "common.schema.json#/$defs/utcInstant",
+      "description": "Creation audit instant, unrelated to recording origination."
+    },
+    "catalog_revision": {
+      "$ref": "common.schema.json#/$defs/revision",
+      "description": "Catalog revision represented by this inventory when captured."
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Complete artifact entries. Application validation additionally rejects repeated artifact IDs with conflicting content identity.",
+      "items": {
+        "type": "object",
+        "description": "One complete immutable artifact with portable byte identity and optional verified durable replicas.",
+        "properties": {
+          "artifact_id": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Stable artifact identity across moves and materializations."
+          },
+          "sha256": {
+            "$ref": "common.schema.json#/$defs/sha256",
+            "description": "SHA-256 of the full admitted bytes."
+          },
+          "byte_length": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Length of the complete immutable bytes."
+          },
+          "artifact_kind": {
+            "type": "string",
+            "enum": [
+              "original-media",
+              "supplied-subtitle",
+              "metadata-report",
+              "metadata-payload",
+              "derived-audio",
+              "transcript",
+              "correlation",
+              "training-manifest",
+              "training-input",
+              "training-checkpoint",
+              "speaker-model",
+              "query-result",
+              "export",
+              "other"
+            ],
+            "description": "Declared lifecycle role, separate from MIME type and model capabilities."
+          },
+          "media_type": {
+            "type": "string",
+            "minLength": 3,
+            "pattern": "^[A-Za-z0-9!#$&^_.+-]+/[A-Za-z0-9!#$&^_.+-]+(?:;[^\\r\\n]+)?$",
+            "description": "Declared content type for this artifact. Incoming MIME observations and resolver disagreements remain in metadata records."
+          },
+          "retention_class": {
+            "type": "string",
+            "enum": [
+              "durable",
+              "regenerable",
+              "export"
+            ],
+            "description": "Retention category. Referenced durable evidence is not disposable scratch."
+          },
+          "locations": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Verified durable locations when available. Availability and leases are runtime state, separate from content identity.",
+            "items": {
+              "type": "object",
+              "description": "Durable managed object location. Keys identify exact objects; credentials and cached materialization paths never appear here.",
+              "properties": {
+                "profile": {
+                  "$ref": "common.schema.json#/$defs/backendProfileReference",
+                  "description": "Profile selected to read this object."
+                },
+                "storage_type": {
+                  "type": "string",
+                  "enum": [
+                    "filesystem",
+                    "s3"
+                  ],
+                  "description": "Official storage API used for the durable location."
+                },
+                "key": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$",
+                  "description": "Managed relative filesystem key or immutable object key; no traversal or absolute path."
+                },
+                "bucket": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "S3 bucket containing the object; omitted for filesystem storage.",
+                  "examples": [
+                    "media-library"
+                  ]
+                },
+                "version_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Provider object version identifier where supported; not a content digest.",
+                  "examples": [
+                    "version-1"
+                  ]
+                },
+                "publication_receipt_id": {
+                  "$ref": "common.schema.json#/$defs/uuid",
+                  "description": "Receipt proving publication and verification before catalog admission."
+                }
+              },
+              "required": [
+                "profile",
+                "storage_type",
+                "key"
+              ],
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "storage_type": {
+                        "const": "s3",
+                        "description": "Official storage API used for the durable location."
+                      }
+                    },
+                    "required": [
+                      "storage_type"
+                    ],
+                    "type": "object"
+                  },
+                  "then": {
+                    "required": [
+                      "bucket"
+                    ],
+                    "type": "object"
+                  },
+                  "else": {
+                    "not": {
+                      "required": [
+                        "bucket"
+                      ],
+                      "type": "object"
+                    }
+                  }
+                }
+              ],
+              "additionalProperties": false
+            }
+          },
+          "producer_run_id": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Producing processing/training run when this is derived output."
+          },
+          "extensions": {
+            "$ref": "common.schema.json#/$defs/extensions",
+            "description": "Optional nonsecret artifact annotations."
+          }
+        },
+        "required": [
+          "artifact_id",
+          "sha256",
+          "byte_length",
+          "artifact_kind",
+          "media_type",
+          "retention_class"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions",
+      "description": "Optional namespaced additions preserved without changing the core contract."
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "manifest_id",
+    "workspace_id",
+    "created_at",
+    "artifacts"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "schema_version": "0.0.0",
+      "kind": "artifact-manifest",
+      "manifest_id": "44444444-4444-4444-8444-444444444444",
+      "workspace_id": "11111111-1111-4111-8111-111111111111",
+      "created_at": {
+        "iso": "2026-10-04T18:30:00Z",
+        "unix_ns": 1791138600000000000
+      },
+      "artifacts": [
+        {
+          "artifact_id": "22222222-2222-4222-8222-222222222222",
+          "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+          "byte_length": 4096,
+          "artifact_kind": "metadata-report",
+          "media_type": "application/json",
+          "retention_class": "durable",
+          "locations": [
+            {
+              "profile": {
+                "profile_id": "33333333-3333-4333-8333-333333333333",
+                "profile_revision": 1,
+                "adapter_id": "filesystem"
+              },
+              "storage_type": "filesystem",
+              "key": "objects/sha256/01/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

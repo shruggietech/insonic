@@ -1,0 +1,1222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/metadata-snapshot.schema.json",
+  "title": "insonic early media metadata snapshot",
+  "description": "Immutable capture attempt bound to original media before transformations. It preserves raw extractor reports, qualified normalized observations, MIME interpretations and recording-date precision. Missing metadata differs from unsupported extraction or failure.",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "0.0.0",
+      "description": "Version of this capture contract."
+    },
+    "kind": {
+      "const": "metadata-snapshot",
+      "description": "Document discriminator used by the master registry."
+    },
+    "snapshot_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Stable identity of the immutable capture snapshot."
+    },
+    "workspace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Workspace scope of the inspected source and observations."
+    },
+    "source_asset_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Stable inspected original asset identity."
+    },
+    "source_artifact": {
+      "$ref": "common.schema.json#/$defs/artifactReference",
+      "description": "Exact inspected original bytes, with complete digest and length.",
+      "allOf": [
+        {
+          "required": [
+            "sha256",
+            "byte_length"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "captured_at": {
+      "$ref": "common.schema.json#/$defs/utcInstant",
+      "description": "Audit instant of this extraction attempt, not the recording date."
+    },
+    "capture_state": {
+      "type": "string",
+      "enum": [
+        "captured",
+        "no-embedded-metadata",
+        "partial",
+        "unsupported",
+        "failed"
+      ],
+      "description": "Explicit capture coverage/outcome. Only successful empty extraction establishes no-embedded-metadata."
+    },
+    "extractor": {
+      "type": "object",
+      "description": "Exact capture tool/method and effective nonsecret options.",
+      "properties": {
+        "extractor_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Extractor identity such as exiftool or ffprobe."
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Exact tool version used for this attempt."
+        },
+        "options": {
+          "$ref": "common.schema.json#/$defs/nonsecretOptions",
+          "description": "Capture options, including duplicate/group preservation and explicit limits."
+        }
+      },
+      "required": [
+        "extractor_id",
+        "version",
+        "options"
+      ],
+      "additionalProperties": false
+    },
+    "reports": {
+      "type": "array",
+      "description": "Immutable complete raw report/payload references when capture produced output.",
+      "items": {
+        "$ref": "common.schema.json#/$defs/artifactReference",
+        "description": "Immutable raw extractor report or retained metadata payload. Application admission verifies complete digest and size.",
+        "allOf": [
+          {
+            "required": [
+              "sha256",
+              "byte_length"
+            ],
+            "type": "object"
+          }
+        ]
+      }
+    },
+    "observations": {
+      "type": "array",
+      "description": "Qualified normalized tag facts derived from retained raw reports.",
+      "items": {
+        "type": "object",
+        "description": "A qualified incoming tag instance and normalized interpretation. Raw source content is evidence, never runtime instructions.",
+        "properties": {
+          "observation_id": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Stable identity for this observed tag instance."
+          },
+          "family": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Metadata family such as EXIF, XMP, ID3, RIFF/BWF or container."
+          },
+          "group_path": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "description": "One instance-qualified metadata group component."
+            },
+            "description": "Ordered qualified group path retaining otherwise colliding tag names."
+          },
+          "tag": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Tag name exactly qualified by group_path."
+          },
+          "occurrence": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Zero-based duplicate instance within the qualified tag path."
+          },
+          "raw_value": {
+            "description": "Original JSON-representable value without replacing it with the normalized interpretation.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "object"
+              },
+              {
+                "type": "array"
+              }
+            ]
+          },
+          "payload_artifact": {
+            "$ref": "common.schema.json#/$defs/artifactReference",
+            "description": "Immutable raw extractor report or retained metadata payload. Application admission verifies complete digest and size.",
+            "allOf": [
+              {
+                "required": [
+                  "sha256",
+                  "byte_length"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "raw_report_pointer": {
+            "type": "string",
+            "description": "Optional pointer into a retained report, using that extractor's documented structure."
+          },
+          "normalized": {
+            "type": "object",
+            "description": "Typed normalized value with method provenance; complete raw values remain separate.",
+            "properties": {
+              "value_type": {
+                "type": "string",
+                "enum": [
+                  "text",
+                  "integer",
+                  "number",
+                  "boolean",
+                  "instant",
+                  "date",
+                  "bytes",
+                  "object",
+                  "list",
+                  "unknown"
+                ],
+                "description": "Declared logical type for value."
+              },
+              "value": {
+                "description": "Normalized value matching value_type; adapter/application validation enforces domain-specific semantics.",
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object"
+                  },
+                  {
+                    "type": "array"
+                  }
+                ]
+              },
+              "method": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Normalization resolver/method identity."
+              },
+              "method_version": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Version of the normalization method."
+              },
+              "units": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Explicit units where relevant."
+              },
+              "precision": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Declared source precision; normalization does not invent greater precision."
+              }
+            },
+            "required": [
+              "value_type",
+              "value",
+              "method",
+              "method_version"
+            ],
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "value_type": {
+                      "const": "text",
+                      "description": "Declared logical type for value."
+                    }
+                  },
+                  "required": [
+                    "value_type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "description": "Value normalized as text; raw observations remain preserved independently."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "value_type": {
+                      "const": "integer",
+                      "description": "Declared logical type for value."
+                    }
+                  },
+                  "required": [
+                    "value_type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "integer",
+                      "description": "Value normalized as integer; raw observations remain preserved independently."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "value_type": {
+                      "const": "number",
+                      "description": "Declared logical type for value."
+                    }
+                  },
+                  "required": [
+                    "value_type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "number",
+                      "description": "Value normalized as number; raw observations remain preserved independently."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "value_type": {
+                      "const": "boolean",
+                      "description": "Declared logical type for value."
+                    }
+                  },
+                  "required": [
+                    "value_type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "boolean",
+                      "description": "Value normalized as boolean; raw observations remain preserved independently."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "value_type": {
+                      "const": "instant",
+                      "description": "Declared logical type for value."
+                    }
+                  },
+                  "required": [
+                    "value_type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "$ref": "common.schema.json#/$defs/utcInstant",
+                      "description": "Value normalized as instant; raw observations remain preserved independently."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "value_type": {
+                      "const": "date",
+                      "description": "Declared logical type for value."
+                    }
+                  },
+                  "required": [
+                    "value_type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "$ref": "common.schema.json#/$defs/calendarDate",
+                      "description": "Value normalized as date; raw observations remain preserved independently."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "value_type": {
+                      "const": "bytes",
+                      "description": "Declared logical type for value."
+                    }
+                  },
+                  "required": [
+                    "value_type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "contentEncoding": "base64",
+                      "description": "Value normalized as bytes; raw observations remain preserved independently."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "value_type": {
+                      "const": "object",
+                      "description": "Declared logical type for value."
+                    }
+                  },
+                  "required": [
+                    "value_type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "object",
+                      "description": "Value normalized as object; raw observations remain preserved independently."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "value_type": {
+                      "const": "list",
+                      "description": "Declared logical type for value."
+                    }
+                  },
+                  "required": [
+                    "value_type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "description": "Value normalized as list; raw observations remain preserved independently."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "value_type": {
+                      "const": "unknown",
+                      "description": "Declared logical type for value."
+                    }
+                  },
+                  "required": [
+                    "value_type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "null",
+                      "description": "Value normalized as unknown; raw observations remain preserved independently."
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            ]
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Readable coverage or interpretation warning without credentials."
+            },
+            "description": "Uncertainty and coverage warnings associated with this observation."
+          }
+        },
+        "required": [
+          "observation_id",
+          "family",
+          "group_path",
+          "tag",
+          "occurrence"
+        ],
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "raw_value"
+            ],
+            "type": "object"
+          },
+          {
+            "required": [
+              "payload_artifact"
+            ],
+            "type": "object"
+          }
+        ]
+      }
+    },
+    "mime_resolution": {
+      "type": "object",
+      "description": "Separate source observations and selected preferred MIME interpretation, preserving disagreements.",
+      "properties": {
+        "resolver_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "MIME resolver identity."
+        },
+        "resolver_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "MIME resolver version."
+        },
+        "preferred_mime_type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Selected useful MIME type, without discarding conflicting observations."
+        },
+        "disagreement": {
+          "type": "boolean",
+          "description": "Whether observed source/type facts disagree."
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Observed file/type facts with their distinct origins.",
+          "items": {
+            "type": "object",
+            "description": "One type observation.",
+            "properties": {
+              "basis": {
+                "type": "string",
+                "enum": [
+                  "filename-extension",
+                  "acquisition-declared",
+                  "byte-detected",
+                  "extractor-file-type",
+                  "probed-container",
+                  "owner"
+                ],
+                "description": "Origin of the type fact."
+              },
+              "value": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Original observed extension/type/container value."
+              },
+              "metadata_observation_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Related detailed tag/probe observation if present."
+              }
+            },
+            "required": [
+              "basis",
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "resolver_id",
+        "resolver_version",
+        "preferred_mime_type",
+        "disagreement",
+        "observations"
+      ],
+      "additionalProperties": false
+    },
+    "origination_observations": {
+      "type": "array",
+      "description": "Recording-date observations at admission. Mutable current selection lives in catalog revisions.",
+      "items": {
+        "type": "object",
+        "description": "Immutable origination observation retaining the received/entered literal and its explicit timezone interpretation.",
+        "properties": {
+          "observation_id": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Stable date-observation identity."
+          },
+          "basis": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "embedded",
+              "interpretation-policy"
+            ],
+            "description": "Source of this recording-date assertion, separate from import/publication times."
+          },
+          "metadata_observation_id": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Supporting embedded tag observation when available."
+          },
+          "entered_literal": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Original entered or received date/time text, preserved before interpretation."
+          },
+          "precision": {
+            "type": "string",
+            "enum": [
+              "instant",
+              "day",
+              "month",
+              "year",
+              "range",
+              "unknown"
+            ],
+            "description": "Precision actually supplied by the owner/source; date-only inputs are not recording instants."
+          },
+          "interpretation_state": {
+            "type": "string",
+            "enum": [
+              "resolved",
+              "date-only",
+              "approximate",
+              "ambiguous",
+              "nonexistent",
+              "invalid",
+              "unknown"
+            ],
+            "description": "Resolution result, including explicit DST/parse uncertainty."
+          },
+          "wall_time": {
+            "$ref": "common.schema.json#/$defs/wallTimestamp",
+            "description": "Parsed wall timestamp, including a supplied offset when present."
+          },
+          "timezone": {
+            "$ref": "common.schema.json#/$defs/timezone",
+            "description": "Captured effective IANA zone or offset; the unresolved selector local is not valid in an immutable interpreted snapshot.",
+            "allOf": [
+              {
+                "not": {
+                  "const": "local"
+                }
+              }
+            ]
+          },
+          "zone_source": {
+            "type": "string",
+            "enum": [
+              "entered",
+              "embedded",
+              "import-policy",
+              "unknown"
+            ],
+            "description": "Basis for the effective zone."
+          },
+          "resolved_offset": {
+            "type": "string",
+            "pattern": "^[+-](?:(?:0[0-9]|1[0-3]):[0-5][0-9]|14:00)$",
+            "description": "Numeric offset selected for the interpreted wall time."
+          },
+          "timezone_database_version": {
+            "type": "string",
+            "minLength": 1,
+            "description": "IANA rule database version used for regional-zone interpretation."
+          },
+          "calendar_date": {
+            "$ref": "common.schema.json#/$defs/calendarDate",
+            "description": "Normalized date with day precision, without inventing a known recording time."
+          },
+          "calendar_month": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])$",
+            "description": "Normalized calendar month when day precision is unavailable."
+          },
+          "calendar_year": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9999,
+            "description": "Normalized year when month/day precision is unavailable."
+          },
+          "utc_instant": {
+            "$ref": "common.schema.json#/$defs/utcInstant",
+            "description": "Resolved precise recording instant, present only for instant precision."
+          },
+          "bounds": {
+            "type": "object",
+            "description": "Optional UTC interpretation bounds for an approximate period. Application checks ordering and preserves the calendar precision.",
+            "properties": {
+              "earliest": {
+                "$ref": "common.schema.json#/$defs/utcInstant",
+                "description": "Earliest supported UTC bound."
+              },
+              "latest": {
+                "$ref": "common.schema.json#/$defs/utcInstant",
+                "description": "Latest supported UTC bound."
+              }
+            },
+            "additionalProperties": false,
+            "anyOf": [
+              {
+                "required": [
+                  "earliest"
+                ],
+                "type": "object"
+              },
+              {
+                "required": [
+                  "latest"
+                ],
+                "type": "object"
+              }
+            ]
+          },
+          "policy_version": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Date candidate/timezone interpretation policy version."
+          },
+          "assumption_flags": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Explicit assumption applied during interpretation."
+            },
+            "description": "Visible assumptions such as a batch-timezone interpretation."
+          }
+        },
+        "required": [
+          "observation_id",
+          "basis",
+          "entered_literal",
+          "precision",
+          "interpretation_state",
+          "policy_version"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "precision": {
+                  "const": "day",
+                  "description": "Declared source precision; normalization does not invent greater precision."
+                }
+              },
+              "required": [
+                "precision"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "required": [
+                "calendar_date"
+              ],
+              "not": {
+                "required": [
+                  "utc_instant"
+                ],
+                "type": "object"
+              },
+              "type": "object"
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "precision": {
+                  "const": "month",
+                  "description": "Declared source precision; normalization does not invent greater precision."
+                }
+              },
+              "required": [
+                "precision"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "required": [
+                "calendar_month"
+              ],
+              "not": {
+                "required": [
+                  "utc_instant"
+                ],
+                "type": "object"
+              },
+              "type": "object"
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "precision": {
+                  "const": "year",
+                  "description": "Declared source precision; normalization does not invent greater precision."
+                }
+              },
+              "required": [
+                "precision"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "required": [
+                "calendar_year"
+              ],
+              "not": {
+                "required": [
+                  "utc_instant"
+                ],
+                "type": "object"
+              },
+              "type": "object"
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "precision": {
+                  "const": "range",
+                  "description": "Declared source precision; normalization does not invent greater precision."
+                }
+              },
+              "required": [
+                "precision"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "required": [
+                "bounds"
+              ],
+              "not": {
+                "required": [
+                  "utc_instant"
+                ],
+                "type": "object"
+              },
+              "type": "object"
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "interpretation_state": {
+                  "const": "resolved",
+                  "description": "Resolution result, including explicit DST/parse uncertainty."
+                }
+              },
+              "required": [
+                "interpretation_state"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "precision": {
+                  "const": "instant",
+                  "description": "Declared source precision; normalization does not invent greater precision."
+                }
+              },
+              "required": [
+                "utc_instant"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "interpretation_state": {
+                  "enum": [
+                    "ambiguous",
+                    "nonexistent",
+                    "invalid",
+                    "unknown"
+                  ],
+                  "description": "Resolution result, including explicit DST/parse uncertainty."
+                }
+              },
+              "required": [
+                "interpretation_state"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "utc_instant"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "precision": {
+                  "not": {
+                    "const": "instant"
+                  },
+                  "description": "Declared source precision; normalization does not invent greater precision."
+                }
+              },
+              "required": [
+                "precision"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "not": {
+                "required": [
+                  "utc_instant"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "interpretation_state": {
+                  "const": "date-only",
+                  "description": "Resolution result, including explicit DST/parse uncertainty."
+                }
+              },
+              "required": [
+                "interpretation_state"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "precision": {
+                  "enum": [
+                    "day",
+                    "month",
+                    "year"
+                  ],
+                  "description": "Declared source precision; normalization does not invent greater precision."
+                }
+              },
+              "type": "object"
+            }
+          }
+        ]
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "description": "Capture completeness details without claiming every format has EXIF.",
+      "properties": {
+        "families": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Metadata family inspected."
+          },
+          "uniqueItems": true,
+          "description": "Families actually inspected."
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "Whether limits omitted source fields/payloads."
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Readable extraction limitation or failure description."
+          },
+          "description": "Recorded coverage and error warnings."
+        }
+      },
+      "required": [
+        "families",
+        "truncated",
+        "warnings"
+      ],
+      "additionalProperties": false
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions",
+      "description": "Optional namespaced nonsecret capture annotations."
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "snapshot_id",
+    "workspace_id",
+    "source_asset_id",
+    "source_artifact",
+    "captured_at",
+    "capture_state",
+    "extractor",
+    "reports",
+    "observations",
+    "coverage"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "capture_state": {
+            "enum": [
+              "captured",
+              "no-embedded-metadata",
+              "partial"
+            ],
+            "description": "Explicit capture coverage/outcome. Only successful empty extraction establishes no-embedded-metadata."
+          }
+        },
+        "required": [
+          "capture_state"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "reports": {
+            "minItems": 1,
+            "description": "Immutable complete raw report/payload references when capture produced output.",
+            "type": "array"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "capture_state": {
+            "const": "no-embedded-metadata",
+            "description": "Explicit capture coverage/outcome. Only successful empty extraction establishes no-embedded-metadata."
+          }
+        },
+        "required": [
+          "capture_state"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "observations": {
+            "maxItems": 0,
+            "description": "Qualified normalized tag facts derived from retained raw reports.",
+            "type": "array"
+          },
+          "coverage": {
+            "properties": {
+              "truncated": {
+                "const": false,
+                "description": "Whether limits omitted source fields/payloads."
+              }
+            },
+            "description": "Capture completeness details without claiming every format has EXIF.",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "capture_state": {
+            "const": "captured",
+            "description": "Explicit capture coverage/outcome. Only successful empty extraction establishes no-embedded-metadata."
+          }
+        },
+        "required": [
+          "capture_state"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "truncated": {
+                "const": false,
+                "description": "Whether limits omitted source fields/payloads."
+              }
+            },
+            "description": "Capture completeness details without claiming every format has EXIF.",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "truncated": {
+                "const": true,
+                "description": "Whether limits omitted source fields/payloads."
+              }
+            },
+            "required": [
+              "truncated"
+            ],
+            "description": "Capture completeness details without claiming every format has EXIF.",
+            "type": "object"
+          }
+        },
+        "required": [
+          "coverage"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "capture_state": {
+            "const": "partial",
+            "description": "Explicit capture coverage/outcome. Only successful empty extraction establishes no-embedded-metadata."
+          }
+        },
+        "type": "object"
+      }
+    }
+  ],
+  "examples": [
+    {
+      "schema_version": "0.0.0",
+      "kind": "metadata-snapshot",
+      "snapshot_id": "77777777-7777-4777-8777-777777777777",
+      "workspace_id": "11111111-1111-4111-8111-111111111111",
+      "source_asset_id": "88888888-8888-4888-8888-888888888888",
+      "source_artifact": {
+        "artifact_id": "99999999-9999-4999-8999-999999999999",
+        "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "byte_length": 1048576
+      },
+      "captured_at": {
+        "iso": "2026-10-04T18:31:00Z",
+        "unix_ns": 1791138660000000000
+      },
+      "capture_state": "captured",
+      "extractor": {
+        "extractor_id": "metadata-adapter",
+        "version": "1",
+        "options": {
+          "qualified_groups": true
+        }
+      },
+      "reports": [
+        {
+          "artifact_id": "22222222-2222-4222-8222-222222222222",
+          "sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+          "byte_length": 4096
+        }
+      ],
+      "observations": [
+        {
+          "observation_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          "family": "container",
+          "group_path": [
+            "QuickTime",
+            "Movie"
+          ],
+          "tag": "CreateDate",
+          "occurrence": 0,
+          "raw_value": "2026:10:04 14:30:00",
+          "normalized": {
+            "value_type": "text",
+            "value": "2026:10:04 14:30:00",
+            "method": "preserve-literal",
+            "method_version": "1"
+          }
+        }
+      ],
+      "mime_resolution": {
+        "resolver_id": "media-type",
+        "resolver_version": "1",
+        "preferred_mime_type": "video/mp4",
+        "disagreement": false,
+        "observations": [
+          {
+            "basis": "byte-detected",
+            "value": "video/mp4"
+          }
+        ]
+      },
+      "origination_observations": [
+        {
+          "observation_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          "basis": "owner",
+          "entered_literal": "2026-10-04",
+          "precision": "day",
+          "interpretation_state": "date-only",
+          "calendar_date": "2026-10-04",
+          "timezone": "America/New_York",
+          "zone_source": "import-policy",
+          "policy_version": "1"
+        }
+      ],
+      "coverage": {
+        "families": [
+          "container"
+        ],
+        "truncated": false,
+        "warnings": []
+      }
+    }
+  ]
+}

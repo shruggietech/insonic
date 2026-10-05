@@ -1,0 +1,182 @@
+1:"$Sreact.fragment"
+2:T3d8f,<h1 id="installation-and-storage">Installation and storage</h1>
+<h2 id="application-and-user-data">Application and user data</h2>
+<p>Install executable code in ordinary platform application locations. Never store user media inside the installed application directory or the source checkout. App upgrades replace code and bundled docs while preserving user workspaces and settings. An uninstall removes application code; deletion of user data is a separate explicit choice.</p>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>GUI and CLI package location</th>
+<th>Default user configuration and state</th>
+<th>Cache and model downloads</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Windows</td>
+<td>Per-user <code>%LOCALAPPDATA%/Programs/insonic/</code>; CLI-only can use the same package root</td>
+<td><code>%APPDATA%/insonic/</code> for settings, <code>%LOCALAPPDATA%/insonic/</code> for workspace registry and local state</td>
+<td><code>%LOCALAPPDATA%/insonic/Cache/</code> and <code>Models/</code></td>
+</tr>
+<tr>
+<td>macOS</td>
+<td><code>~/Applications/insonic.app</code> or <code>/Applications/insonic.app</code>; CLI installed from the same package with an explicit PATH option</td>
+<td><code>~/Library/Application Support/insonic/</code></td>
+<td><code>~/Library/Caches/insonic/</code> for disposable data; durable models under Application Support</td>
+</tr>
+<tr>
+<td>Linux</td>
+<td>Appropriate distro/portable GUI package; user CLI under <code>~/.local/bin/</code> with runtime assets under <code>~/.local/lib/insonic/</code></td>
+<td>XDG config/data/state directories with <code>insonic/</code> children</td>
+<td>XDG cache for disposable data; XDG data for durable models</td>
+</tr>
+</tbody>
+</table>
+<p>Installers use these user-space locations. Windows PATH changes and macOS CLI links are installer options with clear effects. The GUI always installs a usable CLI even when the user declines a global PATH entry. System-wide installation is optional; normal local use does not require elevated privileges.</p>
+<h2 id="three-independently-selected-profiles">Three independently selected profiles</h2>
+<p>A workspace selects an artifact storage profile, catalog profile and graph profile. The default is local filesystem, SQLite and LadybugDB. Generic S3-compliant providers, including user-run filesystem-backed S3 endpoints, PostgreSQL and ArcadeDB are supported alternatives. A local S3 endpoint still uses the S3 adapter; its underlying filesystem is not exposed as a second source of truth.</p>
+<p>Profiles contain adapter ID/version, nonsecret options and credential references. Guided configuration asks for filesystem location or S3 endpoint/bucket/prefix/region/addressing style, PostgreSQL host/database/TLS settings, and graph location or ArcadeDB endpoint/database. Credentials use the <a href="/docs/v0.0.0/security/">secrets service</a>. A preflight describes reachability, permissions and capabilities without uploading library content or modifying an existing database. Initial schema creation and its target are part of the explicit workspace-create command. Selecting a backend once does not require repeated human approval for every normal write.</p>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Default</th>
+<th>Fully supported alternative</th>
+<th>Required behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Artifact storage</td>
+<td>Local filesystem</td>
+<td>Generic S3 API, local or remote</td>
+<td>Immutable publish, stat/ranged read, materialization, verification, retention, export and recovery</td>
+</tr>
+<tr>
+<td>Operational catalog</td>
+<td>SQLite</td>
+<td>PostgreSQL</td>
+<td>All logical records, jobs, settings, metadata, associations, revisions, leases, outbox, migrations and backup/restore</td>
+</tr>
+<tr>
+<td>Graph projection</td>
+<td>LadybugDB</td>
+<td>ArcadeDB</td>
+<td>Projection/rebuild, evidence queries, saved graph views, native dialect queries and recovery</td>
+</tr>
+</tbody>
+</table>
+<p>No backend is silently substituted after failure. The local defaults need no server administration. Remote alternatives require the user's configured service and credentials; their installation/deployment guidance is separate from normal desktop installation.</p>
+<h2 id="workspace-and-artifact-layout">Workspace and artifact layout</h2>
+<p>A workspace has a stable identity and a user-selected local control directory. First run suggests a location and estimates capacity. Several workspaces can share downloaded base models while keeping media, speaker models and catalogs logically separate. A remote artifact store or catalog does not eliminate local scratch, decoding materializations or the control directory.</p>
+<table>
+<thead>
+<tr>
+<th>Local workspace path</th>
+<th>Authority and retention</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>workspace.json</code></td>
+<td>Workspace ID and nonsecret backend/profile/schema references</td>
+</tr>
+<tr>
+<td><code>catalog.sqlite</code></td>
+<td>Authoritative catalog when SQLite is selected; not a second ledger for PostgreSQL</td>
+</tr>
+<tr>
+<td><code>graph/</code></td>
+<td>LadybugDB projection when selected; no live ArcadeDB database copy</td>
+</tr>
+<tr>
+<td><code>objects/sha256/&lt;prefix&gt;/&lt;digest&gt;</code></td>
+<td>Default filesystem store for original, derived, metadata, subtitle, training and model artifacts</td>
+</tr>
+<tr>
+<td><code>exports/</code></td>
+<td>User-requested portable outputs</td>
+</tr>
+<tr>
+<td><code>logs/</code></td>
+<td>Bounded, rotated operational logs</td>
+</tr>
+<tr>
+<td><code>tmp/</code></td>
+<td>Incomplete acquisitions and job scratch</td>
+</tr>
+<tr>
+<td><code>cache/</code></td>
+<td>Verified disposable materializations of remote/external objects</td>
+</tr>
+</tbody>
+</table>
+<p>Logical artifact records contain a stable ID, SHA-256 digest, byte length and content type observations. Separate location records identify the storage profile and managed key, plus bucket/version ID when applicable. Paths of local cached copies are runtime materializations with leases, not permanent artifact identities. A source audio clip and its model output stay associated with their speaker through catalog IDs even if objects move to another provider. See the <a href="/docs/v0.0.0/schema/">schema</a> and <a href="/docs/v0.0.0/voice-models/">voice model lifecycle</a>.</p>
+<p>Filesystem keys are relative to the managed root. Explicit external file references remain distinguishable from managed copies. Moving a local workspace rebinds its root and validates bytes without rewriting Cueson documents. Reject traversal and ambiguous portable paths. Follow symlinks only under the documented import policy, without allowing archive extraction outside its destination. Arbitrary filenames and provider URLs are never interpolated into a shell command.</p>
+<figure class="diagram"><div class="mermaid" role="img" aria-label="System diagram">flowchart TB
+  Install[CLI, desktop wrapper, tools and release docs] --&gt; Registry[Per-user settings and workspace registry]
+  Registry --&gt; Control[Local workspace control directory]
+  Control --&gt; Catalog[SQLite file or PostgreSQL profile]
+  Control --&gt; Graph[LadybugDB files or ArcadeDB profile]
+  Control --&gt; Objects[Filesystem root or S3 bucket and prefix]
+  Control --&gt; Cache[Scratch and leased materializations]
+  Registry --&gt; Models[Shared downloaded base models by digest]
+  Objects --&gt; SpeakerModels[Durable trained speaker-model artifacts]
+</div><details><summary>Diagram source</summary><pre><code>flowchart TB
+  Install[CLI, desktop wrapper, tools and release docs] --&gt; Registry[Per-user settings and workspace registry]
+  Registry --&gt; Control[Local workspace control directory]
+  Control --&gt; Catalog[SQLite file or PostgreSQL profile]
+  Control --&gt; Graph[LadybugDB files or ArcadeDB profile]
+  Control --&gt; Objects[Filesystem root or S3 bucket and prefix]
+  Control --&gt; Cache[Scratch and leased materializations]
+  Registry --&gt; Models[Shared downloaded base models by digest]
+  Objects --&gt; SpeakerModels[Durable trained speaker-model artifacts]
+</code></pre></details></figure><h2 id="artifact-adapter-and-s3-guarantees">Artifact adapter and S3 guarantees</h2>
+<p>The artifact adapter contract includes <code>Capabilities</code>, <code>Stat</code>, <code>OpenRange</code>, <code>PublishImmutable</code>, <code>Materialize</code>, <code>Verify</code> and <code>DeleteUnreferenced</code>. Publication returns a receipt with storage profile, final key/version, digest, size and verification method. Capabilities declare conditional create, ranged reads, multipart/resume, provider checksum semantics, version IDs and read-after-write behavior. They are probed or qualified for the selected implementation, not inferred from an S3-compatible label.</p>
+<p>Amazon S3 documents <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/conditional-writes.html">conditional writes</a> and <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html#ConsistencyModel">strong read-after-write consistency</a>; generic providers must establish their own equivalent behavior. Multipart ETags are <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity-upload.html">not whole-object content hashes</a>. insonic computes its own digest and records provider checksums separately.</p>
+<p>For filesystem output, stage on the destination filesystem, hash and flush, then atomically publish without replacing a different object. For S3, complete an upload at an immutable key and verify readable final bytes before committing a catalog reference. Use conditional create when verified; otherwise use a unique attempt key so no existing admitted object is overwritten. Content deduplication is a catalog decision. Where trustworthy end-to-end provider checksums are unavailable, read back and hash the completed object. For a provider with delayed visibility, wait within a bounded policy and leave the publication pending if visibility cannot be proven. Object listings alone never determine whether an artifact exists.</p>
+<p>Adapters support streaming and bounded local materialization for tools needing seekable files. Unknown remote results are reconciled by exact key/version and digest. Incomplete multipart uploads retain attempt identity and can be resumed or aborted. Cleanup waits for active leases and a grace period, then atomically claims retirement in the catalog while checking retention references. That claim prevents new reference/materialization admission until retirement is reconciled. Delete only the claimed object key/version/generation; a read-then-delete reference check alone is insufficient. Do not reuse remote keys while an earlier delete can still finish. Filesystem publication/deletion shares the lifecycle lock. Historical provenance retains retired/missing availability, and source media, metadata reports, training snapshots and models are never treated as disposable cache.</p>
+<h2 id="catalog-adapter-and-postgresql-ownership">Catalog adapter and PostgreSQL ownership</h2>
+<p>The catalog contract provides typed reads, transactional <code>CommitRevision</code>, immutable evidence admission, job claim/renew/complete, workspace lease acquisition/renewal, outbox claim/acknowledgement, migrations, consistent snapshot export and restore. SQL is confined to each backend implementation. Both backends enforce the <a href="/docs/v0.0.0/schema/">same logical constraints</a>, pagination and revision behavior. SQLite enables foreign keys for every connection, uses its transactional writer model and keeps its file on a supported local filesystem. A live SQLite catalog is not placed in S3 or shared as a network object.</p>
+<p>PostgreSQL uses a dedicated configured database/schema and least-privilege application role. Setup distinguishes runtime rights from migration/administration rights. Remote TLS verifies the service identity by default; a configured local service can explicitly use its local transport. PostgreSQL documents <a href="https://www.postgresql.org/docs/current/libpq-ssl.html">certificate/hostname verification</a>. Host credentials, passwords and full connection strings with secrets do not enter exports or logs.</p>
+<p>Each catalog query includes workspace scope. Transactions use expected revisions to reject lost updates. Workspace-scoped coordinator, migration and projection leases store owner ID, generation and expiry; PostgreSQL uses server time and short row-locking transactions to acquire/renew them. Jobs may use its <a href="https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE">queue-oriented <code>SKIP LOCKED</code> support</a>, followed by recorded claim generations. Leases are not a database-wide lock. Work outside a transaction must prove its generation again before publication; paused or disconnected workers cannot acknowledge a replacement worker's result.</p>
+<p>Transactions never remain open during audio decoding, AI calls or model training. Retry serialization/deadlock failures only around idempotent transactional operations. A lost commit response triggers operation-ID reconciliation. PostgreSQL selection requires the full catalog path, including restoration and failure recovery; it is not considered supported after only a successful connection test.</p>
+<h2 id="capacity-migration-backup-and-recovery">Capacity, migration, backup and recovery</h2>
+<p>Before a managed copy, derivative or training job, estimate local scratch and final-store capacity separately. For object services with no capacity API, report that distinction and handle quota failures. Cache cleanup never removes leased inputs. Base model removal lists dependent presets. Trained speaker models are durable artifacts with their own retention rules and are not grouped into downloadable-model cache cleanup.</p>
+<p>Backups bind a consistent catalog snapshot to an artifact manifest at one catalog revision. Use SQLite's <a href="https://www.sqlite.org/backup.html">online backup API</a> or the PostgreSQL adapter's consistent snapshot/export path; neither alone backs up media/model bytes. A self-contained backup copies and verifies the referenced immutable bytes into retained backup storage. A reference-only backup records exact object versions and its dependence on the original store. Catalog retention references prevent insonic cleanup from deleting pinned objects for the backup's lifetime; provider retention must independently preserve those versions. A version ID alone identifies bytes without guaranteeing their availability. Record graph checkpoints and either take a coordinated graph snapshot or rebuild it from accepted evidence on restore. Validate schema compatibility, hashes and external references before activating a restored workspace.</p>
+<p>Backend migration exports typed records and immutable manifests, validates destination constraints and bytes, then switches profiles at a recorded catalog revision. Pause affected writes under the workspace migration lease. Retain the old authority until the destination is verified; migration never creates two writable catalogs. Exact SQL, index and graph DDL differ by backend, while logical schema version and application behavior remain aligned. Unsupported newer schemas open with an actionable incompatibility message and are not downgraded silently.</p>
+<p>Catalog and artifact adapters must pass interrupted publication, reconnect, stale-lease and round-trip migration checks on filesystem/SQLite and S3/PostgreSQL. Graph adapters apply the corresponding acceptance matrix. Normal pull-request checks use bounded fixtures; version-qualified backend integration checks run for the affected adapter without forcing every prose edit through heavyweight services.</p>
+7:X
+c:X
+c:C
+0:{"buildId":"UP2DAMZFZGDq8wVxrOQfA","data":[{"rsc":["$","$1","c",{"children":[["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"className":"docs-sidebar","children":["$","nav",null,{"aria-label":"Documentation v0.0.0","children":[["$","a",null,{"className":"version-label","href":"/docs/","children":["v","0.0.0"," · ","specification"]}],["$","ul",null,{"children":[["$","li","index",{"children":["$","a",null,{"href":"/docs/v0.0.0/index/","children":"Start here"}]}],["$","li","product",{"children":["$","a",null,{"href":"/docs/v0.0.0/product/","children":"Product and requirements"}]}],["$","li","architecture",{"children":["$","a",null,{"href":"/docs/v0.0.0/architecture/","children":"System architecture"}]}],["$","li","technology",{"children":["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisions"}]}],["$","li","ingestion",{"children":["$","a",null,{"href":"/docs/v0.0.0/ingestion/","children":"Import, metadata and dates"}]}],["$","li","media",{"children":["$","a",null,{"href":"/docs/v0.0.0/media/","children":"Media and provenance"}]}],["$","li","pipelines",{"children":["$","a",null,{"href":"/docs/v0.0.0/pipelines/","children":"Pipelines and adapters"}]}],["$","li","subtitles",{"children":["$","a",null,{"href":"/docs/v0.0.0/subtitles/","children":"Cueson and subtitles"}]}],["$","li","speakers",{"children":["$","a",null,{"href":"/docs/v0.0.0/speakers/","children":"Speakers and terminology"}]}],["$","li","voice-models",{"children":["$","a",null,{"href":"/docs/v0.0.0/voice-models/","children":"Speaker audio and voice models"}]}],["$","li","graph",{"children":["$","a",null,{"href":"/docs/v0.0.0/graph/","children":"Queries, timeline and graph"}]}],["$","li","storage",{"children":["$","a",null,{"href":"/docs/v0.0.0/storage/","aria-current":"page","children":"Installation and storage"}]}],["$","li","schema",{"children":["$","a",null,{"href":"/docs/v0.0.0/schema/","children":"Storage and catalog schema"}]}],["$","li","contracts",{"children":["$","a",null,{"href":"/docs/v0.0.0/contracts/","children":"JSON contracts"}]}],["$","li","security",{"children":["$","a",null,{"href":"/docs/v0.0.0/security/","children":"Credentials and data access"}]}],["$","li","desktop",{"children":["$","a",null,{"href":"/docs/v0.0.0/desktop/","children":"CLI and desktop experience"}]}],["$","li","development",{"children":["$","a",null,{"href":"/docs/v0.0.0/development/","children":"Development workflow"}]}],["$","li","releases",{"children":["$","a",null,{"href":"/docs/v0.0.0/releases/","children":"Brand, docs and releases"}]}],["$","li","roadmap",{"children":["$","a",null,{"href":"/docs/v0.0.0/roadmap/","children":"Delivery outcomes"}]}],["$","li","glossary",{"children":["$","a",null,{"href":"/docs/v0.0.0/glossary/","children":"Glossary"}]}],["$","li","changelog",{"children":["$","a",null,{"href":"/docs/v0.0.0/changelog/","children":"Changelog"}]}]]}]]}]}],["$","main",null,{"id":"main","className":"docs-main","children":[["$","p",null,{"className":"eyebrow","children":["insonic · v","0.0.0"]}],["$","article",null,{"className":"prose","dangerouslySetInnerHTML":{"__html":"$2"}}],"$L3"]}],"$L4"]}],null,"$L5"]}],"isPartial":"$@6","staleTime":"$7","varyParams":null},{"rsc":"$L8","isPartial":"$@9","staleTime":"$7","varyParams":null},{"rsc":"$La","isPartial":"$@b","staleTime":"$7","varyParams":"$c"},{"rsc":"$Ld","isPartial":"$@e","staleTime":"$7","varyParams":"$c"},{"rsc":"$Lf","isPartial":"$@10","staleTime":"$7","varyParams":null},{"rsc":"$L11","isPartial":"$@12","staleTime":"$7","varyParams":null}],"isUpgradeableISRFallback":false,"a":"$@13","rootVaryParams":null,"needsRuntimeRequest":"$@14"}
+15:I[75049,["/_next/static/chunks/3r0pkompf71h8.js"],"OutletBoundary"]
+16:"$Sreact.suspense"
+18:I[75049,["/_next/static/chunks/3r0pkompf71h8.js"],"ViewportBoundary"]
+19:I[75049,["/_next/static/chunks/3r0pkompf71h8.js"],"MetadataBoundary"]
+1a:I[36064,["/_next/static/chunks/3r0pkompf71h8.js"],"default"]
+1b:I[81497,["/_next/static/chunks/3r0pkompf71h8.js"],"default"]
+:HL["/_next/static/chunks/2f820ds2jcjl9.css","style"]
+:HL["/brand/theme.css","style"]
+:HL["/brand/fonts/fonts.css","style"]
+:HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","image"]
+:HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","image"]
+3:["$","nav",null,{"className":"page-navigation","aria-label":"Previous and next page","children":[["$","a",null,{"href":"/docs/v0.0.0/graph/","children":["← ","Queries, timeline and graph"]}],["$","a",null,{"href":"/docs/v0.0.0/schema/","children":["Storage and catalog schema"," →"]}]]}]
+4:["$","aside",null,{"className":"table-of-contents","children":["$","nav",null,{"aria-label":"On this page","children":[["$","h2",null,{"children":"On this page"}],["$","ul",null,{"children":[["$","li","application-and-user-data",{"children":["$","a",null,{"href":"#application-and-user-data","children":"Application and user data"}]}],["$","li","three-independently-selected-profiles",{"children":["$","a",null,{"href":"#three-independently-selected-profiles","children":"Three independently selected profiles"}]}],["$","li","workspace-and-artifact-layout",{"children":["$","a",null,{"href":"#workspace-and-artifact-layout","children":"Workspace and artifact layout"}]}],["$","li","artifact-adapter-and-s3-guarantees",{"children":["$","a",null,{"href":"#artifact-adapter-and-s3-guarantees","children":"Artifact adapter and S3 guarantees"}]}],["$","li","catalog-adapter-and-postgresql-ownership",{"children":["$","a",null,{"href":"#catalog-adapter-and-postgresql-ownership","children":"Catalog adapter and PostgreSQL ownership"}]}],["$","li","capacity-migration-backup-and-recovery",{"children":["$","a",null,{"href":"#capacity-migration-backup-and-recovery","children":"Capacity, migration, backup and recovery"}]}]]}]]}]}]
+5:["$","$L15",null,{"children":["$","$16",null,{"name":"Next.MetadataOutlet","children":"$@17"}]}]
+8:["$","$1","h",{"children":[null,["$","$L18",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L19",null,{"children":["$","$16",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Installation and storage (v0.0.0) | insonic"}],["$","meta","1",{"name":"description","content":"Voice archives, speaker models, and connected knowledge."}]]}]}]}],null]}]
+a:["$","$1","c",{"children":[null,["$","$L1a",null,{"parallelRouterKey":"children","template":["$","$L1b",null,{}]}]]}]
+d:["$","$1","c",{"children":[null,["$","$L1a",null,{"parallelRouterKey":"children","template":["$","$L1b",null,{}]}]]}]
+f:["$","$1","c",{"children":[null,[["$","$L1a",null,{"parallelRouterKey":"children","template":["$","$L1b",null,{}]}],["$","script",null,{"src":"/docs-runtime.js","defer":true}]]]}]
+11:["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2f820ds2jcjl9.css","precedence":"next"}],["$","script","script-0",{"src":"/_next/static/chunks/3r0pkompf71h8.js","async":true}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","meta",null,{"name":"color-scheme","content":"light dark"}],["$","script",null,{"src":"/theme-init.js"}],["$","link",null,{"rel":"stylesheet","href":"/brand/theme.css"}],["$","link",null,{"rel":"stylesheet","href":"/brand/fonts/fonts.css"}],["$","link",null,{"rel":"icon","href":"/brand/icons/web/favicon.ico"}],["$","link",null,{"rel":"apple-touch-icon","href":"/brand/icons/web/favicon-180x180.png"}]]}],["$","body",null,{"children":[["$","a",null,{"className":"skip-link","href":"#main","children":"Skip to content"}],["$","header",null,{"className":"site-header","children":[["$","a",null,{"className":"brand-link","href":"/","aria-label":"insonic home","children":[["$","img",null,{"className":"theme-logo-light","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","alt":"insonic","width":"240","height":"64"}],["$","img",null,{"className":"theme-logo-dark","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","alt":"insonic","width":"240","height":"64"}]]}],["$","nav",null,{"aria-label":"Main navigation","children":[["$","a",null,{"href":"/docs/","children":"Documentation"}],["$","a",null,{"href":"https://github.com/shruggietech/insonic","children":"Repository"}],["$","button",null,{"id":"theme-toggle","className":"theme-toggle","type":"button","role":"switch","aria-label":"Dark mode","aria-checked":"false","title":"Switch to dark theme","children":[["$","svg",null,{"className":"theme-icon-moon","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","aria-hidden":"true","children":["$","path",null,{"d":"M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"}]}],["$","svg",null,{"className":"theme-icon-sun","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","aria-hidden":"true","children":[["$","circle",null,{"cx":"12","cy":"12","r":"4"}],["$","path",null,{"d":"M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"}]]}]]}]]}]]}],["$","$L1a",null,{"parallelRouterKey":"children","template":["$","$L1b",null,{}],"notFound":[["$","main",null,{"id":"main","className":"landing","children":[["$","h1",null,{"children":"Page not found"}],["$","p",null,{"children":"This documentation page is unavailable."}],["$","a",null,{"href":"/docs/","children":"Browse documentation versions"}]]}],[]]}],["$","footer",null,{"className":"site-footer","children":[["$","p",null,{"children":["A ",["$","a",null,{"href":"https://shruggie.tech/","children":"ShruggieTech"}]," project."]}],["$","p",null,{"children":"Apache 2.0. Documentation versions are published with their corresponding releases."}]]}],["$","script",null,{"src":"/site-runtime.js","defer":true}]]}]]}]]}]
+17:null
+14:true
+7:300
+7:C
+13:0
+9:"$undefined"
+b:"$undefined"
+e:"$undefined"
+10:"$undefined"
+12:"$undefined"
+6:"$undefined"

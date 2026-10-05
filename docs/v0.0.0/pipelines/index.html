@@ -1,0 +1,132 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preload" href="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg" as="image"/><link rel="preload" href="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg" as="image"/><link rel="stylesheet" href="../../../_next/static/chunks/2f820ds2jcjl9.css" data-precedence="next"/><link rel="preload" href="../../../brand/theme.css" as="style"/><link rel="preload" href="../../../brand/fonts/fonts.css" as="style"/><meta name="color-scheme" content="light dark"/><link rel="icon" href="../../../brand/icons/web/favicon.ico"/><link rel="apple-touch-icon" href="../../../brand/icons/web/favicon-180x180.png"/><title>Pipelines and adapters (v0.0.0) | insonic</title><meta name="description" content="Voice archives, speaker models, and connected knowledge."/><script src="../../../theme-init.js"></script><link rel="stylesheet" href="../../../brand/theme.css"/><link rel="stylesheet" href="../../../brand/fonts/fonts.css"/></head><body><div hidden=""><!--$--><!--/$--></div><a class="skip-link" href="#main">Skip to content</a><header class="site-header"><a class="brand-link" href="../../../index.html" aria-label="insonic home"><img class="theme-logo-light" src="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg" alt="insonic" width="240" height="64"/><img class="theme-logo-dark" src="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg" alt="insonic" width="240" height="64"/></a><nav aria-label="Main navigation"><a href="../../index.html">Documentation</a><a href="https://github.com/shruggietech/insonic">Repository</a><button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-label="Dark mode" aria-checked="false" title="Switch to dark theme"><svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"></path></svg><svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"></path></svg></button></nav></header><div class="docs-layout"><aside class="docs-sidebar"><nav aria-label="Documentation v0.0.0"><a class="version-label" href="../../index.html">v<!-- -->0.0.0<!-- --> · <!-- -->specification</a><ul><li><a href="../index/index.html">Start here</a></li><li><a href="../product/index.html">Product and requirements</a></li><li><a href="../architecture/index.html">System architecture</a></li><li><a href="../technology/index.html">Technology decisions</a></li><li><a href="../ingestion/index.html">Import, metadata and dates</a></li><li><a href="../media/index.html">Media and provenance</a></li><li><a href="index.html" aria-current="page">Pipelines and adapters</a></li><li><a href="../subtitles/index.html">Cueson and subtitles</a></li><li><a href="../speakers/index.html">Speakers and terminology</a></li><li><a href="../voice-models/index.html">Speaker audio and voice models</a></li><li><a href="../graph/index.html">Queries, timeline and graph</a></li><li><a href="../storage/index.html">Installation and storage</a></li><li><a href="../schema/index.html">Storage and catalog schema</a></li><li><a href="../contracts/index.html">JSON contracts</a></li><li><a href="../security/index.html">Credentials and data access</a></li><li><a href="../desktop/index.html">CLI and desktop experience</a></li><li><a href="../development/index.html">Development workflow</a></li><li><a href="../releases/index.html">Brand, docs and releases</a></li><li><a href="../roadmap/index.html">Delivery outcomes</a></li><li><a href="../glossary/index.html">Glossary</a></li><li><a href="../changelog/index.html">Changelog</a></li></ul></nav></aside><main id="main" class="docs-main"><p class="eyebrow">insonic · v<!-- -->0.0.0</p><article class="prose"><h1 id="pipelines-and-adapters">Pipelines and adapters</h1>
+<h2 id="simple-choices-and-advanced-controls">Simple choices and advanced controls</h2>
+<p>Offer Local, Connected provider and Custom presets. Setup asks what the user wants to process, their preferred privacy/cost tradeoff, and an optional provider credential. The application explains required downloads and hardware choices in ordinary language. Advanced configuration exposes individual stages and endpoints. A saved pipeline is an immutable revision with explicit model, provider, options and credential references for every routed stage.</p>
+<p>Changing the default affects future jobs. An existing job retains its original pipeline snapshot. Users can rerun selected stages with a new revision and compare outputs before changing the selected transcript. Installing a remote provider is not required for local transcription or direct queries. Once a preset and its routing are configured, normal stages proceed without per-item approval. Automatic selection of valid outputs and supported speaker mappings is a configurable policy with revision history and correction; comparison views remain available on demand.</p>
+<figure class="diagram"><div class="mermaid" role="img" aria-label="System diagram">flowchart TB
+  Input[Admitted original, metadata snapshot and optional subtitles] --&gt; Probe[Probe and classify]
+  Probe --&gt; Audio[Select or derive audio when needed]
+  Terms[Selected names, aliases and specialized terms] --&gt; Hints[Compile language and context hints]
+  Hints --&gt; Speech
+  Audio --&gt; Speech[Transcribe or reuse supplied transcript]
+  Audio --&gt; Voices[Diarize if selected]
+  Speech --&gt; Cueson[Normalize and validate through Cueson]
+  Voices --&gt; Attribution[Reconcile acoustic voices and cues]
+  Cueson --&gt; Attribution
+  Attribution --&gt; Context[Resolve speaker and term context]
+  Context --&gt; Chunk[Chunk cues with source intervals]
+  Chunk --&gt; Extract[Optional assertion extraction adapter]
+  Extract --&gt; Validate[Validate source references and contracts]
+  Validate --&gt; Publish[Commit catalog and publish selected graph projection]
+  Attribution --&gt; Segments[Register speaker-tagged audio intervals]
+  Segments --&gt; Dataset[Optional elected speaker dataset snapshot]
+  Dataset --&gt; Train[Selected voice-training adapter]
+  Train --&gt; Models[Validate and register speaker model version]
+</div><details><summary>Diagram source</summary><pre><code>flowchart TB
+  Input[Admitted original, metadata snapshot and optional subtitles] --&gt; Probe[Probe and classify]
+  Probe --&gt; Audio[Select or derive audio when needed]
+  Terms[Selected names, aliases and specialized terms] --&gt; Hints[Compile language and context hints]
+  Hints --&gt; Speech
+  Audio --&gt; Speech[Transcribe or reuse supplied transcript]
+  Audio --&gt; Voices[Diarize if selected]
+  Speech --&gt; Cueson[Normalize and validate through Cueson]
+  Voices --&gt; Attribution[Reconcile acoustic voices and cues]
+  Cueson --&gt; Attribution
+  Attribution --&gt; Context[Resolve speaker and term context]
+  Context --&gt; Chunk[Chunk cues with source intervals]
+  Chunk --&gt; Extract[Optional assertion extraction adapter]
+  Extract --&gt; Validate[Validate source references and contracts]
+  Validate --&gt; Publish[Commit catalog and publish selected graph projection]
+  Attribution --&gt; Segments[Register speaker-tagged audio intervals]
+  Segments --&gt; Dataset[Optional elected speaker dataset snapshot]
+  Dataset --&gt; Train[Selected voice-training adapter]
+  Train --&gt; Models[Validate and register speaker model version]
+</code></pre></details></figure><p>Stages can be skipped when valid matching output exists. A supplied subtitle track can bypass recognition while still requiring normalization and, when selected, acoustic diarization. Music or ambient classification skips automatic speech work by default and remains user-overridable. Assertion extraction is unnecessary for word search; the library exposes the simpler result while semantic indexing is pending.</p>
+<p>Metadata capture is an admission step from <a href="../ingestion/index.html">ingestion</a>, preceding this derived pipeline. Corpus registration runs after valid diarization/attribution without requiring voice training. Training is a separate elected job against an immutable dataset snapshot; it never becomes a prerequisite for transcription, search or speaker editing. Future snapshots can use automatically selected matching segments under the saved policy, without approving every segment. <a href="../voice-models/index.html">Speaker model contracts</a> define preparation, checkpoints, results and lineage.</p>
+<h2 id="capability-contracts">Capability contracts</h2>
+<table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Inputs</th>
+<th>Required result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Acquisition</td>
+<td>URL/source locator and selected credential reference</td>
+<td>Original bytes and acquisition provenance</td>
+</tr>
+<tr>
+<td>Probe/derive</td>
+<td>Exact media asset and transform</td>
+<td>Stream facts or mapped derivative</td>
+</tr>
+<tr>
+<td>Transcription</td>
+<td>Mapped audio, language, ordered context terms</td>
+<td>Text and timed segments, optional words and confidence</td>
+</tr>
+<tr>
+<td>Diarization</td>
+<td>Mapped audio and segmentation options</td>
+<td>File-local voice intervals and overlap information</td>
+</tr>
+<tr>
+<td>Alignment</td>
+<td>Audio and selected transcript revision</td>
+<td>Timed observations without replacing text silently</td>
+</tr>
+<tr>
+<td>Subtitle normalization</td>
+<td>Supplied or deterministically generated subtitle bytes</td>
+<td>Valid official Cue JSON, reports and rendered subtitles</td>
+</tr>
+<tr>
+<td>Assertion extraction</td>
+<td>Source-owned cue chunks and attribution</td>
+<td>Structured assertions with exact cited evidence</td>
+</tr>
+<tr>
+<td>Embedding</td>
+<td>Explicit text/audio inputs and model identity</td>
+<td>Versioned vectors with scope and provenance</td>
+</tr>
+<tr>
+<td>Query assistance</td>
+<td>User request and selected schema/context</td>
+<td>Suggested query and explanation</td>
+</tr>
+<tr>
+<td>Speaker dataset preparation</td>
+<td>Speaker ID, segment selection revision and recipe</td>
+<td>Immutable segment manifest, mapped audio/text artifacts and diagnostics</td>
+</tr>
+<tr>
+<td>Voice model training</td>
+<td>Dataset snapshot, compatible base model and settings</td>
+<td>Run/checkpoint receipts and validated speaker model version artifacts</td>
+</tr>
+</tbody>
+</table>
+<p>An adapter advertises the capabilities it actually supplies. A text-only LLM endpoint cannot be selected as an audio recognizer merely because it accepts chat messages. Prefer explicit task-level capability negotiation, contract versions and readable compatibility errors.</p>
+<p>The worker protocol uses JSON requests/results plus structured progress events. Record protocol version, request ID, job ID and attempt, full input digests, model revision, effective settings and output digests. Large inputs are local artifact references or bounded uploaded streams, not giant command-line arguments. Subprocesses receive literal argument arrays, closed noninteractive stdin when unused, hidden Windows creation flags and bounded output. Secrets travel through a dedicated input channel or protected environment only when needed and never through argv.</p>
+<h2 id="durable-scheduling">Durable scheduling</h2>
+<figure class="diagram"><div class="mermaid" role="img" aria-label="System diagram">flowchart TB
+  Planned[Planned with dependency identities] --&gt; Ready[Ready]
+  Ready --&gt; Running[Running with attempt lease]
+  Running --&gt; Validated[Output validated]
+  Validated --&gt; Published[Catalog committed and projection pending/applied]
+  Running --&gt; Interrupted[Failed, cancelled or interrupted]
+  Interrupted --&gt; Ready
+</div><details><summary>Diagram source</summary><pre><code>flowchart TB
+  Planned[Planned with dependency identities] --&gt; Ready[Ready]
+  Ready --&gt; Running[Running with attempt lease]
+  Running --&gt; Validated[Output validated]
+  Validated --&gt; Published[Catalog committed and projection pending/applied]
+  Running --&gt; Interrupted[Failed, cancelled or interrupted]
+  Interrupted --&gt; Ready
+</code></pre></details></figure><p>A scheduler limits CPU, GPU, disk and provider concurrency. Default GPU slots prevent model workers competing for the same memory; users can tune limits. Pause stops new claims, Cancel revokes a running attempt and terminates supervised workers, and Retry creates a new attempt. Late results from a revoked attempt cannot overwrite current data.</p>
+<p>Job identity includes source hash, derivative map, selected transcript revision, adapter/model identity, exact effective terms and options. Changing speaker terms invalidates the affected guided transcription or attribution stages, not unrelated decode work. Training identity additionally binds the dataset manifest, speaker-attribution revisions, base-model digest, training adapter/options and seed where supported. A valid cached result can be republished after graph failure without rerunning AI. Catalog, artifact and graph adapters are separate from model task adapters; their <a href="../schema/index.html">portable contracts</a> carry the same provenance.</p>
+<p>Provider retries distinguish transient network failure from authentication and quota failures. Preserve provider request IDs and cost/usage summaries when available, without logging request content by default. Pipeline configuration states what data each hosted stage sends. No automatic fallback uploads local media to a provider the user did not choose.</p>
+</article><nav class="page-navigation" aria-label="Previous and next page"><a href="../media/index.html">← <!-- -->Media and provenance</a><a href="../subtitles/index.html">Cueson and subtitles<!-- --> →</a></nav></main><aside class="table-of-contents"><nav aria-label="On this page"><h2>On this page</h2><ul><li><a href="#simple-choices-and-advanced-controls">Simple choices and advanced controls</a></li><li><a href="#capability-contracts">Capability contracts</a></li><li><a href="#durable-scheduling">Durable scheduling</a></li></ul></nav></aside></div><!--$--><!--/$--><script src="../../../docs-runtime.js" defer=""></script><footer class="site-footer"><p>A <a href="https://shruggie.tech/">ShruggieTech</a> project.</p><p>Apache 2.0. Documentation versions are published with their corresponding releases.</p></footer><script src="../../../site-runtime.js" defer=""></script></body></html>

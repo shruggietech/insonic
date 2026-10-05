@@ -1,0 +1,758 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/graph-query.schema.json",
+  "title": "insonic saved graph query",
+  "description": "Immutable saved query revision with either a portable QuerySpec or declared native dialect, typed parameters and explicit backend validation. Graph layout and pinned results are separate from evidence facts.",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "0.0.0",
+      "description": "Version of this insonic document contract."
+    },
+    "kind": {
+      "const": "graph-query",
+      "description": "Document discriminator registered by the master schema."
+    },
+    "query_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Stable query identity across edited revisions."
+    },
+    "revision": {
+      "$ref": "common.schema.json#/$defs/revision",
+      "description": "Immutable saved query revision."
+    },
+    "workspace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Workspace containing its referenced entities."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable saved query title."
+    },
+    "access_mode": {
+      "type": "string",
+      "enum": [
+        "read-only",
+        "maintenance"
+      ],
+      "description": "Ordinary exploration is read-only; maintenance is a separately explicit application operation."
+    },
+    "definition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Portable application QuerySpec compiled separately by each official graph adapter.",
+          "properties": {
+            "mode": {
+              "const": "normalized",
+              "description": "Selects backend-neutral application operations."
+            },
+            "operation": {
+              "type": "string",
+              "enum": [
+                "media-list",
+                "speaker-search",
+                "model-list",
+                "text-search",
+                "time-range",
+                "evidence-traverse",
+                "graph-view"
+              ],
+              "description": "Supported normalized operation with identical intended results on LadybugDB and ArcadeDB."
+            },
+            "filters": {
+              "type": "object",
+              "description": "Portable application filters. Unknown filters are rejected instead of ignored.",
+              "properties": {
+                "media_ids": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Selected library media entry ID."
+                  },
+                  "description": "Restrict to explicit media entries."
+                },
+                "speaker_ids": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Selected catalog speaker ID."
+                  },
+                  "description": "Current speaker/lineage filter."
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Text/term search phrase, interpreted by the selected normalized operation."
+                },
+                "model_kind": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Declared trained-model kind filter."
+                },
+                "recording_dates": {
+                  "type": "object",
+                  "description": "Origination calendar filter preserving timezone and undated handling.",
+                  "properties": {
+                    "from": {
+                      "$ref": "common.schema.json#/$defs/calendarDate",
+                      "description": "Inclusive first recording date."
+                    },
+                    "through": {
+                      "$ref": "common.schema.json#/$defs/calendarDate",
+                      "description": "Inclusive last recording date."
+                    },
+                    "timezone": {
+                      "$ref": "common.schema.json#/$defs/timezone",
+                      "description": "Calendar timezone for this filter."
+                    },
+                    "include_undated": {
+                      "type": "boolean",
+                      "description": "Explicitly include entries with unknown recording dates."
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "source_interval": {
+                  "$ref": "common.schema.json#/$defs/mediaInterval",
+                  "description": "Original-clock interval filter; application checks source ownership and bounds."
+                },
+                "concept_ids": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Normalized concept ID."
+                  },
+                  "description": "Concept filter for evidence/graph traversal."
+                }
+              },
+              "additionalProperties": false
+            },
+            "traversal": {
+              "type": "object",
+              "description": "Explicit bounded graph expansion, without an engine-specific query string.",
+              "properties": {
+                "relationship_types": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Logical relationship type from the versioned projection schema."
+                  },
+                  "description": "Relationship types included in expansion."
+                },
+                "direction": {
+                  "type": "string",
+                  "enum": [
+                    "out",
+                    "in",
+                    "both"
+                  ],
+                  "description": "Direction of selected relationships."
+                },
+                "max_depth": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Positive explicit traversal depth; application capacity policies remain visible."
+                }
+              },
+              "required": [
+                "direction",
+                "max_depth"
+              ],
+              "additionalProperties": false
+            },
+            "order_by": {
+              "type": "array",
+              "minItems": 1,
+              "description": "Deterministic ordering, with a stable entity-ID tie breaker added by the application if needed.",
+              "items": {
+                "type": "object",
+                "description": "One ordered result field.",
+                "properties": {
+                  "field": {
+                    "type": "string",
+                    "enum": [
+                      "media.originated_at",
+                      "media.id",
+                      "speaker.id",
+                      "model.created_at",
+                      "model.id",
+                      "cue.start_us",
+                      "score"
+                    ],
+                    "description": "Normalized field available to the selected operation."
+                  },
+                  "direction": {
+                    "type": "string",
+                    "enum": [
+                      "asc",
+                      "desc"
+                    ],
+                    "description": "Sort direction."
+                  }
+                },
+                "required": [
+                  "field",
+                  "direction"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "mode",
+            "operation"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Advanced query text with a declared dialect; arbitrary native text is not automatically portable.",
+          "properties": {
+            "mode": {
+              "const": "native",
+              "description": "Selects a declared native query dialect."
+            },
+            "dialect": {
+              "type": "string",
+              "anyOf": [
+                {
+                  "enum": [
+                    "ladybug-cypher",
+                    "arcade-opencypher",
+                    "arcade-sql"
+                  ]
+                },
+                {
+                  "pattern": "^community[./:][A-Za-z0-9_.:/-]+$",
+                  "type": "string"
+                }
+              ],
+              "description": "Official native dialect or explicitly namespaced unofficial community dialect."
+            },
+            "text": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Native query text. Read-only or maintenance operation mode is enforced by the adapter and configured privileges."
+            }
+          },
+          "required": [
+            "mode",
+            "dialect",
+            "text"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "Exactly one normalized application specification or native dialect/text definition."
+    },
+    "parameters": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "description": "Typed native-query parameter normalized by the selected adapter.",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "integer",
+              "number",
+              "boolean",
+              "uuid",
+              "date-time",
+              "date",
+              "array",
+              "object",
+              "null"
+            ],
+            "description": "Logical parameter type, independent of backend value wrappers."
+          },
+          "value": {
+            "description": "Parameter value matching its declared logical type; native adapters validate any narrower backend constraints.",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              },
+              {
+                "type": "array"
+              },
+              {
+                "type": "object"
+              }
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "string",
+                  "description": "Logical parameter type, independent of backend value wrappers."
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "string",
+                  "description": "Value with the declared string JSON type."
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "integer",
+                  "description": "Logical parameter type, independent of backend value wrappers."
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "integer",
+                  "description": "Value with the declared integer JSON type."
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "number",
+                  "description": "Logical parameter type, independent of backend value wrappers."
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "number",
+                  "description": "Value with the declared number JSON type."
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "boolean",
+                  "description": "Logical parameter type, independent of backend value wrappers."
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "boolean",
+                  "description": "Value with the declared boolean JSON type."
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "uuid",
+                  "description": "Logical parameter type, independent of backend value wrappers."
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "$ref": "common.schema.json#/$defs/uuid",
+                  "description": "UUID parameter value."
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "date-time",
+                  "description": "Logical parameter type, independent of backend value wrappers."
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "$ref": "common.schema.json#/$defs/utcInstant",
+                  "description": "UTC instant parameter value."
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "date",
+                  "description": "Logical parameter type, independent of backend value wrappers."
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "$ref": "common.schema.json#/$defs/calendarDate",
+                  "description": "Date-only parameter value."
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "array",
+                  "description": "Logical parameter type, independent of backend value wrappers."
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "array",
+                  "description": "Value with the declared array JSON type."
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "object",
+                  "description": "Logical parameter type, independent of backend value wrappers."
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "object",
+                  "description": "Value with the declared object JSON type."
+                }
+              },
+              "type": "object"
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "null",
+                  "description": "Logical parameter type, independent of backend value wrappers."
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "properties": {
+                "value": {
+                  "type": "null",
+                  "description": "Value with the declared null JSON type."
+                }
+              },
+              "type": "object"
+            }
+          }
+        ]
+      },
+      "description": "Named typed parameters, passed as values rather than interpolated query text."
+    },
+    "page": {
+      "type": "object",
+      "description": "Bounded result pagination with explicit truncation/cursor reporting.",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Requested positive result count."
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Opaque continuation cursor bound to the query/revision and its validated parameters."
+        }
+      },
+      "required": [
+        "limit"
+      ],
+      "additionalProperties": false
+    },
+    "validations": {
+      "type": "array",
+      "description": "Compatibility checks for selected backend versions. No entry means compatibility has not been established.",
+      "items": {
+        "type": "object",
+        "description": "Recorded compatibility check for one backend/schema/capability target.",
+        "properties": {
+          "target_profile": {
+            "$ref": "common.schema.json#/$defs/backendProfileReference",
+            "description": "Target graph backend profile."
+          },
+          "adapter_id": {
+            "type": "string",
+            "enum": [
+              "ladybugdb",
+              "arcadedb",
+              "community"
+            ],
+            "description": "Adapter that performed or awaits compatibility validation."
+          },
+          "catalog_schema_version": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Catalog schema contract used by validation."
+          },
+          "projection_schema_version": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Graph projection schema version used by validation."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "validated",
+              "incompatible",
+              "pending"
+            ],
+            "description": "Validation state; incompatible native text remains stored with diagnostics."
+          },
+          "backend_version": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Exact engine/server version evaluated."
+          },
+          "capability_fingerprint": {
+            "$ref": "common.schema.json#/$defs/sha256",
+            "description": "Digest of the evaluated canonical capability contract."
+          },
+          "validated_at": {
+            "$ref": "common.schema.json#/$defs/utcInstant",
+            "description": "Audit instant for the completed compatibility check."
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Readable compatibility finding."
+            },
+            "description": "Reasons a saved query is incompatible or limited."
+          }
+        },
+        "required": [
+          "target_profile",
+          "adapter_id",
+          "catalog_schema_version",
+          "projection_schema_version",
+          "status"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "validated",
+                  "description": "Validation state; incompatible native text remains stored with diagnostics."
+                }
+              },
+              "required": [
+                "status"
+              ],
+              "type": "object"
+            },
+            "then": {
+              "required": [
+                "backend_version",
+                "capability_fingerprint",
+                "validated_at"
+              ],
+              "type": "object"
+            }
+          }
+        ]
+      }
+    },
+    "view": {
+      "type": "object",
+      "description": "Saved presentation settings that do not change graph facts.",
+      "properties": {
+        "layout": {
+          "type": "string",
+          "enum": [
+            "force-directed",
+            "table"
+          ],
+          "description": "Graph presentation and its accessible table alternative."
+        },
+        "positions": {
+          "type": "array",
+          "description": "Saved display positions separate from node data.",
+          "items": {
+            "type": "object",
+            "description": "Position of one stable catalog node ID.",
+            "properties": {
+              "node_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable application graph entity ID."
+              },
+              "x": {
+                "type": "number",
+                "description": "Horizontal layout coordinate."
+              },
+              "y": {
+                "type": "number",
+                "description": "Vertical layout coordinate."
+              }
+            },
+            "required": [
+              "node_id",
+              "x",
+              "y"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "pinned_result": {
+          "$ref": "common.schema.json#/$defs/artifactReference",
+          "description": "Optional immutable result snapshot; its manifest records catalog/projection checkpoints."
+        }
+      },
+      "required": [
+        "layout"
+      ],
+      "additionalProperties": false
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions",
+      "description": "Optional namespaced extension data without changing event/query authority."
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "query_id",
+    "revision",
+    "workspace_id",
+    "title",
+    "access_mode",
+    "definition",
+    "parameters",
+    "validations"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "schema_version": "0.0.0",
+      "kind": "graph-query",
+      "query_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+      "revision": 1,
+      "workspace_id": "11111111-1111-4111-8111-111111111111",
+      "title": "Speaker evidence",
+      "access_mode": "read-only",
+      "definition": {
+        "mode": "normalized",
+        "operation": "evidence-traverse",
+        "filters": {
+          "speaker_ids": [
+            "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee"
+          ]
+        },
+        "traversal": {
+          "direction": "both",
+          "max_depth": 2
+        }
+      },
+      "parameters": {},
+      "page": {
+        "limit": 100
+      },
+      "validations": [],
+      "view": {
+        "layout": "force-directed",
+        "positions": []
+      }
+    }
+  ]
+}

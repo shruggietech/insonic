@@ -1,0 +1,105 @@
+<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><link rel="preload" href="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg" as="image"/><link rel="preload" href="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg" as="image"/><link rel="stylesheet" href="../../../_next/static/chunks/2f820ds2jcjl9.css" data-precedence="next"/><link rel="preload" href="../../../brand/theme.css" as="style"/><link rel="preload" href="../../../brand/fonts/fonts.css" as="style"/><meta name="color-scheme" content="light dark"/><link rel="icon" href="../../../brand/icons/web/favicon.ico"/><link rel="apple-touch-icon" href="../../../brand/icons/web/favicon-180x180.png"/><title>Delivery outcomes (v0.0.0) | insonic</title><meta name="description" content="Voice archives, speaker models, and connected knowledge."/><script src="../../../theme-init.js"></script><link rel="stylesheet" href="../../../brand/theme.css"/><link rel="stylesheet" href="../../../brand/fonts/fonts.css"/></head><body><div hidden=""><!--$--><!--/$--></div><a class="skip-link" href="#main">Skip to content</a><header class="site-header"><a class="brand-link" href="../../../index.html" aria-label="insonic home"><img class="theme-logo-light" src="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg" alt="insonic" width="240" height="64"/><img class="theme-logo-dark" src="../../../brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg" alt="insonic" width="240" height="64"/></a><nav aria-label="Main navigation"><a href="../../index.html">Documentation</a><a href="https://github.com/shruggietech/insonic">Repository</a><button id="theme-toggle" class="theme-toggle" type="button" role="switch" aria-label="Dark mode" aria-checked="false" title="Switch to dark theme"><svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"></path></svg><svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"></path></svg></button></nav></header><div class="docs-layout"><aside class="docs-sidebar"><nav aria-label="Documentation v0.0.0"><a class="version-label" href="../../index.html">v<!-- -->0.0.0<!-- --> · <!-- -->specification</a><ul><li><a href="../index/index.html">Start here</a></li><li><a href="../product/index.html">Product and requirements</a></li><li><a href="../architecture/index.html">System architecture</a></li><li><a href="../technology/index.html">Technology decisions</a></li><li><a href="../ingestion/index.html">Import, metadata and dates</a></li><li><a href="../media/index.html">Media and provenance</a></li><li><a href="../pipelines/index.html">Pipelines and adapters</a></li><li><a href="../subtitles/index.html">Cueson and subtitles</a></li><li><a href="../speakers/index.html">Speakers and terminology</a></li><li><a href="../voice-models/index.html">Speaker audio and voice models</a></li><li><a href="../graph/index.html">Queries, timeline and graph</a></li><li><a href="../storage/index.html">Installation and storage</a></li><li><a href="../schema/index.html">Storage and catalog schema</a></li><li><a href="../contracts/index.html">JSON contracts</a></li><li><a href="../security/index.html">Credentials and data access</a></li><li><a href="../desktop/index.html">CLI and desktop experience</a></li><li><a href="../development/index.html">Development workflow</a></li><li><a href="../releases/index.html">Brand, docs and releases</a></li><li><a href="index.html" aria-current="page">Delivery outcomes</a></li><li><a href="../glossary/index.html">Glossary</a></li><li><a href="../changelog/index.html">Changelog</a></li></ul></nav></aside><main id="main" class="docs-main"><p class="eyebrow">insonic · v<!-- -->0.0.0</p><article class="prose"><h1 id="delivery-outcomes">Delivery outcomes</h1>
+<p>Delivery follows the dependencies between usable capabilities. GitHub Issues, milestones and the Project track implementation progress; this page explains how the product outcomes build on each other.</p>
+<table>
+<thead>
+<tr>
+<th>Outcome</th>
+<th>Result</th>
+<th>Depends on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Platform and dependency contracts</td>
+<td>Native CLI/runtime and desktop communication, pinned Cueson and graph libraries, hidden process launch, encrypted secrets and offline help on Windows, macOS and Linux</td>
+<td>Shared application contracts</td>
+</tr>
+<tr>
+<td>Runtime and configurable storage</td>
+<td>Workspace ownership, durable jobs, migrations, model registry and complete filesystem/S3 and SQLite/PostgreSQL behavior</td>
+<td>Platform contracts</td>
+</tr>
+<tr>
+<td>Unified media library</td>
+<td>Audio/video import, original identity, raw metadata capture, recording dates, per-item batch inputs and relocation</td>
+<td>Runtime and storage</td>
+</tr>
+<tr>
+<td>Correlated local subtitles</td>
+<td>Supplied subtitle tracks, mapped audio derivatives, local recognition, source-timed speaker intervals and Cueson artifacts</td>
+<td>Media library</td>
+</tr>
+<tr>
+<td>Configurable processing</td>
+<td>Readable presets, task capabilities, local/hosted routing and per-stage overrides</td>
+<td>Subtitle and job contracts</td>
+</tr>
+<tr>
+<td>Speaker continuity and terminology</td>
+<td>Voices, names, aliases, reversible attribution, library-wide audio selection and transcription context</td>
+<td>Processing and source-timed intervals</td>
+</tr>
+<tr>
+<td>Desktop library and help</td>
+<td>GUI packages that include the CLI, common core operations, playback, progress and release-matched offline docs</td>
+<td>Runtime, media and speaker contracts</td>
+</tr>
+<tr>
+<td>Evidence and querying</td>
+<td>Chunked source assertions, ordered LadybugDB/ArcadeDB projection and source-linked word/speaker/time queries</td>
+<td>Subtitle and speaker contracts</td>
+</tr>
+<tr>
+<td>Visual exploration</td>
+<td>Calendar/media timeline, saved force-directed graph views and keyboard/table alternatives</td>
+<td>Desktop and graph queries</td>
+</tr>
+<tr>
+<td>Optional query assistance</td>
+<td>Configured model suggestions and elected validated read-only execution</td>
+<td>Processing and query contracts</td>
+</tr>
+<tr>
+<td>Durable distribution</td>
+<td>Portable backups, expanded acquisition, signed packages and synchronized release/docs/schema publication</td>
+<td>Installable packages and recovery contracts</td>
+</tr>
+<tr>
+<td>Optional speaker models</td>
+<td>Immutable corpus snapshots, elected training, versioned speaker-associated artifacts and CLI discovery/retrieval</td>
+<td>Runtime, processing and speaker contracts</td>
+</tr>
+</tbody>
+</table>
+<figure class="diagram"><div class="mermaid" role="img" aria-label="System diagram">flowchart TB
+  Platform[Platform and dependency contracts] --&gt; Runtime[Runtime and configurable storage]
+  Runtime --&gt; Library[Unified media library]
+  Library --&gt; Subtitles[Correlated local subtitles]
+  Subtitles --&gt; Processing[Configurable processing]
+  Processing --&gt; Speakers[Speaker continuity and terminology]
+  Speakers --&gt; Desktop[Desktop library and help]
+  Speakers --&gt; Queries[Evidence and graph queries]
+  Speakers --&gt; Models[Optional speaker models and retrieval]
+  Desktop --&gt; Visual[Timeline and saved graph views]
+  Queries --&gt; Visual
+  Visual --&gt; Assistance[Optional query assistance]
+  Desktop --&gt; Distribution[Durable distribution]
+  Queries --&gt; Distribution
+</div><details><summary>Diagram source</summary><pre><code>flowchart TB
+  Platform[Platform and dependency contracts] --&gt; Runtime[Runtime and configurable storage]
+  Runtime --&gt; Library[Unified media library]
+  Library --&gt; Subtitles[Correlated local subtitles]
+  Subtitles --&gt; Processing[Configurable processing]
+  Processing --&gt; Speakers[Speaker continuity and terminology]
+  Speakers --&gt; Desktop[Desktop library and help]
+  Speakers --&gt; Queries[Evidence and graph queries]
+  Speakers --&gt; Models[Optional speaker models and retrieval]
+  Desktop --&gt; Visual[Timeline and saved graph views]
+  Queries --&gt; Visual
+  Visual --&gt; Assistance[Optional query assistance]
+  Desktop --&gt; Distribution[Durable distribution]
+  Queries --&gt; Distribution
+</code></pre></details></figure><p>CLI operations establish the application contract before their desktop controls. Installing the GUI includes the CLI. Core feature parity is the goal; matching release documentation identifies any advanced or experimental CLI capabilities awaiting GUI controls.</p>
+<p>Optional speaker training can proceed once speaker, corpus and adapter contracts exist, alongside graph and desktop work. It does not require completion of every visual or distribution feature. A platform experiment can change a framework, dependency pin or packaging method while preserving the three required operating systems and supported backend behavior.</p>
+<p>Direct library access and querying do not require an AI account or a model download. Training and query assistance are elective. Users' observations after releases become focused corrective work through the same issue-driven workflow.</p>
+</article><nav class="page-navigation" aria-label="Previous and next page"><a href="../releases/index.html">← <!-- -->Brand, docs and releases</a><a href="../glossary/index.html">Glossary<!-- --> →</a></nav></main><aside class="table-of-contents"><nav aria-label="On this page"><h2>On this page</h2><ul></ul></nav></aside></div><!--$--><!--/$--><script src="../../../docs-runtime.js" defer=""></script><footer class="site-footer"><p>A <a href="https://shruggie.tech/">ShruggieTech</a> project.</p><p>Apache 2.0. Documentation versions are published with their corresponding releases.</p></footer><script src="../../../site-runtime.js" defer=""></script></body></html>

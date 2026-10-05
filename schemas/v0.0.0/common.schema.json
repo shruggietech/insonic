@@ -1,0 +1,248 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/common.schema.json",
+  "title": "insonic common contract definitions",
+  "description": "Shared logical types for the v0.0.0 contract baseline. This resource defines reusable values and is not a standalone application document envelope. Format annotations require a format-aware validator; semantic comparisons and timezone resolution remain application validation.",
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+      "description": "Stable application-generated UUID identity. UUIDs identify logical records, not database row IDs or filesystem locations.",
+      "examples": [
+        "11111111-1111-4111-8111-111111111111"
+      ]
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Lowercase SHA-256 digest of the complete immutable byte sequence. Provider ETags and multipart/composite checksums are not this digest.",
+      "examples": [
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      ]
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonically increasing logical revision within one entity or ordered revision stream. Expected-revision checks prevent lost updates; database-native sequences are not exposed as identity.",
+      "examples": [
+        1
+      ]
+    },
+    "utcInstant": {
+      "title": "Cueson-compatible timestamp",
+      "type": "object",
+      "description": "Absolute instant in Cueson's timestamp format: RFC 3339 text and Unix nanoseconds representing the same instant. The application verifies agreement and preserves integer precision; import wall-time literals and media-relative intervals use distinct types.",
+      "properties": {
+        "iso": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 representation of the instant, including its UTC offset and available fractional-second precision. Audit output uses UTC.",
+          "examples": [
+            "2026-10-04T18:30:00.123456Z",
+            "1970-01-01T00:00:00.123456789Z"
+          ]
+        },
+        "unix_ns": {
+          "type": "integer",
+          "description": "Nanoseconds since the Unix epoch for the same instant as iso. Parse and serialize this integer without floating-point rounding; JSON Schema validation alone does not verify agreement with iso.",
+          "examples": [
+            123456789
+          ]
+        }
+      },
+      "required": [
+        "iso",
+        "unix_ns"
+      ],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "iso": "1970-01-01T00:00:00.123456789Z",
+          "unix_ns": 123456789
+        }
+      ]
+    },
+    "calendarDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Calendar date with day precision, formatted YYYY-MM-DD. A date does not assert a known recording time.",
+      "examples": [
+        "2026-10-04"
+      ]
+    },
+    "wallTimestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]{1,6})?(?:Z|[+-](?:(?:0[0-9]|1[0-3]):[0-5][0-9]|14:00))?$",
+      "description": "Entered timestamp literal with seconds and optional microseconds, Z or numeric offset. Without a zone, the captured import timezone policy applies. Calendar validity, DST folds/gaps and zone-offset agreement require application validation.",
+      "examples": [
+        "2026-10-04T14:30:00",
+        "2026-10-04T18:30:00Z"
+      ]
+    },
+    "timezone": {
+      "type": "string",
+      "pattern": "^(?:[A-Za-z_][A-Za-z0-9_.+-]*(?:/[A-Za-z0-9_.+-]+)*|[+-](?:(?:0[0-9]|1[0-3]):[0-5][0-9]|14:00))$",
+      "description": "Timezone selector: local, UTC, an IANA identifier or a numeric offset. This pattern validates shape, not IANA membership. Resolve local once and persist its actual interpretation.",
+      "examples": [
+        "local",
+        "UTC",
+        "America/New_York",
+        "+02:00"
+      ]
+    },
+    "mediaInterval": {
+      "type": "object",
+      "description": "Positive-duration, half-open original-media interval in integer microseconds. The application must additionally validate end_us > start_us and probed-duration/codec tolerance.",
+      "properties": {
+        "start_us": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Inclusive interval start on the original media clock in microseconds.",
+          "examples": [
+            0
+          ]
+        },
+        "end_us": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Exclusive interval end on the same original clock in microseconds.",
+          "examples": [
+            1250000
+          ]
+        }
+      },
+      "required": [
+        "start_us",
+        "end_us"
+      ],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "start_us": 0,
+          "end_us": 1250000
+        }
+      ]
+    },
+    "artifactReference": {
+      "type": "object",
+      "description": "Portable reference to an immutable logical artifact. Digest and size can accompany the stable ID when available; location/materialization and access credentials belong to separate runtime records.",
+      "properties": {
+        "artifact_id": {
+          "$ref": "#/$defs/uuid",
+          "description": "Stable catalog artifact ID, independent of object key or local cache path."
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256",
+          "description": "Expected complete-content digest when the caller has verified bytes."
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Expected length of the complete content in bytes, including zero-length nonmedia artifacts.",
+          "examples": [
+            4096
+          ]
+        },
+        "extensions": {
+          "$ref": "#/$defs/extensions",
+          "description": "Optional namespaced reference annotations without changing identity."
+        }
+      },
+      "required": [
+        "artifact_id"
+      ],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "artifact_id": "22222222-2222-4222-8222-222222222222",
+          "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+          "byte_length": 4096
+        }
+      ]
+    },
+    "backendProfileReference": {
+      "type": "object",
+      "description": "Reference to a selected versioned backend profile. Profile records hold configuration and opaque credential references; application documents do not embed credentials.",
+      "properties": {
+        "profile_id": {
+          "$ref": "#/$defs/uuid",
+          "description": "Stable configured backend profile ID."
+        },
+        "profile_revision": {
+          "$ref": "#/$defs/revision",
+          "description": "Selected immutable profile revision."
+        },
+        "adapter_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Adapter identity used to interpret the referenced profile.",
+          "examples": [
+            "filesystem"
+          ]
+        },
+        "contract_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version of the adapter contract selected for this profile.",
+          "examples": [
+            "1"
+          ]
+        }
+      },
+      "required": [
+        "profile_id",
+        "profile_revision"
+      ],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "profile_id": "33333333-3333-4333-8333-333333333333",
+          "profile_revision": 1,
+          "adapter_id": "filesystem",
+          "contract_version": "1"
+        }
+      ]
+    },
+    "credentialId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+      "description": "Opaque credential ID resolved by SecretStore. This field never contains a password, API key, session token or secret-bearing connection URL.",
+      "examples": [
+        "11111111-1111-4111-8111-111111111111"
+      ]
+    },
+    "endpoint": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https?://[^/@?#\\s]+(?:/[^?#\\s]*)?$",
+      "description": "Configured HTTP(S) service endpoint without URL user information, query tokens or fragments. Local HTTP is permitted explicitly; service credentials are separate opaque references.",
+      "examples": [
+        "https://objects.example.com",
+        "http://127.0.0.1:2480"
+      ]
+    },
+    "nonsecretOptions": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Adapter-specific, versioned options validated further against that adapter's capability/configuration schema. These properties are intentionally extensible and must not contain credential values.",
+      "examples": [
+        {
+          "sample_rate": 16000,
+          "device": "cpu"
+        }
+      ]
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Optional namespaced extension data. Core consumers may preserve unknown extensions without interpreting them. Extensions must not redefine required fields, hide credentials or mutate immutable provenance.",
+      "examples": [
+        {
+          "example.org/note": "Optional annotation"
+        }
+      ]
+    }
+  }
+}
