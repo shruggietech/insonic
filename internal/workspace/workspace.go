@@ -95,10 +95,13 @@ func Init(root, name string) (*Workspace, error) {
 	if _, err := os.Lstat(filepath.Join(control, "workspace.json")); !os.IsNotExist(err) {
 		return nil, contracts.Fail("conflict")
 	}
-	if err := os.MkdirAll(control, 0700); err != nil {
+	created := false
+	if err := os.Mkdir(control, 0700); err == nil {
+		created = true
+	} else if !os.IsExist(err) {
 		return nil, contracts.Fail("unavailable")
 	}
-	if err := SecureDirectory(control); err != nil {
+	if err := SecureDirectory(control, created); err != nil {
 		return nil, err
 	}
 	lock := flock.New(filepath.Join(control, "initialize.lock"))

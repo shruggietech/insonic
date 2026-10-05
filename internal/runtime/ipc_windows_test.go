@@ -8,7 +8,10 @@ import (
 )
 
 func TestPipeDACLOnlyAdmitsCurrentUser(t *testing.T) {
-	w, _ := workspace.Init(t.TempDir(), "security")
+	w, err := workspace.Init(t.TempDir(), "security")
+	if err != nil {
+		t.Fatal(err)
+	}
 	_, security, err := endpoint(w)
 	if err != nil {
 		t.Fatal(err)

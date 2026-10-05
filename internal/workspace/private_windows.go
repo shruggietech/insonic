@@ -32,7 +32,7 @@ func PrivateDirectory(dir string) error {
 	return nil
 }
 
-func SecureDirectory(dir string) error {
+func SecureDirectory(dir string, newlyCreated ...bool) error {
 	stat, err := os.Lstat(dir)
 	if err != nil || !stat.IsDir() || stat.Mode()&os.ModeSymlink != 0 {
 		return contracts.Fail("unavailable")
@@ -46,7 +46,8 @@ func SecureDirectory(dir string) error {
 		return contracts.Fail("unavailable")
 	}
 	owner, _, err := existing.Owner()
-	if err != nil || owner.String() != user.User.Sid.String() {
+	created := len(newlyCreated) == 1 && newlyCreated[0]
+	if err != nil || (!created && owner.String() != user.User.Sid.String()) {
 		return contracts.Fail("unavailable")
 	}
 	sd, err := windows.SecurityDescriptorFromString("D:P(A;OICI;FA;;;" + user.User.Sid.String() + ")")
@@ -57,7 +58,9 @@ func SecureDirectory(dir string) error {
 	if err != nil {
 		return contracts.Fail("unavailable")
 	}
-	if err := windows.SetNamedSecurityInfo(dir, windows.SE_FILE_OBJECT, windows.DACL_SECURITY_INFORMATION|windows.PROTECTED_DACL_SECURITY_INFORMATION, nil, nil, dacl, nil); err != nil {
+	// Elevated tokens can default new directories to Administrators ownership.
+	// Only the successful creator may normalize that owner to the current user.
+	if err := windows.SetNamedSecurityInfo(dir, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION|windows.DACL_SECURITY_INFORMATION|windows.PROTECTED_DACL_SECURITY_INFORMATION, user.User.Sid, nil, dacl, nil); err != nil {
 		return contracts.Fail("unavailable")
 	}
 	return PrivateDirectory(dir)

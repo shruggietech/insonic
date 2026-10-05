@@ -84,7 +84,10 @@ func TestOwnerProtocolAndDisconnectedWork(t *testing.T) {
 }
 
 func TestIdleExit(t *testing.T) {
-	w, _ := workspace.Init(t.TempDir(), "idle")
+	w, err := workspace.Init(t.TempDir(), "idle")
+	if err != nil {
+		t.Fatal(err)
+	}
 	start := time.Now()
 	if err := Serve(context.Background(), w, Options{Idle: 60 * time.Millisecond}); err != nil {
 		t.Fatal(err)

@@ -39,7 +39,10 @@ func TestAttemptsFenceRetryAndCancellation(t *testing.T) {
 }
 
 func TestDisconnectedClientDoesNotOwnWork(t *testing.T) {
-	w, _ := workspace.Init(t.TempDir(), "test")
+	w, err := workspace.Init(t.TempDir(), "test")
+	if err != nil {
+		t.Fatal(err)
+	}
 	a := New(w)
 	job, err := a.Start(20)
 	if err != nil {

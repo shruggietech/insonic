@@ -106,7 +106,7 @@ func TestAliasAndConfiguredControlDirectory(t *testing.T) {
 	if err := os.Mkdir(selected, 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := SecureDirectory(selected); err != nil {
+	if err := SecureDirectory(selected, true); err != nil {
 		t.Fatal(err)
 	}
 	w.Config.ControlDirectory = selected
@@ -123,7 +123,10 @@ func TestAliasAndConfiguredControlDirectory(t *testing.T) {
 
 func TestSchemaRejectsBadProfileAndSecretOptions(t *testing.T) {
 	root := t.TempDir()
-	w, _ := Init(root, "schema")
+	w, err := Init(root, "schema")
+	if err != nil {
+		t.Fatal(err)
+	}
 	w.Config.Profiles.Storage.Configuration["password"] = "fixture-secret"
 	data, _ := json.Marshal(w.Config)
 	os.WriteFile(filepath.Join(root, ".insonic", "workspace.json"), data, 0600)

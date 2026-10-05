@@ -21,4 +21,4 @@ func PrivateDirectory(dir string) error {
 	return nil
 }
 
-func SecureDirectory(dir string) error { return PrivateDirectory(dir) }
+func SecureDirectory(dir string, _ ...bool) error { return PrivateDirectory(dir) }
