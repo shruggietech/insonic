@@ -106,3 +106,4 @@ Maintainers can reproduce the same pinned dependency and platform checks on Wind
 - Q: Are attempts durable here? A: This slice proves session-scoped ownership and interfaces; portable durable persistence/recovery is explicitly #3.
 - Q: What completes native qualification? A: Executed native checks on all three OSes, never cross-compilation alone. Hosted checks run after the authorized push.
 - Q: Does secret-store qualification implement credential persistence? A: No; exercise availability/status without real credentials, reserving complete persistence and fallback for #5.
+- Q: Must the owner submit a manual approving PR review? A: The owner explicitly removed that requirement. Set required approvals to zero, preserve automated checks and resolved findings, and retain the existing owner merge handoff for this slice.

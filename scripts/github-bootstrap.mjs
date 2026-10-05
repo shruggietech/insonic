@@ -37,7 +37,7 @@ export function findSliceIssue(issues, planned) {
   return matches[0];
 }
 function protectionMatches(protection, checks) {
-  return Boolean(protection?.required_status_checks?.strict && checks.every(name => protection.required_status_checks.contexts?.includes(name)) && protection.required_pull_request_reviews?.required_approving_review_count === 1 && protection.required_pull_request_reviews?.dismiss_stale_reviews === true && protection.required_conversation_resolution?.enabled === true && protection.required_linear_history?.enabled === true && protection.allow_force_pushes?.enabled === false && protection.allow_deletions?.enabled === false);
+  return Boolean(protection?.required_status_checks?.strict && checks.every(name => protection.required_status_checks.contexts?.includes(name)) && protection.required_pull_request_reviews?.required_approving_review_count === 0 && protection.required_pull_request_reviews?.require_code_owner_reviews === false && protection.required_pull_request_reviews?.require_last_push_approval === false && protection.required_pull_request_reviews?.dismiss_stale_reviews === true && protection.required_conversation_resolution?.enabled === true && protection.required_linear_history?.enabled === true && protection.allow_force_pushes?.enabled === false && protection.allow_deletions?.enabled === false);
 }
 export function runBootstrap(manifest, { apply = false, command = runGh } = {}) {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(manifest.repository ?? '')) throw new Error('Bootstrap requires an exact owner/repository name.');
@@ -210,7 +210,7 @@ export function runBootstrap(manifest, { apply = false, command = runGh } = {}) 
   api(`${base}/branches/main/protection`, 'PUT', {
     required_status_checks: { strict: true, contexts: manifest.required_checks },
     enforce_admins: false,
-    required_pull_request_reviews: { dismiss_stale_reviews: true, required_approving_review_count: 1 },
+    required_pull_request_reviews: { dismiss_stale_reviews: true, required_approving_review_count: 0, require_code_owner_reviews: false, require_last_push_approval: false },
     restrictions: null,
     required_conversation_resolution: true,
     required_linear_history: true,

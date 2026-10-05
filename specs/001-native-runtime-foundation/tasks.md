@@ -55,3 +55,5 @@ Setup precedes workspace/IPC. Workspace and shared app precede client integratio
 - [x] T023 Include underscore-prefixed offline help assets in the executable and validate referenced local assets across all embedded HTML pages (FR-010, SC-003).
 
 - [x] T024 Keep native desktop receipts valid JSON despite loader warnings and reject absent, ambiguous or failed qualification results (FR-012, SC-003).
+
+- [x] T025 Apply the owner's removal of mandatory human PR approvals to branch protection, bootstrap readback and development policy while retaining automated checks and resolved review threads (FR-012).

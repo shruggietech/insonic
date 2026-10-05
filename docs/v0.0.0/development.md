@@ -20,7 +20,7 @@ flowchart TB
   Analyze --> Implement[Implement and run focused checks]
   Implement --> Converge[Converge against acceptance]
   Converge --> PR[Pull request with evidence]
-  PR --> Merge[Human-approved squash merge]
+  PR --> Merge[Squash merge after green checks]
   Merge --> Release[Release with matching docs and schema]
   Release --> Observe[User observations filed as versioned issues]
   Observe --> Issues
@@ -66,12 +66,12 @@ The software, documentation and master JSON Schema share one release version. Th
 
 For every major release, rescan all documentation for technical terms and refresh the [glossary](glossary.md). Each entry explains the exact term, links a primary external learning reference and points to the local pages that use it most heavily.
 
-## GitHub setup and approval
+## GitHub setup and merging
 
 The maintainer bootstrap configures Issues, squash-only merges, automatic merged-branch deletion, labels, milestones and a Project. Branch protection requires the `foundation` and `docs` checks and resolved conversations. Activate protection after those checks exist.
 
 `npm run github:check` reads setup status. `npm run github:apply` applies prepared settings to an existing repository with repository-administration and organization-Project permissions. It does not create or push a repository. Repeated setup reuses tracked issues, milestones and the Project, preserving edits, existing values and archived work. Initial status setup applies only to a new empty Project. Missing required status options or established-item metadata are reported for completion. After a partial failure, resolve permissions, rerun and confirm settings and membership through API readback.
 
-One human-approved squash merge is the standard approval. A sole owner cannot approve their own pull request, so administrator authority and the manual owner merge remain explicit. Automated analysis and focused checks precede that merge.
+Squash merges follow green required checks and resolved review findings. Human PR approval, code-owner approval and last-push approval are not mandatory. The bootstrap preserves zero required approvals; automated analysis and focused checks remain part of development. Agents follow the owner's authorization for the merge itself.
 
 See [contribution guidance](../../CONTRIBUTING.md) and [release workflow](releases.md).

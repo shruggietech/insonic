@@ -36,10 +36,10 @@ Windows console children MUST use hidden creation guarantees and noninteractive 
 
 ## Development workflow
 
-Specify, clarify where necessary, plan, tasks, analyze, implement and converge a slice before proposing publication. Resolve routine choices autonomously under approved requirements; do not add owner review gates between routine stages. Record unresolved decisions and verification evidence. One human-approved squash merge is the standard, with automatic merged-branch deletion. Existing publication authorization MUST be honored without repeatedly requesting it. Releases MUST have concise highlights ending in a link to the master changelog; full detail remains in Keep a Changelog. No push, repository publication or release is authorized by this local foundation alone.
+Specify, clarify where necessary, plan, tasks, analyze, implement and converge a slice before proposing publication. Resolve routine choices autonomously under approved requirements; do not add owner review gates between routine stages. Record unresolved decisions and verification evidence. Squash merges follow green automated checks and resolved review findings, with automatic merged-branch deletion. Human PR approval MUST NOT be mandatory. Agents follow the owner's authorization for the merge itself. Existing publication authorization MUST be honored without repeatedly requesting it. Releases MUST have concise highlights ending in a link to the master changelog; full detail remains in Keep a Changelog. No push, repository publication or release is authorized by this local foundation alone.
 
 ## Governance
 
 Owner instructions take precedence. Amendments MUST record their changed product or process effect in the changelog and update the constitution version using semantic versioning. Reviewers compare changes against this constitution, the current system specification and the slice acceptance criteria. Exceptions MUST be concrete, justified and reported; passing unrelated checks does not resolve unmet requirements.
 
-**Version**: 2.1.1 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-05
+**Version**: 2.1.2 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-05

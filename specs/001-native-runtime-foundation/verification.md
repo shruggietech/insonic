@@ -44,6 +44,10 @@ Official publication triggers initial review. At most one additional @Codex requ
 
 2026-10-05: Final code publication includes the validated receipt writer and completed implementation evidence. T016 remains open only for definitive green PR-head checks and owner handoff. Superseded queued checks do not block pushing an already-verified correction; owner merge remains unauthorized for the agent.
 
+2026-10-05: The owner explicitly removes mandatory manual PR reviews. Repository main protection now requires zero approving reviews, retaining the review settings object, strict foundation/docs checks, resolved conversations, linear history and force-push/deletion restrictions. The inherited organization PR rules already require zero approvals and are unchanged. Bootstrap and development policy are aligned under constitution 2.1.2, with a regression for preserving zero approvals and detecting the obsolete one-approval gate. The owner's final merge remains the handoff; no additional bot-review round is requested.
+
+2026-10-05: The approval-gate regression fails against the previous bootstrap (one required approval), then passes with zero required approvals and code-owner/last-push approval disabled. All 42 maintainer tests, project/schema integrity and both 25-page documentation exports pass. Live API readback confirms the narrow approval-count update retains every other existing branch protection.
+
 ## Issue acceptance mapping
 
 | Issue | Delivered acceptance | Evidence |

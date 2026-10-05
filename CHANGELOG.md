@@ -26,6 +26,7 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-05: Amend constitution to 2.1.0 for synchronized software, documentation and JSON Schema versions, practical compatibility, concise breaking-change notes and major-release glossary reviews. Keep numbered plans internal and one specification-status statement in the documentation index.
 - 2026-10-05: Amend constitution to 2.1.1 for numbered linear procedures; replace four sequential diagrams while retaining branching, relationship and feedback diagrams.
 - 2026-10-05: Implement the shared runtime foundation using Go 1.27.1, Wails 2.14.0, private Unix sockets and current-user Windows pipe/directory ACLs. Keep attempts session-scoped until portable durable catalogs arrive; retain supported backend boundaries and separate native artifact availability from executed platform evidence.
+- 2026-10-05: Remove mandatory human PR approvals at the owner's direction. Bootstrap preserves zero required approvals while retaining CI and resolved-conversation gates; constitution 2.1.2 separates optional PR approval from merge authorization.
 - Bind landing hero and page metadata to approved upstream slogan and description fields; expand syntax highlighting for JSON and CLI examples.
 - Support optional validated read-only AI query execution through the configured assistance mode.
 - Subdivide workspace/runtime, catalog/jobs, artifact storage and secrets/model-registry development into four focused slices; renumber the remaining application slices through S015.

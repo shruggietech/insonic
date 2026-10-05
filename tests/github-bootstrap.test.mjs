@@ -16,6 +16,17 @@ const defaults = [{ id: 'opt-todo', name: 'Todo', color: 'GRAY', description: 'O
 const copy = value => structuredClone(value);
 const arg = (args, name) => args[args.indexOf(name) + 1];
 
+test('bootstrap preserves zero mandatory human approvals and detects an obsolete approval gate', () => {
+  const { state, command } = mockGitHub();
+  runBootstrap(manifest, { apply: true, command });
+  assert.equal(state.protection.required_pull_request_reviews.required_approving_review_count, 0);
+  assert.equal(state.protection.required_pull_request_reviews.require_code_owner_reviews, false);
+  assert.equal(state.protection.required_pull_request_reviews.require_last_push_approval, false);
+  assert.equal(runBootstrap(manifest, { command }).protectionConfirmed, true);
+  state.protection.required_pull_request_reviews.required_approving_review_count = 1;
+  assert.equal(runBootstrap(manifest, { command }).protectionConfirmed, false);
+});
+
 // This in-memory command boundary never launches gh or contacts a service.
 function mockGitHub({ existingProject = false, occupiedOnCreate = false } = {}) {
   const project = { id: 'project-1', number: 1, title: 'insonic', url: 'https://github.com/orgs/shruggietech/projects/1' };
