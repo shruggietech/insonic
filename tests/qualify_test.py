@@ -1,5 +1,6 @@
 import importlib.util
 import io
+import json
 from pathlib import Path
 import tarfile
 import tempfile
@@ -14,6 +15,17 @@ qualify = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(qualify)
 
 class QualificationArchiveTests(unittest.TestCase):
+    def test_receipt_is_json_despite_native_loader_warnings(self):
+        output = b'libEGL warning: no accelerated rendering\n{"native_webview":"passed","frontend_bridge_ipc":"passed","schema_version":"0.0.0"}\n'
+        expected = {'native_webview': 'passed', 'frontend_bridge_ipc': 'passed', 'schema_version': '0.0.0'}
+        with tempfile.TemporaryDirectory() as directory:
+            receipt = Path(directory) / 'webview-receipt.json'
+            qualify.write_receipt(receipt, output, expected)
+            self.assertEqual(json.loads(receipt.read_text(encoding='utf-8')), expected)
+            for invalid in [b'warning only\n', b'{"native_webview":"failed"}\n', output + output]:
+                with self.assertRaises(ValueError):
+                    qualify.write_receipt(receipt, invalid, expected)
+
     def test_timeout_terminates_descendant_writers(self):
         with tempfile.TemporaryDirectory() as directory:
             marker = Path(directory) / 'heartbeat'

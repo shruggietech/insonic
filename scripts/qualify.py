@@ -20,6 +20,7 @@ from process_tree import ProcessTree
 
 ROOT = Path(__file__).resolve().parent.parent
 LOCK = json.loads((ROOT / 'internal/qualification/dependencies.json').read_text(encoding='utf-8'))
+VERSION = json.loads((ROOT / 'package.json').read_text(encoding='utf-8'))['version']
 BUILD = ROOT / 'build/native'
 
 def child(args, *, env=None, timeout=180, allow_detached=False):
@@ -180,6 +181,19 @@ def assets():
     for font in ['Geist-Regular.woff2', 'SpaceGrotesk-Medium.woff2', 'GeistMono-Regular.woff2']:
         shutil.copyfile(ROOT / 'brand/kit/fonts/woff2' / font, target / 'fonts' / font)
 
+def write_receipt(path, output, expected):
+    # Native loaders can print warnings alongside the compact qualification result.
+    values = []
+    for line in output.splitlines():
+        try:
+            values.append(json.loads(line))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            continue
+    if len(values) != 1 or not isinstance(values[0], dict) or any(values[0].get(key) != value for key, value in expected.items()):
+        raise ValueError('missing, ambiguous or failed qualification receipt')
+    path.write_text(json.dumps(values[0], sort_keys=True) + '\n', encoding='utf-8')
+
+
 def desktop():
     env = native_env()
     tags = 'desktop,production'
@@ -190,12 +204,14 @@ def desktop():
     executable = ROOT / ('build/insonic-desktop.exe' if os.name == 'nt' else 'build/insonic-desktop')
     child(['go', 'build', '-tags', tags, '-o', executable, './cmd/insonic-desktop'], env=env)
     output = child([executable, '--qualification'], env=env)
-    (BUILD / 'desktop-receipt.json').write_bytes(output)
+    write_receipt(BUILD / 'desktop-receipt.json', output,
+                  {'desktop_bridge': 'passed', 'offline_help': 'packaged', 'schema_version': VERSION})
     args = [executable, '--webview-qualification']
     if platform.system() == 'Linux':
         args = ['xvfb-run', '-a', *args]
     output = child(args, env=env, timeout=30)
-    (BUILD / 'webview-receipt.json').write_bytes(output)
+    write_receipt(BUILD / 'webview-receipt.json', output,
+                  {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'schema_version': VERSION})
 
 def secrets():
     executable = ROOT / ('build/insonic-secret-probe.exe' if os.name == 'nt' else 'build/insonic-secret-probe')

@@ -10,7 +10,7 @@ Request: protocol, workspace UUID, request UUID, operation and typed arguments. 
 
 ## Attempt
 
-Workspace/job/attempt/session UUIDs, generation, duration and state. Running becomes cancelling/cancelled, failed or succeeded. Retry after failure/cancellation increments generation. Stale completion cannot alter current state. Caller disconnect does not cancel work; runtime restart reports old session jobs absent, with durable recovery reserved for #3.
+Workspace/job/attempt/session UUIDs, generation, duration and state. Running becomes cancelled, failed or succeeded. Retry after failure/cancellation increments generation. Stale completion cannot alter current state. Caller disconnect does not cancel work; runtime restart reports old session jobs absent, with durable recovery reserved for #3.
 
 ## Adapter contracts
 

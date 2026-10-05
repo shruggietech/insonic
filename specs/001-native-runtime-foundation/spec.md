@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-05
 
-**Status**: Specified
+**Status**: Implemented; owner merge pending
 
 **Input**: Run S001 under autopilot, delivering GitHub issues #1 and #2 together. Push and open the official PR, resolve every review, allow at most two external Codex review rounds, and stop for the owner merge.
 

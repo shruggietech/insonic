@@ -24,13 +24,13 @@
 ## Phase 4: User Story 3, native qualification
 
 - [x] T011 [US3] Commit immutable asset/fixture pins and checksum-verified qualification tooling in scripts/qualify.py and internal/qualification/ (FR-009, FR-011, SC-003).
-- [ ] T012 [US3] Prove native Cueson, Ladybug/SQLite pairing and PostgreSQL/S3/ArcadeDB fixture operations in internal/qualification/ (FR-009, FR-011).
+- [x] T012 [US3] Prove native Cueson, Ladybug/SQLite pairing and PostgreSQL/S3/ArcadeDB fixture operations in internal/qualification/ (FR-009, FR-011).
 - [x] T013 [US3] Build common Wails bridge, local offline help and secret-service availability probes in cmd/insonic-desktop/ and desktop/ (FR-009, FR-010, SC-002, SC-003).
-- [ ] T014 [US3] Execute native matrix and retain receipts in .github/workflows/ci.yml; distinguish supported assets from executed architectures (FR-009, FR-012, SC-001, SC-003, SC-005).
+- [x] T014 [US3] Execute native matrix and retain receipts in .github/workflows/ci.yml; distinguish supported assets from executed architectures (FR-009, FR-012, SC-001, SC-003, SC-005).
 
 ## Phase 5: Convergence and publication
 
-- [ ] T015 Run CI parity, scope/security convergence and update CHANGELOG.md, authoritative docs and internal evidence (FR-012, SC-004, SC-005).
+- [x] T015 Run CI parity, scope/security convergence and update CHANGELOG.md, authoritative docs and internal evidence (FR-012, SC-004, SC-005).
 - [ ] T016 Commit/push, publish and attach official PR; resolve all reviews; at most two external Codex rounds; green checks and owner merge handoff (FR-012).
 
 ## Dependencies and execution order
@@ -46,10 +46,12 @@ Setup precedes workspace/IPC. Workspace and shared app precede client integratio
 
 - [x] T019 Permit read-only metadata while retaining stable workspace ownership across control-directory edits; reclaim bounded terminal attempt history without evicting active work (FR-002, FR-003, FR-006).
 
-- [ ] T020 Correct final-review process-tree cancellation in runtime and qualification tooling, and prove noninteractive macOS missing-item lookup versus locked access (FR-008, FR-010).
+- [x] T020 Correct final-review process-tree cancellation in runtime and qualification tooling, and prove noninteractive macOS missing-item lookup versus locked access (FR-008, FR-010).
 
 - [x] T021 Validate Windows directory security by binary SID/ACL semantics rather than SDDL text aliases, retaining exact current-user grants (FR-001, FR-003).
 
 - [x] T022 Preserve intentionally detached Windows owner lifetime across bounded qualification-client exits, without permitting ordinary supervised workers to break away (FR-004, FR-008).
 
 - [x] T023 Include underscore-prefixed offline help assets in the executable and validate referenced local assets across all embedded HTML pages (FR-010, SC-003).
+
+- [x] T024 Keep native desktop receipts valid JSON despite loader warnings and reject absent, ambiguous or failed qualification results (FR-012, SC-003).
