@@ -1,0 +1,1 @@
+Generated offline help and exact upstream interface tokens are staged here before desktop compilation.

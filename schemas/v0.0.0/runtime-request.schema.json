@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/runtime-request.schema.json",
+  "title": "Runtime request",
+  "description": "A bounded local runtime operation correlated to a workspace and request. Session attempt operations are not durable catalog jobs.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "kind",
+    "workspace_id",
+    "request_id",
+    "operation"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "0.0.0",
+      "description": "Shared software and contract version."
+    },
+    "kind": {
+      "const": "runtime-request",
+      "description": "Master-registry document discriminator."
+    },
+    "workspace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Workspace authority receiving the operation."
+    },
+    "request_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Client-generated correlation identifier."
+    },
+    "operation": {
+      "enum": [
+        "workspace.show",
+        "doctor",
+        "jobs.start",
+        "jobs.show",
+        "jobs.cancel",
+        "jobs.retry"
+      ],
+      "description": "Shared operation selected by either client."
+    },
+    "job_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Runtime-session attempt group to inspect, cancel or retry."
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 60000,
+      "description": "Bounded qualification attempt duration in integer milliseconds."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "jobs.start",
+            "description": "Start operation discriminator."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "duration_ms"
+        ],
+        "not": {
+          "required": [
+            "job_id"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "jobs.show",
+              "jobs.cancel",
+              "jobs.retry"
+            ],
+            "description": "Existing attempt operation discriminator."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "job_id"
+        ],
+        "not": {
+          "required": [
+            "duration_ms"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "workspace.show",
+              "doctor"
+            ],
+            "description": "Workspace inspection operation discriminator."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "schema_version": "0.0.0",
+      "kind": "runtime-request",
+      "workspace_id": "10000000-0000-4000-8000-000000000001",
+      "request_id": "10000000-0000-4000-8000-000000000002",
+      "operation": "workspace.show"
+    }
+  ]
+}

@@ -30,6 +30,18 @@ A slice has `spec.md`, `plan.md` and `tasks.md`, with research, data-model, cont
 
 Resolve routine implementation choices against approved product requirements. Clarify unresolved decisions that materially change behavior.
 
+## Building the workspace runtime
+
+1. Use Go 1.27.1, as pinned in `go.mod`, and Node 22 or newer for documentation.
+2. Run `go test ./...` and `go vet ./...`.
+3. Build the CLI with `go build -o build/insonic ./cmd/insonic` (use `build/insonic.exe` on Windows).
+4. Run the built executable with `workspace init <directory> --json`.
+5. Select it with `--workspace <directory> workspace show --json` or discover it by running inside that workspace.
+
+Workspace initialization validates the packaged JSON contract and cannot replace an existing workspace. Clients share a current-user local runtime; it starts on demand and exits after idle time. `jobs start <milliseconds>`, `jobs show <job-id>`, `jobs cancel <job-id>` and `jobs retry <job-id>` exercise a bounded foundation operation. Its attempts last for the runtime session; portable durable jobs belong to the catalog implementation. `doctor --json` reports selected profiles and capability status without resolving secrets or switching backends.
+
+The desktop foundation uses the same workspace operation through its native bridge and packages the local documentation. Full library, pipeline, speaker, playback and query controls remain the desktop delivery contract. Native qualification pins exact dependencies, verifies downloaded artifact checksums and executes bounded platform/backend fixtures. Artifact availability on an architecture does not establish executed package support.
+
 ## Automated checks and user observations
 
 Before merging, run checks relevant to changed behavior, dependency/artifact integrity and reproducible builds. Secret redaction, archive extraction, job attempt ownership and graph publication require meaningful tests. Reversible text changes need formatting and link checks.
@@ -38,7 +50,7 @@ Users ordinarily verify released behavior and report observations through issues
 
 ## CI budget
 
-Repository CI has parallel `foundation` and `docs` jobs. The first checks repository integrity and maintainer tests; the second builds and checks the static documentation export. Each has a ten-minute timeout. Cache dependencies, cancel obsolete branch runs and consume committed assets and lockfiles. Network brand freshness checks are manually triggered.
+Repository CI has parallel integrity, documentation, native-platform and alternative-backend jobs. Native checks run on Linux, Windows and macOS, including real dependency operations and the desktop bridge. Backend fixtures exercise PostgreSQL, S3-compatible storage and ArcadeDB. Each job has a ten-minute timeout. Cache dependencies, cancel obsolete branch runs and consume committed assets and lockfiles. Network brand freshness checks are manually triggered.
 
 Measure end-to-end turnaround. When it approaches ten minutes, remove redundant work, tighten change scopes or parallelize independent checks. Native package checks use a relevant platform matrix, with expensive packaging in release jobs. Ordinary pull-request checks do not invoke live models or download large model weights.
 

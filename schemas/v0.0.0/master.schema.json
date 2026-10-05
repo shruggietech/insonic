@@ -47,6 +47,14 @@
     "speaker-model": {
       "$ref": "speaker-model.schema.json",
       "description": "Immutable model versions, originating speaker, dataset/run lineage, compatibility and artifact retrieval."
+    },
+    "runtime-request": {
+      "$ref": "runtime-request.schema.json",
+      "description": "Versioned shared-runtime operation envelope."
+    },
+    "runtime-response": {
+      "$ref": "runtime-response.schema.json",
+      "description": "Versioned shared-runtime operation envelope."
     }
   },
   "oneOf": [
@@ -79,6 +87,12 @@
     },
     {
       "$ref": "#/$defs/speaker-model"
+    },
+    {
+      "$ref": "#/$defs/runtime-request"
+    },
+    {
+      "$ref": "#/$defs/runtime-response"
     }
   ]
 }

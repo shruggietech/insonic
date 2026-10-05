@@ -50,3 +50,109 @@ jobs:
           path: site/offline
           if-no-files-found: error
           retention-days: 14
+  native:
+    name: native (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022, macos-14]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Linux webview dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -qq && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev xvfb
+      - name: Windows native compiler and loader dependencies
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2
+        with:
+          msystem: UCRT64
+          update: false
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-openssl
+      - name: Core acceptance
+        shell: bash
+        run: |
+          go test ./...
+          go vet ./...
+          python -m unittest discover -s tests -p '*_test.py'
+      - name: Pinned native artifacts
+        run: python scripts/qualify.py prepare
+      - name: Real native dependency operations
+        run: python scripts/qualify.py native
+      - name: Cross-process CLI acceptance
+        run: python scripts/qualify.py cli
+      - name: Native secret-service availability
+        run: python scripts/qualify.py secrets
+      - name: Build local help and desktop assets
+        run: |
+          npm --prefix site ci --ignore-scripts
+          npm --prefix site run build
+          python scripts/qualify.py assets
+      - name: Desktop shared bridge qualification
+        run: python scripts/qualify.py desktop
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: native-receipts-${{ matrix.os }}-${{ github.sha }}
+          path: build/native/*receipt.json
+          if-no-files-found: error
+  adapters:
+    name: adapter fixtures
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:18.6@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722
+        env:
+          POSTGRES_USER: fixture
+          POSTGRES_PASSWORD: fixture-only-password
+          POSTGRES_DB: fixture
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 12
+      s3:
+        image: adobe/s3mock:5.2.3@sha256:ab01a6946750f451ca215a47e91030695b260e4003b8a5a6201d25029b8fca92
+        ports: ['9090:9090']
+      arcade:
+        image: arcadedata/arcadedb:26.9.1@sha256:02a1a74fcef3c9d91e680262ddb7fde05ff9cfb356b366e7faf8e41d80995a70
+        env:
+          ARCADEDB_SETTINGS: -Darcadedb.server.rootPassword=fixture-only-password -Darcadedb.dumpConfigAtStartup=false
+          ARCADEDB_OPTS_MEMORY: -Xms128M -Xmx512M
+        ports: ['2480:2480']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Wait for bounded service fixtures
+        run: |
+          python - <<'PY'
+          import time, urllib.request
+          for url in ['http://localhost:9090/favicon.ico', 'http://localhost:2480/api/v1/ready']:
+              for attempt in range(40):
+                  try:
+                      with urllib.request.urlopen(url, timeout=2):
+                          break
+                  except Exception:
+                      time.sleep(2)
+              else:
+                  raise SystemExit('fixture did not become ready')
+          PY
+      - name: Qualify alternative-backend operations
+        env:
+          INSONIC_FIXTURE_POSTGRES: postgres://fixture:fixture-only-password@localhost:5432/fixture?sslmode=disable
+          INSONIC_FIXTURE_S3: localhost:9090
+          INSONIC_FIXTURE_ARCADE: http://localhost:2480
+        run: go test -v -tags integration ./internal/qualification

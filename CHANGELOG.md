@@ -6,6 +6,9 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Source-buildable Go workspace CLI, one current-user local runtime, shared desktop bridge, generation-fenced session attempts and hidden bounded child supervision.
+- Checksum-pinned three-OS native qualification for Cueson, Ladybug/SQLite, Wails/offline help and isolated PostgreSQL/S3/ArcadeDB fixture operations.
+
 - v0.0.0 system specification covering cross-platform CLI/GUI orchestration, media/subtitle correlation, metadata/date provenance, configurable adapters, speaker/term catalogs, graph exploration and optional speaker-model training/retrieval.
 - Upstream insonic 1.0.0 brand kit built with BrandBuilder 3.0.1, with a manually triggered checksum-verified update process.
 - Versioned Markdown documentation and a static Next.js renderer with a public product landing page and separate documentation-only offline export for installed GUI help.
@@ -17,6 +20,8 @@ All notable changes to this project will be documented here. The format follows 
 - Sun/moon documentation toggle with an operating-system default, remembered light/dark choice and matching logos and diagram colors in offline help.
 
 ### Changed
+
+- 2026-10-05: Implement the shared runtime foundation using Go 1.27.1, Wails 2.14.0, private Unix sockets and current-user Windows pipe/directory ACLs. Keep attempts session-scoped until portable durable catalogs arrive; retain supported backend boundaries and separate native artifact availability from executed platform evidence.
 
 - 2026-10-04: Adopt Apache 2.0 for original source/documentation and Go for CLI-first shared orchestration, with Wails as the desktop baseline subject to native packaging qualification. Require the official Cueson executable/schema boundary and a rebuildable LadybugDB graph projection.
 - 2026-10-04: Amend constitution to 2.0.0 for GUI core parity with documented advanced/experimental lag, early metadata/date provenance, full filesystem/S3, SQLite/PostgreSQL and LadybugDB/ArcadeDB support, and configured automation without mandatory per-item review. Add optional speaker-model delivery under S015/M5.

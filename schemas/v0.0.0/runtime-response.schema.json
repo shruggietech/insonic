@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/runtime-response.schema.json",
+  "title": "Runtime response",
+  "description": "A versioned operation result or redacted typed error. Early CLI errors omit unavailable identities; runtime replies include the workspace, request and session correlation.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "kind"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "0.0.0",
+      "description": "Shared software and contract version."
+    },
+    "kind": {
+      "const": "runtime-response",
+      "description": "Master-registry document discriminator."
+    },
+    "workspace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Workspace authority when known."
+    },
+    "request_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Validated request correlation when known."
+    },
+    "runtime_session_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Current runtime owner session when known."
+    },
+    "result": {
+      "type": "object",
+      "description": "Operation-specific workspace, diagnostic or attempt result. Resolved credentials are excluded."
+    },
+    "error": {
+      "type": "object",
+      "description": "Fixed redacted error code and message.",
+      "required": [
+        "code",
+        "message"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "invalid_request",
+            "incompatible_version",
+            "workspace_mismatch",
+            "not_found",
+            "conflict",
+            "unavailable",
+            "cancelled",
+            "output_limit",
+            "operation_failed"
+          ],
+          "description": "Stable machine-readable failure category."
+        },
+        "message": {
+          "type": "string",
+          "description": "Fixed diagnostic text without raw child output or credential values."
+        }
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "required": [
+        "result"
+      ],
+      "not": {
+        "required": [
+          "error"
+        ]
+      }
+    },
+    {
+      "required": [
+        "error"
+      ],
+      "not": {
+        "required": [
+          "result"
+        ]
+      }
+    }
+  ],
+  "examples": [
+    {
+      "schema_version": "0.0.0",
+      "kind": "runtime-response",
+      "error": {
+        "code": "unavailable",
+        "message": "The selected dependency is unavailable."
+      }
+    }
+  ]
+}
