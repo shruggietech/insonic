@@ -71,6 +71,10 @@ test('documentation navigation detects version drift and absent pages', async ()
 test('project scan checks real JSON and constitution while exempting vendor examples and outputs', async () => {
   const root = await mkdtemp(join(tmpdir(), 'insonic-scan-test-'));
   try {
+    for (const directory of ['.local', 'build']) {
+      await mkdir(join(root, directory), { recursive: true });
+      await writeFile(join(root, directory, 'generated.js'), Buffer.from([0xff]));
+    }
     for (const directory of ['docs/v0.0.0', '.agents/skills/example', '.specify/templates', '.specify/memory', 'node_modules/example', 'site/out', 'site/.brandbuilder/runtime', 'site/public/brand', 'site/public/mermaid', 'site/public/source', 'site/public/project']) await mkdir(join(root, directory), { recursive: true });
     await writeFile(join(root, 'VERSION'), '0.0.0\n');
     await writeFile(join(root, 'docs', 'v0.0.0', 'index.md'), '# Start\n');

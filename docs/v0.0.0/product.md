@@ -37,7 +37,7 @@ Stable requirement IDs identify observable product behavior. The named contracts
 | R21 | Author versioned Markdown and compile static Next.js docs | [Releases](releases.md) |
 | R22 | Ship release-matched offline docs in GUI packages | [Releases](releases.md) |
 | R23 | Use Spec Kit slices and GitHub Issues, milestones and Projects | [Development](development.md) |
-| R24 | Keep CI turnaround below ten minutes and use human-approved squash merges with branch deletion | [Development](development.md) |
+| R24 | Keep CI turnaround below ten minutes and use squash merges with branch deletion, without mandatory human PR approval | [Development](development.md) |
 | R25 | Maintain Keep a Changelog and brief release highlights ending with its link | [Releases](releases.md) |
 | R26 | Retain source-timed speaker audio segments across the library and revisioned speaker corpus selections | [Speakers](speakers.md), [speaker audio](voice-models.md) |
 | R27 | Optionally train speaker-associated voice models and list/fetch their artifacts through CLI contracts | [Voice models](voice-models.md), [schema](schema.md) |

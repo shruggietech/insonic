@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>insonic</title>
+  <link rel="stylesheet" href="/assets/interface.css">
+  <link rel="stylesheet" href="/assets/typography.css">
+  <style>
+    @font-face { font-family: "Geist"; src: url("/assets/fonts/Geist-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+    @font-face { font-family: "Space Grotesk"; src: url("/assets/fonts/SpaceGrotesk-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
+    @font-face { font-family: "Geist Mono"; src: url("/assets/fonts/GeistMono-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+    body { font-family: var(--in-font-body); margin: var(--bb-spacing-component); background: var(--bb-surface-background, Canvas); color: var(--bb-text-primary, CanvasText); }
+    h1 { font-family: var(--in-font-display); font-weight: 500; }
+    button:focus-visible, a:focus-visible { outline: var(--bb-focus-width) solid var(--bb-focus-ring); outline-offset: var(--bb-focus-offset); }
+    pre { font-family: var(--in-font-mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <h1>insonic</h1>
+  <p>Workspace runtime</p>
+  <button id="refresh" type="button">Show workspace</button>
+  <pre id="status" role="status">Select a workspace through --workspace when starting insonic.</pre>
+  <a href="/assets/help/index.html">Offline documentation</a>
+  <script>
+    document.querySelector('#refresh').addEventListener('click', async () => {
+      const status = document.querySelector('#status');
+      try { status.textContent = JSON.stringify(await window.go.desktop.Bridge.Show(), null, 2); }
+      catch { status.textContent = 'The selected workspace is unavailable.'; }
+    });
+    window.runtime.EventsOn('qualification', async () => {
+      const response = await window.go.desktop.Bridge.Show();
+      await window.go.desktop.Bridge.CompleteSmoke(response);
+    });
+  </script>
+</body>
+</html>

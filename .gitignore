@@ -26,6 +26,10 @@ __pycache__/
 *$py.class
 /build/
 /dist/
+/desktop/assets/help/
+/desktop/assets/interface.css
+/desktop/assets/typography.css
+/desktop/assets/fonts/
 *.egg-info/
 *.egg
 .eggs/

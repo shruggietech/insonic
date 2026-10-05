@@ -1,0 +1,69 @@
+{
+  "go": "1.27.1",
+  "wails": "2.14.0",
+  "ladybug": {
+    "version": "0.21.2",
+    "binding": "v0.17.1-0.20260804043248-42bbf464c74c",
+    "assets": {
+      "windows_amd64": [
+        "liblbug-windows-x86_64.zip",
+        "8a1a6b68acbaee7fad8c0ec797eadefce1f0866ea75db45239bcf41291a49c79"
+      ],
+      "windows_arm64": [
+        "liblbug-windows-arm64.zip",
+        "a96e06dd34b96891d94bf6d7ea5a7f755ef9d8a463c742c8196e41777a57b8ea"
+      ],
+      "linux_amd64": [
+        "liblbug-linux-x86_64.tar.gz",
+        "f3de0f9be86fffd0919bc7a7f65699d1b099d0a1df7115142fa1606ba83c94c4"
+      ],
+      "linux_arm64": [
+        "liblbug-linux-aarch64.tar.gz",
+        "0dad6e03cf644491f7d50b9c218b9e85c983ceaed77a14338c33fb75f2ae39ee"
+      ],
+      "darwin_amd64": [
+        "liblbug-osx-x86_64.tar.gz",
+        "9ec18274694ed3cc312a6d6840b9261d94dcd0c34ca87ad024dc3c553acd3e6e"
+      ],
+      "darwin_arm64": [
+        "liblbug-osx-arm64.tar.gz",
+        "573a54126e2e1d4609680c8becee4399038ad82d3515f4d464bc481e4515c4b1"
+      ]
+    }
+  },
+  "cueson": {
+    "version": "1.1.0",
+    "schema_sha256": "223b61cbcf6337167039268576b2c739564585fff10e6cc6076e47a03526a0f7",
+    "assets": {
+      "windows_amd64": [
+        "cueson_1.1.0_windows_amd64.zip",
+        "2aff230ca03127eeca49d4be447b5a49563026caab96b5c545189a4181e8e672"
+      ],
+      "windows_arm64": [
+        "cueson_1.1.0_windows_arm64.zip",
+        "67979aee259e0d0c360cfd4057117e65d50eb4a2297da5faf9a6429f2028de32"
+      ],
+      "linux_amd64": [
+        "cueson_1.1.0_linux_amd64.tar.gz",
+        "689738ae27098f67bb9308ac690e9e3304ba732464c98835fff34fe7473406a1"
+      ],
+      "linux_arm64": [
+        "cueson_1.1.0_linux_arm64.tar.gz",
+        "6f688bad3716532bcb667870b822762138119dd766169a52531a1e9b0478b0b3"
+      ],
+      "darwin_amd64": [
+        "cueson_1.1.0_darwin_amd64.tar.gz",
+        "c48225a74eff45956fbdafc4523b75bc546ba22334aa133aecda3abfe767bcca"
+      ],
+      "darwin_arm64": [
+        "cueson_1.1.0_darwin_arm64.tar.gz",
+        "c56bdfdcdd5ebd71ebd6b3bea17d41d6f6ad983474a0426312a0015695edbb2b"
+      ]
+    }
+  },
+  "fixtures": {
+    "postgres": "postgres:18.6@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722",
+    "s3": "adobe/s3mock:5.2.3@sha256:ab01a6946750f451ca215a47e91030695b260e4003b8a5a6201d25029b8fca92",
+    "arcade": "arcadedata/arcadedb:26.9.1@sha256:02a1a74fcef3c9d91e680262ddb7fde05ff9cfb356b366e7faf8e41d80995a70"
+  }
+}

@@ -10,4 +10,4 @@ State focused checks performed and their results. Identify unverified behavior a
 
 ## Publication
 
-Confirm any changelog, docs-version or dependency-notice changes. The owner performs the final squash merge.
+Confirm any changelog, docs-version or dependency-notice changes. Use a squash merge with merged-branch deletion; separate human PR approval is optional. Follow the owner's merge authorization.

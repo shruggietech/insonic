@@ -34,6 +34,6 @@ Do not modify files under `brand/kit/` directly. Use the maintainer updater and 
 
 ## Pull requests and releases
 
-Use a focused branch, conventional commit/PR title and a concise description of changed behavior, validation and limitations. A human performs the standard squash merge after required checks pass. GitHub deletes merged branches automatically once configured. Automation must not merge its own feature work without the owner's authorization.
+Use a focused branch, conventional commit/PR title and a concise description of changed behavior, validation and limitations. Use squash merges after required checks pass and review findings are resolved. Human PR approval is optional. GitHub deletes merged branches automatically once configured. Agents follow the owner's authorization for the merge itself.
 
 Update `CHANGELOG.md` under Unreleased using Added, Changed, Deprecated, Removed, Fixed or Security as appropriate. Release notes are a short highlights reel ending with the master changelog link. See [release workflow](docs/v0.0.0/releases.md).
