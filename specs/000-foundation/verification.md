@@ -1,7 +1,7 @@
 # Foundation verification
 
 **Date**: 2026-10-05\
-**Status**: Local foundation validated; one upstream semantic proof failure
+**Status**: Published foundation validated; one upstream semantic proof failure
 
 **Local tooling runtime**: Node.js 26.5.0 on Windows
 
@@ -35,12 +35,27 @@ Node processes, the preview server and research tooling used hidden noninteracti
 
 The manual brand updater successfully imported the current formal kit and performed a read-only freshness comparison. All 574 integrated files retain exact upstream bytes. Pinned glyph validation passed all 15 checks. Full semantic verification completed 36 checks with 35 passes, one failure and zero skips. The remaining delivered proof hash mismatch is documented in [brand conformance evidence](brand-conformance.md); full semantic conformance is not claimed.
 
+## Publication evidence
+
+2026-10-05: With explicit owner authorization, the public [shruggietech/insonic repository](https://github.com/shruggietech/insonic) was created and the foundation was pushed directly to `main` as commit `95ea49992f5b75e82db9ef4097a76bc9fcad7e0e`.
+
+| Check | Result |
+| --- | --- |
+| Initial hosted CI | [Run 37347062112](https://github.com/shruggietech/insonic/actions/runs/37347062112) passed on the initial commit: `foundation` in 9 seconds and `docs` in 28 seconds; the run completed in 31 seconds |
+| Hosted build artifacts | Full documentation and offline help were uploaded successfully, with artifact names tied to the initial commit |
+| GitHub tracking | All 15 application issues were filed, assigned across five milestones and added to the linked [insonic Project](https://github.com/orgs/shruggietech/projects/7); required fields and statuses are populated |
+| Maintainer setup readback | Live `github-bootstrap.mjs --check` returned `complete: true`, with no missing labels, milestones, slices, Project fields, statuses or membership |
+| Merge and review settings | Squash merging enabled; merge commits and rebase merging disabled; automatic branch deletion enabled; `main` requires `foundation` and `docs`, one approving review, current checks, resolved conversations and linear history; force pushes and branch deletion disabled |
+| Security reporting | GitHub private vulnerability reporting enabled and confirmed |
+
+Branch protection permits administrator bypass for owner-directed repository administration. Automatic deletion is configured; its behavior after a merged pull request has not yet been exercised. This publication creates no release, native installer or public website deployment.
+
 ## Prepared and unverified behavior
 
-The pre-publication GitHub bootstrap checks used isolated mocks. Repository settings, issue/milestone creation and Project fields were prepared without hosted writes in that phase. Hosted permissions, actual CI and branch deletion require separate execution evidence. CI jobs each have a ten-minute timeout; local checks do not establish hosted timing.
+The pre-publication GitHub bootstrap checks used isolated mocks. Repository settings, issue/milestone creation and Project fields were prepared without hosted writes in that phase. The publication evidence above confirms hosted setup and CI; branch deletion after a merged pull request remains unexercised. CI jobs each have a ten-minute timeout.
 
 No native application, installer, media processing, model worker, credential backend, database pairing or cross-platform IPC was executed. These are application-slice acceptance items starting with S001. Cueson's current SRT/WebVTT zero-cue limitation remains an explicit S007 compatibility item; ASS/SSA no-dialogue behavior is treated separately. The local renderer requires a tagged changelog snapshot for released documentation; no release promotion was executed. The pre-publication phase created no Git repository, remote, push, release or upstream issue.
 
 ## Handoff
 
-The owner can review the [v0.0.0 specification](../../docs/v0.0.0/index.md), [numbered delivery plan](../roadmap.md), [JSON contracts](../../docs/v0.0.0/contracts.md) and [repository README](../../README.md). The public root lander is in `site/out/`; installed help uses `site/offline/`. Proceed with S001 to prove the proposed Go/Wails and native dependency contracts before implementing the media pipeline.
+The owner can review the [v0.0.0 specification](../../docs/v0.0.0/index.md), [numbered delivery plan](../roadmap.md), [JSON contracts](../../docs/v0.0.0/contracts.md) and [repository README](../../README.md). The public root lander is in `site/out/`; installed help uses `site/offline/`. Proceed with [S001](https://github.com/shruggietech/insonic/issues/1) to prove the proposed Go/Wails and native dependency contracts before implementing the media pipeline.

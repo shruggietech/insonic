@@ -2,7 +2,7 @@
 
 ## How to use this plan
 
-This dependency-ordered staging map records planned application work. File the outcomes as issues, group them into the prepared release milestones and track them on the GitHub Project after publication. Each slice can be subdivided when its acceptance cannot fit a sustainable development session. Keep its scope coherent.
+This dependency-ordered staging map records planned application work. The outcomes are filed as [GitHub issues](https://github.com/shruggietech/insonic/issues), grouped into five milestones and tracked on the linked [insonic Project](https://github.com/orgs/shruggietech/projects/7). Each slice can be subdivided when its acceptance cannot fit a sustainable development session. Keep its scope coherent.
 
 | Slice | Outcome | Main dependencies | Acceptance focus |
 | --- | --- | --- | --- |
@@ -61,3 +61,5 @@ Direct access to an existing library and direct queries work without a model dow
 2026-10-04: S000 local foundation is complete. Repository checks, maintainer tests, static export and responsive/offline inspection passed. The exact upstream brand kit retains one recorded semantic proof mismatch. Application slices are unimplemented and unfiled. The same-day specification amendment adds early metadata/date capture, supported storage/database alternatives, explicit CLI parity and elective speaker models; its validation is recorded in the [foundation evidence](000-foundation/verification.md). GitHub setup, first push, release publication and native behavior remain unverified until their corresponding actions occur. The [S000 record](000-foundation/spec.md) distinguishes completed local work from these remaining actions.
 
 2026-10-05: The approved pre-publication review separates the runtime foundation into workspace interfaces, catalog/durable state, artifact storage and credential/model registry slices. The synchronized issue plan now contains S001-S015. Later application outcomes retain their scope and dependencies; the planning codes were renumbered before filing or publication.
+
+2026-10-05: The owner authorized publication. The public repository now contains the foundation on `main`; the initial hosted CI passed, and live setup/readback confirmed all 15 application issues, five milestones, Project tracking and merge/review settings. Application slices remain unimplemented. [Publication evidence](000-foundation/verification.md#publication-evidence) records the initial commit, CI run and remaining verification boundaries.
