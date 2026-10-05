@@ -49,7 +49,10 @@ func Run(ctx context.Context, spec Spec) (Result, error) {
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	command := exec.CommandContext(ctx, spec.Executable, spec.Args...)
+	if ctx.Err() != nil {
+		return Result{}, contracts.Fail("cancelled")
+	}
+	command := exec.Command(spec.Executable, spec.Args...)
 	command.Dir = spec.Directory
 	command.Env = append(os.Environ(), spec.Env...)
 	command.Stdin = spec.Input
@@ -58,7 +61,23 @@ func Run(ctx context.Context, spec Spec) (Result, error) {
 	output := &bounded{limit: spec.MaxOutput, cancel: cancel}
 	command.Stdout = output
 	command.Stderr = output
-	err := command.Run()
+	tree, err := startTree(command)
+	if err != nil {
+		return Result{}, contracts.Fail("operation_failed")
+	}
+	defer tree.Close()
+	finished, supervised := make(chan struct{}), make(chan struct{})
+	go func() {
+		defer close(supervised)
+		select {
+		case <-ctx.Done():
+			tree.Kill()
+		case <-finished:
+		}
+	}()
+	err = command.Wait()
+	close(finished)
+	<-supervised
 	if output.exceeded {
 		return Result{}, contracts.Fail("output_limit")
 	}

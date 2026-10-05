@@ -22,3 +22,5 @@ Fixed messages for invalid_request, incompatible_version, workspace_mismatch, no
 ## Child boundary
 
 Absolute executable, literal arguments, explicit working directory, context cancellation, finite output and closed input unless protected stdin is explicitly supplied. Windows hidden creation flags. Qualification secrets never enter arguments or receipts.
+
+Supervised children own an isolated Unix process group or a Windows kill-on-close job. Windows assignment occurs before a suspended child resumes. Cancellation, output exhaustion and qualification timeouts terminate descendants as well as the immediate child. A detached runtime deliberately outlives its launching client.

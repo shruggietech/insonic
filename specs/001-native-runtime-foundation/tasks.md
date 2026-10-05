@@ -45,3 +45,5 @@ Setup precedes workspace/IPC. Workspace and shared app precede client integratio
 ## Phase 7: External review corrections
 
 - [x] T019 Permit read-only metadata while retaining stable workspace ownership across control-directory edits; reclaim bounded terminal attempt history without evicting active work (FR-002, FR-003, FR-006).
+
+- [ ] T020 Correct final-review process-tree cancellation in runtime and qualification tooling, and prove noninteractive macOS missing-item lookup versus locked access (FR-008, FR-010).

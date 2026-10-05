@@ -15,6 +15,9 @@ import tempfile
 import urllib.request
 import zipfile
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from process_tree import ProcessTree
+
 ROOT = Path(__file__).resolve().parent.parent
 LOCK = json.loads((ROOT / 'internal/qualification/dependencies.json').read_text(encoding='utf-8'))
 BUILD = ROOT / 'build/native'
@@ -23,15 +26,20 @@ def child(args, *, env=None, timeout=180):
     merged = os.environ.copy()
     if env:
         merged.update(env)
-    result = subprocess.run([str(arg) for arg in args], cwd=ROOT, env=merged, stdin=subprocess.DEVNULL,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout,
-                            creationflags=0x08000000 if os.name == 'nt' else 0)
-    if result.returncode:
+    with ProcessTree([str(arg) for arg in args], cwd=ROOT, env=merged) as tree:
+        try:
+            stdout, stderr = tree.process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            tree.kill()
+            tree.process.communicate(timeout=5)
+            raise
+        result = tree.process.returncode
+    if result:
         # Controlled compiler/test output is useful; no live/user credentials are supplied.
-        sys.stdout.buffer.write(result.stdout)
-        sys.stderr.buffer.write(result.stderr)
+        sys.stdout.buffer.write(stdout)
+        sys.stderr.buffer.write(stderr)
         raise RuntimeError('qualification child failed')
-    return result.stdout
+    return stdout
 
 def archive_path(root, name):
     relative = PurePosixPath(name.replace('\\', '/'))

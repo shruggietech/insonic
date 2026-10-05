@@ -3,6 +3,9 @@ import io
 from pathlib import Path
 import tarfile
 import tempfile
+import subprocess
+import sys
+import time
 import unittest
 import zipfile
 
@@ -11,6 +14,17 @@ qualify = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(qualify)
 
 class QualificationArchiveTests(unittest.TestCase):
+    def test_timeout_terminates_descendant_writers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            marker = Path(directory) / 'heartbeat'
+            worker = "import pathlib,sys,time; p=pathlib.Path(sys.argv[1]); n=0\nwhile True:\n p.write_text(str(n)); n+=1; time.sleep(.02)"
+            parent = "import subprocess,sys,time; subprocess.Popen([sys.executable,'-c',sys.argv[1],sys.argv[2]]); time.sleep(60)"
+            with self.assertRaises(subprocess.TimeoutExpired):
+                qualify.child([sys.executable, '-c', parent, worker, marker], timeout=2)
+            before = marker.read_bytes()
+            time.sleep(.12)
+            self.assertEqual(marker.read_bytes(), before, 'descendant survived timeout')
+
     def test_rejects_windows_and_posix_path_escape(self):
         with tempfile.TemporaryDirectory() as directory:
             for name in ['../outside', '/absolute', 'C:/outside', '..\\outside']:
