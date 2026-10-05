@@ -22,11 +22,11 @@ ROOT = Path(__file__).resolve().parent.parent
 LOCK = json.loads((ROOT / 'internal/qualification/dependencies.json').read_text(encoding='utf-8'))
 BUILD = ROOT / 'build/native'
 
-def child(args, *, env=None, timeout=180):
+def child(args, *, env=None, timeout=180, allow_detached=False):
     merged = os.environ.copy()
     if env:
         merged.update(env)
-    with ProcessTree([str(arg) for arg in args], cwd=ROOT, env=merged) as tree:
+    with ProcessTree([str(arg) for arg in args], cwd=ROOT, env=merged, allow_detached=allow_detached) as tree:
         try:
             stdout, stderr = tree.process.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
@@ -213,7 +213,7 @@ def cli():
     child(['go', 'build', '-o', executable, './cmd/insonic'])
     with tempfile.TemporaryDirectory() as directory:
         child([executable, 'workspace', 'init', directory, '--json'])
-        first = json.loads(child([executable, '--workspace', directory, 'workspace', 'show', '--json']))
+        first = json.loads(child([executable, '--workspace', directory, 'workspace', 'show', '--json'], allow_detached=True))
         second = json.loads(child([executable, '--workspace', directory, 'workspace', 'show', '--json']))
         if first['runtime_session_id'] != second['runtime_session_id']:
             raise ValueError('CLI clients reached different owners')

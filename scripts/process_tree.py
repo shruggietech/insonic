@@ -6,11 +6,11 @@ import subprocess
 
 
 class ProcessTree:
-    def __init__(self, args, *, cwd, env):
+    def __init__(self, args, *, cwd, env, allow_detached=False):
         self.job = None
         self.process = None
         if os.name == 'nt':
-            self._windows_job()
+            self._windows_job(allow_detached)
         try:
             self.process = subprocess.Popen(args, cwd=cwd, env=env, stdin=subprocess.DEVNULL,
                                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -25,7 +25,7 @@ class ProcessTree:
             self.close()
             raise
 
-    def _windows_job(self):
+    def _windows_job(self, allow_detached):
         import ctypes
         from ctypes import wintypes
         self.ctypes = ctypes
@@ -68,6 +68,9 @@ class ProcessTree:
             raise ctypes.WinError(ctypes.get_last_error())
         limits = Extended()
         limits.basic.flags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        if allow_detached:
+            # Only the owned runtime bootstrap elects an independent lifetime.
+            limits.basic.flags |= 0x0800  # JOB_OBJECT_LIMIT_BREAKAWAY_OK
         if not self.api.SetInformationJobObject(self.job, 9, ctypes.byref(limits), ctypes.sizeof(limits)):
             self.close()
             raise ctypes.WinError(ctypes.get_last_error())

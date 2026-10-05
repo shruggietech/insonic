@@ -49,3 +49,5 @@ Setup precedes workspace/IPC. Workspace and shared app precede client integratio
 - [ ] T020 Correct final-review process-tree cancellation in runtime and qualification tooling, and prove noninteractive macOS missing-item lookup versus locked access (FR-008, FR-010).
 
 - [x] T021 Validate Windows directory security by binary SID/ACL semantics rather than SDDL text aliases, retaining exact current-user grants (FR-001, FR-003).
+
+- [x] T022 Preserve intentionally detached Windows owner lifetime across bounded qualification-client exits, without permitting ordinary supervised workers to break away (FR-004, FR-008).
