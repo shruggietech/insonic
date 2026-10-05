@@ -48,6 +48,12 @@ Official publication triggers initial review. At most one additional @Codex requ
 
 2026-10-05: The approval-gate regression fails against the previous bootstrap (one required approval), then passes with zero required approvals and code-owner/last-push approval disabled. All 42 maintainer tests, project/schema integrity and both 25-page documentation exports pass. Live API readback confirms the narrow approval-count update retains every other existing branch protection.
 
+2026-10-05: After the GitHub Actions incident resolves, the sole cancelled macOS job is retried. All six checks pass at source/policy commit 70e720a in [run 37370626583](https://github.com/shruggietech/insonic/actions/runs/37370626583): foundation 15s, documentation 31s, alternative fixtures 38s, Linux amd64 2m50s, Windows amd64 2m54s and macOS arm64 1m51s. Native receipts from all three platforms parse as standalone JSON. The PR reports CLEAN and MERGEABLE with no required approving review. All 25 tasks are complete; the final record commit receives its own configured CI before owner handoff. No third bot-review round, merge, release or issue closure is performed.
+
+## Completion and handoff
+
+[Official PR #16](https://github.com/shruggietech/insonic/pull/16) delivers both issue acceptances. All five reported findings have corrections, evidence replies and resolved threads. Two Code Review rounds are complete; no separate security-review result was returned. Mandatory manual PR approval is removed live and from bootstrap/policy. The owner retains the final squash merge and merged-branch deletion ritual.
+
 ## Issue acceptance mapping
 
 | Issue | Delivered acceptance | Evidence |

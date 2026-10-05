@@ -31,7 +31,7 @@
 ## Phase 5: Convergence and publication
 
 - [x] T015 Run CI parity, scope/security convergence and update CHANGELOG.md, authoritative docs and internal evidence (FR-012, SC-004, SC-005).
-- [ ] T016 Commit/push, publish and attach official PR; resolve all reviews; at most two external Codex rounds; green checks and owner merge handoff (FR-012).
+- [x] T016 Commit/push, publish and attach official PR; resolve all reviews; at most two external Codex rounds; green checks and owner merge handoff (FR-012).
 
 ## Dependencies and execution order
 
