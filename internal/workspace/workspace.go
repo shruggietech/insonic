@@ -2,13 +2,16 @@
 package workspace
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"github.com/gofrs/flock"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/schemas"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 type Profile struct {
@@ -214,8 +217,38 @@ func Discover(start string) (*Workspace, error) {
 	}
 }
 
+func RuntimeDirectory() (string, error) {
+	paths, err := PlatformPaths()
+	if err != nil {
+		return "", err
+	}
+	if err := os.MkdirAll(paths.Cache, 0700); err != nil {
+		return "", contracts.Fail("unavailable")
+	}
+	created := false
+	if err := os.Mkdir(paths.Runtime, 0700); err == nil {
+		created = true
+	} else if !os.IsExist(err) {
+		return "", contracts.Fail("unavailable")
+	}
+	if err := SecureDirectory(paths.Runtime, created); err != nil {
+		return "", err
+	}
+	return paths.Runtime, nil
+}
+
 func (w *Workspace) Lock() (*flock.Flock, error) {
-	lock := flock.New(filepath.Join(w.Root, ".insonic", "owner.lock"))
+	directory, err := RuntimeDirectory()
+	if err != nil {
+		return nil, err
+	}
+	root := w.Root
+	if runtime.GOOS == "windows" {
+		root = strings.ToLower(root)
+	}
+	hash := sha256.Sum256([]byte(root))
+	// Runtime authority survives control-directory edits and read-only metadata.
+	lock := flock.New(filepath.Join(directory, fmt.Sprintf("%x.lock", hash[:16])))
 	ok, err := lock.TryLock()
 	if err != nil {
 		return nil, contracts.Fail("unavailable")

@@ -41,3 +41,7 @@ Setup precedes workspace/IPC. Workspace and shared app precede client integratio
 
 - [x] T017 Register runtime request/response envelopes in the master schema and align discriminators, optional error identities and argument validation (FR-005, FR-007).
 - [x] T018 Bound the native macOS secret-service subprocess itself and package exact upstream desktop typography assets (FR-008, FR-010).
+
+## Phase 7: External review corrections
+
+- [x] T019 Permit read-only metadata while retaining stable workspace ownership across control-directory edits; reclaim bounded terminal attempt history without evicting active work (FR-002, FR-003, FR-006).

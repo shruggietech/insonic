@@ -15,18 +15,12 @@ import (
 )
 
 func endpoint(w *workspace.Workspace) (string, error) {
-	paths, err := workspace.PlatformPaths()
+	directory, err := workspace.RuntimeDirectory()
 	if err != nil {
 		return "", err
 	}
-	if err := os.MkdirAll(paths.Runtime, 0700); err != nil {
-		return "", contracts.Fail("unavailable")
-	}
-	if err := workspace.PrivateDirectory(paths.Runtime); err != nil {
-		return "", err
-	}
 	hash := sha256.Sum256([]byte(w.Root))
-	file := filepath.Join(paths.Runtime, fmt.Sprintf("%x.sock", hash[:16]))
+	file := filepath.Join(directory, fmt.Sprintf("%x.sock", hash[:16]))
 	if len(file) > 100 {
 		return "", contracts.Fail("unavailable")
 	}

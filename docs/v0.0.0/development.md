@@ -42,6 +42,8 @@ Workspace initialization validates the packaged JSON contract and cannot replace
 
 The desktop foundation uses the same workspace operation through its native bridge and packages the local documentation. Full library, pipeline, speaker, playback and query controls remain the desktop delivery contract. Native qualification pins exact dependencies, verifies downloaded artifact checksums and executes bounded platform/backend fixtures. Artifact availability on an architecture does not establish executed package support.
 
+Owner locks use the private per-user runtime directory and canonical workspace root, so read-only metadata and control-directory edits preserve one owner. A runtime retains up to 1,024 attempt groups; new work can evict the oldest terminal group. Active work is never evicted. An evicted group reports unavailable rather than manufacturing past state.
+
 ## Automated checks and user observations
 
 Before merging, run checks relevant to changed behavior, dependency/artifact integrity and reproducible builds. Secret redaction, archive extraction, job attempt ownership and graph publication require meaningful tests. Reversible text changes need formatting and link checks.

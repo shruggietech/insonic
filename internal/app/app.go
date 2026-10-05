@@ -20,13 +20,15 @@ type Attempt struct {
 }
 type entry struct {
 	Attempt
-	cancel context.CancelFunc
+	cancel   context.CancelFunc
+	sequence uint64
 }
 type App struct {
 	Workspace *workspace.Workspace
 	Session   string
 	mu        sync.Mutex
 	attempts  map[string]*entry
+	sequence  uint64
 }
 
 func New(w *workspace.Workspace) *App {
@@ -36,7 +38,8 @@ func New(w *workspace.Workspace) *App {
 func (a *App) start(id string, generation uint64, duration int) Attempt {
 	ctx, cancel := context.WithCancel(context.Background())
 	attempt := Attempt{id, contracts.ID(), a.Workspace.Config.WorkspaceID, a.Session, generation, "running", duration}
-	a.attempts[id] = &entry{attempt, cancel}
+	a.sequence++
+	a.attempts[id] = &entry{Attempt: attempt, cancel: cancel, sequence: a.sequence}
 	go func() {
 		timer := time.NewTimer(time.Duration(duration) * time.Millisecond)
 		defer timer.Stop()
@@ -56,7 +59,17 @@ func (a *App) Start(duration int) (Attempt, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if len(a.attempts) >= 1024 {
-		return Attempt{}, contracts.Fail("conflict")
+		oldest := ""
+		var sequence uint64
+		for id, attempt := range a.attempts {
+			if attempt.State != "running" && (oldest == "" || attempt.sequence < sequence) {
+				oldest, sequence = id, attempt.sequence
+			}
+		}
+		if oldest == "" {
+			return Attempt{}, contracts.Fail("conflict")
+		}
+		delete(a.attempts, oldest)
 	}
 	return a.start(contracts.ID(), 1, duration), nil
 }
