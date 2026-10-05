@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://brand.shruggie.tech/schemas/interface-canon-1.json",
+  "title": "Shruggie Interface Canon",
+  "type": "object",
+  "required": ["$schema", "id", "kind", "version", "brand_canon_compatibility", "summary", "units", "primitives", "role_catalog", "required_roles", "aliases", "theme_aliases", "runtime", "invariants", "permitted_overrides", "state_pairs"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "id": {"const": "shruggie-interface-canon"},
+    "kind": {"const": "interface-canon"},
+    "version": {"$ref": "#/$defs/semver"},
+    "brand_canon_compatibility": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/semver"}},
+    "summary": {"type": "string", "minLength": 1},
+    "units": {
+      "type": "object",
+      "required": ["logical_ui_unit", "definition", "transforms"],
+      "properties": {
+        "logical_ui_unit": {"const": "lu"},
+        "definition": {"type": "string", "minLength": 1},
+        "transforms": {
+          "type": "object",
+          "required": ["web", "egui", "native"],
+          "properties": {
+            "web": {"$ref": "#/$defs/unit_transform"},
+            "egui": {"$ref": "#/$defs/unit_transform"},
+            "native": {"$ref": "#/$defs/unit_transform"}
+          },
+          "additionalProperties": {"$ref": "#/$defs/unit_transform"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "primitives": {"type": "object", "minProperties": 1},
+    "role_catalog": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/role"}},
+    "required_roles": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/role"}},
+    "aliases": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/reference"}},
+    "theme_aliases": {
+      "type": "object",
+      "required": ["dark", "light"],
+      "properties": {
+        "dark": {"$ref": "#/$defs/theme_alias_map"},
+        "light": {"$ref": "#/$defs/theme_alias_map"}
+      },
+      "additionalProperties": false
+    },
+    "runtime": {
+      "type": "object",
+      "required": ["required_inputs", "window_classes", "pointer_precisions", "themes", "mixed_profile_examples"],
+      "properties": {
+        "required_inputs": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "window_classes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "pointer_precisions": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "themes": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "mixed_profile_examples": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/runtime_profile"}}
+      },
+      "additionalProperties": false
+    },
+    "invariants": {
+      "type": "object",
+      "required": ["roles", "wcag_level", "minimum_text_contrast", "minimum_non_text_contrast", "minimum_target_logical_units", "focus_visible", "status_requires_non_color_cue"],
+      "properties": {
+        "roles": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/role"}},
+        "wcag_level": {"const": "AA"},
+        "minimum_text_contrast": {"type": "number", "minimum": 4.5},
+        "minimum_non_text_contrast": {"type": "number", "minimum": 3},
+        "minimum_target_logical_units": {"type": "number", "minimum": 44},
+        "focus_visible": {"const": true},
+        "status_requires_non_color_cue": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "permitted_overrides": {"type": "object", "additionalProperties": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^\\$(primitive|brand|brand_canon|resolved|alias)\\."}}},
+    "state_pairs": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/state_pair"}}
+  },
+  "$defs": {
+    "semver": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "role": {"type": "string", "pattern": "^[a-z][a-z0-9_]*(?:\\.[a-z][a-z0-9_]*)+$"},
+    "reference": {"type": "string", "pattern": "^\\$(primitive|alias|brand|brand_canon|resolved)\\.[A-Za-z0-9_.-]+$"},
+    "theme_alias_map": {"type": "object", "additionalProperties": {"$ref": "#/$defs/reference"}},
+    "unit_transform": {
+      "type": "object",
+      "required": ["target_unit", "factor", "text_scaling"],
+      "properties": {"target_unit": {"type": "string", "minLength": 1}, "factor": {"type": "number", "exclusiveMinimum": 0}, "text_scaling": {"type": "string", "minLength": 1}},
+      "additionalProperties": false
+    },
+    "rect": {
+      "type": "object",
+      "required": ["x", "y", "width", "height"],
+      "properties": {"x": {"type": "number"}, "y": {"type": "number"}, "width": {"type": "number", "minimum": 0}, "height": {"type": "number", "minimum": 0}},
+      "additionalProperties": false
+    },
+    "titlebar_rect": {
+      "type": "object",
+      "required": ["kind", "x", "y", "width", "height"],
+      "properties": {"kind": {"enum": ["drag", "controls", "reserved"]}, "x": {"type": "number"}, "y": {"type": "number"}, "width": {"type": "number", "minimum": 0}, "height": {"type": "number", "minimum": 0}},
+      "additionalProperties": false
+    },
+    "runtime_profile": {
+      "type": "object",
+      "required": ["viewport", "safe_area", "window_class", "pointer_precision", "hover", "hardware_keyboard", "touch", "text_scale", "reduced_motion", "forced_colors", "theme", "ime_obstruction", "titlebar_regions"],
+      "properties": {
+        "viewport": {"type": "object", "required": ["width", "height"], "properties": {"width": {"type": "number", "exclusiveMinimum": 0}, "height": {"type": "number", "exclusiveMinimum": 0}}, "additionalProperties": false},
+        "safe_area": {"type": "object", "required": ["top", "right", "bottom", "left"], "properties": {"top": {"type": "number", "minimum": 0}, "right": {"type": "number", "minimum": 0}, "bottom": {"type": "number", "minimum": 0}, "left": {"type": "number", "minimum": 0}}, "additionalProperties": false},
+        "window_class": {"type": "string", "minLength": 1},
+        "pointer_precision": {"type": "string", "minLength": 1},
+        "hover": {"type": "boolean"},
+        "hardware_keyboard": {"type": "boolean"},
+        "touch": {"type": "boolean"},
+        "text_scale": {"type": "number", "exclusiveMinimum": 0},
+        "reduced_motion": {"type": "boolean"},
+        "forced_colors": {"type": "boolean"},
+        "theme": {"type": "string", "minLength": 1},
+        "ime_obstruction": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/rect"}]},
+        "titlebar_regions": {"type": "array", "items": {"$ref": "#/$defs/titlebar_rect"}}
+      },
+      "additionalProperties": false
+    },
+    "state_pair": {
+      "type": "object",
+      "required": ["id", "foreground", "background", "minimum_contrast"],
+      "properties": {"id": {"type": "string", "minLength": 1}, "foreground": {"$ref": "#/$defs/role"}, "background": {"$ref": "#/$defs/role"}, "minimum_contrast": {"type": "number", "minimum": 3}},
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

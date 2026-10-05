@@ -1,0 +1,148 @@
+{
+  "$schema": "interface-canon.schema.json",
+  "id": "shruggie-interface-canon",
+  "kind": "interface-canon",
+  "version": "1.0.1",
+  "brand_canon_compatibility": ["1.2.1", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "2.0.0"],
+  "summary": "Renderer-neutral semantic interface roles, logical measures, observed runtime capabilities, accessibility invariants, and bounded brand expression for BrandBuilder consumers.",
+  "units": {
+    "logical_ui_unit": "lu",
+    "definition": "One density-independent interface measure before the active renderer applies its scale transform.",
+    "transforms": {
+      "web": {"target_unit": "css-px", "factor": 1.0, "text_scaling": "browser-and-user-setting"},
+      "egui": {"target_unit": "point", "factor": 1.0, "text_scaling": "pixels-per-point-and-user-setting"},
+      "native": {"target_unit": "density-independent-unit", "factor": 1.0, "text_scaling": "host-accessibility-setting"}
+    }
+  },
+  "primitives": {
+    "density": {"default": "comfortable", "compact": "compact"},
+    "typography": {"label_weight": 500},
+    "focus": {"width": 2, "offset": 2},
+    "state": {"disabled_opacity": 0.48, "hover_opacity": 0.92, "selected_border_width": 2},
+    "motion": {"fast_ms": 120, "standard_ms": 180, "reduced_ms": 0},
+    "interaction": {"minimum_target": 44, "pointer_hit_slop": 8},
+    "spacing": {"1": 4, "2": 8, "3": 12, "4": 16, "6": 24, "8": 32, "12": 48, "16": 64},
+    "layout": {"content_max": 1200, "narrow_max": 720, "gutter_compact": 24, "gutter_expanded": 48},
+    "border": {"default_width": 1, "strong_width": 2}
+  },
+  "role_catalog": [
+    "density.default", "density.compact",
+    "typography.display.family", "typography.body.family", "typography.mono.family", "typography.label.weight",
+    "surface.background", "surface.card", "surface.overlay",
+    "text.primary", "text.muted", "text.on_action", "text.on_accent", "text.on_destructive",
+    "action.primary", "action.emphasis", "action.destructive",
+    "border.default", "border.strong",
+    "focus.ring", "focus.width", "focus.offset",
+    "state.disabled.opacity", "state.hover.opacity", "state.selected.border_width",
+    "motion.fast", "motion.standard", "motion.reduced",
+    "interaction.target.minimum", "interaction.pointer.hit_slop",
+    "spacing.control.inline", "spacing.control.block", "spacing.component", "spacing.section",
+    "layout.content.max", "layout.narrow.max", "layout.gutter.compact", "layout.gutter.expanded"
+  ],
+  "required_roles": [
+    "density.default", "density.compact",
+    "typography.display.family", "typography.body.family", "typography.mono.family", "typography.label.weight",
+    "surface.background", "surface.card", "surface.overlay",
+    "text.primary", "text.muted", "text.on_action", "text.on_accent", "text.on_destructive",
+    "action.primary", "action.emphasis", "action.destructive",
+    "border.default", "border.strong",
+    "focus.ring", "focus.width", "focus.offset",
+    "state.disabled.opacity", "state.hover.opacity", "state.selected.border_width",
+    "motion.fast", "motion.standard", "motion.reduced",
+    "interaction.target.minimum", "interaction.pointer.hit_slop",
+    "spacing.control.inline", "spacing.control.block", "spacing.component", "spacing.section",
+    "layout.content.max", "layout.narrow.max", "layout.gutter.compact", "layout.gutter.expanded"
+  ],
+  "aliases": {
+    "density.default": "$primitive.density.default",
+    "density.compact": "$primitive.density.compact",
+    "typography.display.family": "$brand.typography.families.display.name",
+    "typography.body.family": "$brand.typography.families.body.name",
+    "typography.mono.family": "$brand.typography.families.mono.name",
+    "typography.label.weight": "$primitive.typography.label_weight",
+    "surface.background": "$brand.surfaces.base",
+    "surface.card": "$brand.surfaces.card",
+    "surface.overlay": "$brand.surfaces.popover",
+    "text.primary": "$brand_canon.color.immutable.white.hex",
+    "text.muted": "$brand.accent.dim",
+    "text.on_action": "$resolved.action_foreground",
+    "text.on_accent": "$resolved.accent_foreground",
+    "text.on_destructive": "$resolved.destructive_foreground",
+    "action.primary": "$resolved.action",
+    "action.emphasis": "$resolved.emphasis",
+    "action.destructive": "$brand_canon.color.immutable.fault.hex",
+    "border.default": "$primitive.border.default_width",
+    "border.strong": "$primitive.border.strong_width",
+    "focus.ring": "$resolved.accent",
+    "focus.width": "$primitive.focus.width",
+    "focus.offset": "$primitive.focus.offset",
+    "state.disabled.opacity": "$primitive.state.disabled_opacity",
+    "state.hover.opacity": "$primitive.state.hover_opacity",
+    "state.selected.border_width": "$primitive.state.selected_border_width",
+    "motion.fast": "$primitive.motion.fast_ms",
+    "motion.standard": "$primitive.motion.standard_ms",
+    "motion.reduced": "$primitive.motion.reduced_ms",
+    "interaction.target.minimum": "$primitive.interaction.minimum_target",
+    "interaction.pointer.hit_slop": "$primitive.interaction.pointer_hit_slop",
+    "spacing.control.inline": "$primitive.spacing.4",
+    "spacing.control.block": "$primitive.spacing.3",
+    "spacing.component": "$primitive.spacing.6",
+    "spacing.section": "$primitive.spacing.16",
+    "layout.content.max": "$primitive.layout.content_max",
+    "layout.narrow.max": "$primitive.layout.narrow_max",
+    "layout.gutter.compact": "$primitive.layout.gutter_compact",
+    "layout.gutter.expanded": "$primitive.layout.gutter_expanded"
+  },
+  "theme_aliases": {
+    "dark": {
+      "text.muted": "$resolved.muted"
+    },
+    "light": {
+      "surface.background": "$brand.light_surfaces.base",
+      "surface.card": "$brand.light_surfaces.card",
+      "surface.overlay": "$brand.light_surfaces.popover",
+      "text.primary": "$brand_canon.color.immutable.black.hex",
+      "text.muted": "$resolved.muted",
+      "action.destructive": "$brand_canon.color.immutable.fault-deep.hex"
+    }
+  },
+  "runtime": {
+    "required_inputs": ["viewport", "safe_area", "window_class", "pointer_precision", "hover", "hardware_keyboard", "touch", "text_scale", "reduced_motion", "forced_colors", "theme", "ime_obstruction", "titlebar_regions"],
+    "window_classes": ["compact", "medium", "expanded", "unbounded"],
+    "pointer_precisions": ["none", "coarse", "fine", "mixed"],
+    "themes": ["light", "dark", "system"],
+    "mixed_profile_examples": [
+      {"viewport": {"width": 1280, "height": 800}, "safe_area": {"top": 0, "right": 0, "bottom": 0, "left": 0}, "window_class": "expanded", "pointer_precision": "coarse", "hover": true, "hardware_keyboard": true, "touch": true, "text_scale": 1.0, "reduced_motion": false, "forced_colors": false, "theme": "system", "ime_obstruction": null, "titlebar_regions": []},
+      {"viewport": {"width": 390, "height": 844}, "safe_area": {"top": 47, "right": 0, "bottom": 34, "left": 0}, "window_class": "compact", "pointer_precision": "fine", "hover": false, "hardware_keyboard": true, "touch": true, "text_scale": 1.25, "reduced_motion": true, "forced_colors": false, "theme": "dark", "ime_obstruction": {"x": 0, "y": 504, "width": 390, "height": 340}, "titlebar_regions": []},
+      {"viewport": {"width": 1024, "height": 768}, "safe_area": {"top": 28, "right": 0, "bottom": 0, "left": 0}, "window_class": "medium", "pointer_precision": "mixed", "hover": true, "hardware_keyboard": false, "touch": true, "text_scale": 1.5, "reduced_motion": false, "forced_colors": true, "theme": "light", "ime_obstruction": null, "titlebar_regions": [{"kind": "controls", "x": 872, "y": 0, "width": 152, "height": 28}]}
+    ]
+  },
+  "invariants": {
+    "roles": ["focus.width", "focus.offset", "motion.reduced", "interaction.target.minimum"],
+    "wcag_level": "AA",
+    "minimum_text_contrast": 4.5,
+    "minimum_non_text_contrast": 3.0,
+    "minimum_target_logical_units": 44,
+    "focus_visible": true,
+    "status_requires_non_color_cue": true
+  },
+  "permitted_overrides": {
+    "density.default": ["$primitive.density."],
+    "surface.card": ["$brand.surfaces."],
+    "surface.overlay": ["$brand.surfaces."],
+    "text.muted": ["$brand.accent."],
+    "action.primary": ["$brand.semantic_colors.", "$brand_canon.color.immutable."],
+    "action.emphasis": ["$brand.semantic_colors.", "$brand_canon.color.immutable."],
+    "motion.standard": ["$primitive.motion."],
+    "layout.content.max": ["$primitive.layout."],
+    "layout.narrow.max": ["$primitive.layout."]
+  },
+  "state_pairs": [
+    {"id": "primary-text", "foreground": "text.primary", "background": "surface.background", "minimum_contrast": 4.5},
+    {"id": "muted-text", "foreground": "text.muted", "background": "surface.background", "minimum_contrast": 4.5},
+    {"id": "action-fill", "foreground": "text.on_action", "background": "action.primary", "minimum_contrast": 4.5},
+    {"id": "destructive-fill", "foreground": "text.on_destructive", "background": "action.destructive", "minimum_contrast": 4.5},
+    {"id": "accent-fill", "foreground": "text.on_accent", "background": "focus.ring", "minimum_contrast": 4.5},
+    {"id": "focus-indicator", "foreground": "focus.ring", "background": "surface.background", "minimum_contrast": 3.0}
+  ]
+}

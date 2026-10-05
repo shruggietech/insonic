@@ -1,0 +1,305 @@
+{
+  "$comment": "Named-styles map for the shruggie-docs skill. Authoritative source for every style the document-template.js scaffold materializes. Sizes are points (PT). Colors are hex without leading '#'. Line spacing values are docx 'line' units where 240 = single, 276 = 1.15, 360 = 1.5. Space-above and space-below are points.",
+  "version": "1.0.0",
+  "rules": {
+    "bodyJustification": {
+      "description": "All paragraph body text uses JUSTIFY alignment. Exempt: bullet list items (START), numbered list items (START), table cell text (START), footer text (END), headings (START except TITLE/SUBTITLE which are CENTER), captions (CENTER), eyebrow labels (START), recipient blocks in letters (START), sender and bill-to blocks in invoices (START).",
+      "appliesTo": "Body",
+      "exempt": [
+        "BulletListItem",
+        "NumberedListItem",
+        "TableCell",
+        "Footer",
+        "TITLE",
+        "SUBTITLE",
+        "H1",
+        "H2",
+        "H3",
+        "H4",
+        "H5",
+        "H6",
+        "Caption",
+        "EyebrowLabel",
+        "LetterRecipientBlock",
+        "InvoiceSenderBlock",
+        "InvoiceBillToBlock"
+      ]
+    },
+    "greenBrightForbiddenOnLight": {
+      "description": "Green Bright #2BCC73 must not appear anywhere in any document the skill produces. Substitute Green Deep #00AB21 wherever Green Bright would appear on a dark surface.",
+      "forbiddenColor": "2BCC73",
+      "substitute": "00AB21"
+    },
+    "italicPolicy": {
+      "description": "Only base Geist-Italic ships. Do not attempt bold-italic combinations. Use italic sparingly in prose only.",
+      "allowedItalicFonts": ["Geist Italic"]
+    }
+  },
+  "page": {
+    "sizePT": { "width": 612, "height": 792 },
+    "marginsPT": { "top": 36, "bottom": 54, "left": 36, "right": 36 },
+    "orientation": "portrait"
+  },
+  "logo": {
+    "path": "brand/logo/logo-lightbg.png",
+    "widthPT": 180,
+    "heightPT": "auto",
+    "heightRoundingPT": 0.5,
+    "marginsPT": { "top": 9, "bottom": 9, "left": 9, "right": 9 },
+    "anchor": "inline",
+    "alignment": "CENTER",
+    "altText": "ShruggieTech"
+  },
+  "footer": {
+    "$comment": "alignment END means right-aligned in OOXML. Binding for SOW, SOA, MSA, Internal Report, Invoice. Letter overrides to CENTER.",
+    "alignment": "END",
+    "font": "Geist",
+    "weight": 400,
+    "sizePT": 10,
+    "color": "6B6B6B",
+    "defaultTemplate": "{DOCUMENT_TITLE} - Page {PAGE} of {NUMPAGES}",
+    "fieldCodes": ["PAGE", "NUMPAGES"]
+  },
+  "styles": {
+    "TITLE": {
+      "font": "Space Grotesk",
+      "sizePT": 24,
+      "weight": 700,
+      "color": "00AB21",
+      "alignment": "CENTER",
+      "spaceAbovePT": null,
+      "spaceBelowPT": 12,
+      "lineSpacing": 276
+    },
+    "SUBTITLE": {
+      "font": "Geist",
+      "sizePT": 14,
+      "weight": 400,
+      "color": "6B6B6B",
+      "alignment": "CENTER",
+      "spaceAbovePT": null,
+      "spaceBelowPT": 16,
+      "lineSpacing": 276
+    },
+    "H1": {
+      "font": "Space Grotesk",
+      "sizePT": 20,
+      "weight": 700,
+      "color": "0A0A0A",
+      "alignment": "START",
+      "spaceAbovePT": 20,
+      "spaceBelowPT": 6,
+      "lineSpacing": 276
+    },
+    "H2": {
+      "font": "Space Grotesk",
+      "sizePT": 16,
+      "weight": 700,
+      "color": "0A0A0A",
+      "alignment": "START",
+      "spaceAbovePT": 18,
+      "spaceBelowPT": 6,
+      "lineSpacing": 276
+    },
+    "H3": {
+      "font": "Space Grotesk",
+      "sizePT": 14,
+      "weight": 500,
+      "color": "1A1A1A",
+      "alignment": "START",
+      "spaceAbovePT": 16,
+      "spaceBelowPT": 4,
+      "lineSpacing": 276
+    },
+    "H4": {
+      "font": "Space Grotesk",
+      "sizePT": 12,
+      "weight": 500,
+      "color": "6B6B6B",
+      "alignment": "START",
+      "spaceAbovePT": 14,
+      "spaceBelowPT": 4,
+      "lineSpacing": 276
+    },
+    "H5": {
+      "font": "Space Grotesk",
+      "sizePT": 11,
+      "weight": 500,
+      "color": "6B6B6B",
+      "alignment": "START",
+      "spaceAbovePT": 12,
+      "spaceBelowPT": 4,
+      "lineSpacing": 276
+    },
+    "H6": {
+      "font": "Space Grotesk",
+      "sizePT": 11,
+      "weight": 500,
+      "italic": true,
+      "color": "6B6B6B",
+      "alignment": "START",
+      "spaceAbovePT": 12,
+      "spaceBelowPT": 4,
+      "lineSpacing": 276
+    },
+    "Body": {
+      "font": "Geist",
+      "sizePT": 11,
+      "weight": 400,
+      "color": "0A0A0A",
+      "alignment": "JUSTIFY",
+      "spaceAbovePT": 0,
+      "spaceBelowPT": 8,
+      "lineSpacing": 276
+    },
+    "BodyBold": {
+      "font": "Geist",
+      "sizePT": 11,
+      "weight": 500,
+      "color": "inherit",
+      "alignment": "inherit",
+      "spaceAbovePT": "inherit",
+      "spaceBelowPT": "inherit",
+      "lineSpacing": "inherit",
+      "$note": "Inline run style only; applied inside a Body paragraph."
+    },
+    "BodyItalic": {
+      "font": "Geist",
+      "sizePT": 11,
+      "weight": 400,
+      "italic": true,
+      "color": "inherit",
+      "alignment": "inherit",
+      "spaceAbovePT": "inherit",
+      "spaceBelowPT": "inherit",
+      "lineSpacing": "inherit",
+      "$note": "Inline run style only; applied inside a Body paragraph."
+    },
+    "BulletListItem": {
+      "font": "Geist",
+      "sizePT": 11,
+      "weight": 400,
+      "color": "0A0A0A",
+      "alignment": "START",
+      "spaceAbovePT": 0,
+      "spaceBelowPT": 4,
+      "lineSpacing": 276
+    },
+    "NumberedListItem": {
+      "font": "Geist",
+      "sizePT": 11,
+      "weight": 400,
+      "color": "0A0A0A",
+      "alignment": "START",
+      "spaceAbovePT": 0,
+      "spaceBelowPT": 4,
+      "lineSpacing": 276
+    },
+    "TableCell": {
+      "font": "Geist",
+      "sizePT": 10,
+      "weight": 400,
+      "color": "0A0A0A",
+      "alignment": "START",
+      "spaceAbovePT": 0,
+      "spaceBelowPT": 0,
+      "lineSpacing": 276
+    },
+    "CodeBlock": {
+      "font": "Geist Mono",
+      "sizePT": 10,
+      "weight": 400,
+      "color": "0A0A0A",
+      "alignment": "START",
+      "spaceAbovePT": 4,
+      "spaceBelowPT": 4,
+      "lineSpacing": 276,
+      "backgroundColor": "F5F5F5"
+    },
+    "CodeInline": {
+      "font": "Geist Mono",
+      "sizePT": 10,
+      "weight": 400,
+      "color": "0A0A0A",
+      "alignment": "inherit",
+      "spaceAbovePT": "inherit",
+      "spaceBelowPT": "inherit",
+      "lineSpacing": "inherit"
+    },
+    "EyebrowLabel": {
+      "font": "Geist Mono",
+      "sizePT": 9,
+      "weight": 400,
+      "color": "00AB21",
+      "alignment": "START",
+      "uppercase": true,
+      "letterSpacing": 0.12,
+      "spaceAbovePT": null,
+      "spaceBelowPT": 4,
+      "lineSpacing": 276
+    },
+    "Footer": {
+      "font": "Geist",
+      "sizePT": 10,
+      "weight": 400,
+      "color": "6B6B6B",
+      "alignment": "END",
+      "spaceAbovePT": null,
+      "spaceBelowPT": null,
+      "lineSpacing": 276
+    },
+    "Caption": {
+      "font": "Geist",
+      "sizePT": 9,
+      "weight": 400,
+      "italic": true,
+      "color": "6B6B6B",
+      "alignment": "CENTER",
+      "spaceAbovePT": 4,
+      "spaceBelowPT": 8,
+      "lineSpacing": 276
+    }
+  },
+  "hyperlink": {
+    "color": "00AB21",
+    "underline": "single",
+    "font": "inherit"
+  },
+  "horizontalRule": {
+    "color": "D1D3D4",
+    "weightPT": 0.5,
+    "spaceAbovePT": 12,
+    "spaceBelowPT": 12
+  },
+  "table": {
+    "defaultBorder": {
+      "color": "E5E5E5",
+      "weightPT": 0.5,
+      "style": "single"
+    },
+    "headerRow": {
+      "backgroundColor": "F5F5F5",
+      "font": "Geist",
+      "weight": 500,
+      "sizePT": 10,
+      "color": "0A0A0A"
+    }
+  },
+  "colors": {
+    "brand": {
+      "black": "000000",
+      "greenBright": "2BCC73",
+      "greenDeep": "00AB21",
+      "orange": "FF5300",
+      "grayLight": "D1D3D4"
+    },
+    "grayPalette": {
+      "950": "0A0A0A",
+      "800": "1A1A1A",
+      "600": "6B6B6B",
+      "400": "9A9A9A",
+      "200": "E5E5E5",
+      "100": "F5F5F5"
+    }
+  }
+}

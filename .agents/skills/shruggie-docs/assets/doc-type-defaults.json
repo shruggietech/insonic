@@ -1,0 +1,130 @@
+{
+  "$comment": "Per-document-type defaults for the shruggie-docs skill. Each invocation targets one document type; the agent collaborates with the operator to pick the type and override any of these defaults. Defaults below apply only when the operator does not supply an explicit value, or when the skill runs unattended (batch, CI). See SKILL.md 'Collaboration rule' for the binding interaction model.",
+  "version": "1.0.0",
+  "operatorCollaborationRequired": {
+    "description": "The agent host of the skill asks the operator before committing to any of the following values, even when a default exists for the chosen document type. A confused generation produced from defaults is a worse outcome than a clarifying question.",
+    "fields": [
+      "documentType (when the request is ambiguous, e.g., 'draft a contract' could be SOW, SOA, or MSA)",
+      "tocInclusion (even when the default for the chosen type would auto-include)",
+      "signatoryNames",
+      "signatoryTitles",
+      "partyIdentification (for SOW, SOA, MSA, Letter, Invoice)",
+      "currency",
+      "paymentTerms",
+      "taxHandling"
+    ]
+  },
+  "documentTypes": {
+    "SOW": {
+      "label": "Statement of Work",
+      "topBlock": "title-subtitle",
+      "partyMetadataAfterTitle": true,
+      "tocDefault": false,
+      "logoHeader": true,
+      "footer": "standard",
+      "footerTemplate": "{DOCUMENT_TITLE} - Page {PAGE} of {NUMPAGES}",
+      "pageBreakRule": "before-signature-block-only",
+      "taglineInFooter": false,
+      "carriesLegalWeight": true
+    },
+    "SOA": {
+      "label": "Scope of Work Agreement",
+      "topBlock": "title-subtitle",
+      "partyMetadataAfterTitle": true,
+      "tocDefault": true,
+      "logoHeader": true,
+      "footer": "standard",
+      "footerTemplate": "{DOCUMENT_TITLE} - Page {PAGE} of {NUMPAGES}",
+      "pageBreakRule": "before-signature-block-only",
+      "taglineInFooter": false,
+      "carriesLegalWeight": true
+    },
+    "MSA": {
+      "label": "Master Subcontract Agreement",
+      "topBlock": "title-only",
+      "partyMetadataAfterTitle": true,
+      "tocDefault": true,
+      "logoHeader": true,
+      "footer": "standard",
+      "footerTemplate": "{DOCUMENT_TITLE} - Page {PAGE} of {NUMPAGES}",
+      "pageBreakRule": "before-signature-block-only",
+      "taglineInFooter": false,
+      "carriesLegalWeight": true
+    },
+    "InternalReport": {
+      "label": "Internal Report",
+      "topBlock": "title-subtitle",
+      "tocDefault": false,
+      "logoHeader": true,
+      "footer": "standard",
+      "footerTemplate": "{DOCUMENT_TITLE} - Page {PAGE} of {NUMPAGES}",
+      "pageBreakRule": "none",
+      "taglineInFooter": true,
+      "carriesLegalWeight": false
+    },
+    "Invoice": {
+      "label": "Invoice",
+      "topBlock": "invoice-header",
+      "tocDefault": false,
+      "logoHeader": true,
+      "footer": "invoice",
+      "footerTemplate": "Shruggie LLC | Invoice {INVOICE_NUMBER} | Payment terms: {PAYMENT_TERMS}",
+      "footerPageNumberLine": "{PAGE} of {NUMPAGES}",
+      "pageBreakRule": "none",
+      "taglineInFooter": false,
+      "carriesLegalWeight": true,
+      "defaultPaymentTerms": "Net 30 from issue date",
+      "defaultPaymentMethods": [
+        "ACH",
+        "wire transfer",
+        "check payable to Shruggie LLC"
+      ]
+    },
+    "Letter": {
+      "label": "Letter",
+      "topBlock": "letter-recipient",
+      "tocDefault": false,
+      "logoHeader": true,
+      "footer": "letter",
+      "footerTemplate": "{PAGE} of {NUMPAGES}",
+      "footerSinglePageBehavior": "omit",
+      "footerAlignment": "CENTER",
+      "footerSizePT": 9,
+      "pageBreakRule": "none",
+      "taglineInFooter": false,
+      "carriesLegalWeight": true,
+      "defaultClosing": "Sincerely,",
+      "acceptableClosings": [
+        "Sincerely,",
+        "Best regards,",
+        "Respectfully,"
+      ],
+      "disallowedClosings": [
+        "Cheers,",
+        "Thanks,"
+      ]
+    }
+  },
+  "invoiceLineItemsTable": {
+    "columns": [
+      { "header": "DESCRIPTION", "alignment": "START", "widthPercent": 50 },
+      { "header": "QTY", "alignment": "END", "widthPercent": 10 },
+      { "header": "RATE", "alignment": "END", "widthPercent": 20 },
+      { "header": "AMOUNT", "alignment": "END", "widthPercent": 20 }
+    ],
+    "summaryRows": [
+      { "label": "Subtotal", "style": "Body" },
+      { "label": "Tax", "style": "Body", "omitWhenZero": true },
+      { "label": "Total", "style": "BodyBold", "topBorder": { "color": "0A0A0A", "weightPT": 1 } }
+    ]
+  },
+  "letterTopBlockOrder": [
+    "dateLine",
+    "emptyParagraph",
+    "recipientBlock",
+    "emptyParagraph",
+    "subjectLineOptional",
+    "emptyParagraph",
+    "salutation"
+  ]
+}

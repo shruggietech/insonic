@@ -1,0 +1,90 @@
+[
+  {
+    "profile": "browser",
+    "responsibilities": {
+      "safe_area": "app-frame",
+      "dynamic_viewport": "app-frame",
+      "root_scrolling": "app-frame",
+      "fixed_chrome": "app-frame",
+      "ime_obstruction": "app-frame",
+      "titlebar_regions": "app-frame",
+      "global_focus": "app-frame"
+    },
+    "handoff": {},
+    "capabilities": [
+      "viewport",
+      "safe_area",
+      "window_class",
+      "pointer_precision",
+      "hover",
+      "hardware_keyboard",
+      "touch",
+      "text_scale",
+      "reduced_motion",
+      "forced_colors",
+      "theme",
+      "ime_obstruction",
+      "titlebar_regions"
+    ]
+  },
+  {
+    "profile": "tauri",
+    "responsibilities": {
+      "safe_area": "app-frame",
+      "dynamic_viewport": "app-frame",
+      "root_scrolling": "app-frame",
+      "fixed_chrome": "app-frame",
+      "ime_obstruction": "app-frame",
+      "titlebar_regions": "host",
+      "global_focus": "app-frame"
+    },
+    "handoff": {
+      "titlebar_regions": "--bb-host-titlebar-block-end"
+    },
+    "capabilities": [
+      "viewport",
+      "safe_area",
+      "window_class",
+      "pointer_precision",
+      "hover",
+      "hardware_keyboard",
+      "touch",
+      "text_scale",
+      "reduced_motion",
+      "forced_colors",
+      "theme",
+      "ime_obstruction",
+      "titlebar_regions"
+    ]
+  },
+  {
+    "profile": "wails",
+    "responsibilities": {
+      "safe_area": "app-frame",
+      "dynamic_viewport": "app-frame",
+      "root_scrolling": "app-frame",
+      "fixed_chrome": "app-frame",
+      "ime_obstruction": "app-frame",
+      "titlebar_regions": "host",
+      "global_focus": "app-frame"
+    },
+    "handoff": {
+      "titlebar_regions": "--bb-host-titlebar-block-end"
+    },
+    "capabilities": [
+      "viewport",
+      "safe_area",
+      "window_class",
+      "pointer_precision",
+      "hover",
+      "hardware_keyboard",
+      "touch",
+      "text_scale",
+      "reduced_motion",
+      "forced_colors",
+      "theme",
+      "ime_obstruction",
+      "titlebar_regions"
+    ]
+  }
+]

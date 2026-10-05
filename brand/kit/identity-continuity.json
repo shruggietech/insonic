@@ -1,0 +1,1256 @@
+{
+  "schema_version": 1,
+  "brand": "insonic",
+  "source_class": "glyphkit-constructed",
+  "recorded_on": "2026-10-03",
+  "source_revision": "codex/070-insonic-brand at 99245f87b4a1ceca8ecf35b0245dd0eb6916f4b4 plus private candidate source",
+  "source_files": [
+    {
+      "path": "brand.json",
+      "purpose": "Candidate identity contract",
+      "bytes": 13122,
+      "sha256": "b679033bbf57a081e012e4a0de39adc2a369e18248827f5095a9ef84a721494f"
+    },
+    {
+      "path": "build/mk_paths.py",
+      "purpose": "Glyphkit construction parameters",
+      "bytes": 1282,
+      "sha256": "c92e3bb3f8f55c80a4dd6662397f31e8819a7f7aeeaf6ca2ec7fba1171524daf"
+    }
+  ],
+  "identity_snapshot": {
+    "source_class": "glyphkit-constructed",
+    "geometry": {
+      "source_mode": "constructed",
+      "geometry_provenance": "glyphkit",
+      "paths": {
+        "full": [
+          {
+            "role": "accent",
+            "d": "M270 440 L270 440 C304.52 440 332.5 467.98 332.5 502.5 L332.5 597.5 C332.5 632.02 304.52 660 270 660 L270 660 C235.48 660 207.5 632.02 207.5 597.5 L207.5 502.5 C207.5 467.98 235.48 440 270 440 Z"
+          },
+          {
+            "role": "accent",
+            "d": "M500 265 L500 265 C534.52 265 562.5 292.98 562.5 327.5 L562.5 672.5 C562.5 707.02 534.52 735 500 735 L500 735 C465.48 735 437.5 707.02 437.5 672.5 L437.5 327.5 C437.5 292.98 465.48 265 500 265 Z"
+          },
+          {
+            "role": "accent",
+            "d": "M730 125 L730 125 C764.52 125 792.5 152.98 792.5 187.5 L792.5 812.5 C792.5 847.02 764.52 875 730 875 L730 875 C695.48 875 667.5 847.02 667.5 812.5 L667.5 187.5 C667.5 152.98 695.48 125 730 125 Z"
+          }
+        ],
+        "reduced": [
+          {
+            "role": "accent",
+            "d": "M270 440 L270 440 C314.18 440 350 475.82 350 520 L350 580 C350 624.18 314.18 660 270 660 L270 660 C225.82 660 190 624.18 190 580 L190 520 C190 475.82 225.82 440 270 440 Z"
+          },
+          {
+            "role": "accent",
+            "d": "M500 265 L500 265 C544.18 265 580 300.82 580 345 L580 655 C580 699.18 544.18 735 500 735 L500 735 C455.82 735 420 699.18 420 655 L420 345 C420 300.82 455.82 265 500 265 Z"
+          },
+          {
+            "role": "accent",
+            "d": "M730 125 L730 125 C774.18 125 810 160.82 810 205 L810 795 C810 839.18 774.18 875 730 875 L730 875 C685.82 875 650 839.18 650 795 L650 205 C650 160.82 685.82 125 730 125 Z"
+          }
+        ]
+      },
+      "authoritative_input_ids": null
+    },
+    "derivative_settings": {
+      "source_mode": "constructed",
+      "geometry_provenance": "glyphkit",
+      "grid": 1000,
+      "canvas_width": 1000,
+      "canvas_height": 1000,
+      "artwork_width": 585,
+      "artwork_height": 750,
+      "reduced_artwork_width": 620,
+      "reduced_artwork_height": 750,
+      "clear_space_units": 100,
+      "standalone_padding_units": 100,
+      "reduced_below_px": 32,
+      "standalone_mark_variant": "full",
+      "min_px": {
+        "mark": 16,
+        "horizontal": 160,
+        "stacked": 128,
+        "wordmark": 120
+      },
+      "application_icon": {
+        "background": "#0C151B"
+      },
+      "role_colors": {
+        "color": {
+          "accent": "#86BDF2",
+          "wordmark": "#F2F7F6"
+        },
+        "light": {
+          "accent": "#256DA9",
+          "wordmark": "#17282E"
+        },
+        "black": {
+          "accent": "#000000",
+          "wordmark": "#000000"
+        },
+        "white": {
+          "accent": "#FFFFFF",
+          "wordmark": "#FFFFFF"
+        }
+      },
+      "construction": "Three separated rounded bars with staggered height and endpoints. Full stems are 125 units; Reduced stems are 160 units. Both retain three forms, as explicitly requested by the owner. No crossing bar. Generated directly with glyphkit rounded_rect and center_ink."
+    },
+    "topology": {
+      "full": {
+        "path_count": 3,
+        "subpath_count": 3,
+        "closed_subpaths": 3,
+        "role_counts": {
+          "accent": 3
+        },
+        "command_counts": {
+          "C": 12,
+          "L": 12,
+          "M": 3,
+          "Z": 3
+        },
+        "fill_rules": {
+          "nonzero": 3
+        }
+      },
+      "reduced": {
+        "path_count": 3,
+        "subpath_count": 3,
+        "closed_subpaths": 3,
+        "role_counts": {
+          "accent": 3
+        },
+        "command_counts": {
+          "C": 12,
+          "L": 12,
+          "M": 3,
+          "Z": 3
+        },
+        "fill_rules": {
+          "nonzero": 3
+        }
+      }
+    },
+    "framing": {
+      "grid": 1000,
+      "canvas_width": 1000,
+      "canvas_height": 1000,
+      "artwork_width": 585,
+      "artwork_height": 750,
+      "reduced_artwork_width": 620,
+      "reduced_artwork_height": 750,
+      "clear_space_units": 100,
+      "standalone_padding_units": 100
+    },
+    "palette": {
+      "accent": {
+        "bright": "#86BDF2",
+        "deep": "#256DA9",
+        "accessible": "#256DA9",
+        "dim": "#86BDF2"
+      },
+      "semantic_colors": {
+        "emphasis": "#86BDF2",
+        "action": "#256DA9"
+      },
+      "surfaces": {
+        "base": "#0C151B",
+        "card": "#14222C",
+        "popover": "#14222C",
+        "secondary": "#20323F",
+        "hover": "#2B4050"
+      },
+      "logo_role_colors": {
+        "color": {
+          "accent": "#86BDF2",
+          "wordmark": "#F2F7F6"
+        },
+        "light": {
+          "accent": "#256DA9",
+          "wordmark": "#17282E"
+        },
+        "black": {
+          "accent": "#000000",
+          "wordmark": "#000000"
+        },
+        "white": {
+          "accent": "#FFFFFF",
+          "wordmark": "#FFFFFF"
+        }
+      }
+    },
+    "typography": {
+      "wordmark_text": "insonic",
+      "typography": {
+        "mode": "house",
+        "families": {
+          "display": {
+            "name": "Space Grotesk",
+            "weights": [
+              500,
+              700
+            ]
+          },
+          "body": {
+            "name": "Geist",
+            "weights": [
+              400,
+              500
+            ]
+          },
+          "mono": {
+            "name": "Geist Mono",
+            "weights": [
+              400
+            ]
+          }
+        }
+      }
+    },
+    "sha256": "a9d5e28b5da1374feddb8a44e350432de65f50b2e076541e2cdeebb29c49fe24"
+  },
+  "topology": {
+    "full": {
+      "path_count": 3,
+      "subpath_count": 3,
+      "closed_subpaths": 3,
+      "role_counts": {
+        "accent": 3
+      },
+      "command_counts": {
+        "C": 12,
+        "L": 12,
+        "M": 3,
+        "Z": 3
+      },
+      "fill_rules": {
+        "nonzero": 3
+      }
+    },
+    "reduced": {
+      "path_count": 3,
+      "subpath_count": 3,
+      "closed_subpaths": 3,
+      "role_counts": {
+        "accent": 3
+      },
+      "command_counts": {
+        "C": 12,
+        "L": 12,
+        "M": 3,
+        "Z": 3
+      },
+      "fill_rules": {
+        "nonzero": 3
+      }
+    }
+  },
+  "framing": {
+    "grid": 1000,
+    "canvas_width": 1000,
+    "canvas_height": 1000,
+    "artwork_width": 585,
+    "artwork_height": 750,
+    "reduced_artwork_width": 620,
+    "reduced_artwork_height": 750,
+    "clear_space_units": 100,
+    "standalone_padding_units": 100
+  },
+  "palette": {
+    "accent": {
+      "bright": "#86BDF2",
+      "deep": "#256DA9",
+      "accessible": "#256DA9",
+      "dim": "#86BDF2"
+    },
+    "semantic_colors": {
+      "emphasis": "#86BDF2",
+      "action": "#256DA9"
+    },
+    "surfaces": {
+      "base": "#0C151B",
+      "card": "#14222C",
+      "popover": "#14222C",
+      "secondary": "#20323F",
+      "hover": "#2B4050"
+    },
+    "logo_role_colors": {
+      "color": {
+        "accent": "#86BDF2",
+        "wordmark": "#F2F7F6"
+      },
+      "light": {
+        "accent": "#256DA9",
+        "wordmark": "#17282E"
+      },
+      "black": {
+        "accent": "#000000",
+        "wordmark": "#000000"
+      },
+      "white": {
+        "accent": "#FFFFFF",
+        "wordmark": "#FFFFFF"
+      }
+    }
+  },
+  "renderer": {
+    "id": "node-resvg",
+    "version": "v24.11.0",
+    "settings_sha256": "b6d5b937dd71e1ac0b73f73495f171163413bfdb3d071503b63409b93d0d4393"
+  },
+  "proofs": [
+    {
+      "variant": "full",
+      "size_px": 256,
+      "surface": "dark",
+      "path": "proofs/full-256-dark.png",
+      "sha256": "024a439250dfbf996d11001dcf0d4459b5bcd21d552f5807d06da951bbc130e8",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/full-256-dark/comparison-side-by-side.png",
+          "sha256": "1529d0553105d8fe593a027b04b4d495b0152eb67be8f758d9fd84c101aa6111"
+        },
+        "overlay": {
+          "path": "evidence/full-256-dark/comparison-overlay.png",
+          "sha256": "024a439250dfbf996d11001dcf0d4459b5bcd21d552f5807d06da951bbc130e8"
+        },
+        "silhouette_xor": {
+          "path": "evidence/full-256-dark/comparison-silhouette-xor.png",
+          "sha256": "aebc86755d7beb8b01bcd992ab44e1133afcb473511b7832eb82228be275473f"
+        },
+        "color_difference": {
+          "path": "evidence/full-256-dark/comparison-color-difference.png",
+          "sha256": "42c7d7a412f704e9468d9ba58292b23e1d659ddb4e839345ad08bb37b44ee2e5"
+        }
+      }
+    },
+    {
+      "variant": "full",
+      "size_px": 256,
+      "surface": "light",
+      "path": "proofs/full-256-light.png",
+      "sha256": "74760c720a3ac5ef8a5ff584a984824fabaedc764d570c1765c7f9a799de9ab5",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/full-256-light/comparison-side-by-side.png",
+          "sha256": "262535dfab852834da40c186012dce4cf6890131a6b216a863a6958cfc926f83"
+        },
+        "overlay": {
+          "path": "evidence/full-256-light/comparison-overlay.png",
+          "sha256": "74760c720a3ac5ef8a5ff584a984824fabaedc764d570c1765c7f9a799de9ab5"
+        },
+        "silhouette_xor": {
+          "path": "evidence/full-256-light/comparison-silhouette-xor.png",
+          "sha256": "aebc86755d7beb8b01bcd992ab44e1133afcb473511b7832eb82228be275473f"
+        },
+        "color_difference": {
+          "path": "evidence/full-256-light/comparison-color-difference.png",
+          "sha256": "42c7d7a412f704e9468d9ba58292b23e1d659ddb4e839345ad08bb37b44ee2e5"
+        }
+      }
+    },
+    {
+      "variant": "full",
+      "size_px": 256,
+      "surface": "black",
+      "path": "proofs/full-256-black.png",
+      "sha256": "5c2d8eccb0538febae06767345d7c38b4b6e431bf0307867a8ce34f1180ca68d",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/full-256-black/comparison-side-by-side.png",
+          "sha256": "123b31f4c8dbda5d54c8b21f3a26dab91eb0af1a20ac5938178bcd119c6d0758"
+        },
+        "overlay": {
+          "path": "evidence/full-256-black/comparison-overlay.png",
+          "sha256": "5c2d8eccb0538febae06767345d7c38b4b6e431bf0307867a8ce34f1180ca68d"
+        },
+        "silhouette_xor": {
+          "path": "evidence/full-256-black/comparison-silhouette-xor.png",
+          "sha256": "aebc86755d7beb8b01bcd992ab44e1133afcb473511b7832eb82228be275473f"
+        },
+        "color_difference": {
+          "path": "evidence/full-256-black/comparison-color-difference.png",
+          "sha256": "42c7d7a412f704e9468d9ba58292b23e1d659ddb4e839345ad08bb37b44ee2e5"
+        }
+      }
+    },
+    {
+      "variant": "full",
+      "size_px": 256,
+      "surface": "white",
+      "path": "proofs/full-256-white.png",
+      "sha256": "ae17f3bd932a1300a3ceef595a78e84b7091ba0fe87e185494700bf10dd12b07",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/full-256-white/comparison-side-by-side.png",
+          "sha256": "c79baa54ddd98d10bcb7d924603fe7acbdd2fb368acd93f95a914cb5667f979d"
+        },
+        "overlay": {
+          "path": "evidence/full-256-white/comparison-overlay.png",
+          "sha256": "ae17f3bd932a1300a3ceef595a78e84b7091ba0fe87e185494700bf10dd12b07"
+        },
+        "silhouette_xor": {
+          "path": "evidence/full-256-white/comparison-silhouette-xor.png",
+          "sha256": "aebc86755d7beb8b01bcd992ab44e1133afcb473511b7832eb82228be275473f"
+        },
+        "color_difference": {
+          "path": "evidence/full-256-white/comparison-color-difference.png",
+          "sha256": "42c7d7a412f704e9468d9ba58292b23e1d659ddb4e839345ad08bb37b44ee2e5"
+        }
+      }
+    },
+    {
+      "variant": "full",
+      "size_px": 64,
+      "surface": "dark",
+      "path": "proofs/full-64-dark.png",
+      "sha256": "2b3f212c3c0560a6f094d666711e19ea20f7cabd134ef7f99c8a646de720043b",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/full-64-dark/comparison-side-by-side.png",
+          "sha256": "b67b66747421856f1c6b094e90b686ba1f8dbaa20b06a9a1e162708c56179dc1"
+        },
+        "overlay": {
+          "path": "evidence/full-64-dark/comparison-overlay.png",
+          "sha256": "2b3f212c3c0560a6f094d666711e19ea20f7cabd134ef7f99c8a646de720043b"
+        },
+        "silhouette_xor": {
+          "path": "evidence/full-64-dark/comparison-silhouette-xor.png",
+          "sha256": "052c48aa8b5e4f2c40bcd0d1bb7a4b93276276285dfa3e8a971b435dc88fdfee"
+        },
+        "color_difference": {
+          "path": "evidence/full-64-dark/comparison-color-difference.png",
+          "sha256": "e0a600268e4e838cbb2d645ad9b64530a4ccac386ae25907aad6d9f68271b733"
+        }
+      }
+    },
+    {
+      "variant": "full",
+      "size_px": 64,
+      "surface": "light",
+      "path": "proofs/full-64-light.png",
+      "sha256": "5a670dec29d7413e8772499a3dd234125badb734f6545169f6d219d82f0c0511",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/full-64-light/comparison-side-by-side.png",
+          "sha256": "35dba96d673343f96629bad6a815e40ca73b64212f55efb9d3c36d619d0ac9e1"
+        },
+        "overlay": {
+          "path": "evidence/full-64-light/comparison-overlay.png",
+          "sha256": "5a670dec29d7413e8772499a3dd234125badb734f6545169f6d219d82f0c0511"
+        },
+        "silhouette_xor": {
+          "path": "evidence/full-64-light/comparison-silhouette-xor.png",
+          "sha256": "052c48aa8b5e4f2c40bcd0d1bb7a4b93276276285dfa3e8a971b435dc88fdfee"
+        },
+        "color_difference": {
+          "path": "evidence/full-64-light/comparison-color-difference.png",
+          "sha256": "e0a600268e4e838cbb2d645ad9b64530a4ccac386ae25907aad6d9f68271b733"
+        }
+      }
+    },
+    {
+      "variant": "full",
+      "size_px": 64,
+      "surface": "black",
+      "path": "proofs/full-64-black.png",
+      "sha256": "416a6bfc38b760ddfaa4ccf2e409428a4ef7ba9be2a7bc6995b6d4230d1637d2",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/full-64-black/comparison-side-by-side.png",
+          "sha256": "17195d3db1448a08a9ab68cd99e87afe72b656f4b37115c7fcb9bcf3b9951d85"
+        },
+        "overlay": {
+          "path": "evidence/full-64-black/comparison-overlay.png",
+          "sha256": "416a6bfc38b760ddfaa4ccf2e409428a4ef7ba9be2a7bc6995b6d4230d1637d2"
+        },
+        "silhouette_xor": {
+          "path": "evidence/full-64-black/comparison-silhouette-xor.png",
+          "sha256": "052c48aa8b5e4f2c40bcd0d1bb7a4b93276276285dfa3e8a971b435dc88fdfee"
+        },
+        "color_difference": {
+          "path": "evidence/full-64-black/comparison-color-difference.png",
+          "sha256": "e0a600268e4e838cbb2d645ad9b64530a4ccac386ae25907aad6d9f68271b733"
+        }
+      }
+    },
+    {
+      "variant": "full",
+      "size_px": 64,
+      "surface": "white",
+      "path": "proofs/full-64-white.png",
+      "sha256": "4714609f4ff8add025e4c349238b2326fbb19783bbd85f8f028244f09f415faf",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/full-64-white/comparison-side-by-side.png",
+          "sha256": "7031126fa80e21ced4460a05e899c9b19499df4c496bc04e4fd6c0dbe951ec0a"
+        },
+        "overlay": {
+          "path": "evidence/full-64-white/comparison-overlay.png",
+          "sha256": "4714609f4ff8add025e4c349238b2326fbb19783bbd85f8f028244f09f415faf"
+        },
+        "silhouette_xor": {
+          "path": "evidence/full-64-white/comparison-silhouette-xor.png",
+          "sha256": "052c48aa8b5e4f2c40bcd0d1bb7a4b93276276285dfa3e8a971b435dc88fdfee"
+        },
+        "color_difference": {
+          "path": "evidence/full-64-white/comparison-color-difference.png",
+          "sha256": "e0a600268e4e838cbb2d645ad9b64530a4ccac386ae25907aad6d9f68271b733"
+        }
+      }
+    },
+    {
+      "variant": "full",
+      "size_px": 32,
+      "surface": "dark",
+      "path": "proofs/full-32-dark.png",
+      "sha256": "24c1fa9e496ae755f9c82998920de616774063ddfbe76eb4ab842498f7613956",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/full-32-dark/comparison-side-by-side.png",
+          "sha256": "2ec912948e7b59d0173a09119c475b009f7630d57b758873ec3b91cd200b98bd"
+        },
+        "overlay": {
+          "path": "evidence/full-32-dark/comparison-overlay.png",
+          "sha256": "24c1fa9e496ae755f9c82998920de616774063ddfbe76eb4ab842498f7613956"
+        },
+        "silhouette_xor": {
+          "path": "evidence/full-32-dark/comparison-silhouette-xor.png",
+          "sha256": "b0775cba09eadf2fde241b35daa28cdcd03af6d23e99e0decd32b42f13f6d220"
+        },
+        "color_difference": {
+          "path": "evidence/full-32-dark/comparison-color-difference.png",
+          "sha256": "30a5faf4033e50a90a2878943dfcf4cc66c8feff3fe92c17dc8c7e7a30e9e845"
+        }
+      }
+    },
+    {
+      "variant": "full",
+      "size_px": 32,
+      "surface": "light",
+      "path": "proofs/full-32-light.png",
+      "sha256": "116109c4bf4622c8e032827012c4838c73859f2ba857c0501e25dcb9b2264457",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/full-32-light/comparison-side-by-side.png",
+          "sha256": "adbcdb550516ae9cb16274293ac78a6ab8756615acb57ad400b37ce19bc4ae37"
+        },
+        "overlay": {
+          "path": "evidence/full-32-light/comparison-overlay.png",
+          "sha256": "116109c4bf4622c8e032827012c4838c73859f2ba857c0501e25dcb9b2264457"
+        },
+        "silhouette_xor": {
+          "path": "evidence/full-32-light/comparison-silhouette-xor.png",
+          "sha256": "b0775cba09eadf2fde241b35daa28cdcd03af6d23e99e0decd32b42f13f6d220"
+        },
+        "color_difference": {
+          "path": "evidence/full-32-light/comparison-color-difference.png",
+          "sha256": "30a5faf4033e50a90a2878943dfcf4cc66c8feff3fe92c17dc8c7e7a30e9e845"
+        }
+      }
+    },
+    {
+      "variant": "full",
+      "size_px": 32,
+      "surface": "black",
+      "path": "proofs/full-32-black.png",
+      "sha256": "179f2675c80a2cfc3c3d6ca2de0272b6c21e164d8c5aebcc9ed5d0b1fdca7808",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/full-32-black/comparison-side-by-side.png",
+          "sha256": "360148046cd7fdecb33184e9a46965bd25743ea0f898243ba4611dcb0c0b9af4"
+        },
+        "overlay": {
+          "path": "evidence/full-32-black/comparison-overlay.png",
+          "sha256": "179f2675c80a2cfc3c3d6ca2de0272b6c21e164d8c5aebcc9ed5d0b1fdca7808"
+        },
+        "silhouette_xor": {
+          "path": "evidence/full-32-black/comparison-silhouette-xor.png",
+          "sha256": "b0775cba09eadf2fde241b35daa28cdcd03af6d23e99e0decd32b42f13f6d220"
+        },
+        "color_difference": {
+          "path": "evidence/full-32-black/comparison-color-difference.png",
+          "sha256": "30a5faf4033e50a90a2878943dfcf4cc66c8feff3fe92c17dc8c7e7a30e9e845"
+        }
+      }
+    },
+    {
+      "variant": "full",
+      "size_px": 32,
+      "surface": "white",
+      "path": "proofs/full-32-white.png",
+      "sha256": "e6c1da570b941e6e85791c7f2f2924c4adef31373f3dcf81966061ba3ea21bcf",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/full-32-white/comparison-side-by-side.png",
+          "sha256": "13b60d7a97b4d5f6d5a464cabdd2041660e145c47e6e89b3c2d1c1b852d84384"
+        },
+        "overlay": {
+          "path": "evidence/full-32-white/comparison-overlay.png",
+          "sha256": "e6c1da570b941e6e85791c7f2f2924c4adef31373f3dcf81966061ba3ea21bcf"
+        },
+        "silhouette_xor": {
+          "path": "evidence/full-32-white/comparison-silhouette-xor.png",
+          "sha256": "b0775cba09eadf2fde241b35daa28cdcd03af6d23e99e0decd32b42f13f6d220"
+        },
+        "color_difference": {
+          "path": "evidence/full-32-white/comparison-color-difference.png",
+          "sha256": "30a5faf4033e50a90a2878943dfcf4cc66c8feff3fe92c17dc8c7e7a30e9e845"
+        }
+      }
+    },
+    {
+      "variant": "full",
+      "size_px": 16,
+      "surface": "dark",
+      "path": "proofs/full-16-dark.png",
+      "sha256": "704cb6c257d96afdc234342264607b2179f4328d2abf302ccd555777f54a3186",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/full-16-dark/comparison-side-by-side.png",
+          "sha256": "6807f685c786b1ca885ecb31df7b04769110bc4562e293b131334758fe603fa9"
+        },
+        "overlay": {
+          "path": "evidence/full-16-dark/comparison-overlay.png",
+          "sha256": "704cb6c257d96afdc234342264607b2179f4328d2abf302ccd555777f54a3186"
+        },
+        "silhouette_xor": {
+          "path": "evidence/full-16-dark/comparison-silhouette-xor.png",
+          "sha256": "232c2eac760eae604f9dd43352c0b272396b7cfaf220081b54583b6d0cbc2320"
+        },
+        "color_difference": {
+          "path": "evidence/full-16-dark/comparison-color-difference.png",
+          "sha256": "52dfe43025076f8a3b6d08d341916b9e38c0ecf7f4e6c75f0097e9ead901da27"
+        }
+      }
+    },
+    {
+      "variant": "full",
+      "size_px": 16,
+      "surface": "light",
+      "path": "proofs/full-16-light.png",
+      "sha256": "ee13e1f08c59a27b1dd7e987d43959930219edc4b246439a86251a22cd07a6f6",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/full-16-light/comparison-side-by-side.png",
+          "sha256": "1c52e99fcda86db0d3c25476015e7bd1c2191ac504522948cb15f544d7cdc4d2"
+        },
+        "overlay": {
+          "path": "evidence/full-16-light/comparison-overlay.png",
+          "sha256": "ee13e1f08c59a27b1dd7e987d43959930219edc4b246439a86251a22cd07a6f6"
+        },
+        "silhouette_xor": {
+          "path": "evidence/full-16-light/comparison-silhouette-xor.png",
+          "sha256": "232c2eac760eae604f9dd43352c0b272396b7cfaf220081b54583b6d0cbc2320"
+        },
+        "color_difference": {
+          "path": "evidence/full-16-light/comparison-color-difference.png",
+          "sha256": "52dfe43025076f8a3b6d08d341916b9e38c0ecf7f4e6c75f0097e9ead901da27"
+        }
+      }
+    },
+    {
+      "variant": "full",
+      "size_px": 16,
+      "surface": "black",
+      "path": "proofs/full-16-black.png",
+      "sha256": "354944c7fdf20a721b4cdce5f663ead137ccd46ec9cf924a180e8250c7506202",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/full-16-black/comparison-side-by-side.png",
+          "sha256": "65c3c457c2153aaa98f28fcac61ce567e273e93181d4c52133c9ac4311890d9f"
+        },
+        "overlay": {
+          "path": "evidence/full-16-black/comparison-overlay.png",
+          "sha256": "354944c7fdf20a721b4cdce5f663ead137ccd46ec9cf924a180e8250c7506202"
+        },
+        "silhouette_xor": {
+          "path": "evidence/full-16-black/comparison-silhouette-xor.png",
+          "sha256": "232c2eac760eae604f9dd43352c0b272396b7cfaf220081b54583b6d0cbc2320"
+        },
+        "color_difference": {
+          "path": "evidence/full-16-black/comparison-color-difference.png",
+          "sha256": "52dfe43025076f8a3b6d08d341916b9e38c0ecf7f4e6c75f0097e9ead901da27"
+        }
+      }
+    },
+    {
+      "variant": "full",
+      "size_px": 16,
+      "surface": "white",
+      "path": "proofs/full-16-white.png",
+      "sha256": "a1b5e57f71c05cb653aa7c1e22ff41f0cc9746cf4aa743c9f9a87a044f03cfaf",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/full-16-white/comparison-side-by-side.png",
+          "sha256": "2e24660a7237175b1730642c3380f7cbcabcf715f7a1b858f8bec40255389522"
+        },
+        "overlay": {
+          "path": "evidence/full-16-white/comparison-overlay.png",
+          "sha256": "a1b5e57f71c05cb653aa7c1e22ff41f0cc9746cf4aa743c9f9a87a044f03cfaf"
+        },
+        "silhouette_xor": {
+          "path": "evidence/full-16-white/comparison-silhouette-xor.png",
+          "sha256": "232c2eac760eae604f9dd43352c0b272396b7cfaf220081b54583b6d0cbc2320"
+        },
+        "color_difference": {
+          "path": "evidence/full-16-white/comparison-color-difference.png",
+          "sha256": "52dfe43025076f8a3b6d08d341916b9e38c0ecf7f4e6c75f0097e9ead901da27"
+        }
+      }
+    },
+    {
+      "variant": "reduced",
+      "size_px": 256,
+      "surface": "dark",
+      "path": "proofs/reduced-256-dark.png",
+      "sha256": "03605f49bf333b41262bf8fb930b095b429a92b570440693789ce6ad1c8a672e",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/reduced-256-dark/comparison-side-by-side.png",
+          "sha256": "1fd7d384858901530473355cb6a2df62d3433c91ee9c7cd72f89aa612fb5bed1"
+        },
+        "overlay": {
+          "path": "evidence/reduced-256-dark/comparison-overlay.png",
+          "sha256": "03605f49bf333b41262bf8fb930b095b429a92b570440693789ce6ad1c8a672e"
+        },
+        "silhouette_xor": {
+          "path": "evidence/reduced-256-dark/comparison-silhouette-xor.png",
+          "sha256": "aebc86755d7beb8b01bcd992ab44e1133afcb473511b7832eb82228be275473f"
+        },
+        "color_difference": {
+          "path": "evidence/reduced-256-dark/comparison-color-difference.png",
+          "sha256": "42c7d7a412f704e9468d9ba58292b23e1d659ddb4e839345ad08bb37b44ee2e5"
+        }
+      }
+    },
+    {
+      "variant": "reduced",
+      "size_px": 256,
+      "surface": "light",
+      "path": "proofs/reduced-256-light.png",
+      "sha256": "74e4dc8f409b9565c5862059acca5e5e11b0d466ac2efa47132264afd49e27a0",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/reduced-256-light/comparison-side-by-side.png",
+          "sha256": "fdf0070883ba2724d6a8daac6ac4cd1febb34f53a7e3f9faf0b87c253809ea2a"
+        },
+        "overlay": {
+          "path": "evidence/reduced-256-light/comparison-overlay.png",
+          "sha256": "74e4dc8f409b9565c5862059acca5e5e11b0d466ac2efa47132264afd49e27a0"
+        },
+        "silhouette_xor": {
+          "path": "evidence/reduced-256-light/comparison-silhouette-xor.png",
+          "sha256": "aebc86755d7beb8b01bcd992ab44e1133afcb473511b7832eb82228be275473f"
+        },
+        "color_difference": {
+          "path": "evidence/reduced-256-light/comparison-color-difference.png",
+          "sha256": "42c7d7a412f704e9468d9ba58292b23e1d659ddb4e839345ad08bb37b44ee2e5"
+        }
+      }
+    },
+    {
+      "variant": "reduced",
+      "size_px": 256,
+      "surface": "black",
+      "path": "proofs/reduced-256-black.png",
+      "sha256": "2bec9e881b430e91b22d8a1a3f7ca629266c3af0151849e3033e74a633a93792",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/reduced-256-black/comparison-side-by-side.png",
+          "sha256": "414edf61fce289fa59f4be25df6dc7816c32c11f11d5480a7f2417a97175593d"
+        },
+        "overlay": {
+          "path": "evidence/reduced-256-black/comparison-overlay.png",
+          "sha256": "2bec9e881b430e91b22d8a1a3f7ca629266c3af0151849e3033e74a633a93792"
+        },
+        "silhouette_xor": {
+          "path": "evidence/reduced-256-black/comparison-silhouette-xor.png",
+          "sha256": "aebc86755d7beb8b01bcd992ab44e1133afcb473511b7832eb82228be275473f"
+        },
+        "color_difference": {
+          "path": "evidence/reduced-256-black/comparison-color-difference.png",
+          "sha256": "42c7d7a412f704e9468d9ba58292b23e1d659ddb4e839345ad08bb37b44ee2e5"
+        }
+      }
+    },
+    {
+      "variant": "reduced",
+      "size_px": 256,
+      "surface": "white",
+      "path": "proofs/reduced-256-white.png",
+      "sha256": "e684795709bdf38c751aca87a2e24462c7e0b61b70b4fa6b59d485486dd5e3f3",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/reduced-256-white/comparison-side-by-side.png",
+          "sha256": "4e5c8819933ce531c00ab1dd23ad24059d8e6a4e2578a866f3ecdc5d74f5c8c7"
+        },
+        "overlay": {
+          "path": "evidence/reduced-256-white/comparison-overlay.png",
+          "sha256": "e684795709bdf38c751aca87a2e24462c7e0b61b70b4fa6b59d485486dd5e3f3"
+        },
+        "silhouette_xor": {
+          "path": "evidence/reduced-256-white/comparison-silhouette-xor.png",
+          "sha256": "aebc86755d7beb8b01bcd992ab44e1133afcb473511b7832eb82228be275473f"
+        },
+        "color_difference": {
+          "path": "evidence/reduced-256-white/comparison-color-difference.png",
+          "sha256": "42c7d7a412f704e9468d9ba58292b23e1d659ddb4e839345ad08bb37b44ee2e5"
+        }
+      }
+    },
+    {
+      "variant": "reduced",
+      "size_px": 64,
+      "surface": "dark",
+      "path": "proofs/reduced-64-dark.png",
+      "sha256": "8ee7398c63044fbb99e41e1ac1c8b52c7aba42bd43eca84183659b4044ec4874",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/reduced-64-dark/comparison-side-by-side.png",
+          "sha256": "b10079c9a18c4c31473e6696f63f130adcf5d3dd23c3b44770e6cf342e6a17a0"
+        },
+        "overlay": {
+          "path": "evidence/reduced-64-dark/comparison-overlay.png",
+          "sha256": "8ee7398c63044fbb99e41e1ac1c8b52c7aba42bd43eca84183659b4044ec4874"
+        },
+        "silhouette_xor": {
+          "path": "evidence/reduced-64-dark/comparison-silhouette-xor.png",
+          "sha256": "052c48aa8b5e4f2c40bcd0d1bb7a4b93276276285dfa3e8a971b435dc88fdfee"
+        },
+        "color_difference": {
+          "path": "evidence/reduced-64-dark/comparison-color-difference.png",
+          "sha256": "e0a600268e4e838cbb2d645ad9b64530a4ccac386ae25907aad6d9f68271b733"
+        }
+      }
+    },
+    {
+      "variant": "reduced",
+      "size_px": 64,
+      "surface": "light",
+      "path": "proofs/reduced-64-light.png",
+      "sha256": "20eaa73a652daaa4421e452307642273dfb8dee8698b31a7f30446c12209257f",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/reduced-64-light/comparison-side-by-side.png",
+          "sha256": "f4d66b5c71fb4a7bb36dcdb10150378bc44c3f5d62e35fab0d5f7e45a1ccfa31"
+        },
+        "overlay": {
+          "path": "evidence/reduced-64-light/comparison-overlay.png",
+          "sha256": "20eaa73a652daaa4421e452307642273dfb8dee8698b31a7f30446c12209257f"
+        },
+        "silhouette_xor": {
+          "path": "evidence/reduced-64-light/comparison-silhouette-xor.png",
+          "sha256": "052c48aa8b5e4f2c40bcd0d1bb7a4b93276276285dfa3e8a971b435dc88fdfee"
+        },
+        "color_difference": {
+          "path": "evidence/reduced-64-light/comparison-color-difference.png",
+          "sha256": "e0a600268e4e838cbb2d645ad9b64530a4ccac386ae25907aad6d9f68271b733"
+        }
+      }
+    },
+    {
+      "variant": "reduced",
+      "size_px": 64,
+      "surface": "black",
+      "path": "proofs/reduced-64-black.png",
+      "sha256": "9a3cb94630df47b0d6c128e5f3eb6f70f8031066025aa1f07b45197115629e0d",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/reduced-64-black/comparison-side-by-side.png",
+          "sha256": "827b3736d74c4d399464bb86c7c80d242fcb7ab1392cc9c43f9aeebb22b3382b"
+        },
+        "overlay": {
+          "path": "evidence/reduced-64-black/comparison-overlay.png",
+          "sha256": "9a3cb94630df47b0d6c128e5f3eb6f70f8031066025aa1f07b45197115629e0d"
+        },
+        "silhouette_xor": {
+          "path": "evidence/reduced-64-black/comparison-silhouette-xor.png",
+          "sha256": "052c48aa8b5e4f2c40bcd0d1bb7a4b93276276285dfa3e8a971b435dc88fdfee"
+        },
+        "color_difference": {
+          "path": "evidence/reduced-64-black/comparison-color-difference.png",
+          "sha256": "e0a600268e4e838cbb2d645ad9b64530a4ccac386ae25907aad6d9f68271b733"
+        }
+      }
+    },
+    {
+      "variant": "reduced",
+      "size_px": 64,
+      "surface": "white",
+      "path": "proofs/reduced-64-white.png",
+      "sha256": "30cad10832beb22957b9f99d7e872be9162b07c18746267a9edddc32c500e099",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/reduced-64-white/comparison-side-by-side.png",
+          "sha256": "fd0115fe4422c2e06c164767fe2561d181347fe7f43048ac8882e6d0d436a9c8"
+        },
+        "overlay": {
+          "path": "evidence/reduced-64-white/comparison-overlay.png",
+          "sha256": "30cad10832beb22957b9f99d7e872be9162b07c18746267a9edddc32c500e099"
+        },
+        "silhouette_xor": {
+          "path": "evidence/reduced-64-white/comparison-silhouette-xor.png",
+          "sha256": "052c48aa8b5e4f2c40bcd0d1bb7a4b93276276285dfa3e8a971b435dc88fdfee"
+        },
+        "color_difference": {
+          "path": "evidence/reduced-64-white/comparison-color-difference.png",
+          "sha256": "e0a600268e4e838cbb2d645ad9b64530a4ccac386ae25907aad6d9f68271b733"
+        }
+      }
+    },
+    {
+      "variant": "reduced",
+      "size_px": 32,
+      "surface": "dark",
+      "path": "proofs/reduced-32-dark.png",
+      "sha256": "c7bf39dbc0d89d025ad2273df16b0587c2e09a0dd9ad4fac35047332238c78cf",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/reduced-32-dark/comparison-side-by-side.png",
+          "sha256": "a68ce8cd9a023e5c43601751582361e4a7637a303e4467b994d03f481ebf47fb"
+        },
+        "overlay": {
+          "path": "evidence/reduced-32-dark/comparison-overlay.png",
+          "sha256": "c7bf39dbc0d89d025ad2273df16b0587c2e09a0dd9ad4fac35047332238c78cf"
+        },
+        "silhouette_xor": {
+          "path": "evidence/reduced-32-dark/comparison-silhouette-xor.png",
+          "sha256": "b0775cba09eadf2fde241b35daa28cdcd03af6d23e99e0decd32b42f13f6d220"
+        },
+        "color_difference": {
+          "path": "evidence/reduced-32-dark/comparison-color-difference.png",
+          "sha256": "30a5faf4033e50a90a2878943dfcf4cc66c8feff3fe92c17dc8c7e7a30e9e845"
+        }
+      }
+    },
+    {
+      "variant": "reduced",
+      "size_px": 32,
+      "surface": "light",
+      "path": "proofs/reduced-32-light.png",
+      "sha256": "dd12149054863f97b5b69b7af015fd9e9caa8ca424e0f4560e139954aaffe18d",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/reduced-32-light/comparison-side-by-side.png",
+          "sha256": "44ef1b33f7bf334a0ae3de3ac766f44cdc73de3c674a4a386d060dfc8f30dca1"
+        },
+        "overlay": {
+          "path": "evidence/reduced-32-light/comparison-overlay.png",
+          "sha256": "dd12149054863f97b5b69b7af015fd9e9caa8ca424e0f4560e139954aaffe18d"
+        },
+        "silhouette_xor": {
+          "path": "evidence/reduced-32-light/comparison-silhouette-xor.png",
+          "sha256": "b0775cba09eadf2fde241b35daa28cdcd03af6d23e99e0decd32b42f13f6d220"
+        },
+        "color_difference": {
+          "path": "evidence/reduced-32-light/comparison-color-difference.png",
+          "sha256": "30a5faf4033e50a90a2878943dfcf4cc66c8feff3fe92c17dc8c7e7a30e9e845"
+        }
+      }
+    },
+    {
+      "variant": "reduced",
+      "size_px": 32,
+      "surface": "black",
+      "path": "proofs/reduced-32-black.png",
+      "sha256": "c7ca22bebea3f6b3ec724cdcb08c00d7a9cee9bbd04ea57a2c7a60bffb34d28f",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/reduced-32-black/comparison-side-by-side.png",
+          "sha256": "e7f15830992c4fee94c121fc34da459f21a7a2b42fe4283d89fba9cd747b81dd"
+        },
+        "overlay": {
+          "path": "evidence/reduced-32-black/comparison-overlay.png",
+          "sha256": "c7ca22bebea3f6b3ec724cdcb08c00d7a9cee9bbd04ea57a2c7a60bffb34d28f"
+        },
+        "silhouette_xor": {
+          "path": "evidence/reduced-32-black/comparison-silhouette-xor.png",
+          "sha256": "b0775cba09eadf2fde241b35daa28cdcd03af6d23e99e0decd32b42f13f6d220"
+        },
+        "color_difference": {
+          "path": "evidence/reduced-32-black/comparison-color-difference.png",
+          "sha256": "30a5faf4033e50a90a2878943dfcf4cc66c8feff3fe92c17dc8c7e7a30e9e845"
+        }
+      }
+    },
+    {
+      "variant": "reduced",
+      "size_px": 32,
+      "surface": "white",
+      "path": "proofs/reduced-32-white.png",
+      "sha256": "d4df5251e66b372b0d43acca8ac8796b728fb8760025cb6bdf6b62005a14e341",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/reduced-32-white/comparison-side-by-side.png",
+          "sha256": "6a74908bb3b8f9d8be76d7768a5e526de0f588db49d3bcaf45f5eeda59322f7a"
+        },
+        "overlay": {
+          "path": "evidence/reduced-32-white/comparison-overlay.png",
+          "sha256": "d4df5251e66b372b0d43acca8ac8796b728fb8760025cb6bdf6b62005a14e341"
+        },
+        "silhouette_xor": {
+          "path": "evidence/reduced-32-white/comparison-silhouette-xor.png",
+          "sha256": "b0775cba09eadf2fde241b35daa28cdcd03af6d23e99e0decd32b42f13f6d220"
+        },
+        "color_difference": {
+          "path": "evidence/reduced-32-white/comparison-color-difference.png",
+          "sha256": "30a5faf4033e50a90a2878943dfcf4cc66c8feff3fe92c17dc8c7e7a30e9e845"
+        }
+      }
+    },
+    {
+      "variant": "reduced",
+      "size_px": 16,
+      "surface": "dark",
+      "path": "proofs/reduced-16-dark.png",
+      "sha256": "9adf8bf843d256b2d4d53b226ae68a78be9c85089401e2e97212cb6866b04417",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/reduced-16-dark/comparison-side-by-side.png",
+          "sha256": "f58d691393ef3f6657a10e3cb80cd9a46ffbf8d948952fe587cb4d06b9ea1299"
+        },
+        "overlay": {
+          "path": "evidence/reduced-16-dark/comparison-overlay.png",
+          "sha256": "9adf8bf843d256b2d4d53b226ae68a78be9c85089401e2e97212cb6866b04417"
+        },
+        "silhouette_xor": {
+          "path": "evidence/reduced-16-dark/comparison-silhouette-xor.png",
+          "sha256": "232c2eac760eae604f9dd43352c0b272396b7cfaf220081b54583b6d0cbc2320"
+        },
+        "color_difference": {
+          "path": "evidence/reduced-16-dark/comparison-color-difference.png",
+          "sha256": "52dfe43025076f8a3b6d08d341916b9e38c0ecf7f4e6c75f0097e9ead901da27"
+        }
+      }
+    },
+    {
+      "variant": "reduced",
+      "size_px": 16,
+      "surface": "light",
+      "path": "proofs/reduced-16-light.png",
+      "sha256": "e6bfaacfb807242e789a53a68b08ce115a60d5b730d9aac81270ac7d931f514a",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/reduced-16-light/comparison-side-by-side.png",
+          "sha256": "9b14da2e94b0bf083a0ad4d5cf2d0617d259454e5107fd514b523fe6d27e9fa3"
+        },
+        "overlay": {
+          "path": "evidence/reduced-16-light/comparison-overlay.png",
+          "sha256": "e6bfaacfb807242e789a53a68b08ce115a60d5b730d9aac81270ac7d931f514a"
+        },
+        "silhouette_xor": {
+          "path": "evidence/reduced-16-light/comparison-silhouette-xor.png",
+          "sha256": "232c2eac760eae604f9dd43352c0b272396b7cfaf220081b54583b6d0cbc2320"
+        },
+        "color_difference": {
+          "path": "evidence/reduced-16-light/comparison-color-difference.png",
+          "sha256": "52dfe43025076f8a3b6d08d341916b9e38c0ecf7f4e6c75f0097e9ead901da27"
+        }
+      }
+    },
+    {
+      "variant": "reduced",
+      "size_px": 16,
+      "surface": "black",
+      "path": "proofs/reduced-16-black.png",
+      "sha256": "282cf64c40afab5f8ac04e31b110d1ef4c58c827fd0a76e9fef9e2d9d3670f45",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/reduced-16-black/comparison-side-by-side.png",
+          "sha256": "659e4e6401e92490600ae3e5ab780a14aa24644b51f68870b9541162ef9f1ae7"
+        },
+        "overlay": {
+          "path": "evidence/reduced-16-black/comparison-overlay.png",
+          "sha256": "282cf64c40afab5f8ac04e31b110d1ef4c58c827fd0a76e9fef9e2d9d3670f45"
+        },
+        "silhouette_xor": {
+          "path": "evidence/reduced-16-black/comparison-silhouette-xor.png",
+          "sha256": "232c2eac760eae604f9dd43352c0b272396b7cfaf220081b54583b6d0cbc2320"
+        },
+        "color_difference": {
+          "path": "evidence/reduced-16-black/comparison-color-difference.png",
+          "sha256": "52dfe43025076f8a3b6d08d341916b9e38c0ecf7f4e6c75f0097e9ead901da27"
+        }
+      }
+    },
+    {
+      "variant": "reduced",
+      "size_px": 16,
+      "surface": "white",
+      "path": "proofs/reduced-16-white.png",
+      "sha256": "719b2290b1ae5136cfb08f5dba78455c9835c6cb41deac848c7b0f7e12da4f46",
+      "evidence": {
+        "side_by_side": {
+          "path": "evidence/reduced-16-white/comparison-side-by-side.png",
+          "sha256": "c90ffb8c385979ab542829be7bf9454c39f5afe8edc1db5fdca6882d392893cd"
+        },
+        "overlay": {
+          "path": "evidence/reduced-16-white/comparison-overlay.png",
+          "sha256": "719b2290b1ae5136cfb08f5dba78455c9835c6cb41deac848c7b0f7e12da4f46"
+        },
+        "silhouette_xor": {
+          "path": "evidence/reduced-16-white/comparison-silhouette-xor.png",
+          "sha256": "232c2eac760eae604f9dd43352c0b272396b7cfaf220081b54583b6d0cbc2320"
+        },
+        "color_difference": {
+          "path": "evidence/reduced-16-white/comparison-color-difference.png",
+          "sha256": "52dfe43025076f8a3b6d08d341916b9e38c0ecf7f4e6c75f0097e9ead901da27"
+        }
+      }
+    }
+  ],
+  "palette_qualification": {
+    "status": "passed",
+    "srgb_roles": {
+      "accent.accessible": "#256DA9",
+      "accent.bright": "#86BDF2",
+      "accent.deep": "#256DA9",
+      "accent.dim": "#86BDF2",
+      "logo_role_colors.black.accent": "#000000",
+      "logo_role_colors.black.wordmark": "#000000",
+      "logo_role_colors.color.accent": "#86BDF2",
+      "logo_role_colors.color.wordmark": "#F2F7F6",
+      "logo_role_colors.light.accent": "#256DA9",
+      "logo_role_colors.light.wordmark": "#17282E",
+      "logo_role_colors.white.accent": "#FFFFFF",
+      "logo_role_colors.white.wordmark": "#FFFFFF",
+      "semantic_colors.action": "#256DA9",
+      "semantic_colors.emphasis": "#86BDF2",
+      "surfaces.base": "#0C151B",
+      "surfaces.card": "#14222C",
+      "surfaces.hover": "#2B4050",
+      "surfaces.popover": "#14222C",
+      "surfaces.secondary": "#20323F"
+    },
+    "oklch_roles": {
+      "accent.accessible": [
+        0.520405,
+        0.117913,
+        247.864235
+      ],
+      "accent.bright": [
+        0.780193,
+        0.095457,
+        248.228882
+      ],
+      "accent.deep": [
+        0.520405,
+        0.117913,
+        247.864235
+      ],
+      "accent.dim": [
+        0.780193,
+        0.095457,
+        248.228882
+      ],
+      "logo_role_colors.black.accent": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "logo_role_colors.black.wordmark": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "logo_role_colors.color.accent": [
+        0.780193,
+        0.095457,
+        248.228882
+      ],
+      "logo_role_colors.color.wordmark": [
+        0.972085,
+        0.00546,
+        183.030767
+      ],
+      "logo_role_colors.light.accent": [
+        0.520405,
+        0.117913,
+        247.864235
+      ],
+      "logo_role_colors.light.wordmark": [
+        0.264692,
+        0.025198,
+        222.227519
+      ],
+      "logo_role_colors.white.accent": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "logo_role_colors.white.wordmark": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "semantic_colors.action": [
+        0.520405,
+        0.117913,
+        247.864235
+      ],
+      "semantic_colors.emphasis": [
+        0.780193,
+        0.095457,
+        248.228882
+      ],
+      "surfaces.base": [
+        0.18985,
+        0.018143,
+        238.148271
+      ],
+      "surfaces.card": [
+        0.244107,
+        0.02721,
+        240.363119
+      ],
+      "surfaces.hover": [
+        0.36094,
+        0.038454,
+        241.941187
+      ],
+      "surfaces.popover": [
+        0.244107,
+        0.02721,
+        240.363119
+      ],
+      "surfaces.secondary": [
+        0.307528,
+        0.03328,
+        240.573893
+      ]
+    },
+    "checks": {
+      "color_vision": true,
+      "contrast": true,
+      "rendered_color": true,
+      "semantic_roles": true,
+      "single_ink": true,
+      "surfaces": true
+    },
+    "evidence_sha256": "1d2879bc3c469859d3bd03a213dfb94a2b23669328b4672b8e62cc3b8cdc4f66"
+  },
+  "status": "approved-canonical",
+  "historical_evidence": null,
+  "approval": {
+    "bundle_id": "insonic-a1-glacial-20261003",
+    "approved_by": "repository owner",
+    "approved_on": "2026-10-03",
+    "owner_wording": "Approved as provided",
+    "scope": [
+      "full-master",
+      "reduced-master",
+      "palette",
+      "framing",
+      "topology",
+      "renderer",
+      "proof-matrix"
+    ],
+    "proposal_sha256": "a0a00d7abac8f5b5bc31fe7183bbdd6b48d4ec37e744271581a0771e963a6da5",
+    "source_snapshot_sha256": "a9d5e28b5da1374feddb8a44e350432de65f50b2e076541e2cdeebb29c49fe24"
+  },
+  "record_sha256": "876ff6e7ef11ad5d78cd1145cfeaad1d7738b4581303354d9ff3b48a0f6886e8"
+}

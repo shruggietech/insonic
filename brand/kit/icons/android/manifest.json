@@ -1,0 +1,158 @@
+{
+  "schema_version": "1.0.0",
+  "brand": "insonic",
+  "platform": "android",
+  "status": "generated",
+  "reason": null,
+  "source_masters": {
+    "full": "logos/svg/insonic-mark-color.svg",
+    "reduced": "logos/svg/insonic-mark-reduced-color.svg",
+    "monochrome": "logos/svg/insonic-mark-white.svg"
+  },
+  "artifacts": [
+    {
+      "path": "icons/android/README.md",
+      "platform": "android",
+      "role": "instructions",
+      "format": "markdown",
+      "width": null,
+      "height": null,
+      "appearance": null,
+      "alpha": null,
+      "source_variant": "metadata",
+      "destination": "See suite README"
+    },
+    {
+      "path": "icons/android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+      "platform": "android",
+      "role": "legacy-launcher",
+      "format": "png",
+      "width": 48,
+      "height": 48,
+      "appearance": "default",
+      "alpha": "opaque",
+      "source_variant": "full",
+      "destination": "Android res/mipmap-mdpi"
+    },
+    {
+      "path": "icons/android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+      "platform": "android",
+      "role": "legacy-launcher",
+      "format": "png",
+      "width": 72,
+      "height": 72,
+      "appearance": "default",
+      "alpha": "opaque",
+      "source_variant": "full",
+      "destination": "Android res/mipmap-hdpi"
+    },
+    {
+      "path": "icons/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+      "platform": "android",
+      "role": "legacy-launcher",
+      "format": "png",
+      "width": 96,
+      "height": 96,
+      "appearance": "default",
+      "alpha": "opaque",
+      "source_variant": "full",
+      "destination": "Android res/mipmap-xhdpi"
+    },
+    {
+      "path": "icons/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+      "platform": "android",
+      "role": "legacy-launcher",
+      "format": "png",
+      "width": 144,
+      "height": 144,
+      "appearance": "default",
+      "alpha": "opaque",
+      "source_variant": "full",
+      "destination": "Android res/mipmap-xxhdpi"
+    },
+    {
+      "path": "icons/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+      "platform": "android",
+      "role": "legacy-launcher",
+      "format": "png",
+      "width": 192,
+      "height": 192,
+      "appearance": "default",
+      "alpha": "opaque",
+      "source_variant": "full",
+      "destination": "Android res/mipmap-xxxhdpi"
+    },
+    {
+      "path": "icons/android/app/src/main/res/drawable-nodpi/ic_launcher_foreground.png",
+      "platform": "android",
+      "role": "adaptive-foreground",
+      "format": "png",
+      "width": 432,
+      "height": 432,
+      "appearance": "default",
+      "alpha": "transparent",
+      "source_variant": "full",
+      "destination": "Android res/drawable-nodpi"
+    },
+    {
+      "path": "icons/android/app/src/main/res/drawable-nodpi/ic_launcher_monochrome.png",
+      "platform": "android",
+      "role": "adaptive-monochrome",
+      "format": "png",
+      "width": 432,
+      "height": 432,
+      "appearance": "default",
+      "alpha": "transparent",
+      "source_variant": "monochrome",
+      "destination": "Android res/drawable-nodpi"
+    },
+    {
+      "path": "icons/android/app/src/main/res/drawable/ic_launcher_background.xml",
+      "platform": "android",
+      "role": "adaptive-background",
+      "format": "xml",
+      "width": null,
+      "height": null,
+      "appearance": null,
+      "alpha": null,
+      "source_variant": "metadata",
+      "destination": "Android res/drawable"
+    },
+    {
+      "path": "icons/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "platform": "android",
+      "role": "adaptive-declaration",
+      "format": "xml",
+      "width": null,
+      "height": null,
+      "appearance": null,
+      "alpha": null,
+      "source_variant": "metadata",
+      "destination": "Android res/mipmap-anydpi-v26"
+    },
+    {
+      "path": "icons/android/app/src/main/res/values/ic_launcher_colors.xml",
+      "platform": "android",
+      "role": "color-resource",
+      "format": "xml",
+      "width": null,
+      "height": null,
+      "appearance": null,
+      "alpha": null,
+      "source_variant": "metadata",
+      "destination": "Android res/values"
+    },
+    {
+      "path": "icons/android/play-store/google-play-512.png",
+      "platform": "android",
+      "role": "play-store",
+      "format": "png",
+      "width": 512,
+      "height": 512,
+      "appearance": "default",
+      "alpha": "opaque",
+      "source_variant": "full",
+      "destination": "Google Play Console"
+    }
+  ]
+}

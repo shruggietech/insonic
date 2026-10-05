@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shruggie.tech/schemas/documentation-contract.schema.json",
+  "title": "Shruggie BrandBuilder Documentation Contract",
+  "type": "object",
+  "required": ["$schema", "schema_version", "contract_version", "required_topics", "surfaces", "manual_pages", "source_dispositions", "route_dispositions", "shared_fact_fields", "graphics"],
+  "properties": {
+    "$schema": {"const": "documentation-contract.schema.json"},
+    "schema_version": {"const": 1},
+    "contract_version": {"$ref": "#/$defs/semver"},
+    "required_topics": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+    "surfaces": {"type": "array", "minItems": 3, "items": {"type": "object", "required": ["id", "audience", "owns", "excludes"], "properties": {"id": {"$ref": "#/$defs/id"}, "audience": {"$ref": "#/$defs/text"}, "owns": {"$ref": "#/$defs/text"}, "excludes": {"$ref": "#/$defs/text"}}, "additionalProperties": false}},
+    "manual_pages": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["slug", "source", "title", "description", "section", "section_order", "label", "order", "pagination_order", "topics"], "properties": {"slug": {"$ref": "#/$defs/id"}, "source": {"$ref": "#/$defs/safe_path"}, "title": {"$ref": "#/$defs/text"}, "description": {"$ref": "#/$defs/text"}, "section": {"$ref": "#/$defs/text"}, "section_order": {"type": "integer", "minimum": 0}, "label": {"$ref": "#/$defs/text"}, "order": {"type": "integer", "minimum": 0}, "pagination_order": {"type": "integer", "minimum": 1}, "topics": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/id"}}}, "additionalProperties": false}},
+    "source_dispositions": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/disposition"}},
+    "route_dispositions": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["kind", "owner", "action", "destination", "rationale"], "properties": {"kind": {"$ref": "#/$defs/id"}, "owner": {"$ref": "#/$defs/id"}, "action": {"$ref": "#/$defs/id"}, "destination": {"$ref": "#/$defs/text"}, "rationale": {"$ref": "#/$defs/text"}}, "additionalProperties": false}},
+    "shared_fact_fields": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$"}},
+    "graphics": {"type": "array", "minItems": 3, "items": {"type": "object", "required": ["id", "title", "nodes", "text_equivalent"], "properties": {"id": {"$ref": "#/$defs/id"}, "title": {"$ref": "#/$defs/text"}, "nodes": {"type": "array", "minItems": 3, "items": {"$ref": "#/$defs/text"}}, "text_equivalent": {"$ref": "#/$defs/text"}}, "additionalProperties": false}}
+  },
+  "$defs": {
+    "semver": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+    "text": {"type": "string", "minLength": 1},
+    "safe_path": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"},
+    "disposition": {"type": "object", "required": ["source", "owner", "action", "destination", "rationale"], "properties": {"source": {"$ref": "#/$defs/safe_path"}, "owner": {"$ref": "#/$defs/id"}, "action": {"$ref": "#/$defs/id"}, "destination": {"$ref": "#/$defs/text"}, "rationale": {"$ref": "#/$defs/text"}}, "additionalProperties": false}
+  },
+  "additionalProperties": false
+}

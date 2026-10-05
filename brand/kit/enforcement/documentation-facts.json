@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "documentation_contract_version": "1.2.0",
+  "brand": {
+    "slug": "insonic",
+    "title": "insonic",
+    "affiliation": {
+      "ownership": "shruggietech-owned",
+      "showcase": "public",
+      "parent": "ShruggieTech",
+      "inheritance": "independent",
+      "endorsement": "shruggietech-project",
+      "service_credit": "none"
+    },
+    "brand_version": "1.0.0"
+  },
+  "bundle": {
+    "schema_version": 1,
+    "package": {
+      "id": "insonic-brand-1.0.0-bb3.0.1",
+      "filename": "insonic-brand-1.0.0-bb3.0.1.zip",
+      "brand_slug": "insonic",
+      "brand_version": "1.0.0",
+      "brandbuilder_version": "3.0.1"
+    },
+    "versions": {
+      "canon_version": "2.0.0",
+      "interface_canon_version": "1.0.1",
+      "component_recipe_version": "1.1.0",
+      "web_react_adapter_version": "1.1.0",
+      "egui_adapter_version": "1.0.2",
+      "wordpress_adapter_version": "1.0.0",
+      "compiler_version": "3.0.1",
+      "brand_version": "1.0.0"
+    },
+    "source_revision": "3eadea75689e9bf9b6c647958cacb64b328b8ac5",
+    "publication": {
+      "status": "release",
+      "version": "3.0.1",
+      "tag": "v3.0.1"
+    },
+    "checksum_authority": {
+      "algorithm": "sha256",
+      "manifest": "manifest.json",
+      "release_checksums": "SHA256SUMS"
+    }
+  },
+  "release_impact": {
+    "$schema": "release-impact.schema.json",
+    "schema_version": 1,
+    "brandbuilder_version": "3.0.1",
+    "identity_redesign": false,
+    "surfaces": {
+      "identity": {
+        "classification": "unaffected",
+        "summary": "Existing approved masters and proof bytes remain unchanged. insonic 1.0.0 is a new, separately approved three-form Glacial blue identity."
+      },
+      "palette": {
+        "classification": "unaffected",
+        "summary": "Existing palette values and WCAG 2.1 AA rules remain unchanged."
+      },
+      "typography": {
+        "classification": "unaffected",
+        "summary": "Approved local font families, faces, and licenses remain unchanged."
+      },
+      "platform_assets": {
+        "classification": "optional",
+        "summary": "Regenerate only to adopt corrected type specimen header alignment, explicit LF serialization on Windows and isolated QC captures. Approved logos, icons and social compositions remain source-bound."
+      },
+      "web_react": {
+        "classification": "unaffected",
+        "summary": "Web and React adapter APIs and interface token behavior remain unchanged."
+      },
+      "egui": {
+        "classification": "unaffected",
+        "summary": "The egui adapter API and output semantics remain unchanged."
+      },
+      "wordpress": {
+        "classification": "unaffected",
+        "summary": "WordPress adapter 1.0.0 retains its public contract and uses the compatible Brand Canon 2.0.0 source tuple."
+      },
+      "documentation": {
+        "classification": "required",
+        "summary": "Publish insonic guidelines, approved messages, registries and downloads through the standard generated routes. Existing approved message-role uses remain unchanged; the manual links the exact release."
+      },
+      "recovery": {
+        "classification": "required",
+        "summary": "Repinning BrandBuilder 3.0.1 requires its exact new package IDs and checksums. The verified site hosts twelve brands; nine owned archives join the skill and portable distribution, while three client kits remain hosted candidates. Previously published packages remain immutable recovery inputs."
+      }
+    }
+  },
+  "versions": {
+    "canon_version": "2.0.0",
+    "interface_canon_version": "1.0.1",
+    "component_recipe_version": "1.1.0",
+    "web_react_adapter_version": "1.1.0",
+    "egui_adapter_version": "1.0.2",
+    "wordpress_adapter_version": "1.0.0",
+    "compiler_version": "3.0.1",
+    "brand_version": "1.0.0"
+  },
+  "bindings": {
+    "interface_canon": "enforcement/interface-canon.json",
+    "component_recipes": "enforcement/component-recipes.json",
+    "web_adapter": "web/adapter.json",
+    "web_support_matrix": "web/support-matrix.json",
+    "egui_adapter": "native/egui/adapter.json",
+    "egui_support_matrix": "native/egui/support-matrix.json",
+    "wordpress_adapter": "wordpress/adapter.json",
+    "wordpress_support_matrix": "wordpress/support-matrix.json",
+    "wordpress_theme_zip": "wordpress/insonic-stbb-theme.zip"
+  },
+  "rules": {
+    "inheritance": "independent",
+    "overrides": {},
+    "default_references": {}
+  },
+  "authority": {
+    "precedence": [
+      "brand.json",
+      "enforcement/bundle.json",
+      "enforcement/release-impact.json",
+      "enforcement/interface-canon.json",
+      "enforcement/component-recipes.json",
+      "enforcement/version-policy.json",
+      "enforcement/documentation-contract.json",
+      "enforcement/consumer-contract.json",
+      "human instructions that do not conflict"
+    ],
+    "permitted_exceptions": [
+      "token definition files may contain governed literals",
+      "renderer metadata may contain documented platform-required literals"
+    ]
+  },
+  "verification": {
+    "entry_points": [
+      "python3 enforcement/brandbuilder/templates/verify.py .",
+      "python3 enforcement/brandbuilder/templates/validate_glyph.py brand.json"
+    ],
+    "success": "zero verifier problems and zero glyph failures"
+  },
+  "recovery": {
+    "distribution": "shruggie-brandbuilder-3.0.1.skill",
+    "path": "enforcement/distributions/shruggie-brandbuilder-3.0.1.skill",
+    "sha256": "bef69601c58d6a6575aa5c45c8908069c1fb3b99320c2c6bf6548d303ae7d682",
+    "extract_to": "enforcement/brandbuilder",
+    "sources": [
+      {
+        "kind": "delivered-bundle",
+        "path": "enforcement/distributions/shruggie-brandbuilder-3.0.1.skill",
+        "network_required": false
+      },
+      {
+        "kind": "authoritative-release",
+        "version": "3.0.1",
+        "network_requires_authorization": true
+      }
+    ],
+    "instruction": "Verify the delivered SHA-256, then extract the exact archive into the empty enforcement/brandbuilder directory. Never substitute another version."
+  },
+  "capability_gap": {
+    "template_path": "enforcement/capability-gap.example.json",
+    "submission_requires_authorization": true
+  },
+  "hosted": {
+    "manual_path": "/docs/",
+    "scope": "Current generated kit only. Older pinned kits remain governed by their bundled contracts."
+  },
+  "bundled": {
+    "facts_path": "enforcement/documentation-facts.json",
+    "authority": "These pinned delivered bytes remain authoritative offline.",
+    "latest_substitution_allowed": false
+  }
+}

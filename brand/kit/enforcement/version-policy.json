@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "id": "shruggie-version-policy",
+  "kind": "version-policy",
+  "version": "2.3.0",
+  "domains": {
+    "brand_canon": {
+      "meaning": "Governed identity, affiliation, inheritance, accessibility, and source-contract semantics shared by brands.",
+      "patch": ["clarify guidance without changing accepted inputs or generated meaning", "correct a validator defect while preserving every conforming input"],
+      "minor": ["add an optional governed field", "add a backward-compatible derived capability"],
+      "major": ["remove or rename a governed field", "change an invariant, default, or accepted source meaning incompatibly"],
+      "compatibility_keys": [],
+      "publication": "BrandBuilder skill and canon reference"
+    },
+    "interface_canon": {
+      "meaning": "Renderer-neutral semantic roles, logical units, runtime inputs, and accessibility invariants.",
+      "patch": ["correct prose or validation without changing role meaning", "fix a resolver defect for already-conforming contracts"],
+      "minor": ["add an optional role or capability", "add a compatible renderer transform"],
+      "major": ["remove or rename a role", "change unit, state, runtime, or accessibility meaning incompatibly"],
+      "compatibility_keys": ["brand_canon"],
+      "publication": "Interface Canon reference"
+    },
+    "component_recipes": {
+      "meaning": "Bounded shared component grammar, variants, states, behavior, and verification identifiers.",
+      "patch": ["correct recipe guidance without changing conforming behavior", "fix validation of an existing recipe"],
+      "minor": ["add an optional recipe or compatible state", "expand a verification record without breaking adapters"],
+      "major": ["remove or rename a recipe, variant, or required state", "change keyboard, focus, naming, or ownership semantics incompatibly"],
+      "compatibility_keys": ["interface_canon"],
+      "publication": "component recipe catalog"
+    },
+    "web_react_adapter": {
+      "meaning": "Generated Web and React API, packaging, support, and implementation behavior.",
+      "patch": ["fix generated code without changing public exports", "correct support evidence for existing behavior"],
+      "minor": ["add a backward-compatible export", "expand recipe or host support"],
+      "major": ["remove or rename an export", "change dependency, prop, entry-point, or behavior compatibility incompatibly"],
+      "compatibility_keys": ["interface_canon", "component_recipes"],
+      "publication": "generated web adapter"
+    },
+    "egui_adapter": {
+      "meaning": "Generated Rust and egui API, packaging, support classification, and native implementation behavior.",
+      "patch": ["fix generated Rust without changing public symbols", "correct support evidence for existing behavior"],
+      "minor": ["add a backward-compatible helper", "expand recipe or capability support"],
+      "major": ["remove or rename a public symbol", "change egui, MSRV, runtime capability, or behavior compatibility incompatibly"],
+      "compatibility_keys": ["interface_canon", "component_recipes"],
+      "publication": "generated native egui adapter"
+    },
+    "wordpress_adapter": {
+      "meaning": "Generated native WordPress theme.json, block-theme package, support, and update behavior.",
+      "patch": ["correct generated theme output without changing public settings", "correct support evidence for existing behavior"],
+      "minor": ["add compatible core-block mappings or patterns", "expand tested WordPress and PHP support"],
+      "major": ["remove or rename presets, patterns, or public theme hooks", "change core, PHP, or editor compatibility incompatibly"],
+      "compatibility_keys": ["brand_canon", "interface_canon", "component_recipes"],
+      "publication": "generated WordPress adapter and installable block theme"
+    },
+    "compiler": {
+      "meaning": "Exact BrandBuilder generator, validator, recovery, and packaging implementation.",
+      "patch": ["fix deterministic output or verification without changing public contracts", "correct packaging of already-declared artifacts"],
+      "minor": ["add a backward-compatible generator or verifier capability", "support another compatible contract version"],
+      "major": ["remove a generator or recovery entry point", "change accepted inputs or output layout incompatibly"],
+      "compatibility_keys": ["brand_canon", "interface_canon", "component_recipes", "web_react_adapter", "egui_adapter", "wordpress_adapter"],
+      "publication": "BrandBuilder skill distribution"
+    },
+    "brand": {
+      "meaning": "One identity's governed source contract and consumer-visible brand values.",
+      "patch": ["correct non-breaking guidance or metadata", "fix a derived value without changing approved identity"],
+      "minor": ["add a backward-compatible approved asset or expression", "add optional consumer guidance"],
+      "major": ["change approved identity, affiliation, inheritance, or required consumer behavior incompatibly", "remove a previously shipped governed asset"],
+      "compatibility_keys": ["brand_canon", "interface_canon"],
+      "publication": "versioned brand kit"
+    }
+  },
+  "compatibility_rules": [
+    {"dependent": "interface_canon", "dependent_major": 1, "dependency": "brand_canon", "supported": ["1.1.2", "1.2.0", "1.2.1", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "2.0.0"]},
+    {"dependent": "component_recipes", "dependent_major": 1, "dependency": "interface_canon", "supported": ["1.0.0", "1.0.1"]},
+    {"dependent": "web_react_adapter", "dependent_major": 1, "dependency": "interface_canon", "supported": ["1.0.0", "1.0.1"]},
+    {"dependent": "web_react_adapter", "dependent_major": 1, "dependency": "component_recipes", "supported": ["1.0.0", "1.1.0"]},
+    {"dependent": "egui_adapter", "dependent_major": 1, "dependency": "interface_canon", "supported": ["1.0.0", "1.0.1"]},
+    {"dependent": "egui_adapter", "dependent_major": 1, "dependency": "component_recipes", "supported": ["1.0.0", "1.1.0"]},
+    {"dependent": "wordpress_adapter", "dependent_major": 1, "dependency": "brand_canon", "supported": ["1.6.0", "2.0.0"]},
+    {"dependent": "wordpress_adapter", "dependent_major": 1, "dependency": "interface_canon", "supported": ["1.0.1"]},
+    {"dependent": "wordpress_adapter", "dependent_major": 1, "dependency": "component_recipes", "supported": ["1.1.0"]},
+    {"dependent": "compiler", "dependent_major": 2, "dependency": "brand_canon", "supported": ["1.1.2", "1.2.0", "1.2.1", "1.3.0", "1.4.0", "1.5.0", "1.6.0"]},
+    {"dependent": "compiler", "dependent_major": 2, "dependency": "interface_canon", "supported": ["1.0.0", "1.0.1"]},
+    {"dependent": "compiler", "dependent_major": 2, "dependency": "component_recipes", "supported": ["1.0.0", "1.1.0"]},
+    {"dependent": "compiler", "dependent_major": 2, "dependency": "web_react_adapter", "supported": ["1.0.0", "1.1.0"]},
+    {"dependent": "compiler", "dependent_major": 2, "dependency": "egui_adapter", "supported": ["1.0.0", "1.0.1", "1.0.2"]},
+    {"dependent": "compiler", "dependent_major": 2, "dependency": "wordpress_adapter", "supported": ["1.0.0"]},
+    {"dependent": "compiler", "dependent_major": 3, "dependency": "brand_canon", "supported": ["2.0.0"]},
+    {"dependent": "compiler", "dependent_major": 3, "dependency": "interface_canon", "supported": ["1.0.1"]},
+    {"dependent": "compiler", "dependent_major": 3, "dependency": "component_recipes", "supported": ["1.1.0"]},
+    {"dependent": "compiler", "dependent_major": 3, "dependency": "web_react_adapter", "supported": ["1.1.0"]},
+    {"dependent": "compiler", "dependent_major": 3, "dependency": "egui_adapter", "supported": ["1.0.2"]},
+    {"dependent": "compiler", "dependent_major": 3, "dependency": "wordpress_adapter", "supported": ["1.0.0"]},
+    {"dependent": "brand", "dependent_major": 1, "dependency": "brand_canon", "supported": ["1.1.2", "1.2.0", "1.2.1", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "2.0.0"]},
+    {"dependent": "brand", "dependent_major": 1, "dependency": "interface_canon", "supported": ["1.0.0", "1.0.1"]},
+    {"dependent": "brand", "dependent_major": 2, "dependency": "brand_canon", "supported": ["1.6.0", "2.0.0"]},
+    {"dependent": "brand", "dependent_major": 2, "dependency": "interface_canon", "supported": ["1.0.0", "1.0.1"]}
+  ],
+  "lifecycle_states": [
+    {"id": "compatible", "meaning": "The exact versions satisfy every declared dependency rule; this does not imply publication or consumer use."},
+    {"id": "candidate", "meaning": "Generated and verified bytes exist locally or in CI but have not been published as an immutable release artifact."},
+    {"id": "published", "meaning": "Immutable artifacts and checksums exist for the version; this does not imply compatibility with every consumer."}
+  ],
+  "recovery": {
+    "pin_exact_versions": true,
+    "require_sha256": true,
+    "prefer_delivered_offline_bytes": true,
+    "allow_latest_substitution": false
+  }
+}

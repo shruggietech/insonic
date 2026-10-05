@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shruggie.tech/schemas/release-impact.schema.json",
+  "title": "Shruggie BrandBuilder Release Impact",
+  "type": "object",
+  "required": ["$schema", "schema_version", "brandbuilder_version", "identity_redesign", "surfaces"],
+  "properties": {
+    "$schema": {"const": "release-impact.schema.json"},
+    "schema_version": {"const": 1},
+    "brandbuilder_version": {"$ref": "#/$defs/semver"},
+    "identity_redesign": {"type": "boolean"},
+    "surfaces": {
+      "type": "object",
+      "required": ["identity", "palette", "typography", "platform_assets", "web_react", "egui", "wordpress", "documentation", "recovery"],
+      "properties": {
+        "identity": {"$ref": "#/$defs/impact"},
+        "palette": {"$ref": "#/$defs/impact"},
+        "typography": {"$ref": "#/$defs/impact"},
+        "platform_assets": {"$ref": "#/$defs/impact"},
+        "web_react": {"$ref": "#/$defs/impact"},
+        "egui": {"$ref": "#/$defs/impact"},
+        "wordpress": {"$ref": "#/$defs/impact"},
+        "documentation": {"$ref": "#/$defs/impact"},
+        "recovery": {"$ref": "#/$defs/impact"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "semver": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "impact": {
+      "type": "object",
+      "required": ["classification", "summary"],
+      "properties": {
+        "classification": {"enum": ["required", "optional", "unaffected"]},
+        "summary": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

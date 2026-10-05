@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "adapter": "egui",
+  "adapter_version": "1.0.2",
+  "brand": "insonic",
+  "color_roles": "../../color-roles.json",
+  "brand_version": "1.0.0",
+  "brand_canon_version": "2.0.0",
+  "interface_canon_version": "1.0.1",
+  "component_recipe_version": "1.1.0",
+  "compiler_version": "3.0.1",
+  "version_policy_version": "2.3.0",
+  "compatibility": {
+    "policy_version": "2.3.0",
+    "status": "compatible",
+    "validated_versions": {
+      "brand": "1.0.0",
+      "brand_canon": "2.0.0",
+      "compiler": "3.0.1",
+      "component_recipes": "1.1.0",
+      "egui_adapter": "1.0.2",
+      "interface_canon": "1.0.1",
+      "web_react_adapter": "1.1.0",
+      "wordpress_adapter": "1.0.0"
+    },
+    "rules_checked": 17
+  },
+  "crate": {
+    "name": "shruggie_insonic_egui",
+    "edition": "2024",
+    "rust_version": "1.95",
+    "dependencies": {
+      "egui": "=0.36.1"
+    },
+    "dev_dependencies": {
+      "egui_kittest": "=0.36.1"
+    }
+  },
+  "entries": {
+    "tokens": "src/tokens.rs",
+    "components": "src/components.rs",
+    "library": "src/lib.rs",
+    "tests": "tests/adapter.rs",
+    "support": "support-matrix.json",
+    "version_policy": "version-policy.json",
+    "guidance": "README.md"
+  },
+  "logical_units": {
+    "source_unit": "lu",
+    "target_unit": "point",
+    "factor": 1.0,
+    "densities": {
+      "comfortable": 1.0,
+      "compact": 0.82
+    },
+    "text_scaling": "pixels-per-point-and-user-setting"
+  },
+  "runtime_capabilities": [
+    "viewport",
+    "safe_area",
+    "window_class",
+    "pointer_precision",
+    "hover",
+    "hardware_keyboard",
+    "touch",
+    "text_scale",
+    "reduced_motion",
+    "forced_colors",
+    "ime_obstruction",
+    "titlebar_regions",
+    "theme",
+    "density"
+  ],
+  "recipes": [
+    "AppFrame",
+    "Button",
+    "IconButton",
+    "Toolbar",
+    "Tabs",
+    "Menu",
+    "Dialog",
+    "Field",
+    "FormControls",
+    "ListRow",
+    "SplitPane",
+    "Toast",
+    "StatusBadge",
+    "Card",
+    "EmptyState"
+  ]
+}

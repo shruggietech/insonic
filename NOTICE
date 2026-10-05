@@ -1,0 +1,8 @@
+insonic
+Copyright 2026 ShruggieTech
+
+insonic source code and original documentation are licensed under Apache-2.0.
+The upstream brand kit retains its own licensing and attribution notices.
+Vendored GitHub Spec Kit infrastructure retains its upstream MIT license.
+Bundled dependencies, model weights, fonts and media tools retain their own
+licenses. Future binary packages must include an inventory of those notices.

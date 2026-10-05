@@ -1,0 +1,329 @@
+{
+  "glitchpad-safe-area-known-bad": {
+    "id": "glitchpad-safe-area-known-bad",
+    "host_track": "tauri-android",
+    "expected": "failed",
+    "events": [
+      {
+        "sequence": 0,
+        "event": "initial",
+        "profile": "phone-portrait-touch",
+        "viewport": {
+          "width": 412,
+          "height": 915
+        },
+        "safe_area": {
+          "top": 38,
+          "right": 0,
+          "bottom": 24,
+          "left": 0
+        },
+        "ime_block_end": 0,
+        "titlebar_regions": [],
+        "ownership": {
+          "safe_area": [
+            "host",
+            "app-frame"
+          ],
+          "ime_obstruction": "app-frame",
+          "titlebar_regions": "host"
+        },
+        "required_controls": [
+          {
+            "id": "menu",
+            "x": 16,
+            "y": 850,
+            "width": 56,
+            "height": 56
+          }
+        ]
+      }
+    ]
+  },
+  "glitchpad-safe-area-corrected": {
+    "id": "glitchpad-safe-area-corrected",
+    "host_track": "tauri-android",
+    "expected": "supported",
+    "events": [
+      {
+        "sequence": 0,
+        "event": "initial",
+        "profile": "phone-portrait-touch",
+        "viewport": {
+          "width": 412,
+          "height": 915
+        },
+        "safe_area": {
+          "top": 38,
+          "right": 0,
+          "bottom": 24,
+          "left": 0
+        },
+        "ime_block_end": 0,
+        "titlebar_regions": [],
+        "ownership": {
+          "safe_area": "app-frame",
+          "ime_obstruction": "app-frame",
+          "titlebar_regions": "host"
+        },
+        "required_controls": [
+          {
+            "id": "menu",
+            "x": 16,
+            "y": 812,
+            "width": 56,
+            "height": 56
+          }
+        ]
+      },
+      {
+        "sequence": 1,
+        "event": "orientation",
+        "profile": "phone-landscape-touch",
+        "viewport": {
+          "width": 915,
+          "height": 412
+        },
+        "safe_area": {
+          "top": 0,
+          "right": 24,
+          "bottom": 20,
+          "left": 38
+        },
+        "ime_block_end": 0,
+        "titlebar_regions": [],
+        "ownership": {
+          "safe_area": "app-frame",
+          "ime_obstruction": "app-frame",
+          "titlebar_regions": "host"
+        },
+        "required_controls": [
+          {
+            "id": "menu",
+            "x": 54,
+            "y": 320,
+            "width": 56,
+            "height": 56
+          }
+        ]
+      },
+      {
+        "sequence": 2,
+        "event": "ime",
+        "profile": "phone-landscape-touch",
+        "viewport": {
+          "width": 915,
+          "height": 412
+        },
+        "safe_area": {
+          "top": 0,
+          "right": 24,
+          "bottom": 20,
+          "left": 38
+        },
+        "ime_block_end": 160,
+        "titlebar_regions": [],
+        "ownership": {
+          "safe_area": "app-frame",
+          "ime_obstruction": "app-frame",
+          "titlebar_regions": "host"
+        },
+        "required_controls": [
+          {
+            "id": "focused-field",
+            "x": 54,
+            "y": 148,
+            "width": 300,
+            "height": 44
+          }
+        ]
+      },
+      {
+        "sequence": 3,
+        "event": "resize",
+        "profile": "phone-portrait-touch",
+        "viewport": {
+          "width": 430,
+          "height": 780
+        },
+        "safe_area": {
+          "top": 34,
+          "right": 0,
+          "bottom": 22,
+          "left": 0
+        },
+        "ime_block_end": 0,
+        "titlebar_regions": [],
+        "ownership": {
+          "safe_area": "app-frame",
+          "ime_obstruction": "app-frame",
+          "titlebar_regions": "host"
+        },
+        "required_controls": [
+          {
+            "id": "menu",
+            "x": 16,
+            "y": 690,
+            "width": 56,
+            "height": 56
+          }
+        ]
+      },
+      {
+        "sequence": 4,
+        "event": "input",
+        "profile": "phone-portrait-touch",
+        "viewport": {
+          "width": 430,
+          "height": 780
+        },
+        "safe_area": {
+          "top": 34,
+          "right": 0,
+          "bottom": 22,
+          "left": 0
+        },
+        "ime_block_end": 0,
+        "titlebar_regions": [],
+        "ownership": {
+          "safe_area": "app-frame",
+          "ime_obstruction": "app-frame",
+          "titlebar_regions": "host"
+        },
+        "required_controls": [
+          {
+            "id": "menu",
+            "x": 16,
+            "y": 690,
+            "width": 56,
+            "height": 56
+          }
+        ]
+      }
+    ]
+  },
+  "wails-window-chrome": {
+    "id": "wails-window-chrome",
+    "host_track": "wails-windows",
+    "expected": "supported",
+    "events": [
+      {
+        "sequence": 0,
+        "event": "titlebar",
+        "profile": "normal-desktop",
+        "viewport": {
+          "width": 1280,
+          "height": 900
+        },
+        "safe_area": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "ime_block_end": 0,
+        "titlebar_regions": [
+          {
+            "id": "window-controls",
+            "x": 1136,
+            "y": 0,
+            "width": 144,
+            "height": 48
+          }
+        ],
+        "ownership": {
+          "safe_area": "app-frame",
+          "ime_obstruction": "app-frame",
+          "titlebar_regions": "host"
+        },
+        "required_controls": [
+          {
+            "id": "toolbar",
+            "x": 16,
+            "y": 8,
+            "width": 600,
+            "height": 44
+          }
+        ]
+      },
+      {
+        "sequence": 1,
+        "event": "resize",
+        "profile": "narrow-desktop",
+        "viewport": {
+          "width": 768,
+          "height": 720
+        },
+        "safe_area": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "ime_block_end": 0,
+        "titlebar_regions": [
+          {
+            "id": "window-controls",
+            "x": 624,
+            "y": 0,
+            "width": 144,
+            "height": 48
+          }
+        ],
+        "ownership": {
+          "safe_area": "app-frame",
+          "ime_obstruction": "app-frame",
+          "titlebar_regions": "host"
+        },
+        "required_controls": [
+          {
+            "id": "toolbar",
+            "x": 16,
+            "y": 8,
+            "width": 500,
+            "height": 44
+          }
+        ]
+      },
+      {
+        "sequence": 2,
+        "event": "input",
+        "profile": "narrow-desktop",
+        "viewport": {
+          "width": 768,
+          "height": 720
+        },
+        "safe_area": {
+          "top": 0,
+          "right": 0,
+          "bottom": 0,
+          "left": 0
+        },
+        "ime_block_end": 0,
+        "titlebar_regions": [
+          {
+            "id": "window-controls",
+            "x": 624,
+            "y": 0,
+            "width": 144,
+            "height": 48
+          }
+        ],
+        "ownership": {
+          "safe_area": "app-frame",
+          "ime_obstruction": "app-frame",
+          "titlebar_regions": "host"
+        },
+        "required_controls": [
+          {
+            "id": "toolbar",
+            "x": 16,
+            "y": 8,
+            "width": 500,
+            "height": 44
+          }
+        ]
+      }
+    ]
+  }
+}

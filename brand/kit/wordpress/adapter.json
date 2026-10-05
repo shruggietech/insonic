@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "adapter_version": "1.0.0",
+  "brand": "insonic",
+  "brand_version": "1.0.0",
+  "compiler_version": "3.0.1",
+  "interface_canon_version": "1.0.1",
+  "component_recipe_version": "1.1.0",
+  "theme_json_version": 3,
+  "tested_pairs": [
+    {
+      "wordpress": "6.9.9",
+      "php": "8.2"
+    },
+    {
+      "wordpress": "7.1.2",
+      "php": "8.3"
+    }
+  ],
+  "namespace": "stbb-insonic",
+  "entries": {
+    "theme": "wordpress/theme/stbb-insonic",
+    "zip": "wordpress/insonic-stbb-theme.zip",
+    "inventory": "wordpress/theme-inventory.json",
+    "support": "wordpress/support-matrix.json",
+    "theme_json": "wordpress/theme/stbb-insonic/theme.json"
+  },
+  "zip": {
+    "bytes": 268042,
+    "sha256": "9c54c237a595cb7965b2384917adac1d001edbcd5e9e22fe45f5fdda10a060c7"
+  },
+  "assets": [
+    {
+      "source": "fonts/woff2/SpaceGrotesk-Medium.woff2",
+      "path": "assets/fonts/woff2/SpaceGrotesk-Medium.woff2",
+      "bytes": 32480,
+      "sha256": "6d90cc6539e794019ada4d6ffd1f4080c66b7ad1762b425f5794500c12427551"
+    },
+    {
+      "source": "fonts/woff2/SpaceGrotesk-Bold.woff2",
+      "path": "assets/fonts/woff2/SpaceGrotesk-Bold.woff2",
+      "bytes": 31560,
+      "sha256": "cdaf8bb228ee112c0ab784d9edd2b877cb096bad24cbbf88babeedebe197e742"
+    },
+    {
+      "source": "fonts/licenses/OFL-Space-Grotesk.txt",
+      "path": "assets/licenses/OFL-Space-Grotesk.txt",
+      "bytes": 4401,
+      "sha256": "18a4de52385f6b988782639d5d0cc1326e5a8c2de9a7f01d7b20d9aedcc60943"
+    },
+    {
+      "source": "fonts/woff2/Geist-Regular.woff2",
+      "path": "assets/fonts/woff2/Geist-Regular.woff2",
+      "bytes": 45172,
+      "sha256": "faed18848df4a6e1b5503b589bbbc055fbdab0e1780781edf5105457395e1e5d"
+    },
+    {
+      "source": "fonts/woff2/Geist-Medium.woff2",
+      "path": "assets/fonts/woff2/Geist-Medium.woff2",
+      "bytes": 46356,
+      "sha256": "0b50074337a05ed834a1474d3d13fc6bd8480e2ce3075d02f1d38c017a8ac2a4"
+    },
+    {
+      "source": "fonts/licenses/OFL-Geist.txt",
+      "path": "assets/licenses/OFL-Geist.txt",
+      "bytes": 4383,
+      "sha256": "942560b236adfa83745b2c64e5fc09ebaf91cb331751b1157eb92187e5d6e930"
+    },
+    {
+      "source": "fonts/woff2/GeistMono-Regular.woff2",
+      "path": "assets/fonts/woff2/GeistMono-Regular.woff2",
+      "bytes": 50196,
+      "sha256": "c88d20967768754cbdca230acd74ecb25de78d0dc47e31694aa8bd2c528fec26"
+    },
+    {
+      "source": "logos/png/insonic-horizontal-black-1024.png",
+      "path": "assets/images/insonic-horizontal-black-1024.png",
+      "bytes": 15904,
+      "sha256": "018de281b0977402503d0236c1a14ec533efedb83950c8b2c2cdfa3f9f36d3bb"
+    },
+    {
+      "source": "logos/png/insonic-mark-black-1024.png",
+      "path": "assets/images/insonic-mark-black-1024.png",
+      "bytes": 18070,
+      "sha256": "c5897fa9578522cec3eaf639bf4a1c63d4be81943cd8082395f10277d9314b4c"
+    },
+    {
+      "source": "logos/png/insonic-social-preview-1280.png",
+      "path": "assets/images/insonic-social-preview-1280.png",
+      "bytes": 27406,
+      "sha256": "9d59c9fe29d394b56a739a1c9cfc9c58c7f7c2d39d5169ab6ef88483412e1999"
+    }
+  ]
+}

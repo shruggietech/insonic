@@ -1,0 +1,512 @@
+{
+  "$schema": "documentation-contract.schema.json",
+  "schema_version": 1,
+  "contract_version": "1.2.0",
+  "required_topics": [
+    "architecture",
+    "operating-modes",
+    "brand-canon",
+    "interface-canon",
+    "component-recipes",
+    "adapters",
+    "verification",
+    "versioning-release",
+    "agent-integration",
+    "extension-workflow"
+  ],
+  "surfaces": [
+    {
+      "id": "main",
+      "audience": "BrandBuilder maintainers and extenders",
+      "owns": "System architecture, operating modes, contracts, generators, verification, versions, releases, installation, agents, and extensions.",
+      "excludes": "Exact delivered brand bytes and brand-specific identity expression."
+    },
+    {
+      "id": "hosted",
+      "audience": "Designers, stakeholders, and current implementers",
+      "owns": "Current approved identity, assets, bindings, affiliation, and generated contract versions.",
+      "excludes": "Compiler architecture and authority for older pinned kits."
+    },
+    {
+      "id": "bundled",
+      "audience": "Consumer agents and engineers",
+      "owns": "Exact delivered paths, versions, constraints, checks, recovery bytes, and escalation rules.",
+      "excludes": "Public showcase prose and unspecified latest behavior."
+    }
+  ],
+  "manual_pages": [
+    {
+      "slug": "00-variance-contract",
+      "source": "00-variance-contract.md",
+      "title": "Variance Contract",
+      "description": "The rules that keep every identity distinct while preserving a shared standard.",
+      "section": "Foundation",
+      "section_order": 1,
+      "label": "Contract",
+      "order": 0,
+      "pagination_order": 1,
+      "topics": [
+        "brand-canon"
+      ]
+    },
+    {
+      "slug": "02-kit-anatomy",
+      "source": "02-kit-anatomy.md",
+      "title": "Kit Anatomy",
+      "description": "The files, formats, and structure delivered in every brand kit.",
+      "section": "Foundation",
+      "section_order": 1,
+      "label": "Kit",
+      "order": 1,
+      "pagination_order": 2,
+      "topics": []
+    },
+    {
+      "slug": "asset-glossary",
+      "source": "asset-glossary.md",
+      "title": "Asset Language",
+      "description": "Plain-English names for logo forms, surfaces, social images, and platform icons.",
+      "section": "Foundation",
+      "section_order": 1,
+      "label": "Assets",
+      "order": 2,
+      "pagination_order": 3,
+      "topics": []
+    },
+    {
+      "slug": "03-interview",
+      "source": "03-interview.md",
+      "title": "The Interview",
+      "description": "The discovery questions that turn business context into brand direction.",
+      "section": "Discovery",
+      "section_order": 2,
+      "label": "Interview",
+      "order": 0,
+      "pagination_order": 4,
+      "topics": []
+    },
+    {
+      "slug": "06-logo-protocol",
+      "source": "06-logo-protocol.md",
+      "title": "Logo Protocol",
+      "description": "Requirements for supplied marks and rules for creating new logo systems.",
+      "section": "Identity",
+      "section_order": 3,
+      "label": "Logo",
+      "order": 0,
+      "pagination_order": 5,
+      "topics": []
+    },
+    {
+      "slug": "08-glyph-construction",
+      "source": "08-glyph-construction.md",
+      "title": "Glyph Construction",
+      "description": "Geometry and validation rules for constructing brand marks.",
+      "section": "Identity",
+      "section_order": 3,
+      "label": "Glyphs",
+      "order": 1,
+      "pagination_order": 6,
+      "topics": []
+    },
+    {
+      "slug": "identity-continuity",
+      "source": "identity-continuity.md",
+      "title": "Identity Continuity",
+      "description": "How direction selection, source approval, promotion, and derivative review stay mechanically continuous.",
+      "section": "Identity",
+      "section_order": 3,
+      "label": "Continuity",
+      "order": 2,
+      "pagination_order": 7,
+      "topics": []
+    },
+    {
+      "slug": "07-voice",
+      "source": "07-voice.md",
+      "title": "Voice",
+      "description": "How strategy becomes a consistent verbal identity.",
+      "section": "Identity",
+      "section_order": 3,
+      "label": "Voice",
+      "order": 3,
+      "pagination_order": 8,
+      "topics": []
+    },
+    {
+      "slug": "04-toolchain",
+      "source": "04-toolchain.md",
+      "title": "Toolchain",
+      "description": "The tools and validation stages behind a production-ready kit.",
+      "section": "Implementation",
+      "section_order": 4,
+      "label": "Toolchain",
+      "order": 0,
+      "pagination_order": 9,
+      "topics": []
+    },
+    {
+      "slug": "05-shadcn-binding",
+      "source": "05-shadcn-binding.md",
+      "title": "The shadcn Binding",
+      "description": "How brand tokens become installable shadcn registry resources.",
+      "section": "Implementation",
+      "section_order": 4,
+      "label": "shadcn",
+      "order": 1,
+      "pagination_order": 10,
+      "topics": []
+    },
+    {
+      "slug": "09-portability",
+      "source": "09-portability.md",
+      "title": "Portability",
+      "description": "Requirements that keep brand assets useful across platforms and teams.",
+      "section": "Implementation",
+      "section_order": 4,
+      "label": "Portability",
+      "order": 2,
+      "pagination_order": 11,
+      "topics": []
+    },
+    {
+      "slug": "operating-modes",
+      "source": "operating-modes.md",
+      "title": "Contextual Operating Modes",
+      "description": "How BrandBuilder selects Author, Implementation, or Audit work while preserving authorization boundaries.",
+      "section": "Implementation",
+      "section_order": 4,
+      "label": "Modes",
+      "order": 3,
+      "pagination_order": 12,
+      "topics": [
+        "operating-modes"
+      ]
+    },
+    {
+      "slug": "10-system-architecture",
+      "source": "10-system-architecture.md",
+      "title": "System Architecture and Documentation Ownership",
+      "description": "How BrandBuilder sources, generators, and documentation surfaces divide authority.",
+      "section": "System",
+      "section_order": 5,
+      "label": "Architecture",
+      "order": 0,
+      "pagination_order": 13,
+      "topics": [
+        "architecture"
+      ]
+    },
+    {
+      "slug": "11-interface-implementation",
+      "source": "11-interface-implementation.md",
+      "title": "Interface Implementation",
+      "description": "How Interface Canon, recipes, and adapters become portable interface contracts.",
+      "section": "System",
+      "section_order": 5,
+      "label": "Interfaces",
+      "order": 1,
+      "pagination_order": 14,
+      "topics": [
+        "interface-canon",
+        "component-recipes",
+        "adapters"
+      ]
+    },
+    {
+      "slug": "12-verification-versioning",
+      "source": "12-verification-versioning.md",
+      "title": "Verification, Versioning, and Release",
+      "description": "How generated kits prove conformance and move through independent version domains.",
+      "section": "System",
+      "section_order": 5,
+      "label": "Verification",
+      "order": 2,
+      "pagination_order": 15,
+      "topics": [
+        "verification",
+        "versioning-release"
+      ]
+    },
+    {
+      "slug": "13-agent-integration",
+      "source": "13-agent-integration.md",
+      "title": "Agent Integration and Extension",
+      "description": "How agents install, recover, consume, and safely extend BrandBuilder contracts.",
+      "section": "System",
+      "section_order": 5,
+      "label": "Agents",
+      "order": 3,
+      "pagination_order": 16,
+      "topics": [
+        "agent-integration",
+        "extension-workflow"
+      ]
+    },
+    {
+      "slug": "wordpress",
+      "source": "wordpress.md",
+      "title": "WordPress Delivery",
+      "description": "Install, compose, update, and roll back a generated native WordPress block theme.",
+      "section": "System",
+      "section_order": 5,
+      "label": "WordPress",
+      "order": 4,
+      "pagination_order": 17,
+      "topics": []
+    },
+    {
+      "slug": "references",
+      "source": "references.md",
+      "title": "References",
+      "description": "Annotated standards, platform guidance, and design sources applied to BrandBuilder tasks.",
+      "section": "References",
+      "section_order": 6,
+      "label": "References",
+      "order": 0,
+      "pagination_order": 18,
+      "topics": []
+    }
+  ],
+  "source_dispositions": [
+    {
+      "source": "skill/references/00-variance-contract.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/00-variance-contract/",
+      "rationale": "Preserve the shared identity variance contract."
+    },
+    {
+      "source": "skill/references/02-kit-anatomy.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/02-kit-anatomy/",
+      "rationale": "Preserve the generated kit structure reference."
+    },
+    {
+      "source": "skill/references/asset-glossary.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/asset-glossary/",
+      "rationale": "Publish the shared language used in all asset catalogs."
+    },
+    {
+      "source": "skill/references/03-interview.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/03-interview/",
+      "rationale": "Preserve the discovery interview reference."
+    },
+    {
+      "source": "skill/references/04-toolchain.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/04-toolchain/",
+      "rationale": "Preserve the build toolchain reference."
+    },
+    {
+      "source": "skill/references/05-shadcn-binding.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/05-shadcn-binding/",
+      "rationale": "Preserve the shadcn binding reference."
+    },
+    {
+      "source": "skill/references/06-logo-protocol.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/06-logo-protocol/",
+      "rationale": "Preserve the logo source and usage protocol."
+    },
+    {
+      "source": "skill/references/07-voice.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/07-voice/",
+      "rationale": "Preserve the verbal identity reference."
+    },
+    {
+      "source": "skill/references/08-glyph-construction.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/08-glyph-construction/",
+      "rationale": "Preserve the constructed glyph reference."
+    },
+    {
+      "source": "skill/references/09-portability.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/09-portability/",
+      "rationale": "Preserve the portable asset reference."
+    },
+    {
+      "source": "skill/references/identity-continuity.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/identity-continuity/",
+      "rationale": "Preserve the source approval and derivative continuity reference."
+    },
+    {
+      "source": "skill/references/operating-modes.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/operating-modes/",
+      "rationale": "Preserve contextual Author, Implementation, and Audit routing."
+    },
+    {
+      "source": "skill/references/10-system-architecture.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/10-system-architecture/",
+      "rationale": "Publish architecture and documentation ownership in the main manual."
+    },
+    {
+      "source": "skill/references/11-interface-implementation.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/11-interface-implementation/",
+      "rationale": "Publish shared interface implementation guidance in the main manual."
+    },
+    {
+      "source": "skill/references/12-verification-versioning.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/12-verification-versioning/",
+      "rationale": "Publish verification, independent versioning, and release guidance in the main manual."
+    },
+    {
+      "source": "skill/references/13-agent-integration.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/13-agent-integration/",
+      "rationale": "Publish installation, recovery, agent, gap, and extension guidance in the main manual."
+    },
+    {
+      "source": "skill/references/references.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/references/",
+      "rationale": "Publish stable, annotated source identities in the main manual and offline skill."
+    },
+    {
+      "source": "brands/*/README.md",
+      "owner": "brand-source",
+      "action": "preserve",
+      "destination": "generated brand guidance",
+      "rationale": "Brand-specific source instructions remain with their identities."
+    },
+    {
+      "source": "brands/*/provenance/**",
+      "owner": "provenance",
+      "action": "preserve",
+      "destination": "generated provenance records",
+      "rationale": "Identity evidence remains separate from shared documentation prose."
+    },
+    {
+      "source": "enforcement/IMPLEMENTATION.md",
+      "owner": "bundled",
+      "action": "generate",
+      "destination": "enforcement/IMPLEMENTATION.md",
+      "rationale": "Offline guidance is generated from the exact delivered documentation facts."
+    },
+    {
+      "source": "guidelines/portal.json",
+      "owner": "hosted",
+      "action": "generate",
+      "destination": "hosted child-brand reference",
+      "rationale": "Hosted summaries project the same generated documentation facts."
+    },
+    {
+      "source": "skill/references/wordpress.md",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/wordpress/",
+      "rationale": "Publish native WordPress installation and client update guidance in the main manual."
+    }
+  ],
+  "route_dispositions": [
+    {
+      "kind": "docs-index",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/",
+      "rationale": "The system manual keeps its stable entry route."
+    },
+    {
+      "kind": "docs-page",
+      "owner": "main",
+      "action": "preserve",
+      "destination": "/docs/{slug}/",
+      "rationale": "Governed manual pages keep stable source-derived routes."
+    },
+    {
+      "kind": "guidelines",
+      "owner": "hosted",
+      "action": "preserve",
+      "destination": "/{brand}/guidelines/brand-essentials/",
+      "rationale": "Brand essentials uses its visible menu label as the canonical final segment; the former root and Overview page remain compatibility bridges."
+    },
+    {
+      "kind": "guidelines-topic",
+      "owner": "hosted",
+      "action": "preserve",
+      "destination": "/{brand}/guidelines/{label-slug}/",
+      "rationale": "Topic routes use the visible menu label; former topic paths that changed remain compatibility bridges."
+    },
+    {
+      "kind": "downloads",
+      "owner": "hosted",
+      "action": "preserve",
+      "destination": "/{brand}/guidelines/assets/",
+      "rationale": "The Assets page is canonical under guidelines while direct download files keep their existing paths."
+    }
+  ],
+  "shared_fact_fields": [
+    "documentation_contract_version",
+    "brand",
+    "bundle",
+    "release_impact",
+    "versions",
+    "bindings",
+    "rules",
+    "authority",
+    "verification",
+    "recovery",
+    "capability_gap",
+    "hosted",
+    "bundled"
+  ],
+  "graphics": [
+    {
+      "id": "ownership",
+      "title": "Documentation ownership",
+      "nodes": [
+        "Main manual",
+        "Hosted brand reference",
+        "Bundled implementation contract"
+      ],
+      "text_equivalent": "The main manual owns the system, hosted references own current public brand presentation, and bundled contracts own exact delivered implementation bytes."
+    },
+    {
+      "id": "operating-modes",
+      "title": "Operating modes",
+      "nodes": [
+        "Author",
+        "Implementation",
+        "Audit"
+      ],
+      "text_equivalent": "Author creates governed sources, Implementation consumes exact contracts, and Audit verifies an existing delivery without changing authority."
+    },
+    {
+      "id": "improvement-loop",
+      "title": "Capability improvement loop",
+      "nodes": [
+        "Consumer need",
+        "Local gap record",
+        "Authorized upstream change",
+        "Versioned adoption"
+      ],
+      "text_equivalent": "A reusable consumer need becomes a local gap record, moves upstream only with authorization, and returns through an explicit versioned adoption."
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "release-impact.schema.json",
+  "schema_version": 1,
+  "brandbuilder_version": "3.0.1",
+  "identity_redesign": false,
+  "surfaces": {
+    "identity": {
+      "classification": "unaffected",
+      "summary": "Existing approved masters and proof bytes remain unchanged. insonic 1.0.0 is a new, separately approved three-form Glacial blue identity."
+    },
+    "palette": {
+      "classification": "unaffected",
+      "summary": "Existing palette values and WCAG 2.1 AA rules remain unchanged."
+    },
+    "typography": {
+      "classification": "unaffected",
+      "summary": "Approved local font families, faces, and licenses remain unchanged."
+    },
+    "platform_assets": {
+      "classification": "optional",
+      "summary": "Regenerate only to adopt corrected type specimen header alignment, explicit LF serialization on Windows and isolated QC captures. Approved logos, icons and social compositions remain source-bound."
+    },
+    "web_react": {
+      "classification": "unaffected",
+      "summary": "Web and React adapter APIs and interface token behavior remain unchanged."
+    },
+    "egui": {
+      "classification": "unaffected",
+      "summary": "The egui adapter API and output semantics remain unchanged."
+    },
+    "wordpress": {
+      "classification": "unaffected",
+      "summary": "WordPress adapter 1.0.0 retains its public contract and uses the compatible Brand Canon 2.0.0 source tuple."
+    },
+    "documentation": {
+      "classification": "required",
+      "summary": "Publish insonic guidelines, approved messages, registries and downloads through the standard generated routes. Existing approved message-role uses remain unchanged; the manual links the exact release."
+    },
+    "recovery": {
+      "classification": "required",
+      "summary": "Repinning BrandBuilder 3.0.1 requires its exact new package IDs and checksums. The verified site hosts twelve brands; nine owned archives join the skill and portable distribution, while three client kits remain hosted candidates. Previously published packages remain immutable recovery inputs."
+    }
+  }
+}

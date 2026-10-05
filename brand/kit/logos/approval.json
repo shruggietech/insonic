@@ -1,0 +1,204 @@
+{
+  "brand": "insonic",
+  "derivatives": [
+    {
+      "path": "logos/png/insonic-horizontal-black-1024.png",
+      "rendered_from": "logos/svg/insonic-horizontal-black.svg",
+      "rendered_from_sha256": "083649686cb5ea9fb7e9451981bf33dbb0894e35bdf0fce06d32a8c584d09a2e"
+    },
+    {
+      "path": "logos/png/insonic-horizontal-color-1024.png",
+      "rendered_from": "logos/svg/insonic-horizontal-color.svg",
+      "rendered_from_sha256": "c9d40e1e70603dd92e8ea0324af893caedfa9a07225947842926119f34008993"
+    },
+    {
+      "path": "logos/png/insonic-horizontal-light-1024.png",
+      "rendered_from": "logos/svg/insonic-horizontal-light.svg",
+      "rendered_from_sha256": "30b5caad24822fd50e5236156c120d88d7d4a7ae681aaa7fb8a9cdce5fcdb31a"
+    },
+    {
+      "path": "logos/png/insonic-horizontal-white-1024.png",
+      "rendered_from": "logos/svg/insonic-horizontal-white.svg",
+      "rendered_from_sha256": "aa8e3459197454768c0b4e5a3fc3e1894b589d5a3c2f846d897946319011d4da"
+    },
+    {
+      "path": "logos/png/insonic-mark-black-1024.png",
+      "rendered_from": "logos/svg/insonic-mark-black.svg",
+      "rendered_from_sha256": "2a1643995d45dc3e5167cac80c08e50c15fd929bd72975c768a284869fabe7cc"
+    },
+    {
+      "path": "logos/png/insonic-mark-color-1024.png",
+      "rendered_from": "logos/svg/insonic-mark-color.svg",
+      "rendered_from_sha256": "9945aaadeded1a2cb5f51bafcdea58a8427d9e6045ee26c774df64271ec1a168"
+    },
+    {
+      "path": "logos/png/insonic-mark-light-1024.png",
+      "rendered_from": "logos/svg/insonic-mark-light.svg",
+      "rendered_from_sha256": "4bf376a11dff4a2993edf2ebaeca86465674c3dfe80513125f45fa7789837c8c"
+    },
+    {
+      "path": "logos/png/insonic-mark-reduced-black-1024.png",
+      "rendered_from": "logos/svg/insonic-mark-reduced-black.svg",
+      "rendered_from_sha256": "02bbf491a3a12493c664da432b52d0e0aa3513d11efa7120e9854c151f7ccf77"
+    },
+    {
+      "path": "logos/png/insonic-mark-reduced-color-1024.png",
+      "rendered_from": "logos/svg/insonic-mark-reduced-color.svg",
+      "rendered_from_sha256": "813467590afa8cd033c30925bbd3900e1e32babe62eda26f9cb9e0f08d7fc8ef"
+    },
+    {
+      "path": "logos/png/insonic-mark-reduced-light-1024.png",
+      "rendered_from": "logos/svg/insonic-mark-reduced-light.svg",
+      "rendered_from_sha256": "ee4b956a90fd9ecd942262428700c8efa0d7e78f883f7f01066d2fe9e074c402"
+    },
+    {
+      "path": "logos/png/insonic-mark-reduced-white-1024.png",
+      "rendered_from": "logos/svg/insonic-mark-reduced-white.svg",
+      "rendered_from_sha256": "e5568e8542d64282d8f7c55f87ab09a00e686df9827cbc46e2092f580edbb648"
+    },
+    {
+      "path": "logos/png/insonic-mark-white-1024.png",
+      "rendered_from": "logos/svg/insonic-mark-white.svg",
+      "rendered_from_sha256": "f90dea5814fc83889abc704cf6cde091fdea36bb1818555bbf9219d3f52abe9a"
+    },
+    {
+      "path": "logos/png/insonic-social-image-1280.png",
+      "rendered_from": "logos/svg/insonic-social-image.svg",
+      "rendered_from_sha256": "563afab6729e12f70c55595b56f9c6a1a23b1a6c3fb46a03d414a01ce079b63f"
+    },
+    {
+      "path": "logos/png/insonic-social-preview-1280.png",
+      "rendered_from": "logos/svg/insonic-social-preview.svg",
+      "rendered_from_sha256": "563afab6729e12f70c55595b56f9c6a1a23b1a6c3fb46a03d414a01ce079b63f"
+    },
+    {
+      "path": "logos/png/insonic-stacked-black-1024.png",
+      "rendered_from": "logos/svg/insonic-stacked-black.svg",
+      "rendered_from_sha256": "3cdc0f30917a127e642d85aae4b8625635bf702b82c70920c082459f2a0970da"
+    },
+    {
+      "path": "logos/png/insonic-stacked-color-1024.png",
+      "rendered_from": "logos/svg/insonic-stacked-color.svg",
+      "rendered_from_sha256": "2b6fbee2f7daf5979e01d18c646a17525f7ec1cb3c91c514ad941245ddc48648"
+    },
+    {
+      "path": "logos/png/insonic-stacked-light-1024.png",
+      "rendered_from": "logos/svg/insonic-stacked-light.svg",
+      "rendered_from_sha256": "8cfc79792503be47413ec063c72ab111d9927adc5538f32fb3a0694e69231837"
+    },
+    {
+      "path": "logos/png/insonic-stacked-white-1024.png",
+      "rendered_from": "logos/svg/insonic-stacked-white.svg",
+      "rendered_from_sha256": "5eac0b8abacec1dc4a1f0133f3fa3cdd48d6b9672e26a6a6605980d98c6b187c"
+    },
+    {
+      "path": "logos/png/insonic-wordmark-black-1024.png",
+      "rendered_from": "logos/svg/insonic-wordmark-black.svg",
+      "rendered_from_sha256": "175d44ed9412f2b571e3eac79e83de1c6c56de7f81787b013660a1d7557e1e4c"
+    },
+    {
+      "path": "logos/png/insonic-wordmark-color-1024.png",
+      "rendered_from": "logos/svg/insonic-wordmark-color.svg",
+      "rendered_from_sha256": "0ca223003ef750580b002253e38bd2a75c4ae6d3fa3b27d03b06a11b58c119d8"
+    },
+    {
+      "path": "logos/png/insonic-wordmark-light-1024.png",
+      "rendered_from": "logos/svg/insonic-wordmark-light.svg",
+      "rendered_from_sha256": "19587aed06bbfd80c0fd81f2e3b3bc0aacb1959ba3fa4af52a5b1aa4fbd2ed4d"
+    },
+    {
+      "path": "logos/png/insonic-wordmark-white-1024.png",
+      "rendered_from": "logos/svg/insonic-wordmark-white.svg",
+      "rendered_from_sha256": "32b30e48b9b7235b8e0091f6420bb35ad991ff46a081e2ba4ff03748f53eeaf3"
+    },
+    {
+      "path": "logos/svg/insonic-horizontal-black.svg",
+      "sha256": "083649686cb5ea9fb7e9451981bf33dbb0894e35bdf0fce06d32a8c584d09a2e"
+    },
+    {
+      "path": "logos/svg/insonic-horizontal-color.svg",
+      "sha256": "c9d40e1e70603dd92e8ea0324af893caedfa9a07225947842926119f34008993"
+    },
+    {
+      "path": "logos/svg/insonic-horizontal-light.svg",
+      "sha256": "30b5caad24822fd50e5236156c120d88d7d4a7ae681aaa7fb8a9cdce5fcdb31a"
+    },
+    {
+      "path": "logos/svg/insonic-horizontal-white.svg",
+      "sha256": "aa8e3459197454768c0b4e5a3fc3e1894b589d5a3c2f846d897946319011d4da"
+    },
+    {
+      "path": "logos/svg/insonic-mark-black.svg",
+      "sha256": "2a1643995d45dc3e5167cac80c08e50c15fd929bd72975c768a284869fabe7cc"
+    },
+    {
+      "path": "logos/svg/insonic-mark-color.svg",
+      "sha256": "9945aaadeded1a2cb5f51bafcdea58a8427d9e6045ee26c774df64271ec1a168"
+    },
+    {
+      "path": "logos/svg/insonic-mark-light.svg",
+      "sha256": "4bf376a11dff4a2993edf2ebaeca86465674c3dfe80513125f45fa7789837c8c"
+    },
+    {
+      "path": "logos/svg/insonic-mark-reduced-black.svg",
+      "sha256": "02bbf491a3a12493c664da432b52d0e0aa3513d11efa7120e9854c151f7ccf77"
+    },
+    {
+      "path": "logos/svg/insonic-mark-reduced-color.svg",
+      "sha256": "813467590afa8cd033c30925bbd3900e1e32babe62eda26f9cb9e0f08d7fc8ef"
+    },
+    {
+      "path": "logos/svg/insonic-mark-reduced-light.svg",
+      "sha256": "ee4b956a90fd9ecd942262428700c8efa0d7e78f883f7f01066d2fe9e074c402"
+    },
+    {
+      "path": "logos/svg/insonic-mark-reduced-white.svg",
+      "sha256": "e5568e8542d64282d8f7c55f87ab09a00e686df9827cbc46e2092f580edbb648"
+    },
+    {
+      "path": "logos/svg/insonic-mark-white.svg",
+      "sha256": "f90dea5814fc83889abc704cf6cde091fdea36bb1818555bbf9219d3f52abe9a"
+    },
+    {
+      "path": "logos/svg/insonic-social-image.svg",
+      "sha256": "563afab6729e12f70c55595b56f9c6a1a23b1a6c3fb46a03d414a01ce079b63f"
+    },
+    {
+      "path": "logos/svg/insonic-social-preview.svg",
+      "sha256": "563afab6729e12f70c55595b56f9c6a1a23b1a6c3fb46a03d414a01ce079b63f"
+    },
+    {
+      "path": "logos/svg/insonic-stacked-black.svg",
+      "sha256": "3cdc0f30917a127e642d85aae4b8625635bf702b82c70920c082459f2a0970da"
+    },
+    {
+      "path": "logos/svg/insonic-stacked-color.svg",
+      "sha256": "2b6fbee2f7daf5979e01d18c646a17525f7ec1cb3c91c514ad941245ddc48648"
+    },
+    {
+      "path": "logos/svg/insonic-stacked-light.svg",
+      "sha256": "8cfc79792503be47413ec063c72ab111d9927adc5538f32fb3a0694e69231837"
+    },
+    {
+      "path": "logos/svg/insonic-stacked-white.svg",
+      "sha256": "5eac0b8abacec1dc4a1f0133f3fa3cdd48d6b9672e26a6a6605980d98c6b187c"
+    },
+    {
+      "path": "logos/svg/insonic-wordmark-black.svg",
+      "sha256": "175d44ed9412f2b571e3eac79e83de1c6c56de7f81787b013660a1d7557e1e4c"
+    },
+    {
+      "path": "logos/svg/insonic-wordmark-color.svg",
+      "sha256": "0ca223003ef750580b002253e38bd2a75c4ae6d3fa3b27d03b06a11b58c119d8"
+    },
+    {
+      "path": "logos/svg/insonic-wordmark-light.svg",
+      "sha256": "19587aed06bbfd80c0fd81f2e3b3bc0aacb1959ba3fa4af52a5b1aa4fbd2ed4d"
+    },
+    {
+      "path": "logos/svg/insonic-wordmark-white.svg",
+      "sha256": "32b30e48b9b7235b8e0091f6420bb35ad991ff46a081e2ba4ff03748f53eeaf3"
+    }
+  ],
+  "schema_version": 1
+}

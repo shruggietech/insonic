@@ -1,0 +1,321 @@
+{
+  "schema_version": 1,
+  "adapter_version": "1.0.2",
+  "component_recipe_version": "1.1.0",
+  "status_vocabulary": [
+    "supported",
+    "adapted",
+    "unsupported"
+  ],
+  "proof_vocabulary": [
+    "passed",
+    "pending"
+  ],
+  "components": [
+    {
+      "component": "AppFrame",
+      "status": "adapted",
+      "symbol": "app_frame",
+      "reason": "egui owns the central panel while the embedding host supplies safe areas, IME, and titlebar exclusions.",
+      "states": [
+        "default",
+        "focus-visible"
+      ],
+      "evidence": [
+        "python-determinism",
+        "rust-compile",
+        "egui-kittest-rendered-state"
+      ],
+      "proof": "passed"
+    },
+    {
+      "component": "Button",
+      "status": "supported",
+      "symbol": "button",
+      "reason": "Mapped directly to an idiomatic egui control or layout helper.",
+      "states": [
+        "default",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "loading"
+      ],
+      "evidence": [
+        "python-determinism",
+        "rust-compile",
+        "egui-kittest-rendered-state"
+      ],
+      "proof": "passed"
+    },
+    {
+      "component": "IconButton",
+      "status": "supported",
+      "symbol": "icon_button",
+      "reason": "Mapped directly to an idiomatic egui control or layout helper.",
+      "states": [
+        "default",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "loading"
+      ],
+      "evidence": [
+        "python-determinism",
+        "rust-compile",
+        "egui-kittest-rendered-state"
+      ],
+      "proof": "passed"
+    },
+    {
+      "component": "Toolbar",
+      "status": "supported",
+      "symbol": "toolbar",
+      "reason": "Mapped directly to an idiomatic egui control or layout helper.",
+      "states": [
+        "default",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "selected"
+      ],
+      "evidence": [
+        "python-determinism",
+        "rust-compile",
+        "egui-kittest-rendered-state"
+      ],
+      "proof": "passed"
+    },
+    {
+      "component": "Tabs",
+      "status": "supported",
+      "symbol": "tabs",
+      "reason": "Mapped directly to an idiomatic egui control or layout helper.",
+      "states": [
+        "default",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "selected"
+      ],
+      "evidence": [
+        "python-determinism",
+        "rust-compile",
+        "egui-kittest-rendered-state"
+      ],
+      "proof": "passed"
+    },
+    {
+      "component": "Menu",
+      "status": "adapted",
+      "symbol": "menu",
+      "reason": "egui menu_button supplies native immediate-mode menu behavior; browser typeahead parity is not claimed.",
+      "states": [
+        "default",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "selected"
+      ],
+      "evidence": [
+        "python-determinism",
+        "rust-compile",
+        "egui-kittest-rendered-state"
+      ],
+      "proof": "passed"
+    },
+    {
+      "component": "Dialog",
+      "status": "adapted",
+      "symbol": "dialog",
+      "reason": "egui Window supplies modal-like presentation; native host modality and focus return remain host responsibilities.",
+      "states": [
+        "default",
+        "focus-visible",
+        "loading",
+        "invalid",
+        "warning",
+        "success"
+      ],
+      "evidence": [
+        "python-determinism",
+        "rust-compile",
+        "egui-kittest-rendered-state"
+      ],
+      "proof": "passed"
+    },
+    {
+      "component": "Field",
+      "status": "supported",
+      "symbol": "field",
+      "reason": "Mapped directly to an idiomatic egui control or layout helper.",
+      "states": [
+        "default",
+        "focus-visible",
+        "disabled",
+        "invalid",
+        "warning",
+        "success"
+      ],
+      "evidence": [
+        "python-determinism",
+        "rust-compile",
+        "egui-kittest-rendered-state"
+      ],
+      "proof": "passed"
+    },
+    {
+      "component": "FormControls",
+      "status": "supported",
+      "symbol": "checkbox",
+      "reason": "Mapped directly to an idiomatic egui control or layout helper.",
+      "states": [
+        "default",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "invalid",
+        "warning",
+        "success"
+      ],
+      "evidence": [
+        "python-determinism",
+        "rust-compile",
+        "egui-kittest-rendered-state"
+      ],
+      "proof": "passed"
+    },
+    {
+      "component": "ListRow",
+      "status": "supported",
+      "symbol": "list_row",
+      "reason": "Mapped directly to an idiomatic egui control or layout helper.",
+      "states": [
+        "default",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled",
+        "selected"
+      ],
+      "evidence": [
+        "python-determinism",
+        "rust-compile",
+        "egui-kittest-rendered-state"
+      ],
+      "proof": "passed"
+    },
+    {
+      "component": "SplitPane",
+      "status": "adapted",
+      "symbol": "split_pane",
+      "reason": "the adapter exposes a two-column helper; persistent draggable ratios remain consumer state.",
+      "states": [
+        "default",
+        "hover",
+        "pressed",
+        "focus-visible",
+        "disabled"
+      ],
+      "evidence": [
+        "python-determinism",
+        "rust-compile",
+        "egui-kittest-rendered-state"
+      ],
+      "proof": "passed"
+    },
+    {
+      "component": "Toast",
+      "status": "adapted",
+      "symbol": "toast",
+      "reason": "the adapter renders visible status feedback; screen-reader live-region timing is an explicit capability gap.",
+      "states": [
+        "default",
+        "hover",
+        "focus-visible",
+        "warning",
+        "success"
+      ],
+      "evidence": [
+        "python-determinism",
+        "rust-compile",
+        "egui-kittest-rendered-state"
+      ],
+      "proof": "passed"
+    },
+    {
+      "component": "StatusBadge",
+      "status": "supported",
+      "symbol": "status_badge",
+      "reason": "Mapped directly to an idiomatic egui control or layout helper.",
+      "states": [
+        "default",
+        "warning",
+        "success"
+      ],
+      "evidence": [
+        "python-determinism",
+        "rust-compile",
+        "egui-kittest-rendered-state"
+      ],
+      "proof": "passed"
+    },
+    {
+      "component": "Card",
+      "status": "supported",
+      "symbol": "card",
+      "reason": "Mapped directly to an idiomatic egui control or layout helper.",
+      "states": [
+        "default",
+        "hover",
+        "focus-visible",
+        "selected"
+      ],
+      "evidence": [
+        "python-determinism",
+        "rust-compile",
+        "egui-kittest-rendered-state"
+      ],
+      "proof": "passed"
+    },
+    {
+      "component": "EmptyState",
+      "status": "supported",
+      "symbol": "empty_state",
+      "reason": "Mapped directly to an idiomatic egui control or layout helper.",
+      "states": [
+        "default",
+        "focus-visible",
+        "loading"
+      ],
+      "evidence": [
+        "python-determinism",
+        "rust-compile",
+        "egui-kittest-rendered-state"
+      ],
+      "proof": "passed"
+    }
+  ],
+  "capability_gaps": [
+    {
+      "id": "screen-reader-live-region-timing",
+      "status": "unsupported",
+      "reason": "egui does not provide browser live-region timing semantics."
+    },
+    {
+      "id": "native-host-window-chrome",
+      "status": "unsupported",
+      "reason": "titlebar exclusion and native modality are embedding-host responsibilities."
+    },
+    {
+      "id": "cross-host-golden-fixtures",
+      "status": "pending",
+      "reason": "Tracked separately by GitHub issue #217."
+    }
+  ]
+}

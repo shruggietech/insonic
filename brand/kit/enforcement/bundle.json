@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "package": {
+    "id": "insonic-brand-1.0.0-bb3.0.1",
+    "filename": "insonic-brand-1.0.0-bb3.0.1.zip",
+    "brand_slug": "insonic",
+    "brand_version": "1.0.0",
+    "brandbuilder_version": "3.0.1"
+  },
+  "versions": {
+    "canon_version": "2.0.0",
+    "interface_canon_version": "1.0.1",
+    "component_recipe_version": "1.1.0",
+    "web_react_adapter_version": "1.1.0",
+    "egui_adapter_version": "1.0.2",
+    "wordpress_adapter_version": "1.0.0",
+    "compiler_version": "3.0.1",
+    "brand_version": "1.0.0"
+  },
+  "source_revision": "3eadea75689e9bf9b6c647958cacb64b328b8ac5",
+  "publication": {
+    "status": "release",
+    "version": "3.0.1",
+    "tag": "v3.0.1"
+  },
+  "checksum_authority": {
+    "algorithm": "sha256",
+    "manifest": "manifest.json",
+    "release_checksums": "SHA256SUMS"
+  }
+}

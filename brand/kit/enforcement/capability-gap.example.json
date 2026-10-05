@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "consumer": {
+    "brand": "insonic",
+    "brand_version": "1.0.0"
+  },
+  "environment": {
+    "renderer": "renderer-neutral",
+    "host": "none"
+  },
+  "requirement": "Describe the reproducible consumer need.",
+  "shared_concept": "Name the missing or insufficient shared semantic concept.",
+  "evidence": [],
+  "classification": "reusable-capability",
+  "upstream_resolution": null,
+  "submission_authorized": false
+}

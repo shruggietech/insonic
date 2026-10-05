@@ -1,0 +1,13 @@
+/* Generated content-only supplement. Theme defaults live in theme.json. */
+:is(.wp-site-blocks, .editor-styles-wrapper) :is(a, button, .wp-element-button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--wp--preset--color--stbb-insonic-focus-ring); outline-offset: 2px;
+}
+:where(.wp-site-blocks, .editor-styles-wrapper) :where(.wp-block-image img, .wp-block-site-logo img) { max-inline-size: 100%; block-size: auto; }
+:where(.wp-site-blocks, .editor-styles-wrapper) .stbb-insonic-sample-media img { inline-size: min(28rem, 100%); }
+:where(.wp-site-blocks, .editor-styles-wrapper) .stbb-insonic-sample-mark { background: #fff; padding: var(--wp--preset--spacing--stbb-insonic-space-4); }
+:where(.wp-site-blocks, .editor-styles-wrapper) .stbb-insonic-sample-mark img { inline-size: min(12rem, 100%); }
+:where(.wp-site-blocks, .editor-styles-wrapper) :where(.wp-element-caption) { color: var(--wp--preset--color--stbb-insonic-text-muted); }
+:where(.wp-site-blocks, .editor-styles-wrapper) .wp-block-group.is-style-stbb-insonic-card { background: var(--wp--preset--color--stbb-insonic-surface-card); color: var(--wp--preset--color--stbb-insonic-text-primary); border: 1px solid var(--wp--preset--color--stbb-insonic-text-muted); border-radius: var(--wp--preset--spacing--stbb-insonic-space-2); padding: var(--wp--preset--spacing--stbb-insonic-space-6); }
+:where(.wp-site-blocks, .editor-styles-wrapper) :where(.wp-block-navigation, .wp-block-columns, .wp-block-group, .wp-block-post-content) { min-inline-size: 0; overflow-wrap: anywhere; }
+:where(.wp-site-blocks, .editor-styles-wrapper) :where(.wp-block-button__link) { min-block-size: 44px; display: inline-flex; align-items: center; }
+@media (prefers-reduced-motion: reduce) { :where(.wp-site-blocks, .editor-styles-wrapper) * { scroll-behavior: auto; animation-duration: 0.01ms; transition-duration: 0.01ms; } }

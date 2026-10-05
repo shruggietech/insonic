@@ -1,0 +1,56 @@
+{
+  "repository": "shruggietech/insonic",
+  "description": "CLI-first audio and video orchestration with correlated subtitles, speaker models and source-linked exploration.",
+  "settings": {
+    "has_issues": true,
+    "has_projects": true,
+    "has_wiki": false,
+    "allow_squash_merge": true,
+    "allow_merge_commit": false,
+    "allow_rebase_merge": false,
+    "allow_auto_merge": false,
+    "delete_branch_on_merge": true,
+    "squash_merge_commit_title": "PR_TITLE",
+    "squash_merge_commit_message": "PR_BODY"
+  },
+  "required_checks": ["foundation", "docs"],
+  "project": {
+    "title": "insonic",
+    "statuses": ["Backlog", "Ready", "In progress", "In review", "Done"],
+    "text_fields": ["Slice", "Release", "Priority", "Area"]
+  },
+  "labels": [
+    { "name": "bug", "color": "d73a4a", "description": "Observed behavior differs from its contract" },
+    { "name": "enhancement", "color": "a2eeef", "description": "Planned product capability" },
+    { "name": "documentation", "color": "0075ca", "description": "Documentation or specification" },
+    { "name": "work-slice", "color": "7057ff", "description": "Bounded Spec Kit delivery outcome" },
+    { "name": "post-release", "color": "fbca04", "description": "Observation against a released version" },
+    { "name": "platform", "color": "c5def5", "description": "Native platform and packaging" },
+    { "name": "pipeline", "color": "bfdadc", "description": "Media and model orchestration" },
+    { "name": "graph", "color": "d4c5f9", "description": "Evidence and graph exploration" }
+  ],
+  "milestones": [
+    { "title": "M1 - Local media to subtitles", "description": "S001-S007: three-OS CLI, runtime ownership, supported catalog/storage adapters, encrypted credentials and model registry, early metadata/date capture, library and correlated local subtitles." },
+    { "title": "M2 - Pipelines, speakers and desktop", "description": "S008-S010: configurable providers, speakers/terms and GUI with CLI." },
+    { "title": "M3 - Evidence and exploration", "description": "S011-S013: LadybugDB/ArcadeDB graph queries, timeline, saved views and optional AI suggestions." },
+    { "title": "M4 - Durable release delivery", "description": "S014: portable backups, acquisition expansion and release/docs promotion." },
+    { "title": "M5 - Speaker models", "description": "S015: elective speaker training, immutable corpus snapshots and speaker-associated model retrieval. May proceed once speaker/adapter contracts are established." }
+  ],
+  "issues": [
+    { "slice": "S001", "title": "S001: Prove native platform and dependency contracts", "milestone": "M1 - Local media to subtitles", "area": "platform", "requirements": "R01 R02 R08 R15 R22 R30 R31 R32", "acceptance": "Prove CLI/runtime/GUI IPC, Cueson, a pinned Ladybug/SQLite combination, PostgreSQL/S3/ArcadeDB adapter contract feasibility, hidden launch, secret-store availability and offline docs on Windows, macOS and Linux. Record exact dependency pins and architecture support." },
+    { "slice": "S002", "title": "S002: Establish workspace ownership and runtime interfaces", "milestone": "M1 - Local media to subtitles", "area": "platform", "requirements": "R01 R02 R15 R33", "acceptance": "Implement platform paths, workspace discovery and ownership/locking. Establish shared CLI/runtime configuration and operation interfaces, job attempts, cancellation/retry contracts, redacted diagnostics and hidden noninteractive child launches. Define the catalog and storage boundaries consumed by subsequent slices. Depends on S001." },
+    { "slice": "S003", "title": "S003: Implement portable catalogs and durable job state", "milestone": "M1 - Local media to subtitles", "area": "platform", "requirements": "R15 R26 R27 R31 R32 R33", "acceptance": "Implement SQLite by default and full PostgreSQL parity for settings, operational state, metadata and associations. Provide portable migrations, transactions, durable jobs and attempt ownership, recovery receipts and a revisioned graph outbox. Reserve speaker segment/corpus, training-run and model-artifact associations in the schema. Prove the same state/recovery contracts on both catalogs. Depends on S002." },
+    { "slice": "S004", "title": "S004: Implement filesystem and generic S3 artifact storage", "milestone": "M1 - Local media to subtitles", "area": "platform", "requirements": "R03 R15 R30", "acceptance": "Implement filesystem storage by default and full generic S3-compatible parity through one artifact contract. Support immutable writes, references, checksums, staged publication and recovery; publish verified bytes before catalog references. Resolve credential IDs through the shared secret-provider interface without persisting secret values in storage configuration. Prove the adapter contract on filesystem and an S3-compatible fixture. Depends on S003." },
+    { "slice": "S005", "title": "S005: Implement encrypted credentials and the local model registry", "milestone": "M1 - Local media to subtitles", "area": "platform", "requirements": "R10 R11 R15 R30", "acceptance": "Implement credential IDs, native secret stores and the documented encrypted fallback with status-only display and explicit replacement. Wire configured storage/provider authentication through secret references. Implement model manifests, version/digest checks, download receipts and organized model storage through the artifact adapter. Keep credentials out of persisted job configuration and logs. Depends on S003 and S004." },
+    { "slice": "S006", "title": "S006: Build the unified audio and video library", "milestone": "M1 - Local media to subtitles", "area": "pipeline", "requirements": "R03 R04 R15 R28 R29 R30 R33", "acceptance": "Import managed copies or external references through filesystem/S3 adapters; capture immutable raw EXIF/container/stream metadata before transforms with extractor provenance. Accept origination dates, date-only precision, IANA/UTC/offset zones and per-item CSV/JSON manifests; preserve conflicts/unknowns and isolate unresolved DST observations without rejecting media. Retain original identities, duplicate/relocation handling and generic acquisition adapters without mandatory per-item review. Depends on S003, S004 and S005." },
+    { "slice": "S007", "title": "S007: Produce correlated local subtitles through Cueson", "milestone": "M1 - Local media to subtitles", "area": "pipeline", "requirements": "R05 R06 R07 R08 R10 R26 R33", "acceptance": "Derive mapped audio, accept supplied tracks, run local recognition, retain source-timed speaker segment records, generate real subtitle source bytes and validate/render via Cueson. Prove timing, overlap and resumability; resolve zero-cue compatibility explicitly. Configured transforms proceed without mandatory review. Depends on S006." },
+    { "slice": "S008", "title": "S008: Configure pipeline presets and provider adapters", "milestone": "M2 - Pipelines, speakers and desktop", "area": "pipeline", "requirements": "R09 R10 R11 R33", "acceptance": "Expose readable local/hosted presets, capability checks, per-stage model/endpoint overrides, encrypted credential setup and no silent provider fallback. Run configured jobs/routing without repeated permission; capability and error handling apply to the affected operation. Depends on S005 and S007." },
+    { "slice": "S009", "title": "S009: Track speaker continuity and transcription terms", "milestone": "M2 - Pipelines, speakers and desktop", "area": "pipeline", "requirements": "R12 R13 R26 R33", "acceptance": "Separate acoustic voices from identities, maintain aliases and reversible corrections, compile exact term/name context before recognition and support configured transcript revisions. Link cross-library audio segments to revisioned speaker attributions and saved corpus-selection policies, including overlap/quality/provenance filters without mandatory sample review. Depends on S008." },
+    { "slice": "S010", "title": "S010: Ship GUI packages with CLI parity and offline help", "milestone": "M2 - Pipelines, speakers and desktop", "area": "platform", "requirements": "R02 R16 R22 R29", "acceptance": "Package GUI plus CLI on all three OSes, wrap one shared core with no GUI-only logic, expose library/jobs/pipelines/speakers/terms, metadata/date controls, correlated playback and release-matched offline help. Record a capability matrix and any advanced/experimental CLI-first lag. Depends on S009." },
+    { "slice": "S011", "title": "S011: Publish source-backed graph evidence and queries", "milestone": "M3 - Evidence and exploration", "area": "graph", "requirements": "R14 R16 R32", "acceptance": "Chunk real cues through adapters, validate assertions, publish idempotent LadybugDB and ArcadeDB projections with full common query parity and provide word/speaker/time/direct queries with provenance. Depends on S003 and S009." },
+    { "slice": "S012", "title": "S012: Add all-media timelines and saved graph views", "milestone": "M3 - Evidence and exploration", "area": "graph", "requirements": "R16 R17 R18", "acceptance": "Render calendar and media-relative timelines, undated/approximate entries, source playback, savable queries and force-directed result views with accessible alternatives. Depends on S010 and S011." },
+    { "slice": "S013", "title": "S013: Suggest queries through optional AI assistance", "milestone": "M3 - Evidence and exploration", "area": "graph", "requirements": "R19 R33", "acceptance": "Route prompts/schema through the user's chosen adapter, show suggestions by default, support explicitly elected validated read-only auto-run with configured limits, and retain direct queries when assistance is disabled. Invalid/unsupported queries do not execute. Depends on S008 and S012." },
+    { "slice": "S014", "title": "S014: Complete portability and release delivery", "milestone": "M4 - Durable release delivery", "area": "platform", "requirements": "R04 R15 R22 R25 R30 R31 R32", "acceptance": "Implement portable backup/export across supported filesystem/S3, SQLite/PostgreSQL and LadybugDB/ArcadeDB backends, acquisition expansion, native package integrity/notices, signing as configured and exact release/docs promotion with brief highlights. Depends on S010 and S012." },
+    { "slice": "S015", "title": "S015: Train and retrieve optional speaker-associated models", "milestone": "M5 - Speaker models", "area": "pipeline", "requirements": "R02 R26 R27 R33", "acceptance": "Let a user elect a training pipeline from a saved speaker corpus, snapshot exact segment/attribution revisions and preprocessing, run local/selected hosted training adapters without mandatory sample approval, and retain validation/provenance receipts. Store immutable versioned artifacts associated with the originating speaker and expose speaker-filtered models list/show and exact-version fetch through the CLI. Final GUI model presentation remains undecided and explicitly documented. Depends on S005, S008 and S009." }
+  ]
+}

@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "theme_root": "stbb-insonic",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 660,
+      "sha256": "2aec7e20c8902b7978ce13006a87524ae62536331c3d37794d8ca64c8424ccfb"
+    },
+    {
+      "path": "assets/css/stbb-content.css",
+      "bytes": 1883,
+      "sha256": "2218715c503cde2a75c617ed30febeb438a09e860795c8e06c1716a96a173728"
+    },
+    {
+      "path": "assets/fonts/woff2/Geist-Medium.woff2",
+      "bytes": 46356,
+      "sha256": "0b50074337a05ed834a1474d3d13fc6bd8480e2ce3075d02f1d38c017a8ac2a4"
+    },
+    {
+      "path": "assets/fonts/woff2/Geist-Regular.woff2",
+      "bytes": 45172,
+      "sha256": "faed18848df4a6e1b5503b589bbbc055fbdab0e1780781edf5105457395e1e5d"
+    },
+    {
+      "path": "assets/fonts/woff2/GeistMono-Regular.woff2",
+      "bytes": 50196,
+      "sha256": "c88d20967768754cbdca230acd74ecb25de78d0dc47e31694aa8bd2c528fec26"
+    },
+    {
+      "path": "assets/fonts/woff2/SpaceGrotesk-Bold.woff2",
+      "bytes": 31560,
+      "sha256": "cdaf8bb228ee112c0ab784d9edd2b877cb096bad24cbbf88babeedebe197e742"
+    },
+    {
+      "path": "assets/fonts/woff2/SpaceGrotesk-Medium.woff2",
+      "bytes": 32480,
+      "sha256": "6d90cc6539e794019ada4d6ffd1f4080c66b7ad1762b425f5794500c12427551"
+    },
+    {
+      "path": "assets/images/insonic-horizontal-black-1024.png",
+      "bytes": 15904,
+      "sha256": "018de281b0977402503d0236c1a14ec533efedb83950c8b2c2cdfa3f9f36d3bb"
+    },
+    {
+      "path": "assets/images/insonic-mark-black-1024.png",
+      "bytes": 18070,
+      "sha256": "c5897fa9578522cec3eaf639bf4a1c63d4be81943cd8082395f10277d9314b4c"
+    },
+    {
+      "path": "assets/images/insonic-social-preview-1280.png",
+      "bytes": 27406,
+      "sha256": "9d59c9fe29d394b56a739a1c9cfc9c58c7f7c2d39d5169ab6ef88483412e1999"
+    },
+    {
+      "path": "assets/licenses/OFL-Geist.txt",
+      "bytes": 4383,
+      "sha256": "942560b236adfa83745b2c64e5fc09ebaf91cb331751b1157eb92187e5d6e930"
+    },
+    {
+      "path": "assets/licenses/OFL-Space-Grotesk.txt",
+      "bytes": 4401,
+      "sha256": "18a4de52385f6b988782639d5d0cc1326e5a8c2de9a7f01d7b20d9aedcc60943"
+    },
+    {
+      "path": "functions.php",
+      "bytes": 564,
+      "sha256": "8ea603bf572e2d997dad06eadcdfb887d323f98ced5c6f053a1dbab91e2d8804"
+    },
+    {
+      "path": "parts/footer.html",
+      "bytes": 152,
+      "sha256": "3cbdcaf262c66389eaa9bcc877efc4434d37ba312952c5e3bba95d28c1b009d4"
+    },
+    {
+      "path": "parts/header.html",
+      "bytes": 296,
+      "sha256": "e7e9d3a5060cd288d49649f84c7877932ace3f9c2fd8509bacbfd5100684f8d2"
+    },
+    {
+      "path": "patterns/contact.php",
+      "bytes": 666,
+      "sha256": "da8d8ef130f912f55a056972b5eae3c461aa47615e3cd9e6ba585f4c59d4630a"
+    },
+    {
+      "path": "patterns/features.php",
+      "bytes": 861,
+      "sha256": "cba7e68b764dd1c9dab17ceaca60545bc7a22e1bce54219d07b0115046bf91d6"
+    },
+    {
+      "path": "patterns/hero.php",
+      "bytes": 665,
+      "sha256": "e6b90879ec4db2d9aaf720e845d953ed307e340922ffed03f6e80b265a2e0363"
+    },
+    {
+      "path": "patterns/text-media.php",
+      "bytes": 854,
+      "sha256": "0a797bfefd2ceb5c27b4c2bb6c18f3a478a7e5a64d41a1e73c24c6ed9709f504"
+    },
+    {
+      "path": "style.css",
+      "bytes": 277,
+      "sha256": "905b7f3eff5a50ecfb869c04feddfabcefd53e9cd7bc9eef984bdde9753624e3"
+    },
+    {
+      "path": "styles/dark.json",
+      "bytes": 6237,
+      "sha256": "0a36cc84a810b8c9c0ccc5519f1d484aaad6de1d4c1f2033886bb024110f881a"
+    },
+    {
+      "path": "templates/404.html",
+      "bytes": 432,
+      "sha256": "ad2fef1ab803fc93cbaed2f0e95a2df580139759cd2393284c4c026a6bd68a9d"
+    },
+    {
+      "path": "templates/archive.html",
+      "bytes": 606,
+      "sha256": "a927f90b60de5a2a2075346d88918dbcc88c422ccab1b8110df2bd026d644098"
+    },
+    {
+      "path": "templates/index.html",
+      "bytes": 563,
+      "sha256": "89ebfa16f3fe7b2bd56dafc409d78c0ce4ee00d8610e88c4a9a0c56f360c356d"
+    },
+    {
+      "path": "templates/page.html",
+      "bytes": 274,
+      "sha256": "b16a96d2a87ca71328a665108b1b2416b48b45165b636b3f906313ccb01d138a"
+    },
+    {
+      "path": "templates/search.html",
+      "bytes": 670,
+      "sha256": "7c13aa9b7491a14a8111ce334ccbfd4ec599114f05b73bb903689711f74f2105"
+    },
+    {
+      "path": "templates/single.html",
+      "bytes": 296,
+      "sha256": "bbebd5c2b364fdb214c1d9e65baa0b57177cf0a8d26059551e5e837892bca078"
+    },
+    {
+      "path": "theme.json",
+      "bytes": 6208,
+      "sha256": "e477ea8aefad047fd9d1d5fffc1562d299b1fc7e0f5bf7739f60b73b2e7df1aa"
+    }
+  ]
+}

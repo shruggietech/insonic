@@ -1,0 +1,26 @@
+name: Feature or work-slice proposal
+description: Define an outcome, acceptance and related requirements.
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Observable acceptance criteria
+    validations:
+      required: true
+  - type: input
+    id: requirements
+    attributes:
+      label: Requirement, slice and milestone references
+      description: Use Rxx and Sxxx IDs where applicable.
+  - type: textarea
+    id: scope
+    attributes:
+      label: Dependencies and scope boundaries

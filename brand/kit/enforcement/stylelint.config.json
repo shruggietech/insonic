@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "color-no-hex": true,
+    "declaration-property-value-disallowed-list": {
+      "/^(color|background|background-color|border-color|fill|stroke)$/": [
+        "/^#/",
+        "/^rgb/",
+        "/^hsl/"
+      ],
+      "/^(padding|margin|gap|border-radius)/": [
+        "/^\\d+px$/"
+      ]
+    },
+    "font-family-no-missing-generic-family-keyword": true
+  }
+}

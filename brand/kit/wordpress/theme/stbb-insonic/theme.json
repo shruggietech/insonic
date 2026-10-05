@@ -1,0 +1,251 @@
+{
+  "$schema": "https://schemas.wp.org/wp/6.9/theme.json",
+  "version": 3,
+  "settings": {
+    "appearanceTools": true,
+    "color": {
+      "palette": [
+        {
+          "name": "Identity: Glacial blue",
+          "slug": "stbb-insonic-identity-primary",
+          "color": "#86BDF2"
+        },
+        {
+          "name": "Identity: Deep glacial blue",
+          "slug": "stbb-insonic-identity-light-ink",
+          "color": "#256DA9"
+        },
+        {
+          "name": "Interface: Action",
+          "slug": "stbb-insonic-cue-action",
+          "color": "#256DA9"
+        },
+        {
+          "name": "Interface: Warning",
+          "slug": "stbb-insonic-cue-warning",
+          "color": "#805000"
+        },
+        {
+          "name": "Interface: Error",
+          "slug": "stbb-insonic-cue-error",
+          "color": "#A03035"
+        },
+        {
+          "name": "Interface: Success",
+          "slug": "stbb-insonic-cue-success",
+          "color": "#17654B"
+        },
+        {
+          "name": "Interface: Information",
+          "slug": "stbb-insonic-cue-information",
+          "color": "#256DA9"
+        },
+        {
+          "name": "Interface: Focus",
+          "slug": "stbb-insonic-cue-focus",
+          "color": "#256DA9"
+        },
+        {
+          "name": "Interface: Selection",
+          "slug": "stbb-insonic-cue-selection",
+          "color": "#256DA9"
+        },
+        {
+          "name": "Interface: Disabled",
+          "slug": "stbb-insonic-cue-disabled",
+          "color": "#86BDF2"
+        },
+        {
+          "name": "Interface: Background",
+          "slug": "stbb-insonic-surface-background",
+          "color": "#F4F7F7"
+        },
+        {
+          "name": "Interface: Card",
+          "slug": "stbb-insonic-surface-card",
+          "color": "#FFFFFF"
+        },
+        {
+          "name": "Interface: Text",
+          "slug": "stbb-insonic-text-primary",
+          "color": "#000000"
+        },
+        {
+          "name": "Interface: Muted text",
+          "slug": "stbb-insonic-text-muted",
+          "color": "#256DA9"
+        },
+        {
+          "name": "Interface: Focus",
+          "slug": "stbb-insonic-focus-ring",
+          "color": "#256DA9"
+        }
+      ],
+      "defaultPalette": false
+    },
+    "typography": {
+      "fontFamilies": [
+        {
+          "fontFamily": "Space Grotesk",
+          "name": "Space Grotesk",
+          "slug": "stbb-display",
+          "fontFace": [
+            {
+              "fontFamily": "Space Grotesk",
+              "fontStyle": "normal",
+              "fontWeight": "500",
+              "src": [
+                "file:./assets/fonts/woff2/SpaceGrotesk-Medium.woff2"
+              ]
+            },
+            {
+              "fontFamily": "Space Grotesk",
+              "fontStyle": "normal",
+              "fontWeight": "700",
+              "src": [
+                "file:./assets/fonts/woff2/SpaceGrotesk-Bold.woff2"
+              ]
+            }
+          ]
+        },
+        {
+          "fontFamily": "Geist",
+          "name": "Geist",
+          "slug": "stbb-body",
+          "fontFace": [
+            {
+              "fontFamily": "Geist",
+              "fontStyle": "normal",
+              "fontWeight": "400",
+              "src": [
+                "file:./assets/fonts/woff2/Geist-Regular.woff2"
+              ]
+            },
+            {
+              "fontFamily": "Geist",
+              "fontStyle": "normal",
+              "fontWeight": "500",
+              "src": [
+                "file:./assets/fonts/woff2/Geist-Medium.woff2"
+              ]
+            }
+          ]
+        },
+        {
+          "fontFamily": "Geist Mono",
+          "name": "Geist Mono",
+          "slug": "stbb-mono",
+          "fontFace": [
+            {
+              "fontFamily": "Geist Mono",
+              "fontStyle": "normal",
+              "fontWeight": "400",
+              "src": [
+                "file:./assets/fonts/woff2/GeistMono-Regular.woff2"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "spacing": {
+      "spacingSizes": [
+        {
+          "name": "Space 1",
+          "slug": "stbb-insonic-space-1",
+          "size": "4px"
+        },
+        {
+          "name": "Space 2",
+          "slug": "stbb-insonic-space-2",
+          "size": "8px"
+        },
+        {
+          "name": "Space 3",
+          "slug": "stbb-insonic-space-3",
+          "size": "12px"
+        },
+        {
+          "name": "Space 4",
+          "slug": "stbb-insonic-space-4",
+          "size": "16px"
+        },
+        {
+          "name": "Space 6",
+          "slug": "stbb-insonic-space-6",
+          "size": "24px"
+        },
+        {
+          "name": "Space 8",
+          "slug": "stbb-insonic-space-8",
+          "size": "32px"
+        },
+        {
+          "name": "Space 12",
+          "slug": "stbb-insonic-space-12",
+          "size": "48px"
+        },
+        {
+          "name": "Space 16",
+          "slug": "stbb-insonic-space-16",
+          "size": "64px"
+        }
+      ]
+    },
+    "layout": {
+      "contentSize": "720px",
+      "wideSize": "1200px"
+    },
+    "custom": {
+      "stbb": {
+        "brand": "insonic",
+        "adapterVersion": "1.0.0"
+      }
+    }
+  },
+  "styles": {
+    "color": {
+      "background": "var:preset|color|stbb-insonic-surface-background",
+      "text": "var:preset|color|stbb-insonic-text-primary"
+    },
+    "typography": {
+      "fontFamily": "var:preset|font-family|stbb-body"
+    },
+    "spacing": {
+      "blockGap": "24px"
+    },
+    "elements": {
+      "link": {
+        "color": {
+          "text": "var:preset|color|stbb-insonic-cue-action"
+        }
+      },
+      "button": {
+        "color": {
+          "background": "var:preset|color|stbb-insonic-cue-action",
+          "text": "#FFFFFF"
+        },
+        "border": {
+          "radius": "16px"
+        }
+      },
+      "heading": {
+        "typography": {
+          "fontFamily": "var:preset|font-family|stbb-display"
+        }
+      }
+    },
+    "blocks": {
+      "core/group": {
+        "spacing": {
+          "blockGap": "24px"
+        }
+      },
+      "core/columns": {
+        "spacing": {
+          "blockGap": "24px"
+        }
+      }
+    }
+  }
+}

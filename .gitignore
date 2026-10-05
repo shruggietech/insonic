@@ -1,0 +1,63 @@
+# User workspaces, media, models, credentials and local runtime state.
+/data/
+/library/
+/workspaces/
+/models/
+/.local/
+
+# Build and development outputs.
+node_modules/
+.next/
+/site/out/
+/site/offline/
+/site/public/schemas/
+/site/public/brand/
+/site/public/mermaid/
+/site/public/source/
+/site/public/project/
+.bootstrap-spec-kit/
+/brand/.update-lock/
+/brand/.staging-*/
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+/build/
+/dist/
+*.egg-info/
+*.egg
+.eggs/
+
+# Test, coverage, type-checker and linter caches/output.
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+junit.xml
+TestResults/
+
+# Local credentials and machine-specific agent state (not shared skills).
+.env
+.env.*
+!.env.example
+!.env.template
+/.codex/
+/.aws/
+
+# Editor/OS scratch. Shared VS Code settings remain eligible for versioning.
+.idea/
+.vs/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini

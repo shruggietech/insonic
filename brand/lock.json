@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "sourceRepository": "https://github.com/shruggietech/shruggie-brand",
+  "releaseTag": "v3.0.1",
+  "releaseUrl": "https://github.com/shruggietech/shruggie-brand/releases/tag/v3.0.1",
+  "publishedAt": "2026-10-03T23:54:23Z",
+  "archiveName": "insonic-brand-1.0.0-bb3.0.1.zip",
+  "archiveUrl": "https://github.com/shruggietech/shruggie-brand/releases/download/v3.0.1/insonic-brand-1.0.0-bb3.0.1.zip",
+  "checksumUrl": "https://github.com/shruggietech/shruggie-brand/releases/download/v3.0.1/SHA256SUMS",
+  "brandVersion": "1.0.0",
+  "brandbuilderVersion": "3.0.1",
+  "archiveSha256": "e56517e99cf2a3abbf62d82b19ea565191982a6a2da3b7b8e859ce628618f0c8",
+  "manifestSha256": "92052efd76883edda4d1e7543fa85371bd48d997a3793a92ec5dbe0faabfcb13",
+  "legalSha256": {
+    "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "LICENSE-BRAND.md": "bd1107a804108bbe02955ca64000945322a6fc2456b45b795dac11a253c0023a",
+    "NOTICE": "d919688fd2c931500447418b628dfd0acf4d82c88d7eb392692bb629f7d0193f"
+  },
+  "sourceRevision": "3eadea75689e9bf9b6c647958cacb64b328b8ac5",
+  "canonVersion": "2.0.0",
+  "fileCount": 574
+}

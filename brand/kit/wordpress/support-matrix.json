@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "adapter_version": "1.0.0",
+  "test_targets": [
+    {
+      "wordpress": "6.9.9",
+      "php": "8.2"
+    },
+    {
+      "wordpress": "7.1.2",
+      "php": "8.3"
+    }
+  ],
+  "style_variations": [
+    {
+      "id": "dark",
+      "path": "styles/dark.json",
+      "selection": "Site Editor",
+      "visitor_toggle": false
+    }
+  ],
+  "components": [
+    {
+      "id": "AppFrame",
+      "status": "unsupported",
+      "core_block": null,
+      "reason": "No equivalent core block behavior is implemented in this starter"
+    },
+    {
+      "id": "Button",
+      "status": "adapted",
+      "core_block": "core/button",
+      "reason": "Implemented with native core block markup and theme styles"
+    },
+    {
+      "id": "Card",
+      "status": "adapted",
+      "core_block": "core/group",
+      "reason": "Implemented with native core block markup and theme styles"
+    },
+    {
+      "id": "Dialog",
+      "status": "unsupported",
+      "core_block": null,
+      "reason": "No equivalent core block behavior is implemented in this starter"
+    },
+    {
+      "id": "EmptyState",
+      "status": "adapted",
+      "core_block": "core/query-no-results",
+      "reason": "Implemented with native core block markup and theme styles"
+    },
+    {
+      "id": "Field",
+      "status": "unsupported",
+      "core_block": null,
+      "reason": "No equivalent core block behavior is implemented in this starter"
+    },
+    {
+      "id": "FormControls",
+      "status": "unsupported",
+      "core_block": null,
+      "reason": "No equivalent core block behavior is implemented in this starter"
+    },
+    {
+      "id": "IconButton",
+      "status": "unsupported",
+      "core_block": null,
+      "reason": "No equivalent core block behavior is implemented in this starter"
+    },
+    {
+      "id": "ListRow",
+      "status": "unsupported",
+      "core_block": null,
+      "reason": "No equivalent core block behavior is implemented in this starter"
+    },
+    {
+      "id": "Menu",
+      "status": "unsupported",
+      "core_block": null,
+      "reason": "No equivalent core block behavior is implemented in this starter"
+    },
+    {
+      "id": "SplitPane",
+      "status": "unsupported",
+      "core_block": null,
+      "reason": "No equivalent core block behavior is implemented in this starter"
+    },
+    {
+      "id": "StatusBadge",
+      "status": "unsupported",
+      "core_block": null,
+      "reason": "No equivalent core block behavior is implemented in this starter"
+    },
+    {
+      "id": "Tabs",
+      "status": "unsupported",
+      "core_block": null,
+      "reason": "No equivalent core block behavior is implemented in this starter"
+    },
+    {
+      "id": "Toast",
+      "status": "unsupported",
+      "core_block": null,
+      "reason": "No equivalent core block behavior is implemented in this starter"
+    },
+    {
+      "id": "Toolbar",
+      "status": "unsupported",
+      "core_block": null,
+      "reason": "No equivalent core block behavior is implemented in this starter"
+    }
+  ],
+  "core_blocks": {
+    "core/paragraph": "native",
+    "core/heading": "native",
+    "core/button": "native",
+    "core/group": "native",
+    "core/columns": "native",
+    "core/image": "native",
+    "core/navigation": "native",
+    "core/query": "native",
+    "core/search": "native"
+  },
+  "scope": [
+    "front-end-content",
+    "block-editor-content"
+  ],
+  "unverified": [
+    "classic themes",
+    "page builders",
+    "forms",
+    "commerce",
+    "multilingual plugins",
+    "caching plugins"
+  ]
+}

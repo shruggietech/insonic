@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://shruggie.tech/schemas/consumer-contract.schema.json",
+  "title": "Shruggie BrandBuilder Consumer Contract",
+  "type": "object",
+  "required": ["schema_version", "brand", "bundle", "versions", "version_semantics", "compatibility", "environment", "authority", "verification", "recovery", "provenance", "capability_gap"],
+  "properties": {
+    "schema_version": {"const": 5},
+    "brand": {
+      "type": "object",
+      "required": ["slug", "title", "affiliation", "brand_version"],
+      "properties": {"slug": {"type": "string", "minLength": 1}, "title": {"type": "string", "minLength": 1}, "affiliation": {}, "brand_version": {"$ref": "#/$defs/semver"}},
+      "additionalProperties": false
+    },
+    "bundle": {"$ref": "#/$defs/bundle"},
+    "versions": {"$ref": "#/$defs/version_record"},
+    "version_semantics": {
+      "type": "object",
+      "required": ["canon_version", "interface_canon_version", "component_recipe_version", "web_react_adapter_version", "egui_adapter_version", "wordpress_adapter_version", "compiler_version", "brand_version"],
+      "properties": {"canon_version": {"type": "string", "minLength": 1}, "interface_canon_version": {"type": "string", "minLength": 1}, "component_recipe_version": {"type": "string", "minLength": 1}, "web_react_adapter_version": {"type": "string", "minLength": 1}, "egui_adapter_version": {"type": "string", "minLength": 1}, "wordpress_adapter_version": {"type": "string", "minLength": 1}, "compiler_version": {"type": "string", "minLength": 1}, "brand_version": {"type": "string", "minLength": 1}},
+      "additionalProperties": false
+    },
+    "compatibility": {
+      "type": "object",
+      "required": ["policy_version", "status", "validated_versions", "rules_checked"],
+      "properties": {
+        "policy_version": {"$ref": "#/$defs/semver"},
+        "status": {"const": "compatible"},
+        "validated_versions": {
+          "type": "object",
+          "required": ["brand_canon", "interface_canon", "component_recipes", "web_react_adapter", "egui_adapter", "wordpress_adapter", "compiler", "brand"],
+          "properties": {"brand_canon": {"$ref": "#/$defs/semver"}, "interface_canon": {"$ref": "#/$defs/semver"}, "component_recipes": {"$ref": "#/$defs/semver"}, "web_react_adapter": {"$ref": "#/$defs/semver"}, "egui_adapter": {"$ref": "#/$defs/semver"}, "wordpress_adapter": {"$ref": "#/$defs/semver"}, "compiler": {"$ref": "#/$defs/semver"}, "brand": {"$ref": "#/$defs/semver"}},
+          "additionalProperties": false
+        },
+        "rules_checked": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "environment": {
+      "type": "object",
+      "required": ["renderer", "host", "supported_targets", "viewport_profiles", "adapter_versions"],
+      "properties": {
+        "renderer": {"const": "renderer-neutral"}, "host": {"const": "none"},
+        "supported_targets": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "viewport_profiles": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "adapter_versions": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/semver"}}
+      },
+      "additionalProperties": false
+    },
+    "authority": {
+      "type": "object",
+      "required": ["brand_source", "bundle", "release_impact", "migration_summary", "interface_canon", "component_recipes", "version_policy", "web_adapter", "support_matrix", "egui_adapter", "egui_support_matrix", "wordpress_adapter", "wordpress_support_matrix", "wordpress_theme_zip", "instructions", "documentation_contract", "documentation_facts", "precedence", "permitted_exceptions"],
+      "properties": {"brand_source": {"$ref": "#/$defs/safe_path"}, "bundle": {"$ref": "#/$defs/safe_path"}, "release_impact": {"$ref": "#/$defs/safe_path"}, "migration_summary": {"$ref": "#/$defs/safe_path"}, "interface_canon": {"$ref": "#/$defs/safe_path"}, "component_recipes": {"$ref": "#/$defs/safe_path"}, "version_policy": {"$ref": "#/$defs/safe_path"}, "web_adapter": {"$ref": "#/$defs/safe_path"}, "support_matrix": {"$ref": "#/$defs/safe_path"}, "egui_adapter": {"$ref": "#/$defs/safe_path"}, "egui_support_matrix": {"$ref": "#/$defs/safe_path"}, "wordpress_adapter": {"$ref": "#/$defs/safe_path"}, "wordpress_support_matrix": {"$ref": "#/$defs/safe_path"}, "wordpress_theme_zip": {"$ref": "#/$defs/safe_path"}, "instructions": {"$ref": "#/$defs/safe_path"}, "documentation_contract": {"$ref": "#/$defs/safe_path"}, "documentation_facts": {"$ref": "#/$defs/safe_path"}, "precedence": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, "permitted_exceptions": {"type": "array", "items": {"type": "string", "minLength": 1}}},
+      "additionalProperties": false
+    },
+    "verification": {
+      "type": "object",
+      "required": ["entry_points", "success"],
+      "properties": {"entry_points": {"type": "array", "minItems": 2, "items": {"type": "string", "minLength": 1}}, "success": {"type": "string", "minLength": 1}},
+      "additionalProperties": false
+    },
+    "recovery": {
+      "type": "object",
+      "required": ["distribution", "path", "sha256", "extract_to", "sources", "instruction"],
+      "properties": {"distribution": {"type": "string", "pattern": "^[A-Za-z0-9._-]+\\.skill$"}, "path": {"$ref": "#/$defs/safe_path"}, "sha256": {"$ref": "#/$defs/sha256"}, "extract_to": {"$ref": "#/$defs/safe_path"}, "sources": {"type": "array", "minItems": 1, "items": {"type": "object", "minProperties": 2}}, "instruction": {"type": "string", "minLength": 1}},
+      "additionalProperties": false
+    },
+    "provenance": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/provenance"}},
+    "capability_gap": {
+      "type": "object",
+      "required": ["template_path", "submission_requires_authorization"],
+      "properties": {"template_path": {"$ref": "#/$defs/safe_path"}, "submission_requires_authorization": {"const": true}},
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "semver": {"type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "safe_path": {"type": "string", "minLength": 1, "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"},
+    "bundle": {
+      "type": "object",
+      "required": ["schema_version", "package", "versions", "source_revision", "publication", "checksum_authority"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "package": {
+          "type": "object",
+          "required": ["id", "filename", "brand_slug", "brand_version", "brandbuilder_version"],
+          "properties": {"id": {"type": "string", "minLength": 1}, "filename": {"type": "string", "pattern": "^[A-Za-z0-9._-]+\\.zip$"}, "brand_slug": {"type": "string", "minLength": 1}, "brand_version": {"$ref": "#/$defs/semver"}, "brandbuilder_version": {"$ref": "#/$defs/semver"}},
+          "additionalProperties": false
+        },
+        "versions": {"$ref": "#/$defs/version_record"},
+        "source_revision": {"type": "string", "pattern": "^[0-9a-f]{40,64}$"},
+        "publication": {"type": "object", "required": ["status", "version", "tag"], "properties": {"status": {"enum": ["candidate", "release"]}, "version": {"$ref": "#/$defs/semver"}, "tag": {"type": "string", "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+$"}}, "additionalProperties": false},
+        "checksum_authority": {"type": "object", "required": ["algorithm", "manifest", "release_checksums"], "properties": {"algorithm": {"const": "sha256"}, "manifest": {"const": "manifest.json"}, "release_checksums": {"type": ["string", "null"], "enum": ["SHA256SUMS", null]}}, "additionalProperties": false}
+      },
+      "additionalProperties": false
+    },
+    "version_record": {
+      "type": "object",
+      "required": ["canon_version", "interface_canon_version", "component_recipe_version", "web_react_adapter_version", "egui_adapter_version", "wordpress_adapter_version", "compiler_version", "brand_version"],
+      "properties": {"canon_version": {"$ref": "#/$defs/semver"}, "interface_canon_version": {"$ref": "#/$defs/semver"}, "component_recipe_version": {"$ref": "#/$defs/semver"}, "web_react_adapter_version": {"$ref": "#/$defs/semver"}, "egui_adapter_version": {"$ref": "#/$defs/semver"}, "wordpress_adapter_version": {"$ref": "#/$defs/semver"}, "compiler_version": {"$ref": "#/$defs/semver"}, "brand_version": {"$ref": "#/$defs/semver"}},
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["path", "bytes", "sha256"],
+      "properties": {"path": {"$ref": "#/$defs/safe_path"}, "bytes": {"type": "integer", "minimum": 0}, "sha256": {"$ref": "#/$defs/sha256"}},
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

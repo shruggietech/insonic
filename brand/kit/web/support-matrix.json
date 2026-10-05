@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "adapter_version": "1.1.0",
+  "test_harness": {
+    "name": "Playwright Chromium",
+    "package": "@playwright/test",
+    "version": "1.62.1",
+    "accessibility": "axe-core 4.13.0"
+  },
+  "records": [
+    {
+      "target": "Chrome browser",
+      "host": {
+        "kind": "browser",
+        "evidence": "executed Chromium engine"
+      },
+      "configuration": {
+        "viewport": "1280x900",
+        "pointer": "fine",
+        "hover": true,
+        "keyboard": true,
+        "touch": false,
+        "text_scale": 1,
+        "forced_colors": false,
+        "reduced_motion": false
+      },
+      "checks": [
+        "keyboard",
+        "focus",
+        "accessible-name",
+        "target-size",
+        "resize",
+        "safe-area-owner",
+        "axe-wcag21aa"
+      ],
+      "limitations": [
+        "Chrome stable channel version is recorded by CI logs; the deterministic contract pins the Playwright engine package."
+      ],
+      "result": "verified-by-generated-specimen"
+    },
+    {
+      "target": "Windows 11 desktop webview profile",
+      "host": {
+        "kind": "simulated-webview",
+        "evidence": "Chromium specimen with injected titlebar, forced-color, text-scale, pointer, keyboard, and touch capability values"
+      },
+      "configuration": {
+        "viewport": "1280x800",
+        "pointer": "mixed",
+        "hover": true,
+        "keyboard": true,
+        "touch": true,
+        "text_scale": 1.5,
+        "forced_colors": true,
+        "reduced_motion": false,
+        "titlebar_region": "top 32 logical units"
+      },
+      "checks": [
+        "keyboard",
+        "focus",
+        "forced-colors",
+        "text-scaling",
+        "titlebar-owner",
+        "resize",
+        "axe-wcag21aa"
+      ],
+      "limitations": [
+        "Tauri and Wails native process integration is not executed in S038; this record verifies their declared webview handoff profile."
+      ],
+      "result": "simulated-capability-contract-only"
+    },
+    {
+      "target": "Android Chrome profile",
+      "host": {
+        "kind": "simulated-mobile-browser",
+        "evidence": "Chromium specimen at compact viewport with injected safe-area, text-scale, reduced-motion, touch, and IME capability values"
+      },
+      "configuration": {
+        "viewport": "390x844",
+        "pointer": "coarse",
+        "hover": false,
+        "keyboard": false,
+        "touch": true,
+        "text_scale": 2,
+        "forced_colors": false,
+        "reduced_motion": true,
+        "safe_area": "47 0 34 0",
+        "ime_obstruction": "bottom 340 logical units"
+      },
+      "checks": [
+        "touch-target",
+        "focus-reachability",
+        "reduced-motion",
+        "text-scaling",
+        "safe-area-owner",
+        "ime-reachability",
+        "axe-wcag21aa"
+      ],
+      "limitations": [
+        "No physical Android device or Android WebView is certified by S038; native-device proof remains assigned to issue #217."
+      ],
+      "result": "simulated-capability-contract-only"
+    }
+  ]
+}

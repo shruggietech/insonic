@@ -1,0 +1,25 @@
+Shruggie Brand system
+Copyright 2026 Shruggie LLC
+
+This product includes the shruggie-brandbuilder skill, ShruggieTech brand-kit
+sources, and the brand.shruggie.tech site developed by Shruggie LLC
+(ShruggieTech).
+
+Licensed under the Apache License, Version 2.0. See LICENSE.
+
+The following are NOT covered by the Apache License grant. See LICENSE-BRAND.md.
+
+  - The names ShruggieTech, Shruggie, Covarity, Cueson, Fragcap, Glitchpad,
+    and Go Schedule, together with their wordmarks, endorsement lockups, rendered
+    logos, and logo geometry.
+
+The following are covered by their own licences and are redistributed unchanged.
+
+  - Geist and Geist Mono, SIL Open Font License 1.1.
+    Source files are under assets/fonts/, with the licence text at
+    assets/fonts/licenses/OFL-Geist.txt. Generated kits include the same files
+    under fonts/.
+  - Space Grotesk, SIL Open Font License 1.1.
+    Source files are under assets/fonts/, with the licence text at
+    assets/fonts/licenses/OFL-Space-Grotesk.txt. Generated kits include the
+    same files under fonts/.

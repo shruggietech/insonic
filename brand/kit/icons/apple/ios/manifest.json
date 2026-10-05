@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.0.0",
+  "brand": "insonic",
+  "platform": "apple-ios",
+  "status": "generated",
+  "reason": null,
+  "source_masters": {
+    "full": "logos/svg/insonic-mark-color.svg",
+    "reduced": "logos/svg/insonic-mark-reduced-color.svg",
+    "monochrome": "logos/svg/insonic-mark-white.svg"
+  },
+  "artifacts": [
+    {
+      "path": "icons/apple/ios/README.md",
+      "platform": "apple-ios",
+      "role": "instructions",
+      "format": "markdown",
+      "width": null,
+      "height": null,
+      "appearance": null,
+      "alpha": null,
+      "source_variant": "metadata",
+      "destination": "See suite README"
+    },
+    {
+      "path": "icons/apple/ios/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png",
+      "platform": "apple-ios",
+      "role": "app-icon",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "appearance": "default",
+      "alpha": "opaque",
+      "source_variant": "full",
+      "destination": "Xcode AppIcon.appiconset"
+    },
+    {
+      "path": "icons/apple/ios/Assets.xcassets/AppIcon.appiconset/AppIcon-1024-dark.png",
+      "platform": "apple-ios",
+      "role": "app-icon",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "appearance": "dark",
+      "alpha": "opaque",
+      "source_variant": "full",
+      "destination": "Xcode AppIcon.appiconset"
+    },
+    {
+      "path": "icons/apple/ios/Assets.xcassets/AppIcon.appiconset/AppIcon-1024-tinted.png",
+      "platform": "apple-ios",
+      "role": "app-icon",
+      "format": "png",
+      "width": 1024,
+      "height": 1024,
+      "appearance": "tinted",
+      "alpha": "opaque",
+      "source_variant": "monochrome",
+      "destination": "Xcode AppIcon.appiconset"
+    },
+    {
+      "path": "icons/apple/ios/Assets.xcassets/AppIcon.appiconset/Contents.json",
+      "platform": "apple-ios",
+      "role": "asset-catalog",
+      "format": "json",
+      "width": null,
+      "height": null,
+      "appearance": null,
+      "alpha": null,
+      "source_variant": "metadata",
+      "destination": "Xcode AppIcon.appiconset"
+    }
+  ]
+}

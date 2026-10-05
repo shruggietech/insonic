@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "adapter_version": "1.1.0",
+  "component_recipe_version": "1.1.0",
+  "interface_canon_version": "1.0.1",
+  "brand": "insonic",
+  "color_roles": "../color-roles.json",
+  "recipes": [
+    "AppFrame",
+    "Button",
+    "IconButton",
+    "Toolbar",
+    "Tabs",
+    "Menu",
+    "Dialog",
+    "Field",
+    "FormControls",
+    "ListRow",
+    "SplitPane",
+    "Toast",
+    "StatusBadge",
+    "Card",
+    "EmptyState"
+  ],
+  "entries": {
+    "tokens": "tokens/interface.css",
+    "styles": "web/components.css",
+    "server": "web/react/server.tsx",
+    "client": "web/react/client.tsx",
+    "environment": "web/react/environment.tsx",
+    "index": "web/react/index.ts",
+    "specimen": "web/specimen.html",
+    "hosts": "web/app-frame-hosts.json",
+    "support": "web/support-matrix.json"
+  },
+  "dependencies": {
+    "radix-ui": {
+      "version": "1.6.7",
+      "license": "MIT",
+      "scope": [
+        "Toolbar",
+        "Tabs",
+        "Menu",
+        "Dialog",
+        "Toast"
+      ]
+    }
+  },
+  "peer_dependencies": {
+    "react": ">=18 <20",
+    "react-dom": ">=18 <20"
+  },
+  "server_safe_exports": [
+    "AppFrame",
+    "Button",
+    "IconButton",
+    "Field",
+    "FormControls",
+    "ListRow",
+    "SplitPaneFrame",
+    "StatusBadge",
+    "Card",
+    "EmptyState"
+  ],
+  "client_exports": [
+    "AppFrameEnvironmentBridge",
+    "measureImeBlockEnd",
+    "Toolbar",
+    "Tabs",
+    "Menu",
+    "Dialog",
+    "SplitPane",
+    "Toast"
+  ],
+  "environment_exports": [
+    "AppFrameEnvironmentBridge",
+    "measureImeBlockEnd"
+  ],
+  "headless_boundary": {
+    "brandbuilder_authority": [
+      "recipes",
+      "semantic-tokens",
+      "styles",
+      "packaging",
+      "verification",
+      "portal-owner"
+    ],
+    "prohibited": [
+      "asChild",
+      "raw-style-props",
+      "unbounded-composition"
+    ]
+  }
+}

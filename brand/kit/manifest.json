@@ -1,0 +1,2880 @@
+{
+  "name": "insonic-brand-kit",
+  "version": "1.0.0",
+  "parent": "ShruggieTech",
+  "affiliation": {
+    "ownership": "shruggietech-owned",
+    "showcase": "public",
+    "parent": "ShruggieTech",
+    "inheritance": "independent",
+    "endorsement": "shruggietech-project",
+    "service_credit": "none"
+  },
+  "canon": "2.0.0",
+  "files": [
+    {
+      "path": "VERIFY.md",
+      "bytes": 3430,
+      "sha256": "aa963c357a09b0a9cb562a6ee3f757a7627dcfc696c265c8d84089f7e42873f2"
+    },
+    {
+      "path": "brand-guide.pdf",
+      "bytes": 267132,
+      "sha256": "e8163438529b1d7262a4bb8a3da6c3e47da828b8e99508cace5e69e117175607"
+    },
+    {
+      "path": "brand.json",
+      "bytes": 17883,
+      "sha256": "40d35b38457189dac5e2f34e9be1259d5440e7ff5691f7cdff7b92dc58d24aac"
+    },
+    {
+      "path": "color-roles.json",
+      "bytes": 7208,
+      "sha256": "c6e63dd1205c6144a80619e21ca86cb74d325fa67726b0b288dfbc48cbcf97f5"
+    },
+    {
+      "path": "identity-continuity-report.json",
+      "bytes": 44572,
+      "sha256": "b3d6498419f18f728dad529412704d44a45fb80764f66131c166a2ba25ba5506"
+    },
+    {
+      "path": "identity-continuity.json",
+      "bytes": 44890,
+      "sha256": "888f7f9b8b6e70acee0c15661fa34fd108a974f0166d6bf2c591cc6355fdaef0"
+    },
+    {
+      "path": "styles.css",
+      "bytes": 226,
+      "sha256": "383999bfe66b2f405d45a8e2d36e126854ab385eec7d23f4b63e0a49eadf4310"
+    },
+    {
+      "path": "build/README.md",
+      "bytes": 1593,
+      "sha256": "20e409d4dfc0ad364d8233e13f6ec817b6a8a5513ab25c7d1937d3479ba78acb"
+    },
+    {
+      "path": "build/brand-guide.print.html",
+      "bytes": 508089,
+      "sha256": "4842c1de4b9316de388ffdb79c0b237512dc9723015b4879a864db157dae4406"
+    },
+    {
+      "path": "build/mk_paths.py",
+      "bytes": 1282,
+      "sha256": "c92e3bb3f8f55c80a4dd6662397f31e8819a7f7aeeaf6ca2ec7fba1171524daf"
+    },
+    {
+      "path": "build/run_paths.py",
+      "bytes": 1043,
+      "sha256": "cc1963dcf9c01b1299d91f75c95df127a5387f0b83d4576a1aaa3c1e97ca0a79"
+    },
+    {
+      "path": "components/README.md",
+      "bytes": 774,
+      "sha256": "b5286f36315b05a73f05041a0055f979d18aefbe917f1d4b7bbf15532ef0da5b"
+    },
+    {
+      "path": "components/components.css",
+      "bytes": 3049,
+      "sha256": "cef376c0bd8a6c00f12bd4925cd936b4a7744462bfd4bf3736bb858c8ef8b95a"
+    },
+    {
+      "path": "components/core/Badge.jsx",
+      "bytes": 133,
+      "sha256": "e04f00fe15aac0ba8620c44a93da5285df054b236f02efe7da190620d4eb2c3e"
+    },
+    {
+      "path": "components/core/Button.jsx",
+      "bytes": 213,
+      "sha256": "fa7256fe8af1cb3af6777fbb50d6fe58707de274a17799d941533d251eeba18d"
+    },
+    {
+      "path": "components/core/Card.jsx",
+      "bytes": 112,
+      "sha256": "8db8c7c40dac4201e10a96036381eb31cf972fc08ffa9b676ca805a9f51c6e3a"
+    },
+    {
+      "path": "components/core/Divider.jsx",
+      "bytes": 70,
+      "sha256": "289da2c626fd34ae37690953e6d6446b6e02cc0bb2bca83cafe199f9a01c9bfd"
+    },
+    {
+      "path": "components/core/SectionHeading.jsx",
+      "bytes": 330,
+      "sha256": "dff3168651c4e7f35081f245c3dba9e147297369e1ba2cef80f969a085857164"
+    },
+    {
+      "path": "components/forms/Input.jsx",
+      "bytes": 465,
+      "sha256": "d5f4470c0b2450053c94dda947b93a566fd0e4c4f39eb953fb7ad5e9fd8668b8"
+    },
+    {
+      "path": "components/forms/Select.jsx",
+      "bytes": 482,
+      "sha256": "701bba5e063ccd3a9ababc349878507f9444c190ffac9eb086399b91df9fd1ab"
+    },
+    {
+      "path": "components/forms/Textarea.jsx",
+      "bytes": 459,
+      "sha256": "2a69ed91e90125c0731cc8a5625cd9dc02b11a214439a9056d91da260591050b"
+    },
+    {
+      "path": "conformance/README.md",
+      "bytes": 591,
+      "sha256": "166dbccb442b98dd362e4ccd52c89028078017938b3adcccea57788c77efe8bf"
+    },
+    {
+      "path": "conformance/baseline-decisions.json",
+      "bytes": 88,
+      "sha256": "1e796900dfe1884d52c830e62dbbc254a433c28d849de7c3fcd8cf11d8c140ca"
+    },
+    {
+      "path": "conformance/manifest.json",
+      "bytes": 9427,
+      "sha256": "26a35898bc4c4ec452960be12393677e074da67351b354e9c554c37793b29745"
+    },
+    {
+      "path": "conformance/browser/specimen.html",
+      "bytes": 17496,
+      "sha256": "ea18ff46e089efcba922da909cdeeaeb3bcacc7e03cbe42be7cdea3105c7e4f4"
+    },
+    {
+      "path": "conformance/evidence/traces.json",
+      "bytes": 7374,
+      "sha256": "f5b5e4c9cdbd72b50079be55ee115d7bf5db47a3415c459f3cba18af94056bce"
+    },
+    {
+      "path": "conformance/hosts/tauri-android/Cargo.lock",
+      "bytes": 177,
+      "sha256": "1047ad9f444b46bbded5ef0a8e7180fcd6eb87b56de6d9ff716a2e5d4892634e"
+    },
+    {
+      "path": "conformance/hosts/tauri-android/Cargo.toml",
+      "bytes": 153,
+      "sha256": "dec2b45938d31085c87ea29d1d8de7436341cfbc9bfa29ac85f64aa8d04b9256"
+    },
+    {
+      "path": "conformance/hosts/tauri-android/src/lib.rs",
+      "bytes": 1345,
+      "sha256": "d36fa2be92f884b1f7ed4b548a305f5912325268667373cbdb4d95a9445a680b"
+    },
+    {
+      "path": "conformance/hosts/tauri-android/tests/ownership.rs",
+      "bytes": 1515,
+      "sha256": "b4969114d68e5175674b509a7546f03b93a8e8ea70fa1ab273fddf693999abe6"
+    },
+    {
+      "path": "conformance/hosts/wails-windows/go.mod",
+      "bytes": 55,
+      "sha256": "a20bf16f79c221e9a265ed110fe47eec1d2ae9d540c6ebb1302ea47f4b0609f7"
+    },
+    {
+      "path": "conformance/hosts/wails-windows/ownership.go",
+      "bytes": 768,
+      "sha256": "9051f37f90498ccc647c76c876990a6de0659d299ca6e37875d43e73ff6f09b5"
+    },
+    {
+      "path": "conformance/hosts/wails-windows/ownership_test.go",
+      "bytes": 775,
+      "sha256": "29545ffdfb3146ca27115b16a2ff38d8a843fa3cd08b75a8e6dbd253f444215c"
+    },
+    {
+      "path": "enforcement/AGENTS.md",
+      "bytes": 1221,
+      "sha256": "61e69464072bc4db46970a9a68a253279e7a8e77652723681dfddf2c4da5933c"
+    },
+    {
+      "path": "enforcement/IMPLEMENTATION.md",
+      "bytes": 9381,
+      "sha256": "277495338ba358e538e4edf02565c789d1381a9e864b43e3a48b6508f819e6b0"
+    },
+    {
+      "path": "enforcement/MIGRATION.md",
+      "bytes": 1801,
+      "sha256": "970c21c12a2ca1b940163196fbb2fb15d48a39a11b9b37040791d29c1c7cb9a7"
+    },
+    {
+      "path": "enforcement/README.md",
+      "bytes": 2461,
+      "sha256": "9ff201c32f8135c3bd932018c2ceff2327257f1af7c07b666251bc2a397d1851"
+    },
+    {
+      "path": "enforcement/bundle.json",
+      "bytes": 835,
+      "sha256": "9fbc0cc76aa735a15ac8eaedad7418b5a3efaeb590fe5af46ef9825f5befcac1"
+    },
+    {
+      "path": "enforcement/capability-gap.example.json",
+      "bytes": 447,
+      "sha256": "58dc9261793a861a2f2e0b4f0f8b1799d4449cc90893c6962140e248025b4445"
+    },
+    {
+      "path": "enforcement/component-recipes.json",
+      "bytes": 23406,
+      "sha256": "c56f8eeac54670f4ca53d1bd06c8a02acfd59f94f8f0aed92bdfdc4947ccd241"
+    },
+    {
+      "path": "enforcement/component-recipes.schema.json",
+      "bytes": 2793,
+      "sha256": "280f5fad0174b16ccea1f91e19c100345c6a2185aef4ac2e8794f575cc3971e4"
+    },
+    {
+      "path": "enforcement/consumer-contract.json",
+      "bytes": 10334,
+      "sha256": "9d4aa71e8c48826c3e2e212613564f4c0ca8abdc2165461f46006dcda26027bb"
+    },
+    {
+      "path": "enforcement/consumer-contract.schema.json",
+      "bytes": 8902,
+      "sha256": "5cf3b76bda8dd61fdfe3a80625c6e0bff9830adf68e8ba521a7ae644a74e4bad"
+    },
+    {
+      "path": "enforcement/documentation-contract.json",
+      "bytes": 16577,
+      "sha256": "3868c22254e041ed62d7bfe045d8c0eadc449cd7f0ce03de009070ab9607afff"
+    },
+    {
+      "path": "enforcement/documentation-contract.schema.json",
+      "bytes": 3427,
+      "sha256": "048bc07459f8dc2c50cef183fb0b8208702470033e41d83591d37d6cb4d313cb"
+    },
+    {
+      "path": "enforcement/documentation-facts.json",
+      "bytes": 6567,
+      "sha256": "e9a88893f2e8e777872e21b4ba229a5b7af802c5cb5bfb03f612f15b23e9591b"
+    },
+    {
+      "path": "enforcement/eslint.brand.mjs",
+      "bytes": 6352,
+      "sha256": "e2026a1cd09017959f2cf1faae4bb2c8d066e94e1044402a90bf5a89b7fcf46e"
+    },
+    {
+      "path": "enforcement/interface-canon.json",
+      "bytes": 9209,
+      "sha256": "0d7e50569cd063fa45cb3680bf45c7d6697c646bbf0346e0fe6271feacd1ff40"
+    },
+    {
+      "path": "enforcement/interface-canon.schema.json",
+      "bytes": 7313,
+      "sha256": "b21d2a7b62cd302df62e8d4a3d0a1033f98a8d75d3a193fced61429cf40c656d"
+    },
+    {
+      "path": "enforcement/release-impact.json",
+      "bytes": 2101,
+      "sha256": "588c03c834b75232bf10061236f753cef85750fa3f40ce8f0545b2e5cb97f708"
+    },
+    {
+      "path": "enforcement/release-impact.schema.json",
+      "bytes": 1637,
+      "sha256": "e003c6f69e02bf08bbd63ad7f06878f34852aea306b254bd9df1597363bad56d"
+    },
+    {
+      "path": "enforcement/stylelint.config.json",
+      "bytes": 378,
+      "sha256": "bdc4a9825599b7226830458512eac3a3674ba126324874e0256e13d9d7da9476"
+    },
+    {
+      "path": "enforcement/version-policy.json",
+      "bytes": 8974,
+      "sha256": "dbf29726b84cad8d7365d853ac350231be3526f998a6a434389fc65556645dbc"
+    },
+    {
+      "path": "enforcement/distributions/shruggie-brandbuilder-3.0.1.skill",
+      "bytes": 540004,
+      "sha256": "bef69601c58d6a6575aa5c45c8908069c1fb3b99320c2c6bf6548d303ae7d682"
+    },
+    {
+      "path": "favicons/android-chrome-192x192.png",
+      "bytes": 3615,
+      "sha256": "976df1750f146c9253b58f0bddb368e064c06bf55f156f67daebc605d25ba6ad"
+    },
+    {
+      "path": "favicons/android-chrome-512x512.png",
+      "bytes": 10620,
+      "sha256": "b114f640ca39c62cc811dae69bf996a6e13693c4fe5c077ac3c249686c36048e"
+    },
+    {
+      "path": "favicons/apple-touch-icon.png",
+      "bytes": 3287,
+      "sha256": "5b2b287a286dbb6eb6db70393dcd3a576fda80e1abd55cd5b095a01ec41eda92"
+    },
+    {
+      "path": "favicons/favicon-128x128.png",
+      "bytes": 2311,
+      "sha256": "47a4c708f66a8b186c9b3749d85a4fba884cf1a8fcf20efb7ed9c3c1760241fa"
+    },
+    {
+      "path": "favicons/favicon-16x16.png",
+      "bytes": 419,
+      "sha256": "305b25c416d781b863202e335ebc516a49e52fdec5f41ee42c40eb1bbe4b5650"
+    },
+    {
+      "path": "favicons/favicon-180x180.png",
+      "bytes": 3287,
+      "sha256": "5b2b287a286dbb6eb6db70393dcd3a576fda80e1abd55cd5b095a01ec41eda92"
+    },
+    {
+      "path": "favicons/favicon-192x192.png",
+      "bytes": 3615,
+      "sha256": "976df1750f146c9253b58f0bddb368e064c06bf55f156f67daebc605d25ba6ad"
+    },
+    {
+      "path": "favicons/favicon-24x24.png",
+      "bytes": 552,
+      "sha256": "4b3560b843a5b7566a4bc5941c764207f6e40667a768fa583a9f67ab1594c75f"
+    },
+    {
+      "path": "favicons/favicon-256x256.png",
+      "bytes": 4903,
+      "sha256": "e541e0a573df74a7c0ae8654eab78b77bf157915a943993b460a8021aa8a897b"
+    },
+    {
+      "path": "favicons/favicon-32x32.png",
+      "bytes": 762,
+      "sha256": "4b89f0d7b25d5cd7a0cb1b1f55428b3e2902bb0dc0acf6ee0be7d8718ff00333"
+    },
+    {
+      "path": "favicons/favicon-48x48.png",
+      "bytes": 874,
+      "sha256": "253aa9ecfb837580654d07f456dc772dc48b086d5edc5872b63103f543d141d2"
+    },
+    {
+      "path": "favicons/favicon-512x512.png",
+      "bytes": 10620,
+      "sha256": "b114f640ca39c62cc811dae69bf996a6e13693c4fe5c077ac3c249686c36048e"
+    },
+    {
+      "path": "favicons/favicon-64x64.png",
+      "bytes": 1133,
+      "sha256": "38ebb6efc80764289798cb4042c13bf6abdf7f5ef5553f2e08f3295021b740eb"
+    },
+    {
+      "path": "favicons/favicon-96x96.png",
+      "bytes": 1697,
+      "sha256": "d17a267bb17ef74b6cfab256195e7c591208fff7e99af1ff782a131abd8b7dab"
+    },
+    {
+      "path": "favicons/favicon-full.svg",
+      "bytes": 1461,
+      "sha256": "62369ccb7bd9f2e29a38e05b0c518ca4d7c7fc67394e9718d5de9a7ae76923d9"
+    },
+    {
+      "path": "favicons/favicon.ico",
+      "bytes": 11072,
+      "sha256": "b51615a56c2beb87164a4184c1a46b84a84579690f15b7effcce0b7dd74ca984"
+    },
+    {
+      "path": "favicons/favicon.svg",
+      "bytes": 1369,
+      "sha256": "dc0b9faaff73c616691b2ec8bdd3ce6a4dbed455e72c896a2cc86dea35bca39f"
+    },
+    {
+      "path": "favicons/maskable-icon-192x192.png",
+      "bytes": 2893,
+      "sha256": "c38abc3090bdca450e08b558ac19e25fdc803c297cbe217f8d21f81f940f578b"
+    },
+    {
+      "path": "favicons/maskable-icon-512x512.png",
+      "bytes": 8997,
+      "sha256": "c105bb75de80a83b46c4e963299e020b7f36f73945311ae59619157b6799e4ea"
+    },
+    {
+      "path": "favicons/site.webmanifest",
+      "bytes": 696,
+      "sha256": "b97ee650ee8971ab5323cb610f9bfa1e5c118a69b03f10e9f8ba6fd85dee6e75"
+    },
+    {
+      "path": "fonts/README.md",
+      "bytes": 988,
+      "sha256": "46342f806f3cff108f0ef136bec41234539ac8168917c464358b1ad08cf39d97"
+    },
+    {
+      "path": "fonts/fonts.css",
+      "bytes": 848,
+      "sha256": "a0dca3df29d9275788f8f69ee2190cbe26c6e9fc4cbda021218f64db09016287"
+    },
+    {
+      "path": "fonts/licenses/OFL-Courier-Prime.txt",
+      "bytes": 4404,
+      "sha256": "8304ac0a1a6daa68668463b94202affe5f0c256e89a19414341e0a10f76cf774"
+    },
+    {
+      "path": "fonts/licenses/OFL-Geist.txt",
+      "bytes": 4383,
+      "sha256": "942560b236adfa83745b2c64e5fc09ebaf91cb331751b1157eb92187e5d6e930"
+    },
+    {
+      "path": "fonts/licenses/OFL-Poppins.txt",
+      "bytes": 4385,
+      "sha256": "3f51dafada8ad6690a737acb15dcc2dc961b0cbc7de92791611e480e03167825"
+    },
+    {
+      "path": "fonts/licenses/OFL-Source-Sans-3.txt",
+      "bytes": 4485,
+      "sha256": "8b121aabc7cb37668d0407128fdcaf31206abc8154cc06b78642c3efb84c5754"
+    },
+    {
+      "path": "fonts/licenses/OFL-Space-Grotesk.txt",
+      "bytes": 4401,
+      "sha256": "18a4de52385f6b988782639d5d0cc1326e5a8c2de9a7f01d7b20d9aedcc60943"
+    },
+    {
+      "path": "fonts/licenses/OFL-kanit.txt",
+      "bytes": 4382,
+      "sha256": "1f5d3dd287f8524cf0bb916fbf32185e240fd87f5e24318600fc416dee5077fe"
+    },
+    {
+      "path": "fonts/licenses/OFL-rubik.txt",
+      "bytes": 4383,
+      "sha256": "3cb6a6084f5d942a8f3b5fda0f6a90dde18d7f7f1798886f4043d18f8c1a811e"
+    },
+    {
+      "path": "fonts/licenses/OFL-sourcecodepro.txt",
+      "bytes": 4528,
+      "sha256": "1092f40afcc93c66c3abca1bae7bd89caef18fd70f8fea25ac3c5e5258ee5e5b"
+    },
+    {
+      "path": "fonts/ttf/CourierPrime-Regular.ttf",
+      "bytes": 68304,
+      "sha256": "b4da920fa50d874bce2cab0517e4732384a6eef8fe7e1e653d2befcb8aac1aa6"
+    },
+    {
+      "path": "fonts/ttf/Geist-Medium.ttf",
+      "bytes": 90528,
+      "sha256": "b649842011528395954b56221749719041cc6a7b84cb4d29d4f5189338cb62df"
+    },
+    {
+      "path": "fonts/ttf/Geist-Regular.ttf",
+      "bytes": 90440,
+      "sha256": "43065e72260288e84672cd1f27e1a8f8889b636a74f5f9252649365c41e8eca8"
+    },
+    {
+      "path": "fonts/ttf/GeistMono-Regular.ttf",
+      "bytes": 101868,
+      "sha256": "990f0e094fe02b8872429209c09abf4c03d22183c33c2a2ddb891dc7f086271c"
+    },
+    {
+      "path": "fonts/ttf/Kanit-900-normal.ttf",
+      "bytes": 176856,
+      "sha256": "5d290c2cc9926764bd782aa6abc47a8f55bd64641d0afb56e115ee522698ee7e"
+    },
+    {
+      "path": "fonts/ttf/Poppins-Bold.ttf",
+      "bytes": 153944,
+      "sha256": "7219547ee25334cbac0fe4b3acf0bf631e48ebb622c71af038edaaa652c60875"
+    },
+    {
+      "path": "fonts/ttf/Rubik-Bold.ttf",
+      "bytes": 140396,
+      "sha256": "b1c36dfcbc5fe5011c552c76725c84d989a71d56440e8bfbfa0cb68b593dbad6"
+    },
+    {
+      "path": "fonts/ttf/Rubik-Regular.ttf",
+      "bytes": 136624,
+      "sha256": "bd1490f4314d27ca1ac5d8869fdda068852edd623318c9bee13e812b793b301b"
+    },
+    {
+      "path": "fonts/ttf/SourceCodePro-Regular.ttf",
+      "bytes": 138680,
+      "sha256": "f144137f557805c7327fc4b14d1d730f6e1822e0124170251ff1bcd723a693f1"
+    },
+    {
+      "path": "fonts/ttf/SourceSans3-Regular.ttf",
+      "bytes": 381020,
+      "sha256": "393fb5b878ceed04aebc34b097e853ae5138c51d0c34b496ce8e2b47e0d0b94a"
+    },
+    {
+      "path": "fonts/ttf/SourceSans3-SemiBold.ttf",
+      "bytes": 380892,
+      "sha256": "bd2550fce2d295b0bf20bd8b1b7f1477da834f1066bd850aafdb4787a67a63ca"
+    },
+    {
+      "path": "fonts/ttf/SpaceGrotesk-Bold.ttf",
+      "bytes": 88404,
+      "sha256": "4372b0b9200ee5f40edbfbe46285f1048afd4cea35ee62999f8f4fef93395022"
+    },
+    {
+      "path": "fonts/ttf/SpaceGrotesk-Medium.ttf",
+      "bytes": 88500,
+      "sha256": "9483bddc72cef2760eae1f432ecb7d2c9fd537c99768d57d29fefcbb08fa0a68"
+    },
+    {
+      "path": "fonts/woff2/Geist-Medium.woff2",
+      "bytes": 46356,
+      "sha256": "0b50074337a05ed834a1474d3d13fc6bd8480e2ce3075d02f1d38c017a8ac2a4"
+    },
+    {
+      "path": "fonts/woff2/Geist-Regular.woff2",
+      "bytes": 45172,
+      "sha256": "faed18848df4a6e1b5503b589bbbc055fbdab0e1780781edf5105457395e1e5d"
+    },
+    {
+      "path": "fonts/woff2/GeistMono-Regular.woff2",
+      "bytes": 50196,
+      "sha256": "c88d20967768754cbdca230acd74ecb25de78d0dc47e31694aa8bd2c528fec26"
+    },
+    {
+      "path": "fonts/woff2/SpaceGrotesk-Bold.woff2",
+      "bytes": 31560,
+      "sha256": "cdaf8bb228ee112c0ab784d9edd2b877cb096bad24cbbf88babeedebe197e742"
+    },
+    {
+      "path": "fonts/woff2/SpaceGrotesk-Medium.woff2",
+      "bytes": 32480,
+      "sha256": "6d90cc6539e794019ada4d6ffd1f4080c66b7ad1762b425f5794500c12427551"
+    },
+    {
+      "path": "guidelines/index.html",
+      "bytes": 769873,
+      "sha256": "e5d7308ec3f9ace5cba52287a4331e978c6a06dac62377dcc351177787e0aa51"
+    },
+    {
+      "path": "guidelines/portal.json",
+      "bytes": 251261,
+      "sha256": "28df4733b4fcacbceb0c31d5cbe1d05fa989234d2757017e8f6bdf4fa1c7bf4e"
+    },
+    {
+      "path": "icons/.iconkit-generated.json",
+      "bytes": 67,
+      "sha256": "caf77af49a2add6dfc466b67567ac63e1abe2bafaf0b6a676c5249c36080c355"
+    },
+    {
+      "path": "icons/README.md",
+      "bytes": 479,
+      "sha256": "50f6d7596536354c9652fcab9b1d5e559be0100e9fc7d5e78e6074263e26bfcc"
+    },
+    {
+      "path": "icons/manifest.json",
+      "bytes": 44612,
+      "sha256": "79aa71efb7daaf0f7c77dcc2b10b8aeb8af6921daaf84a87112efaeb95ba0887"
+    },
+    {
+      "path": "icons/android/README.md",
+      "bytes": 606,
+      "sha256": "856cd332542cc3ad8518ebf35cd242f38c7b223f79f249ab53e0d5d943290618"
+    },
+    {
+      "path": "icons/android/manifest.json",
+      "bytes": 4541,
+      "sha256": "4afecf356d7a093a9a9612d65ba694400dd00b39fdbb2b791d8764f03fdc8ff4"
+    },
+    {
+      "path": "icons/android/app/src/main/res/drawable/ic_launcher_background.xml",
+      "bytes": 194,
+      "sha256": "f85842023e76ae651b068f90b0a9ec729a8beff5fcbf8b19214b11f1ae5ff9c4"
+    },
+    {
+      "path": "icons/android/app/src/main/res/drawable-nodpi/ic_launcher_foreground.png",
+      "bytes": 7934,
+      "sha256": "00cdc75852315512f3df407d859d9e8c9d5c41351095285e5ab5bbe4c8c44bb4"
+    },
+    {
+      "path": "icons/android/app/src/main/res/drawable-nodpi/ic_launcher_monochrome.png",
+      "bytes": 4957,
+      "sha256": "4fa78ed1248fad5d5fcc25ba3f0c32cc6c6ef6411a0b7b2cba831d3df9d7f02b"
+    },
+    {
+      "path": "icons/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "bytes": 325,
+      "sha256": "4946f2433c32155d8759fd762757df243b5f6268ca5f88cae12b56b647752956"
+    },
+    {
+      "path": "icons/android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+      "bytes": 1297,
+      "sha256": "4afb113335b6550133321e10003ce1c91b3862e937630076fbd33f73c9ffd2a4"
+    },
+    {
+      "path": "icons/android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+      "bytes": 874,
+      "sha256": "253aa9ecfb837580654d07f456dc772dc48b086d5edc5872b63103f543d141d2"
+    },
+    {
+      "path": "icons/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+      "bytes": 1697,
+      "sha256": "d17a267bb17ef74b6cfab256195e7c591208fff7e99af1ff782a131abd8b7dab"
+    },
+    {
+      "path": "icons/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+      "bytes": 2692,
+      "sha256": "bd242a4fe132102a4b7140db426a1d1a0f8f2f1f9d3915930c7c6073dffc4cf0"
+    },
+    {
+      "path": "icons/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+      "bytes": 3615,
+      "sha256": "976df1750f146c9253b58f0bddb368e064c06bf55f156f67daebc605d25ba6ad"
+    },
+    {
+      "path": "icons/android/app/src/main/res/values/ic_launcher_colors.xml",
+      "bytes": 115,
+      "sha256": "670d7c0c9e7e920c1bbffca6b0b675c51ac81208848b0d0d62b085cbda15f16f"
+    },
+    {
+      "path": "icons/android/play-store/google-play-512.png",
+      "bytes": 11167,
+      "sha256": "580774e1171f1e2a11143380904c13a2c4094c05e792a7c6866ff17e3387b7ee"
+    },
+    {
+      "path": "icons/apple/ios/README.md",
+      "bytes": 259,
+      "sha256": "61afaab8977050aa916212a40926d8c12f8f681ecd1363a92af3a03e81ae05b3"
+    },
+    {
+      "path": "icons/apple/ios/manifest.json",
+      "bytes": 2083,
+      "sha256": "88ee818c5712598e8da2f29ae6946620b2873b9ffc3efd681b518be3d346a730"
+    },
+    {
+      "path": "icons/apple/ios/Assets.xcassets/AppIcon.appiconset/AppIcon-1024-dark.png",
+      "bytes": 23636,
+      "sha256": "63c8f7279fc0a82c471a1ccb27e0bb1502f8ff71e4aabdba26074f6036afaeb7"
+    },
+    {
+      "path": "icons/apple/ios/Assets.xcassets/AppIcon.appiconset/AppIcon-1024-tinted.png",
+      "bytes": 20671,
+      "sha256": "80752d819d161488bd3e090aeea66b706ec4886b16e6f2d94a9a88e575280cfc"
+    },
+    {
+      "path": "icons/apple/ios/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png",
+      "bytes": 23436,
+      "sha256": "7c16333e147078aac427ec1308893dfc666612f5b8958f8cf1612d657c713681"
+    },
+    {
+      "path": "icons/apple/ios/Assets.xcassets/AppIcon.appiconset/Contents.json",
+      "bytes": 714,
+      "sha256": "6c867e2c65c91d8b44bba0dd7aa0fec9c371c8e1216729efddd66c813730d50f"
+    },
+    {
+      "path": "icons/apple/macos/AppIcon.icns",
+      "bytes": 43462,
+      "sha256": "8d81374359fcabf45be28a8e89715fe33b97ebbaaf2309863d6cbf2f1454a7a2"
+    },
+    {
+      "path": "icons/apple/macos/README.md",
+      "bytes": 314,
+      "sha256": "a51148ec8aa277e4f57512ec42099175d7c249a383ece5536e0a8d9eb4f9c19e"
+    },
+    {
+      "path": "icons/apple/macos/manifest.json",
+      "bytes": 8429,
+      "sha256": "6bd258cbd32b44bebd812fc044d291773ed21e657e6e89f3f33426ffd241dfc1"
+    },
+    {
+      "path": "icons/apple/macos/AppIcon.iconset/icon_128x128.png",
+      "bytes": 2311,
+      "sha256": "47a4c708f66a8b186c9b3749d85a4fba884cf1a8fcf20efb7ed9c3c1760241fa"
+    },
+    {
+      "path": "icons/apple/macos/AppIcon.iconset/icon_128x128@2x.png",
+      "bytes": 4903,
+      "sha256": "e541e0a573df74a7c0ae8654eab78b77bf157915a943993b460a8021aa8a897b"
+    },
+    {
+      "path": "icons/apple/macos/AppIcon.iconset/icon_16x16.png",
+      "bytes": 366,
+      "sha256": "9ecd91f6717fa214751eb8bbb743ca9baf8c7c60d550c33ac135b99e2be18ca2"
+    },
+    {
+      "path": "icons/apple/macos/AppIcon.iconset/icon_16x16@2x.png",
+      "bytes": 629,
+      "sha256": "e5f3fd3b58c88c769733ed6349317524d24e03de8b4124098dfbc567044aac00"
+    },
+    {
+      "path": "icons/apple/macos/AppIcon.iconset/icon_256x256.png",
+      "bytes": 4903,
+      "sha256": "e541e0a573df74a7c0ae8654eab78b77bf157915a943993b460a8021aa8a897b"
+    },
+    {
+      "path": "icons/apple/macos/AppIcon.iconset/icon_256x256@2x.png",
+      "bytes": 10620,
+      "sha256": "b114f640ca39c62cc811dae69bf996a6e13693c4fe5c077ac3c249686c36048e"
+    },
+    {
+      "path": "icons/apple/macos/AppIcon.iconset/icon_32x32.png",
+      "bytes": 629,
+      "sha256": "e5f3fd3b58c88c769733ed6349317524d24e03de8b4124098dfbc567044aac00"
+    },
+    {
+      "path": "icons/apple/macos/AppIcon.iconset/icon_32x32@2x.png",
+      "bytes": 1133,
+      "sha256": "38ebb6efc80764289798cb4042c13bf6abdf7f5ef5553f2e08f3295021b740eb"
+    },
+    {
+      "path": "icons/apple/macos/AppIcon.iconset/icon_512x512.png",
+      "bytes": 10620,
+      "sha256": "b114f640ca39c62cc811dae69bf996a6e13693c4fe5c077ac3c249686c36048e"
+    },
+    {
+      "path": "icons/apple/macos/AppIcon.iconset/icon_512x512@2x.png",
+      "bytes": 23436,
+      "sha256": "7c16333e147078aac427ec1308893dfc666612f5b8958f8cf1612d657c713681"
+    },
+    {
+      "path": "icons/apple/macos/Assets.xcassets/AppIcon.appiconset/Contents.json",
+      "bytes": 1257,
+      "sha256": "13b1c7461192863c9f3ab3ceab313acd6f6531898360983495bf13d48dfc967f"
+    },
+    {
+      "path": "icons/apple/macos/Assets.xcassets/AppIcon.appiconset/icon_128x128.png",
+      "bytes": 2311,
+      "sha256": "47a4c708f66a8b186c9b3749d85a4fba884cf1a8fcf20efb7ed9c3c1760241fa"
+    },
+    {
+      "path": "icons/apple/macos/Assets.xcassets/AppIcon.appiconset/icon_128x128@2x.png",
+      "bytes": 4903,
+      "sha256": "e541e0a573df74a7c0ae8654eab78b77bf157915a943993b460a8021aa8a897b"
+    },
+    {
+      "path": "icons/apple/macos/Assets.xcassets/AppIcon.appiconset/icon_16x16.png",
+      "bytes": 366,
+      "sha256": "9ecd91f6717fa214751eb8bbb743ca9baf8c7c60d550c33ac135b99e2be18ca2"
+    },
+    {
+      "path": "icons/apple/macos/Assets.xcassets/AppIcon.appiconset/icon_16x16@2x.png",
+      "bytes": 629,
+      "sha256": "e5f3fd3b58c88c769733ed6349317524d24e03de8b4124098dfbc567044aac00"
+    },
+    {
+      "path": "icons/apple/macos/Assets.xcassets/AppIcon.appiconset/icon_256x256.png",
+      "bytes": 4903,
+      "sha256": "e541e0a573df74a7c0ae8654eab78b77bf157915a943993b460a8021aa8a897b"
+    },
+    {
+      "path": "icons/apple/macos/Assets.xcassets/AppIcon.appiconset/icon_256x256@2x.png",
+      "bytes": 10620,
+      "sha256": "b114f640ca39c62cc811dae69bf996a6e13693c4fe5c077ac3c249686c36048e"
+    },
+    {
+      "path": "icons/apple/macos/Assets.xcassets/AppIcon.appiconset/icon_32x32.png",
+      "bytes": 629,
+      "sha256": "e5f3fd3b58c88c769733ed6349317524d24e03de8b4124098dfbc567044aac00"
+    },
+    {
+      "path": "icons/apple/macos/Assets.xcassets/AppIcon.appiconset/icon_32x32@2x.png",
+      "bytes": 1133,
+      "sha256": "38ebb6efc80764289798cb4042c13bf6abdf7f5ef5553f2e08f3295021b740eb"
+    },
+    {
+      "path": "icons/apple/macos/Assets.xcassets/AppIcon.appiconset/icon_512x512.png",
+      "bytes": 10620,
+      "sha256": "b114f640ca39c62cc811dae69bf996a6e13693c4fe5c077ac3c249686c36048e"
+    },
+    {
+      "path": "icons/apple/macos/Assets.xcassets/AppIcon.appiconset/icon_512x512@2x.png",
+      "bytes": 23436,
+      "sha256": "7c16333e147078aac427ec1308893dfc666612f5b8958f8cf1612d657c713681"
+    },
+    {
+      "path": "icons/web/README.md",
+      "bytes": 728,
+      "sha256": "690e361b17d9ff8e9edde9146cfd906f2835fd66cc5c0b3f27cdbd9c30b68a23"
+    },
+    {
+      "path": "icons/web/android-chrome-192x192.png",
+      "bytes": 3615,
+      "sha256": "976df1750f146c9253b58f0bddb368e064c06bf55f156f67daebc605d25ba6ad"
+    },
+    {
+      "path": "icons/web/android-chrome-512x512.png",
+      "bytes": 10620,
+      "sha256": "b114f640ca39c62cc811dae69bf996a6e13693c4fe5c077ac3c249686c36048e"
+    },
+    {
+      "path": "icons/web/apple-touch-icon.png",
+      "bytes": 3287,
+      "sha256": "5b2b287a286dbb6eb6db70393dcd3a576fda80e1abd55cd5b095a01ec41eda92"
+    },
+    {
+      "path": "icons/web/favicon-128x128.png",
+      "bytes": 2311,
+      "sha256": "47a4c708f66a8b186c9b3749d85a4fba884cf1a8fcf20efb7ed9c3c1760241fa"
+    },
+    {
+      "path": "icons/web/favicon-16x16.png",
+      "bytes": 419,
+      "sha256": "305b25c416d781b863202e335ebc516a49e52fdec5f41ee42c40eb1bbe4b5650"
+    },
+    {
+      "path": "icons/web/favicon-180x180.png",
+      "bytes": 3287,
+      "sha256": "5b2b287a286dbb6eb6db70393dcd3a576fda80e1abd55cd5b095a01ec41eda92"
+    },
+    {
+      "path": "icons/web/favicon-192x192.png",
+      "bytes": 3615,
+      "sha256": "976df1750f146c9253b58f0bddb368e064c06bf55f156f67daebc605d25ba6ad"
+    },
+    {
+      "path": "icons/web/favicon-24x24.png",
+      "bytes": 552,
+      "sha256": "4b3560b843a5b7566a4bc5941c764207f6e40667a768fa583a9f67ab1594c75f"
+    },
+    {
+      "path": "icons/web/favicon-256x256.png",
+      "bytes": 4903,
+      "sha256": "e541e0a573df74a7c0ae8654eab78b77bf157915a943993b460a8021aa8a897b"
+    },
+    {
+      "path": "icons/web/favicon-32x32.png",
+      "bytes": 762,
+      "sha256": "4b89f0d7b25d5cd7a0cb1b1f55428b3e2902bb0dc0acf6ee0be7d8718ff00333"
+    },
+    {
+      "path": "icons/web/favicon-48x48.png",
+      "bytes": 874,
+      "sha256": "253aa9ecfb837580654d07f456dc772dc48b086d5edc5872b63103f543d141d2"
+    },
+    {
+      "path": "icons/web/favicon-512x512.png",
+      "bytes": 10620,
+      "sha256": "b114f640ca39c62cc811dae69bf996a6e13693c4fe5c077ac3c249686c36048e"
+    },
+    {
+      "path": "icons/web/favicon-64x64.png",
+      "bytes": 1133,
+      "sha256": "38ebb6efc80764289798cb4042c13bf6abdf7f5ef5553f2e08f3295021b740eb"
+    },
+    {
+      "path": "icons/web/favicon-96x96.png",
+      "bytes": 1697,
+      "sha256": "d17a267bb17ef74b6cfab256195e7c591208fff7e99af1ff782a131abd8b7dab"
+    },
+    {
+      "path": "icons/web/favicon-full.svg",
+      "bytes": 1461,
+      "sha256": "62369ccb7bd9f2e29a38e05b0c518ca4d7c7fc67394e9718d5de9a7ae76923d9"
+    },
+    {
+      "path": "icons/web/favicon.ico",
+      "bytes": 11072,
+      "sha256": "b51615a56c2beb87164a4184c1a46b84a84579690f15b7effcce0b7dd74ca984"
+    },
+    {
+      "path": "icons/web/favicon.svg",
+      "bytes": 1369,
+      "sha256": "dc0b9faaff73c616691b2ec8bdd3ce6a4dbed455e72c896a2cc86dea35bca39f"
+    },
+    {
+      "path": "icons/web/manifest.json",
+      "bytes": 6566,
+      "sha256": "a9733b8fee60d9760d5f85675e59834ea7337ab1d7c8347aa302287ca3284996"
+    },
+    {
+      "path": "icons/web/maskable-icon-192x192.png",
+      "bytes": 2893,
+      "sha256": "c38abc3090bdca450e08b558ac19e25fdc803c297cbe217f8d21f81f940f578b"
+    },
+    {
+      "path": "icons/web/maskable-icon-512x512.png",
+      "bytes": 8997,
+      "sha256": "c105bb75de80a83b46c4e963299e020b7f36f73945311ae59619157b6799e4ea"
+    },
+    {
+      "path": "icons/web/site.webmanifest",
+      "bytes": 696,
+      "sha256": "b97ee650ee8971ab5323cb610f9bfa1e5c118a69b03f10e9f8ba6fd85dee6e75"
+    },
+    {
+      "path": "icons/windows/README.md",
+      "bytes": 718,
+      "sha256": "6e3577de4279347a2f496c17789f57b5cbaab2e059e1b3d58705e05ac24060f3"
+    },
+    {
+      "path": "icons/windows/manifest.json",
+      "bytes": 19581,
+      "sha256": "5001ba6ab5e665818e0c526951917b6ba32ce68ab6f263287a1a2ec15fe35824"
+    },
+    {
+      "path": "icons/windows/classic/app.ico",
+      "bytes": 13157,
+      "sha256": "d4b871a2e1c60680d6a999a73b140ad8371e7ecdadae0dcc50cb6bd6d922f78c"
+    },
+    {
+      "path": "icons/windows/msix/ApplicationVisualElements.fragment.xml",
+      "bytes": 329,
+      "sha256": "6f29cbdf44cdf98def148e588c87158dc97cc206c7b7d8959994a3afad12bac2"
+    },
+    {
+      "path": "icons/windows/msix/PackageProperties.fragment.xml",
+      "bytes": 302,
+      "sha256": "0c5d1d3ea9161a0f33f58fccb0a99df05aa20ab38e9aad9af3848884cb9c1ca5"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square150x150Logo.scale-100.png",
+      "bytes": 2714,
+      "sha256": "782294ba4dbd5bb1d4ad3242d7ebc303de4be9c13e94f0b49e3e32ce59f769a8"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square150x150Logo.scale-200.png",
+      "bytes": 5892,
+      "sha256": "47cd048a9aa8c516ee32d99a38fbfe268b841091a1729a215eb1fb60e085a1f7"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square150x150Logo.scale-400.png",
+      "bytes": 12929,
+      "sha256": "61d933d213bc9f00ffea4f0783f9acb233a0edf803e4c0ab62deb808a25f1750"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.scale-100.png",
+      "bytes": 906,
+      "sha256": "5628b1e3906f9d26cc61f13ae8c6082300b768fd8f47f88562df56065a6473aa"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.scale-200.png",
+      "bytes": 1537,
+      "sha256": "2afde81133fb32286d371bfd4a1772f5ad33c22d53851e2364eb169ddb82a303"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.scale-400.png",
+      "bytes": 3323,
+      "sha256": "8ed985ced2873c7b1f8e28b3efa417b2cb0f61ce804de09b7515e6b25cb06390"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-16.png",
+      "bytes": 463,
+      "sha256": "549e8b191df126d04f5b787c37d269af52b8e004dcaa48b02812c5b4e3ac879f"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-16_altform-lightunplated.png",
+      "bytes": 463,
+      "sha256": "549e8b191df126d04f5b787c37d269af52b8e004dcaa48b02812c5b4e3ac879f"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-16_altform-unplated.png",
+      "bytes": 463,
+      "sha256": "549e8b191df126d04f5b787c37d269af52b8e004dcaa48b02812c5b4e3ac879f"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-20.png",
+      "bytes": 577,
+      "sha256": "3318afc4cdf5ee29ad38e91bfa9edd7ac534614934f259dd74347608c6eed36d"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-20_altform-lightunplated.png",
+      "bytes": 577,
+      "sha256": "3318afc4cdf5ee29ad38e91bfa9edd7ac534614934f259dd74347608c6eed36d"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-20_altform-unplated.png",
+      "bytes": 577,
+      "sha256": "3318afc4cdf5ee29ad38e91bfa9edd7ac534614934f259dd74347608c6eed36d"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-24.png",
+      "bytes": 728,
+      "sha256": "764b879b7f6ed5f4ef958723fa43f157d809da718c43eb2c5688a80671823f4d"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-24_altform-lightunplated.png",
+      "bytes": 728,
+      "sha256": "764b879b7f6ed5f4ef958723fa43f157d809da718c43eb2c5688a80671823f4d"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-24_altform-unplated.png",
+      "bytes": 728,
+      "sha256": "764b879b7f6ed5f4ef958723fa43f157d809da718c43eb2c5688a80671823f4d"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-256.png",
+      "bytes": 5815,
+      "sha256": "181db466ee1c1dba31bdea3a8966d917162aab78e8fa8e08f2a95a24eb5ec63e"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-256_altform-lightunplated.png",
+      "bytes": 5815,
+      "sha256": "181db466ee1c1dba31bdea3a8966d917162aab78e8fa8e08f2a95a24eb5ec63e"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-256_altform-unplated.png",
+      "bytes": 5815,
+      "sha256": "181db466ee1c1dba31bdea3a8966d917162aab78e8fa8e08f2a95a24eb5ec63e"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-30.png",
+      "bytes": 871,
+      "sha256": "9c95490bed2e51a9eda6a9a7ef55e7be968af269a174a79a4f2f08cb18ac00cf"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-30_altform-lightunplated.png",
+      "bytes": 871,
+      "sha256": "9c95490bed2e51a9eda6a9a7ef55e7be968af269a174a79a4f2f08cb18ac00cf"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-30_altform-unplated.png",
+      "bytes": 871,
+      "sha256": "9c95490bed2e51a9eda6a9a7ef55e7be968af269a174a79a4f2f08cb18ac00cf"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-32.png",
+      "bytes": 849,
+      "sha256": "16a648c88fb7917286ffed9154c9c54e36fb8598333279c981f8658bfa684351"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-32_altform-lightunplated.png",
+      "bytes": 849,
+      "sha256": "16a648c88fb7917286ffed9154c9c54e36fb8598333279c981f8658bfa684351"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-32_altform-unplated.png",
+      "bytes": 849,
+      "sha256": "16a648c88fb7917286ffed9154c9c54e36fb8598333279c981f8658bfa684351"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-36.png",
+      "bytes": 857,
+      "sha256": "05dd7913844e181110a6e23d48ff8d3cbbf37434672710bfc877bfd12c7b0e29"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-36_altform-lightunplated.png",
+      "bytes": 857,
+      "sha256": "05dd7913844e181110a6e23d48ff8d3cbbf37434672710bfc877bfd12c7b0e29"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-36_altform-unplated.png",
+      "bytes": 857,
+      "sha256": "05dd7913844e181110a6e23d48ff8d3cbbf37434672710bfc877bfd12c7b0e29"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-40.png",
+      "bytes": 939,
+      "sha256": "d0c47fddcea29964865d47c0cd3fd37325538fb1c72c1a9704721b5e53a27cc7"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-40_altform-lightunplated.png",
+      "bytes": 939,
+      "sha256": "d0c47fddcea29964865d47c0cd3fd37325538fb1c72c1a9704721b5e53a27cc7"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-40_altform-unplated.png",
+      "bytes": 939,
+      "sha256": "d0c47fddcea29964865d47c0cd3fd37325538fb1c72c1a9704721b5e53a27cc7"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-48.png",
+      "bytes": 1053,
+      "sha256": "f1ab0bf788559a02116e5c6fe2161452ae69a65e276673509a7f01bd13674be5"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-48_altform-lightunplated.png",
+      "bytes": 1053,
+      "sha256": "f1ab0bf788559a02116e5c6fe2161452ae69a65e276673509a7f01bd13674be5"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-48_altform-unplated.png",
+      "bytes": 1053,
+      "sha256": "f1ab0bf788559a02116e5c6fe2161452ae69a65e276673509a7f01bd13674be5"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-60.png",
+      "bytes": 1218,
+      "sha256": "f22efc9587100af586c270175eda1fc5d97ccade5a2c78db05d1cf42fb4d7210"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-60_altform-lightunplated.png",
+      "bytes": 1218,
+      "sha256": "f22efc9587100af586c270175eda1fc5d97ccade5a2c78db05d1cf42fb4d7210"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-60_altform-unplated.png",
+      "bytes": 1218,
+      "sha256": "f22efc9587100af586c270175eda1fc5d97ccade5a2c78db05d1cf42fb4d7210"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-64.png",
+      "bytes": 1373,
+      "sha256": "8c5f1cdcf9c30aca6fd7926e2475d410dbb7123c466ad2214b927cf57641a2a6"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-64_altform-lightunplated.png",
+      "bytes": 1373,
+      "sha256": "8c5f1cdcf9c30aca6fd7926e2475d410dbb7123c466ad2214b927cf57641a2a6"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-64_altform-unplated.png",
+      "bytes": 1373,
+      "sha256": "8c5f1cdcf9c30aca6fd7926e2475d410dbb7123c466ad2214b927cf57641a2a6"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-72.png",
+      "bytes": 1449,
+      "sha256": "8f63c3307c58e0bfbfef6f98daf6b5acd287e75c4edf9a51ca1bd0bd52b028a0"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-72_altform-lightunplated.png",
+      "bytes": 1449,
+      "sha256": "8f63c3307c58e0bfbfef6f98daf6b5acd287e75c4edf9a51ca1bd0bd52b028a0"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-72_altform-unplated.png",
+      "bytes": 1449,
+      "sha256": "8f63c3307c58e0bfbfef6f98daf6b5acd287e75c4edf9a51ca1bd0bd52b028a0"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-80.png",
+      "bytes": 1708,
+      "sha256": "4e4c3e99acbd84d0c889dbe003a8ce92c3e25cbd8fc587cb3088095208e2d841"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-80_altform-lightunplated.png",
+      "bytes": 1708,
+      "sha256": "4e4c3e99acbd84d0c889dbe003a8ce92c3e25cbd8fc587cb3088095208e2d841"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-80_altform-unplated.png",
+      "bytes": 1708,
+      "sha256": "4e4c3e99acbd84d0c889dbe003a8ce92c3e25cbd8fc587cb3088095208e2d841"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-96.png",
+      "bytes": 2081,
+      "sha256": "d5b79d714c5e570c4b477de6b98ef87980618790e7e7a48177d6f9e9a6064e98"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-96_altform-lightunplated.png",
+      "bytes": 2081,
+      "sha256": "d5b79d714c5e570c4b477de6b98ef87980618790e7e7a48177d6f9e9a6064e98"
+    },
+    {
+      "path": "icons/windows/msix/Assets/Square44x44Logo.targetsize-96_altform-unplated.png",
+      "bytes": 2081,
+      "sha256": "d5b79d714c5e570c4b477de6b98ef87980618790e7e7a48177d6f9e9a6064e98"
+    },
+    {
+      "path": "icons/windows/msix/Assets/StoreLogo.scale-100.png",
+      "bytes": 946,
+      "sha256": "1bf9e6c53a9e1a3cb600ea2f7c9fbd08169014a90be59ce7154e12ecd703059f"
+    },
+    {
+      "path": "icons/windows/msix/Assets/StoreLogo.scale-200.png",
+      "bytes": 1741,
+      "sha256": "3f4e2a034bb47cbcfdef6ea53ffbb070e22a06d6f30f02865800382e0c5a9688"
+    },
+    {
+      "path": "icons/windows/msix/Assets/StoreLogo.scale-400.png",
+      "bytes": 3770,
+      "sha256": "57c12720fb3eed03edeab6c1af7b6e60f11a4fd7262804b255b39944ba074c96"
+    },
+    {
+      "path": "logos/approval.json",
+      "bytes": 8481,
+      "sha256": "5c83f9a70847e9a7f4f9739bf9556db98d34f40a46e313050981118173ee94dd"
+    },
+    {
+      "path": "logos/asset-aliases.json",
+      "bytes": 33867,
+      "sha256": "ea0dcb51c6eb15c420eae6cc9a451e3265fb339416408312f6e27c4f825e47fb"
+    },
+    {
+      "path": "logos/provenance.json",
+      "bytes": 17282,
+      "sha256": "a75a57ff24daa9ed0ce9a582ab94fd89c5a5e031825c6c438da9d511d82a8744"
+    },
+    {
+      "path": "logos/named/insonic-brand-mark-full-detail-full-color-clear-for-dark-1024.png",
+      "bytes": 29285,
+      "sha256": "4f3298e8ce753de697031afe866c0055444920220c19f30a73fe20e9c1de7cb7"
+    },
+    {
+      "path": "logos/named/insonic-brand-mark-full-detail-full-color-clear-for-dark.svg",
+      "bytes": 887,
+      "sha256": "9945aaadeded1a2cb5f51bafcdea58a8427d9e6045ee26c774df64271ec1a168"
+    },
+    {
+      "path": "logos/named/insonic-brand-mark-full-detail-full-color-clear-for-light-1024.png",
+      "bytes": 28455,
+      "sha256": "4fbab4c61df98b40d5a0af39c293b1fc095b098f5214b8f4e2d79ccf18f7501a"
+    },
+    {
+      "path": "logos/named/insonic-brand-mark-full-detail-full-color-clear-for-light.svg",
+      "bytes": 887,
+      "sha256": "4bf376a11dff4a2993edf2ebaeca86465674c3dfe80513125f45fa7789837c8c"
+    },
+    {
+      "path": "logos/named/insonic-brand-mark-full-detail-monochrome-clear-black-for-light-1024.png",
+      "bytes": 18070,
+      "sha256": "c5897fa9578522cec3eaf639bf4a1c63d4be81943cd8082395f10277d9314b4c"
+    },
+    {
+      "path": "logos/named/insonic-brand-mark-full-detail-monochrome-clear-black-for-light.svg",
+      "bytes": 887,
+      "sha256": "2a1643995d45dc3e5167cac80c08e50c15fd929bd72975c768a284869fabe7cc"
+    },
+    {
+      "path": "logos/named/insonic-brand-mark-full-detail-monochrome-clear-white-for-dark-1024.png",
+      "bytes": 19879,
+      "sha256": "ac564a370292eca8b7e2648c2ccf35503650d5eb87a08121bfce064490d27d48"
+    },
+    {
+      "path": "logos/named/insonic-brand-mark-full-detail-monochrome-clear-white-for-dark.svg",
+      "bytes": 887,
+      "sha256": "f90dea5814fc83889abc704cf6cde091fdea36bb1818555bbf9219d3f52abe9a"
+    },
+    {
+      "path": "logos/named/insonic-brand-mark-reduced-detail-full-color-clear-for-dark-1024.png",
+      "bytes": 35230,
+      "sha256": "9b891013b40bcfcd1a82a917ee768549fe255d4d2da1012c49cb9cb1ee59b8f4"
+    },
+    {
+      "path": "logos/named/insonic-brand-mark-reduced-detail-full-color-clear-for-dark.svg",
+      "bytes": 818,
+      "sha256": "813467590afa8cd033c30925bbd3900e1e32babe62eda26f9cb9e0f08d7fc8ef"
+    },
+    {
+      "path": "logos/named/insonic-brand-mark-reduced-detail-full-color-clear-for-light-1024.png",
+      "bytes": 34242,
+      "sha256": "ec36b3ce41bf5510a03ab60014e4575b79cce91ee897d1340a74b3f8d57bb608"
+    },
+    {
+      "path": "logos/named/insonic-brand-mark-reduced-detail-full-color-clear-for-light.svg",
+      "bytes": 818,
+      "sha256": "ee4b956a90fd9ecd942262428700c8efa0d7e78f883f7f01066d2fe9e074c402"
+    },
+    {
+      "path": "logos/named/insonic-brand-mark-reduced-detail-monochrome-clear-black-for-light-1024.png",
+      "bytes": 21350,
+      "sha256": "c5a4742c620bed59a17b74730ff04888bbb698089bc4e3b2a6dd1b00e2ef1da9"
+    },
+    {
+      "path": "logos/named/insonic-brand-mark-reduced-detail-monochrome-clear-black-for-light.svg",
+      "bytes": 818,
+      "sha256": "02bbf491a3a12493c664da432b52d0e0aa3513d11efa7120e9854c151f7ccf77"
+    },
+    {
+      "path": "logos/named/insonic-brand-mark-reduced-detail-monochrome-clear-white-for-dark-1024.png",
+      "bytes": 23545,
+      "sha256": "0dc5cc038fcd83027f52f3f9c398beddb6b000a73493d71135f4ef9cc8c1a882"
+    },
+    {
+      "path": "logos/named/insonic-brand-mark-reduced-detail-monochrome-clear-white-for-dark.svg",
+      "bytes": 818,
+      "sha256": "e5568e8542d64282d8f7c55f87ab09a00e686df9827cbc46e2092f580edbb648"
+    },
+    {
+      "path": "logos/named/insonic-logo-lockup-stacked-full-color-clear-for-dark-1024.png",
+      "bytes": 26971,
+      "sha256": "1f5e380265db435e079b4d7bb9cc71f2cf41b4395ad591f1e23ff8a82063f313"
+    },
+    {
+      "path": "logos/named/insonic-logo-lockup-stacked-full-color-clear-for-dark.svg",
+      "bytes": 5676,
+      "sha256": "2b6fbee2f7daf5979e01d18c646a17525f7ec1cb3c91c514ad941245ddc48648"
+    },
+    {
+      "path": "logos/named/insonic-logo-lockup-stacked-full-color-clear-for-light-1024.png",
+      "bytes": 26954,
+      "sha256": "d8a9f83f2b200a3596f2a2834b944011d3965484bb186036a5eaae65fdfd633a"
+    },
+    {
+      "path": "logos/named/insonic-logo-lockup-stacked-full-color-clear-for-light.svg",
+      "bytes": 5676,
+      "sha256": "8cfc79792503be47413ec063c72ab111d9927adc5538f32fb3a0694e69231837"
+    },
+    {
+      "path": "logos/named/insonic-logo-lockup-stacked-monochrome-clear-black-for-light-1024.png",
+      "bytes": 22504,
+      "sha256": "5648f5f7bd8f09cd93acff1cc2b7998efa399006cd9d6a2a43be1190f2bdf1de"
+    },
+    {
+      "path": "logos/named/insonic-logo-lockup-stacked-monochrome-clear-black-for-light.svg",
+      "bytes": 5676,
+      "sha256": "3cdc0f30917a127e642d85aae4b8625635bf702b82c70920c082459f2a0970da"
+    },
+    {
+      "path": "logos/named/insonic-logo-lockup-stacked-monochrome-clear-white-for-dark-1024.png",
+      "bytes": 27882,
+      "sha256": "e3c6388d1e86e26fc16f2a5115b10d25f5bcb5eaa8cc93589125140ae0a98641"
+    },
+    {
+      "path": "logos/named/insonic-logo-lockup-stacked-monochrome-clear-white-for-dark.svg",
+      "bytes": 5676,
+      "sha256": "5eac0b8abacec1dc4a1f0133f3fa3cdd48d6b9672e26a6a6605980d98c6b187c"
+    },
+    {
+      "path": "logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark-1024.png",
+      "bytes": 17896,
+      "sha256": "e7dea58fc8af37738701f3fa906e70409bd58bbfbd26452a5b47590a2679f624"
+    },
+    {
+      "path": "logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg",
+      "bytes": 5656,
+      "sha256": "c9d40e1e70603dd92e8ea0324af893caedfa9a07225947842926119f34008993"
+    },
+    {
+      "path": "logos/named/insonic-logo-lockup-wide-full-color-clear-for-light-1024.png",
+      "bytes": 18574,
+      "sha256": "9ad0a1f40028f468fa8c1d965730a14c544dc2e9f7824093ab316389b7b0693f"
+    },
+    {
+      "path": "logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg",
+      "bytes": 5656,
+      "sha256": "30b5caad24822fd50e5236156c120d88d7d4a7ae681aaa7fb8a9cdce5fcdb31a"
+    },
+    {
+      "path": "logos/named/insonic-logo-lockup-wide-monochrome-clear-black-for-light-1024.png",
+      "bytes": 15904,
+      "sha256": "018de281b0977402503d0236c1a14ec533efedb83950c8b2c2cdfa3f9f36d3bb"
+    },
+    {
+      "path": "logos/named/insonic-logo-lockup-wide-monochrome-clear-black-for-light.svg",
+      "bytes": 5656,
+      "sha256": "083649686cb5ea9fb7e9451981bf33dbb0894e35bdf0fce06d32a8c584d09a2e"
+    },
+    {
+      "path": "logos/named/insonic-logo-lockup-wide-monochrome-clear-white-for-dark-1024.png",
+      "bytes": 19590,
+      "sha256": "002fcbeaa24240dec91ffaba136ef2535d133ddf62b6c747e99760e5262b7eb6"
+    },
+    {
+      "path": "logos/named/insonic-logo-lockup-wide-monochrome-clear-white-for-dark.svg",
+      "bytes": 5656,
+      "sha256": "aa8e3459197454768c0b4e5a3fc3e1894b589d5a3c2f846d897946319011d4da"
+    },
+    {
+      "path": "logos/named/insonic-social-share-image-full-color-dark-1280.png",
+      "bytes": 27406,
+      "sha256": "9d59c9fe29d394b56a739a1c9cfc9c58c7f7c2d39d5169ab6ef88483412e1999"
+    },
+    {
+      "path": "logos/named/insonic-social-share-image-full-color-dark.svg",
+      "bytes": 15615,
+      "sha256": "563afab6729e12f70c55595b56f9c6a1a23b1a6c3fb46a03d414a01ce079b63f"
+    },
+    {
+      "path": "logos/named/insonic-wordmark-full-color-clear-for-dark-1024.png",
+      "bytes": 17681,
+      "sha256": "32f9ea492e3acebe5c7d50144e5177b937996d03450ccfc1c0c134e583b78a8d"
+    },
+    {
+      "path": "logos/named/insonic-wordmark-full-color-clear-for-dark.svg",
+      "bytes": 4859,
+      "sha256": "0ca223003ef750580b002253e38bd2a75c4ae6d3fa3b27d03b06a11b58c119d8"
+    },
+    {
+      "path": "logos/named/insonic-wordmark-full-color-clear-for-light-1024.png",
+      "bytes": 18570,
+      "sha256": "3ab256317b995ff69740223385ae1779138c2b1007d6d3432837d5fba562c5ab"
+    },
+    {
+      "path": "logos/named/insonic-wordmark-full-color-clear-for-light.svg",
+      "bytes": 4859,
+      "sha256": "19587aed06bbfd80c0fd81f2e3b3bc0aacb1959ba3fa4af52a5b1aa4fbd2ed4d"
+    },
+    {
+      "path": "logos/named/insonic-wordmark-monochrome-clear-black-for-light-1024.png",
+      "bytes": 15995,
+      "sha256": "3715a182993e5c324c0d39ae5fa527da66cd52a34e122b87bbc4bbef29ad7ec2"
+    },
+    {
+      "path": "logos/named/insonic-wordmark-monochrome-clear-black-for-light.svg",
+      "bytes": 4859,
+      "sha256": "175d44ed9412f2b571e3eac79e83de1c6c56de7f81787b013660a1d7557e1e4c"
+    },
+    {
+      "path": "logos/named/insonic-wordmark-monochrome-clear-white-for-dark-1024.png",
+      "bytes": 20138,
+      "sha256": "ea1a60132567c0222b1e45a13c2c8e6be83ea6e4316de116b0c1dab58b502267"
+    },
+    {
+      "path": "logos/named/insonic-wordmark-monochrome-clear-white-for-dark.svg",
+      "bytes": 4859,
+      "sha256": "32b30e48b9b7235b8e0091f6420bb35ad991ff46a081e2ba4ff03748f53eeaf3"
+    },
+    {
+      "path": "logos/png/insonic-horizontal-black-1024.png",
+      "bytes": 15904,
+      "sha256": "018de281b0977402503d0236c1a14ec533efedb83950c8b2c2cdfa3f9f36d3bb"
+    },
+    {
+      "path": "logos/png/insonic-horizontal-color-1024.png",
+      "bytes": 17896,
+      "sha256": "e7dea58fc8af37738701f3fa906e70409bd58bbfbd26452a5b47590a2679f624"
+    },
+    {
+      "path": "logos/png/insonic-horizontal-light-1024.png",
+      "bytes": 18574,
+      "sha256": "9ad0a1f40028f468fa8c1d965730a14c544dc2e9f7824093ab316389b7b0693f"
+    },
+    {
+      "path": "logos/png/insonic-horizontal-white-1024.png",
+      "bytes": 19590,
+      "sha256": "002fcbeaa24240dec91ffaba136ef2535d133ddf62b6c747e99760e5262b7eb6"
+    },
+    {
+      "path": "logos/png/insonic-mark-black-1024.png",
+      "bytes": 18070,
+      "sha256": "c5897fa9578522cec3eaf639bf4a1c63d4be81943cd8082395f10277d9314b4c"
+    },
+    {
+      "path": "logos/png/insonic-mark-color-1024.png",
+      "bytes": 29285,
+      "sha256": "4f3298e8ce753de697031afe866c0055444920220c19f30a73fe20e9c1de7cb7"
+    },
+    {
+      "path": "logos/png/insonic-mark-light-1024.png",
+      "bytes": 28455,
+      "sha256": "4fbab4c61df98b40d5a0af39c293b1fc095b098f5214b8f4e2d79ccf18f7501a"
+    },
+    {
+      "path": "logos/png/insonic-mark-reduced-black-1024.png",
+      "bytes": 21350,
+      "sha256": "c5a4742c620bed59a17b74730ff04888bbb698089bc4e3b2a6dd1b00e2ef1da9"
+    },
+    {
+      "path": "logos/png/insonic-mark-reduced-color-1024.png",
+      "bytes": 35230,
+      "sha256": "9b891013b40bcfcd1a82a917ee768549fe255d4d2da1012c49cb9cb1ee59b8f4"
+    },
+    {
+      "path": "logos/png/insonic-mark-reduced-light-1024.png",
+      "bytes": 34242,
+      "sha256": "ec36b3ce41bf5510a03ab60014e4575b79cce91ee897d1340a74b3f8d57bb608"
+    },
+    {
+      "path": "logos/png/insonic-mark-reduced-white-1024.png",
+      "bytes": 23545,
+      "sha256": "0dc5cc038fcd83027f52f3f9c398beddb6b000a73493d71135f4ef9cc8c1a882"
+    },
+    {
+      "path": "logos/png/insonic-mark-white-1024.png",
+      "bytes": 19879,
+      "sha256": "ac564a370292eca8b7e2648c2ccf35503650d5eb87a08121bfce064490d27d48"
+    },
+    {
+      "path": "logos/png/insonic-social-image-1280.png",
+      "bytes": 27406,
+      "sha256": "9d59c9fe29d394b56a739a1c9cfc9c58c7f7c2d39d5169ab6ef88483412e1999"
+    },
+    {
+      "path": "logos/png/insonic-social-preview-1280.png",
+      "bytes": 27406,
+      "sha256": "9d59c9fe29d394b56a739a1c9cfc9c58c7f7c2d39d5169ab6ef88483412e1999"
+    },
+    {
+      "path": "logos/png/insonic-stacked-black-1024.png",
+      "bytes": 22504,
+      "sha256": "5648f5f7bd8f09cd93acff1cc2b7998efa399006cd9d6a2a43be1190f2bdf1de"
+    },
+    {
+      "path": "logos/png/insonic-stacked-color-1024.png",
+      "bytes": 26971,
+      "sha256": "1f5e380265db435e079b4d7bb9cc71f2cf41b4395ad591f1e23ff8a82063f313"
+    },
+    {
+      "path": "logos/png/insonic-stacked-light-1024.png",
+      "bytes": 26954,
+      "sha256": "d8a9f83f2b200a3596f2a2834b944011d3965484bb186036a5eaae65fdfd633a"
+    },
+    {
+      "path": "logos/png/insonic-stacked-white-1024.png",
+      "bytes": 27882,
+      "sha256": "e3c6388d1e86e26fc16f2a5115b10d25f5bcb5eaa8cc93589125140ae0a98641"
+    },
+    {
+      "path": "logos/png/insonic-wordmark-black-1024.png",
+      "bytes": 15995,
+      "sha256": "3715a182993e5c324c0d39ae5fa527da66cd52a34e122b87bbc4bbef29ad7ec2"
+    },
+    {
+      "path": "logos/png/insonic-wordmark-color-1024.png",
+      "bytes": 17681,
+      "sha256": "32f9ea492e3acebe5c7d50144e5177b937996d03450ccfc1c0c134e583b78a8d"
+    },
+    {
+      "path": "logos/png/insonic-wordmark-light-1024.png",
+      "bytes": 18570,
+      "sha256": "3ab256317b995ff69740223385ae1779138c2b1007d6d3432837d5fba562c5ab"
+    },
+    {
+      "path": "logos/png/insonic-wordmark-white-1024.png",
+      "bytes": 20138,
+      "sha256": "ea1a60132567c0222b1e45a13c2c8e6be83ea6e4316de116b0c1dab58b502267"
+    },
+    {
+      "path": "logos/svg/insonic-horizontal-black.svg",
+      "bytes": 5656,
+      "sha256": "083649686cb5ea9fb7e9451981bf33dbb0894e35bdf0fce06d32a8c584d09a2e"
+    },
+    {
+      "path": "logos/svg/insonic-horizontal-color.svg",
+      "bytes": 5656,
+      "sha256": "c9d40e1e70603dd92e8ea0324af893caedfa9a07225947842926119f34008993"
+    },
+    {
+      "path": "logos/svg/insonic-horizontal-light.svg",
+      "bytes": 5656,
+      "sha256": "30b5caad24822fd50e5236156c120d88d7d4a7ae681aaa7fb8a9cdce5fcdb31a"
+    },
+    {
+      "path": "logos/svg/insonic-horizontal-white.svg",
+      "bytes": 5656,
+      "sha256": "aa8e3459197454768c0b4e5a3fc3e1894b589d5a3c2f846d897946319011d4da"
+    },
+    {
+      "path": "logos/svg/insonic-mark-black.svg",
+      "bytes": 887,
+      "sha256": "2a1643995d45dc3e5167cac80c08e50c15fd929bd72975c768a284869fabe7cc"
+    },
+    {
+      "path": "logos/svg/insonic-mark-color.svg",
+      "bytes": 887,
+      "sha256": "9945aaadeded1a2cb5f51bafcdea58a8427d9e6045ee26c774df64271ec1a168"
+    },
+    {
+      "path": "logos/svg/insonic-mark-light.svg",
+      "bytes": 887,
+      "sha256": "4bf376a11dff4a2993edf2ebaeca86465674c3dfe80513125f45fa7789837c8c"
+    },
+    {
+      "path": "logos/svg/insonic-mark-reduced-black.svg",
+      "bytes": 818,
+      "sha256": "02bbf491a3a12493c664da432b52d0e0aa3513d11efa7120e9854c151f7ccf77"
+    },
+    {
+      "path": "logos/svg/insonic-mark-reduced-color.svg",
+      "bytes": 818,
+      "sha256": "813467590afa8cd033c30925bbd3900e1e32babe62eda26f9cb9e0f08d7fc8ef"
+    },
+    {
+      "path": "logos/svg/insonic-mark-reduced-light.svg",
+      "bytes": 818,
+      "sha256": "ee4b956a90fd9ecd942262428700c8efa0d7e78f883f7f01066d2fe9e074c402"
+    },
+    {
+      "path": "logos/svg/insonic-mark-reduced-white.svg",
+      "bytes": 818,
+      "sha256": "e5568e8542d64282d8f7c55f87ab09a00e686df9827cbc46e2092f580edbb648"
+    },
+    {
+      "path": "logos/svg/insonic-mark-white.svg",
+      "bytes": 887,
+      "sha256": "f90dea5814fc83889abc704cf6cde091fdea36bb1818555bbf9219d3f52abe9a"
+    },
+    {
+      "path": "logos/svg/insonic-social-image.svg",
+      "bytes": 15615,
+      "sha256": "563afab6729e12f70c55595b56f9c6a1a23b1a6c3fb46a03d414a01ce079b63f"
+    },
+    {
+      "path": "logos/svg/insonic-social-preview.svg",
+      "bytes": 15615,
+      "sha256": "563afab6729e12f70c55595b56f9c6a1a23b1a6c3fb46a03d414a01ce079b63f"
+    },
+    {
+      "path": "logos/svg/insonic-stacked-black.svg",
+      "bytes": 5676,
+      "sha256": "3cdc0f30917a127e642d85aae4b8625635bf702b82c70920c082459f2a0970da"
+    },
+    {
+      "path": "logos/svg/insonic-stacked-color.svg",
+      "bytes": 5676,
+      "sha256": "2b6fbee2f7daf5979e01d18c646a17525f7ec1cb3c91c514ad941245ddc48648"
+    },
+    {
+      "path": "logos/svg/insonic-stacked-light.svg",
+      "bytes": 5676,
+      "sha256": "8cfc79792503be47413ec063c72ab111d9927adc5538f32fb3a0694e69231837"
+    },
+    {
+      "path": "logos/svg/insonic-stacked-white.svg",
+      "bytes": 5676,
+      "sha256": "5eac0b8abacec1dc4a1f0133f3fa3cdd48d6b9672e26a6a6605980d98c6b187c"
+    },
+    {
+      "path": "logos/svg/insonic-wordmark-black.svg",
+      "bytes": 4859,
+      "sha256": "175d44ed9412f2b571e3eac79e83de1c6c56de7f81787b013660a1d7557e1e4c"
+    },
+    {
+      "path": "logos/svg/insonic-wordmark-color.svg",
+      "bytes": 4859,
+      "sha256": "0ca223003ef750580b002253e38bd2a75c4ae6d3fa3b27d03b06a11b58c119d8"
+    },
+    {
+      "path": "logos/svg/insonic-wordmark-light.svg",
+      "bytes": 4859,
+      "sha256": "19587aed06bbfd80c0fd81f2e3b3bc0aacb1959ba3fa4af52a5b1aa4fbd2ed4d"
+    },
+    {
+      "path": "logos/svg/insonic-wordmark-white.svg",
+      "bytes": 4859,
+      "sha256": "32b30e48b9b7235b8e0091f6420bb35ad991ff46a081e2ba4ff03748f53eeaf3"
+    },
+    {
+      "path": "native/egui/Cargo.lock",
+      "bytes": 19845,
+      "sha256": "546eb5c49d404d3a1b6956e0ee91b8078873d9a8acc10279bc73f4b7a2f22622"
+    },
+    {
+      "path": "native/egui/Cargo.toml",
+      "bytes": 192,
+      "sha256": "aa299ead1e2c88a7c45a341cc6a0c44c295d5e181c5ba4ba342e84fa691921d7"
+    },
+    {
+      "path": "native/egui/README.md",
+      "bytes": 603,
+      "sha256": "847b42ea7612131b4601bdd622687e9de246763dedea85347e8be62621f992d7"
+    },
+    {
+      "path": "native/egui/adapter.json",
+      "bytes": 2004,
+      "sha256": "843ca4b80aa6c1772f6a8579db9ff5b94b6d7728062e8c0ed336de01e01373ea"
+    },
+    {
+      "path": "native/egui/support-matrix.json",
+      "bytes": 7817,
+      "sha256": "3843ba994a45fe46f649bf00b6440efffbb883e0c0a29c6bd7048603454e962d"
+    },
+    {
+      "path": "native/egui/version-policy.json",
+      "bytes": 11218,
+      "sha256": "a010159fdd0e1831e0a36f9e445566eb717f18adad7b742215bbe7967f4a4404"
+    },
+    {
+      "path": "native/egui/src/components.rs",
+      "bytes": 8458,
+      "sha256": "09f014a29638673dc10e944a65aca962d4e2b38aa236ec979ee867d340de5943"
+    },
+    {
+      "path": "native/egui/src/lib.rs",
+      "bytes": 2359,
+      "sha256": "a2b6dd17f0438dfc4fb59a5e51a2c4c695b59a105cd69d0de5e20106098979ef"
+    },
+    {
+      "path": "native/egui/src/tokens.rs",
+      "bytes": 3592,
+      "sha256": "38fb80db032dcd6e804c007b2c506910dfc8a42d0f046e48c5eabbd6b4f380be"
+    },
+    {
+      "path": "native/egui/tests/adapter.rs",
+      "bytes": 10410,
+      "sha256": "7d4d2b2c320ec32a875cb016d3e7c908f4da535b7677fcf219f9962e9b6a2f3e"
+    },
+    {
+      "path": "nextjs/README.md",
+      "bytes": 1878,
+      "sha256": "ccfa597b0a434b668b7e1a39c1ce44abc0d41ec54e193482eb9489e5e2e07e92"
+    },
+    {
+      "path": "nextjs/app-icon.tsx",
+      "bytes": 190,
+      "sha256": "6da9d45bc37f0c0d2bf98e579b375be381da746d3ef857dd30dcd1b54bf92984"
+    },
+    {
+      "path": "nextjs/components.json.snippet",
+      "bytes": 100,
+      "sha256": "1f90a4c063c3bbe789c88ef06ca53480ce1082718c9d97a30fef70870bc165f3"
+    },
+    {
+      "path": "nextjs/fonts.ts",
+      "bytes": 1124,
+      "sha256": "398dd37897bce092630ec05847fc57da95c48ac99a1970ccd67d3c3fa5d54c38"
+    },
+    {
+      "path": "nextjs/globals.css",
+      "bytes": 7968,
+      "sha256": "2db11bbfc488df1ad71658c27f8eaad94a714efd5b2ee41e4a67d09bb8a80684"
+    },
+    {
+      "path": "nextjs/opengraph-image.tsx",
+      "bytes": 294,
+      "sha256": "f01bb8eb332811ae01b5b0fbe8421096dd6dc6888725ecdef8c9701a0ae8517e"
+    },
+    {
+      "path": "nextjs/providers.tsx",
+      "bytes": 581,
+      "sha256": "54be642206bcef2e7520a59ab71119960a6ef9f2c280cfdb2373381a7a99af4a"
+    },
+    {
+      "path": "nextjs/registry/registry.json",
+      "bytes": 5412,
+      "sha256": "ef60dd4fea62f011416836deb31fccc575a223693896f265e132bfb15654c718"
+    },
+    {
+      "path": "nextjs/registry/theme.json",
+      "bytes": 4810,
+      "sha256": "c2ddb71c80d60bfd329251196495d7c163a01508bdc103f024d91515b9edddae"
+    },
+    {
+      "path": "qc/authoritative-inputs.json",
+      "bytes": 67,
+      "sha256": "e6c2fe82cb5c5238e6783fe12f44bc34f970b0979af5f8b948aad189a235bb35"
+    },
+    {
+      "path": "qc/contact-sheet.png",
+      "bytes": 485636,
+      "sha256": "f787f2c257a2ea73999630b91f00c183f2d2a85f542787bbb2b5d174f5c26185"
+    },
+    {
+      "path": "qc/logo-sheet.png",
+      "bytes": 44357,
+      "sha256": "67df4604bc3e100b7e40cfd7600ab33410ebb841a3cb4964cd809ff0daf84a74"
+    },
+    {
+      "path": "qc/pages-browser-specimen.png",
+      "bytes": 90844,
+      "sha256": "58fc411d77939dab100724c92b9826704d5fe6d0fa9041b7d1422e33d0c8fc05"
+    },
+    {
+      "path": "qc/pages-guidelines-index.png",
+      "bytes": 223331,
+      "sha256": "ee21b04243f8f0cdfc56bb79a70db44536eb9f603773787237e9d0bc27841632"
+    },
+    {
+      "path": "qc/pages-parts-footer.png",
+      "bytes": 7877,
+      "sha256": "6db40eefebac4d7ef3ea06bdcd54bc8c0d7c00f75570afccdc11b16462687efa"
+    },
+    {
+      "path": "qc/pages-parts-header.png",
+      "bytes": 7862,
+      "sha256": "08241d3378fa3061fbd1178e3823edc2757eede7a708a4354acf905244816857"
+    },
+    {
+      "path": "qc/pages-templates-404.png",
+      "bytes": 21346,
+      "sha256": "e18850501c066d4b1afc5a139c817cae176c1d16435154e6594b151ceef84888"
+    },
+    {
+      "path": "qc/pages-templates-archive.png",
+      "bytes": 13666,
+      "sha256": "18acc92af3b6bbb81624bed932567a3896ec19b8daecfa43577f84503f51d465"
+    },
+    {
+      "path": "qc/pages-templates-index.png",
+      "bytes": 10979,
+      "sha256": "f8267201f5fd66a13799d26b02da097d0dc0392488a82ae2807a4b359bd86e44"
+    },
+    {
+      "path": "qc/pages-templates-page.png",
+      "bytes": 7866,
+      "sha256": "893e97c3e002a5cb05481e58356edd58e129cb970c885a13331927dd229c0a2f"
+    },
+    {
+      "path": "qc/pages-templates-search.png",
+      "bytes": 15266,
+      "sha256": "25f851bc40084b7a063b8a2c8c4ebea80a716008724e3e6998cfca0dae57c346"
+    },
+    {
+      "path": "qc/pages-templates-single.png",
+      "bytes": 7936,
+      "sha256": "99f7259680745790dec247bad46a796bb30238c5943f9f333039a816a24f3c42"
+    },
+    {
+      "path": "qc/pages-web-specimen.png",
+      "bytes": 74379,
+      "sha256": "50fa9f0949f5174eab36556cacb42d545c3d6601ba37d06ac20dcc5623bdde01"
+    },
+    {
+      "path": "qc/probe.json",
+      "bytes": 585,
+      "sha256": "9a666376600fbdb10f6b87bf6b7bf1daf39dc348b119838bb9003b722f244452"
+    },
+    {
+      "path": "qc/_pdf-pages/p-1.png",
+      "bytes": 44202,
+      "sha256": "30fb98393b105c7c2bf71fd8f5e542ff2c06e958569468e3d6c6556b2ff82408"
+    },
+    {
+      "path": "qc/_pdf-pages/p-2.png",
+      "bytes": 116937,
+      "sha256": "8a7e02e5ccbcb5d437e20512e5999d5677a2e7d8e0efa7caa82747dc6e727b5d"
+    },
+    {
+      "path": "qc/_pdf-pages/p-3.png",
+      "bytes": 117985,
+      "sha256": "2effce6bcf08c2037a32195b8d232491593cc4e7acb0213a437f90ebe45f0073"
+    },
+    {
+      "path": "qc/_pdf-pages/p-4.png",
+      "bytes": 114108,
+      "sha256": "2da4d23f466fa83022c7f651d44bf9c3b0a732313753d451473810b79a744521"
+    },
+    {
+      "path": "qc/_pdf-pages/p-5.png",
+      "bytes": 103564,
+      "sha256": "e9405e065a03100b8a0cf3cef84888b91085bcc5f1c4eac18672132942029e46"
+    },
+    {
+      "path": "qc/_pdf-pages/p-6.png",
+      "bytes": 111658,
+      "sha256": "93198c42ea05be2a3c4a86936a1b7dc312cd74e5d7342bce807f53aa7cd4a833"
+    },
+    {
+      "path": "qc/_pdf-pages/p-7.png",
+      "bytes": 127861,
+      "sha256": "a17e37feda3fa5133655c35302b0a85ca49425ddfaa1b37828e451ce6963d423"
+    },
+    {
+      "path": "qc/_pdf-pages/p-8.png",
+      "bytes": 194899,
+      "sha256": "aa2567f71f033119fea8b1e647ccf06b090897bac7ba34ed1e87592eb7eb25c0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/full-16-black.png",
+      "bytes": 403,
+      "sha256": "a78393b8844196823456cc828933ec66b5632b9a9804e723ad510f6527161921"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/full-16-dark.png",
+      "bytes": 451,
+      "sha256": "5e080c79ca86f5dd7487cfb2d77c06b56c8f392a06d77f06b8a2285f489a8f3b"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/full-16-light.png",
+      "bytes": 429,
+      "sha256": "c85e0f7e72a4b602be1cc9a16f7befca8a83d9c75e8df343fd18bb59d07b2b1f"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/full-16-white.png",
+      "bytes": 404,
+      "sha256": "354c7ccaf93d5f5cdcd86908459e1e7c1a10063c61247619f847fd7bf5b90171"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/full-256-black.png",
+      "bytes": 5090,
+      "sha256": "5e4240fa1adbb1e51cd1d899f64180d97689b2f255e375dcdbc7c44ebccecced"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/full-256-dark.png",
+      "bytes": 5801,
+      "sha256": "99be67408cb84d854d7a62cd3932c9fe704f94276ec699a0c0341cc31ef86758"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/full-256-light.png",
+      "bytes": 5496,
+      "sha256": "b8ed174edc4d187ffcc3842a9591580bd46c16059836290a83660ff659452777"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/full-256-white.png",
+      "bytes": 5098,
+      "sha256": "c6ae25fd2cda7f54dd0cbe3ac6a0bc2ba16f204658f639ce6fd1ec8925fe411f"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/full-32-black.png",
+      "bytes": 757,
+      "sha256": "eb032340f85e26d351bff90f5c81446b388c232fe994740e0df40da79e63d7c6"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/full-32-dark.png",
+      "bytes": 807,
+      "sha256": "d4eeb4d495b5a915167fdadfd09864f747e59e118b7e628c9896cbaa9ec109a0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/full-32-light.png",
+      "bytes": 778,
+      "sha256": "5dcff3014eb4fe002d5cf12f26e6b42a00a75beb5277e06bbf3ccdda0976eea2"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/full-32-white.png",
+      "bytes": 764,
+      "sha256": "954e0f16b84eed9007d3260bfd2878deb332577ce4c3e2bcdcd83c63089e737b"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/full-64-black.png",
+      "bytes": 1328,
+      "sha256": "27ba2c3866546b899e7bcf2e00c18e002fbecf1c1578f0089c03657ec3ddcebb"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/full-64-dark.png",
+      "bytes": 1456,
+      "sha256": "bfb34b8e9daa1cecc105a90fd85f7ae49bf52c45a3126d39e5085fac2421021d"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/full-64-light.png",
+      "bytes": 1399,
+      "sha256": "7b43110e54c185ce5b34a875bca09264508b0d2ad98cb1929e37b4060a056cc8"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/full-64-white.png",
+      "bytes": 1330,
+      "sha256": "153b9a097326764104bcfa7a20837a6b95785f6fc53f0a1f7710bff110d34892"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/reduced-16-black.png",
+      "bytes": 441,
+      "sha256": "95b378bd5b577cc765245f326bbbee8075791297d023a79b64687d8b5d4c3f5b"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/reduced-16-dark.png",
+      "bytes": 497,
+      "sha256": "03e267e9d093915796bafa676d3d88f7ca5685b92dd975041a08ff75cf842214"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/reduced-16-light.png",
+      "bytes": 477,
+      "sha256": "d7fe2c016bbc799ffa30ff31ec8b51b98e20ffc6c3da65cd7ac4eb074198375d"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/reduced-16-white.png",
+      "bytes": 441,
+      "sha256": "9c885d0b562a14a03d4ea114a063518595cb1cda6cfe01d937313a7e0f6be011"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/reduced-256-black.png",
+      "bytes": 5836,
+      "sha256": "1a1a7c471d6577c532827b720e2614aec53c80e75b5dd7acd04f2beef55fc1cc"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/reduced-256-dark.png",
+      "bytes": 6617,
+      "sha256": "6b85b82a344b490b556e81f7d76fb434a8dce9179a6205291095cb040ad4d9be"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/reduced-256-light.png",
+      "bytes": 6271,
+      "sha256": "54ba0503515f7b53ea8b4115a87bcd8ef60de25b87b50fe4381d400e048d9ced"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/reduced-256-white.png",
+      "bytes": 5860,
+      "sha256": "0166a86d710e56136758704f8f1ab787478c0065624a87472b25a9db88c9b938"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/reduced-32-black.png",
+      "bytes": 833,
+      "sha256": "3970f981b0a0f4921e0158007e7ce5dc0df1195242222c0b1b35e847b9f8cba1"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/reduced-32-dark.png",
+      "bytes": 897,
+      "sha256": "d47a7c079b57cf15259787b6feca061f199688d0955fd8d01f98512624fb6edd"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/reduced-32-light.png",
+      "bytes": 865,
+      "sha256": "55cc6de029e2f65110e1ef3045975e89f89e13260aafe84574b949b11187bb52"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/reduced-32-white.png",
+      "bytes": 833,
+      "sha256": "d8e712f86229fff16a0d7182dbc66cbe466f61ad2b91670cdaa2f9912c9430c4"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/reduced-64-black.png",
+      "bytes": 1535,
+      "sha256": "b96ec1a387c4e15d3ac7239d3d122c2ab1d8ca8fa9c4e65a448241fc422a0933"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/reduced-64-dark.png",
+      "bytes": 1772,
+      "sha256": "b26fdd335d175025f8fdcbf40096eb26a1ace40398db951f4aa01922bc63bc5b"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/reduced-64-light.png",
+      "bytes": 1689,
+      "sha256": "47042dc004430afbcbc4303a8be678953ca55877e3898c440673d8dfaaf05e59"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/reduced-64-white.png",
+      "bytes": 1537,
+      "sha256": "28efb6b3a8d6fbee90f8541f16f266f85cd686eb836efb56a4a19b25e4c24da8"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-16-black/comparison-color-difference.png",
+      "bytes": 86,
+      "sha256": "789cc3d7c8416b40a4f20155ece071c362f85d610e71b32b328bfc12b4cf2ead"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-16-black/comparison-overlay.png",
+      "bytes": 403,
+      "sha256": "a78393b8844196823456cc828933ec66b5632b9a9804e723ad510f6527161921"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-16-black/comparison-side-by-side.png",
+      "bytes": 451,
+      "sha256": "5ce37e6705290ba3eee93534400dc6e4f12978c8369e15598436fee8db72d2bf"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-16-black/comparison-silhouette-xor.png",
+      "bytes": 75,
+      "sha256": "50b068e07b4bf235705c19b77da49fdbbc7e98ddc0a46f1c6659cca98c963904"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-16-dark/comparison-color-difference.png",
+      "bytes": 86,
+      "sha256": "789cc3d7c8416b40a4f20155ece071c362f85d610e71b32b328bfc12b4cf2ead"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-16-dark/comparison-overlay.png",
+      "bytes": 451,
+      "sha256": "5e080c79ca86f5dd7487cfb2d77c06b56c8f392a06d77f06b8a2285f489a8f3b"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-16-dark/comparison-side-by-side.png",
+      "bytes": 499,
+      "sha256": "5f2104b3f40b3fb1d7be8809bf30372c9572797072ad033a08306830647a21e2"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-16-dark/comparison-silhouette-xor.png",
+      "bytes": 75,
+      "sha256": "50b068e07b4bf235705c19b77da49fdbbc7e98ddc0a46f1c6659cca98c963904"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-16-light/comparison-color-difference.png",
+      "bytes": 86,
+      "sha256": "789cc3d7c8416b40a4f20155ece071c362f85d610e71b32b328bfc12b4cf2ead"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-16-light/comparison-overlay.png",
+      "bytes": 429,
+      "sha256": "c85e0f7e72a4b602be1cc9a16f7befca8a83d9c75e8df343fd18bb59d07b2b1f"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-16-light/comparison-side-by-side.png",
+      "bytes": 480,
+      "sha256": "763284a09090b7c9dcf8dd97e947e41b9b13b13f35ce200748af82ffbed1b9d6"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-16-light/comparison-silhouette-xor.png",
+      "bytes": 75,
+      "sha256": "50b068e07b4bf235705c19b77da49fdbbc7e98ddc0a46f1c6659cca98c963904"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-16-white/comparison-color-difference.png",
+      "bytes": 86,
+      "sha256": "789cc3d7c8416b40a4f20155ece071c362f85d610e71b32b328bfc12b4cf2ead"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-16-white/comparison-overlay.png",
+      "bytes": 404,
+      "sha256": "354c7ccaf93d5f5cdcd86908459e1e7c1a10063c61247619f847fd7bf5b90171"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-16-white/comparison-side-by-side.png",
+      "bytes": 450,
+      "sha256": "6a3719efa20d5130f1ec1f19708e6e0ac7d217c1112412f9e39cc708f80d3a2c"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-16-white/comparison-silhouette-xor.png",
+      "bytes": 75,
+      "sha256": "50b068e07b4bf235705c19b77da49fdbbc7e98ddc0a46f1c6659cca98c963904"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-256-black/comparison-color-difference.png",
+      "bytes": 854,
+      "sha256": "004c0da60be05efebf543eb7ed2a51aba399a57d19c58d74290344ce5c54a1f3"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-256-black/comparison-overlay.png",
+      "bytes": 5090,
+      "sha256": "5e4240fa1adbb1e51cd1d899f64180d97689b2f255e375dcdbc7c44ebccecced"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-256-black/comparison-side-by-side.png",
+      "bytes": 5984,
+      "sha256": "d90c1e62380327082a80e738f6764b71dcc57fa7b51186217d096f7d48905e96"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-256-black/comparison-silhouette-xor.png",
+      "bytes": 334,
+      "sha256": "3c6c50f94ab35e9f96c772731fe6b7950048179bc81b8ab0396cc1edbde89163"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-256-dark/comparison-color-difference.png",
+      "bytes": 854,
+      "sha256": "004c0da60be05efebf543eb7ed2a51aba399a57d19c58d74290344ce5c54a1f3"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-256-dark/comparison-overlay.png",
+      "bytes": 5801,
+      "sha256": "99be67408cb84d854d7a62cd3932c9fe704f94276ec699a0c0341cc31ef86758"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-256-dark/comparison-side-by-side.png",
+      "bytes": 6673,
+      "sha256": "0c785cd037ab81a93b47b181e8f5648bafa6f8077e9f8fac3b8ccbe7475ee4af"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-256-dark/comparison-silhouette-xor.png",
+      "bytes": 334,
+      "sha256": "3c6c50f94ab35e9f96c772731fe6b7950048179bc81b8ab0396cc1edbde89163"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-256-light/comparison-color-difference.png",
+      "bytes": 854,
+      "sha256": "004c0da60be05efebf543eb7ed2a51aba399a57d19c58d74290344ce5c54a1f3"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-256-light/comparison-overlay.png",
+      "bytes": 5496,
+      "sha256": "b8ed174edc4d187ffcc3842a9591580bd46c16059836290a83660ff659452777"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-256-light/comparison-side-by-side.png",
+      "bytes": 6390,
+      "sha256": "071215801fc22a5affb6131ea63a9da01087f8e76d5b92920ab766dafee4fbea"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-256-light/comparison-silhouette-xor.png",
+      "bytes": 334,
+      "sha256": "3c6c50f94ab35e9f96c772731fe6b7950048179bc81b8ab0396cc1edbde89163"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-256-white/comparison-color-difference.png",
+      "bytes": 854,
+      "sha256": "004c0da60be05efebf543eb7ed2a51aba399a57d19c58d74290344ce5c54a1f3"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-256-white/comparison-overlay.png",
+      "bytes": 5098,
+      "sha256": "c6ae25fd2cda7f54dd0cbe3ac6a0bc2ba16f204658f639ce6fd1ec8925fe411f"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-256-white/comparison-side-by-side.png",
+      "bytes": 5983,
+      "sha256": "628c4200e94be89a227d21176a15fa5c85ead1f61ef7d6b630e8c0f41e38061c"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-256-white/comparison-silhouette-xor.png",
+      "bytes": 334,
+      "sha256": "3c6c50f94ab35e9f96c772731fe6b7950048179bc81b8ab0396cc1edbde89163"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-32-black/comparison-color-difference.png",
+      "bytes": 103,
+      "sha256": "8fc79f5e2d71a3cf5cfd6c8f2ceea6f9eb529f647e7de97bd6a8b3f3f4e34274"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-32-black/comparison-overlay.png",
+      "bytes": 757,
+      "sha256": "eb032340f85e26d351bff90f5c81446b388c232fe994740e0df40da79e63d7c6"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-32-black/comparison-side-by-side.png",
+      "bytes": 848,
+      "sha256": "0321b4b71007b771ae113d92bf2bd48a658602112625392dd88b7e0b6938f599"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-32-black/comparison-silhouette-xor.png",
+      "bytes": 83,
+      "sha256": "b0775cba09eadf2fde241b35daa28cdcd03af6d23e99e0decd32b42f13f6d220"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-32-dark/comparison-color-difference.png",
+      "bytes": 103,
+      "sha256": "8fc79f5e2d71a3cf5cfd6c8f2ceea6f9eb529f647e7de97bd6a8b3f3f4e34274"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-32-dark/comparison-overlay.png",
+      "bytes": 807,
+      "sha256": "d4eeb4d495b5a915167fdadfd09864f747e59e118b7e628c9896cbaa9ec109a0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-32-dark/comparison-side-by-side.png",
+      "bytes": 897,
+      "sha256": "3487c72a5b250a5d581256e2dc2743b6dc6c4e6fad1cfc790a700aca91c58c0e"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-32-dark/comparison-silhouette-xor.png",
+      "bytes": 83,
+      "sha256": "b0775cba09eadf2fde241b35daa28cdcd03af6d23e99e0decd32b42f13f6d220"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-32-light/comparison-color-difference.png",
+      "bytes": 103,
+      "sha256": "8fc79f5e2d71a3cf5cfd6c8f2ceea6f9eb529f647e7de97bd6a8b3f3f4e34274"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-32-light/comparison-overlay.png",
+      "bytes": 778,
+      "sha256": "5dcff3014eb4fe002d5cf12f26e6b42a00a75beb5277e06bbf3ccdda0976eea2"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-32-light/comparison-side-by-side.png",
+      "bytes": 859,
+      "sha256": "2127e637d1fd8333b9725fbdf64718bba798e77c2f00f6ea3c89b8b2af2ce89f"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-32-light/comparison-silhouette-xor.png",
+      "bytes": 83,
+      "sha256": "b0775cba09eadf2fde241b35daa28cdcd03af6d23e99e0decd32b42f13f6d220"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-32-white/comparison-color-difference.png",
+      "bytes": 103,
+      "sha256": "8fc79f5e2d71a3cf5cfd6c8f2ceea6f9eb529f647e7de97bd6a8b3f3f4e34274"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-32-white/comparison-overlay.png",
+      "bytes": 764,
+      "sha256": "954e0f16b84eed9007d3260bfd2878deb332577ce4c3e2bcdcd83c63089e737b"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-32-white/comparison-side-by-side.png",
+      "bytes": 845,
+      "sha256": "c7f915bdc773defbf20ab3cf9075a5f5f5efeb6916832b3bbed66aeb5b8e23ae"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-32-white/comparison-silhouette-xor.png",
+      "bytes": 83,
+      "sha256": "b0775cba09eadf2fde241b35daa28cdcd03af6d23e99e0decd32b42f13f6d220"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-64-black/comparison-color-difference.png",
+      "bytes": 207,
+      "sha256": "9c9eb7ed565a3af086dee2cbfb27132f0c052240c6f69b019049399c82fc1df0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-64-black/comparison-overlay.png",
+      "bytes": 1328,
+      "sha256": "27ba2c3866546b899e7bcf2e00c18e002fbecf1c1578f0089c03657ec3ddcebb"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-64-black/comparison-side-by-side.png",
+      "bytes": 1514,
+      "sha256": "5f8a44b352cc7fa5b886f5bda116f81b061730fa6a10c49c0937be0dc006fd7f"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-64-black/comparison-silhouette-xor.png",
+      "bytes": 96,
+      "sha256": "8d447892b6efbc450beab391a7003090694cfcd0014d20766150112cab1675a0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-64-dark/comparison-color-difference.png",
+      "bytes": 207,
+      "sha256": "9c9eb7ed565a3af086dee2cbfb27132f0c052240c6f69b019049399c82fc1df0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-64-dark/comparison-overlay.png",
+      "bytes": 1456,
+      "sha256": "bfb34b8e9daa1cecc105a90fd85f7ae49bf52c45a3126d39e5085fac2421021d"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-64-dark/comparison-side-by-side.png",
+      "bytes": 1643,
+      "sha256": "2c1ae8ac2bdf35a57201e1fd79f4790b1ddcda730d2fc356a2a4d518c3317e43"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-64-dark/comparison-silhouette-xor.png",
+      "bytes": 96,
+      "sha256": "8d447892b6efbc450beab391a7003090694cfcd0014d20766150112cab1675a0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-64-light/comparison-color-difference.png",
+      "bytes": 207,
+      "sha256": "9c9eb7ed565a3af086dee2cbfb27132f0c052240c6f69b019049399c82fc1df0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-64-light/comparison-overlay.png",
+      "bytes": 1399,
+      "sha256": "7b43110e54c185ce5b34a875bca09264508b0d2ad98cb1929e37b4060a056cc8"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-64-light/comparison-side-by-side.png",
+      "bytes": 1581,
+      "sha256": "772fa3bbd185615f0b3d4b3b352d10956703b7eb82e098cc779143f17a626e0a"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-64-light/comparison-silhouette-xor.png",
+      "bytes": 96,
+      "sha256": "8d447892b6efbc450beab391a7003090694cfcd0014d20766150112cab1675a0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-64-white/comparison-color-difference.png",
+      "bytes": 207,
+      "sha256": "9c9eb7ed565a3af086dee2cbfb27132f0c052240c6f69b019049399c82fc1df0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-64-white/comparison-overlay.png",
+      "bytes": 1330,
+      "sha256": "153b9a097326764104bcfa7a20837a6b95785f6fc53f0a1f7710bff110d34892"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-64-white/comparison-side-by-side.png",
+      "bytes": 1524,
+      "sha256": "399bdd10dac0781f0d8542dd6dfb2f57ee9bec5b58dc98430ff5fb45af08f648"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/full-64-white/comparison-silhouette-xor.png",
+      "bytes": 96,
+      "sha256": "8d447892b6efbc450beab391a7003090694cfcd0014d20766150112cab1675a0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-16-black/comparison-color-difference.png",
+      "bytes": 86,
+      "sha256": "789cc3d7c8416b40a4f20155ece071c362f85d610e71b32b328bfc12b4cf2ead"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-16-black/comparison-overlay.png",
+      "bytes": 441,
+      "sha256": "95b378bd5b577cc765245f326bbbee8075791297d023a79b64687d8b5d4c3f5b"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-16-black/comparison-side-by-side.png",
+      "bytes": 488,
+      "sha256": "ae96210ada1d0b319b55177508416b5da28abb27ec26880fc004e941a31f32a5"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-16-black/comparison-silhouette-xor.png",
+      "bytes": 75,
+      "sha256": "50b068e07b4bf235705c19b77da49fdbbc7e98ddc0a46f1c6659cca98c963904"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-16-dark/comparison-color-difference.png",
+      "bytes": 86,
+      "sha256": "789cc3d7c8416b40a4f20155ece071c362f85d610e71b32b328bfc12b4cf2ead"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-16-dark/comparison-overlay.png",
+      "bytes": 497,
+      "sha256": "03e267e9d093915796bafa676d3d88f7ca5685b92dd975041a08ff75cf842214"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-16-dark/comparison-side-by-side.png",
+      "bytes": 546,
+      "sha256": "1962df84d16327b3893f6faec2e87cae2a2c8507e4b4dbe6324c97f9f37a1dcc"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-16-dark/comparison-silhouette-xor.png",
+      "bytes": 75,
+      "sha256": "50b068e07b4bf235705c19b77da49fdbbc7e98ddc0a46f1c6659cca98c963904"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-16-light/comparison-color-difference.png",
+      "bytes": 86,
+      "sha256": "789cc3d7c8416b40a4f20155ece071c362f85d610e71b32b328bfc12b4cf2ead"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-16-light/comparison-overlay.png",
+      "bytes": 477,
+      "sha256": "d7fe2c016bbc799ffa30ff31ec8b51b98e20ffc6c3da65cd7ac4eb074198375d"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-16-light/comparison-side-by-side.png",
+      "bytes": 524,
+      "sha256": "42fd956351802260498b1c647442682df991126945a918b917137b1e208c5bc0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-16-light/comparison-silhouette-xor.png",
+      "bytes": 75,
+      "sha256": "50b068e07b4bf235705c19b77da49fdbbc7e98ddc0a46f1c6659cca98c963904"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-16-white/comparison-color-difference.png",
+      "bytes": 86,
+      "sha256": "789cc3d7c8416b40a4f20155ece071c362f85d610e71b32b328bfc12b4cf2ead"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-16-white/comparison-overlay.png",
+      "bytes": 441,
+      "sha256": "9c885d0b562a14a03d4ea114a063518595cb1cda6cfe01d937313a7e0f6be011"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-16-white/comparison-side-by-side.png",
+      "bytes": 487,
+      "sha256": "6a2894b36aff4cb1c4d6ac85a3cd7c6d234d7216898ffb3adef252cc42f06cb0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-16-white/comparison-silhouette-xor.png",
+      "bytes": 75,
+      "sha256": "50b068e07b4bf235705c19b77da49fdbbc7e98ddc0a46f1c6659cca98c963904"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-256-black/comparison-color-difference.png",
+      "bytes": 854,
+      "sha256": "004c0da60be05efebf543eb7ed2a51aba399a57d19c58d74290344ce5c54a1f3"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-256-black/comparison-overlay.png",
+      "bytes": 5836,
+      "sha256": "1a1a7c471d6577c532827b720e2614aec53c80e75b5dd7acd04f2beef55fc1cc"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-256-black/comparison-side-by-side.png",
+      "bytes": 6807,
+      "sha256": "c4bf95eea6cdddc66afbaf8d6ec88dd69ffb81e4e55312f8ea58610f531439ba"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-256-black/comparison-silhouette-xor.png",
+      "bytes": 334,
+      "sha256": "3c6c50f94ab35e9f96c772731fe6b7950048179bc81b8ab0396cc1edbde89163"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-256-dark/comparison-color-difference.png",
+      "bytes": 854,
+      "sha256": "004c0da60be05efebf543eb7ed2a51aba399a57d19c58d74290344ce5c54a1f3"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-256-dark/comparison-overlay.png",
+      "bytes": 6617,
+      "sha256": "6b85b82a344b490b556e81f7d76fb434a8dce9179a6205291095cb040ad4d9be"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-256-dark/comparison-side-by-side.png",
+      "bytes": 7578,
+      "sha256": "3e81bec52fbe8b0bf1d112e327bf8750bd765c92dba005c22191b98f11755f7d"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-256-dark/comparison-silhouette-xor.png",
+      "bytes": 334,
+      "sha256": "3c6c50f94ab35e9f96c772731fe6b7950048179bc81b8ab0396cc1edbde89163"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-256-light/comparison-color-difference.png",
+      "bytes": 854,
+      "sha256": "004c0da60be05efebf543eb7ed2a51aba399a57d19c58d74290344ce5c54a1f3"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-256-light/comparison-overlay.png",
+      "bytes": 6271,
+      "sha256": "54ba0503515f7b53ea8b4115a87bcd8ef60de25b87b50fe4381d400e048d9ced"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-256-light/comparison-side-by-side.png",
+      "bytes": 7217,
+      "sha256": "48b8e660c4eda5c7641069476ed16edb632fce779644d5a9b5992cecbe3bb9fd"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-256-light/comparison-silhouette-xor.png",
+      "bytes": 334,
+      "sha256": "3c6c50f94ab35e9f96c772731fe6b7950048179bc81b8ab0396cc1edbde89163"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-256-white/comparison-color-difference.png",
+      "bytes": 854,
+      "sha256": "004c0da60be05efebf543eb7ed2a51aba399a57d19c58d74290344ce5c54a1f3"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-256-white/comparison-overlay.png",
+      "bytes": 5860,
+      "sha256": "0166a86d710e56136758704f8f1ab787478c0065624a87472b25a9db88c9b938"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-256-white/comparison-side-by-side.png",
+      "bytes": 6816,
+      "sha256": "184dbfbc9c0f791d4cbdac9338717eafdfd9ef94de0333dd3592d994ddd062f9"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-256-white/comparison-silhouette-xor.png",
+      "bytes": 334,
+      "sha256": "3c6c50f94ab35e9f96c772731fe6b7950048179bc81b8ab0396cc1edbde89163"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-32-black/comparison-color-difference.png",
+      "bytes": 103,
+      "sha256": "8fc79f5e2d71a3cf5cfd6c8f2ceea6f9eb529f647e7de97bd6a8b3f3f4e34274"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-32-black/comparison-overlay.png",
+      "bytes": 833,
+      "sha256": "3970f981b0a0f4921e0158007e7ce5dc0df1195242222c0b1b35e847b9f8cba1"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-32-black/comparison-side-by-side.png",
+      "bytes": 919,
+      "sha256": "709c310f9b79b6fbf79de4e697dacfbf0b8c5320f00a344aa760df30f95ca579"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-32-black/comparison-silhouette-xor.png",
+      "bytes": 83,
+      "sha256": "b0775cba09eadf2fde241b35daa28cdcd03af6d23e99e0decd32b42f13f6d220"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-32-dark/comparison-color-difference.png",
+      "bytes": 103,
+      "sha256": "8fc79f5e2d71a3cf5cfd6c8f2ceea6f9eb529f647e7de97bd6a8b3f3f4e34274"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-32-dark/comparison-overlay.png",
+      "bytes": 897,
+      "sha256": "d47a7c079b57cf15259787b6feca061f199688d0955fd8d01f98512624fb6edd"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-32-dark/comparison-side-by-side.png",
+      "bytes": 986,
+      "sha256": "90fa61f46680b3a440385c7a01fb0a7fb1fc817ba6fd09985ca4ba81a2e4df6b"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-32-dark/comparison-silhouette-xor.png",
+      "bytes": 83,
+      "sha256": "b0775cba09eadf2fde241b35daa28cdcd03af6d23e99e0decd32b42f13f6d220"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-32-light/comparison-color-difference.png",
+      "bytes": 103,
+      "sha256": "8fc79f5e2d71a3cf5cfd6c8f2ceea6f9eb529f647e7de97bd6a8b3f3f4e34274"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-32-light/comparison-overlay.png",
+      "bytes": 865,
+      "sha256": "55cc6de029e2f65110e1ef3045975e89f89e13260aafe84574b949b11187bb52"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-32-light/comparison-side-by-side.png",
+      "bytes": 954,
+      "sha256": "dbbef184df596be1f476d9315d376c1a092063d25bd4607beab2195b0e20f708"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-32-light/comparison-silhouette-xor.png",
+      "bytes": 83,
+      "sha256": "b0775cba09eadf2fde241b35daa28cdcd03af6d23e99e0decd32b42f13f6d220"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-32-white/comparison-color-difference.png",
+      "bytes": 103,
+      "sha256": "8fc79f5e2d71a3cf5cfd6c8f2ceea6f9eb529f647e7de97bd6a8b3f3f4e34274"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-32-white/comparison-overlay.png",
+      "bytes": 833,
+      "sha256": "d8e712f86229fff16a0d7182dbc66cbe466f61ad2b91670cdaa2f9912c9430c4"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-32-white/comparison-side-by-side.png",
+      "bytes": 917,
+      "sha256": "d299a9e931cad0d047c0b6bcb0b9f56f74bde7bf2bf411a0298fb99729469bab"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-32-white/comparison-silhouette-xor.png",
+      "bytes": 83,
+      "sha256": "b0775cba09eadf2fde241b35daa28cdcd03af6d23e99e0decd32b42f13f6d220"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-64-black/comparison-color-difference.png",
+      "bytes": 207,
+      "sha256": "9c9eb7ed565a3af086dee2cbfb27132f0c052240c6f69b019049399c82fc1df0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-64-black/comparison-overlay.png",
+      "bytes": 1535,
+      "sha256": "b96ec1a387c4e15d3ac7239d3d122c2ab1d8ca8fa9c4e65a448241fc422a0933"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-64-black/comparison-side-by-side.png",
+      "bytes": 1724,
+      "sha256": "4fbe65c8344970903b8388eecacb952e8885617afaceb4946d2d8ef6c788753a"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-64-black/comparison-silhouette-xor.png",
+      "bytes": 96,
+      "sha256": "8d447892b6efbc450beab391a7003090694cfcd0014d20766150112cab1675a0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-64-dark/comparison-color-difference.png",
+      "bytes": 207,
+      "sha256": "9c9eb7ed565a3af086dee2cbfb27132f0c052240c6f69b019049399c82fc1df0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-64-dark/comparison-overlay.png",
+      "bytes": 1772,
+      "sha256": "b26fdd335d175025f8fdcbf40096eb26a1ace40398db951f4aa01922bc63bc5b"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-64-dark/comparison-side-by-side.png",
+      "bytes": 1969,
+      "sha256": "d4f40f84252a9c8f27b0b8a951c549b0e1f6f2c025144d20ec6604911b40f6da"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-64-dark/comparison-silhouette-xor.png",
+      "bytes": 96,
+      "sha256": "8d447892b6efbc450beab391a7003090694cfcd0014d20766150112cab1675a0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-64-light/comparison-color-difference.png",
+      "bytes": 207,
+      "sha256": "9c9eb7ed565a3af086dee2cbfb27132f0c052240c6f69b019049399c82fc1df0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-64-light/comparison-overlay.png",
+      "bytes": 1689,
+      "sha256": "47042dc004430afbcbc4303a8be678953ca55877e3898c440673d8dfaaf05e59"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-64-light/comparison-side-by-side.png",
+      "bytes": 1882,
+      "sha256": "419df14618c6a928aa7e719ec42560aaafc8af2b9755d4a5c55ee723744003d2"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-64-light/comparison-silhouette-xor.png",
+      "bytes": 96,
+      "sha256": "8d447892b6efbc450beab391a7003090694cfcd0014d20766150112cab1675a0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-64-white/comparison-color-difference.png",
+      "bytes": 207,
+      "sha256": "9c9eb7ed565a3af086dee2cbfb27132f0c052240c6f69b019049399c82fc1df0"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-64-white/comparison-overlay.png",
+      "bytes": 1537,
+      "sha256": "28efb6b3a8d6fbee90f8541f16f266f85cd686eb836efb56a4a19b25e4c24da8"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-64-white/comparison-side-by-side.png",
+      "bytes": 1731,
+      "sha256": "6597be72a11613314d700c1ebf5e745f97ad42efd1f83e2eafc378ba335db944"
+    },
+    {
+      "path": "qc/identity-continuity-proofs/comparisons/reduced-64-white/comparison-silhouette-xor.png",
+      "bytes": 96,
+      "sha256": "8d447892b6efbc450beab391a7003090694cfcd0014d20766150112cab1675a0"
+    },
+    {
+      "path": "specimens/insonic-type-specimen.svg",
+      "bytes": 195238,
+      "sha256": "a4d65d24bb94f56f423a5d65823c05f76c1f77135a41846c020b30e5b8a95b4f"
+    },
+    {
+      "path": "tokens/base.css",
+      "bytes": 1610,
+      "sha256": "70c5b945408ac88d6cfef7a60cd4f9d4dc3aa4cc9db5c30e66a0ee6afcb6b0e4"
+    },
+    {
+      "path": "tokens/brand.tokens.json",
+      "bytes": 2553,
+      "sha256": "f1d8e478357094cd65dd903d7c5127c0b4620a4506d4dff9b204396473ad501b"
+    },
+    {
+      "path": "tokens/colors.css",
+      "bytes": 1858,
+      "sha256": "9dfd38ab3c52dcd7fdbd77ba3cce426a613956780976bd49d7bfdde7004d893e"
+    },
+    {
+      "path": "tokens/interface.css",
+      "bytes": 3080,
+      "sha256": "bdd5903073731de0058abed3391ba26420a8315d888fa00e7583cfd2b1d646c7"
+    },
+    {
+      "path": "tokens/spacing.css",
+      "bytes": 661,
+      "sha256": "285f58224dee64bbf3af0294aa1e564ee1b7e3ee1fc14b3049dc1d3bf3fe7686"
+    },
+    {
+      "path": "tokens/typography.css",
+      "bytes": 672,
+      "sha256": "ae3cce52c682b003461faa083f0cd07e68f8ece098d9e687db2bcef34e5188fe"
+    },
+    {
+      "path": "web/README.md",
+      "bytes": 850,
+      "sha256": "0522e417ff911d71d9b9536437bb82240900917755e145421218cc001b09be2a"
+    },
+    {
+      "path": "web/adapter.json",
+      "bytes": 1849,
+      "sha256": "cbe42ee8932eafa606477574834a5a8b829e2684986e204aef2a736fec57cf8a"
+    },
+    {
+      "path": "web/app-frame-hosts.json",
+      "bytes": 2045,
+      "sha256": "866a63ef853d1f8e98d4753222ff03351b7209a19aa1abd75fea8656a726fbf8"
+    },
+    {
+      "path": "web/component-recipes.json",
+      "bytes": 31475,
+      "sha256": "56958a818ba6c3414bad3ad8034ec03396fb52fcf5737b3cb2064d0c08dcc519"
+    },
+    {
+      "path": "web/components.css",
+      "bytes": 7427,
+      "sha256": "e35f980c85fe49298bfac26811f80f09acb064f708ccc2a0f1da1b2c0c07526d"
+    },
+    {
+      "path": "web/specimen.html",
+      "bytes": 15607,
+      "sha256": "546704012d50b9c3496b567ab6199b97f3b932abe91e06b13769079f34d0f48a"
+    },
+    {
+      "path": "web/support-matrix.json",
+      "bytes": 3041,
+      "sha256": "2b4045f5c9302440b8fb80df634295c3be4b096aa141a0f08c675f0f9680668b"
+    },
+    {
+      "path": "web/react/client.tsx",
+      "bytes": 6062,
+      "sha256": "66091a0328133091d6b808ae1de23f029f87bf69855e06dcc073afc754e70859"
+    },
+    {
+      "path": "web/react/environment.tsx",
+      "bytes": 2433,
+      "sha256": "469ceb648d6319234c889a07aa3d735fe417d8becf99925264276727f59d02e3"
+    },
+    {
+      "path": "web/react/index.ts",
+      "bytes": 115,
+      "sha256": "aa30afe7a08a1af4ae2e971d99c0577af2411cf1dad42326dd5b867794b6ac6b"
+    },
+    {
+      "path": "web/react/server.tsx",
+      "bytes": 5805,
+      "sha256": "acde7e7aea3816fe3927768ad35097f225e509f87c6d2d0347d73cbef35928c3"
+    },
+    {
+      "path": "wordpress/README.md",
+      "bytes": 1299,
+      "sha256": "0b2ee84b637322829243a6e1b739037583783be56589c1d1e1e50a9be3031b25"
+    },
+    {
+      "path": "wordpress/adapter.json",
+      "bytes": 3136,
+      "sha256": "742ae1848762e9ef7d2ab1e506a16d11bd8ffacdfd456834b294a053eb3f01ac"
+    },
+    {
+      "path": "wordpress/insonic-stbb-theme.zip",
+      "bytes": 268042,
+      "sha256": "9c54c237a595cb7965b2384917adac1d001edbcd5e9e22fe45f5fdda10a060c7"
+    },
+    {
+      "path": "wordpress/support-matrix.json",
+      "bytes": 3535,
+      "sha256": "891d4ba9dc51144ccfad450b39c87cae3122b33e289fe8fa59e57e0c05c167ba"
+    },
+    {
+      "path": "wordpress/theme-inventory.json",
+      "bytes": 4570,
+      "sha256": "15957a945c43af34a0667da6f0f1c39ba6d10b284f7183840ffdd5ae8ea3f87a"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/README.md",
+      "bytes": 660,
+      "sha256": "2aec7e20c8902b7978ce13006a87524ae62536331c3d37794d8ca64c8424ccfb"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/functions.php",
+      "bytes": 564,
+      "sha256": "8ea603bf572e2d997dad06eadcdfb887d323f98ced5c6f053a1dbab91e2d8804"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/style.css",
+      "bytes": 277,
+      "sha256": "905b7f3eff5a50ecfb869c04feddfabcefd53e9cd7bc9eef984bdde9753624e3"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/theme.json",
+      "bytes": 6208,
+      "sha256": "e477ea8aefad047fd9d1d5fffc1562d299b1fc7e0f5bf7739f60b73b2e7df1aa"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/assets/css/stbb-content.css",
+      "bytes": 1883,
+      "sha256": "2218715c503cde2a75c617ed30febeb438a09e860795c8e06c1716a96a173728"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/assets/fonts/woff2/Geist-Medium.woff2",
+      "bytes": 46356,
+      "sha256": "0b50074337a05ed834a1474d3d13fc6bd8480e2ce3075d02f1d38c017a8ac2a4"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/assets/fonts/woff2/Geist-Regular.woff2",
+      "bytes": 45172,
+      "sha256": "faed18848df4a6e1b5503b589bbbc055fbdab0e1780781edf5105457395e1e5d"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/assets/fonts/woff2/GeistMono-Regular.woff2",
+      "bytes": 50196,
+      "sha256": "c88d20967768754cbdca230acd74ecb25de78d0dc47e31694aa8bd2c528fec26"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/assets/fonts/woff2/SpaceGrotesk-Bold.woff2",
+      "bytes": 31560,
+      "sha256": "cdaf8bb228ee112c0ab784d9edd2b877cb096bad24cbbf88babeedebe197e742"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/assets/fonts/woff2/SpaceGrotesk-Medium.woff2",
+      "bytes": 32480,
+      "sha256": "6d90cc6539e794019ada4d6ffd1f4080c66b7ad1762b425f5794500c12427551"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/assets/images/insonic-horizontal-black-1024.png",
+      "bytes": 15904,
+      "sha256": "018de281b0977402503d0236c1a14ec533efedb83950c8b2c2cdfa3f9f36d3bb"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/assets/images/insonic-mark-black-1024.png",
+      "bytes": 18070,
+      "sha256": "c5897fa9578522cec3eaf639bf4a1c63d4be81943cd8082395f10277d9314b4c"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/assets/images/insonic-social-preview-1280.png",
+      "bytes": 27406,
+      "sha256": "9d59c9fe29d394b56a739a1c9cfc9c58c7f7c2d39d5169ab6ef88483412e1999"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/assets/licenses/OFL-Geist.txt",
+      "bytes": 4383,
+      "sha256": "942560b236adfa83745b2c64e5fc09ebaf91cb331751b1157eb92187e5d6e930"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/assets/licenses/OFL-Space-Grotesk.txt",
+      "bytes": 4401,
+      "sha256": "18a4de52385f6b988782639d5d0cc1326e5a8c2de9a7f01d7b20d9aedcc60943"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/parts/footer.html",
+      "bytes": 152,
+      "sha256": "3cbdcaf262c66389eaa9bcc877efc4434d37ba312952c5e3bba95d28c1b009d4"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/parts/header.html",
+      "bytes": 296,
+      "sha256": "e7e9d3a5060cd288d49649f84c7877932ace3f9c2fd8509bacbfd5100684f8d2"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/patterns/contact.php",
+      "bytes": 666,
+      "sha256": "da8d8ef130f912f55a056972b5eae3c461aa47615e3cd9e6ba585f4c59d4630a"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/patterns/features.php",
+      "bytes": 861,
+      "sha256": "cba7e68b764dd1c9dab17ceaca60545bc7a22e1bce54219d07b0115046bf91d6"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/patterns/hero.php",
+      "bytes": 665,
+      "sha256": "e6b90879ec4db2d9aaf720e845d953ed307e340922ffed03f6e80b265a2e0363"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/patterns/text-media.php",
+      "bytes": 854,
+      "sha256": "0a797bfefd2ceb5c27b4c2bb6c18f3a478a7e5a64d41a1e73c24c6ed9709f504"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/styles/dark.json",
+      "bytes": 6237,
+      "sha256": "0a36cc84a810b8c9c0ccc5519f1d484aaad6de1d4c1f2033886bb024110f881a"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/templates/404.html",
+      "bytes": 432,
+      "sha256": "ad2fef1ab803fc93cbaed2f0e95a2df580139759cd2393284c4c026a6bd68a9d"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/templates/archive.html",
+      "bytes": 606,
+      "sha256": "a927f90b60de5a2a2075346d88918dbcc88c422ccab1b8110df2bd026d644098"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/templates/index.html",
+      "bytes": 563,
+      "sha256": "89ebfa16f3fe7b2bd56dafc409d78c0ce4ee00d8610e88c4a9a0c56f360c356d"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/templates/page.html",
+      "bytes": 274,
+      "sha256": "b16a96d2a87ca71328a665108b1b2416b48b45165b636b3f906313ccb01d138a"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/templates/search.html",
+      "bytes": 670,
+      "sha256": "7c13aa9b7491a14a8111ce334ccbfd4ec599114f05b73bb903689711f74f2105"
+    },
+    {
+      "path": "wordpress/theme/stbb-insonic/templates/single.html",
+      "bytes": 296,
+      "sha256": "bbebd5c2b364fdb214c1d9e65baa0b57177cf0a8d26059551e5e837892bca078"
+    }
+  ],
+  "consumer_contract": {
+    "path": "enforcement/consumer-contract.json",
+    "schema_version": 5,
+    "versions": {
+      "canon_version": "2.0.0",
+      "interface_canon_version": "1.0.1",
+      "component_recipe_version": "1.1.0",
+      "web_react_adapter_version": "1.1.0",
+      "egui_adapter_version": "1.0.2",
+      "wordpress_adapter_version": "1.0.0",
+      "compiler_version": "3.0.1",
+      "brand_version": "1.0.0"
+    }
+  }
+}

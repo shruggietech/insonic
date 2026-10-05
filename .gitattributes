@@ -1,0 +1,7 @@
+* text=auto eol=lf
+
+# These vendored bytes are checked against upstream integrity manifests.
+brand/kit/** -text
+.specify/scripts/** -text
+.specify/templates/** -text
+.agents/skills/** -text

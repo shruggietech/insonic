@@ -1,0 +1,12 @@
+[package]
+name = "shruggie_insonic_egui"
+version = "1.0.2"
+edition = "2024"
+rust-version = "1.95"
+publish = false
+
+[dependencies]
+egui = "=0.36.1"
+
+[dev-dependencies]
+egui_kittest = "=0.36.1"
