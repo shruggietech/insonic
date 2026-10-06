@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	local "github.com/shruggietech/insonic/internal/runtime"
 	"github.com/shruggietech/insonic/internal/workspace"
@@ -17,11 +18,18 @@ import (
 func execute(args []string) int {
 	root := ""
 	machine := false
+	requestID := contracts.ID()
 	positional := []string{}
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "--json":
 			machine = true
+		case "--request-id":
+			i++
+			if i >= len(args) || !contracts.ValidID(args[i]) {
+				return output(nil, contracts.Fail("invalid_request"), machine)
+			}
+			requestID = args[i]
 		case "--workspace":
 			i++
 			if i >= len(args) {
@@ -37,7 +45,7 @@ func execute(args []string) int {
 		return 0
 	}
 	if len(positional) == 0 || (len(positional) == 1 && positional[0] == "--help") {
-		fmt.Println("insonic workspace init <directory> | workspace show | doctor | jobs start <milliseconds> | jobs show/cancel/retry <job-id> [--workspace <directory>] [--json]")
+		fmt.Println("insonic workspace init <directory> | workspace show | doctor | jobs start <milliseconds> | jobs show/cancel/retry <job-id> | jobs history <job-id> [after-generation] | catalog show/migrate | catalog export/restore <file> [--workspace <directory>] [--request-id <UUID>] [--json]")
 		return 0
 	}
 	if len(positional) == 3 && positional[0] == "workspace" && positional[1] == "init" {
@@ -63,12 +71,17 @@ func execute(args []string) int {
 	if len(positional) == 2 && positional[0] == "runtime" && positional[1] == "serve" {
 		return output(nil, local.Serve(ctx, w, local.Options{}), machine)
 	}
-	req := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, RequestID: contracts.ID()}
+	if len(positional) >= 2 && positional[0] == "catalog" && positional[1] != "show" {
+		return catalogCommand(ctx, w, positional[1:], machine)
+	}
+	req := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, RequestID: requestID}
 	if len(positional) == 1 && positional[0] == "doctor" {
 		req.Operation = "doctor"
 	} else if len(positional) == 2 && positional[0] == "workspace" && positional[1] == "show" {
 		req.Operation = "workspace.show"
-	} else if len(positional) == 3 && positional[0] == "jobs" {
+	} else if len(positional) == 2 && positional[0] == "catalog" && positional[1] == "show" {
+		req.Operation = "catalog.show"
+	} else if (len(positional) == 3 || (len(positional) == 4 && positional[1] == "history")) && positional[0] == "jobs" {
 		req.Operation = "jobs." + positional[1]
 		if positional[1] == "start" {
 			req.DurationMS, err = strconv.Atoi(positional[2])
@@ -77,11 +90,17 @@ func execute(args []string) int {
 			}
 		} else {
 			req.JobID = positional[2]
+			if len(positional) == 4 {
+				req.AfterGeneration, err = strconv.ParseInt(positional[3], 10, 64)
+				if err != nil || req.AfterGeneration < 0 {
+					return output(nil, contracts.Fail("invalid_request"), machine)
+				}
+			}
 		}
 	} else {
 		return output(nil, contracts.Fail("invalid_request"), machine)
 	}
-	if !strings.Contains("|workspace.show|doctor|jobs.start|jobs.show|jobs.cancel|jobs.retry|", "|"+req.Operation+"|") {
+	if !strings.Contains("|workspace.show|doctor|catalog.show|jobs.start|jobs.show|jobs.history|jobs.cancel|jobs.retry|", "|"+req.Operation+"|") {
 		return output(nil, contracts.Fail("invalid_request"), machine)
 	}
 	if err := local.Ensure(ctx, w, ""); err != nil {
@@ -92,6 +111,65 @@ func execute(args []string) int {
 		err = response.Error
 	}
 	return output(response, err, machine)
+}
+
+func catalogCommand(ctx context.Context, w *workspace.Workspace, args []string, machine bool) int {
+	if (len(args) != 1 || args[0] != "migrate") && (len(args) != 2 || (args[0] != "export" && args[0] != "restore")) {
+		return output(nil, contracts.Fail("invalid_request"), machine)
+	}
+	if args[0] != "export" {
+		lock, err := w.Lock()
+		if err != nil {
+			return output(nil, err, machine)
+		}
+		defer lock.Unlock()
+	}
+	secrets, err := catalog.SessionSecretsFromEnvironment()
+	if err != nil {
+		return output(nil, err, machine)
+	}
+	store, err := catalog.OpenWorkspace(ctx, w, secrets, args[0] == "migrate")
+	if err != nil {
+		return output(nil, err, machine)
+	}
+	defer store.Close()
+	if args[0] == "migrate" {
+		status, err := store.Status(ctx)
+		return output(status, err, machine)
+	}
+	if args[0] == "restore" {
+		file, err := os.Open(args[1])
+		if err != nil {
+			return output(nil, contracts.Fail("unavailable"), machine)
+		}
+		defer file.Close()
+		snap, err := catalog.ReadSnapshotReader(file)
+		if err == nil {
+			err = store.Restore(ctx, snap)
+		}
+		return output(map[string]any{"restored": err == nil}, err, machine)
+	}
+	snap, err := store.Export(ctx)
+	if err != nil {
+		return output(nil, err, machine)
+	}
+	file, err := os.OpenFile(args[1], os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		return output(nil, contracts.Fail("conflict"), machine)
+	}
+	err = json.NewEncoder(file).Encode(snap)
+	if err == nil {
+		err = file.Sync()
+	}
+	closeErr := file.Close()
+	if err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		os.Remove(args[1])
+		return output(nil, contracts.Fail("unavailable"), machine)
+	}
+	return output(map[string]any{"exported": true, "workspace_id": snap.WorkspaceID, "revision": snap.Revision, "digest": snap.Digest}, nil, machine)
 }
 
 func output(result any, err error, machine bool) int {

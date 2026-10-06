@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"encoding/json"
 	"regexp"
 )
 
@@ -35,7 +34,7 @@ func (e *Error) Error() string { return e.Code + ": " + e.Message }
 func Fail(code string) *Error {
 	message := map[string]string{
 		"invalid_request": "The request is invalid.", "incompatible_version": "The contract version is unsupported.",
-		"workspace_mismatch": "The request belongs to another workspace.", "not_found": "The item is unavailable in this runtime session.",
+		"workspace_mismatch": "The request belongs to another workspace.", "not_found": "The item is unavailable in this workspace.",
 		"conflict": "Another owner or attempt already controls this operation.", "unavailable": "The selected dependency is unavailable.",
 		"cancelled": "The operation was cancelled.", "output_limit": "The child output limit was exceeded.", "operation_failed": "The operation failed.",
 	}[code]
@@ -47,13 +46,14 @@ func Fail(code string) *Error {
 }
 
 type Request struct {
-	Kind        string `json:"kind"`
-	Version     string `json:"schema_version"`
-	WorkspaceID string `json:"workspace_id"`
-	RequestID   string `json:"request_id"`
-	Operation   string `json:"operation"`
-	JobID       string `json:"job_id,omitempty"`
-	DurationMS  int    `json:"duration_ms,omitempty"`
+	Kind            string `json:"kind"`
+	Version         string `json:"schema_version"`
+	WorkspaceID     string `json:"workspace_id"`
+	RequestID       string `json:"request_id"`
+	Operation       string `json:"operation"`
+	JobID           string `json:"job_id,omitempty"`
+	DurationMS      int    `json:"duration_ms,omitempty"`
+	AfterGeneration int64  `json:"after_generation,omitempty"`
 }
 type Response struct {
 	Kind        string `json:"kind"`
@@ -73,33 +73,8 @@ type Artifact struct {
 	ProfileID string
 	Version   string
 }
-type Revision struct {
-	WorkspaceID string
-	EntityID    string
-	Expected    uint64
-	OperationID string
-	Document    json.RawMessage
-}
-type Claim struct {
-	WorkspaceID string
-	JobID       string
-	OwnerID     string
-	Generation  uint64
-}
-type OutboxEvent struct {
-	WorkspaceID string
-	Target      string
-	Sequence    uint64
-	Revision    uint64
-	Document    json.RawMessage
-}
-type Catalog interface {
-	CommitRevision(context.Context, Revision) (uint64, error)
-	ClaimAttempt(context.Context, Claim) (Claim, error)
-	CompleteAttempt(context.Context, Claim, Revision) error
-	ClaimOutbox(context.Context, string, string) (OutboxEvent, error)
-	AcknowledgeOutbox(context.Context, Claim, OutboxEvent) error
-}
+
+// The implemented typed Catalog interface lives in internal/catalog.
 type ArtifactStore interface {
 	Publish(context.Context, string, []byte) (Artifact, error)
 	Materialize(context.Context, Artifact) (string, error)

@@ -15,6 +15,12 @@ qualify = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(qualify)
 
 class QualificationArchiveTests(unittest.TestCase):
+    def test_qualification_pins_match_actual_modules(self):
+        source = (qualify.ROOT / 'go.mod').read_text(encoding='utf-8')
+        qualify.validate_pins(source)
+        with self.assertRaises(ValueError):
+            qualify.validate_pins(source.replace('v' + qualify.LOCK['wails'], 'v0.0.1'))
+
     def test_receipt_is_json_despite_native_loader_warnings(self):
         output = b'libEGL warning: no accelerated rendering\n{"native_webview":"passed","frontend_bridge_ipc":"passed","schema_version":"0.0.0"}\n'
         expected = {'native_webview': 'passed', 'frontend_bridge_ipc': 'passed', 'schema_version': '0.0.0'}

@@ -2,6 +2,7 @@
 package workspace
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -15,11 +16,12 @@ import (
 )
 
 type Profile struct {
-	ID            string         `json:"profile_id"`
-	Revision      uint64         `json:"profile_revision"`
-	Adapter       string         `json:"adapter_id"`
-	Version       string         `json:"contract_version"`
-	Configuration map[string]any `json:"configuration"`
+	ID                     string         `json:"profile_id"`
+	Revision               int64          `json:"profile_revision"`
+	Adapter                string         `json:"adapter_id"`
+	Version                string         `json:"contract_version"`
+	Configuration          map[string]any `json:"configuration"`
+	ExpectedBackendVersion string         `json:"expected_backend_version,omitempty"`
 }
 type Config struct {
 	Version          string `json:"schema_version"`
@@ -118,7 +120,7 @@ func Init(root, name string) (*Workspace, error) {
 	}
 	config := Config{Version: contracts.Version, Kind: "workspace-config", WorkspaceID: contracts.ID(), DisplayName: name, ControlDirectory: ".insonic"}
 	profile := func(adapter string, options map[string]any) Profile {
-		return Profile{contracts.ID(), 1, adapter, contracts.Version, options}
+		return Profile{ID: contracts.ID(), Revision: 1, Adapter: adapter, Version: contracts.Version, Configuration: options}
 	}
 	config.Profiles.Storage = profile("filesystem", map[string]any{"root": "artifacts"})
 	config.Profiles.Catalog = profile("sqlite", map[string]any{"path": "catalog.sqlite"})
@@ -176,7 +178,9 @@ func Open(root string) (*Workspace, error) {
 		return nil, contracts.Fail("unavailable")
 	}
 	var config Config
-	if err := json.Unmarshal(data, &config); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber()
+	if err := decoder.Decode(&config); err != nil {
 		return nil, contracts.Fail("invalid_request")
 	}
 	if config.Version != contracts.Version {
