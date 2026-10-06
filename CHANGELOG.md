@@ -6,6 +6,10 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Portable SQLite/PostgreSQL catalogs with atomic revision/receipt admission, exact metadata/date provenance, scoped speaker/training/model records, durable job history/recovery and ordered fenced graph outbox.
+- CLI job history, catalog status, explicit migration and consistent logical export/restore with imported ownership expired.
+- Change-aware native/backend CI and qualification pin consistency checks.
+
 - Source-buildable Go workspace CLI, one current-user local runtime, shared desktop bridge, generation-fenced session attempts and hidden bounded child supervision.
 - Checksum-pinned three-OS native qualification for Cueson, Ladybug/SQLite, Wails/offline help and isolated PostgreSQL/S3/ArcadeDB fixture operations.
 
@@ -27,6 +31,7 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-05: Amend constitution to 2.1.1 for numbered linear procedures; replace four sequential diagrams while retaining branching, relationship and feedback diagrams.
 - 2026-10-05: Implement the shared runtime foundation using Go 1.27.1, Wails 2.14.0, private Unix sockets and current-user Windows pipe/directory ACLs. Keep attempts session-scoped until portable durable catalogs arrive; retain supported backend boundaries and separate native artifact availability from executed platform evidence.
 - 2026-10-05: Remove mandatory human PR approvals at the owner's direction. Bootstrap preserves zero required approvals while retaining CI and resolved-conversation gates; constitution 2.1.2 separates optional PR approval from merge authorization.
+- 2026-10-05: Implement S002 catalog authority using shared typed portable SQL, short workspace transactions, expiring ownership and atomic receipts. Keep qualified dependency pins; separate migration permissions from runtime data permissions. Restore only empty authority, expire imported claims and keep native/encrypted credential persistence and media/graph execution in their subsequent slices.
 - Bind landing hero and page metadata to approved upstream slogan and description fields; expand syntax highlighting for JSON and CLI examples.
 - Support optional validated read-only AI query execution through the configured assistance mode.
 - Subdivide workspace/runtime, catalog/jobs, artifact storage and secrets/model-registry development into four focused slices; renumber the remaining application slices through S015.

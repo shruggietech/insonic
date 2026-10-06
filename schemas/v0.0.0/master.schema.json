@@ -48,6 +48,10 @@
       "$ref": "speaker-model.schema.json",
       "description": "Immutable model versions, originating speaker, dataset/run lineage, compatibility and artifact retrieval."
     },
+    "catalog-snapshot": {
+      "$ref": "catalog-snapshot.schema.json",
+      "description": "Consistent portable catalog export with typed records, operational history and fenced restoration."
+    },
     "runtime-request": {
       "$ref": "runtime-request.schema.json",
       "description": "Versioned shared-runtime operation envelope."
@@ -58,6 +62,7 @@
     }
   },
   "oneOf": [
+    { "$ref": "#/$defs/catalog-snapshot" },
     {
       "$ref": "#/$defs/import-manifest"
     },

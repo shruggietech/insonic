@@ -24,6 +24,7 @@
     "revision": {
       "type": "integer",
       "minimum": 1,
+      "maximum": 9223372036854775807,
       "description": "Monotonically increasing logical revision within one entity or ordered revision stream. Expected-revision checks prevent lost updates; database-native sequences are not exposed as identity.",
       "examples": [
         1

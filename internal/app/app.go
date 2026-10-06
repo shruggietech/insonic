@@ -3,141 +3,229 @@ package app
 
 import (
 	"context"
+	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"sync"
 	"time"
 )
 
-type Attempt struct {
-	JobID       string `json:"job_id"`
-	AttemptID   string `json:"attempt_id"`
-	WorkspaceID string `json:"workspace_id"`
-	SessionID   string `json:"runtime_session_id"`
-	Generation  uint64 `json:"claim_generation"`
-	State       string `json:"state"`
-	DurationMS  int    `json:"duration_ms"`
-}
-type entry struct {
-	Attempt
-	cancel   context.CancelFunc
-	sequence uint64
+type Attempt = catalog.Attempt
+type worker struct {
+	attempt Attempt
+	cancel  context.CancelFunc
 }
 type App struct {
 	Workspace *workspace.Workspace
 	Session   string
+	Catalog   catalog.Catalog
 	mu        sync.Mutex
-	attempts  map[string]*entry
-	sequence  uint64
+	attempts  map[string]*worker
+	ctx       context.Context
+	cancel    context.CancelFunc
+	wg        sync.WaitGroup
+	closed    bool
 }
 
-func New(w *workspace.Workspace) *App {
-	return &App{Workspace: w, Session: contracts.ID(), attempts: make(map[string]*entry)}
-}
+const leaseTTL = 5 * time.Second
 
-func (a *App) start(id string, generation uint64, duration int) Attempt {
-	ctx, cancel := context.WithCancel(context.Background())
-	attempt := Attempt{id, contracts.ID(), a.Workspace.Config.WorkspaceID, a.Session, generation, "running", duration}
-	a.sequence++
-	a.attempts[id] = &entry{Attempt: attempt, cancel: cancel, sequence: a.sequence}
+func New(w *workspace.Workspace) (*App, error) {
+	return NewContext(context.Background(), w)
+}
+func NewContext(ownerContext context.Context, w *workspace.Workspace) (*App, error) {
+	secrets, err := catalog.SessionSecretsFromEnvironment()
+	if err != nil {
+		return nil, err
+	}
+	return newOwnerContext(ownerContext, w, secrets)
+}
+func NewWithSecrets(w *workspace.Workspace, secrets contracts.SecretProvider) (*App, error) {
+	return newOwnerContext(context.Background(), w, secrets)
+}
+func newOwnerContext(ownerContext context.Context, w *workspace.Workspace, secrets contracts.SecretProvider) (*App, error) {
+	ctx, cancel := context.WithCancel(ownerContext)
+	openCtx, stop := context.WithTimeout(ctx, 10*time.Second)
+	store, err := catalog.OpenWorkspace(openCtx, w, secrets, false)
+	stop()
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+	if err = store.RegisterWorkspace(ctx, w); err != nil {
+		cancel()
+		store.Close()
+		return nil, err
+	}
+	a := &App{Workspace: w, Session: contracts.ID(), Catalog: store, attempts: map[string]*worker{}, ctx: ctx, cancel: cancel}
+	recovered, err := store.Recover(ctx, a.Session, leaseTTL)
+	if err != nil {
+		cancel()
+		store.Close()
+		return nil, err
+	}
+	for _, r := range recovered {
+		a.attach(r)
+	}
+	a.wg.Add(1)
 	go func() {
-		timer := time.NewTimer(time.Duration(duration) * time.Millisecond)
+		defer a.wg.Done()
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				a.mu.Lock()
+				if a.closed {
+					a.mu.Unlock()
+					return
+				}
+				claims := make([]Attempt, 0, len(a.attempts))
+				for _, w := range a.attempts {
+					claims = append(claims, w.attempt)
+				}
+				live, renewalErr := store.RenewClaims(ctx, a.Session, claims, leaseTTL)
+				for id, w := range a.attempts {
+					if renewalErr != nil || !live[w.attempt.AttemptID] {
+						w.cancel()
+						delete(a.attempts, id)
+					}
+				}
+				var recovered []Attempt
+				var err error
+				if len(a.attempts) < 1024 {
+					recovered, err = store.RecoverLimit(ctx, a.Session, leaseTTL, min(128, 1024-len(a.attempts)))
+				}
+				if err == nil {
+					for _, r := range recovered {
+						a.attach(r)
+					}
+				}
+				a.mu.Unlock()
+			}
+		}
+	}()
+	return a, nil
+}
+
+// Caller holds mu after construction. Only current durable authority is attached.
+func (a *App) attach(attempt Attempt) {
+	if a.closed || attempt.State != "running" || attempt.SessionID != a.Session {
+		return
+	}
+	current, err := a.Catalog.ShowJob(a.ctx, attempt.JobID)
+	if err != nil || current.AttemptID != attempt.AttemptID || current.State != "running" {
+		return
+	}
+	if old := a.attempts[attempt.JobID]; old != nil {
+		if old.attempt.AttemptID == attempt.AttemptID {
+			return
+		}
+		old.cancel()
+	}
+	ctx, cancel := context.WithCancel(a.ctx)
+	a.attempts[attempt.JobID] = &worker{attempt: attempt, cancel: cancel}
+	a.wg.Add(1)
+	go func() {
+		defer a.wg.Done()
+		// Work duration is monotonic and relative; server audit clock skew must
+		// not shorten or extend the qualification operation.
+		timer := time.NewTimer(time.Duration(attempt.DurationMS) * time.Millisecond)
 		defer timer.Stop()
 		select {
 		case <-ctx.Done():
 			return
 		case <-timer.C:
-			a.Complete(id, generation, "succeeded")
+			a.Complete(attempt.JobID, attempt.Generation, "succeeded")
 		}
 	}()
-	return attempt
 }
-func (a *App) Start(duration int) (Attempt, error) {
-	if duration < 1 || duration > 60000 {
-		return Attempt{}, contracts.Fail("invalid_request")
-	}
+func (a *App) Start(duration int) (Attempt, error) { return a.startRequest(contracts.ID(), duration) }
+func (a *App) startRequest(op string, duration int) (Attempt, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if a.closed {
+		return Attempt{}, contracts.Fail("unavailable")
+	}
 	if len(a.attempts) >= 1024 {
-		oldest := ""
-		var sequence uint64
-		for id, attempt := range a.attempts {
-			if attempt.State != "running" && (oldest == "" || attempt.sequence < sequence) {
-				oldest, sequence = id, attempt.sequence
-			}
+		return a.Catalog.ReconcileJob(a.ctx, op, "start", "", duration)
+	}
+	out, err := a.Catalog.StartJob(a.ctx, op, a.Session, duration, leaseTTL)
+	if err == nil {
+		a.attach(out)
+	}
+	return out, err
+}
+func (a *App) Show(id string) (Attempt, error)   { return a.Catalog.ShowJob(a.ctx, id) }
+func (a *App) Cancel(id string) (Attempt, error) { return a.cancelRequest(contracts.ID(), id) }
+func (a *App) cancelRequest(op, id string) (Attempt, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.closed {
+		return Attempt{}, contracts.Fail("unavailable")
+	}
+	out, err := a.Catalog.CancelJob(a.ctx, op, id)
+	if err == nil {
+		if w := a.attempts[id]; w != nil && w.attempt.AttemptID == out.AttemptID && out.State != "running" {
+			w.cancel()
+			delete(a.attempts, id)
 		}
-		if oldest == "" {
-			return Attempt{}, contracts.Fail("conflict")
-		}
-		delete(a.attempts, oldest)
 	}
-	return a.start(contracts.ID(), 1, duration), nil
+	return out, err
 }
-func (a *App) Show(id string) (Attempt, error) {
+func (a *App) Retry(id string) (Attempt, error) { return a.retryRequest(contracts.ID(), id) }
+func (a *App) retryRequest(op, id string) (Attempt, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	e, ok := a.attempts[id]
-	if !ok {
-		return Attempt{}, contracts.Fail("not_found")
+	if a.closed {
+		return Attempt{}, contracts.Fail("unavailable")
 	}
-	return e.Attempt, nil
+	if len(a.attempts) >= 1024 {
+		return a.Catalog.ReconcileJob(a.ctx, op, "retry", id, 0)
+	}
+	out, err := a.Catalog.RetryJob(a.ctx, op, id, a.Session, leaseTTL)
+	if err == nil {
+		a.attach(out)
+	}
+	return out, err
 }
-func (a *App) Cancel(id string) (Attempt, error) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	e, ok := a.attempts[id]
-	if !ok {
-		return Attempt{}, contracts.Fail("not_found")
-	}
-	if e.State == "running" {
-		e.State = "cancelled"
-		e.cancel()
-	}
-	return e.Attempt, nil
-}
-func (a *App) Retry(id string) (Attempt, error) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	e, ok := a.attempts[id]
-	if !ok {
-		return Attempt{}, contracts.Fail("not_found")
-	}
-	if e.State != "cancelled" && e.State != "failed" {
-		return Attempt{}, contracts.Fail("conflict")
-	}
-	return a.start(id, e.Generation+1, e.DurationMS), nil
-}
-func (a *App) Complete(id string, generation uint64, state string) bool {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	e, ok := a.attempts[id]
-	if !ok || e.Generation != generation || e.State != "running" || (state != "succeeded" && state != "failed") {
+func (a *App) Complete(id string, generation int64, state string) bool {
+	if state != "succeeded" && state != "failed" {
 		return false
 	}
-	e.State = state
-	e.cancel()
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	w := a.attempts[id]
+	if a.closed || w == nil || w.attempt.Generation != generation {
+		return false
+	}
+	if err := a.Catalog.Complete(a.ctx, w.attempt, state); err != nil {
+		// Stop renewal after an unknown/failed acceptance; recovery reconciles
+		// durable authority instead of leaving a finished worker alive forever.
+		w.cancel()
+		delete(a.attempts, id)
+		return false
+	}
+	w.cancel()
+	delete(a.attempts, id)
 	return true
 }
-func (a *App) Active() int {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	n := 0
-	for _, e := range a.attempts {
-		if e.State == "running" {
-			n++
-		}
-	}
-	return n
-}
+func (a *App) Active() int { a.mu.Lock(); defer a.mu.Unlock(); return len(a.attempts) }
 func (a *App) Close() {
 	a.mu.Lock()
-	defer a.mu.Unlock()
-	for _, e := range a.attempts {
-		e.cancel()
-		if e.State == "running" {
-			e.State = "cancelled"
-		}
+	if a.closed {
+		a.mu.Unlock()
+		return
 	}
+	a.closed = true
+	a.cancel()
+	a.mu.Unlock()
+	a.wg.Wait()
+	ctx, stop := context.WithTimeout(context.Background(), 5*time.Second)
+	defer stop()
+	a.Catalog.InterruptOwner(ctx, a.Session)
+	a.Catalog.Close()
 }
 
 func (a *App) Dispatch(req contracts.Request) contracts.Response {
@@ -153,9 +241,8 @@ func (a *App) Dispatch(req contracts.Request) contracts.Response {
 		response.Error = contracts.Fail("workspace_mismatch")
 		return response
 	}
-	if req.Kind != "runtime-request" || !contracts.ValidID(req.RequestID) ||
-		(req.Operation != "jobs.start" && req.DurationMS != 0) ||
-		(req.Operation != "jobs.show" && req.Operation != "jobs.cancel" && req.Operation != "jobs.retry" && req.JobID != "") {
+	jobOp := req.Operation == "jobs.show" || req.Operation == "jobs.cancel" || req.Operation == "jobs.retry" || req.Operation == "jobs.history"
+	if req.Kind != "runtime-request" || !contracts.ValidID(req.RequestID) || (req.Operation != "jobs.start" && req.DurationMS != 0) || (!jobOp && req.JobID != "") || (req.Operation != "jobs.history" && req.AfterGeneration != 0) {
 		response.Error = contracts.Fail("invalid_request")
 		return response
 	}
@@ -163,24 +250,29 @@ func (a *App) Dispatch(req contracts.Request) contracts.Response {
 	var err error
 	switch req.Operation {
 	case "workspace.show":
-		result = map[string]any{"workspace_id": req.WorkspaceID, "display_name": a.Workspace.Config.DisplayName, "adapters": []string{a.Workspace.Config.Profiles.Storage.Adapter, a.Workspace.Config.Profiles.Catalog.Adapter, a.Workspace.Config.Profiles.Graph.Adapter}}
+		result = map[string]any{"workspace_id": req.WorkspaceID, "display_name": a.Workspace.Config.DisplayName, "adapters": []string{a.Workspace.Config.Profiles.Storage.Adapter, a.Catalog.Backend(), a.Workspace.Config.Profiles.Graph.Adapter}}
+	case "catalog.show":
+		result, err = a.Catalog.Status(a.ctx)
 	case "doctor":
 		paths, pathErr := workspace.PlatformPaths()
 		err = pathErr
-		result = map[string]any{"paths": paths, "attempt_persistence": "runtime-session", "adapters": []contracts.Capability{{AdapterID: a.Workspace.Config.Profiles.Storage.Adapter, ContractVersion: contracts.Version, State: "configured", Operations: []string{}}, {AdapterID: a.Workspace.Config.Profiles.Catalog.Adapter, ContractVersion: contracts.Version, State: "configured", Operations: []string{}}, {AdapterID: a.Workspace.Config.Profiles.Graph.Adapter, ContractVersion: contracts.Version, State: "configured", Operations: []string{}}}}
+		result = map[string]any{"paths": paths, "attempt_persistence": "durable", "adapters": []contracts.Capability{{AdapterID: a.Workspace.Config.Profiles.Storage.Adapter, ContractVersion: contracts.Version, State: "configured", Operations: []string{}}, {AdapterID: a.Catalog.Backend(), ContractVersion: contracts.Version, State: "available", Operations: []string{"revisions", "jobs", "outbox", "snapshot"}}, {AdapterID: a.Workspace.Config.Profiles.Graph.Adapter, ContractVersion: contracts.Version, State: "configured", Operations: []string{}}}}
 	case "jobs.start":
-		result, err = a.Start(req.DurationMS)
-	case "jobs.show", "jobs.cancel", "jobs.retry":
+		result, err = a.startRequest(req.RequestID, req.DurationMS)
+	case "jobs.show", "jobs.cancel", "jobs.retry", "jobs.history":
 		if !contracts.ValidID(req.JobID) {
 			err = contracts.Fail("invalid_request")
 			break
 		}
-		if req.Operation == "jobs.show" {
+		switch req.Operation {
+		case "jobs.show":
 			result, err = a.Show(req.JobID)
-		} else if req.Operation == "jobs.cancel" {
-			result, err = a.Cancel(req.JobID)
-		} else {
-			result, err = a.Retry(req.JobID)
+		case "jobs.cancel":
+			result, err = a.cancelRequest(req.RequestID, req.JobID)
+		case "jobs.retry":
+			result, err = a.retryRequest(req.RequestID, req.JobID)
+		case "jobs.history":
+			result, err = a.Catalog.HistoryPage(a.ctx, req.JobID, req.AfterGeneration)
 		}
 	default:
 		err = contracts.Fail("invalid_request")

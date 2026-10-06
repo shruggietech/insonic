@@ -2,7 +2,7 @@
 
 ## One versioned system schema
 
-insonic uses [JSON Schema Draft 2020-12](https://json-schema.org/draft/2020-12) for configuration, import, artifact/metadata interchange, durable job events, graph queries and speaker-training/model manifests. A system-wide master schema contains a registry of all insonic-owned contracts and selects documents through their `kind`. Shared definitions provide consistent identifiers, digests, revisions and artifact references. Cueson retains its own immutable upstream subtitle schema; insonic references its validated artifacts without redefining that format.
+insonic uses [JSON Schema Draft 2020-12](https://json-schema.org/draft/2020-12) for configuration, import, artifact/metadata interchange, portable catalog snapshots, durable job events, graph queries and speaker-training/model manifests. A system-wide master schema contains a registry of all insonic-owned contracts and selects documents through their `kind`. Shared definitions provide consistent identifiers, digests, revisions and artifact references. Cueson retains its own immutable upstream subtitle schema; insonic references its validated artifacts without redefining that format.
 
 The master and child schemas live in `schemas/v<version>/`. Every release has the same software, documentation and master-schema version. A document declares `schema_version` and `kind`; the registry resolves its exact child contract. Tagged canonical schema IDs identify release resources, and the packaged registry resolves them offline. Schema files carry descriptions and examples for fields and complete documents. The documentation build reads those fields to produce the contract reference below and packages the JSON files beside it.
 

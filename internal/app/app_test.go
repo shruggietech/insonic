@@ -1,17 +1,44 @@
 package app
 
 import (
+	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"testing"
 	"time"
 )
+
+func TestCancelReplayDoesNotDetachRetriedWork(t *testing.T) {
+	w, e := workspace.Init(t.TempDir(), "cancel replay")
+	if e != nil {
+		t.Fatal(e)
+	}
+	a := mustNew(t, w)
+	first, e := a.Start(60000)
+	if e != nil {
+		t.Fatal(e)
+	}
+	op := contracts.ID()
+	if _, e = a.cancelRequest(op, first.JobID); e != nil {
+		t.Fatal(e)
+	}
+	next, e := a.Retry(first.JobID)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if old, e := a.cancelRequest(op, first.JobID); e != nil || old.AttemptID != first.AttemptID {
+		t.Fatal("cancel reconciliation", e)
+	}
+	if a.Active() != 1 || !a.Complete(next.JobID, next.Generation, "succeeded") {
+		t.Fatal("old cancellation detached the new attempt")
+	}
+}
 
 func TestAttemptsFenceRetryAndCancellation(t *testing.T) {
 	w, err := workspace.Init(t.TempDir(), "test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	a := New(w)
+	a := mustNew(t, w)
 	first, err := a.Start(1000)
 	if err != nil {
 		t.Fatal(err)
@@ -43,7 +70,7 @@ func TestDisconnectedClientDoesNotOwnWork(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a := New(w)
+	a := mustNew(t, w)
 	job, err := a.Start(20)
 	if err != nil {
 		t.Fatal(err)
@@ -53,11 +80,50 @@ func TestDisconnectedClientDoesNotOwnWork(t *testing.T) {
 	if err != nil || got.State != "succeeded" {
 		t.Fatalf("runtime work: %+v %v", got, err)
 	}
-	other := New(w)
+	a.Close()
+	other := mustNew(t, w)
 	if other.Session == a.Session {
 		t.Fatal("restart session reused")
 	}
-	if _, err := other.Show(job.JobID); err == nil {
-		t.Fatal("old session job manufactured")
+	if got, err := other.Show(job.JobID); err != nil || got.State != "succeeded" {
+		t.Fatal("durable job lost after restart")
+	}
+}
+
+func mustNew(t *testing.T, w *workspace.Workspace) *App {
+	t.Helper()
+	a, err := New(w)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(a.Close)
+	return a
+}
+func TestRestartRecoversInterruptedWork(t *testing.T) {
+	w, err := workspace.Init(t.TempDir(), "recovery")
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := mustNew(t, w)
+	first, err := a.Start(1000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.Close()
+	next := mustNew(t, w)
+	got, err := next.Show(first.JobID)
+	if err != nil || got.AttemptID == first.AttemptID || got.Generation != first.Generation+1 || got.Reason != "recovery" {
+		t.Fatalf("recovery %+v %v", got, err)
+	}
+	history, err := next.Catalog.History(next.ctx, got.JobID)
+	if err != nil || len(history) != 2 || history[0].State != "interrupted" {
+		t.Fatalf("history %+v %v", history, err)
+	}
+	next.Cancel(got.JobID)
+	next.Close()
+	last := mustNew(t, w)
+	got, err = last.Show(first.JobID)
+	if err != nil || got.State != "cancelled" {
+		t.Fatalf("cancelled recovery %+v %v", got, err)
 	}
 }

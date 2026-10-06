@@ -26,6 +26,22 @@ Profiles contain adapter ID/version, nonsecret options and credential references
 
 No backend is silently substituted after failure. The local defaults need no server administration. Remote alternatives require the user's configured service and credentials; their installation/deployment guidance is separate from normal desktop installation.
 
+## Catalog operation and transfer
+
+The shared catalog provides revision-checked settings and immutable typed metadata/date records, scoped speaker/corpus/training/model relationships, durable job attempts, expiring workspace ownership and ordered graph events. Their processing and projection producers remain separate implementation work. SQL and connection details stay inside the adapter. Audit instants retain ISO text and exact signed nanoseconds; reports/options use lossless JSON alongside typed relationship columns.
+
+SQLite opens the selected local file with foreign keys on every connection, immediate writer transactions, WAL and full synchronization. PostgreSQL uses a dedicated schema, short workspace-row ownership transactions and server time sampled after locking. Both accept operation IDs and intent digests atomically with revisions and receipts; retrying the same intent reconciles an unknown acceptance outcome. An obsolete attempt cannot renew or publish after expiry, cancellation or takeover. Outbox consumers receive only the next unacknowledged target event and acknowledge under current fenced ownership.
+
+`catalog show --json` reports selected catalog identity, schema and revision. `catalog export <file>` writes a consistent versioned logical snapshot into a new private file; it refuses to overwrite existing output. `catalog restore <file>` accepts an empty catalog with the same workspace identity, verifies the snapshot digest and relational constraints, restores in one transaction and expires imported claims. Preserve the original workspace configuration/identity while selecting an empty destination catalog. Export does not copy artifact bytes or switch configured profiles. Restore and explicit migration require the local owner to be stopped; an idle owner exits automatically.
+
+`jobs history <job-id> [after-generation] --json` returns up to 128 attempts and a nullable `next_generation` cursor. Pass that cursor as `after-generation` to read the next page. `--request-id <UUID>` lets clients retry a start, cancel or retry operation after a lost response with the same identity and intent. Restore inputs are limited to 64 MiB; artifact bytes remain in their configured store.
+
+An optional profile `expected_backend_version` constrains the selected catalog's actual engine version. Use an exact dotted version or comma-separated comparisons such as `>=18,<19` (up to eight comparisons). The constraint is preserved in immutable profile revisions and snapshots; an incompatible engine prevents startup.
+
+For PostgreSQL, configure host, port, database, dedicated schema, TLS mode and optional CA/credential reference in the catalog profile. `verify-full` verifies certificate and hostname; `local` explicitly selects unencrypted local transport. `catalog migrate` provisions the selected schema using migration authority. Runtime opening of an existing schema needs ordinary catalog data permissions, not schema-creation rights. No PostgreSQL environment connection defaults or pgpass routing override the selected profile, and no backend is silently substituted.
+
+The runtime resolves PostgreSQL credentials through an injected provider or the explicitly selected `INSONIC_SESSION_CREDENTIALS` transient mapping of credential IDs to username/password objects. Resolved values stay in memory and never enter snapshots, jobs, receipts or diagnostics. Persistent native/encrypted credential storage remains a separate secrets-service implementation. A missing configured credential returns unavailable rather than falling back to plaintext persistence or a different catalog.
+
 ## Workspace and artifact layout
 
 A workspace has a stable identity and a user-selected local control directory. First run suggests a location and estimates capacity. Several workspaces can share downloaded base models while keeping media, speaker models and catalogs logically separate. A remote artifact store or catalog does not eliminate local scratch, decoding materializations or the control directory.

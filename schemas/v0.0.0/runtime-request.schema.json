@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/runtime-request.schema.json",
   "title": "Runtime request",
-  "description": "A bounded local runtime operation correlated to a workspace and request. Session attempt operations are not durable catalog jobs.",
+  "description": "A bounded local runtime operation correlated to a workspace and request. Job operations use durable catalog attempts and idempotent acceptance.",
   "type": "object",
   "required": [
     "schema_version",
@@ -33,16 +33,24 @@
       "enum": [
         "workspace.show",
         "doctor",
+        "catalog.show",
         "jobs.start",
         "jobs.show",
         "jobs.cancel",
-        "jobs.retry"
+        "jobs.retry",
+        "jobs.history"
       ],
       "description": "Shared operation selected by either client."
     },
     "job_id": {
       "$ref": "common.schema.json#/$defs/uuid",
-      "description": "Runtime-session attempt group to inspect, cancel or retry."
+      "description": "Durable job identity to inspect, view history, cancel or retry."
+    },
+    "after_generation": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9223372036854775807,
+      "description": "Exclusive attempt generation cursor for bounded job history pages."
     },
     "duration_ms": {
       "type": "integer",
@@ -52,6 +60,10 @@
     }
   },
   "allOf": [
+    {
+      "if": { "not": { "properties": { "operation": { "const": "jobs.history", "description": "History operation accepting a generation cursor." } } } },
+      "then": { "not": { "required": ["after_generation"] } }
+    },
     {
       "if": {
         "properties": {
@@ -79,7 +91,8 @@
             "enum": [
               "jobs.show",
               "jobs.cancel",
-              "jobs.retry"
+              "jobs.retry",
+        "jobs.history"
             ],
             "description": "Existing attempt operation discriminator."
           }
@@ -102,7 +115,8 @@
           "operation": {
             "enum": [
               "workspace.show",
-              "doctor"
+              "doctor",
+        "catalog.show"
             ],
             "description": "Workspace inspection operation discriminator."
           }

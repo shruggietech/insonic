@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/app"
+	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/process"
 	"github.com/shruggietech/insonic/internal/workspace"
@@ -35,6 +36,9 @@ func frame(reader io.Reader) ([]byte, error) {
 	return data, nil
 }
 func decode(data []byte, target any) error {
+	if catalog.ValidateJSON(data) != nil {
+		return contracts.Fail("invalid_request")
+	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
 	if decoder.Decode(target) != nil {
@@ -58,10 +62,13 @@ func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
 		return err
 	}
 	defer cleanup()
-	application := app.New(w)
-	defer application.Close()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
+	application, err := app.NewContext(ctx, w)
+	if err != nil {
+		return err
+	}
+	defer application.Close()
 	if options.Idle <= 0 {
 		options.Idle = 30 * time.Second
 	}

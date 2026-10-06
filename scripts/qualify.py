@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import platform
+import re
 import shutil
 import subprocess
 import sys
@@ -22,6 +23,16 @@ ROOT = Path(__file__).resolve().parent.parent
 LOCK = json.loads((ROOT / 'internal/qualification/dependencies.json').read_text(encoding='utf-8'))
 VERSION = json.loads((ROOT / 'package.json').read_text(encoding='utf-8'))['version']
 BUILD = ROOT / 'build/native'
+
+def validate_pins(go_mod=None, lock=None):
+    source = (ROOT / 'go.mod').read_text(encoding='utf-8') if go_mod is None else go_mod
+    selected = LOCK if lock is None else lock
+    expected = {'go': selected['go'], 'github.com/wailsapp/wails/v2': 'v' + selected['wails'],
+                'github.com/LadybugDB/go-ladybug': selected['ladybug']['binding']}
+    for dependency, version in expected.items():
+        match = re.search(r'^\s*' + re.escape(dependency) + r'\s+(\S+)', source, re.MULTILINE)
+        if not match or match.group(1) != version:
+            raise ValueError('qualification dependency pin differs: ' + dependency)
 
 def child(args, *, env=None, timeout=180, allow_detached=False):
     merged = os.environ.copy()
@@ -233,7 +244,12 @@ def cli():
         second = json.loads(child([executable, '--workspace', directory, 'workspace', 'show', '--json']))
         if first['runtime_session_id'] != second['runtime_session_id']:
             raise ValueError('CLI clients reached different owners')
-        started = json.loads(child([executable, '--workspace', directory, 'jobs', 'start', '1000', '--json']))
+        request_id = '10000000-0000-4000-8000-000000000002'
+        start_args = [executable, '--workspace', directory, '--request-id', request_id, 'jobs', 'start', '1000', '--json']
+        started = json.loads(child(start_args))
+        replayed = json.loads(child(start_args))
+        if replayed['result']['attempt_id'] != started['result']['attempt_id']:
+            raise ValueError('lost-response job acceptance reconciliation')
         job = started['result']['job_id']
         child([executable, '--workspace', directory, 'jobs', 'cancel', job, '--json'])
         retried = json.loads(child([executable, '--workspace', directory, 'jobs', 'retry', job, '--json']))
@@ -241,11 +257,21 @@ def cli():
             raise ValueError('retry generation')
         child([executable, '--workspace', directory, 'jobs', 'cancel', job, '--json'])
         # Owner remains alive until idle exit; wait before removing its private files.
+        history = json.loads(child([executable, '--workspace', directory, 'jobs', 'history', job, '--json']))
+        if len(history['result']['attempts']) != 2 or any(attempt['state'] != 'cancelled' for attempt in history['result']['attempts']):
+            raise ValueError('durable cancellation/retry history')
         import time
         time.sleep(31)
-    (BUILD / 'cli-receipt.json').write_text(json.dumps({'owner_reuse': 'passed', 'cancel_retry': 'passed'}) + '\n', encoding='utf-8')
+        snapshot = Path(directory) / 'catalog-export.json'
+        child([executable, '--workspace', directory, 'catalog', 'export', snapshot, '--json'])
+        exported = json.loads(snapshot.read_text(encoding='utf-8'))
+        attempts = next(table['rows'] for table in exported['state'] if table['name'] == 'job_attempt')
+        if len(attempts) != 2 or any(attempt[4] != 'cancelled' for attempt in attempts):
+            raise ValueError('catalog history did not survive owner exit')
+    (BUILD / 'cli-receipt.json').write_text(json.dumps({'owner_reuse': 'passed', 'cancel_retry': 'passed', 'durable_history': 'passed'}) + '\n', encoding='utf-8')
 
 if __name__ == '__main__':
+    validate_pins()
     parser = argparse.ArgumentParser()
     parser.add_argument('stage', choices=['prepare', 'native', 'assets', 'desktop', 'cli', 'secrets'])
     options = parser.parse_args()

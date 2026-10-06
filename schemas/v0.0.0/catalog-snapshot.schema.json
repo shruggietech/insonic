@@ -1,0 +1,1128 @@
+{
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/catalog-snapshot.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Consistent logical catalog export with typed provenance and ordered operational rows. Restoration verifies digest, workspace, supported migration version and all relationships, admits only an empty destination and expires imported authority. It does not copy artifact bytes or activate a different profile.",
+  "examples": [
+    {
+      "kind": "catalog-snapshot",
+      "schema_version": "0.0.0",
+      "catalog_schema": 1,
+      "workspace_id": "10000000-0000-4000-8000-000000000001",
+      "revision": 0,
+      "records": {
+        "profiles": null,
+        "artifacts": null,
+        "locations": null,
+        "media": null,
+        "assets": null,
+        "media_assets": null,
+        "metadata": null,
+        "observations": null,
+        "dates": null,
+        "date_selections": null,
+        "speakers": null,
+        "segments": null,
+        "datasets": null,
+        "members": null,
+        "runs": null,
+        "models": null,
+        "versions": null,
+        "model_artifacts": null,
+        "model_associations": null
+      },
+      "state": [
+        {
+          "name": "operation_receipt",
+          "rows": []
+        },
+        {
+          "name": "setting_revision",
+          "rows": []
+        },
+        {
+          "name": "job",
+          "rows": []
+        },
+        {
+          "name": "job_attempt",
+          "rows": []
+        },
+        {
+          "name": "workspace_lease",
+          "rows": []
+        },
+        {
+          "name": "graph_target",
+          "rows": []
+        },
+        {
+          "name": "graph_event",
+          "rows": []
+        }
+      ],
+      "digest": "17c5708b98f6e943d890677b193f530dcc759356a9501269ed7a3443f0919d1f"
+    }
+  ],
+  "properties": {
+    "catalog_schema": {
+      "const": 1,
+      "description": "Portable migration schema version supported by this catalog."
+    },
+    "digest": {
+      "$ref": "common.schema.json#/$defs/sha256",
+      "description": "SHA-256 of losslessly canonicalized snapshot with digest set to an empty string; checked during restoration."
+    },
+    "kind": {
+      "const": "catalog-snapshot",
+      "description": "Master-registry document discriminator."
+    },
+    "records": {
+      "additionalProperties": false,
+      "description": "Typed Records record with scoped associations.",
+      "properties": {
+        "artifacts": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Artifact record with scoped associations.",
+            "properties": {
+              "digest": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "kind": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "size": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "digest",
+              "size",
+              "kind"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "assets": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Asset record with scoped associations.",
+            "properties": {
+              "artifact_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "duration_us": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "role": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "artifact_id",
+              "role",
+              "duration_us"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "datasets": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Dataset record with scoped associations.",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "manifest_artifact_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "options": {
+                "description": "Lossless structured report/options value; credentials remain references."
+              },
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              }
+            },
+            "required": [
+              "id",
+              "speaker_id",
+              "manifest_artifact_id",
+              "options"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "date_selections": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed DateSelection record with scoped associations.",
+            "properties": {
+              "date_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Workspace-scoped stable identity; relational provenance is validated by the adapter."
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "media_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "policy": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "reason": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "revision": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "media_id",
+              "revision",
+              "date_id",
+              "policy",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "dates": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed DateObservation record with scoped associations.",
+            "properties": {
+              "basis": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "literal": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "media_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "observation_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Workspace-scoped stable identity; relational provenance is validated by the adapter."
+              },
+              "offset_seconds": {
+                "anyOf": [
+                  {
+                    "description": "Exact signed integer value; adapter enforces the logical field range.",
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              },
+              "precision": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "resolved": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/utcInstant",
+                    "description": "Exact ISO/Unix-nanosecond audit instant; adapter checks agreement."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              },
+              "rules_version": {
+                "anyOf": [
+                  {
+                    "description": "Typed text value retained without reinterpretation.",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              },
+              "zone": {
+                "anyOf": [
+                  {
+                    "description": "Typed text value retained without reinterpretation.",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              }
+            },
+            "required": [
+              "id",
+              "media_id",
+              "observation_id",
+              "basis",
+              "literal",
+              "zone",
+              "offset_seconds",
+              "rules_version",
+              "precision",
+              "resolved"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "locations": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed ArtifactLocation record with scoped associations.",
+            "properties": {
+              "artifact_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "key": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "profile_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "profile_revision": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              },
+              "state": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "version": {
+                "anyOf": [
+                  {
+                    "description": "Typed text value retained without reinterpretation.",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              }
+            },
+            "required": [
+              "id",
+              "artifact_id",
+              "profile_id",
+              "profile_revision",
+              "key",
+              "version",
+              "state"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "media": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Media record with scoped associations.",
+            "properties": {
+              "class": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "title": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "class"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "media_assets": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed MediaAsset record with scoped associations.",
+            "properties": {
+              "asset_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "media_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "role": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "media_id",
+              "asset_id",
+              "role"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "members": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed DatasetMember record with scoped associations.",
+            "properties": {
+              "dataset_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "ordinal": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              },
+              "segment_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "segment_revision": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "dataset_id",
+              "ordinal",
+              "segment_id",
+              "segment_revision"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "metadata": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed MetadataSnapshot record with scoped associations.",
+            "properties": {
+              "asset_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "captured": {
+                "$ref": "common.schema.json#/$defs/utcInstant",
+                "description": "Exact ISO/Unix-nanosecond audit instant; adapter checks agreement."
+              },
+              "extractor": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "report_artifact_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Workspace-scoped stable identity; relational provenance is validated by the adapter."
+              },
+              "state": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "version": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "asset_id",
+              "report_artifact_id",
+              "state",
+              "extractor",
+              "version",
+              "captured"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "model_artifacts": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed ModelArtifact record with scoped associations.",
+            "properties": {
+              "artifact_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "format": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "role": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "version_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              }
+            },
+            "required": [
+              "id",
+              "version_id",
+              "artifact_id",
+              "role",
+              "format"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "model_associations": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed ModelAssociation record with scoped associations.",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "model_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "reason": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "revision": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              },
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              }
+            },
+            "required": [
+              "id",
+              "model_id",
+              "speaker_id",
+              "revision",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "models": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Model record with scoped associations.",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "name": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              }
+            },
+            "required": [
+              "id",
+              "speaker_id",
+              "name"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "observations": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Observation record with scoped associations.",
+            "properties": {
+              "family": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "instance": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              },
+              "precision": {
+                "anyOf": [
+                  {
+                    "description": "Typed text value retained without reinterpretation.",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              },
+              "raw": {
+                "description": "Lossless structured report/options value; credentials remain references."
+              },
+              "snapshot_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "tag": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "unit": {
+                "anyOf": [
+                  {
+                    "description": "Typed text value retained without reinterpretation.",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              },
+              "value": {
+                "description": "Lossless structured report/options value; credentials remain references."
+              }
+            },
+            "required": [
+              "id",
+              "snapshot_id",
+              "family",
+              "tag",
+              "instance",
+              "raw",
+              "value",
+              "unit",
+              "precision"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "profiles": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Profile record with scoped associations.",
+            "properties": {
+              "adapter": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "configuration": {
+                "description": "Lossless structured report/options value; credentials remain references."
+              },
+              "credential_id": {
+                "anyOf": [
+                  {
+                    "description": "Typed text value retained without reinterpretation.",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              },
+              "expected_backend_version": {
+                "anyOf": [
+                  {
+                    "description": "Typed text value retained without reinterpretation.",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "revision": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              },
+              "role": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "version": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "expected_backend_version",
+              "id",
+              "revision",
+              "role",
+              "adapter",
+              "version",
+              "configuration",
+              "credential_id"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "runs": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed TrainingRun record with scoped associations.",
+            "properties": {
+              "adapter": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "dataset_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "job_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "options": {
+                "description": "Lossless structured report/options value; credentials remain references."
+              },
+              "preparation_artifact_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              }
+            },
+            "required": [
+              "id",
+              "dataset_id",
+              "speaker_id",
+              "job_id",
+              "preparation_artifact_id",
+              "adapter",
+              "options"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "segments": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Segment record with scoped associations.",
+            "properties": {
+              "asset_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "attribution": {
+                "description": "Lossless structured report/options value; credentials remain references."
+              },
+              "channel": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              },
+              "clip_artifact_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Workspace-scoped stable identity; relational provenance is validated by the adapter."
+              },
+              "end_us": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "revision": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              },
+              "speaker_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Workspace-scoped stable identity; relational provenance is validated by the adapter."
+              },
+              "start_us": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "revision",
+              "asset_id",
+              "speaker_id",
+              "start_us",
+              "end_us",
+              "channel",
+              "attribution",
+              "clip_artifact_id"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "speakers": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Speaker record with scoped associations.",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "name": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "versions": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed ModelVersion record with scoped associations.",
+            "properties": {
+              "dataset_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "kind": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "manifest_artifact_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "model_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "run_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              }
+            },
+            "required": [
+              "id",
+              "model_id",
+              "run_id",
+              "dataset_id",
+              "manifest_artifact_id",
+              "kind"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "profiles",
+        "artifacts",
+        "locations",
+        "media",
+        "assets",
+        "media_assets",
+        "metadata",
+        "observations",
+        "dates",
+        "date_selections",
+        "speakers",
+        "segments",
+        "datasets",
+        "members",
+        "runs",
+        "models",
+        "versions",
+        "model_artifacts",
+        "model_associations"
+      ],
+      "type": "object"
+    },
+    "revision": {
+      "description": "Accepted workspace revision in the same consistent export transaction.",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "0.0.0",
+      "description": "Shared software/documentation/contract release version."
+    },
+    "state": {
+      "description": "Operational tables in dependency order; includes receipts, selections, jobs, attempts, leases, targets and events.",
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Fixed operational table identity; SQL identifiers are never supplied by the caller.",
+            "enum": [
+              "operation_receipt",
+              "setting_revision",
+              "job",
+              "job_attempt",
+              "workspace_lease",
+              "graph_target",
+              "graph_event"
+            ]
+          },
+          "rows": {
+            "description": "Ordered complete rows in the table's portable layout; restoration validates width, types and semantic relationships.",
+            "items": {
+              "description": "Operational row cells in the fixed table column order. JSON reports/results are stored as strings; integer cells remain exact.",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "maxItems": 7,
+      "minItems": 7,
+      "type": "array"
+    },
+    "workspace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Workspace-scoped stable record identity."
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "catalog_schema",
+    "workspace_id",
+    "revision",
+    "records",
+    "state",
+    "digest"
+  ],
+  "title": "Portable catalog snapshot",
+  "type": "object"
+}
