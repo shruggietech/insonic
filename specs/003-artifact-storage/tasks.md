@@ -49,3 +49,4 @@ T001->T002->T003->T004/T005->T006. US1 tests->adapters->service->fixtures, US2 d
 ## Phase 9: External review
 
 - [x] T025 Resolve first-round workspace/profile key isolation, final-link durability, indeterminate S3 completion/abort and typed location retirement findings with regressions on both storage/catalog backends.
+- [x] T026 Resolve second-round source symlink-swap and remote HTTP findings with atomic no-follow handle validation, explicit local HTTP classification and regression coverage.

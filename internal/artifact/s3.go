@@ -15,6 +15,7 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -46,6 +47,9 @@ type S3 struct {
 func NewS3(ctx context.Context, c S3Config, secrets contracts.SecretProvider, transport http.RoundTripper) (*S3, error) {
 	endpoint, e := url.Parse(c.Endpoint)
 	if e != nil || endpoint.User != nil || endpoint.RawQuery != "" || endpoint.Fragment != "" || endpoint.Host == "" || (endpoint.Scheme != "https" && endpoint.Scheme != "http") || (endpoint.Path != "" && endpoint.Path != "/") || c.Bucket == "" || c.Region == "" {
+		return nil, contracts.Fail("invalid_request")
+	}
+	if endpoint.Scheme == "http" && !localHTTP(endpoint.Hostname()) {
 		return nil, contracts.Fail("invalid_request")
 	}
 	prefix := strings.TrimSuffix(c.Prefix, "/")
@@ -95,6 +99,14 @@ func NewS3(ctx context.Context, c S3Config, secrets contracts.SecretProvider, tr
 		return nil, contracts.Fail("unavailable")
 	}
 	return &S3{minio.Core{Client: client}, c.Bucket, prefix}, nil
+}
+
+func localHTTP(host string) bool {
+	if strings.EqualFold(strings.TrimSuffix(host, "."), "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && (ip.IsLoopback() || ip.IsPrivate())
 }
 func (s *S3) Close() error { return nil }
 func (s *S3) Capabilities() Capabilities {

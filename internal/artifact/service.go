@@ -112,11 +112,7 @@ func (s *Service) Stage(ctx context.Context, source string) (*os.File, string, i
 	if !filepath.IsAbs(source) {
 		return nil, "", 0, contracts.Fail("invalid_request")
 	}
-	st, e := os.Lstat(source)
-	if e != nil || !st.Mode().IsRegular() {
-		return nil, "", 0, contracts.Fail("invalid_request")
-	}
-	input, e := os.Open(source)
+	input, e := openSource(source)
 	if e != nil {
 		return nil, "", 0, contracts.Fail("unavailable")
 	}
@@ -138,6 +134,19 @@ func (s *Service) Stage(ctx context.Context, source string) (*os.File, string, i
 	}
 	f.Seek(0, 0)
 	return f, hex.EncodeToString(h.Sum(nil)), n, nil
+}
+
+func openSource(source string) (*os.File, error) {
+	f, e := openNoFollow(source)
+	if e != nil {
+		return nil, e
+	}
+	opened, e := f.Stat()
+	if e != nil || !opened.Mode().IsRegular() {
+		f.Close()
+		return nil, contracts.Fail("conflict")
+	}
+	return f, nil
 }
 func (s *Service) Publish(ctx context.Context, id, source, kind string) (catalog.Publication, error) {
 	if !contracts.ValidID(id) || kind == "" || len(kind) > 128 {

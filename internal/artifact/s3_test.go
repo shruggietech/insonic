@@ -77,3 +77,20 @@ func TestS3MissingCredentialAndURL(t *testing.T) {
 		}
 	}
 }
+
+func TestS3RemoteHTTPRefusedBeforeCredentialUse(t *testing.T) {
+	for _, endpoint := range []string{"http://storage.example.com", "http://203.0.113.4:9000", "http://[2001:db8::1]:9000"} {
+		for _, authentication := range []string{"anonymous", "credential", "environment"} {
+			if _, e := NewS3(context.Background(), S3Config{Endpoint: endpoint, Bucket: "fixture", Region: "us-east-1", Authentication: authentication, AddressingStyle: "path"}, nil, nil); e == nil {
+				t.Fatal("remote HTTP accepted", endpoint, authentication)
+			}
+		}
+	}
+	for _, endpoint := range []string{"http://localhost:9000", "http://127.0.0.1:9000", "http://[::1]:9000", "http://10.1.2.3:9000", "https://storage.example.com"} {
+		s, e := NewS3(context.Background(), S3Config{Endpoint: endpoint, Bucket: "fixture", Region: "us-east-1", Authentication: "anonymous", AddressingStyle: "path"}, nil, nil)
+		if e != nil {
+			t.Fatal("explicit local HTTP/remote HTTPS refused", e)
+		}
+		s.Close()
+	}
+}

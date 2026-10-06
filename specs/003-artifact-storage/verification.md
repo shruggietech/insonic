@@ -30,11 +30,15 @@ A second assessment found HIGH FR-003 abort-after-unknown-completion could aband
 
 ## Publication gates
 
-Official PR and hosted CI/reviews pending. External review rounds used: zero. One optional second request is authorized; no third request is permitted. Owner retains final merge authority.
+Official PR #20 published. Two review rounds are complete; no further review requests are permitted. Owner retains final merge authority. Final security fixes and their CI are pending.
 
 2026-10-06: Published PR #20 at 2d65f00. Initial hosted macOS and fixture runs exposed overly short test-only leases (10-90 milliseconds), racing SQLite I/O and runner scheduling. Cache expiry now shortens an already materialized normal lease, and slow-work tests use three-second authority with reads extending beyond that duration. The expiry, renewal and stale-authority assertions remain intact. Initial external code review is running; no second request has been made.
 
 2026-10-06: 328aefd passed all six hosted checks in run 37510225600 (longest job 4m15s). First external code review completed on 2d65f00 with four findings. Corrections namespace keys by workspace/profile revision, flush linked metadata before admission/recovery, checkpoint S3 completion intent and keep indeterminate aborts pending, and atomically mark typed locations retired. Regression tests cover shared-root/bucket isolation, injected flush failure, delayed/missing completion responses and retired-location snapshot parity on both catalogs. Physical power-loss testing is not claimed. The following code/security request is the second and final allowed round.
+
+2026-10-06: 1b213d1 passed all six hosted checks in run 37511146495 (longest job 4m59s). All four first-round threads were replied to and resolved. The second round used a combined code/security comment, then a security-only comment within that same round because the combined request started only Code Review. The bot presents both commands under its Code Review summary. No additional round will be requested.
+
+2026-10-06: Second-round review completed with source symlink-swap and remote plaintext transport findings. Source staging now atomically opens without following the final symlink/reparse point, validates regular status through that handle and copies from it; Unix NONBLOCK also prevents FIFO substitution from hanging validation. Tests substitute an opened source path and a symlink before opening. Windows symlink creation may be unavailable on a test host; that scenario explicitly skips where the OS denies fixture creation. S3 rejects remote HTTP before resolving credentials while explicitly local loopback/private literal endpoints retain HTTP support. These enforce existing source and TLS contracts; no product eligibility or approval gate is introduced.
 
 ## Demonstrated limits
 
