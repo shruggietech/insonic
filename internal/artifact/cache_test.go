@@ -17,7 +17,6 @@ func TestExpiredCacheCleanupFencesRenewal(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	s.TTL = 10 * time.Millisecond
 	m, e := s.Materialize(ctx, p.ID)
 	if e != nil {
 		t.Fatal(e)
@@ -25,7 +24,12 @@ func TestExpiredCacheCleanupFencesRenewal(t *testing.T) {
 	if ids, e := s.Prune(ctx, p.ID); e != nil || len(ids) != 0 {
 		t.Fatal("pruned live cache")
 	}
-	time.Sleep(20 * time.Millisecond)
+	// Complete the real cache path under a normal lease before deliberately
+	// shortening its authority. Disk/runner speed must not race setup itself.
+	if _, e = s.Catalog.ArtifactLease(ctx, p.ID, m.Lease.ID, m.Lease.Owner, time.Millisecond, false); e != nil {
+		t.Fatal(e)
+	}
+	time.Sleep(5 * time.Millisecond)
 	ids, e := s.Prune(ctx, p.ID)
 	if e != nil || len(ids) != 1 {
 		t.Fatalf("prune %v %v", ids, e)

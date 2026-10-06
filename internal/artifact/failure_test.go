@@ -129,8 +129,8 @@ func TestMaterializationRenewsDuringRead(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	s.TTL = 30 * time.Millisecond
-	s.Store = slowStore{s.Store, 65 * time.Millisecond}
+	s.TTL = 3 * time.Second
+	s.Store = slowStore{s.Store, 1600 * time.Millisecond}
 	m, e := s.Materialize(ctx, p.ID)
 	if e != nil {
 		t.Fatal(e)
@@ -153,8 +153,8 @@ func TestReconciliationRenewsDuringRead(t *testing.T) {
 	if _, e := s.Publish(ctx, id, source.Name(), "other"); e == nil {
 		t.Fatal("fault not injected")
 	}
-	s.TTL = 90 * time.Millisecond
-	s.Store = slowStore{store, 150 * time.Millisecond}
+	s.TTL = 3 * time.Second
+	s.Store = slowStore{store, 1600 * time.Millisecond}
 	if p, e := s.Reconcile(ctx, id); e != nil || p.State != "available" {
 		t.Fatalf("recovery %+v %v", p, e)
 	}
