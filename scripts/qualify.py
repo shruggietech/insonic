@@ -244,6 +244,33 @@ def cli():
         second = json.loads(child([executable, '--workspace', directory, 'workspace', 'show', '--json']))
         if first['runtime_session_id'] != second['runtime_session_id']:
             raise ValueError('CLI clients reached different owners')
+        source = Path(directory) / 'artifact source.bin'
+        content = b'CLI artifact\x00\xff\n'
+        source.write_bytes(content)
+        artifact_args = [executable, '--workspace', directory, '--request-id',
+                         '10000000-0000-4000-8000-000000000003', 'artifacts', 'publish', source, 'other', '--json']
+        publication = json.loads(child(artifact_args))['result']
+        replay = json.loads(child(artifact_args))['result']
+        if publication != replay or publication['state'] != 'available' or publication['digest'] != hashlib.sha256(content).hexdigest():
+            raise ValueError('artifact publication/replay differs')
+        artifact_id = publication['id']
+        def artifact_call(operation, *args):
+            return json.loads(child([executable, '--workspace', directory, 'artifacts', operation, artifact_id, *args, '--json']))['result']
+        if artifact_call('show')['id'] != artifact_id or not artifact_call('verify')['verified']:
+            raise ValueError('artifact inspection/verification')
+        materialized = artifact_call('materialize', str(len(content)))
+        if Path(materialized['path']).read_bytes() != content:
+            raise ValueError('artifact materialization differs')
+        lease_id = materialized['lease']['id']
+        artifact_call('lease-renew', lease_id)
+        reference_id = '10000000-0000-4000-8000-000000000004'
+        artifact_call('retain', reference_id)
+        if artifact_call('show')['reference_count'] != 1:
+            raise ValueError('artifact retention')
+        artifact_call('release-reference', reference_id)
+        artifact_call('lease-release', lease_id)
+        if Path(materialized['path']).exists() or artifact_call('cache-prune') != []:
+            raise ValueError('artifact cache release')
         request_id = '10000000-0000-4000-8000-000000000002'
         start_args = [executable, '--workspace', directory, '--request-id', request_id, 'jobs', 'start', '1000', '--json']
         started = json.loads(child(start_args))
@@ -280,7 +307,7 @@ def cli():
         restored_attempts = next(table['rows'] for table in restored['state'] if table['name'] == 'job_attempt')
         if restored_attempts != attempts or restored['revision'] != exported['revision'] + 1:
             raise ValueError('CLI restore did not preserve durable history and restoration receipt')
-    (BUILD / 'cli-receipt.json').write_text(json.dumps({'owner_reuse': 'passed', 'cancel_retry': 'passed', 'durable_history': 'passed', 'catalog_transfer': 'passed'}) + '\n', encoding='utf-8')
+    (BUILD / 'cli-receipt.json').write_text(json.dumps({'owner_reuse': 'passed', 'cancel_retry': 'passed', 'durable_history': 'passed', 'catalog_transfer': 'passed', 'artifact_journey': 'passed'}) + '\n', encoding='utf-8')
 
 if __name__ == '__main__':
     validate_pins()

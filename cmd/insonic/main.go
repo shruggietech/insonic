@@ -11,6 +11,7 @@ import (
 	"github.com/shruggietech/insonic/internal/workspace"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -46,6 +47,7 @@ func execute(args []string) int {
 	}
 	if len(positional) == 0 || (len(positional) == 1 && positional[0] == "--help") {
 		fmt.Println("insonic workspace init <directory> | workspace show | doctor | jobs start <milliseconds> | jobs show/cancel/retry <job-id> | jobs history <job-id> [after-generation] | catalog show/migrate | catalog export/restore <file> [--workspace <directory>] [--request-id <UUID>] [--json]")
+		fmt.Println("insonic artifacts publish <file> <kind> | artifacts show/verify/reconcile/abort/retire/cache-prune <publication-id> | artifacts materialize <publication-id> [max-bytes] | artifacts lease-renew/lease-release <publication-id> <lease-id> | artifacts retain/release-reference <publication-id> <reference-id>")
 		return 0
 	}
 	if len(positional) == 3 && positional[0] == "workspace" && positional[1] == "init" {
@@ -81,6 +83,31 @@ func execute(args []string) int {
 		req.Operation = "workspace.show"
 	} else if len(positional) == 2 && positional[0] == "catalog" && positional[1] == "show" {
 		req.Operation = "catalog.show"
+	} else if len(positional) >= 3 && positional[0] == "artifacts" {
+		req.Operation = "artifacts." + positional[1]
+		if positional[1] == "publish" && len(positional) == 4 {
+			req.SourcePath, err = filepath.Abs(positional[2])
+			if err != nil {
+				return output(nil, contracts.Fail("invalid_request"), machine)
+			}
+			req.ArtifactKind = positional[3]
+		} else if positional[1] == "materialize" && len(positional) == 4 {
+			req.PublicationID = positional[2]
+			req.MaxBytes, err = strconv.ParseInt(positional[3], 10, 64)
+			if err != nil || req.MaxBytes < 1 {
+				return output(nil, contracts.Fail("invalid_request"), machine)
+			}
+		} else if (positional[1] == "lease-renew" || positional[1] == "lease-release") && len(positional) == 4 {
+			req.PublicationID = positional[2]
+			req.LeaseID = positional[3]
+		} else if (positional[1] == "retain" || positional[1] == "release-reference") && len(positional) == 4 {
+			req.PublicationID = positional[2]
+			req.ReferenceID = positional[3]
+		} else if len(positional) == 3 {
+			req.PublicationID = positional[2]
+		} else {
+			return output(nil, contracts.Fail("invalid_request"), machine)
+		}
 	} else if (len(positional) == 3 || (len(positional) == 4 && positional[1] == "history")) && positional[0] == "jobs" {
 		req.Operation = "jobs." + positional[1]
 		if positional[1] == "start" {
@@ -100,7 +127,7 @@ func execute(args []string) int {
 	} else {
 		return output(nil, contracts.Fail("invalid_request"), machine)
 	}
-	if !strings.Contains("|workspace.show|doctor|catalog.show|jobs.start|jobs.show|jobs.history|jobs.cancel|jobs.retry|", "|"+req.Operation+"|") {
+	if !strings.Contains("|workspace.show|doctor|catalog.show|jobs.start|jobs.show|jobs.history|jobs.cancel|jobs.retry|artifacts.publish|artifacts.show|artifacts.verify|artifacts.materialize|artifacts.reconcile|artifacts.abort|artifacts.retire|artifacts.lease-renew|artifacts.lease-release|artifacts.cache-prune|artifacts.retain|artifacts.release-reference|", "|"+req.Operation+"|") {
 		return output(nil, contracts.Fail("invalid_request"), machine)
 	}
 	if err := local.Ensure(ctx, w, ""); err != nil {

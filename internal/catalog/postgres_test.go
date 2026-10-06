@@ -44,6 +44,12 @@ func TestPostgreSQLSecurityAndConcurrency(t *testing.T) {
 	securitySuite(t, postgresStore(t, contracts.ID()))
 }
 func TestPostgreSQLCorpusAssociations(t *testing.T) { corpusSuite(t, postgresStore(t, contracts.ID())) }
+func TestPostgreSQLArtifactAuthority(t *testing.T) {
+	artifactAuthoritySuite(t, postgresStore(t, contracts.ID()), func(id string) *Store { return postgresStore(t, id) })
+}
+func TestPostgreSQLArtifactRetirementRaces(t *testing.T) {
+	artifactRaceSuite(t, postgresStore(t, contracts.ID()))
+}
 func TestCrossBackendRoundTrip(t *testing.T) {
 	ctx := context.Background()
 	id := contracts.ID()

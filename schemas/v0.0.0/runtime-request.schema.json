@@ -38,7 +38,19 @@
         "jobs.show",
         "jobs.cancel",
         "jobs.retry",
-        "jobs.history"
+        "jobs.history",
+        "artifacts.publish",
+        "artifacts.show",
+        "artifacts.verify",
+        "artifacts.materialize",
+        "artifacts.reconcile",
+        "artifacts.abort",
+        "artifacts.retire",
+        "artifacts.lease-renew",
+        "artifacts.lease-release",
+        "artifacts.retain",
+        "artifacts.release-reference",
+        "artifacts.cache-prune"
       ],
       "description": "Shared operation selected by either client."
     },
@@ -57,12 +69,56 @@
       "minimum": 1,
       "maximum": 60000,
       "description": "Bounded qualification attempt duration in integer milliseconds."
+    },
+    "publication_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Artifact publication identity scoped to this workspace."
+    },
+    "lease_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Renewable materialization lease identity."
+    },
+    "reference_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Durable retention reference identity."
+    },
+    "source_path": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Explicit local source file streamed privately by the shared runtime."
+    },
+    "artifact_kind": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Nonsecret artifact role recorded with its immutable content identity."
+    },
+    "max_bytes": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9223372036854775807,
+      "description": "Explicit materialization byte ceiling overriding the default 10 GiB cache admission bound."
     }
   },
   "allOf": [
     {
-      "if": { "not": { "properties": { "operation": { "const": "jobs.history", "description": "History operation accepting a generation cursor." } } } },
-      "then": { "not": { "required": ["after_generation"] } }
+      "if": {
+        "not": {
+          "properties": {
+            "operation": {
+              "const": "jobs.history",
+              "description": "History operation accepting a generation cursor."
+            }
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "after_generation"
+          ]
+        }
+      }
     },
     {
       "if": {
@@ -92,7 +148,7 @@
               "jobs.show",
               "jobs.cancel",
               "jobs.retry",
-        "jobs.history"
+              "jobs.history"
             ],
             "description": "Existing attempt operation discriminator."
           }
@@ -116,7 +172,7 @@
             "enum": [
               "workspace.show",
               "doctor",
-        "catalog.show"
+              "catalog.show"
             ],
             "description": "Workspace inspection operation discriminator."
           }
@@ -135,6 +191,315 @@
                 "duration_ms"
               ]
             }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "workspace.show",
+              "doctor",
+              "catalog.show",
+              "jobs.start",
+              "jobs.show",
+              "jobs.cancel",
+              "jobs.retry",
+              "jobs.history"
+            ],
+            "description": "Operation family selecting its exact artifact argument layout."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "artifacts.publish"
+            ],
+            "description": "Operation family selecting its exact artifact argument layout."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "source_path",
+          "artifact_kind"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "artifacts.lease-renew",
+              "artifacts.lease-release"
+            ],
+            "description": "Operation family selecting its exact artifact argument layout."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "publication_id",
+          "lease_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "artifacts.retain",
+              "artifacts.release-reference"
+            ],
+            "description": "Operation family selecting its exact artifact argument layout."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "publication_id",
+          "reference_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "artifacts.show",
+              "artifacts.verify",
+              "artifacts.materialize",
+              "artifacts.reconcile",
+              "artifacts.abort",
+              "artifacts.retire",
+              "artifacts.cache-prune"
+            ],
+            "description": "Operation family selecting its exact artifact argument layout."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "publication_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "not": {
+              "const": "artifacts.materialize"
+            },
+            "description": "Only materialization accepts a cache size override."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "max_bytes"
           ]
         }
       }

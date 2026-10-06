@@ -15,6 +15,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -144,6 +145,9 @@ func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
 					response.RequestID = request.RequestID
 				}
 			} else {
+				if strings.HasPrefix(request.Operation, "artifacts.") {
+					conn.SetDeadline(time.Now().Add(10 * time.Minute))
+				}
 				response = application.Dispatch(request)
 			}
 			json.NewEncoder(conn).Encode(response)
@@ -160,6 +164,9 @@ func Call(ctx context.Context, w *workspace.Workspace, request contracts.Request
 	}
 	defer conn.Close()
 	deadline := time.Now().Add(5 * time.Second)
+	if strings.HasPrefix(request.Operation, "artifacts.") {
+		deadline = time.Now().Add(10 * time.Minute)
+	}
 	if value, ok := ctx.Deadline(); ok && value.Before(deadline) {
 		deadline = value
 	}

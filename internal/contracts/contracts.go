@@ -54,6 +54,12 @@ type Request struct {
 	JobID           string `json:"job_id,omitempty"`
 	DurationMS      int    `json:"duration_ms,omitempty"`
 	AfterGeneration int64  `json:"after_generation,omitempty"`
+	PublicationID   string `json:"publication_id,omitempty"`
+	SourcePath      string `json:"source_path,omitempty"`
+	ArtifactKind    string `json:"artifact_kind,omitempty"`
+	LeaseID         string `json:"lease_id,omitempty"`
+	ReferenceID     string `json:"reference_id,omitempty"`
+	MaxBytes        int64  `json:"max_bytes,omitempty"`
 }
 type Response struct {
 	Kind        string `json:"kind"`
@@ -65,21 +71,8 @@ type Response struct {
 	Error       *Error `json:"error,omitempty"`
 }
 
-// Domain interfaces reserve shared authority boundaries; backend SQL never escapes.
-type Artifact struct {
-	ID        string
-	Digest    string
-	Size      int64
-	ProfileID string
-	Version   string
-}
-
-// The implemented typed Catalog interface lives in internal/catalog.
-type ArtifactStore interface {
-	Publish(context.Context, string, []byte) (Artifact, error)
-	Materialize(context.Context, Artifact) (string, error)
-	Verify(context.Context, Artifact) error
-}
+// Implemented streaming storage and typed catalog interfaces live in their
+// domain packages; secret values remain behind this separate private boundary.
 type SecretProvider interface {
 	Resolve(context.Context, string) ([]byte, error)
 	Status(context.Context, string) (string, error)

@@ -3,6 +3,7 @@ package app
 
 import (
 	"context"
+	"github.com/shruggietech/insonic/internal/artifact"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/workspace"
@@ -16,15 +17,18 @@ type worker struct {
 	cancel  context.CancelFunc
 }
 type App struct {
-	Workspace *workspace.Workspace
-	Session   string
-	Catalog   catalog.Catalog
-	mu        sync.Mutex
-	attempts  map[string]*worker
-	ctx       context.Context
-	cancel    context.CancelFunc
-	wg        sync.WaitGroup
-	closed    bool
+	Workspace  *workspace.Workspace
+	Session    string
+	Catalog    catalog.Catalog
+	mu         sync.Mutex
+	attempts   map[string]*worker
+	ctx        context.Context
+	cancel     context.CancelFunc
+	wg         sync.WaitGroup
+	closed     bool
+	artifactMu sync.Mutex
+	Artifacts  *artifact.Service
+	secrets    contracts.SecretProvider
 }
 
 const leaseTTL = 5 * time.Second
@@ -56,7 +60,7 @@ func newOwnerContext(ownerContext context.Context, w *workspace.Workspace, secre
 		store.Close()
 		return nil, err
 	}
-	a := &App{Workspace: w, Session: contracts.ID(), Catalog: store, attempts: map[string]*worker{}, ctx: ctx, cancel: cancel}
+	a := &App{Workspace: w, Session: contracts.ID(), Catalog: store, attempts: map[string]*worker{}, ctx: ctx, cancel: cancel, secrets: secrets}
 	recovered, err := store.Recover(ctx, a.Session, leaseTTL)
 	if err != nil {
 		cancel()
@@ -228,6 +232,11 @@ func (a *App) Close() {
 	ctx, stop := context.WithTimeout(context.Background(), 5*time.Second)
 	defer stop()
 	a.Catalog.InterruptOwner(ctx, a.Session)
+	a.artifactMu.Lock()
+	if a.Artifacts != nil {
+		a.Artifacts.Close()
+	}
+	a.artifactMu.Unlock()
 	a.Catalog.Close()
 }
 
@@ -245,7 +254,7 @@ func (a *App) Dispatch(req contracts.Request) contracts.Response {
 		return response
 	}
 	jobOp := req.Operation == "jobs.show" || req.Operation == "jobs.cancel" || req.Operation == "jobs.retry" || req.Operation == "jobs.history"
-	if req.Kind != "runtime-request" || !contracts.ValidID(req.RequestID) || (req.Operation != "jobs.start" && req.DurationMS != 0) || (!jobOp && req.JobID != "") || (req.Operation != "jobs.history" && req.AfterGeneration != 0) {
+	if req.Kind != "runtime-request" || !contracts.ValidID(req.RequestID) || !artifactRequestValid(req) || (req.Operation != "jobs.start" && req.DurationMS != 0) || (!jobOp && req.JobID != "") || (req.Operation != "jobs.history" && req.AfterGeneration != 0) {
 		response.Error = contracts.Fail("invalid_request")
 		return response
 	}
@@ -259,7 +268,8 @@ func (a *App) Dispatch(req contracts.Request) contracts.Response {
 	case "doctor":
 		paths, pathErr := workspace.PlatformPaths()
 		err = pathErr
-		result = map[string]any{"paths": paths, "attempt_persistence": "durable", "adapters": []contracts.Capability{{AdapterID: a.Workspace.Config.Profiles.Storage.Adapter, ContractVersion: contracts.Version, State: "configured", Operations: []string{}}, {AdapterID: a.Catalog.Backend(), ContractVersion: contracts.Version, State: "available", Operations: []string{"revisions", "jobs", "outbox", "snapshot"}}, {AdapterID: a.Workspace.Config.Profiles.Graph.Adapter, ContractVersion: contracts.Version, State: "configured", Operations: []string{}}}}
+		storage, details := a.storageDiagnostics()
+		result = map[string]any{"paths": paths, "attempt_persistence": "durable", "storage": details, "adapters": []contracts.Capability{storage, {AdapterID: a.Catalog.Backend(), ContractVersion: contracts.Version, State: "available", Operations: []string{"revisions", "jobs", "outbox", "snapshot"}}, {AdapterID: a.Workspace.Config.Profiles.Graph.Adapter, ContractVersion: contracts.Version, State: "configured", Operations: []string{}}}}
 	case "jobs.start":
 		result, err = a.startRequest(req.RequestID, req.DurationMS)
 	case "jobs.show", "jobs.cancel", "jobs.retry", "jobs.history":
@@ -278,7 +288,7 @@ func (a *App) Dispatch(req contracts.Request) contracts.Response {
 			result, err = a.Catalog.HistoryPage(a.ctx, req.JobID, req.AfterGeneration)
 		}
 	default:
-		err = contracts.Fail("invalid_request")
+		result, err = a.artifactDispatch(req)
 	}
 	if err != nil {
 		if typed, ok := err.(*contracts.Error); ok {

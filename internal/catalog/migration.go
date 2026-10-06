@@ -144,12 +144,19 @@ var operationalDDL = []string{
 	`CREATE TABLE IF NOT EXISTS graph_event (workspace_id TEXT NOT NULL, target_id TEXT NOT NULL, sequence BIGINT NOT NULL CHECK(sequence>0), predecessor BIGINT NOT NULL CHECK(predecessor>=0), revision BIGINT NOT NULL CHECK(revision>0), operation_id TEXT NOT NULL, document TEXT NOT NULL, digest TEXT NOT NULL, PRIMARY KEY(workspace_id,target_id,sequence), FOREIGN KEY(workspace_id,target_id) REFERENCES graph_target(workspace_id,id), FOREIGN KEY(workspace_id,operation_id) REFERENCES operation_receipt(workspace_id,id))`,
 }
 
-func migrationStatements() []string {
+func legacyMigrationStatements() []string {
 	out := append([]string{}, operationalDDL...)
 	for _, d := range domains {
 		out = append(out, d.ddl())
 	}
 	return out
+}
+func migrationStatements() []string {
+	return append(legacyMigrationStatements(), artifactDDL, artifactIndexDDL)
+}
+func legacyMigrationDigest() string {
+	h := sha256.Sum256([]byte(strings.Join(legacyMigrationStatements(), "\n")))
+	return hex.EncodeToString(h[:])
 }
 func migrationDigest() string {
 	h := sha256.Sum256([]byte(strings.Join(migrationStatements(), "\n")))
@@ -185,6 +192,21 @@ func (s *Store) migrate(ctx context.Context) error {
 	var digest string
 	e = tx.QueryRowContext(ctx, "SELECT version,digest FROM catalog_schema WHERE singleton=1").Scan(&version, &digest)
 	if e == nil {
+		if version == 1 && digest == legacyMigrationDigest() {
+			if _, e = tx.ExecContext(ctx, artifactDDL); e != nil {
+				return sanitize(e)
+			}
+			if _, e = tx.ExecContext(ctx, artifactIndexDDL); e != nil {
+				return sanitize(e)
+			}
+			if _, e = s.exec(ctx, tx, "UPDATE catalog_schema SET version=?,digest=? WHERE singleton=1", SchemaVersion, migrationDigest()); e != nil {
+				return sanitize(e)
+			}
+			if _, e = s.exec(ctx, tx, "UPDATE workspace SET schema_version=?", SchemaVersion); e != nil {
+				return sanitize(e)
+			}
+			return sanitize(tx.Commit())
+		}
 		if version != SchemaVersion || digest != migrationDigest() {
 			return contracts.Fail("incompatible_version")
 		}
@@ -276,6 +298,9 @@ func validateRecord(value any) error {
 	return nil
 }
 func (s *Store) insertRecords(ctx context.Context, tx *sql.Tx, records Records) error {
+	if e := s.guardArtifactReferences(ctx, tx, records); e != nil {
+		return e
+	}
 	// Frozen datasets admit ordered membership only in their creation transaction.
 	created := map[string]bool{}
 	for _, d := range records.Datasets {
