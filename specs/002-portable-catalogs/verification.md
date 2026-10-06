@@ -18,6 +18,10 @@ All 13 functional requirements and five success criteria map to acceptance work.
 
 ## Publication gates
 
-Hosted Linux/macOS/Windows qualification and all PR checks must pass on the final head. Every reported review finding must be addressed and its thread resolved. At most one explicit second Codex review may be requested after the automatic first round. The owner retains the final squash merge and branch deletion decision.
+The first published head `3007e51` passed all six hosted checks in [run 37397308255](https://github.com/shruggietech/insonic/actions/runs/37397308255): foundation (10 seconds), docs (30 seconds), adapter fixtures (1 minute 43 seconds), macOS (3 minutes 10 seconds), Linux (3 minutes 46 seconds) and Windows (5 minutes 56 seconds).
+
+The first Codex round reported credential-key alias admission and acknowledgement reconciliation after expiry. Shared-backend regressions reproduced both failures. Credential-option validation now normalizes case/separators and covers common credential aliases while retaining opaque references and ordinary tokenizer/token-limit options. Acknowledgement retries validate immutable event identity and a durable acceptance receipt before reporting an already committed outcome; new writes still require current ownership. Both fixes passed race-enabled catalog/app/runtime acceptance on SQLite and PostgreSQL.
+
+The final head must pass all configured checks. Every reported review finding must be addressed and its thread resolved. At most one explicit second Codex review may be requested after the automatic first round. The owner retains the final squash merge and branch deletion decision.
 
 Artifact-store operations, persistent encrypted/native credentials, media processing, graph consumers, model production and installable release packages remain separate slices. This slice supplies their typed durable catalog relationships and handoff contracts.

@@ -8,7 +8,9 @@ import (
 	"io"
 	"math"
 	"regexp"
+	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -303,8 +305,7 @@ func nonsecret(data json.RawMessage) bool {
 		switch y := x.(type) {
 		case map[string]any:
 			for k, v := range y {
-				switch k {
-				case "password", "secret", "access_token", "api_key", "private_key":
+				if credentialKey(k) {
 					return false
 				}
 				if !visit(v) {
@@ -321,4 +322,25 @@ func nonsecret(data json.RawMessage) bool {
 		return true
 	}
 	return visit(v)
+}
+
+// Normalize case and separators without treating ordinary tokenizer/token-limit
+// options or explicit credential references as resolved credential material.
+func credentialKey(key string) bool {
+	key = strings.Map(func(r rune) rune {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			return unicode.ToLower(r)
+		}
+		return -1
+	}, key)
+	switch key {
+	case "secret", "token", "authorization", "proxyauthorization", "pwd", "secretkey", "accesskey", "accesskeyid", "awsaccesskeyid", "clientsecret", "secretvalue", "secrettoken":
+		return true
+	}
+	for _, suffix := range []string{"password", "passwd", "passphrase", "apikey", "apitoken", "accesstoken", "refreshtoken", "idtoken", "authtoken", "bearertoken", "clientsecret", "privatekey", "secretaccesskey"} {
+		if strings.HasSuffix(key, suffix) {
+			return true
+		}
+	}
+	return false
 }

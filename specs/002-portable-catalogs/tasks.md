@@ -46,7 +46,7 @@ Independent test: scope table classifies docs/core/native/schema/unknown paths c
 ## Phase 7: Completion
 
 - [x] T014 Update authoritative docs and CHANGELOG.md with demonstrated behavior, remaining scope and dated decisions (FR-013).
-- [ ] T015 Run local CI parity, server/platform hosted qualification, encoding checks and Spec Kit convergence for specs/002-portable-catalogs (SC-001 through SC-005).
+- [x] T015 Run local CI parity, server/platform hosted qualification, encoding checks and Spec Kit convergence for specs/002-portable-catalogs (SC-001 through SC-005).
 - [ ] T016 Automatically publish an official PR, attach it, satisfy every review finding within two rounds and hand off for owner merge (SC-005).
 
 ## Dependencies and execution
@@ -59,3 +59,5 @@ T001 -> T002/T003 -> US1 -> US2 -> US3 -> US4 -> completion. Tests precede imple
 - [x] T018 Exercise bounded history, cancellation/publication races, invalid credentials/TLS without fallback and snapshot event-revision consistency in internal/catalog/*_test.go per SC-003, FR-009, FR-010 and FR-011 (partial).
 
 - [x] T019 Preserve active retry attachment when replaying an earlier cancellation and reconcile accepted starts/retries at capacity in internal/app and internal/catalog regression tests (FR-003, FR-004, SC-003).
+
+- [x] T020 Address first-round review findings with shared-backend credential-key alias rejection and durable outbox acknowledgement reconciliation after expiry/takeover (FR-003, FR-007, FR-010).

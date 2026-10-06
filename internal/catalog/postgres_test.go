@@ -89,6 +89,13 @@ const leaseTTLForTest = 5000000000
 func TestPostgreSQLConvergence(t *testing.T) {
 	convergenceSuite(t, postgresStore(t, contracts.ID()), func(id string) *Store { return postgresStore(t, id) })
 }
+
+func TestPostgreSQLCredentialOptionAliases(t *testing.T) {
+	credentialOptionsSuite(t, postgresStore(t, contracts.ID()))
+}
+func TestPostgreSQLAckReconciliation(t *testing.T) {
+	ackReconciliationSuite(t, postgresStore(t, contracts.ID()))
+}
 func TestPostgreSQLSelectedRoutingAndTLS(t *testing.T) {
 	cfg, e := pgx.ParseConfig(os.Getenv("INSONIC_FIXTURE_POSTGRES"))
 	if e != nil {

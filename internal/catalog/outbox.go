@@ -84,9 +84,6 @@ func (s *Store) AcknowledgeOutbox(ctx context.Context, c OutboxClaim) error {
 		if e = s.row(ctx, tx, "SELECT checkpoint,generation,lease_until,owner_id FROM graph_target WHERE workspace_id=? AND id=?", s.workspace, c.Target).Scan(&checkpoint, &generation, &expires, &owner); e != nil {
 			return e
 		}
-		if owner.String != c.OwnerID || generation != c.Generation || expires <= now {
-			return contracts.Fail("conflict")
-		}
 		var digest, operation, doc string
 		var predecessor, revision int64
 		if e = s.row(ctx, tx, "SELECT digest,operation_id,document,predecessor,revision FROM graph_event WHERE workspace_id=? AND target_id=? AND sequence=?", s.workspace, c.Target, c.Sequence).Scan(&digest, &operation, &doc, &predecessor, &revision); e != nil {
@@ -95,8 +92,22 @@ func (s *Store) AcknowledgeOutbox(ctx context.Context, c OutboxClaim) error {
 		if digest != c.Digest || operation != c.OperationID || doc != string(c.Document) || predecessor != c.Predecessor || revision != c.Revision {
 			return contracts.Fail("conflict")
 		}
-		if checkpoint == c.Sequence {
-			return nil
+		op := operationID("ack", c.Target, c.OperationID, strconv.FormatInt(c.Sequence, 10))
+		intentDigest := hash([]byte("ack:" + c.Digest))
+		if checkpoint >= c.Sequence {
+			// Reconcile only a durable acceptance of this immutable event. Expired
+			// ownership cannot write, but it can learn an already accepted outcome.
+			_, accepted, e := s.replay(ctx, tx, op, intentDigest)
+			if e != nil {
+				return e
+			}
+			if accepted {
+				return nil
+			}
+			return contracts.Fail("conflict")
+		}
+		if owner.String != c.OwnerID || generation != c.Generation || expires <= now {
+			return contracts.Fail("conflict")
 		}
 		if checkpoint != c.Predecessor || c.Sequence != checkpoint+1 {
 			return contracts.Fail("conflict")
@@ -104,7 +115,7 @@ func (s *Store) AcknowledgeOutbox(ctx context.Context, c OutboxClaim) error {
 		if _, e = s.exec(ctx, tx, "UPDATE graph_target SET checkpoint=? WHERE workspace_id=? AND id=?", c.Sequence, s.workspace, c.Target); e != nil {
 			return e
 		}
-		_, e = s.accept(ctx, tx, operationID("ack", c.Target, c.OperationID, strconv.FormatInt(c.Sequence, 10)), hash([]byte("ack:"+c.Digest)), rev, map[string]any{"target": c.Target, "sequence": c.Sequence})
+		_, e = s.accept(ctx, tx, op, intentDigest, rev, map[string]any{"target": c.Target, "sequence": c.Sequence})
 		return e
 	})
 }
