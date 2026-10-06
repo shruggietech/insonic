@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"strconv"
 	"strings"
 )
 
@@ -151,24 +152,9 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 				}
 				args := []any{s.workspace}
 				for j, raw := range r {
-					var v any
-					if strict(raw, &v) != nil {
-						return contracts.Fail("invalid_request")
-					}
-					switch x := v.(type) {
-					case json.Number:
-						n, e := x.Int64()
-						if e != nil {
-							return contracts.Fail("invalid_request")
-						}
-						v = n
-					case string:
-						if (cols[j] == "id" || strings.HasSuffix(cols[j], "_id")) && !contracts.ValidID(x) {
-							return contracts.Fail("invalid_request")
-						}
-					case nil:
-					default:
-						return contracts.Fail("invalid_request")
+					v, e := restoreCell(table.name, cols[j], raw)
+					if e != nil {
+						return e
 					}
 					args = append(args, v)
 				}
@@ -195,6 +181,45 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 		_, e := s.accept(ctx, tx, contracts.ID(), hash([]byte("restore:"+snap.Digest)), snap.Revision, map[string]any{"restored_revision": snap.Revision, "authority": "expired"})
 		return e
 	})
+}
+
+// Validate the portable representation before either SQL engine can coerce it.
+// Only the two declared nullable operational columns admit null.
+func restoreCell(table, column string, raw json.RawMessage) (any, error) {
+	var value any
+	if strict(raw, &value) != nil {
+		return nil, contracts.Fail("invalid_request")
+	}
+	if value == nil {
+		if column == "ended_ns" || (table == "graph_target" && column == "owner_id") {
+			return nil, nil
+		}
+		return nil, contracts.Fail("invalid_request")
+	}
+	switch column {
+	case "revision", "duration_ms", "generation", "lease_until", "started_ns", "ended_ns", "next_sequence", "checkpoint", "sequence", "predecessor":
+		number, ok := value.(json.Number)
+		if !ok {
+			return nil, contracts.Fail("invalid_request")
+		}
+		n, e := number.Int64()
+		if e != nil {
+			return nil, contracts.Fail("invalid_request")
+		}
+		return n, nil
+	default:
+		text, ok := value.(string)
+		if !ok {
+			return nil, contracts.Fail("invalid_request")
+		}
+		if (column == "id" || strings.HasSuffix(column, "_id")) && !contracts.ValidID(text) {
+			return nil, contracts.Fail("invalid_request")
+		}
+		if (column == "role" && text == "") || (column == "name" && (text == "" || len(text) > 256)) {
+			return nil, contracts.Fail("invalid_request")
+		}
+		return text, nil
+	}
 }
 
 func (s *Store) validateRestoredState(ctx context.Context, tx *sql.Tx, revision int64) error {
@@ -245,13 +270,20 @@ func (s *Store) validateRestoredState(ctx context.Context, tx *sql.Tx, revision 
 	if e != nil {
 		return e
 	}
-	rows, e = tx.QueryContext(ctx, s.query("SELECT digest,result FROM operation_receipt WHERE workspace_id=?"), s.workspace)
+	type acknowledgement struct {
+		digest   string
+		revision int64
+		result   string
+	}
+	receipts := map[string]acknowledgement{}
+	rows, e = tx.QueryContext(ctx, s.query("SELECT id,digest,revision,result FROM operation_receipt WHERE workspace_id=?"), s.workspace)
 	if e != nil {
 		return e
 	}
 	for rows.Next() {
-		var digest, result string
-		if e = rows.Scan(&digest, &result); e != nil {
+		var id, digest, result string
+		var revision int64
+		if e = rows.Scan(&id, &digest, &revision, &result); e != nil {
 			rows.Close()
 			return e
 		}
@@ -259,6 +291,42 @@ func (s *Store) validateRestoredState(ctx context.Context, tx *sql.Tx, revision 
 			rows.Close()
 			return contracts.Fail("invalid_request")
 		}
+		receipts[id] = acknowledgement{digest, revision, result}
+	}
+	e = rows.Err()
+	rows.Close()
+	if e != nil {
+		return e
+	}
+	rows, e = tx.QueryContext(ctx, s.query("SELECT e.target_id,e.sequence,e.operation_id,e.digest,e.revision,t.checkpoint FROM graph_event e JOIN graph_target t ON t.workspace_id=e.workspace_id AND t.id=e.target_id WHERE e.workspace_id=? ORDER BY e.target_id,e.sequence"), s.workspace)
+	if e != nil {
+		return e
+	}
+	previous := map[string]int64{}
+	for rows.Next() {
+		var target, operation, digest string
+		var sequence, eventRevision, checkpoint int64
+		if e = rows.Scan(&target, &sequence, &operation, &digest, &eventRevision, &checkpoint); e != nil {
+			rows.Close()
+			return e
+		}
+		receipt, found := receipts[operationID("ack", target, operation, strconv.FormatInt(sequence, 10))]
+		if sequence > checkpoint {
+			if found {
+				rows.Close()
+				return contracts.Fail("invalid_request")
+			}
+			continue
+		}
+		var result struct {
+			Target   string `json:"target"`
+			Sequence int64  `json:"sequence"`
+		}
+		if !found || receipt.digest != hash([]byte("ack:"+digest)) || receipt.revision <= eventRevision || receipt.revision <= previous[target] || strict([]byte(receipt.result), &result) != nil || result.Target != target || result.Sequence != sequence {
+			rows.Close()
+			return contracts.Fail("invalid_request")
+		}
+		previous[target] = receipt.revision
 	}
 	e = rows.Err()
 	rows.Close()
@@ -286,9 +354,6 @@ func (s *Store) validateRestoredState(ctx context.Context, tx *sql.Tx, revision 
 }
 func ReadSnapshot(data []byte) (Snapshot, error) {
 	var snap Snapshot
-	if len(data) > 64<<20 {
-		return snap, contracts.Fail("invalid_request")
-	}
 	e := strict(data, &snap)
 	return snap, e
 }

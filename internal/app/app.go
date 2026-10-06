@@ -213,6 +213,9 @@ func (a *App) Complete(id string, generation int64, state string) bool {
 }
 func (a *App) Active() int { a.mu.Lock(); defer a.mu.Unlock(); return len(a.attempts) }
 func (a *App) Close() {
+	// In-flight catalog calls can hold mu while waiting on the server. Cancel
+	// their context first so shutdown can acquire mu and drain workers.
+	a.cancel()
 	a.mu.Lock()
 	if a.closed {
 		a.mu.Unlock()

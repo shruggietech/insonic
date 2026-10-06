@@ -268,7 +268,19 @@ def cli():
         attempts = next(table['rows'] for table in exported['state'] if table['name'] == 'job_attempt')
         if len(attempts) != 2 or any(attempt[4] != 'cancelled' for attempt in attempts):
             raise ValueError('catalog history did not survive owner exit')
-    (BUILD / 'cli-receipt.json').write_text(json.dumps({'owner_reuse': 'passed', 'cancel_retry': 'passed', 'durable_history': 'passed'}) + '\n', encoding='utf-8')
+        config_file = Path(directory) / '.insonic' / 'workspace.json'
+        config = json.loads(config_file.read_text(encoding='utf-8'))
+        config['profiles']['catalog']['configuration']['path'] = 'restored.sqlite'
+        config['profiles']['catalog']['profile_revision'] += 1
+        config_file.write_text(json.dumps(config) + '\n', encoding='utf-8')
+        child([executable, '--workspace', directory, 'catalog', 'restore', snapshot, '--json'])
+        roundtrip = Path(directory) / 'catalog-roundtrip.json'
+        child([executable, '--workspace', directory, 'catalog', 'export', roundtrip, '--json'])
+        restored = json.loads(roundtrip.read_text(encoding='utf-8'))
+        restored_attempts = next(table['rows'] for table in restored['state'] if table['name'] == 'job_attempt')
+        if restored_attempts != attempts or restored['revision'] != exported['revision'] + 1:
+            raise ValueError('CLI restore did not preserve durable history and restoration receipt')
+    (BUILD / 'cli-receipt.json').write_text(json.dumps({'owner_reuse': 'passed', 'cancel_retry': 'passed', 'durable_history': 'passed', 'catalog_transfer': 'passed'}) + '\n', encoding='utf-8')
 
 if __name__ == '__main__':
     validate_pins()

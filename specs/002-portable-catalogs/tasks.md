@@ -47,7 +47,7 @@ Independent test: scope table classifies docs/core/native/schema/unknown paths c
 
 - [x] T014 Update authoritative docs and CHANGELOG.md with demonstrated behavior, remaining scope and dated decisions (FR-013).
 - [x] T015 Run local CI parity, server/platform hosted qualification, encoding checks and Spec Kit convergence for specs/002-portable-catalogs (SC-001 through SC-005).
-- [ ] T016 Automatically publish an official PR, attach it, satisfy every review finding within two rounds and hand off for owner merge (SC-005).
+- [x] T016 Automatically publish an official PR, attach it, satisfy every review finding within two rounds and hand off for owner merge (SC-005).
 
 ## Dependencies and execution
 
@@ -61,3 +61,10 @@ T001 -> T002/T003 -> US1 -> US2 -> US3 -> US4 -> completion. Tests precede imple
 - [x] T019 Preserve active retry attachment when replaying an earlier cancellation and reconcile accepted starts/retries at capacity in internal/app and internal/catalog regression tests (FR-003, FR-004, SC-003).
 
 - [x] T020 Address first-round review findings with shared-backend credential-key alias rejection and durable outbox acknowledgement reconciliation after expiry/takeover (FR-003, FR-007, FR-010).
+
+- [x] T021 Reject backend scalar coercion during snapshot restore using explicit portable cell types, UUID checks and shared-backend rollback regressions (FR-001, FR-009).
+
+- [x] T022 Cancel in-flight catalog operations before acquiring the application shutdown mutex, with a blocked-call regression in internal/app/app_test.go (FR-004, FR-006).
+
+- [x] T023 Remove asymmetric snapshot input limits, read validated file streams through a private temporary spool, and prove an actual catalog export above 64 MiB restores (FR-009, FR-011).
+- [x] T024 Require matching deterministic acknowledgement receipts and outcomes for restored checkpoints, rejecting missing/mismatched receipts and checkpoint rewinds on both backends (FR-007, FR-009).

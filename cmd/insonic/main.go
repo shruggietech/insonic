@@ -9,7 +9,6 @@ import (
 	"github.com/shruggietech/insonic/internal/contracts"
 	local "github.com/shruggietech/insonic/internal/runtime"
 	"github.com/shruggietech/insonic/internal/workspace"
-	"io"
 	"os"
 	"os/signal"
 	"strconv"
@@ -144,11 +143,7 @@ func catalogCommand(ctx context.Context, w *workspace.Workspace, args []string, 
 			return output(nil, contracts.Fail("unavailable"), machine)
 		}
 		defer file.Close()
-		data, err := io.ReadAll(io.LimitReader(file, (64<<20)+1))
-		if err != nil {
-			return output(nil, contracts.Fail("unavailable"), machine)
-		}
-		snap, err := catalog.ReadSnapshot(data)
+		snap, err := catalog.ReadSnapshotReader(file)
 		if err == nil {
 			err = store.Restore(ctx, snap)
 		}

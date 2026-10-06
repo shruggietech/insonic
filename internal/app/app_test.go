@@ -1,11 +1,47 @@
 package app
 
 import (
+	"context"
+	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"testing"
 	"time"
 )
+
+type blockedCatalog struct {
+	catalog.Catalog
+	entered chan struct{}
+}
+
+func (b blockedCatalog) StartJob(ctx context.Context, _ string, _ string, _ int, _ time.Duration) (catalog.Attempt, error) {
+	close(b.entered)
+	<-ctx.Done()
+	return catalog.Attempt{}, contracts.Fail("cancelled")
+}
+func TestCloseCancelsInFlightCatalogCall(t *testing.T) {
+	w, e := workspace.Init(t.TempDir(), "close blocked call")
+	if e != nil {
+		t.Fatal(e)
+	}
+	a := mustNew(t, w)
+	entered := make(chan struct{})
+	a.Catalog = blockedCatalog{a.Catalog, entered}
+	returned := make(chan struct{})
+	go func() { a.Start(60000); close(returned) }()
+	<-entered
+	closed := make(chan struct{})
+	go func() { a.Close(); close(closed) }()
+	select {
+	case <-closed:
+	case <-time.After(time.Second):
+		a.cancel()
+		<-returned
+		<-closed
+		t.Fatal("Close waited for its mutex before cancelling SQL")
+	}
+	<-returned
+}
 
 func TestCancelReplayDoesNotDetachRetriedWork(t *testing.T) {
 	w, e := workspace.Init(t.TempDir(), "cancel replay")

@@ -96,6 +96,14 @@ func TestPostgreSQLCredentialOptionAliases(t *testing.T) {
 func TestPostgreSQLAckReconciliation(t *testing.T) {
 	ackReconciliationSuite(t, postgresStore(t, contracts.ID()))
 }
+
+func TestPostgreSQLSnapshotCellTypes(t *testing.T) {
+	snapshotCellSuite(t, postgresStore(t, contracts.ID()), func(id string) *Store { return postgresStore(t, id) })
+}
+
+func TestPostgreSQLCheckpointReceipts(t *testing.T) {
+	checkpointReceiptSuite(t, postgresStore(t, contracts.ID()), func(id string) *Store { return postgresStore(t, id) })
+}
 func TestPostgreSQLSelectedRoutingAndTLS(t *testing.T) {
 	cfg, e := pgx.ParseConfig(os.Getenv("INSONIC_FIXTURE_POSTGRES"))
 	if e != nil {

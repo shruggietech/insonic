@@ -234,7 +234,10 @@ func ValidateJSON(data []byte) error {
 	if !utf8.Valid(data) {
 		return contracts.Fail("invalid_request")
 	}
-	d := json.NewDecoder(bytes.NewReader(data))
+	return validateJSONDecoder(json.NewDecoder(bytes.NewReader(data)))
+}
+
+func validateJSONDecoder(d *json.Decoder) error {
 	d.UseNumber()
 	var value func() error
 	value = func() error {

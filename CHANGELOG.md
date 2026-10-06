@@ -42,6 +42,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Reconcile durable acknowledgement receipts after ownership expires; validate restored checkpoints against accepted acknowledgements, reject scalar coercion, and restore large catalog exports without an asymmetric file-size limit.
+- Reject common credential-key aliases in persisted options while retaining opaque references, preserve shutdown evidence, and keep replayed requests from detaching newer work or blocking at runtime capacity.
 - Keep the landing archive widget at the tallest tab's natural height so switching views leaves following content in place.
 - Align audit-instant schemas, examples and documentation on Cueson's `{iso, unix_ns}` representation, including lossless nanosecond-integer handling.
 - Preserve closed GitHub Projects when rerunning repository setup.
