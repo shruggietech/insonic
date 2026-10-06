@@ -13,6 +13,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -157,7 +158,7 @@ func (s *Service) Publish(ctx context.Context, id, source, kind string) (catalog
 	defer lock.Unlock()
 	defer lock.Close()
 	profile := s.Workspace.Config.Profiles.Storage
-	p := catalog.Publication{ID: id, ArtifactID: id, LocationID: id, ProfileID: profile.ID, ProfileRevision: int64(profile.Revision), Digest: digest, Size: size, Kind: kind, Key: "objects/sha256/" + digest[:2] + "/" + digest + "/" + id, Owner: s.Owner}
+	p := catalog.Publication{ID: id, ArtifactID: id, LocationID: id, ProfileID: profile.ID, ProfileRevision: profile.Revision, Digest: digest, Size: size, Kind: kind, Key: "objects/" + s.Workspace.Config.WorkspaceID + "/" + profile.ID + "/" + strconv.FormatInt(profile.Revision, 10) + "/sha256/" + digest[:2] + "/" + digest + "/" + id, Owner: s.Owner}
 	p, e = s.Catalog.BeginPublication(ctx, p, s.TTL)
 	if e != nil {
 		return p, e

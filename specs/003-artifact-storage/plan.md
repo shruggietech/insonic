@@ -36,6 +36,8 @@ Pre-design and post-design: PASS. Both storage choices receive full common behav
 
 2026-10-06: Materialization is streaming into private bounded cache; lease acquired before I/O, verified path returned only while authority remains current. Default publication/lease TTL and grace are bounded, explicit values documented; external references and full byte backup remain library/portability work.
 
+2026-10-06: External review refines location availability: identities and admission receipts stay immutable, while successful retirement atomically updates typed location state and the journal. Namespace managed keys by workspace and profile revision. Flush linked metadata before admission and recovery, using Unix directory ancestry and the documented Windows file metadata flush. Persist S3 completion intent and retain indeterminate abort outcomes as pending.
+
 ## Phases
 
 Specify/clarify/checklist passed, plan and research define authority. Generate tasks and analyze all requirement coverage before implementation. Tests precede each user story implementation; converge and recorded CI parity precede authorized publication. At most one manual second review request is allowed.

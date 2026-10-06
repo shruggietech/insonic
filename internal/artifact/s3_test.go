@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -38,6 +39,34 @@ func TestS3RangeAndSigning(t *testing.T) {
 	}
 	if !signed {
 		t.Fatal("explicit credentials not signed")
+	}
+}
+
+func TestS3UnknownCompletionAbortStaysPending(t *testing.T) {
+	var heads atomic.Int64
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "HEAD" {
+			heads.Add(1)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/xml")
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`<Error><Code>NoSuchUpload</Code><Message>Gone</Message></Error>`))
+	}))
+	defer server.Close()
+	s, e := NewS3(context.Background(), S3Config{Endpoint: server.URL, Bucket: "fixture", Region: "us-east-1", Authentication: "anonymous", AddressingStyle: "path"}, nil, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, requested := range []bool{false, true} {
+		p := catalog.Publication{Key: "objects/uncertain", UploadID: "unknown", CompletionRequested: requested, State: "pending"}
+		if e = s.Abort(context.Background(), p); e == nil {
+			t.Fatal("uncertain completion declared aborted")
+		}
+	}
+	if heads.Load() < 8 {
+		t.Fatal("bounded visibility observations absent")
 	}
 }
 func TestS3MissingCredentialAndURL(t *testing.T) {

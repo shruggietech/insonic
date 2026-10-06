@@ -14,8 +14,9 @@ import (
 )
 
 type Filesystem struct {
-	root *os.Root
-	lock *flock.Flock
+	root    *os.Root
+	lock    *flock.Flock
+	persist func(*os.Root, string) error
 }
 
 func NewFilesystem(location string) (*Filesystem, error) {
@@ -33,7 +34,7 @@ func NewFilesystem(location string) (*Filesystem, error) {
 	if e != nil {
 		return nil, contracts.Fail("unavailable")
 	}
-	return &Filesystem{root, flock.New(filepath.Join(location, ".lifecycle.lock"))}, nil
+	return &Filesystem{root: root, lock: flock.New(filepath.Join(location, ".lifecycle.lock")), persist: persistObject}, nil
 }
 func (s *Filesystem) Close() error { s.lock.Close(); return s.root.Close() }
 func (s *Filesystem) Capabilities() Capabilities {
@@ -42,6 +43,11 @@ func (s *Filesystem) Capabilities() Capabilities {
 func (s *Filesystem) Stat(ctx context.Context, p catalog.Publication) (Object, error) {
 	if !validKey(p.Key) {
 		return Object{}, contracts.Fail("invalid_request")
+	}
+	if p.State == "pending" {
+		if e := s.persist(s.root, p.Key); e != nil {
+			return Object{}, redact(ctx, e)
+		}
 	}
 	f, e := s.root.Open(p.Key)
 	if e != nil {
@@ -113,6 +119,9 @@ func (s *Filesystem) PublishImmutable(ctx context.Context, p catalog.Publication
 	}
 	// Hard link publishes fully flushed bytes without ever replacing an object.
 	if e = s.root.Link(stage, p.Key); e != nil {
+		return p, redact(ctx, e)
+	}
+	if e = s.persist(s.root, p.Key); e != nil {
 		return p, redact(ctx, e)
 	}
 	return p, Verify(ctx, s, p)

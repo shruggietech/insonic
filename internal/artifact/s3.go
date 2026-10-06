@@ -19,6 +19,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 const partSize int64 = 8 << 20
@@ -165,6 +166,11 @@ func (s *S3) PublishImmutable(ctx context.Context, p catalog.Publication, source
 	}
 	opts := minio.PutObjectOptions{ContentType: "application/octet-stream", DisableMultipart: true}
 	if p.Size <= partSize {
+		p.CompletionRequested = true
+		p, e = save(p)
+		if e != nil {
+			return p, e
+		}
 		source.Seek(0, 0)
 		info, e := s.core.Client.PutObject(ctx, s.bucket, key, contextReader{ctx, source}, p.Size, opts)
 		if e != nil {
@@ -240,6 +246,11 @@ func (s *S3) PublishImmutable(ctx context.Context, p catalog.Publication, source
 		complete = append(complete, minio.CompletePart{PartNumber: number, ETag: part.ETag})
 	}
 	opts.DisableMultipart = false
+	p.CompletionRequested = true
+	p, e = save(p)
+	if e != nil {
+		return p, e
+	}
 	info, e := s.core.CompleteMultipartUpload(ctx, s.bucket, key, p.UploadID, complete, opts)
 	if e != nil {
 		return p, redact(ctx, e)
@@ -257,14 +268,44 @@ func (s *S3) Abort(ctx context.Context, p catalog.Publication) error {
 	} else if code := minio.ToErrorResponse(e).Code; code != "NoSuchKey" && code != "NoSuchVersion" && code != "NotFound" {
 		return redact(ctx, e)
 	}
+	if p.CompletionRequested {
+		return s.uncertainAbort(ctx, p)
+	}
 	if p.UploadID == "" {
 		return nil
 	}
 	e = s.core.AbortMultipartUpload(ctx, s.bucket, key, p.UploadID)
 	if code := minio.ToErrorResponse(e).Code; code == "NoSuchUpload" {
-		return nil
+		return s.uncertainAbort(ctx, p)
 	}
 	return redact(ctx, e)
+}
+
+// An absent upload plus an absent object is not evidence of abort when a
+// provider delays completed-object visibility. Bound observation, then retain
+// the pending journal unless the original abort received an affirmative reply.
+func (s *S3) uncertainAbort(ctx context.Context, p catalog.Publication) error {
+	key, e := s.key(p)
+	if e != nil {
+		return e
+	}
+	for _, delay := range []time.Duration{100 * time.Millisecond, 250 * time.Millisecond, 500 * time.Millisecond} {
+		timer := time.NewTimer(delay)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return contracts.Fail("cancelled")
+		case <-timer.C:
+		}
+		if _, e = s.core.StatObject(ctx, s.bucket, key, minio.StatObjectOptions{VersionID: p.Version}); e == nil {
+			return contracts.Fail("conflict")
+		}
+		code := minio.ToErrorResponse(e).Code
+		if code != "NoSuchKey" && code != "NoSuchVersion" && code != "NotFound" {
+			return redact(ctx, e)
+		}
+	}
+	return contracts.Fail("unavailable")
 }
 func (s *S3) DeleteUnreferenced(ctx context.Context, p catalog.Publication) error {
 	if p.State != "retiring" {

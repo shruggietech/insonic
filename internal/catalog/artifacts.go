@@ -18,30 +18,31 @@ const artifactIndexDDL = `CREATE INDEX IF NOT EXISTS artifact_publication_conten
 // Publication separates operational availability from immutable location evidence.
 // Paths and credential values never belong in this portable journal.
 type Publication struct {
-	ID               string                          `json:"id"`
-	ArtifactID       string                          `json:"artifact_id"`
-	LocationID       string                          `json:"location_id"`
-	ProfileID        string                          `json:"profile_id"`
-	ProfileRevision  int64                           `json:"profile_revision"`
-	Digest           string                          `json:"digest"`
-	Size             int64                           `json:"size"`
-	Kind             string                          `json:"kind"`
-	Key              string                          `json:"key"`
-	Version          string                          `json:"version"`
-	Verification     string                          `json:"verification"`
-	UploadID         string                          `json:"upload_id"`
-	PartSize         int64                           `json:"part_size"`
-	Parts            []UploadPart                    `json:"parts"`
-	State            string                          `json:"state"`
-	Owner            string                          `json:"owner"`
-	Generation       int64                           `json:"generation"`
-	LeaseUntil       int64                           `json:"lease_until"`
-	AvailableAt      int64                           `json:"available_at"`
-	AdmissionID      string                          `json:"admission_id"`
-	JournalReceiptID string                          `json:"journal_receipt_id"`
-	References       map[string]bool                 `json:"references"`
-	Leases           map[string]MaterializationLease `json:"leases"`
-	Events           []string                        `json:"events"`
+	ID                  string                          `json:"id"`
+	ArtifactID          string                          `json:"artifact_id"`
+	LocationID          string                          `json:"location_id"`
+	ProfileID           string                          `json:"profile_id"`
+	ProfileRevision     int64                           `json:"profile_revision"`
+	Digest              string                          `json:"digest"`
+	Size                int64                           `json:"size"`
+	Kind                string                          `json:"kind"`
+	Key                 string                          `json:"key"`
+	Version             string                          `json:"version"`
+	Verification        string                          `json:"verification"`
+	UploadID            string                          `json:"upload_id"`
+	CompletionRequested bool                            `json:"completion_requested"`
+	PartSize            int64                           `json:"part_size"`
+	Parts               []UploadPart                    `json:"parts"`
+	State               string                          `json:"state"`
+	Owner               string                          `json:"owner"`
+	Generation          int64                           `json:"generation"`
+	LeaseUntil          int64                           `json:"lease_until"`
+	AvailableAt         int64                           `json:"available_at"`
+	AdmissionID         string                          `json:"admission_id"`
+	JournalReceiptID    string                          `json:"journal_receipt_id"`
+	References          map[string]bool                 `json:"references"`
+	Leases              map[string]MaterializationLease `json:"leases"`
+	Events              []string                        `json:"events"`
 }
 type UploadPart struct {
 	Number int    `json:"number"`
@@ -551,6 +552,9 @@ func (s *Store) FinishRetirement(ctx context.Context, p Publication) (Publicatio
 		p.State = "retired"
 		p.LeaseUntil = 0
 		p.Events = append(p.Events, "retired")
+		if _, e = s.exec(ctx, tx, "UPDATE artifact_location SET state='retired' WHERE workspace_id=? AND id=? AND artifact_id=?", s.workspace, p.LocationID, p.ArtifactID); e != nil {
+			return e
+		}
 		return s.putPublication(ctx, tx, &p, rev)
 	})
 	return p, e
@@ -714,7 +718,11 @@ func (s *Store) validateArtifactState(ctx context.Context, tx *sql.Tx, expire bo
 			if want != digest || acceptedIntent != digest || accepted.AdmissionID != p.AdmissionID || accepted.Verification != p.Verification || accepted.Version != p.Version || accepted.AvailableAt != p.AvailableAt {
 				return contracts.Fail("invalid_request")
 			}
-			if e = s.row(ctx, tx, "SELECT count(*) FROM artifact a JOIN artifact_location l ON l.workspace_id=a.workspace_id AND l.artifact_id=a.id WHERE a.workspace_id=? AND a.id=? AND a.digest=? AND a.size=? AND l.id=? AND l.key=? AND l.profile_id=? AND l.profile_revision=? AND coalesce(l.version,'')=?", s.workspace, p.ArtifactID, p.Digest, p.Size, p.LocationID, p.Key, p.ProfileID, p.ProfileRevision, p.Version).Scan(&n); e != nil {
+			locationState := "available"
+			if p.State == "retired" || p.State == "missing" {
+				locationState = p.State
+			}
+			if e = s.row(ctx, tx, "SELECT count(*) FROM artifact a JOIN artifact_location l ON l.workspace_id=a.workspace_id AND l.artifact_id=a.id WHERE a.workspace_id=? AND a.id=? AND a.digest=? AND a.size=? AND l.id=? AND l.key=? AND l.profile_id=? AND l.profile_revision=? AND coalesce(l.version,'')=? AND l.state=?", s.workspace, p.ArtifactID, p.Digest, p.Size, p.LocationID, p.Key, p.ProfileID, p.ProfileRevision, p.Version, locationState).Scan(&n); e != nil {
 				return e
 			}
 			if n != 1 {

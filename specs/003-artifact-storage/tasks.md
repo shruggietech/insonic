@@ -45,3 +45,7 @@ T001->T002->T003->T004/T005->T006. US1 tests->adapters->service->fixtures, US2 d
 ## Phase 8: Convergence
 
 - [x] T024 Close HIGH partial FR-003 unknown-completion abort gap: refuse to abandon a pending journal when its final object already exists; keep it reconcilable and test the lost-response abort path in both adapters.
+
+## Phase 9: External review
+
+- [x] T025 Resolve first-round workspace/profile key isolation, final-link durability, indeterminate S3 completion/abort and typed location retirement findings with regressions on both storage/catalog backends.

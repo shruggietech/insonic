@@ -8,6 +8,7 @@ All notable changes to this project will be documented here. The format follows 
 
 - Managed filesystem and generic S3 artifact storage with streamed SHA-256 verification, resumable multipart receipts, durable publication recovery, leased materialization and reference-aware retirement through the shared CLI/runtime.
 - Additive catalog schema 2 with schema-1 upgrade/restore compatibility and receipt-validated artifact lifecycle snapshots.
+- Workspace/profile-scoped object keys, final-link metadata durability and pending reconciliation for uncertain S3 completion/abort; retirement updates typed location availability alongside preserved admission receipts.
 
 - Portable SQLite/PostgreSQL catalogs with atomic revision/receipt admission, exact metadata/date provenance, scoped speaker/training/model records, durable job history/recovery and ordered fenced graph outbox.
 - CLI job history, catalog status, explicit migration and consistent logical export/restore with imported ownership expired.

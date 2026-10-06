@@ -34,6 +34,8 @@ Official PR and hosted CI/reviews pending. External review rounds used: zero. On
 
 2026-10-06: Published PR #20 at 2d65f00. Initial hosted macOS and fixture runs exposed overly short test-only leases (10-90 milliseconds), racing SQLite I/O and runner scheduling. Cache expiry now shortens an already materialized normal lease, and slow-work tests use three-second authority with reads extending beyond that duration. The expiry, renewal and stale-authority assertions remain intact. Initial external code review is running; no second request has been made.
 
+2026-10-06: 328aefd passed all six hosted checks in run 37510225600 (longest job 4m15s). First external code review completed on 2d65f00 with four findings. Corrections namespace keys by workspace/profile revision, flush linked metadata before admission/recovery, checkpoint S3 completion intent and keep indeterminate aborts pending, and atomically mark typed locations retired. Regression tests cover shared-root/bucket isolation, injected flush failure, delayed/missing completion responses and retired-location snapshot parity on both catalogs. Physical power-loss testing is not claimed. The following code/security request is the second and final allowed round.
+
 ## Demonstrated limits
 
 The pinned S3-compatible fixture and deterministic transport tests qualify the implemented contract; other real provider deployments have not been individually exercised. Hosted Linux/macOS and the unchanged ArcadeDB fixture await PR CI. Native secret persistence, media producers, model registry, full byte backups and installable release packages remain subsequent issues. No per-item review requirement or release claim is added.

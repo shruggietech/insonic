@@ -126,4 +126,19 @@ func artifactAuthoritySuite(t *testing.T, s *Store, newStore func(string) *Store
 	if e = newStore(id).Restore(ctx, forged); e == nil {
 		t.Fatal("old journal paired with newer receipts restored")
 	}
+	p, e = s.ClaimRetirement(ctx, p.ID, p.Owner, 0, time.Minute)
+	if e != nil {
+		t.Fatal(e)
+	}
+	p, e = s.FinishRetirement(ctx, p)
+	if e != nil {
+		t.Fatal(e)
+	}
+	retired, e := s.Export(ctx)
+	if e != nil || len(retired.Records.Locations) != 1 || retired.Records.Locations[0].State != "retired" {
+		t.Fatal("typed location availability disagrees with retirement")
+	}
+	if e = newStore(id).Restore(ctx, retired); e != nil {
+		t.Fatal("retired location snapshot failed", e)
+	}
 }

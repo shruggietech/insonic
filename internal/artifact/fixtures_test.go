@@ -33,6 +33,11 @@ func TestGenericS3ArtifactContract(t *testing.T) {
 	}
 	defer s.Close()
 	exerciseStore(t, s)
+	secondStore, e := NewS3(context.Background(), S3Config{Endpoint: "http://" + endpoint, Bucket: bucket, Region: "us-east-1", AddressingStyle: "path", Authentication: "anonymous"}, nil, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	sharedStoreIsolation(t, s, secondStore)
 	service := testService(t)
 	service.Store.Close()
 	service.Store = s
