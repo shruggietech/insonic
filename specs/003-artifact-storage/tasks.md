@@ -29,7 +29,7 @@
 ## Phase 6: Verification and publication
 - [x] T017 Update truthful storage/development/index contracts and CHANGELOG.md.
 - [x] T018 Execute repository/site/product/fixture/race checks and converge evidence in specs/003-artifact-storage/verification.md.
-- [ ] T019 Commit, push official PR and resolve at most two external review rounds; record final green head in specs/003-artifact-storage/verification.md.
+- [x] T019 Commit, push official PR and resolve at most two external review rounds; record the green implementation head in specs/003-artifact-storage/verification.md and the final evidence head in PR #20.
 
 ## Dependencies and strategy
 

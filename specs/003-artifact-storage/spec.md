@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-06
 
-**Status**: Implemented; hosted CI and external reviews pending
+**Status**: Implemented and verified; both review rounds resolved, owner merge pending
 
 **Input**: Implement issue #4 through filesystem and generic S3 storage, verified immutable publication, catalog-backed recovery and guarded retirement. The actual session code is S003; issue #4 retains its original roadmap label S004. S001 completed #1/#2 and S002 completed #3.
 
