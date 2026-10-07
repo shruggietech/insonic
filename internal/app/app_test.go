@@ -24,9 +24,15 @@ func TestCloseCancelsInFlightCatalogCall(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	a := mustNew(t, w)
+	ctx, cancel := context.WithCancel(context.Background())
+	store, e := catalog.OpenWorkspace(ctx, w, nil, false)
+	if e != nil {
+		cancel()
+		t.Fatal(e)
+	}
 	entered := make(chan struct{})
-	a.Catalog = blockedCatalog{a.Catalog, entered}
+	// Inject the blocking adapter before exposing the App to concurrent calls.
+	a := &App{Workspace: w, Session: contracts.ID(), Catalog: blockedCatalog{store, entered}, ctx: ctx, cancel: cancel, attempts: map[string]*worker{}, workers: map[string]*realWorker{}}
 	returned := make(chan struct{})
 	go func() { a.Start(60000); close(returned) }()
 	<-entered

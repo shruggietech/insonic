@@ -115,20 +115,15 @@ func TestSQLiteCurrentLibrary(t *testing.T) { librarySuite(t, localStore(t, cont
 func TestCurrentDurationBounds(t *testing.T) {
 	ctx := context.Background()
 	s := localStore(t, contracts.ID())
-	claim, entry := entryFixture(t, s)
-	current, e := s.CommitLibrary(ctx, claim, entry)
+	_, recording, _ := evidenceRecording(t, s)
+	entry, e := s.Library(ctx, recording.ID)
 	if e != nil {
 		t.Fatal(e)
 	}
-	rev, _ := s.Revision(ctx)
-	segment := Segment{ID: contracts.ID(), Revision: 1, AssetID: entry.AssetID, StartUS: 0, EndUS: 100, Channel: 0, Attribution: json.RawMessage(`{}`)}
-	if _, e = s.Commit(ctx, Mutation{OperationID: contracts.ID(), Expected: rev, Records: Records{Segments: []Segment{segment}}}); e != nil {
-		t.Fatal("unknown duration treated as zero", e)
-	}
 	zero := int64(0)
-	current.DurationUS = &zero
-	if _, e = s.UpdateLibrary(ctx, contracts.ID(), current.Revision, current); e == nil {
-		t.Fatal("known zero allowed out-of-range intervals")
+	entry.DurationUS = &zero
+	if _, e = s.UpdateLibrary(ctx, contracts.ID(), entry.Revision, entry); e == nil {
+		t.Fatal("known zero accepted existing out-of-range current cues")
 	}
 }
 

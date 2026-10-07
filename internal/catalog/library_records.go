@@ -51,8 +51,9 @@ type Work struct {
 
 // Cleanup retains only publication identities, never superseded report bytes.
 type Cleanup struct {
-	Revision int64  `json:"revision"`
-	ID       string `json:"id"`
-	EntryID  string `json:"entry_id"`
-	State    string `json:"state"`
+	LegacyLocationID *string `json:"legacy_location_id,omitempty"`
+	Revision         int64   `json:"revision"`
+	ID               string  `json:"id"`
+	EntryID          string  `json:"entry_id"`
+	State            string  `json:"state"`
 }

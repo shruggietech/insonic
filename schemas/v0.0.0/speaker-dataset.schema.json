@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/speaker-dataset.schema.json",
   "title": "Speaker training dataset snapshot",
-  "description": "Portable immutable training corpus selection. Source, speaker, attribution, transcript and preparation revisions are frozen; later training preparation binds final bytes in a separate manifest.",
+  "description": "Frozen ordered membership in current embedded recording evidence. A current-document or known-speaker mapping correction invalidates dependent membership and retires assignment-bearing manifests/preparations while retaining noncontent lineage.",
   "type": "object",
   "properties": {
     "schema_version": {
@@ -38,20 +38,43 @@
       "description": "UTC instant when this snapshot was frozen."
     },
     "manifest_sha256": {
-      "$ref": "common.schema.json#/$defs/sha256",
-      "description": "Digest of the separately published canonical snapshot manifest, not a hash asserted over this transport envelope including itself."
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Current manifest content digest."
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Current assignment-bearing manifest digest, or null after invalidation."
     },
     "manifest_artifact": {
-      "$ref": "common.schema.json#/$defs/artifactReference",
-      "description": "Optional published artifact containing the canonical immutable snapshot manifest."
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/artifactReference",
+          "description": "Current manifest artifact."
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Current managed manifest, or null after retirement/invalidation."
     },
     "selection": {
       "$ref": "#/$defs/selection",
       "description": "Complete frozen selection recipe and effective filters."
     },
     "preparation": {
-      "$ref": "#/$defs/preparation",
-      "description": "Requested preparation contract frozen before final training inputs are materialized."
+      "anyOf": [
+        {
+          "$ref": "#/$defs/preparation"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Current preparation recipe, or null after invalidation."
     },
     "members": {
       "type": "array",
@@ -74,6 +97,13 @@
     "extensions": {
       "$ref": "common.schema.json#/$defs/extensions",
       "description": "Namespaced dataset metadata preserved without altering immutable membership."
+    },
+    "state": {
+      "enum": [
+        "current",
+        "invalidated"
+      ],
+      "description": "Whether current evidence still authorizes this frozen corpus. Invalidated lineage has no executable manifest or membership."
     }
   },
   "required": [
@@ -90,7 +120,8 @@
     "preparation",
     "members",
     "exclusions",
-    "summary"
+    "summary",
+    "state"
   ],
   "additionalProperties": false,
   "$defs": {
@@ -277,67 +308,48 @@
     },
     "member": {
       "type": "object",
-      "description": "One included, ordered, immutable dataset member; all referenced revisions and source bytes are frozen.",
+      "description": "Reference-only frozen membership. Resolve against current recording authority before preparation; a superseded digest invalidates this corpus.",
       "properties": {
         "ordinal": {
           "type": "integer",
           "minimum": 0,
-          "description": "Zero-based explicit order within this snapshot."
+          "description": "Frozen member order."
         },
         "segment_id": {
           "$ref": "common.schema.json#/$defs/uuid",
-          "description": "Stable source segment identity."
+          "description": "Immutable segment reference identity."
         },
         "segment_revision": {
           "$ref": "common.schema.json#/$defs/revision",
-          "description": "Exact segment boundary revision."
+          "description": "Exact segment reference revision."
         },
-        "source": {
-          "$ref": "speaker-segments.schema.json#/$defs/source",
-          "description": "Original byte/stream/channel identity and source interval."
-        },
-        "processing_run_id": {
+        "recording_id": {
           "$ref": "common.schema.json#/$defs/uuid",
-          "description": "Diarization or segmentation run that produced the member interval."
+          "description": "Current recording owning the embedded Cueson evidence."
         },
-        "voice_id": {
+        "document_digest": {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Exact current embedded document digest; stale references fail resolution."
+        },
+        "cue_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Cue identity inside the current embedded document."
+        },
+        "local_speaker_id": {
           "$ref": "common.schema.json#/$defs/uuid",
-          "description": "Run-local acoustic voice identity used by this member."
-        },
-        "attribution": {
-          "$ref": "speaker-segments.schema.json#/$defs/attribution",
-          "description": "Exact attribution and speaker identity revisions used for membership."
-        },
-        "transcript": {
-          "$ref": "speaker-segments.schema.json#/$defs/transcript",
-          "description": "Optional exact transcript/cue evidence; required by application validation when preparation.transcript_required is true."
-        },
-        "prepared_audio": {
-          "$ref": "speaker-segments.schema.json#/$defs/preparedAudio",
-          "description": "Any audio already materialized before this snapshot was frozen."
-        },
-        "diagnostics": {
-          "type": "array",
-          "description": "Technical findings observed when this member was selected.",
-          "items": {
-            "$ref": "speaker-segments.schema.json#/$defs/diagnostic",
-            "description": "One method-qualified selection finding."
-          }
-        },
-        "extensions": {
-          "$ref": "common.schema.json#/$defs/extensions",
-          "description": "Namespaced member annotations that preserve frozen core provenance."
+          "description": "Recording-scoped local UUID occurring in this cue attribution."
         }
       },
       "required": [
         "ordinal",
         "segment_id",
         "segment_revision",
-        "source",
-        "processing_run_id",
-        "voice_id",
-        "attribution",
-        "diagnostics"
+        "recording_id",
+        "document_digest",
+        "cue_id",
+        "local_speaker_id"
       ],
       "additionalProperties": false
     },
@@ -501,43 +513,12 @@
       "members": [
         {
           "ordinal": 0,
-          "segment_id": "00000000-0000-4000-8000-000000000007",
+          "segment_id": "00000000-0000-4000-8000-000000000001",
           "segment_revision": 1,
-          "source": {
-            "media_entry_id": "00000000-0000-4000-8000-000000000001",
-            "source_asset_id": "00000000-0000-4000-8000-000000000002",
-            "source_artifact": {
-              "artifact_id": "00000000-0000-4000-8000-000000000003",
-              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-              "byte_length": 640000
-            },
-            "stream_id": "00000000-0000-4000-8000-000000000004",
-            "stream_index": 0,
-            "channels": [
-              0
-            ],
-            "channel_policy": "preserve",
-            "interval": {
-              "start_us": 1000000,
-              "end_us": 3000000
-            }
-          },
-          "processing_run_id": "00000000-0000-4000-8000-000000000008",
-          "voice_id": "00000000-0000-4000-8000-000000000009",
-          "attribution": {
-            "attribution_id": "00000000-0000-4000-8000-000000000005",
-            "revision": 1,
-            "speaker_id": "00000000-0000-4000-8000-000000000006",
-            "speaker_identity_revision": 1,
-            "basis": "acoustic-comparison",
-            "method": "example.voice-matcher",
-            "confidence": {
-              "value": 0.88,
-              "scale": "unit-interval",
-              "method_version": "1.0.0"
-            }
-          },
-          "diagnostics": []
+          "recording_id": "00000000-0000-4000-8000-000000000002",
+          "document_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "cue_id": "cue-000000",
+          "local_speaker_id": "00000000-0000-4000-8000-000000000003"
         }
       ],
       "exclusions": [],
@@ -549,6 +530,45 @@
         "excluded_segment_count": 0,
         "diagnostic_counts": {},
         "languages": []
+      },
+      "state": "current"
+    }
+  ],
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "const": "invalidated",
+            "description": "Evidence-state condition selecting current or invalidated lineage."
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "members": {
+            "type": "array",
+            "maxItems": 0,
+            "description": "Invalidated corpora have no executable memberships."
+          },
+          "manifest_sha256": {
+            "type": "null",
+            "description": "Assignment-bearing digest is cleared after invalidation."
+          },
+          "manifest_artifact": {
+            "type": "null",
+            "description": "Assignment-bearing artifact is cleared after invalidation."
+          },
+          "preparation": {
+            "type": "null",
+            "description": "Assignment-bearing preparation is cleared after invalidation."
+          }
+        }
       }
     }
   ]

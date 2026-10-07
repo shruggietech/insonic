@@ -12,9 +12,53 @@ const { master, examples } = validateCatalog(catalog);
 const example = kind => structuredClone(catalog.contracts.find(item => item.schema.properties.kind.const === kind).schema.examples[0]);
 
 test('all documented contracts and local references validate through the release master', () => {
-  assert.equal(catalog.contracts.length, 15);
-  assert.equal(examples, 16);
+  assert.equal(catalog.contracts.length, 17);
+  assert.equal(examples, 18);
   for (const item of catalog.contracts) for (const value of item.schema.examples) assert.equal(master(value), true);
+});
+
+test('recording operation requests keep transient assembly separate from durable settings', () => {
+  const base = {...example('runtime-request'), operation:'recordings.process', item_id:'22222222-2222-4222-8222-222222222222', data:{transcription:'supplied',diarization:'run',diarization_model_id:'33333333-3333-4333-8333-333333333333'}};
+  assert.equal(master(base),true);
+  assert.equal(master({...base,data:{...base.data,transcription:'generate'}}),false);
+  assert.equal(master({...base,data:{...base.data,transcription:'generate',recognition_model_id:'44444444-4444-4444-8444-444444444444'}}),true);
+  assert.equal(master({...base,data:{transcription:'reuse',diarization:'reuse'}}),false);
+  assert.equal(master({...base,data:{...base.data,turns:[]}}),false);
+  assert.equal(master({...base,data:{...base.data,recognition:{device:'hosted'}}}),false);
+  assert.equal(master({...base,operation:'recordings.assemble',data:{subtitle_format:'srt',turns:[{label:'voice',start_us:0,end_us:1000000}]}}),true);
+  assert.equal(master({...base,operation:'recordings.assemble',data:{turns:[],archive:true}}),false);
+  assert.equal(master({...base,operation:'recordings.assemble',data:{turns:[{label:'voice',start_us:-1,end_us:1000}]}}),false);
+});
+
+test('recording read, mapping and export requests enforce typed argument bounds', () => {
+  const base = {...example('runtime-request'),item_id:'22222222-2222-4222-8222-222222222222'};
+  assert.equal(master({...base,operation:'recordings.show'}),true);
+  assert.equal(master({...base,operation:'recordings.show',data:{}}),false);
+  assert.equal(master({...base,operation:'recordings.document',data:{offset:0,limit:65536,document_digest:'a'.repeat(64)}}),true);
+  assert.equal(master({...base,operation:'recordings.document',data:{offset:0,limit:65537}}),false);
+  assert.equal(master({...base,operation:'recordings.mappings',data:{limit:100}}),true);
+  const segment={segment_id:'33333333-3333-4333-8333-333333333333',segment_revision:1};
+  assert.equal(master({...base,operation:'recordings.resolve-segment',data:segment}),true);
+  assert.equal(master({...base,operation:'recordings.resolve-segment',data:{...segment,segment_revision:0}}),false);
+  assert.equal(master({...base,operation:'recordings.resolve-segment',data:{...segment,segment_id:'cue-0'}}),false);
+  const mapping={revision:0,local_speaker_id:'33333333-3333-4333-8333-333333333333',speaker_id:'44444444-4444-4444-8444-444444444444',document_digest:'a'.repeat(64)};
+  assert.equal(master({...base,operation:'recordings.map-speaker',data:mapping}),true);
+  assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,mapping_revision:0}}),true);
+  assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,mapping_revision:9}}),true);
+  assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,mapping_revision:-1}}),false);
+  assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,local_speaker_id:'voice1'}}),false);
+  assert.equal(master({...base,operation:'recordings.export',data:{format:'cueson',destination:'/tmp/export.json',strict:true}}),true);
+  assert.equal(master({...base,operation:'recordings.export',data:{format:'invented',destination:'/tmp/export.json'}}),false);
+  assert.equal(master({...base,operation:'recordings.process',data:{diarization_model_id:'33333333-3333-4333-8333-333333333333'},publication_id:'55555555-5555-4555-8555-555555555555'}),false);
+});
+
+test('processing tool contract selects exact executables and bounded local settings', () => {
+  const value=example('processing-tools');
+  assert.equal(master(value),true);
+  value.processing.timeout_ms=0;assert.equal(master(value),false);
+  value.processing.timeout_ms=600000;value.processing.threads=65;assert.equal(master(value),false);
+  value.processing.threads=2;value.processing.worker.sha256='bad';assert.equal(master(value),false);
+  value.processing.worker.sha256='b'.repeat(64);value.processing.provider='hosted';assert.equal(master(value),false);
 });
 
 test('release master rejects unknown kinds, version drift and undeclared core fields', () => {

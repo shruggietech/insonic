@@ -213,12 +213,13 @@ func (s *Store) saveLibrary(ctx context.Context, tx *sql.Tx, entry *LibraryEntry
 	if e := s.putDomain(ctx, tx, "Library", *entry); e != nil {
 		return e
 	}
-	var invalid int
-	if e := s.row(ctx, tx, "SELECT count(*) FROM speaker_segment s JOIN library_entry l ON l.workspace_id=s.workspace_id AND l.asset_id=s.asset_id WHERE s.workspace_id=? AND l.duration_us IS NOT NULL AND s.end_us>l.duration_us", s.workspace).Scan(&invalid); e != nil {
+	var current Recording
+	if e := s.domainTx(ctx, tx, "Recordings", entry.ID, &current); e == nil {
+		if e = s.validateRecordingSource(ctx, tx, current, false); e != nil {
+			return e
+		}
+	} else if e != sql.ErrNoRows {
 		return e
-	}
-	if invalid > 0 {
-		return contracts.Fail("invalid_request")
 	}
 	_, e := s.exec(ctx, tx, "UPDATE media_entry SET title=?,class=? WHERE workspace_id=? AND id=?", entry.Title, entry.Class, s.workspace, entry.ID)
 	return e
@@ -353,7 +354,7 @@ func (s *Store) FinishCleanup(ctx context.Context, id string) error {
 		if e != nil {
 			return e
 		}
-		if p.State != "retired" {
+		if p.State != "retired" && !(p.State == "aborted" && c.LegacyLocationID == nil && (p.Kind == "mapped-audio" || p.Kind == "speaker-clip" || p.Kind == "derived-manifest")) {
 			return contracts.Fail("conflict")
 		}
 		if c.State == "done" {

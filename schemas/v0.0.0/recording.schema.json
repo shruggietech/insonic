@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/recording.schema.json",
+  "title": "insonic current recording",
+  "description": "Current embedded Cueson subtitle and speaker assignments with external known-speaker correlations. Sources remain immutable; replacements remove superseded derived state.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "recording",
+      "description": "Master document discriminator."
+    },
+    "schema_version": {
+      "const": "0.0.0",
+      "description": "Insonic release version."
+    },
+    "recording": {
+      "$ref": "#/$defs/current",
+      "description": "Current recording authority."
+    },
+    "mappings": {
+      "type": "array",
+      "description": "External known-speaker mappings.",
+      "items": {
+        "$ref": "#/$defs/mapping"
+      }
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "recording",
+    "mappings"
+  ],
+  "$defs": {
+    "current": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The sole current embedded subtitle and speaker-assignment authority for a library entry.",
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Library entry and current recording identity."
+        },
+        "revision": {
+          "type": "integer",
+          "description": "Accepted catalog revision.",
+          "minimum": 1
+        },
+        "source_digest": {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Original source-media identity."
+        },
+        "source_revision": {
+          "type": "integer",
+          "description": "Source library revision checked during publication.",
+          "minimum": 1
+        },
+        "state": {
+          "enum": [
+            "ready",
+            "no-speech",
+            "no-timed-subtitles"
+          ],
+          "description": "Explicit representable subtitle outcome; no invented cues."
+        },
+        "document": {
+          "anyOf": [
+            {
+              "$ref": "https://cueson.io/schema/v1.2.0/cueson.schema.json"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Sole current Cue JSON. Null means the explicit outcome has no representable document. Local exact packaged Cueson validation also enforces timing and source identity."
+        },
+        "document_digest": {
+          "type": "string",
+          "description": "Exact current document SHA-256, empty only for null documents.",
+          "pattern": "^(?:[a-f0-9]{64}|)$"
+        },
+        "mapped_audio_publication_id": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/uuid",
+              "description": "Managed current mapped audio publication."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Current mapped audio publication or explicit absence."
+        },
+        "source_map": {
+          "type": "object",
+          "description": "Exact integer/rational source-to-decoded-audio mapping; never speaker turns."
+        },
+        "provenance": {
+          "type": "object",
+          "description": "Current noncontent engine, model, settings and source evidence. No transcript or assignment copies."
+        },
+        "diagnostics": {
+          "type": "array",
+          "description": "Current quality/projection diagnostics, separate from document validity.",
+          "items": {
+            "type": "object",
+            "description": "One bounded operational diagnostic."
+          }
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "source_digest",
+        "source_revision",
+        "state",
+        "document",
+        "document_digest",
+        "mapped_audio_publication_id",
+        "source_map",
+        "provenance",
+        "diagnostics"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "ready",
+                "description": "Conditional state constraint for explicit current-document state."
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "properties": {
+              "document": {
+                "type": "object",
+                "description": "Conditional document constraint for explicit current-document state."
+              },
+              "document_digest": {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string",
+                "description": "Conditional document_digest constraint for explicit current-document state."
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "document": {
+                "type": "null",
+                "description": "Conditional document constraint for explicit current-document state."
+              },
+              "document_digest": {
+                "const": "",
+                "description": "Conditional document_digest constraint for explicit current-document state."
+              }
+            }
+          }
+        }
+      ]
+    },
+    "mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "External recording-local UUID to known speaker correlation, without timed assignments.",
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Deterministic mapping identity."
+        },
+        "recording_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Current recording identity."
+        },
+        "local_speaker_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Recording-local UUID referenced inside embedded Cue JSON."
+        },
+        "speaker_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Known catalog speaker identity."
+        },
+        "document_digest": {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Current referenced document identity."
+        },
+        "revision": {
+          "type": "integer",
+          "description": "Accepted external mapping revision.",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "id",
+        "recording_id",
+        "local_speaker_id",
+        "speaker_id",
+        "document_digest",
+        "revision"
+      ]
+    }
+  },
+  "examples": [
+    {
+      "kind": "recording",
+      "schema_version": "0.0.0",
+      "recording": {
+        "id": "10000000-0000-4000-8000-000000000001",
+        "revision": 1,
+        "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_revision": 1,
+        "state": "no-speech",
+        "document": null,
+        "document_digest": "",
+        "mapped_audio_publication_id": null,
+        "source_map": {},
+        "provenance": {},
+        "diagnostics": []
+      },
+      "mappings": []
+    }
+  ]
+}

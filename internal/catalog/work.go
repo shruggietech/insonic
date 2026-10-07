@@ -126,7 +126,7 @@ func referenceResult(raw json.RawMessage) bool {
 		case map[string]any:
 			for k, v := range x {
 				switch strings.ToLower(k) {
-				case "metadata", "raw", "manifest", "payload", "facts", "dates", "observations":
+				case "metadata", "raw", "manifest", "payload", "facts", "dates", "observations", "document", "cues", "speaker_attributions", "assignments", "turns":
 					return false
 				}
 				if !visit(v) {

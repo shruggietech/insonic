@@ -153,3 +153,13 @@ func TestPostgreSQLLatestCurrentProof(t *testing.T) {
 func TestPostgreSQLCleanupSnapshotProof(t *testing.T) {
 	cleanupSnapshotProofSuite(t, postgresStore(t, contracts.ID()))
 }
+
+func TestPostgreSQLCurrentRecordingProofs(t *testing.T) {
+	recordingSuite(t, postgresStore(t, contracts.ID()))
+}
+func TestPostgreSQLReferenceEvidenceReplacement(t *testing.T) {
+	evidenceReplacementSuite(t, postgresStore(t, contracts.ID()))
+}
+func TestPostgreSQLPopulatedSchema3EvidenceMigration(t *testing.T) {
+	historicalEvidenceMigrationSuite(t, postgresStore(t, contracts.ID()))
+}

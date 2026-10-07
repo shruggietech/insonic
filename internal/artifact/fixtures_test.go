@@ -38,6 +38,10 @@ func TestGenericS3ArtifactContract(t *testing.T) {
 		t.Fatal(e)
 	}
 	sharedStoreIsolation(t, s, secondStore)
+	legacyService := testService(t)
+	legacyService.Store.Close()
+	legacyService.Store = s
+	legacyPhysicalRetirementSuite(t, legacyService)
 	service := testService(t)
 	service.Store.Close()
 	service.Store = s

@@ -71,11 +71,12 @@ func ReadSnapshotReader(input io.Reader) (Snapshot, error) {
 	decoder := json.NewDecoder(spool)
 	decoder.UseNumber()
 	decoder.DisallowUnknownFields()
-	if e = decoder.Decode(&snap); e != nil {
+	var envelope snapshotEnvelope
+	if e = decoder.Decode(&envelope); e != nil {
 		return snap, contracts.Fail("invalid_request")
 	}
 	if decoder.Decode(new(any)) != io.EOF {
 		return snap, contracts.Fail("invalid_request")
 	}
-	return snap, nil
+	return decodedSnapshot(envelope)
 }

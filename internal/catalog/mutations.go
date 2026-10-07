@@ -57,7 +57,7 @@ func (s *Store) accept(ctx context.Context, tx *sql.Tx, id, digest string, revis
 	return r, e
 }
 func (s *Store) Commit(ctx context.Context, m Mutation) (Receipt, error) {
-	if len(m.Records.Library)+len(m.Records.BaseModels)+len(m.Records.Works)+len(m.Records.Cleanups) > 0 || !contracts.ValidID(m.OperationID) || m.Expected < 0 || m.Expected == math.MaxInt64 {
+	if len(m.Records.Recordings)+len(m.Records.SpeakerMappings)+len(m.Records.Library)+len(m.Records.BaseModels)+len(m.Records.Works)+len(m.Records.Cleanups) > 0 || !contracts.ValidID(m.OperationID) || m.Expected < 0 || m.Expected == math.MaxInt64 {
 		return Receipt{}, contracts.Fail("invalid_request")
 	}
 	digest, e := intent(m)
@@ -95,6 +95,11 @@ func (s *Store) Commit(ctx context.Context, m Mutation) (Receipt, error) {
 		out, e = s.accept(ctx, tx, m.OperationID, digest, revision, map[string]any{"accepted": true})
 		if e != nil {
 			return e
+		}
+		if len(m.Records.Segments)+len(m.Records.Datasets)+len(m.Records.Members)+len(m.Records.Runs)+len(m.Records.Versions) > 0 {
+			if e = s.validateCorpusState(ctx, tx, true); e != nil {
+				return e
+			}
 		}
 		for _, p := range m.Projections {
 			if !contracts.ValidID(p.Target) {

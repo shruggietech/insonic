@@ -1,0 +1,231 @@
+{
+  "kind": "licensed-media-fixtures",
+  "schema_version": "0.0.0",
+  "assets": [
+    {
+      "id": "speech",
+      "path": "speech.flac",
+      "sha256": "62a3fcd36560793a065d53b5ea749dcf710d85028c837802063247ef787e38c3",
+      "size_bytes": 495373,
+      "license": {
+        "spdx": "CC-BY-3.0",
+        "url": "https://creativecommons.org/licenses/by/3.0/",
+        "notice": "CC BY 3.0 Unported. Attribution and indication of changes required."
+      },
+      "creator": "IETF / OPUS Codec working group; Commons 16-bit FLAC adaptation credited to MüllerMarcus",
+      "attribution": "Speech sample, IETF / OPUS Codec working group, CC BY 3.0. Commons 16-bit lossless FLAC adaptation by MüllerMarcus. Redistributed without byte changes.",
+      "source": {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/5/5b/Speech_12dB_s16.flac",
+        "page_revision_url": "https://commons.wikimedia.org/w/index.php?title=File:Speech_12dB_s16.flac&oldid=973705085",
+        "upstream_work_url": "https://opus-codec.org/examples/",
+        "sha256": "62a3fcd36560793a065d53b5ea749dcf710d85028c837802063247ef787e38c3",
+        "size_bytes": 495373,
+        "last_modified": "Sat, 21 Dec 2024 16:59:09 GMT",
+        "etag": "86472fb222cbda0beb4ec51ceb9fd3d1",
+        "probed_media": {
+          "duration_ns": 10800000000,
+          "audio": {
+            "codec": "flac",
+            "sample_rate": 48000,
+            "sample_format": "s16",
+            "channels": 1,
+            "time_base": "1/48000",
+            "start_pts": 0,
+            "duration_ts": 518400
+          }
+        }
+      },
+      "adaptation": {
+        "description": "None in this repository: source FLAC bytes copied exactly. Commons uploader describes 16-bit LPCM lossless conversion."
+      },
+      "media": {
+        "duration_ns": 10800000000,
+        "audio_stream_index": 0,
+        "codec": "flac",
+        "sample_format": "s16",
+        "sample_rate": 48000,
+        "channels": 1,
+        "channel_layout": "mono",
+        "samples_per_channel": 518400
+      },
+      "source_clock": {
+        "origin_ns": 0,
+        "rate_numerator": 1,
+        "rate_denominator": 1,
+        "sample_tick_origin": 0,
+        "sample_tick_rate": 48000
+      },
+      "references": [
+        {
+          "path": "speech-reference.json",
+          "sha256": "73f39bd879f816face253e7d7260e4f37c3cb671d93f5be5d413e6484d5a4a2e",
+          "size_bytes": 1541
+        },
+        {
+          "path": "speech.srt",
+          "sha256": "f1efe6c40a940aafdee75423d16657db5b252cb0a995228ed4f9d9c67e69da3a",
+          "size_bytes": 195
+        },
+        {
+          "path": "speech.vtt",
+          "sha256": "f279549d45152fd4252a1b40bb57301333b48015c5544b1f72a83a649f9ad464",
+          "size_bytes": 203
+        }
+      ]
+    },
+    {
+      "id": "sintel-dialogue",
+      "path": "sintel-dialogue.mkv",
+      "sha256": "f61adfa5641913a5b70e23f9dda2cef1012d9edc59ad895f6da7fd5c07874d6e",
+      "size_bytes": 4200055,
+      "license": {
+        "spdx": "CC-BY-3.0",
+        "url": "https://creativecommons.org/licenses/by/3.0/",
+        "notice": "CC BY 3.0 Unported. Attribution and indication of changes required."
+      },
+      "creator": "Blender Foundation and Sintel project contributors",
+      "attribution": "(c) copyright Blender Foundation | durian.blender.org. Sintel (2010), CC BY 3.0. Adapted from the published 240p VP9/Opus rendition: 30-second excerpt, H.264 video reencoding and 16-bit PCM/FLAC audio conversion, with metadata removed.",
+      "source": {
+        "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/f/f1/Sintel_movie_4K.webm/Sintel_movie_4K.webm.240p.vp9.webm",
+        "page_revision_url": "https://commons.wikimedia.org/w/index.php?title=File:Sintel_movie_4K.webm&oldid=1212979998",
+        "upstream_work_url": "https://durian.blender.org/sharing/",
+        "sha256": "d2b8356aee46ade169b7ceb86468adc744ec245581466015f795d3439b21c1d2",
+        "size_bytes": 27012782,
+        "last_modified": "Fri, 19 Oct 2018 18:37:33 GMT",
+        "etag": "34745465c6cd97e611822b1fe80e10f7",
+        "rendition": "Commons 240p VP9 video with six-channel 48 kHz Opus audio; the hash names the downloaded rendition, not the 4K original.",
+        "probed_media": {
+          "duration_ns": 888041000000,
+          "video": {
+            "codec": "vp9",
+            "width": 426,
+            "height": 182,
+            "time_base": "1/1000",
+            "start_pts": 4,
+            "reported_frame_rate": "48/1"
+          },
+          "audio": {
+            "codec": "opus",
+            "sample_rate": 48000,
+            "channels": 6,
+            "channel_layout": "5.1",
+            "time_base": "1/1000",
+            "start_pts": -7,
+            "initial_padding": 312
+          }
+        }
+      },
+      "adaptation": {
+        "description": "Crop source presentation timestamps [134 seconds, 164 seconds), subtract 134 seconds independently for video/audio, explicitly encode 24 fps H.264 CRF23 and 16-bit FLAC with all six channels. Opus input is already lossy. Repeating the command with the recorded binary produces identical fixture bytes.",
+        "tool": {
+          "version": "6.1.1-essentials_build-www.gyan.dev",
+          "sha256": "04e1307997530f9cf2fe35cba2ca7e8875ca91da02f89d6c7243df819c94ad00",
+          "distribution": "https://github.com/eugeneware/ffmpeg-static/releases/tag/b6.1.1",
+          "platform": "windows_amd64"
+        },
+        "arguments": [
+          "-hide_banner",
+          "-nostdin",
+          "-loglevel",
+          "error",
+          "-y",
+          "-copyts",
+          "-seek_timestamp",
+          "1",
+          "-ss",
+          "134",
+          "-i",
+          "sintel-source-240p.webm",
+          "-filter_complex",
+          "[0:v:0]trim=start=134:end=164,setpts=PTS-134/TB[v];[0:a:0]atrim=start=134:end=164,asetpts=PTS-134/TB[a]",
+          "-map",
+          "[v]",
+          "-map",
+          "[a]",
+          "-map_metadata",
+          "-1",
+          "-map_chapters",
+          "-1",
+          "-t",
+          "30",
+          "-c:v",
+          "libx264",
+          "-preset",
+          "medium",
+          "-crf",
+          "23",
+          "-pix_fmt",
+          "yuv420p",
+          "-r",
+          "24",
+          "-threads",
+          "1",
+          "-c:a",
+          "flac",
+          "-sample_fmt",
+          "s16",
+          "-compression_level",
+          "8",
+          "-fflags",
+          "+bitexact",
+          "-flags:v",
+          "+bitexact",
+          "-flags:a",
+          "+bitexact",
+          "sintel-dialogue.mkv"
+        ],
+        "source_start_ns": 134000000000,
+        "source_end_ns": 164000000000,
+        "pcm_verification": {
+          "format": "s16le",
+          "size_bytes": 17280000,
+          "sha256": "e894b8408cdd83fc94f6582dc8418a65cf24a4e57321cd499250d0e28079317b",
+          "description": "Source crop decoded to six-channel 48 kHz s16le exactly equals decoded derived audio bytes."
+        }
+      },
+      "media": {
+        "duration_ns": 30000000000,
+        "audio_stream_index": 1,
+        "codec": "flac",
+        "sample_format": "s16",
+        "sample_rate": 48000,
+        "channels": 6,
+        "channel_layout": "5.1",
+        "samples_per_channel": 1440000,
+        "video": {
+          "codec": "h264",
+          "width": 426,
+          "height": 182,
+          "reported_frame_rate": "24/1",
+          "decoded_frames": 720,
+          "description": "Explicit 24 fps output preserves the 720 decoded frames over 30 seconds."
+        }
+      },
+      "source_clock": {
+        "origin_ns": 134000000000,
+        "rate_numerator": 1,
+        "rate_denominator": 1,
+        "sample_tick_origin": 6432000,
+        "sample_tick_rate": 48000
+      },
+      "references": [
+        {
+          "path": "sintel-reference.json",
+          "sha256": "c364770da02dd67ea3a8ef08364e6f9ce28426b125b51162624210990ad45ceb",
+          "size_bytes": 3065
+        },
+        {
+          "path": "sintel.srt",
+          "sha256": "0e1ad32e9df46419935593c95cde4b5826a61f8e2bee8f4155dfe453fd8f1278",
+          "size_bytes": 323
+        },
+        {
+          "path": "sintel.vtt",
+          "sha256": "6e8698655395da725891b6a3889bcc58230a4a94c877e86bba2de0398bd16187",
+          "size_bytes": 331
+        }
+      ]
+    }
+  ],
+  "verification_limits": "Published text/subtitles and exact byte/clock measurements checked independently. No direct auditory input was available; no sample-accurate voice boundaries or speech speaker count asserted. Deterministic turns are assembly oracles, never product recognition/diarization output."
+}

@@ -7,6 +7,7 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/credentialcmd"
+	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"strings"
 	"sync"
@@ -19,21 +20,22 @@ type worker struct {
 	cancel  context.CancelFunc
 }
 type App struct {
-	Workspace   *workspace.Workspace
-	Session     string
-	Catalog     catalog.Catalog
-	mu          sync.Mutex
-	attempts    map[string]*worker
-	ctx         context.Context
-	cancel      context.CancelFunc
-	wg          sync.WaitGroup
-	closed      bool
-	artifactMu  sync.Mutex
-	Artifacts   *artifact.Service
-	secrets     contracts.SecretProvider
-	secretOwner *liveSecrets
-	workMu      sync.Mutex
-	workers     map[string]*realWorker
+	recordingFactory func() (*recordingExecution, error)
+	Workspace        *workspace.Workspace
+	Session          string
+	Catalog          catalog.Catalog
+	mu               sync.Mutex
+	attempts         map[string]*worker
+	ctx              context.Context
+	cancel           context.CancelFunc
+	wg               sync.WaitGroup
+	closed           bool
+	artifactMu       sync.Mutex
+	Artifacts        *artifact.Service
+	secrets          contracts.SecretProvider
+	secretOwner      *liveSecrets
+	workMu           sync.Mutex
+	workers          map[string]*realWorker
 }
 
 const leaseTTL = 5 * time.Second
@@ -78,6 +80,15 @@ func newOwnerContext(ownerContext context.Context, w *workspace.Workspace, secre
 	a := &App{Workspace: w, Session: contracts.ID(), Catalog: store, attempts: map[string]*worker{}, workers: map[string]*realWorker{}, ctx: ctx, cancel: cancel, secrets: secrets}
 	if live, ok := secrets.(*liveSecrets); ok {
 		a.secretOwner = live
+	}
+	// The workspace runtime owns this control directory exclusively. Recover
+	// disposable results before dispatching recovered work, without requiring
+	// an authenticated artifact-store connection merely to remove scratch.
+	scratch := processing.Service{Artifacts: &artifact.Service{Workspace: w}}
+	if err = scratch.RecoverScratch(ctx); err != nil {
+		cancel()
+		store.Close()
+		return nil, err
 	}
 	a.recoverWork()
 	recovered, err := store.Recover(ctx, a.Session, leaseTTL)
@@ -127,6 +138,23 @@ func newOwnerContext(ownerContext context.Context, w *workspace.Workspace, secre
 					}
 				}
 				a.mu.Unlock()
+			}
+		}
+	}()
+	// Storage cleanup can consume its ten-second I/O budget. It must never
+	// delay five-second claim renewal or overlap another cleanup sweep.
+	a.wg.Add(1)
+	go func() {
+		defer a.wg.Done()
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+		a.recoverDerivedCleanup()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				a.recoverDerivedCleanup()
 			}
 		}
 	}()
@@ -299,7 +327,20 @@ func (a *App) Dispatch(req contracts.Request) contracts.Response {
 		paths, pathErr := workspace.PlatformPaths()
 		err = pathErr
 		storage, details := a.storageDiagnostics()
-		result = map[string]any{"paths": paths, "attempt_persistence": "durable", "storage": details, "adapters": []contracts.Capability{storage, {AdapterID: a.Catalog.Backend(), ContractVersion: contracts.Version, State: "available", Operations: []string{"revisions", "jobs", "outbox", "snapshot"}}, {AdapterID: a.Workspace.Config.Profiles.Graph.Adapter, ContractVersion: contracts.Version, State: "configured", Operations: []string{}}}}
+		cleanups, cleanupErr := a.Catalog.Cleanups(a.ctx)
+		cleanupState := map[string]any{"state": "available", "pending": 0}
+		if cleanupErr != nil {
+			cleanupState["state"] = "unavailable"
+		} else {
+			pending := 0
+			for _, c := range cleanups {
+				if c.State == "pending" {
+					pending++
+				}
+			}
+			cleanupState["pending"] = pending
+		}
+		result = map[string]any{"paths": paths, "attempt_persistence": "durable", "storage": details, "derived_cleanup": cleanupState, "adapters": []contracts.Capability{storage, {AdapterID: a.Catalog.Backend(), ContractVersion: contracts.Version, State: "available", Operations: []string{"revisions", "jobs", "outbox", "snapshot"}}, {AdapterID: a.Workspace.Config.Profiles.Graph.Adapter, ContractVersion: contracts.Version, State: "configured", Operations: []string{}}}}
 	case "jobs.start":
 		result, err = a.startRequest(req.RequestID, req.DurationMS)
 	case "jobs.show", "jobs.cancel", "jobs.retry", "jobs.history":

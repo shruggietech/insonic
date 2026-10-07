@@ -4,7 +4,7 @@
 
 The SQLite and PostgreSQL catalog adapters implement this logical schema. Application functions operate on typed records through the [catalog adapter](storage.md#catalog-adapter-and-postgresql-ownership); SQL syntax, connection management and migrations stay inside that adapter. Both official backends implement every catalog record and operation. The selected LadybugDB or ArcadeDB graph is a projection of this authority, not the only repository of media, speaker or trained-model lineage. [JSON contracts](contracts.md) define the versioned interchange payloads around these records.
 
-Every workspace-scoped row carries `workspace_id` and a stable application-generated ID. Foreign keys and uniqueness include workspace scope so a relationship cannot accidentally cross workspaces. IDs use one documented UUID text representation at the application boundary; adapters may use compatible native storage. Never use SQLite row IDs, PostgreSQL sequences or graph record IDs as public identity. Mutable selections/settings have increasing revisions and expected-revision checks. Immutable evidence records are append-only; correction creates a new observation/revision and changes the selected pointer.
+Every workspace-scoped row carries `workspace_id` and a stable application-generated ID. Foreign keys and uniqueness include workspace scope so a relationship cannot accidentally cross workspaces. IDs use one documented UUID text representation at the application boundary; adapters may use compatible native storage. Never use SQLite row IDs, PostgreSQL sequences or graph record IDs as public identity. Mutable selections/settings have increasing revisions and expected-revision checks. Original source assets remain immutable. Computed current evidence is atomically replaced; accepted receipts retain identities and hashes without preserving obsolete documents or assignments.
 
 Byte identity, media identity and speaker identity are separate. A SHA-256 digest identifies immutable content; a media entry is a user-facing library item; a speaker is a catalog identity with correction history. Equal bytes can serve several entries, and a speaker can have many model families/versions without being equated with a model file.
 
@@ -13,12 +13,12 @@ flowchart TB
   Workspace[Workspace and backend profiles] --> Media[Media entries and assets]
   Media --> Metadata[Current raw metadata and typed observations]
   Metadata --> Dates[Origination observations and selection revisions]
-  Media --> Transcripts[Transcript revisions, cues and source maps]
-  Media --> Segments[Speaker audio segment revisions]
-  Transcripts --> Attribution[Voice and speaker attribution revisions]
+  Media --> Transcripts[One current embedded Cue JSON and source map]
+  Media --> Segments[Current segment references]
+  Transcripts --> Attribution[Cue-contained UUID assignments and external mappings]
   Segments --> Attribution
   Attribution --> Speaker[Stable speaker identity and lineage]
-  Segments --> Dataset[Frozen training dataset membership]
+  Segments --> Dataset[Current corpus references or invalidated state]
   Speaker --> Dataset
   Dataset --> Training[Preparation manifest and training runs]
   Training --> Models[Speaker-model families and immutable versions]
@@ -31,12 +31,13 @@ flowchart TB
 
 ## Portable values and invariants
 
-Catalog schema 3 adds typed current library entries, downloaded base-model
-installations, real workflow claims/checkpoints and receipt-bound cleanup records.
+Catalog schema 4 adds current embedded recordings, external speaker mappings and
+reference-only current or invalidated corpus evidence to the typed library,
+model-installation, work and cleanup records.
 The current library's nullable `duration_us` is authoritative: null means unknown
 and zero means a measured zero. Existing numeric source-asset duration fields
 remain for snapshot compatibility and never supply a fallback for unknown current
-media duration. Historical schema-1/schema-2 migration definitions remain frozen.
+media duration. Historical schema-1/schema-2/schema-3 migration definitions remain frozen.
 
 Current facts, metadata and dates are replaced atomically. Operational receipts
 retain identities and record hashes, rather than an archive of superseded
@@ -51,7 +52,7 @@ current data and expire imported running authority on restore.
 | Revision | Positive signed 64-bit integer, monotonically increasing within its entity/stream |
 | Audit instant | Cueson-compatible `{ "iso": "2026-10-04T18:30:00Z", "unix_ns": 1791138600000000000 }`; RFC 3339 text and Unix nanoseconds represent the same instant |
 | Media interval | Original-clock integer microseconds, half-open `[start, end)`, ordered and duration-validated |
-| Cue interval | Cueson integer milliseconds plus retained microsecond correlation; one documented rounding rule |
+| Cue interval | Cueson integer milliseconds with exact source mapping outside the document; deliberate inward projection |
 | Origination time | Literal wall time/date, zone/offset and policy, precision and optional UTC instant/bounds; unknown remains null |
 | Content identity | SHA-256 hex plus byte length; transport ETag/version ID stored separately |
 | Structured options | Versioned, canonical JSON with typed validation and deterministic digest; no credentials |
@@ -59,13 +60,13 @@ current data and expire imported running authority on restore.
 | Numbers/booleans | Identical range/null semantics at adapter boundaries; do not depend on SQLite affinity coercion |
 | Ordered membership | Explicit ordinal and stable IDs; query order is never assumed without ordering |
 
-Absolute timestamps use the [Cueson timestamp format](https://github.com/shruggietech/cueson/blob/v1.1.0/internal/schema/cueson.schema.json): `iso` contains RFC 3339 text and `unix_ns` contains the exact Unix-epoch nanosecond count for the same instant. Audit output uses UTC. The application validates agreement between both values; structural schema validation alone cannot prove it. Import wall-time literals retain their separate timezone and uncertainty rules, and media-relative intervals use the units defined above.
+Absolute timestamps use the [Cueson timestamp format](https://github.com/shruggietech/cueson/blob/v1.2.0/internal/schema/cueson.schema.json): `iso` contains RFC 3339 text and `unix_ns` contains the exact Unix-epoch nanosecond count for the same instant. Audit output uses UTC. The application validates agreement between both values; structural schema validation alone cannot prove it. Import wall-time literals retain their separate timezone and uncertainty rules, and media-relative intervals use the units defined above.
 
 Catalog adapters preserve the exact nanosecond value; a PostgreSQL timestamp column alone cannot preserve nanosecond precision. Native runtimes and JSON consumers use lossless integer parsing and serialization. The desktop wrapper displays `iso` and passes exact timestamp payloads through the shared runtime rather than converting `unix_ns` through a JavaScript floating-point number.
 
 Use non-null references for required provenance. An unknown value differs from an empty string, zero or a guessed default. Portable JSON is not a substitute for relational foreign keys on core associations. Store commonly queried properties in typed columns; preserve complete vendor reports/options in versioned JSON or artifact manifests. Backend-specific JSON, full-text and index facilities may optimize operations only if the normalized results stay equivalent.
 
-Primary uniqueness includes artifact digest/size within the deduplication scope, entity/revision pairs, job idempotency keys, dataset/member ordinal, outbox event ID and graph target checkpoint. Duplicate cue text is not a unique identity. Deletion must obey explicit retention rules; no cascade from a current speaker selection can erase old datasets, model versions or source evidence. Hard deletion of referenced durable artifacts fails until the user-requested retention operation has reconciled those references.
+Primary uniqueness includes artifact digest/size within the deduplication scope, entity/revision pairs, job idempotency keys, dataset/member ordinal, outbox event ID and graph target checkpoint. Duplicate cue text is not a unique identity. Deletion must obey explicit retention rules; a speaker correction invalidates dependent current preparation while retaining original sources and noncontent model lineage. Hard deletion of referenced durable artifacts fails until the user-requested retention operation has reconciled those references.
 
 ## Workspace, artifacts and media
 
@@ -86,7 +87,7 @@ Primary uniqueness includes artifact digest/size within the deduplication scope,
 | `asset_derivation` | Output asset, ordered input asset/stream IDs, transform/run/version/options and immutable map/receipt artifacts |
 | `time_map_piece` | Derivation ID, ordinal, source asset/stream interval, derived interval and exact rate/offset semantics |
 
-Artifact locations are separate from byte identity so provider migration does not rewrite transcripts, frozen datasets or model versions. An artifact may have several verified locations; a local materialization is not automatically a durable replica. Unavailable external bytes retain the admitted identity and an explicit changed/missing state. A newly changed external source requires a new asset; it does not redefine the original digest.
+Artifact locations are separate from byte identity so provider migration does not rewrite current document identities, valid corpus references or model versions. An artifact may have several verified locations; a local materialization is not automatically a durable replica. Unavailable external bytes retain the admitted identity and an explicit changed/missing state. A newly changed external source requires a new asset; it does not redefine the original digest.
 
 The time map can represent extraction, resampling, trimming and concatenation. Each piece names its original source clock; a concatenated training input cannot claim a single offset if it contains disjoint intervals. Stream selection and channel provenance remain explicit. Supplied subtitle bytes use artifact records with a media/track attachment, not filename-based implicit ownership.
 
@@ -109,47 +110,39 @@ Store the input's wall-time literal and its resolved interpretation. Local time 
 
 Keep recording/origination, publication, retrieval, import, filesystem modification and processing observations distinguishable. The selected recording date can be unknown even when other timestamps exist. Date corrections advance only the selection revision and affected calendar projection; they do not rewrite original tags or media-relative cue/segment times.
 
-## Pipelines, transcripts, identities and evidence
+## Pipelines, current recordings and evidence
 
 | Record | Required relationships and fields |
 | --- | --- |
-| `pipeline_revision` | Stable pipeline ID/revision, ordered adapter stages, effective routing/options and credential references |
-| `processing_run` | Input asset/digests, pipeline revision, adapter/model/tool identities, effective options, output references and status |
-| `transcript_revision` | Entry/source asset, Cueson schema/producer identity, immutable document/native-source artifacts, cue index and correlation map |
-| `cue` / `cue_source_span` | Scoped Cueson cue ID, transcript revision, text/language, cue clock and original source intervals |
-| `voice` | Processing-run-local acoustic voice ID and diarization provenance; not a cross-library speaker identity |
-| `voice_interval` | Voice/source stream and channel, original interval, segmentation confidence/method and producing run |
-| `speaker` / `speaker_identity_revision` | Stable speaker ID, revisioned name/attributes, selected identity revision and status |
-| `speaker_alias` / `speaker_lineage_event` | Alias provenance and merge/split history with original/current IDs and revisions |
-| `speaker_attribution_revision` | Voice/interval or segment target, speaker/unknown assignment, basis, method/confidence and superseded revision |
-| `term_revision` / `term_speaker_association` | Specialized terms, aliases/pronunciation/context and speaker associations with revisions |
-| `evidence_chunk` / `assertion_revision` | Exact cue/source membership, transcript/attribution revisions, extraction provenance, structured assertion and publication state |
-| `evidence_span` | Actual cue IDs and original source intervals supporting one assertion revision |
+| `pipeline_revision` | Configuration identity, elected stage adapters/models/settings and credential references |
+| `processing_run` | Source/model/tool digests, effective settings, work fence and noncontent accepted result references |
+| `recording` | Library entry/source digest, current revision/state, sole embedded Cue JSON and document digest, measured nullable duration, current mapped-audio publication and exact source map |
+| `recording_speaker_mapping` | Recording/document identity, local UUID, known speaker ID and expected current recording and mapping revisions |
+| `segment` | Recording/document/cue/local-UUID references and optional current clip artifact; no copied interval/channel/known-person assignment |
+| `speaker` / `speaker_identity_revision` | Stable known-speaker identity, name/attributes and current identity state |
+| `speaker_alias` / `speaker_lineage_event` | Alias provenance and identity merge/split relationships |
+| `term_revision` / `term_speaker_association` | Specialized terms, pronunciation/context and explicit speaker links |
+| `evidence_chunk` / `assertion_revision` | Current recording/document/cue references, extraction provenance and explicit current/invalidated state |
 
-Selected pointers define current views without deleting history. A speaker merge redirects current discovery through lineage but preserves original identities used by evidence/training runs. A split creates corrected assignments and preserves which historic source intervals supported each former model or assertion. Unknown speakers remain explicit. Stable segment/source identities prevent duplicate publications from counting as independent evidence automatically.
+Only the embedded Cue JSON stores recording-local assignments. Native source labels remain separate upstream observations. External known-speaker corrections preserve document text and bytes. Segment/query/playback/training consumers resolve current cue/UUID references rather than freezing another assignment list. A replacement removes stale segment/membership references and invalidates dependent preparation/evidence. Historical receipts retain IDs/digests/diagnostics without copied documents or turn arrays.
+
+Unknown duration is null, known zero remains zero, and full media duration is measured independently of cue coverage. Preserve exact original-clock integer/rational mapping outside Cue JSON; deliberately project the consumer millisecond representation under [subtitles](subtitles.md#exact-source-time-and-millisecond-projection).
 
 ## Speaker corpus and trained models
 
-These records bind [speaker-linked voice models](voice-models.md) to source audio, frozen datasets and producing runs.
-
 | Record | Required relationships and fields |
 | --- | --- |
-| `speaker_audio_segment` / `speaker_audio_segment_revision` | Stable segment ID, source asset/stream/channel and original interval/map, voice/diarization run, attribution revision, boundary revision, optional materialized clip artifact and diagnostics |
-| `training_selection_recipe_revision` | Workspace/speaker scope, ordered filters and exclusions, preparation/diagnostic preset, transcript requirements and effective options |
-| `training_dataset_snapshot` | Originating speaker/identity revision, recipe revision, frozen membership, attribution/transcript references, totals/diagnostics and immutable manifest artifact/digest |
-| `training_dataset_member` | Snapshot/ordinal, exact segment revision, source hashes/intervals/channel, attribution revision, transcript/cue refs if required, decisions and any already prepared artifact |
-| `training_preparation_manifest` | Snapshot, preparation run/options, immutable manifest artifact/digest and ordered member-to-final-input artifact/time-map associations |
-| `training_run` | Dataset/preparation manifest, originating speaker/identity revision, durable job/attempts, pipeline/training adapter/provider/base-model identity, parameters and output state |
-| `training_checkpoint` | Run/attempt, artifact or hosted handle, step/format/base-model dependency and resume-compatibility declaration |
-| `speaker_model` | Stable family ID, immutable originating speaker ID, user-facing family metadata and selected default version |
-| `speaker_model_version` | Family, originating speaker/identity/attribution revisions, training run/dataset, immutable output manifest and creation/validation state |
-| `speaker_model_artifact` | Model version/artifact IDs, declared artifact role/format and required dependency relationships |
-| `speaker_model_association_revision` | Family/version, current speaker associations, lineage reason and selected/default status without changing original provenance |
-| `model_compatibility_declaration` / `model_diagnostic` | Declared model kind/operations/consumer dependencies and method/version-qualified validation/evaluation/staleness findings |
+| `training_selection_recipe_revision` | Speaker scope, current evidence filters and effective preparation/diagnostic settings |
+| `dataset` / `training_dataset_member` | Current recording/document/cue/local-UUID membership, source digests, manifest identity and current/invalidated state |
+| `training_preparation_manifest` | Valid current membership, processing/settings digest and prepared input/time-map references |
+| `training_run` | Dataset/preparation identity, originating speaker, durable attempt and adapter/model/settings provenance |
+| `training_checkpoint` | Run/attempt, durable output artifact or hosted handle, format and resume compatibility |
+| `speaker_model` / `speaker_model_version` | Originating speaker/run/source lineage, output identities, current/invalidated manifest state and declared compatibility |
+| `speaker_model_association_revision` | Current known-speaker association without changing output provenance |
 
-A snapshot freezes its members/options before later materialization. Preparing inputs writes a new immutable preparation manifest referencing those same frozen members. It does not mutate the dataset. A training run binds that manifest digest. Any changed source interval, selected transcript, attribution or preparation recipe requires a new snapshot/run for current-corpus training. Old versions remain queryable and show attribution-change or stale-input diagnostics.
+Dataset and model provenance can retain source identities and hashes. It cannot preserve obsolete assignments or frozen subtitle text. Document replacement removes affected segment memberships; mapping correction invalidates affected selection while preserving the document. Invalidated dataset/run/model records clear obsolete derived manifest/preparation references and copied options, then queue their removed managed publications for physical retirement. Current corpus reuse requires rebuilding valid preparation. Original sources and durable completed model weights/checkpoints retain their independent provenance.
 
-Downloaded base models, trained speaker models, acoustic embeddings and provider handles are distinct declared kinds. A provider-only model version stores a sanitized stable handle, provider identity and retrieval capabilities rather than a fictitious artifact digest for unavailable weights. Credentials remain references resolved locally. Output rights/license declarations retain their source and unknown values. One family can have many immutable versions and artifact files; fetching an exact version never substitutes its current default silently.
+Downloaded base models, trained models, embeddings and provider handles are separate kinds. A provider-only version names its sanitized stable handle and actual retrieval capability, without inventing a digest for unavailable weights. Credentials remain local references. Fetching an exact supported output never substitutes a default model silently. Broader training operations remain their separate implementation contract.
 
 ## Durable jobs, outbox and queries
 
@@ -162,7 +155,7 @@ Downloaded base models, trained speaker models, acoustic embeddings and provider
 | `graph_projection_target` / `graph_checkpoint` | Adapter/profile/schema, installed projection generation, applied target sequence/catalog revision, event receipt and pending/rebuild state |
 | `saved_query` / `saved_query_revision` | Stable query ID, normalized QuerySpec or native text/dialect, typed parameters, schema/backend/capability validation and title |
 | `saved_graph_view_revision` | Query revision, display settings, separate layout positions and optional result snapshot |
-| `query_result_snapshot` | Query revision/parameters, catalog/projection checkpoint, immutable result artifact and creation time |
+| `query_result_snapshot` | Query/parameters, catalog/projection checkpoint, current document-reference identities and explicit invalidation; no copied assignments |
 | `retention_operation` / `backup_manifest` | Explicit scope, reference checks, catalog revision, artifact/version manifest and recovery outcome |
 
 Lease generations fence long-running work; expected revisions fence user edits. Outbox events are immutable by operation/revision, with claim/outcome state tracked separately. Allocate gap-free event sequences per projection target in the accepting catalog transaction. Apply only the next sequence using a predecessor/generation compare-and-set with facts and exact event receipt in one graph transaction; event 11 cannot discard unapplied event 10 merely because its catalog revision is newer. A new owner installs its higher generation atomically in the graph checkpoint before publishing, preserves the committed sequence and reconciles already committed receipts. Catalog acknowledgements use the current lease generation separately. A graph rebuild selects a recorded catalog revision and replays its accepted evidence. Query/view revisions identify dialect compatibility after backend migration; incompatible native text remains stored with a reason.
@@ -171,6 +164,6 @@ Artifact retirement is a catalog operation with an expected lifecycle generation
 
 ## Adapter acceptance and migration
 
-SQLite/PostgreSQL migrations preserve foreign keys, unknown/precision values, metadata capture states, workspace isolation, immutable revision histories, speaker lineage, frozen datasets/model references, job claims, stale-worker fencing, idempotent operation reconciliation, outbox replay and consistent export/restore. Shared fixtures compare application results, including JSON/nulls and deterministic ordering. Backend-specific indexes and queue locks optimize operations without changing the contract.
+SQLite/PostgreSQL migrations preserve foreign keys, unknown/precision values, metadata capture states, workspace isolation, current-result replacement receipts, speaker lineage, valid or explicitly invalidated dataset/model references, job claims, stale-worker fencing, idempotent operation reconciliation, outbox replay and consistent export/restore. Shared fixtures compare application results, including JSON/nulls and deterministic ordering. Backend-specific indexes and queue locks optimize operations without changing the contract.
 
 Artifact-store migration copies and verifies bytes/locations before switching selected profiles. Catalog migration transfers typed records and validates all constraints at a paused revision. Graph migration rebuilds from catalog evidence and revalidates saved queries. Cross-store operations use the recovery contracts above. Interruptions retain a recoverable old authority and explicit pending state rather than activating a partly copied workspace. Release packages declare their supported database/server versions.

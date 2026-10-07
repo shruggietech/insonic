@@ -28,14 +28,16 @@ type TableData struct {
 	Rows [][]json.RawMessage `json:"rows"`
 }
 type Snapshot struct {
-	Kind          string      `json:"kind"`
-	Version       string      `json:"schema_version"`
-	CatalogSchema int         `json:"catalog_schema"`
-	WorkspaceID   string      `json:"workspace_id"`
-	Revision      int64       `json:"revision"`
-	Records       Records     `json:"records"`
-	State         []TableData `json:"state"`
-	Digest        string      `json:"digest"`
+	Kind                      string      `json:"kind"`
+	Version                   string      `json:"schema_version"`
+	CatalogSchema             int         `json:"catalog_schema"`
+	WorkspaceID               string      `json:"workspace_id"`
+	Revision                  int64       `json:"revision"`
+	Records                   Records     `json:"records"`
+	State                     []TableData `json:"state"`
+	Digest                    string      `json:"digest"`
+	legacyDerivedArtifacts    []string
+	legacyInvalidatedDatasets []string
 }
 
 func (s Snapshot) digest() (string, error) { s.Digest = ""; return intent(s) }
@@ -179,9 +181,6 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 		if e := s.validateRestoredState(ctx, tx, snap.Revision); e != nil {
 			return e
 		}
-		if e := s.validateLibraryState(ctx, tx, true); e != nil {
-			return e
-		}
 		if e := s.validateArtifactState(ctx, tx, true); e != nil {
 			return e
 		}
@@ -194,8 +193,28 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 		if _, e := s.exec(ctx, tx, "UPDATE workspace SET revision=? WHERE id=?", snap.Revision, s.workspace); e != nil {
 			return e
 		}
-		_, e := s.accept(ctx, tx, contracts.ID(), hash([]byte("restore:"+snap.Digest)), snap.Revision, map[string]any{"restored_revision": snap.Revision, "authority": "expired"})
-		return e
+		result := map[string]any{"restored_revision": snap.Revision, "authority": "expired"}
+		if len(snap.legacyInvalidatedDatasets) > 0 {
+			result["invalidated_dataset_ids"] = snap.legacyInvalidatedDatasets
+		}
+		if len(snap.legacyDerivedArtifacts) > 0 {
+			if e = s.queueEvidenceArtifacts(ctx, tx, s.workspace, snap.legacyDerivedArtifacts, snap.Revision+1); e != nil {
+				return e
+			}
+			ids, err := s.evidenceArtifacts(ctx, tx, "SELECT id FROM library_cleanup WHERE workspace_id=? AND entry_id=? AND revision=? ORDER BY id", s.workspace, s.workspace, snap.Revision+1)
+			if err != nil {
+				return err
+			}
+			result["cleanup_entry_id"], result["cleanup_ids"] = s.workspace, ids
+		}
+		_, e := s.accept(ctx, tx, contracts.ID(), hash([]byte("restore:"+snap.Digest)), snap.Revision, result)
+		if e != nil {
+			return e
+		}
+		if e = s.validateCorpusState(ctx, tx, true); e != nil {
+			return e
+		}
+		return s.validateLibraryState(ctx, tx, true)
 	})
 }
 
@@ -369,9 +388,11 @@ func (s *Store) validateRestoredState(ctx context.Context, tx *sql.Tx, revision 
 	return e
 }
 func ReadSnapshot(data []byte) (Snapshot, error) {
-	var snap Snapshot
-	e := strict(data, &snap)
-	return snap, e
+	var envelope snapshotEnvelope
+	if e := strict(data, &envelope); e != nil {
+		return Snapshot{}, e
+	}
+	return decodedSnapshot(envelope)
 }
 func (s *Store) Status(ctx context.Context) (map[string]any, error) {
 	rev, e := s.Revision(ctx)

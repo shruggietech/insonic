@@ -1,56 +1,47 @@
 # Speakers and terminology
 
-## Voices, speakers and aliases
+## Local voices and known speakers
 
-A diarization voice such as Voice 1 is scoped to a media asset and processing run. It is not a global person ID. A catalog speaker is a stable user-facing identity with canonical name, aliases and optional supporting facts. The relationship between a voice and speaker records its basis, scope, confidence and provenance. Unknown voices remain searchable as voices.
+A diarization voice belongs to one recording. Its UUID occurs in the current embedded Cue JSON document; it is not a global person ID. The same person in another recording receives another local UUID. Native subtitle labels and mentioned names remain source observations, independent of that identity. A catalog speaker is a stable user-facing identity with names, aliases and supporting facts.
 
 ```mermaid
 flowchart TB
-  Audio[Mapped audio] --> Voices[Acoustic voices within this processing run]
-  Voices --> CueMap[Overlap with timed subtitle cues]
-  Names[User names, aliases and supported context] --> Identity[Speaker attribution observation]
-  CueMap --> Identity
-  Identity --> Speaker[Stable catalog speaker or unresolved voice]
-  Speaker --> Search[Speaker-linked search and evidence]
-  Speaker --> Segments[Library-wide speaker audio segments]
-  Segments --> Dataset[Optional versioned training dataset]
-  Dataset --> Models[Speaker-linked model versions]
+  Audio[Mapped recording audio] --> Turns[Temporary acoustic voice results]
+  Turns --> Document[Current Cue JSON local UUID assignments]
+  Document --> Mapping[External recording and UUID mapping]
+  Mapping --> Known[Known speaker or unresolved identity]
+  Document --> References[Current cue and local UUID references]
+  References --> Playback[Playback and evidence]
+  References --> Corpus[Library-wide current speaker corpus]
+  Corpus --> Models[Optional trained model lineage]
 ```
 
-Acoustic diarization answers which voice spoke when. Name resolution answers who that voice may represent. A mentioned person, a quoted statement, a scene participant and a speaking voice are different observations. Reasoning adapters can suggest supported names, and user edits are authoritative for their selected scope. Unsupported identity remains unresolved rather than blocking valid source-level search.
+Acoustic diarization describes which voice spoke when. Known-speaker mapping describes who that voice may represent. A mentioned person, quoted statement, scene participant and speaking voice are different observations. Unsupported identity remains unresolved and does not block valid source-level operations. Model confidence is a diagnostic, not proof of identity.
 
-Aliases have stable IDs, language/scope and provenance. Identical name text does not automatically merge people. Merging and splitting speakers create reversible identity revisions and reproject affected relationships. User-owned fields survive machine refresh. Voice embeddings, if enabled, remain separate optional artifacts with the producing model, source segments and attribution revision recorded.
+Known-person corrections update the external recording/UUID mapping without rewriting subtitle text or document bytes. Mapping rows bind current document identity and expected revision. A removed local UUID cannot retain an active mapping. Other records cannot establish another list of assignments under a voice, segment or attribution-revision name.
 
-## Attribution across the library
+## Reference-only speaker audio
 
-Every speaker relationship records whether it came from a user assignment, an acoustic comparison, a reasoning adapter or another declared source. Run-local diarization, cross-media similarity and user corrections remain separate observations even when they support the same current speaker assignment. A confidence score does not become proof of identity, and a term or person mentioned in a transcript does not become the speaking identity automatically.
+A current segment record refers to recording ID, document digest, cue ID and local speaker UUID, with an optional managed clip reference. It stores no copied interval, channel, known-person assignment or attribution array. Query and playback resolve the interval from current embedded assignments and the recording's source map. Untimed participation does not provide an exact clip interval, and uncovered acoustic speech does not gain invented subtitle cues.
 
-The selected pipeline can apply model-generated assignments automatically when their output contracts validate. Review of each voice or segment is not a prerequisite to processing or optional training. Users can filter assignments by basis or diagnostics, override an assignment and rerun affected work. A trained model or embedding can contribute a later comparison observation; record that dependency so a prediction derived from an earlier assignment is not presented as independent corroboration.
+The speaker corpus spans all current library recordings. A source can contribute overlapping voices, and deduplication uses original source/cue evidence rather than counting repeated processing as independent speech. Lazy extraction uses verified source bytes and explicit transform/time mapping. A clip is derived current data and cannot retain an obsolete assignment as an alternative authority.
 
-## Speaker-tagged audio segments
+Replacing the current document removes stale segment/membership references and invalidates dependent evidence and prepared corpus data. Mapping correction preserves the current document/segments while invalidating dependent selection/preparation. Physical cleanup retires removed managed clips/manifests after leases and reference barriers allow deletion. Source media and supplied subtitles remain immutable.
 
-The segment catalog spans the whole workspace library. Each `speaker_audio_segment` identifies an original media asset, audio stream/channel selection, ordered source interval and the diarization run/voice that produced it. It references any extracted audio artifact, its transform/time map and the transcript cues that overlap it. Segment intervals use the original media clock even when recognition ran on resampled or concatenated derivatives.
+## Identity, model lineage and correction
 
-Keep the acoustic interval record separate from its revisioned speaker attribution. An unresolved voice still has usable intervals and searchable media evidence. Resolving it to a speaker makes those intervals available through that speaker's library-wide segment query without decoding the source again. Different runs may propose overlapping intervals for the same source; selected-run and deduplication rules prevent treating duplicate processing as additional speech.
+Names and aliases use explicit IDs, language/scope and provenance. Equal name text does not merge people automatically. Broad merge/split, similarity and terminology controls remain the speaker-management contract; they use the same current-reference rule when delivered.
 
-Audio extraction can materialize a segment on demand or in a batch. The result records exact source bytes, interval boundaries, channel policy, sample format, transform/tool version and output digest. Training adapters receive prepared audio with a recorded mapping back to these segments. Segments remain useful for playback, export and analysis even when model training is disabled. Selection, dataset snapshots and model retrieval are defined in [speaker-linked voice models](voice-models.md).
+A merge or split updates current mappings and invalidates affected corpus preparation. Completed model weights/checkpoints can retain originating source IDs, hashes, run identity and staleness diagnostics. They do not preserve an old transcript or assignment list. An invalidated corpus cannot be used again without resolving current evidence and rebuilding its preparation. [Speaker audio and voice models](voice-models.md) defines those relationships.
 
-## Identity revisions and model lineage
-
-A merge records the prior speaker IDs and the surviving catalog identity. It combines current query membership while preserving attribution observations, segment IDs, training origins and model-family histories. It does not combine trained weights or silently replace a model version. A split records the new identities and revisioned interval assignments; partially resolved intervals retain their explicit unresolved state.
-
-Identity edits update the current segment view and mark affected dataset-selection recipes as needing a fresh snapshot. An already created dataset snapshot, running training job or completed model version retains the exact speaker/attribution revisions used when it was created. Completed artifacts acquire an attribution-change diagnostic where applicable, rather than silently claiming that their original corpus matches the corrected identity. Speaker queries include lineage so models remain discoverable after merges or splits. Current model associations can be corrected without erasing their originating speaker or dataset provenance.
+Configured model-generated assignments can be applied automatically when their contracts validate. Users can correct them without reviewing every voice or segment. Optional embeddings and model comparisons name their actual input/model provenance; a prediction derived from an earlier assignment is not independent corroboration.
 
 ## Specialized terms
 
-Users maintain a shared terms collection and optional project/language subsets. Each entry contains a stable term ID, canonical spelling, variants, language, context, active state, revision and an optional explicit speaker/alias link. Names and relevant aliases join general terms when compiling transcription context. The join uses IDs, not accidental text matches.
+The terms contract covers stable IDs, canonical spelling, variants, language/context, active state, revision and optional explicit speaker/alias links. Names and relevant aliases join general terms when compiling supported recognition hints. IDs govern the join, not accidental text equality.
 
-The compiler selects terms by media language and context, orders and deduplicates them deterministically, and respects the recognizer's supported prompt or hotword budget. Record the exact effective list and digest on the job. Unsupported hints are reported, not silently claimed as applied. Excess terms show a preview of omissions. A term is context for recognition, not evidence that a named person spoke.
+Compile and deduplicate hints deterministically within the chosen recognizer's supported budget. Record the effective digest/settings and report unsupported or omitted hints. A term is recognition context, not evidence that a named person spoke. A vocabulary rerun replaces the current subtitle result after acceptance; guided/unguided alternatives and obsolete text are not retained as selectable transcripts.
 
-Guided and unguided transcripts can coexist. Users can compare revisions and select one. A vocabulary change queues affected work or offers an explicit rerun; it never silently alters completed words. The default UI permits adding a name or technical phrase without editing JSON.
+## CLI and desktop parity
 
-## Identity editing experience
-
-The GUI shows the current label, supporting intervals and editable canonical name/aliases. Unknown and ambiguous states have clear labels. A correction may apply to one voice, one media item or a selected identity mapping across the workspace. A scope summary accompanies broad changes; it does not introduce a separate approval queue. CLI operations expose the same IDs and revision checks.
-
-Validated model-driven name suggestions can be applied automatically and corrected or reversed by the user. Confidence is a model diagnostic rather than a measured accuracy guarantee.
+Current recording inspection, local-UUID mappings and mapping correction use shared CLI/runtime operations, exposed through the desktop bridge. Dedicated speaker/terms GUI controls follow the broader desktop delivery contract. Corrections use the same IDs, expected revisions and current-reference validation in every client.

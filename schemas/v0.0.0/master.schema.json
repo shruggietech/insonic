@@ -67,6 +67,14 @@
     "media-tools": {
       "$ref": "media-tools.schema.json",
       "description": "Exact hash/version-qualified metadata extractor configuration with hidden noninteractive execution."
+    },
+    "recording": {
+      "$ref": "recording.schema.json",
+      "description": "Sole current embedded Cueson assignments and external known-speaker mappings."
+    },
+    "processing-tools": {
+      "$ref": "processing-tools.schema.json",
+      "description": "Exact selected local subtitle and offline inference configuration."
     }
   },
   "oneOf": [
@@ -114,6 +122,12 @@
     },
     {
       "$ref": "#/$defs/media-tools"
+    },
+    {
+      "$ref": "#/$defs/recording"
+    },
+    {
+      "$ref": "#/$defs/processing-tools"
     }
   ]
 }

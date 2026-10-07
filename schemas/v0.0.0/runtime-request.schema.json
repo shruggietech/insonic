@@ -76,7 +76,15 @@
         "credentials.status",
         "credentials.unlock",
         "credentials.load",
-        "work.results"
+        "work.results",
+        "recordings.process",
+        "recordings.assemble",
+        "recordings.show",
+        "recordings.document",
+        "recordings.mappings",
+        "recordings.map-speaker",
+        "recordings.export",
+        "recordings.resolve-segment"
       ],
       "description": "Shared operation selected by either client."
     },
@@ -1099,6 +1107,575 @@
             }
           }
         }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "recordings.process",
+              "recordings.assemble",
+              "recordings.show",
+              "recordings.document",
+              "recordings.mappings",
+              "recordings.map-speaker",
+              "recordings.export",
+              "recordings.resolve-segment"
+            ],
+            "description": "Current recording operation."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.process",
+            "description": "Selected recording operation."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "transcription": {
+                "enum": [
+                  "supplied",
+                  "generate",
+                  "reuse"
+                ],
+                "description": "Use supplied native subtitles, generate with a managed recognition model, or reuse the current native document."
+              },
+              "diarization": {
+                "enum": [
+                  "run",
+                  "reuse"
+                ],
+                "description": "Run managed local diarization or reuse current assignment evidence."
+              },
+              "recognition_model_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Available managed recognition model; required when generation is explicitly selected."
+              },
+              "diarization_model_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Available managed diarization model required for a new attribution run."
+              },
+              "subtitle_format": {
+                "enum": [
+                  "srt",
+                  "vtt"
+                ],
+                "description": "Native supplied subtitle format."
+              },
+              "audio": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "stream_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 65535,
+                    "description": "Absolute source stream index."
+                  },
+                  "channel": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 65535,
+                    "description": "Zero-based source channel; omission downmixes to mono."
+                  }
+                },
+                "description": "Selected original audio stream and channel before mono 16 kHz mapping."
+              },
+              "recognition": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "device": {
+                    "enum": [
+                      "cpu",
+                      "cuda"
+                    ],
+                    "description": "Explicit device; default CPU and no provider fallback."
+                  },
+                  "language": {
+                    "type": "string",
+                    "pattern": "^(?:[a-z]{2,3}|auto)$",
+                    "description": "Language code or automatic detection; default en."
+                  }
+                },
+                "description": "Local recognition execution parameters."
+              },
+              "attribution": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "device": {
+                    "enum": [
+                      "cpu",
+                      "cuda"
+                    ],
+                    "description": "Explicit device; default CPU with no fallback from selected CUDA."
+                  },
+                  "min_speakers": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 64,
+                    "description": "Optional lower acoustic speaker-count constraint."
+                  },
+                  "max_speakers": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 64,
+                    "description": "Optional upper acoustic speaker-count constraint."
+                  }
+                },
+                "description": "Local diarization execution parameters."
+              }
+            },
+            "description": "Automatic local processing selections; omitted modes use the imported subtitle and current-recording state.",
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "transcription": {
+                      "const": "generate", "description": "Explicit generated transcription selection."
+                    }
+                  },
+                  "required": [
+                    "transcription"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "recognition_model_id"
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "not": {
+                    "properties": {
+                      "diarization": {
+                        "const": "reuse", "description": "Current result reuse selection."
+                      }
+                    },
+                    "required": [
+                      "diarization"
+                    ]
+                  }
+                },
+                "then": {
+                  "required": [
+                    "diarization_model_id"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "properties": {
+                    "transcription": {
+                      "const": "reuse", "description": "Current result reuse selection."
+                    },
+                    "diarization": {
+                      "const": "reuse", "description": "Current result reuse selection."
+                    }
+                  },
+                  "required": [
+                    "transcription",
+                    "diarization"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.assemble",
+            "description": "Selected recording operation."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "subtitle_format": {
+                "enum": [
+                  "srt",
+                  "vtt"
+                ],
+                "description": "Imported native subtitle format."
+              },
+              "turns": {
+                "type": "array",
+                "maxItems": 20000,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "description": "Operation-local acoustic voice label."
+                    },
+                    "start_us": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9223372036854775807,
+                      "description": "Inclusive source-clock microsecond start."
+                    },
+                    "end_us": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9223372036854775807,
+                      "description": "Exclusive source-clock microsecond end."
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "start_us",
+                    "end_us"
+                  ],
+                  "description": "Ephemeral source-clock acoustic interval."
+                },
+                "description": "Source-clock acoustic evidence."
+              },
+              "participation": {
+                "type": "array",
+                "maxItems": 20000,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "cue_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "description": "Native cue identity."
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "description": "Operation-local acoustic voice label."
+                    }
+                  },
+                  "required": [
+                    "cue_id",
+                    "label"
+                  ],
+                  "description": "Explicit cue-to-voice association supplied by the caller."
+                },
+                "description": "Explicit associations for unresolved cues."
+              }
+            },
+            "required": [
+              "turns"
+            ],
+            "description": "Transient native-subtitle assembly input; never an alternate stored transcript."
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.show",
+            "description": "Selected recording operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "data"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.document",
+            "description": "Selected recording operation."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "offset": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 16777216,
+                "description": "Zero-based byte offset."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536,
+                "description": "Maximum returned bytes, default 65536."
+              },
+              "document_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "Optional expected current document digest."
+              }
+            },
+            "description": "Digest-bound bounded page of the current native document."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.mappings",
+            "description": "Selected recording operation."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "after_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exclusive local speaker identity cursor."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Maximum mapping rows, default 100."
+              }
+            },
+            "description": "Bounded current speaker-mapping page."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.map-speaker",
+            "description": "Selected recording operation."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807,
+                "description": "Expected current mapping revision; zero creates the mapping."
+              },
+              "local_speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current Cueson-local speaker identity."
+              },
+              "mapping_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807,
+                "description": "Expected existing mapping revision for correction; omitted or zero creates a new mapping."
+              },
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Known catalog speaker identity."
+              },
+              "document_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "Expected current native document digest."
+              }
+            },
+            "required": [
+              "revision",
+              "local_speaker_id",
+              "speaker_id",
+              "document_digest"
+            ],
+            "description": "Compare-and-set external known-speaker mapping."
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.export",
+            "description": "Selected recording operation."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "format": {
+                "enum": [
+                  "cueson",
+                  "srt",
+                  "vtt"
+                ],
+                "description": "Native Cueson or flattened subtitle export."
+              },
+              "strict": {
+                "type": "boolean",
+                "description": "Reject conversion that loses timing or attribution."
+              },
+              "destination": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096,
+                "description": "Absolute selected output path; existing-file replacement follows runtime authorization."
+              },
+              "document_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "Optional expected current native document digest."
+              }
+            },
+            "required": [
+              "format",
+              "destination"
+            ],
+            "description": "Explicit current-document export."
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.resolve-segment",
+            "description": "Selected recording operation."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "segment_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Existing source-segment identity."
+              },
+              "segment_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807,
+                "description": "Expected source-segment revision."
+              }
+            },
+            "required": [
+              "segment_id",
+              "segment_revision"
+            ],
+            "description": "Resolve an existing source segment against the current recording revision."
+          }
+        },
+        "required": [
+          "data"
+        ]
       }
     }
   ],

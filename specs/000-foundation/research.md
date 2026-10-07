@@ -1,5 +1,9 @@
 # Foundation research
 
+**2026-10-07 dependency maintenance**: Maintained Cueson package/schema references now identify the required v1.2.0 contract. Historical qualification results describe their original session and do not establish later package execution; S005 records the exact current-version qualification.
+
+**2026-10-07 dependency maintenance**: Maintained Cueson package/schema references now identify the required v1.2.0 contract. Historical qualification results describe their original session and do not establish later package execution; S005 records the exact current-version qualification.
+
 ## Sources refreshed on 2026-10-04
 
 Current API/raw-source reads take precedence over stale indexed pages. No native product behavior is implied by this research.
@@ -9,7 +13,7 @@ Current API/raw-source reads take precedence over stale indexed pages. No native
 | Brand | [BrandBuilder v3.0.1](https://github.com/shruggietech/shruggie-brand/releases/tag/v3.0.1) | insonic 1.0.0 kit, checksums, manifest and enforcement bundle |
 | Import patterns | [Glitchpad](https://github.com/shruggietech/glitchpad/blob/main/scripts/sync-brand-kit.mjs), [go-schedule](https://github.com/shruggietech/go-schedule/blob/main/scripts/brand-import/main.go) | Formal archive/receipt patterns with added latest-kit discovery |
 | Docs | [Fragcap](https://github.com/h8rt3rmin8r/fragcap/blob/main/site/next.config.mjs), [Next static exports](https://nextjs.org/docs/app/guides/static-exports) | Markdown authority and static local assets |
-| Subtitles | [Cueson architecture](https://github.com/shruggietech/cueson/blob/v1.1.0/docs/architecture.md), [schema](https://github.com/shruggietech/cueson/blob/v1.1.0/schema/releases/v1.1.0/cueson.schema.json) | CLI/schema boundary, real source envelope, millisecond timing, nonempty cue constraint |
+| Subtitles | [Cueson architecture](https://github.com/shruggietech/cueson/blob/v1.2.0/docs/architecture.md), [schema](https://github.com/shruggietech/cueson/blob/v1.2.0/schema/releases/v1.2.0/cueson.schema.json) | CLI/schema boundary, real source envelope, millisecond timing, nonempty cue constraint |
 | Graph | [Go binding](https://github.com/LadybugDB/go-ladybug), [concurrency](https://docs.ladybugdb.com/concurrency/) | Native/Cgo pair requires proof; one shared writer |
 | Desktop | [Wails](https://wails.io/docs/introduction/), [Tauri](https://v2.tauri.app/concept/architecture/) | Go/Wails baseline with viable alternative |
 | Local AI | [faster-whisper](https://github.com/SYSTRAN/faster-whisper), [whisper.cpp](https://github.com/ggml-org/whisper.cpp), [Community-1](https://huggingface.co/pyannote/speaker-diarization-community-1) | Replaceable workers and hardware-aware defaults |

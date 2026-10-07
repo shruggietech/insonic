@@ -53,13 +53,64 @@
             "unavailable",
             "cancelled",
             "output_limit",
-            "operation_failed"
+            "operation_failed",
+            "timing_unavailable",
+            "invalid_audio",
+            "audio_limit",
+            "unsupported_audio",
+            "model_unavailable",
+            "unsupported_capability",
+            "input_limit",
+            "invalid_engine_output",
+            "invalid_timing",
+            "engine_ci_forbidden",
+            "engine_unavailable",
+            "unsupported_device",
+            "invalid_embedding"
           ],
           "description": "Stable machine-readable failure category."
         },
         "message": {
           "type": "string",
           "description": "Fixed diagnostic text without raw child output or credential values."
+        },
+        "diagnostics": {
+          "description": "Redacted condition groups with complete represented occurrence counts and a first generated cue/media pointer, without raw child text.",
+          "type": "array",
+          "items": {
+            "additionalProperties": false,
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "count"
+            ],
+            "properties": {
+              "pointer": {
+                "maxLength": 256,
+                "type": "string",
+                "description": "First generated current document occurrence.",
+                "pattern": "^/(media_timing|cues/(0|[1-9][0-9]*)/speaker_attributions/(0|[1-9][0-9]*))$"
+              },
+              "count": {
+                "description": "Number of represented occurrences of this condition.",
+                "minimum": 1,
+                "type": "integer",
+                "maximum": 65536
+              },
+              "message": {
+                "maxLength": 256,
+                "type": "string",
+                "description": "Fixed locally authored explanation, never raw child output."
+              },
+              "code": {
+                "description": "Fixed current subtitle diagnostic vocabulary or redacted generic condition.",
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,127}$"
+              }
+            }
+          },
+          "maxItems": 64
         }
       }
     }

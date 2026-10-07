@@ -112,21 +112,22 @@ type Speaker struct {
 	Name string `json:"name"`
 }
 type Segment struct {
-	ID             string          `json:"id"`
-	Revision       int64           `json:"revision"`
-	AssetID        string          `json:"asset_id"`
-	SpeakerID      *string         `json:"speaker_id"`
-	StartUS        int64           `json:"start_us"`
-	EndUS          int64           `json:"end_us"`
-	Channel        int64           `json:"channel"`
-	Attribution    json.RawMessage `json:"attribution"`
-	ClipArtifactID *string         `json:"clip_artifact_id"`
+	ID             string  `json:"id"`
+	Revision       int64   `json:"revision"`
+	RecordingID    string  `json:"recording_id"`
+	DocumentDigest string  `json:"document_digest"`
+	CueID          string  `json:"cue_id"`
+	LocalSpeakerID string  `json:"local_speaker_id"`
+	ClipArtifactID *string `json:"clip_artifact_id"`
 }
 type Dataset struct {
-	ID                 string          `json:"id"`
-	SpeakerID          string          `json:"speaker_id"`
-	ManifestArtifactID string          `json:"manifest_artifact_id"`
-	Options            json.RawMessage `json:"options"`
+	ID                  string          `json:"id"`
+	SpeakerID           string          `json:"speaker_id"`
+	ManifestArtifactID  *string         `json:"manifest_artifact_id"`
+	Options             json.RawMessage `json:"options"`
+	State               string          `json:"state"`
+	InvalidatedRevision int64           `json:"invalidated_revision"`
+	InvalidatedBy       *string         `json:"invalidated_by"`
 }
 type DatasetMember struct {
 	ID              string `json:"id"`
@@ -140,9 +141,10 @@ type TrainingRun struct {
 	DatasetID             string          `json:"dataset_id"`
 	SpeakerID             string          `json:"speaker_id"`
 	JobID                 string          `json:"job_id"`
-	PreparationArtifactID string          `json:"preparation_artifact_id"`
+	PreparationArtifactID *string         `json:"preparation_artifact_id"`
 	Adapter               string          `json:"adapter"`
 	Options               json.RawMessage `json:"options"`
+	State                 string          `json:"state"`
 }
 type Model struct {
 	ID        string `json:"id"`
@@ -150,12 +152,13 @@ type Model struct {
 	Name      string `json:"name"`
 }
 type ModelVersion struct {
-	ID                 string `json:"id"`
-	ModelID            string `json:"model_id"`
-	RunID              string `json:"run_id"`
-	DatasetID          string `json:"dataset_id"`
-	ManifestArtifactID string `json:"manifest_artifact_id"`
-	Kind               string `json:"kind"`
+	ID                 string  `json:"id"`
+	ModelID            string  `json:"model_id"`
+	RunID              string  `json:"run_id"`
+	DatasetID          string  `json:"dataset_id"`
+	ManifestArtifactID *string `json:"manifest_artifact_id"`
+	Kind               string  `json:"kind"`
+	State              string  `json:"state"`
 }
 type ModelArtifact struct {
 	ID         string `json:"id"`
@@ -172,10 +175,12 @@ type ModelAssociation struct {
 	Reason    string `json:"reason"`
 }
 type Records struct {
-	Library    []LibraryEntry     `json:"library,omitempty"`
-	BaseModels []BaseModelInstall `json:"base_models,omitempty"`
-	Works      []Work             `json:"works,omitempty"`
-	Cleanups   []Cleanup          `json:"cleanups,omitempty"`
+	Recordings      []Recording        `json:"recordings,omitempty"`
+	SpeakerMappings []SpeakerMapping   `json:"speaker_mappings,omitempty"`
+	Library         []LibraryEntry     `json:"library,omitempty"`
+	BaseModels      []BaseModelInstall `json:"base_models,omitempty"`
+	Works           []Work             `json:"works,omitempty"`
+	Cleanups        []Cleanup          `json:"cleanups,omitempty"`
 
 	Profiles          []Profile          `json:"profiles"`
 	Artifacts         []Artifact         `json:"artifacts"`

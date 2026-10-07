@@ -299,8 +299,14 @@ func (s *Store) AdmitPublication(ctx context.Context, p Publication) (Publicatio
 		if p.Version != "" {
 			version = &p.Version
 		}
-		if e = s.insertRecords(ctx, tx, Records{Artifacts: []Artifact{{ID: p.ArtifactID, Digest: p.Digest, Size: p.Size, Kind: p.Kind}}, Locations: []ArtifactLocation{{ID: p.LocationID, ArtifactID: p.ArtifactID, ProfileID: p.ProfileID, ProfileRevision: p.ProfileRevision, Key: p.Key, Version: version, State: "available"}}}); e != nil {
+		legacy, e := s.reconcileLegacyAdmission(ctx, tx, p)
+		if e != nil {
 			return e
+		}
+		if !legacy {
+			if e = s.insertRecords(ctx, tx, Records{Artifacts: []Artifact{{ID: p.ArtifactID, Digest: p.Digest, Size: p.Size, Kind: p.Kind}}, Locations: []ArtifactLocation{{ID: p.LocationID, ArtifactID: p.ArtifactID, ProfileID: p.ProfileID, ProfileRevision: p.ProfileRevision, Key: p.Key, Version: version, State: "available"}}}); e != nil {
+				return e
+			}
 		}
 		data, _ := json.Marshal(p)
 		if _, e = s.exec(ctx, tx, "UPDATE artifact_publication SET data=? WHERE workspace_id=? AND id=?", string(data), s.workspace, p.ID); e != nil {

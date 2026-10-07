@@ -151,12 +151,13 @@ def native_env():
 def cueson_probe(env):
     exe = env['CUESON_EXECUTABLE']
     version = child([exe, 'version']).decode().strip()
-    if LOCK['cueson']['version'] not in version:
+    if LOCK['cueson']['version'] != version:
         raise ValueError('wrong Cueson version')
-    # Validate exact official packaged schema bytes emitted by upstream.
     schema = child([exe, 'schema'])
     if hashlib.sha256(schema).hexdigest() != LOCK['cueson']['schema_sha256']:
         raise ValueError('Cueson schema identity mismatch')
+    if schema != (ROOT / 'internal/subtitles/schema/cueson.schema.json').read_bytes():
+        raise ValueError('packaged Cueson schema differs from runtime schema')
     with tempfile.TemporaryDirectory() as directory:
         directory = Path(directory)
         fixture = directory / 'source.srt'
@@ -164,18 +165,47 @@ def cueson_probe(env):
         fixture.write_bytes(data)
         document = directory / 'document.cueson'
         child([exe, 'encode', '--output', document, fixture])
+        source = json.loads(document.read_text(encoding='utf-8'))
+        if source['schema_version'] != '1.2.0':
+            raise ValueError('Cueson encoded wrong current identity')
+        source['media_timing'] = {'duration_milliseconds': 1000}
+        source['cues'][0]['speaker_attributions'] = [
+            {'speaker_id': '11111111-1111-4111-8111-111111111111', 'start_milliseconds': 100, 'end_milliseconds': 400},
+            {'speaker_id': '22222222-2222-4222-8222-222222222222', 'start_milliseconds': 200, 'end_milliseconds': 600},
+            {'speaker_id': '11111111-1111-4111-8111-111111111111'},
+        ]
+        document.write_text(json.dumps(source, separators=(',', ':')) + '\n', encoding='utf-8', newline='\n')
         child([exe, 'validate', '--format', 'cueson', document])
+        report = json.loads(child([exe, 'inspect', '--json', document]))
+        expected = {'attribution_count': 3, 'timed_attribution_count': 2, 'untimed_attribution_count': 1,
+                    'media_timing_present': True, 'media_boundary_check': 'checked', 'cue_media_conflict_count': 0}
+        if report.get('consumer_annotations') != expected:
+            raise ValueError('Cueson consumer annotation inspection differs')
         child([exe, 'render', '--to', 'srt', '--output', directory / 'rendered.srt', document])
         restored = directory / 'restored.srt'
         child([exe, 'restore', '--no-metadata', '--output', restored, document])
         if restored.read_bytes() != data:
             raise ValueError('subtitle source restoration differs')
-    return {'version': version, 'schema_sha256': LOCK['cueson']['schema_sha256'], 'source_roundtrip': 'passed'}
+        strict = directory / 'strict.srt'
+        with ProcessTree([str(arg) for arg in [exe, 'render', '--strict', '--to', 'srt', '--output', strict, document]], cwd=ROOT, env=os.environ.copy()) as tree:
+            try:
+                stdout, stderr = tree.process.communicate(timeout=30)
+            except subprocess.TimeoutExpired:
+                tree.kill()
+                tree.process.communicate(timeout=5)
+                raise
+            if tree.process.returncode != 1 or strict.exists() or stdout or b'strict' not in stderr:
+                raise ValueError('strict annotated export did not refuse before publication')
+    return {'version': version, 'schema_sha256': LOCK['cueson']['schema_sha256'],
+            'source_roundtrip': 'passed', 'consumer_overlap_untimed': 'passed', 'strict_loss_refusal': 'passed'}
 
 def native():
+    for script in ["test-media-tools.py", "test-media-fixtures.py", "test-processing-worker.py"]:
+        sys.stdout.buffer.write(child([sys.executable, ROOT / "scripts" / script]))
+    sys.stdout.buffer.write(child([sys.executable, ROOT / "scripts/media-fixtures.py", "--native"]))
     env = native_env()
     cueson = cueson_probe(env)
-    output = child(['go', 'test', '-v', '-tags', 'native_ladybug,system_ladybug', './internal/qualification'], env=env)
+    output = child(['go', 'test', '-v', '-tags', 'native_ladybug,system_ladybug', './internal/qualification', './internal/subtitles'], env=env)
     sys.stdout.buffer.write(output)
     (BUILD / 'native-receipt.json').write_text(json.dumps({'cueson': cueson, 'native_pair': 'passed'}, indent=2) + '\n', encoding='utf-8')
 

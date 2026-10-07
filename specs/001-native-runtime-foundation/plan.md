@@ -1,5 +1,9 @@
 # Implementation Plan: Native runtime foundation
 
+**2026-10-07 dependency maintenance**: Maintained Cueson package/schema references now identify the required v1.2.0 contract. Historical qualification results describe their original session and do not establish later package execution; S005 records the exact current-version qualification.
+
+**2026-10-07 dependency maintenance**: Maintained Cueson package/schema references now identify the required v1.2.0 contract. Historical qualification results describe their original session and do not establish later package execution; S005 records the exact current-version qualification.
+
 **Branch**: `codex/s001-native-runtime-foundation` | **Date**: 2026-10-05 | **Spec**: [spec.md](spec.md)
 
 ## Summary
@@ -9,7 +13,7 @@ S001 delivers issues #1 and #2 together: a real workspace owner, shared CLI/Wail
 ## Technical Context
 
 **Language/Version**: Go 1.27.1, Node 22+, Python 3.11+ Spec Kit.
-**Primary Dependencies**: Wails v2.14.0, go-winio v0.6.2, flock v0.13.1, jsonschema v6.0.3, Cueson v1.1.0, Ladybug core v0.21.2 and immutable binding revision from research.
+**Primary Dependencies**: Wails v2.14.0, go-winio v0.6.2, flock v0.13.1, jsonschema v6.0.3, Cueson v1.2.0, Ladybug core v0.21.2 and immutable binding revision from research.
 **Storage**: Atomic local configuration, OS advisory lock, session-only attempts.
 **Testing**: Go security/concurrency/integration tests, three-OS native probes, existing Node tests and static export.
 **Target Platform**: Windows, macOS and Linux; qualify runner architectures separately from artifact availability.

@@ -1,0 +1,6276 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cueson.io/schema/v1.2.0/cueson.schema.json",
+  "title": "Cue JSON",
+  "description": "Cueson 1.2.0 stable candidate contract: optional consumer-owned speaker attribution and declared media timing beside preserved native observations and exact source bytes. Exact historical 1.0.0 and 1.1.0 input contracts remain bundled. Candidate identity does not imply a published release or public schema route.",
+  "examples": [
+    {
+      "$schema": "https://cueson.io/schema/v1.2.0/cueson.schema.json",
+      "schema_version": "1.2.0",
+      "format": "subrip",
+      "format_support": {
+        "status": "stable",
+        "ingest_supported": true,
+        "render_supported": true,
+        "restore_supported": true,
+        "ocr_required_for_semantic_output": false
+      },
+      "producer": {
+        "name": "cueson-contract-example",
+        "version": "1.0.0"
+      },
+      "source": {
+        "primary_asset_id": "asset-0",
+        "assets": [
+          {
+            "id": "asset-0",
+            "role": "primary",
+            "file_name": "captions.srt",
+            "media_type": "application/x-subrip",
+            "size": {
+              "bytes": 53,
+              "text": "53 bytes"
+            },
+            "hashes": {
+              "sha256": "955096d8a9c0df1a51bc836d0fd7cfc2d06c75807c5908b5017791d436673eea"
+            },
+            "timestamps": {
+              "created": {
+                "iso": "2026-09-09T00:00:00Z",
+                "unix_ns": 1788912000000000000
+              },
+              "modified": {
+                "iso": "2026-09-09T00:00:00Z",
+                "unix_ns": 1788912000000000000
+              },
+              "accessed": {
+                "iso": "2026-09-09T00:00:00Z",
+                "unix_ns": 1788912000000000000
+              },
+              "created_source": "birthtime"
+            },
+            "encoding": {
+              "bom": null,
+              "line_endings": "lf",
+              "detected_encoding": "utf-8",
+              "confidence": 1
+            },
+            "data_base64": "MQowMDowMDowMSwyNTAgLS0+IDAwOjAwOjA0LDIwMAo8aT5IZWxsbywgd29ybGQuPC9pPgo="
+          }
+        ]
+      },
+      "metadata": {
+        "title": null,
+        "language": "en",
+        "kind": "subtitles",
+        "description": null
+      },
+      "document": {
+        "cue_count": 1,
+        "media_start_milliseconds": 1250,
+        "media_end_milliseconds": 4200,
+        "media_span_milliseconds": 2950,
+        "has_word_level_timing": false
+      },
+      "cues": [
+        {
+          "id": "cue-000000",
+          "ordinal": 0,
+          "source_order": 0,
+          "source_identifier": "1",
+          "timing": {
+            "start_milliseconds": 1250,
+            "end_milliseconds": 4200,
+            "duration_milliseconds": 2950
+          },
+          "payload": {
+            "raw_text": "<i>Hello, world.</i>",
+            "plain_text": "Hello, world.",
+            "lines": [
+              "<i>Hello, world.</i>"
+            ]
+          },
+          "speakers": [],
+          "tokens": [],
+          "ocr_observations": [],
+          "placement": null,
+          "format_data": {
+            "subrip": {
+              "sequence_line_raw": "1",
+              "timing_line_raw": "00:00:01,250 --> 00:00:04,200"
+            }
+          },
+          "speaker_attributions": [
+            {
+              "speaker_id": "Interviewer"
+            },
+            {
+              "speaker_id": "Alex",
+              "start_milliseconds": 1250,
+              "end_milliseconds": 4200
+            }
+          ]
+        }
+      ],
+      "format_data": {
+        "subrip": {
+          "dialect": "subrip",
+          "decoding_notes": null
+        }
+      },
+      "diagnostics": [],
+      "stats": {
+        "cue_count": 1,
+        "diagnostic_count": 0,
+        "warning_count": 0,
+        "error_count": 0,
+        "has_word_level_timing": false,
+        "media_span_milliseconds": 2950
+      },
+      "media_timing": {
+        "duration_milliseconds": 5000
+      }
+    },
+    {
+      "$schema": "https://cueson.io/schema/v1.2.0/cueson.schema.json",
+      "schema_version": "1.2.0",
+      "format": "ass",
+      "format_support": {
+        "status": "schema_only",
+        "ingest_supported": false,
+        "render_supported": false,
+        "restore_supported": true,
+        "ocr_required_for_semantic_output": false
+      },
+      "producer": {
+        "name": "cueson-contract-example",
+        "version": "1.2.0"
+      },
+      "source": {
+        "primary_asset_id": "asset-0",
+        "assets": [
+          {
+            "id": "asset-0",
+            "role": "primary",
+            "file_name": "captions.ass",
+            "media_type": "text/x-ass",
+            "size": {
+              "bytes": 551,
+              "text": "551 bytes"
+            },
+            "hashes": {
+              "sha256": "46afcb1da151e86ab97ef8807e2e9863d0e849aabcedd38d51146c5341660d83"
+            },
+            "timestamps": {
+              "created": null,
+              "modified": null,
+              "accessed": null,
+              "created_source": "unavailable"
+            },
+            "encoding": {
+              "bom": null,
+              "line_endings": "lf",
+              "detected_encoding": "utf-8",
+              "confidence": 1
+            },
+            "data_base64": "W1NjcmlwdCBJbmZvXQpTY3JpcHRUeXBlOiB2NC4wMCsKW1Y0KyBTdHlsZXNdCkZvcm1hdDogTmFtZSwgRm9udG5hbWUsIEZvbnRzaXplLCBQcmltYXJ5Q29sb3VyLCBTZWNvbmRhcnlDb2xvdXIsIE91dGxpbmVDb2xvdXIsIEJhY2tDb2xvdXIsIEJvbGQsIEl0YWxpYywgVW5kZXJsaW5lLCBTdHJpa2VPdXQsIFNjYWxlWCwgU2NhbGVZLCBTcGFjaW5nLCBBbmdsZSwgQm9yZGVyU3R5bGUsIE91dGxpbmUsIFNoYWRvdywgQWxpZ25tZW50LCBNYXJnaW5MLCBNYXJnaW5SLCBNYXJnaW5WLCBFbmNvZGluZwpTdHlsZTogRGVmYXVsdCxBcmlhbCwyMCwmSDAwRkZGRkZGLCZIMDAwMDAwRkYsJkgwMDAwMDAwMCwmSDAwMDAwMDAwLDAsMCwwLDAsMTAwLDEwMCwwLDAsMSwyLDAsMiwxMCwxMCwxMCwxCltFdmVudHNdCkZvcm1hdDogTGF5ZXIsIFN0YXJ0LCBFbmQsIFN0eWxlLCBOYW1lLCBNYXJnaW5MLCBNYXJnaW5SLCBNYXJnaW5WLCBFZmZlY3QsIFRleHQKRGlhbG9ndWU6IDAsMDowMDowMS4wMCwwOjAwOjAyLjAwLERlZmF1bHQsTmFycmF0b3IsMCwwLDAsLEhlbGxvXE53b3JsZAo="
+          }
+        ]
+      },
+      "metadata": {
+        "title": null,
+        "language": "en",
+        "kind": "subtitles",
+        "description": null
+      },
+      "document": {
+        "cue_count": 1,
+        "media_start_milliseconds": 1000,
+        "media_end_milliseconds": 2000,
+        "media_span_milliseconds": 1000,
+        "has_word_level_timing": false
+      },
+      "cues": [
+        {
+          "id": "cue-0",
+          "ordinal": 0,
+          "source_order": 7,
+          "source_identifier": null,
+          "timing": {
+            "start_milliseconds": 1000,
+            "end_milliseconds": 2000,
+            "duration_milliseconds": 1000
+          },
+          "payload": {
+            "raw_text": "Hello\\Nworld",
+            "plain_text": "Hello\nworld",
+            "lines": [
+              "Hello",
+              "world"
+            ]
+          },
+          "speakers": [
+            {
+              "name": "Narrator",
+              "origin": "native"
+            }
+          ],
+          "tokens": [],
+          "ocr_observations": [],
+          "placement": null,
+          "format_data": {
+            "ass": {
+              "event_id": "event-0",
+              "style_id": "style-default",
+              "start_timestamp_raw": "0:00:01.00",
+              "end_timestamp_raw": "0:00:02.00",
+              "projection": {
+                "origin": "native_derived",
+                "source_event_id": "event-0",
+                "text_field_name": "Text",
+                "speaker_field_name": "Name",
+                "wrap_style": 0,
+                "drawing_excluded": false
+              }
+            }
+          }
+        }
+      ],
+      "format_data": {
+        "ass": {
+          "dialect": "v4.00+",
+          "sections": [
+            {
+              "section_id": "section-info",
+              "source_order": 0,
+              "name": "Script Info",
+              "raw_header": "[Script Info]"
+            },
+            {
+              "section_id": "section-styles",
+              "source_order": 2,
+              "name": "V4+ Styles",
+              "raw_header": "[V4+ Styles]"
+            },
+            {
+              "section_id": "section-events",
+              "source_order": 5,
+              "name": "Events",
+              "raw_header": "[Events]"
+            }
+          ],
+          "records": [
+            {
+              "record_id": "record-type",
+              "source_order": 1,
+              "section_id": "section-info",
+              "kind": "metadata",
+              "raw_line": "ScriptType: v4.00+",
+              "fields": [
+                {
+                  "field_name": "ScriptType",
+                  "raw_value": "v4.00+"
+                }
+              ]
+            },
+            {
+              "record_id": "record-style-format",
+              "source_order": 3,
+              "section_id": "section-styles",
+              "kind": "format_declaration",
+              "raw_line": "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
+              "declaration_fields": [
+                {
+                  "field_name": "Name",
+                  "recognized_name": "name"
+                },
+                {
+                  "field_name": "Fontname",
+                  "recognized_name": "fontname"
+                },
+                {
+                  "field_name": "Fontsize",
+                  "recognized_name": "fontsize"
+                },
+                {
+                  "field_name": "PrimaryColour",
+                  "recognized_name": "primarycolour"
+                },
+                {
+                  "field_name": "SecondaryColour",
+                  "recognized_name": "secondarycolour"
+                },
+                {
+                  "field_name": "OutlineColour",
+                  "recognized_name": "outlinecolour"
+                },
+                {
+                  "field_name": "BackColour",
+                  "recognized_name": "backcolour"
+                },
+                {
+                  "field_name": "Bold",
+                  "recognized_name": "bold"
+                },
+                {
+                  "field_name": "Italic",
+                  "recognized_name": "italic"
+                },
+                {
+                  "field_name": "Underline",
+                  "recognized_name": "underline"
+                },
+                {
+                  "field_name": "StrikeOut",
+                  "recognized_name": "strikeout"
+                },
+                {
+                  "field_name": "ScaleX",
+                  "recognized_name": "scalex"
+                },
+                {
+                  "field_name": "ScaleY",
+                  "recognized_name": "scaley"
+                },
+                {
+                  "field_name": "Spacing",
+                  "recognized_name": "spacing"
+                },
+                {
+                  "field_name": "Angle",
+                  "recognized_name": "angle"
+                },
+                {
+                  "field_name": "BorderStyle",
+                  "recognized_name": "borderstyle"
+                },
+                {
+                  "field_name": "Outline",
+                  "recognized_name": "outline"
+                },
+                {
+                  "field_name": "Shadow",
+                  "recognized_name": "shadow"
+                },
+                {
+                  "field_name": "Alignment",
+                  "recognized_name": "alignment"
+                },
+                {
+                  "field_name": "MarginL",
+                  "recognized_name": "marginl"
+                },
+                {
+                  "field_name": "MarginR",
+                  "recognized_name": "marginr"
+                },
+                {
+                  "field_name": "MarginV",
+                  "recognized_name": "marginv"
+                },
+                {
+                  "field_name": "Encoding",
+                  "recognized_name": "encoding"
+                }
+              ]
+            },
+            {
+              "record_id": "record-style",
+              "source_order": 4,
+              "section_id": "section-styles",
+              "kind": "style",
+              "raw_line": "Style: Default,Arial,20,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,0,2,10,10,10,1",
+              "style_id": "style-default"
+            },
+            {
+              "record_id": "record-event-format",
+              "source_order": 6,
+              "section_id": "section-events",
+              "kind": "format_declaration",
+              "raw_line": "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+              "declaration_fields": [
+                {
+                  "field_name": "Layer",
+                  "recognized_name": "layer"
+                },
+                {
+                  "field_name": "Start",
+                  "recognized_name": "start"
+                },
+                {
+                  "field_name": "End",
+                  "recognized_name": "end"
+                },
+                {
+                  "field_name": "Style",
+                  "recognized_name": "style"
+                },
+                {
+                  "field_name": "Name",
+                  "recognized_name": "name"
+                },
+                {
+                  "field_name": "MarginL",
+                  "recognized_name": "marginl"
+                },
+                {
+                  "field_name": "MarginR",
+                  "recognized_name": "marginr"
+                },
+                {
+                  "field_name": "MarginV",
+                  "recognized_name": "marginv"
+                },
+                {
+                  "field_name": "Effect",
+                  "recognized_name": "effect"
+                },
+                {
+                  "field_name": "Text",
+                  "recognized_name": "text"
+                }
+              ]
+            },
+            {
+              "record_id": "record-event",
+              "source_order": 7,
+              "section_id": "section-events",
+              "kind": "event",
+              "raw_line": "Dialogue: 0,0:00:01.00,0:00:02.00,Default,Narrator,0,0,0,,Hello\\Nworld",
+              "event_id": "event-0"
+            }
+          ],
+          "styles": [
+            {
+              "style_id": "style-default",
+              "record_id": "record-style",
+              "declaration_id": "record-style-format",
+              "name": "Default",
+              "valid": true,
+              "fields": [
+                {
+                  "field_name": "Name",
+                  "raw_value": "Default"
+                },
+                {
+                  "field_name": "Fontname",
+                  "raw_value": "Arial"
+                },
+                {
+                  "field_name": "Fontsize",
+                  "raw_value": "20",
+                  "typed_value": {
+                    "kind": "decimal",
+                    "decimal": 20
+                  }
+                },
+                {
+                  "field_name": "PrimaryColour",
+                  "raw_value": "&H00FFFFFF"
+                },
+                {
+                  "field_name": "SecondaryColour",
+                  "raw_value": "&H000000FF"
+                },
+                {
+                  "field_name": "OutlineColour",
+                  "raw_value": "&H00000000"
+                },
+                {
+                  "field_name": "BackColour",
+                  "raw_value": "&H00000000"
+                },
+                {
+                  "field_name": "Bold",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Italic",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Underline",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "StrikeOut",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "ScaleX",
+                  "raw_value": "100"
+                },
+                {
+                  "field_name": "ScaleY",
+                  "raw_value": "100"
+                },
+                {
+                  "field_name": "Spacing",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Angle",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "BorderStyle",
+                  "raw_value": "1"
+                },
+                {
+                  "field_name": "Outline",
+                  "raw_value": "2"
+                },
+                {
+                  "field_name": "Shadow",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Alignment",
+                  "raw_value": "2"
+                },
+                {
+                  "field_name": "MarginL",
+                  "raw_value": "10"
+                },
+                {
+                  "field_name": "MarginR",
+                  "raw_value": "10"
+                },
+                {
+                  "field_name": "MarginV",
+                  "raw_value": "10"
+                },
+                {
+                  "field_name": "Encoding",
+                  "raw_value": "1"
+                }
+              ]
+            }
+          ],
+          "events": [
+            {
+              "event_id": "event-0",
+              "record_id": "record-event",
+              "declaration_id": "record-event-format",
+              "event_type": "dialogue",
+              "cue_id": "cue-0",
+              "valid": true,
+              "fields": [
+                {
+                  "field_name": "Layer",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Start",
+                  "raw_value": "0:00:01.00"
+                },
+                {
+                  "field_name": "End",
+                  "raw_value": "0:00:02.00"
+                },
+                {
+                  "field_name": "Style",
+                  "raw_value": "Default"
+                },
+                {
+                  "field_name": "Name",
+                  "raw_value": "Narrator"
+                },
+                {
+                  "field_name": "MarginL",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "MarginR",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "MarginV",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Effect",
+                  "raw_value": ""
+                },
+                {
+                  "field_name": "Text",
+                  "raw_value": "Hello\\Nworld"
+                }
+              ],
+              "text": "Hello\\Nworld",
+              "spans": [
+                {
+                  "kind": "literal",
+                  "start_scalar": 0,
+                  "end_scalar": 12,
+                  "raw": "Hello\\Nworld"
+                }
+              ],
+              "tags": [],
+              "karaoke": []
+            }
+          ],
+          "attachments": []
+        }
+      },
+      "diagnostics": [],
+      "stats": {
+        "cue_count": 1,
+        "diagnostic_count": 0,
+        "warning_count": 0,
+        "error_count": 0,
+        "has_word_level_timing": false,
+        "media_span_milliseconds": 1000
+      }
+    },
+    {
+      "$schema": "https://cueson.io/schema/v1.2.0/cueson.schema.json",
+      "schema_version": "1.2.0",
+      "format": "ssa",
+      "format_support": {
+        "status": "schema_only",
+        "ingest_supported": false,
+        "render_supported": false,
+        "restore_supported": true,
+        "ocr_required_for_semantic_output": false
+      },
+      "producer": {
+        "name": "cueson-contract-example",
+        "version": "1.2.0"
+      },
+      "source": {
+        "primary_asset_id": "asset-0",
+        "assets": [
+          {
+            "id": "asset-0",
+            "role": "primary",
+            "file_name": "captions.ssa",
+            "media_type": "text/x-ssa",
+            "size": {
+              "bytes": 502,
+              "text": "502 bytes"
+            },
+            "hashes": {
+              "sha256": "e413a37fb561ea37082f88fd61728672d04fe9ef0050104b232b9c02db129956"
+            },
+            "timestamps": {
+              "created": null,
+              "modified": null,
+              "accessed": null,
+              "created_source": "unavailable"
+            },
+            "encoding": {
+              "bom": null,
+              "line_endings": "lf",
+              "detected_encoding": "utf-8",
+              "confidence": 1
+            },
+            "data_base64": "W1NjcmlwdCBJbmZvXQpTY3JpcHRUeXBlOiB2NC4wMApbVjQgU3R5bGVzXQpGb3JtYXQ6IE5hbWUsIEZvbnRuYW1lLCBGb250c2l6ZSwgUHJpbWFyeUNvbG91ciwgU2Vjb25kYXJ5Q29sb3VyLCBUZXJ0aWFyeUNvbG91ciwgQmFja0NvbG91ciwgQm9sZCwgSXRhbGljLCBCb3JkZXJTdHlsZSwgT3V0bGluZSwgU2hhZG93LCBBbGlnbm1lbnQsIE1hcmdpbkwsIE1hcmdpblIsIE1hcmdpblYsIEFscGhhTGV2ZWwsIEVuY29kaW5nClN0eWxlOiBEZWZhdWx0LEFyaWFsLDIwLCZIMDBGRkZGRkYsJkgwMDAwMDBGRiwmSDAwMDAwMDAwLCZIMDAwMDAwMDAsMCwwLDEsMiwwLDIsMTAsMTAsMTAsMCwxCltFdmVudHNdCkZvcm1hdDogTWFya2VkLCBTdGFydCwgRW5kLCBTdHlsZSwgTmFtZSwgTWFyZ2luTCwgTWFyZ2luUiwgTWFyZ2luViwgRWZmZWN0LCBUZXh0CkRpYWxvZ3VlOiBNYXJrZWQ9MCwwOjAwOjAxLjAwLDA6MDA6MDIuMDAsRGVmYXVsdCxOYXJyYXRvciwwLDAsMCwsSGVsbG9cTndvcmxkCg=="
+          }
+        ]
+      },
+      "metadata": {
+        "title": null,
+        "language": "en",
+        "kind": "subtitles",
+        "description": null
+      },
+      "document": {
+        "cue_count": 1,
+        "media_start_milliseconds": 1000,
+        "media_end_milliseconds": 2000,
+        "media_span_milliseconds": 1000,
+        "has_word_level_timing": false
+      },
+      "cues": [
+        {
+          "id": "cue-0",
+          "ordinal": 0,
+          "source_order": 7,
+          "source_identifier": null,
+          "timing": {
+            "start_milliseconds": 1000,
+            "end_milliseconds": 2000,
+            "duration_milliseconds": 1000
+          },
+          "payload": {
+            "raw_text": "Hello\\Nworld",
+            "plain_text": "Hello\nworld",
+            "lines": [
+              "Hello",
+              "world"
+            ]
+          },
+          "speakers": [
+            {
+              "name": "Narrator",
+              "origin": "native"
+            }
+          ],
+          "tokens": [],
+          "ocr_observations": [],
+          "placement": null,
+          "format_data": {
+            "ssa": {
+              "event_id": "event-0",
+              "style_id": "style-default",
+              "start_timestamp_raw": "0:00:01.00",
+              "end_timestamp_raw": "0:00:02.00",
+              "projection": {
+                "origin": "native_derived",
+                "source_event_id": "event-0",
+                "text_field_name": "Text",
+                "speaker_field_name": "Name",
+                "wrap_style": 0,
+                "drawing_excluded": false
+              }
+            }
+          }
+        }
+      ],
+      "format_data": {
+        "ssa": {
+          "dialect": "v4.00",
+          "sections": [
+            {
+              "section_id": "section-info",
+              "source_order": 0,
+              "name": "Script Info",
+              "raw_header": "[Script Info]"
+            },
+            {
+              "section_id": "section-styles",
+              "source_order": 2,
+              "name": "V4 Styles",
+              "raw_header": "[V4 Styles]"
+            },
+            {
+              "section_id": "section-events",
+              "source_order": 5,
+              "name": "Events",
+              "raw_header": "[Events]"
+            }
+          ],
+          "records": [
+            {
+              "record_id": "record-type",
+              "source_order": 1,
+              "section_id": "section-info",
+              "kind": "metadata",
+              "raw_line": "ScriptType: v4.00",
+              "fields": [
+                {
+                  "field_name": "ScriptType",
+                  "raw_value": "v4.00"
+                }
+              ]
+            },
+            {
+              "record_id": "record-style-format",
+              "source_order": 3,
+              "section_id": "section-styles",
+              "kind": "format_declaration",
+              "raw_line": "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, TertiaryColour, BackColour, Bold, Italic, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, AlphaLevel, Encoding",
+              "declaration_fields": [
+                {
+                  "field_name": "Name",
+                  "recognized_name": "name"
+                },
+                {
+                  "field_name": "Fontname",
+                  "recognized_name": "fontname"
+                },
+                {
+                  "field_name": "Fontsize",
+                  "recognized_name": "fontsize"
+                },
+                {
+                  "field_name": "PrimaryColour",
+                  "recognized_name": "primarycolour"
+                },
+                {
+                  "field_name": "SecondaryColour",
+                  "recognized_name": "secondarycolour"
+                },
+                {
+                  "field_name": "TertiaryColour",
+                  "recognized_name": "tertiarycolour"
+                },
+                {
+                  "field_name": "BackColour",
+                  "recognized_name": "backcolour"
+                },
+                {
+                  "field_name": "Bold",
+                  "recognized_name": "bold"
+                },
+                {
+                  "field_name": "Italic",
+                  "recognized_name": "italic"
+                },
+                {
+                  "field_name": "BorderStyle",
+                  "recognized_name": "borderstyle"
+                },
+                {
+                  "field_name": "Outline",
+                  "recognized_name": "outline"
+                },
+                {
+                  "field_name": "Shadow",
+                  "recognized_name": "shadow"
+                },
+                {
+                  "field_name": "Alignment",
+                  "recognized_name": "alignment"
+                },
+                {
+                  "field_name": "MarginL",
+                  "recognized_name": "marginl"
+                },
+                {
+                  "field_name": "MarginR",
+                  "recognized_name": "marginr"
+                },
+                {
+                  "field_name": "MarginV",
+                  "recognized_name": "marginv"
+                },
+                {
+                  "field_name": "AlphaLevel",
+                  "recognized_name": "alphalevel"
+                },
+                {
+                  "field_name": "Encoding",
+                  "recognized_name": "encoding"
+                }
+              ]
+            },
+            {
+              "record_id": "record-style",
+              "source_order": 4,
+              "section_id": "section-styles",
+              "kind": "style",
+              "raw_line": "Style: Default,Arial,20,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,1,2,0,2,10,10,10,0,1",
+              "style_id": "style-default"
+            },
+            {
+              "record_id": "record-event-format",
+              "source_order": 6,
+              "section_id": "section-events",
+              "kind": "format_declaration",
+              "raw_line": "Format: Marked, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+              "declaration_fields": [
+                {
+                  "field_name": "Marked",
+                  "recognized_name": "marked"
+                },
+                {
+                  "field_name": "Start",
+                  "recognized_name": "start"
+                },
+                {
+                  "field_name": "End",
+                  "recognized_name": "end"
+                },
+                {
+                  "field_name": "Style",
+                  "recognized_name": "style"
+                },
+                {
+                  "field_name": "Name",
+                  "recognized_name": "name"
+                },
+                {
+                  "field_name": "MarginL",
+                  "recognized_name": "marginl"
+                },
+                {
+                  "field_name": "MarginR",
+                  "recognized_name": "marginr"
+                },
+                {
+                  "field_name": "MarginV",
+                  "recognized_name": "marginv"
+                },
+                {
+                  "field_name": "Effect",
+                  "recognized_name": "effect"
+                },
+                {
+                  "field_name": "Text",
+                  "recognized_name": "text"
+                }
+              ]
+            },
+            {
+              "record_id": "record-event",
+              "source_order": 7,
+              "section_id": "section-events",
+              "kind": "event",
+              "raw_line": "Dialogue: Marked=0,0:00:01.00,0:00:02.00,Default,Narrator,0,0,0,,Hello\\Nworld",
+              "event_id": "event-0"
+            }
+          ],
+          "styles": [
+            {
+              "style_id": "style-default",
+              "record_id": "record-style",
+              "declaration_id": "record-style-format",
+              "name": "Default",
+              "valid": true,
+              "fields": [
+                {
+                  "field_name": "Name",
+                  "raw_value": "Default"
+                },
+                {
+                  "field_name": "Fontname",
+                  "raw_value": "Arial"
+                },
+                {
+                  "field_name": "Fontsize",
+                  "raw_value": "20",
+                  "typed_value": {
+                    "kind": "decimal",
+                    "decimal": 20
+                  }
+                },
+                {
+                  "field_name": "PrimaryColour",
+                  "raw_value": "&H00FFFFFF"
+                },
+                {
+                  "field_name": "SecondaryColour",
+                  "raw_value": "&H000000FF"
+                },
+                {
+                  "field_name": "TertiaryColour",
+                  "raw_value": "&H00000000"
+                },
+                {
+                  "field_name": "BackColour",
+                  "raw_value": "&H00000000"
+                },
+                {
+                  "field_name": "Bold",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Italic",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "BorderStyle",
+                  "raw_value": "1"
+                },
+                {
+                  "field_name": "Outline",
+                  "raw_value": "2"
+                },
+                {
+                  "field_name": "Shadow",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Alignment",
+                  "raw_value": "2"
+                },
+                {
+                  "field_name": "MarginL",
+                  "raw_value": "10"
+                },
+                {
+                  "field_name": "MarginR",
+                  "raw_value": "10"
+                },
+                {
+                  "field_name": "MarginV",
+                  "raw_value": "10"
+                },
+                {
+                  "field_name": "AlphaLevel",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Encoding",
+                  "raw_value": "1"
+                }
+              ]
+            }
+          ],
+          "events": [
+            {
+              "event_id": "event-0",
+              "record_id": "record-event",
+              "declaration_id": "record-event-format",
+              "event_type": "dialogue",
+              "cue_id": "cue-0",
+              "valid": true,
+              "fields": [
+                {
+                  "field_name": "Marked",
+                  "raw_value": "Marked=0"
+                },
+                {
+                  "field_name": "Start",
+                  "raw_value": "0:00:01.00"
+                },
+                {
+                  "field_name": "End",
+                  "raw_value": "0:00:02.00"
+                },
+                {
+                  "field_name": "Style",
+                  "raw_value": "Default"
+                },
+                {
+                  "field_name": "Name",
+                  "raw_value": "Narrator"
+                },
+                {
+                  "field_name": "MarginL",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "MarginR",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "MarginV",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Effect",
+                  "raw_value": ""
+                },
+                {
+                  "field_name": "Text",
+                  "raw_value": "Hello\\Nworld"
+                }
+              ],
+              "text": "Hello\\Nworld",
+              "spans": [
+                {
+                  "kind": "literal",
+                  "start_scalar": 0,
+                  "end_scalar": 12,
+                  "raw": "Hello\\Nworld"
+                }
+              ],
+              "tags": [],
+              "karaoke": []
+            }
+          ],
+          "attachments": []
+        }
+      },
+      "diagnostics": [],
+      "stats": {
+        "cue_count": 1,
+        "diagnostic_count": 0,
+        "warning_count": 0,
+        "error_count": 0,
+        "has_word_level_timing": false,
+        "media_span_milliseconds": 1000
+      }
+    }
+  ],
+  "type": "object",
+  "required": [
+    "$schema",
+    "schema_version",
+    "format",
+    "format_support",
+    "producer",
+    "source",
+    "metadata",
+    "document",
+    "cues",
+    "format_data",
+    "diagnostics",
+    "stats"
+  ],
+  "properties": {
+    "$schema": {
+      "description": "Exact canonical schema identifier used by this Cue JSON instance.",
+      "examples": [
+        "https://cueson.io/schema/v1.2.0/cueson.schema.json"
+      ],
+      "const": "https://cueson.io/schema/v1.2.0/cueson.schema.json"
+    },
+    "schema_version": {
+      "description": "Cue JSON contract version targeted by this instance, independent of third-party producer versions.",
+      "examples": [
+        "1.2.0"
+      ],
+      "const": "1.2.0"
+    },
+    "format": {
+      "description": "Canonical format-family key for the source and matching native format data.",
+      "examples": [
+        "subrip",
+        "webvtt",
+        "ass",
+        "ssa"
+      ],
+      "enum": [
+        "subrip",
+        "webvtt",
+        "ass",
+        "ssa"
+      ]
+    },
+    "format_support": {
+      "description": "Truthful capabilities declared by the selected document; installed codec availability is a separate runtime fact and never rewrites this observation.",
+      "examples": [
+        {
+          "status": "stable",
+          "ingest_supported": true,
+          "render_supported": true,
+          "restore_supported": true,
+          "ocr_required_for_semantic_output": false
+        }
+      ],
+      "$ref": "#/$defs/format_support"
+    },
+    "producer": {
+      "description": "Software identity that produced the instance; its version is independent from schema_version.",
+      "examples": [
+        {
+          "name": "cueson-contract-example",
+          "version": "1.0.0"
+        }
+      ],
+      "$ref": "#/$defs/producer"
+    },
+    "source": {
+      "description": "Authoritative source envelope containing portable asset identity, integrity metadata, and original bytes.",
+      "examples": [
+        {
+          "primary_asset_id": "asset-0",
+          "assets": [
+            {
+              "id": "asset-0",
+              "role": "primary",
+              "file_name": "captions.srt",
+              "media_type": "application/x-subrip",
+              "size": {
+                "bytes": 0,
+                "text": "0 bytes"
+              },
+              "hashes": {
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              "timestamps": {
+                "created": null,
+                "modified": null,
+                "accessed": null,
+                "created_source": "unavailable"
+              },
+              "encoding": null,
+              "data_base64": ""
+            }
+          ]
+        }
+      ],
+      "$ref": "#/$defs/source"
+    },
+    "metadata": {
+      "description": "Optional descriptive document metadata whose null values mean the producer made no supported observation.",
+      "examples": [
+        {
+          "title": "Sample captions",
+          "language": "en",
+          "kind": "subtitles",
+          "description": null
+        }
+      ],
+      "$ref": "#/$defs/metadata"
+    },
+    "document": {
+      "description": "Derived document-level summary computed from the common cue model.",
+      "examples": [
+        {
+          "cue_count": 1,
+          "media_start_milliseconds": 1250,
+          "media_end_milliseconds": 4200,
+          "media_span_milliseconds": 2950,
+          "has_word_level_timing": false
+        }
+      ],
+      "$ref": "#/$defs/document_summary"
+    },
+    "cues": {
+      "description": "Ordered timed semantic units in the format-neutral common model, with adjacent native fidelity data.",
+      "examples": [
+        [
+          {
+            "id": "cue-000000",
+            "ordinal": 0,
+            "source_order": 0,
+            "source_identifier": "1",
+            "timing": {
+              "start_milliseconds": 1250,
+              "end_milliseconds": 4200,
+              "duration_milliseconds": 2950
+            },
+            "payload": {
+              "raw_text": "Hello, world.",
+              "plain_text": "Hello, world.",
+              "lines": [
+                "Hello, world."
+              ]
+            },
+            "speakers": [],
+            "tokens": [],
+            "ocr_observations": [],
+            "placement": null,
+            "format_data": {
+              "subrip": {
+                "sequence_line_raw": "1",
+                "timing_line_raw": "00:00:01,250 --> 00:00:04,200"
+              }
+            }
+          }
+        ]
+      ],
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/cue"
+      }
+    },
+    "format_data": {
+      "description": "Document-level native data for the selected format; this preserves fidelity and does not replace source bytes.",
+      "examples": [
+        {
+          "subrip": {
+            "dialect": "subrip",
+            "decoding_notes": null
+          }
+        }
+      ],
+      "$ref": "#/$defs/document_format_data"
+    },
+    "diagnostics": {
+      "description": "Ordered deterministic observations about tolerated, malformed, unsupported, or lossy source information.",
+      "examples": [
+        [],
+        [
+          {
+            "severity": "warning",
+            "code": "source_variant",
+            "message": "A tolerated source variant was preserved.",
+            "source_order": 0,
+            "cue_id": "cue-000000"
+          }
+        ]
+      ],
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      }
+    },
+    "stats": {
+      "description": "Derived aggregate counts and timing facts for the validated document.",
+      "examples": [
+        {
+          "cue_count": 1,
+          "diagnostic_count": 0,
+          "warning_count": 0,
+          "error_count": 0,
+          "has_word_level_timing": false,
+          "media_span_milliseconds": 2950
+        }
+      ],
+      "$ref": "#/$defs/stats"
+    },
+    "media_timing": {
+      "description": "Optional consumer-supplied media duration and timeline alignment. Cueson does not infer this declaration from subtitles or independently verify the media.",
+      "examples": [
+        {
+          "duration_milliseconds": 600000,
+          "timeline_start_milliseconds": 30000
+        }
+      ],
+      "$ref": "#/$defs/media_timing"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "format": {
+            "const": "subrip"
+          }
+        },
+        "required": [
+          "format"
+        ]
+      },
+      "then": {
+        "properties": {
+          "format_support": {
+            "$ref": "#/$defs/subrip_format_support"
+          },
+          "format_data": {
+            "$ref": "#/$defs/subrip_document_format_data"
+          },
+          "cues": {
+            "items": {
+              "properties": {
+                "format_data": {
+                  "$ref": "#/$defs/subrip_cue_format_data"
+                }
+              }
+            },
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "format": {
+            "const": "webvtt"
+          }
+        },
+        "required": [
+          "format"
+        ]
+      },
+      "then": {
+        "properties": {
+          "format_support": {
+            "$ref": "#/$defs/webvtt_format_support"
+          },
+          "format_data": {
+            "$ref": "#/$defs/webvtt_document_format_data"
+          },
+          "cues": {
+            "items": {
+              "properties": {
+                "format_data": {
+                  "$ref": "#/$defs/webvtt_cue_format_data"
+                },
+                "speakers": {
+                  "items": {
+                    "properties": {
+                      "origin": {
+                        "const": "native"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "format": {
+            "const": "ass"
+          }
+        },
+        "required": [
+          "format"
+        ]
+      },
+      "then": {
+        "properties": {
+          "format_support": {
+            "$ref": "#/$defs/scripted_format_support"
+          },
+          "format_data": {
+            "$ref": "#/$defs/ass_document_format_data"
+          },
+          "cues": {
+            "items": {
+              "properties": {
+                "format_data": {
+                  "$ref": "#/$defs/ass_cue_format_data"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "format": {
+            "const": "ssa"
+          }
+        },
+        "required": [
+          "format"
+        ]
+      },
+      "then": {
+        "properties": {
+          "format_support": {
+            "$ref": "#/$defs/scripted_format_support"
+          },
+          "format_data": {
+            "$ref": "#/$defs/ssa_document_format_data"
+          },
+          "cues": {
+            "items": {
+              "properties": {
+                "format_data": {
+                  "$ref": "#/$defs/ssa_cue_format_data"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "nullable_string": {
+      "title": "Nullable string",
+      "description": "A textual observation that is null when the value was unavailable or not observed.",
+      "examples": [
+        "observed value",
+        null
+      ],
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "non_negative_integer": {
+      "title": "Non-negative integer",
+      "description": "An integer count, index, size, or duration that cannot be negative.",
+      "examples": [
+        0,
+        1250
+      ],
+      "type": "integer",
+      "minimum": 0
+    },
+    "identifier": {
+      "title": "Document-local identifier",
+      "description": "A lowercase hyphenated identifier that is unique within its documented Cue JSON scope.",
+      "examples": [
+        "asset-0",
+        "cue-000000"
+      ],
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "format_support": {
+      "title": "Official format support",
+      "description": "Capabilities declared by the official Cueson contract for one recognized format family.",
+      "type": "object",
+      "required": [
+        "status",
+        "ingest_supported",
+        "render_supported",
+        "restore_supported",
+        "ocr_required_for_semantic_output"
+      ],
+      "properties": {
+        "status": {
+          "description": "Declared support maturity. Official native output is stable; exact current scripted inputs may retain truthful schema_only or complete experimental native observations without capability normalization.",
+          "examples": [
+            "envelope_only",
+            "experimental",
+            "stable",
+            "schema_only"
+          ],
+          "enum": [
+            "envelope_only",
+            "experimental",
+            "stable",
+            "schema_only"
+          ]
+        },
+        "ingest_supported": {
+          "description": "Whether official Cueson software can parse this format into the common and native models.",
+          "type": "boolean"
+        },
+        "render_supported": {
+          "description": "Whether official Cueson software can render this format from the structured model.",
+          "type": "boolean"
+        },
+        "restore_supported": {
+          "description": "Whether original source assets can be restored exactly from the source envelope.",
+          "type": "boolean"
+        },
+        "ocr_required_for_semantic_output": {
+          "description": "Whether semantic cue output for this format requires derived OCR observations.",
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "subrip_format_support": {
+      "title": "SubRip format support",
+      "description": "Current official stable capabilities for the recognized SubRip format family.",
+      "examples": [
+        {
+          "status": "stable",
+          "ingest_supported": true,
+          "render_supported": true,
+          "restore_supported": true,
+          "ocr_required_for_semantic_output": false
+        }
+      ],
+      "allOf": [
+        {
+          "$ref": "#/$defs/format_support"
+        },
+        {
+          "properties": {
+            "status": {
+              "const": "stable"
+            },
+            "ingest_supported": {
+              "const": true
+            },
+            "render_supported": {
+              "const": true
+            },
+            "restore_supported": {
+              "const": true
+            },
+            "ocr_required_for_semantic_output": {
+              "const": false
+            }
+          }
+        }
+      ]
+    },
+    "webvtt_format_support": {
+      "title": "WebVTT format support",
+      "description": "Current official stable capabilities for the recognized WebVTT format family.",
+      "examples": [
+        {
+          "status": "stable",
+          "ingest_supported": true,
+          "render_supported": true,
+          "restore_supported": true,
+          "ocr_required_for_semantic_output": false
+        }
+      ],
+      "allOf": [
+        {
+          "$ref": "#/$defs/format_support"
+        },
+        {
+          "properties": {
+            "status": {
+              "const": "stable"
+            },
+            "ingest_supported": {
+              "const": true
+            },
+            "render_supported": {
+              "const": true
+            },
+            "restore_supported": {
+              "const": true
+            },
+            "ocr_required_for_semantic_output": {
+              "const": false
+            }
+          }
+        }
+      ]
+    },
+    "producer": {
+      "title": "Producer identity",
+      "description": "Identity of the software that created this Cue JSON instance.",
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "description": "Non-empty name of the producer software or integration.",
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "description": "Producer software version, which is independent from the Cue JSON schema version.",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "source": {
+      "title": "Source envelope",
+      "description": "Authoritative ordered bundle of original source assets and their integrity metadata.",
+      "type": "object",
+      "required": [
+        "primary_asset_id",
+        "assets"
+      ],
+      "properties": {
+        "primary_asset_id": {
+          "description": "Document-local identifier resolving to exactly one primary asset in assets.",
+          "$ref": "#/$defs/identifier"
+        },
+        "assets": {
+          "description": "Ordered source assets whose original bytes remain authoritative for exact restoration.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/source_asset"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "source_asset": {
+      "title": "Source asset",
+      "description": "One portable source-envelope member with original bytes, integrity facts, and observations.",
+      "type": "object",
+      "required": [
+        "id",
+        "role",
+        "file_name",
+        "media_type",
+        "size",
+        "hashes",
+        "timestamps",
+        "encoding",
+        "data_base64"
+      ],
+      "properties": {
+        "id": {
+          "description": "Document-local asset identifier used by source and derived observation references.",
+          "$ref": "#/$defs/identifier"
+        },
+        "role": {
+          "description": "Whether this asset is the bundle primary or an associated companion asset.",
+          "examples": [
+            "primary",
+            "companion"
+          ],
+          "enum": [
+            "primary",
+            "companion"
+          ]
+        },
+        "file_name": {
+          "description": "Safe original basename only, without any directory, URI, drive, host, or traversal component.",
+          "examples": [
+            "captions.srt"
+          ],
+          "$ref": "#/$defs/safe_basename"
+        },
+        "media_type": {
+          "description": "Observed media type for the source asset, or null when unavailable.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "size": {
+          "description": "Exact decoded byte length plus an optional human-readable size observation.",
+          "$ref": "#/$defs/asset_size"
+        },
+        "hashes": {
+          "description": "Cryptographic identities calculated from the authoritative original bytes.",
+          "$ref": "#/$defs/asset_hashes"
+        },
+        "timestamps": {
+          "description": "Captured source timestamp observations and truthful creation-time provenance.",
+          "$ref": "#/$defs/timestamps"
+        },
+        "encoding": {
+          "description": "Text encoding observations, or null when the asset is binary or no observation is available.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/encoding_observation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "data_base64": {
+          "description": "Authoritative original asset bytes encoded as canonical standard base64.",
+          "examples": [
+            "SGVsbG8sIHdvcmxkLgo=",
+            ""
+          ],
+          "type": "string",
+          "contentEncoding": "base64"
+        }
+      },
+      "additionalProperties": false
+    },
+    "safe_basename": {
+      "title": "Portable safe basename",
+      "description": "A source filename without path components or names unsafe on supported filesystems.",
+      "examples": [
+        "captions.srt",
+        "captions-en.vtt"
+      ],
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^[^<>:\"/\\\\|?*\u0000-\u001f\u007f]+$",
+      "not": {
+        "anyOf": [
+          {
+            "description": "Relative directory markers forbidden as source basenames.",
+            "examples": [
+              ".",
+              ".."
+            ],
+            "enum": [
+              ".",
+              ".."
+            ]
+          },
+          {
+            "pattern": "[ .]$"
+          },
+          {
+            "pattern": "^([cC][oO][nN]|[pP][rR][nN]|[aA][uU][xX]|[nN][uU][lL]|[cC][lL][oO][cC][kK]\\$|[cC][oO][nN][iI][nN]\\$|[cC][oO][nN][oO][uU][tT]\\$|[cC][oO][mM][1-9¹²³]|[lL][pP][tT][1-9¹²³])(\\..*)?$"
+          }
+        ]
+      }
+    },
+    "asset_size": {
+      "title": "Source asset size",
+      "description": "Exact source byte length and optional display text supplied by the producer.",
+      "type": "object",
+      "required": [
+        "bytes",
+        "text"
+      ],
+      "properties": {
+        "bytes": {
+          "description": "Exact number of bytes recovered after decoding data_base64.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "text": {
+          "description": "Optional human-readable size label, or null when not supplied.",
+          "$ref": "#/$defs/nullable_string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "asset_hashes": {
+      "title": "Source asset hashes",
+      "description": "Cryptographic hashes calculated from the authoritative original source bytes.",
+      "examples": [
+        {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "type": "object",
+      "required": [
+        "sha256"
+      ],
+      "properties": {
+        "sha256": {
+          "description": "Lowercase hexadecimal SHA-256 digest of the decoded original asset bytes.",
+          "examples": [
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          ],
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "timestamps": {
+      "title": "Source timestamps",
+      "description": "Untrusted captured timestamp observations with explicit creation-time provenance.",
+      "type": "object",
+      "required": [
+        "created",
+        "modified",
+        "accessed",
+        "created_source"
+      ],
+      "properties": {
+        "created": {
+          "description": "Observed creation or birth instant, or null when unavailable.",
+          "$ref": "#/$defs/nullable_timestamp"
+        },
+        "modified": {
+          "description": "Observed modification instant, or null when unavailable.",
+          "$ref": "#/$defs/nullable_timestamp"
+        },
+        "accessed": {
+          "description": "Observed access instant, or null when unavailable.",
+          "$ref": "#/$defs/nullable_timestamp"
+        },
+        "created_source": {
+          "description": "Provenance of created, distinguishing true birth time, Windows creation time, fallback ctime, and absence.",
+          "examples": [
+            "birthtime",
+            "windows_creation_time",
+            "ctime_fallback",
+            "unavailable"
+          ],
+          "enum": [
+            "birthtime",
+            "windows_creation_time",
+            "ctime_fallback",
+            "unavailable"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "nullable_timestamp": {
+      "title": "Nullable timestamp",
+      "description": "A timestamp observation, or null when that timestamp was unavailable.",
+      "examples": [
+        {
+          "iso": "2026-09-09T00:00:00Z",
+          "unix_ns": 1788912000000000000
+        },
+        null
+      ],
+      "oneOf": [
+        {
+          "$ref": "#/$defs/timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "timestamp": {
+      "title": "Timestamp observation",
+      "description": "One instant represented both as RFC 3339 text and Unix nanoseconds for exact comparison.",
+      "examples": [
+        {
+          "iso": "2026-09-09T00:00:00Z",
+          "unix_ns": 1788912000000000000
+        }
+      ],
+      "type": "object",
+      "required": [
+        "iso",
+        "unix_ns"
+      ],
+      "properties": {
+        "iso": {
+          "description": "RFC 3339 date-time representation of the observed instant.",
+          "type": "string",
+          "format": "date-time"
+        },
+        "unix_ns": {
+          "description": "Nanoseconds since the Unix epoch for the same instant represented by iso.",
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "encoding_observation": {
+      "title": "Text encoding observation",
+      "description": "Derived observations about byte-order marks, line endings, encoding, and confidence.",
+      "type": "object",
+      "required": [
+        "bom",
+        "line_endings",
+        "detected_encoding",
+        "confidence"
+      ],
+      "properties": {
+        "bom": {
+          "description": "Observed byte-order mark name, or null when no mark was present or recognized.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "line_endings": {
+          "description": "Observed physical line-ending style in the authoritative source bytes.",
+          "examples": [
+            "none",
+            "lf",
+            "crlf",
+            "cr",
+            "mixed",
+            "unknown"
+          ],
+          "enum": [
+            "none",
+            "lf",
+            "crlf",
+            "cr",
+            "mixed",
+            "unknown"
+          ]
+        },
+        "detected_encoding": {
+          "description": "Detected or declared text encoding name, or null when unavailable.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "confidence": {
+          "description": "Derived confidence from zero through one, or null when the detector provides no score.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "metadata": {
+      "title": "Document metadata",
+      "description": "Optional descriptive metadata observed or supplied for the subtitle document.",
+      "type": "object",
+      "required": [
+        "title",
+        "language",
+        "kind",
+        "description"
+      ],
+      "properties": {
+        "title": {
+          "description": "Human-readable document title, or null when no title is available.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "language": {
+          "description": "Observed or declared language tag, or null when unavailable.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "kind": {
+          "description": "Observed semantic kind such as subtitles or captions, or null when unavailable.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "description": {
+          "description": "Human-readable document description, or null when none is available.",
+          "$ref": "#/$defs/nullable_string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "document_summary": {
+      "title": "Document summary",
+      "description": "Derived aggregate timing and cue facts calculated from the common model.",
+      "type": "object",
+      "required": [
+        "cue_count",
+        "media_start_milliseconds",
+        "media_end_milliseconds",
+        "media_span_milliseconds",
+        "has_word_level_timing"
+      ],
+      "properties": {
+        "cue_count": {
+          "description": "Number of cues in the common model.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "media_start_milliseconds": {
+          "description": "Earliest cue start in milliseconds, or null when no timed range is available.",
+          "$ref": "#/$defs/nullable_non_negative_integer"
+        },
+        "media_end_milliseconds": {
+          "description": "Latest cue end in milliseconds, or null when no timed range is available.",
+          "$ref": "#/$defs/nullable_non_negative_integer"
+        },
+        "media_span_milliseconds": {
+          "description": "Milliseconds from the earliest cue start to latest cue end, or null when unavailable.",
+          "$ref": "#/$defs/nullable_non_negative_integer"
+        },
+        "has_word_level_timing": {
+          "description": "Whether any common-model token carries word-level timing.",
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "nullable_non_negative_integer": {
+      "title": "Nullable non-negative integer",
+      "description": "A non-negative integer observation, or null when the measurement is unavailable.",
+      "examples": [
+        0,
+        2950,
+        null
+      ],
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "cue": {
+      "title": "Cue",
+      "description": "One ordered timed semantic unit with common-model content and adjacent native fidelity data.",
+      "type": "object",
+      "required": [
+        "id",
+        "ordinal",
+        "source_order",
+        "source_identifier",
+        "timing",
+        "payload",
+        "speakers",
+        "tokens",
+        "ocr_observations",
+        "placement",
+        "format_data"
+      ],
+      "properties": {
+        "id": {
+          "description": "Document-local cue identifier used by diagnostics and other cue references.",
+          "$ref": "#/$defs/identifier"
+        },
+        "ordinal": {
+          "description": "Zero-based ordinal of this cue among semantic cues.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "source_order": {
+          "description": "Zero-based position in the combined native cue and non-cue source sequence.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "source_identifier": {
+          "description": "Native cue identifier or sequence text, or null when the format supplies none.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "timing": {
+          "description": "Normalized cue timing in integer milliseconds.",
+          "$ref": "#/$defs/timing"
+        },
+        "payload": {
+          "description": "Decoded native text and its derived plain-text representation without replacing source bytes.",
+          "$ref": "#/$defs/payload"
+        },
+        "speakers": {
+          "description": "Ordered native or heuristic speaker observations derived from cue content.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/speaker"
+          }
+        },
+        "tokens": {
+          "description": "Ordered derived text tokens with optional native timing provenance.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/token"
+          }
+        },
+        "ocr_observations": {
+          "description": "Repeatable derived OCR observations that never replace native text, images, or source assets.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ocr_observation"
+          }
+        },
+        "placement": {
+          "description": "Normalized placement hints, or null when no common placement was observed.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/placement"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "format_data": {
+          "description": "Cue-level native data for the selected source format.",
+          "$ref": "#/$defs/cue_format_data"
+        },
+        "speaker_attributions": {
+          "description": "Optional ordered consumer-assigned speaker entries, independent from native speakers. Missing or empty means no recorded attribution. Repeated IDs and overlapping intervals are permitted.",
+          "examples": [
+            [
+              {
+                "speaker_id": "Interviewer"
+              }
+            ],
+            []
+          ],
+          "type": "array",
+          "maxItems": 1024,
+          "items": {
+            "$ref": "#/$defs/speaker_attribution"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "timing": {
+      "title": "Normalized cue timing",
+      "description": "Start, end, and duration values in integer milliseconds for one cue.",
+      "examples": [
+        {
+          "start_milliseconds": 1250,
+          "end_milliseconds": 4200,
+          "duration_milliseconds": 2950
+        }
+      ],
+      "type": "object",
+      "required": [
+        "start_milliseconds",
+        "end_milliseconds",
+        "duration_milliseconds"
+      ],
+      "properties": {
+        "start_milliseconds": {
+          "description": "Cue start offset in milliseconds from the media timeline origin.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "end_milliseconds": {
+          "description": "Cue end offset in milliseconds from the media timeline origin.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "duration_milliseconds": {
+          "description": "Cue duration in milliseconds, equal to end_milliseconds minus start_milliseconds.",
+          "$ref": "#/$defs/non_negative_integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "payload": {
+      "title": "Cue text payload",
+      "description": "Native decoded text plus derived plain text and ordered logical lines.",
+      "type": "object",
+      "required": [
+        "raw_text",
+        "plain_text",
+        "lines"
+      ],
+      "properties": {
+        "raw_text": {
+          "description": "Decoded native textual payload retained without destructive semantic normalization.",
+          "type": "string"
+        },
+        "plain_text": {
+          "description": "Derived readable text with supported native markup semantics removed.",
+          "type": "string"
+        },
+        "lines": {
+          "description": "Ordered logical text lines exposed by the common model.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "speaker": {
+      "title": "Speaker observation",
+      "description": "A named speaker derived from native markup or a documented heuristic.",
+      "type": "object",
+      "required": [
+        "name",
+        "origin"
+      ],
+      "properties": {
+        "name": {
+          "description": "Non-empty speaker name as observed or inferred from cue content.",
+          "type": "string",
+          "minLength": 1
+        },
+        "origin": {
+          "description": "Whether the speaker came from native format syntax or a heuristic observation.",
+          "examples": [
+            "native",
+            "heuristic"
+          ],
+          "enum": [
+            "native",
+            "heuristic"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "token": {
+      "title": "Timed text token",
+      "description": "A derived cue-text token with normalized timing and optional native timing syntax.",
+      "type": "object",
+      "required": [
+        "text",
+        "start_milliseconds",
+        "end_milliseconds",
+        "native_timing"
+      ],
+      "properties": {
+        "text": {
+          "description": "Token text in reading order.",
+          "type": "string"
+        },
+        "start_milliseconds": {
+          "description": "Token start offset in integer milliseconds.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "end_milliseconds": {
+          "description": "Token end offset in integer milliseconds.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "native_timing": {
+          "description": "Retained native timing syntax, or null when the token has no native timing source.",
+          "$ref": "#/$defs/nullable_string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ocr_observation": {
+      "title": "OCR observation",
+      "description": "A repeatable derived recognition result with explicit engine and source provenance.",
+      "type": "object",
+      "required": [
+        "id",
+        "derived",
+        "engine",
+        "text",
+        "lines",
+        "source_asset_id"
+      ],
+      "properties": {
+        "id": {
+          "description": "Document-local identifier for this OCR observation.",
+          "$ref": "#/$defs/identifier"
+        },
+        "derived": {
+          "description": "Confirms that OCR output is derived observation data and never source truth.",
+          "const": true
+        },
+        "engine": {
+          "description": "Non-empty identity of the OCR engine that produced this observation.",
+          "type": "string",
+          "minLength": 1
+        },
+        "engine_version": {
+          "description": "OCR engine version, or null when the engine did not report one.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "model": {
+          "description": "OCR model identity, or null when no model was reported.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "language": {
+          "description": "Observed or requested OCR language, or null when unavailable.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "text": {
+          "description": "Derived recognized text for this observation.",
+          "type": "string"
+        },
+        "lines": {
+          "description": "Ordered lines of derived recognized text.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "description": "Derived recognition confidence from zero through one, or null when unavailable.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "alternatives": {
+          "description": "Ordered alternative recognized strings reported by the OCR engine.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source_asset_id": {
+          "description": "Document-local identifier of the authoritative source asset observed by OCR.",
+          "$ref": "#/$defs/identifier"
+        },
+        "source_event_id": {
+          "description": "Provider-specific source event identifier, or null when unavailable.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "source_image_id": {
+          "description": "Provider-specific source image identifier, or null when unavailable.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "source_regions": {
+          "description": "Ordered image regions from which this OCR observation was derived.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source_region"
+          }
+        },
+        "processing_options": {
+          "description": "Namespaced provider options used to derive the observation.",
+          "$ref": "#/$defs/extension_map"
+        }
+      },
+      "additionalProperties": false
+    },
+    "source_region": {
+      "title": "OCR source region",
+      "description": "A non-negative rectangular image region used as OCR input.",
+      "type": "object",
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "x": {
+          "description": "Horizontal origin of the source region in provider-defined image units.",
+          "type": "number",
+          "minimum": 0
+        },
+        "y": {
+          "description": "Vertical origin of the source region in provider-defined image units.",
+          "type": "number",
+          "minimum": 0
+        },
+        "width": {
+          "description": "Strictly positive width of the source region in provider-defined image units.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "description": "Strictly positive height of the source region in provider-defined image units.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "extension_map": {
+      "title": "Namespaced extension map",
+      "description": "Extension object whose property names use a lowercase namespace and local name separated by a colon.",
+      "examples": [
+        {
+          "example:mode": "accurate"
+        }
+      ],
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$"
+      }
+    },
+    "placement": {
+      "title": "Normalized cue placement",
+      "description": "Common placement observations whose nullable fields mean no corresponding value was available.",
+      "type": "object",
+      "required": [
+        "line",
+        "position",
+        "size",
+        "align"
+      ],
+      "properties": {
+        "line": {
+          "description": "Normalized line placement, or null when no line placement was observed.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "position": {
+          "description": "Normalized horizontal position, or null when no position was observed.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "size": {
+          "description": "Normalized cue-box size, or null when no size was observed.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "align": {
+          "description": "Normalized cue alignment, or null when no alignment was observed.",
+          "$ref": "#/$defs/nullable_string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "cue_format_data": {
+      "title": "Cue native format data",
+      "description": "Exactly one cue-level native representation matching the document format.",
+      "examples": [
+        {
+          "subrip": {
+            "sequence_line_raw": "1",
+            "timing_line_raw": "00:00:01,250 --> 00:00:04,200"
+          }
+        }
+      ],
+      "oneOf": [
+        {
+          "$ref": "#/$defs/subrip_cue_format_data"
+        },
+        {
+          "$ref": "#/$defs/webvtt_cue_format_data"
+        },
+        {
+          "$ref": "#/$defs/ass_cue_format_data"
+        },
+        {
+          "$ref": "#/$defs/ssa_cue_format_data"
+        }
+      ]
+    },
+    "subrip_cue_format_data": {
+      "title": "SubRip cue format data",
+      "description": "Cue native-data wrapper used when format is subrip.",
+      "type": "object",
+      "required": [
+        "subrip"
+      ],
+      "properties": {
+        "subrip": {
+          "description": "Native SubRip fields retained for this cue.",
+          "$ref": "#/$defs/subrip_cue_data"
+        }
+      },
+      "additionalProperties": false
+    },
+    "webvtt_cue_format_data": {
+      "title": "WebVTT cue format data",
+      "description": "Cue native-data wrapper used when format is webvtt.",
+      "type": "object",
+      "required": [
+        "webvtt"
+      ],
+      "properties": {
+        "webvtt": {
+          "description": "Native WebVTT fields retained for this cue.",
+          "$ref": "#/$defs/webvtt_cue_data"
+        }
+      },
+      "additionalProperties": false
+    },
+    "subrip_cue_data": {
+      "title": "Native SubRip cue data",
+      "description": "Original decoded SubRip sequence and timing syntax plus optional coordinates.",
+      "examples": [
+        {
+          "sequence_line_raw": "1",
+          "timing_line_raw": "00:00:01,250 --> 00:00:04,200"
+        },
+        {
+          "sequence_line_raw": "2",
+          "timing_line_raw": "00:00:05,000 --> 00:00:07,000 X1:10 X2:90 Y1:20 Y2:80",
+          "coordinates": {
+            "x1": 10,
+            "x2": 90,
+            "y1": 20,
+            "y2": 80
+          }
+        }
+      ],
+      "type": "object",
+      "required": [
+        "sequence_line_raw",
+        "timing_line_raw"
+      ],
+      "properties": {
+        "sequence_line_raw": {
+          "description": "Decoded SubRip sequence line exactly as retained by native ingest.",
+          "type": "string"
+        },
+        "timing_line_raw": {
+          "description": "Decoded native SubRip timing line, including retained coordinate syntax when present.",
+          "type": "string"
+        },
+        "coordinates": {
+          "description": "Parsed SubRip coordinate extension when all four native coordinates are present.",
+          "$ref": "#/$defs/coordinates"
+        }
+      },
+      "additionalProperties": false
+    },
+    "coordinates": {
+      "title": "SubRip coordinates",
+      "description": "Four native integer coordinates parsed from a SubRip timing line.",
+      "type": "object",
+      "required": [
+        "x1",
+        "x2",
+        "y1",
+        "y2"
+      ],
+      "properties": {
+        "x1": {
+          "description": "First native horizontal coordinate.",
+          "type": "integer"
+        },
+        "x2": {
+          "description": "Second native horizontal coordinate.",
+          "type": "integer"
+        },
+        "y1": {
+          "description": "First native vertical coordinate.",
+          "type": "integer"
+        },
+        "y2": {
+          "description": "Second native vertical coordinate.",
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "webvtt_cue_data": {
+      "title": "Native WebVTT cue data",
+      "description": "Retained WebVTT identifier, timing, settings, occurrences, and payload syntax for one cue.",
+      "examples": [
+        {
+          "identifier_raw": "intro",
+          "timing_line_raw": "00:01.250 --> 00:04.200 align:start",
+          "settings_raw": "align:start",
+          "settings": {
+            "align": "start"
+          },
+          "setting_occurrences": [
+            {
+              "raw": "align:start",
+              "name": "align",
+              "value": "start",
+              "recognized": true,
+              "valid": true
+            }
+          ],
+          "raw_payload": "<v Narrator>Hello.</v>",
+          "raw_payload_lines": [
+            "<v Narrator>Hello.</v>"
+          ]
+        }
+      ],
+      "type": "object",
+      "required": [
+        "identifier_raw",
+        "timing_line_raw",
+        "settings_raw",
+        "settings",
+        "setting_occurrences",
+        "raw_payload",
+        "raw_payload_lines"
+      ],
+      "properties": {
+        "identifier_raw": {
+          "description": "Decoded native WebVTT cue identifier, or null when the cue has none.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "timing_line_raw": {
+          "description": "Decoded WebVTT timing line including all retained native settings syntax.",
+          "type": "string"
+        },
+        "settings_raw": {
+          "description": "Decoded settings substring following the WebVTT cue timing range.",
+          "type": "string"
+        },
+        "settings": {
+          "description": "Effective recognized WebVTT cue settings after native occurrence processing.",
+          "type": "object",
+          "propertyNames": {
+            "description": "Recognized WebVTT cue setting name.",
+            "examples": [
+              "region",
+              "vertical",
+              "line",
+              "position",
+              "size",
+              "align"
+            ],
+            "enum": [
+              "region",
+              "vertical",
+              "line",
+              "position",
+              "size",
+              "align"
+            ]
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "setting_occurrences": {
+          "description": "Ordered raw WebVTT cue setting occurrences, including invalid and unrecognized settings.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/webvtt_setting_occurrence"
+          }
+        },
+        "raw_payload": {
+          "description": "Decoded WebVTT cue payload joined with LF while preserving native markup.",
+          "type": "string"
+        },
+        "raw_payload_lines": {
+          "description": "Ordered non-empty physical WebVTT payload lines without embedded line terminators.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\r\\n]*$"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "webvtt_setting_occurrence": {
+      "title": "WebVTT setting occurrence",
+      "description": "One ordered raw setting occurrence with parsed name, value, recognition, and validity facts.",
+      "type": "object",
+      "required": [
+        "raw",
+        "name",
+        "value",
+        "recognized",
+        "valid"
+      ],
+      "properties": {
+        "raw": {
+          "description": "Non-empty raw native setting token exactly as decoded.",
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "description": "Parsed setting name, which may be empty when the raw occurrence is malformed.",
+          "type": "string"
+        },
+        "value": {
+          "description": "Parsed setting value, which may be empty when the raw occurrence is malformed.",
+          "type": "string"
+        },
+        "recognized": {
+          "description": "Whether the setting name is recognized by the WebVTT implementation.",
+          "type": "boolean"
+        },
+        "valid": {
+          "description": "Whether the occurrence is both recognized and valid for its setting grammar.",
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "valid": {
+                "const": true
+              }
+            },
+            "required": [
+              "valid"
+            ]
+          },
+          "then": {
+            "properties": {
+              "name": {
+                "minLength": 1
+              },
+              "value": {
+                "minLength": 1
+              },
+              "recognized": {
+                "const": true
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "document_format_data": {
+      "title": "Document native format data",
+      "description": "Exactly one document-level native representation matching the document format.",
+      "examples": [
+        {
+          "subrip": {
+            "dialect": "subrip",
+            "decoding_notes": null
+          }
+        }
+      ],
+      "oneOf": [
+        {
+          "$ref": "#/$defs/subrip_document_format_data"
+        },
+        {
+          "$ref": "#/$defs/webvtt_document_format_data"
+        },
+        {
+          "$ref": "#/$defs/ass_document_format_data"
+        },
+        {
+          "$ref": "#/$defs/ssa_document_format_data"
+        }
+      ]
+    },
+    "subrip_document_format_data": {
+      "title": "SubRip document format data",
+      "description": "Document native-data wrapper used when format is subrip.",
+      "type": "object",
+      "required": [
+        "subrip"
+      ],
+      "properties": {
+        "subrip": {
+          "description": "Native SubRip document observations.",
+          "$ref": "#/$defs/subrip_document_data"
+        }
+      },
+      "additionalProperties": false
+    },
+    "webvtt_document_format_data": {
+      "title": "WebVTT document format data",
+      "description": "Document native-data wrapper used when format is webvtt.",
+      "type": "object",
+      "required": [
+        "webvtt"
+      ],
+      "properties": {
+        "webvtt": {
+          "description": "Native WebVTT document observations and retained non-cue blocks.",
+          "$ref": "#/$defs/webvtt_document_data"
+        }
+      },
+      "additionalProperties": false
+    },
+    "subrip_document_data": {
+      "title": "Native SubRip document data",
+      "description": "Document-level native SubRip dialect identity and optional decoding observations.",
+      "examples": [
+        {
+          "dialect": "subrip",
+          "decoding_notes": null
+        }
+      ],
+      "type": "object",
+      "required": [
+        "dialect",
+        "decoding_notes"
+      ],
+      "properties": {
+        "dialect": {
+          "description": "Canonical native dialect identity for SubRip document data.",
+          "const": "subrip"
+        },
+        "decoding_notes": {
+          "description": "Producer decoding observations, or null when no additional note is needed.",
+          "$ref": "#/$defs/nullable_string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "webvtt_document_data": {
+      "title": "Native WebVTT document data",
+      "description": "Retained WebVTT signature, header metadata, and ordered non-cue blocks.",
+      "examples": [
+        {
+          "signature": "WEBVTT",
+          "signature_line_raw": "WEBVTT Sample",
+          "description": "Sample",
+          "metadata_lines": [
+            "Kind: captions"
+          ],
+          "blocks": []
+        }
+      ],
+      "type": "object",
+      "required": [
+        "signature",
+        "signature_line_raw",
+        "description",
+        "metadata_lines",
+        "blocks"
+      ],
+      "properties": {
+        "signature": {
+          "description": "Required WebVTT signature token identifying the native document grammar.",
+          "const": "WEBVTT"
+        },
+        "signature_line_raw": {
+          "description": "Decoded complete WebVTT signature line, including an optional header description.",
+          "type": "string",
+          "pattern": "^WEBVTT(?:[ \\t][^\\r\\n]*)?$"
+        },
+        "description": {
+          "description": "Text following WEBVTT on the signature line, or null when absent.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "metadata_lines": {
+          "description": "Ordered decoded metadata lines between the signature and first native block.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "blocks": {
+          "description": "Ordered retained non-cue WebVTT blocks interleaved with cues by source_order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/webvtt_block"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "webvtt_block": {
+      "title": "Native WebVTT non-cue block",
+      "description": "A retained NOTE, STYLE, REGION, or unrecognized block in native source order.",
+      "examples": [
+        {
+          "type": "note",
+          "source_order": 0,
+          "raw": "NOTE retained comment",
+          "raw_lines": [
+            "NOTE retained comment"
+          ]
+        },
+        {
+          "type": "region",
+          "source_order": 1,
+          "raw": "REGION\nid:fred",
+          "raw_lines": [
+            "REGION",
+            "id:fred"
+          ],
+          "region": {
+            "settings_raw": "id:fred",
+            "settings": {
+              "id": "fred"
+            },
+            "setting_occurrences": [
+              {
+                "raw": "id:fred",
+                "name": "id",
+                "value": "fred",
+                "recognized": true,
+                "valid": true
+              }
+            ]
+          }
+        }
+      ],
+      "type": "object",
+      "required": [
+        "type",
+        "source_order",
+        "raw",
+        "raw_lines"
+      ],
+      "properties": {
+        "type": {
+          "description": "Class of retained WebVTT non-cue block.",
+          "examples": [
+            "note",
+            "style",
+            "region",
+            "unrecognized"
+          ],
+          "enum": [
+            "note",
+            "style",
+            "region",
+            "unrecognized"
+          ]
+        },
+        "source_order": {
+          "description": "Zero-based position in the combined native cue and non-cue source sequence.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "raw": {
+          "description": "Complete decoded block body joined with LF without replacing original source bytes.",
+          "type": "string"
+        },
+        "raw_lines": {
+          "description": "Ordered physical block lines without embedded line terminators.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[^\\r\\n]*$"
+          }
+        },
+        "region": {
+          "description": "Parsed REGION data, present only when type is region.",
+          "$ref": "#/$defs/webvtt_region_data"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "region"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "required": [
+              "region"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "region"
+              ]
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "webvtt_region_data": {
+      "title": "Native WebVTT region data",
+      "description": "Retained raw REGION settings, effective recognized values, and ordered occurrences.",
+      "examples": [
+        {
+          "settings_raw": "id:fred width:40%",
+          "settings": {
+            "id": "fred",
+            "width": "40%"
+          },
+          "setting_occurrences": [
+            {
+              "raw": "id:fred",
+              "name": "id",
+              "value": "fred",
+              "recognized": true,
+              "valid": true
+            },
+            {
+              "raw": "width:40%",
+              "name": "width",
+              "value": "40%",
+              "recognized": true,
+              "valid": true
+            }
+          ]
+        }
+      ],
+      "type": "object",
+      "required": [
+        "settings_raw",
+        "settings",
+        "setting_occurrences"
+      ],
+      "properties": {
+        "settings_raw": {
+          "description": "Decoded REGION settings text following the native REGION marker.",
+          "type": "string"
+        },
+        "settings": {
+          "description": "Effective recognized WebVTT REGION settings after occurrence processing.",
+          "type": "object",
+          "propertyNames": {
+            "description": "Recognized WebVTT REGION setting name.",
+            "examples": [
+              "id",
+              "width",
+              "lines",
+              "regionanchor",
+              "viewportanchor",
+              "scroll"
+            ],
+            "enum": [
+              "id",
+              "width",
+              "lines",
+              "regionanchor",
+              "viewportanchor",
+              "scroll"
+            ]
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "setting_occurrences": {
+          "description": "Ordered raw REGION setting occurrences, including invalid and unrecognized settings.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/webvtt_setting_occurrence"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "diagnostic": {
+      "title": "Diagnostic",
+      "description": "One deterministic observation about source interpretation, tolerance, support, or loss.",
+      "examples": [
+        {
+          "severity": "warning",
+          "code": "source_variant",
+          "message": "A tolerated source variant was preserved.",
+          "source_order": 0,
+          "cue_id": "cue-000000"
+        }
+      ],
+      "type": "object",
+      "required": [
+        "severity",
+        "code",
+        "message",
+        "source_order",
+        "cue_id"
+      ],
+      "properties": {
+        "severity": {
+          "description": "Diagnostic impact level used for deterministic reporting and stream policy.",
+          "examples": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ]
+        },
+        "code": {
+          "description": "Stable lowercase snake_case diagnostic identifier.",
+          "examples": [
+            "source_variant"
+          ],
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "message": {
+          "description": "Non-empty human-readable diagnostic explanation without sensitive source content.",
+          "type": "string",
+          "minLength": 1
+        },
+        "source_order": {
+          "description": "Related native source-order position, or null for a document-level diagnostic.",
+          "$ref": "#/$defs/nullable_non_negative_integer"
+        },
+        "cue_id": {
+          "description": "Related document-local cue identifier, or null when the diagnostic is not cue-specific.",
+          "$ref": "#/$defs/nullable_string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "stats": {
+      "title": "Document statistics",
+      "description": "Derived aggregate counts and timing facts for the validated Cue JSON document.",
+      "type": "object",
+      "required": [
+        "cue_count",
+        "diagnostic_count",
+        "warning_count",
+        "error_count",
+        "has_word_level_timing",
+        "media_span_milliseconds"
+      ],
+      "properties": {
+        "cue_count": {
+          "description": "Number of cues in the common model.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "diagnostic_count": {
+          "description": "Total number of diagnostics in the ordered diagnostics collection.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "warning_count": {
+          "description": "Number of diagnostics whose severity is warning.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "error_count": {
+          "description": "Number of diagnostics whose severity is error.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "has_word_level_timing": {
+          "description": "Whether any common-model token carries word-level timing.",
+          "type": "boolean"
+        },
+        "media_span_milliseconds": {
+          "description": "Milliseconds from earliest cue start to latest cue end, or null when unavailable.",
+          "$ref": "#/$defs/nullable_non_negative_integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "scripted_color": {
+      "title": "Native ABGR color",
+      "description": "Independent native alpha, blue, green, and red byte components; SSA native color and AlphaLevel semantics remain separate.",
+      "type": "object",
+      "required": [
+        "alpha",
+        "blue",
+        "green",
+        "red"
+      ],
+      "properties": {
+        "alpha": {
+          "description": "Native alpha byte component.",
+          "type": "integer",
+          "examples": [
+            0
+          ],
+          "minimum": 0,
+          "maximum": 255
+        },
+        "blue": {
+          "description": "Native blue byte component.",
+          "type": "integer",
+          "examples": [
+            0
+          ],
+          "minimum": 0,
+          "maximum": 255
+        },
+        "green": {
+          "description": "Native green byte component.",
+          "type": "integer",
+          "examples": [
+            0
+          ],
+          "minimum": 0,
+          "maximum": 255
+        },
+        "red": {
+          "description": "Native red byte component.",
+          "type": "integer",
+          "examples": [
+            0
+          ],
+          "minimum": 0,
+          "maximum": 255
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "alpha": 0,
+          "blue": 255,
+          "green": 255,
+          "red": 255
+        }
+      ]
+    },
+    "scripted_value": {
+      "title": "Recognized native typed value",
+      "description": "Exactly one optional recognized typed projection of an ordered native lexical field; its value must agree with the lexical owner.",
+      "type": "object",
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "description": "Recognized scalar type.",
+          "type": "string",
+          "examples": [
+            "boolean",
+            "integer",
+            "decimal",
+            "color",
+            "string"
+          ],
+          "enum": [
+            "boolean",
+            "integer",
+            "decimal",
+            "color",
+            "string"
+          ]
+        },
+        "boolean": {
+          "description": "Recognized native emphasis flag.",
+          "type": "boolean",
+          "examples": [
+            true
+          ]
+        },
+        "integer": {
+          "description": "Recognized checked signed native integer.",
+          "type": "integer",
+          "examples": [
+            0
+          ]
+        },
+        "decimal": {
+          "description": "Recognized finite native decimal.",
+          "type": "number",
+          "examples": [
+            20
+          ]
+        },
+        "color": {
+          "$ref": "#/$defs/scripted_color",
+          "description": "Native ABGR component projection."
+        },
+        "string": {
+          "description": "Recognized native string without lexical normalization.",
+          "type": "string",
+          "examples": [
+            "retained content"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "properties": {
+            "kind": {
+              "const": "boolean"
+            }
+          },
+          "required": [
+            "boolean"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "integer"
+                ]
+              },
+              {
+                "required": [
+                  "decimal"
+                ]
+              },
+              {
+                "required": [
+                  "color"
+                ]
+              },
+              {
+                "required": [
+                  "string"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "integer"
+            }
+          },
+          "required": [
+            "integer"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "boolean"
+                ]
+              },
+              {
+                "required": [
+                  "decimal"
+                ]
+              },
+              {
+                "required": [
+                  "color"
+                ]
+              },
+              {
+                "required": [
+                  "string"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "decimal"
+            }
+          },
+          "required": [
+            "decimal"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "boolean"
+                ]
+              },
+              {
+                "required": [
+                  "integer"
+                ]
+              },
+              {
+                "required": [
+                  "color"
+                ]
+              },
+              {
+                "required": [
+                  "string"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "color"
+            }
+          },
+          "required": [
+            "color"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "boolean"
+                ]
+              },
+              {
+                "required": [
+                  "integer"
+                ]
+              },
+              {
+                "required": [
+                  "decimal"
+                ]
+              },
+              {
+                "required": [
+                  "string"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "string"
+            }
+          },
+          "required": [
+            "string"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "boolean"
+                ]
+              },
+              {
+                "required": [
+                  "integer"
+                ]
+              },
+              {
+                "required": [
+                  "decimal"
+                ]
+              },
+              {
+                "required": [
+                  "color"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "examples": [
+        {
+          "kind": "boolean",
+          "boolean": true
+        },
+        {
+          "kind": "integer",
+          "integer": 0
+        },
+        {
+          "kind": "decimal",
+          "decimal": 20
+        },
+        {
+          "kind": "color",
+          "color": {
+            "alpha": 0,
+            "blue": 255,
+            "green": 255,
+            "red": 255
+          }
+        },
+        {
+          "kind": "string",
+          "string": "Default"
+        }
+      ]
+    },
+    "scripted_field": {
+      "title": "Ordered native field occurrence",
+      "description": "One declaration-ordered lexical value, optionally accompanied by a checked typed value; duplicates and unknown fields are retained as occurrences.",
+      "type": "object",
+      "required": [
+        "field_name",
+        "raw_value"
+      ],
+      "properties": {
+        "field_name": {
+          "description": "Exact native declared field spelling and surrounding spaces.",
+          "type": "string",
+          "examples": [
+            "Fontsize"
+          ],
+          "minLength": 1
+        },
+        "raw_value": {
+          "description": "Editable exact lexical field owner; Start/End are preserved observations while common cue timing owns edits.",
+          "type": "string",
+          "examples": [
+            "20"
+          ]
+        },
+        "typed_value": {
+          "$ref": "#/$defs/scripted_value",
+          "description": "Optional recognized projection that must agree with raw_value."
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "field_name": "Fontsize",
+          "raw_value": "20",
+          "typed_value": {
+            "kind": "decimal",
+            "decimal": 20
+          }
+        }
+      ]
+    },
+    "scripted_declaration_field": {
+      "title": "Ordered declaration field",
+      "description": "Exact declaration spelling plus optional ASCII-normalized recognized identity; Actor is the explicit Name alias.",
+      "type": "object",
+      "required": [
+        "field_name"
+      ],
+      "properties": {
+        "field_name": {
+          "description": "Exact declared native field name.",
+          "type": "string",
+          "examples": [
+            "Actor"
+          ],
+          "minLength": 1
+        },
+        "recognized_name": {
+          "description": "ASCII lowercase recognized identity after ASCII-space trimming and Name/Actor alias resolution.",
+          "type": "string",
+          "examples": [
+            "name"
+          ],
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "field_name": "Actor",
+          "recognized_name": "name"
+        }
+      ]
+    },
+    "scripted_section": {
+      "title": "Scripted section occurrence",
+      "description": "An individually identified physical section header, including repeated and inert unknown sections.",
+      "type": "object",
+      "required": [
+        "section_id",
+        "source_order",
+        "name"
+      ],
+      "properties": {
+        "section_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Document-local identity of this section occurrence."
+        },
+        "source_order": {
+          "description": "Position in the combined section-header and physical-record sequence.",
+          "type": "integer",
+          "examples": [
+            0
+          ],
+          "minimum": 0
+        },
+        "name": {
+          "description": "Exact decoded section name excluding brackets.",
+          "type": "string",
+          "examples": [
+            "Events"
+          ],
+          "minLength": 1
+        },
+        "raw_header": {
+          "description": "Optional original decoded header observation; omitted for constructed headers.",
+          "type": "string",
+          "examples": [
+            "[Events]"
+          ],
+          "pattern": "^[^\\r\\n\u0000]*$"
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "section_id": "section-events",
+          "source_order": 0,
+          "name": "Events"
+        }
+      ]
+    },
+    "scripted_record": {
+      "title": "Scripted physical record",
+      "description": "One ordered physical record with only its applicable content owner; raw_line is an optional capture observation for recognized structured records.",
+      "type": "object",
+      "required": [
+        "record_id",
+        "source_order",
+        "section_id",
+        "kind"
+      ],
+      "properties": {
+        "record_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Document-local identity of the physical record."
+        },
+        "source_order": {
+          "description": "Position in the combined section-header and record sequence.",
+          "type": "integer",
+          "examples": [
+            0
+          ],
+          "minimum": 0
+        },
+        "section_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Owning physically active section occurrence."
+        },
+        "kind": {
+          "description": "Closed structural record classification; retained malformed records require diagnostics and cannot render.",
+          "type": "string",
+          "examples": [
+            "metadata",
+            "format_declaration",
+            "style",
+            "event",
+            "attachment_header",
+            "attachment_data",
+            "blank",
+            "comment",
+            "unknown",
+            "malformed"
+          ],
+          "enum": [
+            "metadata",
+            "format_declaration",
+            "style",
+            "event",
+            "attachment_header",
+            "attachment_data",
+            "blank",
+            "comment",
+            "unknown",
+            "malformed"
+          ]
+        },
+        "raw_line": {
+          "description": "Original decoded physical line without terminator, required for uninterpreted/attachment-data content, never replayed over structured edits.",
+          "type": "string",
+          "examples": [
+            "; retained inert comment"
+          ],
+          "pattern": "^[^\\r\\n\u0000]*$"
+        },
+        "fields": {
+          "description": "Ordered structured metadata values, owned only by metadata records.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_field"
+          },
+          "maxItems": 1024,
+          "examples": [
+            []
+          ]
+        },
+        "declaration_fields": {
+          "description": "Ordered exact Format declaration fields, owned only by format_declaration records.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_declaration_field"
+          },
+          "maxItems": 128,
+          "examples": [
+            []
+          ]
+        },
+        "style_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Style occurrence owning this style record."
+        },
+        "event_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Event occurrence owning this event record."
+        },
+        "attachment_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Attachment occurrence owning this attachment-header record."
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "record_id": "record-comment",
+          "source_order": 1,
+          "section_id": "section-events",
+          "kind": "comment",
+          "raw_line": "; retained inert comment"
+        }
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "style"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "style_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "event"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "event_id"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "attachment_header"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "attachment_id"
+            ]
+          }
+        }
+      ]
+    },
+    "scripted_style": {
+      "title": "Native style occurrence",
+      "description": "An ordered native style with dialect-specific lexical values and occurrence references, never a deduplicated name map.",
+      "type": "object",
+      "required": [
+        "style_id",
+        "record_id",
+        "name",
+        "valid",
+        "fields"
+      ],
+      "properties": {
+        "style_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Identity of this individual style occurrence."
+        },
+        "record_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Owning physical style record."
+        },
+        "declaration_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Applicable preceding declaration record; omitted only for constructed recognized styles without capture."
+        },
+        "name": {
+          "description": "Exact native Name value, used for unambiguous occurrence-specific lookup.",
+          "type": "string",
+          "examples": [
+            "Default"
+          ]
+        },
+        "valid": {
+          "description": "Whether retained style values are interpretable; invalid captured styles require diagnostics and cannot own dialogue.",
+          "type": "boolean",
+          "examples": [
+            true
+          ]
+        },
+        "fields": {
+          "description": "Complete declared native style field occurrences in native order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_field"
+          },
+          "maxItems": 1024,
+          "examples": [
+            []
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "style_id": "style-default",
+          "record_id": "record-style",
+          "declaration_id": "record-style-format",
+          "name": "Default",
+          "valid": true,
+          "fields": [
+            {
+              "field_name": "Name",
+              "raw_value": "Default"
+            },
+            {
+              "field_name": "Fontname",
+              "raw_value": "Arial"
+            },
+            {
+              "field_name": "Fontsize",
+              "raw_value": "20",
+              "typed_value": {
+                "kind": "decimal",
+                "decimal": 20
+              }
+            },
+            {
+              "field_name": "PrimaryColour",
+              "raw_value": "&H00FFFFFF"
+            },
+            {
+              "field_name": "SecondaryColour",
+              "raw_value": "&H000000FF"
+            },
+            {
+              "field_name": "OutlineColour",
+              "raw_value": "&H00000000"
+            },
+            {
+              "field_name": "BackColour",
+              "raw_value": "&H00000000"
+            },
+            {
+              "field_name": "Bold",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "Italic",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "Underline",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "StrikeOut",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "ScaleX",
+              "raw_value": "100"
+            },
+            {
+              "field_name": "ScaleY",
+              "raw_value": "100"
+            },
+            {
+              "field_name": "Spacing",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "Angle",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "BorderStyle",
+              "raw_value": "1"
+            },
+            {
+              "field_name": "Outline",
+              "raw_value": "2"
+            },
+            {
+              "field_name": "Shadow",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "Alignment",
+              "raw_value": "2"
+            },
+            {
+              "field_name": "MarginL",
+              "raw_value": "10"
+            },
+            {
+              "field_name": "MarginR",
+              "raw_value": "10"
+            },
+            {
+              "field_name": "MarginV",
+              "raw_value": "10"
+            },
+            {
+              "field_name": "Encoding",
+              "raw_value": "1"
+            }
+          ]
+        }
+      ]
+    },
+    "scripted_span": {
+      "title": "Native Text span",
+      "description": "One ordered half-open Unicode scalar span into event Text, retaining literal text, override/comment blocks, or drawing content.",
+      "type": "object",
+      "required": [
+        "kind",
+        "start_scalar",
+        "end_scalar",
+        "raw"
+      ],
+      "properties": {
+        "kind": {
+          "description": "Native Text span role.",
+          "type": "string",
+          "examples": [
+            "literal",
+            "override",
+            "drawing"
+          ],
+          "enum": [
+            "literal",
+            "override",
+            "drawing"
+          ]
+        },
+        "start_scalar": {
+          "description": "Inclusive Unicode scalar offset into owning event Text.",
+          "type": "integer",
+          "examples": [
+            0
+          ],
+          "minimum": 0
+        },
+        "end_scalar": {
+          "description": "Exclusive Unicode scalar offset into owning event Text.",
+          "type": "integer",
+          "examples": [
+            0
+          ],
+          "minimum": 0
+        },
+        "raw": {
+          "description": "Exact owning Text substring for this span.",
+          "type": "string",
+          "examples": [
+            "Hello"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "kind": "literal",
+          "start_scalar": 0,
+          "end_scalar": 5,
+          "raw": "Hello"
+        }
+      ]
+    },
+    "scripted_tag": {
+      "title": "Native override occurrence",
+      "description": "One ordered native tag occurrence retaining variant, parameters, lexeme and half-open scalar offsets into event Text.",
+      "type": "object",
+      "required": [
+        "name",
+        "parameter",
+        "start_scalar",
+        "end_scalar",
+        "raw"
+      ],
+      "properties": {
+        "name": {
+          "description": "Exact native tag identity including case-sensitive karaoke variants.",
+          "type": "string",
+          "examples": [
+            "k"
+          ]
+        },
+        "parameter": {
+          "description": "Complete native parameter lexeme, including retained nested transform syntax.",
+          "type": "string",
+          "examples": [
+            "20"
+          ]
+        },
+        "start_scalar": {
+          "description": "Inclusive offset of the tag backslash into event Text.",
+          "type": "integer",
+          "examples": [
+            0
+          ],
+          "minimum": 0
+        },
+        "end_scalar": {
+          "description": "Exclusive offset of this tag occurrence.",
+          "type": "integer",
+          "examples": [
+            0
+          ],
+          "minimum": 0
+        },
+        "raw": {
+          "description": "Exact native tag lexeme, including backslash.",
+          "type": "string",
+          "examples": [
+            "\\k20"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "name": "k",
+          "parameter": "20",
+          "start_scalar": 1,
+          "end_scalar": 5,
+          "raw": "\\k20"
+        }
+      ]
+    },
+    "scripted_karaoke": {
+      "title": "Native karaoke occurrence",
+      "description": "A native karaoke variant and checked duration observation; unsupported state is retained without fabricated timed tokens.",
+      "type": "object",
+      "required": [
+        "variant",
+        "start_scalar",
+        "end_scalar",
+        "supported"
+      ],
+      "properties": {
+        "variant": {
+          "description": "Exact native karaoke variant.",
+          "type": "string",
+          "examples": [
+            "k",
+            "K",
+            "kf",
+            "ko",
+            "kt"
+          ],
+          "enum": [
+            "k",
+            "K",
+            "kf",
+            "ko",
+            "kt"
+          ]
+        },
+        "start_scalar": {
+          "description": "Inclusive native tag scalar offset.",
+          "type": "integer",
+          "examples": [
+            0
+          ],
+          "minimum": 0
+        },
+        "end_scalar": {
+          "description": "Exclusive native tag scalar offset.",
+          "type": "integer",
+          "examples": [
+            0
+          ],
+          "minimum": 0
+        },
+        "duration_centiseconds": {
+          "description": "Checked native duration observation; negative/unsupported values are retained with diagnostics.",
+          "type": "integer",
+          "examples": [
+            20
+          ]
+        },
+        "supported": {
+          "description": "Whether the selected in-cue sequential token projection is valid.",
+          "type": "boolean",
+          "examples": [
+            true
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "variant": "k",
+          "start_scalar": 1,
+          "end_scalar": 5,
+          "duration_centiseconds": 20,
+          "supported": true
+        }
+      ]
+    },
+    "scripted_event": {
+      "title": "Native scripted event",
+      "description": "One native Dialogue, Comment or inert unsupported event occurrence; only Dialogue has a one-to-one common cue.",
+      "type": "object",
+      "required": [
+        "event_id",
+        "record_id",
+        "event_type",
+        "valid",
+        "fields",
+        "text",
+        "spans",
+        "tags",
+        "karaoke"
+      ],
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Document-local event occurrence identity."
+        },
+        "record_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Owning physical event record."
+        },
+        "declaration_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Applicable preceding declaration record, omitted only for constructed recognized events without capture."
+        },
+        "event_type": {
+          "description": "Lowercase native event class; active Command/template content is prohibited.",
+          "type": "string",
+          "examples": [
+            "dialogue",
+            "comment"
+          ],
+          "minLength": 1
+        },
+        "cue_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Common cue identity, present exactly for Dialogue events."
+        },
+        "valid": {
+          "description": "Whether the native event is interpretable; malformed Dialogue is invalid input, while diagnosed malformed non-dialogue remains retained.",
+          "type": "boolean",
+          "examples": [
+            true
+          ]
+        },
+        "fields": {
+          "description": "Complete native event lexical field occurrences; final Text owns commas and escapes.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_field"
+          },
+          "maxItems": 1024,
+          "examples": [
+            []
+          ]
+        },
+        "text": {
+          "description": "Exact editable native Text including overrides, drawings, commas, spaces and explicit escapes.",
+          "type": "string",
+          "examples": [
+            "Hello\\Nworld"
+          ]
+        },
+        "spans": {
+          "description": "Deterministically derived native Text span occurrences.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_span"
+          },
+          "maxItems": 1024,
+          "examples": [
+            []
+          ]
+        },
+        "tags": {
+          "description": "Ordered native override occurrences, including duplicate and unsupported tags.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_tag"
+          },
+          "maxItems": 1024,
+          "examples": [
+            []
+          ]
+        },
+        "karaoke": {
+          "description": "Ordered native karaoke observations with supported/unsupported timing provenance.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_karaoke"
+          },
+          "maxItems": 1024,
+          "examples": [
+            []
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event_id": "event-0",
+          "record_id": "record-event",
+          "declaration_id": "record-event-format",
+          "event_type": "dialogue",
+          "cue_id": "cue-0",
+          "valid": true,
+          "fields": [
+            {
+              "field_name": "Layer",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "Start",
+              "raw_value": "0:00:01.00"
+            },
+            {
+              "field_name": "End",
+              "raw_value": "0:00:02.00"
+            },
+            {
+              "field_name": "Style",
+              "raw_value": "Default"
+            },
+            {
+              "field_name": "Name",
+              "raw_value": "Narrator"
+            },
+            {
+              "field_name": "MarginL",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "MarginR",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "MarginV",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "Effect",
+              "raw_value": ""
+            },
+            {
+              "field_name": "Text",
+              "raw_value": "Hello\\Nworld"
+            }
+          ],
+          "text": "Hello\\Nworld",
+          "spans": [
+            {
+              "kind": "literal",
+              "start_scalar": 0,
+              "end_scalar": 12,
+              "raw": "Hello\\Nworld"
+            }
+          ],
+          "tags": [],
+          "karaoke": []
+        }
+      ]
+    },
+    "scripted_attachment": {
+      "title": "Retained embedded attachment",
+      "description": "A safe-named embedded font/graphic whose ordered encoded content is owned by a contiguous physical record range, never filesystem authority.",
+      "type": "object",
+      "required": [
+        "attachment_id",
+        "header_record_id",
+        "data_start_record_id",
+        "data_record_count",
+        "attachment_type",
+        "name"
+      ],
+      "properties": {
+        "attachment_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Document-local attachment occurrence identity."
+        },
+        "header_record_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Owning fontname/filename header record."
+        },
+        "data_start_record_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "First encoded-data physical record in the contiguous range."
+        },
+        "data_record_count": {
+          "description": "Number of contiguous attachment-data physical records in the same section.",
+          "type": "integer",
+          "examples": [
+            1
+          ],
+          "minimum": 1,
+          "maximum": 65536
+        },
+        "attachment_type": {
+          "description": "Embedded native asset type; no loading, installation, extraction, or rasterization implied.",
+          "type": "string",
+          "examples": [
+            "font",
+            "graphic"
+          ],
+          "enum": [
+            "font",
+            "graphic"
+          ]
+        },
+        "name": {
+          "$ref": "#/$defs/safe_basename",
+          "description": "Portable embedded attachment name, never a path or URI."
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "attachment_id": "attachment-font",
+          "header_record_id": "record-header",
+          "data_start_record_id": "record-data",
+          "data_record_count": 1,
+          "attachment_type": "font",
+          "name": "sample.ttf"
+        }
+      ]
+    },
+    "scripted_projection": {
+      "title": "Native-derived common projection provenance",
+      "description": "Explicit event/field ownership, initial wrap state and drawing exclusion for deterministic common text/speaker/token projection.",
+      "type": "object",
+      "required": [
+        "origin",
+        "source_event_id",
+        "text_field_name",
+        "wrap_style",
+        "drawing_excluded"
+      ],
+      "properties": {
+        "origin": {
+          "description": "Native derivation origin, independent from captured source truth.",
+          "type": "string",
+          "examples": [
+            "native_derived"
+          ],
+          "const": "native_derived"
+        },
+        "source_event_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Owning native Dialogue event."
+        },
+        "text_field_name": {
+          "description": "Exact native Text declaration spelling.",
+          "type": "string",
+          "examples": [
+            "Text"
+          ]
+        },
+        "speaker_field_name": {
+          "description": "Exact Name/Actor field spelling, present only when a nonempty native speaker observation exists.",
+          "type": "string",
+          "examples": [
+            "Name"
+          ]
+        },
+        "wrap_style": {
+          "description": "Document WrapStyle entering Text projection; explicit q tags may change subsequent soft-break state.",
+          "type": "integer",
+          "examples": [
+            0,
+            2
+          ],
+          "minimum": 0,
+          "maximum": 3
+        },
+        "drawing_excluded": {
+          "description": "Whether retained drawing spans were excluded from readable common text.",
+          "type": "boolean",
+          "examples": [
+            false,
+            true
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "origin": "native_derived",
+          "source_event_id": "event-0",
+          "text_field_name": "Text",
+          "wrap_style": 0,
+          "drawing_excluded": false
+        }
+      ]
+    },
+    "scripted_cue_data": {
+      "title": "Scripted cue ownership",
+      "description": "References linking one common Dialogue cue to its native event/style and explicit projections; common timing owns edits while timestamp lexemes remain optional original observations.",
+      "type": "object",
+      "required": [
+        "event_id",
+        "style_id",
+        "projection"
+      ],
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Owning native Dialogue event."
+        },
+        "style_id": {
+          "$ref": "#/$defs/identifier",
+          "description": "Unambiguously resolved native style occurrence."
+        },
+        "start_timestamp_raw": {
+          "description": "Optional original native Start timestamp observation, independent from later common timing edits.",
+          "type": "string",
+          "examples": [
+            "0:00:01.00"
+          ],
+          "pattern": "^[0-9]+:[0-5][0-9]:[0-5][0-9]\\.[0-9]{2}$"
+        },
+        "end_timestamp_raw": {
+          "description": "Optional original native End timestamp observation.",
+          "type": "string",
+          "examples": [
+            "0:00:02.00"
+          ],
+          "pattern": "^[0-9]+:[0-5][0-9]:[0-5][0-9]\\.[0-9]{2}$"
+        },
+        "projection": {
+          "$ref": "#/$defs/scripted_projection",
+          "description": "Verified common projection provenance."
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "event_id": "event-0",
+          "style_id": "style-default",
+          "projection": {
+            "origin": "native_derived",
+            "source_event_id": "event-0",
+            "text_field_name": "Text",
+            "wrap_style": 0,
+            "drawing_excluded": false
+          }
+        }
+      ]
+    },
+    "ass_document_data": {
+      "title": "ASS native document",
+      "description": "Complete ordered ASS native document with section/record ownership and retained structured/content observations.",
+      "type": "object",
+      "required": [
+        "dialect",
+        "sections",
+        "records",
+        "styles",
+        "events",
+        "attachments"
+      ],
+      "properties": {
+        "dialect": {
+          "description": "Accepted native dialect identity.",
+          "type": "string",
+          "examples": [
+            "v4.00+"
+          ],
+          "const": "v4.00+"
+        },
+        "sections": {
+          "description": "Ordered section-header occurrences, including repeated headers.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_section"
+          },
+          "maxItems": 65536,
+          "examples": [
+            []
+          ]
+        },
+        "records": {
+          "description": "Ordered physical record occurrences; combined sections and records have a 65,536 ceiling.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_record"
+          },
+          "maxItems": 65536,
+          "examples": [
+            []
+          ]
+        },
+        "styles": {
+          "description": "Ordered native style occurrences referenced by record identity.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_style"
+          },
+          "maxItems": 65536,
+          "examples": [
+            []
+          ]
+        },
+        "events": {
+          "description": "Ordered native event occurrences referenced by record identity.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_event"
+          },
+          "maxItems": 65536,
+          "examples": [
+            []
+          ]
+        },
+        "attachments": {
+          "description": "Ordered embedded attachment occurrences and contiguous encoded record ranges.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_attachment"
+          },
+          "maxItems": 1024,
+          "examples": [
+            []
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "dialect": "v4.00+",
+          "sections": [
+            {
+              "section_id": "section-info",
+              "source_order": 0,
+              "name": "Script Info",
+              "raw_header": "[Script Info]"
+            },
+            {
+              "section_id": "section-styles",
+              "source_order": 2,
+              "name": "V4+ Styles",
+              "raw_header": "[V4+ Styles]"
+            },
+            {
+              "section_id": "section-events",
+              "source_order": 5,
+              "name": "Events",
+              "raw_header": "[Events]"
+            }
+          ],
+          "records": [
+            {
+              "record_id": "record-type",
+              "source_order": 1,
+              "section_id": "section-info",
+              "kind": "metadata",
+              "raw_line": "ScriptType: v4.00+",
+              "fields": [
+                {
+                  "field_name": "ScriptType",
+                  "raw_value": "v4.00+"
+                }
+              ]
+            },
+            {
+              "record_id": "record-style-format",
+              "source_order": 3,
+              "section_id": "section-styles",
+              "kind": "format_declaration",
+              "raw_line": "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
+              "declaration_fields": [
+                {
+                  "field_name": "Name",
+                  "recognized_name": "name"
+                },
+                {
+                  "field_name": "Fontname",
+                  "recognized_name": "fontname"
+                },
+                {
+                  "field_name": "Fontsize",
+                  "recognized_name": "fontsize"
+                },
+                {
+                  "field_name": "PrimaryColour",
+                  "recognized_name": "primarycolour"
+                },
+                {
+                  "field_name": "SecondaryColour",
+                  "recognized_name": "secondarycolour"
+                },
+                {
+                  "field_name": "OutlineColour",
+                  "recognized_name": "outlinecolour"
+                },
+                {
+                  "field_name": "BackColour",
+                  "recognized_name": "backcolour"
+                },
+                {
+                  "field_name": "Bold",
+                  "recognized_name": "bold"
+                },
+                {
+                  "field_name": "Italic",
+                  "recognized_name": "italic"
+                },
+                {
+                  "field_name": "Underline",
+                  "recognized_name": "underline"
+                },
+                {
+                  "field_name": "StrikeOut",
+                  "recognized_name": "strikeout"
+                },
+                {
+                  "field_name": "ScaleX",
+                  "recognized_name": "scalex"
+                },
+                {
+                  "field_name": "ScaleY",
+                  "recognized_name": "scaley"
+                },
+                {
+                  "field_name": "Spacing",
+                  "recognized_name": "spacing"
+                },
+                {
+                  "field_name": "Angle",
+                  "recognized_name": "angle"
+                },
+                {
+                  "field_name": "BorderStyle",
+                  "recognized_name": "borderstyle"
+                },
+                {
+                  "field_name": "Outline",
+                  "recognized_name": "outline"
+                },
+                {
+                  "field_name": "Shadow",
+                  "recognized_name": "shadow"
+                },
+                {
+                  "field_name": "Alignment",
+                  "recognized_name": "alignment"
+                },
+                {
+                  "field_name": "MarginL",
+                  "recognized_name": "marginl"
+                },
+                {
+                  "field_name": "MarginR",
+                  "recognized_name": "marginr"
+                },
+                {
+                  "field_name": "MarginV",
+                  "recognized_name": "marginv"
+                },
+                {
+                  "field_name": "Encoding",
+                  "recognized_name": "encoding"
+                }
+              ]
+            },
+            {
+              "record_id": "record-style",
+              "source_order": 4,
+              "section_id": "section-styles",
+              "kind": "style",
+              "raw_line": "Style: Default,Arial,20,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,0,2,10,10,10,1",
+              "style_id": "style-default"
+            },
+            {
+              "record_id": "record-event-format",
+              "source_order": 6,
+              "section_id": "section-events",
+              "kind": "format_declaration",
+              "raw_line": "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+              "declaration_fields": [
+                {
+                  "field_name": "Layer",
+                  "recognized_name": "layer"
+                },
+                {
+                  "field_name": "Start",
+                  "recognized_name": "start"
+                },
+                {
+                  "field_name": "End",
+                  "recognized_name": "end"
+                },
+                {
+                  "field_name": "Style",
+                  "recognized_name": "style"
+                },
+                {
+                  "field_name": "Name",
+                  "recognized_name": "name"
+                },
+                {
+                  "field_name": "MarginL",
+                  "recognized_name": "marginl"
+                },
+                {
+                  "field_name": "MarginR",
+                  "recognized_name": "marginr"
+                },
+                {
+                  "field_name": "MarginV",
+                  "recognized_name": "marginv"
+                },
+                {
+                  "field_name": "Effect",
+                  "recognized_name": "effect"
+                },
+                {
+                  "field_name": "Text",
+                  "recognized_name": "text"
+                }
+              ]
+            },
+            {
+              "record_id": "record-event",
+              "source_order": 7,
+              "section_id": "section-events",
+              "kind": "event",
+              "raw_line": "Dialogue: 0,0:00:01.00,0:00:02.00,Default,Narrator,0,0,0,,Hello\\Nworld",
+              "event_id": "event-0"
+            }
+          ],
+          "styles": [
+            {
+              "style_id": "style-default",
+              "record_id": "record-style",
+              "declaration_id": "record-style-format",
+              "name": "Default",
+              "valid": true,
+              "fields": [
+                {
+                  "field_name": "Name",
+                  "raw_value": "Default"
+                },
+                {
+                  "field_name": "Fontname",
+                  "raw_value": "Arial"
+                },
+                {
+                  "field_name": "Fontsize",
+                  "raw_value": "20",
+                  "typed_value": {
+                    "kind": "decimal",
+                    "decimal": 20
+                  }
+                },
+                {
+                  "field_name": "PrimaryColour",
+                  "raw_value": "&H00FFFFFF"
+                },
+                {
+                  "field_name": "SecondaryColour",
+                  "raw_value": "&H000000FF"
+                },
+                {
+                  "field_name": "OutlineColour",
+                  "raw_value": "&H00000000"
+                },
+                {
+                  "field_name": "BackColour",
+                  "raw_value": "&H00000000"
+                },
+                {
+                  "field_name": "Bold",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Italic",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Underline",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "StrikeOut",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "ScaleX",
+                  "raw_value": "100"
+                },
+                {
+                  "field_name": "ScaleY",
+                  "raw_value": "100"
+                },
+                {
+                  "field_name": "Spacing",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Angle",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "BorderStyle",
+                  "raw_value": "1"
+                },
+                {
+                  "field_name": "Outline",
+                  "raw_value": "2"
+                },
+                {
+                  "field_name": "Shadow",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Alignment",
+                  "raw_value": "2"
+                },
+                {
+                  "field_name": "MarginL",
+                  "raw_value": "10"
+                },
+                {
+                  "field_name": "MarginR",
+                  "raw_value": "10"
+                },
+                {
+                  "field_name": "MarginV",
+                  "raw_value": "10"
+                },
+                {
+                  "field_name": "Encoding",
+                  "raw_value": "1"
+                }
+              ]
+            }
+          ],
+          "events": [
+            {
+              "event_id": "event-0",
+              "record_id": "record-event",
+              "declaration_id": "record-event-format",
+              "event_type": "dialogue",
+              "cue_id": "cue-0",
+              "valid": true,
+              "fields": [
+                {
+                  "field_name": "Layer",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Start",
+                  "raw_value": "0:00:01.00"
+                },
+                {
+                  "field_name": "End",
+                  "raw_value": "0:00:02.00"
+                },
+                {
+                  "field_name": "Style",
+                  "raw_value": "Default"
+                },
+                {
+                  "field_name": "Name",
+                  "raw_value": "Narrator"
+                },
+                {
+                  "field_name": "MarginL",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "MarginR",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "MarginV",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Effect",
+                  "raw_value": ""
+                },
+                {
+                  "field_name": "Text",
+                  "raw_value": "Hello\\Nworld"
+                }
+              ],
+              "text": "Hello\\Nworld",
+              "spans": [
+                {
+                  "kind": "literal",
+                  "start_scalar": 0,
+                  "end_scalar": 12,
+                  "raw": "Hello\\Nworld"
+                }
+              ],
+              "tags": [],
+              "karaoke": []
+            }
+          ],
+          "attachments": []
+        }
+      ]
+    },
+    "ass_document_format_data": {
+      "title": "ASS document native wrapper",
+      "description": "Exactly the ass branch matching the root format.",
+      "type": "object",
+      "required": [
+        "ass"
+      ],
+      "properties": {
+        "ass": {
+          "$ref": "#/$defs/ass_document_data",
+          "description": "Native ASS document owner."
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "ass": {
+            "dialect": "v4.00+",
+            "sections": [
+              {
+                "section_id": "section-info",
+                "source_order": 0,
+                "name": "Script Info",
+                "raw_header": "[Script Info]"
+              },
+              {
+                "section_id": "section-styles",
+                "source_order": 2,
+                "name": "V4+ Styles",
+                "raw_header": "[V4+ Styles]"
+              },
+              {
+                "section_id": "section-events",
+                "source_order": 5,
+                "name": "Events",
+                "raw_header": "[Events]"
+              }
+            ],
+            "records": [
+              {
+                "record_id": "record-type",
+                "source_order": 1,
+                "section_id": "section-info",
+                "kind": "metadata",
+                "raw_line": "ScriptType: v4.00+",
+                "fields": [
+                  {
+                    "field_name": "ScriptType",
+                    "raw_value": "v4.00+"
+                  }
+                ]
+              },
+              {
+                "record_id": "record-style-format",
+                "source_order": 3,
+                "section_id": "section-styles",
+                "kind": "format_declaration",
+                "raw_line": "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding",
+                "declaration_fields": [
+                  {
+                    "field_name": "Name",
+                    "recognized_name": "name"
+                  },
+                  {
+                    "field_name": "Fontname",
+                    "recognized_name": "fontname"
+                  },
+                  {
+                    "field_name": "Fontsize",
+                    "recognized_name": "fontsize"
+                  },
+                  {
+                    "field_name": "PrimaryColour",
+                    "recognized_name": "primarycolour"
+                  },
+                  {
+                    "field_name": "SecondaryColour",
+                    "recognized_name": "secondarycolour"
+                  },
+                  {
+                    "field_name": "OutlineColour",
+                    "recognized_name": "outlinecolour"
+                  },
+                  {
+                    "field_name": "BackColour",
+                    "recognized_name": "backcolour"
+                  },
+                  {
+                    "field_name": "Bold",
+                    "recognized_name": "bold"
+                  },
+                  {
+                    "field_name": "Italic",
+                    "recognized_name": "italic"
+                  },
+                  {
+                    "field_name": "Underline",
+                    "recognized_name": "underline"
+                  },
+                  {
+                    "field_name": "StrikeOut",
+                    "recognized_name": "strikeout"
+                  },
+                  {
+                    "field_name": "ScaleX",
+                    "recognized_name": "scalex"
+                  },
+                  {
+                    "field_name": "ScaleY",
+                    "recognized_name": "scaley"
+                  },
+                  {
+                    "field_name": "Spacing",
+                    "recognized_name": "spacing"
+                  },
+                  {
+                    "field_name": "Angle",
+                    "recognized_name": "angle"
+                  },
+                  {
+                    "field_name": "BorderStyle",
+                    "recognized_name": "borderstyle"
+                  },
+                  {
+                    "field_name": "Outline",
+                    "recognized_name": "outline"
+                  },
+                  {
+                    "field_name": "Shadow",
+                    "recognized_name": "shadow"
+                  },
+                  {
+                    "field_name": "Alignment",
+                    "recognized_name": "alignment"
+                  },
+                  {
+                    "field_name": "MarginL",
+                    "recognized_name": "marginl"
+                  },
+                  {
+                    "field_name": "MarginR",
+                    "recognized_name": "marginr"
+                  },
+                  {
+                    "field_name": "MarginV",
+                    "recognized_name": "marginv"
+                  },
+                  {
+                    "field_name": "Encoding",
+                    "recognized_name": "encoding"
+                  }
+                ]
+              },
+              {
+                "record_id": "record-style",
+                "source_order": 4,
+                "section_id": "section-styles",
+                "kind": "style",
+                "raw_line": "Style: Default,Arial,20,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,0,2,10,10,10,1",
+                "style_id": "style-default"
+              },
+              {
+                "record_id": "record-event-format",
+                "source_order": 6,
+                "section_id": "section-events",
+                "kind": "format_declaration",
+                "raw_line": "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+                "declaration_fields": [
+                  {
+                    "field_name": "Layer",
+                    "recognized_name": "layer"
+                  },
+                  {
+                    "field_name": "Start",
+                    "recognized_name": "start"
+                  },
+                  {
+                    "field_name": "End",
+                    "recognized_name": "end"
+                  },
+                  {
+                    "field_name": "Style",
+                    "recognized_name": "style"
+                  },
+                  {
+                    "field_name": "Name",
+                    "recognized_name": "name"
+                  },
+                  {
+                    "field_name": "MarginL",
+                    "recognized_name": "marginl"
+                  },
+                  {
+                    "field_name": "MarginR",
+                    "recognized_name": "marginr"
+                  },
+                  {
+                    "field_name": "MarginV",
+                    "recognized_name": "marginv"
+                  },
+                  {
+                    "field_name": "Effect",
+                    "recognized_name": "effect"
+                  },
+                  {
+                    "field_name": "Text",
+                    "recognized_name": "text"
+                  }
+                ]
+              },
+              {
+                "record_id": "record-event",
+                "source_order": 7,
+                "section_id": "section-events",
+                "kind": "event",
+                "raw_line": "Dialogue: 0,0:00:01.00,0:00:02.00,Default,Narrator,0,0,0,,Hello\\Nworld",
+                "event_id": "event-0"
+              }
+            ],
+            "styles": [
+              {
+                "style_id": "style-default",
+                "record_id": "record-style",
+                "declaration_id": "record-style-format",
+                "name": "Default",
+                "valid": true,
+                "fields": [
+                  {
+                    "field_name": "Name",
+                    "raw_value": "Default"
+                  },
+                  {
+                    "field_name": "Fontname",
+                    "raw_value": "Arial"
+                  },
+                  {
+                    "field_name": "Fontsize",
+                    "raw_value": "20",
+                    "typed_value": {
+                      "kind": "decimal",
+                      "decimal": 20
+                    }
+                  },
+                  {
+                    "field_name": "PrimaryColour",
+                    "raw_value": "&H00FFFFFF"
+                  },
+                  {
+                    "field_name": "SecondaryColour",
+                    "raw_value": "&H000000FF"
+                  },
+                  {
+                    "field_name": "OutlineColour",
+                    "raw_value": "&H00000000"
+                  },
+                  {
+                    "field_name": "BackColour",
+                    "raw_value": "&H00000000"
+                  },
+                  {
+                    "field_name": "Bold",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "Italic",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "Underline",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "StrikeOut",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "ScaleX",
+                    "raw_value": "100"
+                  },
+                  {
+                    "field_name": "ScaleY",
+                    "raw_value": "100"
+                  },
+                  {
+                    "field_name": "Spacing",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "Angle",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "BorderStyle",
+                    "raw_value": "1"
+                  },
+                  {
+                    "field_name": "Outline",
+                    "raw_value": "2"
+                  },
+                  {
+                    "field_name": "Shadow",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "Alignment",
+                    "raw_value": "2"
+                  },
+                  {
+                    "field_name": "MarginL",
+                    "raw_value": "10"
+                  },
+                  {
+                    "field_name": "MarginR",
+                    "raw_value": "10"
+                  },
+                  {
+                    "field_name": "MarginV",
+                    "raw_value": "10"
+                  },
+                  {
+                    "field_name": "Encoding",
+                    "raw_value": "1"
+                  }
+                ]
+              }
+            ],
+            "events": [
+              {
+                "event_id": "event-0",
+                "record_id": "record-event",
+                "declaration_id": "record-event-format",
+                "event_type": "dialogue",
+                "cue_id": "cue-0",
+                "valid": true,
+                "fields": [
+                  {
+                    "field_name": "Layer",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "Start",
+                    "raw_value": "0:00:01.00"
+                  },
+                  {
+                    "field_name": "End",
+                    "raw_value": "0:00:02.00"
+                  },
+                  {
+                    "field_name": "Style",
+                    "raw_value": "Default"
+                  },
+                  {
+                    "field_name": "Name",
+                    "raw_value": "Narrator"
+                  },
+                  {
+                    "field_name": "MarginL",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "MarginR",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "MarginV",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "Effect",
+                    "raw_value": ""
+                  },
+                  {
+                    "field_name": "Text",
+                    "raw_value": "Hello\\Nworld"
+                  }
+                ],
+                "text": "Hello\\Nworld",
+                "spans": [
+                  {
+                    "kind": "literal",
+                    "start_scalar": 0,
+                    "end_scalar": 12,
+                    "raw": "Hello\\Nworld"
+                  }
+                ],
+                "tags": [],
+                "karaoke": []
+              }
+            ],
+            "attachments": []
+          }
+        }
+      ]
+    },
+    "ass_cue_format_data": {
+      "title": "ASS cue native wrapper",
+      "description": "Exactly the ass branch matching the root format.",
+      "type": "object",
+      "required": [
+        "ass"
+      ],
+      "properties": {
+        "ass": {
+          "$ref": "#/$defs/scripted_cue_data",
+          "description": "Native ASS cue owner."
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "ass": {
+            "event_id": "event-0",
+            "style_id": "style-default",
+            "start_timestamp_raw": "0:00:01.00",
+            "end_timestamp_raw": "0:00:02.00",
+            "projection": {
+              "origin": "native_derived",
+              "source_event_id": "event-0",
+              "text_field_name": "Text",
+              "speaker_field_name": "Name",
+              "wrap_style": 0,
+              "drawing_excluded": false
+            }
+          }
+        }
+      ]
+    },
+    "ssa_document_data": {
+      "title": "SSA native document",
+      "description": "Complete ordered SSA native document with section/record ownership and retained structured/content observations.",
+      "type": "object",
+      "required": [
+        "dialect",
+        "sections",
+        "records",
+        "styles",
+        "events",
+        "attachments"
+      ],
+      "properties": {
+        "dialect": {
+          "description": "Accepted native dialect identity.",
+          "type": "string",
+          "examples": [
+            "v4.00"
+          ],
+          "const": "v4.00"
+        },
+        "sections": {
+          "description": "Ordered section-header occurrences, including repeated headers.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_section"
+          },
+          "maxItems": 65536,
+          "examples": [
+            []
+          ]
+        },
+        "records": {
+          "description": "Ordered physical record occurrences; combined sections and records have a 65,536 ceiling.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_record"
+          },
+          "maxItems": 65536,
+          "examples": [
+            []
+          ]
+        },
+        "styles": {
+          "description": "Ordered native style occurrences referenced by record identity.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_style"
+          },
+          "maxItems": 65536,
+          "examples": [
+            []
+          ]
+        },
+        "events": {
+          "description": "Ordered native event occurrences referenced by record identity.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_event"
+          },
+          "maxItems": 65536,
+          "examples": [
+            []
+          ]
+        },
+        "attachments": {
+          "description": "Ordered embedded attachment occurrences and contiguous encoded record ranges.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scripted_attachment"
+          },
+          "maxItems": 1024,
+          "examples": [
+            []
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "dialect": "v4.00",
+          "sections": [
+            {
+              "section_id": "section-info",
+              "source_order": 0,
+              "name": "Script Info",
+              "raw_header": "[Script Info]"
+            },
+            {
+              "section_id": "section-styles",
+              "source_order": 2,
+              "name": "V4 Styles",
+              "raw_header": "[V4 Styles]"
+            },
+            {
+              "section_id": "section-events",
+              "source_order": 5,
+              "name": "Events",
+              "raw_header": "[Events]"
+            }
+          ],
+          "records": [
+            {
+              "record_id": "record-type",
+              "source_order": 1,
+              "section_id": "section-info",
+              "kind": "metadata",
+              "raw_line": "ScriptType: v4.00",
+              "fields": [
+                {
+                  "field_name": "ScriptType",
+                  "raw_value": "v4.00"
+                }
+              ]
+            },
+            {
+              "record_id": "record-style-format",
+              "source_order": 3,
+              "section_id": "section-styles",
+              "kind": "format_declaration",
+              "raw_line": "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, TertiaryColour, BackColour, Bold, Italic, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, AlphaLevel, Encoding",
+              "declaration_fields": [
+                {
+                  "field_name": "Name",
+                  "recognized_name": "name"
+                },
+                {
+                  "field_name": "Fontname",
+                  "recognized_name": "fontname"
+                },
+                {
+                  "field_name": "Fontsize",
+                  "recognized_name": "fontsize"
+                },
+                {
+                  "field_name": "PrimaryColour",
+                  "recognized_name": "primarycolour"
+                },
+                {
+                  "field_name": "SecondaryColour",
+                  "recognized_name": "secondarycolour"
+                },
+                {
+                  "field_name": "TertiaryColour",
+                  "recognized_name": "tertiarycolour"
+                },
+                {
+                  "field_name": "BackColour",
+                  "recognized_name": "backcolour"
+                },
+                {
+                  "field_name": "Bold",
+                  "recognized_name": "bold"
+                },
+                {
+                  "field_name": "Italic",
+                  "recognized_name": "italic"
+                },
+                {
+                  "field_name": "BorderStyle",
+                  "recognized_name": "borderstyle"
+                },
+                {
+                  "field_name": "Outline",
+                  "recognized_name": "outline"
+                },
+                {
+                  "field_name": "Shadow",
+                  "recognized_name": "shadow"
+                },
+                {
+                  "field_name": "Alignment",
+                  "recognized_name": "alignment"
+                },
+                {
+                  "field_name": "MarginL",
+                  "recognized_name": "marginl"
+                },
+                {
+                  "field_name": "MarginR",
+                  "recognized_name": "marginr"
+                },
+                {
+                  "field_name": "MarginV",
+                  "recognized_name": "marginv"
+                },
+                {
+                  "field_name": "AlphaLevel",
+                  "recognized_name": "alphalevel"
+                },
+                {
+                  "field_name": "Encoding",
+                  "recognized_name": "encoding"
+                }
+              ]
+            },
+            {
+              "record_id": "record-style",
+              "source_order": 4,
+              "section_id": "section-styles",
+              "kind": "style",
+              "raw_line": "Style: Default,Arial,20,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,1,2,0,2,10,10,10,0,1",
+              "style_id": "style-default"
+            },
+            {
+              "record_id": "record-event-format",
+              "source_order": 6,
+              "section_id": "section-events",
+              "kind": "format_declaration",
+              "raw_line": "Format: Marked, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+              "declaration_fields": [
+                {
+                  "field_name": "Marked",
+                  "recognized_name": "marked"
+                },
+                {
+                  "field_name": "Start",
+                  "recognized_name": "start"
+                },
+                {
+                  "field_name": "End",
+                  "recognized_name": "end"
+                },
+                {
+                  "field_name": "Style",
+                  "recognized_name": "style"
+                },
+                {
+                  "field_name": "Name",
+                  "recognized_name": "name"
+                },
+                {
+                  "field_name": "MarginL",
+                  "recognized_name": "marginl"
+                },
+                {
+                  "field_name": "MarginR",
+                  "recognized_name": "marginr"
+                },
+                {
+                  "field_name": "MarginV",
+                  "recognized_name": "marginv"
+                },
+                {
+                  "field_name": "Effect",
+                  "recognized_name": "effect"
+                },
+                {
+                  "field_name": "Text",
+                  "recognized_name": "text"
+                }
+              ]
+            },
+            {
+              "record_id": "record-event",
+              "source_order": 7,
+              "section_id": "section-events",
+              "kind": "event",
+              "raw_line": "Dialogue: Marked=0,0:00:01.00,0:00:02.00,Default,Narrator,0,0,0,,Hello\\Nworld",
+              "event_id": "event-0"
+            }
+          ],
+          "styles": [
+            {
+              "style_id": "style-default",
+              "record_id": "record-style",
+              "declaration_id": "record-style-format",
+              "name": "Default",
+              "valid": true,
+              "fields": [
+                {
+                  "field_name": "Name",
+                  "raw_value": "Default"
+                },
+                {
+                  "field_name": "Fontname",
+                  "raw_value": "Arial"
+                },
+                {
+                  "field_name": "Fontsize",
+                  "raw_value": "20",
+                  "typed_value": {
+                    "kind": "decimal",
+                    "decimal": 20
+                  }
+                },
+                {
+                  "field_name": "PrimaryColour",
+                  "raw_value": "&H00FFFFFF"
+                },
+                {
+                  "field_name": "SecondaryColour",
+                  "raw_value": "&H000000FF"
+                },
+                {
+                  "field_name": "TertiaryColour",
+                  "raw_value": "&H00000000"
+                },
+                {
+                  "field_name": "BackColour",
+                  "raw_value": "&H00000000"
+                },
+                {
+                  "field_name": "Bold",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Italic",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "BorderStyle",
+                  "raw_value": "1"
+                },
+                {
+                  "field_name": "Outline",
+                  "raw_value": "2"
+                },
+                {
+                  "field_name": "Shadow",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Alignment",
+                  "raw_value": "2"
+                },
+                {
+                  "field_name": "MarginL",
+                  "raw_value": "10"
+                },
+                {
+                  "field_name": "MarginR",
+                  "raw_value": "10"
+                },
+                {
+                  "field_name": "MarginV",
+                  "raw_value": "10"
+                },
+                {
+                  "field_name": "AlphaLevel",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Encoding",
+                  "raw_value": "1"
+                }
+              ]
+            }
+          ],
+          "events": [
+            {
+              "event_id": "event-0",
+              "record_id": "record-event",
+              "declaration_id": "record-event-format",
+              "event_type": "dialogue",
+              "cue_id": "cue-0",
+              "valid": true,
+              "fields": [
+                {
+                  "field_name": "Marked",
+                  "raw_value": "Marked=0"
+                },
+                {
+                  "field_name": "Start",
+                  "raw_value": "0:00:01.00"
+                },
+                {
+                  "field_name": "End",
+                  "raw_value": "0:00:02.00"
+                },
+                {
+                  "field_name": "Style",
+                  "raw_value": "Default"
+                },
+                {
+                  "field_name": "Name",
+                  "raw_value": "Narrator"
+                },
+                {
+                  "field_name": "MarginL",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "MarginR",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "MarginV",
+                  "raw_value": "0"
+                },
+                {
+                  "field_name": "Effect",
+                  "raw_value": ""
+                },
+                {
+                  "field_name": "Text",
+                  "raw_value": "Hello\\Nworld"
+                }
+              ],
+              "text": "Hello\\Nworld",
+              "spans": [
+                {
+                  "kind": "literal",
+                  "start_scalar": 0,
+                  "end_scalar": 12,
+                  "raw": "Hello\\Nworld"
+                }
+              ],
+              "tags": [],
+              "karaoke": []
+            }
+          ],
+          "attachments": []
+        }
+      ]
+    },
+    "ssa_document_format_data": {
+      "title": "SSA document native wrapper",
+      "description": "Exactly the ssa branch matching the root format.",
+      "type": "object",
+      "required": [
+        "ssa"
+      ],
+      "properties": {
+        "ssa": {
+          "$ref": "#/$defs/ssa_document_data",
+          "description": "Native SSA document owner."
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "ssa": {
+            "dialect": "v4.00",
+            "sections": [
+              {
+                "section_id": "section-info",
+                "source_order": 0,
+                "name": "Script Info",
+                "raw_header": "[Script Info]"
+              },
+              {
+                "section_id": "section-styles",
+                "source_order": 2,
+                "name": "V4 Styles",
+                "raw_header": "[V4 Styles]"
+              },
+              {
+                "section_id": "section-events",
+                "source_order": 5,
+                "name": "Events",
+                "raw_header": "[Events]"
+              }
+            ],
+            "records": [
+              {
+                "record_id": "record-type",
+                "source_order": 1,
+                "section_id": "section-info",
+                "kind": "metadata",
+                "raw_line": "ScriptType: v4.00",
+                "fields": [
+                  {
+                    "field_name": "ScriptType",
+                    "raw_value": "v4.00"
+                  }
+                ]
+              },
+              {
+                "record_id": "record-style-format",
+                "source_order": 3,
+                "section_id": "section-styles",
+                "kind": "format_declaration",
+                "raw_line": "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, TertiaryColour, BackColour, Bold, Italic, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, AlphaLevel, Encoding",
+                "declaration_fields": [
+                  {
+                    "field_name": "Name",
+                    "recognized_name": "name"
+                  },
+                  {
+                    "field_name": "Fontname",
+                    "recognized_name": "fontname"
+                  },
+                  {
+                    "field_name": "Fontsize",
+                    "recognized_name": "fontsize"
+                  },
+                  {
+                    "field_name": "PrimaryColour",
+                    "recognized_name": "primarycolour"
+                  },
+                  {
+                    "field_name": "SecondaryColour",
+                    "recognized_name": "secondarycolour"
+                  },
+                  {
+                    "field_name": "TertiaryColour",
+                    "recognized_name": "tertiarycolour"
+                  },
+                  {
+                    "field_name": "BackColour",
+                    "recognized_name": "backcolour"
+                  },
+                  {
+                    "field_name": "Bold",
+                    "recognized_name": "bold"
+                  },
+                  {
+                    "field_name": "Italic",
+                    "recognized_name": "italic"
+                  },
+                  {
+                    "field_name": "BorderStyle",
+                    "recognized_name": "borderstyle"
+                  },
+                  {
+                    "field_name": "Outline",
+                    "recognized_name": "outline"
+                  },
+                  {
+                    "field_name": "Shadow",
+                    "recognized_name": "shadow"
+                  },
+                  {
+                    "field_name": "Alignment",
+                    "recognized_name": "alignment"
+                  },
+                  {
+                    "field_name": "MarginL",
+                    "recognized_name": "marginl"
+                  },
+                  {
+                    "field_name": "MarginR",
+                    "recognized_name": "marginr"
+                  },
+                  {
+                    "field_name": "MarginV",
+                    "recognized_name": "marginv"
+                  },
+                  {
+                    "field_name": "AlphaLevel",
+                    "recognized_name": "alphalevel"
+                  },
+                  {
+                    "field_name": "Encoding",
+                    "recognized_name": "encoding"
+                  }
+                ]
+              },
+              {
+                "record_id": "record-style",
+                "source_order": 4,
+                "section_id": "section-styles",
+                "kind": "style",
+                "raw_line": "Style: Default,Arial,20,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,1,2,0,2,10,10,10,0,1",
+                "style_id": "style-default"
+              },
+              {
+                "record_id": "record-event-format",
+                "source_order": 6,
+                "section_id": "section-events",
+                "kind": "format_declaration",
+                "raw_line": "Format: Marked, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+                "declaration_fields": [
+                  {
+                    "field_name": "Marked",
+                    "recognized_name": "marked"
+                  },
+                  {
+                    "field_name": "Start",
+                    "recognized_name": "start"
+                  },
+                  {
+                    "field_name": "End",
+                    "recognized_name": "end"
+                  },
+                  {
+                    "field_name": "Style",
+                    "recognized_name": "style"
+                  },
+                  {
+                    "field_name": "Name",
+                    "recognized_name": "name"
+                  },
+                  {
+                    "field_name": "MarginL",
+                    "recognized_name": "marginl"
+                  },
+                  {
+                    "field_name": "MarginR",
+                    "recognized_name": "marginr"
+                  },
+                  {
+                    "field_name": "MarginV",
+                    "recognized_name": "marginv"
+                  },
+                  {
+                    "field_name": "Effect",
+                    "recognized_name": "effect"
+                  },
+                  {
+                    "field_name": "Text",
+                    "recognized_name": "text"
+                  }
+                ]
+              },
+              {
+                "record_id": "record-event",
+                "source_order": 7,
+                "section_id": "section-events",
+                "kind": "event",
+                "raw_line": "Dialogue: Marked=0,0:00:01.00,0:00:02.00,Default,Narrator,0,0,0,,Hello\\Nworld",
+                "event_id": "event-0"
+              }
+            ],
+            "styles": [
+              {
+                "style_id": "style-default",
+                "record_id": "record-style",
+                "declaration_id": "record-style-format",
+                "name": "Default",
+                "valid": true,
+                "fields": [
+                  {
+                    "field_name": "Name",
+                    "raw_value": "Default"
+                  },
+                  {
+                    "field_name": "Fontname",
+                    "raw_value": "Arial"
+                  },
+                  {
+                    "field_name": "Fontsize",
+                    "raw_value": "20",
+                    "typed_value": {
+                      "kind": "decimal",
+                      "decimal": 20
+                    }
+                  },
+                  {
+                    "field_name": "PrimaryColour",
+                    "raw_value": "&H00FFFFFF"
+                  },
+                  {
+                    "field_name": "SecondaryColour",
+                    "raw_value": "&H000000FF"
+                  },
+                  {
+                    "field_name": "TertiaryColour",
+                    "raw_value": "&H00000000"
+                  },
+                  {
+                    "field_name": "BackColour",
+                    "raw_value": "&H00000000"
+                  },
+                  {
+                    "field_name": "Bold",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "Italic",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "BorderStyle",
+                    "raw_value": "1"
+                  },
+                  {
+                    "field_name": "Outline",
+                    "raw_value": "2"
+                  },
+                  {
+                    "field_name": "Shadow",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "Alignment",
+                    "raw_value": "2"
+                  },
+                  {
+                    "field_name": "MarginL",
+                    "raw_value": "10"
+                  },
+                  {
+                    "field_name": "MarginR",
+                    "raw_value": "10"
+                  },
+                  {
+                    "field_name": "MarginV",
+                    "raw_value": "10"
+                  },
+                  {
+                    "field_name": "AlphaLevel",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "Encoding",
+                    "raw_value": "1"
+                  }
+                ]
+              }
+            ],
+            "events": [
+              {
+                "event_id": "event-0",
+                "record_id": "record-event",
+                "declaration_id": "record-event-format",
+                "event_type": "dialogue",
+                "cue_id": "cue-0",
+                "valid": true,
+                "fields": [
+                  {
+                    "field_name": "Marked",
+                    "raw_value": "Marked=0"
+                  },
+                  {
+                    "field_name": "Start",
+                    "raw_value": "0:00:01.00"
+                  },
+                  {
+                    "field_name": "End",
+                    "raw_value": "0:00:02.00"
+                  },
+                  {
+                    "field_name": "Style",
+                    "raw_value": "Default"
+                  },
+                  {
+                    "field_name": "Name",
+                    "raw_value": "Narrator"
+                  },
+                  {
+                    "field_name": "MarginL",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "MarginR",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "MarginV",
+                    "raw_value": "0"
+                  },
+                  {
+                    "field_name": "Effect",
+                    "raw_value": ""
+                  },
+                  {
+                    "field_name": "Text",
+                    "raw_value": "Hello\\Nworld"
+                  }
+                ],
+                "text": "Hello\\Nworld",
+                "spans": [
+                  {
+                    "kind": "literal",
+                    "start_scalar": 0,
+                    "end_scalar": 12,
+                    "raw": "Hello\\Nworld"
+                  }
+                ],
+                "tags": [],
+                "karaoke": []
+              }
+            ],
+            "attachments": []
+          }
+        }
+      ]
+    },
+    "ssa_cue_format_data": {
+      "title": "SSA cue native wrapper",
+      "description": "Exactly the ssa branch matching the root format.",
+      "type": "object",
+      "required": [
+        "ssa"
+      ],
+      "properties": {
+        "ssa": {
+          "$ref": "#/$defs/scripted_cue_data",
+          "description": "Native SSA cue owner."
+        }
+      },
+      "additionalProperties": false,
+      "examples": [
+        {
+          "ssa": {
+            "event_id": "event-0",
+            "style_id": "style-default",
+            "start_timestamp_raw": "0:00:01.00",
+            "end_timestamp_raw": "0:00:02.00",
+            "projection": {
+              "origin": "native_derived",
+              "source_event_id": "event-0",
+              "text_field_name": "Text",
+              "speaker_field_name": "Name",
+              "wrap_style": 0,
+              "drawing_excluded": false
+            }
+          }
+        }
+      ]
+    },
+    "scripted_format_support": {
+      "title": "Scripted format capability observation",
+      "description": "Exact ASS/SSA capability observations for the bounded stable native profile: schema_only recognition or complete experimental/stable native workflows. Source bytes remain authoritative; retained styles, drawings, transforms, attachments and unsupported karaoke do not promise pixel rendering, external resource loading or legacy codepage decoding.",
+      "examples": [
+        {
+          "status": "schema_only",
+          "ingest_supported": false,
+          "render_supported": false,
+          "restore_supported": true,
+          "ocr_required_for_semantic_output": false
+        },
+        {
+          "status": "experimental",
+          "ingest_supported": true,
+          "render_supported": true,
+          "restore_supported": true,
+          "ocr_required_for_semantic_output": false
+        },
+        {
+          "status": "stable",
+          "ingest_supported": true,
+          "render_supported": true,
+          "restore_supported": true,
+          "ocr_required_for_semantic_output": false
+        }
+      ],
+      "allOf": [
+        {
+          "$ref": "#/$defs/format_support"
+        },
+        {
+          "properties": {
+            "restore_supported": {
+              "const": true
+            },
+            "ocr_required_for_semantic_output": {
+              "const": false
+            }
+          },
+          "oneOf": [
+            {
+              "properties": {
+                "status": {
+                  "const": "schema_only"
+                },
+                "ingest_supported": {
+                  "const": false
+                },
+                "render_supported": {
+                  "const": false
+                }
+              }
+            },
+            {
+              "properties": {
+                "status": {
+                  "const": "experimental"
+                },
+                "ingest_supported": {
+                  "const": true
+                },
+                "render_supported": {
+                  "const": true
+                }
+              }
+            },
+            {
+              "properties": {
+                "status": {
+                  "const": "stable"
+                },
+                "ingest_supported": {
+                  "const": true
+                },
+                "render_supported": {
+                  "const": true
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "speaker_id": {
+      "title": "Consumer speaker identifier",
+      "description": "Opaque consumer-assigned Unicode text, with no global or universal identity meaning and no enforced document-local scope. Consumers own scope, persistence and interpretation. Accepted text is preserved exactly and never interpreted as markup, a URI, a path, code or encoded binary.",
+      "examples": [
+        "Alex",
+        "f7746aa9-d48c-49ba-9f26-9c30219b1029",
+        "日本語",
+        "é",
+        "🙂"
+      ],
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "allOf": [
+        {
+          "pattern": "^[^\u0000-\u001f\u007f-\u009f\u2028\u2029\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]*$"
+        },
+        {
+          "pattern": "^[^\t-\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]"
+        },
+        {
+          "pattern": "[^\t-\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]$"
+        }
+      ]
+    },
+    "speaker_attribution": {
+      "title": "Consumer speaker attribution",
+      "description": "A consumer-assigned speaker identifier and optional paired absolute millisecond interval. Untimed entries mean participation somewhere in the cue. Timed entries denote positive half-open intervals inside the cue and any declared media bounds; executable semantic validation checks these relationships without changing native labels.",
+      "examples": [
+        {
+          "speaker_id": "Interviewer"
+        },
+        {
+          "start_milliseconds": 1250,
+          "speaker_id": "Alex",
+          "end_milliseconds": 4200
+        }
+      ],
+      "type": "object",
+      "required": [
+        "speaker_id"
+      ],
+      "properties": {
+        "speaker_id": {
+          "description": "Exact arbitrary string chosen and managed by the consumer; names and UUIDs receive the same opaque treatment.",
+          "$ref": "#/$defs/speaker_id"
+        },
+        "start_milliseconds": {
+          "minimum": 0,
+          "description": "Inclusive interval start in absolute cue-timeline integer milliseconds; requires end_milliseconds.",
+          "type": "integer",
+          "maximum": 9223372036854775807
+        },
+        "end_milliseconds": {
+          "minimum": 0,
+          "description": "Exclusive interval end in absolute cue-timeline integer milliseconds; must exceed the start and stay within cue and declared media bounds.",
+          "type": "integer",
+          "maximum": 9223372036854775807
+        }
+      },
+      "dependentRequired": {
+        "end_milliseconds": [
+          "start_milliseconds"
+        ],
+        "start_milliseconds": [
+          "end_milliseconds"
+        ]
+      },
+      "additionalProperties": false
+    },
+    "media_timing": {
+      "title": "Consumer media timing declaration",
+      "description": "Optional finite media duration supplied by a consumer, independent from cue coverage summaries. Media starts at timeline_start_milliseconds (zero when omitted) and ends at that start plus duration_milliseconds with checked arithmetic. This is a declaration, not independent media verification.",
+      "examples": [
+        {
+          "duration_milliseconds": 600000
+        },
+        {
+          "duration_milliseconds": 600000,
+          "timeline_start_milliseconds": 30000
+        },
+        {
+          "duration_milliseconds": 0
+        }
+      ],
+      "type": "object",
+      "required": [
+        "duration_milliseconds"
+      ],
+      "properties": {
+        "duration_milliseconds": {
+          "minimum": 0,
+          "description": "Known finite nonnegative media duration in integer milliseconds; zero means known empty media, never unknown.",
+          "type": "integer",
+          "maximum": 9223372036854775807
+        },
+        "timeline_start_milliseconds": {
+          "minimum": -9223372036854775808,
+          "description": "Signed absolute cue-timeline position of media start. Omission evaluates as zero without adding a persisted value; media end is this start plus duration.",
+          "type": "integer",
+          "maximum": 9223372036854775807
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
