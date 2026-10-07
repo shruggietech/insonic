@@ -36,7 +36,14 @@ type compileInput struct {
 
 // recognitionContext previews the same selected hints and language filter used
 // by generated recognition elections. It performs catalog reads only.
+func effectiveRecognitionStage(stage pipeline.Stage) pipeline.Stage {
+	if stage.Adapter == "faster-whisper" && stage.Mode == "local" && stage.Recognition.Language == "" {
+		stage.Recognition.Language = "en"
+	}
+	return stage
+}
 func (a *App) recognitionContext(filter catalog.ContextFilter, stage pipeline.Stage, budget int, supported bool) (speakers.CompiledContext, error) {
+	stage = effectiveRecognitionStage(stage)
 	if filter.Language == "" {
 		filter.Language = stage.Recognition.Language
 	}
@@ -66,7 +73,7 @@ func (a *App) compileRecognitionContext(input compileInput) (speakers.CompiledCo
 		if e != nil {
 			return speakers.CompiledContext{}, e
 		}
-		stage = d.Recognition
+		stage = effectiveRecognitionStage(d.Recognition)
 		capability, e := pipeline.Capabilities(stage)
 		if e != nil {
 			return speakers.CompiledContext{}, e
@@ -136,6 +143,7 @@ func (a *App) configuredDispatch(req contracts.Request) (any, error) {
 		if e != nil {
 			return nil, e
 		}
+		d.Recognition = effectiveRecognitionStage(d.Recognition)
 		recognition, e := pipeline.Capabilities(d.Recognition)
 		if e != nil {
 			return nil, e

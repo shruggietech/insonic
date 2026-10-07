@@ -49,7 +49,7 @@ Input: [spec](spec.md), [plan](plan.md), research, data model, runtime contract 
 - [ ] T028 Prove full catalog/snapshot contract and hosted PostgreSQL/S3 parity in `internal/catalog/`, `internal/qualification/` (FR014).
 - [x] T029 Prove committed audio/video deterministic CLI/bridge fixtures in `scripts/qualify.py`, `internal/app/` (FR013/015).
 - [x] T030 Run affected Go/race/vet, deterministic Python, npm check/test and site/offline checks; scan UTF8/LF/mojibake and record evidence in `verification.md` (FR014..016).
-- [ ] T031 Commit/push official PR linked to #8/#9, attach it and update tracking. Record at most two review rounds in `verification.md` (FR016).
+- [x] T031 Commit/push official PR linked to #8/#9, attach it and update tracking. Record at most two review rounds in `verification.md` (FR016).
 - [ ] T032 Respond to every finding, resolve all threads, verify final-head CI green and hand off for owner merge (FR016).
 
 ## Dependencies and parallel examples

@@ -29,4 +29,6 @@ Spec Kit prerequisite checker resolves the requested S006 directory with spec/pl
 
 ## External delivery
 
-Not published yet. Hosted three-platform CI and alternative backend qualification must pass on the final PR head. Initial automatic review is round1; at most one combined `@codex review`/`@codex security review` follow-up is round2. Every received finding requires a pushed disposition, reply and resolved thread before owner handoff. No third review request is authorized.
+PR25 is published: https://github.com/shruggietech/insonic/pull/25. Product commit `6d020b9d76bfabc7c6f7fa34e5189b4e3a935b20` is pushed and both target Project items are In review. Initial automatic Code Review completed with one P2 finding, discussion4213063626: omitted local recognition language defaults to English during execution but previously compiled an empty-language context. The regression fails before the fix. Shared normalization now elects/reports English before preview/compile/job context, preserving explicit languages, auto and hosted omission; direct local processing is covered too.
+
+Initial adapter-fixture CI passed on6d020b9 (run37702175848), including the configured PostgreSQL/S3/ArcadeDB gate. Final-head three-platform CI remains required. Initial automatic review is round1; at most one combined `@codex review`/`@codex security review` follow-up is round2. Every received finding requires a pushed disposition, reply and resolved thread before owner handoff. No third review request is authorized.

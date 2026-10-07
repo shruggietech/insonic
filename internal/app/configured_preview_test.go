@@ -22,7 +22,7 @@ func TestConfiguredPreviewMatchesElectedHintsAndDefaultLanguage(t *testing.T) {
 		}
 	}
 	definition := localDefinition()
-	definition["recognition"].(map[string]any)["recognition"] = map[string]any{"language": "en", "hints": []string{"ConfiguredHint"}}
+	definition["recognition"].(map[string]any)["recognition"] = map[string]any{"hints": []string{"ConfiguredHint"}}
 	pipelineID := contracts.ID()
 	raw, _ := json.Marshal(definition)
 	saved, err := a.Catalog.PutPipeline(ctx, contracts.ID(), 0, catalog.Pipeline{ID: pipelineID, Name: "Preview", Preset: "local", Configuration: raw})
@@ -41,6 +41,9 @@ func TestConfiguredPreviewMatchesElectedHintsAndDefaultLanguage(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			if fixture.name == "saved" && options.Recognition.Language != "en" {
+				t.Fatal("local execution default not elected before context")
+			}
 			response := configuredResult(t, realRequest(a, "pipelines.inspect", pipelineID, map[string]any{"revision": saved.Revision, "overrides": fixture.override, "context": filter}))
 			raw, _ := json.Marshal(response["context"])
 			var preview speakers.CompiledContext
@@ -58,6 +61,9 @@ func TestConfiguredPreviewMatchesElectedHintsAndDefaultLanguage(t *testing.T) {
 			if !reflect.DeepEqual(effective.Recognition.Recognition.Hints, options.Recognition.Hints) || effective.Recognition.Recognition.ContextDigest != options.Recognition.ContextDigest {
 				t.Fatal("reported recognition configuration differs from election")
 			}
+			if effective.Recognition.Recognition.Language != options.Recognition.Language {
+				t.Fatal("preview language differs from election")
+			}
 		})
 	}
 	compiled, err := a.compileRecognitionContext(compileInput{PipelineID: pipelineID, PipelineRevision: saved.Revision, Context: "project"})
@@ -73,5 +79,25 @@ func TestConfiguredPreviewMatchesElectedHintsAndDefaultLanguage(t *testing.T) {
 	}
 	if _, err = a.compileRecognitionContext(compileInput{PipelineID: pipelineID, MaxHintBytes: 8193}); err == nil {
 		t.Fatal("oversized explicit budget silently clamped")
+	}
+}
+
+func TestRecognitionDefaultPreservesHostedAndAutoLanguage(t *testing.T) {
+	for _, stage := range []pipeline.Stage{
+		{Adapter: "insonic-http", Mode: "hosted"},
+		{Adapter: "faster-whisper", Mode: "local", Recognition: processing.RecognitionOptions{Language: "auto"}},
+		{Adapter: "faster-whisper", Mode: "local", Recognition: processing.RecognitionOptions{Language: "fr"}},
+	} {
+		if effectiveRecognitionStage(stage).Recognition.Language != stage.Recognition.Language {
+			t.Fatal("unselected default changed language")
+		}
+	}
+	a := configuredApp(t)
+	if _, e := a.Catalog.PutTerm(a.ctx, contracts.ID(), 0, catalog.Term{ID: contracts.ID(), Canonical: "EnglishTerm", Language: "en"}); e != nil {
+		t.Fatal(e)
+	}
+	o, election, e := a.electRecordingOptions(RecordingOptions{Transcription: "generate", RecognitionModelID: contracts.ID()})
+	if e != nil || o.Recognition.Language != "en" || !reflect.DeepEqual(election.Context.Hints, []string{"EnglishTerm"}) {
+		t.Fatal("direct local default omits English context", e)
 	}
 }

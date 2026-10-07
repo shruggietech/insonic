@@ -70,6 +70,7 @@ func (a *App) electRecordingOptions(o RecordingOptions) (RecordingOptions, *reco
 		if e != nil {
 			return o, nil, e
 		}
+		d.Recognition = effectiveRecognitionStage(d.Recognition)
 		// Full-stage overrides are the single route/model/options override contract.
 		if o.RecognitionModelID != "" || o.DiarizationModelID != "" || o.Recognition.Device != "" || o.Recognition.Language != "" || len(o.Recognition.Hints) > 0 || o.Recognition.ContextDigest != "" || o.Attribution != (processing.DiarizationOptions{}) || o.Quality != nil {
 			return o, nil, contracts.Fail("invalid_request")
@@ -90,6 +91,9 @@ func (a *App) electRecordingOptions(o RecordingOptions) (RecordingOptions, *reco
 		return o, nil, contracts.Fail("invalid_request")
 	}
 	if o.Transcription == "generate" {
+		if o.PipelineID == "" && o.Recognition.Language == "" {
+			o.Recognition.Language = "en"
+		}
 		if o.Context.Language == "" {
 			o.Context.Language = o.Recognition.Language
 		}
