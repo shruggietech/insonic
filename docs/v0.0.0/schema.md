@@ -31,13 +31,13 @@ flowchart TB
 
 ## Portable values and invariants
 
-Catalog schema 4 adds current embedded recordings, external speaker mappings and
-reference-only current or invalidated corpus evidence to the typed library,
-model-installation, work and cleanup records.
+Catalog schema 5 adds revisioned saved pipelines, canonical speaker state and aliases,
+scoped terminology and context-selection provenance to the current embedded
+recordings, external mappings and reference-only corpus evidence.
 The current library's nullable `duration_us` is authoritative: null means unknown
 and zero means a measured zero. Existing numeric source-asset duration fields
 remain for snapshot compatibility and never supply a fallback for unknown current
-media duration. Historical schema-1/schema-2/schema-3 migration definitions remain frozen.
+media duration. Historical schema-1/schema-2/schema-3/schema-4 migration definitions remain frozen. Legacy speakers retain their stable IDs and names; aliases and terms are not guessed from old assignment data.
 
 Current facts, metadata and dates are replaced atomically. Operational receipts
 retain identities and record hashes, rather than an archive of superseded
@@ -114,7 +114,9 @@ Keep recording/origination, publication, retrieval, import, filesystem modificat
 
 | Record | Required relationships and fields |
 | --- | --- |
-| `pipeline_revision` | Configuration identity, elected stage adapters/models/settings and credential references |
+| `current_pipeline` | Stable ID, display name, Local/Connected/Custom preset, current revision and typed recognition/diarization/quality configuration |
+| `speaker` / `speaker_alias` | Stable canonical identity, state and aggregate revision; alternate text with explicit owner ID, language/scope/state and provenance |
+| `context_term` | Stable term ID/revision, canonical/variant spellings, language/context/state and optional speaker/alias links |
 | `processing_run` | Source/model/tool digests, effective settings, work fence and noncontent accepted result references |
 | `recording` | Library entry/source digest, current revision/state, sole embedded Cue JSON and document digest, measured nullable duration, current mapped-audio publication and exact source map |
 | `recording_speaker_mapping` | Recording/document identity, local UUID, known speaker ID and expected current recording and mapping revisions |

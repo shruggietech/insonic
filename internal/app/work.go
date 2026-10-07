@@ -168,6 +168,9 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 }
 
 func domainRequestValid(req contracts.Request) bool {
+	if configuredOperation(req.Operation) {
+		return configuredRequestValid(req)
+	}
 	if strings.HasPrefix(req.Operation, "recordings.") {
 		return recordingRequestValid(req)
 	}
@@ -184,6 +187,9 @@ func domainRequestValid(req contracts.Request) bool {
 	return (list && req.ItemID == "") || (req.Operation == "work.results" && contracts.ValidID(req.ItemID)) || (input && req.ItemID == "" && len(req.Data) > 0) || (update && contracts.ValidID(req.ItemID) && len(req.Data) > 0) || (!list && !input && !update && contracts.ValidID(req.ItemID) && len(req.Data) == 0)
 }
 func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
+	if configuredOperation(req.Operation) {
+		return a.configuredDispatch(req)
+	}
 	defer func() {
 		if w, ok := result.(catalog.Work); ok {
 			result = workView(w)

@@ -38,6 +38,13 @@ func postgresStore(t *testing.T, id string) *Store {
 func TestPostgreSQLCatalogContract(t *testing.T) {
 	contractSuite(t, func(id string) *Store { return postgresStore(t, id) })
 }
+func TestPostgreSQLIdentityDomains(t *testing.T) { identitySuite(t, postgresStore(t, contracts.ID())) }
+func TestPostgreSQLCurrentSpeakerSelection(t *testing.T) {
+	selectionSuite(t, postgresStore(t, contracts.ID()))
+}
+func TestPostgreSQLSpeakerSelectionEpoch(t *testing.T) {
+	selectionEpochSuite(t, postgresStore(t, contracts.ID()))
+}
 func TestPostgreSQLDurableJobs(t *testing.T)   { jobSuite(t, postgresStore(t, contracts.ID())) }
 func TestPostgreSQLOrderedOutbox(t *testing.T) { outboxSuite(t, postgresStore(t, contracts.ID())) }
 func TestPostgreSQLSecurityAndConcurrency(t *testing.T) {

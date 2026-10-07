@@ -32,7 +32,7 @@ type legacySegment struct {
 
 func decodedSnapshot(envelope snapshotEnvelope) (Snapshot, error) {
 	out := Snapshot{Kind: envelope.Kind, Version: envelope.Version, CatalogSchema: envelope.CatalogSchema, WorkspaceID: envelope.WorkspaceID, Revision: envelope.Revision, State: envelope.State, Digest: envelope.Digest}
-	if envelope.CatalogSchema < 1 || envelope.CatalogSchema > 3 {
+	if envelope.CatalogSchema < 1 || envelope.CatalogSchema > 4 {
 		return out, strict(envelope.Records, &out.Records)
 	}
 	// Verify the original legacy representation before deleting its copied
@@ -46,6 +46,64 @@ func decodedSnapshot(envelope snapshotEnvelope) (Snapshot, error) {
 	var fields map[string]json.RawMessage
 	if strict(envelope.Records, &fields) != nil {
 		return out, contracts.Fail("invalid_request")
+	}
+	// A historical shape cannot claim schema5 journal authority by downgrading
+	// its version number, even if its outer checksum was recomputed.
+	for _, table := range out.State {
+		if table.Name != "operation_receipt" {
+			continue
+		}
+		for _, row := range table.Rows {
+			if len(row) != 4 {
+				return out, contracts.Fail("invalid_request")
+			}
+			var text string
+			if strict(row[3], &text) != nil {
+				return out, contracts.Fail("invalid_request")
+			}
+			var result map[string]json.RawMessage
+			if strict([]byte(text), &result) != nil {
+				return out, contracts.Fail("invalid_request")
+			}
+			for _, key := range []string{"speaker_proofs", "pipeline_proofs", "term_proofs"} {
+				if _, ok := result[key]; ok {
+					return out, contracts.Fail("invalid_request")
+				}
+			}
+		}
+	}
+	for _, key := range []string{"pipelines", "speaker_aliases", "terms"} {
+		if raw, ok := fields[key]; ok && string(raw) != "null" {
+			var empty []json.RawMessage
+			if strict(raw, &empty) != nil || len(empty) != 0 {
+				return out, contracts.Fail("invalid_request")
+			}
+		}
+	}
+	var speakers []struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
+	if raw, ok := fields["speakers"]; ok && strict(raw, &speakers) != nil {
+		return out, contracts.Fail("invalid_request")
+	}
+	converted := []Speaker{}
+	for _, sp := range speakers {
+		if !contracts.ValidID(sp.ID) || !identityText(sp.Name, 512) {
+			return out, contracts.Fail("invalid_request")
+		}
+		converted = append(converted, Speaker{ID: sp.ID, Name: sp.Name, Revision: envelope.Revision + 1, State: "active"})
+		out.legacySpeakers = append(out.legacySpeakers, sp.ID)
+	}
+	fields["speakers"], _ = json.Marshal(converted)
+	if envelope.CatalogSchema == 4 {
+		raw, err := json.Marshal(fields)
+		if err != nil || strict(raw, &out.Records) != nil {
+			return out, contracts.Fail("invalid_request")
+		}
+		out.CatalogSchema = SchemaVersion
+		out.Digest, err = out.digest()
+		return out, err
 	}
 	var segments []legacySegment
 	if raw, ok := fields["segments"]; ok && strict(raw, &segments) != nil {

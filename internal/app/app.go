@@ -9,6 +9,7 @@ import (
 	"github.com/shruggietech/insonic/internal/credentialcmd"
 	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/internal/workspace"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -21,6 +22,7 @@ type worker struct {
 }
 type App struct {
 	recordingFactory func() (*recordingExecution, error)
+	hostedClient     *http.Client // Only injected by deterministic protocol fixtures.
 	Workspace        *workspace.Workspace
 	Session          string
 	Catalog          catalog.Catalog
@@ -361,7 +363,7 @@ func (a *App) Dispatch(req contracts.Request) contracts.Response {
 	default:
 		if strings.HasPrefix(req.Operation, "credentials.") {
 			result, err = a.credentialDispatch(req)
-		} else if req.ItemID != "" || len(req.Data) > 0 || req.Operation == "media.list" || req.Operation == "models.list" || req.Operation == "work.list" {
+		} else if configuredOperation(req.Operation) || req.ItemID != "" || len(req.Data) > 0 || req.Operation == "media.list" || req.Operation == "models.list" || req.Operation == "work.list" {
 			result, err = a.domainDispatch(req)
 		} else {
 			result, err = a.artifactDispatch(req)

@@ -38,7 +38,7 @@
     },
     "speaker-segments": {
       "$ref": "speaker-segments.schema.json",
-      "description": "Source-timed speaker audio corpus records and revisioned assignments across the library."
+      "description": "Current source-linked speaker evidence across the library, resolved from sole current embedded documents and external identity mappings."
     },
     "speaker-dataset": {
       "$ref": "speaker-dataset.schema.json",
@@ -50,7 +50,7 @@
     },
     "catalog-snapshot": {
       "$ref": "catalog-snapshot.schema.json",
-      "description": "Consistent portable catalog export with typed records, operational history and fenced restoration."
+      "description": "Consistent portable catalog export including current pipelines, names, aliases, terms and evidence references, with latest accepted state proof and expired imported authority."
     },
     "runtime-request": {
       "$ref": "runtime-request.schema.json",

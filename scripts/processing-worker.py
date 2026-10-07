@@ -13,6 +13,7 @@ import re
 import struct
 import sys
 import time
+import unicodedata
 import wave
 
 MAX_REQUEST = 65536
@@ -52,7 +53,7 @@ def read_request(stream):
 def validate_request(request):
     allowed = {"operation", "audio_path", "model_path", "device", "language",
                "min_speakers", "max_speakers", "threads", "max_duration_us",
-               "source_start_numerator", "source_start_denominator"}
+               "source_start_numerator", "source_start_denominator", "hints", "context_digest"}
     if not isinstance(request, dict) or set(request) - allowed:
         raise WorkerError("invalid_request")
     if request.get("operation") not in {"transcribe", "diarize"}:
@@ -84,7 +85,46 @@ def validate_request(request):
             raise WorkerError("invalid_request")
     if int(request.get("source_start_denominator", "1")) <= 0:
         raise WorkerError("invalid_request")
+    validate_hints(request)
+    if request["operation"] == "diarize" and request.get("hints"):
+        raise WorkerError("unsupported_capability")
     return request
+
+
+def hints_digest(hints):
+    # Match the frozen Go JSON sequence, including its HTML-safe escapes.
+    encoded = json.dumps(hints, ensure_ascii=False, separators=(",", ":"))
+    for text, escape in (("&", "\\u0026"), ("<", "\\u003c"), (">", "\\u003e"),
+                         ("\u2028", "\\u2028"), ("\u2029", "\\u2029")):
+        encoded = encoded.replace(text, escape)
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def validate_hints(request):
+    hints = request.get("hints", [])
+    if not isinstance(hints, list) or len(hints) > 1024:
+        raise WorkerError("invalid_request")
+    seen = set()
+    for hint in hints:
+        if not isinstance(hint, str) or not hint or hint != hint.strip() or hint in seen or any(unicodedata.category(c) == "Cc" for c in hint):
+            raise WorkerError("invalid_request")
+        seen.add(hint)
+    try:
+        if len(", ".join(hints).encode("utf-8")) > 200:
+            raise WorkerError("input_limit")
+    except UnicodeError as error:
+        raise WorkerError("invalid_request") from error
+    digest = hints_digest(hints)
+    if request.get("context_digest", digest) != digest:
+        raise WorkerError("invalid_request")
+    return hints, digest
+
+
+def recognition_arguments(request):
+    hints, _digest = validate_hints(request)
+    return {"language": None if request.get("language", "en") == "auto" else request.get("language", "en"),
+            "beam_size": 5, "vad_filter": False, "condition_on_previous_text": False,
+            "hotwords": ", ".join(hints) if hints else None}
 
 
 def read_audio(path, max_duration_us):
@@ -337,12 +377,14 @@ def run(request):
                              compute_type="int8" if device == "cpu" else "float16",
                              cpu_threads=threads, num_workers=1, local_files_only=True)
         audio = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
-        segments, info = model.transcribe(audio, language=None if request.get("language", "en") == "auto" else request.get("language", "en"),
-                                          beam_size=5, vad_filter=False, condition_on_previous_text=False)
+        segments, info = model.transcribe(audio, **recognition_arguments(request))
         origin = Fraction(int(request.get("source_start_numerator", "0")), int(request.get("source_start_denominator", "1")))
         result = recognition_result(({"start": segment.start, "end": segment.end, "text": segment.text} for segment in segments), duration_us, origin)
         result["provenance"].update(language=info.language, beam_size=5, vad_filter=False,
                                      condition_on_previous_text=False, compute_type="int8" if device == "cpu" else "float16")
+        hints, context_digest = validate_hints(request)
+        result["provenance"].update(context_digest=context_digest, hint_count=len(hints),
+                                     context_application="hotwords-each-decoding-window")
     else:
         versions = _versions(("pyannote.audio", "torch", "torchaudio"))
         if versions["pyannote.audio"] != "4.0.7":

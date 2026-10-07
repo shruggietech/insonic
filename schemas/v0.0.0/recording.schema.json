@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/recording.schema.json",
   "title": "insonic current recording",
-  "description": "Current embedded Cueson subtitle and speaker assignments with external known-speaker correlations. Sources remain immutable; replacements remove superseded derived state.",
+  "description": "Current embedded Cueson subtitle and recording-local speaker assignments with revision-fenced external known-speaker correlations. Names, aliases and vocabulary remain independent current catalog domains; assignments are resolved only from the current document. Replacements invalidate dependent corpus and preparation references while preserving originals and noncontent model lineage.",
   "type": "object",
   "additionalProperties": false,
   "properties": {

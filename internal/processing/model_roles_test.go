@@ -89,3 +89,38 @@ func TestModelRequiresCanonicalRoleCaseBeforeAccessingBytes(t *testing.T) {
 		}
 	}
 }
+
+func TestModelManifestFenceRunsBeforePublicationAccess(t *testing.T) {
+	manifest := models.Manifest{Kind: "base-model-manifest", Version: contracts.Version, Name: "frozen-model", ModelVersion: "1", Revision: "immutable", License: "MIT", Capabilities: []string{"transcription"}}
+	ids := []string{}
+	for _, role := range []string{"config.json", "model.bin", "tokenizer.json", "vocabulary.txt"} {
+		manifest.Files = append(manifest.Files, models.File{Role: role, SHA256: strings.Repeat("a", 64), Size: 1, URL: "https://models.example.org/" + role})
+		ids = append(ids, contracts.ID())
+	}
+	raw, _ := json.Marshal(manifest)
+	publications, _ := json.Marshal(ids)
+	for _, matching := range []bool{false, true} {
+		db := &roleCatalog{install: catalog.BaseModelInstall{State: "available", Digest: manifest.Digest(), Manifest: raw, PublicationIDs: publications}}
+		directory := t.TempDir()
+		session := &Session{directory: directory, service: &Service{Catalog: db}}
+		expected := strings.Repeat("0", 64)
+		if matching {
+			expected = manifest.Digest()
+		}
+		_, _, err := session.modelWithDigest(context.Background(), contracts.ID(), "transcription", expected)
+		if matching {
+			if !errors.Is(err, roleValidationPassed) || db.publications != 1 {
+				t.Fatal("matching digest did not reach verified publication boundary")
+			}
+		} else {
+			typed, ok := err.(*contracts.Error)
+			if !ok || typed.Code != "conflict" || db.publications != 0 {
+				t.Fatal("changed manifest accessed model bytes")
+			}
+		}
+		entries, e := os.ReadDir(directory)
+		if e != nil || len(entries) != 0 {
+			t.Fatal("model fence left scratch")
+		}
+	}
+}

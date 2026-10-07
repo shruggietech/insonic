@@ -101,14 +101,37 @@ func legacyDerivedFixture(t *testing.T, s *Service) catalog.Publication {
 	}
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.UseNumber()
-	var canonical any
+	var canonical map[string]any
 	if e = dec.Decode(&canonical); e != nil {
 		t.Fatal(e)
 	}
+	// Construct the actual historical entity shape, without schema5 identity proofs.
+	records := canonical["records"].(map[string]any)
+	for _, value := range records["speakers"].([]any) {
+		speaker := value.(map[string]any)
+		delete(speaker, "revision")
+		delete(speaker, "state")
+	}
+	for _, value := range canonical["state"].([]any) {
+		table := value.(map[string]any)
+		if table["name"] != "operation_receipt" {
+			continue
+		}
+		for _, entry := range table["rows"].([]any) {
+			row := entry.([]any)
+			var result map[string]any
+			if json.Unmarshal([]byte(row[3].(string)), &result) != nil {
+				t.Fatal("invalid fixture receipt")
+			}
+			delete(result, "speaker_proofs")
+			text, _ := json.Marshal(result)
+			row[3] = string(text)
+		}
+	}
 	normalized, _ := json.Marshal(canonical)
 	sum = sha256.Sum256(normalized)
-	snap.Digest = hex.EncodeToString(sum[:])
-	raw, _ = json.Marshal(snap)
+	canonical["digest"] = hex.EncodeToString(sum[:])
+	raw, _ = json.Marshal(canonical)
 	migrated, e := catalog.ReadSnapshotReader(bytes.NewReader(raw))
 	if e != nil {
 		t.Fatal("legacy snapshot conversion", e)

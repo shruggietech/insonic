@@ -75,7 +75,8 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ]
     },
     "digest": {
@@ -1082,6 +1083,18 @@
               "name": {
                 "description": "Typed text value retained without reinterpretation.",
                 "type": "string"
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Accepted aggregate revision used for compare-and-swap."
+              },
+              "state": {
+                "enum": [
+                  "active",
+                  "inactive"
+                ],
+                "description": "Explicit context eligibility; deactivation preserves stable identity and links."
               }
             },
             "required": [
@@ -1500,6 +1513,205 @@
           "items": {
             "$ref": "recording.schema.json#/$defs/mapping"
           }
+        },
+        "speaker_aliases": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable alias identity."
+              },
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Owning known-speaker identity."
+              },
+              "text": {
+                "type": "string",
+                "description": "Explicit alias text.",
+                "maxLength": 512
+              },
+              "language": {
+                "type": "string",
+                "description": "Language scope or empty for any selected language.",
+                "maxLength": 80
+              },
+              "scope": {
+                "type": "string",
+                "description": "Context scope or empty for any selected context.",
+                "maxLength": 256
+              },
+              "state": {
+                "enum": [
+                  "active",
+                  "inactive"
+                ],
+                "description": "Explicit context eligibility; deactivation preserves stable identity and links."
+              },
+              "provenance": {
+                "type": "object",
+                "description": "Nonsecret reference-only origin metadata; credentials, transcript copies and attribution arrays are rejected by the catalog."
+              }
+            },
+            "required": [
+              "id",
+              "speaker_id",
+              "text",
+              "language",
+              "scope",
+              "state",
+              "provenance"
+            ],
+            "description": "Current alias; updates are fenced by the owning speaker aggregate revision."
+          },
+          "description": "Current typed records, ordered by stable identity; null or omission denotes an empty domain."
+        },
+        "terms": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable vocabulary entry identity."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Accepted term revision used for compare-and-swap."
+              },
+              "canonical": {
+                "type": "string",
+                "description": "Canonical recognition hint.",
+                "maxLength": 512
+              },
+              "variants": {
+                "type": "array",
+                "maxItems": 128,
+                "items": {
+                  "type": "string",
+                  "description": "Explicit recognition variant.",
+                  "maxLength": 512
+                },
+                "description": "Ordered variants, deduplicated only during context compilation."
+              },
+              "language": {
+                "type": "string",
+                "description": "Language scope or empty for any selected language.",
+                "maxLength": 80
+              },
+              "context": {
+                "type": "string",
+                "description": "Context scope or empty for any selected context.",
+                "maxLength": 256
+              },
+              "state": {
+                "enum": [
+                  "active",
+                  "inactive"
+                ],
+                "description": "Explicit context eligibility; deactivation preserves stable identity and links."
+              },
+              "speaker_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Optional known-speaker link."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional known-speaker link."
+              },
+              "alias_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Optional alias link; must belong to the linked speaker when both are supplied."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional alias link."
+              },
+              "provenance": {
+                "type": "object",
+                "description": "Nonsecret reference-only origin metadata; credentials, transcript copies and attribution arrays are rejected by the catalog."
+              }
+            },
+            "required": [
+              "id",
+              "revision",
+              "canonical",
+              "variants",
+              "language",
+              "context",
+              "state",
+              "speaker_id",
+              "alias_id",
+              "provenance"
+            ],
+            "description": "Current revisioned recognition term."
+          },
+          "description": "Current typed records, ordered by stable identity; null or omission denotes an empty domain."
+        },
+        "pipelines": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable saved pipeline identity."
+              },
+              "name": {
+                "type": "string",
+                "description": "Readable pipeline name.",
+                "maxLength": 512
+              },
+              "preset": {
+                "enum": [
+                  "local",
+                  "connected",
+                  "custom"
+                ],
+                "description": "Canonical preset; stage election validates its explicit routing."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Accepted pipeline revision used for compare-and-swap."
+              },
+              "configuration": {
+                "$ref": "pipeline-config.schema.json#/$defs/configuration",
+                "description": "Effective stage defaults with credential references only."
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "preset",
+              "revision",
+              "configuration"
+            ],
+            "description": "Current saved pipeline definition; work captures its effective revision separately."
+          },
+          "description": "Current typed records, ordered by stable identity; null or omission denotes an empty domain."
         }
       },
       "required": [
@@ -1606,32 +1818,276 @@
       "if": {
         "properties": {
           "catalog_schema": {
-            "const": 1,
-            "description": "Select legacy schema-1 snapshot layout."
+            "const": 5,
+            "description": "Current catalog schema contract."
           }
-        },
-        "type": "object"
+        }
       },
       "then": {
         "properties": {
-          "state": {
-            "maxItems": 7,
-            "type": "array",
-            "description": "Operational table count for the selected catalog schema."
+          "records": {
+            "type": "object",
+            "properties": {
+              "speakers": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Known-speaker identity, independent of recording-local voice IDs."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Canonical display name; equal names never merge people.",
+                      "maxLength": 512
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Accepted aggregate revision used for compare-and-swap."
+                    },
+                    "state": {
+                      "enum": [
+                        "active",
+                        "inactive"
+                      ],
+                      "description": "Explicit context eligibility; deactivation preserves stable identity and links."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "revision",
+                    "state"
+                  ],
+                  "description": "Current known-speaker identity."
+                },
+                "description": "Current speakers contract."
+              }
+            },
+            "description": "Current records contract."
           }
-        },
-        "type": "object"
-      },
-      "else": {
-        "properties": {
-          "state": {
-            "minItems": 8,
-            "type": "array",
-            "description": "Operational table count for the selected catalog schema."
-          }
-        },
-        "type": "object"
+        }
       }
     }
-  ]
+  ],
+  "$defs": {
+    "speaker": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Known-speaker identity, independent of recording-local voice IDs."
+        },
+        "name": {
+          "type": "string",
+          "description": "Canonical display name; equal names never merge people.",
+          "maxLength": 512
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Accepted aggregate revision used for compare-and-swap."
+        },
+        "state": {
+          "enum": [
+            "active",
+            "inactive"
+          ],
+          "description": "Explicit context eligibility; deactivation preserves stable identity and links."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "revision",
+        "state"
+      ],
+      "description": "Current known-speaker identity."
+    },
+    "speakerAlias": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Stable alias identity."
+        },
+        "speaker_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Owning known-speaker identity."
+        },
+        "text": {
+          "type": "string",
+          "description": "Explicit alias text.",
+          "maxLength": 512
+        },
+        "language": {
+          "type": "string",
+          "description": "Language scope or empty for any selected language.",
+          "maxLength": 80
+        },
+        "scope": {
+          "type": "string",
+          "description": "Context scope or empty for any selected context.",
+          "maxLength": 256
+        },
+        "state": {
+          "enum": [
+            "active",
+            "inactive"
+          ],
+          "description": "Explicit context eligibility; deactivation preserves stable identity and links."
+        },
+        "provenance": {
+          "type": "object",
+          "description": "Nonsecret reference-only origin metadata; credentials, transcript copies and attribution arrays are rejected by the catalog."
+        }
+      },
+      "required": [
+        "id",
+        "speaker_id",
+        "text",
+        "language",
+        "scope",
+        "state",
+        "provenance"
+      ],
+      "description": "Current alias; updates are fenced by the owning speaker aggregate revision."
+    },
+    "term": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Stable vocabulary entry identity."
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Accepted term revision used for compare-and-swap."
+        },
+        "canonical": {
+          "type": "string",
+          "description": "Canonical recognition hint.",
+          "maxLength": 512
+        },
+        "variants": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "string",
+            "description": "Explicit recognition variant.",
+            "maxLength": 512
+          },
+          "description": "Ordered variants, deduplicated only during context compilation."
+        },
+        "language": {
+          "type": "string",
+          "description": "Language scope or empty for any selected language.",
+          "maxLength": 80
+        },
+        "context": {
+          "type": "string",
+          "description": "Context scope or empty for any selected context.",
+          "maxLength": 256
+        },
+        "state": {
+          "enum": [
+            "active",
+            "inactive"
+          ],
+          "description": "Explicit context eligibility; deactivation preserves stable identity and links."
+        },
+        "speaker_id": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/uuid",
+              "description": "Optional known-speaker link."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional known-speaker link."
+        },
+        "alias_id": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/uuid",
+              "description": "Optional alias link; must belong to the linked speaker when both are supplied."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional alias link."
+        },
+        "provenance": {
+          "type": "object",
+          "description": "Nonsecret reference-only origin metadata; credentials, transcript copies and attribution arrays are rejected by the catalog."
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "canonical",
+        "variants",
+        "language",
+        "context",
+        "state",
+        "speaker_id",
+        "alias_id",
+        "provenance"
+      ],
+      "description": "Current revisioned recognition term."
+    },
+    "pipeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Stable saved pipeline identity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Readable pipeline name.",
+          "maxLength": 512
+        },
+        "preset": {
+          "enum": [
+            "local",
+            "connected",
+            "custom"
+          ],
+          "description": "Canonical preset; stage election validates its explicit routing."
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Accepted pipeline revision used for compare-and-swap."
+        },
+        "configuration": {
+          "$ref": "pipeline-config.schema.json#/$defs/configuration",
+          "description": "Effective stage defaults with credential references only."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "preset",
+        "revision",
+        "configuration"
+      ],
+      "description": "Current saved pipeline definition; work captures its effective revision separately."
+    }
+  }
 }

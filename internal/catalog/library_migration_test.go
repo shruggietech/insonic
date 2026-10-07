@@ -10,7 +10,7 @@ import (
 )
 
 func TestActualHistoricalCatalogUpgrades(t *testing.T) {
-	for _, version := range []int{1, 2, 3} {
+	for _, version := range []int{1, 2, 3, 4} {
 		t.Run(string(rune('0'+version)), func(t *testing.T) {
 			ctx := context.Background()
 			path := filepath.Join(t.TempDir(), "historical.sqlite")
@@ -27,6 +27,10 @@ func TestActualHistoricalCatalogUpgrades(t *testing.T) {
 			if version == 3 {
 				ddl = historicalV3DDL
 				digest = historicalV3Digest()
+			}
+			if version == 4 {
+				ddl = historicalV4DDL
+				digest = historicalV4Digest()
 			}
 			for _, q := range ddl {
 				if _, e = db.Exec(q); e != nil {
@@ -54,6 +58,10 @@ func TestActualHistoricalCatalogUpgrades(t *testing.T) {
 			if e != nil {
 				t.Fatal(e)
 			}
+			speaker := contracts.ID()
+			if _, e = db.Exec("INSERT INTO speaker VALUES(?,?,?)", wid, speaker, "Historical name"); e != nil {
+				t.Fatal(e)
+			}
 			db.Close()
 			s, e := OpenSQLite(ctx, path, wid)
 			if e != nil {
@@ -66,6 +74,13 @@ func TestActualHistoricalCatalogUpgrades(t *testing.T) {
 			}
 			if len(snap.Records.Assets) != 1 || snap.Records.Assets[0].DurationUS != 0 || snap.CatalogSchema != SchemaVersion {
 				t.Fatal("upgrade lost source timing")
+			}
+			identity, e := s.Speaker(ctx, speaker)
+			if e != nil || identity.Speaker.State != "active" || identity.Speaker.Revision < 1 {
+				t.Fatal("identity migration", e)
+			}
+			if e = localStore(t, wid).Restore(ctx, snap); e != nil {
+				t.Fatal("upgraded snapshot proof", e)
 			}
 			var actual string
 			if e = s.db.QueryRow("SELECT digest FROM catalog_schema").Scan(&actual); e != nil || actual != migrationDigest() {

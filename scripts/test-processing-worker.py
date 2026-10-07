@@ -26,6 +26,19 @@ def load(name, filename):
 
 
 class WorkerTests(unittest.TestCase):
+    def test_context_is_exact_bounded_and_applied_each_window(self):
+        worker = load("processing_hints", "processing-worker.py")
+        hints = ["Exact Name", "R&D"]
+        request = {"hints": hints, "context_digest": worker.hints_digest(hints)}
+        self.assertEqual(worker.recognition_arguments(request)["hotwords"], "Exact Name, R&D")
+        self.assertFalse(worker.recognition_arguments(request)["condition_on_previous_text"])
+        self.assertNotIn("initial_prompt", worker.recognition_arguments(request))
+        self.assertEqual(worker.hints_digest([]), "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945")
+        for invalid in (["x" * 201], ["name", "name"], [" name"], ["name\n"], [""], ["é" * 101]):
+            with self.assertRaises(worker.WorkerError):
+                worker.validate_hints({"hints": invalid})
+        with self.assertRaises(worker.WorkerError):
+            worker.validate_hints({"hints": hints, "context_digest": "0" * 64})
     def test_maintainer_child_environment_excludes_credentials(self):
         qualifier = load("processing_clean_qualification", "qualify-processing.py")
         selected = {name: "" for name in qualifier.CI_VARIABLES}

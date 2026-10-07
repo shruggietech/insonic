@@ -13,7 +13,7 @@ const example = kind => structuredClone(catalog.contracts.find(item => item.sche
 
 test('all documented contracts and local references validate through the release master', () => {
   assert.equal(catalog.contracts.length, 17);
-  assert.equal(examples, 18);
+  assert.equal(examples, 21);
   for (const item of catalog.contracts) for (const value of item.schema.examples) assert.equal(master(value), true);
 });
 
@@ -50,6 +50,22 @@ test('recording read, mapping and export requests enforce typed argument bounds'
   assert.equal(master({...base,operation:'recordings.export',data:{format:'cueson',destination:'/tmp/export.json',strict:true}}),true);
   assert.equal(master({...base,operation:'recordings.export',data:{format:'invented',destination:'/tmp/export.json'}}),false);
   assert.equal(master({...base,operation:'recordings.process',data:{diarization_model_id:'33333333-3333-4333-8333-333333333333'},publication_id:'55555555-5555-4555-8555-555555555555'}),false);
+});
+
+test('saved pipeline and context requests preserve routing, revisions and bounds', () => {
+  const pipeline=example('pipeline-config');
+  assert.equal(master(pipeline),true);
+  pipeline.preset='connected';assert.equal(master(pipeline),false);
+  pipeline.preset='custom';assert.equal(master(pipeline),true);
+  pipeline.configuration.recognition.credential_id='33333333-3333-4333-8333-333333333333';assert.equal(master(pipeline),false);
+  const base={...example('runtime-request'),operation:'terms.compile',data:{speaker_ids:[],max_hint_bytes:8192}};
+  assert.equal(master(base),true);
+  assert.equal(master({...base,item_id:'33333333-3333-4333-8333-333333333333'}),false);
+  assert.equal(master({...base,data:{...base.data,max_hint_bytes:8193}}),false);
+  assert.equal(master({...base,data:{pipeline_revision:1}}),false);
+  const process={...base,operation:'recordings.process',item_id:'33333333-3333-4333-8333-333333333333',data:{pipeline_id:'66666666-6666-4666-8666-666666666666',pipeline_revision:1,transcription:'generate',diarization:'run'}};
+  assert.equal(master(process),true);
+  assert.equal(master({...process,data:{...process.data,overrides:{unknown:{}}}}),false);
 });
 
 test('processing tool contract selects exact executables and bounded local settings', () => {

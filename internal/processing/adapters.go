@@ -43,12 +43,25 @@ func validRole(role string) bool {
 }
 
 func (s *Session) model(ctx context.Context, id, capability string) (string, map[string]any, error) {
+	return s.modelWithDigest(ctx, id, capability, "")
+}
+
+func (s *Session) modelWithDigest(ctx context.Context, id, capability, expectedDigest string) (string, map[string]any, error) {
 	if !contracts.ValidID(id) {
+		return "", nil, contracts.Fail("invalid_request")
+	}
+	if expectedDigest != "" && !pinnedDigest.MatchString(expectedDigest) {
 		return "", nil, contracts.Fail("invalid_request")
 	}
 	install, err := s.service.Catalog.BaseModel(ctx, id)
 	if err != nil {
 		return "", nil, err
+	}
+	// Check the elected immutable manifest before any role/publication access.
+	// State, manifest integrity, capability and file identities still validate
+	// independently below; a matching digest alone never grants model access.
+	if expectedDigest != "" && install.Digest != expectedDigest {
+		return "", nil, contracts.Fail("conflict")
 	}
 	var manifest models.Manifest
 	if install.State != "available" || models.DecodeManifest(install.Manifest, &manifest) != nil || manifest.Digest() != install.Digest {
@@ -173,6 +186,14 @@ func (s *Session) begin(ctx context.Context) (context.Context, func(), error) {
 }
 
 func (s *Session) worker(ctx context.Context, operation string, id string, options map[string]any) ([]byte, map[string]any, error) {
+	return s.workerWithLimits(ctx, operation, id, options, nil)
+}
+
+func (s *Session) workerWithLimits(ctx context.Context, operation string, id string, options map[string]any, limits *ExecutionLimits) ([]byte, map[string]any, error) {
+	return s.workerSelected(ctx, operation, id, options, limits, "")
+}
+
+func (s *Session) workerSelected(ctx context.Context, operation string, id string, options map[string]any, limits *ExecutionLimits, expectedDigest string) ([]byte, map[string]any, error) {
 	// Refuse before even selecting or materializing model bytes. The Python
 	// guard remains independent so direct maintainer worker entry also refuses CI.
 	for _, name := range []string{"CI", "GITHUB_ACTIONS", "TF_BUILD", "BUILD_BUILDID", "JENKINS_URL"} {
@@ -181,6 +202,10 @@ func (s *Session) worker(ctx context.Context, operation string, id string, optio
 		}
 	}
 	config, err := defaults(s.service.Config)
+	if err != nil {
+		return nil, nil, err
+	}
+	config, err = applyExecutionLimits(config, s.MappedPath, limits)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -196,7 +221,7 @@ func (s *Session) worker(ctx context.Context, operation string, id string, optio
 	if err = verifyPinned(ctx, config.Worker); err != nil {
 		return nil, nil, err
 	}
-	directory, provenance, err := s.model(ctx, id, capability)
+	directory, provenance, err := s.modelWithDigest(ctx, id, capability, expectedDigest)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -267,10 +292,15 @@ func (s *Session) Recognize(ctx context.Context, modelID string, options Recogni
 	if options.Language == "" {
 		options.Language = "en"
 	}
-	if options.Device != "cpu" && options.Device != "cuda" || options.Language != "auto" && !languagePattern.MatchString(options.Language) {
-		return RecognitionResult{}, contracts.Fail("invalid_request")
+	options, err = ValidateRecognitionOptions(options, 200)
+	if err != nil {
+		return RecognitionResult{}, err
 	}
-	raw, provenance, err := s.worker(operationCtx, "transcribe", modelID, map[string]any{"device": options.Device, "language": options.Language})
+	hints := options.Hints
+	if hints == nil {
+		hints = []string{}
+	}
+	raw, provenance, err := s.workerSelected(operationCtx, "transcribe", modelID, map[string]any{"device": options.Device, "language": options.Language, "hints": hints, "context_digest": options.ContextDigest}, options.ExecutionLimits, options.ExpectedModelDigest)
 	if err != nil {
 		return RecognitionResult{}, err
 	}
@@ -326,16 +356,24 @@ func (s *Session) Diarize(ctx context.Context, modelID string, options Diarizati
 	if options.Device == "" {
 		options.Device = "cpu"
 	}
-	if options.Device != "cpu" && options.Device != "cuda" || options.MinSpeakers < 0 || options.MaxSpeakers < 0 || options.MinSpeakers > 64 || options.MaxSpeakers > 64 || options.MaxSpeakers > 0 && options.MinSpeakers > options.MaxSpeakers {
-		return DiarizationResult{}, contracts.Fail("invalid_request")
+	if err = ValidateDiarizationOptions(options); err != nil {
+		return DiarizationResult{}, err
 	}
-	raw, provenance, err := s.worker(operationCtx, "diarize", modelID, map[string]any{"device": options.Device, "min_speakers": options.MinSpeakers, "max_speakers": options.MaxSpeakers})
+	raw, provenance, err := s.workerSelected(operationCtx, "diarize", modelID, map[string]any{"device": options.Device, "min_speakers": options.MinSpeakers, "max_speakers": options.MaxSpeakers}, options.ExecutionLimits, options.ExpectedModelDigest)
 	if err != nil {
 		return DiarizationResult{}, err
 	}
-	output, err := decodeDiarization(raw, s.SourceMap.SampleCount*1_000_000/s.SourceMap.SampleRate)
+	duration, err := MappedDuration(s.SourceMap)
+	if err != nil {
+		return DiarizationResult{}, err
+	}
+	output, err := decodeDiarization(raw, duration)
 	if err != nil {
 		return output, err
+	}
+	output, err = ApplyDiarizationQuality(output, duration, options.Quality)
+	if err != nil {
+		return DiarizationResult{}, err
 	}
 	for key, value := range output.Provenance {
 		provenance[key] = value

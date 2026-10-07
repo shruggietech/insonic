@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Bounded native qualification, verified archives and hidden child tooling."""
 import argparse
+from contextlib import contextmanager
 import hashlib
 import json
 import os
@@ -264,10 +265,22 @@ def secrets():
     child(['go', 'test', './internal/secrets', './internal/credentialcmd'])
     sys.stdout.buffer.write(output)
 
+@contextmanager
+def cli_workspace():
+    with tempfile.TemporaryDirectory() as directory:
+        try:
+            yield directory
+        except BaseException:
+            # Detached owner idle exit releases Windows scratch/catalog handles.
+            # Preserve the original failure instead of masking it with cleanup.
+            import time
+            time.sleep(31)
+            raise
+
 def cli():
     executable = ROOT / ('build/insonic.exe' if os.name == 'nt' else 'build/insonic')
     child(['go', 'build', '-o', executable, './cmd/insonic'])
-    with tempfile.TemporaryDirectory() as directory:
+    with cli_workspace() as directory:
         child([executable, 'workspace', 'init', directory, '--json'])
         # General CLI fixtures elect transient credentials explicitly. Native
         # persistence is qualified separately against an isolated OS store.
@@ -276,6 +289,57 @@ def cli():
         second = json.loads(child([executable, '--workspace', directory, 'workspace', 'show', '--json']))
         if first['runtime_session_id'] != second['runtime_session_id']:
             raise ValueError('CLI clients reached different owners')
+        # Saved configuration and context run through the actual shared owner.
+        # Synthetic managed IDs are inspected, never downloaded or executed.
+        pipeline_id = '10000000-0000-4000-8000-000000000010'
+        speaker_id = '10000000-0000-4000-8000-000000000011'
+        alias_id = '10000000-0000-4000-8000-000000000012'
+        term_id = '10000000-0000-4000-8000-000000000013'
+        config_input = Path(directory) / 'configuration input.json'
+        def configuration_call(family, operation, item=None, data=None):
+            args = [executable, '--workspace', directory, family, operation]
+            if item is not None:
+                args.append(item)
+            if data is not None:
+                config_input.write_text(json.dumps(data) + '\n', encoding='utf-8')
+                args.extend(['--input', config_input])
+            return json.loads(child([*args, '--json']))['result']
+        definition = {
+            'recognition': {'adapter': 'faster-whisper', 'contract_version': '1', 'mode': 'local',
+                            'model_id': '10000000-0000-4000-8000-000000000014'},
+            'diarization': {'adapter': 'pyannote', 'contract_version': '1', 'mode': 'local',
+                           'model_id': '10000000-0000-4000-8000-000000000015'},
+        }
+        saved = configuration_call('pipelines', 'set', pipeline_id, {
+            'expected_revision': 0, 'pipeline': {'id': pipeline_id, 'name': 'Local qualification',
+                                                'preset': 'local', 'configuration': definition}})
+        inspected = configuration_call('pipelines', 'inspect', pipeline_id)
+        if saved['revision'] < 1 or inspected['revision'] != saved['revision'] or inspected['reachability'] != 'not-probed':
+            raise ValueError('saved pipeline revision or inspection changed')
+        identity = configuration_call('speakers', 'set', speaker_id, {
+            'expected_revision': 0, 'speaker': {'id': speaker_id, 'name': 'Example Speaker'},
+            'aliases': [{'id': alias_id, 'speaker_id': speaker_id, 'text': 'Example S.'}]})
+        if identity['speaker']['revision'] < 1:
+            raise ValueError('speaker expected-revision creation failed')
+        aliases = configuration_call('speakers', 'aliases', speaker_id)
+        if len(aliases['aliases']) != 1 or aliases['aliases'][0]['text'] != 'Example S.':
+            raise ValueError('default alias inspection changed')
+        configuration_call('terms', 'set', term_id, {'expected_revision': 0,
+            'term': {'id': term_id, 'canonical': 'Deterministic terminology'}})
+        compiled = configuration_call('terms', 'compile', data={'pipeline_id': pipeline_id,
+            'pipeline_revision': saved['revision'], 'speaker_ids': [speaker_id], 'max_hint_bytes': 200})
+        if not {'Example Speaker', 'Example S.', 'Deterministic terminology'}.issubset(set(compiled['hints'])):
+            raise ValueError('explicit speaker/term hint compilation differs')
+        default_context = configuration_call('terms', 'compile')
+        if 'Deterministic terminology' not in default_context['hints'] or 'Example Speaker' in default_context['hints']:
+            raise ValueError('default context silently elected speaker identities')
+        for family, item in [('pipelines', pipeline_id), ('speakers', speaker_id), ('terms', term_id)]:
+            if len(configuration_call(family, 'list')['items']) != 1:
+                raise ValueError('configuration list failed')
+            configuration_call(family, 'show', item)
+        selection = configuration_call('speakers', 'select', speaker_id)
+        if selection['selection']['items']:
+            raise ValueError('selection invented source evidence')
         source = Path(directory) / 'artifact source.bin'
         content = b'CLI artifact\x00\xff\n'
         source.write_bytes(content)
@@ -339,7 +403,7 @@ def cli():
         restored_attempts = next(table['rows'] for table in restored['state'] if table['name'] == 'job_attempt')
         if restored_attempts != attempts or restored['revision'] != exported['revision'] + 1:
             raise ValueError('CLI restore did not preserve durable history and restoration receipt')
-    (BUILD / 'cli-receipt.json').write_text(json.dumps({'owner_reuse': 'passed', 'cancel_retry': 'passed', 'durable_history': 'passed', 'catalog_transfer': 'passed', 'artifact_journey': 'passed'}) + '\n', encoding='utf-8')
+    (BUILD / 'cli-receipt.json').write_text(json.dumps({'owner_reuse': 'passed', 'cancel_retry': 'passed', 'durable_history': 'passed', 'catalog_transfer': 'passed', 'artifact_journey': 'passed', 'saved_configuration': 'passed', 'scoped_hints': 'passed', 'inference': 'not-run'}) + '\n', encoding='utf-8')
 
 if __name__ == '__main__':
     validate_pins()

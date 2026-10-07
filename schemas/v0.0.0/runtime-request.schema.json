@@ -84,7 +84,21 @@
         "recordings.mappings",
         "recordings.map-speaker",
         "recordings.export",
-        "recordings.resolve-segment"
+        "recordings.resolve-segment",
+        "pipelines.list",
+        "pipelines.show",
+        "pipelines.set",
+        "pipelines.inspect",
+        "speakers.list",
+        "speakers.show",
+        "speakers.set",
+        "speakers.aliases",
+        "speakers.select",
+        "speakers.diagnostics",
+        "terms.list",
+        "terms.show",
+        "terms.set",
+        "terms.compile"
       ],
       "description": "Shared operation selected by either client."
     },
@@ -135,7 +149,7 @@
     },
     "item_id": {
       "$ref": "common.schema.json#/$defs/uuid",
-      "description": "Workspace-scoped media, model or real-work identifier."
+      "description": "Workspace-scoped media, model, work, pipeline, speaker or term identity."
     },
     "data": {
       "type": "object",
@@ -622,7 +636,21 @@
               "credentials.delete",
               "credentials.status",
               "credentials.unlock",
-              "credentials.load"
+              "credentials.load",
+              "pipelines.list",
+              "pipelines.show",
+              "pipelines.set",
+              "pipelines.inspect",
+              "speakers.list",
+              "speakers.show",
+              "speakers.set",
+              "speakers.aliases",
+              "speakers.select",
+              "speakers.diagnostics",
+              "terms.list",
+              "terms.show",
+              "terms.set",
+              "terms.compile"
             ],
             "description": "Operation family with an exact argument shape."
           }
@@ -1287,22 +1315,84 @@
                     "minimum": 0,
                     "maximum": 64,
                     "description": "Optional upper acoustic speaker-count constraint."
+                  },
+                  "quality": {
+                    "$ref": "pipeline-config.schema.json#/$defs/quality",
+                    "description": "Optional direct diarization quality policy."
                   }
                 },
                 "description": "Local diarization execution parameters."
+              },
+              "pipeline_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Id."
+              },
+              "pipeline_revision": {
+                "$ref": "common.schema.json#/$defs/revision",
+                "description": "Revision."
+              },
+              "overrides": {
+                "$ref": "pipeline-config.schema.json#/$defs/overrides",
+                "description": "Overrides."
+              },
+              "context": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "speaker_ids": {
+                    "type": "array",
+                    "maxItems": 1000,
+                    "uniqueItems": true,
+                    "items": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Id."
+                    },
+                    "description": "Speaker ids."
+                  },
+                  "language": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 64,
+                    "description": "Language."
+                  },
+                  "context": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 256,
+                    "description": "Context."
+                  }
+                },
+                "required": [],
+                "description": "Explicit speaker, language and context filters for deterministic recognition hints."
+              },
+              "quality": {
+                "$ref": "pipeline-config.schema.json#/$defs/quality",
+                "description": "Direct managed-worker quality policy; saved pipeline runs use explicit quality overrides instead."
               }
             },
-            "description": "Automatic local processing selections; omitted modes use the imported subtitle and current-recording state.",
+            "description": "Explicit direct or saved-pipeline processing elections, with source and current-recording compatibility checked by the runtime.",
             "allOf": [
               {
                 "if": {
-                  "properties": {
-                    "transcription": {
-                      "const": "generate", "description": "Explicit generated transcription selection."
+                  "allOf": [
+                    {
+                      "properties": {
+                        "transcription": {
+                          "const": "generate",
+                          "description": "Explicit generated transcription selection."
+                        }
+                      },
+                      "required": [
+                        "transcription"
+                      ]
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "pipeline_id"
+                        ]
+                      }
                     }
-                  },
-                  "required": [
-                    "transcription"
                   ]
                 },
                 "then": {
@@ -1313,16 +1403,28 @@
               },
               {
                 "if": {
-                  "not": {
-                    "properties": {
-                      "diarization": {
-                        "const": "reuse", "description": "Current result reuse selection."
+                  "allOf": [
+                    {
+                      "not": {
+                        "properties": {
+                          "diarization": {
+                            "const": "reuse",
+                            "description": "Current result reuse selection."
+                          }
+                        },
+                        "required": [
+                          "diarization"
+                        ]
                       }
                     },
-                    "required": [
-                      "diarization"
-                    ]
-                  }
+                    {
+                      "not": {
+                        "required": [
+                          "pipeline_id"
+                        ]
+                      }
+                    }
+                  ]
                 },
                 "then": {
                   "required": [
@@ -1334,10 +1436,12 @@
                 "not": {
                   "properties": {
                     "transcription": {
-                      "const": "reuse", "description": "Current result reuse selection."
+                      "const": "reuse",
+                      "description": "Current result reuse selection."
                     },
                     "diarization": {
-                      "const": "reuse", "description": "Current result reuse selection."
+                      "const": "reuse",
+                      "description": "Current result reuse selection."
                     }
                   },
                   "required": [
@@ -1345,8 +1449,32 @@
                     "diarization"
                   ]
                 }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "overrides": {
+                      "type": "object",
+                      "minProperties": 1,
+                      "description": "A nonempty complete stage or quality override."
+                    }
+                  },
+                  "required": [
+                    "overrides"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "pipeline_id"
+                  ]
+                }
               }
-            ]
+            ],
+            "dependentRequired": {
+              "pipeline_revision": [
+                "pipeline_id"
+              ]
+            }
           }
         },
         "required": [
@@ -1677,6 +1805,708 @@
           "data"
         ]
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "pipelines.list",
+              "speakers.list",
+              "terms.list"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "item_id"
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Limit."
+              },
+              "after_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exclusive last entity ID from the prior page."
+              }
+            },
+            "required": [],
+            "description": "Bounded stable entity list page, using an exclusive after_id cursor."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "pipelines.show",
+              "speakers.show",
+              "terms.show"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "required": [
+            "data"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "pipelines.set"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807,
+                "description": "Expected revision."
+              },
+              "pipeline": {
+                "$ref": "pipeline-config.schema.json#/$defs/entity",
+                "description": "Pipeline."
+              }
+            },
+            "required": [
+              "expected_revision",
+              "pipeline"
+            ],
+            "description": "Operation-specific bounded configuration."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "speakers.set"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807,
+                "description": "Expected revision."
+              },
+              "speaker": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Id."
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "description": "Name."
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9223372036854775807,
+                    "description": "Revision."
+                  },
+                  "state": {
+                    "enum": [
+                      "active",
+                      "inactive"
+                    ],
+                    "description": "State."
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "description": "Canonical stable speaker identity; shared names never imply identity equivalence."
+              },
+              "aliases": {
+                "type": "array",
+                "maxItems": 1000,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Id."
+                    },
+                    "speaker_id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Id."
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "description": "Text."
+                    },
+                    "language": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 80,
+                      "description": "Language."
+                    },
+                    "scope": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 256,
+                      "description": "Scope."
+                    },
+                    "state": {
+                      "enum": [
+                        "active",
+                        "inactive"
+                      ],
+                      "description": "State."
+                    },
+                    "provenance": {
+                      "type": "object",
+                      "description": "Provenance."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "speaker_id",
+                    "text"
+                  ],
+                  "description": "Alternate speaker spelling scoped to its stable speaker. Aggregate speaker revision controls replacement."
+                },
+                "description": "Aliases."
+              }
+            },
+            "required": [
+              "expected_revision",
+              "speaker",
+              "aliases"
+            ],
+            "description": "Operation-specific bounded configuration."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "terms.set"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807,
+                "description": "Expected revision."
+              },
+              "term": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Id."
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9223372036854775807,
+                    "description": "Revision."
+                  },
+                  "canonical": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "description": "Canonical."
+                  },
+                  "variants": {
+                    "type": "array",
+                    "maxItems": 128,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "description": "Variants."
+                  },
+                  "language": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 80,
+                    "description": "Language."
+                  },
+                  "context": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 256,
+                    "description": "Context."
+                  },
+                  "state": {
+                    "enum": [
+                      "active",
+                      "inactive"
+                    ],
+                    "description": "State."
+                  },
+                  "speaker_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "common.schema.json#/$defs/uuid",
+                        "description": "Id."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Speaker id."
+                  },
+                  "alias_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "common.schema.json#/$defs/uuid",
+                        "description": "Id."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Alias id."
+                  },
+                  "provenance": {
+                    "type": "object",
+                    "description": "Provenance."
+                  }
+                },
+                "required": [
+                  "id",
+                  "canonical"
+                ],
+                "description": "Stable revisioned terminology entry with optional speaker or alias linkage."
+              }
+            },
+            "required": [
+              "expected_revision",
+              "term"
+            ],
+            "description": "Operation-specific bounded configuration."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "pipelines.inspect"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "revision": {
+                "$ref": "common.schema.json#/$defs/revision",
+                "description": "Revision."
+              },
+              "overrides": {
+                "$ref": "pipeline-config.schema.json#/$defs/overrides",
+                "description": "Overrides."
+              },
+              "context": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "speaker_ids": {
+                    "type": "array",
+                    "maxItems": 1000,
+                    "uniqueItems": true,
+                    "items": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Id."
+                    },
+                    "description": "Speaker ids."
+                  },
+                  "language": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 80,
+                    "description": "Language."
+                  },
+                  "context": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 256,
+                    "description": "Context."
+                  }
+                },
+                "required": [],
+                "description": "Explicit speaker, language and context filters for deterministic recognition hints."
+              }
+            },
+            "required": [],
+            "description": "Inspect a saved or explicitly overridden pipeline without probing or running workers."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "speakers.aliases"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807,
+                "description": "Expected revision."
+              },
+              "aliases": {
+                "type": "array",
+                "maxItems": 1000,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Id."
+                    },
+                    "speaker_id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Id."
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "description": "Text."
+                    },
+                    "language": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 80,
+                      "description": "Language."
+                    },
+                    "scope": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 256,
+                      "description": "Scope."
+                    },
+                    "state": {
+                      "enum": [
+                        "active",
+                        "inactive"
+                      ],
+                      "description": "State."
+                    },
+                    "provenance": {
+                      "type": "object",
+                      "description": "Provenance."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "speaker_id",
+                    "text"
+                  ],
+                  "description": "Alternate speaker spelling scoped to its stable speaker. Aggregate speaker revision controls replacement."
+                },
+                "description": "Aliases."
+              }
+            },
+            "required": [
+              "expected_revision",
+              "aliases"
+            ],
+            "description": "Operation-specific bounded configuration."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "speakers.select"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "cursor": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 4096,
+                "description": "Cursor."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Limit."
+              },
+              "recording_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Id."
+              },
+              "quality": {
+                "$ref": "#/$defs/correlationQuality",
+                "description": "Optional diagnostic setting returned explicitly as the effective quality policy."
+              }
+            },
+            "required": [],
+            "description": "Bounded current speaker evidence selection, optionally limited to one recording."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "speakers.diagnostics"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "cursor": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 4096,
+                "description": "Cursor."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Limit."
+              },
+              "recording_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Id."
+              },
+              "quality": {
+                "$ref": "#/$defs/correlationQuality",
+                "description": "Optional diagnostic setting returned explicitly as the effective quality policy."
+              }
+            },
+            "required": [],
+            "description": "Bounded current speaker evidence selection, optionally limited to one recording."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "terms.compile"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "item_id"
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "pipeline_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Id."
+              },
+              "pipeline_revision": {
+                "$ref": "common.schema.json#/$defs/revision",
+                "description": "Revision."
+              },
+              "speaker_ids": {
+                "type": "array",
+                "maxItems": 1000,
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "common.schema.json#/$defs/uuid",
+                  "description": "Id."
+                },
+                "description": "Speaker ids."
+              },
+              "language": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 80,
+                "description": "Language."
+              },
+              "context": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 256,
+                "description": "Context."
+              },
+              "max_hint_bytes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192,
+                "description": "Max hint bytes."
+              }
+            },
+            "required": [],
+            "description": "Compile scoped recognition hints without inference. Omitted standalone budget is 200 UTF-8 bytes; a selected pipeline contributes its declared capability budget.",
+            "dependentRequired": {
+              "pipeline_revision": [
+                "pipeline_id"
+              ]
+            }
+          }
+        }
+      }
     }
   ],
   "examples": [
@@ -1686,6 +2516,56 @@
       "workspace_id": "10000000-0000-4000-8000-000000000001",
       "request_id": "10000000-0000-4000-8000-000000000002",
       "operation": "workspace.show"
+    },
+    {
+      "schema_version": "0.0.0",
+      "kind": "runtime-request",
+      "workspace_id": "11111111-1111-4111-8111-111111111111",
+      "request_id": "22222222-2222-4222-8222-222222222222",
+      "operation": "pipelines.inspect",
+      "item_id": "66666666-6666-4666-8666-666666666666"
+    },
+    {
+      "schema_version": "0.0.0",
+      "kind": "runtime-request",
+      "workspace_id": "11111111-1111-4111-8111-111111111111",
+      "request_id": "22222222-2222-4222-8222-222222222222",
+      "operation": "terms.compile",
+      "data": {
+        "speaker_ids": [
+          "33333333-3333-4333-8333-333333333333"
+        ],
+        "language": "en",
+        "max_hint_bytes": 200
+      }
+    },
+    {
+      "schema_version": "0.0.0",
+      "kind": "runtime-request",
+      "workspace_id": "11111111-1111-4111-8111-111111111111",
+      "request_id": "22222222-2222-4222-8222-222222222222",
+      "operation": "recordings.process",
+      "item_id": "44444444-4444-4444-8444-444444444444",
+      "data": {
+        "pipeline_id": "66666666-6666-4666-8666-666666666666",
+        "pipeline_revision": 1,
+        "transcription": "generate",
+        "diarization": "run"
+      }
     }
-  ]
+  ],
+  "$defs": {
+    "correlationQuality": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional current-speaker correlation diagnostics policy. Evidence validation, source timing resolution and deduplication remain mandatory.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Emit optional correlation diagnostics; omission defaults to true."
+        }
+      }
+    }
+  }
 }

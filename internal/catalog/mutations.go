@@ -57,7 +57,7 @@ func (s *Store) accept(ctx context.Context, tx *sql.Tx, id, digest string, revis
 	return r, e
 }
 func (s *Store) Commit(ctx context.Context, m Mutation) (Receipt, error) {
-	if len(m.Records.Recordings)+len(m.Records.SpeakerMappings)+len(m.Records.Library)+len(m.Records.BaseModels)+len(m.Records.Works)+len(m.Records.Cleanups) > 0 || !contracts.ValidID(m.OperationID) || m.Expected < 0 || m.Expected == math.MaxInt64 {
+	if len(m.Records.Pipelines)+len(m.Records.Aliases)+len(m.Records.Terms)+len(m.Records.Recordings)+len(m.Records.SpeakerMappings)+len(m.Records.Library)+len(m.Records.BaseModels)+len(m.Records.Works)+len(m.Records.Cleanups) > 0 || !contracts.ValidID(m.OperationID) || m.Expected < 0 || m.Expected == math.MaxInt64 {
 		return Receipt{}, contracts.Fail("invalid_request")
 	}
 	digest, e := intent(m)
@@ -65,6 +65,7 @@ func (s *Store) Commit(ctx context.Context, m Mutation) (Receipt, error) {
 		return Receipt{}, e
 	}
 	var out Receipt
+	m.Records.Speakers = append([]Speaker(nil), m.Records.Speakers...)
 	e = s.write(ctx, func(tx *sql.Tx, revision int64) error {
 		r, ok, e := s.replay(ctx, tx, m.OperationID, digest)
 		if e != nil {
@@ -76,6 +77,14 @@ func (s *Store) Commit(ctx context.Context, m Mutation) (Receipt, error) {
 		}
 		if revision != m.Expected {
 			return contracts.Fail("conflict")
+		}
+		for i := range m.Records.Speakers {
+			sp := &m.Records.Speakers[i]
+			if sp.Revision != 0 || (sp.State != "" && sp.State != "active") {
+				return contracts.Fail("invalid_request")
+			}
+			sp.Revision = revision + 1
+			sp.State = "active"
 		}
 		for _, setting := range m.Settings {
 			if setting.Name == "" || len(setting.Name) > 256 || !nonsecret(setting.Value) {
@@ -92,7 +101,19 @@ func (s *Store) Commit(ctx context.Context, m Mutation) (Receipt, error) {
 		if e = s.insertRecords(ctx, tx, m.Records); e != nil {
 			return e
 		}
-		out, e = s.accept(ctx, tx, m.OperationID, digest, revision, map[string]any{"accepted": true})
+		result := map[string]any{"accepted": true}
+		if len(m.Records.Speakers) > 0 {
+			proofs := map[string]string{}
+			for _, sp := range m.Records.Speakers {
+				identity, err := s.speakerTx(ctx, tx, sp.ID)
+				if err != nil {
+					return err
+				}
+				proofs[sp.ID], _ = intent(identity)
+			}
+			result["speaker_proofs"] = proofs
+		}
+		out, e = s.accept(ctx, tx, m.OperationID, digest, revision, result)
 		if e != nil {
 			return e
 		}

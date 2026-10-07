@@ -108,8 +108,10 @@ type DateSelection struct {
 	Reason   string  `json:"reason"`
 }
 type Speaker struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	Revision int64  `json:"revision"`
+	State    string `json:"state"`
 }
 type Segment struct {
 	ID             string  `json:"id"`
@@ -175,6 +177,9 @@ type ModelAssociation struct {
 	Reason    string `json:"reason"`
 }
 type Records struct {
+	Pipelines       []Pipeline         `json:"pipelines,omitempty"`
+	Aliases         []SpeakerAlias     `json:"speaker_aliases,omitempty"`
+	Terms           []Term             `json:"terms,omitempty"`
 	Recordings      []Recording        `json:"recordings,omitempty"`
 	SpeakerMappings []SpeakerMapping   `json:"speaker_mappings,omitempty"`
 	Library         []LibraryEntry     `json:"library,omitempty"`
