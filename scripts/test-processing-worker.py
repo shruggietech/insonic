@@ -26,6 +26,50 @@ def load(name, filename):
 
 
 class WorkerTests(unittest.TestCase):
+    def test_maintainer_child_environment_excludes_credentials(self):
+        qualifier = load("processing_clean_qualification", "qualify-processing.py")
+        selected = {name: "" for name in qualifier.CI_VARIABLES}
+        selected.update(INSONIC_SESSION_CREDENTIALS="fake-session-value", OPENAI_API_KEY="fake-provider-value",
+                        ARBITRARY_PROVIDER_TOKEN="fake-arbitrary-value", HF_TOKEN="fake-hf-value",
+                        PYTHONPATH="fake-python-path", HOME="fake-ambient-home", USERPROFILE="fake-ambient-home", LANG="C")
+        with patch.dict(os.environ, selected):
+            actual = json.loads(qualifier.child([sys.executable, "-I", "-B", "-c",
+                "import os,json;print(json.dumps({'keys':list(os.environ),'home_is_directory':os.path.isdir(os.environ.get('HOME','')),**{name:os.environ.get(name) for name in ('HOME','USERPROFILE','LANG','HF_HUB_OFFLINE','TRANSFORMERS_OFFLINE','TOKENIZERS_PARALLELISM')}}))"], timeout=10))
+        for name in ("INSONIC_SESSION_CREDENTIALS", "OPENAI_API_KEY", "ARBITRARY_PROVIDER_TOKEN", "HF_TOKEN", "PYTHONPATH"):
+            self.assertFalse(name in actual["keys"], "Unexpected inherited credential/configuration key: " + name)
+        self.assertEqual(actual["LANG"], "C")
+        self.assertEqual(actual["HF_HUB_OFFLINE"], "1")
+        self.assertEqual(actual["TRANSFORMERS_OFFLINE"], "1")
+        self.assertEqual(actual["TOKENIZERS_PARALLELISM"], "false")
+        self.assertTrue(Path(actual["HOME"]).is_absolute())
+        self.assertTrue(actual["home_is_directory"])
+        self.assertEqual(actual["HOME"], actual["USERPROFILE"])
+        self.assertFalse(actual["HOME"] == "fake-ambient-home")
+        self.assertFalse(Path(actual["HOME"]).exists(), "Private child home survived cleanup")
+
+    def test_maintainer_private_home_is_cleaned_after_child_failure(self):
+        qualifier = load("processing_failed_home", "qualify-processing.py")
+        original = qualifier.tempfile.TemporaryDirectory
+        allocated = []
+        def tracked(*args, **kwargs):
+            temporary = original(*args, **kwargs)
+            allocated.append(temporary.name)
+            return temporary
+        with patch.dict(os.environ, {name:"" for name in qualifier.CI_VARIABLES}), patch.object(qualifier.tempfile, "TemporaryDirectory", tracked):
+            with self.assertRaisesRegex(ValueError, "engine_failed"):
+                qualifier.child([sys.executable, "-I", "-B", "-c", "raise SystemExit(1)"], timeout=10)
+            with self.assertRaises(qualifier.subprocess.TimeoutExpired):
+                qualifier.child([sys.executable, "-I", "-B", "-c", "import time;time.sleep(30)"], timeout=0.1)
+        self.assertEqual(len(allocated), 2)
+        self.assertTrue(all(not Path(home).exists() for home in allocated), "Failed or timed-out child left private home")
+
+    def test_maintainer_ci_guard_runs_before_child_creation(self):
+        qualifier = load("processing_child_guard", "qualify-processing.py")
+        with patch.dict(os.environ, {"CI":"true"}), patch.object(qualifier.subprocess, "Popen") as launch:
+            with self.assertRaisesRegex(ValueError, "CI"):
+                qualifier.child([sys.executable, "-c", "raise SystemExit(0)"])
+            launch.assert_not_called()
+
     def test_import_is_lazy(self):
         before = set(sys.modules)
         load("processing_lazy", "processing-worker.py")

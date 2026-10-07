@@ -211,7 +211,18 @@ func (s *Session) worker(ctx context.Context, operation string, id string, optio
 	}
 	workerCtx, cancel := context.WithTimeout(ctx, time.Duration(config.TimeoutMS)*time.Millisecond)
 	defer cancel()
-	result, err := process.Capture(workerCtx, process.Spec{Executable: python.Path, Args: []string{"-I", "-B", config.Worker.Path}, Directory: s.directory, Env: []string{"HF_HUB_OFFLINE=1", "TRANSFORMERS_OFFLINE=1", "HF_HUB_DISABLE_TELEMETRY=1", "PYANNOTE_METRICS_ENABLED=0", "PYTHONIOENCODING=utf-8", "TOKENIZERS_PARALLELISM=false"}, Input: bytes.NewReader(encoded), MaxOutput: config.MaxOutputBytes})
+	// Pyannote's local registry requires a resolvable home even in offline mode.
+	// Give it an empty private home rather than exposing the operator's configs.
+	home, err := os.MkdirTemp(s.directory, "home-")
+	if err != nil {
+		return nil, nil, contracts.Fail("unavailable")
+	}
+	defer os.RemoveAll(home)
+	if err = workspace.SecureDirectory(home, true); err != nil {
+		return nil, nil, err
+	}
+	workerEnv := append(process.LocalEnvironment(), "HOME="+home, "USERPROFILE="+home, "HF_HUB_OFFLINE=1", "TRANSFORMERS_OFFLINE=1", "HF_HUB_DISABLE_TELEMETRY=1", "PYANNOTE_METRICS_ENABLED=0", "PYTHONIOENCODING=utf-8", "TOKENIZERS_PARALLELISM=false")
+	result, err := process.Capture(workerCtx, process.Spec{Executable: python.Path, Args: []string{"-I", "-B", config.Worker.Path}, Directory: s.directory, CleanEnv: true, Env: workerEnv, Input: bytes.NewReader(encoded), MaxOutput: config.MaxOutputBytes})
 	if err != nil {
 		// Only documented compact worker error codes escape. Discard raw engine
 		// stderr so request/secret values cannot enter durable diagnostics.

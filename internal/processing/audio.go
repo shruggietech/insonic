@@ -100,7 +100,7 @@ func verifyTool(ctx context.Context, tool library.Tool) error {
 	}
 	checkCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
-	result, err := process.Capture(checkCtx, process.Spec{Executable: tool.Path, Args: []string{"-version"}, MaxOutput: 65536})
+	result, err := process.Capture(checkCtx, process.Spec{Executable: tool.Path, Args: []string{"-version"}, CleanEnv: true, Env: process.LocalEnvironment(), MaxOutput: 65536})
 	if err != nil {
 		return err
 	}
@@ -220,7 +220,7 @@ func decodeAudio(ctx context.Context, tool library.Tool, source, destination str
 	args = append(args, "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", "-t", strconv.FormatFloat(float64(config.MaxDurationUS)/1e6+1, 'f', 6, 64), "-fs", strconv.FormatInt(config.MaxDurationUS*16000/1_000_000*2+1<<20, 10), "-f", "wav", "-y", destination)
 	decodeCtx, cancel := context.WithTimeout(ctx, time.Duration(config.TimeoutMS)*time.Millisecond)
 	defer cancel()
-	_, err = process.Capture(decodeCtx, process.Spec{Executable: tool.Path, Args: args, MaxOutput: config.MaxOutputBytes})
+	_, err = process.Capture(decodeCtx, process.Spec{Executable: tool.Path, Args: args, CleanEnv: true, Env: process.LocalEnvironment(), MaxOutput: config.MaxOutputBytes})
 	if err != nil {
 		os.Remove(destination)
 		return 0, err

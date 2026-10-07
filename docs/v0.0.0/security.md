@@ -32,7 +32,7 @@ Endpoint configuration supports user-hosted servers and frontier providers throu
 
 ## Local access and diagnostics
 
-Local IPC is restricted to the current user and verifies protocol/version during connection. Worker output and source text are untrusted data; parse and validate them without treating embedded instructions as runtime authority. Third-party executable adapters are user-selected code, with their source and permissions described clearly. Launchers use hidden noninteractive execution on Windows.
+Local IPC is restricted to the current user and verifies protocol/version during connection. Worker output and source text are untrusted data; parse and validate them without treating embedded instructions as runtime authority. Third-party executable adapters are user-selected code, with their source and permissions described clearly. Launchers use hidden noninteractive execution on Windows. Local media, subtitle and model workers receive an explicit allowlisted operating environment (executable lookup, system directories, temporary directories and locale) plus configured nonsecret worker controls. They do not inherit runtime session credentials or unrelated provider tokens from the parent environment.
 
 Operational logs contain stage IDs, elapsed time, input/output hashes and readable error categories. Media, transcript excerpts and credentials are excluded by default. A user can create a diagnostic bundle with a preview of included fields. It omits keys and local path details unless deliberately included. Keep logs bounded and deletable.
 

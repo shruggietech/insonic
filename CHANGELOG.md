@@ -8,6 +8,7 @@ All notable changes to this project will be documented here. The format follows 
 
 - Current master recordings with one embedded Cueson v1.2.0 document, recording-local speaker UUIDs, external known-speaker mappings and reference-only downstream evidence.
 - Shared local mapped-audio/subtitle processing, independent reruns, fenced current replacement, recoverable physical retirement and diagnosed Cue JSON/native export.
+- Explicit local-worker, decoder and Cueson child environments exclude unrelated credential/configuration variables while retaining selected native-library/device paths.
 - Committed CC BY 3.0 real speech audio and dialogue video with hashes, license/provenance and supplied reference subtitles; separate opt-in maintainer engine qualification outside CI.
 
 - Workspace-scoped native credentials, authenticated Argon2id/AES-GCM vault and explicit session credentials with protected-input bootstrap and status-only display.
@@ -53,6 +54,7 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-07: Implement S005 for issues #21 and #7. Replace the obsolete transcript/assignment retention contract with one current embedded Cueson v1.2.0 document and reference-only consumers. Invalidate affected corpus/evidence preparation, physically retire superseded managed results, and preserve original media/subtitles plus noncontent model/run lineage. Catalog schema 4 freezes prior migration definitions and reconciles legacy copied assignments without reviving them.
 - 2026-10-07: Record explicit Windows CPU maintainer qualification separately from CI: speech recognition has 4 word errors across 33 reference words and dialogue recognition has 2 across 31. Diarization yields two voices for the speech fixture and one for the two-character dialogue reference. These results demonstrate actual engine execution and model split/merge limitations; editorial caption windows are not sample-accurate acoustic ground truth.
 - 2026-10-07: Exclude transcription/diarization invocation, model initialization/loading, weight downloads and engine-result requirements from every CI path and merge check. Allow deterministic stage injection, committed media probing/extraction and real pinned Cueson qualification; record real engine behavior only in explicit maintainer runs.
+- 2026-10-07: Address review findings with byte-preserving BOM WebVTT detection, exact canonical engine-role casing and explicit allowlisted environments for new local processing children. Preserve existing process-helper inheritance only for callers that elect it; session/provider credential variables are excluded from the new local adapters.
 - Bind landing hero and page metadata to approved upstream slogan and description fields; expand syntax highlighting for JSON and CLI examples.
 - Support optional validated read-only AI query execution through the configured assistance mode.
 - Subdivide workspace/runtime, catalog/jobs, artifact storage and secrets/model-registry development into four focused slices; renumber the remaining application slices through S015.

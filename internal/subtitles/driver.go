@@ -76,7 +76,7 @@ func (d *Driver) run(ctx context.Context, directory string, args ...string) (pro
 	}
 	boundedContext, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
-	return process.Capture(boundedContext, process.Spec{Executable: d.tool.Executable, Args: append([]string{"--no-color"}, args...), Directory: directory, MaxOutput: MaxDocumentBytes})
+	return process.Capture(boundedContext, process.Spec{Executable: d.tool.Executable, Args: append([]string{"--no-color"}, args...), Directory: directory, CleanEnv: true, Env: process.LocalEnvironment(), MaxOutput: MaxDocumentBytes})
 }
 func (d *Driver) Verify(ctx context.Context) error {
 	if ctx == nil || d == nil {

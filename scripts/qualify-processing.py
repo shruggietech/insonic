@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -66,10 +67,80 @@ def verify_model(operation, root):
     return root
 
 
+def local_environment():
+    allowed = {"PATH", "SystemRoot", "WINDIR", "TEMP", "TMP", "TMPDIR", "LANG", "LC_ALL"}
+    if os.name == "nt":
+        allowed.discard("SystemRoot")
+        allowed.update(("SYSTEMROOT", "CUDA_PATH", "CUDA_VISIBLE_DEVICES"))
+    elif sys.platform == "linux":
+        allowed.update(("LD_LIBRARY_PATH", "CUDA_VISIBLE_DEVICES"))
+    elif sys.platform == "darwin":
+        allowed.update(("DYLD_LIBRARY_PATH", "DYLD_FALLBACK_LIBRARY_PATH"))
+    return {key: value for key, value in os.environ.items()
+            if (key.upper() if os.name == "nt" else key) in allowed}
+
+
+def secure_private_directory(directory):
+    if os.name != "nt":
+        os.chmod(directory, 0o700)
+        return
+    # Match the product's current-user-only protected Windows directory ACL.
+    import ctypes
+    from ctypes import wintypes
+    api = ctypes.WinDLL("advapi32", use_last_error=True)
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.GetCurrentProcess.restype = wintypes.HANDLE
+    kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel.LocalFree.argtypes = (ctypes.c_void_p,)
+    api.OpenProcessToken.argtypes = (wintypes.HANDLE, wintypes.DWORD, ctypes.POINTER(wintypes.HANDLE))
+    api.GetTokenInformation.argtypes = (wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD, ctypes.POINTER(wintypes.DWORD))
+    api.ConvertSidToStringSidW.argtypes = (ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p))
+    api.ConvertStringSecurityDescriptorToSecurityDescriptorW.argtypes = (wintypes.LPCWSTR, wintypes.DWORD, ctypes.POINTER(ctypes.c_void_p), ctypes.c_void_p)
+    api.GetSecurityDescriptorOwner.argtypes = (ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p), ctypes.POINTER(wintypes.BOOL))
+    api.GetSecurityDescriptorDacl.argtypes = (ctypes.c_void_p, ctypes.POINTER(wintypes.BOOL), ctypes.POINTER(ctypes.c_void_p), ctypes.POINTER(wintypes.BOOL))
+    api.SetNamedSecurityInfoW.argtypes = (wintypes.LPWSTR, ctypes.c_int, wintypes.DWORD, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p)
+    api.SetNamedSecurityInfoW.restype = wintypes.DWORD
+    token = wintypes.HANDLE()
+    if not api.OpenProcessToken(kernel.GetCurrentProcess(), 8, ctypes.byref(token)):
+        raise ValueError("Private home token access failed")
+    sid_text, descriptor = ctypes.c_void_p(), ctypes.c_void_p()
+    try:
+        size = wintypes.DWORD()
+        api.GetTokenInformation(token, 1, None, 0, ctypes.byref(size))
+        data = ctypes.create_string_buffer(size.value)
+        if not api.GetTokenInformation(token, 1, data, size.value, ctypes.byref(size)):
+            raise ValueError("Private home identity access failed")
+        sid = ctypes.cast(data, ctypes.POINTER(ctypes.c_void_p))[0]
+        if not api.ConvertSidToStringSidW(sid, ctypes.byref(sid_text)):
+            raise ValueError("Private home identity conversion failed")
+        identity = ctypes.wstring_at(sid_text)
+        sddl = "O:" + identity + "D:P(A;OICI;FA;;;" + identity + ")"
+        if not api.ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl, 1, ctypes.byref(descriptor), None):
+            raise ValueError("Private home ACL construction failed")
+        owner, acl, present, defaulted = ctypes.c_void_p(), ctypes.c_void_p(), wintypes.BOOL(), wintypes.BOOL()
+        if not api.GetSecurityDescriptorOwner(descriptor, ctypes.byref(owner), ctypes.byref(defaulted)) or not api.GetSecurityDescriptorDacl(descriptor, ctypes.byref(present), ctypes.byref(acl), ctypes.byref(defaulted)):
+            raise ValueError("Private home ACL access failed")
+        if not present.value or api.SetNamedSecurityInfoW(str(directory), 1, 0x80000005, owner, None, acl, None):
+            raise ValueError("Private home ACL application failed")
+    finally:
+        if descriptor.value:
+            kernel.LocalFree(descriptor)
+        if sid_text.value:
+            kernel.LocalFree(sid_text)
+        kernel.CloseHandle(token)
+
+
 def child(command, *, request=None, timeout=600, max_output=16 << 20):
-    environment = os.environ.copy()
-    environment.update(HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1", HF_HUB_DISABLE_TELEMETRY="1",
-                       PYANNOTE_METRICS_ENABLED="0", PYTHONIOENCODING="utf-8")
+    require_election(True)
+    with tempfile.TemporaryDirectory(prefix="insonic-private-worker-home-") as home:
+        secure_private_directory(home)
+        environment = local_environment()
+        environment.update(HOME=home, USERPROFILE=home, HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1", HF_HUB_DISABLE_TELEMETRY="1",
+                           PYANNOTE_METRICS_ENABLED="0", PYTHONIOENCODING="utf-8", TOKENIZERS_PARALLELISM="false")
+        return _child(command, environment, request=request, timeout=timeout, max_output=max_output)
+
+
+def _child(command, environment, *, request=None, timeout=600, max_output=16 << 20):
     process = subprocess.Popen([str(item) for item in command], cwd=ROOT, env=environment,
                                stdin=subprocess.PIPE if request is not None else subprocess.DEVNULL,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -111,11 +182,11 @@ def child(command, *, request=None, timeout=600, max_output=16 << 20):
         # objects are included, never raw traceback or arbitrary stderr.
         try:
             failure = json.loads(bytes(buffers[1]).strip().splitlines()[-1])
-        except (ValueError, UnicodeError):
+        except (ValueError, UnicodeError, IndexError):
             failure = {"error": "engine_failed"}
         allowed = {"engine_failed", "engine_ci_forbidden", "engine_unavailable", "model_unavailable",
                    "incompatible_version", "unsupported_device", "invalid_embedding", "invalid_timing", "audio_limit"}
-        code = failure.get("error", "engine_failed")
+        code = failure.get("error", "engine_failed") if isinstance(failure, dict) else "engine_failed"
         if not isinstance(code, str):
             code = "engine_failed"
         raise ValueError("Local operation failed: " + (code if code in allowed else "engine_failed"))
@@ -158,6 +229,7 @@ def qualify(args):
     manifest = json.loads((ROOT / "tests/fixtures/media/manifest.json").read_text(encoding="utf-8"))
     receipt = {"kind": "maintainer-real-engine-qualification", "required_check": False,
                "ci": False, "worker_sha256": sha(ROOT / "scripts/processing-worker.py"), "models": PINS,
+               "child_environment": "explicit platform execution/native-loader allowlist; private empty home; offline flags; no inherited application or provider credentials",
                "python_sha256": {operation: sha(python) for operation, python in pythons.items()},
                "ffmpeg_sha256": ffmpeg["sha256"], "fixtures": []}
     receipt["resource_limits"] = {"timeout_seconds_per_operation": args.timeout, "threads": args.threads,
