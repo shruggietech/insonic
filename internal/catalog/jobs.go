@@ -399,6 +399,9 @@ func (s *Store) Complete(ctx context.Context, claim Attempt, state string) error
 	})
 }
 func (s *Store) InterruptOwner(ctx context.Context, owner string) error {
+	if !contracts.ValidID(owner) {
+		return contracts.Fail("invalid_request")
+	}
 	return s.write(ctx, func(tx *sql.Tx, rev int64) error {
 		now, e := s.now(ctx, tx)
 		if e != nil {
@@ -431,6 +434,39 @@ func (s *Store) InterruptOwner(ctx context.Context, owner string) error {
 				return e
 			}
 			if _, e = s.accept(ctx, tx, operationID("interrupt", p.attempt), hash([]byte("interrupt:"+p.attempt)), rev, map[string]any{"attempt_id": p.attempt, "state": "interrupted"}); e != nil {
+				return e
+			}
+			rev++
+		}
+		// Interrupt current real-work claims in the same authoritative transaction.
+		workRows, e := tx.QueryContext(ctx, s.query("SELECT id FROM work_operation WHERE workspace_id=? AND owner=? AND state='running'"), s.workspace, owner)
+		if e != nil {
+			return e
+		}
+		ids := []string{}
+		for workRows.Next() {
+			var id string
+			if e = workRows.Scan(&id); e != nil {
+				workRows.Close()
+				return e
+			}
+			ids = append(ids, id)
+		}
+		e = workRows.Err()
+		workRows.Close()
+		if e != nil {
+			return e
+		}
+		for _, id := range ids {
+			var w Work
+			if e = s.domainTx(ctx, tx, "Works", id, &w); e != nil {
+				return e
+			}
+			w.State = "interrupted"
+			w.Owner = ""
+			w.LeaseUntil = 0
+			w.Phase = "shutdown"
+			if e = s.recordWork(ctx, tx, &w, rev); e != nil {
 				return e
 			}
 			rev++

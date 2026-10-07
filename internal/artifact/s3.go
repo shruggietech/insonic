@@ -62,17 +62,11 @@ func NewS3(ctx context.Context, c S3Config, secrets contracts.SecretProvider, tr
 		if secrets == nil || c.CredentialID == "" {
 			return nil, contracts.Fail("unavailable")
 		}
-		raw, e := secrets.Resolve(ctx, c.CredentialID)
-		if e != nil {
-			return nil, contracts.Fail("unavailable")
+		provider := &referencedCredentials{secrets, c.CredentialID}
+		if _, e := provider.RetrieveWithCredContext(&credentials.CredContext{Context: ctx}); e != nil {
+			return nil, e
 		}
-		var values S3Credentials
-		decoder := json.NewDecoder(bytes.NewReader(raw))
-		decoder.DisallowUnknownFields()
-		if decoder.Decode(&values) != nil || values.AccessKey == "" || values.SecretKey == "" {
-			return nil, contracts.Fail("unavailable")
-		}
-		creds = credentials.NewStaticV4(values.AccessKey, values.SecretKey, values.SessionToken)
+		creds = credentials.New(provider)
 	case "environment":
 		values := S3Credentials{os.Getenv("AWS_ACCESS_KEY_ID"), os.Getenv("AWS_SECRET_ACCESS_KEY"), os.Getenv("AWS_SESSION_TOKEN")}
 		if values.AccessKey == "" || values.SecretKey == "" {
@@ -99,6 +93,35 @@ func NewS3(ctx context.Context, c S3Config, secrets contracts.SecretProvider, tr
 		return nil, contracts.Fail("unavailable")
 	}
 	return &S3{minio.Core{Client: client}, c.Bucket, prefix}, nil
+}
+
+type referencedCredentials struct {
+	provider contracts.SecretProvider
+	id       string
+}
+
+func (p *referencedCredentials) IsExpired() bool { return true }
+func (p *referencedCredentials) Retrieve() (credentials.Value, error) {
+	return p.RetrieveWithCredContext(nil)
+}
+func (p *referencedCredentials) RetrieveWithCredContext(cc *credentials.CredContext) (credentials.Value, error) {
+	ctx := context.Background()
+	if cc != nil && cc.Context != nil {
+		ctx = cc.Context
+	}
+	provided, e := p.provider.Resolve(ctx, p.id)
+	if e != nil {
+		return credentials.Value{}, contracts.Fail("unavailable")
+	}
+	raw := append([]byte(nil), provided...)
+	defer clear(raw)
+	var v S3Credentials
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.DisallowUnknownFields()
+	if catalog.ValidateJSON(raw) != nil || d.Decode(&v) != nil || d.Decode(new(any)) != io.EOF || v.AccessKey == "" || v.SecretKey == "" {
+		return credentials.Value{}, contracts.Fail("unavailable")
+	}
+	return credentials.Value{AccessKeyID: v.AccessKey, SecretAccessKey: v.SecretKey, SessionToken: v.SessionToken, SignerType: credentials.SignatureV4}, nil
 }
 
 func localHTTP(host string) bool {

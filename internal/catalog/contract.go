@@ -3,6 +3,7 @@ package catalog
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"time"
 )
@@ -10,6 +11,23 @@ import (
 // Catalog is the shared backend-neutral authority used by runtime operations.
 // Both official adapters implement it; callers never receive SQL connections.
 type Catalog interface {
+	EnqueueWork(context.Context, string, string, json.RawMessage) (Work, error)
+	Work(context.Context, string) (Work, error)
+	Works(context.Context) ([]Work, error)
+	ClaimWork(context.Context, string, string, time.Duration) (Work, error)
+	RenewWork(context.Context, Work, time.Duration) (Work, error)
+	CheckpointWork(context.Context, Work, string, string, json.RawMessage, time.Duration) (Work, error)
+	CancelWork(context.Context, string, string) (Work, error)
+	RetryWork(context.Context, string, string) (Work, error)
+	Library(context.Context, string) (LibraryEntry, error)
+	Libraries(context.Context) ([]LibraryEntry, error)
+	CommitLibrary(context.Context, Work, LibraryEntry) (LibraryEntry, error)
+	UpdateLibrary(context.Context, string, int64, LibraryEntry) (LibraryEntry, error)
+	BaseModel(context.Context, string) (BaseModelInstall, error)
+	BaseModels(context.Context) ([]BaseModelInstall, error)
+	CommitBaseModel(context.Context, Work, BaseModelInstall) (BaseModelInstall, error)
+	Cleanups(context.Context) ([]Cleanup, error)
+	FinishCleanup(context.Context, string) error
 	Backend() string
 	Close() error
 	RegisterWorkspace(context.Context, *workspace.Workspace) error

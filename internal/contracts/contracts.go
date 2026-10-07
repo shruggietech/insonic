@@ -5,10 +5,15 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"regexp"
 )
 
 const Version = "0.0.0"
+
+// MaxWorkPayload bounds normalized durable input independently of the smaller
+// response frame budget. Import manifests and runtime requests share this limit.
+const MaxWorkPayload = 8 << 20
 
 func ID() string {
 	var b [16]byte
@@ -46,20 +51,22 @@ func Fail(code string) *Error {
 }
 
 type Request struct {
-	Kind            string `json:"kind"`
-	Version         string `json:"schema_version"`
-	WorkspaceID     string `json:"workspace_id"`
-	RequestID       string `json:"request_id"`
-	Operation       string `json:"operation"`
-	JobID           string `json:"job_id,omitempty"`
-	DurationMS      int    `json:"duration_ms,omitempty"`
-	AfterGeneration int64  `json:"after_generation,omitempty"`
-	PublicationID   string `json:"publication_id,omitempty"`
-	SourcePath      string `json:"source_path,omitempty"`
-	ArtifactKind    string `json:"artifact_kind,omitempty"`
-	LeaseID         string `json:"lease_id,omitempty"`
-	ReferenceID     string `json:"reference_id,omitempty"`
-	MaxBytes        int64  `json:"max_bytes,omitempty"`
+	Kind            string          `json:"kind"`
+	Version         string          `json:"schema_version"`
+	WorkspaceID     string          `json:"workspace_id"`
+	RequestID       string          `json:"request_id"`
+	Operation       string          `json:"operation"`
+	JobID           string          `json:"job_id,omitempty"`
+	DurationMS      int             `json:"duration_ms,omitempty"`
+	AfterGeneration int64           `json:"after_generation,omitempty"`
+	PublicationID   string          `json:"publication_id,omitempty"`
+	SourcePath      string          `json:"source_path,omitempty"`
+	ArtifactKind    string          `json:"artifact_kind,omitempty"`
+	LeaseID         string          `json:"lease_id,omitempty"`
+	ReferenceID     string          `json:"reference_id,omitempty"`
+	MaxBytes        int64           `json:"max_bytes,omitempty"`
+	ItemID          string          `json:"item_id,omitempty"`
+	Data            json.RawMessage `json:"data,omitempty"`
 }
 type Response struct {
 	Kind        string `json:"kind"`

@@ -60,18 +60,18 @@ func ackReconciliationSuite(t *testing.T, s *Store) {
 			t.Fatal(e)
 		}
 	}
-	claim, e := s.ClaimOutbox(ctx, target, contracts.ID(), time.Second)
+	claim, e := s.ClaimOutbox(ctx, target, contracts.ID(), time.Minute)
 	if e != nil {
 		t.Fatal(e)
 	}
 	if e = s.AcknowledgeOutbox(ctx, claim); e != nil {
 		t.Fatal(e)
 	}
-	time.Sleep(1100 * time.Millisecond)
+	expireOutboxLease(t, s, claim)
 	if e = s.AcknowledgeOutbox(ctx, claim); e != nil {
 		t.Fatal("committed ack could not reconcile after expiry", e)
 	}
-	next, e := s.ClaimOutbox(ctx, target, contracts.ID(), time.Second)
+	next, e := s.ClaimOutbox(ctx, target, contracts.ID(), time.Minute)
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -90,7 +90,7 @@ func ackReconciliationSuite(t *testing.T, s *Store) {
 	if e = s.AcknowledgeOutbox(ctx, bad); e == nil {
 		t.Fatal("changed committed event identity reconciled")
 	}
-	uncommitted, e := s.ClaimOutbox(ctx, target, next.OwnerID, time.Second)
+	uncommitted, e := s.ClaimOutbox(ctx, target, next.OwnerID, time.Minute)
 	if e != nil {
 		t.Fatal(e)
 	}

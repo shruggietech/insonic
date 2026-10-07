@@ -479,7 +479,7 @@ func (s *Store) structuralReferences(ctx context.Context, tx *sql.Tx, artifact s
 			}
 		}
 	}
-	return false, nil
+	return s.libraryArtifactReference(ctx, tx, artifact)
 }
 func (s *Store) ClaimRetirement(ctx context.Context, id, owner string, grace, ttl time.Duration) (Publication, error) {
 	var out Publication

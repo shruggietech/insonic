@@ -90,14 +90,39 @@ func Run(ctx context.Context, spec Spec) (Result, error) {
 	return Result{output.bytes}, nil
 }
 func StartDetached(executable string, args []string) error {
+	return StartDetachedInput(executable, args, nil)
+}
+
+// Bootstrap values cross an anonymous stdin pipe, never process arguments.
+func StartDetachedInput(executable string, args []string, input []byte) error {
 	if !filepath.IsAbs(executable) {
 		return contracts.Fail("invalid_request")
 	}
 	command := exec.Command(executable, args...)
 	Hide(command, true)
+	var pipe io.WriteCloser
+	if len(input) > 0 {
+		var err error
+		pipe, err = command.StdinPipe()
+		if err != nil {
+			return contracts.Fail("unavailable")
+		}
+	}
 	// Nil standard handles attach to the null device, never an interactive console.
 	if err := command.Start(); err != nil {
+		if pipe != nil {
+			pipe.Close()
+		}
 		return contracts.Fail("unavailable")
+	}
+	if pipe != nil {
+		_, err := pipe.Write(input)
+		closeErr := pipe.Close()
+		if err != nil || closeErr != nil {
+			command.Process.Kill()
+			command.Wait()
+			return contracts.Fail("unavailable")
+		}
 	}
 	return command.Process.Release()
 }

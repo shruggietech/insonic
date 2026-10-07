@@ -56,7 +56,7 @@ func TestOwnerProtocolAndDisconnectedWork(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	conn.Write([]byte(strings.Repeat("x", MaxFrame+2) + "\n"))
+	conn.Write([]byte(strings.Repeat("x", MaxRequestFrame+2) + "\n"))
 	data, err := bufio.NewReader(conn).ReadBytes('\n')
 	conn.Close()
 	if err != nil {

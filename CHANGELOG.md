@@ -6,6 +6,11 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Workspace-scoped native credentials, authenticated Argon2id/AES-GCM vault and explicit session credentials with protected-input bootstrap and status-only display.
+- Exact multi-file downloaded base-model manifests, resumable verified acquisition and leased materialization through filesystem/S3 storage.
+- Unified copied/referenced/remote media admission, CSV/JSON batches, qualified raw metadata and stream capture, nullable measured duration, exact timing and explicit historical timezone/DST/date choices.
+- Durable real-work recovery/cancellation/retry and current metadata refresh with physical superseded-report removal while retaining original media and supplied subtitles.
+
 - Managed filesystem and generic S3 artifact storage with streamed SHA-256 verification, resumable multipart receipts, durable publication recovery, leased materialization and reference-aware retirement through the shared CLI/runtime.
 - Additive catalog schema 2 with schema-1 upgrade/restore compatibility and receipt-validated artifact lifecycle snapshots.
 - Workspace/profile-scoped object keys, final-link metadata durability and pending reconciliation for uncertain S3 completion/abort; retirement updates typed location availability alongside preserved admission receipts.
@@ -38,6 +43,10 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-05: Implement the shared runtime foundation using Go 1.27.1, Wails 2.14.0, private Unix sockets and current-user Windows pipe/directory ACLs. Keep attempts session-scoped until portable durable catalogs arrive; retain supported backend boundaries and separate native artifact availability from executed platform evidence.
 - 2026-10-05: Remove mandatory human PR approvals at the owner's direction. Bootstrap preserves zero required approvals while retaining CI and resolved-conversation gates; constitution 2.1.2 separates optional PR approval from merge authorization.
 - 2026-10-05: Implement S002 catalog authority using shared typed portable SQL, short workspace transactions, expiring ownership and atomic receipts. Keep qualified dependency pins; separate migration permissions from runtime data permissions. Restore only empty authority, expire imported claims and keep native/encrypted credential persistence and media/graph execution in their subsequent slices.
+- 2026-10-07: Implement S004 for issues #5 and #6. Freeze historical migration definitions and add catalog schema 3 for current library/model/work records. Keep unknown duration separate from zero; replace superseded computed metadata under issue #21. Full Cueson document assembly remains subsequent work.
+- 2026-10-07: Qualify the macOS arm64 native operations on macOS 15 ahead of the announced macOS 14 runner retirement, preserving the pinned tool architecture and ten-minute CI budget.
+- 2026-10-07: Resolve review findings with logical model-version identity, bounded 8 MiB normalized import ingress, shared desktop/runtime operation deadlines and fenced cleanup of unused admission candidates. Preserve retryable partial batch results and require the latest accepted current-state proofs in portable snapshots.
+- 2026-10-07: Require encrypted remote credential acquisition with an explicit loopback HTTP exception. Add configurable remote byte/time budgets and reject common query-authentication aliases before durable enqueue while retaining ordinary noncredential source selectors.
 - Bind landing hero and page metadata to approved upstream slogan and description fields; expand syntax highlighting for JSON and CLI examples.
 - Support optional validated read-only AI query execution through the configured assistance mode.
 - Subdivide workspace/runtime, catalog/jobs, artifact storage and secrets/model-registry development into four focused slices; renumber the remaining application slices through S015.

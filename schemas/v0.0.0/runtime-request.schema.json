@@ -50,7 +50,33 @@
         "artifacts.lease-release",
         "artifacts.retain",
         "artifacts.release-reference",
-        "artifacts.cache-prune"
+        "artifacts.cache-prune",
+        "media.import",
+        "media.list",
+        "media.show",
+        "media.metadata",
+        "media.raw",
+        "media.refresh",
+        "media.set-origin",
+        "media.relocate",
+        "models.register",
+        "models.acquire",
+        "models.list",
+        "models.show",
+        "models.verify",
+        "models.materialize",
+        "work.list",
+        "work.show",
+        "work.cancel",
+        "work.retry",
+        "credentials.select",
+        "credentials.add",
+        "credentials.replace",
+        "credentials.delete",
+        "credentials.status",
+        "credentials.unlock",
+        "credentials.load",
+        "work.results"
       ],
       "description": "Shared operation selected by either client."
     },
@@ -98,6 +124,14 @@
       "minimum": 1,
       "maximum": 9223372036854775807,
       "description": "Explicit materialization byte ceiling overriding the default 10 GiB cache admission bound."
+    },
+    "item_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Workspace-scoped media, model or real-work identifier."
+    },
+    "data": {
+      "type": "object",
+      "description": "Operation-specific input; credential input is transient current-user IPC and is never journaled."
     }
   },
   "allOf": [
@@ -501,6 +535,569 @@
           "required": [
             "max_bytes"
           ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "workspace.show",
+              "doctor",
+              "catalog.show",
+              "jobs.start",
+              "jobs.show",
+              "jobs.cancel",
+              "jobs.retry",
+              "jobs.history",
+              "artifacts.publish",
+              "artifacts.show",
+              "artifacts.verify",
+              "artifacts.materialize",
+              "artifacts.reconcile",
+              "artifacts.abort",
+              "artifacts.retire",
+              "artifacts.lease-renew",
+              "artifacts.lease-release",
+              "artifacts.retain",
+              "artifacts.release-reference",
+              "artifacts.cache-prune"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            },
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "media.import",
+              "media.list",
+              "media.show",
+              "media.metadata",
+              "media.raw",
+              "media.refresh",
+              "media.set-origin",
+              "media.relocate",
+              "models.register",
+              "models.acquire",
+              "models.list",
+              "models.show",
+              "models.verify",
+              "models.materialize",
+              "work.list",
+              "work.show",
+              "work.cancel",
+              "work.retry",
+              "credentials.select",
+              "credentials.add",
+              "credentials.replace",
+              "credentials.delete",
+              "credentials.status",
+              "credentials.unlock",
+              "credentials.load"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "media.list",
+              "models.list",
+              "work.list"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "item_id"
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Bounded current-state list page.",
+            "additionalProperties": false,
+            "properties": {
+              "after_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exclusive lexically ordered UUID cursor."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Maximum entries, default100."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "media.show",
+              "media.metadata",
+              "media.raw",
+              "models.show",
+              "models.verify",
+              "models.materialize",
+              "work.show",
+              "work.cancel",
+              "work.retry"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "media.import"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "$ref": "import-manifest.schema.json",
+            "description": "Batch media admission with inherited local_http, acquisition_max_bytes and acquisition_timeout_ms options. Credential transport is validated before durable work admission."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.register",
+              "models.acquire"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "manifest"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "manifest": {
+                "$ref": "base-model-manifest.schema.json",
+                "description": "Exact downloaded base-model identity and file contract."
+              }
+            },
+            "description": "Typed input for the selected operation."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "media.refresh"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "import-manifest.schema.json#/properties/defaults",
+            "description": "Typed input for the selected operation."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "media.set-origin"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "revision",
+              "options"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Current catalog revision for compare-and-swap."
+              },
+              "options": {
+                "$ref": "import-manifest.schema.json#/properties/defaults",
+                "description": "Owner date and timezone selection."
+              }
+            },
+            "description": "Typed input for the selected operation."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "media.relocate"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "revision",
+              "path"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Current catalog revision for compare-and-swap."
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "description": "New local reference path with unchanged digest and size."
+              }
+            },
+            "description": "Typed input for the selected operation."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "credentials.select",
+              "credentials.add",
+              "credentials.replace",
+              "credentials.delete",
+              "credentials.status",
+              "credentials.unlock",
+              "credentials.load"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "arguments"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "arguments": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 2,
+                "items": {
+                  "type": "string"
+                },
+                "description": "Credential operation and optional nonsecret identifier or backend."
+              },
+              "input": {
+                "type": "object",
+                "description": "Bounded transient value/passphrase/session envelope from protected stdin.",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "description": "Credential value kept outside public contracts and journals.",
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "passphrase": {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "description": "Vault passphrase kept in current runtime memory."
+                  },
+                  "session": {
+                    "type": "object",
+                    "description": "Explicit transient UUID-keyed credential mapping.",
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "object"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Typed input for the selected operation."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "work.results",
+            "description": "Paged import result references."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Bounded per-item result page.",
+            "additionalProperties": false,
+            "properties": {
+              "after_ordinal": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10000,
+                "description": "Inclusive first result ordinal, default0."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Maximum entries, default100."
+              }
+            }
+          }
         }
       }
     }

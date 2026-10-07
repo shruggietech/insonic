@@ -6,7 +6,9 @@ import (
 	"github.com/shruggietech/insonic/internal/artifact"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/credentialcmd"
 	"github.com/shruggietech/insonic/internal/workspace"
+	"strings"
 	"sync"
 	"time"
 )
@@ -17,18 +19,21 @@ type worker struct {
 	cancel  context.CancelFunc
 }
 type App struct {
-	Workspace  *workspace.Workspace
-	Session    string
-	Catalog    catalog.Catalog
-	mu         sync.Mutex
-	attempts   map[string]*worker
-	ctx        context.Context
-	cancel     context.CancelFunc
-	wg         sync.WaitGroup
-	closed     bool
-	artifactMu sync.Mutex
-	Artifacts  *artifact.Service
-	secrets    contracts.SecretProvider
+	Workspace   *workspace.Workspace
+	Session     string
+	Catalog     catalog.Catalog
+	mu          sync.Mutex
+	attempts    map[string]*worker
+	ctx         context.Context
+	cancel      context.CancelFunc
+	wg          sync.WaitGroup
+	closed      bool
+	artifactMu  sync.Mutex
+	Artifacts   *artifact.Service
+	secrets     contracts.SecretProvider
+	secretOwner *liveSecrets
+	workMu      sync.Mutex
+	workers     map[string]*realWorker
 }
 
 const leaseTTL = 5 * time.Second
@@ -37,11 +42,21 @@ func New(w *workspace.Workspace) (*App, error) {
 	return NewContext(context.Background(), w)
 }
 func NewContext(ownerContext context.Context, w *workspace.Workspace) (*App, error) {
-	secrets, err := catalog.SessionSecretsFromEnvironment()
+	provider, err := credentialcmd.Provider(w, nil)
 	if err != nil {
 		return nil, err
 	}
-	return newOwnerContext(ownerContext, w, secrets)
+	live := &liveSecrets{manager: provider}
+	a, err := newOwnerContext(ownerContext, w, live)
+	if err != nil {
+		provider.Close()
+		return nil, err
+	}
+	a.secretOwner = live
+	return a, nil
+}
+func NewContextWithSecrets(ctx context.Context, w *workspace.Workspace, provider contracts.SecretProvider) (*App, error) {
+	return newOwnerContext(ctx, w, provider)
 }
 func NewWithSecrets(w *workspace.Workspace, secrets contracts.SecretProvider) (*App, error) {
 	return newOwnerContext(context.Background(), w, secrets)
@@ -60,7 +75,11 @@ func newOwnerContext(ownerContext context.Context, w *workspace.Workspace, secre
 		store.Close()
 		return nil, err
 	}
-	a := &App{Workspace: w, Session: contracts.ID(), Catalog: store, attempts: map[string]*worker{}, ctx: ctx, cancel: cancel, secrets: secrets}
+	a := &App{Workspace: w, Session: contracts.ID(), Catalog: store, attempts: map[string]*worker{}, workers: map[string]*realWorker{}, ctx: ctx, cancel: cancel, secrets: secrets}
+	if live, ok := secrets.(*liveSecrets); ok {
+		a.secretOwner = live
+	}
+	a.recoverWork()
 	recovered, err := store.Recover(ctx, a.Session, leaseTTL)
 	if err != nil {
 		cancel()
@@ -80,6 +99,7 @@ func newOwnerContext(ownerContext context.Context, w *workspace.Workspace, secre
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
+				a.recoverWork()
 				a.mu.Lock()
 				if a.closed {
 					a.mu.Unlock()
@@ -215,7 +235,14 @@ func (a *App) Complete(id string, generation int64, state string) bool {
 	delete(a.attempts, id)
 	return true
 }
-func (a *App) Active() int { a.mu.Lock(); defer a.mu.Unlock(); return len(a.attempts) }
+func (a *App) Active() int {
+	a.mu.Lock()
+	n := len(a.attempts)
+	a.mu.Unlock()
+	a.workMu.Lock()
+	defer a.workMu.Unlock()
+	return n + len(a.workers)
+}
 func (a *App) Close() {
 	// In-flight catalog calls can hold mu while waiting on the server. Cancel
 	// their context first so shutdown can acquire mu and drain workers.
@@ -238,6 +265,9 @@ func (a *App) Close() {
 	}
 	a.artifactMu.Unlock()
 	a.Catalog.Close()
+	if a.secretOwner != nil {
+		a.secretOwner.Close()
+	}
 }
 
 func (a *App) Dispatch(req contracts.Request) contracts.Response {
@@ -254,7 +284,7 @@ func (a *App) Dispatch(req contracts.Request) contracts.Response {
 		return response
 	}
 	jobOp := req.Operation == "jobs.show" || req.Operation == "jobs.cancel" || req.Operation == "jobs.retry" || req.Operation == "jobs.history"
-	if req.Kind != "runtime-request" || !contracts.ValidID(req.RequestID) || !artifactRequestValid(req) || (req.Operation != "jobs.start" && req.DurationMS != 0) || (!jobOp && req.JobID != "") || (req.Operation != "jobs.history" && req.AfterGeneration != 0) {
+	if req.Kind != "runtime-request" || !contracts.ValidID(req.RequestID) || !artifactRequestValid(req) || !domainRequestValid(req) || (req.Operation != "jobs.start" && req.DurationMS != 0) || (!jobOp && req.JobID != "") || (req.Operation != "jobs.history" && req.AfterGeneration != 0) {
 		response.Error = contracts.Fail("invalid_request")
 		return response
 	}
@@ -288,7 +318,13 @@ func (a *App) Dispatch(req contracts.Request) contracts.Response {
 			result, err = a.Catalog.HistoryPage(a.ctx, req.JobID, req.AfterGeneration)
 		}
 	default:
-		result, err = a.artifactDispatch(req)
+		if strings.HasPrefix(req.Operation, "credentials.") {
+			result, err = a.credentialDispatch(req)
+		} else if req.ItemID != "" || len(req.Data) > 0 || req.Operation == "media.list" || req.Operation == "models.list" || req.Operation == "work.list" {
+			result, err = a.domainDispatch(req)
+		} else {
+			result, err = a.artifactDispatch(req)
+		}
 	}
 	if err != nil {
 		if typed, ok := err.(*contracts.Error); ok {

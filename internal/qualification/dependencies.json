@@ -61,6 +61,12 @@
       ]
     }
   },
+  "media_tools": {
+    "lock": "internal/qualification/media-tools.json",
+    "exiftool": "13.59",
+    "ffprobe_distribution": "eugeneware/ffmpeg-static:b6.1.1",
+    "platforms": ["windows_amd64", "linux_amd64", "darwin_arm64"]
+  },
   "fixtures": {
     "postgres": "postgres:18.6@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722",
     "s3": "adobe/s3mock:5.2.3@sha256:ab01a6946750f451ca215a47e91030695b260e4003b8a5a6201d25029b8fca92",
