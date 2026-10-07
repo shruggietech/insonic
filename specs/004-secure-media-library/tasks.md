@@ -94,3 +94,7 @@ Complete core contracts, then independently test story services, integrate one s
 - [x] T046 Enforce encrypted remote credential transport with an explicit loopback HTTP exception before admission and acquisition in internal/library/ (FR-002/005, review 4211183089).
 - [x] T047 Bound remote acquisition bytes and duration through configurable batch/per-item options, CLI/schema contracts and cleanup/deadline regressions (FR-005/010, review 4211183105).
 - [x] T048 Reject common JWT/session/query-authentication aliases before media/model intent persistence while preserving noncredential source selectors (FR-002, review 4211183110).
+
+## Phase 13: Hosted verification
+
+- [x] T049 Remove runner-speed assumptions from outbox reconciliation/takeover tests by explicitly expiring the stored lease between durable operations, then rerun affected acceptance (FR-010/012, hosted Windows run 37677701161).

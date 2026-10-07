@@ -106,7 +106,23 @@ exceeded the owner's request cap and was reported to the owner immediately.
 It was not authorized as a third round; no further request will be sent.
 Two completed bot review reports are visible (initial and follow-up), with seven
 findings total. This ledger does not claim compliance with the review cap.
-Final replies/resolution and exact-head CI remain pending.
+All seven findings were fixed, replied to and resolved before final CI watching.
+The three follow-up fixes are in
+`9896c70c61415c5d40b503edfaba019162db13f7`. Replies 4211311351, 4211312447
+and 4211313394 describe transport enforcement, acquisition limits and query
+aliases respectively. GitHub's review-thread API reports all seven discussions
+resolved. No further review request will be sent.
+
+## Hosted verification correction
+
+On `9896c70`, [run 37677701161](https://github.com/shruggietech/insonic/actions/runs/37677701161)
+passed foundation, docs, adapter fixtures, macOS and Linux. Windows failed in
+`TestSQLiteAckReconciliation`: a one-second test lease expired before its next
+durable acknowledgement on the loaded runner. T049 gives active test claims a
+one-minute lease and explicitly expires the stored claim between the expiry and
+takeover assertions. Production lease clocks and fences are unchanged. The
+SQLite reconciliation/ordered-outbox suites passed five repeated race runs.
+The final hosted rerun remains pending.
 
 ## Remaining product boundaries
 
