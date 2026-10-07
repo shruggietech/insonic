@@ -67,23 +67,25 @@ func (s *Session) model(ctx context.Context, id, capability string) (string, map
 	if err != nil || len(ids) != len(manifest.Files) {
 		return "", nil, contracts.Fail("conflict")
 	}
-	roles := map[string]bool{}
+	// Detect filesystem aliases case-insensitively, but retain exact spellings.
+	// Engines require canonical role paths even on case-sensitive hosts.
+	roles := map[string]string{}
 	for _, file := range manifest.Files {
 		if !validRole(file.Role) {
 			return "", nil, contracts.Fail("invalid_request")
 		}
 		key := strings.ToLower(file.Role)
-		if roles[key] {
+		if _, exists := roles[key]; exists {
 			return "", nil, contracts.Fail("invalid_request")
 		}
-		roles[key] = true
+		roles[key] = file.Role
 	}
 	required := []string{"config.json", "model.bin", "tokenizer.json", "vocabulary.txt"}
 	if capability == "diarization" {
 		required = []string{"config.yaml", "embedding/pytorch_model.bin", "segmentation/pytorch_model.bin", "plda/plda.npz", "plda/xvec_transform.npz"}
 	}
 	for _, role := range required {
-		if !roles[role] {
+		if roles[role] != role {
 			return "", nil, contracts.Fail("model_unavailable")
 		}
 	}

@@ -51,7 +51,7 @@
 - [X] T022 [US3] Migrate timed legacy segment attribution to reference-only evidence, remove stale preparation/membership alternatives and document invalidation in internal/catalog/records.go, internal/catalog/migration.go and internal/catalog/recording.go.
 - [X] T023 [US3] Queue/recover physical retirement of superseded mapped audio and evidence clips with current reference fences in internal/catalog/library_state.go, internal/artifact/ and internal/library/service.go.
 - [X] T024 [US3] Update downstream query/playback/export/training reference resolution and schema validation in internal/catalog/, internal/app/ and schemas/.
-- [ ] T025 [US3] Qualify migrations/current replacement/snapshot restoration on SQLite/PostgreSQL and filesystem/S3 in internal/qualification/ and scripts/qualify.py.
+- [X] T025 [US3] Qualify migrations/current replacement/snapshot restoration on SQLite/PostgreSQL and filesystem/S3 in internal/qualification/ and scripts/qualify.py.
 
 ## Phase 6: US4 Reproducible inexpensive qualification (P1)
 
@@ -69,7 +69,7 @@
 - [X] T031 Reconcile public authoritative contracts, legacy planning and changelog with current sole-document behavior in docs/, specs/ and CHANGELOG.md.
 - [X] T032 Run npm run check, npm test, affected Go/race/vet/site/schema/native/backend checks and quickstart scenarios; inspect UTF-8/LF/mojibake in specs/005-correlated-subtitles/verification.md.
 - [X] T033 Run Spec Kit convergence, fix every critical finding and record final evidence in specs/005-correlated-subtitles/analysis.md and verification.md.
-- [ ] T034 Commit/push codex/005-correlated-subtitles and publish official PR closing #21/#7; attach PR to this chat and record URL in specs/005-correlated-subtitles/verification.md.
+- [X] T034 Commit/push codex/005-correlated-subtitles and publish official PR closing #21/#7; attach PR to this chat and record URL in specs/005-correlated-subtitles/verification.md.
 - [ ] T035 Respond to and resolve every external review, request at most one combined second round, finish review rounds before waiting on final CI and record exact rounds in specs/005-correlated-subtitles/verification.md.
 - [ ] T036 Confirm affected CI green and all reviews satisfied, then hand the PR to the owner for final review/squash merge; do not merge or release.
 

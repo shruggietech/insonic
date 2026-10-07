@@ -208,7 +208,10 @@ func nativeFormat(raw []byte, elected string) string {
 	if elected != "" {
 		return elected
 	}
-	if bytes.HasPrefix(bytes.TrimSpace(raw), []byte("WEBVTT")) {
+	// WebVTT permits an optional UTF-8 BOM at the start. Inspect a sliced view
+	// without changing the source passed to Cueson or retained as source evidence.
+	probe := bytes.TrimSpace(bytes.TrimPrefix(raw, []byte{0xef, 0xbb, 0xbf}))
+	if bytes.HasPrefix(probe, []byte("WEBVTT")) {
 		return "vtt"
 	}
 	return "srt"
