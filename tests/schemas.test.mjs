@@ -191,3 +191,15 @@ test('approximate import dates preserve open or closed UTC bounds and reject exa
   delete value.items[0].originated_at;
   delete value.items[0].originated_latest.unix_ns; assert.equal(master(value), false);
 });
+
+test('remote acquisition budgets and explicit local transport are typed per batch and item', () => {
+  const value = example('import-manifest');
+  Object.assign(value.defaults, {local_http: true, acquisition_max_bytes: 1024, acquisition_timeout_ms: 5000});
+  Object.assign(value.items[0], {local_http: false, acquisition_max_bytes: 2048, acquisition_timeout_ms: 10000});
+  assert.equal(master(value), true);
+  value.items[0].acquisition_max_bytes = 0; assert.equal(master(value), false);
+  value.items[0].acquisition_max_bytes = 2048;
+  value.defaults.acquisition_timeout_ms = -1; assert.equal(master(value), false);
+  value.defaults.acquisition_timeout_ms = 5000;
+  value.items[0].local_http = 'true'; assert.equal(master(value), false);
+});

@@ -773,7 +773,7 @@
         "properties": {
           "data": {
             "$ref": "import-manifest.schema.json",
-            "description": "Typed input for the selected operation."
+            "description": "Batch media admission with inherited local_http, acquisition_max_bytes and acquisition_timeout_ms options. Credential transport is validated before durable work admission."
           }
         }
       }

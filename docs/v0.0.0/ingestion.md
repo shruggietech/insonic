@@ -96,6 +96,21 @@ artifact leases rather than placing large reports in IPC frames. Oversized
 normalized metadata also returns these reports with `metadata_inline: false`.
 Release each lease after reading using `artifacts lease-release`.
 
+HTTP acquisition has configurable byte and time budgets. The defaults are 64 GiB
+and ten minutes per source. Set `--acquisition-max-bytes` and
+`--acquisition-timeout-ms`, or the equivalent `acquisition_max_bytes` and
+`acquisition_timeout_ms` batch/per-item manifest options, for larger recordings
+or slower configured sources. Values must be positive; item options override
+batch defaults. Declared and streamed responses exceeding the ceiling fail,
+cancelled/timed-out downloads stop, and partial acquisition files are removed.
+Local copy/reference imports do not use this remote-download ceiling.
+
+Credential-bearing acquisition uses HTTPS. Explicit `--local-http` (manifest
+`local_http: true`) permits credential-bearing HTTP only for a loopback source;
+it cannot permit plaintext remote authentication. Ordinary HTTP sources without
+credentials remain supported. Authentication belongs in credential IDs, and
+source URLs reject common query-authentication aliases before durable enqueue.
+
 JSON date input can preserve approximate `originated_earliest` and
 `originated_latest` bounds as exact `{iso, unix_ns}` UTC instants. Either bound
 may be absent; two bounds must be ordered and their text and integer values must

@@ -27,7 +27,7 @@ work recovery, and use one workspace-scoped SQL retirement reference query.
 
 - `npm run check`: repository text/link/navigation/brand and 17-schema,
   15-contract registry checks passed; no BOM, CRLF or mojibake findings.
-- `npm test`: 50 maintainer tests passed.
+- `npm test`: 51 maintainer tests passed after acquisition-contract additions.
 - `go test ./...` and `go vet ./...`: passed.
 - Affected app/library/model/secrets/credentialcmd/runtime/desktop race checks:
   passed. Catalog/artifact authority and retirement regressions passed.
@@ -87,9 +87,26 @@ identity. Local full tests/vet and affected race regressions pass after integrat
 Repository check and 50 maintainer tests pass. Documentation explains established
 PostgreSQL session lifetime separately from new credential resolution.
 
-Review round 1 is complete; replies/resolution and follow-up publication are the
-next actions. The single authorized second code/security review round remains
-unused. No third round will be requested. Final CI/review evidence remains pending.
+Initial four findings were fixed in `92ef53120058abf59f1784b463f6aac7cbcf523e`,
+each replied to and resolved. Follow-up review completed on that head with three
+security findings. T046-T048 address transport before secret resolution and
+persistence, configured acquisition byte/time limits, and common JWT/session
+aliases. CLI and schema options preserve batch/per-item inheritance. Boundary,
+TLS, cancellation/deadline, partial-file cleanup and actual no-persistence tests
+pass. Ordinary noncredential selectors and remote HTTP remain supported.
+
+### Review-cap deviation
+
+The initial automatic review was followed by the combined code/security request
+[6045341738](https://github.com/shruggietech/insonic/pull/22#issuecomment-6045341738).
+Only a code-review job appeared, so an additional security request
+[6045363604](https://github.com/shruggietech/insonic/pull/22#issuecomment-6045363604)
+was sent. The bot again displayed a code-review job. That extra manual request
+exceeded the owner's request cap and was reported to the owner immediately.
+It was not authorized as a third round; no further request will be sent.
+Two completed bot review reports are visible (initial and follow-up), with seven
+findings total. This ledger does not claim compliance with the review cap.
+Final replies/resolution and exact-head CI remain pending.
 
 ## Remaining product boundaries
 

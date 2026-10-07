@@ -88,3 +88,9 @@ Complete core contracts, then independently test story services, integrate one s
 - [x] T043 Align bounded normalized manifest input, durable payload and IPC ingress budgets while retaining smaller paged responses, with real-runtime large-batch regression (FR-004/005/010, review 4210975415).
 - [x] T044 Share long-operation deadlines between desktop and runtime calls with deadline/cancellation coverage (FR-004, desktop parity, review 4210975459).
 - [x] T045 Keep failed batch admissions retryable with preserved per-item results and no duplicate successful entries in internal/app/ (FR-010, review 4210975392).
+
+## Phase 12: Follow-up external review
+
+- [x] T046 Enforce encrypted remote credential transport with an explicit loopback HTTP exception before admission and acquisition in internal/library/ (FR-002/005, review 4211183089).
+- [x] T047 Bound remote acquisition bytes and duration through configurable batch/per-item options, CLI/schema contracts and cleanup/deadline regressions (FR-005/010, review 4211183105).
+- [x] T048 Reject common JWT/session/query-authentication aliases before media/model intent persistence while preserving noncredential source selectors (FR-002, review 4211183110).

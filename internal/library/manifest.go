@@ -77,6 +77,9 @@ func readCSV(data []byte) (ImportRequest, error) {
 		return r, contracts.Fail("invalid_request")
 	}
 	allowed := map[string]bool{"source": true, "subtitle": true, "title": true, "copy": true, "originated_at": true, "originated_on": true, "originated_earliest": true, "originated_latest": true, "timezone": true, "dst_fold": true, "dst_gap": true, "preset": true, "date_precedence": true, "credential_id": true, "acquisition_adapter": true, "new_entry": true}
+	for _, field := range []string{"local_http", "acquisition_max_bytes", "acquisition_timeout_ms"} {
+		allowed[field] = true
+	}
 	seen := map[string]bool{}
 	for _, h := range headers {
 		if !allowed[h] || seen[h] {
@@ -101,8 +104,14 @@ func readCSV(data []byte) (ImportRequest, error) {
 				continue
 			}
 			h := headers[i]
-			if h == "copy" || h == "new_entry" {
+			if h == "copy" || h == "new_entry" || h == "local_http" {
 				v, e := strconv.ParseBool(value)
+				if e != nil {
+					return r, contracts.Fail("invalid_request")
+				}
+				doc[h] = v
+			} else if h == "acquisition_max_bytes" || h == "acquisition_timeout_ms" {
+				v, e := strconv.ParseInt(value, 10, 64)
 				if e != nil {
 					return r, contracts.Fail("invalid_request")
 				}

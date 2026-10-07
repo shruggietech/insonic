@@ -181,7 +181,7 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 			return ItemResult{}, contracts.Fail("unavailable")
 		}
 		original = filepath.Join(directory, "acquired"+filepath.Ext(sourceURL.Path))
-		receipt, e := adapter.Acquire(ctx, item.Source, item.CredentialID, original)
+		receipt, e := adapter.Acquire(ctx, item.Source, item.CredentialID, original, options)
 		if e != nil {
 			return ItemResult{}, e
 		}

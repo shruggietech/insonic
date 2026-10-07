@@ -43,7 +43,8 @@ func TestConfiguredAcquisitionCapturesBytesAndSuppliedSubtitle(t *testing.T) {
 	if e = os.WriteFile(subtitle, []byte("1\n00:00:00,000 --> 00:00:00,010\nFixture\n"), 0600); e != nil {
 		t.Fatal(e)
 	}
-	work := claimLibraryWork(t, db, "media.import", ImportRequest{Defaults: Options{Timezone: "UTC"}, Items: []Item{{Source: server.URL + "/original.wav?id=fixture&page=1", Subtitle: subtitle, CredentialID: contracts.ID()}}})
+	electedLocalHTTP := true
+	work := claimLibraryWork(t, db, "media.import", ImportRequest{Defaults: Options{Timezone: "UTC", LocalHTTP: &electedLocalHTTP}, Items: []Item{{Source: server.URL + "/original.wav?id=fixture&page=1", Subtitle: subtitle, CredentialID: contracts.ID()}}})
 	value, e := s.Execute(ctx, work)
 	if e != nil {
 		t.Fatal(e)
@@ -77,7 +78,7 @@ func TestConfiguredAcquisitionCapturesBytesAndSuppliedSubtitle(t *testing.T) {
 }
 
 func TestPrepareImportRejectsCredentialURLBeforeWorkPersistence(t *testing.T) {
-	for _, source := range []string{"https://example.test/media?token=private", "https://example.test/media?X-Amz-Signature=private", "https://user:private@example.test/media", "https://example.test/%zz?token=private"} {
+	for _, source := range []string{"https://example.test/media?token=private", "https://example.test/media?X-Amz-Signature=private", "https://user:private@example.test/media", "https://example.test/%zz?token=private", " https://example.test/media?jwt=private", "\thttps://example.test/media?session_token=private"} {
 		if _, e := PrepareImport(ImportRequest{Items: []Item{{Source: source}}}); e == nil {
 			t.Fatal("credential URL admitted to durable intent")
 		}

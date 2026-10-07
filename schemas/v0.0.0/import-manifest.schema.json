@@ -75,6 +75,24 @@
         "originated_latest": {
           "$ref": "common.schema.json#/$defs/utcInstant",
           "description": "Inclusive latest recording instant for an owner-supplied approximate date range. Application validation checks bound ordering."
+        },
+        "local_http": {
+          "type": "boolean",
+          "default": false,
+          "description": "Explicitly elect HTTP credential transport for a loopback endpoint only. Credentials otherwise require HTTPS; unauthenticated HTTP sources remain supported."
+        },
+        "acquisition_max_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 68719476736,
+          "description": "Maximum acquired original bytes, default 64 GiB. Declared and streamed lengths are bounded before publication."
+        },
+        "acquisition_timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854,
+          "default": 600000,
+          "description": "Positive total acquisition deadline in milliseconds, default ten minutes. Per-item values override batch defaults."
         }
       },
       "not": {
@@ -215,6 +233,24 @@
           "originated_latest": {
             "$ref": "common.schema.json#/$defs/utcInstant",
             "description": "Inclusive latest recording instant for an owner-supplied approximate date range. Application validation checks bound ordering."
+          },
+          "local_http": {
+            "type": "boolean",
+            "default": false,
+            "description": "Explicitly elect HTTP credential transport for a loopback endpoint only. Credentials otherwise require HTTPS; unauthenticated HTTP sources remain supported."
+          },
+          "acquisition_max_bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 68719476736,
+            "description": "Maximum acquired original bytes, default 64 GiB. Declared and streamed lengths are bounded before publication."
+          },
+          "acquisition_timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854,
+            "default": 600000,
+            "description": "Positive total acquisition deadline in milliseconds, default ten minutes. Per-item values override batch defaults."
           }
         },
         "required": [
@@ -355,6 +391,24 @@
         "originated_latest": {
           "$ref": "common.schema.json#/$defs/utcInstant",
           "description": "Inclusive latest recording instant for an owner-supplied approximate date range. Application validation checks bound ordering."
+        },
+        "local_http": {
+          "type": "boolean",
+          "default": false,
+          "description": "Explicitly elect HTTP credential transport for a loopback endpoint only. Credentials otherwise require HTTPS; unauthenticated HTTP sources remain supported."
+        },
+        "acquisition_max_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 68719476736,
+          "description": "Maximum acquired original bytes, default 64 GiB. Declared and streamed lengths are bounded before publication."
+        },
+        "acquisition_timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854,
+          "default": 600000,
+          "description": "Positive total acquisition deadline in milliseconds, default ten minutes. Per-item values override batch defaults."
         }
       },
       "not": {

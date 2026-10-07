@@ -29,17 +29,20 @@ type Tools struct {
 	FFprobe  Tool   `json:"ffprobe"`
 }
 type Options struct {
-	Copy               *bool            `json:"copy,omitempty"`
-	OriginatedAt       string           `json:"originated_at,omitempty"`
-	OriginatedOn       string           `json:"originated_on,omitempty"`
-	OriginatedEarliest *catalog.Instant `json:"originated_earliest,omitempty"`
-	OriginatedLatest   *catalog.Instant `json:"originated_latest,omitempty"`
-	Timezone           string           `json:"timezone,omitempty"`
-	DSTFold            string           `json:"dst_fold,omitempty"`
-	DSTGap             string           `json:"dst_gap,omitempty"`
-	Preset             string           `json:"preset,omitempty"`
-	DatePrecedence     string           `json:"date_precedence,omitempty"`
-	Extensions         json.RawMessage  `json:"extensions,omitempty"`
+	LocalHTTP            *bool            `json:"local_http,omitempty"`
+	AcquisitionMaxBytes  *int64           `json:"acquisition_max_bytes,omitempty"`
+	AcquisitionTimeoutMS *int64           `json:"acquisition_timeout_ms,omitempty"`
+	Copy                 *bool            `json:"copy,omitempty"`
+	OriginatedAt         string           `json:"originated_at,omitempty"`
+	OriginatedOn         string           `json:"originated_on,omitempty"`
+	OriginatedEarliest   *catalog.Instant `json:"originated_earliest,omitempty"`
+	OriginatedLatest     *catalog.Instant `json:"originated_latest,omitempty"`
+	Timezone             string           `json:"timezone,omitempty"`
+	DSTFold              string           `json:"dst_fold,omitempty"`
+	DSTGap               string           `json:"dst_gap,omitempty"`
+	Preset               string           `json:"preset,omitempty"`
+	DatePrecedence       string           `json:"date_precedence,omitempty"`
+	Extensions           json.RawMessage  `json:"extensions,omitempty"`
 }
 type Item struct {
 	Source             string `json:"source"`
@@ -88,6 +91,15 @@ func DerivedID(op, label string) string {
 	return s[:8] + "-" + s[8:12] + "-" + s[12:16] + "-" + s[16:20] + "-" + s[20:]
 }
 func merged(base, item Options) Options {
+	if item.LocalHTTP != nil {
+		base.LocalHTTP = item.LocalHTTP
+	}
+	if item.AcquisitionMaxBytes != nil {
+		base.AcquisitionMaxBytes = item.AcquisitionMaxBytes
+	}
+	if item.AcquisitionTimeoutMS != nil {
+		base.AcquisitionTimeoutMS = item.AcquisitionTimeoutMS
+	}
 	if item.Copy != nil {
 		base.Copy = item.Copy
 	}
@@ -130,6 +142,9 @@ func merged(base, item Options) Options {
 	return base
 }
 func validOptions(o Options) bool {
+	if (o.AcquisitionMaxBytes != nil && *o.AcquisitionMaxBytes <= 0) || (o.AcquisitionTimeoutMS != nil && (*o.AcquisitionTimeoutMS <= 0 || *o.AcquisitionTimeoutMS > 9223372036854)) {
+		return false
+	}
 	if o.OriginatedEarliest != nil || o.OriginatedLatest != nil {
 		if o.OriginatedAt != "" || o.OriginatedOn != "" || !validBound(o.OriginatedEarliest) || !validBound(o.OriginatedLatest) || (o.OriginatedEarliest != nil && o.OriginatedLatest != nil && o.OriginatedEarliest.UnixNS > o.OriginatedLatest.UnixNS) {
 			return false
@@ -165,6 +180,9 @@ func PrepareImport(r ImportRequest) (ImportRequest, error) {
 			if _, e := contracts.SourceURL(r.Items[i].Source); e != nil {
 				return r, e
 			}
+			if e := validateAcquisitionTransport(r.Items[i].Source, r.Items[i].CredentialID, merged(r.Defaults, r.Items[i].Options)); e != nil {
+				return r, e
+			}
 		}
 		if hasRemoteScheme(r.Items[i].Subtitle) {
 			return r, contracts.Fail("invalid_request")
@@ -182,6 +200,7 @@ func PrepareImport(r ImportRequest) (ImportRequest, error) {
 // Recognize the scheme independently of URL parsing so malformed escapes do
 // not turn a remote locator into a local path before intent validation.
 func hasRemoteScheme(source string) bool {
+	source = strings.TrimSpace(source)
 	colon := strings.IndexByte(source, ':')
 	if colon <= 1 {
 		return false

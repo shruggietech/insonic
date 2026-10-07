@@ -59,6 +59,10 @@ func parseFlags(args []string) ([]string, domainFlags, error) {
 		case "--new-entry":
 			f.newEntry = true
 			continue
+		case "--local-http":
+			allow := true
+			f.options.LocalHTTP = &allow
+			continue
 		}
 		i++
 		if i >= len(args) {
@@ -82,6 +86,16 @@ func parseFlags(args []string) ([]string, domainFlags, error) {
 			f.credential = value
 		case "--acquisition-adapter":
 			f.adapter = value
+		case "--acquisition-max-bytes", "--acquisition-timeout-ms":
+			n, e := strconv.ParseInt(value, 10, 64)
+			if e != nil || n <= 0 {
+				return nil, f, contracts.Fail("invalid_request")
+			}
+			if arg == "--acquisition-max-bytes" {
+				f.options.AcquisitionMaxBytes = &n
+			} else {
+				f.options.AcquisitionTimeoutMS = &n
+			}
 		case "--originated-at":
 			f.options.OriginatedAt = value
 		case "--originated-on":
@@ -275,7 +289,7 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 		return operation, positional[0], nil, nil
 	}
 	if command == "import" {
-		allowed := append(append([]string{}, dateFlags...), "copy-choice", "--manifest", "--subtitle", "--title", "--credential-id", "--acquisition-adapter", "--new-entry", "--preset")
+		allowed := append(append([]string{}, dateFlags...), "copy-choice", "--manifest", "--subtitle", "--title", "--credential-id", "--acquisition-adapter", "--local-http", "--acquisition-max-bytes", "--acquisition-timeout-ms", "--new-entry", "--preset")
 		if !flagsAllowed(f, allowed...) || f.manifest != "" && len(positional) > 0 || f.manifest == "" && len(positional) == 0 {
 			return fail()
 		}
@@ -363,6 +377,15 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 	return fail()
 }
 func overrideOptions(target *library.Options, source library.Options) {
+	if source.LocalHTTP != nil {
+		target.LocalHTTP = source.LocalHTTP
+	}
+	if source.AcquisitionMaxBytes != nil {
+		target.AcquisitionMaxBytes = source.AcquisitionMaxBytes
+	}
+	if source.AcquisitionTimeoutMS != nil {
+		target.AcquisitionTimeoutMS = source.AcquisitionTimeoutMS
+	}
 	if source.Copy != nil {
 		target.Copy = source.Copy
 	}
