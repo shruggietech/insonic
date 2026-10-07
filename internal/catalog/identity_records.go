@@ -68,6 +68,14 @@ type SpeakerSelectionPage struct {
 	References []CurrentReference `json:"references"`
 	Next       string             `json:"next_cursor,omitempty"`
 	Revision   int64              `json:"revision"`
+	Epoch      string             `json:"-"`
+}
+type PriorEvidenceComparison struct {
+	AssignmentOrdinal int   `json:"assignment_ordinal"`
+	Duplicate         bool  `json:"duplicate"`
+	Overlap           bool  `json:"overlap"`
+	LocalVoices       int64 `json:"local_voices"`
+	FirstReference    bool  `json:"first_reference"`
 }
 type ResolvedEvidence struct {
 	Reference CurrentReference `json:"reference"`

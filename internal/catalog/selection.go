@@ -48,6 +48,7 @@ func (s *Store) CurrentSpeakerReferences(ctx context.Context, selection SpeakerS
 	if err != nil {
 		return out, sanitize(err)
 	}
+	out.Epoch = epoch
 	if selection.Cursor != "" && cursor.Epoch != epoch {
 		return out, contracts.Fail("conflict")
 	}

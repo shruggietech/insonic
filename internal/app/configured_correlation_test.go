@@ -21,6 +21,9 @@ func (c *correlationFixtureCatalog) CurrentSpeakerReferences(context.Context, ca
 func (c *correlationFixtureCatalog) ResolveEvidence(context.Context, catalog.CurrentReference) (catalog.ResolvedEvidence, error) {
 	return c.Evidence, c.Failure
 }
+func (c *correlationFixtureCatalog) ComparePriorSpeakerEvidence(context.Context, catalog.SpeakerSelection, catalog.CurrentReference, string) ([]catalog.PriorEvidenceComparison, error) {
+	return []catalog.PriorEvidenceComparison{{AssignmentOrdinal: 0, LocalVoices: 1, FirstReference: true}, {AssignmentOrdinal: 1, LocalVoices: 1, FirstReference: true}}, c.Failure
+}
 
 func TestCorrelationQualityDefaultDisabledAndMandatoryIntegrity(t *testing.T) {
 	a := &App{ctx: context.Background()}

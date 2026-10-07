@@ -45,6 +45,9 @@ func TestPostgreSQLCurrentSpeakerSelection(t *testing.T) {
 func TestPostgreSQLSpeakerSelectionEpoch(t *testing.T) {
 	selectionEpochSuite(t, postgresStore(t, contracts.ID()))
 }
+func TestPostgreSQLPriorSpeakerEvidence(t *testing.T) {
+	priorEvidenceSuite(t, postgresStore(t, contracts.ID()))
+}
 func TestPostgreSQLDurableJobs(t *testing.T)   { jobSuite(t, postgresStore(t, contracts.ID())) }
 func TestPostgreSQLOrderedOutbox(t *testing.T) { outboxSuite(t, postgresStore(t, contracts.ID())) }
 func TestPostgreSQLSecurityAndConcurrency(t *testing.T) {

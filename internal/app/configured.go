@@ -2,6 +2,7 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
@@ -9,6 +10,7 @@ import (
 	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/internal/speakers"
 	"strings"
+	"time"
 )
 
 func configuredOperation(op string) bool {
@@ -200,19 +202,24 @@ func (a *App) configuredDispatch(req contracts.Request) (any, error) {
 		if len(req.Data) > 0 && strictPayload(req.Data, &input) != nil {
 			return nil, contracts.Fail("invalid_request")
 		}
-		page, e := a.Catalog.CurrentSpeakerReferences(a.ctx, catalog.SpeakerSelection{SpeakerID: req.ItemID, Cursor: input.Cursor, Limit: input.Limit, RecordingID: input.RecordingID})
+		ctx, stop := context.WithTimeout(a.ctx, 10*time.Second)
+		defer stop()
+		scope := catalog.SpeakerSelection{SpeakerID: req.ItemID, Cursor: input.Cursor, Limit: input.Limit, RecordingID: input.RecordingID}
+		page, e := a.Catalog.CurrentSpeakerReferences(ctx, scope)
 		if e != nil {
 			return nil, e
 		}
 		resolved := make([]catalog.ResolvedEvidence, 0, len(page.References))
 		for _, reference := range page.References {
-			value, e := a.Catalog.ResolveEvidence(a.ctx, reference)
+			value, e := a.Catalog.ResolveEvidence(ctx, reference)
 			if e != nil {
 				return nil, e
 			}
 			resolved = append(resolved, value)
 		}
-		selected, e := speakers.Select(resolved)
+		selected, e := speakers.SelectWithPrior(resolved, func(ref catalog.CurrentReference) ([]catalog.PriorEvidenceComparison, error) {
+			return a.Catalog.ComparePriorSpeakerEvidence(ctx, scope, ref, page.Epoch)
+		})
 		if e != nil {
 			return nil, e
 		}

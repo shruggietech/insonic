@@ -22,6 +22,7 @@ type Catalog interface {
 	PutTerm(context.Context, string, int64, Term) (Term, error)
 	ContextInputs(context.Context, ContextFilter) (ContextSnapshot, error)
 	CurrentSpeakerReferences(context.Context, SpeakerSelection) (SpeakerSelectionPage, error)
+	ComparePriorSpeakerEvidence(context.Context, SpeakerSelection, CurrentReference, string) ([]PriorEvidenceComparison, error)
 	ResolveEvidence(context.Context, CurrentReference) (ResolvedEvidence, error)
 	ResolveSegment(context.Context, string, int64) (ResolvedSegment, error)
 	AcceptedRecordingWork(context.Context, string, string) (json.RawMessage, bool, error)
