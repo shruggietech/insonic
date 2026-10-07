@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-"""Checksum-pinned small native extractor fixtures and real media acceptance."""
+"""Checksum-pinned native extractors/decoder and real media acceptance."""
 import argparse
 import base64
 import gzip
@@ -94,6 +94,30 @@ def child(args, env=None, timeout=180):
         return stdout
 
 
+def tool_identity(path, version_output):
+    lines = version_output.decode('utf-8').splitlines()
+    tokens = lines[0].split() if lines else []
+    if len(tokens) < 3 or tokens[0] not in ['ffmpeg', 'ffprobe'] or tokens[1] != 'version':
+        raise ValueError('unexpected native media version output')
+    return {'path': str(path.resolve()), 'sha256': sha(path), 'version': tokens[2]}
+
+
+def prepare_avtool(name, key, os_name):
+    selected = LOCK[name]
+    pin = selected['assets'][key]
+    archive = fetch(pin['name'], selected['base_url'] + pin['name'], pin['sha256'])
+    executable = BUILD / (name + '.exe' if os_name == 'windows' else name)
+    with gzip.open(archive, 'rb') as data, executable.open('wb') as output:
+        shutil.copyfileobj(data, output)
+    executable.chmod(0o755)
+    notices = BUILD / 'notices'
+    notices.mkdir(exist_ok=True)
+    for field in ['license', 'readme']:
+        notice = fetch(pin[field], selected['base_url'] + pin[field], pin[field + '_sha256'])
+        shutil.copyfile(notice, notices / pin[field])
+    return tool_identity(executable, child([executable, '-version'])), pin
+
+
 def prepare():
     os_name = {'Windows': 'windows', 'Linux': 'linux', 'Darwin': 'darwin'}[platform.system()]
     arch = {'AMD64': 'amd64', 'x86_64': 'amd64', 'arm64': 'arm64', 'aarch64': 'arm64'}[platform.machine()]
@@ -117,29 +141,21 @@ def prepare():
     if exif_version != LOCK['exiftool']['version']:
         raise ValueError('unexpected ExifTool fixture version')
     support = [{'path': str(path), 'sha256': sha(path)} for path in sorted(target.rglob('*')) if path.is_file() and path != executable]
-    pin = LOCK['ffprobe']['assets'][key]
-    probe_archive = fetch(pin['name'], LOCK['ffprobe']['base_url'] + pin['name'], pin['sha256'])
-    probe = BUILD / ('ffprobe.exe' if os_name == 'windows' else 'ffprobe')
-    with gzip.open(probe_archive, 'rb') as data, probe.open('wb') as output:
-        shutil.copyfileobj(data, output)
-    probe.chmod(0o755)
-    notices = BUILD / 'notices'
-    notices.mkdir(exist_ok=True)
-    for field in ['license', 'readme']:
-        notice = fetch(pin[field], LOCK['ffprobe']['base_url'] + pin[field], pin[field + '_sha256'])
-        shutil.copyfile(notice, notices / pin[field])
-    version_output = child([probe, '-version']).decode()
-    version = version_output.splitlines()[0].split()[2]
+    probe, pin = prepare_avtool('ffprobe', key, os_name)
+    decoder, decoder_pin = prepare_avtool('ffmpeg', key, os_name)
     tools = {'kind': 'media-tools', 'schema_version': '0.0.0',
              'exiftool': {'path': str(executable), 'sha256': sha(executable), 'version': exif_version, 'support_files': support},
-             'ffprobe': {'path': str(probe), 'sha256': sha(probe), 'version': version}}
+             'ffprobe': probe, 'ffmpeg': decoder}
     if interpreter:
         tools['exiftool']['interpreter'] = interpreter
     manifest = ROOT / 'build/native/media-tools.json'
     manifest.write_text(json.dumps(tools, indent=2) + '\n', encoding='utf-8')
     receipt = {'platform': key, 'exiftool_package': exif['name'], 'exiftool_archive_sha256': exif['sha256'],
                'ffprobe_archive': pin['name'], 'ffprobe_archive_sha256': pin['sha256'],
-               'exiftool_version': exif_version, 'ffprobe_version': version, 'notices': [pin['license'], pin['readme']]}
+               'ffmpeg_archive': decoder_pin['name'], 'ffmpeg_archive_sha256': decoder_pin['sha256'],
+               'exiftool_version': exif_version, 'ffprobe_version': probe['version'],
+               'ffmpeg_version': decoder['version'], 'ffmpeg_sha256': decoder['sha256'],
+               'notices': [pin['license'], pin['readme']]}
     (ROOT / 'build/native/media-tool-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
     return manifest, receipt
 

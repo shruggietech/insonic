@@ -31,18 +31,20 @@ var domains = []domainTable{
 	{"date_observation", "Dates", "id", "", []string{"media_id:media_entry:id", "observation_id:metadata_observation:id"}},
 	{"date_selection", "DateSelections", "id", "CHECK (revision>0), UNIQUE (workspace_id,media_id,revision)", []string{"media_id:media_entry:id", "date_id:date_observation:id"}},
 	{"speaker", "Speakers", "id", "", nil},
-	{"speaker_segment", "Segments", "id,revision", "CHECK (revision>0 AND start_us>=0 AND end_us>start_us AND channel>=0)", []string{"asset_id:media_asset:id", "speaker_id:speaker:id", "clip_artifact_id:artifact:id"}},
-	{"training_dataset", "Datasets", "id", "", []string{"speaker_id:speaker:id", "manifest_artifact_id:artifact:id"}},
+	{"library_entry", "Library", "id", "CHECK (revision>0 AND size>=0), CHECK (duration_us IS NULL OR duration_us>=0), CHECK (mode IN ('copy','reference'))", []string{"id:media_entry:id", "asset_id:media_asset:id"}},
+	{"current_recording", "Recordings", "id", "CHECK (revision>0 AND source_revision>0), CHECK (state IN ('ready','no-speech','no-timed-subtitles'))", []string{"id:library_entry:id"}},
+	{"speaker_segment", "Segments", "id,revision", "CHECK (revision>0 AND length(document_digest)=64 AND length(cue_id)>0)", []string{"recording_id:current_recording:id", "clip_artifact_id:artifact:id"}},
+	{"training_dataset", "Datasets", "id", "CHECK (state IN ('current','invalidated'))", []string{"speaker_id:speaker:id", "manifest_artifact_id:artifact:id"}},
 	{"dataset_member", "Members", "id", "CHECK (ordinal>=0 AND segment_revision>0), UNIQUE (workspace_id,dataset_id,ordinal)", []string{"dataset_id:training_dataset:id", "segment_id,segment_revision:speaker_segment:id,revision"}},
-	{"training_run", "Runs", "id", "", []string{"dataset_id:training_dataset:id", "speaker_id:speaker:id", "job_id:job:id", "preparation_artifact_id:artifact:id"}},
+	{"training_run", "Runs", "id", "CHECK (state IN ('current','invalidated'))", []string{"dataset_id:training_dataset:id", "speaker_id:speaker:id", "job_id:job:id", "preparation_artifact_id:artifact:id"}},
 	{"speaker_model", "Models", "id", "", []string{"speaker_id:speaker:id"}},
-	{"model_version", "Versions", "id", "", []string{"model_id:speaker_model:id", "run_id:training_run:id", "dataset_id:training_dataset:id", "manifest_artifact_id:artifact:id"}},
+	{"model_version", "Versions", "id", "CHECK (state IN ('current','invalidated'))", []string{"model_id:speaker_model:id", "run_id:training_run:id", "dataset_id:training_dataset:id", "manifest_artifact_id:artifact:id"}},
 	{"model_artifact", "ModelArtifacts", "id", "", []string{"version_id:model_version:id", "artifact_id:artifact:id"}},
 	{"model_association", "ModelAssociations", "id", "CHECK (revision>0), UNIQUE (workspace_id,model_id,speaker_id,revision)", []string{"model_id:speaker_model:id", "speaker_id:speaker:id"}},
-	{"library_entry", "Library", "id", "CHECK (revision>0 AND size>=0), CHECK (duration_us IS NULL OR duration_us>=0), CHECK (mode IN ('copy','reference'))", []string{"id:media_entry:id", "asset_id:media_asset:id"}},
 	{"base_model_install", "BaseModels", "id", "CHECK (revision>0), CHECK (state IN ('registered','available'))", nil},
 	{"work_operation", "Works", "id", "CHECK (generation>=0), CHECK (state IN ('pending','running','succeeded','failed','cancelled','interrupted'))", nil},
 	{"library_cleanup", "Cleanups", "id", "CHECK (state IN ('pending','done'))", nil},
+	{"speaker_mapping", "SpeakerMappings", "id", "CHECK (revision>0), UNIQUE (workspace_id,recording_id,local_speaker_id)", []string{"recording_id:current_recording:id", "speaker_id:speaker:id"}},
 }
 
 type column struct {
@@ -58,7 +60,7 @@ func columns(typ reflect.Type) []column {
 	var out []column
 	for i := 0; i < typ.NumField(); i++ {
 		f := typ.Field(i)
-		name := f.Tag.Get("json")
+		name := strings.Split(f.Tag.Get("json"), ",")[0]
 		ft := f.Type
 		base := ft
 		if base.Kind() == reflect.Pointer {
@@ -167,6 +169,10 @@ func legacyMigrationDigest() string {
 	h := sha256.Sum256([]byte(strings.Join(legacyMigrationStatements(), "\n")))
 	return hex.EncodeToString(h[:])
 }
+func historicalV3Digest() string {
+	h := sha256.Sum256([]byte(strings.Join(historicalV3DDL, "\n")))
+	return hex.EncodeToString(h[:])
+}
 func migrationDigest() string {
 	h := sha256.Sum256([]byte(strings.Join(migrationStatements(), "\n")))
 	return hex.EncodeToString(h[:])
@@ -201,11 +207,23 @@ func (s *Store) migrate(ctx context.Context) error {
 	var digest string
 	e = tx.QueryRowContext(ctx, "SELECT version,digest FROM catalog_schema WHERE singleton=1").Scan(&version, &digest)
 	if e == nil {
-		if (version == 1 && digest == legacyMigrationDigest()) || (version == 2 && digest == historicalV2Digest()) {
+		if (version == 1 && digest == legacyMigrationDigest()) || (version == 2 && digest == historicalV2Digest()) || (version == 3 && digest == historicalV3Digest()) {
+			legacy, e := s.captureHistoricalEvidence(ctx, tx)
+			if e != nil {
+				return sanitize(e)
+			}
+			if version == 3 {
+				if _, e = tx.ExecContext(ctx, "ALTER TABLE library_cleanup ADD COLUMN legacy_location_id TEXT"); e != nil {
+					return sanitize(e)
+				}
+			}
 			for _, q := range migrationStatements() {
 				if _, e = tx.ExecContext(ctx, q); e != nil {
 					return sanitize(e)
 				}
+			}
+			if e = s.restoreHistoricalEvidence(ctx, tx, legacy); e != nil {
+				return sanitize(e)
 			}
 			if _, e = s.exec(ctx, tx, "UPDATE catalog_schema SET version=?,digest=? WHERE singleton=1", SchemaVersion, migrationDigest()); e != nil {
 				return sanitize(e)
@@ -244,13 +262,21 @@ func validateRecord(value any) error {
 		if x == nil {
 			continue
 		}
-		if c.name == "id" || (strings.HasSuffix(c.name, "_id") && c.name != "credential_id") {
+		if c.name == "id" || (strings.HasSuffix(c.name, "_id") && c.name != "credential_id" && c.name != "cue_id") {
 			if id, ok := x.(string); !ok || !contracts.ValidID(id) {
 				return contracts.Fail("invalid_request")
 			}
 		}
 	}
 	switch r := value.(type) {
+	case Recording:
+		if !validRecording(r) || r.Revision < 1 {
+			return contracts.Fail("invalid_request")
+		}
+	case SpeakerMapping:
+		if !validSpeakerMapping(r) {
+			return contracts.Fail("invalid_request")
+		}
 	case LibraryEntry:
 		if !validLibrary(r) || r.Revision < 1 {
 			return contracts.Fail("invalid_request")
@@ -299,11 +325,14 @@ func validateRecord(value any) error {
 			return contracts.Fail("invalid_request")
 		}
 	case Segment:
-		if !positive(r.Revision) || r.StartUS < 0 || r.EndUS <= r.StartUS || r.Channel < 0 || !validJSON(r.Attribution) {
+		if !positive(r.Revision) || !digestPattern.MatchString(r.DocumentDigest) || r.CueID == "" || len(r.CueID) > 1024 {
 			return contracts.Fail("invalid_request")
 		}
 	case Dataset:
-		if !nonsecret(r.Options) {
+		if !referenceOnlyOptions(r.Options) || !validEvidenceState(r.State, r.ManifestArtifactID) {
+			return contracts.Fail("invalid_request")
+		}
+		if (r.State == "current" && (r.InvalidatedRevision != 0 || r.InvalidatedBy != nil)) || (r.State == "invalidated" && (r.InvalidatedRevision < 1 || r.InvalidatedBy == nil || !contracts.ValidID(*r.InvalidatedBy))) {
 			return contracts.Fail("invalid_request")
 		}
 	case DatasetMember:
@@ -311,7 +340,11 @@ func validateRecord(value any) error {
 			return contracts.Fail("invalid_request")
 		}
 	case TrainingRun:
-		if r.Adapter == "" || !nonsecret(r.Options) {
+		if r.Adapter == "" || !referenceOnlyOptions(r.Options) || !validEvidenceState(r.State, r.PreparationArtifactID) {
+			return contracts.Fail("invalid_request")
+		}
+	case ModelVersion:
+		if r.Kind == "" || !validEvidenceState(r.State, r.ManifestArtifactID) {
 			return contracts.Fail("invalid_request")
 		}
 	case ModelAssociation:
@@ -356,15 +389,11 @@ func (s *Store) insertRecords(ctx context.Context, tx *sql.Tx, records Records) 
 			}
 		}
 	}
-	// Segment bounds depend on the immutable source clock, not only local ordering.
 	var invalid int
-	e := s.row(ctx, tx, "SELECT count(*) FROM speaker_segment s JOIN media_asset a ON a.workspace_id=s.workspace_id AND a.id=s.asset_id LEFT JOIN library_entry l ON l.workspace_id=a.workspace_id AND l.asset_id=a.id WHERE s.workspace_id=? AND s.end_us>(CASE WHEN l.id IS NULL THEN a.duration_us ELSE l.duration_us END)", s.workspace).Scan(&invalid)
-	if e != nil {
+	if e := s.validateEvidence(ctx, tx, records.Segments); e != nil {
 		return e
 	}
-	if invalid > 0 {
-		return contracts.Fail("invalid_request")
-	}
+	var e error
 	for _, q := range []string{
 		"SELECT count(*) FROM date_selection s JOIN date_observation o ON o.workspace_id=s.workspace_id AND o.id=s.date_id WHERE s.workspace_id=? AND s.media_id<>o.media_id",
 		"SELECT count(*) FROM training_run r JOIN training_dataset d ON d.workspace_id=r.workspace_id AND d.id=r.dataset_id WHERE r.workspace_id=? AND r.speaker_id<>d.speaker_id",
@@ -376,6 +405,9 @@ func (s *Store) insertRecords(ctx context.Context, tx *sql.Tx, records Records) 
 		if invalid > 0 {
 			return contracts.Fail("invalid_request")
 		}
+	}
+	if len(records.Segments)+len(records.Datasets)+len(records.Members)+len(records.Runs)+len(records.Versions) > 0 {
+		return s.validateCorpusState(ctx, tx)
 	}
 	return nil
 }
@@ -408,7 +440,7 @@ func (s *Store) readRecords(ctx context.Context, tx *sql.Tx, selected ...string)
 					val = string(b)
 				}
 				field := d.typ().Field(c.path[0])
-				key := field.Tag.Get("json")
+				key := strings.Split(field.Tag.Get("json"), ",")[0]
 				if len(c.path) == 2 {
 					if val == nil {
 						doc[key] = nil

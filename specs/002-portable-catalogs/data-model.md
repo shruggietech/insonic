@@ -1,5 +1,7 @@
 # Data model
 
+**2026-10-07 contract supersession**: S005/#21 replaces append-only computed transcript/assignment histories and frozen copied dataset evidence with one current embedded Cueson document, external known-speaker mappings and current-reference or invalidated downstream records. Original sources and noncontent model/run lineage remain retained. Historical migration definitions and the recorded S002 verification evidence remain unchanged.
+
 Every workspace row uses UUID text and scoped composite FKs. Revisions, generations, ordinals, counters and Unix nanoseconds are signed int64 with overflow rejection. Unknown values remain null; immutable evidence is insert-only.
 
 | Group | Typed records/relationships | Lifecycle |

@@ -10,7 +10,7 @@ import (
 )
 
 func TestActualHistoricalCatalogUpgrades(t *testing.T) {
-	for _, version := range []int{1, 2} {
+	for _, version := range []int{1, 2, 3} {
 		t.Run(string(rune('0'+version)), func(t *testing.T) {
 			ctx := context.Background()
 			path := filepath.Join(t.TempDir(), "historical.sqlite")
@@ -23,6 +23,10 @@ func TestActualHistoricalCatalogUpgrades(t *testing.T) {
 			if version == 2 {
 				ddl = historicalV2Statements()
 				digest = historicalV2Digest()
+			}
+			if version == 3 {
+				ddl = historicalV3DDL
+				digest = historicalV3Digest()
 			}
 			for _, q := range ddl {
 				if _, e = db.Exec(q); e != nil {
@@ -60,7 +64,7 @@ func TestActualHistoricalCatalogUpgrades(t *testing.T) {
 			if e != nil {
 				t.Fatal(e)
 			}
-			if len(snap.Records.Assets) != 1 || snap.Records.Assets[0].DurationUS != 0 || snap.CatalogSchema != 3 {
+			if len(snap.Records.Assets) != 1 || snap.Records.Assets[0].DurationUS != 0 || snap.CatalogSchema != SchemaVersion {
 				t.Fatal("upgrade lost source timing")
 			}
 			var actual string

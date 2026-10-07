@@ -23,6 +23,7 @@ type Tool struct {
 	Interpreter  *PinnedFile  `json:"interpreter,omitempty"`
 }
 type Tools struct {
+	FFmpeg   Tool   `json:"ffmpeg,omitempty"`
 	Kind     string `json:"kind,omitempty"`
 	Version  string `json:"schema_version,omitempty"`
 	ExifTool Tool   `json:"exiftool"`

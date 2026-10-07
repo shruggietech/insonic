@@ -2,19 +2,19 @@
 
 ## Evidence graph and supported adapters
 
-LadybugDB is the default semantic graph; ArcadeDB is a fully supported alternative. The selected SQLite or PostgreSQL catalog remains the operational authority described in [architecture](architecture.md). Both graph adapters project media, assets, metadata/date selections, transcript revisions, cues, acoustic voices, speaker identities, terms, assertions, concepts, evidence spans, speaker audio segments and trained-model lineage. Every assertion cites actual cue IDs, original source intervals, transcript revision and processing-run identity. Model relationships cite frozen dataset memberships and immutable versions rather than implying that a model is the speaker.
+LadybugDB is the default semantic graph; ArcadeDB is a fully supported alternative. The selected SQLite or PostgreSQL catalog remains the operational authority described in [architecture](architecture.md). Both graph adapters project media, assets, metadata/date selections, current recording/document/cue references, local voice UUIDs, speaker identities, terms, assertions, concepts, evidence spans, speaker audio segments and trained-model lineage. Every assertion cites actual cue IDs, original source intervals, current document digest and processing-run identity. Model relationships cite reference-only dataset/run provenance and durable output versions rather than implying that a model is the speaker.
 
 ```mermaid
 flowchart TB
   Media[Media entry and selected origination date] --> Asset[Original media asset]
-  Asset --> Transcript[Selected transcript revision]
+  Asset --> Transcript[Current embedded Cue JSON]
   Transcript --> Cue[Timed cue]
   Cue --> Evidence[Evidence span]
-  Cue --> Voice[Acoustic voice and attribution]
+  Cue --> Voice[Current cue and local UUID reference]
   Voice --> Speaker[Catalog speaker]
   Asset --> Segment[Mapped speaker audio segment]
   Segment --> Speaker
-  Segment --> Dataset[Frozen training dataset]
+  Segment --> Dataset[Valid current dataset references]
   Dataset --> Run[Optional training run]
   Run --> Model[Speaker-model version]
   Model --> Speaker
@@ -34,7 +34,7 @@ LadybugDB runs inside the owning workspace runtime, with one read/write database
 
 ## Chunking and assertions
 
-Chunk adapters build bounded windows from complete selected cues, preserving overlap and speaker transitions where possible. Each chunk records its exact cue list, source span, transcript digest, attribution revision and policy/model version. Overlapping windows deduplicate evidence by source identity rather than producing false independent support.
+Chunk adapters build bounded windows from complete selected cues, preserving overlap and speaker transitions where possible. Each chunk records current recording/document/cue references and policy/model provenance; it does not copy assignment arrays. Resolve source intervals through the current document/map. Overlapping windows deduplicate evidence by source identity rather than producing false independent support.
 
 An extraction adapter returns structured propositions with cited cues, subject/relation/object, polarity, modality and relevant conditions. Validation checks shape, cue existence, source ownership and time bounds before publication. An assertion states what a speaker said; it does not establish the proposition's truth. Quotations and reported positions retain who delivered the words and whose position was described.
 
@@ -57,7 +57,7 @@ insonic query native --dialect ladybug-cypher --file query.cypher --json
 insonic query native --dialect arcade-sql --file query.sql --json
 ```
 
-Return media/source IDs, speaker or voice state, quoted cue text, source start/end time, selected revisions, graph publication status and pagination information. The GUI wraps the same query/result contract and opens cited media at the correct original time. Result snapshots retain the catalog/projection revision and original query version, so later corrections do not erase what the result represented.
+Return media/source IDs, speaker or voice state, quoted cue text, source start/end time, selected revisions, graph publication status and pagination information. The GUI wraps the same query/result contract and opens cited media at the correct original time. Result provenance retains query/checkpoint/document IDs and digests. Replacement invalidates stale referenced results and preparation rather than preserving old assignments or frozen transcript copies. Current speaker timing is resolved from the embedded document.
 
 ## Timeline
 

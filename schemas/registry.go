@@ -6,6 +6,7 @@ import (
 	"embed"
 	"errors"
 	"github.com/santhosh-tekuri/jsonschema/v6"
+	"github.com/shruggietech/insonic/internal/subtitles"
 	"sync"
 )
 
@@ -14,6 +15,7 @@ var registry embed.FS
 var once sync.Once
 var compiled *jsonschema.Schema
 var requestSchema *jsonschema.Schema
+var processingToolsSchema *jsonschema.Schema
 var compileErr error
 
 type offlineLoader struct{}
@@ -27,6 +29,15 @@ func initialize() {
 		compiler := jsonschema.NewCompiler()
 		compiler.AssertFormat()
 		compiler.UseLoader(offlineLoader{})
+		upstream, err := jsonschema.UnmarshalJSON(bytes.NewReader(subtitles.SchemaBytes()))
+		if err != nil {
+			compileErr = err
+			return
+		}
+		if err = compiler.AddResource(subtitles.SchemaID, upstream); err != nil {
+			compileErr = err
+			return
+		}
 		files, err := registry.ReadDir("v0.0.0")
 		if err != nil {
 			compileErr = err
@@ -53,6 +64,9 @@ func initialize() {
 		if compileErr == nil {
 			requestSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/runtime-request.schema.json")
 		}
+		if compileErr == nil {
+			processingToolsSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/processing-tools.schema.json")
+		}
 	})
 }
 
@@ -64,6 +78,13 @@ func ValidateWorkspace(data []byte) error {
 func ValidateRequest(data []byte) error {
 	initialize()
 	return validate(requestSchema, data)
+}
+
+// ValidateDocument validates processing configuration against its master-registered
+// release contract without compiling unrelated contracts or using network access.
+func ValidateDocument(data []byte) error {
+	initialize()
+	return validate(processingToolsSchema, data)
 }
 
 func validate(schema *jsonschema.Schema, data []byte) error {

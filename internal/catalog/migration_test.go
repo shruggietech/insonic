@@ -47,3 +47,9 @@ func TestSQLiteFileURL(t *testing.T) {
 		t.Fatal(u.String(), e)
 	}
 }
+
+func TestHistoricalV3Frozen(t *testing.T) {
+	if historicalV3Digest() != historicalV3ExpectedDigest {
+		t.Fatal("historical schema3 identity changed")
+	}
+}

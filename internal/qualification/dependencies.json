@@ -32,32 +32,32 @@
     }
   },
   "cueson": {
-    "version": "1.1.0",
-    "schema_sha256": "223b61cbcf6337167039268576b2c739564585fff10e6cc6076e47a03526a0f7",
+    "version": "1.2.0",
+    "schema_sha256": "f2661a3d52effbab4a82a4d47197b5c7fae58496dc30a397ea3f2f668358b654",
     "assets": {
       "windows_amd64": [
-        "cueson_1.1.0_windows_amd64.zip",
-        "2aff230ca03127eeca49d4be447b5a49563026caab96b5c545189a4181e8e672"
+        "cueson_1.2.0_windows_amd64.zip",
+        "55a89b3c367e52580e408bee2775602c6e633699b084fc15354edf1b61e346b0"
       ],
       "windows_arm64": [
-        "cueson_1.1.0_windows_arm64.zip",
-        "67979aee259e0d0c360cfd4057117e65d50eb4a2297da5faf9a6429f2028de32"
+        "cueson_1.2.0_windows_arm64.zip",
+        "d921dcbc3958ad35e7760c9e4f6525e1044fbf79ec9aaa7c4a817bbbc8ee9abb"
       ],
       "linux_amd64": [
-        "cueson_1.1.0_linux_amd64.tar.gz",
-        "689738ae27098f67bb9308ac690e9e3304ba732464c98835fff34fe7473406a1"
+        "cueson_1.2.0_linux_amd64.tar.gz",
+        "ba52c6fbcdc2f1291e354d90f19ccdcf7376f51fb745822f0f9185b9fa32554a"
       ],
       "linux_arm64": [
-        "cueson_1.1.0_linux_arm64.tar.gz",
-        "6f688bad3716532bcb667870b822762138119dd766169a52531a1e9b0478b0b3"
+        "cueson_1.2.0_linux_arm64.tar.gz",
+        "a6a875f256231851efcdbee8e26f2526b818bb2d7ceb97361e78b198e43670a5"
       ],
       "darwin_amd64": [
-        "cueson_1.1.0_darwin_amd64.tar.gz",
-        "c48225a74eff45956fbdafc4523b75bc546ba22334aa133aecda3abfe767bcca"
+        "cueson_1.2.0_darwin_amd64.tar.gz",
+        "c7da2b39927e3bed9de794e350719644032b191d1a754dbffb94c2315a312b17"
       ],
       "darwin_arm64": [
-        "cueson_1.1.0_darwin_arm64.tar.gz",
-        "c56bdfdcdd5ebd71ebd6b3bea17d41d6f6ad983474a0426312a0015695edbb2b"
+        "cueson_1.2.0_darwin_arm64.tar.gz",
+        "853a35704afd32279b2fad94e5da36fb41780592c14016b0754b354a8e00cc28"
       ]
     }
   },

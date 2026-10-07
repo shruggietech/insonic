@@ -9,9 +9,9 @@ The catalog records dataset provenance, durable model storage and CLI lookup/ret
 ```mermaid
 flowchart TB
   Library[Original audio and video throughout the library] --> Segments[Mapped voice intervals and audio segments]
-  Attribution[Revisioned speaker attribution] --> Select[Reusable selection recipe for one speaker]
+  Attribution[Current embedded speaker assignments] --> Select[Reusable selection recipe for one speaker]
   Segments --> Select
-  Select --> Snapshot[Immutable dataset snapshot and diagnostics]
+  Select --> Snapshot[Current reference manifest and diagnostics]
   Snapshot --> Prepare[Prepare audio through the selected adapter]
   Prepare --> Run[Optional durable training run]
   Run --> Version[Validated model version and checkpoints]
@@ -25,15 +25,16 @@ A selection recipe resolves one speaker across the workspace, including every ma
 
 The standard preparation preset detects empty audio, overlap, clipping, low signal and decoder failures. It excludes unusable decode output and duplicate source spans. Overlap, signal quality and attribution-confidence filters are configurable selection choices with visible reasons and counts. Recommended thresholds are part of a versioned preset and must be established with the chosen training adapter rather than treated as universal measurements. A dataset summary shows segment count, total original and prepared duration, source coverage, languages, diagnostic counts and all applied exclusions. Users can adjust the recipe or exclude individual entries/segments without reviewing every segment.
 
-A `training_dataset_snapshot` freezes the selection. Store its workspace and originating speaker ID, speaker identity revision, attribution revisions, ordered segment memberships, source hashes/intervals/channels, preparation options, transcript references when required, effective exclusion decisions and manifest digest. Memberships reference the exact revision of each segment and any already prepared `artifact_id`; temporary paths and a mutable query are insufficient provenance. A later preparation manifest binds every final training input artifact to these frozen memberships and options. A recipe can create later snapshots automatically under a configured training schedule, but it cannot change an existing snapshot.
+A `training_dataset_snapshot` binds ordered current recording/document/cue/local-UUID references, source hashes, selection settings and a manifest digest. It does not freeze a copy of speaker assignments, subtitle text or old timed segment records. An exact membership receipt can remain as noncontent provenance; using it requires its referenced current evidence to remain valid.
 
-Only required inputs are materialized. A local adapter may require normalized PCM clips; another may consume mapped audio streams. Preserve originals and represent silence trimming, concatenation, normalization or resampling as derived artifacts with their time maps. If a training adapter needs text, its contract names the selected transcript revisions and any alignment requirements. It cannot quietly substitute a newer transcript halfway through a run.
+Materialize only required inputs through the selected adapter. Normalized clips, text preparation, resampling and concatenation record their source map and digest. A training adapter cannot substitute a newer document halfway through a run. It also cannot keep superseded preparation as a hidden alternative after the current recording or known-speaker mapping changes.
 
-Corrections to speaker mappings, segment boundaries, transcripts or preparation options invalidate future reuse of an affected snapshot as the current corpus. They produce a new snapshot when training is requested again. Existing runs and model versions retain their original inputs and a visible staleness/attribution-change diagnostic. Dataset records remain interpretable even if an external source later becomes unavailable; a new preparation or rerun reports which required bytes are missing.
+A document replacement removes stale segment/membership references and invalidates affected dataset, preparation and model-manifest state. Mapping correction preserves document bytes but conservatively invalidates dependent corpus selection. An invalidated record clears obsolete manifest/preparation references and copied options, retains source/run identity and reports its state. Queue removed managed manifests/preparation for physical retirement. Original media, supplied subtitles and completed model weights/checkpoints retain their own identity; they are not assignment stores. Reuse or retraining must resolve current evidence and create valid current preparation again.
 
+The broader training engines and dataset/model CLI remain delivery contracts. Current recording and migration behavior establish their current-reference integrity before those engines are implemented.
 ## Training adapters and durable runs
 
-Add `speaker-model training` as a capability alongside transcription, diarization and embedding. Its request names the dataset snapshot, base-model identity if any, desired output kind, effective hyperparameters, resource limits and credential reference. An adapter declares supported input formats, local or hosted execution, train/resume/cancel behavior, emitted artifact formats and compatible consumers. Separate preparation and training capabilities when different tools perform those operations.
+Add `speaker-model training` as a capability alongside transcription, diarization and embedding. Its request names the valid current dataset references, base-model identity if any, desired output kind, effective hyperparameters, resource limits and credential reference. An adapter declares supported input formats, local or hosted execution, train/resume/cancel behavior, emitted artifact formats and compatible consumers. Separate preparation and training capabilities when different tools perform those operations.
 
 A `training_run` has a stable workspace/job ID, dataset snapshot ID, originating speaker/identity revision, preparation-manifest digest, pipeline revision, adapter/contract version, provider identity, base-model digest or upstream revision, effective parameters and attempt history. The scheduler reports preparation, upload if configured, training, checkpointing, validation and publication. Training uses the same concurrency, cancellation and retry contracts as other jobs. A resumed attempt must identify a compatible checkpoint and preserve the earlier attempt's provenance. Unsupported resume is reported plainly and may require a fresh run.
 
@@ -48,7 +49,7 @@ The runtime commits catalog references only after outputs pass their declared sh
 | Record | Required information |
 | --- | --- |
 | Family | `workspace_id`, stable family ID, originating `speaker_id`, user name/description and current speaker associations |
-| Version | Stable version ID, family ID, originating speaker/identity and attribution revisions, dataset/run IDs, creation time and output state |
+| Version | Stable version ID, family ID, originating speaker/identity and document-reference digests, dataset/run IDs, creation time and output state |
 | Artifact | `artifact_id`, digest/size, object reference, role, media or model format and availability |
 | Compatibility | Model kind, supported operations, required architecture/base model, sample rate/channels where relevant, runtime/dependency versions and supported adapter consumers |
 | Provider | Adapter ID/contract version, local executable or hosted service identity, upstream model revision and credential reference without credential values |
@@ -59,11 +60,11 @@ Trained speaker artifacts are durable workspace data stored through the configur
 
 Record license and format information supplied by upstream models/providers. Unknown declarations remain explicit. Export preserves this metadata and excludes credentials and transient signed URLs. A portable model export binds exact version/manifests to available artifact bytes. If a provider only supports hosted access, return its declared hosted-model reference and report that downloadable weights are unavailable.
 
-Merging speakers makes existing families discoverable through identity lineage without merging their weights. Splitting a speaker preserves the original model and dataset histories and exposes which member intervals now have different assignments. Current associations may name the resulting speakers or remain unresolved according to the corrected corpus. The original speaker ID remains queryable in history. Choosing a new default, moving a current association or retraining is an explicit catalog operation; none rewrites an old model version.
+Merging speakers makes existing families discoverable through identity lineage without merging their weights. Splitting a speaker retains model-output/source lineage and invalidates obsolete dataset preparation; current document references expose corrected membership. Current associations may name the resulting speakers or remain unresolved according to the corrected corpus. The originating speaker ID remains provenance. Choosing a new default, moving a current association or retraining is an explicit catalog operation; none rewrites an old model version.
 
 ## CLI query and retrieval contract
 
-The CLI supplies these operations before any dedicated training GUI is required. Human tables and versioned JSON list speaker/family/version IDs, training/dataset origin, output kind, availability, compatibility and diagnostics. Filters include speaker identity, model kind, adapter compatibility, status and history. Speaker lookup follows current merge/split lineage and identifies why a historical model appears in the result.
+The following speaker-training operations remain target CLI contracts; dedicated training GUI controls wrap them when implemented. Human tables and versioned JSON list speaker/family/version IDs, training/dataset origin, output kind, availability, compatibility and diagnostics. Filters include speaker identity, model kind, adapter compatibility, status and history. Speaker lookup follows current merge/split lineage and identifies why a historical model appears in the result.
 
 Speaker and model operations share the CLI contract:
 
@@ -76,6 +77,6 @@ insonic models show MODEL_VERSION_ID --json
 insonic models fetch MODEL_VERSION_ID --output MODEL_DIRECTORY
 ```
 
-`dataset create` writes a frozen snapshot and returns its summary and ID. `train` queues a durable job using that snapshot. `list` discovers models from speaker identity; `show` exposes exact provenance and the manifest. `fetch` resolves one exact version, retrieves available artifacts from the selected storage/provider adapter, validates hashes and writes a portable manifest into the requested destination. It reports unsupported provider retrieval or missing artifacts without substituting another model version. Noninteractive runs use supplied options and never pause for segment-by-segment review.
+`dataset create` is specified to write a current reference manifest and return its summary and ID. `train` is specified to queue a durable job using valid current membership. `list` discovers models from speaker identity; `show` exposes exact provenance and the manifest. `fetch` resolves one exact version, retrieves available artifacts from the selected storage/provider adapter, validates hashes and writes a portable manifest into the requested destination. It reports unsupported provider retrieval or missing artifacts without substituting another model version. Noninteractive runs use supplied options and never pause for segment-by-segment review.
 
 The GUI wraps the same operations through speaker segment/dataset/model summaries and shared job state. The capability matrix records CLI and GUI availability, including advanced or experimental controls that reach the GUI later. [JSON contracts](contracts.md) define corpus, dataset and model interchange.

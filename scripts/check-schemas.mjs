@@ -9,6 +9,23 @@ import { loadSchemaCatalog, root } from './schema-catalog.mjs';
 export function validateCatalog(catalog) {
   const ajv = new Ajv2020({ allErrors: true, strict: true, strictRequired: false });
   addFormats(ajv);
+  // Keep every Insonic schema under strict linting. The immutable upstream
+  // schema uses conditional properties without repeated type declarations.
+  // Its isolated compiler relaxes only that authoring lint, retaining all
+  // schema constraints and format validation. No network loader is enabled.
+  const upstreamSchema = JSON.parse(readFileSync(resolve(root, 'internal/subtitles/schema/cueson.schema.json'), 'utf8'));
+  const upstreamAjv = new Ajv2020({ allErrors: true, strict: true, strictTypes: false, strictRequired: false });
+  addFormats(upstreamAjv);
+  const upstreamValidate = upstreamAjv.compile(upstreamSchema);
+  const validateUpstream = (_schema, data) => {
+    const valid = upstreamValidate(data);
+    validateUpstream.errors = upstreamValidate.errors;
+    return valid;
+  };
+  ajv.addKeyword({ keyword: 'packagedCueson', schemaType: 'boolean', errors: true, validate: validateUpstream });
+  // This compiler resource delegates the external reference to the exact
+  // packaged upstream validator. Published JSON retains its authoritative URI.
+  ajv.addSchema({ $id: upstreamSchema.$id, packagedCueson: true });
   for (const item of catalog.schemas) ajv.addSchema(item.schema);
   const master = ajv.getSchema(catalog.master.schema.$id);
   let examples = 0;

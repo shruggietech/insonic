@@ -3,7 +3,6 @@ package process
 
 import (
 	"context"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
@@ -32,7 +31,7 @@ func Capture(ctx context.Context, spec Spec) (CaptureResult, error) {
 	}
 	command := exec.Command(spec.Executable, spec.Args...)
 	command.Dir = spec.Directory
-	command.Env = append(os.Environ(), spec.Env...)
+	command.Env = childEnvironment(spec)
 	command.Stdin = spec.Input
 	command.WaitDelay = time.Second
 	Hide(command, false)

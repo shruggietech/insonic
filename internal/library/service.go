@@ -29,7 +29,17 @@ type Service struct {
 }
 type EntryView struct {
 	catalog.LibraryEntry
-	Availability string `json:"availability"`
+	Availability       string              `json:"availability"`
+	CurrentRecording   *catalog.Recording  `json:"current_recording,omitempty"`
+	RecordingReference *RecordingReference `json:"recording_reference,omitempty"`
+}
+
+type RecordingReference struct {
+	ID                string `json:"recording_id"`
+	Revision          int64  `json:"revision"`
+	State             string `json:"state"`
+	Digest            string `json:"document_digest"`
+	DocumentOperation string `json:"document_operation"`
 }
 
 func NewService(a *artifact.Service, db catalog.Catalog, secrets contracts.SecretProvider, tools Tools) *Service {
@@ -553,19 +563,46 @@ func (s *Service) Cleanup(ctx context.Context, entryID string) error {
 	if e != nil {
 		return e
 	}
+	var first error
+	legacyRecovered := false
 	for _, cleanup := range cleanups {
 		if cleanup.EntryID != entryID || cleanup.State == "done" {
 			continue
 		}
-		if _, e = s.Artifacts.RetireCurrent(ctx, cleanup.ID); e != nil {
-			return e
+		if cleanup.LegacyLocationID != nil && !legacyRecovered {
+			legacyRecovered = true
+			if e = s.Artifacts.RecoverLegacy(ctx); e != nil && first == nil {
+				first = e
+			}
 		}
-		if e = s.Catalog.FinishCleanup(ctx, cleanup.ID); e != nil {
-			return e
+		p, err := s.Catalog.Publication(ctx, cleanup.ID)
+		if err != nil {
+			if first == nil {
+				first = err
+			}
+			continue
+		}
+		if cleanup.LegacyLocationID != nil && (p.State == "pending" || p.State == "aborted") {
+			if first == nil {
+				first = contracts.Fail("unavailable")
+			}
+			continue
+		}
+		if p.State == "pending" || p.State == "aborted" {
+			_, e = s.Artifacts.Abort(ctx, cleanup.ID)
+		} else {
+			_, e = s.Artifacts.RetireCurrent(ctx, cleanup.ID)
+		}
+		if e == nil {
+			e = s.Catalog.FinishCleanup(ctx, cleanup.ID)
+		}
+		if e != nil && first == nil {
+			first = e
 		}
 	}
-	return nil
+	return first
 }
+
 func (s *Service) List(ctx context.Context) ([]EntryView, error) {
 	entries, e := s.Catalog.Libraries(ctx)
 	if e != nil {
@@ -573,7 +610,7 @@ func (s *Service) List(ctx context.Context) ([]EntryView, error) {
 	}
 	out := []EntryView{}
 	for _, entry := range entries {
-		out = append(out, EntryView{entry, s.availability(ctx, entry)})
+		out = append(out, EntryView{LibraryEntry: entry, Availability: s.availability(ctx, entry)})
 	}
 	return out, nil
 }
@@ -582,7 +619,17 @@ func (s *Service) Show(ctx context.Context, id string) (EntryView, error) {
 	if e != nil {
 		return EntryView{}, e
 	}
-	return EntryView{entry, s.availability(ctx, entry)}, nil
+	view := EntryView{LibraryEntry: entry, Availability: s.availability(ctx, entry)}
+	if r, err := s.Catalog.Recording(ctx, id); err == nil {
+		if len(r.Document) > 512<<10 {
+			view.RecordingReference = &RecordingReference{r.ID, r.Revision, r.State, r.DocumentDigest, "recordings.document"}
+		} else {
+			view.CurrentRecording = &r
+		}
+	} else if code(err) != "not_found" {
+		return EntryView{}, err
+	}
+	return view, nil
 }
 func (s *Service) Metadata(ctx context.Context, id string) (Metadata, error) {
 	entry, e := s.Catalog.Library(ctx, id)

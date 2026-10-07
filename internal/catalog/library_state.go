@@ -22,6 +22,7 @@ func (s *Store) libraryArtifactReference(ctx context.Context, tx *sql.Tx, artifa
 		"EXISTS (SELECT 1 FROM library_entry l WHERE l.workspace_id=p.workspace_id AND (" +
 		"l.original_publication_id=p.id OR l.subtitle_publication_id=p.id OR " +
 		"EXISTS (SELECT 1 FROM " + libraryRefs + " WHERE refs.value=p.id))) OR " +
+		"EXISTS (SELECT 1 FROM current_recording r WHERE r.workspace_id=p.workspace_id AND r.mapped_audio_publication_id=p.id) OR " +
 		"EXISTS (SELECT 1 FROM base_model_install m WHERE m.workspace_id=p.workspace_id AND " +
 		"EXISTS (SELECT 1 FROM " + modelRefs + " WHERE refs.value=p.id))))"
 	var referenced bool
@@ -60,14 +61,16 @@ func (s *Store) latestCurrentProofs(ctx context.Context, tx *sql.Tx) (map[string
 			return nil, nil, nil, nil, e
 		}
 		var envelope struct {
-			MediaID       string   `json:"media_id"`
-			ModelID       string   `json:"model_id"`
-			WorkID        string   `json:"work_id"`
-			RecordDigest  string   `json:"record_digest"`
-			WorkDigest    string   `json:"work_digest"`
-			CleanupIDs    []string `json:"cleanup_ids"`
-			PublicationID string   `json:"publication_id"`
-			State         string   `json:"state"`
+			CleanupEntryID string   `json:"cleanup_entry_id"`
+			RecordingID    string   `json:"recording_id"`
+			MediaID        string   `json:"media_id"`
+			ModelID        string   `json:"model_id"`
+			WorkID         string   `json:"work_id"`
+			RecordDigest   string   `json:"record_digest"`
+			WorkDigest     string   `json:"work_digest"`
+			CleanupIDs     []string `json:"cleanup_ids"`
+			PublicationID  string   `json:"publication_id"`
+			State          string   `json:"state"`
 		}
 		if json.Unmarshal([]byte(result), &envelope) != nil {
 			return nil, nil, nil, nil, contracts.Fail("invalid_request")
@@ -90,7 +93,13 @@ func (s *Store) latestCurrentProofs(ctx context.Context, tx *sql.Tx) (map[string
 			works[envelope.WorkID] = currentDomainProof{id, revision, envelope.WorkDigest}
 		}
 		for _, publicationID := range envelope.CleanupIDs {
-			entryID := envelope.MediaID
+			entryID := envelope.CleanupEntryID
+			if entryID == "" {
+				entryID = envelope.RecordingID
+			}
+			if entryID == "" {
+				entryID = envelope.MediaID
+			}
 			if entryID == "" {
 				entryID = envelope.ModelID
 			}
@@ -115,6 +124,9 @@ func (s *Store) latestCurrentProofs(ctx context.Context, tx *sql.Tx) (map[string
 func (s *Store) validateLibraryState(ctx context.Context, tx *sql.Tx, expire bool) error {
 	r, e := s.readRecords(ctx, tx)
 	if e != nil {
+		return e
+	}
+	if e = s.validateRecordingState(ctx, tx, r); e != nil {
 		return e
 	}
 	libraryProofs, modelProofs, workProofs, cleanupProofs, e := s.latestCurrentProofs(ctx, tx)
@@ -198,11 +210,13 @@ func (s *Store) validateLibraryState(ctx context.Context, tx *sql.Tx, expire boo
 			return contracts.Fail("invalid_request")
 		}
 		var proof struct {
-			MediaID    string   `json:"media_id"`
-			ModelID    string   `json:"model_id"`
-			CleanupIDs []string `json:"cleanup_ids"`
+			CleanupEntryID string   `json:"cleanup_entry_id"`
+			RecordingID    string   `json:"recording_id"`
+			MediaID        string   `json:"media_id"`
+			ModelID        string   `json:"model_id"`
+			CleanupIDs     []string `json:"cleanup_ids"`
 		}
-		if json.Unmarshal([]byte(result), &proof) != nil || (proof.MediaID != c.EntryID && proof.ModelID != c.EntryID) {
+		if json.Unmarshal([]byte(result), &proof) != nil || (proof.CleanupEntryID != c.EntryID && proof.RecordingID != c.EntryID && proof.MediaID != c.EntryID && proof.ModelID != c.EntryID) {
 			return contracts.Fail("invalid_request")
 		}
 		bound := false
@@ -215,17 +229,27 @@ func (s *Store) validateLibraryState(ctx context.Context, tx *sql.Tx, expire boo
 			return contracts.Fail("invalid_request")
 		}
 		p, err := s.publicationTx(ctx, tx, c.ID)
+		missing := err == sql.ErrNoRows
+		if typed, ok := err.(*contracts.Error); ok && typed.Code == "not_found" {
+			missing = true
+		}
+		if missing && c.LegacyLocationID != nil && c.State == "pending" {
+			if e := s.validateLegacyCleanup(ctx, tx, c); e != nil {
+				return e
+			}
+			continue
+		}
 		if err != nil {
 			return contracts.Fail("invalid_request")
 		}
-		if c.State == "done" && p.State != "retired" {
+		if c.State == "done" && p.State != "retired" && !(c.LegacyLocationID == nil && p.State == "aborted" && (p.Kind == "mapped-audio" || p.Kind == "speaker-clip" || p.Kind == "derived-manifest")) {
 			return contracts.Fail("invalid_request")
 		}
 		var n int
 		if e = s.row(ctx, tx, "SELECT (SELECT count(*) FROM library_entry WHERE workspace_id=? AND id=?)+(SELECT count(*) FROM base_model_install WHERE workspace_id=? AND id=?)", s.workspace, c.EntryID, s.workspace, c.EntryID).Scan(&n); e != nil {
 			return e
 		}
-		if n < 1 {
+		if n < 1 && !(c.EntryID == s.workspace && proof.CleanupEntryID == s.workspace) {
 			return contracts.Fail("invalid_request")
 		}
 	}
@@ -295,5 +319,13 @@ func (s *Store) currentReceiptResult(ctx context.Context, tx *sql.Tx, key, id st
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{key: id, "revision": revision, "record_digest": digest, "cleanup_ids": ids}, nil
+	result := map[string]any{key: id, "revision": revision, "record_digest": digest, "cleanup_ids": ids}
+	invalidated, e := s.invalidatedDatasetIDs(ctx, tx, id, revision)
+	if e != nil {
+		return nil, e
+	}
+	if len(invalidated) > 0 {
+		result["invalidated_dataset_ids"] = invalidated
+	}
+	return result, nil
 }

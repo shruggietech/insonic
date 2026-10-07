@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/subtitles"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"os"
 	"path/filepath"
@@ -181,6 +182,13 @@ func validateSnapshotSchema(t *testing.T, snap Snapshot) {
 	t.Helper()
 	compiler := jsonschema.NewCompiler()
 	compiler.AssertFormat()
+	upstream, e := jsonschema.UnmarshalJSON(bytes.NewReader(subtitles.SchemaBytes()))
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = compiler.AddResource(subtitles.SchemaID, upstream); e != nil {
+		t.Fatal(e)
+	}
 	paths, e := filepath.Glob("../../schemas/v0.0.0/*.json")
 	if e != nil {
 		t.Fatal(e)

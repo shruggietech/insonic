@@ -1,71 +1,77 @@
 # Pipelines and adapters
 
-## Simple choices and advanced controls
+## Configured work and current results
 
-Offer Local, Connected provider and Custom presets. Setup asks what the user wants to process, their preferred privacy/cost tradeoff, and an optional provider credential. The application explains required downloads and hardware choices in ordinary language. Advanced configuration exposes individual stages and endpoints. A saved pipeline is an immutable revision with explicit model, provider, options and credential references for every routed stage.
+A pipeline declares elected models, adapters, device/resource settings and routing. Saved definitions can retain configuration history; processing does not retain alternative transcripts or assignment stores. Changing defaults affects future work. Rerunning a stage replaces the current result after validation and fenced acceptance. Once routing is configured, normal work proceeds without per-item approval or silent provider fallback.
 
-Changing the default affects future jobs. An existing job retains its original pipeline snapshot. Users can rerun selected stages with a new revision and compare outputs before changing the selected transcript. Installing a remote provider is not required for local transcription or direct queries. Once a preset and its routing are configured, normal stages proceed without per-item approval. Automatic selection of valid outputs and supported speaker mappings is a configurable policy with revision history and correction; comparison views remain available on demand.
+Local, Connected provider and Custom presets remain the broader configuration contract. Current local processing uses managed exact model identities and separate Python environments. Connected adapters and preset controls can arrive independently without moving core behavior into the GUI.
 
 ```mermaid
 flowchart TB
-  Input[Admitted original, metadata snapshot and optional subtitles] --> Probe[Probe and classify]
-  Probe --> Audio[Select or derive audio when needed]
-  Terms[Selected names, aliases and specialized terms] --> Hints[Compile language and context hints]
-  Hints --> Speech
-  Audio --> Speech[Transcribe or reuse supplied transcript]
-  Audio --> Voices[Diarize if selected]
-  Speech --> Cueson[Normalize and validate through Cueson]
-  Voices --> Attribution[Reconcile acoustic voices and cues]
-  Cueson --> Attribution
-  Attribution --> Context[Resolve speaker and term context]
-  Context --> Chunk[Chunk cues with source intervals]
-  Chunk --> Extract[Optional assertion extraction adapter]
-  Extract --> Validate[Validate source references and contracts]
-  Validate --> Publish[Commit catalog and publish selected graph projection]
-  Attribution --> Segments[Register speaker-tagged audio intervals]
-  Segments --> Dataset[Optional elected speaker dataset snapshot]
-  Dataset --> Train[Selected voice-training adapter]
-  Train --> Models[Validate and register speaker model version]
+  Input[Verified original and supplied subtitles] --> Audio[Extract selected mapped audio]
+  Audio --> Recognition[Generate timed text when elected]
+  Input --> Supplied[Use supplied or current subtitles]
+  Recognition --> Normalize[Pinned Cueson normalization]
+  Supplied --> Normalize
+  Audio --> Voices[Run elected diarization]
+  Normalize --> Assemble[Current cues and recording-local UUIDs]
+  Voices --> Assemble
+  Assemble --> Validate[Document validity and separate quality diagnostics]
+  Validate --> Current[Atomic current result and reference reconciliation]
+  Current --> Export[Diagnosed subtitle export]
+  Current --> Corpus[Reference-only current speaker corpus]
+  Corpus --> Training[Optional separate training job]
 ```
 
-Stages can be skipped when valid matching output exists. A supplied subtitle track can bypass recognition while still requiring normalization and, when selected, acoustic diarization. Music or ambient classification skips automatic speech work by default and remains user-overridable. Assertion extraction is unnecessary for word search; the library exposes the simpler result while semantic indexing is pending.
+Supplied subtitles bypass recognition. Reusing current subtitles supports diarization-only reruns; reusing current assignments requires compatibility with the new cue evidence. A supplied or generated text-only result without usable timing cannot be silently assigned invented intervals. Metadata capture precedes transforms under [ingestion](ingestion.md).
 
-Metadata capture is an admission step from [ingestion](ingestion.md), preceding this derived pipeline. Corpus registration runs after valid diarization/attribution without requiring voice training. Training is a separate elected job against an immutable dataset snapshot; it never becomes a prerequisite for transcription, search or speaker editing. Future snapshots can use automatically selected matching segments under the saved policy, without approving every segment. [Speaker model contracts](voice-models.md) define preparation, checkpoints, results and lineage.
+## Local processing and quality diagnostics
+
+Mapped audio records original source digest, selected stream/channels, sample format, tool identity and exact source-time mapping. The selected local recognizer and diarizer receive verified managed model files, not an ambient latest model name. Missing or invalid models, incompatible capabilities and unsupported device selection produce actionable failure. A local failure never chooses hosted routing or another device silently.
+
+Local workers import engine packages lazily only for elected product processing or explicit maintainer qualification. Offline execution prevents ambient model retrieval. Literal argv, protected bounded input, separate bounded output, hidden Windows creation and supervised cancellation apply to every worker. Model files are materialized under confined relative names; temporary stage output is cleaned after success, failure and cancellation.
+
+Automatic diarization diagnostics are enabled by default and describe speech coverage, overlap, boundary/timing consistency, empty output and other declared measurements. They are separate from Cueson schema validity. A valid assignment document does not prove voice accuracy. No-speech and unusable timing remain explicit outcomes, and diagnostics do not create a manual review queue. Maintainer qualification records exact model/settings, resource use, recognized text and speaker/timing diagnostic method; it never injects reference subtitles as generated recognition output.
 
 ## Capability contracts
 
 | Capability | Inputs | Required result |
 | --- | --- | --- |
-| Acquisition | URL/source locator and selected credential reference | Original bytes and acquisition provenance |
-| Probe/derive | Exact media asset and transform | Stream facts or mapped derivative |
-| Transcription | Mapped audio, language, ordered context terms | Text and timed segments, optional words and confidence |
-| Diarization | Mapped audio and segmentation options | File-local voice intervals and overlap information |
-| Alignment | Audio and selected transcript revision | Timed observations without replacing text silently |
-| Subtitle normalization | Supplied or deterministically generated subtitle bytes | Valid official Cue JSON, reports and rendered subtitles |
-| Assertion extraction | Source-owned cue chunks and attribution | Structured assertions with exact cited evidence |
-| Embedding | Explicit text/audio inputs and model identity | Versioned vectors with scope and provenance |
-| Query assistance | User request and selected schema/context | Suggested query and explanation |
-| Speaker dataset preparation | Speaker ID, segment selection revision and recipe | Immutable segment manifest, mapped audio/text artifacts and diagnostics |
-| Voice model training | Dataset snapshot, compatible base model and settings | Run/checkpoint receipts and validated speaker model version artifacts |
+| Acquisition | Source locator and selected credential reference | Original bytes and sanitized provenance |
+| Probe/derive | Exact source and transform | Stream facts or mapped audio |
+| Transcription | Mapped audio, model and effective options | Actual text and timed segments, with declared diagnostics |
+| Diarization | Mapped audio, model and effective options | Temporary recording-local voice turns and automatic diagnostics |
+| Subtitle normalization | Supplied or generated native bytes | Current valid upstream Cue JSON |
+| Speaker mapping | Recording/local UUID and known catalog speaker | External mapping without rewriting subtitle text |
+| Alignment | Current text and mapped audio | Timed evidence or explicit unavailable outcome |
+| Assertion extraction | Current cue references | Structured assertions citing current evidence |
+| Dataset preparation | Current speaker/cue references and recipe | Mapped inputs and reference/digest provenance |
+| Voice training | Valid current dataset and elected adapter | Durable model outputs and noncontent lineage |
 
-An adapter advertises the capabilities it actually supplies. A text-only LLM endpoint cannot be selected as an audio recognizer merely because it accepts chat messages. Prefer explicit task-level capability negotiation, contract versions and readable compatibility errors.
+Adapters advertise actual capabilities and protocol versions. A text-only endpoint is not an audio recognizer. Worker requests/results bind source/model/tool identities and effective settings, using managed references for large input and never credential values in argv or durable receipts.
 
-The worker protocol uses JSON requests/results plus structured progress events. Record protocol version, request ID, job ID and attempt, full input digests, model revision, effective settings and output digests. Large inputs are local artifact references or bounded uploaded streams, not giant command-line arguments. Subprocesses receive literal argument arrays, closed noninteractive stdin when unused, hidden Windows creation flags and bounded output. Secrets travel through a dedicated input channel or protected environment only when needed and never through argv.
-
-## Durable scheduling
+## Durable work and recovery
 
 ```mermaid
 flowchart TB
-  Planned[Planned with dependency identities] --> Ready[Ready]
-  Ready --> Running[Running with attempt lease]
-  Running --> Validated[Output validated]
-  Validated --> Published[Catalog committed and projection pending/applied]
-  Running --> Interrupted[Failed, cancelled or interrupted]
-  Interrupted --> Ready
+  Ready[Durable configured work] --> Claim[Live owner, generation and lease]
+  Claim --> Compute[Mapped audio and elected stages]
+  Compute --> Validate[Validate candidate result]
+  Validate --> Commit[Atomic current replacement and cleanup obligations]
+  Compute --> Interrupted[Failed, cancelled or interrupted]
+  Interrupted --> Retry[Fresh fenced attempt]
+  Retry --> Claim
+  Commit --> Reconcile[Accepted receipt and physical retirement]
+  Reconcile --> RetryCleanup[Retry uncertain cleanup]
+  RetryCleanup --> Reconcile
 ```
 
-A scheduler limits CPU, GPU, disk and provider concurrency. Default GPU slots prevent model workers competing for the same memory; users can tune limits. Pause stops new claims, Cancel revokes a running attempt and terminates supervised workers, and Retry creates a new attempt. Late results from a revoked attempt cannot overwrite current data.
+Pause prevents new claims, Cancel revokes current authority and terminates supervised children, and Retry obtains a fresh fenced attempt. Acceptance checks expected current/source revisions as well as the work fence. Late results cannot replace newer accepted data. Accepted receipts carry identities/digests/diagnostics, not duplicate documents or turns.
 
-Job identity includes source hash, derivative map, selected transcript revision, adapter/model identity, exact effective terms and options. Changing speaker terms invalidates the affected guided transcription or attribution stages, not unrelated decode work. Training identity additionally binds the dataset manifest, speaker-attribution revisions, base-model digest, training adapter/options and seed where supported. A valid cached result can be republished after graph failure without rerunning AI. Catalog, artifact and graph adapters are separate from model task adapters; their [portable contracts](schema.md) carry the same provenance.
+Before acceptance, configured processing can recompute stages after interruption. Explicit assembly input is ephemeral and must be resubmitted. After acceptance, recovery reconciles the receipt and cleanup without rerunning engines. Physical retirement waits for active leases/references and retries uncertain removal without resurrecting obsolete output.
 
-Provider retries distinguish transient network failure from authentication and quota failures. Preserve provider request IDs and cost/usage summaries when available, without logging request content by default. Pipeline configuration states what data each hosted stage sends. No automatic fallback uploads local media to a provider the user did not choose.
+Current replacement invalidates stale segment/evidence references, dataset membership and prepared inputs rather than retaining frozen copies of old assignments. Completed model outputs and their source IDs/digests remain provenance. General scheduling, provider presets, graph assertion extraction and training engines retain their separate delivery contracts.
+
+## Required checks and maintainer evidence
+
+No CI suite, native/backend qualification or required status check invokes transcription/diarization, initializes or loads their models, downloads model weights or requires engine results. The rule applies even to small or cached models. Deterministic tests supply stage results at the adapter boundary and may probe/extract committed real media and execute Cueson. Actual recognition/diarization quality testing requires the explicit opt-in maintainer path outside CI and merge requirements.

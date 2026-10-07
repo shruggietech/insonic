@@ -1,0 +1,102 @@
+{
+  "kind": "fixture-reference",
+  "fixture": "sintel-dialogue",
+  "test_oracle_only": true,
+  "source_evidence": [
+    {
+      "url": "https://durian.blender.org/wp-content/content/subtitles/sintel_en.srt",
+      "sha256": "4ed7e1f1bc5ff69fe33606960e4c048ba6766237bf33b132fef76e1a92cb64b2",
+      "size_bytes": 1514,
+      "description": "Official Blender English subtitle publication, source cues 8 through 12; no retiming other than subtracting 134000 ms."
+    },
+    {
+      "url": "https://commons.wikimedia.org/w/index.php?title=TimedText:Sintel_movie_4K.webm.en.srt&oldid=175198974&action=raw",
+      "sha256": "e4bcbc8874dd7b9d0c278f2abbf6aaae25a572e1ccc788a8570425a20ba4b581",
+      "description": "Independent published English subtitles agree with official text/timestamps after whitespace normalization."
+    }
+  ],
+  "timing_basis": "published subtitle display windows",
+  "auditory_verification": false,
+  "measured_voice_activity": null,
+  "character_basis": "Editorial inference from the dialogue scene and visually inspected local frames at 2, 6, 10, 16 and 20 seconds. Character names are not biometric speaker identities. Display windows are not sample-accurate voice activity.",
+  "cues": [
+    {
+      "id": 1,
+      "source_cue_id": 8,
+      "source_start_ms": 135000,
+      "source_end_ms": 137500,
+      "start_ms": 1000,
+      "end_ms": 3500,
+      "character": "Sintel",
+      "text": "I'm searching for someone."
+    },
+    {
+      "id": 2,
+      "source_cue_id": 9,
+      "source_start_ms": 138000,
+      "source_end_ms": 142200,
+      "start_ms": 4000,
+      "end_ms": 8200,
+      "character": "Shaman",
+      "text": "Someone very dear?\nA kindred spirit?"
+    },
+    {
+      "id": 3,
+      "source_cue_id": 10,
+      "source_start_ms": 143400,
+      "source_end_ms": 145000,
+      "start_ms": 9400,
+      "end_ms": 11000,
+      "character": "Sintel",
+      "text": "A dragon."
+    },
+    {
+      "id": 4,
+      "source_cue_id": 11,
+      "source_start_ms": 148850,
+      "source_end_ms": 151750,
+      "start_ms": 14850,
+      "end_ms": 17750,
+      "character": "Shaman",
+      "text": "A dangerous quest for a lone hunter."
+    },
+    {
+      "id": 5,
+      "source_cue_id": 12,
+      "source_start_ms": 152950,
+      "source_end_ms": 155870,
+      "start_ms": 18950,
+      "end_ms": 21870,
+      "character": "Sintel",
+      "text": "I've been alone for\nas long as I can remember."
+    }
+  ],
+  "deterministic_turns": [
+    {
+      "local_label": "sintel",
+      "start_ms": 1000,
+      "end_ms": 3500
+    },
+    {
+      "local_label": "shaman",
+      "start_ms": 4000,
+      "end_ms": 8200
+    },
+    {
+      "local_label": "sintel",
+      "start_ms": 9400,
+      "end_ms": 11000
+    },
+    {
+      "local_label": "shaman",
+      "start_ms": 14850,
+      "end_ms": 17750
+    },
+    {
+      "local_label": "sintel",
+      "start_ms": 18950,
+      "end_ms": 21870
+    }
+  ],
+  "turn_basis": "Published display-window assignment for deterministic assembly; actual voice bounds/overlap must be independently qualified outside CI."
+}

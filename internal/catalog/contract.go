@@ -11,6 +11,13 @@ import (
 // Catalog is the shared backend-neutral authority used by runtime operations.
 // Both official adapters implement it; callers never receive SQL connections.
 type Catalog interface {
+	ResolveSegment(context.Context, string, int64) (ResolvedSegment, error)
+	AcceptedRecordingWork(context.Context, string, string) (json.RawMessage, bool, error)
+	QueueDerivedCleanup(context.Context, string, string, string) error
+	Recording(context.Context, string) (Recording, error)
+	CommitRecording(context.Context, Work, int64, Recording) (Recording, error)
+	SpeakerMappings(context.Context, string) ([]SpeakerMapping, error)
+	SetSpeakerMapping(context.Context, string, int64, SpeakerMapping) (SpeakerMapping, error)
 	EnqueueWork(context.Context, string, string, json.RawMessage) (Work, error)
 	Work(context.Context, string) (Work, error)
 	Works(context.Context) ([]Work, error)
@@ -27,6 +34,7 @@ type Catalog interface {
 	BaseModels(context.Context) ([]BaseModelInstall, error)
 	CommitBaseModel(context.Context, Work, BaseModelInstall) (BaseModelInstall, error)
 	Cleanups(context.Context) ([]Cleanup, error)
+	LegacyCleanupPublications(context.Context, string, int64) ([]Publication, error)
 	FinishCleanup(context.Context, string) error
 	Backend() string
 	Close() error

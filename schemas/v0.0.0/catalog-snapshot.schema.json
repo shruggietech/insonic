@@ -74,7 +74,8 @@
       "enum": [
         1,
         2,
-        3
+        3,
+        4
       ]
     },
     "digest": {
@@ -172,8 +173,16 @@
                 "description": "Workspace-scoped stable record identity."
               },
               "manifest_artifact_id": {
-                "$ref": "common.schema.json#/$defs/uuid",
-                "description": "Workspace-scoped stable record identity."
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Current managed derived artifact identity."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Derived artifact reference, or null after evidence invalidation."
               },
               "options": {
                 "description": "Lossless structured report/options value; credentials remain references."
@@ -181,15 +190,76 @@
               "speaker_id": {
                 "$ref": "common.schema.json#/$defs/uuid",
                 "description": "Workspace-scoped stable record identity."
+              },
+              "state": {
+                "enum": [
+                  "current",
+                  "invalidated"
+                ],
+                "description": "Whether current evidence authorizes this lineage."
+              },
+              "invalidated_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Accepted evidence invalidation revision, or zero for current lineage."
+              },
+              "invalidated_by": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Recording or workspace responsible for accepted invalidation."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Current invalidation owner, or null for current lineage."
               }
             },
             "required": [
               "id",
               "speaker_id",
               "manifest_artifact_id",
-              "options"
+              "options",
+              "state",
+              "invalidated_revision",
+              "invalidated_by"
             ],
-            "type": "object"
+            "type": "object",
+            "allOf": [
+              {
+                "if": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "const": "invalidated",
+                      "description": "Evidence-state condition selecting current or invalidated lineage."
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ]
+                },
+                "then": {
+                  "type": "object",
+                  "properties": {
+                    "manifest_artifact_id": {
+                      "type": "null",
+                      "description": "Derived artifact reference is cleared when its evidence is invalidated."
+                    }
+                  }
+                },
+                "else": {
+                  "type": "object",
+                  "properties": {
+                    "manifest_artifact_id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Derived artifact reference is cleared when its evidence is invalidated."
+                    }
+                  }
+                }
+              }
+            ]
           },
           "type": [
             "array",
@@ -864,12 +934,27 @@
                 "description": "Lossless structured report/options value; credentials remain references."
               },
               "preparation_artifact_id": {
-                "$ref": "common.schema.json#/$defs/uuid",
-                "description": "Workspace-scoped stable record identity."
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Current managed derived artifact identity."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Derived artifact reference, or null after evidence invalidation."
               },
               "speaker_id": {
                 "$ref": "common.schema.json#/$defs/uuid",
                 "description": "Workspace-scoped stable record identity."
+              },
+              "state": {
+                "enum": [
+                  "current",
+                  "invalidated"
+                ],
+                "description": "Whether current evidence authorizes this lineage."
               }
             },
             "required": [
@@ -879,9 +964,44 @@
               "job_id",
               "preparation_artifact_id",
               "adapter",
-              "options"
+              "options",
+              "state"
             ],
-            "type": "object"
+            "type": "object",
+            "allOf": [
+              {
+                "if": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "const": "invalidated",
+                      "description": "Evidence-state condition selecting current or invalidated lineage."
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ]
+                },
+                "then": {
+                  "type": "object",
+                  "properties": {
+                    "preparation_artifact_id": {
+                      "type": "null",
+                      "description": "Derived artifact reference is cleared when its evidence is invalidated."
+                    }
+                  }
+                },
+                "else": {
+                  "type": "object",
+                  "properties": {
+                    "preparation_artifact_id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Derived artifact reference is cleared when its evidence is invalidated."
+                    }
+                  }
+                }
+              }
+            ]
           },
           "type": [
             "array",
@@ -891,71 +1011,58 @@
         "segments": {
           "description": "Deterministically ordered typed records, or null when empty.",
           "items": {
-            "additionalProperties": false,
-            "description": "Typed Segment record with scoped associations.",
+            "type": "object",
+            "description": "Reference to current embedded subtitle/speaker evidence. Timings, attribution payloads and known-person assignments are resolved from the current recording and mapping; they are not copied here.",
             "properties": {
-              "asset_id": {
+              "id": {
                 "$ref": "common.schema.json#/$defs/uuid",
-                "description": "Workspace-scoped stable record identity."
+                "description": "Stable segment reference identity."
               },
-              "attribution": {
-                "description": "Lossless structured report/options value; credentials remain references."
+              "revision": {
+                "$ref": "common.schema.json#/$defs/revision",
+                "description": "Immutable reference revision."
               },
-              "channel": {
-                "description": "Exact signed integer value; adapter enforces the logical field range.",
-                "type": "integer"
+              "recording_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current recording owning the embedded Cueson evidence."
+              },
+              "document_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "Exact current embedded document digest; stale references fail resolution."
+              },
+              "cue_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024,
+                "description": "Cue identity inside the current embedded document."
+              },
+              "local_speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Recording-scoped local UUID occurring in this cue attribution."
               },
               "clip_artifact_id": {
                 "anyOf": [
                   {
-                    "$ref": "common.schema.json#/$defs/uuid"
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Optional managed prepared clip identity."
                   },
                   {
                     "type": "null"
                   }
                 ],
-                "description": "Workspace-scoped stable identity; relational provenance is validated by the adapter."
-              },
-              "end_us": {
-                "description": "Exact signed integer value; adapter enforces the logical field range.",
-                "type": "integer"
-              },
-              "id": {
-                "$ref": "common.schema.json#/$defs/uuid",
-                "description": "Workspace-scoped stable record identity."
-              },
-              "revision": {
-                "description": "Exact signed integer value; adapter enforces the logical field range.",
-                "type": "integer"
-              },
-              "speaker_id": {
-                "anyOf": [
-                  {
-                    "$ref": "common.schema.json#/$defs/uuid"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "description": "Workspace-scoped stable identity; relational provenance is validated by the adapter."
-              },
-              "start_us": {
-                "description": "Exact signed integer value; adapter enforces the logical field range.",
-                "type": "integer"
+                "description": "Optional derived clip identity, or null. A clip does not become assignment authority."
               }
             },
             "required": [
               "id",
               "revision",
-              "asset_id",
-              "speaker_id",
-              "start_us",
-              "end_us",
-              "channel",
-              "attribution",
+              "recording_id",
+              "document_digest",
+              "cue_id",
+              "local_speaker_id",
               "clip_artifact_id"
             ],
-            "type": "object"
+            "additionalProperties": false
           },
           "type": [
             "array",
@@ -1007,8 +1114,16 @@
                 "type": "string"
               },
               "manifest_artifact_id": {
-                "$ref": "common.schema.json#/$defs/uuid",
-                "description": "Workspace-scoped stable record identity."
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Current managed derived artifact identity."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Derived artifact reference, or null after evidence invalidation."
               },
               "model_id": {
                 "$ref": "common.schema.json#/$defs/uuid",
@@ -1017,6 +1132,13 @@
               "run_id": {
                 "$ref": "common.schema.json#/$defs/uuid",
                 "description": "Workspace-scoped stable record identity."
+              },
+              "state": {
+                "enum": [
+                  "current",
+                  "invalidated"
+                ],
+                "description": "Whether current evidence authorizes this lineage."
               }
             },
             "required": [
@@ -1025,9 +1147,44 @@
               "run_id",
               "dataset_id",
               "manifest_artifact_id",
-              "kind"
+              "kind",
+              "state"
             ],
-            "type": "object"
+            "type": "object",
+            "allOf": [
+              {
+                "if": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "const": "invalidated",
+                      "description": "Evidence-state condition selecting current or invalidated lineage."
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ]
+                },
+                "then": {
+                  "type": "object",
+                  "properties": {
+                    "manifest_artifact_id": {
+                      "type": "null",
+                      "description": "Derived artifact reference is cleared when its evidence is invalidated."
+                    }
+                  }
+                },
+                "else": {
+                  "type": "object",
+                  "properties": {
+                    "manifest_artifact_id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Derived artifact reference is cleared when its evidence is invalidated."
+                    }
+                  }
+                }
+              }
+            ]
           },
           "type": [
             "array",
@@ -1241,6 +1398,18 @@
                 "type": "integer",
                 "minimum": 1,
                 "description": "Accepted current-replacement revision whose receipt lists this publication for physical cleanup. Restore verifies that association before a worker can retire bytes."
+              },
+              "legacy_location_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Exact legacy location identity requiring selected-store verified adoption."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional location-only migration obligation. Pending has no invented admission; completion requires actual retirement."
               }
             },
             "required": [
@@ -1310,6 +1479,26 @@
               "revision"
             ],
             "additionalProperties": false
+          }
+        },
+        "recordings": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Current authority rows, never alternate derived results.",
+          "items": {
+            "$ref": "recording.schema.json#/$defs/current"
+          }
+        },
+        "speaker_mappings": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Current authority rows, never alternate derived results.",
+          "items": {
+            "$ref": "recording.schema.json#/$defs/mapping"
           }
         }
       },
@@ -1420,7 +1609,8 @@
             "const": 1,
             "description": "Select legacy schema-1 snapshot layout."
           }
-        }
+        },
+        "type": "object"
       },
       "then": {
         "properties": {
@@ -1429,7 +1619,8 @@
             "type": "array",
             "description": "Operational table count for the selected catalog schema."
           }
-        }
+        },
+        "type": "object"
       },
       "else": {
         "properties": {
@@ -1438,7 +1629,8 @@
             "type": "array",
             "description": "Operational table count for the selected catalog schema."
           }
-        }
+        },
+        "type": "object"
       }
     }
   ]

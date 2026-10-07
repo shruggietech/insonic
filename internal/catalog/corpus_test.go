@@ -11,6 +11,7 @@ import (
 func TestSQLiteCorpusAssociations(t *testing.T) { corpusSuite(t, localStore(t, contracts.ID())) }
 func corpusSuite(t *testing.T, s *Store) {
 	ctx := context.Background()
+	_, recording, local := evidenceRecording(t, s)
 	job, e := s.StartJob(ctx, contracts.ID(), contracts.ID(), 10, time.Minute)
 	if e != nil {
 		t.Fatal(e)
@@ -20,9 +21,9 @@ func corpusSuite(t *testing.T, s *Store) {
 	rows := Records{
 		Artifacts: []Artifact{{source, "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", 1, "source"}, {manifest, "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", 1, "manifest"}, {weights, "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", 1, "model"}},
 		Assets:    []Asset{{asset, source, "original", 1000000}}, Speakers: []Speaker{{speaker, "Speaker"}},
-		Segments: []Segment{{ID: segment, Revision: 1, AssetID: asset, SpeakerID: &speaker, StartUS: 0, EndUS: 1000000, Channel: 0, Attribution: json.RawMessage(`{"basis":"selected"}`)}},
-		Datasets: []Dataset{{dataset, speaker, manifest, json.RawMessage(`{"recipe_version":"1"}`)}}, Members: []DatasetMember{{contracts.ID(), dataset, 0, segment, 1}},
-		Runs: []TrainingRun{{run, dataset, speaker, job.JobID, manifest, "fixture", json.RawMessage(`{}`)}}, Models: []Model{{model, speaker, "Family"}}, Versions: []ModelVersion{{version, model, run, dataset, manifest, "trained"}}, ModelArtifacts: []ModelArtifact{{contracts.ID(), version, weights, "weights", "fixture"}}, ModelAssociations: []ModelAssociation{{contracts.ID(), model, speaker, 1, "original"}},
+		Segments: []Segment{{ID: segment, Revision: 1, RecordingID: recording.ID, DocumentDigest: recording.DocumentDigest, CueID: "cue-000000", LocalSpeakerID: local}},
+		Datasets: []Dataset{{ID: dataset, SpeakerID: speaker, ManifestArtifactID: &manifest, Options: json.RawMessage(`{"recipe_version":"1"}`), State: "current"}}, Members: []DatasetMember{{contracts.ID(), dataset, 0, segment, 1}},
+		Runs: []TrainingRun{{ID: run, DatasetID: dataset, SpeakerID: speaker, JobID: job.JobID, PreparationArtifactID: &manifest, Adapter: "fixture", Options: json.RawMessage(`{}`), State: "current"}}, Models: []Model{{model, speaker, "Family"}}, Versions: []ModelVersion{{ID: version, ModelID: model, RunID: run, DatasetID: dataset, ManifestArtifactID: &manifest, Kind: "trained", State: "current"}}, ModelArtifacts: []ModelArtifact{{contracts.ID(), version, weights, "weights", "fixture"}}, ModelAssociations: []ModelAssociation{{contracts.ID(), model, speaker, 1, "original"}},
 	}
 	rev, _ := s.Revision(ctx)
 	if _, e = s.Commit(ctx, Mutation{OperationID: contracts.ID(), Expected: rev, Records: rows}); e != nil {

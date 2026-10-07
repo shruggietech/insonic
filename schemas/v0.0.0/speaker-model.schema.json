@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/speaker-model.schema.json",
   "title": "Speaker model version manifest",
-  "description": "Portable exact-version model descriptor preserving the originating speaker, frozen training corpus, preparation, artifacts/checkpoints, provider identity, declared compatibility and license metadata. Current family associations and availability remain revisioned catalog state.",
+  "description": "Exact model artifact identity and noncontent training lineage. Source authority corrections invalidate and retire assignment-bearing manifests/preparations; retained weights do not authorize obsolete subtitle or person assignments.",
   "type": "object",
   "properties": {
     "schema_version": {
@@ -38,12 +38,28 @@
       "description": "UTC instant when this immutable model version was published."
     },
     "manifest_sha256": {
-      "$ref": "common.schema.json#/$defs/sha256",
-      "description": "Digest of the separately published canonical immutable model manifest, excluding this transport envelope's own digest field."
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Current model manifest digest."
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Current assignment-bearing manifest digest, or null after invalidation."
     },
     "manifest_artifact": {
-      "$ref": "common.schema.json#/$defs/artifactReference",
-      "description": "Optional canonical model manifest artifact."
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/artifactReference",
+          "description": "Current model manifest artifact."
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Current manifest artifact, or null after invalidation."
     },
     "display_name": {
       "type": "string",
@@ -97,6 +113,13 @@
     "extensions": {
       "$ref": "common.schema.json#/$defs/extensions",
       "description": "Namespaced custom model metadata without redefining frozen provenance."
+    },
+    "state": {
+      "enum": [
+        "current",
+        "invalidated"
+      ],
+      "description": "Whether the input corpus remains current; invalidated lineage retains model outputs without executable assignment-bearing input manifests."
     }
   },
   "required": [
@@ -115,7 +138,8 @@
     "checkpoints",
     "license_declarations",
     "evaluations",
-    "diagnostics"
+    "diagnostics",
+    "state"
   ],
   "additionalProperties": false,
   "$defs": {
@@ -248,15 +272,23 @@
     },
     "datasetReference": {
       "type": "object",
-      "description": "Immutable dataset lineage used by this exact model version.",
+      "description": "Noncontent dataset identity and current-state lineage; copied speaker assignments are forbidden.",
       "properties": {
         "dataset_snapshot_id": {
           "$ref": "common.schema.json#/$defs/uuid",
           "description": "training_dataset_snapshot identity used by the run."
         },
         "manifest_sha256": {
-          "$ref": "common.schema.json#/$defs/sha256",
-          "description": "Expected immutable dataset manifest digest."
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/sha256",
+              "description": "Current corpus manifest digest."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Corpus manifest digest, or null after evidence invalidation."
         },
         "originating_speaker_id": {
           "$ref": "common.schema.json#/$defs/uuid",
@@ -266,33 +298,16 @@
           "$ref": "common.schema.json#/$defs/revision",
           "description": "Frozen speaker identity revision used by dataset selection."
         },
-        "attribution_revisions": {
-          "type": "array",
-          "description": "Exact attribution observation revisions represented by selected members.",
-          "items": {
-            "type": "object",
-            "description": "One frozen attribution identity/revision pair.",
-            "properties": {
-              "attribution_id": {
-                "$ref": "common.schema.json#/$defs/uuid",
-                "description": "Attribution observation stream identity."
-              },
-              "revision": {
-                "$ref": "common.schema.json#/$defs/revision",
-                "description": "Exact attribution revision used in the dataset."
-              }
-            },
-            "required": [
-              "attribution_id",
-              "revision"
-            ],
-            "additionalProperties": false
-          },
-          "uniqueItems": true
-        },
         "artifact": {
           "$ref": "common.schema.json#/$defs/artifactReference",
           "description": "Optional immutable dataset manifest artifact reference."
+        },
+        "state": {
+          "enum": [
+            "current",
+            "invalidated"
+          ],
+          "description": "Current or invalidated corpus lineage."
         }
       },
       "required": [
@@ -300,7 +315,7 @@
         "manifest_sha256",
         "originating_speaker_id",
         "speaker_identity_revision",
-        "attribution_revisions"
+        "state"
       ],
       "additionalProperties": false
     },
@@ -396,8 +411,15 @@
           "description": "Frozen dataset lineage and exact attribution revisions."
         },
         "preparation": {
-          "$ref": "#/$defs/preparationReference",
-          "description": "Exact final-input preparation manifest used by this run."
+          "anyOf": [
+            {
+              "$ref": "#/$defs/preparationReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Current final-input preparation, or null when the corpus is invalidated."
         },
         "provider": {
           "$ref": "#/$defs/provider",
@@ -1003,12 +1025,7 @@
           "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "originating_speaker_id": "00000000-0000-4000-8000-000000000006",
           "speaker_identity_revision": 1,
-          "attribution_revisions": [
-            {
-              "attribution_id": "00000000-0000-4000-8000-000000000005",
-              "revision": 1
-            }
-          ]
+          "state": "current"
         },
         "preparation": {
           "preparation_manifest_id": "00000000-0000-4000-8000-000000000011",
@@ -1095,7 +1112,8 @@
         }
       ],
       "evaluations": [],
-      "diagnostics": []
+      "diagnostics": [],
+      "state": "current"
     },
     {
       "schema_version": "0.0.0",
@@ -1122,12 +1140,7 @@
           "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "originating_speaker_id": "00000000-0000-4000-8000-000000000006",
           "speaker_identity_revision": 1,
-          "attribution_revisions": [
-            {
-              "attribution_id": "00000000-0000-4000-8000-000000000005",
-              "revision": 1
-            }
-          ]
+          "state": "current"
         },
         "preparation": {
           "preparation_manifest_id": "00000000-0000-4000-8000-000000000011",
@@ -1211,7 +1224,61 @@
         }
       ],
       "evaluations": [],
-      "diagnostics": []
+      "diagnostics": [],
+      "state": "current"
+    }
+  ],
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "const": "invalidated",
+            "description": "Evidence-state condition selecting current or invalidated lineage."
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "manifest_sha256": {
+            "type": "null",
+            "description": "Assignment-bearing digest is cleared after invalidation."
+          },
+          "manifest_artifact": {
+            "type": "null",
+            "description": "Assignment-bearing artifact is cleared after invalidation."
+          },
+          "training": {
+            "type": "object",
+            "properties": {
+              "preparation": {
+                "type": "null",
+                "description": "Assignment-bearing preparation is cleared after invalidation."
+              },
+              "dataset": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "const": "invalidated",
+                    "description": "Evidence-state condition selecting current or invalidated lineage."
+                  },
+                  "manifest_sha256": {
+                    "type": "null",
+                    "description": "Assignment-bearing digest is cleared after invalidation."
+                  }
+                },
+                "description": "Dataset lineage carries its current evidence state."
+              }
+            },
+            "description": "Training lineage carries current or invalidated input references."
+          }
+        }
+      }
     }
   ]
 }

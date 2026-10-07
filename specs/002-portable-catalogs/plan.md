@@ -1,5 +1,7 @@
 # Implementation Plan: Portable catalogs and durable jobs
 
+**2026-10-07 contract supersession**: S005/#21 replaces append-only computed transcript/assignment histories and frozen copied dataset evidence with one current embedded Cueson document, external known-speaker mappings and current-reference or invalidated downstream records. Original sources and noncontent model/run lineage remain retained. Historical migration definitions and the recorded S002 verification evidence remain unchanged.
+
 **Branch**: `codex/s002-portable-catalogs` | **Date**: 2026-10-05 | **Spec**: [spec.md](spec.md)
 
 ## Summary

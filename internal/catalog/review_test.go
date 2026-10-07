@@ -23,7 +23,7 @@ func credentialOptionsSuite(t *testing.T, s *Store) {
 		if _, e = s.Commit(ctx, Mutation{OperationID: contracts.ID(), Expected: rev, Settings: []Setting{{Name: "options", Value: value}}}); e == nil {
 			t.Fatalf("credential field %q admitted", key)
 		}
-		for _, record := range []any{Profile{ID: contracts.ID(), Revision: 1, Role: "catalog", Adapter: "extension", Version: contracts.Version, Configuration: value}, Dataset{ID: contracts.ID(), SpeakerID: contracts.ID(), ManifestArtifactID: contracts.ID(), Options: value}, TrainingRun{ID: contracts.ID(), DatasetID: contracts.ID(), SpeakerID: contracts.ID(), JobID: contracts.ID(), PreparationArtifactID: contracts.ID(), Adapter: "fixture", Options: value}} {
+		for _, record := range []any{Profile{ID: contracts.ID(), Revision: 1, Role: "catalog", Adapter: "extension", Version: contracts.Version, Configuration: value}, Dataset{ID: contracts.ID(), SpeakerID: contracts.ID(), ManifestArtifactID: stringPointer(contracts.ID()), Options: value}, TrainingRun{ID: contracts.ID(), DatasetID: contracts.ID(), SpeakerID: contracts.ID(), JobID: contracts.ID(), PreparationArtifactID: stringPointer(contracts.ID()), Adapter: "fixture", Options: value}} {
 			if validateRecord(record) == nil {
 				t.Fatalf("%T admitted credential field %q", record, key)
 			}

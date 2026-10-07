@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/processing-tools.schema.json",
+  "title": "Local processing tools",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "processing-tools",
+      "description": "Processing configuration discriminator."
+    },
+    "schema_version": {
+      "const": "0.0.0",
+      "description": "Shared release version."
+    },
+    "cueson": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "executable": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "description": "Absolute selected Cueson executable path."
+        },
+        "executable_sha256": {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Expected lowercase SHA-256 of the native encoder."
+        }
+      },
+      "required": [
+        "executable",
+        "executable_sha256"
+      ],
+      "description": "Exact selected native subtitle encoder."
+    },
+    "processing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ffmpeg": {
+          "$ref": "media-tools.schema.json#/$defs/tool",
+          "description": "Optional decoder override; otherwise use the workspace media-tool decoder."
+        },
+        "recognition_python": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "description": "Absolute selected path without ambient executable lookup."
+            },
+            "sha256": {
+              "$ref": "common.schema.json#/$defs/sha256",
+              "description": "Expected lowercase SHA-256 of the selected file."
+            }
+          },
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "description": "Selected isolated recognition Python executable."
+        },
+        "diarization_python": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "description": "Absolute selected path without ambient executable lookup."
+            },
+            "sha256": {
+              "$ref": "common.schema.json#/$defs/sha256",
+              "description": "Expected lowercase SHA-256 of the selected file."
+            }
+          },
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "description": "Selected isolated diarization Python executable."
+        },
+        "worker": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "description": "Absolute selected path without ambient executable lookup."
+            },
+            "sha256": {
+              "$ref": "common.schema.json#/$defs/sha256",
+              "description": "Expected lowercase SHA-256 of the selected file."
+            }
+          },
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "description": "Selected offline local processing worker script."
+        },
+        "max_input_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 68719476736,
+          "description": "Maximum source size; default 64 GiB."
+        },
+        "max_duration_us": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 604800000000,
+          "description": "Maximum mapped duration; default one hour."
+        },
+        "max_output_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216,
+          "description": "Maximum worker response bytes; default 16 MiB."
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400000,
+          "description": "Maximum worker wall time; default ten minutes."
+        },
+        "threads": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64,
+          "description": "Maximum selected inference CPU thread count; default two."
+        }
+      },
+      "description": "Lazy selected processing tools and bounded execution budgets. Engines are required only by explicitly elected inference operations."
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "cueson",
+    "processing"
+  ],
+  "description": "Exact local Cueson and optional offline engine configuration. Real inference is maintainer-elected and excluded categorically from CI.",
+  "examples": [
+    {
+      "kind": "processing-tools",
+      "schema_version": "0.0.0",
+      "cueson": {
+        "executable": "/opt/insonic/tools/cueson",
+        "executable_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "processing": {
+        "recognition_python": {
+          "path": "/opt/insonic/recognition/bin/python",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "diarization_python": {
+          "path": "/opt/insonic/diarization/bin/python",
+          "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "worker": {
+          "path": "/opt/insonic/processing-worker.py",
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "timeout_ms": 600000,
+        "threads": 2
+      }
+    }
+  ]
+}

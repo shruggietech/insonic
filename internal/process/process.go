@@ -5,7 +5,6 @@ import (
 	"context"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"io"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"sync"
@@ -17,8 +16,11 @@ type Spec struct {
 	Args       []string
 	Directory  string
 	Env        []string
-	Input      io.Reader
-	MaxOutput  int
+	// CleanEnv supplies only Env, including an explicitly empty environment.
+	// The default preserves inherited-environment semantics for existing callers.
+	CleanEnv  bool
+	Input     io.Reader
+	MaxOutput int
 }
 type Result struct{ Output []byte }
 type bounded struct {
@@ -54,7 +56,7 @@ func Run(ctx context.Context, spec Spec) (Result, error) {
 	}
 	command := exec.Command(spec.Executable, spec.Args...)
 	command.Dir = spec.Directory
-	command.Env = append(os.Environ(), spec.Env...)
+	command.Env = childEnvironment(spec)
 	command.Stdin = spec.Input
 	Hide(command, false)
 	command.WaitDelay = time.Second

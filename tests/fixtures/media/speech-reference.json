@@ -1,0 +1,41 @@
+{
+  "kind": "fixture-reference",
+  "fixture": "speech",
+  "test_oracle_only": true,
+  "text": [
+    "The birch canoe slid on the smooth planks.",
+    "Glue the sheet to the dark blue background.",
+    "It's easy to tell the depth of a well.",
+    "Four hours of steady work faced us."
+  ],
+  "source_evidence": [
+    {
+      "url": "https://github.com/unslothai/unsloth/blob/971eb36f485d1d0de54f211ea12f6a985d18c173/tests/saving/text_to_speech_models/test_whisper.py#L190-L201",
+      "description": "Independent test downloads this exact Commons URL and asserts four distinctive phrases. It does not supply sample-accurate boundaries or prove speaker count."
+    },
+    {
+      "url": "https://www.cs.columbia.edu/~hgs/audio/harvard.html",
+      "description": "Harvard List 1 sentences 1, 2, 3 and 9 corroborate full phrase wording."
+    }
+  ],
+  "timing_basis": "single whole-media supplied subtitle window; no phrase boundaries asserted",
+  "auditory_verification": false,
+  "measured_voice_activity": null,
+  "speaker_count": null,
+  "cues": [
+    {
+      "id": 1,
+      "start_ms": 0,
+      "end_ms": 10800,
+      "text": "The birch canoe slid on the smooth planks. Glue the sheet to the dark blue background. It's easy to tell the depth of a well. Four hours of steady work faced us."
+    }
+  ],
+  "deterministic_turns": [
+    {
+      "local_label": "fixture-voice",
+      "start_ms": 0,
+      "end_ms": 10800
+    }
+  ],
+  "turn_basis": "constructed adapter result for deterministic assembly, not measured diarization ground truth"
+}

@@ -20,6 +20,10 @@
     "ffprobe": {
       "$ref": "#/$defs/tool",
       "description": "Selected complementary stream/container probe, supplying measured source duration and clock facts."
+    },
+    "ffmpeg": {
+      "$ref": "#/$defs/tool",
+      "description": "Optional exact mapped-audio decoder required only by selected processing operations."
     }
   },
   "$defs": {

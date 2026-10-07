@@ -13,7 +13,7 @@
 | Repository integrity | Pass: UTF-8 without BOM, corruption/conflict checks, Markdown structure, top-down Mermaid, links, navigation, version alignment and offline brand inventory |
 | Focused maintainer tests | 41 pass: six updater tests, seven checker tests, thirteen mocked GitHub setup tests, twelve schema-contract tests and three theme-preference tests; actual hosted calls remain unexecuted |
 | JSON contracts | 12 Draft 2020-12 schemas, 10 registered document contracts and 11 full examples pass strict compilation, descriptions, version matching and master validation |
-| Contract reference and timestamps | Generated backend/query alternatives, conditional requirements, field examples and shared definitions appear in the exported reference; audit timestamps use the official Cueson v1.1.0 `{iso, unix_ns}` shape; malformed/legacy timestamp and cross-backend configuration cases are rejected |
+| Contract reference and timestamps | Generated backend/query alternatives, conditional requirements, field examples and shared definitions appear in the exported reference; audit timestamps use the official Cueson `{iso, unix_ns}` shape; malformed/legacy timestamp and cross-backend configuration cases are rejected |
 | Staged tracking | 15 sequential application slices match the issue manifest and internal roadmap; dependencies and milestones agree without cycles; closed-project preservation passes mocked setup checks |
 | Spec Kit integration | Official Specify CLI 1.0.8 initialized Codex skills; all ten integration manifests match their files |
 | GitHub YAML | Five workflow/template/config files parsed successfully |

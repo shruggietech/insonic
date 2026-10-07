@@ -88,6 +88,9 @@ func (a *App) recoverWork() {
 		return
 	}
 	for _, item := range list {
+		if item.Kind == "recordings.assemble" {
+			continue
+		}
 		if len(a.workers) >= 4 {
 			break
 		}
@@ -112,7 +115,9 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 	defer a.wg.Done()
 	var result any
 	var e error
-	if strings.HasPrefix(claim.Kind, "models.") {
+	if claim.Kind == "recordings.process" {
+		result, e = a.processRecording(ctx, claim)
+	} else if strings.HasPrefix(claim.Kind, "models.") {
 		var s *models.Service
 		s, e = a.modelService()
 		if e == nil {
@@ -152,13 +157,20 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 	if e != nil {
 		state = "failed"
 		phase = "operation-failed"
-		result = map[string]any{"state": "failed", "error": "operation_failed"}
+		code := "operation_failed"
+		if typed, ok := e.(*contracts.Error); ok {
+			code = typed.Code
+		}
+		result = map[string]any{"state": "failed", "error": code}
 	}
 	raw, _ := json.Marshal(result)
 	_, _ = a.Catalog.CheckpointWork(ctx, worker.claim, phase, state, raw, leaseTTL)
 }
 
 func domainRequestValid(req contracts.Request) bool {
+	if strings.HasPrefix(req.Operation, "recordings.") {
+		return recordingRequestValid(req)
+	}
 	isDomain := strings.HasPrefix(req.Operation, "media.") || strings.HasPrefix(req.Operation, "models.") || strings.HasPrefix(req.Operation, "work.") || strings.HasPrefix(req.Operation, "credentials.")
 	if !isDomain {
 		return req.ItemID == "" && len(req.Data) == 0
@@ -183,6 +195,9 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 			}
 		}
 	}()
+	if strings.HasPrefix(req.Operation, "recordings.") {
+		return a.recordingDispatch(req)
+	}
 	switch req.Operation {
 	case "work.list":
 		p, e := pageInput(req.Data)

@@ -15,7 +15,7 @@ Go is the orchestration language because the application is dominated by storage
 
 ## Subtitle and graph dependencies
 
-Cueson is mandatory and upstream-owned. The [v1.1.0 public architecture](https://github.com/shruggietech/cueson/blob/v1.1.0/docs/architecture.md) defines a CLI and Cue JSON Schema contract, not a stable importable Go library. Integrate a pinned official executable and schema through the subtitle adapter. Do not import upstream `internal/` packages or invent a second subtitle interchange model.
+Cueson is mandatory and upstream-owned. The [v1.2.0 public architecture](https://github.com/shruggietech/cueson/blob/v1.2.0/docs/architecture.md) defines a CLI and Cue JSON Schema contract, not a stable importable Go library. Integrate a pinned official executable and schema through the subtitle adapter. Do not import upstream `internal/` packages or invent a second subtitle interchange model.
 
 [LadybugDB](https://docs.ladybugdb.com/) is the default embedded property graph and openCypher engine. Its [Go binding](https://github.com/LadybugDB/go-ladybug) uses Cgo and native libraries. Pin a compatible binding/core pair and its artifact digests. Package metadata records both revisions; builds never resolve a mutable latest-library download.
 
@@ -33,11 +33,11 @@ Filesystem is the default immutable artifact store. A generic S3 API adapter sup
 
 ## Local AI and speaker training
 
-[faster-whisper](https://github.com/SYSTRAN/faster-whisper) is a supported default candidate for CPU int8 transcription and suitable NVIDIA systems. It uses Python and CTranslate2, so insonic installs or connects a versioned worker rather than requiring an arbitrary user-maintained Python environment. [CTranslate2 hardware support](https://opennmt.net/CTranslate2/hardware_support.html) and model size determine CPU/GPU profiles.
+[faster-whisper](https://github.com/SYSTRAN/faster-whisper) implements the local recognition adapter for CPU int8 transcription and suitable NVIDIA systems. The current source build uses an explicitly configured hash-pinned Python executable and worker with exact dependency versions. Managed installer delivery remains a packaging contract. [CTranslate2 hardware support](https://opennmt.net/CTranslate2/hardware_support.html) and model size determine CPU/GPU profiles.
 
 [whisper.cpp](https://github.com/ggml-org/whisper.cpp) provides a native alternative, particularly for macOS acceleration and compact CPU setups. Users can override either default. The model catalog describes language coverage, download size, approximate memory needs, acceleration, license and source before acquisition. CPU processing remains available without acceleration.
 
-For acoustic diarization, [pyannote Community-1](https://huggingface.co/pyannote/speaker-diarization-community-1) is a candidate with a separate Python/PyTorch worker. Upstream model acquisition conditions and any Hugging Face token are shown as distribution requirements for that model. Users can select another local or hosted adapter. Text reasoning can help name voices but cannot substitute for acoustic segmentation.
+For acoustic diarization, [pyannote Community-1](https://huggingface.co/pyannote/speaker-diarization-community-1) implements the local diarization adapter through a separately configured Python/PyTorch worker. Structural acceptance cannot establish voice accuracy: models may split one voice or merge several voices, and quality diagnostics disclose that uncertainty. Upstream model acquisition conditions and any Hugging Face token are shown as distribution requirements for that model. Users can select another local or hosted adapter. Text reasoning can help name voices but cannot substitute for acoustic segmentation.
 
 [Optional speaker-model training](voice-models.md) reuses the library-wide segment corpus through versioned preparation/training adapters. Preparation and training algorithms are adapter choices; dataset and artifact contracts are independent of them. Persist datasets, training attempts, checkpoints and speaker-model versions before choosing a specific worker, so model/provenance storage is independent of the training library.
 
