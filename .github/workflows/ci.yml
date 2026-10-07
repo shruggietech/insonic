@@ -177,4 +177,4 @@ jobs:
           INSONIC_FIXTURE_POSTGRES: postgres://fixture:fixture-only-password@localhost:5432/fixture?sslmode=disable
           INSONIC_FIXTURE_S3: localhost:9090
           INSONIC_FIXTURE_ARCADE: http://localhost:2480
-        run: go test -v -tags integration ./internal/qualification ./internal/catalog
+        run: go test -v -tags integration ./internal/qualification ./internal/catalog ./internal/artifact

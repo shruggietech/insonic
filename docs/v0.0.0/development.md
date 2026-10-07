@@ -42,6 +42,8 @@ Workspace initialization validates the packaged JSON contract and cannot replace
 
 The desktop foundation uses the same workspace operation through its native bridge and packages the local documentation. Full library, pipeline, speaker, playback and query controls remain the desktop delivery contract. Native qualification pins exact dependencies, verifies downloaded artifact checksums and executes bounded platform/backend fixtures. Artifact availability on an architecture does not establish executed package support.
 
+Managed artifact commands share this runtime: publish/show/verify/materialize/reconcile/abort/retire, retention reference admission/release, materialization lease renewal/release and expired cache pruning. Their exact usage, default bounds and recovery behavior are defined in [storage](storage.md). They operate on real bytes through filesystem/S3 adapters; library import, metadata extraction and model registry remain later product contracts. Dedicated desktop storage controls remain pending, while the shared bridge accepts the versioned runtime operations.
+
 Owner locks use the private per-user runtime directory and canonical workspace root, so read-only metadata and control-directory edits preserve one owner. A runtime admits up to 1,024 active qualification workers. Terminal history remains in the selected catalog and cannot consume active-worker capacity. Runtime shutdown records interruption rather than user cancellation. Five-second attempt leases renew every second; recovery claims only expired or explicitly interrupted authority, preserving prior attempts.
 
 ## Automated checks and user observations

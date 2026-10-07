@@ -2,7 +2,7 @@
 
 insonic organizes audio and video, correlates subtitles, tracks speakers and explores what was said and when through a CLI and desktop wrapper. Replaceable local and hosted tools operate through explicit adapters while the user controls the library, configuration and processing history. Source-linked speaker audio can optionally feed trained models associated with those speakers.
 
-v0.0.0 is a specification baseline with a source-buildable workspace/runtime CLI, durable SQLite/PostgreSQL catalogs and desktop foundation. Media processing and installable product packages remain implementation contracts.
+v0.0.0 is a specification baseline with a source-buildable workspace/runtime CLI, durable SQLite/PostgreSQL catalogs, managed filesystem/S3 artifact storage and desktop foundation. Media processing and installable product packages remain implementation contracts.
 
 ## Read in this order
 

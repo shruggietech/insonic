@@ -6,6 +6,10 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Managed filesystem and generic S3 artifact storage with streamed SHA-256 verification, resumable multipart receipts, durable publication recovery, leased materialization and reference-aware retirement through the shared CLI/runtime.
+- Additive catalog schema 2 with schema-1 upgrade/restore compatibility and receipt-validated artifact lifecycle snapshots.
+- Workspace/profile-scoped object keys, final-link metadata durability and pending reconciliation for uncertain S3 completion/abort; retirement updates typed location availability alongside preserved admission receipts.
+
 - Portable SQLite/PostgreSQL catalogs with atomic revision/receipt admission, exact metadata/date provenance, scoped speaker/training/model records, durable job history/recovery and ordered fenced graph outbox.
 - CLI job history, catalog status, explicit migration and consistent logical export/restore with imported ownership expired.
 - Change-aware native/backend CI and qualification pin consistency checks.
@@ -24,6 +28,8 @@ All notable changes to this project will be documented here. The format follows 
 - Sun/moon documentation toggle with an operating-system default, remembered light/dark choice and matching logos and diagram colors in offline help.
 
 ### Changed
+
+- 2026-10-06: Implement S003 for issue #4 using dedicated renewable artifact claims, unique nonreused keys, exact-version readback/deletion and atomic catalog retirement barriers. Preserve immutable domain evidence and existing dependency pins; encrypted credential persistence and the model registry remain subsequent work. Extend the affected pinned backend fixture job with shared artifact acceptance.
 
 - 2026-10-04: Adopt Apache 2.0 for original source/documentation and Go for CLI-first shared orchestration, with Wails as the desktop baseline subject to native packaging qualification. Require the official Cueson executable/schema boundary and a rebuildable LadybugDB graph projection.
 - 2026-10-04: Amend constitution to 2.0.0 for GUI core parity with documented advanced/experimental lag, early metadata/date provenance, full filesystem/S3, SQLite/PostgreSQL and LadybugDB/ArcadeDB support, and configured automation without mandatory per-item review. Add optional speaker-model delivery under S015/M5.

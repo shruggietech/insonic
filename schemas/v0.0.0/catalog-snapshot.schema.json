@@ -66,8 +66,11 @@
   ],
   "properties": {
     "catalog_schema": {
-      "const": 1,
-      "description": "Portable migration schema version supported by this catalog."
+      "description": "Portable migration schema version supported by this catalog.",
+      "enum": [
+        1,
+        2
+      ]
     },
     "digest": {
       "$ref": "common.schema.json#/$defs/sha256",
@@ -1060,7 +1063,7 @@
       "description": "Shared software/documentation/contract release version."
     },
     "state": {
-      "description": "Operational tables in dependency order; includes receipts, selections, jobs, attempts, leases, targets and events.",
+      "description": "Operational tables in dependency order; includes receipts, selections, jobs, attempts, leases, targets and events. Schema 1 has seven tables; schema 2 adds the typed artifact publication/lifecycle journal.",
       "items": {
         "additionalProperties": false,
         "properties": {
@@ -1073,7 +1076,8 @@
               "job_attempt",
               "workspace_lease",
               "graph_target",
-              "graph_event"
+              "graph_event",
+              "artifact_publication"
             ]
           },
           "rows": {
@@ -1104,7 +1108,7 @@
         ],
         "type": "object"
       },
-      "maxItems": 7,
+      "maxItems": 8,
       "minItems": 7,
       "type": "array"
     },
@@ -1124,5 +1128,35 @@
     "digest"
   ],
   "title": "Portable catalog snapshot",
-  "type": "object"
+  "type": "object",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "catalog_schema": {
+            "const": 1,
+            "description": "Select legacy schema-1 snapshot layout."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "state": {
+            "maxItems": 7,
+            "type": "array",
+            "description": "Operational table count for the selected catalog schema."
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "state": {
+            "minItems": 8,
+            "type": "array",
+            "description": "Operational table count for the selected catalog schema."
+          }
+        }
+      }
+    }
+  ]
 }

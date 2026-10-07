@@ -20,6 +20,7 @@ var stateTables = []stateTable{
 	{"workspace_lease", "role,owner_id,generation,lease_until"},
 	{"graph_target", "id,next_sequence,checkpoint,owner_id,generation,lease_until"},
 	{"graph_event", "target_id,sequence,predecessor,revision,operation_id,document,digest"},
+	{"artifact_publication", "id,artifact_id,data"},
 }
 
 type TableData struct {
@@ -100,7 +101,7 @@ func (s *Store) Export(ctx context.Context) (Snapshot, error) {
 	return out, e
 }
 func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
-	if snap.Version != contracts.Version || snap.CatalogSchema != SchemaVersion {
+	if snap.Version != contracts.Version || (snap.CatalogSchema != SchemaVersion && snap.CatalogSchema != 1) {
 		return contracts.Fail("incompatible_version")
 	}
 	if snap.Kind != "catalog-snapshot" {
@@ -113,7 +114,16 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 		return contracts.Fail("invalid_request")
 	}
 	digest, e := snap.digest()
-	if e != nil || digest != snap.Digest || len(snap.State) != len(stateTables) {
+	if e != nil || digest != snap.Digest {
+		return contracts.Fail("invalid_request")
+	}
+	if snap.CatalogSchema == 1 {
+		if len(snap.State) != len(stateTables)-1 {
+			return contracts.Fail("invalid_request")
+		}
+		snap.State = append(snap.State, TableData{Name: "artifact_publication", Rows: [][]json.RawMessage{}})
+	}
+	if len(snap.State) != len(stateTables) {
 		return contracts.Fail("invalid_request")
 	}
 	return s.write(ctx, func(tx *sql.Tx, rev int64) error {
@@ -167,6 +177,9 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 			return e
 		}
 		if e := s.validateRestoredState(ctx, tx, snap.Revision); e != nil {
+			return e
+		}
+		if e := s.validateArtifactState(ctx, tx, true); e != nil {
 			return e
 		}
 		// Fence imported authority immediately. Recovery still preserves the old attempts.
