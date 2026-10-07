@@ -139,3 +139,34 @@ func TestLargeBatchReferenceResultsRemainPortable(t *testing.T) {
 		t.Fatal("large journal admitted archived metadata")
 	}
 }
+
+func TestWorkMutationsReturnCurrentJournalProof(t *testing.T) {
+	ctx := context.Background()
+	s := localStore(t, contracts.ID())
+	w, e := s.EnqueueWork(ctx, contracts.ID(), "media.import", json.RawMessage(`{"items":[]}`))
+	if e != nil {
+		t.Fatal(e)
+	}
+	w, e = s.ClaimWork(ctx, w.ID, contracts.ID(), time.Minute)
+	if e != nil {
+		t.Fatal(e)
+	}
+	assertCurrent := func(w Work) {
+		t.Helper()
+		current, e := s.Work(ctx, w.ID)
+		if e != nil || current.JournalReceiptID != w.JournalReceiptID {
+			t.Fatal("returned work carries superseded journal proof", e)
+		}
+	}
+	assertCurrent(w)
+	w, e = s.RenewWork(ctx, w, time.Minute)
+	if e != nil {
+		t.Fatal(e)
+	}
+	assertCurrent(w)
+	w, e = s.CheckpointWork(ctx, w, "complete", "succeeded", json.RawMessage(`{"accepted":true}`), time.Minute)
+	if e != nil {
+		t.Fatal(e)
+	}
+	assertCurrent(w)
+}

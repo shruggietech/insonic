@@ -36,6 +36,10 @@ func (b *Bridge) Show() contracts.Response {
 	return b.Operate(contracts.Request{Operation: "workspace.show"})
 }
 
+func operationContext(operation string) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), local.OperationTimeout(operation, 10*time.Second))
+}
+
 // Operate uses the same versioned runtime contract as CLI domain commands.
 func (b *Bridge) Operate(request contracts.Request) contracts.Response {
 	if b.Workspace == nil {
@@ -59,7 +63,7 @@ func (b *Bridge) Operate(request contracts.Request) contracts.Response {
 	if e != nil || schemas.ValidateRequest(data) != nil {
 		return b.failed(contracts.Fail("invalid_request"))
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := operationContext(request.Operation)
 	defer cancel()
 	if err := local.Ensure(ctx, b.Workspace, b.CLIExecutable); err != nil {
 		return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Error: contracts.Fail("unavailable")}

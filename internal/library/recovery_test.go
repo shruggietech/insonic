@@ -3,6 +3,7 @@ package library
 
 import (
 	"context"
+	"github.com/shruggietech/insonic/internal/artifact"
 	"os"
 	"path/filepath"
 	"testing"
@@ -48,6 +49,76 @@ func TestFailedCommitRetiresComputedReportAndRetryAdmits(t *testing.T) {
 	value, e = s.Execute(ctx, work)
 	if e != nil || value.(ImportResult).Items[0].State != "admitted" {
 		t.Fatalf("retry failed: %v", e)
+	}
+}
+
+type transientReportDeletion struct {
+	artifact.Store
+	failures int
+	failID   string
+	deleted  []string
+}
+
+func (s *transientReportDeletion) DeleteUnreferenced(ctx context.Context, p catalog.Publication) error {
+	if s.failures > 0 && (s.failID == "" || s.failID == p.ID) {
+		s.failures--
+		return contracts.Fail("unavailable")
+	}
+	s.deleted = append(s.deleted, p.ID)
+	return s.Store.DeleteUnreferenced(ctx, p)
+}
+func TestRetiringReportRecoversAfterTransientStorageFailure(t *testing.T) {
+	s, db := libraryFixture(t)
+	ctx := context.Background()
+	source := wavFixture(t)
+	work := claimLibraryWork(t, db, "media.import", ImportRequest{Defaults: Options{Timezone: "UTC"}, Items: []Item{{Source: source}}})
+	s.Catalog = &failLibraryCommit{Catalog: db, fail: true}
+	store := &transientReportDeletion{Store: s.Artifacts.Store, failures: 2, failID: DerivedID(work.ID, "report-0")}
+	s.Artifacts.Store = store
+	value, e := s.Execute(ctx, work)
+	if e != nil || value.(ImportResult).Items[0].State != "failed" {
+		t.Fatalf("expected observed commit failure: %v", e)
+	}
+	report := DerivedID(work.ID, "report-0")
+	p, e := db.Publication(ctx, report)
+	if e != nil || p.State != "retiring" {
+		t.Fatalf("fixture did not retain durable retirement: %+v %v", p, e)
+	}
+	// The backend still fails; the retry must propagate failure without selecting
+	// a replacement or bypassing the retirement fence.
+	value, e = s.Execute(ctx, work)
+	if e != nil || value.(ImportResult).Items[0].State != "failed" {
+		t.Fatalf("unavailable deletion bypassed: %v", e)
+	}
+	if entries, e := db.Libraries(ctx); e != nil || len(entries) != 0 {
+		t.Fatal("failed retirement admitted an entry")
+	}
+	value, e = s.Execute(ctx, work)
+	if e != nil || value.(ImportResult).Items[0].State != "admitted" {
+		t.Fatalf("recovered retry failed: %v", e)
+	}
+	p, e = db.Publication(ctx, report)
+	if e != nil || p.State != "retired" {
+		t.Fatal("transient retirement not resumed")
+	}
+	if _, e = store.Stat(ctx, p); e == nil {
+		t.Fatal("obsolete report bytes retained")
+	}
+	entry, e := db.Library(ctx, value.(ImportResult).Items[0].MediaID)
+	if e != nil {
+		t.Fatal(e)
+	}
+	current, _ := catalog.PublicationIDs(entry.ReportPublicationIDs)
+	for _, id := range append(current, *entry.OriginalPublicationID) {
+		if _, e = s.Artifacts.RetireCurrent(ctx, id); code(e) != "conflict" {
+			t.Fatal("current report/original retirement guard bypassed")
+		}
+		if e = s.Artifacts.Verify(ctx, id); e != nil {
+			t.Fatal("current report/original bytes lost")
+		}
+	}
+	if len(store.deleted) != 2 {
+		t.Fatal("recovery did not delete exactly obsolete report and unused original")
 	}
 }
 

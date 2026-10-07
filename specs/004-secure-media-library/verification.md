@@ -47,13 +47,18 @@ work recovery, and use one workspace-scoped SQL retirement reference query.
   identity, 10,000-item journal/results, partial metadata/date states, reference
   relocation and current-result replacement have focused passing regressions.
 
-## Hosted acceptance pending publication
+## Hosted acceptance
 
 CI runs Linux, Windows and macOS native credential lifecycle and exact extractor
 operations. Linux uses a private unlocked Secret Service fixture; macOS uses an
 isolated temporary native keychain. Adapter acceptance includes PostgreSQL and
 generic S3 plus full library operations over all four catalog/storage combinations.
-Record exact PR head and six gate conclusions here before owner handoff.
+Initial head `76f9733f3fe50745903c7ce4d84ffefd2d0f3ab8`, CI
+[run 37672587418](https://github.com/shruggietech/insonic/actions/runs/37672587418):
+all six gates passed. Foundation 10 s, docs 31 s, adapter fixtures 1 min 46 s,
+macOS 3 min 15 s, Linux 5 min 24 s, Windows 7 min 52 s. Real platform/backend
+acceptance is executed, not inferred from compilation. Follow-up code must pass
+the same hosted gates before final handoff.
 
 The macOS job uses `macos-15` arm64 following GitHub's
 [macOS 14 retirement announcement](https://github.blog/changelog/2026-10-01-github-actions-macos-14-runner-image-retirement/).
@@ -66,8 +71,25 @@ attach it to the chat, then resolve every review discussion/comment. Review roun
 count starts with one automatic round. One `@Codex` second-round request is
 authorized; never request a third round. No merge or release is authorized.
 
-Current status: initial publication and external reviews are pending. Local
-checks are not a claim of hosted platform acceptance or bot approval.
+Official PR [#22](https://github.com/shruggietech/insonic/pull/22) published at
+`76f9733f3fe50745903c7ce4d84ffefd2d0f3ab8`. Initial automatic Codex review
+completed with four findings. T041-T044 fix unused source/subtitle candidates,
+logical model-version conflicts, bounded large ingress and desktop deadlines.
+T045 retains failed per-item results in retryable batch work without duplicating
+admitted items. Real-runtime input larger than 1 MiB reaches durable work;
+responses retain the smaller budget. All four have targeted passing regressions.
+
+Independent review T034-T040 resolved current snapshot proof/omission, cold
+credential bootstrap, semantic date/fold selection, CLI bounds, external native
+deletion, malformed URL/offset validation and transient retirement recovery.
+Latest receipt validation includes cleanup obligations and returned Work journal
+identity. Local full tests/vet and affected race regressions pass after integration.
+Repository check and 50 maintainer tests pass. Documentation explains established
+PostgreSQL session lifetime separately from new credential resolution.
+
+Review round 1 is complete; replies/resolution and follow-up publication are the
+next actions. The single authorized second code/security review round remains
+unused. No third round will be requested. Final CI/review evidence remains pending.
 
 ## Remaining product boundaries
 

@@ -28,21 +28,96 @@ func (s *Store) libraryArtifactReference(ctx context.Context, tx *sql.Tx, artifa
 	e := s.row(ctx, tx, q, s.workspace, artifact).Scan(&referenced)
 	return referenced, e
 }
-func (s *Store) recordProof(ctx context.Context, tx *sql.Tx, revision int64, id, key, digest string) error {
-	var result string
-	if e := s.row(ctx, tx, "SELECT result FROM operation_receipt WHERE workspace_id=? AND revision=?", s.workspace, revision).Scan(&result); e != nil {
-		return contracts.Fail("invalid_request")
-	}
-	var value map[string]any
-	if strict([]byte(result), &value) != nil || value[key] != id || value["record_digest"] != digest {
-		return contracts.Fail("invalid_request")
-	}
-	return nil
-}
 func libraryDigest(e LibraryEntry) string   { e.Revision = 0; d, _ := intent(e); return d }
 func modelDigest(m BaseModelInstall) string { m.Revision = 0; d, _ := intent(m); return d }
+
+type currentDomainProof struct {
+	receiptID string
+	revision  int64
+	digest    string
+}
+type cleanupDomainProof struct {
+	entryID   string
+	revision  int64
+	completed bool
+}
+
+// Keep historical receipts for idempotency, but bind mutable records to their
+// newest accepted state. An older valid proof must not revive cancelled work or
+// superseded metadata when later receipts remain in a portable snapshot.
+func (s *Store) latestCurrentProofs(ctx context.Context, tx *sql.Tx) (map[string]currentDomainProof, map[string]currentDomainProof, map[string]currentDomainProof, map[string]cleanupDomainProof, error) {
+	library, models, works := map[string]currentDomainProof{}, map[string]currentDomainProof{}, map[string]currentDomainProof{}
+	cleanups := map[string]cleanupDomainProof{}
+	rows, e := tx.QueryContext(ctx, s.query("SELECT id,revision,digest,result FROM operation_receipt WHERE workspace_id=? ORDER BY revision"), s.workspace)
+	if e != nil {
+		return nil, nil, nil, nil, e
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id, digest, result string
+		var revision int64
+		if e = rows.Scan(&id, &revision, &digest, &result); e != nil {
+			return nil, nil, nil, nil, e
+		}
+		var envelope struct {
+			MediaID       string   `json:"media_id"`
+			ModelID       string   `json:"model_id"`
+			WorkID        string   `json:"work_id"`
+			RecordDigest  string   `json:"record_digest"`
+			WorkDigest    string   `json:"work_digest"`
+			CleanupIDs    []string `json:"cleanup_ids"`
+			PublicationID string   `json:"publication_id"`
+			State         string   `json:"state"`
+		}
+		if json.Unmarshal([]byte(result), &envelope) != nil {
+			return nil, nil, nil, nil, contracts.Fail("invalid_request")
+		}
+		for _, entity := range []struct {
+			id     string
+			proofs map[string]currentDomainProof
+		}{{envelope.MediaID, library}, {envelope.ModelID, models}} {
+			if entity.id != "" {
+				if !contracts.ValidID(entity.id) || !digestPattern.MatchString(envelope.RecordDigest) {
+					return nil, nil, nil, nil, contracts.Fail("invalid_request")
+				}
+				entity.proofs[entity.id] = currentDomainProof{id, revision, envelope.RecordDigest}
+			}
+		}
+		if envelope.WorkID != "" {
+			if !contracts.ValidID(envelope.WorkID) || !digestPattern.MatchString(envelope.WorkDigest) {
+				return nil, nil, nil, nil, contracts.Fail("invalid_request")
+			}
+			works[envelope.WorkID] = currentDomainProof{id, revision, envelope.WorkDigest}
+		}
+		for _, publicationID := range envelope.CleanupIDs {
+			entryID := envelope.MediaID
+			if entryID == "" {
+				entryID = envelope.ModelID
+			}
+			if !contracts.ValidID(publicationID) || !contracts.ValidID(entryID) || cleanups[publicationID].completed {
+				return nil, nil, nil, nil, contracts.Fail("invalid_request")
+			}
+			cleanups[publicationID] = cleanupDomainProof{entryID, revision, false}
+		}
+		if envelope.PublicationID != "" {
+			proof, exists := cleanups[envelope.PublicationID]
+			want, _ := intent([]any{"cleanup", envelope.PublicationID})
+			if !exists || envelope.State != "done" || id != operationID("cleanup-done", envelope.PublicationID) || digest != want {
+				return nil, nil, nil, nil, contracts.Fail("invalid_request")
+			}
+			proof.completed = true
+			cleanups[envelope.PublicationID] = proof
+		}
+	}
+	return library, models, works, cleanups, rows.Err()
+}
+
 func (s *Store) validateLibraryState(ctx context.Context, tx *sql.Tx, expire bool) error {
 	r, e := s.readRecords(ctx, tx)
+	if e != nil {
+		return e
+	}
+	libraryProofs, modelProofs, workProofs, cleanupProofs, e := s.latestCurrentProofs(ctx, tx)
 	if e != nil {
 		return e
 	}
@@ -50,9 +125,11 @@ func (s *Store) validateLibraryState(ctx context.Context, tx *sql.Tx, expire boo
 		if !validLibrary(entry) || entry.Revision < 1 {
 			return contracts.Fail("invalid_request")
 		}
-		if e = s.recordProof(ctx, tx, entry.Revision, entry.ID, "media_id", libraryDigest(entry)); e != nil {
-			return e
+		proof, ok := libraryProofs[entry.ID]
+		if !ok || proof.revision != entry.Revision || proof.digest != libraryDigest(entry) {
+			return contracts.Fail("invalid_request")
 		}
+		delete(libraryProofs, entry.ID)
 		if e = s.availablePublications(ctx, tx, entry.ReportPublicationIDs); e != nil {
 			return e
 		}
@@ -64,9 +141,11 @@ func (s *Store) validateLibraryState(ctx context.Context, tx *sql.Tx, expire boo
 		if !validModel(m) || m.Revision < 1 {
 			return contracts.Fail("invalid_request")
 		}
-		if e = s.recordProof(ctx, tx, m.Revision, m.ID, "model_id", modelDigest(m)); e != nil {
-			return e
+		proof, ok := modelProofs[m.ID]
+		if !ok || proof.revision != m.Revision || proof.digest != modelDigest(m) {
+			return contracts.Fail("invalid_request")
 		}
+		delete(modelProofs, m.ID)
 		if e = s.modelPublicationIdentity(ctx, tx, m); e != nil {
 			return e
 		}
@@ -78,6 +157,11 @@ func (s *Store) validateLibraryState(ctx context.Context, tx *sql.Tx, expire boo
 		if !validWork(w) {
 			return contracts.Fail("invalid_request")
 		}
+		latest, ok := workProofs[w.ID]
+		if !ok || latest.receiptID != w.JournalReceiptID || latest.digest != workJournalDigest(w) {
+			return contracts.Fail("invalid_request")
+		}
+		delete(workProofs, w.ID)
 		var initialDigest, result string
 		if e = s.row(ctx, tx, "SELECT digest FROM operation_receipt WHERE workspace_id=? AND id=?", s.workspace, w.ID).Scan(&initialDigest); e != nil {
 			return contracts.Fail("invalid_request")
@@ -100,7 +184,15 @@ func (s *Store) validateLibraryState(ctx context.Context, tx *sql.Tx, expire boo
 			}
 		}
 	}
+	if len(libraryProofs)+len(modelProofs)+len(workProofs) != 0 {
+		return contracts.Fail("invalid_request")
+	}
 	for _, c := range r.Cleanups {
+		latest, ok := cleanupProofs[c.ID]
+		if !ok || latest.entryID != c.EntryID || latest.revision != c.Revision || latest.completed != (c.State == "done") {
+			return contracts.Fail("invalid_request")
+		}
+		delete(cleanupProofs, c.ID)
 		var result string
 		if e = s.row(ctx, tx, "SELECT result FROM operation_receipt WHERE workspace_id=? AND revision=?", s.workspace, c.Revision).Scan(&result); e != nil {
 			return contracts.Fail("invalid_request")
@@ -136,6 +228,9 @@ func (s *Store) validateLibraryState(ctx context.Context, tx *sql.Tx, expire boo
 		if n < 1 {
 			return contracts.Fail("invalid_request")
 		}
+	}
+	if len(cleanupProofs) != 0 {
+		return contracts.Fail("invalid_request")
 	}
 	return nil
 }

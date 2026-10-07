@@ -189,3 +189,39 @@ func TestBatchBeyondOneHundredPreservesEveryCheckpointResult(t *testing.T) {
 		t.Fatal("retry changed completed batch result")
 	}
 }
+
+func TestDuplicateAdmissionChangesFoldAndRefreshPreservesChoice(t *testing.T) {
+	s, db := libraryFixture(t)
+	ctx := context.Background()
+	source := wavFixture(t)
+	options := Options{OriginatedAt: "2026-11-01T01:30:00", Timezone: "America/New_York", DSTFold: "earlier"}
+	work := claimLibraryWork(t, db, "media.import", ImportRequest{Defaults: options, Items: []Item{{Source: source}}})
+	value, e := s.Execute(ctx, work)
+	if e != nil {
+		t.Fatal(e)
+	}
+	id := value.(ImportResult).Items[0].MediaID
+	options.DSTFold = "later"
+	work = claimLibraryWork(t, db, "media.import", ImportRequest{Defaults: options, Items: []Item{{Source: source}}})
+	value, e = s.Execute(ctx, work)
+	if e != nil || value.(ImportResult).Items[0].MediaID != id {
+		t.Fatalf("duplicate correction failed: %v", e)
+	}
+	entry, e := db.Library(ctx, id)
+	if e != nil {
+		t.Fatal(e)
+	}
+	state := decodeDates(entry.Dates)
+	if state.Selected.Resolved.ISO != "2026-11-01T06:30:00Z" || !state.Conflict {
+		t.Fatal("later fold choice ignored")
+	}
+	work = claimLibraryWork(t, db, "media.refresh", RefreshRequest{MediaID: id})
+	entry, e = s.Refresh(ctx, work, RefreshRequest{MediaID: id})
+	if e != nil {
+		t.Fatal(e)
+	}
+	state = decodeDates(entry.Dates)
+	if state.Selected.Resolved.ISO != "2026-11-01T06:30:00Z" || !state.Conflict || len(state.Selected.Assumptions) < 1 || state.Selected.Assumptions[0] != "dst-fold-later" {
+		t.Fatal("refresh erased owner fold choice/provenance")
+	}
+}

@@ -33,7 +33,13 @@ func (n *fixtureNative) put(_ context.Context, id string, value []byte) error {
 	n.values[id] = append([]byte(nil), value...)
 	return nil
 }
-func (n *fixtureNative) remove(_ context.Context, id string) error { delete(n.values, id); return nil }
+func (n *fixtureNative) remove(_ context.Context, id string) error {
+	if n.values[id] == nil {
+		return contracts.Fail("not_found")
+	}
+	delete(n.values, id)
+	return nil
+}
 func TestNativeStatusNeverFetchesValuesAndScope(t *testing.T) {
 	ctx := context.Background()
 	w := fixture(t)
@@ -129,6 +135,35 @@ func TestNativeInterruptedRegistrationRequiresExplicitRecovery(t *testing.T) {
 	}
 	if e = m.Replace(ctx, contracts.ID(), []byte("new")); e == nil {
 		t.Fatal("replace created missing native value")
+	}
+}
+func TestNativeDeletionClearsExternallyRemovedRegistration(t *testing.T) {
+	ctx := context.Background()
+	id := contracts.ID()
+	backend := &fixtureNative{values: map[string][]byte{}}
+	m, e := Open(fixture(t), Options{Mode: "native"})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer m.Close()
+	m.native = backend
+	if e = m.Add(ctx, id, []byte("externally-deleted-fixture")); e != nil {
+		t.Fatal(e)
+	}
+	delete(backend.values, id)
+	backend.unavailable = true
+	if e = m.Delete(ctx, id); e == nil {
+		t.Fatal("unavailable service admitted deletion")
+	}
+	backend.unavailable = false
+	if state, e := m.Status(ctx, id); e != nil || state != "configured" {
+		t.Fatal("rejected deletion discarded registration", state, e)
+	}
+	if e = m.Delete(ctx, id); e != nil {
+		t.Fatal("external deletion prevented index cleanup", e)
+	}
+	if state, e := m.Status(ctx, id); e != nil || state != "missing" {
+		t.Fatal("deleted registration remains", state, e)
 	}
 }
 func TestSelectedBackendPersistsAndRejectsForeignSelection(t *testing.T) {

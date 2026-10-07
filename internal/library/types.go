@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"net/url"
+	"strings"
 
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
@@ -161,14 +161,37 @@ func PrepareImport(r ImportRequest) (ImportRequest, error) {
 		if r.Items[i].Source == "" || !validOptions(r.Items[i].Options) || (r.Items[i].CredentialID != "" && !contracts.ValidID(r.Items[i].CredentialID)) {
 			return r, contracts.Fail("invalid_request")
 		}
-		if u, e := url.Parse(r.Items[i].Source); e == nil && len(u.Scheme) > 1 {
+		if hasRemoteScheme(r.Items[i].Source) {
 			if _, e := contracts.SourceURL(r.Items[i].Source); e != nil {
 				return r, e
 			}
+		}
+		if hasRemoteScheme(r.Items[i].Subtitle) {
+			return r, contracts.Fail("invalid_request")
 		}
 		if r.Items[i].Timezone == "local" {
 			r.Items[i].Timezone = r.Defaults.Timezone
 		}
 	}
+	if raw := marshal(r); len(raw) > contracts.MaxWorkPayload {
+		return r, contracts.Fail("output_limit")
+	}
 	return r, nil
+}
+
+// Recognize the scheme independently of URL parsing so malformed escapes do
+// not turn a remote locator into a local path before intent validation.
+func hasRemoteScheme(source string) bool {
+	colon := strings.IndexByte(source, ':')
+	if colon <= 1 {
+		return false
+	} // Preserve Windows drive paths.
+	for i := 0; i < colon; i++ {
+		c := source[i]
+		letter := c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z'
+		if !letter && (i == 0 || !(c >= '0' && c <= '9' || c == '+' || c == '-' || c == '.')) {
+			return false
+		}
+	}
+	return true
 }

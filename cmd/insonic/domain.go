@@ -4,12 +4,15 @@ package main
 import (
 	"encoding/json"
 	"io"
+	"math"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/library"
 	"github.com/shruggietech/insonic/internal/models"
@@ -83,6 +86,16 @@ func parseFlags(args []string) ([]string, domainFlags, error) {
 			f.options.OriginatedAt = value
 		case "--originated-on":
 			f.options.OriginatedOn = value
+		case "--originated-earliest", "--originated-latest":
+			instant, e := parseBound(value)
+			if e != nil {
+				return nil, f, e
+			}
+			if arg == "--originated-earliest" {
+				f.options.OriginatedEarliest = instant
+			} else {
+				f.options.OriginatedLatest = instant
+			}
 		case "--timezone":
 			f.options.Timezone = value
 		case "--dst-fold":
@@ -123,6 +136,9 @@ func parseFlags(args []string) ([]string, domainFlags, error) {
 	if f.options.OriginatedAt != "" && f.options.OriginatedOn != "" {
 		return nil, f, contracts.Fail("invalid_request")
 	}
+	if (f.options.OriginatedEarliest != nil || f.options.OriginatedLatest != nil) && (f.options.OriginatedAt != "" || f.options.OriginatedOn != "") {
+		return nil, f, contracts.Fail("invalid_request")
+	}
 	return positional, f, nil
 }
 func flagsAllowed(f domainFlags, allowed ...string) bool {
@@ -138,7 +154,15 @@ func flagsAllowed(f domainFlags, allowed ...string) bool {
 	return true
 }
 
-var dateFlags = []string{"--originated-at", "--originated-on", "--timezone", "--dst-fold", "--dst-gap", "--date-precedence"}
+var dateFlags = []string{"--originated-at", "--originated-on", "--originated-earliest", "--originated-latest", "--timezone", "--dst-fold", "--dst-gap", "--date-precedence"}
+
+func parseBound(value string) (*catalog.Instant, error) {
+	t, e := time.Parse(time.RFC3339Nano, value)
+	if e != nil || t.Before(time.Unix(0, math.MinInt64)) || t.After(time.Unix(0, math.MaxInt64)) {
+		return nil, contracts.Fail("invalid_request")
+	}
+	return &catalog.Instant{ISO: t.UTC().Format(time.RFC3339Nano), UnixNS: t.UnixNano()}, nil
+}
 
 func absoluteSource(source string) (string, error) {
 	u, e := url.Parse(source)
@@ -315,7 +339,7 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 		data, e := payload(f.options)
 		return operation, id, data, e
 	}
-	if command == "set-origin" && len(positional) == 1 && f.revision > 0 && flagsAllowed(f, append(append([]string{}, dateFlags...), "--revision")...) && (f.options.OriginatedAt != "" || f.options.OriginatedOn != "") {
+	if command == "set-origin" && len(positional) == 1 && f.revision > 0 && flagsAllowed(f, append(append([]string{}, dateFlags...), "--revision")...) && (f.options.OriginatedAt != "" || f.options.OriginatedOn != "" || f.options.OriginatedEarliest != nil || f.options.OriginatedLatest != nil) {
 		if _, e = library.PrepareImport(library.ImportRequest{Defaults: f.options, Items: []library.Item{{Source: "validation"}}}); e != nil {
 			return "", "", nil, e
 		}
@@ -345,10 +369,16 @@ func overrideOptions(target *library.Options, source library.Options) {
 	if source.OriginatedAt != "" {
 		target.OriginatedAt = source.OriginatedAt
 		target.OriginatedOn = ""
+		target.OriginatedEarliest, target.OriginatedLatest = nil, nil
 	}
 	if source.OriginatedOn != "" {
 		target.OriginatedOn = source.OriginatedOn
 		target.OriginatedAt = ""
+		target.OriginatedEarliest, target.OriginatedLatest = nil, nil
+	}
+	if source.OriginatedEarliest != nil || source.OriginatedLatest != nil {
+		target.OriginatedEarliest, target.OriginatedLatest = source.OriginatedEarliest, source.OriginatedLatest
+		target.OriginatedAt, target.OriginatedOn = "", ""
 	}
 	if source.Timezone != "" {
 		target.Timezone = source.Timezone

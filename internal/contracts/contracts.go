@@ -11,6 +11,10 @@ import (
 
 const Version = "0.0.0"
 
+// MaxWorkPayload bounds normalized durable input independently of the smaller
+// response frame budget. Import manifests and runtime requests share this limit.
+const MaxWorkPayload = 8 << 20
+
 func ID() string {
 	var b [16]byte
 	if _, err := rand.Read(b[:]); err != nil {

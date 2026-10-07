@@ -54,7 +54,15 @@ insonic media raw MEDIA_ID --json
 insonic media set-origin MEDIA_ID --revision CURRENT_REVISION --originated-at 2026-10-04T14:30:00 --timezone UTC
 ```
 
-A JSON manifest carries a version, batch defaults and ordered items. CSV supports the same flat per-item fields. Each item has a source, optional subtitle attachment, origination timestamp/date, timezone and preset override. Sources and subtitle paths are resolved relative to the manifest location unless explicitly absolute. Do not put credentials in manifests; use configured credential IDs. Example:
+A JSON manifest carries a version, batch defaults and ordered items. CSV supports the same flat per-item fields. Each item has a source, optional subtitle attachment, origination timestamp/date, timezone and preset override. Sources and subtitle paths are resolved relative to the manifest location unless explicitly absolute. Do not put credentials in manifests; use configured credential IDs.
+
+Manifest files and normalized durable import input are bounded to 8 MiB, with
+at most 10,000 items. Path resolution and CSV-to-JSON expansion count toward the
+normalized input budget; oversized input is rejected before enqueue. The local
+request frame allows that input plus its envelope. Responses remain bounded to
+1 MiB and use the result/report paging described below.
+
+Example:
 
 ```json
 {
@@ -70,7 +78,15 @@ A JSON manifest carries a version, batch defaults and ordered items. CSV support
 
 Per-item output reports media ID, byte identity, metadata capture state, date selection/assumptions and queued job IDs. Repeated admission reuses matching immutable bytes/reports while retaining explicit entry creation and metadata revisions. A date correction creates a new owner observation and selection revision and preserves the current raw report. Calendar controls will consume this selected state when implemented. It does not change original tags, rewrite a transcript or rerun recognition.
 
-Import and refresh return a durable `work_id`. Inspect completion through
+Import and refresh return a durable `work_id`. A batch with failed admissions
+has failed work state and retains
+per-item results; `work retry WORK_ID` reconciles admitted entries and retries
+the failed items. An admitted item with partial metadata or unresolved dates
+remains usable and does not by itself fail the work. Unused copied source and
+subtitle candidates from failed admissions are retired using the current-reference
+fence, preserving shared or committed originals.
+
+Inspect completion through
 `work show`; large batches expose references through
 `work results WORK_ID --after-ordinal 0 --limit 100`. Continue from the returned
 `next_ordinal`. `media list`, `models list` and `work list` return summary pages
@@ -86,6 +102,15 @@ may be absent; two bounds must be ordered and their text and integer values must
 agree. A bounded observation has range precision and no invented exact recording
 instant. Per-item bounds replace batch bounds and cannot be combined with an
 exact `originated_at` or `originated_on` value.
+
+The CLI accepts `--originated-earliest` and `--originated-latest` RFC3339
+timestamps for import, refresh and `set-origin`. It normalizes explicit offsets
+to UTC and constructs exact integer nanoseconds without floating-point conversion.
+Either flag may be omitted for an open bound. For example:
+
+```sh
+insonic media set-origin MEDIA_ID --revision CURRENT_REVISION --originated-earliest 2026-10-01T00:00:00Z --originated-latest 2026-10-07T23:59:59Z
+```
 
 Configure exact extractor files before import using
 `insonic media tools media-tools.json`. The rendered tools contract declares

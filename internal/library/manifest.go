@@ -8,7 +8,6 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"io"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -62,7 +61,7 @@ func ReadManifest(path string) (ImportRequest, error) {
 	return PrepareImport(r)
 }
 func resolvePath(base, source string) string {
-	if u, e := url.Parse(source); e == nil && u.Scheme != "" && len(u.Scheme) > 1 {
+	if hasRemoteScheme(source) {
 		return source
 	}
 	if filepath.IsAbs(source) {

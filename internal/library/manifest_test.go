@@ -38,4 +38,8 @@ func TestManifestsResolveRelativeAndOverrideDateKind(t *testing.T) {
 	if _, e = ReadManifest(csv); e == nil {
 		t.Fatal("ambiguous duplicate CSV accepted")
 	}
+	os.WriteFile(file, []byte(`{"kind":"import-manifest","schema_version":"0.0.0","items":[{"source":"https://example.test/%zz?token=private"}]}`), 0600)
+	if _, e = ReadManifest(file); e == nil {
+		t.Fatal("manifest path resolution concealed malformed credential URL")
+	}
 }

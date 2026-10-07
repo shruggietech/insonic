@@ -138,10 +138,16 @@ func (k *libraryLookup) remember(entry catalog.LibraryEntry) {
 }
 func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, item Item, options Options, known *libraryLookup) (out ItemResult, returned error) {
 	entryID := DerivedID(work.ID, "media-"+strconv.Itoa(ordinal))
-	reportID := s.reportAttempt(ctx, DerivedID(work.ID, "report-"+strconv.Itoa(ordinal)))
+	reportID, e := s.candidateAttempt(ctx, DerivedID(work.ID, "report-"+strconv.Itoa(ordinal)))
+	if e != nil {
+		return ItemResult{}, e
+	}
+	candidates := []string{reportID}
 	defer func() {
 		if returned != nil {
-			s.discardUnselectedReport(reportID)
+			for _, id := range candidates {
+				s.discardUnusedCandidate(id)
+			}
 		}
 	}()
 	if entry, e := s.Catalog.Library(ctx, entryID); e == nil {
@@ -225,7 +231,12 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 		}
 	}
 	if mode == "copy" && publicationID == nil {
-		pub, e := s.Artifacts.Publish(ctx, DerivedID(work.ID, "original-"+strconv.Itoa(ordinal)), stagePath, "original-media")
+		id, e := s.candidateAttempt(ctx, DerivedID(work.ID, "original-"+strconv.Itoa(ordinal)))
+		if e != nil {
+			return ItemResult{}, e
+		}
+		candidates = append(candidates, id)
+		pub, e := s.Artifacts.Publish(ctx, id, stagePath, "original-media")
 		if e != nil {
 			return ItemResult{}, e
 		}
@@ -241,7 +252,12 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 		if _, statErr := os.Stat(subtitle); os.IsNotExist(statErr) {
 			subtitleState = "missing"
 		} else {
-			pub, e := s.Artifacts.Publish(ctx, DerivedID(work.ID, "subtitle-"+strconv.Itoa(ordinal)), subtitle, "supplied-subtitle")
+			id, e := s.candidateAttempt(ctx, DerivedID(work.ID, "subtitle-"+strconv.Itoa(ordinal)))
+			if e != nil {
+				return ItemResult{}, e
+			}
+			candidates = append(candidates, id)
+			pub, e := s.Artifacts.Publish(ctx, id, subtitle, "supplied-subtitle")
 			if e != nil {
 				return ItemResult{}, e
 			}
@@ -314,11 +330,17 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 func sameOwnerDate(entry catalog.LibraryEntry, options Options) bool {
 	expected := ownerDate(options)
 	state := decodeDates(entry.Dates)
+	if options.DatePrecedence != "" && options.DatePrecedence != state.Policy {
+		return false
+	}
 	if state.Selected == nil {
 		return false
 	}
-	d := state.Selected
-	return d.Basis == "owner" && d.Literal == expected.Literal && d.Precision == expected.Precision && d.Zone == expected.Zone && d.State == expected.State && string(marshal([]any{d.Lower, d.Upper})) == string(marshal([]any{expected.Lower, expected.Upper}))
+	d := *state.Selected
+	d.ID = ""
+	// An owner correction includes its explicit interpretation provenance, even
+	// when two choices happen to produce the same recording instant.
+	return d.Basis == "owner" && string(marshal(d)) == string(marshal(expected))
 }
 func resultOf(ordinal int, entry catalog.LibraryEntry) ItemResult {
 	var metadata Metadata
@@ -402,10 +424,13 @@ func (s *Service) Refresh(ctx context.Context, work catalog.Work, req RefreshReq
 	if e != nil {
 		return entry, e
 	}
-	reportID := s.reportAttempt(ctx, DerivedID(work.ID, "refresh-report"))
+	reportID, e := s.candidateAttempt(ctx, DerivedID(work.ID, "refresh-report"))
+	if e != nil {
+		return entry, e
+	}
 	defer func() {
 		if returned != nil {
-			s.discardUnselectedReport(reportID)
+			s.discardUnusedCandidate(reportID)
 		}
 	}()
 	currentReports, _ := catalog.PublicationIDs(entry.ReportPublicationIDs)
@@ -481,22 +506,43 @@ func (s *Service) Refresh(ctx context.Context, work catalog.Work, req RefreshReq
 	return entry, nil
 }
 
-// A crash keeps an available candidate recoverable. An observed failed attempt
-// retires its candidate, and a retry advances past that immutable tombstone.
-func (s *Service) reportAttempt(ctx context.Context, base string) string {
+// A crash keeps a live candidate recoverable. An observed failed attempt
+// retires or aborts its candidate, and a retry advances past the tombstone.
+func (s *Service) candidateAttempt(ctx context.Context, base string) (string, error) {
 	id := base
 	for attempt := 1; ; attempt++ {
 		p, e := s.Catalog.Publication(ctx, id)
-		if e != nil || p.State != "retired" {
-			return id
+		if code(e) == "not_found" {
+			return id, nil
+		}
+		if e != nil {
+			return "", e
+		}
+		if p.State == "retiring" {
+			// Resume an observed failure's durable retirement before attempting a
+			// replacement. The catalog rechecks current references and all leases.
+			p, e = s.Artifacts.RetireCurrent(ctx, id)
+			if e != nil {
+				return "", e
+			}
+		}
+		if p.State != "retired" && p.State != "aborted" {
+			return id, nil
 		}
 		id = DerivedID(base, "attempt-"+strconv.Itoa(attempt))
 	}
 }
-func (s *Service) discardUnselectedReport(id string) {
+func (s *Service) discardUnusedCandidate(id string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if p, e := s.Catalog.Publication(ctx, id); e == nil && p.State == "available" {
+	if p, e := s.Catalog.Publication(ctx, id); e == nil {
+		if p.State == "pending" {
+			_, _ = s.Artifacts.Abort(ctx, id)
+			return
+		}
+		if p.State != "available" && p.State != "retiring" && p.State != "missing" {
+			return
+		}
 		// RetireCurrent atomically refuses all selected library report references.
 		// This also handles an uncertain commit whose transaction actually won.
 		_, _ = s.Artifacts.RetireCurrent(ctx, id)

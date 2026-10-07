@@ -73,3 +73,36 @@ func TestApproximateBoundsPreservedWithoutAnInstant(t *testing.T) {
 		t.Fatal("mismatched instant admitted")
 	}
 }
+
+func TestDateConflictComparesRecordingValuesAndRetainsProvenance(t *testing.T) {
+	earlier := ResolveDate("2026-11-01T01:30:00", "instant", "America/New_York", "earlier", "", "owner")
+	later := ResolveDate("2026-11-01T01:30:00", "instant", "America/New_York", "later", "", "embedded-import-zone")
+	otherZone := ResolveDate("2026-11-01T01:30:00", "instant", "America/Chicago", "earlier", "", "embedded-import-zone")
+	for _, other := range []Date{later, otherZone} {
+		state := SelectDates([]Date{earlier, other}, "owner-first")
+		if !state.Conflict || len(state.Observations) != 2 {
+			t.Fatal("distinct instants with equal literals lost conflict/provenance")
+		}
+	}
+	utc := ResolveDate("2026-11-01T05:30:00Z", "instant", "", "", "", "embedded-own-zone")
+	state := SelectDates([]Date{earlier, utc}, "owner-first")
+	if state.Conflict || len(state.Observations) != 2 || state.Observations[0].Literal == state.Observations[1].Literal {
+		t.Fatal("same exact instant falsely conflicts or provenance collapsed")
+	}
+}
+
+func TestOffsetRequiresASCIIDigits(t *testing.T) {
+	for _, zone := range []string{"+-1:00", "+01:-1", "++1:00", "+24:00", "+01:60"} {
+		if _, ok := parseOffset(zone); ok {
+			t.Fatal("malformed offset accepted")
+		}
+		if d := ResolveDate("2026-10-07T12:00:00", "instant", zone, "", "", "owner"); d.Resolved != nil {
+			t.Fatal("malformed zone manufactured instant")
+		}
+	}
+	for _, zone := range []string{"+14:00", "-05:30", "UTC", "Z"} {
+		if d := ResolveDate("2026-10-07T12:00:00", "instant", zone, "", "", "owner"); d.Resolved == nil {
+			t.Fatal("standard zone rejected")
+		}
+	}
+}

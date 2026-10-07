@@ -98,6 +98,11 @@ func parseOffset(s string) (int64, bool) {
 	if len(s) != 6 || (s[0] != '+' && s[0] != '-') || s[3] != ':' {
 		return 0, false
 	}
+	for _, i := range []int{1, 2, 4, 5} {
+		if s[i] < '0' || s[i] > '9' {
+			return 0, false
+		}
+	}
 	h, e1 := strconv.Atoi(s[1:3])
 	m, e2 := strconv.Atoi(s[4:])
 	if e1 != nil || e2 != nil || h > 23 || m > 59 {
@@ -269,12 +274,35 @@ func SelectDates(observations []Date, policy string) Dates {
 	}
 	if state.Selected != nil {
 		for _, d := range observations {
-			if rank(d) < 9 && (d.State == "resolved" || d.State == "date-only" || validBoundedDate(d)) && string(marshal([]any{d.Literal, d.Lower, d.Upper})) != string(marshal([]any{state.Selected.Literal, state.Selected.Lower, state.Selected.Upper})) {
+			if rank(d) < 9 && (d.State == "resolved" || d.State == "date-only" || validBoundedDate(d)) && !sameDateValue(d, *state.Selected) {
 				state.Conflict = true
 			}
 		}
 	}
 	return state
+}
+
+// Value equivalence drives conflicts; separate observations still retain each
+// literal, timezone and interpretation choice that produced the value.
+func sameDateValue(a, b Date) bool {
+	if a.Precision != b.Precision || a.State != b.State {
+		return false
+	}
+	switch a.State {
+	case "resolved":
+		return a.Resolved != nil && b.Resolved != nil && a.Resolved.UnixNS == b.Resolved.UnixNS
+	case "date-only":
+		return a.Literal == b.Literal
+	case "bounded":
+		return validBoundedDate(a) && validBoundedDate(b) && sameBound(a.Lower, b.Lower) && sameBound(a.Upper, b.Upper)
+	}
+	return false
+}
+func sameBound(a, b *catalog.Instant) bool {
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+	return a.UnixNS == b.UnixNS
 }
 func validBound(i *catalog.Instant) bool {
 	if i == nil {

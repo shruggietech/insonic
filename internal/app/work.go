@@ -141,6 +141,14 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 	}
 	state := "succeeded"
 	phase := "complete"
+	if imported, ok := result.(library.ImportResult); ok && e == nil {
+		for _, item := range imported.Items {
+			if item.State == "failed" {
+				state, phase = "failed", "completed-with-failures"
+				break
+			}
+		}
+	}
 	if e != nil {
 		state = "failed"
 		phase = "operation-failed"

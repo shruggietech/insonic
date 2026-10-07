@@ -351,6 +351,10 @@ func (m *Manager) write(ctx context.Context, id string, value []byte, replace, r
 		if m.mode == "native" {
 			if remove {
 				e = m.native.remove(ctx, id)
+				var failure *contracts.Error
+				if errors.As(e, &failure) && failure.Code == "not_found" {
+					e = nil
+				}
 				delete(ids, id)
 			} else {
 				e = m.native.put(ctx, id, value)

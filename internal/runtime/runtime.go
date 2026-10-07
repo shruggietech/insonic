@@ -16,13 +16,13 @@ import (
 	"io"
 	"net"
 	"os"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
 const MaxFrame = 1 << 20
+const MaxRequestFrame = contracts.MaxWorkPayload + (64 << 10)
 
 type Options struct {
 	Idle  time.Duration
@@ -31,9 +31,12 @@ type Options struct {
 }
 
 func frame(reader io.Reader) ([]byte, error) {
-	r := bufio.NewReaderSize(reader, MaxFrame+1)
+	return frameLimit(reader, MaxFrame)
+}
+func frameLimit(reader io.Reader, limit int) ([]byte, error) {
+	r := bufio.NewReaderSize(reader, limit+1)
 	data, err := r.ReadSlice('\n')
-	if err != nil || len(data) > MaxFrame {
+	if err != nil || len(data) > limit {
 		return nil, contracts.Fail("invalid_request")
 	}
 	return data, nil
@@ -143,7 +146,7 @@ func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
 			defer active.Add(-1)
 			defer func() { last.Store(time.Now().UnixNano()) }()
 			conn.SetDeadline(time.Now().Add(5 * time.Second))
-			data, readErr := frame(conn)
+			data, readErr := frameLimit(conn, MaxRequestFrame)
 			var request contracts.Request
 			var response contracts.Response
 			if readErr != nil || decode(data, &request) != nil {
@@ -154,9 +157,7 @@ func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
 					response.RequestID = request.RequestID
 				}
 			} else {
-				if strings.HasPrefix(request.Operation, "artifacts.") || strings.HasPrefix(request.Operation, "media.") || strings.HasPrefix(request.Operation, "models.") {
-					conn.SetDeadline(time.Now().Add(10 * time.Minute))
-				}
+				conn.SetDeadline(time.Now().Add(OperationTimeout(request.Operation, 5*time.Second)))
 				response = application.Dispatch(request)
 			}
 			encoded, e := json.Marshal(response)
@@ -178,16 +179,13 @@ func Call(ctx context.Context, w *workspace.Workspace, request contracts.Request
 		return contracts.Response{Kind: "runtime-response"}, contracts.Fail("unavailable")
 	}
 	defer conn.Close()
-	deadline := time.Now().Add(5 * time.Second)
-	if strings.HasPrefix(request.Operation, "artifacts.") || strings.HasPrefix(request.Operation, "media.") || strings.HasPrefix(request.Operation, "models.") {
-		deadline = time.Now().Add(10 * time.Minute)
-	}
+	deadline := time.Now().Add(OperationTimeout(request.Operation, 5*time.Second))
 	if value, ok := ctx.Deadline(); ok && value.Before(deadline) {
 		deadline = value
 	}
 	conn.SetDeadline(deadline)
 	data, err := json.Marshal(request)
-	if err != nil || len(data)+1 > MaxFrame {
+	if err != nil || len(data)+1 > MaxRequestFrame || len(request.Data) > contracts.MaxWorkPayload {
 		return contracts.Response{Kind: "runtime-response"}, contracts.Fail("invalid_request")
 	}
 	if _, err := conn.Write(append(data, '\n')); err != nil {

@@ -108,7 +108,7 @@ func (s *Store) Works(ctx context.Context) ([]Work, error) {
 	return r.Works, e
 }
 func validWork(w Work) bool {
-	return contracts.ValidID(w.ID) && contracts.ValidID(w.JournalReceiptID) && w.Kind != "" && len(w.Kind) < 128 && nonsecret(w.Payload) && referenceResult(w.Result) && w.Generation >= 0 && len(w.Phase) < 256 && (w.Owner == "" || contracts.ValidID(w.Owner)) && (w.Error == "" || w.Error == "operation_failed") && strings.Contains("|pending|running|succeeded|failed|cancelled|interrupted|", "|"+w.State+"|") && ((w.State == "running" && w.Owner != "" && w.Generation > 0) || (w.State != "running" && w.LeaseUntil == 0))
+	return contracts.ValidID(w.ID) && contracts.ValidID(w.JournalReceiptID) && w.Kind != "" && len(w.Kind) < 128 && len(w.Payload) <= contracts.MaxWorkPayload && nonsecret(w.Payload) && referenceResult(w.Result) && w.Generation >= 0 && len(w.Phase) < 256 && (w.Owner == "" || contracts.ValidID(w.Owner)) && (w.Error == "" || w.Error == "operation_failed") && strings.Contains("|pending|running|succeeded|failed|cancelled|interrupted|", "|"+w.State+"|") && ((w.State == "running" && w.Owner != "" && w.Generation > 0) || (w.State != "running" && w.LeaseUntil == 0))
 }
 func referenceResult(raw json.RawMessage) bool {
 	// A manifest can admit 10,000 independent items. Preserve their bounded
@@ -189,15 +189,15 @@ func workJournalDigest(w Work) string {
 	digest, _ := intent(w)
 	return digest
 }
-func (s *Store) recordWork(ctx context.Context, tx *sql.Tx, w Work, rev int64) error {
+func (s *Store) recordWork(ctx context.Context, tx *sql.Tx, w *Work, rev int64) error {
 	w.JournalReceiptID = contracts.ID()
-	if !validWork(w) {
+	if !validWork(*w) {
 		return contracts.Fail("invalid_request")
 	}
-	if e := s.putDomain(ctx, tx, "Works", w); e != nil {
+	if e := s.putDomain(ctx, tx, "Works", *w); e != nil {
 		return e
 	}
-	digest := workJournalDigest(w)
+	digest := workJournalDigest(*w)
 	_, e := s.accept(ctx, tx, w.JournalReceiptID, digest, rev, map[string]any{"work_id": w.ID, "state": w.State, "generation": w.Generation, "work_digest": digest})
 	return e
 }
@@ -224,7 +224,7 @@ func (s *Store) ClaimWork(ctx context.Context, id, owner string, ttl time.Durati
 		w.Generation++
 		w.State = "running"
 		w.LeaseUntil = now + int64(ttl)
-		return s.recordWork(ctx, tx, w, rev)
+		return s.recordWork(ctx, tx, &w, rev)
 	})
 	return w, e
 }
@@ -244,7 +244,7 @@ func (s *Store) RenewWork(ctx context.Context, claim Work, ttl time.Duration) (W
 			return e
 		}
 		w.LeaseUntil = now + int64(ttl)
-		return s.recordWork(ctx, tx, w, rev)
+		return s.recordWork(ctx, tx, &w, rev)
 	})
 	return w, e
 }
@@ -273,7 +273,7 @@ func (s *Store) CheckpointWork(ctx context.Context, claim Work, phase, state str
 		if state == "failed" {
 			w.Error = "operation_failed"
 		}
-		return s.recordWork(ctx, tx, w, rev)
+		return s.recordWork(ctx, tx, &w, rev)
 	})
 	return w, e
 }

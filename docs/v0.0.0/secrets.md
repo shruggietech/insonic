@@ -43,7 +43,14 @@ The protected input object contains `value`. A string stores its UTF-8 bytes; an
 
 Status returns the credential ID, selected backend and `configured`, `missing` or `rejected`. It checks the managed nonsecret registration information without retrieving a saved value. `configured` is registration status; resolving the credential and using the selected adapter establishes whether the saved value exists and whether the provider accepts it. An external deletion from the operating system's credential store may therefore become visible only during adapter use.
 
-Deleting a credential leaves its references in profiles and other configuration. Operations using those references then report unavailable. Reconfigure or replace the selected credential to restore access. Native deletion uses no input; vault deletion needs its passphrase through the protected input object.
+Deleting a credential leaves its references in profiles and other configuration.
+Subsequent credential resolution and new authenticated connections report
+unavailable. Established provider sessions follow the provider's lifetime and
+revocation behavior; deleting a local reference does not revoke an authenticated
+PostgreSQL server session. S3 resolves the selected reference for each subsequent
+request. Reconfigure or replace the selected credential to restore access.
+Native deletion uses no input; vault deletion needs its passphrase through the
+protected input object.
 
 ## Encrypted vault
 

@@ -77,13 +77,23 @@ func TestConfiguredAcquisitionCapturesBytesAndSuppliedSubtitle(t *testing.T) {
 }
 
 func TestPrepareImportRejectsCredentialURLBeforeWorkPersistence(t *testing.T) {
-	for _, source := range []string{"https://example.test/media?token=private", "https://example.test/media?X-Amz-Signature=private", "https://user:private@example.test/media"} {
+	for _, source := range []string{"https://example.test/media?token=private", "https://example.test/media?X-Amz-Signature=private", "https://user:private@example.test/media", "https://example.test/%zz?token=private"} {
 		if _, e := PrepareImport(ImportRequest{Items: []Item{{Source: source}}}); e == nil {
 			t.Fatal("credential URL admitted to durable intent")
 		}
 	}
 	if _, e := PrepareImport(ImportRequest{Items: []Item{{Source: "https://example.test/media?id=42&download=1"}}}); e != nil {
 		t.Fatal("ordinary query selector rejected")
+	}
+	for _, source := range []string{"ordinary%file.wav", `C:\Recordings\100%.wav`} {
+		if _, e := PrepareImport(ImportRequest{Items: []Item{{Source: source}}}); e != nil {
+			t.Fatal("local percent/drive path rejected")
+		}
+	}
+	for _, subtitle := range []string{"https://example.test/subtitle.srt", "https://example.test/%zz?token=private"} {
+		if _, e := PrepareImport(ImportRequest{Items: []Item{{Source: "local.wav", Subtitle: subtitle}}}); e == nil {
+			t.Fatal("remote subtitle admitted to filesystem-only intent")
+		}
 	}
 }
 

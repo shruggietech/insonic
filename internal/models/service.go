@@ -55,7 +55,8 @@ func (s *Service) Execute(ctx context.Context, work catalog.Work) (any, error) {
 	}
 	m := req.Manifest
 	digest := m.Digest()
-	id := StableID("model:" + m.Name + ":" + m.ModelVersion + ":" + digest)
+	logicalVersion, _ := json.Marshal([]string{m.Name, m.ModelVersion})
+	id := StableID("model:" + string(logicalVersion))
 	raw, _ := json.Marshal(m)
 	install := catalog.BaseModelInstall{ID: id, Name: m.Name, Version: m.ModelVersion, Digest: digest, Manifest: raw, PublicationIDs: json.RawMessage(`[]`), State: "registered"}
 	if current, e := s.Catalog.BaseModel(ctx, id); e == nil {

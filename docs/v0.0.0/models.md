@@ -8,6 +8,9 @@ HTTPS is the default; a manifest can explicitly permit loopback HTTP for an
 isolated local source. Acquisition follows same-origin redirects only.
 
 Registration stores an exact manifest without claiming its bytes exist.
+Name and model version identify one logical installation. Once registered,
+a changed manifest for that same pair is rejected; use a new model version for
+changed files or provenance. Replaying the unchanged manifest retains its ID.
 Acquisition downloads the required files, resumes bounded interrupted partial
 downloads, checks their declared sizes and hashes, and publishes verified
 artifacts before accepting an available model. A failed or cancelled acquisition

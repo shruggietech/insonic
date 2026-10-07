@@ -11,6 +11,34 @@ import (
 	"time"
 )
 
+func TestDesktopOperationDeadlineAllowsRuntimeLongWork(t *testing.T) {
+	for _, fixture := range []struct {
+		operation string
+		timeout   time.Duration
+	}{
+		{"media.refresh", 10 * time.Minute},
+		{"models.materialize", 10 * time.Minute},
+		{"artifacts.publish", 10 * time.Minute},
+		{"workspace.show", 10 * time.Second},
+		{"work.results", 10 * time.Second},
+	} {
+		started := time.Now()
+		ctx, cancel := operationContext(fixture.operation)
+		deadline, ok := ctx.Deadline()
+		remaining := deadline.Sub(started)
+		if !ok || remaining < fixture.timeout-time.Second || remaining > fixture.timeout+time.Second {
+			cancel()
+			t.Fatal("desktop context caps runtime operation", fixture.operation, remaining)
+		}
+		cancel()
+		select {
+		case <-ctx.Done():
+		default:
+			t.Fatal("operation cancellation lost")
+		}
+	}
+}
+
 func TestGeneralOperationRejectsWrongAuthorityBeforeRuntime(t *testing.T) {
 	if result := (&Bridge{}).Operate(contracts.Request{Operation: "media.list"}); result.Error == nil || result.Error.Code != "not_found" {
 		t.Fatal(result)

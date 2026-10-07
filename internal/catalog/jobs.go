@@ -466,7 +466,7 @@ func (s *Store) InterruptOwner(ctx context.Context, owner string) error {
 			w.Owner = ""
 			w.LeaseUntil = 0
 			w.Phase = "shutdown"
-			if e = s.recordWork(ctx, tx, w, rev); e != nil {
+			if e = s.recordWork(ctx, tx, &w, rev); e != nil {
 				return e
 			}
 			rev++

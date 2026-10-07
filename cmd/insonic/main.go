@@ -299,6 +299,10 @@ func credentialCommand(ctx context.Context, w *workspace.Workspace, args []strin
 	if e != nil {
 		return output(nil, e, machine)
 	}
+	defer input.Close()
+	if (action == "unlock" && (mode != "vault" || len(input.Passphrase) == 0)) || (action == "load" && (mode == "native" || mode == "vault" && len(input.Passphrase) == 0 || mode == "session" && input.Session == nil)) {
+		return output(nil, contracts.Fail("invalid_request"), machine)
+	}
 	input.Close()
 	if action == "unlock" || action == "load" {
 		e = local.EnsureInput(ctx, w, "", raw)
