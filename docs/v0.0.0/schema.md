@@ -11,7 +11,7 @@ Byte identity, media identity and speaker identity are separate. A SHA-256 diges
 ```mermaid
 flowchart TB
   Workspace[Workspace and backend profiles] --> Media[Media entries and assets]
-  Media --> Metadata[Raw metadata snapshots and typed observations]
+  Media --> Metadata[Current raw metadata and typed observations]
   Metadata --> Dates[Origination observations and selection revisions]
   Media --> Transcripts[Transcript revisions, cues and source maps]
   Media --> Segments[Speaker audio segment revisions]
@@ -30,6 +30,20 @@ flowchart TB
 ```
 
 ## Portable values and invariants
+
+Catalog schema 3 adds typed current library entries, downloaded base-model
+installations, real workflow claims/checkpoints and receipt-bound cleanup records.
+The current library's nullable `duration_us` is authoritative: null means unknown
+and zero means a measured zero. Existing numeric source-asset duration fields
+remain for snapshot compatibility and never supply a fallback for unknown current
+media duration. Historical schema-1/schema-2 migration definitions remain frozen.
+
+Current facts, metadata and dates are replaced atomically. Operational receipts
+retain identities and record hashes, rather than an archive of superseded
+computed values. Physical cleanup removes only report publications authorized by
+the accepted replacement; active readers delay success until their leases end.
+Original and supplied subtitle source assets remain retained. Exports include
+current data and expire imported running authority on restore.
 
 | Value | Logical representation and rule |
 | --- | --- |
@@ -89,7 +103,7 @@ The time map can represent extraction, resampling, trimming and concatenation. E
 | `origination_date_observation` | Entry/asset, owner or embedded basis, supporting observation, entered/raw literal, zone source, IANA zone or fixed offset, resolved offset, timezone-database version, precision, assumption flags and optional UTC instant/bounds |
 | `origination_date_selection_revision` | Entry, selected observation or explicit unknown, precedence/policy version, reason, expected prior revision and creation instant |
 
-Capture states are `captured`, `no-embedded-metadata`, `partial`, `unsupported` and `failed`. Only successful extraction with no embedded fields establishes `no-embedded-metadata`. An extraction failure can have no report artifact while still retaining its attempt and original source. Partial reports describe omissions and retain original bytes for retry. Raw reports and normalized observations are immutable; owner edits add observations or selection revisions rather than rewriting received metadata.
+Capture states are `captured`, `no-embedded-metadata`, `partial`, `unsupported` and `failed`. Only successful extraction with no embedded fields establishes `no-embedded-metadata`. An extraction failure can have no report artifact while still retaining its attempt and original source. Partial reports describe omissions and retain original bytes for retry. Raw reports and normalized observations describe the current capture. Refresh atomically replaces computed metadata and queues physical removal of superseded reports. Original media and supplied subtitle assets remain immutable. Owner edits add date observations or selection revisions without rewriting source tags.
 
 Store the input's wall-time literal and its resolved interpretation. Local time is resolved once at import and retains the actual zone/offset and timezone rules version. A date-only value has date precision and calendar bounds where resolvable, not an invented midnight recording instant. Ambiguous or invalid daylight-saving values retain an unresolved interpretation until the affected observation is disambiguated. Another machine never reinterprets old records using its current local timezone.
 

@@ -225,21 +225,23 @@ def desktop():
                   {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'schema_version': VERSION})
 
 def secrets():
-    executable = ROOT / ('build/insonic-secret-probe.exe' if os.name == 'nt' else 'build/insonic-secret-probe')
-    child(['go', 'build', '-o', executable, './cmd/insonic-secret-probe'])
-    try:
-        output = child([executable], timeout=5)
-        value = json.loads(output)
-    except (RuntimeError, subprocess.TimeoutExpired):
-        value = {'native_secret_service': 'unavailable', 'credential_values': 'not-returned'}
-    (BUILD / 'secret-service-receipt.json').write_text(json.dumps(value) + '\n', encoding='utf-8')
-    print(json.dumps(value))
+    BUILD.mkdir(parents=True, exist_ok=True)
+    executable = ROOT / ('build/insonic-secret-lifecycle.exe' if os.name == 'nt' else 'build/insonic-secret-lifecycle')
+    child(['go', 'build', '-o', executable, './cmd/insonic-secret-lifecycle'])
+    output = child([executable], timeout=30)
+    write_receipt(BUILD / 'secret-service-receipt.json', output,
+                  {'native_credential_lifecycle': 'passed', 'cross_process_restart': 'passed', 'credential_values': 'not-returned', 'schema_version': VERSION})
+    child(['go', 'test', './internal/secrets', './internal/credentialcmd'])
+    sys.stdout.buffer.write(output)
 
 def cli():
     executable = ROOT / ('build/insonic.exe' if os.name == 'nt' else 'build/insonic')
     child(['go', 'build', '-o', executable, './cmd/insonic'])
     with tempfile.TemporaryDirectory() as directory:
         child([executable, 'workspace', 'init', directory, '--json'])
+        # General CLI fixtures elect transient credentials explicitly. Native
+        # persistence is qualified separately against an isolated OS store.
+        child([executable, '--workspace', directory, 'credentials', 'select', 'session', '--json'])
         first = json.loads(child([executable, '--workspace', directory, 'workspace', 'show', '--json'], allow_detached=True))
         second = json.loads(child([executable, '--workspace', directory, 'workspace', 'show', '--json']))
         if first['runtime_session_id'] != second['runtime_session_id']:

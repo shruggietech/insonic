@@ -9,6 +9,7 @@ import (
 	"github.com/shruggietech/insonic/internal/app"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/credentialcmd"
 	"github.com/shruggietech/insonic/internal/process"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"github.com/shruggietech/insonic/schemas"
@@ -26,6 +27,7 @@ const MaxFrame = 1 << 20
 type Options struct {
 	Idle  time.Duration
 	Ready chan<- struct{}
+	Input *credentialcmd.Input
 }
 
 func frame(reader io.Reader) ([]byte, error) {
@@ -65,8 +67,15 @@ func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
 	defer cleanup()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	application, err := app.NewContext(ctx, w)
+	provider, err := app.Bootstrap(w, options.Input)
 	if err != nil {
+		return err
+	}
+	application, err := app.NewContextWithSecrets(ctx, w, provider)
+	if err != nil {
+		if closer, ok := provider.(interface{ Close() }); ok {
+			closer.Close()
+		}
 		return err
 	}
 	defer application.Close()
@@ -145,12 +154,18 @@ func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
 					response.RequestID = request.RequestID
 				}
 			} else {
-				if strings.HasPrefix(request.Operation, "artifacts.") {
+				if strings.HasPrefix(request.Operation, "artifacts.") || strings.HasPrefix(request.Operation, "media.") || strings.HasPrefix(request.Operation, "models.") {
 					conn.SetDeadline(time.Now().Add(10 * time.Minute))
 				}
 				response = application.Dispatch(request)
 			}
-			json.NewEncoder(conn).Encode(response)
+			encoded, e := json.Marshal(response)
+			if e != nil || len(encoded)+1 > MaxFrame {
+				response.Result = nil
+				response.Error = contracts.Fail("output_limit")
+				encoded, _ = json.Marshal(response)
+			}
+			conn.Write(append(encoded, '\n'))
 		}(conn)
 	}
 	handlers.Wait()
@@ -164,7 +179,7 @@ func Call(ctx context.Context, w *workspace.Workspace, request contracts.Request
 	}
 	defer conn.Close()
 	deadline := time.Now().Add(5 * time.Second)
-	if strings.HasPrefix(request.Operation, "artifacts.") {
+	if strings.HasPrefix(request.Operation, "artifacts.") || strings.HasPrefix(request.Operation, "media.") || strings.HasPrefix(request.Operation, "models.") {
 		deadline = time.Now().Add(10 * time.Minute)
 	}
 	if value, ok := ctx.Deadline(); ok && value.Before(deadline) {
@@ -193,14 +208,34 @@ func Call(ctx context.Context, w *workspace.Workspace, request contracts.Request
 }
 
 func Ensure(ctx context.Context, w *workspace.Workspace, executable string) error {
+	return EnsureInput(ctx, w, executable, nil)
+}
+func EnsureInput(ctx context.Context, w *workspace.Workspace, executable string, input []byte) error {
 	probe := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, RequestID: contracts.ID(), Operation: "workspace.show"}
 	if _, err := Call(ctx, w, probe); err == nil {
+		if len(input) > 0 {
+			data, _ := json.Marshal(map[string]any{"arguments": []string{"load"}, "input": json.RawMessage(input)})
+			probe.Operation = "credentials.load"
+			probe.Data = data
+			out, e := Call(ctx, w, probe)
+			clear(data)
+			if e != nil {
+				return e
+			}
+			if out.Error != nil {
+				return out.Error
+			}
+		}
 		return nil
 	}
 	if executable == "" {
 		executable, _ = os.Executable()
 	}
-	if err := process.StartDetached(executable, []string{"--workspace", w.Root, "runtime", "serve"}); err != nil {
+	args := []string{"--workspace", w.Root, "runtime", "serve"}
+	if len(input) > 0 {
+		args = append(args, "--secret-input")
+	}
+	if err := process.StartDetachedInput(executable, args, input); err != nil {
 		return err
 	}
 	timer := time.NewTimer(10 * time.Second)

@@ -172,6 +172,11 @@ type ModelAssociation struct {
 	Reason    string `json:"reason"`
 }
 type Records struct {
+	Library    []LibraryEntry     `json:"library,omitempty"`
+	BaseModels []BaseModelInstall `json:"base_models,omitempty"`
+	Works      []Work             `json:"works,omitempty"`
+	Cleanups   []Cleanup          `json:"cleanups,omitempty"`
+
 	Profiles          []Profile          `json:"profiles"`
 	Artifacts         []Artifact         `json:"artifacts"`
 	Locations         []ArtifactLocation `json:"locations"`

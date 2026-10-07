@@ -8,7 +8,15 @@ Advanced or experimental CLI capabilities may ship before their GUI controls. Ea
 
 CLI groups are `workspace`, `media`, `pipeline`, `jobs`, `speakers`, `terms`, `search`, `query`, `export`, `models`, `settings` and `doctor`. Human output is concise; `--json` provides versioned machine-readable records, diagnostics go to stderr, and exit statuses distinguish failure and partial completion. Noninteractive invocations never prompt. Secret entry uses a protected input channel, not command-line values.
 
-Command contracts:
+The implemented source-buildable clients expose workspace/runtime, catalog,
+artifact, credential, downloaded-model, media-admission and real-work operations.
+The native bridge exposes `Operate` and `Credential` using those same contracts.
+Full media/settings GUI controls follow in the desktop delivery outcome.
+See [credential commands](secrets.md), [downloaded models](models.md) and
+[import](ingestion.md) for the executable operations.
+
+The following broader product commands are target contracts. Pipeline, speaker,
+search, training and installable GUI workflows require later implementation:
 
 ```sh
 insonic workspace create --path PATH

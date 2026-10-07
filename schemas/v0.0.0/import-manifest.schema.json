@@ -15,7 +15,7 @@
     },
     "defaults": {
       "type": "object",
-      "description": "Batch defaults, overridden by explicit per-item fields. Date and timestamp are mutually exclusive within this object.",
+      "description": "Recording-date defaults and policies. Exact timestamp, calendar date and approximate UTC range are mutually exclusive.",
       "properties": {
         "originated_at": {
           "$ref": "common.schema.json#/$defs/wallTimestamp",
@@ -58,14 +58,59 @@
         "extensions": {
           "$ref": "common.schema.json#/$defs/extensions",
           "description": "Optional nonsecret input annotations."
+        },
+        "date_precedence": {
+          "type": "string",
+          "enum": [
+            "owner-first",
+            "embedded-first",
+            "filesystem-fallback"
+          ],
+          "description": "Versioned recording-date precedence rule. Filesystem modification becomes a recording-date candidate only under the explicit filesystem-fallback rule."
+        },
+        "originated_earliest": {
+          "$ref": "common.schema.json#/$defs/utcInstant",
+          "description": "Inclusive earliest recording instant for an owner-supplied approximate date range. Preserve the exact UTC timestamp and integer clock."
+        },
+        "originated_latest": {
+          "$ref": "common.schema.json#/$defs/utcInstant",
+          "description": "Inclusive latest recording instant for an owner-supplied approximate date range. Application validation checks bound ordering."
         }
       },
       "not": {
-        "required": [
-          "originated_at",
-          "originated_on"
-        ],
-        "type": "object"
+        "type": "object",
+        "anyOf": [
+          {
+            "required": [
+              "originated_at",
+              "originated_on"
+            ]
+          },
+          {
+            "required": [
+              "originated_at",
+              "originated_earliest"
+            ]
+          },
+          {
+            "required": [
+              "originated_at",
+              "originated_latest"
+            ]
+          },
+          {
+            "required": [
+              "originated_on",
+              "originated_earliest"
+            ]
+          },
+          {
+            "required": [
+              "originated_on",
+              "originated_latest"
+            ]
+          }
+        ]
       },
       "additionalProperties": false
     },
@@ -75,7 +120,7 @@
       "description": "Inputs in deterministic admission order, with independent partial-result reporting.",
       "items": {
         "type": "object",
-        "description": "One ordered source input. Per-item fields override batch defaults. Source and subtitle paths resolve relative to the manifest unless explicitly absolute.",
+        "description": "Recording-date defaults and policies. Exact timestamp, calendar date and approximate UTC range are mutually exclusive.",
         "properties": {
           "source": {
             "type": "string",
@@ -134,20 +179,85 @@
           "extensions": {
             "$ref": "common.schema.json#/$defs/extensions",
             "description": "Optional nonsecret input annotations."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional library display title; source identity still comes from verified bytes."
+          },
+          "new_entry": {
+            "type": "boolean",
+            "default": false,
+            "description": "Explicitly create another library entry even when this source was already admitted. Identical bytes can share the source asset."
+          },
+          "credential_id": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Workspace-scoped acquisition credential reference, resolved privately by the configured adapter."
+          },
+          "acquisition_adapter": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Explicit configured acquisition adapter; absent selects the source URI scheme without changing providers on failure."
+          },
+          "date_precedence": {
+            "type": "string",
+            "enum": [
+              "owner-first",
+              "embedded-first",
+              "filesystem-fallback"
+            ],
+            "description": "Versioned recording-date precedence rule. Filesystem modification becomes a recording-date candidate only under the explicit filesystem-fallback rule."
+          },
+          "originated_earliest": {
+            "$ref": "common.schema.json#/$defs/utcInstant",
+            "description": "Inclusive earliest recording instant for an owner-supplied approximate date range. Preserve the exact UTC timestamp and integer clock."
+          },
+          "originated_latest": {
+            "$ref": "common.schema.json#/$defs/utcInstant",
+            "description": "Inclusive latest recording instant for an owner-supplied approximate date range. Application validation checks bound ordering."
           }
         },
         "required": [
           "source"
         ],
         "not": {
-          "required": [
-            "originated_at",
-            "originated_on"
-          ],
-          "type": "object"
+          "type": "object",
+          "anyOf": [
+            {
+              "required": [
+                "originated_at",
+                "originated_on"
+              ]
+            },
+            {
+              "required": [
+                "originated_at",
+                "originated_earliest"
+              ]
+            },
+            {
+              "required": [
+                "originated_at",
+                "originated_latest"
+              ]
+            },
+            {
+              "required": [
+                "originated_on",
+                "originated_earliest"
+              ]
+            },
+            {
+              "required": [
+                "originated_on",
+                "originated_latest"
+              ]
+            }
+          ]
         },
         "additionalProperties": false
-      }
+      },
+      "maxItems": 10000
     },
     "extensions": {
       "$ref": "common.schema.json#/$defs/extensions",
@@ -181,5 +291,108 @@
         }
       ]
     }
-  ]
+  ],
+  "$defs": {
+    "options": {
+      "type": "object",
+      "description": "Recording-date defaults and policies. Exact timestamp, calendar date and approximate UTC range are mutually exclusive.",
+      "properties": {
+        "originated_at": {
+          "$ref": "common.schema.json#/$defs/wallTimestamp",
+          "description": "Entered recording timestamp, distinct from import, publication and file modification times."
+        },
+        "originated_on": {
+          "$ref": "common.schema.json#/$defs/calendarDate",
+          "description": "Entered recording date when the recording time is unknown."
+        },
+        "timezone": {
+          "$ref": "common.schema.json#/$defs/timezone",
+          "description": "Timezone for unzoned recording timestamps; local is resolved once for the batch."
+        },
+        "dst_fold": {
+          "type": "string",
+          "enum": [
+            "earlier",
+            "later"
+          ],
+          "description": "Explicit choice of offset for an ambiguous repeated daylight-saving wall time."
+        },
+        "dst_gap": {
+          "type": "string",
+          "const": "shift-forward",
+          "description": "Explicit policy to resolve a nonexistent wall time by shifting forward; absent means no silent correction."
+        },
+        "copy": {
+          "type": "boolean",
+          "default": true,
+          "description": "True admits a managed copy into the selected artifact store; false keeps an explicitly tracked local reference."
+        },
+        "preset": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Configured processing/import preset name or ID; does not embed provider configuration.",
+          "examples": [
+            "local"
+          ]
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions",
+          "description": "Optional nonsecret input annotations."
+        },
+        "date_precedence": {
+          "type": "string",
+          "enum": [
+            "owner-first",
+            "embedded-first",
+            "filesystem-fallback"
+          ],
+          "description": "Versioned recording-date precedence rule. Filesystem modification becomes a recording-date candidate only under the explicit filesystem-fallback rule."
+        },
+        "originated_earliest": {
+          "$ref": "common.schema.json#/$defs/utcInstant",
+          "description": "Inclusive earliest recording instant for an owner-supplied approximate date range. Preserve the exact UTC timestamp and integer clock."
+        },
+        "originated_latest": {
+          "$ref": "common.schema.json#/$defs/utcInstant",
+          "description": "Inclusive latest recording instant for an owner-supplied approximate date range. Application validation checks bound ordering."
+        }
+      },
+      "not": {
+        "type": "object",
+        "anyOf": [
+          {
+            "required": [
+              "originated_at",
+              "originated_on"
+            ]
+          },
+          {
+            "required": [
+              "originated_at",
+              "originated_earliest"
+            ]
+          },
+          {
+            "required": [
+              "originated_at",
+              "originated_latest"
+            ]
+          },
+          {
+            "required": [
+              "originated_on",
+              "originated_earliest"
+            ]
+          },
+          {
+            "required": [
+              "originated_on",
+              "originated_latest"
+            ]
+          }
+        ]
+      },
+      "additionalProperties": false
+    }
+  }
 }

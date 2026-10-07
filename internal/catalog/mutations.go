@@ -57,7 +57,7 @@ func (s *Store) accept(ctx context.Context, tx *sql.Tx, id, digest string, revis
 	return r, e
 }
 func (s *Store) Commit(ctx context.Context, m Mutation) (Receipt, error) {
-	if !contracts.ValidID(m.OperationID) || m.Expected < 0 || m.Expected == math.MaxInt64 {
+	if len(m.Records.Library)+len(m.Records.BaseModels)+len(m.Records.Works)+len(m.Records.Cleanups) > 0 || !contracts.ValidID(m.OperationID) || m.Expected < 0 || m.Expected == math.MaxInt64 {
 		return Receipt{}, contracts.Fail("invalid_request")
 	}
 	digest, e := intent(m)

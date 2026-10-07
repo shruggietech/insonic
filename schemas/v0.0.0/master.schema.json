@@ -59,10 +59,20 @@
     "runtime-response": {
       "$ref": "runtime-response.schema.json",
       "description": "Versioned shared-runtime operation envelope."
+    },
+    "base-model-manifest": {
+      "$ref": "base-model-manifest.schema.json",
+      "description": "Exact downloaded model manifests, upstream version/revision, capabilities/license and independently verified files."
+    },
+    "media-tools": {
+      "$ref": "media-tools.schema.json",
+      "description": "Exact hash/version-qualified metadata extractor configuration with hidden noninteractive execution."
     }
   },
   "oneOf": [
-    { "$ref": "#/$defs/catalog-snapshot" },
+    {
+      "$ref": "#/$defs/catalog-snapshot"
+    },
     {
       "$ref": "#/$defs/import-manifest"
     },
@@ -98,6 +108,12 @@
     },
     {
       "$ref": "#/$defs/runtime-response"
+    },
+    {
+      "$ref": "#/$defs/base-model-manifest"
+    },
+    {
+      "$ref": "#/$defs/media-tools"
     }
   ]
 }

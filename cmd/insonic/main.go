@@ -2,13 +2,18 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/credentialcmd"
+	"github.com/shruggietech/insonic/internal/library"
 	local "github.com/shruggietech/insonic/internal/runtime"
+	"github.com/shruggietech/insonic/internal/secrets"
 	"github.com/shruggietech/insonic/internal/workspace"
+	"io"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -48,6 +53,8 @@ func execute(args []string) int {
 	if len(positional) == 0 || (len(positional) == 1 && positional[0] == "--help") {
 		fmt.Println("insonic workspace init <directory> | workspace show | doctor | jobs start <milliseconds> | jobs show/cancel/retry <job-id> | jobs history <job-id> [after-generation] | catalog show/migrate | catalog export/restore <file> [--workspace <directory>] [--request-id <UUID>] [--json]")
 		fmt.Println("insonic artifacts publish <file> <kind> | artifacts show/verify/reconcile/abort/retire/cache-prune <publication-id> | artifacts materialize <publication-id> [max-bytes] | artifacts lease-renew/lease-release <publication-id> <lease-id> | artifacts retain/release-reference <publication-id> <reference-id>")
+		fmt.Println("insonic credentials select native/vault/session | credentials add/replace/delete/status <UUID> | credentials unlock/load (protected stdin JSON, saved values never returned)")
+		fmt.Println("insonic media tools <configuration.json> | media import <files...> or --manifest <CSV/JSON> [--reference] [--originated-at/on VALUE] [--timezone ZONE] | media list/show/metadata/raw/refresh/set-origin/relocate | models register/acquire <manifest> | models list/show/verify/materialize | work list/show/cancel/retry")
 		return 0
 	}
 	if len(positional) == 3 && positional[0] == "workspace" && positional[1] == "init" {
@@ -70,14 +77,33 @@ func execute(args []string) int {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	if len(positional) == 2 && positional[0] == "runtime" && positional[1] == "serve" {
-		return output(nil, local.Serve(ctx, w, local.Options{}), machine)
+	if (len(positional) == 2 || len(positional) == 3 && positional[2] == "--secret-input") && positional[0] == "runtime" && positional[1] == "serve" {
+		var input *credentialcmd.Input
+		if len(positional) == 3 {
+			input, err = credentialcmd.ReadInput(os.Stdin)
+			if err != nil {
+				return output(nil, err, machine)
+			}
+			defer input.Close()
+		}
+		return output(nil, local.Serve(ctx, w, local.Options{Input: input}), machine)
+	}
+	if len(positional) >= 2 && positional[0] == "credentials" {
+		return credentialCommand(ctx, w, positional[1:], machine)
+	}
+	if len(positional) == 3 && positional[0] == "media" && positional[1] == "tools" {
+		return toolsCommand(w, positional[2], machine)
 	}
 	if len(positional) >= 2 && positional[0] == "catalog" && positional[1] != "show" {
 		return catalogCommand(ctx, w, positional[1:], machine)
 	}
 	req := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, RequestID: requestID}
-	if len(positional) == 1 && positional[0] == "doctor" {
+	if positional[0] == "media" || positional[0] == "models" || positional[0] == "work" {
+		req.Operation, req.ItemID, req.Data, err = parseDomain(positional)
+		if err != nil {
+			return output(nil, err, machine)
+		}
+	} else if len(positional) == 1 && positional[0] == "doctor" {
 		req.Operation = "doctor"
 	} else if len(positional) == 2 && positional[0] == "workspace" && positional[1] == "show" {
 		req.Operation = "workspace.show"
@@ -127,7 +153,7 @@ func execute(args []string) int {
 	} else {
 		return output(nil, contracts.Fail("invalid_request"), machine)
 	}
-	if !strings.Contains("|workspace.show|doctor|catalog.show|jobs.start|jobs.show|jobs.history|jobs.cancel|jobs.retry|artifacts.publish|artifacts.show|artifacts.verify|artifacts.materialize|artifacts.reconcile|artifacts.abort|artifacts.retire|artifacts.lease-renew|artifacts.lease-release|artifacts.cache-prune|artifacts.retain|artifacts.release-reference|", "|"+req.Operation+"|") {
+	if !strings.HasPrefix(req.Operation, "media.") && !strings.HasPrefix(req.Operation, "models.") && !strings.HasPrefix(req.Operation, "work.") && !strings.Contains("|workspace.show|doctor|catalog.show|jobs.start|jobs.show|jobs.history|jobs.cancel|jobs.retry|artifacts.publish|artifacts.show|artifacts.verify|artifacts.materialize|artifacts.reconcile|artifacts.abort|artifacts.retire|artifacts.lease-renew|artifacts.lease-release|artifacts.cache-prune|artifacts.retain|artifacts.release-reference|", "|"+req.Operation+"|") {
 		return output(nil, contracts.Fail("invalid_request"), machine)
 	}
 	if err := local.Ensure(ctx, w, ""); err != nil {
@@ -151,11 +177,24 @@ func catalogCommand(ctx context.Context, w *workspace.Workspace, args []string, 
 		}
 		defer lock.Unlock()
 	}
-	secrets, err := catalog.SessionSecretsFromEnvironment()
+	var input *credentialcmd.Input
+	mode, err := secrets.ReadSelection(w)
 	if err != nil {
 		return output(nil, err, machine)
 	}
-	store, err := catalog.OpenWorkspace(ctx, w, secrets, args[0] == "migrate")
+	if mode == "vault" {
+		input, err = credentialcmd.ReadInput(os.Stdin)
+		if err != nil {
+			return output(nil, err, machine)
+		}
+		defer input.Close()
+	}
+	provider, err := credentialcmd.Provider(w, input)
+	if err != nil {
+		return output(nil, err, machine)
+	}
+	defer provider.Close()
+	store, err := catalog.OpenWorkspace(ctx, w, provider, args[0] == "migrate")
 	if err != nil {
 		return output(nil, err, machine)
 	}
@@ -232,3 +271,104 @@ func output(result any, err error, machine bool) int {
 	return 0
 }
 func main() { os.Exit(execute(os.Args[1:])) }
+
+func credentialCommand(ctx context.Context, w *workspace.Workspace, args []string, machine bool) int {
+	if len(args) == 0 {
+		return output(nil, contracts.Fail("invalid_request"), machine)
+	}
+	action := args[0]
+	if (action == "unlock" || action == "load") && len(args) != 1 {
+		return output(nil, contracts.Fail("invalid_request"), machine)
+	}
+	if action != "unlock" && action != "load" && (len(args) != 2 || action != "select" && !contracts.ValidID(args[1])) {
+		return output(nil, contracts.Fail("invalid_request"), machine)
+	}
+	mode, e := secrets.ReadSelection(w)
+	if e != nil {
+		return output(nil, e, machine)
+	}
+	raw := []byte(`{}`)
+	if action == "add" || action == "replace" || action == "unlock" || action == "load" {
+		raw, e = io.ReadAll(io.LimitReader(os.Stdin, credentialcmd.MaxInputBytes+1))
+		if e != nil || len(raw) > credentialcmd.MaxInputBytes {
+			return output(nil, contracts.Fail("invalid_request"), machine)
+		}
+	}
+	defer clear(raw)
+	input, e := credentialcmd.ReadInput(bytes.NewReader(raw))
+	if e != nil {
+		return output(nil, e, machine)
+	}
+	input.Close()
+	if action == "unlock" || action == "load" {
+		e = local.EnsureInput(ctx, w, "", raw)
+		return output(map[string]any{"backend": mode, "state": "unlocked"}, e, machine)
+	}
+	data, _ := json.Marshal(map[string]any{"arguments": args, "input": json.RawMessage(raw)})
+	defer clear(data)
+	req := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, RequestID: contracts.ID(), Operation: "credentials." + action, Data: data}
+	if out, e := local.Call(ctx, w, req); e == nil {
+		var err error
+		if out.Error != nil {
+			err = out.Error
+		}
+		return output(out, err, machine)
+	}
+	if mode == "session" && action != "select" && action != "status" {
+		if e = local.Ensure(ctx, w, ""); e != nil {
+			return output(nil, e, machine)
+		}
+		out, e := local.Call(ctx, w, req)
+		if e == nil && out.Error != nil {
+			e = out.Error
+		}
+		return output(out, e, machine)
+	}
+	if action == "delete" && mode == "vault" {
+		out, e := credentialcmd.Execute(ctx, w, args, os.Stdin)
+		return output(out, e, machine)
+	}
+	out, e := credentialcmd.Execute(ctx, w, args, bytes.NewReader(raw))
+	return output(out, e, machine)
+}
+func toolsCommand(w *workspace.Workspace, path string, machine bool) int {
+	lock, e := w.Lock()
+	if e != nil {
+		return output(nil, e, machine)
+	}
+	defer lock.Unlock()
+	f, e := os.Open(path)
+	if e != nil {
+		return output(nil, contracts.Fail("unavailable"), machine)
+	}
+	defer f.Close()
+	raw, e := io.ReadAll(io.LimitReader(f, (1<<20)+1))
+	if e != nil || len(raw) > 1<<20 || catalog.ValidateJSON(raw) != nil {
+		return output(nil, contracts.Fail("invalid_request"), machine)
+	}
+	var tools library.Tools
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.DisallowUnknownFields()
+	if d.Decode(&tools) != nil || d.Decode(new(any)) != io.EOF {
+		return output(nil, contracts.Fail("invalid_request"), machine)
+	}
+	temp, e := os.CreateTemp(w.Control, ".media-tools-")
+	if e != nil {
+		return output(nil, contracts.Fail("unavailable"), machine)
+	}
+	defer os.Remove(temp.Name())
+	if _, e = temp.Write(raw); e == nil {
+		e = temp.Sync()
+	}
+	closeErr := temp.Close()
+	if e == nil {
+		e = closeErr
+	}
+	if e == nil {
+		e = os.Rename(temp.Name(), filepath.Join(w.Control, "media-tools.json"))
+	}
+	if e != nil {
+		return output(nil, contracts.Fail("unavailable"), machine)
+	}
+	return output(map[string]bool{"configured": true}, nil, machine)
+}

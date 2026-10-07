@@ -141,3 +141,8 @@ func TestPostgreSQLSelectedRoutingAndTLS(t *testing.T) {
 		t.Fatal("ambiguous credentials accepted")
 	}
 }
+
+func TestPostgreSQLWorkAuthority(t *testing.T)  { workSuite(t, postgresStore(t, contracts.ID())) }
+func TestPostgreSQLCurrentLibrary(t *testing.T) { librarySuite(t, postgresStore(t, contracts.ID())) }
+
+func TestPostgreSQLBaseModelInstall(t *testing.T) { modelSuite(t, postgresStore(t, contracts.ID())) }

@@ -39,6 +39,10 @@ var domains = []domainTable{
 	{"model_version", "Versions", "id", "", []string{"model_id:speaker_model:id", "run_id:training_run:id", "dataset_id:training_dataset:id", "manifest_artifact_id:artifact:id"}},
 	{"model_artifact", "ModelArtifacts", "id", "", []string{"version_id:model_version:id", "artifact_id:artifact:id"}},
 	{"model_association", "ModelAssociations", "id", "CHECK (revision>0), UNIQUE (workspace_id,model_id,speaker_id,revision)", []string{"model_id:speaker_model:id", "speaker_id:speaker:id"}},
+	{"library_entry", "Library", "id", "CHECK (revision>0 AND size>=0), CHECK (duration_us IS NULL OR duration_us>=0), CHECK (mode IN ('copy','reference'))", []string{"id:media_entry:id", "asset_id:media_asset:id"}},
+	{"base_model_install", "BaseModels", "id", "CHECK (revision>0), CHECK (state IN ('registered','available'))", nil},
+	{"work_operation", "Works", "id", "CHECK (generation>=0), CHECK (state IN ('pending','running','succeeded','failed','cancelled','interrupted'))", nil},
+	{"library_cleanup", "Cleanups", "id", "CHECK (state IN ('pending','done'))", nil},
 }
 
 type column struct {
@@ -144,15 +148,20 @@ var operationalDDL = []string{
 	`CREATE TABLE IF NOT EXISTS graph_event (workspace_id TEXT NOT NULL, target_id TEXT NOT NULL, sequence BIGINT NOT NULL CHECK(sequence>0), predecessor BIGINT NOT NULL CHECK(predecessor>=0), revision BIGINT NOT NULL CHECK(revision>0), operation_id TEXT NOT NULL, document TEXT NOT NULL, digest TEXT NOT NULL, PRIMARY KEY(workspace_id,target_id,sequence), FOREIGN KEY(workspace_id,target_id) REFERENCES graph_target(workspace_id,id), FOREIGN KEY(workspace_id,operation_id) REFERENCES operation_receipt(workspace_id,id))`,
 }
 
-func legacyMigrationStatements() []string {
+func legacyMigrationStatements() []string { return append([]string{}, historicalV1DDL...) }
+func historicalV2Statements() []string {
+	return append(legacyMigrationStatements(), artifactDDL, artifactIndexDDL)
+}
+func historicalV2Digest() string {
+	h := sha256.Sum256([]byte(strings.Join(historicalV2Statements(), "\n")))
+	return hex.EncodeToString(h[:])
+}
+func migrationStatements() []string {
 	out := append([]string{}, operationalDDL...)
 	for _, d := range domains {
 		out = append(out, d.ddl())
 	}
-	return out
-}
-func migrationStatements() []string {
-	return append(legacyMigrationStatements(), artifactDDL, artifactIndexDDL)
+	return append(out, artifactDDL, artifactIndexDDL)
 }
 func legacyMigrationDigest() string {
 	h := sha256.Sum256([]byte(strings.Join(legacyMigrationStatements(), "\n")))
@@ -192,12 +201,11 @@ func (s *Store) migrate(ctx context.Context) error {
 	var digest string
 	e = tx.QueryRowContext(ctx, "SELECT version,digest FROM catalog_schema WHERE singleton=1").Scan(&version, &digest)
 	if e == nil {
-		if version == 1 && digest == legacyMigrationDigest() {
-			if _, e = tx.ExecContext(ctx, artifactDDL); e != nil {
-				return sanitize(e)
-			}
-			if _, e = tx.ExecContext(ctx, artifactIndexDDL); e != nil {
-				return sanitize(e)
+		if (version == 1 && digest == legacyMigrationDigest()) || (version == 2 && digest == historicalV2Digest()) {
+			for _, q := range migrationStatements() {
+				if _, e = tx.ExecContext(ctx, q); e != nil {
+					return sanitize(e)
+				}
 			}
 			if _, e = s.exec(ctx, tx, "UPDATE catalog_schema SET version=?,digest=? WHERE singleton=1", SchemaVersion, migrationDigest()); e != nil {
 				return sanitize(e)
@@ -243,6 +251,22 @@ func validateRecord(value any) error {
 		}
 	}
 	switch r := value.(type) {
+	case LibraryEntry:
+		if !validLibrary(r) || r.Revision < 1 {
+			return contracts.Fail("invalid_request")
+		}
+	case BaseModelInstall:
+		if !validModel(r) || r.Revision < 1 {
+			return contracts.Fail("invalid_request")
+		}
+	case Work:
+		if !validWork(r) {
+			return contracts.Fail("invalid_request")
+		}
+	case Cleanup:
+		if r.Revision < 1 || !contracts.ValidID(r.EntryID) || (r.State != "pending" && r.State != "done") {
+			return contracts.Fail("invalid_request")
+		}
 	case Profile:
 		if !positive(r.Revision) || r.Version != contracts.Version || !nonsecret(r.Configuration) {
 			return contracts.Fail("invalid_request")
@@ -334,7 +358,7 @@ func (s *Store) insertRecords(ctx context.Context, tx *sql.Tx, records Records) 
 	}
 	// Segment bounds depend on the immutable source clock, not only local ordering.
 	var invalid int
-	e := s.row(ctx, tx, "SELECT count(*) FROM speaker_segment s JOIN media_asset a ON a.workspace_id=s.workspace_id AND a.id=s.asset_id WHERE s.workspace_id=? AND s.end_us>a.duration_us", s.workspace).Scan(&invalid)
+	e := s.row(ctx, tx, "SELECT count(*) FROM speaker_segment s JOIN media_asset a ON a.workspace_id=s.workspace_id AND a.id=s.asset_id LEFT JOIN library_entry l ON l.workspace_id=a.workspace_id AND l.asset_id=a.id WHERE s.workspace_id=? AND s.end_us>(CASE WHEN l.id IS NULL THEN a.duration_us ELSE l.duration_us END)", s.workspace).Scan(&invalid)
 	if e != nil {
 		return e
 	}
@@ -355,10 +379,13 @@ func (s *Store) insertRecords(ctx context.Context, tx *sql.Tx, records Records) 
 	}
 	return nil
 }
-func (s *Store) readRecords(ctx context.Context, tx *sql.Tx) (Records, error) {
+func (s *Store) readRecords(ctx context.Context, tx *sql.Tx, selected ...string) (Records, error) {
 	var out Records
 	v := reflect.ValueOf(&out).Elem()
 	for _, d := range domains {
+		if len(selected) != 0 && d.field != selected[0] {
+			continue
+		}
 		cols := columns(d.typ())
 		rows, e := tx.QueryContext(ctx, s.query("SELECT "+strings.Join(names(cols), ",")+" FROM "+d.name+" WHERE workspace_id=? ORDER BY "+d.primary), s.workspace)
 		if e != nil {
@@ -396,12 +423,12 @@ func (s *Store) readRecords(ctx context.Context, tx *sql.Tx) (Records, error) {
 					nested[sub] = val
 				} else {
 					if c.typ == rawType {
-						var x any
-						if e = strict([]byte(fmt.Sprint(val)), &x); e != nil {
+						raw := []byte(fmt.Sprint(val))
+						if e = ValidateJSON(raw); e != nil {
 							rows.Close()
 							return out, e
 						}
-						val = x
+						val = json.RawMessage(raw)
 					}
 					doc[key] = val
 				}

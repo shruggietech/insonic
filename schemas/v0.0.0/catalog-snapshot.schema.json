@@ -29,7 +29,11 @@
         "models": null,
         "versions": null,
         "model_artifacts": null,
-        "model_associations": null
+        "model_associations": null,
+        "library": null,
+        "works": null,
+        "cleanups": null,
+        "base_models": null
       },
       "state": [
         {
@@ -69,7 +73,8 @@
       "description": "Portable migration schema version supported by this catalog.",
       "enum": [
         1,
-        2
+        2,
+        3
       ]
     },
     "digest": {
@@ -131,7 +136,7 @@
                 "description": "Workspace-scoped stable record identity."
               },
               "duration_us": {
-                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "description": "Legacy numeric source duration retained for existing catalog compatibility. When a current library record exists, its nullable duration_us is authoritative and an unknown value must not fall back to this legacy number.",
                 "type": "integer"
               },
               "id": {
@@ -1028,6 +1033,284 @@
             "array",
             "null"
           ]
+        },
+        "library": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Current typed records, or null when empty.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "asset_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "title": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "class": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "mode": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "source_locator": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "digest": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "size": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "integer"
+              },
+              "original_publication_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "subtitle_publication_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "duration_us": {
+                "description": "Authoritative measured recording duration in integer microseconds. Null is unknown; zero is measured zero. Subtitle coverage never supplies this value.",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "facts": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "metadata": {
+                "description": "Only the current normalized capture, with complete extraction provenance and explicit coverage. Superseded derived payloads are removed."
+              },
+              "dates": {
+                "description": "Current owner and source date observations, conflicts, interpretation state and selected precedence rule. Owner date evidence survives computed-capture replacement."
+              },
+              "report_publication_ids": {
+                "type": "array",
+                "description": "Current raw metadata report publication identities. Replacements remove superseded references and queue physical retirement.",
+                "items": {
+                  "$ref": "common.schema.json#/$defs/uuid",
+                  "description": "Workspace-scoped managed publication identity."
+                },
+                "uniqueItems": true
+              },
+              "revision": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "asset_id",
+              "title",
+              "class",
+              "mode",
+              "source_locator",
+              "digest",
+              "size",
+              "original_publication_id",
+              "subtitle_publication_id",
+              "duration_us",
+              "facts",
+              "metadata",
+              "dates",
+              "report_publication_ids",
+              "revision"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "works": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Current typed records, or null when empty.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "journal_receipt_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "kind": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "payload": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "state": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "owner": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "generation": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "integer"
+              },
+              "lease_until": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "integer"
+              },
+              "phase": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "result": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "error": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "journal_receipt_id",
+              "id",
+              "kind",
+              "payload",
+              "state",
+              "owner",
+              "generation",
+              "lease_until",
+              "phase",
+              "result",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "cleanups": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Current typed records, or null when empty.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "entry_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "state": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Accepted current-replacement revision whose receipt lists this publication for physical cleanup. Restore verifies that association before a worker can retire bytes."
+              }
+            },
+            "required": [
+              "id",
+              "entry_id",
+              "state",
+              "revision"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "base_models": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Current typed records, or null when empty.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "name": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "version": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "digest": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "manifest": {
+                "$ref": "base-model-manifest.schema.json",
+                "description": "Exact selected downloaded-model manifest, separate from speaker-trained model lineage."
+              },
+              "publication_ids": {
+                "type": "array",
+                "description": "Ordered verified required model-file publication identities.",
+                "items": {
+                  "$ref": "common.schema.json#/$defs/uuid",
+                  "description": "Workspace-scoped managed publication identity."
+                },
+                "uniqueItems": true
+              },
+              "state": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "revision": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "version",
+              "digest",
+              "manifest",
+              "publication_ids",
+              "state",
+              "revision"
+            ],
+            "additionalProperties": false
+          }
         }
       },
       "required": [

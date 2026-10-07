@@ -122,8 +122,7 @@ func (s *Service) Stage(ctx context.Context, source string) (*os.File, string, i
 	if e != nil {
 		return nil, "", 0, redact(ctx, e)
 	}
-	h := sha256.New()
-	n, e := copyContext(ctx, io.MultiWriter(f, h), input)
+	digest, n, e := copyStable(ctx, source, input, f)
 	if e == nil {
 		e = f.Sync()
 	}
@@ -133,7 +132,7 @@ func (s *Service) Stage(ctx context.Context, source string) (*os.File, string, i
 		return nil, "", 0, redact(ctx, e)
 	}
 	f.Seek(0, 0)
-	return f, hex.EncodeToString(h.Sum(nil)), n, nil
+	return f, digest, n, nil
 }
 
 func openSource(source string) (*os.File, error) {
@@ -478,11 +477,20 @@ func (s *Service) Prune(ctx context.Context, id string) ([]string, error) {
 	return ids, nil
 }
 func (s *Service) Retire(ctx context.Context, id string) (catalog.Publication, error) {
+	return s.retire(ctx, id, s.Grace)
+}
+
+// RetireCurrent removes explicitly superseded derived output immediately. The
+// catalog still fences retirement against current references and active leases.
+func (s *Service) RetireCurrent(ctx context.Context, id string) (catalog.Publication, error) {
+	return s.retire(ctx, id, 0)
+}
+func (s *Service) retire(ctx context.Context, id string, grace time.Duration) (catalog.Publication, error) {
 	p, e := s.selected(ctx, id)
 	if e != nil {
 		return p, e
 	}
-	p, e = s.Catalog.ClaimRetirement(ctx, id, s.Owner, s.Grace, s.TTL)
+	p, e = s.Catalog.ClaimRetirement(ctx, id, s.Owner, grace, s.TTL)
 	if e != nil || p.State == "retired" {
 		return p, e
 	}

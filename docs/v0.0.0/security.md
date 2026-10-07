@@ -2,6 +2,11 @@
 
 ## Secret storage
 
+See [credential commands](secrets.md) for implemented bootstrap, status,
+replacement, vault and session input. S3 resolves the selected reference for
+subsequent requests. PostgreSQL resolves it when establishing a new connection;
+existing authenticated connections follow the server's session authorization.
+
 The runtime owns a `SecretStore` interface. Prefer Windows Credential Manager, macOS Keychain and Linux Secret Service. Store opaque credential IDs in pipeline, storage and database configuration, the catalog and job records. The runtime resolves a secret only for the selected adapter and does not return its value to the GUI or status API. S3 access keys/session tokens, PostgreSQL connection credentials and ArcadeDB credentials use the same secret-reference boundary; connection records and object references never embed passwords or signed URLs.
 
 A headless Linux machine may lack an unlocked Secret Service. Support a passphrase-encrypted vault or session-only credentials as explicit alternatives; never fall back to plaintext. The vault uses a reviewed password KDF and authenticated encryption through maintained libraries. Its key is not saved beside ciphertext. Pin and test the exact algorithms and platform integration; do not implement custom cryptography.

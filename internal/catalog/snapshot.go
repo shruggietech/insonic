@@ -101,7 +101,7 @@ func (s *Store) Export(ctx context.Context) (Snapshot, error) {
 	return out, e
 }
 func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
-	if snap.Version != contracts.Version || (snap.CatalogSchema != SchemaVersion && snap.CatalogSchema != 1) {
+	if snap.Version != contracts.Version || (snap.CatalogSchema != SchemaVersion && snap.CatalogSchema != 1 && snap.CatalogSchema != 2) {
 		return contracts.Fail("incompatible_version")
 	}
 	if snap.Kind != "catalog-snapshot" {
@@ -177,6 +177,9 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 			return e
 		}
 		if e := s.validateRestoredState(ctx, tx, snap.Revision); e != nil {
+			return e
+		}
+		if e := s.validateLibraryState(ctx, tx, true); e != nil {
 			return e
 		}
 		if e := s.validateArtifactState(ctx, tx, true); e != nil {

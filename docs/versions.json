@@ -20,6 +20,8 @@
         { "slug": "schema", "title": "Storage and catalog schema" },
         { "slug": "contracts", "title": "JSON contracts" },
         { "slug": "security", "title": "Credentials and data access" },
+        { "slug": "secrets", "title": "Credential commands" },
+        { "slug": "models", "title": "Downloaded models" },
         { "slug": "desktop", "title": "CLI and desktop experience" },
         { "slug": "development", "title": "Development workflow" },
         { "slug": "releases", "title": "Brand, docs and releases" },

@@ -24,7 +24,7 @@ import (
 	"time"
 )
 
-const SchemaVersion = 2
+const SchemaVersion = 3
 
 type Store struct {
 	db        *sql.DB
@@ -147,24 +147,12 @@ func OpenPostgreSQL(ctx context.Context, c PostgreSQLConfig, id string, secrets 
 	cfg.ConnectTimeout = 5 * time.Second
 	cfg.TLSConfig = nil
 	cfg.LookupFunc = net.DefaultResolver.LookupHost
+	var beforeConnect func(context.Context, *pgx.ConnConfig) error
 	if c.CredentialID != "" {
 		if secrets == nil {
 			return nil, contracts.Fail("unavailable")
 		}
-		raw, e := secrets.Resolve(ctx, c.CredentialID)
-		if e != nil {
-			return nil, contracts.Fail("unavailable")
-		}
-		var auth Credentials
-		e = strict(raw, &auth)
-		for i := range raw {
-			raw[i] = 0
-		}
-		if e != nil || auth.Username == "" {
-			return nil, contracts.Fail("invalid_request")
-		}
-		cfg.User = auth.Username
-		cfg.Password = auth.Password
+		beforeConnect = referencedPostgresAuthentication(secrets, c.CredentialID)
 	}
 	if cfg.User == "" {
 		cfg.User = "insonic"
@@ -188,7 +176,11 @@ func OpenPostgreSQL(ctx context.Context, c PostgreSQLConfig, id string, secrets 
 	default:
 		return nil, contracts.Fail("invalid_request")
 	}
-	db := stdlib.OpenDB(*cfg)
+	var options []stdlib.OptionOpenDB
+	if beforeConnect != nil {
+		options = append(options, stdlib.OptionBeforeConnect(beforeConnect))
+	}
+	db := stdlib.OpenDB(*cfg, options...)
 	db.SetMaxOpenConns(8)
 	s := &Store{db: db, workspace: id, backend: "postgresql", schema: c.Schema}
 	if e = db.PingContext(ctx); e != nil {
@@ -210,6 +202,23 @@ func OpenPostgreSQL(ctx context.Context, c PostgreSQLConfig, id string, secrets 
 		return nil, sanitize(e)
 	}
 	return s, nil
+}
+func referencedPostgresAuthentication(provider contracts.SecretProvider, id string) func(context.Context, *pgx.ConnConfig) error {
+	return func(ctx context.Context, cfg *pgx.ConnConfig) error {
+		provided, e := provider.Resolve(ctx, id)
+		if e != nil {
+			return contracts.Fail("unavailable")
+		}
+		raw := append([]byte(nil), provided...)
+		defer clear(raw)
+		var auth Credentials
+		if strict(raw, &auth) != nil || auth.Username == "" {
+			return contracts.Fail("invalid_request")
+		}
+		cfg.User = auth.Username
+		cfg.Password = auth.Password
+		return nil
+	}
 }
 func OpenWorkspace(ctx context.Context, w *workspace.Workspace, secrets contracts.SecretProvider, migrate bool) (*Store, error) {
 	p := w.Config.Profiles.Catalog

@@ -12,8 +12,8 @@ const { master, examples } = validateCatalog(catalog);
 const example = kind => structuredClone(catalog.contracts.find(item => item.schema.properties.kind.const === kind).schema.examples[0]);
 
 test('all documented contracts and local references validate through the release master', () => {
-  assert.equal(catalog.contracts.length, 13);
-  assert.equal(examples, 14);
+  assert.equal(catalog.contracts.length, 15);
+  assert.equal(examples, 16);
   for (const item of catalog.contracts) for (const value of item.schema.examples) assert.equal(master(value), true);
 });
 
@@ -144,4 +144,50 @@ test('published reference explains alternative backend and query fields, typed p
   assert.ok(reference.includes('db.example.com'), 'field examples must appear even when absent from complete document examples');
   assert.ok(reference.includes('Required fields: `credential_id`'), 'conditional credential requirements must be explained');
   assert.equal(reference.split(workspace.$defs.s3Configuration.properties.addressing_style.description).length - 1, 1, 'shared backend definitions should be documented once');
+});
+
+test('downloaded models require exact file identity and reject credential material', () => {
+  const value = example('base-model-manifest');
+  assert.equal(master(value), true);
+  value.files[0].sha256 = 'short'; assert.equal(master(value), false);
+  value.files[0].sha256 = 'a'.repeat(64);
+  value.files[0].size = -1; assert.equal(master(value), false);
+  value.files[0].size = 0; assert.equal(master(value), true);
+  value.files[0].password = 'secret'; assert.equal(master(value), false);
+  delete value.files[0].password;
+  value.files[0].credential_id = 'human-name'; assert.equal(master(value), false);
+});
+
+test('extractor configuration qualifies delegated support files and rejects undeclared fields', () => {
+  const value = example('media-tools');
+  value.exiftool.support_files = [{path:'/opt/insonic/tools/lib/ExifTool.pm',sha256:'c'.repeat(64)}];
+  assert.equal(master(value), true);
+  value.exiftool.support_files[0].sha256 = 'bad'; assert.equal(master(value), false);
+  value.exiftool.support_files[0].sha256 = 'c'.repeat(64);
+  value.ffprobe.extra = true; assert.equal(master(value), false);
+});
+
+test('import options expose explicit acquisition and current recording-date policies', () => {
+  const value = example('import-manifest');
+  value.defaults.date_precedence = 'filesystem-fallback';
+  value.items[0].title = 'A recording'; value.items[0].new_entry = true;
+  value.items[0].credential_id = '11111111-1111-4111-8111-111111111111';
+  value.items[0].acquisition_adapter = 'https';
+  assert.equal(master(value), true);
+  value.defaults.date_precedence = 'invent-time'; assert.equal(master(value), false);
+});
+test('approximate import dates preserve open or closed UTC bounds and reject exact-date conflicts', () => {
+  const value = example('import-manifest');
+  value.defaults.originated_earliest = { iso: '1970-01-01T00:00:00.123456789Z', unix_ns: 123456789 };
+  assert.equal(master(value), true);
+  value.defaults.originated_latest = { iso: '1970-01-02T00:00:00Z', unix_ns: 86400000000000 };
+  assert.equal(master(value), true);
+  value.defaults.originated_on = '1970-01-01'; assert.equal(master(value), false);
+  delete value.defaults.originated_on;
+  delete value.items[0].originated_at;
+  value.items[0].originated_latest = structuredClone(value.defaults.originated_latest);
+  assert.equal(master(value), true);
+  value.items[0].originated_at = '1970-01-01T00:00:00'; assert.equal(master(value), false);
+  delete value.items[0].originated_at;
+  delete value.items[0].originated_latest.unix_ns; assert.equal(master(value), false);
 });
