@@ -31,9 +31,13 @@ Four user stories, twelve requirements and five success criteria have task cover
 All twelve functional requirements and four stories have implementation and
 focused test coverage. T029-T033 resolved the five implementation gaps found
 during convergence. Final local full Go/vet and affected race checks pass; the
-repository check and 50 maintainer tests pass. No additional code gap was found
+repository check and 51 maintainer tests pass. No additional code gap was found
 on the final convergence pass, so no empty convergence phase was appended.
 
-SC-001/003/005 and T023/T024/T026/T028 still require hosted platform/backend
-acceptance and external review. These are publication gates, not claims inferred
-from local tests. Their execution and exact head are recorded in verification.md.
+SC-001..005 and T023/T024/T026 have executed acceptance evidence. All six hosted
+gates pass on `84797f428276c1c9f096d144233c283c04c24fca`; all seven external
+findings have fixes, replies and resolved discussions. T034-T049 trace the
+additional convergence, review and runner-timing corrections. T028 is closed
+with the review-request cap deviation explicitly recorded, rather than claiming
+protocol compliance. Verification.md records exact evidence and remaining
+product boundaries. Owner final review and merge remain outstanding.

@@ -122,7 +122,24 @@ durable acknowledgement on the loaded runner. T049 gives active test claims a
 one-minute lease and explicitly expires the stored claim between the expiry and
 takeover assertions. Production lease clocks and fences are unchanged. The
 SQLite reconciliation/ordered-outbox suites passed five repeated race runs.
-The final hosted rerun remains pending.
+Final product/qualification head
+`84797f428276c1c9f096d144233c283c04c24fca`,
+[run 37679201121](https://github.com/shruggietech/insonic/actions/runs/37679201121):
+all six gates passed. Foundation 11 s, docs 33 s, adapter fixtures 1 min 7 s,
+macOS 2 min 51 s, Linux 4 min 39 s, Windows 4 min 36 s. This includes real
+native credential/media/desktop qualification and PostgreSQL/S3 acceptance.
+No runtime code changed after the security fixes in `9896c70`; T049 changes
+qualification tests only. This final evidence update changes planning documents
+only. Its hosted checks must also be green before owner handoff.
+
+## Owner handoff
+
+All implementation tasks are executed. All seven external findings have replies
+and resolved threads, with no remaining critical convergence finding. The review
+request cap deviation above remains a process deviation; it cannot be undone by
+fixing code or resolving discussions. The PR remains open for owner final review,
+squash merge and branch deletion. No merge, release or publication beyond the
+authorized PR was performed.
 
 ## Remaining product boundaries
 
