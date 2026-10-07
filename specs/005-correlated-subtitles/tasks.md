@@ -70,8 +70,8 @@
 - [X] T032 Run npm run check, npm test, affected Go/race/vet/site/schema/native/backend checks and quickstart scenarios; inspect UTF-8/LF/mojibake in specs/005-correlated-subtitles/verification.md.
 - [X] T033 Run Spec Kit convergence, fix every critical finding and record final evidence in specs/005-correlated-subtitles/analysis.md and verification.md.
 - [X] T034 Commit/push codex/005-correlated-subtitles and publish official PR closing #21/#7; attach PR to this chat and record URL in specs/005-correlated-subtitles/verification.md.
-- [ ] T035 Respond to and resolve every external review, request at most one combined second round, finish review rounds before waiting on final CI and record exact rounds in specs/005-correlated-subtitles/verification.md.
-- [ ] T036 Confirm affected CI green and all reviews satisfied, then hand the PR to the owner for final review/squash merge; do not merge or release.
+- [X] T035 Respond to and resolve every external review, request at most one combined second round, finish review rounds before waiting on final CI and record exact rounds in specs/005-correlated-subtitles/verification.md.
+- [X] T036 Confirm affected CI green and all reviews satisfied, then hand the PR to the owner for final review/squash merge; do not merge or release.
 
 ## Dependencies and execution order
 
