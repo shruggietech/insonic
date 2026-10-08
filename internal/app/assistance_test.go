@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/assistance"
+	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/workspace"
 	"os"
 	"testing"
 	"time"
@@ -256,5 +258,72 @@ func assertCurrentQueryParity(t *testing.T, first, second any) {
 	later, _ = json.Marshal(b)
 	if string(raw) != string(later) {
 		t.Fatal("query content differs", string(raw), string(later))
+	}
+}
+
+type delayedAssistanceCatalog struct {
+	catalog.Catalog
+	delay time.Duration
+}
+
+func (c *delayedAssistanceCatalog) Export(ctx context.Context) (catalog.Snapshot, error) {
+	select {
+	case <-ctx.Done():
+		return catalog.Snapshot{}, contracts.Fail("cancelled")
+	case <-time.After(c.delay):
+		return c.Catalog.Export(ctx)
+	}
+}
+func TestAssistanceSharesQueryBudgetAcrossContextAndExecution(t *testing.T) {
+	for _, test := range []struct {
+		delay   time.Duration
+		success bool
+	}{{20 * time.Millisecond, true}, {250 * time.Millisecond, false}} {
+		t.Run(test.delay.String(), func(t *testing.T) {
+			w, e := workspace.Init(t.TempDir(), "aggregate query budget")
+			if e != nil {
+				t.Fatal(e)
+			}
+			ctx, stop := context.WithCancel(context.Background())
+			defer stop()
+			store, e := catalog.OpenWorkspace(ctx, w, nil, false)
+			if e != nil {
+				t.Fatal(e)
+			}
+			defer store.Close()
+			if e = store.RegisterWorkspace(ctx, w); e != nil {
+				t.Fatal(e)
+			}
+			a := &App{Workspace: w, Catalog: &delayedAssistanceCatalog{Catalog: store, delay: test.delay}, ctx: ctx}
+			defer func() {
+				if a.Graph != nil {
+					a.Graph.Close()
+				}
+			}()
+			calls := 0
+			a.AssistanceFixture = func(ctx context.Context, _ assistance.Request, _ assistance.Config) (assistance.Proposal, error) {
+				calls++
+				select {
+				case <-ctx.Done():
+					return assistance.Proposal{}, contracts.Fail("cancelled")
+				case <-time.After(100 * time.Millisecond):
+					return testProposal(), nil
+				}
+			}
+			c := assistanceConfig()
+			c.Limits.QueryTimeoutMS = 400
+			c.Limits.TimeoutMS = 300
+			raw, _ := json.Marshal(map[string]any{"prompt": "list", "configuration": c, "context_query": testProposal().Query, "mode": "auto-run"})
+			_, e = a.assist(ctx, contracts.Request{Data: raw})
+			if test.success != (e == nil) {
+				t.Fatal("aggregate phase budget", e)
+			}
+			if calls != 1 {
+				t.Fatal("provider phase did not remain independent", calls)
+			}
+			if !test.success && e.(*contracts.Error).Code != "cancelled" {
+				t.Fatal(e)
+			}
+		})
 	}
 }

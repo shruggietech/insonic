@@ -60,3 +60,7 @@ Setup -> foundation -> US1 -> US2 -> US3 -> delivery. Test tasks precede impleme
 ## Phase 8: Convergence
 
 - [x] T025 Preserve generated 64-bit integer parameters through desktop JSON handoff as exact decimal strings, accept both representations in the shared typed/native contract, and qualify editor/native execution per FR-005/010 and SC-001 (partial, HIGH).
+
+## Phase 9: Final review remediation
+
+- [x] T026 Share and deduct one aggregate query budget across probing/context and validation/execution; verify valid phases and exhaustion without charging provider time in internal/app/assistance.go/test and docs/v0.0.0/graph.md per FR-008 and D06 (review P2).

@@ -161,9 +161,19 @@ func (a *App) assist(ctx context.Context, req contracts.Request) (any, error) {
 	}
 	ctx, stop := context.WithTimeout(ctx, time.Duration(c.Limits.TimeoutMS+c.Limits.QueryTimeoutMS+5000)*time.Millisecond)
 	defer stop()
-	caps, profile, e := a.assistanceContext(ctx)
+	// Backend probing, optional excerpt collection and validation/execution share
+	// one aggregate query budget. Provider time does not consume this budget.
+	remainingQuery := time.Duration(c.Limits.QueryTimeoutMS) * time.Millisecond
+	phaseStarted := time.Now()
+	probe, finishProbe := context.WithTimeout(ctx, remainingQuery)
+	caps, profile, e := a.assistanceContext(probe)
+	finishProbe()
+	remainingQuery -= time.Since(phaseStarted)
 	if e != nil {
 		return nil, e
+	}
+	if remainingQuery <= 0 {
+		return nil, contracts.Fail("cancelled")
 	}
 	selectedAdapter, _ := caps["adapter_id"].(string)
 	schema, _ := json.Marshal(map[string]any{"query_contract": json.RawMessage(schemas.QuerySchemaBytes()), "physical_types": map[string]any{"Entity": []string{"id", "workspace", "entity_id", "kind", "reference"}, "EvidenceLink": []string{"id", "kind"}}, "reference_values": "Identities only. Use normalized operations for hydrated current text and original clocks.", "allowed_dialects": assistanceDialects(selectedAdapter)})
@@ -173,11 +183,16 @@ func (a *App) assist(ctx context.Context, req contracts.Request) (any, error) {
 		if q.Definition.Mode != "normalized" || q.Definition.Pagination == nil || q.Definition.Pagination.Limit > c.Limits.MaxContextRows {
 			return nil, contracts.Fail("input_limit")
 		}
-		bounded, cancel := context.WithTimeout(ctx, time.Duration(c.Limits.QueryTimeoutMS)*time.Millisecond)
+		phaseStarted = time.Now()
+		bounded, cancel := context.WithTimeout(ctx, remainingQuery)
 		value, e := a.runQuery(bounded, q, "query.run")
 		cancel()
 		if e != nil {
 			return nil, e
+		}
+		remainingQuery -= time.Since(phaseStarted)
+		if remainingQuery <= 0 {
+			return nil, contracts.Fail("cancelled")
 		}
 		input.Context, e = boundedExecution(value, c.Limits.MaxContextRows, c.Limits.MaxContextBytes)
 		if e != nil {
@@ -216,7 +231,7 @@ func (a *App) assist(ctx context.Context, req contracts.Request) (any, error) {
 	if now != rev || documentHash(currentProfile) != profile {
 		return nil, contracts.Fail("conflict")
 	}
-	validating, finish := context.WithTimeout(ctx, time.Duration(c.Limits.QueryTimeoutMS)*time.Millisecond)
+	validating, finish := context.WithTimeout(ctx, remainingQuery)
 	defer finish()
 	state, e := a.validateProposal(validating, p.Query, c, selectedAdapter)
 	if e != nil {
