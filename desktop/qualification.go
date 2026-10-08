@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/shruggietech/insonic/internal/app"
@@ -18,6 +19,15 @@ import (
 	"github.com/shruggietech/insonic/internal/subtitles"
 	"github.com/shruggietech/insonic/internal/workspace"
 )
+
+// QualificationStartsHidden keeps local smoke tests out of the foreground.
+// Hosted macOS needs an onscreen WKWebView to run media and its JS timers.
+func QualificationStartsHidden(smoke bool) bool {
+	return qualificationStartsHidden(smoke, runtime.GOOS, os.Getenv("GITHUB_ACTIONS"))
+}
+func qualificationStartsHidden(smoke bool, system, actions string) bool {
+	return smoke && !(system == "darwin" && actions == "true")
+}
 
 // QualificationData contains controlled fixture inputs only in the explicit
 // native-webview qualification process. Ordinary desktop sessions return none.

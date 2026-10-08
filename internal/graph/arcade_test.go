@@ -21,12 +21,13 @@ func TestRealArcadeOrderedReferences(t *testing.T) {
 		t.Skip("explicit fixture endpoint required")
 	}
 	db := fmt.Sprintf("insonicgraph%d", time.Now().UnixNano())
+	client := &http.Client{Timeout: 30 * time.Second}
 	call := func(command string) {
 		raw, _ := json.Marshal(map[string]any{"command": command})
 		r, _ := http.NewRequest("POST", endpoint+"/api/v1/server", bytes.NewReader(raw))
 		r.SetBasicAuth("root", "fixture-only-password")
 		r.Header.Set("Content-Type", "application/json")
-		res, e := http.DefaultClient.Do(r)
+		res, e := client.Do(r)
 		if e != nil {
 			t.Fatal(e)
 		}

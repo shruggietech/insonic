@@ -22,7 +22,7 @@ func TestExploreRealArcadeCurrentQueries(t *testing.T) {
 		t.Skip("explicit fixture required")
 	}
 	db := fmt.Sprintf("insonicexplore%d", time.Now().UnixNano())
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: 30 * time.Second}
 	call := func(command string) {
 		raw, _ := json.Marshal(map[string]any{"command": command})
 		req, _ := http.NewRequest("POST", endpoint+"/api/v1/server", bytes.NewReader(raw))

@@ -87,3 +87,5 @@ Deliver usable current search first, then integrate timeline/playback, then save
 - [ ] T044 Bound native-webview playback startup separately and scroll real media into view without weakening decoded time advancement in desktop/frontend/src/qualification.ts and tests/frontend.test.mjs; requalify in hosted CI.
 
 - [x] T045 Address Linux mirror download timeout through official HTTPS sources, bounded network retries and targeted dependency installation in .github/workflows/ci.yml; retain all required checks and ten-minute job limits.
+
+- [x] T046 Serialize shared adapter fixtures, bound administrative setup clients and test hosted-only macOS qualification visibility in internal/app/explore_arcade_test.go, internal/graph/arcade_test.go, desktop/qualification.go and qualification_test.go; hosted acceptance remains T033/T044.

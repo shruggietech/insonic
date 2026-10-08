@@ -58,3 +58,8 @@ The macOS mounted journey reached video playback and then the whole-window deadl
 
 
 Windows hosted relocated-package acceptance passed (9m56s) on ba3b878. Linux exhausted its ten-minute budget during Azure HTTP mirror downloads before any product checks ran. The Linux dependency step preserves every declared package and APT signature verification, switches Azure Ubuntu sources to the official HTTPS archive, bounds connection waits/retries and omits unrelated recommended packages. Hosted checks must rerun on the correction head; no job budget was raised.
+
+
+The next adapter run passed catalog migration but timed out in ten-second Arcade database creation while Go packages shared the fixture concurrently. Fixture packages now run serially and both administrative setup clients have a finite 30-second timeout; native query limits remain unchanged. Linux passed dependency preparation with the official HTTPS mirror and advanced into native packaging. macOS again timed out with its hidden WKWebView, so qualification alone starts an onscreen window on GitHub-hosted macOS, retaining hidden local/Windows smoke runs and ordinary application behavior. Platform-policy regression tests cover those boundaries. Hosted requalification remains required.
+
+On 7e5e456, complete hosted Linux native/package acceptance passed in 6m21s and Windows passed in 9m58s. Both remained below ten minutes. The latest serial real Arcade graph/app checks pass locally, as do desktop policy tests and repository checks. The remaining correction head requires hosted fixture and macOS acceptance before owner handoff.

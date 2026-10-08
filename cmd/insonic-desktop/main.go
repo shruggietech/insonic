@@ -133,7 +133,7 @@ func run() int {
 		}
 		bridge.Workspace = w
 	}
-	if err := wails.Run(&options.App{Title: "insonic", Width: 1200, Height: 800, MinWidth: 720, MinHeight: 600, StartHidden: smoke, OnStartup: startup, OnDomReady: domReady, OnShutdown: func(context.Context) { desktop.ClosePlaybackHandles(bridge) }, AssetServer: &assetserver.Options{Assets: desktop.Assets, Handler: desktop.PlaybackServer{Bridge: bridge}}, Bind: []any{bridge}}); err != nil {
+	if err := wails.Run(&options.App{Title: "insonic", Width: 1200, Height: 800, MinWidth: 720, MinHeight: 600, StartHidden: desktop.QualificationStartsHidden(smoke), OnStartup: startup, OnDomReady: domReady, OnShutdown: func(context.Context) { desktop.ClosePlaybackHandles(bridge) }, AssetServer: &assetserver.Options{Assets: desktop.Assets, Handler: desktop.PlaybackServer{Bridge: bridge}}, Bind: []any{bridge}}); err != nil {
 		fmt.Fprintln(os.Stderr, "Desktop startup failed.")
 		return 1
 	}
