@@ -5,6 +5,7 @@ import (
 	"github.com/shruggietech/insonic/internal/contracts"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -31,5 +32,14 @@ func TestDesktopCLISharedRoutes(t *testing.T) {
 	}
 	if _, _, _, e := parseDesktopOperation([]string{"settings", "set"}); e == nil {
 		t.Fatal("mutation without typed input")
+	}
+	for _, section := range []string{"media_tools", "processing_tools", "appearance"} {
+		raw := `{"section":"` + section + `","revision":"` + strings.Repeat("a", 64) + `","value":null}`
+		if e := os.WriteFile(path, []byte(raw), 0600); e != nil {
+			t.Fatal(e)
+		}
+		if operation, _, _, e := parseDesktopOperation([]string{"settings", "set", "--input", path}); e != nil || operation != "settings.set" {
+			t.Fatal("settings reset CLI parity", section, e)
+		}
 	}
 }

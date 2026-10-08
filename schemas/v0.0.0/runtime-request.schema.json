@@ -2657,8 +2657,11 @@
                 "pattern": "^[a-f0-9]{64}$"
               },
               "value": {
-                "type": "object",
-                "description": "Validated section value."
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "description": "Validated explicit section value, or null to remove the workspace override with compare-and-swap and elect current defaults."
               }
             },
             "allOf": [
@@ -2674,8 +2677,15 @@
                 "then": {
                   "properties": {
                     "value": {
-                      "$ref": "media-tools.schema.json",
-                      "description": "Validated pinned metadata extraction tool configuration."
+                      "anyOf": [
+                        {
+                          "$ref": "media-tools.schema.json"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Validated pinned metadata extraction tool configuration, or null to reset the override without persisting installation paths."
                     }
                   }
                 }
@@ -2692,8 +2702,15 @@
                 "then": {
                   "properties": {
                     "value": {
-                      "$ref": "processing-tools.schema.json",
-                      "description": "Validated pinned subtitle and processing tool configuration."
+                      "anyOf": [
+                        {
+                          "$ref": "processing-tools.schema.json"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Validated pinned subtitle and processing tool configuration, or null to reset the override and use current installed companions."
                     }
                   }
                 }
@@ -2710,8 +2727,11 @@
                 "then": {
                   "properties": {
                     "value": {
-                      "type": "object",
-                      "description": "Persisted accessible display preferences.",
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "Persisted accessible display preferences, or null to remove the override and use system appearance defaults.",
                       "additionalProperties": false,
                       "required": [
                         "theme",

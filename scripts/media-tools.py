@@ -116,6 +116,7 @@ def prepare_avtool(name, key, os_name):
         notices.mkdir(exist_ok=True)
         shutil.copyfile(directory / 'COPYING.LGPLv2.1', notices / 'darwin-arm64.LICENSE')
         (notices / 'darwin-arm64.README').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
+        (ROOT / 'build/native/media-source-build-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
         return tool_identity(executable, child([executable, '-version'])), {
             'name': source.name, 'sha256': source_media.SOURCE_SHA256,
             'license': 'darwin-arm64.LICENSE', 'readme': 'darwin-arm64.README'}

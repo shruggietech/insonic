@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
-import { qualifyDesktop } from './qualification';
+import { qualifyDesktop, runQualificationOnce } from './qualification';
 import type { NativeBridge } from './client';
 import '../../../brand/kit/tokens/interface.css';
 import '../../../brand/kit/tokens/typography.css';
@@ -22,10 +22,11 @@ const bridge: NativeBridge = {
   },
 };
 createRoot(document.getElementById('root')!).render(<App bridge={bridge} />);
-window.runtime?.EventsOn('qualification', async () => {
+const startQualification = runQualificationOnce(async () => {
   qualifying = true;
   failedOperations.length = 0;
   try {
+    await bridge.QualificationStep?.('ready');
     const until = Date.now() + 5000;
     while (
       !document.querySelector('[aria-label="Library controls"]') &&
@@ -38,10 +39,12 @@ window.runtime?.EventsOn('qualification', async () => {
       !document.querySelector('[aria-label="Library controls"]')
     )
       throw new Error('Desktop screens did not mount.');
+    await bridge.QualificationStep?.('mounted');
     const response = await bridge.Show();
     if (response.error) throw new Error(response.error.message);
     const flags = await qualifyDesktop(bridge);
     response.result = { ...response.result, ...flags };
+    await bridge.QualificationStep?.('complete');
     await bridge.CompleteSmoke(response);
   } catch (error) {
     await bridge.CompleteSmoke({
@@ -58,3 +61,26 @@ window.runtime?.EventsOn('qualification', async () => {
     qualifying = false;
   }
 });
+window.runtime?.EventsOn('qualification', startQualification);
+// Linux can finish the document before a deferred bundle registers its event
+// handler. Explicit native fixture readiness starts the same deduplicated run.
+void (async () => {
+  let qualificationMode = false;
+  try {
+    qualificationMode = (await bridge.QualificationStep?.('module')) ?? false;
+    if (!bridge.NativeQualificationData) return;
+    const response = await bridge.NativeQualificationData();
+    if (response.error) throw new Error(response.error.message);
+    if (!response.result?.audio_path) return;
+    await bridge.QualificationStep?.('fixtures');
+    await startQualification();
+  } catch (error) {
+    if (qualificationMode)
+      await bridge.CompleteSmoke({
+        error: {
+          code: 'operation_failed',
+          message: `Desktop qualification bootstrap failed: ${error instanceof Error ? error.message.slice(0, 400) : 'Unknown failure.'}`,
+        },
+      });
+  }
+})();

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Assemble and qualify relocated native packages without inference or release."""
 import argparse
+from contextlib import contextmanager
 from copy import deepcopy
 import hashlib
 import importlib.util
@@ -11,6 +12,7 @@ from pathlib import Path, PurePosixPath
 import platform
 import plistlib
 import shutil
+import shlex
 import stat
 import subprocess
 import sys
@@ -18,6 +20,7 @@ import tarfile
 import tempfile
 import time
 import urllib.request
+import uuid
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -84,6 +87,76 @@ def source_module():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def package_build_environment(values, key, native):
+    selected = dict(values)
+    flags = ['-L' + native.as_posix()]
+    if key.startswith('linux'):
+        flags.append('-Wl,-rpath,$ORIGIN/native')
+    elif key.startswith('darwin'):
+        flags.append('-Wl,-rpath,@loader_path/native')
+    selected['CGO_LDFLAGS'] = shlex.join(flags)
+    return selected
+
+
+def normalize_macos_libraries(native):
+    libraries = list(native.glob('*.dylib'))
+    names = {path.name for path in libraries}
+    for library in libraries:
+        child(['/usr/bin/install_name_tool', '-id', '@rpath/' + library.name, library])
+        dependencies = child(['/usr/bin/otool', '-L', library]).decode().splitlines()[1:]
+        for line in dependencies:
+            dependency = line.strip().split(' (compatibility version')[0]
+            name = Path(dependency).name
+            if name in names and dependency != '@rpath/' + name:
+                child(['/usr/bin/install_name_tool', '-change', dependency, '@rpath/' + name, library])
+        # Install-name edits invalidate existing signatures. Restore local
+        # Mach-O integrity with an ad-hoc signature, without a release identity.
+        child(['/usr/bin/codesign', '--force', '--sign', '-', library])
+        child(['/usr/bin/codesign', '--verify', '--strict', library])
+
+
+def verify_loader_paths(root, key):
+    if key.startswith('windows'):
+        return
+    for name in ['insonic', 'insonic-desktop']:
+        executable = root / name
+        if key.startswith('linux'):
+            output = child(['/usr/bin/readelf', '-d', executable]).decode()
+            paths = [line.split('[', 1)[1].split(']', 1)[0]
+                     for line in output.splitlines() if '(RPATH)' in line or '(RUNPATH)' in line]
+            if paths != ['$ORIGIN/native']:
+                raise ValueError('packaged executable lacks its sole installation-relative ELF loader path')
+        else:
+            output = child(['/usr/bin/otool', '-l', executable]).decode().splitlines()
+            paths = [output[index + 2].strip().split(' ', 2)[1]
+                     for index, line in enumerate(output) if line.strip() == 'cmd LC_RPATH']
+            if paths != ['@loader_path/native']:
+                raise ValueError('packaged executable lacks its sole installation-relative Mach-O loader path')
+            dependencies = child(['/usr/bin/otool', '-L', executable]).decode().splitlines()[1:]
+            if any(str(ROOT) in line or '/build/native/' in line for line in dependencies):
+                raise ValueError('packaged executable retains a development library install name')
+
+
+@contextmanager
+def isolated_development_libraries():
+    native = (ROOT / 'build/native').resolve()
+    original = native / 'ladybug'
+    backup = native / ('ladybug-isolated-' + uuid.uuid4().hex)
+    if (not native.is_relative_to(ROOT.resolve()) or not native.is_relative_to((ROOT / 'build').resolve())
+            or not original.is_dir() or original.is_symlink() or backup.exists()
+            or not original.resolve().is_relative_to(native) or not backup.resolve().is_relative_to(native)):
+        raise ValueError('development library isolation target is invalid')
+    original.rename(backup)
+    try:
+        if original.exists():
+            raise ValueError('development native libraries remain available during extracted smoke')
+        yield
+    finally:
+        if original.exists():
+            raise ValueError('development native library path was recreated; preserved isolated tree at ' + str(backup))
+        backup.rename(original)
 
 
 def fetch_license():
@@ -301,21 +374,24 @@ def build():
                           'NSHighResolutionCapable': True}, output)
     else:
         root.mkdir(parents=True)
-    tags = 'desktop,production' + (',webkit2_41' if key.startswith('linux') else '')
-    env = qualify.native_env()
+    (root / 'native').mkdir()
+    for path in (ROOT / 'build/native/ladybug').rglob('*'):
+        if path.is_file() and (path.suffix.lower() in ['.dll', '.so', '.dylib'] or '.so.' in path.name):
+            shutil.copyfile(path, root / 'native' / path.name)
+    if key.startswith('darwin'):
+        normalize_macos_libraries(root / 'native')
+    tags = 'desktop,production,system_ladybug' + (',webkit2_41' if key.startswith('linux') else '')
+    env = package_build_environment(qualify.native_env(), key, root / 'native')
     exe = '.exe' if key.startswith('windows') else ''
-    child(['go', 'build', '-o', root / ('insonic' + exe), './cmd/insonic'], env=env)
+    child(['go', 'build', '-tags', 'system_ladybug', '-o', root / ('insonic' + exe), './cmd/insonic'], env=env)
     args = ['go', 'build', '-tags', tags]
     if key.startswith('windows'):
         args.extend(['-ldflags', '-H windowsgui'])
     child([*args, '-o', root / ('insonic-desktop' + exe), './cmd/insonic-desktop'], env=env)
+    verify_loader_paths(root, key)
     copy_tree(ROOT / 'build/native/media', root / 'companions/media')
     cueson_root = next((ROOT / 'build/native/cueson').rglob('cueson' + exe)).parent
     copy_tree(cueson_root, root / 'companions/cueson')
-    (root / 'native').mkdir()
-    for path in (ROOT / 'build/native/ladybug').rglob('*'):
-        if path.is_file() and path.suffix.lower() in ['.dll', '.so', '.dylib'] or path.is_file() and '.so.' in path.name:
-            shutil.copyfile(path, root / 'native' / path.name)
     copy_tree(ROOT / 'site/offline', root / 'help')
     for name in ['LICENSE', 'NOTICE']:
         shutil.copyfile(ROOT / name, root / name)
@@ -434,7 +510,7 @@ def package_environment():
     return env
 
 
-def smoke(archive=None, dirname=None, receipt=None):
+def _smoke(archive=None, dirname=None, receipt=None):
     if archive is None:
         receipt = json.loads((ROOT / 'build/native/package-receipt.json').read_text())
         archive = BUILD / receipt['archive']
@@ -456,6 +532,7 @@ def smoke(archive=None, dirname=None, receipt=None):
                 raise ValueError('macOS app bundle inventory mismatch')
         if sha(root / 'package-inventory.json') != receipt['inventory_sha256']:
             raise ValueError('extracted inventory identity differs')
+        verify_loader_paths(root, receipt['platform'])
         env = package_environment()
         env['INSONIC_DESKTOP_FIXTURE_DIRECTORY'] = str(ROOT / 'tests/fixtures/media')
         suffix = '.exe' if os.name == 'nt' else ''
@@ -520,6 +597,13 @@ def smoke(archive=None, dirname=None, receipt=None):
                     'cli_real_audio_video_import': 'passed', 'cueson_assembly': 'passed', 'native_subtitle_export': 'passed',
                     'gui_bridge': 'passed', 'native_webview': 'passed', 'development_paths': 'not-required',
                     'inference': 'not-run', 'elapsed_seconds': round(time.monotonic() - started, 3)})
+    return receipt
+
+
+def smoke(archive=None, dirname=None, receipt=None):
+    with isolated_development_libraries():
+        receipt = _smoke(archive, dirname, receipt)
+    receipt['development_native_libraries'] = 'isolated-and-restored'
     write_json(ROOT / 'build/native/package-receipt.json', receipt)
     print(json.dumps(receipt))
 

@@ -8,12 +8,64 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/library"
+	"github.com/shruggietech/insonic/schemas"
 )
+
+func TestDesktopMediaSettingsKeepOptionalFFmpegAbsentOnReadback(t *testing.T) {
+	a := configuredApp(t)
+	shown := realRequest(a, "settings.show", "", nil)
+	if shown.Error != nil {
+		t.Fatal(shown.Error)
+	}
+	section := shown.Result.(map[string]any)["sections"].(map[string]any)["media_tools"].(map[string]any)
+	pin := func(name string) map[string]any {
+		return map[string]any{"path": filepath.Join(t.TempDir(), name), "sha256": strings.Repeat("0", 64), "version": "qualification"}
+	}
+	value := map[string]any{"kind": "media-tools", "schema_version": contracts.Version, "exiftool": pin("exiftool"), "ffprobe": pin("ffprobe")}
+	saved := realRequest(a, "settings.set", "", map[string]any{"section": "media_tools", "revision": section["revision"], "value": value})
+	if saved.Error != nil {
+		t.Fatal("valid optional decoder omission rejected", saved.Error)
+	}
+	raw, e := os.ReadFile(filepath.Join(a.Workspace.Control, "media-tools.json"))
+	if e != nil || schemas.ValidateMediaTools(raw) != nil {
+		t.Fatal("accepted setting persisted invalid configuration", string(raw), e)
+	}
+	var persisted map[string]any
+	if json.Unmarshal(raw, &persisted) != nil {
+		t.Fatal("invalid persisted JSON")
+	}
+	if _, found := persisted["ffmpeg"]; found {
+		t.Fatal("omitted decoder became an explicit empty pin", string(raw))
+	}
+	shown = realRequest(a, "settings.show", "", nil)
+	if shown.Error != nil {
+		t.Fatal(shown.Error)
+	}
+	section = shown.Result.(map[string]any)["sections"].(map[string]any)["media_tools"].(map[string]any)
+	if section["error"] != nil || section["value"] == nil {
+		t.Fatal("accepted settings became unreadable", section)
+	}
+	tools, e := ReadMediaTools(a.Workspace)
+	if e != nil || tools.FFmpeg.Path != "" || tools.FFprobe.Path == "" || tools.ExifTool.Path == "" {
+		t.Fatal("workspace tools did not retain the valid optional omission", tools, e)
+	}
+	raw, _ = json.Marshal(tools)
+	if schemas.ValidateMediaTools(raw) != nil {
+		t.Fatal("workspace loader returned an invalid serializable configuration", string(raw))
+	}
+	tools.FFmpeg = library.Tool{Path: "partial-pin"}
+	raw, _ = json.Marshal(tools)
+	if schemas.ValidateMediaTools(raw) == nil {
+		t.Fatal("explicit partial decoder pin was omitted")
+	}
+}
 
 func TestDesktopSettingsCASAndUnknownFields(t *testing.T) {
 	a := configuredApp(t)

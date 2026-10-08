@@ -49,6 +49,7 @@ class DecoderPins(unittest.TestCase):
         self.assertNotIn('--enable-gpl', source['configure'])
         self.assertIn('--disable-autodetect', source['configure'])
         self.assertIn('--enable-videotoolbox', source['configure'])
+        self.assertIn('--enable-encoder=aac,flac,pcm_s16le', source['configure'])
 
     def test_source_extraction_accepts_codeload_root_and_rejects_escape(self):
         source_spec = importlib.util.spec_from_file_location('media_source', ROOT / 'scripts/build-media-source.py')

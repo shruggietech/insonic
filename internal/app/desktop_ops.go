@@ -588,9 +588,14 @@ func (a *App) settingsSet(req contracts.Request) (any, error) {
 	if strictPayload(req.Data, &input) != nil || !hashString.MatchString(input.Revision) || settingFiles[input.Section] == "" {
 		return nil, contracts.Fail("invalid_request")
 	}
-	value, e := validateSetting(input.Section, input.Value)
-	if e != nil {
-		return nil, e
+	reset := bytes.Equal(bytes.TrimSpace(input.Value), []byte("null"))
+	var value any
+	var e error
+	if !reset {
+		value, e = validateSetting(input.Section, input.Value)
+		if e != nil {
+			return nil, e
+		}
 	}
 	normalized, _ := json.Marshal(value)
 	next := settingRevision(normalized)
@@ -603,6 +608,18 @@ func (a *App) settingsSet(req contracts.Request) (any, error) {
 	}
 	if settingRevision(current) != input.Revision && settingRevision(current) != next {
 		return nil, contracts.Fail("conflict")
+	}
+	if reset {
+		if e = os.Remove(path); e != nil && !os.IsNotExist(e) {
+			return nil, contracts.Fail("unavailable")
+		}
+		// The atomic removal is the reset publication. Defaults remain elected
+		// from the current installation; none of their absolute paths are saved.
+		section, e := a.settingSection(input.Section)
+		if e != nil {
+			return nil, e
+		}
+		return map[string]any{"section": input.Section, "revision": next, "value": nil, "origin": section["origin"], "applies": "next-operation"}, nil
 	}
 	if settingRevision(current) != next {
 		tmp, e := os.CreateTemp(a.Workspace.Control, ".settings-*")

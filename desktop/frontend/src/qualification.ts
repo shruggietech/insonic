@@ -1,5 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 import { result, type NativeBridge, type Obj } from './client';
+export function runQualificationOnce(
+  run: () => Promise<void>,
+): () => Promise<void> {
+  let pending: Promise<void> | undefined;
+  return () => (pending ??= Promise.resolve().then(run));
+}
 // Runs only during the explicit native qualification mode. Every write below
 // goes through the same mounted controls and shared operations as ordinary use.
 export async function qualifyDesktop(bridge: NativeBridge): Promise<Obj> {
@@ -124,6 +130,7 @@ async function qualifyJourney(
     ['audio', fixtures.audio_path],
     ['video', fixtures.video_path],
   ]) {
+    await bridge.QualificationStep?.('library-import');
     await fill('Media path or URL', path);
     await fill('Title', `Desktop qualification ${kind}`);
     await fill(
@@ -140,6 +147,7 @@ async function qualifyJourney(
     }, 'Media import fixture did not succeed.');
     await click('Refresh library');
     await click(`Open Desktop qualification ${kind}`);
+    await bridge.QualificationStep?.(`${kind}-playback`);
     await click('Play original');
     stage(`Wait for ${kind} playback metadata`);
     await wait(() => {
@@ -163,6 +171,7 @@ async function qualifyJourney(
     element.pause();
     flags[`ui_${kind}_playback`] = 'passed';
     if (kind === 'audio') {
+      await bridge.QualificationStep?.('metadata-date');
       await click('Inspect raw metadata and dates');
       if (!document.querySelector('details[open]'))
         throw new Error('Metadata details did not render.');
@@ -171,6 +180,7 @@ async function qualifyJourney(
       await fill('New original path', fixtures.audio_path);
       await click('Verify identity and reconnect');
       flags.ui_metadata_date = 'passed';
+      await bridge.QualificationStep?.('assembly');
       await fill('Turn label', 'Qualification voice');
       await fill('Turn start milliseconds', '2500');
       await fill('Turn end milliseconds', '2600');
@@ -182,6 +192,7 @@ async function qualifyJourney(
       )
         throw new Error('Current cues unavailable.');
       flags.ui_current_assembly = 'passed';
+      await bridge.QualificationStep?.('cue-seek');
       const seek = [...document.querySelectorAll('button')].find(
         (b) =>
           b.textContent?.startsWith('Seek ') && b.textContent?.endsWith(' ms'),
@@ -213,6 +224,7 @@ async function qualifyJourney(
     }
   }
   flags.ui_library_import = 'passed';
+  await bridge.QualificationStep?.('terms');
   await click('Terms');
   await fill('Canonical term', 'Qualification terminology');
   await fill('Term variants', 'Fixture spelling');
@@ -224,6 +236,7 @@ async function qualifyJourney(
   )
     throw new Error('Term did not persist.');
   flags.ui_terms = 'passed';
+  await bridge.QualificationStep?.('speakers');
   await click('Speakers');
   await fill('Speaker name', 'Qualification person');
   await fill('Aliases', 'Fixture alias');
@@ -266,6 +279,7 @@ async function qualifyJourney(
   )
     throw new Error('Persisted aliases did not populate the speaker editor.');
   flags.ui_speakers = 'passed';
+  await bridge.QualificationStep?.('pipelines');
   await click('Pipelines');
   await fill('Pipeline name', 'Qualification connected route');
   await fill('Preset', 'connected');
@@ -278,6 +292,7 @@ async function qualifyJourney(
   if (!document.body.textContent?.includes('not-probed'))
     throw new Error('Pipeline inspection missing.');
   flags.ui_pipelines = 'passed';
+  await bridge.QualificationStep?.('jobs');
   await click('Jobs');
   await click('Refresh jobs');
   const inspect = [...document.querySelectorAll('button')].find(
@@ -288,12 +303,14 @@ async function qualifyJourney(
   stage('Inspect durable job');
   await idle();
   flags.ui_jobs = 'passed';
+  await bridge.QualificationStep?.('settings');
   await click('Settings');
   await fill('Theme preference', 'light');
   await click('Save appearance');
   if (!document.documentElement.classList.contains('bb-light'))
     throw new Error('Theme preference not applied.');
   flags.ui_settings = 'passed';
+  await bridge.QualificationStep?.('keyboard-help');
   for (const field of document.querySelectorAll('input,select,textarea'))
     if (
       ![...document.querySelectorAll('label')].some(

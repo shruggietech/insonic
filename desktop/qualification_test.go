@@ -34,3 +34,14 @@ func TestNativePreparationInputsUsePublishedRequestContracts(t *testing.T) {
 		}
 	}
 }
+
+func TestQualificationProgressIsExplicitAndBounded(t *testing.T) {
+	b := &Bridge{}
+	if b.QualificationStep("ready") {
+		t.Fatal("ordinary desktop activated qualification diagnostics")
+	}
+	b.qualification = map[string]any{}
+	if b.QualificationStep("arbitrary fixture input") || !b.QualificationStep("ready") {
+		t.Fatal("qualification accepted unbounded diagnostics or refused its stage")
+	}
+}

@@ -65,6 +65,8 @@ export function Settings({ client, run, appearance }: Props) {
     [motion, setMotion] = useState(false);
   const [mediaRaw, setMediaRaw] = useState(''),
     [processingRaw, setProcessingRaw] = useState('');
+  const [mediaOverride, setMediaOverride] = useState(false),
+    [processingOverride, setProcessingOverride] = useState(false);
   const [credentialID, setCredentialID] = useState(''),
     [secret, setSecret] = useState(''),
     [passphrase, setPassphrase] = useState(''),
@@ -85,12 +87,28 @@ export function Settings({ client, run, appearance }: Props) {
   const load = async () => {
     const s = await client.call('settings.show');
     setSettings(s);
-    setMediaRaw(JSON.stringify(s.sections.media_tools.value ?? {}, null, 2));
-    setProcessingRaw(
-      JSON.stringify(s.sections.processing_tools.value ?? {}, null, 2),
-    );
-    setMediaTools(s.sections.media_tools.value ?? {});
-    setProcessingTools(s.sections.processing_tools.value ?? {});
+    const mediaExplicit = s.sections.media_tools.origin !== 'package';
+    const processingExplicit = s.sections.processing_tools.origin !== 'package';
+    const media = mediaExplicit ? (s.sections.media_tools.value ?? {}) : {};
+    const processing = processingExplicit
+      ? (s.sections.processing_tools.value ?? {})
+      : {};
+    const mediaEditor = {
+      kind: 'media-tools',
+      schema_version: '0.0.0',
+      ...media,
+    };
+    const processingEditor = {
+      kind: 'processing-tools',
+      schema_version: '0.0.0',
+      ...processing,
+    };
+    setMediaOverride(mediaExplicit);
+    setProcessingOverride(processingExplicit);
+    setMediaRaw(JSON.stringify(mediaEditor, null, 2));
+    setProcessingRaw(JSON.stringify(processingEditor, null, 2));
+    setMediaTools(mediaEditor);
+    setProcessingTools(processingEditor);
     const a = s.sections.appearance.value ?? {
       theme: 'system',
       reduced_motion: false,
@@ -103,7 +121,13 @@ export function Settings({ client, run, appearance }: Props) {
   useEffect(() => {
     run(load);
   }, [client.workspace]);
-  const save = async (section: string, value: Obj) => {
+  const save = async (section: string, value: Obj | null) => {
+    if (
+      value !== null &&
+      ((section === 'media_tools' && !mediaOverride) ||
+        (section === 'processing_tools' && !processingOverride))
+    )
+      return;
     await client.call('settings.set', '', {
       section,
       revision: settings?.sections[section].revision,
@@ -177,18 +201,46 @@ export function Settings({ client, run, appearance }: Props) {
           identify selected bytes.
         </p>
         <Facts value={{ origin: settings?.sections.media_tools.origin }} />
-        {['ffprobe', 'ffmpeg', 'exiftool'].map((key) => (
-          <ToolFields
-            key={key}
-            label={key}
-            tool={mediaTools[key] ?? {}}
-            setTool={(value) =>
-              setMediaTools((old) => ({ ...old, [key]: value }))
-            }
-          />
-        ))}
-        <Button onClick={() => run(() => save('media_tools', mediaTools))}>
-          Save media tools
+        <details>
+          <summary>Effective media tools</summary>
+          <Facts value={settings?.sections.media_tools.value} />
+        </details>
+        <Check
+          label="Edit explicit workspace media tools"
+          value={mediaOverride}
+          onChange={setMediaOverride}
+        />
+        <p>
+          Installed defaults follow the current package location. Enter a
+          complete explicit configuration to override them for this workspace.
+          Changes take effect when you save. Reset removes the workspace
+          override.
+        </p>
+        <fieldset disabled={!mediaOverride}>
+          <legend>Explicit media tools</legend>
+          {['ffprobe', 'ffmpeg', 'exiftool'].map((key) => (
+            <ToolFields
+              key={key}
+              label={key}
+              tool={mediaTools[key] ?? {}}
+              setTool={(value) =>
+                setMediaTools((old) => ({ ...old, [key]: value }))
+              }
+            />
+          ))}
+          <Button
+            disabled={!mediaOverride || !settings}
+            onClick={() => run(() => save('media_tools', mediaTools))}
+          >
+            Save media tools
+          </Button>
+        </fieldset>
+        <Button
+          variant="secondary"
+          disabled={settings?.sections.media_tools.origin !== 'workspace'}
+          onClick={() => run(() => save('media_tools', null))}
+        >
+          Reset media tools to installed defaults
         </Button>
       </Card>
       <Card heading="Processing tools">
@@ -197,61 +249,87 @@ export function Settings({ client, run, appearance }: Props) {
           acquired separately. Choosing tools does not run inference.
         </p>
         <Facts value={{ origin: settings?.sections.processing_tools.origin }} />
-        <ToolFields
-          label="Cueson"
-          tool={processingTools.cueson ?? {}}
-          setTool={(value) =>
-            setProcessingTools((old) => ({
-              ...old,
-              kind: 'processing-tools',
-              schema_version: '0.0.0',
-              cueson: value,
-            }))
-          }
+        <details>
+          <summary>Effective processing tools</summary>
+          <Facts value={settings?.sections.processing_tools.value} />
+        </details>
+        <Check
+          label="Edit explicit workspace processing tools"
+          value={processingOverride}
+          onChange={setProcessingOverride}
         />
-        {['ffmpeg', 'recognition_python', 'diarization_python', 'worker'].map(
-          (key) => (
-            <ToolFields
-              key={key}
-              label={key}
-              tool={processingTools.processing?.[key] ?? {}}
-              setTool={(value) =>
-                setProcessingTools((old) => ({
-                  ...old,
-                  kind: 'processing-tools',
-                  schema_version: '0.0.0',
-                  processing: { ...old.processing, [key]: value },
-                }))
-              }
-            />
-          ),
-        )}
-        {[
-          'threads',
-          'timeout_ms',
-          'max_input_bytes',
-          'max_duration_us',
-          'max_output_bytes',
-        ].map((key) => (
-          <Input
-            key={key}
-            label={`Processing ${key.replaceAll('_', ' ')}`}
-            type="number"
-            value={processingTools.processing?.[key] ?? 0}
-            onChange={(value) =>
+        <p>
+          Installed defaults follow the current package location. Enter a
+          complete explicit configuration to override them for this workspace.
+          Changes take effect when you save. Reset removes the workspace
+          override.
+        </p>
+        <fieldset disabled={!processingOverride}>
+          <legend>Explicit processing tools</legend>
+          <ToolFields
+            label="Cueson"
+            tool={processingTools.cueson ?? {}}
+            setTool={(value) =>
               setProcessingTools((old) => ({
                 ...old,
                 kind: 'processing-tools',
                 schema_version: '0.0.0',
-                processing: { ...old.processing, [key]: Number(value) },
+                cueson: value,
               }))
             }
           />
-        ))}
+          {['ffmpeg', 'recognition_python', 'diarization_python', 'worker'].map(
+            (key) => (
+              <ToolFields
+                key={key}
+                label={key}
+                tool={processingTools.processing?.[key] ?? {}}
+                setTool={(value) =>
+                  setProcessingTools((old) => ({
+                    ...old,
+                    kind: 'processing-tools',
+                    schema_version: '0.0.0',
+                    processing: { ...old.processing, [key]: value },
+                  }))
+                }
+              />
+            ),
+          )}
+          {[
+            'threads',
+            'timeout_ms',
+            'max_input_bytes',
+            'max_duration_us',
+            'max_output_bytes',
+          ].map((key) => (
+            <Input
+              key={key}
+              label={`Processing ${key.replaceAll('_', ' ')}`}
+              type="number"
+              value={processingTools.processing?.[key] ?? 0}
+              onChange={(value) =>
+                setProcessingTools((old) => ({
+                  ...old,
+                  kind: 'processing-tools',
+                  schema_version: '0.0.0',
+                  processing: { ...old.processing, [key]: Number(value) },
+                }))
+              }
+            />
+          ))}
+          <Button
+            disabled={!processingOverride || !settings}
+            onClick={() => run(() => save('processing_tools', processingTools))}
+          >
+            Save processing tools
+          </Button>
+        </fieldset>
         <Button
-          onClick={() => run(() => save('processing_tools', processingTools))}
+          variant="secondary"
+          disabled={settings?.sections.processing_tools.origin !== 'workspace'}
+          onClick={() => run(() => save('processing_tools', null))}
         >
-          Save processing tools
+          Reset processing tools to installed defaults
         </Button>
         <details>
           <summary>Advanced support-file configuration</summary>
@@ -259,36 +337,44 @@ export function Settings({ client, run, appearance }: Props) {
             Interpreter and support trees use versioned tool contracts.
             Executable, hash and resource settings are above.
           </p>
-          <Area
-            label="Advanced media tool contract"
-            value={mediaRaw}
-            onChange={setMediaRaw}
-          />
-          <Button
-            variant="secondary"
-            onClick={() =>
-              run(async () => {
-                await save('media_tools', JSON.parse(mediaRaw));
-              })
-            }
-          >
-            Validate and save advanced media tools
-          </Button>
-          <Area
-            label="Advanced processing tool contract"
-            value={processingRaw}
-            onChange={setProcessingRaw}
-          />
-          <Button
-            variant="secondary"
-            onClick={() =>
-              run(async () => {
-                await save('processing_tools', JSON.parse(processingRaw));
-              })
-            }
-          >
-            Validate and save advanced processing tools
-          </Button>
+          <fieldset disabled={!mediaOverride}>
+            <legend>Explicit media tool contract</legend>
+            <Area
+              label="Advanced media tool contract"
+              value={mediaRaw}
+              onChange={setMediaRaw}
+            />
+            <Button
+              variant="secondary"
+              disabled={!mediaOverride || !settings}
+              onClick={() =>
+                run(async () => {
+                  await save('media_tools', JSON.parse(mediaRaw));
+                })
+              }
+            >
+              Validate and save advanced media tools
+            </Button>
+          </fieldset>
+          <fieldset disabled={!processingOverride}>
+            <legend>Explicit processing tool contract</legend>
+            <Area
+              label="Advanced processing tool contract"
+              value={processingRaw}
+              onChange={setProcessingRaw}
+            />
+            <Button
+              variant="secondary"
+              disabled={!processingOverride || !settings}
+              onClick={() =>
+                run(async () => {
+                  await save('processing_tools', JSON.parse(processingRaw));
+                })
+              }
+            >
+              Validate and save advanced processing tools
+            </Button>
+          </fieldset>
         </details>
       </Card>
       <Card heading="Credentials">

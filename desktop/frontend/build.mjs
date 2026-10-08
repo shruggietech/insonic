@@ -9,6 +9,7 @@ await mkdir(assets, { recursive: true });
 await build({
   entryPoints: [path.join(root, 'src/main.tsx')],
   bundle: true,
+  format: 'iife',
   minify: true,
   target: 'es2022',
   outfile: path.join(assets, 'app.js'),
@@ -29,6 +30,7 @@ if (process.argv.includes('--tests')) {
       path.join(root, 'src/App.tsx'),
       path.join(root, 'src/client.ts'),
       path.join(root, 'src/forms.ts'),
+      path.join(root, 'src/qualification.ts'),
     ],
     bundle: true,
     packages: 'external',

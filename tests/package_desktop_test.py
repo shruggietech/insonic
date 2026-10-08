@@ -7,6 +7,7 @@ import stat
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +17,32 @@ spec.loader.exec_module(package)
 
 
 class NativePackageIntegrityTests(unittest.TestCase):
+    def test_packaged_loader_flags_replace_development_rpaths(self):
+        original = {'CGO_LDFLAGS': '-L/checkout/native -Wl,-rpath,/checkout/native',
+                    'CGO_CFLAGS': '-I/checkout/native', 'CGO_ENABLED': '1'}
+        for platform, loader in [('linux_amd64', '$ORIGIN/native'), ('darwin_arm64', '@loader_path/native')]:
+            flags = package.package_build_environment(original, platform, Path('/installation with spaces/native'))
+            self.assertIn('-rpath,' + loader, flags['CGO_LDFLAGS'])
+            self.assertNotIn('/checkout', flags['CGO_LDFLAGS'])
+        self.assertEqual(original['CGO_LDFLAGS'], '-L/checkout/native -Wl,-rpath,/checkout/native')
+
+    def test_development_library_isolation_restores_after_success_and_failure(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / 'build/native/ladybug'
+            source.mkdir(parents=True)
+            (source / 'library').write_bytes(b'exact original library')
+            with patch.object(package, 'ROOT', root):
+                with package.isolated_development_libraries():
+                    self.assertFalse(source.exists())
+                    self.assertEqual(len(list(source.parent.glob('ladybug-isolated-*'))), 1)
+                with self.assertRaisesRegex(RuntimeError, 'controlled failure'):
+                    with package.isolated_development_libraries():
+                        self.assertFalse(source.exists())
+                        raise RuntimeError('controlled failure')
+            self.assertEqual((source / 'library').read_bytes(), b'exact original library')
+            self.assertFalse(list(source.parent.glob('ladybug-isolated-*')))
+
     def test_extracted_zip_preserves_exact_bytes_and_executable_mode(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

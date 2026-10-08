@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
+import { readFileSync } from 'node:fs';
 import { validateNativeRequest } from './contracts.mjs';
 const dom = new JSDOM(
   '<!doctype html><html><body><div id="root"></div></body></html>',
@@ -29,8 +30,10 @@ const { createRoot } = await import('react-dom/client');
 const { App } = await import('../.test-build/App.js');
 const { appendCapture, Client, StaleResponse, rationalSeconds } =
   await import('../.test-build/client.js');
-const { pipelinePayload, speakerPayload, termPayload } =
+const { pipelinePayload, speakerPayload, termPayload, uuid } =
   await import('../.test-build/forms.js');
+const { runQualificationOnce } =
+  await import('../.test-build/qualification.js');
 const wid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   mid = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const tick = async () => {
@@ -230,6 +233,91 @@ async function fill(label, value) {
     control.dispatchEvent(new Event('change', { bubbles: true }));
   });
 }
+function field(label) {
+  const found = [...document.querySelectorAll('label')].find(
+    (l) => l.textContent === label,
+  );
+  assert.ok(found, `Missing field ${label}`);
+  return document.getElementById(found.htmlFor);
+}
+const mediaToolFixture = (directory) => ({
+  kind: 'media-tools',
+  schema_version: '0.0.0',
+  ffprobe: {
+    path: `${directory}/ffprobe.exe`,
+    sha256: '7'.repeat(64),
+    version: '1',
+  },
+  exiftool: {
+    path: `${directory}/exiftool.exe`,
+    sha256: '8'.repeat(64),
+    version: '1',
+  },
+});
+test('native HTML loads the standalone IIFE as a deferred classic script', () => {
+  const html = readFileSync(
+    new URL('../../index.html', import.meta.url),
+    'utf8',
+  );
+  const page = new JSDOM(html);
+  const script = page.window.document.querySelector(
+    'script[src="/assets/bundle/app.js"]',
+  );
+  assert.ok(script);
+  assert.equal(script.type, '');
+  assert.equal(script.defer, true);
+  const bundle = readFileSync(
+    new URL('../../assets/bundle/app.js', import.meta.url),
+    'utf8',
+  );
+  assert.match(bundle, /^"use strict";\(\(\)=>\{/);
+});
+test('fixture readiness and DOM event start exactly one qualification journey', async () => {
+  let runs = 0,
+    finish;
+  const start = runQualificationOnce(async () => {
+    runs++;
+    await new Promise((resolve) => {
+      finish = resolve;
+    });
+  });
+  const fixturesReady = start(),
+    domReady = start();
+  assert.equal(fixturesReady, domReady);
+  await Promise.resolve();
+  assert.equal(runs, 1);
+  finish();
+  await Promise.all([fixturesReady, domReady]);
+  await start();
+  assert.equal(runs, 1);
+});
+test('opaque native contexts create RFC 4122 v4 identities from cryptographic random bytes', () => {
+  const descriptors = Object.getOwnPropertyDescriptors(crypto);
+  let calls = 0;
+  Object.defineProperty(crypto, 'randomUUID', {
+    configurable: true,
+    value: undefined,
+  });
+  Object.defineProperty(crypto, 'getRandomValues', {
+    configurable: true,
+    value: (bytes) => {
+      calls++;
+      assert.ok(bytes instanceof Uint8Array);
+      assert.equal(bytes.length, 16);
+      return bytes.fill(0xff);
+    },
+  });
+  try {
+    assert.equal(uuid(), 'ffffffff-ffff-4fff-bfff-ffffffffffff');
+    assert.equal(calls, 1);
+  } finally {
+    for (const key of ['randomUUID', 'getRandomValues']) {
+      if (descriptors[key])
+        Object.defineProperty(crypto, key, descriptors[key]);
+      else delete crypto[key];
+    }
+  }
+});
 test('workspace and selection generations reject delayed responses', async () => {
   let resolve;
   const client = new Client({
@@ -949,6 +1037,161 @@ test('settings appearance CAS and credential protected entry keep secrets out of
       .some((c) => JSON.stringify(c).includes('synthetic-test-only')),
     false,
   );
+  await unmount();
+});
+test('effective package tools remain read-only and unchanged saves never persist package paths', async () => {
+  const bridge = mock(),
+    original = bridge.Operate;
+  bridge.Operate = async (request) => {
+    const response = await original(request);
+    if (request.operation === 'settings.show') {
+      response.result.sections.media_tools.value =
+        mediaToolFixture('/package-A');
+      response.result.sections.processing_tools.value = {
+        kind: 'processing-tools',
+        schema_version: '0.0.0',
+        cueson: {
+          executable: '/package-A/cueson.exe',
+          executable_sha256: '9'.repeat(64),
+        },
+        processing: {},
+      };
+    }
+    return response;
+  };
+  await mount(bridge);
+  await click('Settings');
+  assert.match(document.body.textContent, /\/package-A\/ffprobe.exe/);
+  assert.match(document.body.textContent, /\/package-A\/cueson.exe/);
+  assert.equal(field('ffprobe executable path').value, '');
+  assert.equal(field('Cueson executable path').value, '');
+  assert.equal(
+    field('Advanced media tool contract').value.includes('/package-A'),
+    false,
+  );
+  assert.equal(
+    field('Advanced processing tool contract').value.includes('/package-A'),
+    false,
+  );
+  for (const text of [
+    'Save media tools',
+    'Save processing tools',
+    'Validate and save advanced media tools',
+    'Validate and save advanced processing tools',
+  ]) {
+    assert.equal(button(text).disabled, true);
+    await click(text);
+  }
+  assert.equal(
+    bridge.calls.some((c) => c.operation === 'settings.set'),
+    false,
+  );
+  await unmount();
+});
+test('explicit media overrides are intentional and resetting rereads relocated package defaults with CAS', async () => {
+  const bridge = mock(),
+    original = bridge.Operate;
+  let override,
+    relocated = false;
+  bridge.Operate = async (request) => {
+    const response = await original(request);
+    if (
+      request.operation === 'settings.set' &&
+      request.data.section === 'media_tools'
+    ) {
+      override = request.data.value;
+      if (override === null) relocated = true;
+    }
+    if (request.operation === 'settings.show')
+      response.result.sections.media_tools = {
+        origin: override ? 'workspace' : 'package',
+        revision: override ? 'a'.repeat(64) : '1'.repeat(64),
+        value:
+          override ?? mediaToolFixture(relocated ? '/package-B' : '/package-A'),
+      };
+    return response;
+  };
+  await mount(bridge);
+  await click('Settings');
+  await act(async () => field('Edit explicit workspace media tools').click());
+  await tick();
+  assert.equal(field('ffprobe executable path').value, '');
+  for (const [name, hash] of [
+    ['ffprobe', '7'],
+    ['exiftool', '8'],
+  ]) {
+    await fill(`${name} executable path`, `/explicit/${name}.exe`);
+    await fill(`${name} SHA-256`, hash.repeat(64));
+    await fill(`${name} version`, '1');
+  }
+  await click('Save media tools');
+  const saved = bridge.calls.find((c) => c.operation === 'settings.set');
+  assert.deepEqual(saved.data.value, mediaToolFixture('/explicit'));
+  assert.equal(saved.data.revision, '1'.repeat(64));
+  assert.equal(
+    button('Reset media tools to installed defaults').disabled,
+    false,
+  );
+  await click('Reset media tools to installed defaults');
+  const reset = bridge.calls
+    .filter((c) => c.operation === 'settings.set')
+    .at(-1);
+  assert.deepEqual(reset.data, {
+    section: 'media_tools',
+    revision: 'a'.repeat(64),
+    value: null,
+  });
+  assert.equal(field('Edit explicit workspace media tools').checked, false);
+  assert.equal(field('ffprobe executable path').value, '');
+  assert.equal(button('Save media tools').disabled, true);
+  assert.match(document.body.textContent, /\/package-B\/ffprobe.exe/);
+  assert.equal(document.body.textContent.includes('/package-A'), false);
+  await unmount();
+});
+test('processing tool reset uses the observed workspace revision and clears explicit editor paths', async () => {
+  const bridge = mock(),
+    original = bridge.Operate;
+  let explicit = true;
+  bridge.Operate = async (request) => {
+    const response = await original(request);
+    if (
+      request.operation === 'settings.set' &&
+      request.data.section === 'processing_tools'
+    )
+      explicit = false;
+    if (request.operation === 'settings.show')
+      response.result.sections.processing_tools = {
+        origin: explicit ? 'workspace' : 'package',
+        revision: explicit ? 'b'.repeat(64) : '2'.repeat(64),
+        value: {
+          kind: 'processing-tools',
+          schema_version: '0.0.0',
+          cueson: {
+            executable: explicit
+              ? '/explicit/cueson.exe'
+              : '/package-B/cueson.exe',
+            executable_sha256: '9'.repeat(64),
+          },
+          processing: {},
+        },
+      };
+    return response;
+  };
+  await mount(bridge);
+  await click('Settings');
+  assert.equal(field('Cueson executable path').value, '/explicit/cueson.exe');
+  await click('Reset processing tools to installed defaults');
+  assert.deepEqual(
+    bridge.calls.find((c) => c.operation === 'settings.set').data,
+    { section: 'processing_tools', revision: 'b'.repeat(64), value: null },
+  );
+  assert.equal(field('Cueson executable path').value, '');
+  assert.equal(
+    field('Edit explicit workspace processing tools').checked,
+    false,
+  );
+  assert.equal(button('Save processing tools').disabled, true);
+  assert.match(document.body.textContent, /\/package-B\/cueson.exe/);
   await unmount();
 });
 test('core fields have associated labels, navigation is native keyboard focusable, help is offline', async () => {

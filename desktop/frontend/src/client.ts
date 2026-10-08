@@ -26,6 +26,7 @@ export interface NativeBridge {
   Credential(args: string[], input: string): Promise<Response>;
   CompleteSmoke(response: Response): Promise<void>;
   NativeQualificationData?(): Promise<Response>;
+  QualificationStep?(stage: string): Promise<boolean>;
 }
 declare global {
   interface Window {

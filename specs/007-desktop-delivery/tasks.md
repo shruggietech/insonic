@@ -56,7 +56,7 @@ Goal: relocated extracted packages work on each executed OS/architecture.
 - [x] T024 Reconcile capability matrix, authoritative docs and dated packaging decisions in docs/v0.0.0/desktop.md, development.md, technology.md and CHANGELOG.md.
 - [x] T025 Run repository/schema/Node/frontend/Go/race/vet/Python/site/native/package checks and record evidence in specs/007-desktop-delivery/verification.md.
 - [x] T026 Run speckit-converge against all FRs/stories; append and complete any gap tasks in specs/007-desktop-delivery/tasks.md.
-- [ ] T027 Commit, automatically push and publish official PR closing #10; update Project status and attach PR.
+- [x] T027 Commit, automatically push and publish official PR closing #10; update Project status and attach PR.
 - [ ] T028 Address every received review, request at most one second round, confirm exact-head CI and hand off before owner merge.
 
 ## Dependencies and parallel execution
@@ -71,3 +71,10 @@ Deliver workspace/library first, then current configuration/work flows, scoped e
 
 - [x] T029 Revalidate mounted buffered playback through a scoped native ticket check, stop obsolete media and clear cue/mapping selections after external replacement; add rendered and native regressions per FR-009/FR-010 (partial, HIGH).
 - [x] T030 Replace repeated package-smoke CLI polling processes with one bounded shared-runtime wait caller, and qualify timeout/terminal-state behavior per plan: hidden Windows tooling and US4/AC1 (contradicts, HIGH).
+
+## Phase 9: Review closure
+
+- [x] T031 Replace checkout-dependent Unix loader paths with installation-relative loading and isolate checkout libraries during extracted acceptance per FR-012/US4/AC1 (review P1, contradicts).
+- [x] T032 Keep effective installed defaults separate from editable workspace overrides and provide shared revision-checked reset per FR-008/plan: installation-relative defaults (review P2, contradicts).
+- [ ] T033 Qualify Linux webview startup with explicit readiness/progress and include the macOS fixture encoder per SC-002/FR-014 (hosted acceptance, partial).
+- [x] T034 Preserve schema-valid optional FFmpeg settings through save/reload per FR-008 (self-review, partial).

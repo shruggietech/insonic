@@ -2,7 +2,7 @@
 
 Shared runtime Request/Response remains authoritative. New operations use the same version, workspace ID, request ID and typed error envelope, exposed by CLI and native bridge.
 
-- settings.show/set: validated tool configuration, independent section revision CAS; no persisted credential values. Runtime owns atomic writes. Current backend identities remain visible with advanced configuration limitations stated.
+- settings.show/set: validated tool configuration, independent section revision CAS; no persisted credential values. A null value removes the workspace override and restores current installed/unconfigured defaults under the same CAS. Effective package configuration is read-only and never prefilled into explicit override editors. Runtime owns atomic writes/removal. Current backend identities remain visible with advanced configuration limitations stated.
 - recordings.cues: bounded semantic page of current cues/voices, expected recording revision/document digest, exact clock strings and original-source seek seconds. No full document numeric parse or durable assignment copies.
 - media.capture: revision/digest-bound base64 pages of authoritative metadata/facts/dates JSON bytes, capped at 64 KiB per page. Join byte chunks before UTF-8 display; do not parse exact integer timestamps through JavaScript numbers.
 - media.playback/playback-check/playback-close: current media revision and optional recording/document fences, opaque runtime handle, verified materialization/lease, native path/digest/size/MIME. Check renews/touches the handle and rejects relevant replacement. Close releases ephemeral resources. Strict envelope/payload bounds apply.

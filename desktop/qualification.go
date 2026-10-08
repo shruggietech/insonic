@@ -27,6 +27,23 @@ func (b *Bridge) NativeQualificationData() contracts.Response {
 	return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Result: b.qualification}
 }
 
+// QualificationStep emits bounded fixture-only progress, never paths or values.
+// Ordinary sessions cannot activate the diagnostic by calling the bound method.
+func (b *Bridge) QualificationStep(step string) bool {
+	b.mu.RLock()
+	active := b.qualification != nil
+	b.mu.RUnlock()
+	if !active {
+		return false
+	}
+	switch step {
+	case "module", "fixtures", "mounted", "ready", "library-import", "audio-playback", "video-playback", "metadata-date", "assembly", "cue-seek", "terms", "speakers", "pipelines", "jobs", "settings", "keyboard-help", "complete":
+		fmt.Fprintln(os.Stderr, "Desktop qualification stage:", step)
+		return true
+	}
+	return false
+}
+
 // ConfigureQualificationTools supplies source-build companions to a disposable
 // test workspace. Extracted packages must exercise their installed defaults.
 func ConfigureQualificationTools(w *workspace.Workspace) error {
