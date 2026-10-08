@@ -84,8 +84,10 @@ Deliver usable current search first, then integrate timeline/playback, then save
 - [x] T041 Verify the second-round comment-aware function boundary across every supported native dialect, fix misleading SQL test dialects and prove rejected calls never reach the engine in internal/graph/native_comments_test.go and native_test.go.
 - [x] T042 Correct hosted YAML parsing failure and add prepublication YAML syntax/duplicate-key validation and regression coverage in .github/workflows/ci.yml, scripts/check.mjs and tests/check.test.mjs.
 - [x] T043 Update historical schema-3 fixture teardown for schema-6 foreign-key dependencies and pass full PostgreSQL catalog integration acceptance in internal/catalog/evidence_migration_test.go.
-- [ ] T044 Bound native-webview playback startup separately and scroll real media into view without weakening decoded time advancement in desktop/frontend/src/qualification.ts and tests/frontend.test.mjs; requalify in hosted CI.
+- [x] T044 Bound native-webview playback startup separately and scroll real media into view without weakening decoded time advancement in desktop/frontend/src/qualification.ts and tests/frontend.test.mjs; requalify in hosted CI.
 
 - [x] T045 Address Linux mirror download timeout through official HTTPS sources, bounded network retries and targeted dependency installation in .github/workflows/ci.yml; retain all required checks and ten-minute job limits.
 
 - [x] T046 Serialize shared adapter fixtures, bound administrative setup clients and test hosted-only macOS qualification visibility in internal/app/explore_arcade_test.go, internal/graph/arcade_test.go, desktop/qualification.go and qualification_test.go; hosted acceptance remains T033/T044.
+
+- [x] T047 Keep measured Windows CI within ten-minute job budgets by running unchanged core acceptance separately from native/package qualification in .github/workflows/ci.yml; final hosted results remain T033.

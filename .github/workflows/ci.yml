@@ -109,7 +109,7 @@ jobs:
           update: false
           install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-openssl
       - name: Core acceptance
-        if: needs.foundation.outputs.core == 'true'
+        if: needs.foundation.outputs.core == 'true' && runner.os != 'Windows'
         shell: bash
         run: |
           go test ./...
@@ -180,6 +180,30 @@ jobs:
             build/native/*receipt.json
             build/native/package-inventory.json
           if-no-files-found: error
+  core-windows:
+    needs: foundation
+    if: needs.foundation.outputs.core == 'true'
+    name: core (windows-2022)
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Windows native compiler and loader dependencies
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
+        with:
+          msystem: UCRT64
+          update: false
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-openssl
+      - name: Core acceptance
+        shell: bash
+        run: |
+          go test ./...
+          go vet ./...
+          python -m unittest discover -s tests -p '*_test.py'
   adapters:
     needs: foundation
     if: needs.foundation.outputs.adapters == 'true'
