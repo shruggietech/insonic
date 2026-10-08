@@ -50,3 +50,5 @@ Prove CLI/runtime/GUI IPC, Cueson invocation, the Ladybug binding/core pair, SQL
 Target x86-64 and ARM64 where the dependency matrix supports them; record gaps as work to resolve before claiming packages. All three operating systems remain required. Measure cold-start and build time before expanding implementation. Record exact Go, Wails, driver and native pins with the platform evidence.
 
 Qualify the exact dependency contract and artifact digests; version labels alone do not establish compatibility.
+
+Desktop packaging pins Windows/Linux x86-64 and macOS ARM64. The macOS FFmpeg/ffprobe companions build from exact upstream source with automatic external-library discovery and network access disabled; the system VideoToolbox encoder provides non-H.264 previews. Windows/Linux companion inventories retain their exact upstream build/source information and licenses. Public redistribution of GPL-enabled builds requires their complete corresponding source, including enabled external libraries, rather than only the FFmpeg archive. Local package qualification does not establish release signing or public distribution readiness.

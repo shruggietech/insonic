@@ -21,23 +21,28 @@ type worker struct {
 	cancel  context.CancelFunc
 }
 type App struct {
-	recordingFactory func() (*recordingExecution, error)
-	hostedClient     *http.Client // Only injected by deterministic protocol fixtures.
-	Workspace        *workspace.Workspace
-	Session          string
-	Catalog          catalog.Catalog
-	mu               sync.Mutex
-	attempts         map[string]*worker
-	ctx              context.Context
-	cancel           context.CancelFunc
-	wg               sync.WaitGroup
-	closed           bool
-	artifactMu       sync.Mutex
-	Artifacts        *artifact.Service
-	secrets          contracts.SecretProvider
-	secretOwner      *liveSecrets
-	workMu           sync.Mutex
-	workers          map[string]*realWorker
+	recordingFactory  func() (*recordingExecution, error)
+	hostedClient      *http.Client // Only injected by deterministic protocol fixtures.
+	Workspace         *workspace.Workspace
+	Session           string
+	Catalog           catalog.Catalog
+	mu                sync.Mutex
+	attempts          map[string]*worker
+	ctx               context.Context
+	cancel            context.CancelFunc
+	wg                sync.WaitGroup
+	closed            bool
+	artifactMu        sync.Mutex
+	Artifacts         *artifact.Service
+	secrets           contracts.SecretProvider
+	secretOwner       *liveSecrets
+	workMu            sync.Mutex
+	workers           map[string]*realWorker
+	settingsMu        sync.Mutex
+	playbackMu        sync.Mutex
+	playbacks         map[string]*playbackEntry
+	playbackPreparing int
+	playbackPreview   func(context.Context, *playbackEntry, catalog.LibraryEntry) error
 }
 
 const leaseTTL = 5 * time.Second
@@ -79,7 +84,7 @@ func newOwnerContext(ownerContext context.Context, w *workspace.Workspace, secre
 		store.Close()
 		return nil, err
 	}
-	a := &App{Workspace: w, Session: contracts.ID(), Catalog: store, attempts: map[string]*worker{}, workers: map[string]*realWorker{}, ctx: ctx, cancel: cancel, secrets: secrets}
+	a := &App{Workspace: w, Session: contracts.ID(), Catalog: store, attempts: map[string]*worker{}, workers: map[string]*realWorker{}, playbacks: map[string]*playbackEntry{}, ctx: ctx, cancel: cancel, secrets: secrets}
 	if live, ok := secrets.(*liveSecrets); ok {
 		a.secretOwner = live
 	}
@@ -160,6 +165,8 @@ func newOwnerContext(ownerContext context.Context, w *workspace.Workspace, secre
 			}
 		}
 	}()
+	a.wg.Add(1)
+	go a.maintainPlaybacks()
 	return a, nil
 }
 
@@ -266,12 +273,15 @@ func (a *App) Complete(id string, generation int64, state string) bool {
 	return true
 }
 func (a *App) Active() int {
+	a.playbackMu.Lock()
+	playbackCount := len(a.playbacks) + a.playbackPreparing
+	a.playbackMu.Unlock()
 	a.mu.Lock()
 	n := len(a.attempts)
 	a.mu.Unlock()
 	a.workMu.Lock()
 	defer a.workMu.Unlock()
-	return n + len(a.workers)
+	return n + len(a.workers) + playbackCount
 }
 func (a *App) Close() {
 	// In-flight catalog calls can hold mu while waiting on the server. Cancel
@@ -288,6 +298,7 @@ func (a *App) Close() {
 	a.wg.Wait()
 	ctx, stop := context.WithTimeout(context.Background(), 5*time.Second)
 	defer stop()
+	a.closePlaybacks(ctx)
 	a.Catalog.InterruptOwner(ctx, a.Session)
 	a.artifactMu.Lock()
 	if a.Artifacts != nil {
@@ -361,7 +372,9 @@ func (a *App) Dispatch(req contracts.Request) contracts.Response {
 			result, err = a.Catalog.HistoryPage(a.ctx, req.JobID, req.AfterGeneration)
 		}
 	default:
-		if strings.HasPrefix(req.Operation, "credentials.") {
+		if contracts.DesktopOperation(req.Operation) {
+			result, err = a.desktopDispatch(req)
+		} else if strings.HasPrefix(req.Operation, "credentials.") {
 			result, err = a.credentialDispatch(req)
 		} else if configuredOperation(req.Operation) || req.ItemID != "" || len(req.Data) > 0 || req.Operation == "media.list" || req.Operation == "models.list" || req.Operation == "work.list" {
 			result, err = a.domainDispatch(req)

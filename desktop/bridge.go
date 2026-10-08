@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -22,9 +23,15 @@ import (
 var Assets embed.FS
 
 type Bridge struct {
-	Workspace     *workspace.Workspace
-	CLIExecutable string
-	SmokeResult   func(contracts.Response)
+	mu             sync.RWMutex
+	tickets        map[string]playbackTicket
+	playbackOrigin string
+	pick           func(string) (string, error)
+	playbackCall   func(*workspace.Workspace, contracts.Request) contracts.Response
+	qualification  map[string]any
+	Workspace      *workspace.Workspace
+	CLIExecutable  string
+	SmokeResult    func(contracts.Response)
 }
 
 func (b *Bridge) CompleteSmoke(response contracts.Response) {
@@ -42,6 +49,13 @@ func operationContext(operation string) (context.Context, context.CancelFunc) {
 
 // Operate uses the same versioned runtime contract as CLI domain commands.
 func (b *Bridge) Operate(request contracts.Request) contracts.Response {
+	b.mu.RLock()
+	selected := &Bridge{Workspace: b.Workspace, CLIExecutable: b.CLIExecutable}
+	b.mu.RUnlock()
+	return selected.operate(request)
+}
+
+func (b *Bridge) operate(request contracts.Request) contracts.Response {
 	if b.Workspace == nil {
 		return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Error: contracts.Fail("not_found")}
 	}
@@ -90,6 +104,13 @@ func (b *Bridge) failed(e error) contracts.Response {
 // Credential accepts only newly entered input through the native bridge. Saved
 // values never appear in the response. Bootstrap does not require the catalog.
 func (b *Bridge) Credential(args []string, input string) contracts.Response {
+	b.mu.RLock()
+	selected := &Bridge{Workspace: b.Workspace, CLIExecutable: b.CLIExecutable}
+	b.mu.RUnlock()
+	return selected.credential(args, input)
+}
+
+func (b *Bridge) credential(args []string, input string) contracts.Response {
 	if b.Workspace == nil {
 		return b.failed(contracts.Fail("not_found"))
 	}

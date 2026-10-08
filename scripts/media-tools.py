@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import tarfile
 import urllib.request
+import importlib.util
 
 from process_tree import ProcessTree
 
@@ -103,6 +104,22 @@ def tool_identity(path, version_output):
 
 
 def prepare_avtool(name, key, os_name):
+    if key == 'darwin_arm64':
+        spec = importlib.util.spec_from_file_location('source_media', ROOT / 'scripts/build-media-source.py')
+        source_media = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(source_media)
+        directory, receipt, source = source_media.prepare()
+        executable = BUILD / name
+        shutil.copyfile(directory / name, executable)
+        executable.chmod(0o755)
+        notices = BUILD / 'notices'
+        notices.mkdir(exist_ok=True)
+        shutil.copyfile(directory / 'COPYING.LGPLv2.1', notices / 'darwin-arm64.LICENSE')
+        (notices / 'darwin-arm64.README').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
+        (ROOT / 'build/native/media-source-build-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
+        return tool_identity(executable, child([executable, '-version'])), {
+            'name': source.name, 'sha256': source_media.SOURCE_SHA256,
+            'license': 'darwin-arm64.LICENSE', 'readme': 'darwin-arm64.README'}
     selected = LOCK[name]
     pin = selected['assets'][key]
     archive = fetch(pin['name'], selected['base_url'] + pin['name'], pin['sha256'])
@@ -169,7 +186,8 @@ def main():
         env = {'INSONIC_LIBRARY_TOOLS_FILE': str(manifest)}
         if os.name == 'nt' and Path('C:/msys64/ucrt64/bin').is_dir():
             env['PATH'] = 'C:/msys64/ucrt64/bin' + os.pathsep + os.environ['PATH']
-        output = child(['go', 'test', '-count=1', '-v', './internal/library', '-run', 'TestNativeMedia'], env=env)
+        output = child(['go', 'test', '-count=1', '-v', './internal/library', './internal/app',
+                        '-run', 'TestNativeMedia|TestNativeDirectPlaybackNonzeroSourceClock'], env=env)
         print(output.decode(), end='')
         receipt['native_media'] = 'passed'
         (ROOT / 'build/native/media-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')

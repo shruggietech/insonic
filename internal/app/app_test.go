@@ -117,10 +117,25 @@ func TestDisconnectedClientDoesNotOwnWork(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(60 * time.Millisecond)
-	got, err := a.Show(job.JobID)
-	if err != nil || got.State != "succeeded" {
-		t.Fatalf("runtime work: %+v %v", got, err)
+	// Completion includes a durable catalog write, whose latency is independent
+	// of the worker's 20 ms timer. Wait for authority rather than scheduler speed.
+	deadline := time.NewTimer(5 * time.Second)
+	defer deadline.Stop()
+	poll := time.NewTicker(10 * time.Millisecond)
+	defer poll.Stop()
+	for {
+		got, err := a.Show(job.JobID)
+		if err != nil || got.State != "running" && got.State != "succeeded" {
+			t.Fatalf("runtime work: %+v %v", got, err)
+		}
+		if got.State == "succeeded" {
+			break
+		}
+		select {
+		case <-deadline.C:
+			t.Fatalf("runtime work did not persist completion: %+v", got)
+		case <-poll.C:
+		}
 	}
 	a.Close()
 	other := mustNew(t, w)

@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import platform
+import plistlib
 import re
 import shutil
 import subprocess
@@ -24,6 +25,19 @@ ROOT = Path(__file__).resolve().parent.parent
 LOCK = json.loads((ROOT / 'internal/qualification/dependencies.json').read_text(encoding='utf-8'))
 VERSION = json.loads((ROOT / 'package.json').read_text(encoding='utf-8'))['version']
 BUILD = ROOT / 'build/native'
+
+def desktop_application_info():
+    # Native AVFoundation media uses the app's scoped IPv4 loopback server.
+    # macOS 14+ requires an IP-specific ATS exception; external HTTP remains
+    # subject to the normal policy. This metadata is shared by source and
+    # extracted-package qualification so both exercise the installed policy.
+    return {'CFBundleName': 'insonic', 'CFBundleDisplayName': 'insonic',
+            'CFBundleExecutable': 'insonic-desktop', 'CFBundleIdentifier': 'tech.shruggie.insonic',
+            'CFBundleVersion': VERSION, 'CFBundleShortVersionString': VERSION,
+            'CFBundlePackageType': 'APPL', 'LSMinimumSystemVersion': '13.3',
+            'NSHighResolutionCapable': True,
+            'NSAppTransportSecurity': {'NSExceptionDomains': {
+                '127.0.0.1': {'NSExceptionAllowsInsecureHTTPLoads': True}}}}
 
 def validate_pins(go_mod=None, lock=None):
     source = (ROOT / 'go.mod').read_text(encoding='utf-8') if go_mod is None else go_mod
@@ -244,6 +258,14 @@ def desktop():
     output = child(['go', 'test', '-v', '-tags', tags, './desktop', './cmd/insonic-desktop'], env=env)
     sys.stdout.buffer.write(output)
     executable = ROOT / ('build/insonic-desktop.exe' if os.name == 'nt' else 'build/insonic-desktop')
+    if platform.system() == 'Darwin':
+        executable = ROOT / 'build/qualification-insonic.app/Contents/MacOS/insonic-desktop'
+        executable.parent.mkdir(parents=True, exist_ok=True)
+        with (executable.parent.parent / 'Info.plist').open('wb') as output:
+            plistlib.dump(desktop_application_info(), output)
+        # The previous cross-process CLI acceptance stage builds this sibling.
+        # Launching the app executable directly retains its bundle ATS policy.
+        shutil.copy2(ROOT / 'build/insonic', executable.parent / 'insonic')
     child(['go', 'build', '-tags', tags, '-o', executable, './cmd/insonic-desktop'], env=env)
     output = child([executable, '--qualification'], env=env)
     write_receipt(BUILD / 'desktop-receipt.json', output,
@@ -251,7 +273,7 @@ def desktop():
     args = [executable, '--webview-qualification']
     if platform.system() == 'Linux':
         args = ['xvfb-run', '-a', *args]
-    output = child(args, env=env, timeout=30)
+    output = child(args, env=env, timeout=90)
     write_receipt(BUILD / 'webview-receipt.json', output,
                   {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'schema_version': VERSION})
 

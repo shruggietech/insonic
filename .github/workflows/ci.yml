@@ -86,7 +86,7 @@ jobs:
           cache-dependency-path: site/package-lock.json
       - name: Linux webview dependencies
         if: runner.os == 'Linux' && needs.foundation.outputs.native == 'true'
-        run: sudo apt-get update -qq && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev xvfb gnome-keyring dbus-x11
+        run: sudo apt-get update -qq && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav xvfb gnome-keyring dbus-x11
       - name: Windows native compiler and loader dependencies
         if: runner.os == 'Windows' && needs.foundation.outputs.core == 'true'
         uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2
@@ -104,6 +104,14 @@ jobs:
       - name: Pinned native artifacts
         if: needs.foundation.outputs.native == 'true'
         run: python scripts/qualify.py prepare
+      - name: Cache exact macOS media source build
+        if: runner.os == 'macOS' && needs.foundation.outputs.native == 'true'
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: |
+            build/native/source-media
+            build/media-source-pins
+          key: media-source-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('internal/qualification/media-tools.json', 'scripts/build-media-source.py') }}
       - name: Pinned metadata extractors and real media operations
         if: needs.foundation.outputs.core == 'true'
         run: python scripts/media-tools.py
@@ -133,17 +141,26 @@ jobs:
       - name: Build local help and desktop assets
         if: needs.foundation.outputs.native == 'true'
         run: |
+          npm --prefix desktop/frontend ci --ignore-scripts
+          npm --prefix desktop/frontend run check
+          npm --prefix desktop/frontend test
+          npm --prefix desktop/frontend run build
           npm --prefix site ci --ignore-scripts
           npm --prefix site run build
           python scripts/qualify.py assets
       - name: Desktop shared bridge qualification
         if: needs.foundation.outputs.native == 'true'
         run: python scripts/qualify.py desktop
+      - name: Assemble and qualify relocated native GUI-with-CLI package
+        if: needs.foundation.outputs.native == 'true'
+        run: python scripts/package-desktop.py all
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always() && needs.foundation.outputs.core == 'true'
         with:
           name: native-receipts-${{ matrix.os }}-${{ github.sha }}
-          path: build/native/*receipt.json
+          path: |
+            build/native/*receipt.json
+            build/native/package-inventory.json
           if-no-files-found: error
   adapters:
     needs: foundation

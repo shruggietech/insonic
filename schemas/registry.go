@@ -17,6 +17,7 @@ var compiled *jsonschema.Schema
 var requestSchema *jsonschema.Schema
 var processingToolsSchema *jsonschema.Schema
 var pipelineConfigurationSchema *jsonschema.Schema
+var mediaToolsSchema *jsonschema.Schema
 var compileErr error
 
 type offlineLoader struct{}
@@ -71,6 +72,9 @@ func initialize() {
 		if compileErr == nil {
 			pipelineConfigurationSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/pipeline-config.schema.json#/$defs/configuration")
 		}
+		if compileErr == nil {
+			mediaToolsSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/media-tools.schema.json")
+		}
 	})
 }
 
@@ -82,6 +86,11 @@ func ValidateWorkspace(data []byte) error {
 func ValidateRequest(data []byte) error {
 	initialize()
 	return validate(requestSchema, data)
+}
+
+func ValidateMediaTools(data []byte) error {
+	initialize()
+	return validate(mediaToolsSchema, data)
 }
 
 // ValidateDocument validates processing configuration against its master-registered

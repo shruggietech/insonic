@@ -6,6 +6,9 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Native desktop Library, Jobs, Pipelines, Speakers, Terms, Models and Settings controls over the shared runtime, including current recording actions, exact raw capture display, scoped ranged audio/video playback, bounded previews and original-time cue seeking.
+- Installation-relative verified companion discovery and Windows x86-64, Linux x86-64 and macOS ARM64 package builders with relocated CLI/native-webview qualification, offline help, inventories, notices and source/build records. Required checks use committed media and deterministic supplied subtitles/turns without recognition or diarization execution.
+
 - Revisioned Local, Connected and Custom processing pipelines with immutable queued elections, explicit local/hosted worker contracts and configurable automatic quality checks.
 - Stable canonical speaker names and aliases, current library-wide speaker evidence selection and scoped terminology with deterministic bounded recognition hints, through shared CLI/runtime/desktop bridge operations.
 
@@ -61,6 +64,8 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-07: Implement S006 for issues #8 and #9. Catalog schema 5 preserves frozen earlier migrations and adds saved worker definitions, speaker state/aliases and scoped terminology. Replace the unused generic stage-DAG pipeline interchange shape with the implemented recognition/diarization configuration envelope; dedicated GUI controls, general graph capabilities and training remain separate delivery outcomes.
 - 2026-10-07: Freeze local model manifest digests and resolved tools alongside pipeline/context elections. Revalidate digests before model materialization and reject changed audio mappings before diarization reuse. Recompute reused quality from current embedded millisecond assignments with an explicit basis. Context preview and execution share configured hints/language; correlation analysis can be disabled while current-reference integrity remains mandatory.
 - 2026-10-07: Resolve review findings by normalizing the local English recognition default before context election and by comparing speaker selection against all earlier current source evidence across cursor pages. Bind comparisons to the selected evidence epoch and keep assignment arrays solely in current embedded Cue JSON.
+- 2026-10-07: Implement S007 for issue #10 with dedicated desktop controls, current-authority playback tickets and section-scoped revision-checked settings. Preserve advanced CLI access for catalog transfer, profile migration and detailed artifact operations. Packages remain unsigned and unpublished pending release promotion; retain complete corresponding-source distribution as a prerequisite for GPL-enabled binary publication.
+- 2026-10-07: Replace the nonredistributable macOS media artifact with exact-source FFmpeg/ffprobe builds using system VideoToolbox and no GPL/nonfree external libraries. Record executed OS/architecture qualification separately from artifact availability and release readiness.
 - Bind landing hero and page metadata to approved upstream slogan and description fields; expand syntax highlighting for JSON and CLI examples.
 - Support optional validated read-only AI query execution through the configured assistance mode.
 - Subdivide workspace/runtime, catalog/jobs, artifact storage and secrets/model-registry development into four focused slices; renumber the remaining application slices through S015.

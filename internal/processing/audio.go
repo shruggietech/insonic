@@ -86,6 +86,9 @@ func verifyPinned(ctx context.Context, file library.PinnedFile) error {
 	return nil
 }
 
+// VerifyFFmpeg shares the pinned executable contract with native playback.
+func VerifyFFmpeg(ctx context.Context, tool library.Tool) error { return verifyTool(ctx, tool) }
+
 func verifyTool(ctx context.Context, tool library.Tool) error {
 	if tool.Version == "" || tool.Interpreter != nil {
 		return contracts.Fail("unavailable")

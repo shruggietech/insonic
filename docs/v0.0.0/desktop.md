@@ -8,15 +8,23 @@ Advanced or experimental CLI capabilities may ship before their GUI controls. Ea
 
 CLI groups are `workspace`, `media`, `pipelines`, `jobs`, `speakers`, `terms`, `search`, `query`, `export`, `models`, `settings` and `doctor`. Human output is concise; `--json` provides versioned machine-readable records, diagnostics go to stderr, and exit statuses distinguish failure and partial completion. Noninteractive invocations never prompt. Secret entry uses a protected input channel, not command-line values.
 
-The implemented source-buildable clients expose workspace/runtime, catalog,
-artifact, credential, downloaded-model, media-admission, current-recording, saved-pipeline, speaker, terminology and real-work operations.
-The native bridge exposes `Operate` and `Credential` using those same contracts.
-Full media/settings GUI controls follow in the desktop delivery outcome.
-Current recording assembly/processing, inspection, native export and known-speaker mappings use the same `Operate` bridge. Dedicated recording/pipeline/speaker/terminology GUI controls remain pending; core logic and validation are shared. See [subtitles](subtitles.md), [pipelines](pipelines.md), [credential commands](secrets.md), [downloaded models](models.md) and
-[import](ingestion.md) for the executable operations.
+The source-buildable desktop exposes Library, Jobs, Pipelines, Speakers, Terms, Models and Settings screens. The native bridge uses the same workspace/runtime requests and protected credential channel as the CLI. Library details support captured metadata, date corrections, reference relocation, current recording assembly/processing, inspection, rerun, native export and known-speaker mappings. See [subtitles](subtitles.md), [pipelines](pipelines.md), [credential commands](secrets.md), [downloaded models](models.md) and [import](ingestion.md) for shared validation and executable operations.
 
-The following broader product commands are target contracts. Full exploration,
-training and installable GUI workflows require later implementation:
+| Capability | CLI | Desktop |
+| --- | --- | --- |
+| Create/open workspace, import/list/inspect media, metadata/date correction and relocation | Implemented | Dedicated Library controls and native dialogs |
+| Current Cueson assembly, configured processing, rerun, export and speaker mappings | Implemented | Library detail controls and current cues |
+| Saved pipelines and context, speaker identities/aliases/current evidence, terminology | Implemented | Pipelines, Speakers and Terms controls |
+| Durable work inspection, cancellation, retry and recovery | Implemented | Jobs controls; window closure preserves work |
+| Downloaded model register/acquire/list/show/verify/materialize and credentials | Implemented | Models and Settings controls |
+| Media/processing tool configuration and appearance | Shared settings operations | Revision-checked Settings forms |
+| Original/preview playback and current cue/span seeking | Shared playback contracts | Native audio/video controls |
+| Low-level artifact retention/leases, catalog snapshots, profile migration and detailed raw bundles | Advanced commands | Readable profiles; advanced operations remain in the CLI |
+| General text/graph exploration, query assistance and speaker-model training | Delivery contracts | Subsequent implementation |
+
+The matrix describes implemented interfaces, not an official product release. Dedicated profile migration controls follow catalog migration/backup delivery; saving an appearance or tool setting does not replace storage/catalog configuration.
+
+The following examples illustrate the product contracts. General exploration and training require later implementation; consult each capability page for its current executable command syntax:
 
 ```sh
 insonic workspace create --path PATH
@@ -61,7 +69,23 @@ AI query assistance shows proposed read-only queries by default. An explicit `--
 
 Progress distinguishes decoding, model download, inference, subtitle publication and graph indexing. Closing the window does not silently cancel durable jobs. Users can keep work running, pause future work or cancel selected jobs. Runtime restarts show interrupted attempts explicitly and offer resumable work.
 
+Failed or interrupted supplied-turn assembly requires resubmitting its transient inputs through the Library assembly controls. Jobs explains this action; generic retry does not reconstruct unsaved turn inputs. Durable import, processing and model-acquisition work retains its shared retry behavior.
+
 Playback uses the original or a documented preview proxy. Selecting a cue, assertion or graph evidence opens its correlated original-media position. If a referenced original moved, the application asks for relocation and verifies the asset identity before reconnecting it.
+
+Implemented Library playback uses private native tickets scoped to the selected workspace, media revision and current recording/document. The desktop starts a playback-only HTTP transport on 127.0.0.1 with an ephemeral port and closes it on exit. This supports native media engines that cannot consume Wails custom-scheme media. Its handler supports ranged GET/HEAD requests, checks current authority and renews materialization leases during streaming. Host and browser Origin checks limit requests; ticket URLs expose no native paths and the endpoint provides no general-purpose CORS API. The mounted player also checks every five seconds so a replacement from another client stops already buffered playback and clears obsolete cue selections. Closing playback or selecting another workspace releases its handle; a changed original, replacement recording or expired handle requires a fresh request. Files are never served by accepting an arbitrary path from the webview.
+
+Unsupported media and nonzero source clocks receive a bounded temporary WAV or MP4 preview made by the configured hash-verified FFmpeg tools. Original bytes remain immutable. Preview responses identify served and source digests separately and carry the measured difference between original and preview timelines used when seeking. Zero-clock compatible originals play directly. Current cue clocks reach JavaScript as exact decimal strings; raw capture pages retain byte-exact JSON rather than rounding nanosecond integers through JavaScript numbers. Cues and speaker intervals always resolve against current embedded Cueson authority.
+
+## Native package layouts
+
+The package builder creates Windows x86-64 ZIP, Linux x86-64 tar.gz and macOS ARM64 application ZIP layouts. Each includes sibling GUI/CLI executables, pinned Cueson and schema, metadata/media companions, native libraries, offline help, dependency notices and a SHA-256 inventory. Companions are discovered relative to the installed executable and verified before use. An explicit workspace tool configuration takes precedence; malformed configuration reports an error rather than silently falling back. Installation paths are not written into portable workspace settings.
+
+Settings displays effective packaged tools read-only. Selecting “Edit explicit workspace media tools” or “Edit explicit workspace processing tools” opens separate override inputs without copying installation paths. Save remains disabled while editing is off; turning editing off leaves an existing override in place. The matching “Reset … to installed defaults” action removes the override with a revision check and resumes installation-relative discovery. The shared CLI supports the same reset through `settings set --input reset.json`, with a section, its current revision and `"value": null`.
+
+Windows requires WebView2 and the Microsoft Visual C++ runtime. Linux requires GTK 3, WebKitGTK 4.1, Perl and GStreamer base/good/bad/libav decoder packages for webview audio/video playback (`gstreamer1.0-plugins-base`, `gstreamer1.0-plugins-good`, `gstreamer1.0-plugins-bad` and `gstreamer1.0-libav` on Ubuntu). Its installation helper installs the application launcher. The macOS application targets macOS 13.3 or newer. Other architecture combinations have no executed package claim. Local inference Python environments and model weights remain separately configured downloads.
+
+Qualification extracts packages into relocated paths containing spaces and exercises CLI, media import, Cueson, offline help and the actual native webview. Package construction is separate from release publication: these archives are unsigned and not promoted as official downloads. Release delivery must complete signing/notarization and the corresponding-source distribution for GPL-enabled companion builds before publishing binaries.
 
 ## Accessibility and offline help
 
