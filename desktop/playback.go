@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -64,7 +65,7 @@ func decodePlayback(response contracts.Response) (playbackDescriptor, bool) {
 	return result, valid
 }
 
-// Playback mediates a shared runtime handle into a client-scoped same-origin URL.
+// Playback mediates a shared runtime handle into a client-scoped native URL.
 // Paths and cache leases remain native-only and cannot be selected by the browser.
 func (b *Bridge) Playback(mediaID string, revision, recordingRevision int64, documentDigest string) contracts.Response {
 	w := SelectedWorkspace(b)
@@ -123,12 +124,13 @@ func (b *Bridge) Playback(mediaID string, revision, recordingRevision int64, doc
 		return selected.failed(contracts.Fail("input_limit"))
 	}
 	b.tickets[id] = ticket
+	origin := b.playbackOrigin
 	b.mu.Unlock()
 	for _, old := range expired {
 		b.closeTicket(old)
 	}
 	return contracts.Response{Kind: "runtime-response", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID,
-		Result: map[string]any{"url": "/media/" + id, "media_id": mediaID, "revision": descriptor.Revision,
+		Result: map[string]any{"url": origin + "/media/" + id, "media_id": mediaID, "revision": descriptor.Revision,
 			"recording_revision": descriptor.RecordingRevision, "document_digest": descriptor.DocumentDigest,
 			"digest": descriptor.Digest, "size_bytes": descriptor.SizeBytes, "mime_type": descriptor.MIMEType,
 			"source_digest": descriptor.SourceDigest, "source_size_bytes": descriptor.SourceSizeBytes, "timeline_offset_seconds": descriptor.TimelineOffsetSeconds,
@@ -156,8 +158,26 @@ func ticketID(url string) string {
 	return id
 }
 
+// Only this process's transport origin is accepted by native close/check calls.
+func (b *Bridge) playbackID(address string) string {
+	if strings.HasPrefix(address, "/media/") {
+		return ticketID(address)
+	}
+	parsed, err := url.Parse(address)
+	if err != nil || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || parsed.RawPath != "" {
+		return ""
+	}
+	b.mu.RLock()
+	origin := b.playbackOrigin
+	b.mu.RUnlock()
+	if origin == "" || parsed.Scheme+"://"+parsed.Host != origin {
+		return ""
+	}
+	return ticketID(parsed.Path)
+}
+
 func (b *Bridge) ClosePlayback(url string) contracts.Response {
-	id := ticketID(url)
+	id := b.playbackID(url)
 	if id == "" {
 		return (&Bridge{}).failed(contracts.Fail("invalid_request"))
 	}
@@ -187,7 +207,7 @@ type PlaybackServer struct{ Bridge *Bridge }
 // VerifyPlayback lets a mounted media element revoke already buffered bytes
 // after another client replaces current evidence. Runtime authority stays shared.
 func (b *Bridge) VerifyPlayback(url string) contracts.Response {
-	id := ticketID(url)
+	id := b.playbackID(url)
 	if id == "" {
 		return (&Bridge{}).failed(contracts.Fail("invalid_request"))
 	}

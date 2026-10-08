@@ -78,3 +78,5 @@ Deliver workspace/library first, then current configuration/work flows, scoped e
 - [x] T032 Keep effective installed defaults separate from editable workspace overrides and provide shared revision-checked reset per FR-008/plan: installation-relative defaults (review P2, contradicts).
 - [ ] T033 Qualify Linux webview startup with explicit readiness/progress and include the macOS fixture encoder per SC-002/FR-014 (hosted acceptance, partial).
 - [x] T034 Preserve schema-valid optional FFmpeg settings through save/reload per FR-008 (self-review, partial).
+- [x] T035 Load the authoritative persisted credential backend in Settings without changing it on reopen per FR-008 (second-round review P2, contradicts).
+- [ ] T036 Replace unsupported native custom-scheme media streaming with process-scoped loopback ranges, validate authority and shutdown, and qualify all platform players per FR-009/SC-002 (hosted acceptance, partial).

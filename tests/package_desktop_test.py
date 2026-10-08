@@ -17,6 +17,13 @@ spec.loader.exec_module(package)
 
 
 class NativePackageIntegrityTests(unittest.TestCase):
+    def test_macos_app_transport_exception_is_only_its_loopback_media_host(self):
+        info = package.qualify.desktop_application_info()
+        self.assertEqual(info['CFBundleExecutable'], 'insonic-desktop')
+        self.assertEqual(info['LSMinimumSystemVersion'], '13.3')
+        self.assertEqual(info['NSAppTransportSecurity'], {'NSExceptionDomains': {
+            '127.0.0.1': {'NSExceptionAllowsInsecureHTTPLoads': True}}})
+
     def test_packaged_loader_flags_replace_development_rpaths(self):
         original = {'CGO_LDFLAGS': '-L/checkout/native -Wl,-rpath,/checkout/native',
                     'CGO_CFLAGS': '-I/checkout/native', 'CGO_ENABLED': '1'}

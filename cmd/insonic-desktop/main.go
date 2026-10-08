@@ -35,6 +35,12 @@ func run() int {
 		return 0
 	}
 	bridge := &desktop.Bridge{CLIExecutable: desktop.SiblingCLI()}
+	closePlayback, err := desktop.StartPlaybackTransport(bridge)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Desktop playback transport unavailable.")
+		return 1
+	}
+	defer closePlayback()
 	smoke := len(os.Args) == 2 && os.Args[1] == "--webview-qualification"
 	var startup func(context.Context)
 	var domReady func(context.Context)

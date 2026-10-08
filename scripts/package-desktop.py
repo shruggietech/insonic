@@ -367,11 +367,7 @@ def build():
         root = target / 'insonic.app/Contents/MacOS'
         root.mkdir(parents=True)
         with (root.parent / 'Info.plist').open('wb') as output:
-            plistlib.dump({'CFBundleName': 'insonic', 'CFBundleDisplayName': 'insonic',
-                          'CFBundleExecutable': 'insonic-desktop', 'CFBundleIdentifier': 'tech.shruggie.insonic',
-                          'CFBundleVersion': VERSION, 'CFBundleShortVersionString': VERSION,
-                          'CFBundlePackageType': 'APPL', 'LSMinimumSystemVersion': '13.3',
-                          'NSHighResolutionCapable': True}, output)
+            plistlib.dump(qualify.desktop_application_info(), output)
     else:
         root.mkdir(parents=True)
     (root / 'native').mkdir()

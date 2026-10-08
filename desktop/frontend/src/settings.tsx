@@ -70,7 +70,7 @@ export function Settings({ client, run, appearance }: Props) {
   const [credentialID, setCredentialID] = useState(''),
     [secret, setSecret] = useState(''),
     [passphrase, setPassphrase] = useState(''),
-    [backend, setBackend] = useState('native'),
+    [backend, setBackend] = useState(''),
     [credentialState, setCredentialState] = useState<Obj>();
   const [models, setModels] = useState<Obj>({ items: [] }),
     [model, setModel] = useState<Obj>(),
@@ -87,6 +87,11 @@ export function Settings({ client, run, appearance }: Props) {
   const load = async () => {
     const s = await client.call('settings.show');
     setSettings(s);
+    setBackend(
+      ['native', 'vault', 'session'].includes(s.credentials?.backend)
+        ? s.credentials.backend
+        : '',
+    );
     const mediaExplicit = s.sections.media_tools.origin !== 'package';
     const processingExplicit = s.sections.processing_tools.origin !== 'package';
     const media = mediaExplicit ? (s.sections.media_tools.value ?? {}) : {};
@@ -137,6 +142,11 @@ export function Settings({ client, run, appearance }: Props) {
   };
   const credentials = async (action: string) => {
     if (
+      action === 'select' &&
+      (!settings || !backend || backend === settings.credentials?.backend)
+    )
+      return;
+    if (
       !credentialID &&
       ['add', 'replace', 'delete', 'status'].includes(action)
     )
@@ -158,6 +168,7 @@ export function Settings({ client, run, appearance }: Props) {
           ),
         ),
       );
+      if (action === 'select') await load();
     } finally {
       setSecret('');
       setPassphrase('');
@@ -386,10 +397,18 @@ export function Settings({ client, run, appearance }: Props) {
           label="Credential backend"
           value={backend}
           onChange={setBackend}
-          options={['native', 'vault', 'session']}
+          options={[
+            { value: '', label: 'Read saved selection first' },
+            'native',
+            'vault',
+            'session',
+          ]}
         />
         <Button
           variant="secondary"
+          disabled={
+            !settings || !backend || backend === settings.credentials?.backend
+          }
           onClick={() => run(() => credentials('select'))}
         >
           Select credential backend

@@ -23,14 +23,15 @@ import (
 var Assets embed.FS
 
 type Bridge struct {
-	mu            sync.RWMutex
-	tickets       map[string]playbackTicket
-	pick          func(string) (string, error)
-	playbackCall  func(*workspace.Workspace, contracts.Request) contracts.Response
-	qualification map[string]any
-	Workspace     *workspace.Workspace
-	CLIExecutable string
-	SmokeResult   func(contracts.Response)
+	mu             sync.RWMutex
+	tickets        map[string]playbackTicket
+	playbackOrigin string
+	pick           func(string) (string, error)
+	playbackCall   func(*workspace.Workspace, contracts.Request) contracts.Response
+	qualification  map[string]any
+	Workspace      *workspace.Workspace
+	CLIExecutable  string
+	SmokeResult    func(contracts.Response)
 }
 
 func (b *Bridge) CompleteSmoke(response contracts.Response) {

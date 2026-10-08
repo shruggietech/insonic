@@ -21,6 +21,7 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/library"
+	"github.com/shruggietech/insonic/internal/secrets"
 	"github.com/shruggietech/insonic/internal/subtitles"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"github.com/shruggietech/insonic/schemas"
@@ -561,6 +562,16 @@ func ValidateSetting(section string, raw []byte) error {
 func (a *App) settingsShow() (any, error) {
 	a.settingsMu.Lock()
 	defer a.settingsMu.Unlock()
+	// Serialize readback with credential selection. Reading the persisted mode
+	// neither accesses values nor replaces the live unlocked manager.
+	if a.secretOwner != nil {
+		a.secretOwner.mu.RLock()
+		defer a.secretOwner.mu.RUnlock()
+	}
+	backend, err := secrets.ReadSelection(a.Workspace)
+	if err != nil {
+		return nil, err
+	}
 	sections := map[string]any{}
 	for _, section := range []string{"media_tools", "processing_tools", "appearance"} {
 		value, e := a.settingSection(section)
@@ -577,7 +588,7 @@ func (a *App) settingsShow() (any, error) {
 		}
 		sections[section] = value
 	}
-	return map[string]any{"sections": sections, "profiles": a.Workspace.Config.Profiles, "profile_configuration": "Backend configuration is readable here. Switching an existing workspace backend requires migration; use the advanced catalog configuration workflow."}, nil
+	return map[string]any{"sections": sections, "credentials": map[string]any{"backend": backend}, "profiles": a.Workspace.Config.Profiles, "profile_configuration": "Backend configuration is readable here. Switching an existing workspace backend requires migration; use the advanced catalog configuration workflow."}, nil
 }
 func (a *App) settingsSet(req contracts.Request) (any, error) {
 	var input struct {

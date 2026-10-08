@@ -32,7 +32,7 @@ const { appendCapture, Client, StaleResponse, rationalSeconds } =
   await import('../.test-build/client.js');
 const { pipelinePayload, speakerPayload, termPayload, uuid } =
   await import('../.test-build/forms.js');
-const { runQualificationOnce } =
+const { runQualificationOnce, mediaDiagnostics } =
   await import('../.test-build/qualification.js');
 const wid = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   mid = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
@@ -177,6 +177,7 @@ function mock() {
             catalog: { adapter: 'sqlite' },
             graph: { adapter: 'ladybug' },
           },
+          credentials: { backend: 'native' },
         };
       if (request.operation === 'work.list')
         result.items = [
@@ -290,6 +291,32 @@ test('fixture readiness and DOM event start exactly one qualification journey', 
   await Promise.all([fixturesReady, domReady]);
   await start();
   assert.equal(runs, 1);
+});
+test('qualification media diagnostics distinguish transport and decode states without URLs or browser error text', () => {
+  const diagnostic = mediaDiagnostics({
+    readyState: 0,
+    networkState: 3,
+    duration: NaN,
+    buffered: { length: 0 },
+    error: { code: 4, message: 'Forbidden private source URL /do-not-log' },
+    currentSrc: 'wails://private-source/do-not-log',
+  });
+  assert.equal(
+    diagnostic,
+    'readyState=0,networkState=3,error=4(unsupported-source),buffered=0,duration=unavailable',
+  );
+  assert.equal(diagnostic.includes('do-not-log'), false);
+  assert.match(
+    mediaDiagnostics({
+      readyState: 1,
+      networkState: 2,
+      duration: 3,
+      buffered: { length: 1 },
+      error: { code: 3 },
+    }),
+    /error=3\(decode\).*duration=positive/,
+  );
+  assert.equal(mediaDiagnostics(null), 'media-element=missing');
 });
 test('opaque native contexts create RFC 4122 v4 identities from cryptographic random bytes', () => {
   const descriptors = Object.getOwnPropertyDescriptors(crypto);
@@ -1035,6 +1062,67 @@ test('settings appearance CAS and credential protected entry keep secrets out of
     bridge.calls
       .filter((c) => c.operation !== 'Credential')
       .some((c) => JSON.stringify(c).includes('synthetic-test-only')),
+    false,
+  );
+  await unmount();
+});
+test('reopened vault and session selections remain authoritative until an explicit backend change', async () => {
+  for (const selected of ['vault', 'session']) {
+    const bridge = mock(),
+      original = bridge.Operate;
+    let persisted = selected;
+    bridge.Operate = async (request) => {
+      const response = await original(request);
+      if (request.operation === 'settings.show')
+        response.result.credentials = { backend: persisted };
+      return response;
+    };
+    bridge.Credential = async (args, input) => {
+      bridge.calls.push({ operation: 'Credential', args, input });
+      if (args[0] === 'select') persisted = args[1];
+      return { result: { state: 'configured' } };
+    };
+    await mount(bridge);
+    await click('Settings');
+    assert.equal(field('Credential backend').value, selected);
+    assert.equal(button('Select credential backend').disabled, true);
+    await click('Select credential backend');
+    await click('Library');
+    await click('Settings');
+    assert.equal(field('Credential backend').value, selected);
+    assert.equal(
+      bridge.calls.some((c) => c.operation === 'Credential'),
+      false,
+    );
+    await fill('Credential backend', 'native');
+    assert.equal(button('Select credential backend').disabled, false);
+    await click('Select credential backend');
+    assert.deepEqual(
+      bridge.calls.find((c) => c.operation === 'Credential').args,
+      ['select', 'native'],
+    );
+    assert.equal(field('Credential backend').value, persisted);
+    assert.equal(button('Select credential backend').disabled, true);
+    await unmount();
+  }
+});
+test('failed authoritative settings reads never guess or submit a credential backend', async () => {
+  const bridge = mock(),
+    original = bridge.Operate;
+  bridge.Operate = (request) =>
+    request.operation === 'settings.show'
+      ? Promise.resolve({
+          workspace_id: wid,
+          error: { code: 'unavailable', message: 'Selection unavailable.' },
+        })
+      : original(request);
+  await mount(bridge);
+  await click('Settings');
+  assert.equal(field('Credential backend').value, '');
+  assert.equal(button('Select credential backend').disabled, true);
+  await click('Select credential backend');
+  assert.equal(
+    bridge.calls.some((c) => c.operation === 'Credential'),
     false,
   );
   await unmount();

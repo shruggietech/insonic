@@ -6,6 +6,14 @@ export function runQualificationOnce(
   let pending: Promise<void> | undefined;
   return () => (pending ??= Promise.resolve().then(run));
 }
+export function mediaDiagnostics(media: HTMLMediaElement | null): string {
+  if (!media) return 'media-element=missing';
+  const errors = ['none', 'aborted', 'network', 'decode', 'unsupported-source'];
+  const code = media.error?.code ?? 0;
+  // Browser error messages and currentSrc can contain source URLs. Report
+  // only bounded numeric state and known error categories during qualification.
+  return `readyState=${media.readyState},networkState=${media.networkState},error=${code}(${errors[code] ?? 'unknown'}),buffered=${media.buffered.length},duration=${Number.isFinite(media.duration) && media.duration > 0 ? 'positive' : 'unavailable'}`;
+}
 // Runs only during the explicit native qualification mode. Every write below
 // goes through the same mounted controls and shared operations as ordinary use.
 export async function qualifyDesktop(bridge: NativeBridge): Promise<Obj> {
@@ -46,7 +54,7 @@ async function qualifyJourney(
   };
   const wait = async (
     condition: () => boolean | Promise<boolean>,
-    message: string,
+    message: string | (() => string),
     timeout = 25000,
   ) => {
     const deadline = Date.now() + timeout;
@@ -54,7 +62,7 @@ async function qualifyJourney(
       if (await condition()) return;
       await new Promise((resolve) => setTimeout(resolve, 40));
     }
-    throw new Error(message);
+    throw new Error(typeof message === 'function' ? message() : message);
   };
   const idle = async () => {
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -150,22 +158,39 @@ async function qualifyJourney(
     await bridge.QualificationStep?.(`${kind}-playback`);
     await click('Play original');
     stage(`Wait for ${kind} playback metadata`);
-    await wait(() => {
-      const media = document.querySelector(
+    const playbackElement = () =>
+      document.querySelector(
         kind === 'video' ? 'video' : 'audio',
       ) as HTMLMediaElement | null;
-      return !!media && media.readyState >= 1 && media.duration > 0;
-    }, `${kind} playback metadata unavailable.`);
+    await wait(
+      () => {
+        const media = playbackElement();
+        if (media?.error)
+          throw new Error(
+            `${kind} playback rejected: ${mediaDiagnostics(media)}.`,
+          );
+        return !!media && media.readyState >= 1 && media.duration > 0;
+      },
+      () =>
+        `${kind} playback metadata unavailable: ${mediaDiagnostics(playbackElement())}.`,
+    );
     const element = document.querySelector(
       kind === 'video' ? 'video' : 'audio',
     ) as HTMLMediaElement;
     element.muted = true;
     const before = element.currentTime;
     stage(`Decode and play ${kind}`);
-    await element.play();
+    try {
+      await element.play();
+    } catch (error) {
+      throw new Error(
+        `${kind} play() rejected (${error instanceof DOMException ? error.name : 'operation-failed'}): ${mediaDiagnostics(element)}.`,
+      );
+    }
     await wait(
       () => element.currentTime > before + 0.05,
-      `${kind} decoding/playback did not advance.`,
+      () =>
+        `${kind} decoding/playback did not advance: ${mediaDiagnostics(element)}.`,
       8000,
     );
     element.pause();
