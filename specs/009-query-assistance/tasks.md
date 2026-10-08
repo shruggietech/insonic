@@ -44,7 +44,7 @@ Independent check: configuration survives restart, complete proposal adopts with
 - [x] T017 Run npm check/test, Go acceptance/vet/affected race, frontend check/test/build, Python tests and site/offline/native qualification; record verification.md.
 - [x] T018 Execute speckit-converge across 12 FRs, five SCs, nine story scenarios, nine decisions and all constitution principles; implement appended gaps.
 - [x] T019 Commit/push verified feature branch, publish/attach official PR closing #13 and move Project status to In review.
-- [ ] T020 Resolve/reply every initial review; request only one additional code/security review round and address/resolve every finding.
+- [x] T020 Resolve/reply every initial review; request only one additional code/security review round and address/resolve every finding.
 - [ ] T021 Verify final exact-head green hosted checks below ten minutes per job and hand off for owner final squash merge without merging/tagging/releasing.
 
 ## Dependencies and execution
@@ -64,3 +64,7 @@ Setup -> foundation -> US1 -> US2 -> US3 -> delivery. Test tasks precede impleme
 ## Phase 9: Final review remediation
 
 - [x] T026 Share and deduct one aggregate query budget across probing/context and validation/execution; verify valid phases and exhaustion without charging provider time in internal/app/assistance.go/test and docs/v0.0.0/graph.md per FR-008 and D06 (review P2).
+
+## Phase 10: Hosted qualification remediation
+
+- [x] T027 Reset Library media elements for every new verified playback ticket to prevent old-resource readiness from racing source seeks; add a red/green rendered regression and bounded numeric seek diagnostics for repeated macOS hosted qualification failure.

@@ -80,6 +80,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Reset Library playback media state for each verified ticket before seeking newly loaded source metadata.
+
 - Preserve large generated integer parameters through desktop JSON with exact decimal-string transport and real native integer binding. Legacy numeric parameter inputs remain supported.
 
 - Reconcile durable acknowledgement receipts after ownership expires; validate restored checkpoints against accepted acknowledgements, reject scalar coercion, and restore large catalog exports without an asymmetric file-size limit.

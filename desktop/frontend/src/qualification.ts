@@ -256,7 +256,10 @@ async function qualifyJourney(
           audio.readyState >= 1 &&
           Math.abs(audio.currentTime - 2.5) < 0.02
         );
-      }, 'Speaker span seek did not reach 2.5 source seconds.');
+      }, () => {
+        const audio = document.querySelector('audio');
+        return `Speaker span seek did not reach 2.5 source seconds: time=${audio?.currentTime ?? 'missing'},` + mediaDiagnostics(audio);
+      });
       flags.ui_cue_seek = 'passed';
     }
   }

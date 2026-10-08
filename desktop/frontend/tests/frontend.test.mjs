@@ -1407,3 +1407,25 @@ test('native qualification bounds a webview play promise that never settles', as
   await assert.rejects(qualificationPlay({play:()=>new Promise(()=>{})},5),error=>error.name==='TimeoutError');
   await qualificationPlay({play:async()=>{}},5);
 });
+
+test('library playback tickets reset media readiness before applying a new source seek', async () => {
+  const bridge = mock();
+  let ticket = 0;
+  bridge.Playback = async () => ({result:{url:`/media/ticket-${++ticket}`,mime_type:'audio/wav'}});
+  await mount(bridge);
+  await click('Open Committed speech');
+  await click('Seek 1250 ms');
+  const old = document.querySelector('audio');
+  Object.defineProperty(old, 'readyState', {value:1});
+  await act(async () => old.dispatchEvent(new Event('loadedmetadata', {bubbles:true})));
+  assert.equal(old.currentTime, 1.25);
+  await click('Seek 1250 ms');
+  const fresh = document.querySelector('audio');
+  try {
+  assert.notEqual(fresh, old, 'a new ticket must not retain the old resource readiness');
+  assert.equal(fresh.readyState, 0);
+  assert.equal(fresh.currentTime, 0);
+  await act(async () => fresh.dispatchEvent(new Event('loadedmetadata', {bubbles:true})));
+  assert.equal(fresh.currentTime, 1.25);
+  } finally { await unmount(); }
+});
