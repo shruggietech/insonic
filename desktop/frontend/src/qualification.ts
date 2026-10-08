@@ -14,6 +14,16 @@ export function mediaDiagnostics(media: HTMLMediaElement | null): string {
   // only bounded numeric state and known error categories during qualification.
   return `readyState=${media.readyState},networkState=${media.networkState},error=${code}(${errors[code] ?? 'unknown'}),buffered=${media.buffered.length},duration=${Number.isFinite(media.duration) && media.duration > 0 ? 'positive' : 'unavailable'}`;
 }
+// A webview may leave play() pending while media is outside its viewport.
+// Bound startup separately so failed decode produces diagnostics before quit.
+export async function qualificationPlay(media: HTMLMediaElement, timeout = 8000): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([media.play(), new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new DOMException('Playback startup timed out.', 'TimeoutError')), timeout);
+    })]);
+  } finally { if (timer !== undefined) clearTimeout(timer); }
+}
 // Runs only during the explicit native qualification mode. Every write below
 // goes through the same mounted controls and shared operations as ordinary use.
 export async function qualifyDesktop(bridge: NativeBridge): Promise<Obj> {
@@ -178,10 +188,12 @@ async function qualifyJourney(
       kind === 'video' ? 'video' : 'audio',
     ) as HTMLMediaElement;
     element.muted = true;
+    element.scrollIntoView({block:'center'});
+    await idle();
     const before = element.currentTime;
     stage(`Decode and play ${kind}`);
     try {
-      await element.play();
+      await qualificationPlay(element);
     } catch (error) {
       throw new Error(
         `${kind} play() rejected (${error instanceof DOMException ? error.name : 'operation-failed'}): ${mediaDiagnostics(element)}.`,

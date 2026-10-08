@@ -83,3 +83,7 @@ Deliver usable current search first, then integrate timeline/playback, then save
 - [x] T040 Correct all four initial review findings and verify lifecycle, independent snapshot budget/paged reads, native output parity and complete saved-query edits in internal/app/explore_lifecycle_test.go, internal/catalog/explore_snapshot_limit_test.go, internal/graph/query_limits_test.go and desktop/frontend/tests/explore.test.mjs.
 - [x] T041 Verify the second-round comment-aware function boundary across every supported native dialect, fix misleading SQL test dialects and prove rejected calls never reach the engine in internal/graph/native_comments_test.go and native_test.go.
 - [x] T042 Correct hosted YAML parsing failure and add prepublication YAML syntax/duplicate-key validation and regression coverage in .github/workflows/ci.yml, scripts/check.mjs and tests/check.test.mjs.
+- [x] T043 Update historical schema-3 fixture teardown for schema-6 foreign-key dependencies and pass full PostgreSQL catalog integration acceptance in internal/catalog/evidence_migration_test.go.
+- [ ] T044 Bound native-webview playback startup separately and scroll real media into view without weakening decoded time advancement in desktop/frontend/src/qualification.ts and tests/frontend.test.mjs; requalify in hosted CI.
+
+- [x] T045 Address Linux mirror download timeout through official HTTPS sources, bounded network retries and targeted dependency installation in .github/workflows/ci.yml; retain all required checks and ten-minute job limits.

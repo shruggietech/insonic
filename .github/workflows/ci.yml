@@ -86,7 +86,21 @@ jobs:
           cache-dependency-path: site/package-lock.json
       - name: Linux webview dependencies
         if: runner.os == 'Linux' && needs.foundation.outputs.native == 'true'
-        run: sudo apt-get update -qq && sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav xvfb gnome-keyring dbus-x11
+        run: |
+          # The runner's Azure HTTP mirror can consume the complete job budget.
+          # Preserve suites/components/signatures while using Ubuntu HTTPS.
+          sudo python3 - <<'PY'
+          from pathlib import Path
+          import re
+          for path in [Path('/etc/apt/sources.list'), *Path('/etc/apt/sources.list.d').glob('*.sources'), *Path('/etc/apt/sources.list.d').glob('*.list')]:
+              if path.is_file():
+                  original = path.read_text()
+                  updated = re.sub(r'https?://azure[.]archive[.]ubuntu[.]com/ubuntu', 'https://archive.ubuntu.com/ubuntu', original)
+                  if updated != original:
+                      path.write_text(updated)
+          PY
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15 update -qq
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15 install -y --no-install-recommends libgtk-3-dev libwebkit2gtk-4.1-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav xvfb gnome-keyring dbus-x11
       - name: Windows native compiler and loader dependencies
         if: runner.os == 'Windows' && needs.foundation.outputs.core == 'true'
         uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2

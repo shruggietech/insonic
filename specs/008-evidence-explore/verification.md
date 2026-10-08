@@ -51,3 +51,10 @@ The second manual code review completed on 1d8b1c4 with one comment about commen
 ### Hosted workflow correction
 
 The first hosted runs failed before creating jobs because the Windows decoder command used an unquoted colon/space in a YAML plain scalar. Converted it to a block scalar. Repository integrity now parses project YAML with checksum-locked yaml 2.9.1, and a regression catches that exact command plus duplicate keys. This adds syntax integrity without relaxing or extending the ten-minute job budgets. Reviews are complete; hosted exact-head acceptance remains pending.
+
+Hosted adapter acceptance exposed a historical test setup still retaining schema-6 tables while recreating schema 3. The fixture now drops graph_layout, saved_query and current_extraction before their referenced older tables. Full local PostgreSQL integration acceptance (including populated historical migration, proof forgery, saved/layout restore and all catalog tests) passes in 26 seconds. Production migration behavior and integrity assertions are unchanged.
+
+The macOS mounted journey reached video playback and then the whole-window deadline, without a stage failure response. Media playback now scrolls the element into the viewport and bounds the real play() promise separately; it still requires decoded time advancement. A never-settling-promise regression ensures diagnostics return before the global window deadline. Hosted macOS requalification is required to establish the result.
+
+
+Windows hosted relocated-package acceptance passed (9m56s) on ba3b878. Linux exhausted its ten-minute budget during Azure HTTP mirror downloads before any product checks ran. The Linux dependency step preserves every declared package and APT signature verification, switches Azure Ubuntu sources to the official HTTPS archive, bounds connection waits/retries and omits unrelated recommended packages. Hosted checks must rerun on the correction head; no job budget was raised.
