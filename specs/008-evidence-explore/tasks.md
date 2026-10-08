@@ -59,7 +59,7 @@ Independent test: Save/revise/restart/conflict/backend switch and graph/table ex
 - [x] T029 Run npm check/test, Go acceptance/vet/race, frontend checks and site/offline build; record evidence in specs/008-evidence-explore/verification.md.
 - [x] T030 Run speckit-converge against all FRs/SCs/stories/design decisions; append and implement gap tasks in specs/008-evidence-explore/tasks.md.
 - [x] T031 Push verified branch, publish/attach official PR closing #11/#12 and update Project tracking; record URL in specs/008-evidence-explore/verification.md.
-- [ ] T032 Address/reply/resolve every initial bot finding and reaction; request at most one additional review round; record rounds in specs/008-evidence-explore/verification.md.
+- [x] T032 Address/reply/resolve every initial bot finding and reaction; request at most one additional review round; record rounds in specs/008-evidence-explore/verification.md.
 - [ ] T033 Address/reply/resolve second-round findings and verify final exact-head green CI without triggering a third review in specs/008-evidence-explore/verification.md.
 - [ ] T034 Hand off completed reviewed PR for owner final review/merge; preserve release/signing boundary in specs/008-evidence-explore/verification.md.
 
@@ -81,3 +81,4 @@ Deliver usable current search first, then integrate timeline/playback, then save
 ## Phase 8: Review corrections
 
 - [x] T040 Correct all four initial review findings and verify lifecycle, independent snapshot budget/paged reads, native output parity and complete saved-query edits in internal/app/explore_lifecycle_test.go, internal/catalog/explore_snapshot_limit_test.go, internal/graph/query_limits_test.go and desktop/frontend/tests/explore.test.mjs.
+- [x] T041 Verify the second-round comment-aware function boundary across every supported native dialect, fix misleading SQL test dialects and prove rejected calls never reach the engine in internal/graph/native_comments_test.go and native_test.go.
