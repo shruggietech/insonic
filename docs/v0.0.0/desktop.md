@@ -21,11 +21,12 @@ The source-buildable desktop exposes Library, Jobs, Pipelines, Speakers, Terms, 
 | Original/preview playback and current cue/span seeking | Shared playback contracts | Native audio/video controls |
 | Low-level artifact retention/leases, catalog snapshots, profile migration and detailed raw bundles | Advanced commands | Readable profiles; advanced operations remain in the CLI |
 | Text/graph queries, current evidence extraction, calendars, recording timelines, saved definitions/layouts | Implemented | Explore controls, source playback, force graph and accessible tables |
-| Query assistance and speaker-model training | Delivery contracts | Subsequent implementation |
+| Optional query assistance | Shared elected HTTP provider and validated current queries | Explore configuration, prompt, suggestion/edit/run/save and explicit auto-run |
+| Speaker-model training | Delivery contract | Subsequent implementation |
 
 The matrix describes implemented interfaces, not an official product release. Dedicated profile migration controls follow catalog migration/backup delivery; saving an appearance or tool setting does not replace storage/catalog configuration.
 
-The following examples illustrate the product contracts. General exploration and training require later implementation; consult each capability page for its current executable command syntax:
+The following examples illustrate the product contracts. Training requires later implementation; consult each capability page for its current executable command syntax:
 
 ```sh
 insonic workspace create --path PATH
@@ -66,7 +67,7 @@ Selecting a preset and its routing preferences authorizes its routine operations
 
 The Library supports audio and video in the same list with import/indexing state. Media details contain playback, captured metadata, date provenance, transcript tracks, speaker intervals, related derivatives and processing history. Raw metadata remains inspectable beside normalized facts. Jobs show current stage, elapsed time and the next useful action on failure. Speakers and Terms expose the catalogs without requiring schema knowledge; speaker details include source-linked audio corpora and revisions. Explore contains text search, the calendar/media timeline and saved graph queries. Settings contains workspaces, storage/catalog/graph adapters, model storage, providers and pipeline presets.
 
-AI query assistance shows proposed read-only queries by default. An explicit `--run-if-valid` option or saved auto-run preference can execute suggestions after parsing, read-only validation and configured limits. This preference avoids repeated confirmation while retaining direct queries when assistance is disabled. Invalid or unsupported suggestions report their error without execution.
+AI query assistance shows proposed read-only queries by default. An explicit `mode: "auto-run"` request or saved auto-run preference can execute suggestions after parsing, read-only validation and configured limits. This preference avoids repeated confirmation while retaining direct queries when assistance is disabled. Invalid or unsupported suggestions report their error without execution.
 
 Progress distinguishes decoding, model download, inference, subtitle publication and graph indexing. Closing the window does not silently cancel durable jobs. Users can keep work running, pause future work or cancel selected jobs. Runtime restarts show interrupted attempts explicitly and offer resumable work.
 

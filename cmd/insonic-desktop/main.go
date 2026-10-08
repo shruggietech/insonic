@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/shruggietech/insonic/desktop"
+	"github.com/shruggietech/insonic/internal/assistance"
 	"github.com/shruggietech/insonic/internal/contracts"
 	local "github.com/shruggietech/insonic/internal/runtime"
 	"github.com/shruggietech/insonic/internal/workspace"
@@ -65,7 +66,11 @@ func run() int {
 		defer cancel()
 		ready := make(chan struct{})
 		done := make(chan error, 1)
-		go func() { done <- local.Serve(ctx, w, local.Options{Ready: ready}) }()
+		go func() {
+			done <- local.Serve(ctx, w, local.Options{Ready: ready, AssistanceFixture: func(context.Context, assistance.Request, assistance.Config) (assistance.Proposal, error) {
+				return assistance.Proposal{ContractVersion: "1", Explanation: "Deterministic current media suggestion", Query: contracts.QueryInput{Title: "Qualification assistance", Definition: contracts.QueryDefinition{Mode: "normalized", Operation: "media-list", Pagination: &contracts.QueryPagination{Limit: 5}}}}, nil
+			}})
+		}()
 		select {
 		case <-ready:
 		case <-done:
@@ -99,7 +104,7 @@ func run() int {
 			raw, _ := json.Marshal(response.Result)
 			var result map[string]any
 			json.Unmarshal(raw, &result)
-			for _, name := range []string{"ui_library_import", "ui_metadata_date", "ui_current_assembly", "ui_audio_playback", "ui_video_playback", "ui_cue_seek", "ui_terms", "ui_speakers", "ui_pipelines", "ui_jobs", "ui_settings", "ui_keyboard_help", "ui_explore_calendar", "ui_explore_query", "ui_explore_graph"} {
+			for _, name := range []string{"ui_library_import", "ui_metadata_date", "ui_current_assembly", "ui_audio_playback", "ui_video_playback", "ui_cue_seek", "ui_terms", "ui_speakers", "ui_pipelines", "ui_jobs", "ui_settings", "ui_keyboard_help", "ui_explore_calendar", "ui_explore_query", "ui_explore_graph", "ui_query_assistance"} {
 				passed = passed && result[name] == "passed"
 			}
 			smokePassed.Store(passed)

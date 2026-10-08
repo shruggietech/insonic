@@ -75,6 +75,10 @@
     "processing-tools": {
       "$ref": "processing-tools.schema.json",
       "description": "Exact selected local subtitle and offline inference configuration."
+    },
+    "query-assistance": {
+      "$ref": "query-assistance.schema.json",
+      "description": "Optional elected query assistance settings."
     }
   },
   "oneOf": [
@@ -128,6 +132,9 @@
     },
     {
       "$ref": "#/$defs/processing-tools"
+    },
+    {
+      "$ref": "#/$defs/query-assistance"
     }
   ]
 }

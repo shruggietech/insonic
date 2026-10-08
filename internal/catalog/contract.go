@@ -68,6 +68,8 @@ type Catalog interface {
 	Status(context.Context) (map[string]any, error)
 	Revision(context.Context) (int64, error)
 	Commit(context.Context, Mutation) (Receipt, error)
+	NamedSetting(context.Context, string) (json.RawMessage, int64, error)
+	PutNamedSetting(context.Context, string, string, int64, json.RawMessage) (Receipt, error)
 	Settings(context.Context) ([]Setting, error)
 	Export(context.Context) (Snapshot, error)
 	Restore(context.Context, Snapshot) error

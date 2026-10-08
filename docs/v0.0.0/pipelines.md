@@ -124,7 +124,7 @@ Pause prevents new claims, Cancel revokes current authority and terminates super
 
 Before acceptance, configured processing can recompute stages after interruption. Explicit assembly input is ephemeral and must be resubmitted. After acceptance, recovery reconciles the receipt and cleanup without rerunning engines. Physical retirement waits for active leases/references and retries uncertain removal without resurrecting obsolete output.
 
-Current replacement invalidates stale segment/evidence references, dataset membership and prepared inputs rather than retaining frozen copies of old assignments. Completed model outputs and their source IDs/digests remain provenance. General scheduling, graph assertion extraction and training engines retain their separate delivery contracts.
+Current replacement invalidates stale segment/evidence references, dataset membership and prepared inputs rather than retaining frozen copies of old assignments. Completed model outputs and their source IDs/digests remain provenance. Graph assertion extraction and optional query assistance use elected versioned HTTP adapters. General scheduling and training engines retain their separate delivery contracts.
 
 ## Required checks and maintainer evidence
 

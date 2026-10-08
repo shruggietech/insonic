@@ -355,6 +355,17 @@ async function qualifyJourney(
   await fill('Saved query title','Qualification current evidence');
   await click('Save query version');
   flags.ui_explore_query='passed';
+  await bridge.QualificationStep?.('query-assistance');
+  await fill('Assistance prompt','List current recordings');
+  await click('Suggest query');
+  if(!document.body.textContent?.includes('Deterministic current media suggestion')||!document.querySelector('[aria-label="Complete proposed query"]'))throw new Error('Complete assistance suggestion missing.');
+  await click('Load proposal into editor');
+  await click('Run current query');
+  await click('Save query version');
+  await click('Assist and run query');
+  if(!document.body.textContent?.includes('Executed current query.'))throw new Error('Elected assistance execution missing.');
+  await click('Save query version');
+  flags.ui_query_assistance='passed';
   await bridge.QualificationStep?.('explore-graph');
   await click('Graph');
   await click('Run current query');

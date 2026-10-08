@@ -175,3 +175,5 @@ func TestPostgreSQLPopulatedSchema3EvidenceMigration(t *testing.T) {
 }
 
 func TestPostgreSQLSavedDefinitionsAndLayouts(t *testing.T) { savedQuerySuite(t, postgresStore) }
+
+func TestPostgreSQLAssistanceSettings(t *testing.T) { namedSettingSuite(t, postgresStore) }
