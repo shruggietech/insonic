@@ -88,3 +88,7 @@ Deliver workspace/library first, then current configuration/work flows, scoped e
 ## Phase 11: Hosted durable-work timing
 
 - [x] T038 Replace the fixed 60 ms completion assumption with a bounded authoritative state wait while preserving runtime-independence and restart assertions per FR-007/SC-004 (hosted Windows acceptance, partial).
+
+## Phase 12: Hosted preparation lease timing
+
+- [x] T039 Observe a real successful preparation renewal and persisted lease extension while the preview remains blocked, using a realistic lease and bounded synchronization instead of a 150 ms scheduler window per FR-009/SC-004 (hosted Linux acceptance, partial).

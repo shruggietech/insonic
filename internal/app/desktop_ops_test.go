@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -102,6 +103,27 @@ func TestDesktopSettingsCASAndUnknownFields(t *testing.T) {
 	}
 }
 
+type observedPlaybackLeaseRenewal struct {
+	catalog.Catalog
+	mu          sync.Mutex
+	publication string
+	lease       string
+	renewed     chan catalog.MaterializationLease
+}
+
+func (o *observedPlaybackLeaseRenewal) RenewArtifactLease(ctx context.Context, publication, lease, owner string, ttl time.Duration) (catalog.MaterializationLease, error) {
+	renewed, err := o.Catalog.RenewArtifactLease(ctx, publication, lease, owner, ttl)
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	if err == nil && publication == o.publication && lease == o.lease {
+		select {
+		case o.renewed <- renewed:
+		default:
+		}
+	}
+	return renewed, err
+}
+
 func TestDesktopPlaybackPreparationRenewsLeaseWithoutBlockingRegistry(t *testing.T) {
 	a := configuredApp(t)
 	entry := desktopMedia(t, a, true)
@@ -109,10 +131,27 @@ func TestDesktopPlaybackPreparationRenewsLeaseWithoutBlockingRegistry(t *testing
 	if e != nil {
 		t.Fatal(e)
 	}
-	service.TTL = 150 * time.Millisecond
-	entered, release := make(chan struct{}), make(chan struct{})
-	a.playbackPreview = func(ctx context.Context, p *playbackEntry, e catalog.LibraryEntry) error {
-		close(entered)
+	service.TTL = 3 * time.Second
+	observer := &observedPlaybackLeaseRenewal{Catalog: service.Catalog, renewed: make(chan catalog.MaterializationLease, 1)}
+	service.Catalog = observer
+	type preparation struct {
+		descriptor PlaybackDescriptor
+		lease      catalog.MaterializationLease
+	}
+	entered, release := make(chan preparation, 1), make(chan struct{})
+	var releaseOnce sync.Once
+	finishPreview := func() { releaseOnce.Do(func() { close(release) }) }
+	a.playbackPreview = func(ctx context.Context, p *playbackEntry, _ catalog.LibraryEntry) error {
+		publication, err := observer.Catalog.Publication(ctx, p.descriptor.PublicationID)
+		if err != nil {
+			return err
+		}
+		// Arm only after materialization has completed its initial renewal. A
+		// successful event now proves the independent preparation keeper ran.
+		observer.mu.Lock()
+		observer.publication, observer.lease = p.descriptor.PublicationID, p.descriptor.LeaseID
+		observer.mu.Unlock()
+		entered <- preparation{p.descriptor, publication.Leases[p.descriptor.LeaseID]}
 		select {
 		case <-release:
 			return nil
@@ -121,10 +160,23 @@ func TestDesktopPlaybackPreparationRenewsLeaseWithoutBlockingRegistry(t *testing
 		}
 	}
 	done := make(chan contracts.Response, 1)
-	go func() { done <- realRequest(a, "media.playback", entry.ID, map[string]any{"revision": entry.Revision}) }()
+	completed := make(chan struct{})
+	go func() {
+		defer close(completed)
+		done <- realRequest(a, "media.playback", entry.ID, map[string]any{"revision": entry.Revision})
+	}()
+	t.Cleanup(func() {
+		finishPreview()
+		select {
+		case <-completed:
+		case <-time.After(5 * time.Second):
+			t.Error("playback preparation cleanup did not finish")
+		}
+	})
+	var prepared preparation
 	select {
-	case <-entered:
-	case <-time.After(time.Second):
+	case prepared = <-entered:
+	case <-time.After(5 * time.Second):
 		t.Fatal("preparation did not start")
 	}
 	active := make(chan int, 1)
@@ -134,19 +186,41 @@ func TestDesktopPlaybackPreparationRenewsLeaseWithoutBlockingRegistry(t *testing
 		if n < 1 {
 			t.Fatal("preparation lost runtime activity")
 		}
-	case <-time.After(time.Second):
+	case <-time.After(5 * time.Second):
 		t.Fatal("preparation blocked runtime admission")
 	}
-	// Exceed the lease duration while preparation keeps its original alive.
-	timer := time.NewTimer(350 * time.Millisecond)
-	<-timer.C
-	close(release)
+	var renewed catalog.MaterializationLease
+	select {
+	case renewed = <-observer.renewed:
+	case <-time.After(5 * time.Second):
+		t.Fatal("preparation did not renew its actual catalog lease")
+	}
+	publication, err := observer.Catalog.Publication(a.ctx, prepared.descriptor.PublicationID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	persisted := publication.Leases[prepared.descriptor.LeaseID]
+	if prepared.lease.ID == "" || renewed.Until <= prepared.lease.Until || persisted.Until < renewed.Until || persisted.Released || persisted.Generation != prepared.lease.Generation {
+		t.Fatal("preparation did not extend its persisted current lease", prepared.lease, renewed, persisted)
+	}
+	finishPreview()
 	select {
 	case r := <-done:
 		if r.Error != nil {
 			t.Fatal("preparation lease expired", r.Error)
 		}
-	case <-time.After(time.Second):
+		descriptor := r.Result.(PlaybackDescriptor)
+		if descriptor.PlaybackID != prepared.descriptor.PlaybackID || realRequest(a, "media.playback-check", entry.ID, map[string]any{"playback_id": descriptor.PlaybackID}).Error != nil {
+			t.Fatal("prepared publication lost current playback authority")
+		}
+		if closed := realRequest(a, "media.playback-close", entry.ID, map[string]any{"playback_id": descriptor.PlaybackID}); closed.Error != nil {
+			t.Fatal(closed.Error)
+		}
+		publication, err = observer.Catalog.Publication(a.ctx, descriptor.PublicationID)
+		if _, retained := publication.Leases[descriptor.LeaseID]; err != nil || retained {
+			t.Fatal("closed preparation retained its materialization lease", err)
+		}
+	case <-time.After(5 * time.Second):
 		t.Fatal("preparation did not finish")
 	}
 }
