@@ -103,7 +103,8 @@ jobs:
           python -m unittest discover -s tests -p '*_test.py'
       - name: Pinned Windows archive decoder
         if: runner.os == 'Windows' && needs.foundation.outputs.native == 'true'
-        run: python -m pip install --disable-pip-version-check --no-input --only-binary=:all: --target build/native/python zstandard==0.25.0
+        run: |
+          python -m pip install --disable-pip-version-check --no-input --only-binary=:all: --target build/native/python zstandard==0.25.0
       - name: Pinned native artifacts
         if: needs.foundation.outputs.native == 'true'
         run: python scripts/qualify.py prepare

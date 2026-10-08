@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { checkRepository, markdownAnchors, markdownTargets, validateLinks, validateMarkdown, validateText, validateVersions } from '../scripts/check.mjs';
+import { checkRepository, markdownAnchors, markdownTargets, validateLinks, validateMarkdown, validateText, validateVersions, validateYAML } from '../scripts/check.mjs';
 
 test('text integrity detects damaged encoding, BOM, CRLF, and conflict markers', () => {
   assert.deepEqual(validateText('clean.md', Buffer.from('# A title\n\nA normal paragraph.\n')).problems, []);
@@ -88,4 +88,13 @@ test('project scan checks real JSON and constitution while exempting vendor exam
     assert.ok(problems.some((problem) => problem.startsWith('actual.json: Invalid JSON')));
     assert.ok(problems.some((problem) => problem.startsWith('.specify/memory/constitution.md:1: Use LF')));
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+
+test('YAML validation catches workflow colon scalars and duplicate keys before publication', () => {
+  const command='python -m pip install --only-binary=:all: --target build/native/python zstandard==0.25.0';
+  assert.match(validateYAML('ci.yml', 'steps:\n  - run: '+command+'\n').join('\n'), /Invalid YAML/);
+  assert.deepEqual(validateYAML('ci.yml', 'steps:\n  - run: |\n      '+command+'\n'), []);
+  assert.match(validateYAML('ci.yml', 'name: first\nname: second\n').join('\n'), /Invalid YAML/);
+  assert.deepEqual(validateYAML('ci.yml', 'on: [push, pull_request]\njobs:\n  check:\n    if: needs.foundation.outputs.native == \'true\'\n'), []);
 });

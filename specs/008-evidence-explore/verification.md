@@ -47,3 +47,7 @@ Focused regressions cover three actual recovery ticks and joined shutdown, over-
 ### Round 2 result
 
 The second manual code review completed on 1d8b1c4 with one comment about comment-separated native function calls. The reviewed head already contains comment-aware lookahead in native_space.go, so the reported bypass does not reproduce. Two older SQL test cases used the Cypher dialect and could reject for the wrong reason; they now use SQL. Added 54 disallowed-call cases across all three dialects, block/line/chained comments and quoted/unquoted identifiers, proving rejection before engine access. Eighteen corresponding allowed COUNT cases and malformed comments also pass. Graph acceptance/race checks pass. No third round is requested. No independent security-review result was returned by the connector for the combined second-round request.
+
+### Hosted workflow correction
+
+The first hosted runs failed before creating jobs because the Windows decoder command used an unquoted colon/space in a YAML plain scalar. Converted it to a block scalar. Repository integrity now parses project YAML with checksum-locked yaml 2.9.1, and a regression catches that exact command plus duplicate keys. This adds syntax integrity without relaxing or extending the ten-minute job budgets. Reviews are complete; hosted exact-head acceptance remains pending.

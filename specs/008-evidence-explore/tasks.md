@@ -82,3 +82,4 @@ Deliver usable current search first, then integrate timeline/playback, then save
 
 - [x] T040 Correct all four initial review findings and verify lifecycle, independent snapshot budget/paged reads, native output parity and complete saved-query edits in internal/app/explore_lifecycle_test.go, internal/catalog/explore_snapshot_limit_test.go, internal/graph/query_limits_test.go and desktop/frontend/tests/explore.test.mjs.
 - [x] T041 Verify the second-round comment-aware function boundary across every supported native dialect, fix misleading SQL test dialects and prove rejected calls never reach the engine in internal/graph/native_comments_test.go and native_test.go.
+- [x] T042 Correct hosted YAML parsing failure and add prepublication YAML syntax/duplicate-key validation and regression coverage in .github/workflows/ci.yml, scripts/check.mjs and tests/check.test.mjs.
