@@ -84,3 +84,7 @@ Deliver workspace/library first, then current configuration/work flows, scoped e
 ## Phase 10: Receipt provenance correction
 
 - [x] T037 Pin the exact-source FFmpeg reported version independently of enclosing checkout Git state, invalidate its build cache and qualify reproducible provenance per FR-012/SC-002 (receipt audit, contradicts).
+
+## Phase 11: Hosted durable-work timing
+
+- [x] T038 Replace the fixed 60 ms completion assumption with a bounded authoritative state wait while preserving runtime-independence and restart assertions per FR-007/SC-004 (hosted Windows acceptance, partial).

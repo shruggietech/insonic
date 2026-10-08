@@ -83,3 +83,9 @@ Hosted extracted acceptance at the preceding implementation head is independentl
 | macOS ARM64 | 1,337 | 94,791,561 | 44.994 |
 
 The final handoff records the exact final PR head/check run in the PR after all required checks finish. Review status remains closed with two requested rounds; no third request, owner merge or release promotion is performed.
+
+### Hosted durable-work timing correction
+
+Run `37719664452` verifies the corrected macOS media source build before the UI/package steps, but Windows core acceptance exposes the legacy `TestDisconnectedClientDoesNotOwnWork` fixed 60 ms completion assumption. Its durable state was still running when inspected. T038 replaces that sleep with a bounded five-second wait for the authoritative succeeded state, rejects errors or unexpected states, and retains both the new-runtime-session and persisted-job-after-restart assertions. This corrects a timing-dependent check without changing production job behavior or weakening the success requirement.
+
+That run completes with Linux native/package success in 5 minutes 59 seconds and macOS native/package success in 7 minutes 33 seconds, including the strict fresh-build 7.0.2 version assertion. The revised durability test passes twenty consecutive race-enabled runs and the complete app suite; repository integrity/schema and diff checks pass. T038 changes only the test, and the final push receives the full exact-head CI suite. All 38 recorded tasks have implementation/verification evidence; owner merge remains the boundary.
