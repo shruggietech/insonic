@@ -8,7 +8,7 @@ import (
 
 func TestOperationTimeoutPreservesCallerDefaultsAndLongFamilies(t *testing.T) {
 	for _, ordinary := range []time.Duration{5 * time.Second, 10 * time.Second} {
-		for _, operation := range []string{"media.import", "media.refresh", "models.acquire", "models.materialize", "artifacts.publish"} {
+		for _, operation := range []string{"media.import", "media.refresh", "models.acquire", "models.materialize", "artifacts.publish", "pipelines.inspect", "speakers.select", "speakers.diagnostics", "terms.compile"} {
 			if timeout := OperationTimeout(operation, ordinary); timeout != 10*time.Minute {
 				t.Fatal(operation, timeout)
 			}

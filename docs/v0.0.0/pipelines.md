@@ -2,9 +2,9 @@
 
 ## Configured work and current results
 
-A pipeline declares elected models, adapters, device/resource settings and routing. Saved definitions can retain configuration history; processing does not retain alternative transcripts or assignment stores. Changing defaults affects future work. Rerunning a stage replaces the current result after validation and fenced acceptance. Once routing is configured, normal work proceeds without per-item approval or silent provider fallback.
+A pipeline declares elected models, adapters, device/resource settings and routing. Saved definitions advance revisions and accepted work retains its elected configuration; processing does not retain alternative transcripts or assignment stores. Changing defaults affects future work. Rerunning a stage replaces the current result after validation and fenced acceptance. Once routing is configured, normal work proceeds without per-item approval or silent provider fallback.
 
-Local, Connected provider and Custom presets remain the broader configuration contract. Current local processing uses managed exact model identities and separate Python environments. Connected adapters and preset controls can arrive independently without moving core behavior into the GUI.
+Saved Local, Connected and Custom pipelines use stable IDs and expected-revision updates. Local selects both local workers, Connected selects both hosted workers, and Custom supports an explicit mix. The stored values are `local`, `connected` and `custom`. Each stage declares its adapter contract, exact managed local model or remote model, options and resource limits. Inspection reports effective settings and capabilities without contacting endpoints or running models. Dedicated GUI controls follow the desktop delivery contract; the shared runtime and bridge expose every operation.
 
 ```mermaid
 flowchart TB
@@ -25,13 +25,67 @@ flowchart TB
 
 Supplied subtitles bypass recognition. Reusing current subtitles supports diarization-only reruns; reusing current assignments requires compatibility with the new cue evidence. A supplied or generated text-only result without usable timing cannot be silently assigned invented intervals. Metadata capture precedes transforms under [ingestion](ingestion.md).
 
+
+## Saved definitions and command inputs
+
+```sh
+insonic pipelines list --json
+insonic pipelines show PIPELINE_ID --json
+insonic pipelines set PIPELINE_ID --input pipeline-update.json --json
+insonic pipelines inspect PIPELINE_ID --input inspection.json --json
+insonic recordings process MEDIA_ID --input processing.json --json
+```
+
+A pipeline mutation carries `expected_revision` and `pipeline`, whose fields are `id`, `name`, `preset` and `configuration`. Zero expected revision creates a new ID; a positive expected revision must match the saved record. The returned revision is authoritative. Configuration contains `recognition`, `diarization` and optional `quality`. Each supplied per-run override replaces that complete stage or quality policy; it does not merge arbitrary option keys. Inspection input is optional and accepts `revision`, `overrides` and `context`.
+
+For example, a new local definition uses explicit managed model IDs:
+
+```json
+{
+  "expected_revision": 0,
+  "pipeline": {
+    "id": "66666666-6666-4666-8666-666666666666",
+    "name": "Local speech",
+    "preset": "local",
+    "configuration": {
+      "recognition": {
+        "adapter": "faster-whisper",
+        "contract_version": "1",
+        "mode": "local",
+        "model_id": "11111111-1111-4111-8111-111111111111"
+      },
+      "diarization": {
+        "adapter": "pyannote",
+        "contract_version": "1",
+        "mode": "local",
+        "model_id": "22222222-2222-4222-8222-222222222222"
+      }
+    }
+  }
+}
+```
+
+The model IDs must identify compatible managed installations before their stages execute. Saving or inspecting the definition performs no model download or inference.
+
+Recording processing can elect `pipeline_id`, optional `pipeline_revision`, `overrides` and speaker/language/context filters. Submission freezes the saved revision, normalized effective configuration, selected nonsecret tool identities, local model manifest digests and compiled recognition hints. Execution revalidates each elected local manifest digest and verified model bytes; a changed model installation fails rather than silently changing queued work. Later edits affect new submissions; retry uses the original election. Recognition and diarization reuse still follow the current-document compatibility rules. Omitting a pipeline retains direct managed-model processing inputs.
+
+Entity lists accept optional JSON input with `after_id` and `limit` (1 through 100), and return `items` and `next_id`. Every command accepts the normal workspace, request-ID and JSON-output options. [JSON contracts](contracts.md) describe exact worker and configuration fields.
+
+## Hosted worker contract
+
+The `insonic-http` adapter uses contract version `1`. An operator configures the endpoint, remote model, declared transcription/diarization capabilities, supported hint budget and optional opaque credential ID. It sends one multipart POST containing a `request` JSON field and an `audio` field with the selected mapped WAV. The request identifies contract version, operation, model and effective options. The recognition response contains timed text segments; the diarization response contains voice turns. Both use integer mapped-audio-relative microseconds and an explicit `no_speech` result. The runtime validates bounds and projects results onto the original source clock before assembly.
+
+An arbitrary provider API is not automatically compatible with this worker protocol. Provider-specific services can implement it through an adapter. Endpoint inspection validates configuration but reports reachability as not probed. Execution resolves only the elected credential and sends it as a Bearer authorization header. Redirects are refused; endpoint user information, query strings and fragments are rejected. Credentials require HTTPS, with an explicit loopback HTTP exception for locally hosted services. Errors return fixed categories without provider response bodies, credential values or endpoint details.
+
+Local and hosted stages both use bounded audio, response and timeout settings. Omitted limits normalize to 128 MiB audio, 16 MiB response and 600000 milliseconds; explicit limits are validated before submission. A route or capability failure does not choose another provider, model or device.
+
 ## Local processing and quality diagnostics
 
 Mapped audio records original source digest, selected stream/channels, sample format, tool identity and exact source-time mapping. The selected local recognizer and diarizer receive verified managed model files, not an ambient latest model name. Missing or invalid models, incompatible capabilities and unsupported device selection produce actionable failure. A local failure never chooses hosted routing or another device silently.
 
 Local workers import engine packages lazily only for elected product processing or explicit maintainer qualification. Offline execution prevents ambient model retrieval. Literal argv, protected bounded input, separate bounded output, hidden Windows creation and supervised cancellation apply to every worker. Model files are materialized under confined relative names; temporary stage output is cleaned after success, failure and cancellation.
 
-Automatic diarization diagnostics are enabled by default and describe speech coverage, overlap, boundary/timing consistency, empty output and other declared measurements. They are separate from Cueson schema validity. A valid assignment document does not prove voice accuracy. No-speech and unusable timing remain explicit outcomes, and diagnostics do not create a manual review queue. Maintainer qualification records exact model/settings, resource use, recognized text and speaker/timing diagnostic method; it never injects reference subtitles as generated recognition output.
+Automatic diarization diagnostics are enabled by default and describe speech coverage, overlap, short turns, boundary/timing consistency and empty output. The quality policy can set minimum speech coverage, maximum overlap fraction and a short-turn threshold, or disable these optional checks. They are separate from Cueson schema validity. A valid assignment document does not prove voice accuracy. Reused diarization quality is recomputed from current embedded millisecond assignments and the current source map; its provenance names that quantized current-document basis rather than implying a fresh acoustic engine run. No-speech and unusable timing remain explicit outcomes, and diagnostics do not create a manual review queue. Maintainer qualification records exact model/settings, resource use, recognized text and speaker/timing diagnostic method; it never injects reference subtitles as generated recognition output.
 
 ## Capability contracts
 
@@ -70,7 +124,7 @@ Pause prevents new claims, Cancel revokes current authority and terminates super
 
 Before acceptance, configured processing can recompute stages after interruption. Explicit assembly input is ephemeral and must be resubmitted. After acceptance, recovery reconciles the receipt and cleanup without rerunning engines. Physical retirement waits for active leases/references and retries uncertain removal without resurrecting obsolete output.
 
-Current replacement invalidates stale segment/evidence references, dataset membership and prepared inputs rather than retaining frozen copies of old assignments. Completed model outputs and their source IDs/digests remain provenance. General scheduling, provider presets, graph assertion extraction and training engines retain their separate delivery contracts.
+Current replacement invalidates stale segment/evidence references, dataset membership and prepared inputs rather than retaining frozen copies of old assignments. Completed model outputs and their source IDs/digests remain provenance. General scheduling, graph assertion extraction and training engines retain their separate delivery contracts.
 
 ## Required checks and maintainer evidence
 

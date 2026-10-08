@@ -31,6 +31,11 @@ func TestLegacyArtifactUpgradeAndSnapshot(t *testing.T) {
 	if _, e = s.db.Exec("DROP TABLE artifact_publication"); e != nil {
 		t.Fatal(e)
 	}
+	for _, q := range []string{"ALTER TABLE speaker DROP COLUMN revision", "ALTER TABLE speaker DROP COLUMN state"} {
+		if _, e = s.db.Exec(q); e != nil {
+			t.Fatal(e)
+		}
+	}
 	if _, e = s.db.Exec("UPDATE catalog_schema SET version=1,digest=?", legacyMigrationDigest()); e != nil {
 		t.Fatal(e)
 	}

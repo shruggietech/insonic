@@ -54,6 +54,7 @@ func execute(args []string) int {
 		fmt.Println("insonic workspace init <directory> | workspace show | doctor | jobs start <milliseconds> | jobs show/cancel/retry <job-id> | jobs history <job-id> [after-generation] | catalog show/migrate | catalog export/restore <file> [--workspace <directory>] [--request-id <UUID>] [--json]")
 		fmt.Println("insonic artifacts publish <file> <kind> | artifacts show/verify/reconcile/abort/retire/cache-prune <publication-id> | artifacts materialize <publication-id> [max-bytes] | artifacts lease-renew/lease-release <publication-id> <lease-id> | artifacts retain/release-reference <publication-id> <reference-id>")
 		fmt.Println("insonic credentials select native/vault/session | credentials add/replace/delete/status <UUID> | credentials unlock/load (protected stdin JSON, saved values never returned)")
+		fmt.Println("insonic pipelines/speakers/terms list [--input JSON] | pipelines/speakers/terms show <UUID> | pipelines/speakers/terms set <UUID> --input JSON | pipelines inspect <UUID> [--input JSON] | speakers aliases <UUID> [--input JSON] | speakers select/diagnostics <UUID> [--input JSON] | terms compile [--input JSON]")
 		fmt.Println("insonic processing tools <configuration.json> | recordings show/document/mappings <media-id> | recordings process/assemble/map-speaker/export <media-id> --input <JSON>")
 		fmt.Println("insonic media tools <configuration.json> | media import <files...> or --manifest <CSV/JSON> [--reference] [--originated-at/on VALUE] [--timezone ZONE] | media list/show/metadata/raw/refresh/set-origin/relocate | models register/acquire <manifest> | models list/show/verify/materialize | work list/show/cancel/retry")
 		return 0
@@ -104,6 +105,11 @@ func execute(args []string) int {
 	req := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, RequestID: requestID}
 	if positional[0] == "recordings" {
 		req.Operation, req.ItemID, req.Data, err = parseRecording(positional)
+		if err != nil {
+			return output(nil, err, machine)
+		}
+	} else if positional[0] == "pipelines" || positional[0] == "speakers" || positional[0] == "terms" {
+		req.Operation, req.ItemID, req.Data, err = parseConfiguration(positional)
 		if err != nil {
 			return output(nil, err, machine)
 		}
@@ -162,7 +168,7 @@ func execute(args []string) int {
 	} else {
 		return output(nil, contracts.Fail("invalid_request"), machine)
 	}
-	if !strings.HasPrefix(req.Operation, "recordings.") && !strings.HasPrefix(req.Operation, "media.") && !strings.HasPrefix(req.Operation, "models.") && !strings.HasPrefix(req.Operation, "work.") && !strings.Contains("|workspace.show|doctor|catalog.show|jobs.start|jobs.show|jobs.history|jobs.cancel|jobs.retry|artifacts.publish|artifacts.show|artifacts.verify|artifacts.materialize|artifacts.reconcile|artifacts.abort|artifacts.retire|artifacts.lease-renew|artifacts.lease-release|artifacts.cache-prune|artifacts.retain|artifacts.release-reference|", "|"+req.Operation+"|") {
+	if !contracts.ConfigurationOperation(req.Operation) && !strings.HasPrefix(req.Operation, "recordings.") && !strings.HasPrefix(req.Operation, "media.") && !strings.HasPrefix(req.Operation, "models.") && !strings.HasPrefix(req.Operation, "work.") && !strings.Contains("|workspace.show|doctor|catalog.show|jobs.start|jobs.show|jobs.history|jobs.cancel|jobs.retry|artifacts.publish|artifacts.show|artifacts.verify|artifacts.materialize|artifacts.reconcile|artifacts.abort|artifacts.retire|artifacts.lease-renew|artifacts.lease-release|artifacts.cache-prune|artifacts.retain|artifacts.release-reference|", "|"+req.Operation+"|") {
 		return output(nil, contracts.Fail("invalid_request"), machine)
 	}
 	if err := local.Ensure(ctx, w, ""); err != nil {

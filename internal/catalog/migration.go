@@ -31,6 +31,9 @@ var domains = []domainTable{
 	{"date_observation", "Dates", "id", "", []string{"media_id:media_entry:id", "observation_id:metadata_observation:id"}},
 	{"date_selection", "DateSelections", "id", "CHECK (revision>0), UNIQUE (workspace_id,media_id,revision)", []string{"media_id:media_entry:id", "date_id:date_observation:id"}},
 	{"speaker", "Speakers", "id", "", nil},
+	{"speaker_alias", "Aliases", "id", "CHECK(state IN ('active','inactive'))", []string{"speaker_id:speaker:id"}},
+	{"context_term", "Terms", "id", "CHECK(revision>0 AND state IN ('active','inactive'))", []string{"speaker_id:speaker:id", "alias_id:speaker_alias:id"}},
+	{"current_pipeline", "Pipelines", "id", "CHECK(revision>0 AND preset IN ('local','connected','custom'))", nil},
 	{"library_entry", "Library", "id", "CHECK (revision>0 AND size>=0), CHECK (duration_us IS NULL OR duration_us>=0), CHECK (mode IN ('copy','reference'))", []string{"id:media_entry:id", "asset_id:media_asset:id"}},
 	{"current_recording", "Recordings", "id", "CHECK (revision>0 AND source_revision>0), CHECK (state IN ('ready','no-speech','no-timed-subtitles'))", []string{"id:library_entry:id"}},
 	{"speaker_segment", "Segments", "id,revision", "CHECK (revision>0 AND length(document_digest)=64 AND length(cue_id)>0)", []string{"recording_id:current_recording:id", "clip_artifact_id:artifact:id"}},
@@ -163,7 +166,7 @@ func migrationStatements() []string {
 	for _, d := range domains {
 		out = append(out, d.ddl())
 	}
-	return append(out, artifactDDL, artifactIndexDDL)
+	return append(out, artifactDDL, artifactIndexDDL, "CREATE INDEX IF NOT EXISTS speaker_mapping_person ON speaker_mapping(workspace_id,speaker_id,recording_id)", "CREATE INDEX IF NOT EXISTS context_term_speaker ON context_term(workspace_id,speaker_id,id)", "CREATE INDEX IF NOT EXISTS speaker_alias_owner ON speaker_alias(workspace_id,speaker_id,id)")
 }
 func legacyMigrationDigest() string {
 	h := sha256.Sum256([]byte(strings.Join(legacyMigrationStatements(), "\n")))
@@ -207,8 +210,12 @@ func (s *Store) migrate(ctx context.Context) error {
 	var digest string
 	e = tx.QueryRowContext(ctx, "SELECT version,digest FROM catalog_schema WHERE singleton=1").Scan(&version, &digest)
 	if e == nil {
-		if (version == 1 && digest == legacyMigrationDigest()) || (version == 2 && digest == historicalV2Digest()) || (version == 3 && digest == historicalV3Digest()) {
-			legacy, e := s.captureHistoricalEvidence(ctx, tx)
+		if (version == 1 && digest == legacyMigrationDigest()) || (version == 2 && digest == historicalV2Digest()) || (version == 3 && digest == historicalV3Digest()) || (version == 4 && digest == historicalV4Digest()) {
+			var legacy historicalEvidence
+			var e error
+			if version < 4 {
+				legacy, e = s.captureHistoricalEvidence(ctx, tx)
+			}
 			if e != nil {
 				return sanitize(e)
 			}
@@ -217,12 +224,20 @@ func (s *Store) migrate(ctx context.Context) error {
 					return sanitize(e)
 				}
 			}
+			if e = s.migrateIdentities(ctx, tx); e != nil {
+				return sanitize(e)
+			}
 			for _, q := range migrationStatements() {
 				if _, e = tx.ExecContext(ctx, q); e != nil {
 					return sanitize(e)
 				}
 			}
-			if e = s.restoreHistoricalEvidence(ctx, tx, legacy); e != nil {
+			if version < 4 {
+				if e = s.restoreHistoricalEvidence(ctx, tx, legacy); e != nil {
+					return sanitize(e)
+				}
+			}
+			if e = s.attestMigratedIdentities(ctx, tx); e != nil {
 				return sanitize(e)
 			}
 			if _, e = s.exec(ctx, tx, "UPDATE catalog_schema SET version=?,digest=? WHERE singleton=1", SchemaVersion, migrationDigest()); e != nil {
@@ -269,6 +284,22 @@ func validateRecord(value any) error {
 		}
 	}
 	switch r := value.(type) {
+	case Speaker:
+		if r.Revision < 1 || !identityText(r.Name, 512) || !identityState(r.State) {
+			return contracts.Fail("invalid_request")
+		}
+	case SpeakerAlias:
+		if !validAlias(r) {
+			return contracts.Fail("invalid_request")
+		}
+	case Term:
+		if !validTerm(r) || r.Revision < 1 {
+			return contracts.Fail("invalid_request")
+		}
+	case Pipeline:
+		if !validPipeline(r) || r.Revision < 1 {
+			return contracts.Fail("invalid_request")
+		}
 	case Recording:
 		if !validRecording(r) || r.Revision < 1 {
 			return contracts.Fail("invalid_request")

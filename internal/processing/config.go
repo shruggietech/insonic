@@ -2,12 +2,37 @@
 package processing
 
 import (
+	"os"
 	"path/filepath"
 	"regexp"
 
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/library"
 )
+
+func applyExecutionLimits(config Config, path string, limits *ExecutionLimits) (Config, error) {
+	if limits == nil {
+		return config, nil
+	}
+	if limits.MaxAudioBytes < 1 || limits.MaxAudioBytes > 64<<30 || limits.MaxResponseBytes < 1 || limits.MaxResponseBytes > 16<<20 || limits.TimeoutMS < 1 || limits.TimeoutMS > 86400000 {
+		return config, contracts.Fail("invalid_request")
+	}
+	info, e := os.Stat(path)
+	if e != nil || !info.Mode().IsRegular() {
+		return config, contracts.Fail("invalid_audio")
+	}
+	if info.Size() > limits.MaxAudioBytes {
+		return config, contracts.Fail("input_limit")
+	}
+	// The elected stage can lower global safety bounds but cannot exceed them.
+	if limits.MaxResponseBytes < int64(config.MaxOutputBytes) {
+		config.MaxOutputBytes = int(limits.MaxResponseBytes)
+	}
+	if limits.TimeoutMS < config.TimeoutMS {
+		config.TimeoutMS = limits.TimeoutMS
+	}
+	return config, nil
+}
 
 var pinnedDigest = regexp.MustCompile(`^[a-f0-9]{64}$`)
 

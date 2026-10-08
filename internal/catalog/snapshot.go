@@ -38,6 +38,7 @@ type Snapshot struct {
 	Digest                    string      `json:"digest"`
 	legacyDerivedArtifacts    []string
 	legacyInvalidatedDatasets []string
+	legacySpeakers            []string
 }
 
 func (s Snapshot) digest() (string, error) { s.Digest = ""; return intent(s) }
@@ -194,6 +195,16 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 			return e
 		}
 		result := map[string]any{"restored_revision": snap.Revision, "authority": "expired"}
+		if len(snap.legacySpeakers) > 0 {
+			proofs, err := s.speakerProofs(ctx, tx)
+			if err != nil {
+				return err
+			}
+			if len(proofs) != len(snap.legacySpeakers) {
+				return contracts.Fail("invalid_request")
+			}
+			result["speaker_proofs"] = proofs
+		}
 		if len(snap.legacyInvalidatedDatasets) > 0 {
 			result["invalidated_dataset_ids"] = snap.legacyInvalidatedDatasets
 		}
@@ -212,6 +223,9 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 			return e
 		}
 		if e = s.validateCorpusState(ctx, tx, true); e != nil {
+			return e
+		}
+		if e = s.validateIdentityState(ctx, tx); e != nil {
 			return e
 		}
 		return s.validateLibraryState(ctx, tx, true)

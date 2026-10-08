@@ -6,6 +6,9 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Revisioned Local, Connected and Custom processing pipelines with immutable queued elections, explicit local/hosted worker contracts and configurable automatic quality checks.
+- Stable canonical speaker names and aliases, current library-wide speaker evidence selection and scoped terminology with deterministic bounded recognition hints, through shared CLI/runtime/desktop bridge operations.
+
 - Current master recordings with one embedded Cueson v1.2.0 document, recording-local speaker UUIDs, external known-speaker mappings and reference-only downstream evidence.
 - Shared local mapped-audio/subtitle processing, independent reruns, fenced current replacement, recoverable physical retirement and diagnosed Cue JSON/native export.
 - Explicit local-worker, decoder and Cueson child environments exclude unrelated credential/configuration variables while retaining selected native-library/device paths.
@@ -55,6 +58,9 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-07: Record explicit Windows CPU maintainer qualification separately from CI: speech recognition has 4 word errors across 33 reference words and dialogue recognition has 2 across 31. Diarization yields two voices for the speech fixture and one for the two-character dialogue reference. These results demonstrate actual engine execution and model split/merge limitations; editorial caption windows are not sample-accurate acoustic ground truth.
 - 2026-10-07: Exclude transcription/diarization invocation, model initialization/loading, weight downloads and engine-result requirements from every CI path and merge check. Allow deterministic stage injection, committed media probing/extraction and real pinned Cueson qualification; record real engine behavior only in explicit maintainer runs.
 - 2026-10-07: Address review findings with byte-preserving BOM WebVTT detection, exact canonical engine-role casing and explicit allowlisted environments for new local processing children. Preserve existing process-helper inheritance only for callers that elect it; session/provider credential variables are excluded from the new local adapters.
+- 2026-10-07: Implement S006 for issues #8 and #9. Catalog schema 5 preserves frozen earlier migrations and adds saved worker definitions, speaker state/aliases and scoped terminology. Replace the unused generic stage-DAG pipeline interchange shape with the implemented recognition/diarization configuration envelope; dedicated GUI controls, general graph capabilities and training remain separate delivery outcomes.
+- 2026-10-07: Freeze local model manifest digests and resolved tools alongside pipeline/context elections. Revalidate digests before model materialization and reject changed audio mappings before diarization reuse. Recompute reused quality from current embedded millisecond assignments with an explicit basis. Context preview and execution share configured hints/language; correlation analysis can be disabled while current-reference integrity remains mandatory.
+- 2026-10-07: Resolve review findings by normalizing the local English recognition default before context election and by comparing speaker selection against all earlier current source evidence across cursor pages. Bind comparisons to the selected evidence epoch and keep assignment arrays solely in current embedded Cue JSON.
 - Bind landing hero and page metadata to approved upstream slogan and description fields; expand syntax highlighting for JSON and CLI examples.
 - Support optional validated read-only AI query execution through the configured assistance mode.
 - Subdivide workspace/runtime, catalog/jobs, artifact storage and secrets/model-registry development into four focused slices; renumber the remaining application slices through S015.

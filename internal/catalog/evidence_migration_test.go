@@ -20,6 +20,11 @@ func historicalEvidenceMigrationSuite(t *testing.T, s *Store) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	for _, q := range []string{"ALTER TABLE speaker DROP COLUMN revision", "ALTER TABLE speaker DROP COLUMN state"} {
+		if _, e = s.db.Exec(q); e != nil {
+			t.Fatal(e)
+		}
+	}
 	for _, table := range []string{"model_artifact", "model_version", "training_run", "dataset_member", "training_dataset", "speaker_segment", "speaker_mapping", "current_recording", "library_cleanup"} {
 		if _, e = s.db.Exec("DROP TABLE " + table); e != nil {
 			t.Fatal(e)

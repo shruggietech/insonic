@@ -6,17 +6,17 @@ The application is CLI-first. Every core capability has an automation-ready CLI 
 
 Advanced or experimental CLI capabilities may ship before their GUI controls. Each release documents that lag in its capability matrix, including the CLI command, current GUI availability and its follow-up outcome. This exception does not turn mature core operations into permanent CLI-only features. Speaker-model discovery and retrieval begin with CLI contracts; desktop controls follow the shared operation model.
 
-CLI groups are `workspace`, `media`, `pipeline`, `jobs`, `speakers`, `terms`, `search`, `query`, `export`, `models`, `settings` and `doctor`. Human output is concise; `--json` provides versioned machine-readable records, diagnostics go to stderr, and exit statuses distinguish failure and partial completion. Noninteractive invocations never prompt. Secret entry uses a protected input channel, not command-line values.
+CLI groups are `workspace`, `media`, `pipelines`, `jobs`, `speakers`, `terms`, `search`, `query`, `export`, `models`, `settings` and `doctor`. Human output is concise; `--json` provides versioned machine-readable records, diagnostics go to stderr, and exit statuses distinguish failure and partial completion. Noninteractive invocations never prompt. Secret entry uses a protected input channel, not command-line values.
 
 The implemented source-buildable clients expose workspace/runtime, catalog,
-artifact, credential, downloaded-model, media-admission, current-recording and real-work operations.
+artifact, credential, downloaded-model, media-admission, current-recording, saved-pipeline, speaker, terminology and real-work operations.
 The native bridge exposes `Operate` and `Credential` using those same contracts.
 Full media/settings GUI controls follow in the desktop delivery outcome.
-Current recording assembly/processing, inspection, native export and known-speaker mappings use the same `Operate` bridge. Dedicated recording/pipeline GUI controls remain pending; core logic and validation are shared. See [subtitles](subtitles.md), [pipelines](pipelines.md), [credential commands](secrets.md), [downloaded models](models.md) and
+Current recording assembly/processing, inspection, native export and known-speaker mappings use the same `Operate` bridge. Dedicated recording/pipeline/speaker/terminology GUI controls remain pending; core logic and validation are shared. See [subtitles](subtitles.md), [pipelines](pipelines.md), [credential commands](secrets.md), [downloaded models](models.md) and
 [import](ingestion.md) for the executable operations.
 
-The following broader product commands are target contracts. Pipeline, speaker,
-search, training and installable GUI workflows require later implementation:
+The following broader product commands are target contracts. Full exploration,
+training and installable GUI workflows require later implementation:
 
 ```sh
 insonic workspace create --path PATH
@@ -25,10 +25,8 @@ insonic media import FILE --copy --originated-at "2024-06-08T14:30:00" --timezon
 insonic media import FILE --copy --originated-on 2024-06-08
 insonic media import --manifest imports.json
 insonic media attach-subtitle MEDIA_ID SUBTITLE_FILE
-insonic pipeline run MEDIA_ID --preset local
 insonic jobs list --json
 insonic search "sample phrase" --json
-insonic speakers segments list --speaker SPEAKER_ID
 insonic models dataset create --speaker SPEAKER_ID --preset speech-clean
 insonic models train --dataset DATASET_ID --pipeline PIPELINE_ID
 insonic models list --speaker SPEAKER_ID

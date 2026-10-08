@@ -50,14 +50,29 @@ type Diagnostic struct {
 }
 
 type RecognitionOptions struct {
-	Device   string `json:"device,omitempty"`
-	Language string `json:"language,omitempty"`
+	Device              string           `json:"device,omitempty"`
+	Language            string           `json:"language,omitempty"`
+	Hints               []string         `json:"hints,omitempty"`
+	ContextDigest       string           `json:"context_digest,omitempty"`
+	ExecutionLimits     *ExecutionLimits `json:"-"`
+	ExpectedModelDigest string           `json:"-"`
 }
 
 type DiarizationOptions struct {
-	Device      string `json:"device,omitempty"`
-	MinSpeakers int    `json:"min_speakers,omitempty"`
-	MaxSpeakers int    `json:"max_speakers,omitempty"`
+	Device              string           `json:"device,omitempty"`
+	MinSpeakers         int              `json:"min_speakers,omitempty"`
+	MaxSpeakers         int              `json:"max_speakers,omitempty"`
+	Quality             *QualityConfig   `json:"quality,omitempty"`
+	ExecutionLimits     *ExecutionLimits `json:"-"`
+	ExpectedModelDigest string           `json:"-"`
+}
+
+// ExecutionLimits are reconstructed from the frozen stage at invocation. They
+// are deliberately excluded from caller JSON and durable option copies.
+type ExecutionLimits struct {
+	MaxAudioBytes    int64
+	MaxResponseBytes int64
+	TimeoutMS        int64
 }
 
 type Turn struct {

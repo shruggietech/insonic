@@ -16,6 +16,7 @@ var once sync.Once
 var compiled *jsonschema.Schema
 var requestSchema *jsonschema.Schema
 var processingToolsSchema *jsonschema.Schema
+var pipelineConfigurationSchema *jsonschema.Schema
 var compileErr error
 
 type offlineLoader struct{}
@@ -67,6 +68,9 @@ func initialize() {
 		if compileErr == nil {
 			processingToolsSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/processing-tools.schema.json")
 		}
+		if compileErr == nil {
+			pipelineConfigurationSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/pipeline-config.schema.json#/$defs/configuration")
+		}
 	})
 }
 
@@ -85,6 +89,13 @@ func ValidateRequest(data []byte) error {
 func ValidateDocument(data []byte) error {
 	initialize()
 	return validate(processingToolsSchema, data)
+}
+
+// ValidatePipelineConfiguration validates a saved bare worker definition offline.
+// Typed pipeline validation additionally checks routing and cross-field semantics.
+func ValidatePipelineConfiguration(data []byte) error {
+	initialize()
+	return validate(pipelineConfigurationSchema, data)
 }
 
 func validate(schema *jsonschema.Schema, data []byte) error {

@@ -19,6 +19,9 @@ func TestDesktopOperationDeadlineAllowsRuntimeLongWork(t *testing.T) {
 		{"media.refresh", 10 * time.Minute},
 		{"models.materialize", 10 * time.Minute},
 		{"artifacts.publish", 10 * time.Minute},
+		{"pipelines.inspect", 10 * time.Minute},
+		{"speakers.select", 10 * time.Minute},
+		{"terms.compile", 10 * time.Minute},
 		{"workspace.show", 10 * time.Second},
 		{"work.results", 10 * time.Second},
 	} {

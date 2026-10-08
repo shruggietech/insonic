@@ -16,7 +16,7 @@ func TestLegacySnapshotConvertsEvidenceWithoutArchivingCopies(t *testing.T) {
 	source, manifest, clip := availableArtifact(t, s), availableArtifact(t, s), availableArtifact(t, s)
 	asset, speaker, segment, dataset := contracts.ID(), contracts.ID(), contracts.ID(), contracts.ID()
 	rev, _ := s.Revision(ctx)
-	_, e := s.Commit(ctx, Mutation{OperationID: contracts.ID(), Expected: rev, Records: Records{Assets: []Asset{{asset, source.ArtifactID, "original", 1000000}}, Speakers: []Speaker{{speaker, "Known"}}}})
+	_, e := s.Commit(ctx, Mutation{OperationID: contracts.ID(), Expected: rev, Records: Records{Assets: []Asset{{asset, source.ArtifactID, "original", 1000000}}, Speakers: []Speaker{{ID: speaker, Name: "Known"}}}})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -27,6 +27,22 @@ func TestLegacySnapshotConvertsEvidenceWithoutArchivingCopies(t *testing.T) {
 	raw, _ := json.Marshal(base.Records)
 	var fields map[string]json.RawMessage
 	json.Unmarshal(raw, &fields)
+	for i := range base.State {
+		table := &base.State[i]
+		if table.Name != "operation_receipt" {
+			continue
+		}
+		for _, row := range table.Rows {
+			var text string
+			json.Unmarshal(row[3], &text)
+			var result map[string]json.RawMessage
+			json.Unmarshal([]byte(text), &result)
+			delete(result, "speaker_proofs")
+			raw, _ := json.Marshal(result)
+			row[3], _ = json.Marshal(string(raw))
+		}
+	}
+	fields["speakers"], _ = json.Marshal([]map[string]any{{"id": speaker, "name": "Known"}})
 	fields["segments"], _ = json.Marshal([]legacySegment{{ID: segment, Revision: 1, AssetID: asset, SpeakerID: &speaker, StartUS: 0, EndUS: 1000000, Channel: 0, Attribution: json.RawMessage(`{"speaker_attributions":["copied-evidence-marker"]}`), ClipArtifactID: &clip.ArtifactID}})
 	fields["datasets"], _ = json.Marshal([]map[string]any{{"id": dataset, "speaker_id": speaker, "manifest_artifact_id": manifest.ArtifactID, "options": map[string]any{"transcript": "copied-evidence-marker"}}})
 	fields["members"], _ = json.Marshal([]DatasetMember{{contracts.ID(), dataset, 0, segment, 1}})
