@@ -19,6 +19,8 @@ PIN = json.loads((ROOT / 'internal/qualification/media-tools.json').read_text(en
 COMMIT = PIN['commit']
 SOURCE_SHA256 = PIN['sha256']
 SOURCE_URL = PIN['url']
+VERSION = PIN['version']
+VERSION_POLICY = 'pinned-release-VERSION-v1'
 CONFIGURE = PIN['configure']
 BUILD = ROOT / 'build/native/source-media'
 
@@ -87,21 +89,32 @@ def extract_source(source, directory):
                 raise ValueError('unexpected FFmpeg source type')
 
 
+def pin_release_version(directory):
+    # Upstream ffbuild/version.sh prefers VERSION over its Git fallback. The
+    # source archive has no .git; without this file it discovers the enclosing
+    # consumer checkout and embeds that unrelated revision into both binaries.
+    if (directory / 'RELEASE').read_text(encoding='utf-8').strip() != VERSION:
+        raise ValueError('FFmpeg source release differs from pinned version')
+    (directory / 'VERSION').write_text(VERSION + '\n', encoding='utf-8', newline='\n')
+
+
 def prepare():
     if platform.system() != 'Darwin' or platform.machine() not in ['arm64', 'aarch64']:
         raise ValueError('source media build is qualified only for darwin_arm64')
     key = hashlib.sha256(json.dumps({'source': SOURCE_SHA256, 'configuration': CONFIGURE,
+                                    'version': VERSION, 'version_policy': VERSION_POLICY,
                                     'platform': 'darwin_arm64', 'deployment': '13.3'}, sort_keys=True).encode()).hexdigest()
     source = fetch_source()
     directory = BUILD / key
     receipt_path = directory / 'build-receipt.json'
     if receipt_path.exists():
         receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
-        if receipt.get('key') == key and all((directory / name).is_file() and sha(directory / name) == receipt['binaries'][name] for name in ['ffmpeg', 'ffprobe']):
+        if receipt.get('key') == key and receipt.get('versions') == {'ffmpeg': VERSION, 'ffprobe': VERSION} and all((directory / name).is_file() and sha(directory / name) == receipt['binaries'][name] for name in ['ffmpeg', 'ffprobe']):
             return directory, receipt, source
     directory.mkdir(parents=True, exist_ok=True)
     started = time.monotonic()
     extract_source(source, directory)
+    pin_release_version(directory)
     child(['/bin/sh', './configure', *CONFIGURE], directory, timeout=90)
     child(['/usr/bin/make', '-j' + str(min(os.cpu_count() or 2, 4)), 'ffmpeg', 'ffprobe'], directory, timeout=360)
     versions = {}
@@ -111,11 +124,14 @@ def prepare():
         if '--enable-nonfree' in output or '--enable-gpl' in output:
             raise ValueError('source media companion enabled incompatible distribution flags')
         versions[name] = output.splitlines()[0].split()[2]
+        if versions[name] != VERSION:
+            raise ValueError('source media companion reports a different release version')
         configurations[name] = output
     receipt = {'key': key, 'source_commit': COMMIT, 'source_sha256': SOURCE_SHA256,
                'source_url': SOURCE_URL, 'configure': CONFIGURE, 'platform': 'darwin_arm64',
                'binaries': {name: sha(directory / name) for name in ['ffmpeg', 'ffprobe']},
                'versions': versions, 'configuration_output': configurations,
+               'version_override': {'file': 'VERSION', 'value': VERSION, 'policy': VERSION_POLICY},
                'elapsed_seconds': round(time.monotonic() - started, 3), 'license': 'LGPL-2.1-or-later',
                'external_codec_libraries': 'none', 'system_framework': 'VideoToolbox'}
     receipt_path.write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')

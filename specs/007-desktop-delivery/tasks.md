@@ -80,3 +80,7 @@ Deliver workspace/library first, then current configuration/work flows, scoped e
 - [x] T034 Preserve schema-valid optional FFmpeg settings through save/reload per FR-008 (self-review, partial).
 - [x] T035 Load the authoritative persisted credential backend in Settings without changing it on reopen per FR-008 (second-round review P2, contradicts).
 - [x] T036 Replace unsupported native custom-scheme media streaming with process-scoped loopback ranges, validate authority and shutdown, and qualify all platform players per FR-009/SC-002 (hosted acceptance, partial).
+
+## Phase 10: Receipt provenance correction
+
+- [x] T037 Pin the exact-source FFmpeg reported version independently of enclosing checkout Git state, invalidate its build cache and qualify reproducible provenance per FR-012/SC-002 (receipt audit, contradicts).

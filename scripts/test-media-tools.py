@@ -76,6 +76,19 @@ class DecoderPins(unittest.TestCase):
                 source.extract_source(archive, directory / 'rejected')
             self.assertFalse((directory / 'escape').exists())
 
+    def test_source_version_uses_the_pinned_archive_release(self):
+        source_spec = importlib.util.spec_from_file_location('media_source', ROOT / 'scripts/build-media-source.py')
+        source = importlib.util.module_from_spec(source_spec)
+        source_spec.loader.exec_module(source)
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / 'RELEASE').write_text(source.VERSION + '\n', encoding='utf-8')
+            source.pin_release_version(directory)
+            self.assertEqual((directory / 'VERSION').read_bytes(), (source.VERSION + '\n').encode())
+            (directory / 'RELEASE').write_text('unrelated release\n', encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'differs from pinned version'):
+                source.pin_release_version(directory)
+
 
 if __name__ == '__main__':
     unittest.main()

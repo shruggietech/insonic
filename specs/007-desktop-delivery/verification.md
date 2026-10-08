@@ -67,3 +67,19 @@ The fresh local package at that clean implementation head passes every extracted
 Exactly two code-review rounds completed: automatic at `a15a2af`, manual at `4c6b4ca`. The second request also named security review; no separate security report or approval appeared. All three received findings have changes, passing regressions, linked replies and resolved threads: first-round P1 `4213854793` and P2 `4213854807`; second-round P2 `4213959580`, replied in `4214014307` after `f2714ab`. There are zero unresolved threads. No third review request was made.
 
 Post-review convergence assessed 15 functional requirements, five success criteria, all 13 story acceptance scenarios, seven design decisions and five constitution principles. No remaining missing, partial, contradicting or unrequested implementation gap was found. The assessment left tasks.md byte-for-byte unchanged at SHA-256 `273b06bfe26452aec1e44c1598444f803124798d3a8c9762c50c4ee8d3f9dba6`; completion marks were recorded separately after acceptance. Final record-only publication receives exact-head CI before the owner handoff. Issue #10 remains In review until the owner's squash merge; no merge, release tag, binary promotion, signing or notarization is performed here.
+
+### Receipt provenance audit
+
+The three hosted receipt sets validate source and extracted media/Cueson journeys, loader isolation and inventory hashes. Their build revision is the synthetic PR merge `7dc154859bcabdc9aa8cb7ff6041d59e1fb1b082`, whose parents are base `bd00e15` and implementation `f2714ab`; macOS cold media compilation took 123.44 seconds. Detailed receipt inspection identified a further reproducibility gap: FFmpeg's source version script discovers the enclosing Insonic checkout Git repository and reports that merge abbreviation rather than pinned upstream 7.0.2. The source archive identity is correct and behavioral checks passed, but the reported version requires T037 correction and cache invalidation before final handoff.
+
+T037 validates the extracted RELEASE file against pinned 7.0.2 and writes the upstream-supported VERSION override before compilation. The release/version policy now participates in both the cache key and receipt; cached and fresh companions must report 7.0.2. An actual hash-pinned upstream `ffbuild/version.sh` regression inside the consumer checkout reports `bc16ecf` before the override and `7.0.2` afterward. Five offline media-pin tests pass, including release mismatch refusal. The source commit/archive digest remain unchanged. No further gaps were found in the receipt audit; the updated source-build policy receives a fresh hosted macOS compile and final exact-head checks before handoff.
+
+Hosted extracted acceptance at the preceding implementation head is independently recorded below. Every inventory file hash was validated, source_dirty is false, and native libraries were isolated and restored on every platform.
+
+| Platform | Included files | Archive bytes | Extracted acceptance seconds |
+| --- | ---: | ---: | ---: |
+| Windows x86-64 | 1,548 | 130,215,016 | 74.140 |
+| Linux x86-64 | 1,336 | 146,121,920 | 51.722 |
+| macOS ARM64 | 1,337 | 94,791,561 | 44.994 |
+
+The final handoff records the exact final PR head/check run in the PR after all required checks finish. Review status remains closed with two requested rounds; no third request, owner merge or release promotion is performed.
