@@ -6,7 +6,7 @@ Date: 2026-10-08. Owner slice S008, branch `codex/008-evidence-explore`, directo
 
 Specify, clarify, requirements/evidence checklists, research, plan, data model, contracts, tasks and blocking analyze completed. Research-only agents examined existing graph/catalog/Explore integration; implementation remained sequential. No unresolved constitution or scope conflict.
 
-Convergence assessed all 16 FRs, five SCs, ten story acceptance scenarios, ten plan decisions and five constitution principles. Appended recovery, persistence, delivery, elected-HTTP and disjoint-source/rebuild acceptance tasks (T035-T039). All buildable requirements now have implementation and acceptance coverage. Hosted platform timing/exact-head checks and PR review remain publication gates, not implementation claims.
+Convergence assessed all 16 FRs, five SCs, ten story acceptance scenarios, ten plan decisions and five constitution principles. Appended recovery, persistence, delivery, elected-HTTP and disjoint-source/rebuild acceptance tasks (T035-T039). All buildable requirements now have implementation and acceptance coverage. Hosted platform timing/exact-head checks and both PR review rounds are complete; evidence appears below.
 
 Task path consolidation: graph/evidence/query/timeline/saved dispatch live in `internal/app/explore_*.go`; common query/calendar hydration lives in `internal/explore/`. Native and backend tests are `internal/app/explore_*_test.go`, `internal/graph/adapter_test.go` and tagged engine tests. The task descriptions' conceptual file names map to these final paths.
 
@@ -23,7 +23,7 @@ Task path consolidation: graph/evidence/query/timeline/saved dispatch live in `i
 - Real PostgreSQL fixture: saved immutable versions, compatibility replay and separate layouts survive restore with proofs/CAS; forged definitions fail.
 - Elected HTTP-to-durable extraction test uses deterministic structured output and validates negation/conditions. Literal extraction retains current cue ownership; replacement invalidates extraction.
 - Prepared native dependency checks and source CLI/native desktop qualification passed. The mounted native UI journey includes Explore calendar, current query, saved definition, force graph/table and separate layout.
-- Relocated Windows x86-64 package passed real licensed audio/video import, Cue JSON assembly/native export, calendar, embedded graph query/version/rebuild, GUI bridge and native webview under an isolated PATH with checkout Ladybug libraries moved aside and restored. Package smoke took 101 seconds. This local receipt is a dirty working-tree qualification; hosted exact-head clean package receipts are still required.
+- Relocated Windows x86-64 package passed real licensed audio/video import, Cue JSON assembly/native export, calendar, embedded graph query/version/rebuild, GUI bridge and native webview under an isolated PATH with checkout Ladybug libraries moved aside and restored. Package smoke took 101 seconds. This local receipt is a dirty working-tree qualification; hosted clean package receipts are recorded below.
 
 ## Decisions and limitations
 
@@ -64,3 +64,11 @@ The next adapter run passed catalog migration but timed out in ten-second Arcade
 
 On 7e5e456, complete hosted Linux native/package acceptance passed in 6m21s and Windows passed in 9m58s. Both remained below ten minutes. The latest serial real Arcade graph/app checks pass locally, as do desktop policy tests and repository checks. The remaining correction head requires hosted fixture and macOS acceptance before owner handoff.
 On 258304e, hosted adapter fixtures passed in 2m08s, Linux native/package qualification in 6m32s and macOS native/package qualification in 5m22s. The hosted-only visible macOS qualification establishes both source and relocated mounted Explore journeys. Windows exhausted the job budget during package inventory after core acceptance took 3m08s and Go setup/cache restore took 1m21s. Windows core acceptance now runs as an independent parallel job with the identical Go acceptance/vet and Python suite. Native qualification retains every original engine, CLI, credential, UI and relocated-package check; both Windows jobs retain ten-minute limits. Final exact-head checks remain required.
+
+### Completed delivery gates
+
+Code/configuration head cf51f5751528501140325dfeffba832c6ae3185e passed every hosted check in run [37761358338](https://github.com/shruggietech/insonic/actions/runs/37761358338). Foundation took 11s, docs 34s, adapter fixtures 1m56s, Windows core 3m34s, Linux native/package 6m02s, macOS native/package 4m00s and Windows native/package 6m15s. Every job remained below ten minutes. Native checks include real embedded graph operations, source CLI/desktop and relocated licensed-media/package qualification; required CI performs no transcription/diarization, model initialization, weight download or elected training.
+
+Both authorized code-review rounds completed. All five threads have substantive replies and are resolved. Round 1 fixes were pushed in 1d8b1c4; round 2's non-reproducing lookahead finding received corrected-dialect and no-engine-call regression evidence in c34e462. No independent security-review report arrived, and no third round was triggered. Issues #11/#12 remain In review until owner merge.
+
+The final planning-only follow-up records these completed gates and owner handoff readiness. Its exact-head CI will also be verified before the owner receives the ready notice; the PR status comment records that final head/run without a self-referential commit identifier in this file. Official PR #27 is ready for owner final review and squash merge after that last status check. No merge, tag, release, signing or notarization was performed by the agent.

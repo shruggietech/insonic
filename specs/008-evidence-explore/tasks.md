@@ -60,8 +60,8 @@ Independent test: Save/revise/restart/conflict/backend switch and graph/table ex
 - [x] T030 Run speckit-converge against all FRs/SCs/stories/design decisions; append and implement gap tasks in specs/008-evidence-explore/tasks.md.
 - [x] T031 Push verified branch, publish/attach official PR closing #11/#12 and update Project tracking; record URL in specs/008-evidence-explore/verification.md.
 - [x] T032 Address/reply/resolve every initial bot finding and reaction; request at most one additional review round; record rounds in specs/008-evidence-explore/verification.md.
-- [ ] T033 Address/reply/resolve second-round findings and verify final exact-head green CI without triggering a third review in specs/008-evidence-explore/verification.md.
-- [ ] T034 Hand off completed reviewed PR for owner final review/merge; preserve release/signing boundary in specs/008-evidence-explore/verification.md.
+- [x] T033 Address/reply/resolve second-round findings and verify final exact-head green CI without triggering a third review in specs/008-evidence-explore/verification.md.
+- [x] T034 Hand off completed reviewed PR for owner final review/merge; preserve release/signing boundary in specs/008-evidence-explore/verification.md.
 
 ## Dependencies and execution order
 
