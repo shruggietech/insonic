@@ -146,3 +146,40 @@ html[data-reduced-motion='true'] *::after {
     scroll-behavior: auto;
   }
 }
+
+.calendar-entries {
+ display: flex;
+ flex-wrap: wrap;
+ gap: var(--bb-spacing-control-block);
+}
+.evidence-graph {
+ inline-size: 100%;
+ max-block-size: var(--bb-layout-narrow-max);
+ background: var(--bb-surface-card);
+ border: var(--bb-border-default) solid var(--bb-text-muted);
+ touch-action: none;
+}
+.evidence-graph line {
+ stroke: var(--bb-text-muted);
+ stroke-width: var(--bb-border-default);
+}
+.evidence-graph circle {
+ fill: var(--bb-text-primary);
+}
+.evidence-graph text {
+ fill: var(--bb-text-primary);
+ font-family: var(--bb-typography-mono-family);
+ font-size: var(--in-body-sm);
+ paint-order: stroke;
+ stroke: var(--bb-surface-card);
+ stroke-width: var(--bb-border-strong);
+}
+.evidence-graph .edge-label {
+ fill: var(--bb-text-muted);
+}
+.evidence-graph:focus-visible,
+.evidence-graph [role='button']:focus-visible,
+.calendar-entries:focus-visible {
+ outline: var(--bb-focus-width) solid var(--bb-focus-ring);
+ outline-offset: var(--bb-focus-offset);
+}

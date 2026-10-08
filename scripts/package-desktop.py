@@ -119,6 +119,8 @@ def normalize_macos_libraries(native):
 
 def verify_loader_paths(root, key):
     if key.startswith('windows'):
+        if not (root / 'lbug_shared.dll').is_file():
+            raise ValueError('Windows startup graph DLL must be beside both executables')
         return
     for name in ['insonic', 'insonic-desktop']:
         executable = root / name
@@ -384,6 +386,19 @@ def build():
     if key.startswith('windows'):
         args.extend(['-ldflags', '-H windowsgui'])
     child([*args, '-o', root / ('insonic-desktop' + exe), './cmd/insonic-desktop'], env=env)
+    if key.startswith('windows'):
+        # The PE loader resolves static imports before Go can configure search
+        # directories. Place native DLLs beside the executables, without PATH.
+        for library in (root / 'native').glob('*.dll'):
+            destination = root / library.name
+            if not library.resolve().is_relative_to(root.resolve()) or not destination.resolve().is_relative_to(root.resolve()):
+                raise ValueError('Windows DLL placement escapes package')
+            library.replace(destination)
+    if key.startswith('windows'):
+        from windows_openssl import prepare as prepare_openssl
+        openssl = prepare_openssl()
+        for name in ['libssl-3-x64.dll', 'libcrypto-3-x64.dll']:
+            shutil.copyfile(openssl / name, root / name)
     verify_loader_paths(root, key)
     copy_tree(ROOT / 'build/native/media', root / 'companions/media')
     cueson_root = next((ROOT / 'build/native/cueson').rglob('cueson' + exe)).parent
@@ -393,6 +408,8 @@ def build():
         shutil.copyfile(ROOT / name, root / name)
     notices = root / 'notices'
     notices.mkdir()
+    if key.startswith('windows'):
+        shutil.copyfile(ROOT / 'build/native/openssl/OpenSSL-LICENSE.txt', notices / 'OpenSSL-LICENSE.txt')
     for name in ['LICENSE', 'NOTICE', 'LICENSE-BRAND.md']:
         shutil.copyfile(ROOT / 'brand/kit' / name, notices / ('brand-' + name))
     copy_tree(ROOT / 'brand/kit/fonts/licenses', notices / 'fonts')
@@ -428,6 +445,8 @@ def build():
                     'cueson': qualify.LOCK['cueson']['version'], 'cueson_schema_sha256': qualify.LOCK['cueson']['schema_sha256'],
                     'media': json.loads((ROOT / 'build/native/media-tool-receipt.json').read_text()),
                     'modules': module_notices, 'javascript': frontend_notices}
+    if key.startswith('windows'):
+        dependencies['openssl'] = json.loads((ROOT / 'build/native/openssl-receipt.json').read_text())
     value = inventory(root, revision, dependencies, distribution)
     value['source_dirty'] = source_dirty
     if root != target:
@@ -576,6 +595,17 @@ def _smoke(archive=None, dirname=None, receipt=None):
             call('recordings', 'export', items[0]['media_id'], '--input', input_path)
             if not export_path.is_file() or b'-->' not in export_path.read_bytes():
                 raise ValueError('packaged native subtitle export missing')
+            calendar = call('timeline', 'calendar')
+            if calendar.get('total') != 2:
+                raise ValueError('packaged whole-library calendar missing media')
+            write_json(input_path, {'definition': {'mode': 'normalized', 'operation': 'text-search', 'pagination': {'limit': 100}}})
+            queried = call('query', 'run', '--input', input_path)
+            if not queried.get('items') or queried.get('graph_error'):
+                raise ValueError('packaged current graph query did not use the embedded adapter')
+            capabilities = call('graph', 'capabilities')
+            if capabilities.get('backend_version') != qualify.LOCK['ladybug']['version']:
+                raise ValueError('packaged graph version differs')
+            call('graph', 'rebuild')
             qualification_output = child([gui, '--qualification'], directory=root, env=env, timeout=30)
             qualify.write_receipt(ROOT / 'build/native/package-desktop-receipt.json', qualification_output,
                                   {'desktop_bridge': 'passed', 'offline_help': 'packaged', 'schema_version': VERSION})

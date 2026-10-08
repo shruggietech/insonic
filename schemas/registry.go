@@ -18,6 +18,7 @@ var requestSchema *jsonschema.Schema
 var processingToolsSchema *jsonschema.Schema
 var pipelineConfigurationSchema *jsonschema.Schema
 var mediaToolsSchema *jsonschema.Schema
+var graphQuerySchema *jsonschema.Schema
 var compileErr error
 
 type offlineLoader struct{}
@@ -73,11 +74,15 @@ func initialize() {
 			pipelineConfigurationSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/pipeline-config.schema.json#/$defs/configuration")
 		}
 		if compileErr == nil {
+			graphQuerySchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/graph-query.schema.json")
+		}
+		if compileErr == nil {
 			mediaToolsSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/media-tools.schema.json")
 		}
 	})
 }
 
+func ValidateGraphQuery(data []byte) error { initialize(); return validate(graphQuerySchema, data) }
 func ValidateWorkspace(data []byte) error {
 	initialize()
 	return validate(compiled, data)

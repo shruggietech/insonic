@@ -204,7 +204,13 @@ func checkpointReceiptSuite(t *testing.T, s *Store, empty func(string) *Store) {
 		}
 		for i := range bad.State {
 			if damage == "rewind" && bad.State[i].Name == "graph_target" {
-				bad.State[i].Rows[0][2] = json.RawMessage(`0`)
+				for j := range bad.State[i].Rows {
+					var targetID string
+					json.Unmarshal(bad.State[i].Rows[j][0], &targetID)
+					if targetID == target {
+						bad.State[i].Rows[j][2] = json.RawMessage(`0`)
+					}
+				}
 			}
 			if bad.State[i].Name == "operation_receipt" {
 				for j := range bad.State[i].Rows {

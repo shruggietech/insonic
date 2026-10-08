@@ -6,6 +6,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Current source-backed evidence extraction, real LadybugDB/ArcadeDB reference publication and portable/native queries, with whole-library calendars, recording timelines, versioned saved definitions and separate force-graph layouts in CLI and desktop Explore.
+
 - Native desktop Library, Jobs, Pipelines, Speakers, Terms, Models and Settings controls over the shared runtime, including current recording actions, exact raw capture display, scoped ranged audio/video playback, bounded previews and original-time cue seeking.
 - Installation-relative verified companion discovery and Windows x86-64, Linux x86-64 and macOS ARM64 package builders with relocated CLI/native-webview qualification, offline help, inventories, notices and source/build records. Required checks use committed media and deterministic supplied subtitles/turns without recognition or diarization execution.
 
@@ -84,3 +86,10 @@ All notable changes to this project will be documented here. The format follows 
 - Cover root schema-validation dependencies in grouped Dependabot updates and correct contributor installation guidance.
 
 [Unreleased]: https://github.com/shruggietech/insonic/commits/main
+
+## Decisions (2026-10-08)
+
+- Freeze catalog schema 5 and migrate to schema 6 for current extraction, immutable query versions and layouts. Graph events retain references, while current catalog hydration supplies text and clocks. Saved views no longer offer pinned processing-result snapshots.
+- Prepare real graph adapters in native packages and required backend/UI qualification. Inference, model initialization and weight downloads remain excluded from required CI.
+- Windows native graph DLLs reside beside the CLI and GUI so the operating-system loader resolves them before runtime startup, without development PATH dependencies.
+- Pin Windows OpenSSL 3.5.9 loader companions and their Apache 2.0 notice, with a pinned archive decoder; native preparation and relocated checks no longer depend on ambient OpenSSL installations.

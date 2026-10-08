@@ -45,3 +45,18 @@ func TestQualificationProgressIsExplicitAndBounded(t *testing.T) {
 		t.Fatal("qualification accepted unbounded diagnostics or refused its stage")
 	}
 }
+
+func TestQualificationWindowVisibilityIsHostedMacOnly(t *testing.T) {
+	for _, test := range []struct {
+		smoke           bool
+		system, actions string
+		hidden          bool
+	}{
+		{true, "windows", "", true}, {true, "windows", "true", true}, {true, "linux", "true", true},
+		{true, "darwin", "", true}, {true, "darwin", "true", false}, {false, "darwin", "true", false},
+	} {
+		if got := qualificationStartsHidden(test.smoke, test.system, test.actions); got != test.hidden {
+			t.Fatalf("%+v: hidden=%v", test, got)
+		}
+	}
+}

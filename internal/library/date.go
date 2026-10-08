@@ -77,6 +77,14 @@ func loadZones() {
 		}
 	}
 }
+
+// CalendarLocation uses the same pinned timezone data as date interpretation.
+func CalendarLocation(name string) (*time.Location, error) {
+	if name == "" {
+		name = "UTC"
+	}
+	return loadZone(name)
+}
 func loadZone(name string) (*time.Location, error) {
 	zoneOnce.Do(loadZones)
 	if name == "UTC" || name == "Z" {

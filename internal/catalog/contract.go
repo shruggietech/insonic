@@ -11,6 +11,19 @@ import (
 // Catalog is the shared backend-neutral authority used by runtime operations.
 // Both official adapters implement it; callers never receive SQL connections.
 type Catalog interface {
+	GraphTarget() string
+	EnqueueGraphRebuild(context.Context, string) (Receipt, error)
+	AdvanceOutboxGeneration(context.Context, string, int64, time.Duration) error
+	GraphStatus(context.Context) (map[string]int64, error)
+	EnqueueGraphRefresh(context.Context, string, int64, json.RawMessage) (Receipt, error)
+	RenewOutbox(context.Context, OutboxClaim, time.Duration) (OutboxClaim, error)
+	Extraction(context.Context, string) (Extraction, error)
+	CommitExtraction(context.Context, Work, Extraction) (Extraction, error)
+	AcceptedExtractionWork(context.Context, string, string) (json.RawMessage, bool, error)
+	SavedQueries(context.Context, string) ([]SavedQuery, error)
+	PutSavedQuery(context.Context, string, int64, SavedQuery) (SavedQuery, error)
+	GraphLayout(context.Context, string) (GraphLayout, error)
+	PutGraphLayout(context.Context, string, int64, GraphLayout) (GraphLayout, error)
 	Pipeline(context.Context, string) (Pipeline, error)
 	Pipelines(context.Context, string, int) ([]Pipeline, string, error)
 	PutPipeline(context.Context, string, int64, Pipeline) (Pipeline, error)

@@ -7,6 +7,7 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/credentialcmd"
+	"github.com/shruggietech/insonic/internal/graph"
 	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"net/http"
@@ -21,6 +22,8 @@ type worker struct {
 	cancel  context.CancelFunc
 }
 type App struct {
+	graphMu           sync.Mutex
+	Graph             graph.Adapter
 	recordingFactory  func() (*recordingExecution, error)
 	hostedClient      *http.Client // Only injected by deterministic protocol fixtures.
 	Workspace         *workspace.Workspace
@@ -104,6 +107,8 @@ func newOwnerContext(ownerContext context.Context, w *workspace.Workspace, secre
 		store.Close()
 		return nil, err
 	}
+	a.wg.Add(1)
+	go a.maintainGraph(ctx)
 	for _, r := range recovered {
 		a.attach(r)
 	}
@@ -305,6 +310,11 @@ func (a *App) Close() {
 		a.Artifacts.Close()
 	}
 	a.artifactMu.Unlock()
+	a.graphMu.Lock()
+	if a.Graph != nil {
+		a.Graph.Close()
+	}
+	a.graphMu.Unlock()
 	a.Catalog.Close()
 	if a.secretOwner != nil {
 		a.secretOwner.Close()
@@ -372,7 +382,9 @@ func (a *App) Dispatch(req contracts.Request) contracts.Response {
 			result, err = a.Catalog.HistoryPage(a.ctx, req.JobID, req.AfterGeneration)
 		}
 	default:
-		if contracts.DesktopOperation(req.Operation) {
+		if contracts.ExploreOperation(req.Operation) {
+			result, err = a.exploreDispatch(req)
+		} else if contracts.DesktopOperation(req.Operation) {
 			result, err = a.desktopDispatch(req)
 		} else if strings.HasPrefix(req.Operation, "credentials.") {
 			result, err = a.credentialDispatch(req)

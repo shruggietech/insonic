@@ -8,7 +8,7 @@ Advanced or experimental CLI capabilities may ship before their GUI controls. Ea
 
 CLI groups are `workspace`, `media`, `pipelines`, `jobs`, `speakers`, `terms`, `search`, `query`, `export`, `models`, `settings` and `doctor`. Human output is concise; `--json` provides versioned machine-readable records, diagnostics go to stderr, and exit statuses distinguish failure and partial completion. Noninteractive invocations never prompt. Secret entry uses a protected input channel, not command-line values.
 
-The source-buildable desktop exposes Library, Jobs, Pipelines, Speakers, Terms, Models and Settings screens. The native bridge uses the same workspace/runtime requests and protected credential channel as the CLI. Library details support captured metadata, date corrections, reference relocation, current recording assembly/processing, inspection, rerun, native export and known-speaker mappings. See [subtitles](subtitles.md), [pipelines](pipelines.md), [credential commands](secrets.md), [downloaded models](models.md) and [import](ingestion.md) for shared validation and executable operations.
+The source-buildable desktop exposes Library, Jobs, Pipelines, Speakers, Terms, Models, Explore and Settings screens. The native bridge uses the same workspace/runtime requests and protected credential channel as the CLI. Library details support captured metadata, date corrections, reference relocation, current recording assembly/processing, inspection, rerun, native export and known-speaker mappings. See [subtitles](subtitles.md), [pipelines](pipelines.md), [credential commands](secrets.md), [downloaded models](models.md) and [import](ingestion.md) for shared validation and executable operations.
 
 | Capability | CLI | Desktop |
 | --- | --- | --- |
@@ -20,7 +20,8 @@ The source-buildable desktop exposes Library, Jobs, Pipelines, Speakers, Terms, 
 | Media/processing tool configuration and appearance | Shared settings operations | Revision-checked Settings forms |
 | Original/preview playback and current cue/span seeking | Shared playback contracts | Native audio/video controls |
 | Low-level artifact retention/leases, catalog snapshots, profile migration and detailed raw bundles | Advanced commands | Readable profiles; advanced operations remain in the CLI |
-| General text/graph exploration, query assistance and speaker-model training | Delivery contracts | Subsequent implementation |
+| Text/graph queries, current evidence extraction, calendars, recording timelines, saved definitions/layouts | Implemented | Explore controls, source playback, force graph and accessible tables |
+| Query assistance and speaker-model training | Delivery contracts | Subsequent implementation |
 
 The matrix describes implemented interfaces, not an official product release. Dedicated profile migration controls follow catalog migration/backup delivery; saving an appearance or tool setting does not replace storage/catalog configuration.
 

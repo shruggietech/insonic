@@ -106,7 +106,9 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 	defer a.wg.Done()
 	var result any
 	var e error
-	if claim.Kind == "recordings.process" {
+	if claim.Kind == "evidence.extract" {
+		result, e = a.processEvidence(ctx, claim)
+	} else if claim.Kind == "recordings.process" {
 		result, e = a.processRecording(ctx, claim)
 	} else if strings.HasPrefix(claim.Kind, "models.") {
 		var s *models.Service
@@ -159,6 +161,9 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 }
 
 func domainRequestValid(req contracts.Request) bool {
+	if contracts.ExploreOperation(req.Operation) {
+		return contracts.ExploreRequestValid(req)
+	}
 	if contracts.DesktopOperation(req.Operation) {
 		return contracts.DesktopRequestValid(req)
 	}

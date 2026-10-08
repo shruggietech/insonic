@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/shruggietech/insonic/internal/app"
@@ -18,6 +19,15 @@ import (
 	"github.com/shruggietech/insonic/internal/subtitles"
 	"github.com/shruggietech/insonic/internal/workspace"
 )
+
+// QualificationStartsHidden keeps local smoke tests out of the foreground.
+// Hosted macOS needs an onscreen WKWebView to run media and its JS timers.
+func QualificationStartsHidden(smoke bool) bool {
+	return qualificationStartsHidden(smoke, runtime.GOOS, os.Getenv("GITHUB_ACTIONS"))
+}
+func qualificationStartsHidden(smoke bool, system, actions string) bool {
+	return smoke && !(system == "darwin" && actions == "true")
+}
 
 // QualificationData contains controlled fixture inputs only in the explicit
 // native-webview qualification process. Ordinary desktop sessions return none.
@@ -37,7 +47,7 @@ func (b *Bridge) QualificationStep(step string) bool {
 		return false
 	}
 	switch step {
-	case "module", "fixtures", "mounted", "ready", "library-import", "audio-playback", "video-playback", "metadata-date", "assembly", "cue-seek", "terms", "speakers", "pipelines", "jobs", "settings", "keyboard-help", "complete":
+	case "module", "fixtures", "mounted", "ready", "library-import", "audio-playback", "video-playback", "metadata-date", "assembly", "cue-seek", "terms", "speakers", "pipelines", "jobs", "settings", "keyboard-help", "explore-calendar", "explore-query", "explore-graph", "complete":
 		fmt.Fprintln(os.Stderr, "Desktop qualification stage:", step)
 		return true
 	}

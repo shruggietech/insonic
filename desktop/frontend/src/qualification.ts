@@ -14,6 +14,16 @@ export function mediaDiagnostics(media: HTMLMediaElement | null): string {
   // only bounded numeric state and known error categories during qualification.
   return `readyState=${media.readyState},networkState=${media.networkState},error=${code}(${errors[code] ?? 'unknown'}),buffered=${media.buffered.length},duration=${Number.isFinite(media.duration) && media.duration > 0 ? 'positive' : 'unavailable'}`;
 }
+// A webview may leave play() pending while media is outside its viewport.
+// Bound startup separately so failed decode produces diagnostics before quit.
+export async function qualificationPlay(media: HTMLMediaElement, timeout = 8000): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([media.play(), new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new DOMException('Playback startup timed out.', 'TimeoutError')), timeout);
+    })]);
+  } finally { if (timer !== undefined) clearTimeout(timer); }
+}
 // Runs only during the explicit native qualification mode. Every write below
 // goes through the same mounted controls and shared operations as ordinary use.
 export async function qualifyDesktop(bridge: NativeBridge): Promise<Obj> {
@@ -178,10 +188,12 @@ async function qualifyJourney(
       kind === 'video' ? 'video' : 'audio',
     ) as HTMLMediaElement;
     element.muted = true;
+    element.scrollIntoView({block:'center'});
+    await idle();
     const before = element.currentTime;
     stage(`Decode and play ${kind}`);
     try {
-      await element.play();
+      await qualificationPlay(element);
     } catch (error) {
       throw new Error(
         `${kind} play() rejected (${error instanceof DOMException ? error.name : 'operation-failed'}): ${mediaDiagnostics(element)}.`,
@@ -328,6 +340,27 @@ async function qualifyJourney(
   stage('Inspect durable job');
   await idle();
   flags.ui_jobs = 'passed';
+  await bridge.QualificationStep?.('explore-calendar');
+  await click('Explore');
+  await fill('Calendar from','1900-01-01');
+  await fill('Calendar through','2100-12-31');
+  await click('Apply calendar viewport');
+  if(!document.querySelector('[aria-label^="Recording calendar"]'))throw new Error('Whole-library calendar missing.');
+  flags.ui_explore_calendar='passed';
+  await bridge.QualificationStep?.('explore-query');
+  await click('Query');
+  await fill('Search operation','text-search');
+  await click('Run current query');
+  if(!document.body.textContent?.includes('Current query results'))throw new Error('Current query result table missing.');
+  await fill('Saved query title','Qualification current evidence');
+  await click('Save query version');
+  flags.ui_explore_query='passed';
+  await bridge.QualificationStep?.('explore-graph');
+  await click('Graph');
+  await click('Run current query');
+  if(!document.querySelector('[aria-label^="Evidence graph"]')||!document.body.textContent?.includes('Accessible graph nodes'))throw new Error('Graph and accessible table missing.');
+  await click('Save graph layout');
+  flags.ui_explore_graph='passed';
   await bridge.QualificationStep?.('settings');
   await click('Settings');
   await fill('Theme preference', 'light');

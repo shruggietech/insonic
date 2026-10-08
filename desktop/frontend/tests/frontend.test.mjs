@@ -1400,3 +1400,10 @@ test('late startup Show cannot replace a newly opened workspace', async () => {
   );
   await unmount();
 });
+
+
+test('native qualification bounds a webview play promise that never settles', async () => {
+  const {qualificationPlay}=await import('../.test-build/qualification.js');
+  await assert.rejects(qualificationPlay({play:()=>new Promise(()=>{})},5),error=>error.name==='TimeoutError');
+  await qualificationPlay({play:async()=>{}},5);
+});

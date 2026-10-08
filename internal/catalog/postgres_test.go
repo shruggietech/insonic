@@ -173,3 +173,5 @@ func TestPostgreSQLReferenceEvidenceReplacement(t *testing.T) {
 func TestPostgreSQLPopulatedSchema3EvidenceMigration(t *testing.T) {
 	historicalEvidenceMigrationSuite(t, postgresStore(t, contracts.ID()))
 }
+
+func TestPostgreSQLSavedDefinitionsAndLayouts(t *testing.T) { savedQuerySuite(t, postgresStore) }

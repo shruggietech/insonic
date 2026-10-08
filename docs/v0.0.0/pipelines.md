@@ -129,3 +129,7 @@ Current replacement invalidates stale segment/evidence references, dataset membe
 ## Required checks and maintainer evidence
 
 No CI suite, native/backend qualification or required status check invokes transcription/diarization, initializes or loads their models, downloads model weights or requires engine results. The rule applies even to small or cached models. Deterministic tests supply stage results at the adapter boundary and may probe/extract committed real media and execute Cueson. Actual recognition/diarization quality testing requires the explicit opt-in maintainer path outside CI and merge requirements.
+
+## Current evidence extraction
+
+Evidence extraction operates on accepted current Cue JSON through the shared durable-work runtime. The builtin cue-statement adapter preserves literal source ownership; an explicitly configured HTTP adapter can supply propositions with cue citations, polarity, modality and conditions. Acceptance validates current recording revision, document digest and cited local voices. Replacement invalidates that extraction. [Graph operations](graph.md) document executable inputs, bounds and provenance. Required CI exercises deterministic supplied replies and never initializes models.

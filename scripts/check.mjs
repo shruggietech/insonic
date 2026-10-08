@@ -4,6 +4,7 @@ import { readFile, readdir, lstat } from 'node:fs/promises';
 import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { verifyInstalled } from './sync-brand-kit.mjs';
+import { parseDocument } from 'yaml';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ignoredDirectories = new Set(['.git', '.local', 'node_modules', '.next', 'out', 'offline', 'build', 'dist', 'coverage', 'test-results', 'playwright-report', '.bootstrap-spec-kit', '.brandbuilder']);
@@ -29,6 +30,11 @@ export function validateText(file, bytes) {
     if (/^\s*(?:<{7}|={7}|>{7})(?:\s|$)/.test(line)) problems.push(location(file, index + 1, 'Unresolved merge conflict marker'));
   }
   return { problems, text };
+}
+
+export function validateYAML(file, text) {
+  const document = parseDocument(text, { version: '1.2', prettyErrors: false, uniqueKeys: true });
+  return document.errors.map(error => location(file, 0, `Invalid YAML (${error.message})`));
 }
 
 function markdownBlocks(text) {
@@ -184,6 +190,7 @@ export async function checkRepository(root = repositoryRoot, { verifyBrand = tru
     else { const validation = validateText(file, bytes); problems.push(...validation.problems); text = validation.text; checked += 1; }
     if (text === null) continue;
     if (json) { try { JSON.parse(text); } catch (error) { problems.push(`${file}: Invalid JSON (${error.message})`); } }
+    if (extension === '.yml' || extension === '.yaml') problems.push(...validateYAML(file, text));
     if (extension === '.md' && !vendorStyle(file)) { problems.push(...validateMarkdown(file, text)); problems.push(...await validateLinks(root, file, text)); }
   }
   problems.push(...await validateVersions(root));
@@ -195,7 +202,7 @@ async function main() {
   if (process.argv.length > 2) throw new Error('Usage: node scripts/check.mjs');
   const { checked, problems } = await checkRepository();
   if (problems.length) { console.error(problems.join('\n')); console.error(`Foundation check failed with ${problems.length} problem${problems.length === 1 ? '' : 's'}.`); process.exitCode = 1; }
-  else console.log(`Foundation check passed: ${checked} project text files, Markdown links, version navigation, JSON, and upstream kit integrity.`);
+  else console.log(`Foundation check passed: ${checked} project text files, Markdown links, version navigation, JSON/YAML, and upstream kit integrity.`);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main().catch((error) => { console.error(error.message); process.exitCode = 1; });

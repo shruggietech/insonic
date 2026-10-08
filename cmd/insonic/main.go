@@ -58,6 +58,7 @@ func execute(args []string) int {
 		fmt.Println("insonic media tools <configuration.json> | media import <files...> or --manifest <CSV/JSON> [--reference] [--originated-at/on VALUE] [--timezone ZONE] | media list/show/metadata/raw/refresh/set-origin/relocate | models register/acquire <manifest> | models list/show/verify/materialize | work list/show/wait/cancel/retry")
 		fmt.Println("insonic settings show | settings set --input JSON | recordings cues <media-id> [--input JSON] | media playback/playback-check/playback-close <media-id> --input JSON")
 		fmt.Println("insonic media capture <media-id> --input JSON (exact current metadata/facts/date byte pages)")
+		fmt.Println("insonic graph capabilities/status/publish/rebuild | evidence extract/show <media-id> [--input JSON] | query run/explain/validate --input JSON | query run --saved <query-id> [--revision N] | query list/show/save | timeline calendar/recording | views show/save (mutation definitions use --input JSON)")
 		fmt.Println("insonic work wait <work-id> [--timeout-ms 30000] (one-process bounded wait; terminal failures preserve state and exit nonzero)")
 		return 0
 	}
@@ -108,7 +109,17 @@ func execute(args []string) int {
 		return catalogCommand(ctx, w, positional[1:], machine)
 	}
 	req := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, RequestID: requestID}
-	if len(positional) > 1 && contracts.DesktopOperation(positional[0]+"."+positional[1]) {
+	if positional[0] == "search" || (len(positional) > 1 && positional[0] == "query" && positional[1] == "native") {
+		req.Operation, req.ItemID, req.Data, err = parseExploreAlias(positional)
+		if err != nil {
+			return output(nil, err, machine)
+		}
+	} else if len(positional) > 1 && contracts.ExploreOperation(positional[0]+"."+positional[1]) {
+		req.Operation, req.ItemID, req.Data, err = parseExplore(positional)
+		if err != nil {
+			return output(nil, err, machine)
+		}
+	} else if len(positional) > 1 && contracts.DesktopOperation(positional[0]+"."+positional[1]) {
 		req.Operation, req.ItemID, req.Data, err = parseDesktopOperation(positional)
 		if err != nil {
 			return output(nil, err, machine)
@@ -178,7 +189,7 @@ func execute(args []string) int {
 	} else {
 		return output(nil, contracts.Fail("invalid_request"), machine)
 	}
-	if !contracts.ConfigurationOperation(req.Operation) && !strings.HasPrefix(req.Operation, "recordings.") && !strings.HasPrefix(req.Operation, "media.") && !strings.HasPrefix(req.Operation, "models.") && !strings.HasPrefix(req.Operation, "work.") && !strings.Contains("|workspace.show|doctor|catalog.show|jobs.start|jobs.show|jobs.history|jobs.cancel|jobs.retry|artifacts.publish|artifacts.show|artifacts.verify|artifacts.materialize|artifacts.reconcile|artifacts.abort|artifacts.retire|artifacts.lease-renew|artifacts.lease-release|artifacts.cache-prune|artifacts.retain|artifacts.release-reference|", "|"+req.Operation+"|") {
+	if !contracts.ExploreOperation(req.Operation) && !contracts.ConfigurationOperation(req.Operation) && !strings.HasPrefix(req.Operation, "recordings.") && !strings.HasPrefix(req.Operation, "media.") && !strings.HasPrefix(req.Operation, "models.") && !strings.HasPrefix(req.Operation, "work.") && !strings.Contains("|workspace.show|doctor|catalog.show|jobs.start|jobs.show|jobs.history|jobs.cancel|jobs.retry|artifacts.publish|artifacts.show|artifacts.verify|artifacts.materialize|artifacts.reconcile|artifacts.abort|artifacts.retire|artifacts.lease-renew|artifacts.lease-release|artifacts.cache-prune|artifacts.retain|artifacts.release-reference|", "|"+req.Operation+"|") {
 		return output(nil, contracts.Fail("invalid_request"), machine)
 	}
 	if err := local.Ensure(ctx, w, ""); err != nil {

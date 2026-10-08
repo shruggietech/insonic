@@ -24,6 +24,16 @@ class NativePackageIntegrityTests(unittest.TestCase):
         self.assertEqual(info['NSAppTransportSecurity'], {'NSExceptionDomains': {
             '127.0.0.1': {'NSExceptionAllowsInsecureHTTPLoads': True}}})
 
+    def test_windows_startup_graph_library_is_beside_executables(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / 'native').mkdir()
+            (root / 'native/lbug_shared.dll').write_bytes(b'fixture')
+            with self.assertRaisesRegex(ValueError, 'beside'):
+                package.verify_loader_paths(root, 'windows_amd64')
+            (root / 'native/lbug_shared.dll').replace(root / 'lbug_shared.dll')
+            package.verify_loader_paths(root, 'windows_amd64')
+
     def test_packaged_loader_flags_replace_development_rpaths(self):
         original = {'CGO_LDFLAGS': '-L/checkout/native -Wl,-rpath,/checkout/native',
                     'CGO_CFLAGS': '-I/checkout/native', 'CGO_ENABLED': '1'}

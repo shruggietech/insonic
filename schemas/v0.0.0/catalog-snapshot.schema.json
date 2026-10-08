@@ -76,7 +76,8 @@
         2,
         3,
         4,
-        5
+        5,
+        6
       ]
     },
     "digest": {
@@ -1712,6 +1713,126 @@
             "description": "Current saved pipeline definition; work captures its effective revision separately."
           },
           "description": "Current typed records, ordered by stable identity; null or omission denotes an empty domain."
+        },
+        "extractions": {
+          "type": "array",
+          "description": "Portable typed extractions, validated against accepted current-state proofs.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "id in the current exploration contract."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "revision in the current exploration contract."
+              },
+              "recording_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "recording revision in the current exploration contract."
+              },
+              "document_digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$",
+                "description": "document digest in the current exploration contract."
+              },
+              "assertions": {
+                "type": "array",
+                "description": "assertions in the current exploration contract."
+              },
+              "provenance": {
+                "type": "object",
+                "description": "provenance in the current exploration contract."
+              },
+              "diagnostics": {
+                "type": "array",
+                "description": "diagnostics in the current exploration contract."
+              }
+            },
+            "required": [
+              "id",
+              "revision",
+              "recording_revision",
+              "document_digest",
+              "assertions",
+              "provenance",
+              "diagnostics"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "saved_queries": {
+          "type": "array",
+          "description": "Portable typed saved queries, validated against accepted current-state proofs.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "id in the current exploration contract."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "revision in the current exploration contract."
+              },
+              "definition": {
+                "type": "object",
+                "description": "definition in the current exploration contract."
+              },
+              "validations": {
+                "type": "array",
+                "description": "Immutable backend compatibility findings for this saved version.",
+                "items": {
+                  "type": "object",
+                  "description": "Compatibility check result."
+                }
+              }
+            },
+            "required": [
+              "id",
+              "revision",
+              "definition",
+              "validations"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "graph_layouts": {
+          "type": "array",
+          "description": "Portable typed graph layouts, validated against accepted current-state proofs.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "id in the current exploration contract."
+              },
+              "query_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "query id in the current exploration contract."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "revision in the current exploration contract."
+              },
+              "layout": {
+                "type": "object",
+                "description": "layout in the current exploration contract."
+              }
+            },
+            "required": [
+              "id",
+              "query_id",
+              "revision",
+              "layout"
+            ],
+            "additionalProperties": false
+          }
         }
       },
       "required": [
