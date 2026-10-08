@@ -58,7 +58,7 @@ Independent test: Save/revise/restart/conflict/backend switch and graph/table ex
 - [x] T028 Integrate real prepared graph tests/package support and bounded adapter qualification in scripts/qualify.py, scripts/package-desktop.py and .github/workflows/ci.yml.
 - [x] T029 Run npm check/test, Go acceptance/vet/race, frontend checks and site/offline build; record evidence in specs/008-evidence-explore/verification.md.
 - [x] T030 Run speckit-converge against all FRs/SCs/stories/design decisions; append and implement gap tasks in specs/008-evidence-explore/tasks.md.
-- [ ] T031 Push verified branch, publish/attach official PR closing #11/#12 and update Project tracking; record URL in specs/008-evidence-explore/verification.md.
+- [x] T031 Push verified branch, publish/attach official PR closing #11/#12 and update Project tracking; record URL in specs/008-evidence-explore/verification.md.
 - [ ] T032 Address/reply/resolve every initial bot finding and reaction; request at most one additional review round; record rounds in specs/008-evidence-explore/verification.md.
 - [ ] T033 Address/reply/resolve second-round findings and verify final exact-head green CI without triggering a third review in specs/008-evidence-explore/verification.md.
 - [ ] T034 Hand off completed reviewed PR for owner final review/merge; preserve release/signing boundary in specs/008-evidence-explore/verification.md.
@@ -77,3 +77,7 @@ Deliver usable current search first, then integrate timeline/playback, then save
 
 - [x] T038 Close FR-002 elected-extractor dispatch with deterministic HTTP-to-durable-acceptance coverage in internal/app/explore_http_test.go.
 - [x] T039 Close FR-005/FR-010 exact recovery/source-span gaps with idempotent rebuild requests and disjoint cited-clock filtering in internal/catalog/exploration_outbox.go and internal/explore/traversal_test.go.
+
+## Phase 8: Review corrections
+
+- [x] T040 Correct all four initial review findings and verify lifecycle, independent snapshot budget/paged reads, native output parity and complete saved-query edits in internal/app/explore_lifecycle_test.go, internal/catalog/explore_snapshot_limit_test.go, internal/graph/query_limits_test.go and desktop/frontend/tests/explore.test.mjs.

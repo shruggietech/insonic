@@ -145,8 +145,6 @@ func newOwnerContext(ownerContext context.Context, w *workspace.Workspace, secre
 					recovered, err = store.RecoverLimit(ctx, a.Session, leaseTTL, min(128, 1024-len(a.attempts)))
 				}
 				if err == nil {
-					a.wg.Add(1)
-					go a.maintainGraph(ctx)
 					for _, r := range recovered {
 						a.attach(r)
 					}

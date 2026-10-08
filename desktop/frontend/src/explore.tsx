@@ -15,7 +15,35 @@ export function Explore({client,run}:{client:Client;run:Run}){
  const [graphFilter,setGraphFilter]=useState('');
  const selection=useRef(0),calendarRequest=useRef(0),queryRequest=useRef(0),sourceRequest=useRef(0),savedRequest=useRef(0),media=useRef<HTMLMediaElement>(null),alive=useRef(true);
  const exactClock=(value:string)=>{const n=Number(value);if(!Number.isSafeInteger(n)||n<0)throw new Error('Source interval values must be exact nonnegative microsecond integers.');return n};
- const queryDefinition=(cursor=''):Obj=>mode==='native'?{title,definition:{mode,dialect,text:native},parameters:JSON.parse(params)}:{title,definition:{mode,operation,filters:{...(text?{text}:{}),...(mediaID?{media_ids:[mediaID]}:{}),...(speakerID?{speaker_ids:[speakerID]}:{}),...(modelKind?{model_kind:modelKind}:{}),...(start&&end?{source_interval:{start_us:exactClock(start),end_us:exactClock(end)}}:{})},...(operation==='graph-view'||operation==='evidence-traverse'?{traversal:{direction:'both',max_depth:Number(depth),...(relationships?{relationship_types:relationships.split(',').map(v=>v.trim()).filter(Boolean)}:{})}}:{}),order_by:[{field:'id',direction:'asc'}],pagination:{limit:200,...(cursor?{cursor}:{})}}};
+ // Preserve fields the compact editor does not expose, including advanced CLI queries.
+ const loadedQuery=useRef<Obj|undefined>(undefined),queryEdits=useRef(new Set<string>());
+ const editField=(field:string,setter:(value:string)=>void)=>(value:string)=>{queryEdits.current.add(field);setter(value)};
+ const queryDefinition=(cursor=''):Obj=>{
+  const current:Obj=mode==='native'?{title,definition:{mode,dialect,text:native},parameters:JSON.parse(params)}:{title,definition:{mode,operation,filters:{...(text?{text}:{}),...(mediaID?{media_ids:mediaID.split(',').map(v=>v.trim()).filter(Boolean)}:{}),...(speakerID?{speaker_ids:speakerID.split(',').map(v=>v.trim()).filter(Boolean)}:{}),...(modelKind?{model_kind:modelKind}:{}),...(start&&end?{source_interval:{start_us:exactClock(start),end_us:exactClock(end)}}:{})},...(operation==='graph-view'||operation==='evidence-traverse'?{traversal:{direction:'both',max_depth:Number(depth),...(relationships?{relationship_types:relationships.split(',').map(v=>v.trim()).filter(Boolean)}:{})}}:{}),order_by:[{field:'id',direction:'asc'}],pagination:{limit:200}}};
+  const base=loadedQuery.current,edits=queryEdits.current;
+  const out:Obj=!base||base.definition.mode!==mode?current:JSON.parse(JSON.stringify(base));out.title=title;
+  if(base&&base.definition.mode===mode){
+   if(edits.has('operation'))out.definition.operation=operation;
+   if(mode==='normalized'){
+    for(const key of ['text','media_ids','speaker_ids','model_kind','source_interval'])if(edits.has(key)){
+     out.definition.filters??={};const value=current.definition.filters[key];
+     if(value===undefined)delete out.definition.filters[key];else out.definition.filters[key]=value;
+    }
+    if(edits.has('max_depth')||edits.has('relationship_types')){
+     out.definition.traversal??={direction:'both',max_depth:1};
+     if(edits.has('max_depth'))out.definition.traversal.max_depth=Number(depth);
+     if(edits.has('relationship_types'))out.definition.traversal.relationship_types=relationships.split(',').map(v=>v.trim()).filter(Boolean);
+    }
+    if(edits.has('operation')&&!['graph-view','evidence-traverse'].includes(operation))delete out.definition.traversal;
+   }else{
+    if(edits.has('dialect'))out.definition.dialect=dialect;
+    if(edits.has('native'))out.definition.text=native;
+    if(edits.has('parameters'))out.parameters=JSON.parse(params);
+   }
+  }
+  if(cursor){out.definition.pagination??={limit:200};out.definition.pagination.cursor=cursor}
+  return out;
+ };
  const loadCalendar=async(cursor='',viewport=view)=>{
   const request=++calendarRequest.current;const response=await client.call('timeline.calendar','',{filter:{...viewport,timezone:zone,include_undated:undated},pagination:{limit:100,...(cursor?{cursor}:{})}});
   if(!alive.current||request!==calendarRequest.current)return;setCalendar(previous=>({...response,items:cursor?[...previous.items,...response.items]:response.items}));
@@ -51,10 +79,10 @@ export function Explore({client,run}:{client:Client;run:Run}){
  const shift=(direction:number)=>{const date=new Date(view.from+'T00:00:00Z');date.setUTCMonth(date.getUTCMonth()+direction*months);const next=monthViewport(date,months);calendarRequest.current++;setView(next);run(()=>loadCalendar('',next))};
  const zoom=(nextMonths:number)=>{setMonths(nextMonths);const next=monthViewport(new Date(view.from+'T00:00:00Z'),nextMonths);setView(next);calendarRequest.current++;run(()=>loadCalendar('',next))};
  const chooseSaved=async(id:string,revision=0)=>{
-  ++queryRequest.current;const request=++savedRequest.current;const response=await client.call('query.show',id);if(!alive.current||request!==savedRequest.current)return;setVersions(response.items);const v=revision?response.items.find((value:Obj)=>value.revision===revision):response.items.at(-1);if(!v)throw new Error('The selected query version is unavailable.');setQueryID(id);setQueryRevision(v.revision);setTitle(v.title);setMode(v.definition.mode);setOperation(v.definition.operation??'graph-view');setText(v.definition.filters?.text??'');setMediaID(v.definition.filters?.media_ids?.[0]??'');setSpeakerID(v.definition.filters?.speaker_ids?.[0]??'');setModelKind(v.definition.filters?.model_kind??'');setStart(String(v.definition.filters?.source_interval?.start_us??''));setEnd(String(v.definition.filters?.source_interval?.end_us??''));setDepth(String(v.definition.traversal?.max_depth??1));setRelationships((v.definition.traversal?.relationship_types??[]).join(','));setDialect(v.definition.dialect??'ladybug-cypher');setNative(v.definition.text??'');setParams(JSON.stringify(v.parameters??{},null,2));setLayoutRevision(0);setLayoutID(uuid());setPositions({});
+  ++queryRequest.current;const request=++savedRequest.current;const response=await client.call('query.show',id);if(!alive.current||request!==savedRequest.current)return;setVersions(response.items);const v=revision?response.items.find((value:Obj)=>value.revision===revision):response.items.at(-1);if(!v)throw new Error('The selected query version is unavailable.');loadedQuery.current=JSON.parse(JSON.stringify({title:v.title,definition:v.definition,...(v.parameters?{parameters:v.parameters}:{})}));queryEdits.current.clear();setQueryID(id);setQueryRevision(v.revision);setTitle(v.title);setMode(v.definition.mode);setOperation(v.definition.operation??'graph-view');setText(v.definition.filters?.text??'');setMediaID((v.definition.filters?.media_ids??[]).join(', '));setSpeakerID((v.definition.filters?.speaker_ids??[]).join(', '));setModelKind(v.definition.filters?.model_kind??'');setStart(String(v.definition.filters?.source_interval?.start_us??''));setEnd(String(v.definition.filters?.source_interval?.end_us??''));setDepth(String(v.definition.traversal?.max_depth??1));setRelationships((v.definition.traversal?.relationship_types??[]).join(','));setDialect(v.definition.dialect??'ladybug-cypher');setNative(v.definition.text??'');setParams(JSON.stringify(v.parameters??{},null,2));setLayoutRevision(0);setLayoutID(uuid());setPositions({});
  };
  return <>
-  <Actions>{['Calendar','Query','Graph'].map(v=><Button key={v} variant={tab===v?'primary':'secondary'} onClick={()=>{setTab(v);if(v==='Graph'){setMode('normalized');setOperation('graph-view')}}}>{v}</Button>)}</Actions>
+  <Actions>{['Calendar','Query','Graph'].map(v=><Button key={v} variant={tab===v?'primary':'secondary'} onClick={()=>{setTab(v);if(v==='Graph'){queryEdits.current.add('mode');queryEdits.current.add('operation');setMode('normalized');setOperation('graph-view')}}}>{v}</Button>)}</Actions>
   {tab==='Calendar'?<Card heading="Origination calendar">
    <p>Browse the entire library by its selected origination date. Date-only, approximate and undated sources retain their interpretation.</p>
    <Actions><Input label="Calendar from" type="date" value={view.from} onChange={v=>{calendarRequest.current++;setView(p=>({...p,from:v}))}}/><Input label="Calendar through" type="date" value={view.through} onChange={v=>{calendarRequest.current++;setView(p=>({...p,through:v}))}}/><Input label="Calendar timezone" value={zone} onChange={v=>{calendarRequest.current++;setZone(v)}}/><Check label="Include undated recordings" value={undated} onChange={v=>{calendarRequest.current++;setUndated(v)}}/></Actions>
@@ -64,11 +92,11 @@ export function Explore({client,run}:{client:Client;run:Run}){
    </div>
    <p>{calendar.items.length} of {calendar.total??0} matching recordings loaded.</p>{calendar.next_cursor&&<Button onClick={()=>run(()=>loadCalendar(calendar.next_cursor))}>Load more calendar recordings</Button>}
   </Card>:<Card heading={tab==='Graph'?'Evidence relationships':'Search and saved queries'}>
-   <Actions><Select label="Query mode" value={mode} onChange={setMode} options={['normalized','native']}/>{mode==='normalized'?<Select label="Search operation" value={operation} onChange={setOperation} options={portable}/>:<Select label="Native query dialect" value={dialect} onChange={setDialect} options={['ladybug-cypher','arcade-opencypher','arcade-sql']}/>}</Actions>
+   <Actions><Select label="Query mode" value={mode} onChange={editField('mode',setMode)} options={['normalized','native']}/>{mode==='normalized'?<Select label="Search operation" value={operation} onChange={editField('operation',setOperation)} options={portable}/>:<Select label="Native query dialect" value={dialect} onChange={editField('dialect',setDialect)} options={['ladybug-cypher','arcade-opencypher','arcade-sql']}/>}</Actions>
    {mode==='normalized'?<>
-    <Input label="Words or terms" value={text} onChange={setText}/><Actions><Input label="Media ID filter" value={mediaID} onChange={setMediaID}/><Input label="Speaker ID filter" value={speakerID} onChange={setSpeakerID}/><Input label="Model kind filter" value={modelKind} onChange={setModelKind}/></Actions>
-    <Actions><Input label="Source interval start (microseconds)" value={start} onChange={setStart}/><Input label="Source interval end (microseconds)" value={end} onChange={setEnd}/><Input label="Relationship depth" type="number" value={depth} onChange={setDepth}/><Input label="Relationship types (comma separated)" value={relationships} onChange={setRelationships}/></Actions>
-   </>:<><Area label="Native read query" value={native} onChange={setNative}/><Area label="Typed parameters JSON" value={params} onChange={setParams}/></>}
+    <Input label="Words or terms" value={text} onChange={editField('text',setText)}/><Actions><Input label="Media ID filter" value={mediaID} onChange={editField('media_ids',setMediaID)}/><Input label="Speaker ID filter" value={speakerID} onChange={editField('speaker_ids',setSpeakerID)}/><Input label="Model kind filter" value={modelKind} onChange={editField('model_kind',setModelKind)}/></Actions>
+    <Actions><Input label="Source interval start (microseconds)" value={start} onChange={editField('source_interval',setStart)}/><Input label="Source interval end (microseconds)" value={end} onChange={editField('source_interval',setEnd)}/><Input label="Relationship depth" type="number" value={depth} onChange={editField('max_depth',setDepth)}/><Input label="Relationship types (comma separated)" value={relationships} onChange={editField('relationship_types',setRelationships)}/></Actions>
+   </>:<><Area label="Native read query" value={native} onChange={editField('native',setNative)}/><Area label="Typed parameters JSON" value={params} onChange={editField('parameters',setParams)}/></>}
    <Actions><Button onClick={()=>run(()=>execute())}>Run current query</Button><Button onClick={()=>run(async()=>{const r=await client.call('query.explain','',queryDefinition());if(alive.current)setQuery({items:[],explanation:r})})}>Explain query</Button><Button onClick={()=>run(async()=>{await client.call('graph.rebuild');await execute()})}>Rebuild evidence graph</Button></Actions>
    <Input label="Saved query title" value={title} onChange={setTitle}/>
    <Actions><Button onClick={()=>run(async()=>{const id=queryID||uuid();const q=await client.call('query.save',id,{expected_revision:queryRevision,query:queryDefinition()});if(!alive.current)return;setQueryID(id);setQueryRevision(q.revision);await refreshSaved()})}>Save query version</Button><Button onClick={()=>{setQueryID('');setQueryRevision(0);setVersions([]);setLayoutID(uuid());setLayoutRevision(0)}}>Create separate saved query</Button><Select label="Saved query" value={queryID} onChange={id=>{if(id)run(()=>chooseSaved(id))}} options={[{value:'',label:'Choose saved query'},...saved.map(q=>({value:q.query_id,label:q.title}))]}/>{versions.length>1&&<Select label="Saved query revision" value={String(queryRevision)} onChange={v=>run(()=>chooseSaved(queryID,Number(v)))} options={versions.map(v=>({value:String(v.revision),label:'Version '+v.revision}))}/> }</Actions>

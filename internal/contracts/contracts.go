@@ -17,6 +17,10 @@ const Version = "0.0.0"
 // response frame budget. Import manifests and runtime requests share this limit.
 const MaxWorkPayload = 8 << 20
 
+// MaxGraphSnapshot bounds the internal immutable reference snapshot path. It is
+// not a runtime request/work payload: a whole library can exceed a single job.
+const MaxGraphSnapshot = 128 << 20
+
 func ID() string {
 	var b [16]byte
 	if _, err := rand.Read(b[:]); err != nil {

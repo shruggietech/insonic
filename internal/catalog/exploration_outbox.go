@@ -66,7 +66,7 @@ func (s *Store) explorationMutation(ctx context.Context, tx *sql.Tx, op string, 
 	return data, nil
 }
 func (s *Store) EnqueueGraphRefresh(ctx context.Context, op string, expected int64, document json.RawMessage) (Receipt, error) {
-	if len(document) > contracts.MaxWorkPayload {
+	if len(document) > contracts.MaxGraphSnapshot {
 		return Receipt{}, contracts.Fail("input_limit")
 	}
 	if !contracts.ValidID(op) || !referenceMetadata(document) {

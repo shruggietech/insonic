@@ -14,7 +14,7 @@ Task path consolidation: graph/evidence/query/timeline/saved dispatch live in `i
 
 - Repository integrity/schema: `npm run check`, 19 schemas/17 contracts/21 examples, UTF-8/LF/link/brand/version checks passed.
 - Repository Node tests: 55 passed.
-- Full Go acceptance and vet passed; affected catalog/app/explore/evidence/graph race checks passed (catalog about 60 seconds, app about 100 seconds). Subsequent small changes received affected acceptance tests.
+- Full Go acceptance and vet passed; affected catalog/app/explore/evidence/graph race checks passed (catalog about 60 seconds, app about 100 seconds). The final formatting and legacy snapshot-proof correction also passed full Go acceptance and vet.
 - Frontend typecheck and 41 rendered/pure tests passed. Covers whole-calendar continuation/keyboard controls, current source playback fences, late-ticket closure, query generation fences, immutable saved versions/CAS, separate layouts and graph/table expansion.
 - Python archive, loader, worker and package tests passed. Required scripts enforce no recognition/diarization inference, initialization or weights.
 - Public and offline site exports passed: 27 documentation pages, relative links/anchors and versioned JSON reference.
@@ -37,4 +37,10 @@ No official release, signing/notarization, published binary archive, third bot r
 
 ## Publication and review
 
-Not yet published. Initial automatic review and at most one explicitly requested second round will be tracked here. Review findings take priority over waiting for CI. Final handoff requires every review replied/resolved and exact-head green checks below ten minutes per hosted job.
+Official PR #27: https://github.com/shruggietech/insonic/pull/27, published 2026-10-08 from 0252d3b96523d1d8ba87669424c128210d2646ec. Attached to the owner chat; issues #11/#12 moved to In review. Initial automatic Codex review started on that head. At most one explicitly requested second round will be tracked here. Review findings take priority over waiting for CI. Final handoff requires every review replied/resolved and exact-head green checks below ten minutes per hosted job.
+
+### Round 1 findings and corrections
+
+Initial automatic code review completed on 0252d3b with four findings. Removed duplicate graph-maintenance startup from the one-second recovery tick. Separated immutable projection snapshots (128 MiB) from work inputs (8 MiB), with consistent paged backend reads and automatic smaller-page retry for transport limits. Routed Arcade native results through the shared 500-row/512 KiB check. The desktop retains complete saved definitions and changes only explicitly edited controls, preserving multi-ID/concept/entity/date filters, ordering and traversal direction.
+
+Focused regressions cover three actual recovery ticks and joined shutdown, over-8-MiB immutable snapshot replay/claim/restore, paged reads/backoff, both native output routes, and CLI-authored advanced query run/save/edit. Full Go acceptance/vet, real Ladybug/Arcade graph and app matrices, 42 frontend tests/typecheck, repository integrity/schema and documentation/offline export pass. Replies, resolution and the final permitted review round follow the pushed correction commit.

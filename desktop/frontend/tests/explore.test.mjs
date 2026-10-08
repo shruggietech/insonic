@@ -68,3 +68,22 @@ test('late source ticket is closed after selection changes',async()=>{
  await act(async()=>resolve({result:{url:'/media/stale',mime_type:'audio/wav'}}));await tick();
  assert.equal(document.querySelector('audio'),null);assert.ok(b.calls.some(c=>c.operation==='ClosePlayback'&&c.url==='/media/stale'));await unmount();
 });
+
+
+test('CLI saved definitions keep all advanced fields when run, saved or edited in the compact editor',async()=>{
+ const b=mock(),operate=b.Operate;
+ const advanced={title:'Advanced CLI query',definition:{mode:'normalized',operation:'evidence-traverse',filters:{text:'original',media_ids:[mid,qid],speaker_ids:[mid,qid],entity_ids:['cue:one'],concept_ids:[qid],recording_dates:{from:'2026-01-01',through:'2026-12-31',timezone:'America/New_York',include_undated:true},source_interval:{start_us:1000,end_us:9000}},traversal:{direction:'in',max_depth:4,relationship_types:['cites','maps-to']},order_by:[{field:'source_start_us',direction:'desc'},{field:'id',direction:'asc'}],pagination:{limit:37}}};
+ b.Operate=async r=>{
+  if(r.operation==='query.list')return {workspace_id:wid,result:{items:[{query_id:qid,title:advanced.title}]}};
+  if(r.operation==='query.show')return {workspace_id:wid,result:{items:[{...advanced,query_id:qid,revision:1}]}};
+  return operate(r);
+ };
+ await mount(b);await click('Query');await fill('Saved query',qid);
+ await click('Run current query');assert.deepEqual(b.calls.filter(r=>r.operation==='query.run').at(-1).data,advanced);
+ await click('Save query version');assert.deepEqual(b.calls.filter(r=>r.operation==='query.save').at(-1).data.query,advanced);
+ await fill('Words or terms','edited');await fill('Relationship depth','6');await click('Run current query');
+ const edited=structuredClone(advanced);edited.definition.filters.text='edited';edited.definition.traversal.max_depth=6;
+ assert.deepEqual(b.calls.filter(r=>r.operation==='query.run').at(-1).data,edited);
+ await fill('Media ID filter',qid);await click('Run current query');edited.definition.filters.media_ids=[qid];assert.deepEqual(b.calls.filter(r=>r.operation==='query.run').at(-1).data,edited);
+ await unmount();
+});

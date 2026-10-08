@@ -10,7 +10,10 @@ import (
 )
 
 func decodeChange(raw []byte, out *Change) error {
-	if len(raw) > contracts.MaxWorkPayload || catalog.ValidateJSON(raw) != nil {
+	if len(raw) > contracts.MaxGraphSnapshot {
+		return contracts.Fail("input_limit")
+	}
+	if catalog.ValidateJSON(raw) != nil {
 		return contracts.Fail("invalid_request")
 	}
 	d := json.NewDecoder(bytes.NewReader(raw))

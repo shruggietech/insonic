@@ -76,7 +76,7 @@ func (a *adapter) Capabilities() map[string]any {
 	if a.backend == "arcadedb" {
 		dialects = []string{"arcade-opencypher", "arcade-sql"}
 	}
-	return map[string]any{"adapter_id": a.backend, "backend_version": a.version, "contract_version": contracts.Version, "state": "available", "dialects": dialects, "operations": []string{"media-list", "speaker-search", "model-list", "text-search", "time-range", "evidence-traverse", "graph-view"}, "schema_version": 1, "typed_parameters": []string{"string", "integer", "number", "boolean", "null"}, "read_only": true, "atomic_publication": true, "cancellation": true, "limits": map[string]any{"native_bytes": 65536, "result_rows": 500, "result_bytes": 512 << 10, "timeout_seconds": 20}}
+	return map[string]any{"adapter_id": a.backend, "backend_version": a.version, "contract_version": contracts.Version, "state": "available", "dialects": dialects, "operations": []string{"media-list", "speaker-search", "model-list", "text-search", "time-range", "evidence-traverse", "graph-view"}, "schema_version": 1, "typed_parameters": []string{"string", "integer", "number", "boolean", "null"}, "read_only": true, "atomic_publication": true, "cancellation": true, "limits": map[string]any{"native_bytes": 65536, "result_rows": 500, "result_bytes": 512 << 10, "timeout_seconds": 20, "projection_bytes": contracts.MaxGraphSnapshot, "reference_page_rows": 1000}}
 }
 func (a *adapter) sql() bool { return a.backend == "arcadedb" }
 func (a *adapter) statement(sql, cypher string) string {
@@ -348,7 +348,7 @@ func (a *adapter) ReadRefs(ctx context.Context, w string) (References, error) {
 		return out, e
 	}
 	defer s.Rollback(ctx)
-	rows, e := a.run(ctx, s, false, "SELECT entity_id AS id,kind,reference FROM Entity WHERE workspace=:workspace ORDER BY entity_id", "MATCH (n:Entity) WHERE n.workspace=$workspace RETURN n.entity_id AS id,n.kind AS kind,n.reference AS reference ORDER BY id", map[string]any{"workspace": w})
+	rows, e := a.referenceRows(ctx, s, "SELECT entity_id AS id,kind,reference FROM Entity WHERE workspace=:workspace ORDER BY entity_id SKIP :offset LIMIT :limit", "MATCH (n:Entity) WHERE n.workspace=$workspace RETURN n.entity_id AS id,n.kind AS kind,n.reference AS reference ORDER BY id SKIP $offset LIMIT $limit", map[string]any{"workspace": w})
 	if e != nil {
 		return out, e
 	}
@@ -361,7 +361,7 @@ func (a *adapter) ReadRefs(ctx context.Context, w string) (References, error) {
 		}
 		out.Nodes = append(out.Nodes, Node{id, kind, json.RawMessage(ref)})
 	}
-	rows, e = a.run(ctx, s, false, "SELECT id,kind,@out.entity_id AS source,@in.entity_id AS destination FROM EvidenceLink WHERE @out.workspace=:workspace ORDER BY id", "MATCH (f:Entity)-[e:EvidenceLink]->(t:Entity) WHERE f.workspace=$workspace RETURN e.id AS id,e.kind AS kind,f.entity_id AS source,t.entity_id AS destination ORDER BY id", map[string]any{"workspace": w})
+	rows, e = a.referenceRows(ctx, s, "SELECT id,kind,@out.entity_id AS source,@in.entity_id AS destination FROM EvidenceLink WHERE @out.workspace=:workspace ORDER BY id SKIP :offset LIMIT :limit", "MATCH (f:Entity)-[e:EvidenceLink]->(t:Entity) WHERE f.workspace=$workspace RETURN e.id AS id,e.kind AS kind,f.entity_id AS source,t.entity_id AS destination ORDER BY id SKIP $offset LIMIT $limit", map[string]any{"workspace": w})
 	if e != nil {
 		return out, e
 	}
@@ -376,6 +376,37 @@ func (a *adapter) ReadRefs(ctx context.Context, w string) (References, error) {
 		out.Edges = append(out.Edges, Edge{id, from, to, kind})
 	}
 	return out, nil
+}
+
+// Read a bounded page at a time in the caller's consistent read transaction.
+func (a *adapter) referenceRows(ctx context.Context, s session, sql, cypher string, params map[string]any) (Rows, error) {
+	var all Rows
+	bytes := 0
+	size, offset := 1000, 0
+	for {
+		params["offset"], params["limit"] = offset, size
+		rows, err := a.run(ctx, s, false, sql, cypher, params)
+		if typed, ok := err.(*contracts.Error); ok && typed.Code == "output_limit" && size > 1 {
+			size = max(1, size/2)
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		raw, err := json.Marshal(rows)
+		if err != nil {
+			return nil, contracts.Fail("operation_failed")
+		}
+		bytes += len(raw)
+		if len(rows) > size || bytes > contracts.MaxGraphSnapshot {
+			return nil, contracts.Fail("output_limit")
+		}
+		all = append(all, rows...)
+		if len(rows) < size {
+			return all, nil
+		}
+		offset += len(rows)
+	}
 }
 func (a *adapter) ExportSnapshot(ctx context.Context, w string) (References, error) {
 	return a.ReadRefs(ctx, w)
@@ -411,16 +442,22 @@ func (a *adapter) Query(ctx context.Context, dialect, text string, params map[st
 		return nil, e
 	}
 	defer s.Rollback(ctx)
+	var rows Rows
+	var err error
 	if routed, ok := s.(interface {
 		Native(context.Context, string, string, map[string]any) (Rows, error)
 	}); ok {
-		return routed.Native(ctx, dialect, text, values)
+		rows, err = routed.Native(ctx, dialect, text, values)
+	} else {
+		rows, err = s.Query(ctx, false, text, values)
 	}
-	rows, err := s.Query(ctx, false, text, values)
 	if err != nil {
 		return nil, err
 	}
-	raw, _ := json.Marshal(rows)
+	raw, marshalErr := json.Marshal(rows)
+	if marshalErr != nil {
+		return nil, contracts.Fail("operation_failed")
+	}
 	if len(rows) > 500 || len(raw) > 512<<10 {
 		return nil, contracts.Fail("output_limit")
 	}
