@@ -1429,3 +1429,21 @@ test('library playback tickets reset media readiness before applying a new sourc
   assert.equal(fresh.currentTime, 1.25);
   } finally { await unmount(); }
 });
+
+test('native mount readiness waits for delayed workspace controls and still rejects missing screens', async () => {
+  const {qualificationMounted} = await import('../.test-build/qualification.js');
+  const host = document.createElement('div');
+  host.setAttribute('data-bb-host', 'wails');
+  host.innerHTML = '<form></form>';
+  document.body.append(host);
+  try {
+    await assert.rejects(qualificationMounted(1), /screens did not mount/);
+    const waiting = qualificationMounted(1000);
+    const timer = setTimeout(() => {
+      const controls = document.createElement('div');
+      controls.setAttribute('aria-label', 'Library controls');
+      host.append(controls);
+    }, 30);
+    try { await waiting; } finally { clearTimeout(timer); }
+  } finally { host.remove(); }
+});

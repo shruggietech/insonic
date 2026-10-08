@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
-import { qualifyDesktop, runQualificationOnce } from './qualification';
+import { qualifyDesktop, qualificationMounted, runQualificationOnce } from './qualification';
 import type { NativeBridge } from './client';
 import '../../../brand/kit/tokens/interface.css';
 import '../../../brand/kit/tokens/typography.css';
@@ -27,18 +27,7 @@ const startQualification = runQualificationOnce(async () => {
   failedOperations.length = 0;
   try {
     await bridge.QualificationStep?.('ready');
-    const until = Date.now() + 5000;
-    while (
-      !document.querySelector('[aria-label="Library controls"]') &&
-      Date.now() < until
-    )
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    if (
-      !document.querySelector('[data-bb-host="wails"]') ||
-      !document.querySelector('form') ||
-      !document.querySelector('[aria-label="Library controls"]')
-    )
-      throw new Error('Desktop screens did not mount.');
+    await qualificationMounted();
     await bridge.QualificationStep?.('mounted');
     const response = await bridge.Show();
     if (response.error) throw new Error(response.error.message);

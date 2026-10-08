@@ -14,6 +14,16 @@ export function mediaDiagnostics(media: HTMLMediaElement | null): string {
   // only bounded numeric state and known error categories during qualification.
   return `readyState=${media.readyState},networkState=${media.networkState},error=${code}(${errors[code] ?? 'unknown'}),buffered=${media.buffered.length},duration=${Number.isFinite(media.duration) && media.duration > 0 ? 'positive' : 'unavailable'}`;
 }
+// Mounting includes the asynchronous workspace Show call. Cold runner startup
+// uses the same bounded readiness window as the rest of the native journey.
+export async function qualificationMounted(timeout = 25000): Promise<void> {
+  const ready = () => !!document.querySelector('[data-bb-host="wails"]') &&
+    !!document.querySelector('form') && !!document.querySelector('[aria-label="Library controls"]');
+  const until = Date.now() + timeout;
+  while (!ready() && Date.now() < until)
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  if (!ready()) throw new Error('Desktop screens did not mount.');
+}
 // A webview may leave play() pending while media is outside its viewport.
 // Bound startup separately so failed decode produces diagnostics before quit.
 export async function qualificationPlay(media: HTMLMediaElement, timeout = 8000): Promise<void> {

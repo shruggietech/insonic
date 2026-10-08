@@ -68,3 +68,5 @@ Setup -> foundation -> US1 -> US2 -> US3 -> delivery. Test tasks precede impleme
 ## Phase 10: Hosted qualification remediation
 
 - [x] T027 Reset Library media elements for every new verified playback ticket to prevent old-resource readiness from racing source seeks; add a red/green rendered regression and bounded numeric seek diagnostics for repeated macOS hosted qualification failure.
+
+- [x] T028 Use the existing 25-second native journey readiness budget for asynchronous initial workspace mounting, requiring frame/form/library controls together; test delayed controls and missing-screen rejection after hosted Windows run 37826752729 exhausted the five-second mount window.

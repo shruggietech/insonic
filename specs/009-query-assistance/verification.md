@@ -13,7 +13,7 @@ Converge inspected the same inventory, found three partial acceptance gaps and a
 - npm run check passed UTF-8/LF/encoding integrity, Markdown links, version navigation and governed kit verification. Schema validation passed 20 schemas, 18 master contracts and 22 examples.
 - npm test passed 57 tests, including strict assistance envelopes and unchanged credential/CI/bootstrap contracts.
 - go test ./... and go vet ./... passed. Affected race checks passed for assistance, catalog, app and runtime (116.75 seconds); focused final assistance race tests passed after convergence.
-- Frontend typecheck, all 50 rendered/unit tests and production build passed. Complete advanced query adoption, CAS, explicit auto-run, provider failure and late/competing requests are covered.
+- Frontend typecheck, all 51 rendered/unit tests and production build passed. Complete advanced query adoption, CAS, explicit auto-run, provider failure and late/competing requests are covered.
 - Python integrity/package tests passed (20 tests). Documentation site and offline-help builds passed.
 - Real Ladybug acceptance passed normalized/direct parity, native selected-engine EXPLAIN, zero native proposal executions for suggestions/invalid output and exactly one for valid auto-run. Snapshot portability and PostgreSQL CAS use the existing alternative-backend hosted fixture suite.
 - Real IPC disconnection cancels deterministic provider work. Provider tests cover duplicate/unknown/trailing output, redirected/slow/oversized responses, fixed error bodies, opaque credential access/clearing and refusal before HTTP/credential access in production CI.
@@ -34,3 +34,5 @@ Second and final code review completed on 0e22d03 (2026-10-08T18:27:42Z) with on
 The second-round deadline comment was replied to and resolved after ab8843c. Both authorized code review rounds are complete, with no open review threads. The second-round request also requested security review, but no independent security report arrived; this is not recorded as security approval.
 
 Hosted macOS runs 37823946758 and 37825544987 failed at the pre-assistance speaker-span seek. T027 adds ticket-keyed Library media elements so new resources do not inherit old readiness/playheads, plus numerical failure diagnostics. The rendered regression demonstrated retained media ownership before the fix. All hosted checks will be qualified again; tolerance and acceptance requirements are unchanged.
+
+Run 37826752729 qualified the ticket fix on macOS (source and relocated package) and Linux, with all backend/core checks passing. Windows failed before mounting the initial screens within an arbitrary five-second window. T028 now awaits frame, form and asynchronous workspace Library controls together under the established 25-second journey readiness budget; missing screens still fail. No runtime command timeout, inference election or acceptance flag is changed. All platforms are rechecked after this correction.
