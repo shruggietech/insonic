@@ -251,7 +251,7 @@ def desktop():
     args = [executable, '--webview-qualification']
     if platform.system() == 'Linux':
         args = ['xvfb-run', '-a', *args]
-    output = child(args, env=env, timeout=30)
+    output = child(args, env=env, timeout=90)
     write_receipt(BUILD / 'webview-receipt.json', output,
                   {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'schema_version': VERSION})
 

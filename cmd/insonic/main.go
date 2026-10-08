@@ -9,7 +9,6 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/credentialcmd"
-	"github.com/shruggietech/insonic/internal/library"
 	local "github.com/shruggietech/insonic/internal/runtime"
 	"github.com/shruggietech/insonic/internal/secrets"
 	"github.com/shruggietech/insonic/internal/workspace"
@@ -56,7 +55,10 @@ func execute(args []string) int {
 		fmt.Println("insonic credentials select native/vault/session | credentials add/replace/delete/status <UUID> | credentials unlock/load (protected stdin JSON, saved values never returned)")
 		fmt.Println("insonic pipelines/speakers/terms list [--input JSON] | pipelines/speakers/terms show <UUID> | pipelines/speakers/terms set <UUID> --input JSON | pipelines inspect <UUID> [--input JSON] | speakers aliases <UUID> [--input JSON] | speakers select/diagnostics <UUID> [--input JSON] | terms compile [--input JSON]")
 		fmt.Println("insonic processing tools <configuration.json> | recordings show/document/mappings <media-id> | recordings process/assemble/map-speaker/export <media-id> --input <JSON>")
-		fmt.Println("insonic media tools <configuration.json> | media import <files...> or --manifest <CSV/JSON> [--reference] [--originated-at/on VALUE] [--timezone ZONE] | media list/show/metadata/raw/refresh/set-origin/relocate | models register/acquire <manifest> | models list/show/verify/materialize | work list/show/cancel/retry")
+		fmt.Println("insonic media tools <configuration.json> | media import <files...> or --manifest <CSV/JSON> [--reference] [--originated-at/on VALUE] [--timezone ZONE] | media list/show/metadata/raw/refresh/set-origin/relocate | models register/acquire <manifest> | models list/show/verify/materialize | work list/show/wait/cancel/retry")
+		fmt.Println("insonic settings show | settings set --input JSON | recordings cues <media-id> [--input JSON] | media playback/playback-check/playback-close <media-id> --input JSON")
+		fmt.Println("insonic media capture <media-id> --input JSON (exact current metadata/facts/date byte pages)")
+		fmt.Println("insonic work wait <work-id> [--timeout-ms 30000] (one-process bounded wait; terminal failures preserve state and exit nonzero)")
 		return 0
 	}
 	if len(positional) == 3 && positional[0] == "workspace" && positional[1] == "init" {
@@ -93,6 +95,9 @@ func execute(args []string) int {
 	if len(positional) >= 2 && positional[0] == "credentials" {
 		return credentialCommand(ctx, w, positional[1:], machine)
 	}
+	if len(positional) >= 2 && positional[0] == "work" && positional[1] == "wait" {
+		return workWaitCommand(ctx, w, positional, requestID, machine)
+	}
 	if len(positional) == 3 && positional[0] == "media" && positional[1] == "tools" {
 		return toolsCommand(w, positional[2], machine)
 	}
@@ -103,7 +108,12 @@ func execute(args []string) int {
 		return catalogCommand(ctx, w, positional[1:], machine)
 	}
 	req := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, RequestID: requestID}
-	if positional[0] == "recordings" {
+	if len(positional) > 1 && contracts.DesktopOperation(positional[0]+"."+positional[1]) {
+		req.Operation, req.ItemID, req.Data, err = parseDesktopOperation(positional)
+		if err != nil {
+			return output(nil, err, machine)
+		}
+	} else if positional[0] == "recordings" {
 		req.Operation, req.ItemID, req.Data, err = parseRecording(positional)
 		if err != nil {
 			return output(nil, err, machine)
@@ -351,43 +361,5 @@ func credentialCommand(ctx context.Context, w *workspace.Workspace, args []strin
 	return output(out, e, machine)
 }
 func toolsCommand(w *workspace.Workspace, path string, machine bool) int {
-	lock, e := w.Lock()
-	if e != nil {
-		return output(nil, e, machine)
-	}
-	defer lock.Unlock()
-	f, e := os.Open(path)
-	if e != nil {
-		return output(nil, contracts.Fail("unavailable"), machine)
-	}
-	defer f.Close()
-	raw, e := io.ReadAll(io.LimitReader(f, (1<<20)+1))
-	if e != nil || len(raw) > 1<<20 || catalog.ValidateJSON(raw) != nil {
-		return output(nil, contracts.Fail("invalid_request"), machine)
-	}
-	var tools library.Tools
-	d := json.NewDecoder(bytes.NewReader(raw))
-	d.DisallowUnknownFields()
-	if d.Decode(&tools) != nil || d.Decode(new(any)) != io.EOF {
-		return output(nil, contracts.Fail("invalid_request"), machine)
-	}
-	temp, e := os.CreateTemp(w.Control, ".media-tools-")
-	if e != nil {
-		return output(nil, contracts.Fail("unavailable"), machine)
-	}
-	defer os.Remove(temp.Name())
-	if _, e = temp.Write(raw); e == nil {
-		e = temp.Sync()
-	}
-	closeErr := temp.Close()
-	if e == nil {
-		e = closeErr
-	}
-	if e == nil {
-		e = os.Rename(temp.Name(), filepath.Join(w.Control, "media-tools.json"))
-	}
-	if e != nil {
-		return output(nil, contracts.Fail("unavailable"), machine)
-	}
-	return output(map[string]bool{"configured": true}, nil, machine)
+	return configureToolsCommand(w, path, "media_tools", machine)
 }

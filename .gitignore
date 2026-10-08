@@ -30,6 +30,7 @@ __pycache__/
 /desktop/assets/interface.css
 /desktop/assets/typography.css
 /desktop/assets/fonts/
+/desktop/assets/bundle/
 *.egg-info/
 *.egg
 .eggs/

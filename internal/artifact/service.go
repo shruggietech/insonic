@@ -109,6 +109,15 @@ func (s *Service) selected(ctx context.Context, id string) (catalog.Publication,
 	return p, e
 }
 func (s *Service) Stage(ctx context.Context, source string) (*os.File, string, int64, error) {
+	return s.StageBound(ctx, source, 1<<63-1)
+}
+
+// StageBound retains Stage's source identity checks while bounding both reads
+// before writing a disposable playback snapshot.
+func (s *Service) StageBound(ctx context.Context, source string, maxBytes int64) (*os.File, string, int64, error) {
+	if maxBytes < 0 {
+		return nil, "", 0, contracts.Fail("invalid_request")
+	}
 	if !filepath.IsAbs(source) {
 		return nil, "", 0, contracts.Fail("invalid_request")
 	}
@@ -122,7 +131,7 @@ func (s *Service) Stage(ctx context.Context, source string) (*os.File, string, i
 	if e != nil {
 		return nil, "", 0, redact(ctx, e)
 	}
-	digest, n, e := copyStable(ctx, source, input, f)
+	digest, n, e := copyStableBound(ctx, source, input, f, maxBytes)
 	if e == nil {
 		e = f.Sync()
 	}

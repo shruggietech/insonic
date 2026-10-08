@@ -63,6 +63,9 @@ func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
 		return err
 	}
 	defer lock.Unlock()
+	if err := app.RecoverPlaybackScratch(w); err != nil {
+		return err
+	}
 	listener, cleanup, err := listen(w)
 	if err != nil {
 		return err

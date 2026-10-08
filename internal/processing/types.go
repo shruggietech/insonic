@@ -13,10 +13,10 @@ import (
 )
 
 type Config struct {
-	FFmpeg            library.Tool       `json:"ffmpeg"`
-	RecognitionPython library.PinnedFile `json:"recognition_python"`
-	DiarizationPython library.PinnedFile `json:"diarization_python"`
-	Worker            library.PinnedFile `json:"worker"`
+	FFmpeg            library.Tool       `json:"ffmpeg,omitzero"`
+	RecognitionPython library.PinnedFile `json:"recognition_python,omitzero"`
+	DiarizationPython library.PinnedFile `json:"diarization_python,omitzero"`
+	Worker            library.PinnedFile `json:"worker,omitzero"`
 	MaxInputBytes     int64              `json:"max_input_bytes,omitempty"`
 	MaxDurationUS     int64              `json:"max_duration_us,omitempty"`
 	MaxOutputBytes    int                `json:"max_output_bytes,omitempty"`

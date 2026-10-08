@@ -7,7 +7,7 @@ import { verifyInstalled } from './sync-brand-kit.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ignoredDirectories = new Set(['.git', '.local', 'node_modules', '.next', 'out', 'offline', 'build', 'dist', 'coverage', 'test-results', 'playwright-report', '.bootstrap-spec-kit', '.brandbuilder']);
-const generatedPaths = new Set(['site/public/brand', 'site/public/mermaid', 'site/public/source', 'site/public/project', 'site/public/schemas', 'desktop/assets/help']);
+const generatedPaths = new Set(['site/public/brand', 'site/public/mermaid', 'site/public/source', 'site/public/project', 'site/public/schemas', 'desktop/assets/help', 'desktop/assets/bundle']);
 const textExtensions = new Set(['.md', '.mdx', '.mjs', '.cjs', '.js', '.jsx', '.ts', '.tsx', '.json', '.yml', '.yaml', '.css', '.html', '.txt', '.toml', '.ini', '.sh', '.ps1', '.svg', '.xml', '.sql', '.go']);
 const textNames = new Set(['VERSION', 'LICENSE', 'NOTICE', '.editorconfig', '.gitattributes', '.gitignore', '.npmrc', '.node-version', 'go.mod', 'go.sum', 'Makefile']);
 const location = (file, line, message) => `${file}${line ? `:${line}` : ''}: ${message}`;

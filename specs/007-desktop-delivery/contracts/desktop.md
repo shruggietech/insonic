@@ -1,0 +1,13 @@
+# S007 desktop/runtime boundary
+
+Shared runtime Request/Response remains authoritative. New operations use the same version, workspace ID, request ID and typed error envelope, exposed by CLI and native bridge.
+
+- settings.show/set: validated tool configuration, independent section revision CAS; no persisted credential values. Runtime owns atomic writes. Current backend identities remain visible with advanced configuration limitations stated.
+- recordings.cues: bounded semantic page of current cues/voices, expected recording revision/document digest, exact clock strings and original-source seek seconds. No full document numeric parse or durable assignment copies.
+- media.capture: revision/digest-bound base64 pages of authoritative metadata/facts/dates JSON bytes, capped at 64 KiB per page. Join byte chunks before UTF-8 display; do not parse exact integer timestamps through JavaScript numbers.
+- media.playback/playback-check/playback-close: current media revision and optional recording/document fences, opaque runtime handle, verified materialization/lease, native path/digest/size/MIME. Check renews/touches the handle and rejects relevant replacement. Close releases ephemeral resources. Strict envelope/payload bounds apply.
+- Native SelectWorkspace(path,name,create) initializes/opens through shared workspace helpers. Native Choose(kind) selects workspace/media/subtitle/output locations. Operate captures workspace identity and returns mismatch for stale workspace requests.
+- Native Playback mediates shared playback into an opaque same-origin ticket URL. GET/HEAD range reads revalidate the runtime handle; all other paths/methods and expired/workspace-mismatched tickets fail. No arbitrary file server or localhost network listener.
+- Native VerifyPlayback accepts only the same opaque URL, delegates shared playback-check and rechecks workspace selection after runtime readback. Mounted players poll every five seconds, stop already buffered obsolete media and clear stale cue/mapping state. Native ClosePlayback releases the selected ticket without cancelling durable work.
+
+The UI uses dedicated labeled forms for ordinary operations, scalar settings and explicit current-authority refresh. JSON editors are reserved for advanced configurations that the capability matrix labels. Native media controls and cue/span buttons use original source positions. Every transport failure remains distinct from successful mutation.

@@ -16,36 +16,45 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"os"
+	"sync/atomic"
 	"time"
 )
 
 func main() {
+	os.Exit(run())
+}
+
+func run() int {
 	if len(os.Args) == 2 && os.Args[1] == "--qualification" {
 		result, err := desktop.Qualify()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+			return 1
 		}
 		json.NewEncoder(os.Stdout).Encode(result)
-		return
+		return 0
 	}
 	bridge := &desktop.Bridge{CLIExecutable: desktop.SiblingCLI()}
 	smoke := len(os.Args) == 2 && os.Args[1] == "--webview-qualification"
 	var startup func(context.Context)
 	var domReady func(context.Context)
 	var smokeContext context.Context
-	smokePassed := false
+	var smokePassed atomic.Bool
 	if smoke {
 		directory, err := os.MkdirTemp("", "insonic-webview-*")
 		if err != nil {
-			os.Exit(1)
+			return 1
 		}
 		defer os.RemoveAll(directory)
 		w, err := workspace.Init(directory, "Webview qualification")
 		if err != nil {
-			os.Exit(1)
+			return 1
 		}
 		bridge.Workspace = w
+		if err := desktop.ConfigureQualificationTools(w); err != nil {
+			fmt.Fprintln(os.Stderr, "Qualification companions unavailable.")
+			return 1
+		}
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 		ready := make(chan struct{})
@@ -53,43 +62,81 @@ func main() {
 		go func() { done <- local.Serve(ctx, w, local.Options{Ready: ready}) }()
 		select {
 		case <-ready:
+		case <-done:
+			return 1
 		case <-time.After(5 * time.Second):
-			os.Exit(1)
+			cancel()
+			<-done
+			return 1
 		}
 		defer func() { cancel(); <-done }()
+		if err := desktop.PrepareWebviewQualification(bridge); err != nil {
+			fmt.Fprintln(os.Stderr, "Desktop media qualification preparation failed:", err)
+			return 1
+		}
 		startup = func(ctx context.Context) {
 			smokeContext = ctx
 			go func() {
 				select {
 				case <-ctx.Done():
-				case <-time.After(15 * time.Second):
+				case <-time.After(80 * time.Second):
 					wailsruntime.Quit(ctx)
 				}
 			}()
 		}
 		domReady = func(ctx context.Context) { wailsruntime.EventsEmit(ctx, "qualification") }
 		bridge.SmokeResult = func(response contracts.Response) {
-			smokePassed = response.Error == nil && response.WorkspaceID == w.Config.WorkspaceID && contracts.ValidID(response.SessionID)
+			if response.Error != nil {
+				fmt.Fprintln(os.Stderr, response.Error.Message)
+			}
+			passed := response.Error == nil && response.WorkspaceID == w.Config.WorkspaceID && contracts.ValidID(response.SessionID)
+			raw, _ := json.Marshal(response.Result)
+			var result map[string]any
+			json.Unmarshal(raw, &result)
+			for _, name := range []string{"ui_library_import", "ui_metadata_date", "ui_current_assembly", "ui_audio_playback", "ui_video_playback", "ui_cue_seek", "ui_terms", "ui_speakers", "ui_pipelines", "ui_jobs", "ui_settings", "ui_keyboard_help"} {
+				passed = passed && result[name] == "passed"
+			}
+			smokePassed.Store(passed)
 			wailsruntime.Quit(smokeContext)
+		}
+	}
+	previousStartup := startup
+	startup = func(ctx context.Context) {
+		desktop.SetPicker(bridge, func(kind string) (string, error) {
+			switch kind {
+			case "workspace":
+				return wailsruntime.OpenDirectoryDialog(ctx, wailsruntime.OpenDialogOptions{Title: "Choose workspace"})
+			case "media":
+				return wailsruntime.OpenFileDialog(ctx, wailsruntime.OpenDialogOptions{Title: "Choose audio or video"})
+			case "subtitle":
+				return wailsruntime.OpenFileDialog(ctx, wailsruntime.OpenDialogOptions{Title: "Choose subtitles", Filters: []wailsruntime.FileFilter{{DisplayName: "Subtitles", Pattern: "*.srt;*.vtt;*.cueson;*.json"}}})
+			case "output":
+				return wailsruntime.SaveFileDialog(ctx, wailsruntime.SaveDialogOptions{Title: "Export subtitles"})
+			}
+			return "", contracts.Fail("invalid_request")
+		})
+		if previousStartup != nil {
+			previousStartup(ctx)
 		}
 	}
 	if len(os.Args) == 3 && os.Args[1] == "--workspace" {
 		w, err := workspace.Open(os.Args[2])
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+			return 1
 		}
 		bridge.Workspace = w
 	}
-	if err := wails.Run(&options.App{Title: "insonic", Width: 900, Height: 720, StartHidden: smoke, OnStartup: startup, OnDomReady: domReady, AssetServer: &assetserver.Options{Assets: desktop.Assets}, Bind: []any{bridge}}); err != nil {
+	if err := wails.Run(&options.App{Title: "insonic", Width: 1200, Height: 800, MinWidth: 720, MinHeight: 600, StartHidden: smoke, OnStartup: startup, OnDomReady: domReady, OnShutdown: func(context.Context) { desktop.ClosePlaybackHandles(bridge) }, AssetServer: &assetserver.Options{Assets: desktop.Assets, Handler: desktop.PlaybackServer{Bridge: bridge}}, Bind: []any{bridge}}); err != nil {
 		fmt.Fprintln(os.Stderr, "Desktop startup failed.")
-		os.Exit(1)
+		return 1
 	}
 	if smoke {
-		if !smokePassed {
+		if !smokePassed.Load() {
 			fmt.Fprintln(os.Stderr, "Native webview qualification failed.")
-			os.Exit(1)
+			return 1
 		}
-		json.NewEncoder(os.Stdout).Encode(map[string]any{"schema_version": contracts.Version, "native_webview": "passed", "frontend_bridge_ipc": "passed"})
+		json.NewEncoder(os.Stdout).Encode(map[string]any{"schema_version": contracts.Version, "native_webview": "passed", "frontend_bridge_ipc": "passed", "desktop_journeys": "passed", "audio_video_playback": "passed", "model_execution": "not-run"})
 	}
+	return 0
 }

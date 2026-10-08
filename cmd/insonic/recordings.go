@@ -2,16 +2,13 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"github.com/shruggietech/insonic/internal/app"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"github.com/shruggietech/insonic/schemas"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -48,49 +45,5 @@ func parseRecording(args []string) (string, string, json.RawMessage, error) {
 	return operation, args[2], raw, nil
 }
 func processingToolsCommand(w *workspace.Workspace, path string, machine bool) int {
-	lock, e := w.Lock()
-	if e != nil {
-		return output(nil, e, machine)
-	}
-	defer lock.Unlock()
-	file, e := os.Open(path)
-	if e != nil {
-		return output(nil, contracts.Fail("unavailable"), machine)
-	}
-	defer file.Close()
-	raw, e := io.ReadAll(io.LimitReader(file, (1<<20)+1))
-	if e != nil || len(raw) > 1<<20 || catalog.ValidateJSON(raw) != nil {
-		return output(nil, contracts.Fail("invalid_request"), machine)
-	}
-	if schemas.ValidateDocument(raw) != nil {
-		return output(nil, contracts.Fail("invalid_request"), machine)
-	}
-	var config app.ProcessingTools
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.DisallowUnknownFields()
-	if decoder.Decode(&config) != nil || decoder.Decode(new(any)) != io.EOF {
-		return output(nil, contracts.Fail("invalid_request"), machine)
-	}
-	if e = app.ValidateProcessingTools(config); e != nil {
-		return output(nil, e, machine)
-	}
-	temp, e := os.CreateTemp(w.Control, ".processing-tools-*")
-	if e != nil {
-		return output(nil, contracts.Fail("unavailable"), machine)
-	}
-	defer os.Remove(temp.Name())
-	if _, e = temp.Write(raw); e == nil {
-		e = temp.Sync()
-	}
-	closeErr := temp.Close()
-	if e == nil {
-		e = closeErr
-	}
-	if e == nil {
-		e = os.Rename(temp.Name(), filepath.Join(w.Control, "processing-tools.json"))
-	}
-	if e != nil {
-		return output(nil, contracts.Fail("unavailable"), machine)
-	}
-	return output(map[string]bool{"configured": true}, nil, machine)
+	return configureToolsCommand(w, path, "processing_tools", machine)
 }

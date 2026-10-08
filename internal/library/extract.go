@@ -93,6 +93,11 @@ type captureBundle struct {
 	SourceSize   int64    `json:"source_size"`
 }
 
+// VerifyExtractor applies the same pinned extractor contract to runtime callers.
+func VerifyExtractor(ctx context.Context, tool Tool, name string) error {
+	return verifyTool(ctx, tool, name)
+}
+
 func verifyTool(ctx context.Context, tool Tool, name string) error {
 	if !filepath.IsAbs(tool.Path) || tool.Version == "" || len(tool.SHA256) != 64 {
 		return contracts.Fail("unavailable")

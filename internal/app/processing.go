@@ -117,11 +117,8 @@ func (a *App) electedProcessingTools() (*ProcessingTools, error) {
 	if a.recordingFactory != nil {
 		return nil, nil
 	}
-	var c ProcessingTools
-	if e := readBoundedConfiguration(filepath.Join(a.Workspace.Control, "processing-tools.json"), &c); e != nil {
-		return nil, e
-	}
-	if e := ValidateProcessingTools(c); e != nil {
+	c, e := ReadProcessingTools(a.Workspace)
+	if e != nil {
 		return nil, e
 	}
 	if c.Processing.FFmpeg.Path == "" {

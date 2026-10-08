@@ -6,8 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/shruggietech/insonic/internal/catalog"
@@ -42,16 +40,9 @@ func (a *App) libraryService() (*library.Service, error) {
 	if e != nil {
 		return nil, e
 	}
-	var tools library.Tools
-	path := filepath.Join(a.Workspace.Control, "media-tools.json")
-	if f, e := os.Open(path); e == nil {
-		defer f.Close()
-		raw, e := io.ReadAll(io.LimitReader(f, (1<<20)+1))
-		if e != nil || len(raw) > 1<<20 || strictPayload(raw, &tools) != nil {
-			return nil, contracts.Fail("invalid_request")
-		}
-	} else if !os.IsNotExist(e) {
-		return nil, contracts.Fail("unavailable")
+	tools, e := ReadMediaTools(a.Workspace)
+	if e != nil {
+		return nil, e
 	}
 	return library.NewService(artifacts, a.Catalog, a.secrets, tools), nil
 }
@@ -168,6 +159,9 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 }
 
 func domainRequestValid(req contracts.Request) bool {
+	if contracts.DesktopOperation(req.Operation) {
+		return contracts.DesktopRequestValid(req)
+	}
 	if configuredOperation(req.Operation) {
 		return configuredRequestValid(req)
 	}
@@ -228,6 +222,13 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 		a.workMu.Unlock()
 		return out, e
 	case "work.retry":
+		current, e := a.Catalog.Work(a.ctx, req.ItemID)
+		if e != nil {
+			return nil, e
+		}
+		if current.Kind == "recordings.assemble" {
+			return nil, &contracts.Error{Code: "invalid_request", Message: "Resubmit the assembly inputs through recordings.assemble to retry this job."}
+		}
 		out, e := a.Catalog.RetryWork(a.ctx, req.RequestID, req.ItemID)
 		if e == nil {
 			a.recoverWork()
