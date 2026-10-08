@@ -12,6 +12,7 @@ import {
 } from './client';
 import { Jobs, Library, Pipelines, Speakers, Terms, type Run } from './screens';
 import { Settings } from './settings';
+import { Explore } from './explore';
 export function App({ bridge }: { bridge: NativeBridge }) {
   const client = useMemo(() => new Client(bridge), [bridge]);
   const [workspace, setWorkspace] = useState<Obj>(),
@@ -108,6 +109,7 @@ export function App({ bridge }: { bridge: NativeBridge }) {
   };
   const navigation = [
     'Library',
+    'Explore',
     'Jobs',
     'Pipelines',
     'Speakers',
@@ -214,7 +216,7 @@ export function App({ bridge }: { bridge: NativeBridge }) {
           >
             {screen === 'Library' ? (
               <Library client={client} run={run} />
-            ) : screen === 'Jobs' ? (
+            ) : screen === 'Explore' ? (<Explore client={client} run={run}/>) : screen === 'Jobs' ? (
               <Jobs client={client} run={run} />
             ) : screen === 'Pipelines' ? (
               <Pipelines client={client} run={run} />

@@ -48,6 +48,9 @@ var domains = []domainTable{
 	{"work_operation", "Works", "id", "CHECK (generation>=0), CHECK (state IN ('pending','running','succeeded','failed','cancelled','interrupted'))", nil},
 	{"library_cleanup", "Cleanups", "id", "CHECK (state IN ('pending','done'))", nil},
 	{"speaker_mapping", "SpeakerMappings", "id", "CHECK (revision>0), UNIQUE (workspace_id,recording_id,local_speaker_id)", []string{"recording_id:current_recording:id", "speaker_id:speaker:id"}},
+	{"current_extraction", "Extractions", "id", "CHECK(revision>0 AND recording_revision>0 AND length(document_digest)=64)", []string{"id:current_recording:id"}},
+	{"saved_query", "SavedQueries", "id,revision", "CHECK(revision>0)", nil},
+	{"graph_layout", "Layouts", "id", "CHECK(revision>0)", nil},
 }
 
 type column struct {
@@ -210,6 +213,20 @@ func (s *Store) migrate(ctx context.Context) error {
 	var digest string
 	e = tx.QueryRowContext(ctx, "SELECT version,digest FROM catalog_schema WHERE singleton=1").Scan(&version, &digest)
 	if e == nil {
+		if version == 5 && digest == historicalV5Digest() {
+			for _, q := range migrationStatements() {
+				if _, e = tx.ExecContext(ctx, q); e != nil {
+					return sanitize(e)
+				}
+			}
+			if _, e = s.exec(ctx, tx, "UPDATE catalog_schema SET version=?,digest=? WHERE singleton=1", SchemaVersion, migrationDigest()); e != nil {
+				return sanitize(e)
+			}
+			if _, e = s.exec(ctx, tx, "UPDATE workspace SET schema_version=?", SchemaVersion); e != nil {
+				return sanitize(e)
+			}
+			return sanitize(tx.Commit())
+		}
 		if (version == 1 && digest == legacyMigrationDigest()) || (version == 2 && digest == historicalV2Digest()) || (version == 3 && digest == historicalV3Digest()) || (version == 4 && digest == historicalV4Digest()) {
 			var legacy historicalEvidence
 			var e error
@@ -284,6 +301,18 @@ func validateRecord(value any) error {
 		}
 	}
 	switch r := value.(type) {
+	case Extraction:
+		if !validExtraction(r) {
+			return contracts.Fail("invalid_request")
+		}
+	case SavedQuery:
+		if !validSaved(r) {
+			return contracts.Fail("invalid_request")
+		}
+	case GraphLayout:
+		if !validLayout(r) {
+			return contracts.Fail("invalid_request")
+		}
 	case Speaker:
 		if r.Revision < 1 || !identityText(r.Name, 512) || !identityState(r.State) {
 			return contracts.Fail("invalid_request")

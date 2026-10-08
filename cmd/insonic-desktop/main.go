@@ -99,7 +99,7 @@ func run() int {
 			raw, _ := json.Marshal(response.Result)
 			var result map[string]any
 			json.Unmarshal(raw, &result)
-			for _, name := range []string{"ui_library_import", "ui_metadata_date", "ui_current_assembly", "ui_audio_playback", "ui_video_playback", "ui_cue_seek", "ui_terms", "ui_speakers", "ui_pipelines", "ui_jobs", "ui_settings", "ui_keyboard_help"} {
+			for _, name := range []string{"ui_library_import", "ui_metadata_date", "ui_current_assembly", "ui_audio_playback", "ui_video_playback", "ui_cue_seek", "ui_terms", "ui_speakers", "ui_pipelines", "ui_jobs", "ui_settings", "ui_keyboard_help", "ui_explore_calendar", "ui_explore_query", "ui_explore_graph"} {
 				passed = passed && result[name] == "passed"
 			}
 			smokePassed.Store(passed)

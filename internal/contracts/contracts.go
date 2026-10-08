@@ -46,7 +46,7 @@ func Fail(code string) *Error {
 		"audio_limit":            "The audio exceeds the configured resource limit.",
 		"unsupported_audio":      "The selected audio layout is unsupported.",
 		"model_unavailable":      "The elected managed model is unavailable.",
-		"unsupported_capability": "The elected model does not support this operation.",
+		"unsupported_capability": "The selected adapter does not support this operation.",
 		"input_limit":            "The processing input exceeds the configured limit.",
 		"invalid_engine_output":  "The local engine returned an invalid result.",
 		"invalid_timing":         "The local engine returned invalid source-clock timing.",

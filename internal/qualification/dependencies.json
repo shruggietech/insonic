@@ -65,11 +65,23 @@
     "lock": "internal/qualification/media-tools.json",
     "exiftool": "13.59",
     "ffprobe_distribution": "eugeneware/ffmpeg-static:b6.1.1",
-    "platforms": ["windows_amd64", "linux_amd64", "darwin_arm64"]
+    "platforms": [
+      "windows_amd64",
+      "linux_amd64",
+      "darwin_arm64"
+    ]
   },
   "fixtures": {
     "postgres": "postgres:18.6@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722",
     "s3": "adobe/s3mock:5.2.3@sha256:ab01a6946750f451ca215a47e91030695b260e4003b8a5a6201d25029b8fca92",
     "arcade": "arcadedata/arcadedb:26.9.1@sha256:02a1a74fcef3c9d91e680262ddb7fde05ff9cfb356b366e7faf8e41d80995a70"
+  },
+  "windows_openssl": {
+    "version": "3.5.9",
+    "filename": "openssl-3.5.9-hf411b9b_0.conda",
+    "url": "https://api.anaconda.org/download/conda-forge/openssl/3.5.9/win-64/openssl-3.5.9-hf411b9b_0.conda",
+    "sha256": "827e55e37cc3208f285ae435b13bd1f389d35728d3aa6974ee447c7086232cc5",
+    "license": "Apache-2.0",
+    "archive_decoder": "zstandard==0.25.0"
   }
 }

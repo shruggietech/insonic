@@ -104,8 +104,36 @@ func (s *Store) Export(ctx context.Context) (Snapshot, error) {
 	return out, e
 }
 func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
-	if snap.Version != contracts.Version || (snap.CatalogSchema != SchemaVersion && snap.CatalogSchema != 1 && snap.CatalogSchema != 2) {
+	if snap.Version != contracts.Version || (snap.CatalogSchema != SchemaVersion && snap.CatalogSchema != 1 && snap.CatalogSchema != 2 && snap.CatalogSchema != 5) {
 		return contracts.Fail("incompatible_version")
+	}
+	if snap.CatalogSchema < 6 && (len(snap.Records.Extractions) > 0 || len(snap.Records.SavedQueries) > 0 || len(snap.Records.Layouts) > 0) {
+		return contracts.Fail("invalid_request")
+	}
+	if snap.CatalogSchema < 6 {
+		for _, table := range snap.State {
+			if table.Name != "operation_receipt" {
+				continue
+			}
+			for _, row := range table.Rows {
+				if len(row) < 4 {
+					return contracts.Fail("invalid_request")
+				}
+				var encoded string
+				if strict(row[3], &encoded) != nil {
+					return contracts.Fail("invalid_request")
+				}
+				var result map[string]json.RawMessage
+				if strict([]byte(encoded), &result) != nil {
+					return contracts.Fail("invalid_request")
+				}
+				for _, key := range []string{"query_proofs", "layout_proofs", "extraction_proofs"} {
+					if _, ok := result[key]; ok {
+						return contracts.Fail("invalid_request")
+					}
+				}
+			}
+		}
 	}
 	if snap.Kind != "catalog-snapshot" {
 		return contracts.Fail("invalid_request")
@@ -194,7 +222,7 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 		if _, e := s.exec(ctx, tx, "UPDATE workspace SET revision=? WHERE id=?", snap.Revision, s.workspace); e != nil {
 			return e
 		}
-		result := map[string]any{"restored_revision": snap.Revision, "authority": "expired"}
+		result := map[string]any{"restored_revision": snap.Revision, "authority": "expired", "graph_dirty": true}
 		if len(snap.legacySpeakers) > 0 {
 			proofs, err := s.speakerProofs(ctx, tx)
 			if err != nil {
@@ -226,6 +254,9 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 			return e
 		}
 		if e = s.validateIdentityState(ctx, tx); e != nil {
+			return e
+		}
+		if e = s.validateExplorationState(ctx, tx); e != nil {
 			return e
 		}
 		return s.validateLibraryState(ctx, tx, true)

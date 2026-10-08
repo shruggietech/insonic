@@ -1,0 +1,40 @@
+# S008 verification
+
+Date: 2026-10-08. Owner slice S008, branch `codex/008-evidence-explore`, directory `specs/008-evidence-explore`, issues #11/#12. Base: dc43f00cac915675d570196fc0f25bc641c7a15e. Version remains 0.0.0.
+
+## Spec Kit
+
+Specify, clarify, requirements/evidence checklists, research, plan, data model, contracts, tasks and blocking analyze completed. Research-only agents examined existing graph/catalog/Explore integration; implementation remained sequential. No unresolved constitution or scope conflict.
+
+Convergence assessed all 16 FRs, five SCs, ten story acceptance scenarios, ten plan decisions and five constitution principles. Appended recovery, persistence, delivery, elected-HTTP and disjoint-source/rebuild acceptance tasks (T035-T039). All buildable requirements now have implementation and acceptance coverage. Hosted platform timing/exact-head checks and PR review remain publication gates, not implementation claims.
+
+Task path consolidation: graph/evidence/query/timeline/saved dispatch live in `internal/app/explore_*.go`; common query/calendar hydration lives in `internal/explore/`. Native and backend tests are `internal/app/explore_*_test.go`, `internal/graph/adapter_test.go` and tagged engine tests. The task descriptions' conceptual file names map to these final paths.
+
+## Local verification
+
+- Repository integrity/schema: `npm run check`, 19 schemas/17 contracts/21 examples, UTF-8/LF/link/brand/version checks passed.
+- Repository Node tests: 55 passed.
+- Full Go acceptance and vet passed; affected catalog/app/explore/evidence/graph race checks passed (catalog about 60 seconds, app about 100 seconds). Subsequent small changes received affected acceptance tests.
+- Frontend typecheck and 41 rendered/pure tests passed. Covers whole-calendar continuation/keyboard controls, current source playback fences, late-ticket closure, query generation fences, immutable saved versions/CAS, separate layouts and graph/table expansion.
+- Python archive, loader, worker and package tests passed. Required scripts enforce no recognition/diarization inference, initialization or weights.
+- Public and offline site exports passed: 27 documentation pages, relative links/anchors and versioned JSON reference.
+- Real LadybugDB 0.21.2 and ArcadeDB 26.9.1: ordered publication, exact replay, mismatched receipt, stale fence, predecessor gaps, correction/invalidation, workspace binding, uncertain-commit reconciliation, failed atomic rebuild and restored-lineage reset passed.
+- Shared real-engine app matrix: all seven normalized operations match catalog reference identities/order/values; current document replacement removes old cue references and rebuild succeeds.
+- Real PostgreSQL fixture: saved immutable versions, compatibility replay and separate layouts survive restore with proofs/CAS; forged definitions fail.
+- Elected HTTP-to-durable extraction test uses deterministic structured output and validates negation/conditions. Literal extraction retains current cue ownership; replacement invalidates extraction.
+- Prepared native dependency checks and source CLI/native desktop qualification passed. The mounted native UI journey includes Explore calendar, current query, saved definition, force graph/table and separate layout.
+- Relocated Windows x86-64 package passed real licensed audio/video import, Cue JSON assembly/native export, calendar, embedded graph query/version/rebuild, GUI bridge and native webview under an isolated PATH with checkout Ladybug libraries moved aside and restored. Package smoke took 101 seconds. This local receipt is a dirty working-tree qualification; hosted exact-head clean package receipts are still required.
+
+## Decisions and limitations
+
+Reference graphs contain identities/relationships, not transcript or assignment copies. Shared hydration preserves current text and exact source clocks. Disjoint assertion citations retain individual spans; filters never invent evidence in the gaps. Bounded portable catalog fallback reports its basis/graph error if projection is unavailable or exceeds limits.
+
+Saved versions carry immutable backend/schema compatibility findings. Native validation checks the selected dialect and backend EXPLAIN when reachable; unreachable checks stay pending, and incompatible definitions remain inspectable. Save replay preserves the original compatibility record.
+
+A Windows package regression exposed startup-time DLL resolution and ambient OpenSSL dependence. Graph DLLs now reside beside executables, with checksum-pinned conda-forge OpenSSL 3.5.9 ABI-3 companions and their Apache 2.0 notice. The pinned zstandard archive decoder is installed in the workspace tool directory. This is runtime packaging, with no model initialization.
+
+No official release, signing/notarization, published binary archive, third bot round or owner merge is authorized/performed. Existing companion corresponding-source release work remains #14. Untagged builds explicitly report embedded graph unavailable; prepared packages include it. Arbitrary native functions are not promised portable.
+
+## Publication and review
+
+Not yet published. Initial automatic review and at most one explicitly requested second round will be tracked here. Review findings take priority over waiting for CI. Final handoff requires every review replied/resolved and exact-head green checks below ten minutes per hosted job.

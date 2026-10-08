@@ -141,6 +141,9 @@ def prepare():
         destination = BUILD / name
         extract(archive, destination)
         receipt['assets'].append({'name': filename, 'sha256': digest})
+    if os.name == 'nt':
+        from windows_openssl import prepare as prepare_openssl
+        prepare_openssl()
     library = next((BUILD / 'ladybug').rglob('lbug.h')).parent
     cueson = next((BUILD / 'cueson').rglob('cueson.exe' if os.name == 'nt' else 'cueson'))
     cueson.chmod(0o755)
@@ -160,7 +163,7 @@ def native_env():
     values = json.loads((BUILD / 'environment.json').read_text(encoding='utf-8'))
     values['PATH'] = values['INSONIC_NATIVE_LIBRARY'] + os.pathsep + os.environ['PATH']
     if os.name == 'nt' and Path('C:/msys64/ucrt64/bin').is_dir():
-        values['PATH'] = 'C:/msys64/ucrt64/bin' + os.pathsep + values['PATH']
+        values['PATH'] = str(BUILD / 'openssl') + os.pathsep + 'C:/msys64/ucrt64/bin' + os.pathsep + values['PATH']
     return values
 
 def cueson_probe(env):
@@ -220,7 +223,7 @@ def native():
     sys.stdout.buffer.write(child([sys.executable, ROOT / "scripts/media-fixtures.py", "--native"]))
     env = native_env()
     cueson = cueson_probe(env)
-    output = child(['go', 'test', '-v', '-tags', 'native_ladybug,system_ladybug', './internal/qualification', './internal/subtitles'], env=env)
+    output = child(['go', 'test', '-v', '-tags', 'native_ladybug,system_ladybug', './internal/qualification', './internal/subtitles', './internal/graph', './internal/app'], env=env)
     sys.stdout.buffer.write(output)
     (BUILD / 'native-receipt.json').write_text(json.dumps({'cueson': cueson, 'native_pair': 'passed'}, indent=2) + '\n', encoding='utf-8')
 
@@ -252,7 +255,7 @@ def write_receipt(path, output, expected):
 
 def desktop():
     env = native_env()
-    tags = 'desktop,production'
+    tags = 'desktop,production,system_ladybug'
     if platform.system() == 'Linux':
         tags += ',webkit2_41'
     output = child(['go', 'test', '-v', '-tags', tags, './desktop', './cmd/insonic-desktop'], env=env)
