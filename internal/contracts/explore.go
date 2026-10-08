@@ -175,11 +175,8 @@ func (q QueryInput) Validate() error {
 				}
 			}
 		case "integer":
-			n, yes := value.(json.Number)
-			if yes {
-				_, e := strconv.ParseInt(string(n), 10, 64)
-				ok = e == nil
-			}
+			_, e := IntegerParameter(value)
+			ok = e == nil
 		case "number":
 			n, yes := value.(json.Number)
 			if yes {
@@ -210,4 +207,25 @@ func ExploreRequestValid(r Request) bool {
 	default:
 		return r.ItemID == ""
 	}
+}
+
+// IntegerParameter accepts legacy JSON integers and canonical decimal strings.
+// Strings preserve exact 64-bit values across desktop JSON number boundaries.
+func IntegerParameter(value any) (int64, error) {
+	var text string
+	canonical := false
+	switch v := value.(type) {
+	case json.Number:
+		text = string(v)
+	case string:
+		text = v
+		canonical = true
+	default:
+		return 0, Fail("invalid_request")
+	}
+	n, e := strconv.ParseInt(text, 10, 64)
+	if e != nil || (canonical && strconv.FormatInt(n, 10) != text) {
+		return 0, Fail("invalid_request")
+	}
+	return n, nil
 }

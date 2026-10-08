@@ -43,7 +43,7 @@ Independent check: configuration survives restart, complete proposal adopts with
 - [x] T016 Publish self-contained contracts/help/capability status and changelog in docs/v0.0.0/graph.md, desktop.md, index.md, pipelines.md and CHANGELOG.md.
 - [x] T017 Run npm check/test, Go acceptance/vet/affected race, frontend check/test/build, Python tests and site/offline/native qualification; record verification.md.
 - [x] T018 Execute speckit-converge across 12 FRs, five SCs, nine story scenarios, nine decisions and all constitution principles; implement appended gaps.
-- [ ] T019 Commit/push verified feature branch, publish/attach official PR closing #13 and move Project status to In review.
+- [x] T019 Commit/push verified feature branch, publish/attach official PR closing #13 and move Project status to In review.
 - [ ] T020 Resolve/reply every initial review; request only one additional code/security review round and address/resolve every finding.
 - [ ] T021 Verify final exact-head green hosted checks below ten minutes per job and hand off for owner final squash merge without merging/tagging/releasing.
 
@@ -56,3 +56,7 @@ Setup -> foundation -> US1 -> US2 -> US3 -> delivery. Test tasks precede impleme
 - [x] T022 Invalidate pending assistance when a direct query starts; add a rendered competing-request regression in desktop/frontend/src/explore.tsx and tests/assistance.test.mjs per FR-008 and D08 (partial, HIGH).
 - [x] T023 Count generated native query executions on real selected backend fixtures, requiring zero for suggestions/invalid output and exactly one for valid auto-run in internal/app/explore_backend_test.go per SC-002 and FR-012 (partial, HIGH).
 - [x] T024 Verify configuration through actual runtime restart and exact current source clocks through elected excerpts in internal/app/assistance_test.go per SC-003 and FR-010 (partial, MEDIUM).
+
+## Phase 8: Convergence
+
+- [x] T025 Preserve generated 64-bit integer parameters through desktop JSON handoff as exact decimal strings, accept both representations in the shared typed/native contract, and qualify editor/native execution per FR-005/010 and SC-001 (partial, HIGH).

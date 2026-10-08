@@ -2,12 +2,14 @@
 package assistance
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"net"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -106,6 +108,27 @@ func Parse(raw []byte) (Proposal, error) {
 	var p Proposal
 	if catalog.ValidateJSON(raw) != nil || contracts.DecodeExplore(raw, &p) != nil || p.ContractVersion != "1" || strings.TrimSpace(p.Explanation) == "" || len(p.Explanation) > 8192 || p.Query.Validate() != nil {
 		return p, contracts.Fail("invalid_request")
+	}
+
+	// Preserve browser-unsafe integers without changing their declared numeric type.
+	for name, param := range p.Query.Parameters {
+		if param.Type != "integer" {
+			continue
+		}
+		var value any
+		decoder := json.NewDecoder(bytes.NewReader(param.Value))
+		decoder.UseNumber()
+		if decoder.Decode(&value) != nil {
+			return p, contracts.Fail("invalid_request")
+		}
+		n, e := contracts.IntegerParameter(value)
+		if e != nil {
+			return p, e
+		}
+		if n > 9007199254740991 || n < -9007199254740991 {
+			param.Value, _ = json.Marshal(strconv.FormatInt(n, 10))
+			p.Query.Parameters[name] = param
+		}
 	}
 	return p, nil
 }

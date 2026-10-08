@@ -137,3 +137,32 @@ func TestCredentialAndOutputBounds(t *testing.T) {
 }
 
 func (s *testSecrets) Status(context.Context, string) (string, error) { return "available", nil }
+
+func TestProposalPreservesLargeIntegerForDesktop(t *testing.T) {
+	raw := []byte(`{"contract_version":"1","query":{"definition":{"mode":"native","dialect":"ladybug-cypher","text":"RETURN $clock AS clock"},"parameters":{"clock":{"type":"integer","value":9223372036854775807}}},"explanation":"Exact clock"}`)
+	p, e := Parse(raw)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if string(p.Query.Parameters["clock"].Value) != `"9223372036854775807"` {
+		t.Fatal("desktop would round parameter", string(p.Query.Parameters["clock"].Value))
+	}
+	encoded, _ := json.Marshal(p)
+	again, e := Parse(encoded)
+	if e != nil || string(again.Query.Parameters["clock"].Value) != string(p.Query.Parameters["clock"].Value) {
+		t.Fatal("string parameter did not roundtrip", e)
+	}
+}
+
+func TestIntegerTransportRangeAndCanonicalStrings(t *testing.T) {
+	for _, value := range []any{json.Number("-0"), json.Number("9223372036854775807"), "9223372036854775807", "-9223372036854775808", "0"} {
+		if _, e := contracts.IntegerParameter(value); e != nil {
+			t.Fatal(value, e)
+		}
+	}
+	for _, value := range []any{"9223372036854775808", "-9223372036854775809", "01", "+1", "-0", " 1", "1.0", true, nil} {
+		if _, e := contracts.IntegerParameter(value); e == nil {
+			t.Fatal("invalid exact integer", value)
+		}
+	}
+}

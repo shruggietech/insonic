@@ -115,6 +115,18 @@ func exploreBackendSuite(t *testing.T, a *App, g graph.Adapter) {
 		t.Fatal("auto-run did not execute exactly once", counter.queries)
 	}
 	a.Graph = g
+
+	// Decimal transport strings bind as real int64 values on each supported engine.
+	paramText := "MATCH (n:Entity) RETURN $clock AS clock LIMIT 1"
+	params := map[string]contracts.QueryParameter{"clock": {Type: "integer", Value: json.RawMessage(`"9223372036854775807"`)}}
+	exact, e := g.Query(a.ctx, dialect, paramText, params)
+	if e != nil || len(exact) != 1 {
+		t.Fatal("exact integer binding", e, exact)
+	}
+	rawExact, _ := json.Marshal(exact)
+	if !bytes.Contains(rawExact, []byte("9223372036854775807")) {
+		t.Fatal("integer rounded before engine", string(rawExact))
+	}
 	a.AssistanceFixture = nil
 	// Apply a current-document replacement, then ensure old reference IDs disappear.
 	var parsed map[string]any

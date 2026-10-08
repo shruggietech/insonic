@@ -5173,8 +5173,17 @@
                 "then": {
                   "properties": {
                     "value": {
-                      "type": "integer",
-                      "description": "Value with the declared integer JSON type."
+                      "oneOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^(0|-?[1-9][0-9]*)$",
+                          "maxLength": 20
+                        }
+                      ],
+                      "description": "Exact signed 64-bit integer as a JSON integer or canonical decimal string; the runtime enforces range."
                     }
                   },
                   "type": "object"
