@@ -25,7 +25,9 @@ func historicalEvidenceMigrationSuite(t *testing.T, s *Store) {
 			t.Fatal(e)
 		}
 	}
-	for _, table := range []string{"graph_layout", "saved_query", "current_extraction", "model_artifact", "model_version", "training_run", "dataset_member", "training_dataset", "speaker_segment", "speaker_mapping", "current_recording", "library_cleanup"} {
+	// Remove newer dependents before their historical parents. PostgreSQL enforces
+	// these foreign keys even when the dependent tables contain no rows.
+	for _, table := range []string{"speaker_output", "speaker_profile", "speaker_checkpoint", "graph_layout", "saved_query", "current_extraction", "model_artifact", "model_version", "training_run", "dataset_member", "training_dataset", "speaker_segment", "speaker_mapping", "current_recording", "library_cleanup"} {
 		if _, e = s.db.Exec("DROP TABLE " + table); e != nil {
 			t.Fatal(e)
 		}
@@ -70,6 +72,9 @@ func historicalEvidenceMigrationSuite(t *testing.T, s *Store) {
 	snap, e := s.Export(ctx)
 	if e != nil {
 		t.Fatal(e)
+	}
+	if snap.CatalogSchema != SchemaVersion || len(snap.Records.SpeakerOutputs)+len(snap.Records.SpeakerProfiles)+len(snap.Records.SpeakerCheckpoints) != 0 {
+		t.Fatal("historical upgrade did not recreate current speaker authority tables")
 	}
 	raw, _ := json.Marshal(snap)
 	if strings.Contains(string(raw), "legacy-assignment-marker") || len(snap.Records.Segments) != 0 || len(snap.Records.Members) != 0 {

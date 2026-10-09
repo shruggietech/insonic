@@ -308,6 +308,7 @@ func (s *Store) CreateSpeakerDataset(ctx context.Context, op, speakerID string, 
 		return out, contracts.Fail("invalid_request")
 	}
 	id := SpeakerDatasetID(op, speakerID)
+	requestDigest, _ := speakerDatasetRequestDigest(speakerID, recipe)
 	digest, e := intent([]any{"speaker-dataset", speakerID, refs, epoch, recipe, summary, manifestPublicationID})
 	if e != nil {
 		return out, e
@@ -367,7 +368,7 @@ func (s *Store) CreateSpeakerDataset(ctx context.Context, op, speakerID string, 
 		}
 		proof, _ := intent(dataset)
 		memberProof, _ := intent([]any{records.Members, records.Segments})
-		_, err = s.accept(ctx, tx, op, digest, rev, map[string]any{"speaker_dataset_proofs": map[string]string{id: proof}, "speaker_dataset_member_proofs": map[string]string{id: memberProof}, "graph_dirty": true})
+		_, err = s.accept(ctx, tx, op, digest, rev, map[string]any{"speaker_dataset_proofs": map[string]string{id: proof}, "speaker_dataset_member_proofs": map[string]string{id: memberProof}, "speaker_dataset_id": id, "speaker_dataset_request_digest": requestDigest, "graph_dirty": true})
 		if err != nil {
 			return err
 		}
@@ -375,6 +376,41 @@ func (s *Store) CreateSpeakerDataset(ctx context.Context, op, speakerID string, 
 		return err
 	})
 	return out, e
+}
+func speakerDatasetRequestDigest(speakerID string, recipe json.RawMessage) (string, error) {
+	return intent([]any{"speaker-dataset-request", speakerID, recipe})
+}
+
+// Replay authenticates public election intent independently of current corpus
+// content, which is erased when accepted evidence becomes obsolete.
+func (s *Store) ReplaySpeakerDataset(ctx context.Context, op, speakerID string, recipe json.RawMessage) (out SpeakerDataset, found bool, e error) {
+	if !contracts.ValidID(op) || !contracts.ValidID(speakerID) || len(recipe) > 1<<20 || !referenceOnlyOptions(recipe) {
+		return out, false, contracts.Fail("invalid_request")
+	}
+	digest, err := speakerDatasetRequestDigest(speakerID, recipe)
+	if err != nil {
+		return out, false, err
+	}
+	tx, err := s.identityRead(ctx)
+	if err != nil {
+		return out, false, sanitize(err)
+	}
+	defer tx.Rollback()
+	var raw string
+	if err = s.row(ctx, tx, "SELECT result FROM operation_receipt WHERE workspace_id=? AND id=?", s.workspace, op).Scan(&raw); err == sql.ErrNoRows {
+		return out, false, nil
+	} else if err != nil {
+		return out, false, sanitize(err)
+	}
+	var result struct {
+		ID     string `json:"speaker_dataset_id"`
+		Digest string `json:"speaker_dataset_request_digest"`
+	}
+	if json.Unmarshal([]byte(raw), &result) != nil || result.Digest != digest || result.ID != SpeakerDatasetID(op, speakerID) {
+		return out, false, contracts.Fail("conflict")
+	}
+	out, err = s.speakerDatasetTx(ctx, tx, result.ID)
+	return out, true, sanitize(err)
 }
 func (s *Store) validCurrentDatasetTx(ctx context.Context, tx *sql.Tx, id string) (Dataset, error) {
 	var d Dataset

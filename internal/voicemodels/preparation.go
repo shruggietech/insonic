@@ -173,11 +173,10 @@ func (s *Service) CreateDataset(ctx context.Context, op string, options DatasetO
 		return empty, contracts.Fail("invalid_request")
 	}
 	// Replay reads the original election, never replaces it with current evidence.
-	if prior, err := s.Catalog.SpeakerDataset(ctx, catalog.SpeakerDatasetID(op, options.SpeakerID)); err == nil {
-		wanted, _ := json.Marshal(options.Recipe)
-		if string(wanted) != string(prior.Recipe) {
-			return empty, contracts.Fail("conflict")
-		}
+	recipeRaw, _ := json.Marshal(options.Recipe)
+	if prior, replayed, err := s.Catalog.ReplaySpeakerDataset(ctx, op, options.SpeakerID, recipeRaw); err != nil {
+		return empty, err
+	} else if replayed {
 		return prior, nil
 	}
 	selection := catalog.SpeakerSelection{SpeakerID: options.SpeakerID, ConfirmedOnly: true, Limit: 100}
@@ -224,7 +223,6 @@ func (s *Service) CreateDataset(ctx context.Context, op string, options DatasetO
 	if err != nil {
 		return empty, err
 	}
-	recipeRaw, _ := json.Marshal(options.Recipe)
 	summaryRaw, _ := json.Marshal(summary)
 	got, err := s.Catalog.CreateSpeakerDataset(ctx, op, options.SpeakerID, included, epoch, recipeRaw, summaryRaw, publication.ID)
 	if err != nil {

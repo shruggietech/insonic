@@ -12,6 +12,7 @@ import (
 // Both official adapters implement it; callers never receive SQL connections.
 type Catalog interface {
 	CreateSpeakerDataset(context.Context, string, string, []CurrentReference, string, json.RawMessage, json.RawMessage, string) (SpeakerDataset, error)
+	ReplaySpeakerDataset(context.Context, string, string, json.RawMessage) (SpeakerDataset, bool, error)
 	SpeakerDataset(context.Context, string) (SpeakerDataset, error)
 	SpeakerDatasets(context.Context, string) ([]SpeakerDataset, error)
 	CommitSpeakerOutput(context.Context, Work, SpeakerOutput) (SpeakerOutput, error)

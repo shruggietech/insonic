@@ -174,6 +174,64 @@ func TestSpeakerDatasetRejectsStaleAndAutomaticEvidence(t *testing.T) {
 	}
 }
 
+func TestSpeakerDatasetIntentReplaySurvivesInvalidation(t *testing.T) {
+	ctx := context.Background()
+	s := localStore(t, contracts.ID())
+	_, speaker, recording, _ := speakerDatasetFixture(t, s)
+	page, e := s.CurrentSpeakerReferences(ctx, SpeakerSelection{SpeakerID: speaker.ID, ConfirmedOnly: true})
+	if e != nil {
+		t.Fatal(e)
+	}
+	op := contracts.ID()
+	recipe := json.RawMessage(`{"min_duration_us":250,"languages":["en"]}`)
+	publication := availableArtifact(t, s)
+	dataset, e := s.CreateSpeakerDataset(ctx, op, speaker.ID, page.References, page.Epoch, recipe, json.RawMessage(`{}`), publication.ID)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if replay, found, e := s.ReplaySpeakerDataset(ctx, op, speaker.ID, json.RawMessage(`{"languages":["en"],"min_duration_us":250}`)); e != nil || !found || replay.Dataset.ID != dataset.Dataset.ID {
+		t.Fatal("canonical original request replay", e)
+	}
+	mappings, e := s.SpeakerMappings(ctx, recording.ID)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = s.SetSpeakerMapping(ctx, contracts.ID(), recording.Revision, mappings[0]); e != nil {
+		t.Fatal(e)
+	}
+	revision, e := s.Revision(ctx)
+	if e != nil {
+		t.Fatal(e)
+	}
+	replay, found, e := s.ReplaySpeakerDataset(ctx, op, speaker.ID, recipe)
+	if e != nil || !found || replay.Dataset.ID != dataset.Dataset.ID || replay.Dataset.State != "invalidated" || len(replay.References) != 0 || string(replay.Recipe) != "{}" {
+		t.Fatal("invalidated original election replay", e)
+	}
+	if _, _, e = s.ReplaySpeakerDataset(ctx, op, speaker.ID, json.RawMessage(`{"min_duration_us":251,"languages":["en"]}`)); e == nil {
+		t.Fatal("changed recipe accepted for original operation")
+	}
+	if _, _, e = s.ReplaySpeakerDataset(ctx, op, contracts.ID(), recipe); e == nil {
+		t.Fatal("changed speaker accepted for original operation")
+	}
+	if _, found, e = s.ReplaySpeakerDataset(ctx, contracts.ID(), speaker.ID, recipe); e != nil || found {
+		t.Fatal("missing election treated as replay", e)
+	}
+	if after, e := s.Revision(ctx); e != nil || after != revision {
+		t.Fatal("replay modified catalog authority", e)
+	}
+	snapshot, e := s.Export(ctx)
+	if e != nil {
+		t.Fatal(e)
+	}
+	restored := localStore(t, s.workspace)
+	if e = restored.Restore(ctx, snapshot); e != nil {
+		t.Fatal("portable request digest", e)
+	}
+	if replay, found, e = restored.ReplaySpeakerDataset(ctx, op, speaker.ID, recipe); e != nil || !found || replay.Dataset.ID != dataset.Dataset.ID {
+		t.Fatal("restored original request replay", e)
+	}
+}
+
 func speakerDatasetFixture(t *testing.T, s *Store) (SpeakerDataset, Speaker, Recording, string) {
 	t.Helper()
 	ctx := context.Background()

@@ -43,4 +43,10 @@ Real weight training, encoder execution, acoustic matching accuracy and engine p
 
 Owner explicitly authorized push and official PR creation. Publish with closing references for #15 and #35; #29 remains an advanced coordinator. First automatic review is round one. At most one explicit second round is authorized. Reply to and resolve every actionable thread, confirm final-head green checks, then stop for owner final review and squash merge. No merge, tag or release is authorized here.
 
-Publication/review receipts will be recorded once available.
+Official [PR #39](https://github.com/shruggietech/insonic/pull/39) opened at implementation head `ad9694d2a85e3d1658144d5d34ce6c681b2dc230`, with M5 milestone and closing references for #15 and #35.
+
+Round one completed with one P2 finding: an accepted dataset request with a nonempty recipe conflicted on replay after invalidation scrubbed that recipe. Creation receipts now preserve a canonical noncontent request digest and dataset identity; replay authenticates the original speaker/recipe election without resolving corrected evidence again. Changed speaker or recipe still conflicts. Catalog/service regressions cover original replay, changed intent, no mutation and portable restore.
+
+Initial [CI run 37980169153](https://github.com/shruggietech/insonic/actions/runs/37980169153) exposed a PostgreSQL historical-fixture reset ordering failure. The schema-3 downgrade fixture now drops new dependent speaker tables before their parent tables, retaining foreign-key enforcement; its upgrade asserts schema 9 and recreated empty speaker authority tables. Targeted migration tests and integration-tag compilation pass locally; PostgreSQL execution remains the correction-head CI gate.
+
+Correction-head CI and the authorized second code/security review round remain pending. Final receipts will be linked in this record and the PR.

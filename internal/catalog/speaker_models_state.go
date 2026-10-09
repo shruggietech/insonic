@@ -11,18 +11,32 @@ import (
 
 func (s *Store) validateSpeakerModelState(ctx context.Context, tx *sql.Tx, r Records) error {
 	expected := map[string]map[string]string{"speaker_output_proofs": {}, "speaker_profile_proofs": {}, "speaker_checkpoint_proofs": {}, "speaker_dataset_proofs": {}, "speaker_association_proofs": {}, "speaker_dataset_member_proofs": {}}
-	rows, e := tx.QueryContext(ctx, s.query("SELECT result FROM operation_receipt WHERE workspace_id=? ORDER BY revision"), s.workspace)
+	type requestProof struct{ OperationID, Digest string }
+	requests := map[string]requestProof{}
+	rows, e := tx.QueryContext(ctx, s.query("SELECT id,result FROM operation_receipt WHERE workspace_id=? ORDER BY revision"), s.workspace)
 	if e != nil {
 		return e
 	}
 	for rows.Next() {
-		var raw string
-		if e = rows.Scan(&raw); e != nil {
+		var op, raw string
+		if e = rows.Scan(&op, &raw); e != nil {
 			break
 		}
 		var result map[string]json.RawMessage
 		if e = strict([]byte(raw), &result); e != nil {
 			break
+		}
+		if _, ok := result["speaker_dataset_proofs"]; ok {
+			var id, digest string
+			if strict(result["speaker_dataset_id"], &id) != nil || strict(result["speaker_dataset_request_digest"], &digest) != nil || !contracts.ValidID(id) || !digestPattern.MatchString(digest) {
+				e = contracts.Fail("invalid_request")
+				break
+			}
+			if _, exists := requests[id]; exists {
+				e = contracts.Fail("invalid_request")
+				break
+			}
+			requests[id] = requestProof{op, digest}
 		}
 		for k, proofs := range expected {
 			if p, ok := result[k]; ok {
@@ -142,7 +156,20 @@ func (s *Store) validateSpeakerModelState(ctx context.Context, tx *sql.Tx, r Rec
 		if _, ok := expected["speaker_dataset_proofs"][v.ID]; !ok {
 			continue
 		}
+		request, ok := requests[v.ID]
+		if !ok || v.ID != SpeakerDatasetID(request.OperationID, v.SpeakerID) {
+			return contracts.Fail("invalid_request")
+		}
+		delete(requests, v.ID)
 		if v.State == "current" {
+			var options speakerDatasetOptions
+			if strict(v.Options, &options) != nil {
+				return contracts.Fail("invalid_request")
+			}
+			digest, err := speakerDatasetRequestDigest(v.SpeakerID, options.Recipe)
+			if err != nil || digest != request.Digest {
+				return contracts.Fail("invalid_request")
+			}
 			if e = verify("speaker_dataset_proofs", v.ID, v); e != nil {
 				return e
 			}
@@ -183,6 +210,9 @@ func (s *Store) validateSpeakerModelState(ctx context.Context, tx *sql.Tx, r Rec
 		if len(proofs) != 0 {
 			return contracts.Fail("invalid_request")
 		}
+	}
+	if len(requests) != 0 {
+		return contracts.Fail("invalid_request")
 	}
 	return nil
 }
