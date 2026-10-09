@@ -4,6 +4,7 @@ package voicemodels
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -196,13 +197,15 @@ func (s *Service) ExecuteTrain(ctx context.Context, claim catalog.Work) (any, er
 		output, err = s.invoke(ctx, options.Adapter, request)
 	}
 	if err != nil {
-		if ctx.Err() != nil && options.Adapter.Mode == "hosted" && options.Adapter.SupportsCancel {
+		if (ctx.Err() != nil || errors.Is(err, context.DeadlineExceeded)) && options.Adapter.Mode == "hosted" && options.Adapter.SupportsCancel {
 			cancelCtx, stop := context.WithTimeout(context.Background(), 5*time.Second)
 			request.Operation = "cancel"
 			request.Inputs = nil
 			request.BaseFiles = nil
 			request.Checkpoint = nil
-			_, _ = s.invoke(cancelCtx, options.Adapter, request)
+			controlAdapter := options.Adapter
+			controlAdapter.Limits.TimeoutMS = 5000
+			_, _ = s.invoke(cancelCtx, controlAdapter, request)
 			stop()
 		}
 		return nil, err

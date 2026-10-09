@@ -159,13 +159,28 @@ func (r *contextReader) Read(b []byte) (int, error) {
 	}
 	return r.reader.Read(b)
 }
-func (s *Service) invoke(ctx context.Context, a Adapter, req AdapterRequest) (Output, error) {
+
+type adapterDeadlineError struct{ cause *contracts.Error }
+
+func (e *adapterDeadlineError) Error() string        { return e.cause.Error() }
+func (e *adapterDeadlineError) Unwrap() error        { return e.cause }
+func (e *adapterDeadlineError) Is(target error) bool { return target == context.DeadlineExceeded }
+
+func (s *Service) invoke(ctx context.Context, a Adapter, req AdapterRequest) (output Output, invocationError error) {
 	if err := ValidateAdapter(a); err != nil {
 		return Output{}, err
 	}
 	limits, _ := normalizeLimits(a.Limits)
 	bounded, cancel := context.WithTimeout(ctx, time.Duration(limits.TimeoutMS)*time.Millisecond)
 	defer cancel()
+	// Preserve private deadlines across every transport phase, including upload
+	// and response-body reads, while keeping the public error fixed and bounded.
+	defer func() {
+		if bounded.Err() == context.DeadlineExceeded && ctx.Err() == nil {
+			output = Output{}
+			invocationError = &adapterDeadlineError{contracts.Fail("operation_failed")}
+		}
+	}()
 	if a.Mode == "local" {
 		if s.LocalRunner != nil {
 			return s.LocalRunner(bounded, a, req)
@@ -353,10 +368,18 @@ func validateOutput(a Adapter, o Output) error {
 	}
 	roles := map[string]bool{}
 	for _, f := range o.Artifacts {
+		if a.Mode == "hosted" && (f.Path != "" || len(f.Data) == 0) {
+			return contracts.Fail("invalid_engine_output")
+		}
 		if !models.ValidRole(f.Role) || roles[strings.ToLower(f.Role)] || !text(f.Format, 128) || !digestPattern.MatchString(f.SHA256) || f.Size < 1 || f.Size > 64<<30 {
 			return contracts.Fail("invalid_engine_output")
 		}
 		roles[strings.ToLower(f.Role)] = true
+	}
+	for _, checkpoint := range o.Checkpoints {
+		if a.Mode == "hosted" && (checkpoint.Artifact.Path != "" || len(checkpoint.Artifact.Data) == 0) {
+			return contracts.Fail("invalid_engine_output")
+		}
 	}
 	for _, op := range o.SupportedOperations {
 		if !text(op, 128) || len(a.SupportedOperations) > 0 && !contains(a.SupportedOperations, op) {

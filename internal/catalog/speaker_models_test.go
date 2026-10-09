@@ -4,12 +4,88 @@ package catalog
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"math"
 	"os"
 	"testing"
 	"time"
 )
+
+func TestSpeakerDatasetAdmitsCorpusAboveTenThousand(t *testing.T) {
+	ctx := context.Background()
+	s := localStore(t, contracts.ID())
+	_, recording, local := evidenceRecording(t, s)
+	const count = 10001
+	var document map[string]json.RawMessage
+	json.Unmarshal(recording.Document, &document)
+	var original []map[string]json.RawMessage
+	json.Unmarshal(document["cues"], &original)
+	cues := make([]map[string]json.RawMessage, count)
+	for i := range cues {
+		cue := map[string]json.RawMessage{}
+		for k, v := range original[0] {
+			cue[k] = v
+		}
+		cue["id"], _ = json.Marshal(fmt.Sprintf("cue-%06d", i))
+		cue["ordinal"], _ = json.Marshal(i)
+		cue["source_order"], _ = json.Marshal(i)
+		cues[i] = cue
+	}
+	document["cues"], _ = json.Marshal(cues)
+	for _, key := range []string{"document", "stats"} {
+		var metadata map[string]json.RawMessage
+		json.Unmarshal(document[key], &metadata)
+		metadata["cue_count"], _ = json.Marshal(count)
+		document[key], _ = json.Marshal(metadata)
+	}
+	recording.Document, _ = json.Marshal(document)
+	recording.DocumentDigest = hash(recording.Document)
+	claim := speakerWork(t, s, "recordings.process")
+	var e error
+	recording, e = s.CommitRecording(ctx, claim, recording.Revision, recording)
+	if e != nil {
+		t.Fatal("large current document", e)
+	}
+	identity, e := s.PutSpeaker(ctx, contracts.ID(), 0, SpeakerIdentity{Speaker: Speaker{ID: contracts.ID(), Name: "Large corpus"}})
+	if e != nil {
+		t.Fatal(e)
+	}
+	mapping, e := s.SetSpeakerMapping(ctx, contracts.ID(), recording.Revision, SpeakerMapping{RecordingID: recording.ID, LocalSpeakerID: local, SpeakerID: identity.Speaker.ID, DocumentDigest: recording.DocumentDigest})
+	if e != nil {
+		t.Fatal(e)
+	}
+	page, e := s.CurrentSpeakerReferences(ctx, SpeakerSelection{SpeakerID: identity.Speaker.ID, ConfirmedOnly: true, Limit: 100})
+	if e != nil || len(page.References) != 100 || page.Next == "" {
+		t.Fatal("bounded first page", e)
+	}
+	next, e := s.CurrentSpeakerReferences(ctx, SpeakerSelection{SpeakerID: identity.Speaker.ID, ConfirmedOnly: true, Limit: 100, Cursor: page.Next})
+	if e != nil || len(next.References) != 100 || next.References[0].CueID == page.References[0].CueID {
+		t.Fatal("bounded continuation", e)
+	}
+	rawMap, _ := canonical(recording.SourceMap)
+	refs := make([]CurrentReference, count)
+	for i := range refs {
+		refs[i] = CurrentReference{RecordingID: recording.ID, RecordingRevision: recording.Revision, DocumentDigest: recording.DocumentDigest, CueID: fmt.Sprintf("cue-%06d", i), LocalSpeakerID: local, SpeakerID: identity.Speaker.ID, MappingRevision: mapping.Revision, SourceDigest: recording.SourceDigest, SourceMapDigest: hash(rawMap)}
+	}
+	publication := availableArtifact(t, s)
+	dataset, e := s.CreateSpeakerDataset(ctx, contracts.ID(), identity.Speaker.ID, refs, page.Epoch, json.RawMessage(`{}`), json.RawMessage(`{}`), publication.ID)
+	if e != nil || len(dataset.References) != count {
+		t.Fatal("supported corpus rejected", e, len(dataset.References))
+	}
+	shown, e := s.SpeakerDataset(ctx, dataset.Dataset.ID)
+	if e != nil || len(shown.References) != count {
+		t.Fatal("large accepted corpus unavailable", e)
+	}
+	tooMany := make([]CurrentReference, SpeakerDatasetReferenceLimit+1)
+	revision, _ := s.Revision(ctx)
+	if _, e = s.CreateSpeakerDataset(ctx, contracts.ID(), identity.Speaker.ID, tooMany, page.Epoch, json.RawMessage(`{}`), json.RawMessage(`{}`), publication.ID); e == nil {
+		t.Fatal("out-of-bound corpus admitted")
+	}
+	if after, e := s.Revision(ctx); e != nil || after != revision {
+		t.Fatal("out-of-bound corpus changed authority", e)
+	}
+}
 
 func speakerMetadataFixture(t *testing.T, v SpeakerOutput) json.RawMessage {
 	t.Helper()

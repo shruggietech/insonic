@@ -11,6 +11,9 @@ import (
 	"sort"
 )
 
+// SpeakerDatasetReferenceLimit is shared by corpus collection and acceptance.
+const SpeakerDatasetReferenceLimit = 100000
+
 // SpeakerOutput is immutable output identity, independent of current corpus validity.
 type SpeakerOutput struct {
 	ID             string          `json:"id"`
@@ -222,18 +225,26 @@ func (s *Store) speakerDatasetTx(ctx context.Context, tx *sql.Tx, id string) (ou
 		return out, err
 	}
 	sort.Slice(records.Members, func(i, j int) bool { return records.Members[i].Ordinal < records.Members[j].Ordinal })
+	cache := evidenceRecordingCache{}
+	mappings := map[string]SpeakerMapping{}
 	for _, m := range records.Members {
 		var seg Segment
 		if e = s.domainTx(ctx, tx, "Segments", m.SegmentID, &seg); e != nil {
 			return
 		}
-		var r Recording
-		if e = s.domainTx(ctx, tx, "Recordings", seg.RecordingID, &r); e != nil {
+		value, err := s.evidenceRecordingTx(ctx, tx, seg.RecordingID, cache)
+		if err != nil {
+			e = err
 			return
 		}
-		var mapping SpeakerMapping
-		if e = s.domainTx(ctx, tx, "SpeakerMappings", operationID("speaker-mapping", seg.RecordingID, seg.LocalSpeakerID), &mapping); e != nil {
-			return
+		r := value.Recording
+		mappingID := operationID("speaker-mapping", seg.RecordingID, seg.LocalSpeakerID)
+		mapping, ok := mappings[mappingID]
+		if !ok {
+			if e = s.domainTx(ctx, tx, "SpeakerMappings", mappingID, &mapping); e != nil {
+				return
+			}
+			mappings[mappingID] = mapping
 		}
 		raw, _ := canonical(r.SourceMap)
 		out.References = append(out.References, CurrentReference{RecordingID: r.ID, RecordingRevision: r.Revision, DocumentDigest: seg.DocumentDigest, CueID: seg.CueID, LocalSpeakerID: seg.LocalSpeakerID, SpeakerID: out.Dataset.SpeakerID, MappingRevision: mapping.Revision, SourceDigest: r.SourceDigest, SourceMapDigest: hash(raw)})
@@ -284,14 +295,19 @@ func (s *Store) SpeakerDatasets(ctx context.Context, speakerID string) (out []Sp
 	}
 	return
 }
-func (s *Store) validateCurrentReferenceTx(ctx context.Context, tx *sql.Tx, ref CurrentReference) error {
-	var r Recording
-	var m SpeakerMapping
-	if e := s.domainTx(ctx, tx, "Recordings", ref.RecordingID, &r); e != nil {
-		return e
+func (s *Store) validateCurrentReferenceTx(ctx context.Context, tx *sql.Tx, ref CurrentReference, cache evidenceRecordingCache, mappings map[string]SpeakerMapping) error {
+	value, err := s.evidenceRecordingTx(ctx, tx, ref.RecordingID, cache)
+	if err != nil {
+		return err
 	}
-	if e := s.domainTx(ctx, tx, "SpeakerMappings", operationID("speaker-mapping", ref.RecordingID, ref.LocalSpeakerID), &m); e != nil {
-		return e
+	r := value.Recording
+	id := operationID("speaker-mapping", ref.RecordingID, ref.LocalSpeakerID)
+	m, ok := mappings[id]
+	if !ok {
+		if e := s.domainTx(ctx, tx, "SpeakerMappings", id, &m); e != nil {
+			return e
+		}
+		mappings[id] = m
 	}
 	raw, e := canonical(r.SourceMap)
 	if e != nil {
@@ -300,11 +316,11 @@ func (s *Store) validateCurrentReferenceTx(ctx context.Context, tx *sql.Tx, ref 
 	if r.Revision != ref.RecordingRevision || r.DocumentDigest != ref.DocumentDigest || r.SourceDigest != ref.SourceDigest || hash(raw) != ref.SourceMapDigest || m.Revision != ref.MappingRevision || m.SpeakerID != ref.SpeakerID || m.DocumentDigest != ref.DocumentDigest || m.Origin != "manual" {
 		return contracts.Fail("conflict")
 	}
-	_, e = s.segmentCue(ctx, tx, Segment{RecordingID: ref.RecordingID, DocumentDigest: ref.DocumentDigest, CueID: ref.CueID, LocalSpeakerID: ref.LocalSpeakerID})
+	_, e = s.segmentCueCached(ctx, tx, Segment{RecordingID: ref.RecordingID, DocumentDigest: ref.DocumentDigest, CueID: ref.CueID, LocalSpeakerID: ref.LocalSpeakerID}, cache)
 	return e
 }
 func (s *Store) CreateSpeakerDataset(ctx context.Context, op, speakerID string, refs []CurrentReference, epoch string, recipe, summary json.RawMessage, manifestPublicationID string) (out SpeakerDataset, e error) {
-	if !contracts.ValidID(op) || !contracts.ValidID(speakerID) || !contracts.ValidID(manifestPublicationID) || !digestPattern.MatchString(epoch) || len(refs) > 10000 || len(recipe) > 1<<20 || len(summary) > 16384 || !referenceOnlyOptions(recipe) || !referenceOnlyOptions(summary) {
+	if !contracts.ValidID(op) || !contracts.ValidID(speakerID) || !contracts.ValidID(manifestPublicationID) || !digestPattern.MatchString(epoch) || len(refs) > SpeakerDatasetReferenceLimit || len(recipe) > 1<<20 || len(summary) > 16384 || !referenceOnlyOptions(recipe) || !referenceOnlyOptions(summary) {
 		return out, contracts.Fail("invalid_request")
 	}
 	id := SpeakerDatasetID(op, speakerID)
@@ -347,11 +363,13 @@ func (s *Store) CreateSpeakerDataset(ctx context.Context, op, speakerID string, 
 		dataset := Dataset{ID: id, SpeakerID: speakerID, ManifestArtifactID: &pub.ArtifactID, Options: options, State: "current"}
 		records := Records{Datasets: []Dataset{dataset}, Members: []DatasetMember{}, Segments: []Segment{}}
 		seen := map[string]bool{}
+		cache := evidenceRecordingCache{}
+		mappings := map[string]SpeakerMapping{}
 		for i, ref := range refs {
 			if ref.SpeakerID != speakerID {
 				return contracts.Fail("invalid_request")
 			}
-			if err = s.validateCurrentReferenceTx(ctx, tx, ref); err != nil {
+			if err = s.validateCurrentReferenceTx(ctx, tx, ref, cache, mappings); err != nil {
 				return err
 			}
 			key, _ := intent(ref)

@@ -12,6 +12,21 @@ import (
 
 func stringPointer(value string) *string { return &value }
 
+func TestSegmentCueCacheRejectsAmbiguousIdentifiers(t *testing.T) {
+	local := contracts.ID()
+	recording := Recording{ID: contracts.ID(), State: "ready", Document: json.RawMessage(`{"cues":[{"id":"shared","speaker_attributions":[{"speaker_id":"` + local + `"}]},{"id":"shared","speaker_attributions":[]}]}`)}
+	recording.DocumentDigest = hash(recording.Document)
+	value := &cachedEvidenceRecording{Recording: recording}
+	cache := evidenceRecordingCache{recording.ID: value}
+	_, e := (&Store{}).segmentCueCached(context.Background(), nil, Segment{RecordingID: recording.ID, DocumentDigest: recording.DocumentDigest, CueID: "shared", LocalSpeakerID: local}, cache)
+	if failure, ok := e.(*contracts.Error); !ok || failure.Code != "invalid_request" {
+		t.Fatal("ambiguous cue identity authorized", e)
+	}
+	if value.Cues != nil {
+		t.Fatal("partial ambiguous index retained")
+	}
+}
+
 func evidenceRecording(t *testing.T, s *Store) (Work, Recording, string) {
 	t.Helper()
 	claim, _, r := recordingFixture(t, s)

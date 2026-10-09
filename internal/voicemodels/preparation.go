@@ -194,7 +194,7 @@ func (s *Service) CreateDataset(ctx context.Context, op string, options DatasetO
 		epoch = page.Epoch
 		revision = page.Revision
 		refs = append(refs, page.References...)
-		if len(refs) > 100000 {
+		if len(refs) > catalog.SpeakerDatasetReferenceLimit {
 			return empty, contracts.Fail("input_limit")
 		}
 		if page.Next == "" {

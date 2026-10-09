@@ -96,6 +96,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Preserve accepted speaker-dataset retries after evidence invalidation, enforce inline hosted model/checkpoint outputs, send declared hosted cancellation after adapter deadlines and use one complete-corpus reference limit. Retry elected playback seeks when native decoder data becomes ready without rewinding subsequent playback.
+
 - Reset Library playback media state for each verified ticket before seeking newly loaded source metadata.
 
 - Preserve large generated integer parameters through desktop JSON with exact decimal-string transport and real native integer binding. Legacy numeric parameter inputs remain supported.

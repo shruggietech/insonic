@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   Actions,
   Area,
@@ -178,6 +178,18 @@ export function Library({ client, run }: Props) {
   const [playback, setPlayback] = useState<Obj>();
   const media = useRef<HTMLMediaElement | null>(null),
     selected = useRef(0);
+  const pendingSeek = useRef<{url:string;seconds:number} | undefined>(undefined);
+  const applyPendingSeek = () => {
+    const pending = pendingSeek.current, node = media.current;
+    if (pending && node?.getAttribute('src') === pending.url)
+      node.currentTime = pending.seconds;
+  };
+  const confirmPendingSeek = () => {
+    const pending = pendingSeek.current, node = media.current;
+    if (pending && node?.getAttribute('src') === pending.url && node.readyState >= 2 &&
+        !node.seeking && Math.abs(node.currentTime - pending.seconds) < 0.001)
+      pendingSeek.current = undefined;
+  };
   const entryID = entry?.id ?? entry?.media_id ?? '';
   const select = async (id: string) => {
     client.invalidate();
@@ -317,16 +329,15 @@ export function Library({ client, run }: Props) {
     },
     [],
   );
-  useEffect(() => {
-    if (
-      media.current &&
-      playback?.seek !== undefined &&
-      media.current.readyState >= 1
-    )
-      media.current.currentTime = Math.max(
-        0,
-        playback.seek - (playback.timeline_offset_seconds ?? 0),
-      );
+  useLayoutEffect(() => {
+    // Native decoders may lose a metadata-time seek while data becomes ready.
+    // Keep the elected source position pending until seeked confirms it; later
+    // readiness events must never rewind ordinary playback after confirmation.
+    pendingSeek.current = playback?.seek === undefined ? undefined : {
+      url:playback.url,
+      seconds:Math.max(0,playback.seek-(playback.timeline_offset_seconds??0)),
+    };
+    if (media.current && media.current.readyState >= 1) applyPendingSeek();
   }, [playback]);
   return (
     <>
@@ -571,14 +582,10 @@ export function Library({ client, run }: Props) {
                     ref={(node) => {
                       media.current = node;
                     }}
-                    onLoadedMetadata={() => {
-                      if (media.current && playback.seek !== undefined)
-                        media.current.currentTime = Math.max(
-                          0,
-                          playback.seek -
-                            (playback.timeline_offset_seconds ?? 0),
-                        );
-                    }}
+                    onLoadedMetadata={applyPendingSeek}
+                    onLoadedData={applyPendingSeek}
+                    onCanPlay={applyPendingSeek}
+                    onSeeked={confirmPendingSeek}
                     onError={() =>
                       run(async () => {
                         throw new Error(
@@ -596,14 +603,10 @@ export function Library({ client, run }: Props) {
                     ref={(node) => {
                       media.current = node;
                     }}
-                    onLoadedMetadata={() => {
-                      if (media.current && playback.seek !== undefined)
-                        media.current.currentTime = Math.max(
-                          0,
-                          playback.seek -
-                            (playback.timeline_offset_seconds ?? 0),
-                        );
-                    }}
+                    onLoadedMetadata={applyPendingSeek}
+                    onLoadedData={applyPendingSeek}
+                    onCanPlay={applyPendingSeek}
+                    onSeeked={confirmPendingSeek}
                   />
                 )}
               </>
