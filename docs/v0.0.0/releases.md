@@ -52,3 +52,15 @@ Release notes contain brief highlights, major migration actions and known materi
 Package matrices include CLI-only and GUI-with-CLI options for macOS, Linux and Windows. Sign/notarize platform packages using configured credentials and tooling. The release manifest identifies native libraries, Cueson, media tools, optional workers and their digests/licenses. User-selected model downloads remain separate assets.
 
 The static export is portable to ordinary static hosting; its host and domain are deployment configuration.
+
+## Candidate integrity and publication
+
+Maintainer commands use `python scripts/release.py`: `prepare --version VERSION --date YYYY-MM-DD --highlights FILE` prepares a version locally, `validate --revision FULL_COMMIT [--tag vVERSION]` checks owned version/source identity, `docs --revision FULL_COMMIT --output DIRECTORY` archives matching built documentation, and `candidate --revision FULL_COMMIT --assets DIRECTORY --output NEW_DIRECTORY RECEIPTS...` assembles the verified complete asset set. `publish --candidate DIRECTORY --highlights FILE` publishes only that candidate; `promote --candidate DIRECTORY --configuration FILE` uses the configured static-host command after published-release verification. Commands do not infer a release version or deployment host.
+
+Release preparation preserves older versioned documentation and schemas and freezes the matching changelog and referenced public files. It updates owned software and runtime bindings, package manifests and lockfiles, documentation navigation and schema identities together. Upstream tool, model and subtitle versions keep their independent identities. The current baseline remains unchanged until a maintainer selects the next release version.
+
+Candidate validation requires both package variants on every supported native platform, one clean exact source revision, matching software/documentation/schema versions, complete corresponding sources and build records, final inventory hashes and explicit signing disposition. Configured signing happens before final package hashes; a signing failure aborts assembly. An absent publisher identity does not become a signed release claim, and macOS ad-hoc signatures are recorded separately from publisher signing and notarization.
+
+Publication first uploads the complete verified asset set to a draft release and checks the remote assets against the candidate manifest. Only a verified draft can become published. Interrupted upload remains a draft and cannot promote documentation. Documentation promotion verifies the published release's tag, source revision and asset set before sending the matching immutable site to the configured static host. A successful build alone never establishes release publication or documentation promotion.
+
+The source-buildable package and release tools provide these contracts; they do not make the development baseline an official installable release. Creating the product tag, publishing the release and selecting a documentation destination remain explicit maintainer actions.

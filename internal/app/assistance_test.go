@@ -300,6 +300,11 @@ func TestAssistanceSharesQueryBudgetAcrossContextAndExecution(t *testing.T) {
 					a.Graph.Close()
 				}
 			}()
+			// Qualify the query phase budget independently of first-open native
+			// graph initialization, which varies with hosted runner load.
+			if _, _, e := a.assistanceContext(ctx); e != nil {
+				t.Fatal(e)
+			}
 			calls := 0
 			a.AssistanceFixture = func(ctx context.Context, _ assistance.Request, _ assistance.Config) (assistance.Proposal, error) {
 				calls++

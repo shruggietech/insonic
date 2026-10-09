@@ -1,0 +1,157 @@
+name: Verified source media stages
+on:
+  workflow_call:
+    inputs:
+      revision:
+        description: Exact source commit qualified by the calling workflow
+        required: true
+        type: string
+      os:
+        description: Qualified native runner for this independent source chain
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  dependencies:
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 10
+    outputs:
+      complete: ${{ steps.ready.outputs.ready }}
+    env:
+      SOURCE_REVISION: ${{ inputs.revision }}
+    steps:
+      - name: Require an exact source identity
+        shell: bash
+        env:
+          SOURCE_RUNNER: ${{ inputs.os }}
+        run: python -c "import os,re; assert re.fullmatch('[0-9a-f]{40}',os.environ['SOURCE_REVISION']), 'exact 40-character revision required'; assert os.environ['SOURCE_RUNNER'] in ['ubuntu-24.04','windows-2022','macos-15'], 'unqualified source runner'"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.revision }}
+      - if: runner.os == 'Linux'
+        name: Linux source compiler prerequisites
+        run: |
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 update -qq
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 install -y --no-install-recommends build-essential cmake ninja-build pkg-config nasm
+      - if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
+        with:
+          msystem: UCRT64
+          update: false
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-make mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-nasm make diffutils
+      - name: Pinned source build coordinator
+        run: python -m pip install --disable-pip-version-check --no-input meson==1.8.3
+      - name: Exact compiler, source pins and owned recipe cache identity
+        id: identity
+        run: python scripts/media-transfer.py identity
+      - name: Restore exact complete source cache before scheduling cold stages
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: |
+            build/native/source-media/*/install
+            build/native/source-media/*/dependency-receipt.json
+            build/native/source-media/*/build-receipt.json
+            build/native/source-media/*/ffmpeg
+            build/native/source-media/*/ffprobe
+            build/native/source-media/*/ffmpeg.exe
+            build/native/source-media/*/ffprobe.exe
+            build/native/source-media/*/compiler-notices
+            build/media-source-pins
+          key: media-complete-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}
+      - name: Verify complete binaries, static closure and all original source pins
+        id: ready
+        shell: bash
+        run: python scripts/media-transfer.py ready --stage complete --revision "$SOURCE_REVISION"
+      - name: Transfer verified warm source cache immediately
+        if: steps.ready.outputs.ready == 'true'
+        shell: bash
+        run: python scripts/media-transfer.py pack --stage complete --revision "$SOURCE_REVISION" --output build/transfer/media-source.tar.gz
+      - if: steps.ready.outputs.ready == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: media-source-${{ inputs.os }}
+          path: build/transfer/media-source.tar.gz
+          if-no-files-found: error
+          retention-days: 3
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
+        if: steps.ready.outputs.ready != 'true'
+        with:
+          path: |
+            build/native/source-media/*/install
+            build/native/source-media/*/dependency-receipt.json
+            build/media-source-pins
+          key: media-dependencies-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}
+      - name: Build or fully verify every private static dependency
+        if: steps.ready.outputs.ready != 'true'
+        run: python scripts/build-media-source.py --stage dependencies
+      - name: Transfer exact dependency headers, archives and original sources
+        if: steps.ready.outputs.ready != 'true'
+        shell: bash
+        run: python scripts/media-transfer.py pack --stage dependencies --revision "$SOURCE_REVISION" --output build/transfer/dependencies.tar.gz
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: steps.ready.outputs.ready != 'true'
+        with:
+          name: media-dependencies-${{ inputs.os }}
+          path: build/transfer/dependencies.tar.gz
+          if-no-files-found: error
+          retention-days: 3
+  ffmpeg:
+    needs: dependencies
+    if: needs.dependencies.outputs.complete != 'true'
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 10
+    env:
+      SOURCE_REVISION: ${{ inputs.revision }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.revision }}
+      - if: runner.os == 'Linux'
+        name: Linux source compiler prerequisites
+        run: |
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 update -qq
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 install -y --no-install-recommends build-essential cmake ninja-build pkg-config nasm
+      - if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
+        with:
+          msystem: UCRT64
+          update: false
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-make mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-nasm make diffutils
+      - name: Pinned source build coordinator
+        run: python -m pip install --disable-pip-version-check --no-input meson==1.8.3
+      - name: Exact compiler, source pins and owned recipe cache identity
+        id: identity
+        run: python scripts/media-transfer.py identity
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
+        id: cache
+        with:
+          path: |
+            build/native/source-media/*/install
+            build/native/source-media/*/dependency-receipt.json
+            build/native/source-media/*/build-receipt.json
+            build/native/source-media/*/ffmpeg
+            build/native/source-media/*/ffprobe
+            build/native/source-media/*/ffmpeg.exe
+            build/native/source-media/*/ffprobe.exe
+            build/native/source-media/*/compiler-notices
+            build/media-source-pins
+          key: media-complete-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: media-dependencies-${{ inputs.os }}
+          path: build/transfer
+      - name: Verify and restore this run's exact dependency prefix
+        shell: bash
+        run: python scripts/media-transfer.py restore --stage dependencies --revision "$SOURCE_REVISION" build/transfer/dependencies.tar.gz
+      - name: Compile FFmpeg or fully verify the exact completed source cache
+        run: python scripts/build-media-source.py --stage complete
+      - name: Transfer qualified binaries, static closure, notices and original sources
+        shell: bash
+        run: python scripts/media-transfer.py pack --stage complete --revision "$SOURCE_REVISION" --output build/transfer/media-source.tar.gz
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: media-source-${{ inputs.os }}
+          path: build/transfer/media-source.tar.gz
+          if-no-files-found: error
+          retention-days: 3

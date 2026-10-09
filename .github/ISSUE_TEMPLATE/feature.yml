@@ -1,7 +1,7 @@
 name: Feature or work-slice proposal
 description: Define an outcome, acceptance and related requirements.
 title: "feat: "
-labels: [enhancement]
+labels: ["type: feature", "priority: medium", "effort: m", enhancement]
 body:
   - type: textarea
     id: outcome
@@ -24,3 +24,12 @@ body:
     id: scope
     attributes:
       label: Dependencies and scope boundaries
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected areas
+      description: Maintainers apply the corresponding area labels during triage.
+      multiple: true
+      options: [governance, schema, cli, desktop, ingestion, audio, subtitles, speakers, models, storage, catalog, pipeline, graph, platform, release, automation, docs, credentials, terms, query-assistance, testing]
+    validations:
+      required: true

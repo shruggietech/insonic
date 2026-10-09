@@ -10,6 +10,7 @@ public/docs-runtime.js.LEGAL.txt
 public/theme-init.js
 public/site-runtime.js
 public/documentation-manifest.json
+public/documentation-build.json
 public/reference-sources/
 .preview-*.log
 .preview-*.mjs

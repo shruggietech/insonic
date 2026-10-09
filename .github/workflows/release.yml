@@ -1,0 +1,182 @@
+name: Release candidate and publication
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Exact reviewed 40-character source commit (versions already prepared)
+        required: true
+        type: string
+      publish:
+        description: Publish the verified candidate on its existing exact version tag
+        default: false
+        type: boolean
+      promote_docs:
+        description: Promote documentation using configured deployment arguments after publication
+        default: false
+        type: boolean
+      highlights:
+        description: Brief release highlights (publication only, at most 180 words)
+        default: ''
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ inputs.revision }}
+  cancel-in-progress: false
+jobs:
+  media:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022, macos-15]
+    uses: ./.github/workflows/media-source.yml
+    with:
+      revision: ${{ inputs.revision }}
+      os: ${{ matrix.os }}
+  native:
+    needs: media
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    env:
+      SOURCE_REVISION: ${{ inputs.revision }}
+      NEXT_TELEMETRY_DISABLED: 1
+      INSONIC_WINDOWS_SIGN_CERT_SHA1: ${{ vars.INSONIC_WINDOWS_SIGN_CERT_SHA1 }}
+      INSONIC_SIGNTOOL_EXECUTABLE: ${{ vars.INSONIC_SIGNTOOL_EXECUTABLE }}
+      INSONIC_WINDOWS_SIGN_TIMESTAMP_URL: ${{ vars.INSONIC_WINDOWS_SIGN_TIMESTAMP_URL }}
+      INSONIC_MACOS_SIGN_IDENTITY: ${{ vars.INSONIC_MACOS_SIGN_IDENTITY }}
+      INSONIC_MACOS_NOTARY_PROFILE: ${{ vars.INSONIC_MACOS_NOTARY_PROFILE }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.revision }}
+          fetch-depth: 0
+      - name: Validate clean exact source and synchronized versions
+        run: python scripts/release.py validate --revision "$SOURCE_REVISION"
+        shell: bash
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            site/package-lock.json
+            desktop/frontend/package-lock.json
+      - if: runner.os == 'Linux'
+        name: Native Linux dependencies
+        run: |
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 update -qq
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 install -y --no-install-recommends libgtk-3-dev libwebkit2gtk-4.1-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav xvfb gnome-keyring dbus-x11 cmake ninja-build pkg-config nasm
+      - if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
+        with:
+          msystem: UCRT64
+          update: false
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-openssl mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-make mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-nasm make diffutils
+      - if: runner.os == 'Windows'
+        run: |
+          python -m pip install --disable-pip-version-check --no-input --only-binary=:all: --target build/native/python zstandard==0.25.0
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: media-source-${{ matrix.os }}
+          path: build/transfer
+      - name: Verify and restore exact same-run source companions
+        shell: bash
+        run: python scripts/media-transfer.py restore --stage complete --revision "$SOURCE_REVISION" build/transfer/media-source.tar.gz
+      - name: Prepare exact native libraries and corresponding sources
+        run: |
+          python scripts/qualify.py prepare
+          python scripts/media-tools.py
+          python scripts/qualify.py native
+      - name: Validate software and build matching documentation and desktop
+        run: |
+          npm ci --ignore-scripts
+          npm run check
+          npm test
+          npm --prefix desktop/frontend ci --ignore-scripts
+          npm --prefix desktop/frontend run check
+          npm --prefix desktop/frontend test
+          npm --prefix desktop/frontend run build
+          npm --prefix site ci --ignore-scripts
+          npm --prefix site run build
+          python scripts/qualify.py assets
+          python scripts/qualify.py desktop
+      - name: Package and qualify both relocated native variants
+        run: python scripts/package-desktop.py all --variant both
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: release-native-${{ matrix.os }}
+          path: |
+            build/packages/*.zip
+            build/packages/*.tar.gz
+            build/native/package-cli-receipt.json
+            build/native/package-desktop-receipt.json
+          if-no-files-found: error
+          retention-days: 14
+      - name: Package exact-source public and offline documentation
+        if: runner.os == 'Linux'
+        shell: bash
+        run: python scripts/release.py docs --revision "$SOURCE_REVISION" --output build/release/docs
+      - if: runner.os == 'Linux'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: release-documentation
+          path: build/release/docs
+          if-no-files-found: error
+          retention-days: 14
+  candidate:
+    needs: native
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      SOURCE_REVISION: ${{ inputs.revision }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.revision }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          pattern: release-*
+          path: build/release/downloads
+      - name: Verify complete six-variant matrix, sources and documentation
+        run: python scripts/release.py collect --revision "$SOURCE_REVISION" --input build/release/downloads --output build/release/candidate
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: release-candidate
+          path: build/release/candidate
+          if-no-files-found: error
+          retention-days: 14
+  publish:
+    if: inputs.publish
+    needs: candidate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_HIGHLIGHTS: ${{ inputs.highlights }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.revision }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: release-candidate
+          path: build/release/candidate
+      - name: Write brief highlights as data
+        run: python -c "import os,pathlib; pathlib.Path('build/release/highlights.md').write_text(os.environ['RELEASE_HIGHLIGHTS'],encoding='utf-8',newline='\n')"
+      - name: Upload complete draft, verify remote digests, then publish
+        run: python scripts/release.py publish --candidate build/release/candidate --highlights build/release/highlights.md
+      - name: Promote matching published documentation through configured host
+        if: inputs.promote_docs
+        run: python scripts/release.py promote --candidate build/release/candidate --configuration .github/documentation-deployment.json

@@ -7,12 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/santhosh-tekuri/jsonschema/v6"
+	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/subtitles"
 	"strings"
 	"sync"
 )
 
-//go:embed v0.0.0/*.json
+//go:embed v*/*.json
 var registry embed.FS
 var once sync.Once
 var compiled *jsonschema.Schema
@@ -46,13 +47,13 @@ func initialize() {
 			compileErr = err
 			return
 		}
-		files, err := registry.ReadDir("v0.0.0")
+		files, err := registry.ReadDir("v" + contracts.Version)
 		if err != nil {
 			compileErr = err
 			return
 		}
 		for _, file := range files {
-			data, err := registry.ReadFile("v0.0.0/" + file.Name())
+			data, err := registry.ReadFile("v" + contracts.Version + "/" + file.Name())
 			if err != nil {
 				compileErr = err
 				return
@@ -68,30 +69,30 @@ func initialize() {
 				return
 			}
 		}
-		compiled, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/workspace-config.schema.json")
+		compiled, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/workspace-config.schema.json")
 		if compileErr == nil {
-			requestSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/runtime-request.schema.json")
+			requestSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/runtime-request.schema.json")
 		}
 		if compileErr == nil {
-			responseSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/runtime-response.schema.json")
+			responseSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/runtime-response.schema.json")
 		}
 		if compileErr == nil {
-			processingToolsSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/processing-tools.schema.json")
+			processingToolsSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/processing-tools.schema.json")
 		}
 		if compileErr == nil {
-			pipelineConfigurationSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/pipeline-config.schema.json#/$defs/configuration")
+			pipelineConfigurationSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/pipeline-config.schema.json#/$defs/configuration")
 		}
 		if compileErr == nil {
-			graphQuerySchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/graph-query.schema.json")
+			graphQuerySchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/graph-query.schema.json")
 		}
 		if compileErr == nil {
-			mediaToolsSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/media-tools.schema.json")
+			mediaToolsSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/media-tools.schema.json")
 		}
 		if compileErr == nil {
-			speakerModelSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/speaker-model.schema.json")
+			speakerModelSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/speaker-model.schema.json")
 		}
 		if compileErr == nil {
-			speakerDatasetSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/speaker-dataset.schema.json")
+			speakerDatasetSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/speaker-dataset.schema.json")
 		}
 	})
 }
@@ -173,8 +174,8 @@ func QuerySchemaBytes() []byte {
 		decoder.UseNumber()
 		_ = decoder.Decode(target)
 	}
-	load("v0.0.0/runtime-request.schema.json", &request)
-	load("v0.0.0/common.schema.json", &common)
+	load("v"+contracts.Version+"/runtime-request.schema.json", &request)
+	load("v"+contracts.Version+"/common.schema.json", &common)
 	var expand func(any) any
 	expand = func(value any) any {
 		switch node := value.(type) {

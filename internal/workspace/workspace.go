@@ -24,12 +24,13 @@ type Profile struct {
 	ExpectedBackendVersion string         `json:"expected_backend_version,omitempty"`
 }
 type Config struct {
-	Version          string `json:"schema_version"`
-	Kind             string `json:"kind"`
-	WorkspaceID      string `json:"workspace_id"`
-	DisplayName      string `json:"display_name"`
-	ControlDirectory string `json:"control_directory"`
-	Profiles         struct {
+	Version               string `json:"schema_version"`
+	Kind                  string `json:"kind"`
+	WorkspaceID           string `json:"workspace_id"`
+	CredentialNamespaceID string `json:"credential_namespace_id,omitempty"`
+	DisplayName           string `json:"display_name"`
+	ControlDirectory      string `json:"control_directory"`
+	Profiles              struct {
 		Storage Profile `json:"storage"`
 		Catalog Profile `json:"catalog"`
 		Graph   Profile `json:"graph"`
@@ -40,6 +41,16 @@ type Workspace struct {
 	Control string
 	Config  Config
 }
+
+// CredentialNamespace is independent of portable catalog identity. Restores
+// preserve the destination's configured credential store without exporting it.
+func (w *Workspace) CredentialNamespace() string {
+	if w.Config.CredentialNamespaceID != "" {
+		return w.Config.CredentialNamespaceID
+	}
+	return w.Config.WorkspaceID
+}
+
 type Paths struct {
 	Config  string `json:"config"`
 	Data    string `json:"data"`

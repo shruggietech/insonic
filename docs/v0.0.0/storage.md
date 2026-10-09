@@ -48,6 +48,8 @@ The runtime resolves PostgreSQL credentials through an injected provider or the 
 
 A workspace has a stable identity and a user-selected local control directory. First run suggests a location and estimates capacity. Several workspaces can share downloaded base models while keeping media, speaker models and catalogs logically separate. A remote artifact store or catalog does not eliminate local scratch, decoding materializations or the control directory.
 
+The optional nonsecret `credential_namespace_id` identifies this control directory's credential store and defaults to the workspace ID. Portable restore preserves the destination's effective credential namespace while adopting the source catalog identity, so its configured native/vault credentials remain usable after restart. Credential values and their encrypted store remain local and are not copied into the bundle.
+
 | Local workspace path | Authority and retention |
 | --- | --- |
 | `workspace.json` | Workspace ID and nonsecret backend/profile/schema references |
@@ -112,6 +114,25 @@ PostgreSQL uses a dedicated configured database/schema and least-privilege appli
 Each catalog query includes workspace scope. Transactions use expected revisions to reject lost updates. Workspace-scoped coordinator, migration and projection leases store owner ID, generation and expiry; PostgreSQL uses server time and short row-locking transactions to acquire/renew them. Jobs may use its [queue-oriented `SKIP LOCKED` support](https://www.postgresql.org/docs/current/sql-select.html#SQL-FOR-UPDATE-SHARE), followed by recorded claim generations. Leases are not a database-wide lock. Work outside a transaction must prove its generation again before publication; paused or disconnected workers cannot acknowledge a replacement worker's result.
 
 Transactions never remain open during audio decoding, AI calls or model training. Retry serialization/deadlock failures only around idempotent transactional operations. A lost commit response triggers operation-ID reconciliation. PostgreSQL selection requires the full catalog path, including restoration and failure recovery; it is not considered supported after only a successful connection test.
+
+## Portable backup commands
+
+The `backup` commands are advanced offline maintenance operations over the shared catalog and artifact contracts. They acquire the workspace owner lock rather than starting processing workers. An active owner returns a conflict; close its clients and allow the idle owner to exit before maintenance. Dedicated desktop backup controls are not yet available.
+
+1. Create a self-contained bundle with `insonic backup create BACKUP_DIRECTORY --workspace WORKSPACE --json`. The destination is a new private directory. A repeated request uses the same `--request-id UUID` for reconciliation.
+2. Inspect completion and authority with `insonic backup show BACKUP_DIRECTORY --workspace WORKSPACE --json`; verify available bytes with `backup verify`.
+3. Select an independently configured empty destination workspace and use `insonic backup restore BACKUP_DIRECTORY --workspace DESTINATION --json`. Validation precedes catalog and workspace configuration activation.
+4. Rebuild the destination graph from accepted evidence using the selected graph backend; imported checkpoints do not assert destination currency.
+
+Self-contained bundles carry a logical catalog snapshot, exact immutable artifact identities and verified digest-addressed bytes. They retain canonical audio, current embedded Cue JSON, external mappings, intentional rosters, model references and durable trained output lineage. Historical receipts needed to validate provenance remain, while transient inference inputs and superseded derived byte payloads are excluded. This differs from `catalog export`, which copies catalog data only.
+
+Use `backup create BACKUP_DIRECTORY --mode reference-only` only when retaining the original artifact store. That bundle records exact object versions and source dependency, and persistent backup-owned references block ordinary cleanup. Provider retention remains independently necessary. `backup release BACKUP_DIRECTORY` releases that backup's catalog pins; it does not imply the original store is available or remove the bundle directory. Missing bytes, invalid hashes or relations, unsafe paths, incompatible schemas and nonempty restore targets fail without replacing accepted target authority. Credentials and engine scratch are not backup assets; configure destination access separately.
+
+An interrupted preparation can leave retained pins before a completed bundle exists. Use `backup release BACKUP_UUID` with the original request ID to release that receipt-proven backup's references. Arbitrary manual retention IDs are not accepted as backup recovery identities. A completed same-ID retry reconciles the self-contained capture pins; reference-only pins remain until explicit release.
+
+An interrupted restore retains private destination upload progress. A committed catalog remains fenced if configuration activation fails, even after its operational lease expires. Retry the same bundle with the same destination profiles to reconcile activation. A different bundle or changed destination configuration cannot take over that pending restore.
+
+Incomplete local acquisition inputs are private source-workspace dependencies, not portable assets. Backup leaves the source operation unchanged and replaces those unaccepted input pointers in its generated catalog authority with a receipt-backed interrupted-input marker. Restored work requires a fresh explicit input rather than reopening an old local path. The manifest retains both the untouched source capture digest/revision and generated portable catalog digest/revision; accepted audio, metadata and model provenance remain intact.
 
 ## Capacity, migration, backup and recovery
 

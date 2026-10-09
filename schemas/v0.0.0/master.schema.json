@@ -83,6 +83,14 @@
     "model-catalog": {
       "$ref": "model-catalog.schema.json",
       "description": "Configured metadata-only model discovery catalog."
+    },
+    "workspace-backup": {
+      "$ref": "workspace-backup.schema.json",
+      "description": "Portable current authority and immutable artifact byte bundle, or explicit pinned reference-only dependency."
+    },
+    "release-candidate": {
+      "$ref": "release-candidate.schema.json",
+      "description": "Exact-source six-variant native and documentation candidate inventory with source/signing disposition."
     }
   },
   "oneOf": [
@@ -142,6 +150,12 @@
     },
     {
       "$ref": "#/$defs/model-catalog"
+    },
+    {
+      "$ref": "#/$defs/workspace-backup"
+    },
+    {
+      "$ref": "#/$defs/release-candidate"
     }
   ]
 }

@@ -36,11 +36,25 @@ export function findSliceIssue(issues, planned) {
   if (matches.length > 1) throw new Error(`Multiple issues identify ${planned.slice}; resolve that ambiguity before setup.`);
   return matches[0];
 }
+export function outcomeLabels(planned, manifest) {
+  // Historical manifests remain readable; canonical plans must be complete.
+  if (!manifest.taxonomy) return ['work-slice', planned.area];
+  const selected = [planned.type, planned.priority, planned.effort];
+  for (const [index, group] of ['type', 'priority', 'effort'].entries()) {
+    if (!manifest.taxonomy[group]?.includes(selected[index])) throw new Error(`Invalid ${group} for ${planned.slice}.`);
+  }
+  if (!Array.isArray(planned.areas) || !planned.areas.length || new Set(planned.areas).size !== planned.areas.length || planned.areas.some(area => !manifest.taxonomy.area?.includes(area))) throw new Error(`Invalid areas for ${planned.slice}.`);
+  const labels = ['work-slice', ...selected.map((value, index) => `${['type', 'priority', 'effort'][index]}: ${value}`), ...planned.areas.map(area => `area: ${area}`)];
+  if (labels.some(name => !manifest.labels.some(label => label.name === name))) throw new Error(`Undeclared outcome label for ${planned.slice}.`);
+  return labels;
+}
 function protectionMatches(protection, checks) {
   return Boolean(protection?.required_status_checks?.strict && checks.every(name => protection.required_status_checks.contexts?.includes(name)) && protection.required_pull_request_reviews?.required_approving_review_count === 0 && protection.required_pull_request_reviews?.require_code_owner_reviews === false && protection.required_pull_request_reviews?.require_last_push_approval === false && protection.required_pull_request_reviews?.dismiss_stale_reviews === true && protection.required_conversation_resolution?.enabled === true && protection.required_linear_history?.enabled === true && protection.allow_force_pushes?.enabled === false && protection.allow_deletions?.enabled === false);
 }
 export function runBootstrap(manifest, { apply = false, command = runGh } = {}) {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(manifest.repository ?? '')) throw new Error('Bootstrap requires an exact owner/repository name.');
+  // Validate all planned outcomes before authentication or any external mutation.
+  for (const planned of manifest.issues) outcomeLabels(planned, manifest);
   const gh = command;
   const [owner] = manifest.repository.split('/');
   const base = `repos/${manifest.repository}`;
@@ -187,7 +201,7 @@ export function runBootstrap(manifest, { apply = false, command = runGh } = {}) 
       issue = api(`${base}/issues`, 'POST', {
         title: planned.title,
         body,
-        labels: ['work-slice', planned.area],
+        labels: outcomeLabels(planned, manifest),
         milestone: milestone.number
       });
       issues.push(issue); createdIssues += 1;
@@ -198,7 +212,7 @@ export function runBootstrap(manifest, { apply = false, command = runGh } = {}) 
     // to that new item only; every pre-existing item keeps its current values.
     if (!existingItem) {
       createdProjectItems += 1;
-      for (const [name, value] of Object.entries({ Slice: planned.slice, Release: planned.milestone, Priority: planned.slice === 'S001' ? 'P1' : 'P2', Area: planned.area })) {
+      for (const [name, value] of Object.entries({ Slice: planned.slice, Release: planned.milestone, Priority: planned.priority ?? (planned.slice === 'S001' ? 'P1' : 'P2'), Area: planned.areas?.join(', ') ?? planned.area })) {
         const field = updatedFields.find(candidate => candidate.name === name);
         if (field) gh(['project', 'item-edit', '--id', item.id, '--project-id', project.id, '--field-id', field.id, '--text', value, '--format', 'json']);
       }

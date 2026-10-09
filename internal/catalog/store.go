@@ -315,6 +315,9 @@ func (s *Store) write(ctx context.Context, f func(*sql.Tx, int64) error) error {
 			var revision int64
 			e = s.row(ctx, tx, q, s.workspace).Scan(&revision)
 			if e == nil {
+				e = s.transferBarrier(ctx, tx)
+			}
+			if e == nil {
 				e = f(tx, revision)
 			}
 			if e == nil {

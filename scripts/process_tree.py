@@ -5,10 +5,31 @@ import signal
 import subprocess
 
 
+def selected_executable(args, cwd, env):
+    argv = [os.fspath(value) for value in args]
+    if os.name != 'nt' or not argv or os.path.dirname(argv[0]):
+        return argv
+    # CreateProcess does not use the supplied child PATH for bare executable
+    # discovery. Resolve it explicitly before launching with the hidden flags.
+    program = argv[0]
+    extensions = [''] if os.path.splitext(program)[1] else [''] + env.get('PATHEXT', '.COM;.EXE;.BAT;.CMD').split(';')
+    for directory in env.get('PATH', '').split(os.pathsep):
+        if not directory:
+            continue
+        parent = os.path.abspath(os.path.join(os.fspath(cwd), directory.strip('"')))
+        for extension in extensions:
+            candidate = os.path.join(parent, program + extension)
+            if os.path.isfile(candidate):
+                argv[0] = candidate
+                return argv
+    raise FileNotFoundError('selected child executable is unavailable: ' + program)
+
+
 class ProcessTree:
     def __init__(self, args, *, cwd, env, allow_detached=False):
         self.job = None
         self.process = None
+        args = selected_executable(args, cwd, env)
         if os.name == 'nt':
             self._windows_job(allow_detached)
         try:

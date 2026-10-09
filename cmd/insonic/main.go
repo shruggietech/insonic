@@ -68,6 +68,7 @@ func execute(args []string) int {
 		fmt.Println("insonic models dataset create --input JSON | models dataset list [--input JSON] | models dataset show <UUID> | models train --input JSON")
 		fmt.Println("insonic models speaker list [--input JSON] | models list --speaker <UUID> [--limit N] | models speaker show <VERSION_UUID> | models speaker fetch <VERSION_UUID> --destination <directory> | models profile set <SPEAKER_UUID> --input JSON")
 		fmt.Println("insonic recordings match <media-id> --input JSON (matches current voices against frozen roster profiles without rerunning transcription or diarization)")
+		fmt.Println("insonic backup create <directory> [--mode self-contained/reference-only] | backup show/verify/restore <directory> | backup release <directory/backup-UUID> (offline maintenance; complete portable artifact bundles)")
 		return 0
 	}
 	if len(positional) == 3 && positional[0] == "workspace" && positional[1] == "init" {
@@ -115,6 +116,9 @@ func execute(args []string) int {
 	}
 	if len(positional) >= 2 && positional[0] == "catalog" && positional[1] != "show" {
 		return catalogCommand(ctx, w, positional[1:], machine)
+	}
+	if len(positional) >= 1 && positional[0] == "backup" {
+		return backupCommand(ctx, w, positional[1:], requestID, machine)
 	}
 	req := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, RequestID: requestID}
 	if positional[0] == "search" || (len(positional) > 1 && positional[0] == "query" && positional[1] == "native") {

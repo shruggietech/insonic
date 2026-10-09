@@ -323,6 +323,9 @@ func (s *Store) transitionWork(ctx context.Context, op, id string, retry bool) (
 			return e
 		}
 		if retry {
+			if w.Phase == "portable-source-required" {
+				return contracts.Fail("unsupported_capability")
+			}
 			if w.State != "failed" && w.State != "cancelled" && w.State != "interrupted" && !(w.State == "succeeded" && w.Kind == "models.acquire") {
 				return contracts.Fail("conflict")
 			}

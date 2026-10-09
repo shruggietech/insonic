@@ -1,7 +1,7 @@
 name: Bug report
 description: Report observed behavior in a specific version.
 title: "bug: "
-labels: [bug]
+labels: ["type: bug", "priority: high", "effort: m", bug]
 body:
   - type: input
     id: version
@@ -35,3 +35,12 @@ body:
     attributes:
       label: Relevant diagnostics
       description: Include only redacted logs and concrete observations. Separate suspected causes from evidence.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected areas
+      description: Maintainers apply the corresponding area labels during triage.
+      multiple: true
+      options: [governance, schema, cli, desktop, ingestion, audio, subtitles, speakers, models, storage, catalog, pipeline, graph, platform, release, automation, docs, credentials, terms, query-assistance, testing]
+    validations:
+      required: true

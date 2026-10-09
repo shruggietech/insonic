@@ -62,7 +62,7 @@ func BuildDatasetManifest(workspaceID, datasetID string, speaker catalog.Speaker
 		counts[diagnostic.Code] += count
 	}
 	manifest := map[string]any{
-		"schema_version": "0.0.0", "kind": "speaker-dataset", "workspace_id": workspaceID, "dataset_snapshot_id": datasetID,
+		"schema_version": contracts.Version, "kind": "speaker-dataset", "workspace_id": workspaceID, "dataset_snapshot_id": datasetID,
 		"speaker_id": speaker.ID, "speaker_identity_revision": speaker.Revision, "catalog_revision": revision, "created_at": portableInstant(time.Now()), "manifest_sha256": "", "state": "current",
 		"selection":   map[string]any{"recipe_id": models.StableID("speaker-recipe:" + portableDigest(recipe)), "recipe_revision": 1, "preset": "current-independent", "preset_version": "1", "attribution_bases": []string{"manual"}, "source_asset_ids": []string{}, "languages": languages, "minimum_duration_us": recipe.MinDurationUS, "maximum_duration_us": maxDuration, "explicitly_excluded_segment_ids": []string{}, "options": recipe},
 		"preparation": nil, "members": members, "exclusions": []any{},
@@ -185,7 +185,7 @@ func BuildModelManifest(workspaceID string, work catalog.Work, dataset catalog.S
 		preparation = map[string]any{"preparation_manifest_id": p.ID, "manifest_sha256": p.Digest, "artifact": portableArtifact(*p), "input_artifact_ids": []string{}, "adapter_id": "insonic-canonical-audio", "adapter_version": "1", "options": map[string]any{"recipe_sha256": portableDigest(json.RawMessage(dataset.Recipe)), "sample_rate_hz": 16000, "channel_count": 1, "normalize": false}}
 	}
 	manifest := map[string]any{
-		"schema_version": "0.0.0", "kind": "speaker-model", "workspace_id": workspaceID, "model_family_id": familyID, "model_version_id": versionID, "originating_speaker_id": dataset.Dataset.SpeakerID, "originating_speaker_identity_revision": dataset.SpeakerRevision, "created_at": now, "manifest_sha256": "", "display_name": options.Name, "state": "current",
+		"schema_version": contracts.Version, "kind": "speaker-model", "workspace_id": workspaceID, "model_family_id": familyID, "model_version_id": versionID, "originating_speaker_id": dataset.Dataset.SpeakerID, "originating_speaker_identity_revision": dataset.SpeakerRevision, "created_at": now, "manifest_sha256": "", "display_name": options.Name, "state": "current",
 		"training": map[string]any{"training_run_id": catalog.SpeakerTrainingRunID(work.ID), "job_id": work.ID, "producing_attempt_id": attemptID, "pipeline_id": pipelineID, "pipeline_revision": pipelineRevision, "dataset": map[string]any{"dataset_snapshot_id": dataset.Dataset.ID, "manifest_sha256": dataset.ManifestDigest, "originating_speaker_id": dataset.Dataset.SpeakerID, "speaker_identity_revision": dataset.SpeakerRevision, "state": "current"}, "preparation": preparation, "provider": provider, "base_model": base, "parameters": parameters, "started_at": started, "completed_at": completed},
 		"outputs":  outputs, "compatibility": map[string]any{"model_kind": output.Kind, "architecture": output.Architecture, "supported_operations": operations, "consumers": consumers, "runtime_dependencies": []any{}, "sample_rate_hz": sampleRate, "channel_count": channels, "languages": []string{}},
 		"checkpoints": checkpoints, "license_declarations": []any{map[string]any{"scope": "output", "declared_license": nil, "attribution": nil, "source_basis": "configured-adapter"}}, "evaluations": []any{}, "diagnostics": diagnostics,

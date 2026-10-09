@@ -14,52 +14,7 @@
       "integrity": "sha512-QmYq2JKCXRK9Uo3E3nHb0gQ6Xce2HK7wPtrHF5r+IYWyiM5WkOhiT3BesLI9lvJvPAbzjqFxQlrjXv+/cuSX/Q=="
     }
   },
-  "ffprobe": {
-    "release": "b6.1.1",
-    "base_url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/",
-    "assets": {
-      "windows_amd64": {
-        "name": "ffprobe-win32-x64.gz",
-        "sha256": "f309e6223ad89d2fe54bccd420a7709b66fd27540674e92309578ed491a43c8d",
-        "license": "win32-x64.LICENSE",
-        "license_sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
-        "readme": "win32-x64.README",
-        "readme_sha256": "a636a7183c58006351acbaf35303c0ed85c6e1320fd4e80de453ba6157de6311"
-      },
-      "linux_amd64": {
-        "name": "ffprobe-linux-x64.gz",
-        "sha256": "25d9b6ccb05e3d9de9e04e31e2506d8dd7f9f0418981965ac6df12e8d3afd067",
-        "license": "linux-x64.LICENSE",
-        "license_sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
-        "readme": "linux-x64.README",
-        "readme_sha256": "72f4b1b06d419d22ace6e7cc75f06826f90737345aa0b1736158929f4aacc537"
-      }
-    }
-  },
-  "ffmpeg": {
-    "release": "b6.1.1",
-    "base_url": "https://github.com/eugeneware/ffmpeg-static/releases/download/b6.1.1/",
-    "assets": {
-      "windows_amd64": {
-        "name": "ffmpeg-win32-x64.gz",
-        "sha256": "8883a3dffbd0a16cf4ef95206ea05283f78908dbfb118f73c83f4951dcc06d77",
-        "license": "win32-x64.LICENSE",
-        "license_sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
-        "readme": "win32-x64.README",
-        "readme_sha256": "a636a7183c58006351acbaf35303c0ed85c6e1320fd4e80de453ba6157de6311"
-      },
-      "linux_amd64": {
-        "name": "ffmpeg-linux-x64.gz",
-        "sha256": "bfe8a8fc511530457b528c48d77b5737527b504a3797a9bc4866aeca69c2dffa",
-        "license": "linux-x64.LICENSE",
-        "license_sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903",
-        "readme": "linux-x64.README",
-        "readme_sha256": "72f4b1b06d419d22ace6e7cc75f06826f90737345aa0b1736158929f4aacc537"
-      }
-    }
-  },
   "source_build": {
-    "platform": "darwin_arm64",
     "version": "7.0.2",
     "commit": "e3a61e91030696348b56361bdf80ea358aef4a19",
     "sha256": "056cc3674e69d0e44ae85d8ee6ade11364fc584c2406e5f5d9cfb771e77f5ead",
@@ -76,9 +31,15 @@
       "--disable-postproc",
       "--disable-encoders",
       "--enable-encoder=aac,flac,pcm_s16le,pcm_s32le,libmp3lame,subrip,ass,webvtt",
-      "--enable-videotoolbox",
-      "--enable-encoder=h264_videotoolbox",
-      "--enable-libmp3lame"
+      "--enable-libmp3lame",
+      "--enable-zlib",
+      "--enable-bzlib",
+      "--enable-lzma",
+      "--enable-iconv",
+      "--enable-libxml2",
+      "--enable-libdav1d",
+      "--enable-libgme",
+      "--enable-libopenmpt"
     ],
     "lame": {
       "version": "3.100",
@@ -87,8 +48,6 @@
       "size_bytes": 1524133,
       "license": "LGPL-2.0-or-later",
       "configure": [
-        "--build=aarch64-apple-darwin",
-        "--host=aarch64-apple-darwin",
         "--disable-shared",
         "--enable-static",
         "--with-pic",
@@ -96,6 +55,198 @@
         "--disable-decoder",
         "--disable-nasm",
         "--disable-gtktest"
+      ],
+      "root": "lame-3.100",
+      "name": "lame-3.100.tar.gz",
+      "notices": [
+        "COPYING",
+        "LICENSE"
+      ]
+    },
+    "platforms": [
+      "windows_amd64",
+      "linux_amd64",
+      "darwin_arm64"
+    ],
+    "platform_configure": {
+      "windows_amd64": [
+        "--target-os=mingw32",
+        "--arch=x86_64",
+        "--extra-ldflags=-static"
+      ],
+      "linux_amd64": [],
+      "darwin_arm64": [
+        "--enable-videotoolbox",
+        "--enable-encoder=h264_videotoolbox"
+      ]
+    },
+    "libraries": {
+      "zlib": {
+        "name": "zlib-1.3.2.tar.gz",
+        "version": "1.3.2",
+        "url": "https://zlib.net/fossils/zlib-1.3.2.tar.gz",
+        "root": "zlib-1.3.2",
+        "sha256": "bb329a0a2cd0274d05519d61c667c062e06990d72e125ee2dfa8de64f0119d16",
+        "size_bytes": 1502830,
+        "license": "Zlib",
+        "notices": [
+          "LICENSE"
+        ]
+      },
+      "bzip2": {
+        "name": "bzip2-1.0.8.tar.gz",
+        "version": "1.0.8",
+        "url": "https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz",
+        "root": "bzip2-1.0.8",
+        "sha256": "ab5a03176ee106d3f0fa90e381da478ddae405918153cca248e682cd0c4a2269",
+        "size_bytes": 810029,
+        "license": "bzip2-1.0.6",
+        "notices": [
+          "LICENSE"
+        ]
+      },
+      "xz": {
+        "name": "xz-5.6.4.tar.gz",
+        "version": "5.6.4",
+        "url": "https://codeload.github.com/tukaani-project/xz/tar.gz/refs/tags/v5.6.4",
+        "root": "xz-5.6.4",
+        "sha256": "f6820629a1f7304b4c7364b5f5dae04fa8b799e41224e96cae1a8d94cf7d0b55",
+        "size_bytes": 1344359,
+        "license": "0BSD AND LGPL-2.1-or-later",
+        "notices": [
+          "COPYING",
+          "COPYING.0BSD",
+          "COPYING.LGPLv2.1"
+        ]
+      },
+      "iconv": {
+        "name": "iconv-1.18.tar.gz",
+        "version": "1.18",
+        "url": "https://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.18.tar.gz",
+        "root": "libiconv-1.18",
+        "sha256": "3b08f5f4f9b4eb82f151a7040bfd6fe6c6fb922efe4b1659c66ea933276965e8",
+        "size_bytes": 5822590,
+        "license": "LGPL-2.1-or-later",
+        "notices": [
+          "COPYING",
+          "COPYING.LIB"
+        ]
+      },
+      "xml2": {
+        "name": "xml2-2.14.5.tar.gz",
+        "version": "2.14.5",
+        "url": "https://codeload.github.com/GNOME/libxml2/tar.gz/refs/tags/v2.14.5",
+        "root": "libxml2-2.14.5",
+        "sha256": "f52638e4d67135c49f676d1c8fcc4f9f35afb7ec9bfb4aee743e2e86d56e006b",
+        "size_bytes": 3537150,
+        "license": "MIT",
+        "notices": [
+          "Copyright"
+        ]
+      },
+      "ogg": {
+        "name": "ogg-1.3.6.tar.gz",
+        "version": "1.3.6",
+        "url": "https://codeload.github.com/xiph/ogg/tar.gz/refs/tags/v1.3.6",
+        "root": "ogg-1.3.6",
+        "sha256": "95b643da661155d79db9de2fca55daed3a8d491039829def246aacb3d9201c81",
+        "size_bytes": 254178,
+        "license": "BSD-3-Clause",
+        "notices": [
+          "COPYING"
+        ]
+      },
+      "vorbis": {
+        "name": "vorbis-1.3.7.tar.gz",
+        "version": "1.3.7",
+        "url": "https://codeload.github.com/xiph/vorbis/tar.gz/refs/tags/v1.3.7",
+        "root": "vorbis-1.3.7",
+        "sha256": "270c76933d0934e42c5ee0a54a36280e2d87af1de3cc3e584806357e237afd13",
+        "size_bytes": 1234573,
+        "license": "BSD-3-Clause",
+        "notices": [
+          "COPYING"
+        ]
+      },
+      "mpg123": {
+        "name": "mpg123-1.32.10.tar.bz2",
+        "version": "1.32.10",
+        "url": "https://www.mpg123.de/download/mpg123-1.32.10.tar.bz2",
+        "root": "mpg123-1.32.10",
+        "sha256": "87b2c17fe0c979d3ef38eeceff6362b35b28ac8589fbf1854b5be75c9ab6557c",
+        "size_bytes": 1118315,
+        "license": "LGPL-2.1-or-later",
+        "notices": [
+          "COPYING"
+        ]
+      },
+      "gme": {
+        "name": "gme-0.6.3.tar.gz",
+        "version": "0.6.3",
+        "url": "https://codeload.github.com/libgme/game-music-emu/tar.gz/refs/tags/0.6.3",
+        "root": "game-music-emu-0.6.3",
+        "sha256": "4c5a7614acaea44e5cb1423817d2889deb82674ddbc4e3e1291614304b86fca0",
+        "size_bytes": 314980,
+        "license": "LGPL-2.1-or-later",
+        "notices": [
+          "license.txt"
+        ]
+      },
+      "dav1d": {
+        "name": "dav1d-1.4.3.tar.gz",
+        "version": "1.4.3",
+        "url": "https://codeload.github.com/videolan/dav1d/tar.gz/refs/tags/1.4.3",
+        "root": "dav1d-1.4.3",
+        "sha256": "88a023e58d955e0886faf49c72940e0e90914a948a8e60c1326ce3e09e7a6099",
+        "size_bytes": 1630254,
+        "license": "BSD-2-Clause",
+        "notices": [
+          "COPYING"
+        ]
+      },
+      "openmpt": {
+        "name": "openmpt-0.8.9.tar.gz",
+        "version": "0.8.9",
+        "url": "https://download.openmpt.org/archive/libopenmpt/src/libopenmpt-0.8.9+release.autotools.tar.gz",
+        "root": "libopenmpt-0.8.9+release.autotools",
+        "sha256": "d7ce84fd05d686c4bcf66af40eae857afa371442db60eeda3f874bd6cf6fc318",
+        "size_bytes": 1765691,
+        "license": "BSD-3-Clause",
+        "notices": [
+          "LICENSE"
+        ]
+      }
+    },
+    "required_capabilities": {
+      "decoders": [
+        "aac",
+        "flac",
+        "mp3",
+        "opus",
+        "vorbis",
+        "pcm_s16le",
+        "pcm_s32le",
+        "libdav1d"
+      ],
+      "demuxers": [
+        "matroska",
+        "mov",
+        "mp3",
+        "flac",
+        "ogg",
+        "wav",
+        "libgme",
+        "libopenmpt"
+      ],
+      "encoders": [
+        "aac",
+        "flac",
+        "pcm_s16le",
+        "pcm_s32le",
+        "libmp3lame",
+        "subrip",
+        "ass",
+        "webvtt"
       ]
     }
   }

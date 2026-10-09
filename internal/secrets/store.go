@@ -49,7 +49,7 @@ type Manager struct {
 }
 
 func privateRoot(w *workspace.Workspace) (*os.Root, string, error) {
-	if w == nil || !contracts.ValidID(w.Config.WorkspaceID) {
+	if w == nil || !contracts.ValidID(w.Config.WorkspaceID) || !contracts.ValidID(w.CredentialNamespace()) {
 		return nil, "", contracts.Fail("invalid_request")
 	}
 	dir := filepath.Join(w.Control, "secrets")
@@ -87,7 +87,7 @@ func ReadSelection(w *workspace.Workspace) (string, error) {
 		WorkspaceID string `json:"workspace_id"`
 		Mode        string `json:"mode"`
 	}
-	if strict(raw, &cfg) != nil || cfg.Version != 1 || cfg.WorkspaceID != w.Config.WorkspaceID || !validMode(cfg.Mode) {
+	if strict(raw, &cfg) != nil || cfg.Version != 1 || cfg.WorkspaceID != w.CredentialNamespace() || !validMode(cfg.Mode) {
 		return "", contracts.Fail("invalid_request")
 	}
 	return cfg.Mode, nil
@@ -113,7 +113,7 @@ func Select(w *workspace.Workspace, mode string) error {
 		Version     int    `json:"version"`
 		WorkspaceID string `json:"workspace_id"`
 		Mode        string `json:"mode"`
-	}{1, w.Config.WorkspaceID, mode})
+	}{1, w.CredentialNamespace(), mode})
 	return atomicWrite(root, "selection.json", raw)
 }
 func Open(w *workspace.Workspace, opts Options) (*Manager, error) {
@@ -131,7 +131,7 @@ func Open(w *workspace.Workspace, opts Options) (*Manager, error) {
 	if e != nil {
 		return nil, e
 	}
-	m := &Manager{mode: opts.Mode, workspaceID: w.Config.WorkspaceID, root: root, dir: dir, values: map[string][]byte{}, passphrase: append([]byte(nil), opts.Passphrase...)}
+	m := &Manager{mode: opts.Mode, workspaceID: w.CredentialNamespace(), root: root, dir: dir, values: map[string][]byte{}, passphrase: append([]byte(nil), opts.Passphrase...)}
 	if opts.Mode == "native" {
 		m.native = newNative("insonic/" + m.workspaceID)
 	}

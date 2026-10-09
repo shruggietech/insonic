@@ -11,6 +11,7 @@ import os
 from pathlib import Path, PurePosixPath
 import platform
 import plistlib
+import re
 import shutil
 import shlex
 import stat
@@ -32,8 +33,6 @@ BUILD = ROOT / 'build/packages'
 VERSION = json.loads((ROOT / 'package.json').read_text(encoding='utf-8'))['version']
 LADYBUG_LICENSE_URL = 'https://raw.githubusercontent.com/LadybugDB/ladybug/v0.21.2/LICENSE'
 LADYBUG_LICENSE_SHA = '1c495c9546d0de02e83c9d50d5f7eb21f0085bc8f77a0ee333081a123a9c8d0c'
-WINDOWS_FFMPEG_SOURCE = ('e38092ef9395d7049f871ef4d5411eb410e283e0',
-                         '7578feb5284b22e6172c6f4020ddc43d746eb3ca44363756d1b47a96fd2d68f5')
 
 
 def sha(path):
@@ -117,12 +116,12 @@ def normalize_macos_libraries(native):
         child(['/usr/bin/codesign', '--verify', '--strict', library])
 
 
-def verify_loader_paths(root, key):
+def verify_loader_paths(root, key, variant='desktop'):
     if key.startswith('windows'):
         if not (root / 'lbug_shared.dll').is_file():
             raise ValueError('Windows startup graph DLL must be beside both executables')
         return
-    for name in ['insonic', 'insonic-desktop']:
+    for name in ['insonic', *(['insonic-desktop'] if variant == 'desktop' else [])]:
         executable = root / name
         if key.startswith('linux'):
             output = child(['/usr/bin/readelf', '-d', executable]).decode()
@@ -188,14 +187,18 @@ def installed_manifest(root):
     for name in ['exiftool', 'ffprobe', 'ffmpeg']:
         tool = portable[name]
         tool['path'] = 'companions/media/' + Path(tool['path']).relative_to(media_root).as_posix()
+        if (root / tool['path']).is_file():
+            tool['sha256'] = sha(root / tool['path'])
         for support in tool.get('support_files', []):
             support['path'] = 'companions/media/' + Path(support['path']).relative_to(media_root).as_posix()
+            if (root / support['path']).is_file():
+                support['sha256'] = sha(root / support['path'])
         tool.pop('interpreter', None)
     name = 'cueson.exe' if platform.system() == 'Windows' else 'cueson'
     cueson = next((ROOT / 'build/native/cueson').rglob(name))
     return {'kind': 'installed-companions', 'schema_version': VERSION, 'platform': platform_key(),
             'media': portable, 'cueson': {'executable': 'companions/cueson/' + name,
-                                         'executable_sha256': sha(cueson)},
+                                         'executable_sha256': sha(root / ('companions/cueson/' + name)) if (root / ('companions/cueson/' + name)).is_file() else sha(cueson)},
             'system_perl': platform.system() != 'Windows'}
 
 
@@ -282,7 +285,7 @@ def collect_frontend_notices(target):
     return sorted(modules, key=lambda item: (item['component'], item['package'], item['version']))
 
 
-def installers(root, key):
+def installers(root, key, variant='desktop'):
     if key.startswith('windows'):
         (root / 'install.ps1').write_text('''# SPDX-License-Identifier: Apache-2.0
 param([Parameter(Mandatory=$true)][string]$Destination)
@@ -318,12 +321,31 @@ printf 'Installed insonic in %s. GTK3, WebKit2GTK 4.1, GStreamer base/good/bad/l
         'gstreamer1.0-plugins-bad (AAC/faad) and gstreamer1.0-libav (H.264).\n'
         'macOS ARM64: macOS 13.3+ and /usr/bin/perl; use the app bundle or its sibling CLI.\n'
         'Local recognition/diarization Python environments and model weights are optional separately configured inputs.\n'
-        'This package has no signing/notarization claim and is not a promoted release.\n'
+        'Publisher signing/notarization outcomes are recorded in package-inventory.json.\n'
+        'Package assembly does not publish or promote a release.\n'
         'See package-inventory.json for exact included bytes, notices and distribution status.\n',
         encoding='utf-8', newline='\n')
+    if variant == 'cli':
+        for name in ['INSTALL.txt', 'install.ps1', 'install.sh']:
+            path = root / name
+            if path.is_file():
+                text = path.read_text(encoding='utf-8')
+                text = text.replace('Launch insonic-desktop.exe or use insonic.exe from this directory. WebView2 Runtime is required.', 'Use insonic.exe from this directory.')
+                text = text.replace('Keep the GUI, CLI and companion files together.', 'Keep the CLI and companion files together.')
+                text = text.replace('Windows: WebView2 Runtime and the Microsoft Visual C++ runtime are OS prerequisites.', 'Windows: the Microsoft Visual C++ runtime is an OS prerequisite.')
+                text = text.replace('Linux: GTK3, WebKit2GTK 4.1, /usr/bin/perl and GStreamer decoders are OS prerequisites.', 'Linux: /usr/bin/perl and the platform C/C++ runtime are OS prerequisites.')
+                text = text.replace('use the app bundle or its sibling CLI.', 'use the included CLI.')
+                text = text.replace('Debian/Ubuntu decoder packages: gstreamer1.0-plugins-base, gstreamer1.0-plugins-good,\n'
+                                    'gstreamer1.0-plugins-bad (AAC/faad) and gstreamer1.0-libav (H.264).\n', '')
+                if name == 'install.sh':
+                    first = text.index('launcher_path=')
+                    last = text.index("printf 'Installed", first)
+                    text = text[:first] + text[last:]
+                    text = text.replace('GTK3, WebKit2GTK 4.1, GStreamer base/good/bad/libav plugins and Perl are required.', 'Perl and the platform C/C++ runtime are required.')
+                path.write_text(text, encoding='utf-8', newline='\n')
 
 
-def inventory(root, revision, dependencies, distribution):
+def inventory(root, revision, dependencies, distribution, variant='desktop', signing=None):
     files = []
     for path in sorted(root.rglob('*')):
         if path.is_symlink():
@@ -332,7 +354,8 @@ def inventory(root, revision, dependencies, distribution):
             files.append({'path': path.relative_to(root).as_posix(), 'size_bytes': path.stat().st_size,
                           'sha256': sha(path), 'executable': bool(path.stat().st_mode & 0o111)})
     return {'kind': 'native-package-inventory', 'schema_version': VERSION, 'revision': revision,
-            'platform': platform_key(), 'files': files, 'dependencies': dependencies,
+            'platform': platform_key(), 'variant': variant, 'files': files, 'dependencies': dependencies,
+            'signing': signing or {'configured': False, 'verified': False, 'status': 'unconfigured', 'mechanism': 'none', 'identity': None},
             'distribution': distribution, 'inference': 'not-run', 'model_weights': 'not-included'}
 
 
@@ -350,22 +373,187 @@ def verify_inventory(root, value):
         raise ValueError('package has unrecorded bytes')
     required = ['insonic-companions.json', 'LICENSE', 'NOTICE', 'help/index.html', 'INSTALL.txt']
     executable = '.exe' if value['platform'].startswith('windows') else ''
-    required += ['insonic' + executable, 'insonic-desktop' + executable,
+    required += ['insonic' + executable,
                  'companions/cueson/cueson' + executable, 'companions/cueson/cueson.schema.json']
+    if value.get('variant', 'desktop') == 'desktop':
+        required.append('insonic-desktop' + executable)
     if any(name not in expected for name in required):
         raise ValueError('package lacks required product/help/companion bytes')
 
 
-def build():
+def media_runtime_permissions(receipt):
+    """Distinguish required library sources from permitted compiler/system runtimes."""
+    windows = receipt['platform'].startswith('windows')
+    return {'compiler': receipt['compiler'], 'bundled_library_source_count': len(receipt['sources']),
+            'compiler_runtime_notices': receipt.get('runtime_notices', []),
+            'compiler_runtime_basis': (
+                {'gcc_libgcc_libstdcpp': 'GCC Runtime Library Exception 3.1 for eligible compilation',
+                 'mingw_crt_winpthreads': 'Permissive runtime licenses, exact copyright and permission notices included'}
+                if windows else {}),
+            'system_runtime_basis': 'Operating-system libraries/frameworks are not bundled; corresponding-source system-library exception',
+            'source_complete_scope': 'FFmpeg and every bundled third-party media library requiring corresponding source'}
+
+
+def collect_corresponding_sources(root, source_media, receipt, directory):
+    if receipt.get('source_complete') is not True or receipt.get('recipe_sha256') != source_media.sha(ROOT / 'scripts/media_source_build.py'):
+        raise ValueError('corresponding media source build receipt is incomplete or stale')
+    target = root / 'sources'
+    target.mkdir()
+    pins = source_media.source_pins()
+    if receipt.get('sources') != pins:
+        raise ValueError('corresponding sources differ from built binary inputs')
+    for pin in pins.values():
+        shutil.copyfile(source_media.fetch_pin(pin), target / pin['name'])
+    for name in ['build-media-source.py', 'media_source_build.py', 'process_tree.py']:
+        shutil.copyfile(ROOT / 'scripts' / name, target / name)
+    shutil.copyfile(ROOT / 'internal/qualification/media-tools.json', target / 'media-tools.json')
+    write_json(target / 'ffmpeg-build.json', receipt)
+    (target / 'REBUILD.txt').write_text(
+        'Exact media companion corresponding sources and owned build recipe.\n'
+        'Use Python 3.12+, a C/C++ compiler, make, CMake, Ninja, pkg-config, NASM\n'
+        'and Meson 1.8.3. Windows uses MSYS2 UCRT64 (INSONIC_MSYS2_ROOT selects it);\n'
+        'macOS ARM64 uses Xcode command-line tools with macOS 13.3+; Linux uses GCC.\n'
+        'Arrange the included .py files in scripts/, media-tools.json in\n'
+        'internal/qualification/, and exact source archives in build/media-source-pins/.\n'
+        'Run python scripts/build-media-source.py from that root. The receipt records\n'
+        'every configure/build/install invocation, compiler identity and all source hashes.\n'
+        'FFmpeg VERSION is pinned to its RELEASE; no other source patches are applied.\n'
+        'To modify/relink a library, edit its extracted source and rerun the recorded\n'
+        'library and FFmpeg build commands, retaining the same static dependency closure.\n',
+        encoding='utf-8', newline='\n')
+    manifest = {'kind': 'corresponding-sources', 'schema_version': VERSION, 'source_complete': True,
+                'platform': receipt['platform'], 'sources': pins,
+                  'redistribution_closure': media_runtime_permissions(receipt),
+                'build_receipt': 'ffmpeg-build.json', 'files': [
+                    {'path': path.name, 'sha256': sha(path), 'size_bytes': path.stat().st_size}
+                    for path in sorted(target.iterdir()) if path.is_file()]}
+    write_json(target / 'source-manifest.json', manifest)
+    verify_corresponding_sources(root, manifest)
+    return manifest
+
+
+def verify_corresponding_sources(root, manifest=None):
+    target = root / 'sources'
+    if manifest is None:
+        manifest = json.loads((target / 'source-manifest.json').read_text(encoding='utf-8'))
+    if manifest.get('kind') != 'corresponding-sources' or manifest.get('source_complete') is not True:
+        raise ValueError('package corresponding source manifest is incomplete')
+    entries = {}
+    for entry in manifest['files']:
+        path = path_inside(target, entry['path'])
+        if entry['path'] in entries or path.is_symlink() or not path.is_file() or sha(path) != entry['sha256'] or path.stat().st_size != entry['size_bytes']:
+            raise ValueError('package corresponding source bytes differ')
+        entries[entry['path']] = entry
+    actual = {path.relative_to(target).as_posix() for path in target.rglob('*') if path.is_file() and path != target / 'source-manifest.json'}
+    if actual != set(entries):
+        raise ValueError('package corresponding sources contain unrecorded bytes')
+    receipt = json.loads(path_inside(target, manifest['build_receipt']).read_text(encoding='utf-8'))
+    if receipt.get('source_complete') is not True or receipt.get('sources') != manifest['sources']:
+        raise ValueError('package source receipt has a different dependency closure')
+    if manifest.get('redistribution_closure') != media_runtime_permissions(receipt):
+        raise ValueError('package compiler/system runtime provenance differs from source receipt')
+    pin = json.loads(path_inside(target, 'media-tools.json').read_text(encoding='utf-8'))['source_build']
+    expected = {'ffmpeg': {'name': 'ffmpeg-' + pin['commit'] + '.tar.gz', 'url': pin['url'], 'sha256': pin['sha256'],
+                           'root': 'FFmpeg-' + pin['commit'], 'version': pin['version'], 'license': 'LGPL-2.1-or-later',
+                             'notices': ['COPYING.LGPLv2.1', 'LICENSE.md']}, 'lame': pin['lame'], **pin['libraries']}
+    required = {'ffmpeg', 'lame', 'zlib', 'bzip2', 'xz', 'iconv', 'xml2', 'ogg', 'vorbis', 'mpg123', 'gme', 'dav1d', 'openmpt'}
+    if set(expected) != required or manifest['sources'] != expected:
+        raise ValueError('package corresponding sources differ from configured complete dependency closure')
+    suffix = '.exe' if receipt['platform'].startswith('windows') else ''
+    if (set(receipt.get('binaries', {})) != {'ffmpeg' + suffix, 'ffprobe' + suffix}
+            or receipt.get('versions') != {'ffmpeg': pin['version'], 'ffprobe': pin['version']}):
+        raise ValueError('package source receipt lacks exact companion binary identities')
+    if suffix:
+        runtime_notices = receipt.get('runtime_notices', [])
+        if {Path(item['path']).name.split('-')[0] for item in runtime_notices} != {'gcc', 'libgcc', 'libstdc++', 'crt', 'winpthreads'}:
+            raise ValueError('package compiler runtime permission notices are incomplete')
+        for item in runtime_notices:
+            path = root / 'companions/media/notices' / Path(item['path']).name
+            if not path.is_file() or sha(path) != item['sha256']:
+                raise ValueError('package compiler runtime permission notice bytes differ')
+    for pin in manifest['sources'].values():
+        if pin['name'] not in entries or entries[pin['name']]['sha256'] != pin['sha256']:
+            raise ValueError('package lacks an exact corresponding library source archive')
+    if any(name not in entries for name in ['build-media-source.py', 'media_source_build.py', 'process_tree.py', 'media-tools.json', 'REBUILD.txt']):
+        raise ValueError('package lacks its corresponding source build recipe')
+    if receipt.get('recipe_sha256') != entries['media_source_build.py']['sha256']:
+        raise ValueError('package corresponding source recipe differs from executed recipe')
+    if receipt.get('launcher_sha256') != entries['process_tree.py']['sha256']:
+        raise ValueError('package corresponding source launcher differs from executed launcher')
+    return manifest
+
+
+def sign_native(root, key):
+    state = {'configured': False, 'verified': False, 'status': 'unconfigured', 'mechanism': 'none', 'identity': None}
+    if key.startswith('windows'):
+        identity = os.environ.get('INSONIC_WINDOWS_SIGN_CERT_SHA1', '').strip()
+        if not identity:
+            return state
+        if not re.fullmatch(r'[0-9a-fA-F]{40}', identity):
+            raise ValueError('configured Windows signing certificate thumbprint is invalid')
+        tool = os.environ.get('INSONIC_SIGNTOOL_EXECUTABLE', 'signtool.exe')
+        timestamp = os.environ.get('INSONIC_WINDOWS_SIGN_TIMESTAMP_URL', '').strip()
+        if timestamp and not timestamp.startswith('https://'):
+            raise ValueError('configured signing timestamp requires HTTPS')
+        for path in sorted(root.rglob('*')):
+            if path.is_file() and path.suffix.lower() in ['.exe', '.dll']:
+                child([tool, 'sign', '/sha1', identity, '/fd', 'SHA256', *(['/tr', timestamp, '/td', 'SHA256'] if timestamp else []), path])
+                child([tool, 'verify', '/pa', path])
+        return {'configured': True, 'verified': True, 'status': 'signed', 'mechanism': 'windows-authenticode', 'identity': identity}
+    if key.startswith('darwin'):
+        identity = os.environ.get('INSONIC_MACOS_SIGN_IDENTITY', '').strip()
+        if not identity:
+            return state
+        for path in sorted(root.rglob('*')):
+            if not path.is_file():
+                continue
+            with path.open('rb') as source:
+                magic = source.read(4)
+            if magic in [b'\xcf\xfa\xed\xfe', b'\xfe\xed\xfa\xcf', b'\xca\xfe\xba\xbe', b'\xbe\xba\xfe\xca']:
+                child(['/usr/bin/codesign', '--force', '--options', 'runtime', '--timestamp', '--sign', identity, path])
+                child(['/usr/bin/codesign', '--verify', '--strict', path])
+        return {'configured': True, 'verified': True, 'status': 'signed', 'mechanism': 'macos-codesign', 'identity': identity}
+    return state
+
+
+def seal_application(target, key, variant, signing):
+    if not key.startswith('darwin'):
+        return signing
+    application = target / 'insonic.app' if variant == 'desktop' else target
+    if variant == 'desktop':
+        identity = signing['identity'] if signing['configured'] else '-'
+        args = ['/usr/bin/codesign', '--force', '--sign', identity]
+        if signing['configured']:
+            args += ['--options', 'runtime', '--timestamp']
+        child([*args, application])
+        child(['/usr/bin/codesign', '--verify', '--strict', application])
+    profile = os.environ.get('INSONIC_MACOS_NOTARY_PROFILE', '').strip()
+    if profile:
+        if not signing['configured']:
+            raise ValueError('notarization profile requires configured publisher signing')
+        with tempfile.TemporaryDirectory(prefix='insonic notarization ') as temporary:
+            archive = Path(temporary) / 'insonic.zip'
+            child(['/usr/bin/ditto', '-c', '-k', '--keepParent', application, archive])
+            child(['/usr/bin/xcrun', 'notarytool', 'submit', archive, '--keychain-profile', profile, '--wait'], timeout=600)
+            if variant == 'desktop':
+                child(['/usr/bin/xcrun', 'stapler', 'staple', application])
+                child(['/usr/bin/xcrun', 'stapler', 'validate', application])
+        signing = {**signing, 'status': 'notarized', 'stapled': variant == 'desktop'}
+    return signing
+
+
+def build(variant='desktop'):
+    if variant not in ['cli', 'desktop']:
+        raise ValueError('unknown package variant')
     key = platform_key()
     BUILD.mkdir(parents=True, exist_ok=True)
-    target = BUILD / ('insonic_' + VERSION + '_' + key)
+    target = BUILD / ('insonic_' + VERSION + '_' + key + '_' + variant)
     if target.exists():
         if not target.resolve().is_relative_to(BUILD.resolve()):
             raise ValueError('package target escapes build directory')
         shutil.rmtree(target)
     root = target
-    if key.startswith('darwin'):
+    if key.startswith('darwin') and variant == 'desktop':
         root = target / 'insonic.app/Contents/MacOS'
         root.mkdir(parents=True)
         with (root.parent / 'Info.plist').open('wb') as output:
@@ -385,7 +573,8 @@ def build():
     args = ['go', 'build', '-tags', tags]
     if key.startswith('windows'):
         args.extend(['-ldflags', '-H windowsgui'])
-    child([*args, '-o', root / ('insonic-desktop' + exe), './cmd/insonic-desktop'], env=env)
+    if variant == 'desktop':
+        child([*args, '-o', root / ('insonic-desktop' + exe), './cmd/insonic-desktop'], env=env)
     if key.startswith('windows'):
         # The PE loader resolves static imports before Go can configure search
         # directories. Place native DLLs beside the executables, without PATH.
@@ -399,7 +588,7 @@ def build():
         openssl = prepare_openssl()
         for name in ['libssl-3-x64.dll', 'libcrypto-3-x64.dll']:
             shutil.copyfile(openssl / name, root / name)
-    verify_loader_paths(root, key)
+    verify_loader_paths(root, key, variant)
     copy_tree(ROOT / 'build/native/media', root / 'companions/media')
     cueson_root = next((ROOT / 'build/native/cueson').rglob('cueson' + exe)).parent
     copy_tree(cueson_root, root / 'companions/cueson')
@@ -417,41 +606,18 @@ def build():
     module_notices = collect_module_notices(notices)
     frontend_notices = collect_frontend_notices(notices)
     source_media = source_module()
-    commit, digest = WINDOWS_FFMPEG_SOURCE if key.startswith('windows') else (source_media.COMMIT, source_media.SOURCE_SHA256)
-    source = source_media.fetch_source(commit, digest)
-    source_directory = root / 'sources'
-    source_directory.mkdir()
-    shutil.copyfile(source, source_directory / source.name)
-    if key.startswith('darwin'):
-        _, source_receipt, _ = source_media.prepare()
-        write_json(source_directory / 'ffmpeg-build.json', source_receipt)
-        lame_source = source_media.fetch_lame()
-        shutil.copyfile(lame_source, source_directory / lame_source.name)
-        for name in ['build-media-source.py', 'process_tree.py']:
-            shutil.copyfile(ROOT / 'scripts' / name, source_directory / name)
-        shutil.copyfile(ROOT / 'internal/qualification/media-tools.json', source_directory / 'media-tools.json')
-        (source_directory / 'REBUILD.txt').write_text(
-            'Rebuild on macOS ARM64 (macOS 13.3+). Install the Xcode command-line tools.\n'
-            'Use the included exact FFmpeg and LAME archives and media-tools.json pins.\n'
-            'build-media-source.py records the configure and make invocations.\n'
-            'Arrange the recipe as scripts/build-media-source.py and scripts/process_tree.py,\n'
-            'and the pin as internal/qualification/media-tools.json, then invoke the recipe\n'
-            'with Python 3.12+ from that root. Put included archives in build/media-source-pins.\n'
-            'Edit LAME source, rebuild its static archive, and relink FFmpeg through that recipe.\n',
-            encoding='utf-8', newline='\n')
-        distribution = {'binary_publication': 'not-promoted', 'corresponding_source': 'included',
-                        'codec_libraries': 'built-in LGPL source; static LAME with exact source and rebuild recipe; OS VideoToolbox', 'source_review_required_before_release': True}
-    else:
-        source_receipt = {'source_commit': commit, 'source_sha256': digest,
-                          'upstream_distribution': 'eugeneware/ffmpeg-static:b6.1.1',
-                          'build_information': 'companions/media/notices/*README',
-                          'external_library_corresponding_source': 'release distribution work remains'}
-        write_json(source_directory / 'ffmpeg-build.json', source_receipt)
-        distribution = {'binary_publication': 'blocked', 'corresponding_source': 'FFmpeg core included; static external-library sources incomplete',
-                        'public_binary_archive_upload': False}
-    installers(root, key)
+    source_directory, source_receipt, _ = source_media.prepare()
+    for binary, digest in source_receipt['binaries'].items():
+        if sha(root / 'companions/media' / binary) != digest:
+            raise ValueError('packaged media binary differs from its owned source build')
+    collect_corresponding_sources(root, source_media, source_receipt, source_directory)
+    installers(root, key, variant)
+    signing = sign_native(root, key)
     manifest = installed_manifest(root)
     write_json(root / 'insonic-companions.json', manifest)
+    signing = seal_application(target, key, variant, signing)
+    distribution = {'binary_publication': 'eligible', 'corresponding_source': 'included',
+                    'source_complete': True, 'source_manifest_sha256': sha(root / 'sources/source-manifest.json')}
     revision = child(['git', 'rev-parse', 'HEAD']).decode().strip()
     source_dirty = bool(child(['git', 'status', '--porcelain', '--untracked-files=normal']).strip())
     dependencies = {'go': qualify.LOCK['go'], 'wails': qualify.LOCK['wails'],
@@ -461,13 +627,14 @@ def build():
                     'modules': module_notices, 'javascript': frontend_notices}
     if key.startswith('windows'):
         dependencies['openssl'] = json.loads((ROOT / 'build/native/openssl-receipt.json').read_text())
-    value = inventory(root, revision, dependencies, distribution)
+    value = inventory(root, revision, dependencies, distribution, variant, signing)
     value['source_dirty'] = source_dirty
     if root != target:
         value['bundle_files'] = [{'path': path.relative_to(target).as_posix(), 'size_bytes': path.stat().st_size,
                                   'sha256': sha(path)} for path in sorted(target.rglob('*'))
                                  if path.is_file() and not path.is_relative_to(root)]
-    write_json(root / 'package-inventory.json', value)
+    inventory_path = target / 'package-inventory.json'
+    write_json(inventory_path, value)
     verify_inventory(root, value)
     archive = Path(str(target) + ('.zip' if key.startswith(('windows', 'darwin')) else '.tar.gz'))
     if zipfile.is_zipfile(archive) or archive.exists():
@@ -480,12 +647,16 @@ def build():
     else:
         with tarfile.open(archive, 'w:gz') as output:
             output.add(target, arcname=target.name)
-    receipt = {'kind': 'native-package-receipt', 'schema_version': VERSION, 'platform': key,
+    receipt = {'kind': 'native-package-receipt', 'schema_version': VERSION,
+               'product_version': VERSION, 'documentation_version': VERSION, 'platform': key, 'variant': variant,
                'revision': revision, 'archive': archive.name, 'archive_sha256': sha(archive),
+               'dirname': target.name, 'inventory_path': inventory_path.relative_to(target.parent).as_posix(),
+               'inventory_root': root.relative_to(target.parent).as_posix(), 'signing': signing,
                'source_dirty': source_dirty,
-               'archive_size_bytes': archive.stat().st_size, 'inventory_sha256': sha(root / 'package-inventory.json'),
+               'archive_size_bytes': archive.stat().st_size, 'inventory_sha256': sha(inventory_path),
                'file_count': len(value['files']), 'distribution': distribution, 'inference': 'not-run'}
     write_json(ROOT / 'build/native/package-receipt.json', receipt)
+    write_json(ROOT / ('build/native/package-' + variant + '-receipt.json'), receipt)
     write_json(ROOT / 'build/native/package-inventory.json', value)
     return archive, target.name, receipt
 
@@ -539,29 +710,66 @@ def package_environment():
     return env
 
 
+def verify_archive_receipt(archive, receipt):
+    if sha(archive) != receipt['archive_sha256'] or archive.stat().st_size != receipt['archive_size_bytes']:
+        raise ValueError('package archive differs from receipt identity')
+    with tempfile.TemporaryDirectory(prefix='insonic package integrity ') as temporary:
+        location = Path(temporary)
+        extract_package(archive, location)
+        root = path_inside(location, receipt['inventory_root'])
+        inventory_file = path_inside(location, receipt['inventory_path'])
+        if receipt['inventory_path'] != receipt['dirname'] + '/package-inventory.json':
+            raise ValueError('package inventory path differs from declared package directory')
+        if sha(inventory_file) != receipt['inventory_sha256']:
+            raise ValueError('package inventory differs from receipt identity')
+        value = json.loads(inventory_file.read_text(encoding='utf-8'))
+        verify_inventory(root, value)
+        for name in ['revision', 'platform', 'variant', 'schema_version', 'source_dirty', 'distribution', 'signing']:
+            if value.get(name) != receipt.get(name):
+                raise ValueError('package inventory differs from receipt field: ' + name)
+        expected = {receipt['inventory_path']}
+        expected.update(receipt['inventory_root'] + '/' + item['path'] for item in value['files'])
+        for item in value.get('bundle_files', []):
+            path = path_inside(location / receipt['dirname'], item['path'])
+            if not path.is_file() or sha(path) != item['sha256'] or path.stat().st_size != item['size_bytes']:
+                raise ValueError('package app bundle bytes differ from inventory')
+            expected.add(receipt['dirname'] + '/' + item['path'])
+        if {path.relative_to(location).as_posix() for path in location.rglob('*') if path.is_file()} != expected:
+            raise ValueError('package archive contains bytes outside its complete inventory')
+        manifest = verify_corresponding_sources(root)
+        if sha(root / 'sources/source-manifest.json') != receipt['distribution']['source_manifest_sha256']:
+            raise ValueError('package source manifest differs from receipt identity')
+        if not receipt['signing']['configured']:
+            media = json.loads((root / 'sources/ffmpeg-build.json').read_text(encoding='utf-8'))
+            for name, digest in media['binaries'].items():
+                if sha(root / 'companions/media' / name) != digest:
+                    raise ValueError('unsigned packaged media differs from corresponding source build')
+        return {'inventory': value, 'sources': manifest}
+
+
 def _smoke(archive=None, dirname=None, receipt=None):
     if archive is None:
         receipt = json.loads((ROOT / 'build/native/package-receipt.json').read_text())
         archive = BUILD / receipt['archive']
-        dirname = 'insonic_' + VERSION + '_' + receipt['platform']
+        dirname = receipt['dirname']
     if sha(archive) != receipt['archive_sha256']:
         raise ValueError('package archive differs from qualified identity')
+    verify_archive_receipt(archive, receipt)
     started = time.monotonic()
     with tempfile.TemporaryDirectory(prefix='insonic package relocation ') as temporary:
         location = Path(temporary) / 'extracted with spaces'
         extract_package(archive, location)
-        root = location / dirname
-        if receipt['platform'].startswith('darwin'):
-            root /= 'insonic.app/Contents/MacOS'
-        value = json.loads((root / 'package-inventory.json').read_text())
+        root = path_inside(location, receipt['inventory_root'])
+        inventory_file = path_inside(location, receipt['inventory_path'])
+        value = json.loads(inventory_file.read_text())
         verify_inventory(root, value)
         for entry in value.get('bundle_files', []):
             bundle_file = path_inside(location / dirname, entry['path'])
             if not bundle_file.is_file() or bundle_file.stat().st_size != entry['size_bytes'] or sha(bundle_file) != entry['sha256']:
                 raise ValueError('macOS app bundle inventory mismatch')
-        if sha(root / 'package-inventory.json') != receipt['inventory_sha256']:
+        if sha(inventory_file) != receipt['inventory_sha256']:
             raise ValueError('extracted inventory identity differs')
-        verify_loader_paths(root, receipt['platform'])
+        verify_loader_paths(root, receipt['platform'], receipt['variant'])
         env = package_environment()
         env['INSONIC_DESKTOP_FIXTURE_DIRECTORY'] = str(ROOT / 'tests/fixtures/media')
         suffix = '.exe' if os.name == 'nt' else ''
@@ -627,22 +835,24 @@ def _smoke(archive=None, dirname=None, receipt=None):
             recording = call('recordings', 'show', items[0]['media_id'])
             if replacement['state'] != 'succeeded' or recording['recording']['state'] != 'untranscribed' or retained['revision'] != roster['revision'] or retained['members']:
                 raise ValueError('packaged replacement/declared-empty roster authority changed')
-            qualification_output = child([gui, '--qualification'], directory=root, env=env, timeout=30)
-            qualify.write_receipt(ROOT / 'build/native/package-desktop-receipt.json', qualification_output,
-                                  {'desktop_bridge': 'passed', 'offline_help': 'packaged', 'schema_version': VERSION})
-            args = [gui, '--webview-qualification']
-            if platform.system() == 'Linux':
-                args = ['/usr/bin/xvfb-run', '-a', *args]
-            qualification_output = child(args, directory=root, env=env, timeout=90)
-            qualify.write_receipt(ROOT / 'build/native/package-webview-receipt.json', qualification_output,
-                                  {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'schema_version': VERSION})
+            if receipt['variant'] == 'desktop':
+                qualification_output = child([gui, '--qualification'], directory=root, env=env, timeout=30)
+                qualify.write_receipt(ROOT / 'build/native/package-desktop-bridge-receipt.json', qualification_output,
+                                      {'desktop_bridge': 'passed', 'offline_help': 'packaged', 'schema_version': VERSION})
+                args = [gui, '--webview-qualification']
+                if platform.system() == 'Linux':
+                    args = ['/usr/bin/xvfb-run', '-a', *args]
+                qualification_output = child(args, directory=root, env=env, timeout=90)
+                qualify.write_receipt(ROOT / 'build/native/package-webview-receipt.json', qualification_output,
+                                      {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'schema_version': VERSION})
         finally:
             # The detached runtime owns its jobs and releases its own scratch
             # catalog handles at the existing bounded idle exit.
             time.sleep(31)
     receipt.update({'extracted_inventory': 'passed', 'relocation_path_spaces': 'passed',
                     'cli_real_audio_video_import': 'passed', 'recording_replacement': 'passed', 'declared_roster': 'passed', 'cueson_assembly': 'passed', 'native_subtitle_export': 'passed',
-                    'gui_bridge': 'passed', 'native_webview': 'passed', 'development_paths': 'not-required',
+                    'gui_bridge': 'passed' if receipt['variant'] == 'desktop' else 'not-included',
+                    'native_webview': 'passed' if receipt['variant'] == 'desktop' else 'not-included', 'development_paths': 'not-required',
                     'inference': 'not-run', 'elapsed_seconds': round(time.monotonic() - started, 3)})
     return receipt
 
@@ -652,16 +862,20 @@ def smoke(archive=None, dirname=None, receipt=None):
         receipt = _smoke(archive, dirname, receipt)
     receipt['development_native_libraries'] = 'isolated-and-restored'
     write_json(ROOT / 'build/native/package-receipt.json', receipt)
+    write_json(ROOT / ('build/native/package-' + receipt['variant'] + '-receipt.json'), receipt)
     print(json.dumps(receipt))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('stage', choices=['build', 'smoke', 'all'])
+    parser.add_argument('--variant', choices=['cli', 'desktop', 'both'], default='desktop')
     args = parser.parse_args()
-    if args.stage in ['build', 'all']:
-        archive, dirname, receipt = build()
-    if args.stage == 'smoke':
-        smoke()
-    elif args.stage == 'all':
-        smoke(archive, dirname, receipt)
+    for variant in (['cli', 'desktop'] if args.variant == 'both' else [args.variant]):
+        if args.stage in ['build', 'all']:
+            archive, dirname, receipt = build(variant)
+        if args.stage == 'smoke':
+            receipt = json.loads((ROOT / ('build/native/package-' + variant + '-receipt.json')).read_text())
+            smoke(BUILD / receipt['archive'], receipt['dirname'], receipt)
+        elif args.stage == 'all':
+            smoke(archive, dirname, receipt)
