@@ -1,0 +1,452 @@
+{
+  "$schema": "https://cueson.io/schema/v1.1.0/cueson.schema.json",
+  "schema_version": "1.1.0",
+  "format": "ssa",
+  "format_support": {
+    "status": "schema_only",
+    "ingest_supported": false,
+    "render_supported": false,
+    "restore_supported": true,
+    "ocr_required_for_semantic_output": false
+  },
+  "producer": {
+    "name": "cueson-contract-example",
+    "version": "1.1.0"
+  },
+  "source": {
+    "primary_asset_id": "asset-0",
+    "assets": [
+      {
+        "id": "asset-0",
+        "role": "primary",
+        "file_name": "captions.ssa",
+        "media_type": "text/x-ssa",
+        "size": {
+          "bytes": 502,
+          "text": "502 bytes"
+        },
+        "hashes": {
+          "sha256": "e413a37fb561ea37082f88fd61728672d04fe9ef0050104b232b9c02db129956"
+        },
+        "timestamps": {
+          "created": null,
+          "modified": null,
+          "accessed": null,
+          "created_source": "unavailable"
+        },
+        "encoding": {
+          "bom": null,
+          "line_endings": "lf",
+          "detected_encoding": "utf-8",
+          "confidence": 1
+        },
+        "data_base64": "W1NjcmlwdCBJbmZvXQpTY3JpcHRUeXBlOiB2NC4wMApbVjQgU3R5bGVzXQpGb3JtYXQ6IE5hbWUsIEZvbnRuYW1lLCBGb250c2l6ZSwgUHJpbWFyeUNvbG91ciwgU2Vjb25kYXJ5Q29sb3VyLCBUZXJ0aWFyeUNvbG91ciwgQmFja0NvbG91ciwgQm9sZCwgSXRhbGljLCBCb3JkZXJTdHlsZSwgT3V0bGluZSwgU2hhZG93LCBBbGlnbm1lbnQsIE1hcmdpbkwsIE1hcmdpblIsIE1hcmdpblYsIEFscGhhTGV2ZWwsIEVuY29kaW5nClN0eWxlOiBEZWZhdWx0LEFyaWFsLDIwLCZIMDBGRkZGRkYsJkgwMDAwMDBGRiwmSDAwMDAwMDAwLCZIMDAwMDAwMDAsMCwwLDEsMiwwLDIsMTAsMTAsMTAsMCwxCltFdmVudHNdCkZvcm1hdDogTWFya2VkLCBTdGFydCwgRW5kLCBTdHlsZSwgTmFtZSwgTWFyZ2luTCwgTWFyZ2luUiwgTWFyZ2luViwgRWZmZWN0LCBUZXh0CkRpYWxvZ3VlOiBNYXJrZWQ9MCwwOjAwOjAxLjAwLDA6MDA6MDIuMDAsRGVmYXVsdCxOYXJyYXRvciwwLDAsMCwsSGVsbG9cTndvcmxkCg=="
+      }
+    ]
+  },
+  "metadata": {
+    "title": null,
+    "language": "en",
+    "kind": "subtitles",
+    "description": null
+  },
+  "document": {
+    "cue_count": 1,
+    "media_start_milliseconds": 1000,
+    "media_end_milliseconds": 2000,
+    "media_span_milliseconds": 1000,
+    "has_word_level_timing": false
+  },
+  "cues": [
+    {
+      "id": "cue-0",
+      "ordinal": 0,
+      "source_order": 7,
+      "source_identifier": null,
+      "timing": {
+        "start_milliseconds": 1000,
+        "end_milliseconds": 2000,
+        "duration_milliseconds": 1000
+      },
+      "payload": {
+        "raw_text": "Hello\\Nworld",
+        "plain_text": "Hello\nworld",
+        "lines": [
+          "Hello",
+          "world"
+        ]
+      },
+      "speakers": [
+        {
+          "name": "Narrator",
+          "origin": "native"
+        }
+      ],
+      "tokens": [],
+      "ocr_observations": [],
+      "placement": null,
+      "format_data": {
+        "ssa": {
+          "event_id": "event-0",
+          "style_id": "style-default",
+          "start_timestamp_raw": "0:00:01.00",
+          "end_timestamp_raw": "0:00:02.00",
+          "projection": {
+            "origin": "native_derived",
+            "source_event_id": "event-0",
+            "text_field_name": "Text",
+            "speaker_field_name": "Name",
+            "wrap_style": 0,
+            "drawing_excluded": false
+          }
+        }
+      }
+    }
+  ],
+  "format_data": {
+    "ssa": {
+      "dialect": "v4.00",
+      "sections": [
+        {
+          "section_id": "section-info",
+          "source_order": 0,
+          "name": "Script Info",
+          "raw_header": "[Script Info]"
+        },
+        {
+          "section_id": "section-styles",
+          "source_order": 2,
+          "name": "V4 Styles",
+          "raw_header": "[V4 Styles]"
+        },
+        {
+          "section_id": "section-events",
+          "source_order": 5,
+          "name": "Events",
+          "raw_header": "[Events]"
+        }
+      ],
+      "records": [
+        {
+          "record_id": "record-type",
+          "source_order": 1,
+          "section_id": "section-info",
+          "kind": "metadata",
+          "raw_line": "ScriptType: v4.00",
+          "fields": [
+            {
+              "field_name": "ScriptType",
+              "raw_value": "v4.00"
+            }
+          ]
+        },
+        {
+          "record_id": "record-style-format",
+          "source_order": 3,
+          "section_id": "section-styles",
+          "kind": "format_declaration",
+          "raw_line": "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, TertiaryColour, BackColour, Bold, Italic, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, AlphaLevel, Encoding",
+          "declaration_fields": [
+            {
+              "field_name": "Name",
+              "recognized_name": "name"
+            },
+            {
+              "field_name": "Fontname",
+              "recognized_name": "fontname"
+            },
+            {
+              "field_name": "Fontsize",
+              "recognized_name": "fontsize"
+            },
+            {
+              "field_name": "PrimaryColour",
+              "recognized_name": "primarycolour"
+            },
+            {
+              "field_name": "SecondaryColour",
+              "recognized_name": "secondarycolour"
+            },
+            {
+              "field_name": "TertiaryColour",
+              "recognized_name": "tertiarycolour"
+            },
+            {
+              "field_name": "BackColour",
+              "recognized_name": "backcolour"
+            },
+            {
+              "field_name": "Bold",
+              "recognized_name": "bold"
+            },
+            {
+              "field_name": "Italic",
+              "recognized_name": "italic"
+            },
+            {
+              "field_name": "BorderStyle",
+              "recognized_name": "borderstyle"
+            },
+            {
+              "field_name": "Outline",
+              "recognized_name": "outline"
+            },
+            {
+              "field_name": "Shadow",
+              "recognized_name": "shadow"
+            },
+            {
+              "field_name": "Alignment",
+              "recognized_name": "alignment"
+            },
+            {
+              "field_name": "MarginL",
+              "recognized_name": "marginl"
+            },
+            {
+              "field_name": "MarginR",
+              "recognized_name": "marginr"
+            },
+            {
+              "field_name": "MarginV",
+              "recognized_name": "marginv"
+            },
+            {
+              "field_name": "AlphaLevel",
+              "recognized_name": "alphalevel"
+            },
+            {
+              "field_name": "Encoding",
+              "recognized_name": "encoding"
+            }
+          ]
+        },
+        {
+          "record_id": "record-style",
+          "source_order": 4,
+          "section_id": "section-styles",
+          "kind": "style",
+          "raw_line": "Style: Default,Arial,20,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,1,2,0,2,10,10,10,0,1",
+          "style_id": "style-default"
+        },
+        {
+          "record_id": "record-event-format",
+          "source_order": 6,
+          "section_id": "section-events",
+          "kind": "format_declaration",
+          "raw_line": "Format: Marked, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+          "declaration_fields": [
+            {
+              "field_name": "Marked",
+              "recognized_name": "marked"
+            },
+            {
+              "field_name": "Start",
+              "recognized_name": "start"
+            },
+            {
+              "field_name": "End",
+              "recognized_name": "end"
+            },
+            {
+              "field_name": "Style",
+              "recognized_name": "style"
+            },
+            {
+              "field_name": "Name",
+              "recognized_name": "name"
+            },
+            {
+              "field_name": "MarginL",
+              "recognized_name": "marginl"
+            },
+            {
+              "field_name": "MarginR",
+              "recognized_name": "marginr"
+            },
+            {
+              "field_name": "MarginV",
+              "recognized_name": "marginv"
+            },
+            {
+              "field_name": "Effect",
+              "recognized_name": "effect"
+            },
+            {
+              "field_name": "Text",
+              "recognized_name": "text"
+            }
+          ]
+        },
+        {
+          "record_id": "record-event",
+          "source_order": 7,
+          "section_id": "section-events",
+          "kind": "event",
+          "raw_line": "Dialogue: Marked=0,0:00:01.00,0:00:02.00,Default,Narrator,0,0,0,,Hello\\Nworld",
+          "event_id": "event-0"
+        }
+      ],
+      "styles": [
+        {
+          "style_id": "style-default",
+          "record_id": "record-style",
+          "declaration_id": "record-style-format",
+          "name": "Default",
+          "valid": true,
+          "fields": [
+            {
+              "field_name": "Name",
+              "raw_value": "Default"
+            },
+            {
+              "field_name": "Fontname",
+              "raw_value": "Arial"
+            },
+            {
+              "field_name": "Fontsize",
+              "raw_value": "20",
+              "typed_value": {
+                "kind": "decimal",
+                "decimal": 20
+              }
+            },
+            {
+              "field_name": "PrimaryColour",
+              "raw_value": "&H00FFFFFF"
+            },
+            {
+              "field_name": "SecondaryColour",
+              "raw_value": "&H000000FF"
+            },
+            {
+              "field_name": "TertiaryColour",
+              "raw_value": "&H00000000"
+            },
+            {
+              "field_name": "BackColour",
+              "raw_value": "&H00000000"
+            },
+            {
+              "field_name": "Bold",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "Italic",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "BorderStyle",
+              "raw_value": "1"
+            },
+            {
+              "field_name": "Outline",
+              "raw_value": "2"
+            },
+            {
+              "field_name": "Shadow",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "Alignment",
+              "raw_value": "2"
+            },
+            {
+              "field_name": "MarginL",
+              "raw_value": "10"
+            },
+            {
+              "field_name": "MarginR",
+              "raw_value": "10"
+            },
+            {
+              "field_name": "MarginV",
+              "raw_value": "10"
+            },
+            {
+              "field_name": "AlphaLevel",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "Encoding",
+              "raw_value": "1"
+            }
+          ]
+        }
+      ],
+      "events": [
+        {
+          "event_id": "event-0",
+          "record_id": "record-event",
+          "declaration_id": "record-event-format",
+          "event_type": "dialogue",
+          "cue_id": "cue-0",
+          "valid": true,
+          "fields": [
+            {
+              "field_name": "Marked",
+              "raw_value": "Marked=0"
+            },
+            {
+              "field_name": "Start",
+              "raw_value": "0:00:01.00"
+            },
+            {
+              "field_name": "End",
+              "raw_value": "0:00:02.00"
+            },
+            {
+              "field_name": "Style",
+              "raw_value": "Default"
+            },
+            {
+              "field_name": "Name",
+              "raw_value": "Narrator"
+            },
+            {
+              "field_name": "MarginL",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "MarginR",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "MarginV",
+              "raw_value": "0"
+            },
+            {
+              "field_name": "Effect",
+              "raw_value": ""
+            },
+            {
+              "field_name": "Text",
+              "raw_value": "Hello\\Nworld"
+            }
+          ],
+          "text": "Hello\\Nworld",
+          "spans": [
+            {
+              "kind": "literal",
+              "start_scalar": 0,
+              "end_scalar": 12,
+              "raw": "Hello\\Nworld"
+            }
+          ],
+          "tags": [],
+          "karaoke": []
+        }
+      ],
+      "attachments": []
+    }
+  },
+  "diagnostics": [],
+  "stats": {
+    "cue_count": 1,
+    "diagnostic_count": 0,
+    "warning_count": 0,
+    "error_count": 0,
+    "has_word_level_timing": false,
+    "media_span_milliseconds": 1000
+  }
+}

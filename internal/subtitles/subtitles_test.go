@@ -78,7 +78,7 @@ func TestAssemblyCollapsedAndInvalidIntervals(t *testing.T) {
 	if len(result.Diagnostics) == 0 || result.Diagnostics[0].Code != "timing_collapsed" {
 		t.Fatal("missing collapse diagnosis")
 	}
-	for _, turn := range []Turn{{SpeakerID: "bad", StartNS: 0, EndNS: 1}, {SpeakerID: "11111111-1111-4111-8111-111111111111", StartNS: -1, EndNS: 1}, {SpeakerID: "11111111-1111-4111-8111-111111111111", StartNS: 2, EndNS: 1}, {SpeakerID: "11111111-1111-4111-8111-111111111111", StartNS: 0, EndNS: 1000000001}} {
+	for _, turn := range []Turn{{SpeakerID: "", StartNS: 0, EndNS: 1}, {SpeakerID: "11111111-1111-4111-8111-111111111111", StartNS: -1, EndNS: 1}, {SpeakerID: "11111111-1111-4111-8111-111111111111", StartNS: 2, EndNS: 1}, {SpeakerID: "11111111-1111-4111-8111-111111111111", StartNS: 0, EndNS: 1000000001}} {
 		if _, err := AssembleDocument(source, &duration, []Turn{turn}, nil); err == nil {
 			t.Fatal("accepted invalid turn")
 		}

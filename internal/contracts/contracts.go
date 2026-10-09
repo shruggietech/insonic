@@ -9,6 +9,8 @@ import (
 	"errors"
 	"regexp"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 const Version = "0.0.0"
@@ -35,6 +37,24 @@ func ID() string {
 var uuid = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
 
 func ValidID(s string) bool { return uuid.MatchString(s) }
+
+// ValidLocalSpeakerID follows the Cueson recording-local token contract.
+// Global person identities retain UUID validation.
+func ValidLocalSpeakerID(s string) bool {
+	if !utf8.ValidString(s) || utf8.RuneCountInString(s) < 1 || utf8.RuneCountInString(s) > 256 {
+		return false
+	}
+	runes := []rune(s)
+	if unicode.IsSpace(runes[0]) || unicode.IsSpace(runes[len(runes)-1]) || runes[0] == 0xfeff || runes[len(runes)-1] == 0xfeff {
+		return false
+	}
+	for _, r := range runes {
+		if r <= 0x1f || r >= 0x7f && r <= 0x9f || r == 0x2028 || r == 0x2029 || r == 0x061c || r == 0x200e || r == 0x200f || r >= 0x202a && r <= 0x202e || r >= 0x2066 && r <= 0x2069 || r == 0xfeff {
+			return false
+		}
+	}
+	return true
+}
 
 type Error struct {
 	Code        string       `json:"code"`

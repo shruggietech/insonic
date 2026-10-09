@@ -55,6 +55,9 @@ type Catalog interface {
 	Library(context.Context, string) (LibraryEntry, error)
 	Libraries(context.Context) ([]LibraryEntry, error)
 	CommitLibrary(context.Context, Work, LibraryEntry) (LibraryEntry, error)
+	CommitAdmission(context.Context, Work, int, int64, LibraryEntry, *Recording, ...json.RawMessage) (LibraryEntry, *Recording, error)
+	SkipAdmission(context.Context, Work, int, json.RawMessage) error
+	AcceptedAdmissionWork(context.Context, string, int) (json.RawMessage, bool, error)
 	UpdateLibrary(context.Context, string, int64, LibraryEntry) (LibraryEntry, error)
 	BaseModel(context.Context, string) (BaseModelInstall, error)
 	BaseModels(context.Context) ([]BaseModelInstall, error)

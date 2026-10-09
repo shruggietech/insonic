@@ -55,7 +55,8 @@ func execute(args []string) int {
 		fmt.Println("insonic credentials select native/vault/session | credentials add/replace/delete/status <UUID> | credentials unlock/load (protected stdin JSON, saved values never returned)")
 		fmt.Println("insonic pipelines/speakers/terms list [--input JSON] | pipelines/speakers/terms show <UUID> | pipelines/speakers/terms set <UUID> --input JSON | pipelines inspect <UUID> [--input JSON] | speakers aliases <UUID> [--input JSON] | speakers select/diagnostics <UUID> [--input JSON] | terms compile [--input JSON]")
 		fmt.Println("insonic processing tools <configuration.json> | recordings show/document/mappings <media-id> | recordings process/assemble/map-speaker/export <media-id> --input <JSON>")
-		fmt.Println("insonic media tools <configuration.json> | media import <files...> or --manifest <CSV/JSON> [--reference] [--originated-at/on VALUE] [--timezone ZONE] | media list/show/metadata/raw/refresh/set-origin/relocate | models register/acquire <manifest> | models list/show/verify/materialize | work list/show/wait/cancel/retry")
+		fmt.Println("insonic media tools <configuration.json> | media import <files...> or --manifest <CSV/JSON> [--transcript PATH/URL] [--attribution auto/native/off/diarize] [--originated-at/on VALUE] [--timezone ZONE] | media list/show/metadata/raw/refresh/set-origin/relocate | models register/acquire <manifest> | models list/show/verify/materialize | work list/show/wait/cancel/retry")
+		fmt.Println("insonic transcript import <PATH/URL> --record <UUID/title> [--replace-transcript] [--attribution auto/native/off/diarize] [--diarization-model-id UUID] | transcript import --record <UUID/title> --legacy-sidecar")
 		fmt.Println("insonic settings show | settings set --input JSON | recordings cues <media-id> [--input JSON] | media playback/playback-check/playback-close <media-id> --input JSON")
 		fmt.Println("insonic media capture <media-id> --input JSON (exact current metadata/facts/date byte pages)")
 		fmt.Println("insonic graph capabilities/status/publish/rebuild | evidence extract/show <media-id> [--input JSON] | query assist/assistance-set --input JSON | query assistance-show | query run/explain/validate --input JSON | query run --saved <query-id> [--revision N] | query list/show/save | timeline calendar/recording | views show/save (mutation definitions use --input JSON)")
@@ -134,7 +135,7 @@ func execute(args []string) int {
 		if err != nil {
 			return output(nil, err, machine)
 		}
-	} else if positional[0] == "media" || positional[0] == "models" || positional[0] == "work" {
+	} else if positional[0] == "media" || positional[0] == "models" || positional[0] == "work" || positional[0] == "transcript" {
 		req.Operation, req.ItemID, req.Data, err = parseDomain(positional)
 		if err != nil {
 			return output(nil, err, machine)

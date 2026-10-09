@@ -35,6 +35,11 @@ func previewRequired(facts library.Facts, class string) bool {
 			if stream.Kind != "audio" {
 				continue
 			}
+			// WKWebView rejects the qualified six-channel FLAC master.
+			// Present multichannel audio through the disposable stereo preview.
+			if stream.Channels != nil && *stream.Channels > 2 {
+				return true
+			}
 			if ext == "m4a" && stream.Codec != "aac" && stream.Codec != "mp3" {
 				return true
 			}
@@ -93,8 +98,15 @@ func directPlaybackOffset(facts library.Facts) (float64, error) {
 
 func previewArguments(source, output, class string, facts library.Facts) []string {
 	args := []string{"-nostdin", "-hide_banner", "-loglevel", "error", "-threads", "2", "-copyts", "-start_at_zero", "-i", source}
+	audioMap := "0:a:0"
+	for _, stream := range facts.Streams {
+		if stream.Kind == "audio" {
+			audioMap = "0:" + strconv.Itoa(stream.Index)
+			break
+		}
+	}
 	if class == "audio" {
-		args = append(args, "-map", "0:a:0", "-vn", "-c:a", "pcm_s16le", "-ac", "2", "-ar", "48000", "-f", "wav")
+		args = append(args, "-map", audioMap, "-vn", "-c:a", "pcm_s16le", "-ac", "2", "-ar", "48000", "-f", "wav")
 	} else {
 		codec := ""
 		for _, stream := range facts.Streams {
@@ -103,7 +115,7 @@ func previewArguments(source, output, class string, facts library.Facts) []strin
 				break
 			}
 		}
-		args = append(args, "-map", "0:v:0", "-map", "0:a:0?")
+		args = append(args, "-map", "0:v:0", "-map", audioMap+"?")
 		if codec == "h264" {
 			args = append(args, "-c:v", "copy")
 		} else if runtime.GOOS == "darwin" {
@@ -147,6 +159,19 @@ func previewContentDuration(probe previewProbe, class string) (float64, error) {
 		if e != nil {
 			return 0, e
 		}
+		if duration <= 0 && (strings.Contains(probe.Format.Name, "matroska") || strings.Contains(probe.Format.Name, "webm")) {
+			var literal string
+			json.Unmarshal(stream.Tags["DURATION"], &literal)
+			parts := strings.Split(literal, ":")
+			if len(parts) == 3 {
+				h, e1 := strconv.ParseFloat(parts[0], 64)
+				m, e2 := strconv.ParseFloat(parts[1], 64)
+				sec, e3 := strconv.ParseFloat(parts[2], 64)
+				if e1 == nil && e2 == nil && e3 == nil {
+					duration = h*3600 + m*60 + sec - start
+				}
+			}
+		}
 		if duration <= 0 {
 			complete = false
 			continue
@@ -174,7 +199,7 @@ func previewContentDuration(probe previewProbe, class string) (float64, error) {
 func probePlayback(ctx context.Context, tool library.Tool, file string) (previewProbe, error) {
 	var probe previewProbe
 	result, err := process.Capture(ctx, process.Spec{Executable: tool.Path,
-		Args:     []string{"-v", "error", "-show_entries", "format=format_name,start_time,duration:stream=codec_type,start_time,duration", "-of", "json", file},
+		Args:     []string{"-v", "error", "-show_entries", "format=format_name,start_time,duration:stream=index,codec_type,start_time,duration:stream_tags=DURATION", "-of", "json", file},
 		CleanEnv: true, Env: process.LocalEnvironment(), MaxOutput: 64 << 10})
 	if err != nil || catalog.ValidateJSON(result.Stdout) != nil || json.Unmarshal(result.Stdout, &probe) != nil {
 		return probe, contracts.Fail("unavailable")
@@ -200,6 +225,49 @@ func (a *App) previewPlayback(ctx context.Context, p *playbackEntry, entry catal
 	if json.Unmarshal(entry.Facts, &facts) != nil {
 		return contracts.Fail("invalid_request")
 	}
+	if entry.Class == "audio" && p.streamIndex == nil {
+		for _, stream := range facts.Streams {
+			if stream.Kind == "audio" {
+				index := stream.Index
+				p.streamIndex = &index
+				break
+			}
+		}
+	}
+	if p.streamIndex != nil {
+		filtered := []library.Stream{}
+		for _, stream := range facts.Streams {
+			if stream.Kind == "video" || stream.Kind == "audio" && stream.Index == *p.streamIndex {
+				filtered = append(filtered, stream)
+			}
+		}
+		facts.Streams = filtered
+	}
+	originalOffset := float64(0)
+	canonicalClock := false
+	if facts.Canonical != nil {
+		index := -1
+		for _, stream := range facts.Streams {
+			if stream.Kind == "audio" {
+				index = stream.Index
+				break
+			}
+		}
+		for _, track := range facts.Canonical.Tracks {
+			if track.Index == index {
+				start, ok := new(big.Rat).SetString(track.StartNumerator + "/" + track.StartDenominator)
+				if !ok {
+					return contracts.Fail("invalid_timing")
+				}
+				originalOffset, _ = start.Float64()
+				canonicalClock = true
+				break
+			}
+		}
+		if !canonicalClock {
+			return contracts.Fail("timing_unavailable")
+		}
+	}
 	offset, err := directPlaybackOffset(facts)
 	if err != nil {
 		return err
@@ -207,8 +275,8 @@ func (a *App) previewPlayback(ctx context.Context, p *playbackEntry, entry catal
 	// HTML retains explicit nonnegative media timelines. A source's nonzero
 	// first timestamp is therefore not an offset to subtract from untouched
 	// media. Normalize such sources into a preview with a measured clock map.
-	if !previewRequired(facts, entry.Class) && math.Abs(offset) <= 0.000001 {
-		p.descriptor.TimelineOffsetSeconds = 0
+	if !previewRequired(facts, entry.Class) && math.Abs(offset) <= 0.000001 && !(entry.Class == "video" && p.streamIndex != nil) {
+		p.descriptor.TimelineOffsetSeconds = originalOffset
 		return nil
 	}
 	tools, err := ReadMediaTools(a.Workspace)
@@ -230,6 +298,15 @@ func (a *App) previewPlayback(ctx context.Context, p *playbackEntry, entry catal
 	offset, err = probeSeconds(source.Format.Start, 0)
 	if err != nil {
 		return err
+	}
+	if p.streamIndex != nil {
+		filtered := []library.Stream{}
+		for _, stream := range source.Streams {
+			if stream.Kind == "video" || stream.Index == *p.streamIndex {
+				filtered = append(filtered, stream)
+			}
+		}
+		source.Streams = filtered
 	}
 	sourceDuration, err := previewContentDuration(source, entry.Class)
 	if err != nil {
@@ -288,6 +365,9 @@ func (a *App) previewPlayback(ctx context.Context, p *playbackEntry, entry catal
 	}
 	p.descriptor.Preview = true
 	p.descriptor.TimelineOffsetSeconds = offset - proxyStart
+	if canonicalClock {
+		p.descriptor.TimelineOffsetSeconds = originalOffset - proxyStart
+	}
 	success = true
 	return nil
 }

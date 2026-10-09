@@ -14,7 +14,7 @@ flowchart TB
   Recognition --> Normalize[Pinned Cueson normalization]
   Supplied --> Normalize
   Audio --> Voices[Run elected diarization]
-  Normalize --> Assemble[Current cues and recording-local UUIDs]
+  Normalize --> Assemble[Current cues and recording-local speaker tokens]
   Voices --> Assemble
   Assemble --> Validate[Document validity and separate quality diagnostics]
   Validate --> Current[Atomic current result and reference reconciliation]
@@ -96,7 +96,7 @@ Automatic diarization diagnostics are enabled by default and describe speech cov
 | Transcription | Mapped audio, model and effective options | Actual text and timed segments, with declared diagnostics |
 | Diarization | Mapped audio, model and effective options | Temporary recording-local voice turns and automatic diagnostics |
 | Subtitle normalization | Supplied or generated native bytes | Current valid upstream Cue JSON |
-| Speaker mapping | Recording/local UUID and known catalog speaker | External mapping without rewriting subtitle text |
+| Speaker mapping | Recording/local speaker token and known catalog speaker | External mapping without rewriting subtitle text |
 | Alignment | Current text and mapped audio | Timed evidence or explicit unavailable outcome |
 | Assertion extraction | Current cue references | Structured assertions citing current evidence |
 | Dataset preparation | Current speaker/cue references and recipe | Mapped inputs and reference/digest provenance |

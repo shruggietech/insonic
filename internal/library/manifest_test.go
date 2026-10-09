@@ -17,7 +17,7 @@ func TestManifestsResolveRelativeAndOverrideDateKind(t *testing.T) {
 		t.Fatal(e)
 	}
 	item := r.Items[0]
-	if item.Source != filepath.Join(dir, "a.wav") || item.Subtitle != filepath.Join(dir, "a.srt") {
+	if item.Source != filepath.Join(dir, "a.wav") || item.Transcript != filepath.Join(dir, "a.srt") {
 		t.Fatalf("paths %+v", item)
 	}
 	options := merged(r.Defaults, item.Options)

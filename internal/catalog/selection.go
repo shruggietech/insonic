@@ -32,7 +32,7 @@ func (s *Store) CurrentSpeakerReferences(ctx context.Context, selection SpeakerS
 	cursor := evidenceCursor{}
 	if selection.Cursor != "" {
 		raw, err := base64.RawURLEncoding.DecodeString(selection.Cursor)
-		if err != nil || len(raw) > 1024 || strict(raw, &cursor) != nil || cursor.SpeakerID != selection.SpeakerID || cursor.RecordingID != selection.RecordingID {
+		if err != nil || len(raw) > 4096 || strict(raw, &cursor) != nil || cursor.SpeakerID != selection.SpeakerID || cursor.RecordingID != selection.RecordingID {
 			return out, contracts.Fail("invalid_request")
 		}
 	}
@@ -121,7 +121,7 @@ func (s *Store) CurrentSpeakerReferences(ctx context.Context, selection SpeakerS
 	return out, sanitize(tx.Commit())
 }
 func (s *Store) ResolveEvidence(ctx context.Context, ref CurrentReference) (out ResolvedEvidence, e error) {
-	if !contracts.ValidID(ref.RecordingID) || !contracts.ValidID(ref.LocalSpeakerID) || !contracts.ValidID(ref.SpeakerID) || ref.RecordingRevision < 1 || ref.MappingRevision < 1 || ref.CueID == "" || !digestPattern.MatchString(ref.DocumentDigest) || !digestPattern.MatchString(ref.SourceDigest) || !digestPattern.MatchString(ref.SourceMapDigest) {
+	if !contracts.ValidID(ref.RecordingID) || !contracts.ValidLocalSpeakerID(ref.LocalSpeakerID) || !contracts.ValidID(ref.SpeakerID) || ref.RecordingRevision < 1 || ref.MappingRevision < 1 || ref.CueID == "" || !digestPattern.MatchString(ref.DocumentDigest) || !digestPattern.MatchString(ref.SourceDigest) || !digestPattern.MatchString(ref.SourceMapDigest) {
 		return out, contracts.Fail("invalid_request")
 	}
 	tx, e := s.identityRead(ctx)

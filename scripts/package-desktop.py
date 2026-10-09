@@ -425,8 +425,22 @@ def build():
     if key.startswith('darwin'):
         _, source_receipt, _ = source_media.prepare()
         write_json(source_directory / 'ffmpeg-build.json', source_receipt)
+        lame_source = source_media.fetch_lame()
+        shutil.copyfile(lame_source, source_directory / lame_source.name)
+        for name in ['build-media-source.py', 'process_tree.py']:
+            shutil.copyfile(ROOT / 'scripts' / name, source_directory / name)
+        shutil.copyfile(ROOT / 'internal/qualification/media-tools.json', source_directory / 'media-tools.json')
+        (source_directory / 'REBUILD.txt').write_text(
+            'Rebuild on macOS ARM64 (macOS 13.3+). Install the Xcode command-line tools.\n'
+            'Use the included exact FFmpeg and LAME archives and media-tools.json pins.\n'
+            'build-media-source.py records the configure and make invocations.\n'
+            'Arrange the recipe as scripts/build-media-source.py and scripts/process_tree.py,\n'
+            'and the pin as internal/qualification/media-tools.json, then invoke the recipe\n'
+            'with Python 3.12+ from that root. Put included archives in build/media-source-pins.\n'
+            'Edit LAME source, rebuild its static archive, and relink FFmpeg through that recipe.\n',
+            encoding='utf-8', newline='\n')
         distribution = {'binary_publication': 'not-promoted', 'corresponding_source': 'included',
-                        'codec_libraries': 'built-in LGPL source; OS VideoToolbox', 'source_review_required_before_release': True}
+                        'codec_libraries': 'built-in LGPL source; static LAME with exact source and rebuild recipe; OS VideoToolbox', 'source_review_required_before_release': True}
     else:
         source_receipt = {'source_commit': commit, 'source_sha256': digest,
                           'upstream_distribution': 'eugeneware/ffmpeg-static:b6.1.1',
@@ -568,7 +582,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
             import_input = Path(temporary) / 'import fixtures.json'
             write_json(import_input, {'kind': 'import-manifest', 'schema_version': VERSION, 'items': [
                 {'source': str(media / 'speech.flac'), 'subtitle': str(media / 'speech.srt')},
-                {'source': str(media / 'sintel-dialogue.mkv'), 'subtitle': str(media / 'sintel-dialogue.srt')}]})
+                {'source': str(media / 'sintel-dialogue.mkv'), 'subtitle': str(media / 'sintel.srt')}]})
             accepted = call('media', 'import', '--manifest', import_input, allow_detached=True)
             job_id = accepted['work_id']
             current = call('work', 'wait', job_id, '--timeout-ms', '30000')

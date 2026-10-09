@@ -166,7 +166,7 @@
     "mapping": {
       "type": "object",
       "additionalProperties": false,
-      "description": "External recording-local UUID to known speaker correlation, without timed assignments.",
+      "description": "External recording-local speaker token to known speaker correlation, without timed assignments.",
       "properties": {
         "id": {
           "$ref": "common.schema.json#/$defs/uuid",
@@ -177,8 +177,8 @@
           "description": "Current recording identity."
         },
         "local_speaker_id": {
-          "$ref": "common.schema.json#/$defs/uuid",
-          "description": "Recording-local UUID referenced inside embedded Cue JSON."
+          "$ref": "common.schema.json#/$defs/localSpeakerID",
+          "description": "Recording-local speaker token referenced inside embedded Cue JSON."
         },
         "speaker_id": {
           "$ref": "common.schema.json#/$defs/uuid",

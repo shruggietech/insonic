@@ -110,7 +110,8 @@ func TestFullLibraryBackendParity(t *testing.T) {
 				s := backendLibrary(t, backend, storage)
 				ctx := context.Background()
 				source := wavFixture(t)
-				work := claimLibraryWork(t, s.Catalog, "media.import", ImportRequest{Defaults: Options{Timezone: "UTC", OriginatedOn: "2026-10-07"}, Items: []Item{{Source: source}}})
+				transcript, _ := transcriptFixture(t)
+				work := claimLibraryWork(t, s.Catalog, "media.import", ImportRequest{Defaults: Options{Timezone: "UTC", OriginatedOn: "2026-10-07"}, Items: []Item{{Source: source, Transcript: transcript}}})
 				value, e := s.Execute(ctx, work)
 				if e != nil {
 					t.Fatal(e)

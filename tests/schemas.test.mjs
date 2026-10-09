@@ -46,7 +46,9 @@ test('recording read, mapping and export requests enforce typed argument bounds'
   assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,mapping_revision:0}}),true);
   assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,mapping_revision:9}}),true);
   assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,mapping_revision:-1}}),false);
-  assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,local_speaker_id:'voice1'}}),false);
+  assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,local_speaker_id:'voice1'}}),true);
+  assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,local_speaker_id:' voice1'}}),false);
+  assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,speaker_id:'voice1'}}),false);
   assert.equal(master({...base,operation:'recordings.export',data:{format:'cueson',destination:'/tmp/export.json',strict:true}}),true);
   assert.equal(master({...base,operation:'recordings.export',data:{format:'invented',destination:'/tmp/export.json'}}),false);
   assert.equal(master({...base,operation:'recordings.process',data:{diarization_model_id:'33333333-3333-4333-8333-333333333333'},publication_id:'55555555-5555-4555-8555-555555555555'}),false);
@@ -270,4 +272,10 @@ test('assistance requests keep elections outside generated query data',()=>{
  assert.equal(master({...base,data:{...base.data,configuration:{enabled:true,limits:{max_rows:501}}}}),false);
  assert.equal(master({...base,item_id:'22222222-2222-4222-8222-222222222222'}),false);
  assert.equal(master({...base,operation:'query.assistance-show',data:{}}),false);
+});
+
+test('media and standalone transcript manifest shapes agree with runtime', () => {
+ const base=example('import-manifest');const record='11111111-1111-4111-8111-111111111111';
+ for(const item of [{source:'audio.flac'},{source:'audio.flac',transcript:'cue.json'},{source:'audio.flac',subtitle:'cue.srt'},{record,transcript:'cue.json'},{record,subtitle:'cue.srt'},{record,source:'cue.json'},{record,transcript:'cue.json',expected_revision:1,expected_recording_revision:0}]) assert.equal(master({...base,items:[item]}),true,JSON.stringify(item));
+ for(const item of [{record},{transcript:'cue.json'},{source:'audio.flac',record,transcript:'cue.json'},{source:'audio.flac',record,subtitle:'cue.srt'},{record,transcript:'cue.json',subtitle:'cue.srt'},{source:'audio.flac',transcript:'cue.json',subtitle:'cue.srt'},{source:'audio.flac',expected_revision:1}]) assert.equal(master({...base,items:[item]}),false,JSON.stringify(item));
 });

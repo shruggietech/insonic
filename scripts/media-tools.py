@@ -115,6 +115,8 @@ def prepare_avtool(name, key, os_name):
         notices = BUILD / 'notices'
         notices.mkdir(exist_ok=True)
         shutil.copyfile(directory / 'COPYING.LGPLv2.1', notices / 'darwin-arm64.LICENSE')
+        for name in ['COPYING', 'LICENSE']:
+            shutil.copyfile(directory / 'lame-source' / name, notices / ('LAME-' + name))
         (notices / 'darwin-arm64.README').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
         (ROOT / 'build/native/media-source-build-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
         return tool_identity(executable, child([executable, '-version'])), {
@@ -184,10 +186,13 @@ def main():
     manifest, receipt = prepare()
     if not args.prepare_only:
         env = {'INSONIC_LIBRARY_TOOLS_FILE': str(manifest)}
+        candidates = list((ROOT / 'build/native/cueson').rglob('cueson.exe' if os.name == 'nt' else 'cueson'))
+        if candidates:
+            env['CUESON_EXECUTABLE'] = str(candidates[0])
         if os.name == 'nt' and Path('C:/msys64/ucrt64/bin').is_dir():
             env['PATH'] = 'C:/msys64/ucrt64/bin' + os.pathsep + os.environ['PATH']
         output = child(['go', 'test', '-count=1', '-v', './internal/library', './internal/app',
-                        '-run', 'TestNativeMedia|TestNativeDirectPlaybackNonzeroSourceClock'], env=env)
+                        '-run', 'TestNativeMedia|TestNativeCanonical|TestNativeStereo|TestNativeAdmission|TestNativeDirectPlaybackNonzeroSourceClock'], env=env)
         print(output.decode(), end='')
         receipt['native_media'] = 'passed'
         (ROOT / 'build/native/media-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')

@@ -40,16 +40,8 @@ func importRecordingFixture(t *testing.T, a *App) string {
 	t.Helper()
 	source, _ := filepath.Abs("../../tests/fixtures/media/speech.flac")
 	subtitle, _ := filepath.Abs("../../tests/fixtures/media/speech.srt")
-	r := realRequest(a, "media.import", "", library.ImportRequest{Items: []library.Item{{Source: source, Subtitle: subtitle, NewEntry: true}}})
-	if r.Error != nil {
-		t.Fatal(r.Error)
-	}
-	done := awaitWork(t, a, r.Result.(map[string]any)["work_id"].(string))
-	var imported library.ImportResult
-	if json.Unmarshal(done.Result, &imported) != nil || len(imported.Items) != 1 || imported.Items[0].MediaID == "" {
-		t.Fatalf("admission %s", done.Result)
-	}
-	return imported.Items[0].MediaID
+	return seedLegacyMedia(t, a, source, subtitle)
+
 }
 func TestRecordingRuntimeReplacementReplayAndRestart(t *testing.T) {
 	w, e := workspace.Init(t.TempDir(), "recording")
@@ -321,4 +313,45 @@ func TestLocalVoiceIDsAndDiagnosticAggregation(t *testing.T) {
 	if json.Unmarshal(raw, &report) != nil || len(report) != 1 || report[0].Count != 2 || report[0].Pointer != "/cues/0" {
 		t.Fatal("diagnostic occurrences lost", string(raw))
 	}
+}
+
+// Build historical readable authority explicitly. These recording tests exercise
+// existing rows, not the new canonical admission policy (covered natively).
+func seedLegacyMedia(t *testing.T, a *App, source, subtitle string) string {
+	t.Helper()
+	ctx := context.Background()
+	artifacts, err := a.artifactService()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pub, err := artifacts.Publish(ctx, contracts.ID(), source, "original-media")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var subtitleID *string
+	if subtitle != "" {
+		sub, err := artifacts.Publish(ctx, contracts.ID(), subtitle, "supplied-subtitle")
+		if err != nil {
+			t.Fatal(err)
+		}
+		subtitleID = &sub.ID
+	}
+	work, err := a.Catalog.EnqueueWork(ctx, contracts.ID(), "recordings.assemble", json.RawMessage(`{}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	work, err = a.Catalog.ClaimWork(ctx, work.ID, a.Session, time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	facts, _ := json.Marshal(library.Facts{Streams: []library.Stream{}, Extension: filepath.Ext(source), SubtitleState: "available"})
+	metadata, _ := json.Marshal(library.Metadata{CaptureState: "unsupported", Reports: []library.Extraction{}, Observations: []library.Observation{}})
+	entry, err := a.Catalog.CommitLibrary(ctx, work, catalog.LibraryEntry{ID: contracts.ID(), AssetID: pub.ArtifactID, Title: filepath.Base(source), Class: "audio", Mode: "copy", SourceLocator: source, Digest: pub.Digest, Size: pub.Size, OriginalPublicationID: &pub.ID, SubtitlePublicationID: subtitleID, Facts: facts, Metadata: metadata, Dates: json.RawMessage(`{"observations":[],"policy":"owner-first"}`), ReportPublicationIDs: json.RawMessage(`[]`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = a.Catalog.CheckpointWork(ctx, work, "fixture", "succeeded", json.RawMessage(`{}`), time.Minute); err != nil {
+		t.Fatal(err)
+	}
+	return entry.ID
 }

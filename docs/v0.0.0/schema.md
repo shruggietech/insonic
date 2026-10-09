@@ -66,7 +66,7 @@ Catalog adapters preserve the exact nanosecond value; a PostgreSQL timestamp col
 
 Use non-null references for required provenance. An unknown value differs from an empty string, zero or a guessed default. Portable JSON is not a substitute for relational foreign keys on core associations. Store commonly queried properties in typed columns; preserve complete vendor reports/options in versioned JSON or artifact manifests. Backend-specific JSON, full-text and index facilities may optimize operations only if the normalized results stay equivalent.
 
-Primary uniqueness includes artifact digest/size within the deduplication scope, entity/revision pairs, job idempotency keys, dataset/member ordinal, outbox event ID and graph target checkpoint. Duplicate cue text is not a unique identity. Deletion must obey explicit retention rules; a speaker correction invalidates dependent current preparation while retaining original sources and noncontent model lineage. Hard deletion of referenced durable artifacts fails until the user-requested retention operation has reconciled those references.
+Primary uniqueness includes artifact digest/size within the deduplication scope, entity/revision pairs, job idempotency keys, dataset/member ordinal, outbox event ID and graph target checkpoint. Duplicate cue text is not a unique identity. Deletion must obey explicit retention rules; a speaker correction invalidates dependent current preparation while retaining canonical sources and captured provenance and noncontent model lineage. Hard deletion of referenced durable artifacts fails until the user-requested retention operation has reconciled those references.
 
 ## Workspace, artifacts and media
 
@@ -119,14 +119,14 @@ Keep recording/origination, publication, retrieval, import, filesystem modificat
 | `context_term` | Stable term ID/revision, canonical/variant spellings, language/context/state and optional speaker/alias links |
 | `processing_run` | Source/model/tool digests, effective settings, work fence and noncontent accepted result references |
 | `recording` | Library entry/source digest, current revision/state, sole embedded Cue JSON and document digest, measured nullable duration, current mapped-audio publication and exact source map |
-| `recording_speaker_mapping` | Recording/document identity, local UUID, known speaker ID and expected current recording and mapping revisions |
+| `recording_speaker_mapping` | Recording/document identity, local speaker token, known speaker ID and expected current recording and mapping revisions |
 | `segment` | Recording/document/cue/local-UUID references and optional current clip artifact; no copied interval/channel/known-person assignment |
 | `speaker` / `speaker_identity_revision` | Stable known-speaker identity, name/attributes and current identity state |
 | `speaker_alias` / `speaker_lineage_event` | Alias provenance and identity merge/split relationships |
 | `term_revision` / `term_speaker_association` | Specialized terms, pronunciation/context and explicit speaker links |
 | `evidence_chunk` / `assertion_revision` | Current recording/document/cue references, extraction provenance and explicit current/invalidated state |
 
-Only the embedded Cue JSON stores recording-local assignments. Native source labels remain separate upstream observations. External known-speaker corrections preserve document text and bytes. Segment/query/playback/training consumers resolve current cue/UUID references rather than freezing another assignment list. A replacement removes stale segment/membership references and invalidates dependent preparation/evidence. Historical receipts retain IDs/digests/diagnostics without copied documents or turn arrays.
+Only the embedded Cue JSON stores recording-local assignments. Native source labels remain separate upstream observations. External known-speaker corrections preserve document text and bytes. Segment/query/playback/training consumers resolve current cue/token references rather than freezing another assignment list. A replacement removes stale segment/membership references and invalidates dependent preparation/evidence. Historical receipts retain IDs/digests/diagnostics without copied documents or turn arrays.
 
 Unknown duration is null, known zero remains zero, and full media duration is measured independently of cue coverage. Preserve exact original-clock integer/rational mapping outside Cue JSON; deliberately project the consumer millisecond representation under [subtitles](subtitles.md#exact-source-time-and-millisecond-projection).
 

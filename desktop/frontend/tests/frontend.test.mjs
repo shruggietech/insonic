@@ -50,6 +50,7 @@ function mock() {
     id: mid,
     revision: 1,
     title: 'Committed speech',
+    mode:'reference',
     class: 'audio',
     digest: 'digest',
     dates: { precision: 'date-only', date: '1961-01-20' },
@@ -515,6 +516,7 @@ test('original playback for a fresh native entry passes no current-recording fen
         id: mid,
         asset_id: wid,
         title: 'Committed speech',
+    mode:'reference',
         class: 'audio',
         mode: 'reference',
         source_locator: '/fixture.wav',
@@ -540,7 +542,7 @@ test('original playback for a fresh native entry passes no current-recording fen
   await mount(bridge);
   await click('Open Committed speech');
   assert.equal(document.querySelector('[role=alert]'), null);
-  await click('Play original');
+  await click('Play recording audio');
   assert.deepEqual(bridge.calls.find((c) => c.operation === 'Playback').args, [
     mid,
     7,
@@ -766,7 +768,7 @@ test('buffered playback is paused and current evidence removed after authority r
   });
   await mount(bridge);
   await click('Open Committed speech');
-  await click('Play original');
+  await click('Play recording audio');
   const audio = document.querySelector('audio');
   let paused = false;
   audio.pause = () => {
@@ -1446,4 +1448,18 @@ test('native mount readiness waits for delayed workspace controls and still reje
     }, 30);
     try { await waiting; } finally { clearTimeout(timer); }
   } finally { host.remove(); }
+});
+
+
+test('rendered standalone transcript keeps independent limits and replacement election',async()=>{
+ const bridge=mock();await mount(bridge);
+ await act(async()=>field('Import transcript into an existing recording').click());await tick();
+ await fill('Existing recording ID or exact title',mid);await fill('Transcript path or URL','https://example.test/captions.cueson.json');
+ await fill('Import speaker attribution','off');await fill('Transcript format','cueson');await fill('Transcript byte limit','4096');await fill('Transcript timeout in milliseconds','30000');
+ await act(async()=>field('Replace an existing current transcript').click());await tick();await click('Import');
+ const request=bridge.calls.find(c=>c.operation==='media.import');assert.equal(request.data.items[0].record,mid);assert.equal(request.data.items[0].source,undefined);assert.equal(request.data.defaults.replace_transcript,true);assert.equal(request.data.defaults.attribution,'off');assert.equal(request.data.defaults.transcript_max_bytes,4096);assert.equal(request.data.defaults.transcript_timeout_ms,30000);assert.equal(validateNativeRequest(request).valid,true);await unmount();
+});
+
+test('invalid numeric admission controls fail before native submission',async()=>{
+ const bridge=mock();await mount(bridge);await fill('Media path or URL','/fixture.wav');await fill('Transcript byte limit','NaN');await click('Import');assert.equal(bridge.calls.some(c=>c.operation==='media.import'),false);assert.match(document.body.textContent,/Enter valid transcript limits/);await unmount();
 });

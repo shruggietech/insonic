@@ -91,11 +91,13 @@ func TestPrepareImportRejectsCredentialURLBeforeWorkPersistence(t *testing.T) {
 			t.Fatal("local percent/drive path rejected")
 		}
 	}
-	for _, subtitle := range []string{"https://example.test/subtitle.srt", "https://example.test/%zz?token=private"} {
-		if _, e := PrepareImport(ImportRequest{Items: []Item{{Source: "local.wav", Subtitle: subtitle}}}); e == nil {
-			t.Fatal("remote subtitle admitted to filesystem-only intent")
-		}
+	if _, err := PrepareImport(ImportRequest{Items: []Item{{Source: "local.wav", Subtitle: "https://example.test/subtitle.srt"}}}); err != nil {
+		t.Fatal("valid remote transcript rejected", err)
 	}
+	if _, err := PrepareImport(ImportRequest{Items: []Item{{Source: "local.wav", Subtitle: "https://example.test/%zz?token=private"}}}); err == nil {
+		t.Fatal("credential URL accepted")
+	}
+
 }
 
 func TestMissingSuppliedSubtitleKeepsOriginalAdmission(t *testing.T) {

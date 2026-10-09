@@ -294,7 +294,11 @@ func validateRecord(value any) error {
 		if x == nil {
 			continue
 		}
-		if c.name == "id" || (strings.HasSuffix(c.name, "_id") && c.name != "credential_id" && c.name != "cue_id") {
+		if c.name == "local_speaker_id" {
+			if id, ok := x.(string); !ok || !contracts.ValidLocalSpeakerID(id) {
+				return contracts.Fail("invalid_request")
+			}
+		} else if c.name == "id" || (strings.HasSuffix(c.name, "_id") && c.name != "credential_id" && c.name != "cue_id") {
 			if id, ok := x.(string); !ok || !contracts.ValidID(id) {
 				return contracts.Fail("invalid_request")
 			}

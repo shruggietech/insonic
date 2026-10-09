@@ -1,0 +1,210 @@
+{
+  "$schema": "https://cueson.io/schema/v1.0.0/cueson.schema.json",
+  "schema_version": "1.0.0",
+  "format": "webvtt",
+  "format_support": {
+    "status": "stable",
+    "ingest_supported": true,
+    "render_supported": true,
+    "restore_supported": true,
+    "ocr_required_for_semantic_output": false
+  },
+  "producer": {
+    "version": "7.2-independent",
+    "name": "historical-fixture-producer"
+  },
+  "source": {
+    "primary_asset_id": "asset-0",
+    "assets": [
+      {
+        "id": "asset-0",
+        "role": "primary",
+        "file_name": "historical-webvtt.vtt",
+        "media_type": "text/vtt",
+        "size": {
+          "text": "213 bytes",
+          "bytes": 213
+        },
+        "hashes": {
+          "sha256": "47da15f08de11944bdea3f36c6823bfb26a135c3f84b091e00f63a96f408c417"
+        },
+        "timestamps": {
+          "created": null,
+          "accessed": null,
+          "modified": null,
+          "created_source": "unavailable"
+        },
+        "encoding": {
+          "bom": null,
+          "line_endings": "lf",
+          "detected_encoding": "utf-8",
+          "confidence": 1
+        },
+        "data_base64": "V0VCVlRUIEV4YW1wbGUKS2luZDogY2FwdGlvbnMKClJFR0lPTgppZDpmcmVkCgpOT1RFIHJldGFpbmVkCm9wYXF1ZSBub3RlCgpTVFlMRQo6OmN1ZSB7IGNvbG9yOiB5ZWxsb3c7IH0KCmludHJvCjAwOjAxLjI1MCAtLT4gMDA6MDQuMjAwIGFsaWduOnN0YXJ0IG15c3Rlcnk6b3BhcXVlIGFsaWduOmVuZAo8diBOYXJyYXRvcj5IZWxsbyA8MDA6MDIuMDAwPndvcmxkLjwvdj4K"
+      }
+    ]
+  },
+  "metadata": {
+    "title": null,
+    "language": "en",
+    "kind": "subtitles",
+    "description": null
+  },
+  "document": {
+    "cue_count": 1,
+    "media_start_milliseconds": 1250,
+    "media_end_milliseconds": 4200,
+    "media_span_milliseconds": 2950,
+    "has_word_level_timing": true
+  },
+  "cues": [
+    {
+      "id": "cue-000000",
+      "ordinal": 0,
+      "source_order": 3,
+      "source_identifier": "intro",
+      "timing": {
+        "start_milliseconds": 1250,
+        "end_milliseconds": 4200,
+        "duration_milliseconds": 2950
+      },
+      "payload": {
+        "plain_text": "Hello world.",
+        "raw_text": "<v Narrator>Hello <00:02.000>world.</v>",
+        "lines": [
+          "<v Narrator>Hello <00:02.000>world.</v>"
+        ]
+      },
+      "speakers": [
+        {
+          "origin": "native",
+          "name": "Narrator"
+        }
+      ],
+      "tokens": [
+        {
+          "native_timing": null,
+          "start_milliseconds": 1250,
+          "end_milliseconds": 2000,
+          "text": "Hello "
+        },
+        {
+          "native_timing": "00:02.000",
+          "start_milliseconds": 2000,
+          "end_milliseconds": 4200,
+          "text": "world."
+        }
+      ],
+      "ocr_observations": [],
+      "placement": null,
+      "format_data": {
+        "webvtt": {
+          "identifier_raw": "intro",
+          "settings": {
+            "align": "end"
+          },
+          "settings_raw": "align:start mystery:opaque align:end",
+          "raw_payload": "<v Narrator>Hello <00:02.000>world.</v>",
+          "raw_payload_lines": [
+            "<v Narrator>Hello <00:02.000>world.</v>"
+          ],
+          "timing_line_raw": "00:01.250 --> 00:04.200 align:start mystery:opaque align:end",
+          "setting_occurrences": [
+            {
+              "value": "start",
+              "name": "align",
+              "raw": "align:start",
+              "valid": true,
+              "recognized": true
+            },
+            {
+              "value": "opaque",
+              "name": "mystery",
+              "raw": "mystery:opaque",
+              "valid": false,
+              "recognized": false
+            },
+            {
+              "value": "end",
+              "name": "align",
+              "raw": "align:end",
+              "valid": true,
+              "recognized": true
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "format_data": {
+    "webvtt": {
+      "signature_line_raw": "WEBVTT Example",
+      "blocks": [
+        {
+          "type": "region",
+          "source_order": 0,
+          "raw": "REGION\nid:fred",
+          "raw_lines": [
+            "REGION",
+            "id:fred"
+          ],
+          "region": {
+            "setting_occurrences": [
+              {
+                "value": "fred",
+                "name": "id",
+                "raw": "id:fred",
+                "valid": true,
+                "recognized": true
+              }
+            ],
+            "settings": {
+              "id": "fred"
+            },
+            "settings_raw": "id:fred"
+          }
+        },
+        {
+          "type": "note",
+          "source_order": 1,
+          "raw": "NOTE retained\nopaque note",
+          "raw_lines": [
+            "NOTE retained",
+            "opaque note"
+          ]
+        },
+        {
+          "type": "style",
+          "source_order": 2,
+          "raw": "STYLE\n::cue { color: yellow; }",
+          "raw_lines": [
+            "STYLE",
+            "::cue { color: yellow; }"
+          ]
+        }
+      ],
+      "signature": "WEBVTT",
+      "metadata_lines": [
+        "Kind: captions"
+      ],
+      "description": "Example"
+    }
+  },
+  "diagnostics": [
+    {
+      "source_order": 3,
+      "message": "Historical fixture retains an unknown setting occurrence.",
+      "code": "webvtt_unknown_setting",
+      "cue_id": "cue-000000",
+      "severity": "warning"
+    }
+  ],
+  "stats": {
+    "cue_count": 1,
+    "diagnostic_count": 1,
+    "warning_count": 1,
+    "error_count": 0,
+    "has_word_level_timing": true,
+    "media_span_milliseconds": 2950
+  }
+}

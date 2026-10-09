@@ -1712,7 +1712,7 @@
                 "description": "Expected current mapping revision; zero creates the mapping."
               },
               "local_speaker_id": {
-                "$ref": "common.schema.json#/$defs/uuid",
+                "$ref": "common.schema.json#/$defs/localSpeakerID",
                 "description": "Current Cueson-local speaker identity."
               },
               "mapping_revision": {
@@ -2872,6 +2872,11 @@
                 "description": "Maximum source snapshot bytes.",
                 "minimum": 1,
                 "maximum": 10737418240
+              },
+              "stream_index": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Absolute canonical audio stream index for selected-track playback."
               }
             },
             "dependentRequired": {

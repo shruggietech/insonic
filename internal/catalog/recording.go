@@ -60,7 +60,7 @@ func validRecording(r Recording) bool {
 	return subtitles.ValidateDocument(r.Document) == nil
 }
 func validSpeakerMapping(m SpeakerMapping) bool {
-	return contracts.ValidID(m.ID) && contracts.ValidID(m.RecordingID) && contracts.ValidID(m.LocalSpeakerID) && contracts.ValidID(m.SpeakerID) && digestPattern.MatchString(m.DocumentDigest) && m.Revision > 0
+	return contracts.ValidID(m.ID) && contracts.ValidID(m.RecordingID) && contracts.ValidLocalSpeakerID(m.LocalSpeakerID) && contracts.ValidID(m.SpeakerID) && digestPattern.MatchString(m.DocumentDigest) && m.Revision > 0
 }
 func recordingDigest(r Recording) string { r.Revision = 0; d, _ := intent(r); return d }
 func (s *Store) Recording(ctx context.Context, id string) (Recording, error) {
@@ -148,7 +148,15 @@ func (s *Store) validateRecordingSource(ctx context.Context, tx *sql.Tx, r Recor
 	if entry.Digest != r.SourceDigest || (exact && entry.Revision != r.SourceRevision) || r.SourceRevision > entry.Revision {
 		return contracts.Fail("conflict")
 	}
-	if r.State == "ready" {
+	var importMap struct {
+		Policy   string `json:"policy"`
+		Supplied bool   `json:"supplied_document"`
+	}
+	json.Unmarshal(r.SourceMap, &importMap)
+	// A supplied document owns its declared timing. Bind source identity without
+	// replacing its media_timing or rejecting native cues outside measured audio.
+	// Engine-produced mapped recordings retain the stricter assembly contract.
+	if r.State == "ready" && importMap.Policy != "supplied-document-source-clock;no-retiming" && !importMap.Supplied {
 		var doc struct {
 			MediaTiming *struct {
 				DurationMS *int64 `json:"duration_milliseconds"`
@@ -179,6 +187,49 @@ func (s *Store) validateRecordingSource(ctx context.Context, tx *sql.Tx, r Recor
 	}
 	return s.availablePublications(ctx, tx, publicationList(r.MappedAudioPublicationID))
 }
+func (s *Store) saveRecording(ctx context.Context, tx *sql.Tx, expected int64, r *Recording, rev int64) error {
+	var old Recording
+	e := s.domainTx(ctx, tx, "Recordings", r.ID, &old)
+	if e != nil && e != sql.ErrNoRows {
+		return e
+	}
+	if (e == nil && old.Revision != expected) || (e == sql.ErrNoRows && expected != 0) {
+		return contracts.Fail("conflict")
+	}
+	if e = s.validateRecordingSource(ctx, tx, *r, true); e != nil {
+		return e
+	}
+	if e = s.queueRemoved(ctx, tx, r.ID, publicationList(old.MappedAudioPublicationID), publicationList(r.MappedAudioPublicationID), rev+1); e != nil {
+		return e
+	}
+	r.Revision = rev + 1
+	if e = s.putDomain(ctx, tx, "Recordings", *r); e != nil {
+		return e
+	}
+	mappings, e := s.recordingMappings(ctx, tx, r.ID)
+	if e != nil {
+		return e
+	}
+	present := documentSpeakers(r.Document)
+	for _, m := range mappings {
+		if !present[m.LocalSpeakerID] {
+			if _, e = s.exec(ctx, tx, "DELETE FROM speaker_mapping WHERE workspace_id=? AND id=?", s.workspace, m.ID); e != nil {
+				return e
+			}
+		} else {
+			m.DocumentDigest = r.DocumentDigest
+			m.Revision = r.Revision
+			if e = s.putDomain(ctx, tx, "SpeakerMappings", m); e != nil {
+				return e
+			}
+		}
+	}
+	if e = s.reconcileRecordingEvidence(ctx, tx, old, *r, rev+1); e != nil {
+		return e
+	}
+	return nil
+}
+
 func (s *Store) CommitRecording(ctx context.Context, claim Work, expected int64, r Recording) (Recording, error) {
 	if expected < 0 || !validRecording(r) {
 		return r, contracts.Fail("invalid_request")
@@ -200,50 +251,14 @@ func (s *Store) CommitRecording(ctx context.Context, claim Work, expected int64,
 		if ok {
 			return s.domainTx(ctx, tx, "Recordings", r.ID, &r)
 		}
-		var old Recording
-		e = s.domainTx(ctx, tx, "Recordings", r.ID, &old)
-		if e != nil && e != sql.ErrNoRows {
-			return e
-		}
-		if (e == nil && old.Revision != expected) || (e == sql.ErrNoRows && expected != 0) {
-			return contracts.Fail("conflict")
-		}
-		if e = s.validateRecordingSource(ctx, tx, r, true); e != nil {
-			return e
-		}
-		if e = s.queueRemoved(ctx, tx, r.ID, publicationList(old.MappedAudioPublicationID), publicationList(r.MappedAudioPublicationID), rev+1); e != nil {
-			return e
-		}
-		r.Revision = rev + 1
-		if e = s.putDomain(ctx, tx, "Recordings", r); e != nil {
-			return e
-		}
-		mappings, e := s.recordingMappings(ctx, tx, r.ID)
-		if e != nil {
-			return e
-		}
-		present := documentSpeakers(r.Document)
-		for _, m := range mappings {
-			if !present[m.LocalSpeakerID] {
-				if _, e = s.exec(ctx, tx, "DELETE FROM speaker_mapping WHERE workspace_id=? AND id=?", s.workspace, m.ID); e != nil {
-					return e
-				}
-			} else {
-				m.DocumentDigest = r.DocumentDigest
-				m.Revision = r.Revision
-				if e = s.putDomain(ctx, tx, "SpeakerMappings", m); e != nil {
-					return e
-				}
-			}
-		}
-		if e = s.reconcileRecordingEvidence(ctx, tx, old, r, rev+1); e != nil {
+		if e = s.saveRecording(ctx, tx, expected, &r, rev); e != nil {
 			return e
 		}
 		result, e := s.currentReceiptResult(ctx, tx, "recording_id", r.ID, r.Revision, recordingDigest(r))
 		if e != nil {
 			return e
 		}
-		mappings, e = s.recordingMappings(ctx, tx, r.ID)
+		mappings, e := s.recordingMappings(ctx, tx, r.ID)
 		if e != nil {
 			return e
 		}
@@ -257,7 +272,7 @@ func (s *Store) CommitRecording(ctx context.Context, claim Work, expected int64,
 	return r, e
 }
 func (s *Store) SetSpeakerMapping(ctx context.Context, op string, expected int64, m SpeakerMapping) (SpeakerMapping, error) {
-	if !contracts.ValidID(op) || !contracts.ValidID(m.RecordingID) || !contracts.ValidID(m.LocalSpeakerID) || !contracts.ValidID(m.SpeakerID) || expected < 1 {
+	if !contracts.ValidID(op) || !contracts.ValidID(m.RecordingID) || !contracts.ValidLocalSpeakerID(m.LocalSpeakerID) || !contracts.ValidID(m.SpeakerID) || expected < 1 {
 		return m, contracts.Fail("invalid_request")
 	}
 	m.ID = operationID("speaker-mapping", m.RecordingID, m.LocalSpeakerID)
@@ -340,11 +355,15 @@ func (s *Store) validateRecordingState(ctx context.Context, tx *sql.Tx, records 
 			RecordingID        string `json:"recording_id"`
 			MappingRecordingID string `json:"mapping_recording_id"`
 			RecordDigest       string `json:"record_digest"`
+			RecordingDigest    string `json:"recording_digest"`
 			MappingDigest      string `json:"mapping_digest"`
 		}
 		if json.Unmarshal([]byte(result), &p) != nil {
 			rows.Close()
 			return contracts.Fail("invalid_request")
+		}
+		if p.RecordingDigest != "" {
+			p.RecordDigest = p.RecordingDigest
 		}
 		if p.RecordingID != "" {
 			if !contracts.ValidID(p.RecordingID) || !digestPattern.MatchString(p.RecordDigest) || !digestPattern.MatchString(p.MappingDigest) {

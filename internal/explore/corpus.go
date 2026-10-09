@@ -186,7 +186,7 @@ func Build(s catalog.Snapshot) (Corpus, error) {
 			node(cueID, "cue", map[string]any{"media_id": v.ID, "document_digest": v.DocumentDigest, "cue_id": cue.ID}, row)
 			edge(docID, cueID, "contains-cue")
 			for _, voice := range cue.Voices {
-				voiceID := "voice:" + v.ID + ":" + v.DocumentDigest + ":" + voice
+				voiceID := localVoiceID(v.ID, v.DocumentDigest, voice)
 				node(voiceID, "local-voice", map[string]any{"media_id": v.ID, "document_digest": v.DocumentDigest, "local_speaker_id": voice}, Row{Label: voice, MediaID: v.ID, RecordingRevision: v.Revision, DocumentDigest: v.DocumentDigest})
 				edge(cueID, voiceID, "attributes-to")
 			}
@@ -212,7 +212,7 @@ func Build(s catalog.Snapshot) (Corpus, error) {
 		if !ok || r.DocumentDigest != m.DocumentDigest {
 			continue
 		}
-		edge("voice:"+m.RecordingID+":"+m.DocumentDigest+":"+m.LocalSpeakerID, "speaker:"+m.SpeakerID, "maps-to")
+		edge(localVoiceID(m.RecordingID, m.DocumentDigest, m.LocalSpeakerID), "speaker:"+m.SpeakerID, "maps-to")
 	}
 	for _, v := range s.Records.Extractions {
 		rec, ok := recordings[v.ID]
@@ -303,4 +303,9 @@ func contains(xs []string, x string) bool {
 		}
 	}
 	return false
+}
+
+func localVoiceID(recording, document, token string) string {
+	sum := sha256.Sum256([]byte(recording + "\x00" + document + "\x00" + token))
+	return "voice:" + hex.EncodeToString(sum[:])
 }

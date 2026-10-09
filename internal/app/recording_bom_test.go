@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
-	"github.com/shruggietech/insonic/internal/library"
 	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/internal/subtitles"
 	"github.com/shruggietech/insonic/internal/workspace"
@@ -104,16 +103,9 @@ func TestSuppliedBOMWebVTTAutoDetectsForProcessingAndAssembly(t *testing.T) {
 	if e = os.WriteFile(subtitle, input, 0600); e != nil {
 		t.Fatal(e)
 	}
-	admission := realRequest(a, "media.import", "", library.ImportRequest{Items: []library.Item{{Source: source, Subtitle: subtitle, NewEntry: true}}})
-	if admission.Error != nil {
-		t.Fatal(admission.Error)
-	}
-	done := awaitWork(t, a, admission.Result.(map[string]any)["work_id"].(string))
-	var imported library.ImportResult
-	if json.Unmarshal(done.Result, &imported) != nil || len(imported.Items) != 1 {
-		t.Fatal("admission", string(done.Result))
-	}
-	id := imported.Items[0].MediaID
+	id := seedLegacyMedia(t, a, source, subtitle)
+	var done catalog.Work
+
 	assert := func() {
 		current, e := a.Catalog.Recording(context.Background(), id)
 		if e != nil || current.State != "ready" {

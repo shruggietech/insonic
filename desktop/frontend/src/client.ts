@@ -21,6 +21,7 @@ export interface NativeBridge {
     recordingRevision: number,
     documentDigest: string,
   ): Promise<Response>;
+  PlaybackTrack?(mediaID:string,mediaRevision:number,recordingRevision:number,documentDigest:string,streamIndex:number):Promise<Response>;
   ClosePlayback(url: string): Promise<Response>;
   VerifyPlayback(url: string): Promise<Response>;
   Credential(args: string[], input: string): Promise<Response>;

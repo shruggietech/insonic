@@ -137,7 +137,7 @@ type semanticDocument struct {
 
 // ValidateDocument checks the packaged current schema and source/consumer
 // invariants without executing a tool, loading a model, or retrieving a URI.
-// Local UUID scope is insonic's contract; the upstream permits broader IDs.
+// Speaker tokens are local to a recording and retain their exact spelling.
 func ValidateDocument(data []byte) error { return validateDocument(data, false) }
 func validateDocument(data []byte, allowEmpty bool) error {
 	invalid := func() error { return contracts.Fail("invalid_request") }
@@ -199,7 +199,7 @@ func validateDocument(data []byte, allowEmpty bool) error {
 		}
 		words = words || len(cue.Tokens) > 0
 		for _, assignment := range cue.Attributions {
-			if !contracts.ValidID(assignment.SpeakerID) || (assignment.Start == nil) != (assignment.End == nil) {
+			if !contracts.ValidLocalSpeakerID(assignment.SpeakerID) || (assignment.Start == nil) != (assignment.End == nil) {
 				return invalid()
 			}
 			if assignment.Start == nil {

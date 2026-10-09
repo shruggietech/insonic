@@ -148,7 +148,7 @@ func TestCurrentSpeakerMapping(t *testing.T) {
 	if e = json.Unmarshal(doc["cues"], &cues); e != nil || len(cues) == 0 {
 		t.Fatal("cue fixture", e)
 	}
-	local := contracts.ID()
+	local := "Imported voice: \u00e9 \U0001f399"
 	cues[0]["speaker_attributions"], _ = json.Marshal([]map[string]any{{"speaker_id": local, "start_milliseconds": 0, "end_milliseconds": 100}})
 	doc["cues"], _ = json.Marshal(cues)
 	r.Document, _ = json.Marshal(doc)

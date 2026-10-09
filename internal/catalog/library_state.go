@@ -67,6 +67,7 @@ func (s *Store) latestCurrentProofs(ctx context.Context, tx *sql.Tx) (map[string
 			ModelID        string   `json:"model_id"`
 			WorkID         string   `json:"work_id"`
 			RecordDigest   string   `json:"record_digest"`
+			LibraryDigest  string   `json:"library_digest"`
 			WorkDigest     string   `json:"work_digest"`
 			CleanupIDs     []string `json:"cleanup_ids"`
 			PublicationID  string   `json:"publication_id"`
@@ -74,6 +75,9 @@ func (s *Store) latestCurrentProofs(ctx context.Context, tx *sql.Tx) (map[string
 		}
 		if json.Unmarshal([]byte(result), &envelope) != nil {
 			return nil, nil, nil, nil, contracts.Fail("invalid_request")
+		}
+		if envelope.LibraryDigest != "" {
+			envelope.RecordDigest = envelope.LibraryDigest
 		}
 		for _, entity := range []struct {
 			id     string
@@ -178,9 +182,8 @@ func (s *Store) validateLibraryState(ctx context.Context, tx *sql.Tx, expire boo
 		if e = s.row(ctx, tx, "SELECT digest FROM operation_receipt WHERE workspace_id=? AND id=?", s.workspace, w.ID).Scan(&initialDigest); e != nil {
 			return contracts.Fail("invalid_request")
 		}
-		want, _ := intent([]any{"work", w.Kind, w.Payload})
-		if initialDigest != want {
-			return contracts.Fail("invalid_request")
+		if e = s.validateWorkInput(ctx, tx, w, initialDigest); e != nil {
+			return e
 		}
 		if e = s.row(ctx, tx, "SELECT result FROM operation_receipt WHERE workspace_id=? AND id=?", s.workspace, w.JournalReceiptID).Scan(&result); e != nil {
 			return contracts.Fail("invalid_request")

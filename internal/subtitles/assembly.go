@@ -66,7 +66,7 @@ func AssembleDocument(data []byte, durationNS *int64, turns []Turn, participatio
 		return result, contracts.Fail("invalid_request")
 	}
 	for _, turn := range turns {
-		if !contracts.ValidID(turn.SpeakerID) || turn.StartNS < 0 || turn.EndNS <= turn.StartNS || durationNS != nil && turn.EndNS > *durationNS {
+		if !contracts.ValidLocalSpeakerID(turn.SpeakerID) || turn.StartNS < 0 || turn.EndNS <= turn.StartNS || durationNS != nil && turn.EndNS > *durationNS {
 			return result, contracts.Fail("invalid_request")
 		}
 	}
@@ -156,7 +156,7 @@ func AssembleDocument(data []byte, durationNS *int64, turns []Turn, participatio
 	}
 	for _, participant := range participation {
 		index, ok := cueIDs[participant.CueID]
-		if !ok || !contracts.ValidID(participant.SpeakerID) {
+		if !ok || !contracts.ValidLocalSpeakerID(participant.SpeakerID) {
 			return result, contracts.Fail("invalid_request")
 		}
 		if len(assignments[index]) >= 1024 || total >= MaxAssignments {

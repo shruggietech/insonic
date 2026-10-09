@@ -2,15 +2,15 @@
 
 ## Local voices and known speakers
 
-A diarization voice belongs to one recording. Its UUID occurs in the current embedded Cue JSON document; it is not a global person ID. The same person in another recording receives another local UUID. Native subtitle labels and mentioned names remain source observations, independent of that identity. A catalog speaker is a stable user-facing identity with a canonical name, active state and revisioned aliases.
+A diarization voice belongs to one recording. Its local token occurs in the current embedded Cue JSON document; it is not a global person ID. The same person in another recording receives another local speaker token. Imported tokens retain their exact upstream-valid values. Native subtitle labels and mentioned names remain source observations, independent of that identity. A catalog speaker is a stable user-facing identity with a canonical name, active state and revisioned aliases.
 
 ```mermaid
 flowchart TB
   Audio[Mapped recording audio] --> Turns[Temporary acoustic voice results]
-  Turns --> Document[Current Cue JSON local UUID assignments]
+  Turns --> Document[Current Cue JSON local speaker token assignments]
   Document --> Mapping[External recording and UUID mapping]
   Mapping --> Known[Known speaker or unresolved identity]
-  Document --> References[Current cue and local UUID references]
+  Document --> References[Current cue and local speaker token references]
   References --> Playback[Playback and evidence]
   References --> Corpus[Library-wide current speaker corpus]
   Corpus --> Models[Optional trained model lineage]
@@ -18,11 +18,11 @@ flowchart TB
 
 Acoustic diarization describes which voice spoke when. Known-speaker mapping describes who that voice may represent. A mentioned person, quoted statement, scene participant and speaking voice are different observations. Unsupported identity remains unresolved and does not block valid source-level operations. Model confidence is a diagnostic, not proof of identity.
 
-Known-person corrections update the external recording/UUID mapping without rewriting subtitle text or document bytes. Mapping rows bind current document identity and expected revision. A removed local UUID cannot retain an active mapping. Other records cannot establish another list of assignments under a voice, segment or attribution-revision name.
+Known-person corrections update the external recording/token mapping without rewriting subtitle text or document bytes. Mapping rows bind current document identity and expected revision. A removed local speaker token cannot retain an active mapping. Other records cannot establish another list of assignments under a voice, segment or attribution-revision name.
 
 ## Reference-only speaker audio
 
-A current segment record refers to recording ID, document digest, cue ID and local speaker UUID, with an optional managed clip reference. It stores no copied interval, channel, known-person assignment or attribution array. Query and playback resolve the interval from current embedded assignments and the recording's source map. Untimed participation does not provide an exact clip interval, and uncovered acoustic speech does not gain invented subtitle cues.
+A current segment record refers to recording ID, document digest, cue ID and local speaker token, with an optional managed clip reference. It stores no copied interval, channel, known-person assignment or attribution array. Query and playback resolve the interval from current embedded assignments and the recording's source map. Untimed participation does not provide an exact clip interval, and uncovered acoustic speech does not gain invented subtitle cues.
 
 The speaker corpus spans all current library recordings. A source can contribute overlapping voices, and deduplication uses original source/cue evidence rather than counting repeated processing as independent speech. Lazy extraction uses verified source bytes and explicit transform/time mapping. A clip is derived current data and cannot retain an obsolete assignment as an alternative authority.
 

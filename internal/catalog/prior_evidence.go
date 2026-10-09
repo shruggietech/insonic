@@ -41,7 +41,7 @@ func (s *Store) evidenceMS(value, key string) string {
 // assignments; no prior assignment arrays leave the database or enter cursors.
 func (s *Store) ComparePriorSpeakerEvidence(ctx context.Context, selection SpeakerSelection, ref CurrentReference, expectedEpoch string) (out []PriorEvidenceComparison, e error) {
 	out = []PriorEvidenceComparison{}
-	if !digestPattern.MatchString(expectedEpoch) || !contracts.ValidID(selection.SpeakerID) || selection.SpeakerID != ref.SpeakerID || (selection.RecordingID != "" && selection.RecordingID != ref.RecordingID) || !contracts.ValidID(ref.RecordingID) || !contracts.ValidID(ref.LocalSpeakerID) || ref.RecordingRevision < 1 || ref.MappingRevision < 1 || ref.CueID == "" || !digestPattern.MatchString(ref.DocumentDigest) || !digestPattern.MatchString(ref.SourceDigest) || !digestPattern.MatchString(ref.SourceMapDigest) {
+	if !digestPattern.MatchString(expectedEpoch) || !contracts.ValidID(selection.SpeakerID) || selection.SpeakerID != ref.SpeakerID || (selection.RecordingID != "" && selection.RecordingID != ref.RecordingID) || !contracts.ValidID(ref.RecordingID) || !contracts.ValidLocalSpeakerID(ref.LocalSpeakerID) || ref.RecordingRevision < 1 || ref.MappingRevision < 1 || ref.CueID == "" || !digestPattern.MatchString(ref.DocumentDigest) || !digestPattern.MatchString(ref.SourceDigest) || !digestPattern.MatchString(ref.SourceMapDigest) {
 		return out, contracts.Fail("invalid_request")
 	}
 	tx, e := s.identityRead(ctx)

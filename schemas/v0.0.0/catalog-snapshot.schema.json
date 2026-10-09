@@ -1039,8 +1039,8 @@
                 "description": "Cue identity inside the current embedded document."
               },
               "local_speaker_id": {
-                "$ref": "common.schema.json#/$defs/uuid",
-                "description": "Recording-scoped local UUID occurring in this cue attribution."
+                "$ref": "common.schema.json#/$defs/localSpeakerID",
+                "description": "Recording-scoped local speaker token occurring in this cue attribution."
               },
               "clip_artifact_id": {
                 "anyOf": [
