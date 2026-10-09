@@ -425,21 +425,37 @@
                 "originated_on",
                 "originated_latest"
               ]
+            },
+            {
+              "required": [
+                "transcript",
+                "subtitle"
+              ]
             }
           ]
         },
         "additionalProperties": false,
-        "anyOf": [
+        "oneOf": [
           {
             "required": [
               "source"
-            ]
+            ],
+            "not": {
+              "required": [
+                "record"
+              ]
+            }
           },
           {
             "required": [
               "record"
             ],
-            "anyOf": [
+            "oneOf": [
+              {
+                "required": [
+                  "source"
+                ]
+              },
               {
                 "required": [
                   "transcript"
@@ -452,7 +468,15 @@
               }
             ]
           }
-        ]
+        ],
+        "dependentRequired": {
+          "expected_revision": [
+            "record"
+          ],
+          "expected_recording_revision": [
+            "record"
+          ]
+        }
       },
       "maxItems": 10000
     },

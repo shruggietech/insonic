@@ -43,4 +43,6 @@ Pass 3 rechecked all 17 functional requirements, 5 success criteria, 11 story sc
 
 ## Publication and review record
 
-Pending official PR. Initial automatic review is round 1; at most one explicit @Codex second round is authorized. Every finding needs an appropriate reply and direct thread-resolution verification. Final handoff requires green exact-head CI. Merge/tag/release remain owner-controlled.
+Official PR #36 published at b953919. Initial automatic review is round 1; at most one explicit @Codex second round is authorized. Every finding needs an appropriate reply and direct thread-resolution verification. Final handoff requires green exact-head CI. Merge/tag/release remain owner-controlled.
+
+Round 1 completed on b953919 with one P2 manifest-schema finding (PRRT_kwDOU8_K3s6qt-PI): overlapping input shapes were schema-valid but runtime-invalid. Replaced item alternatives with exclusive media versus standalone shapes, preserved record+source compatibility, prohibited duplicate transcript aliases, and required a target for observed revisions. Added positive/negative schema regression cases. Initial foundation/docs/core-Windows/adapter CI passed; native platform checks were still running when the repair was prepared.
