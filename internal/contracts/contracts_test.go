@@ -51,6 +51,9 @@ func TestStructuredErrorDiagnosticsRedactAndCount(t *testing.T) {
 }
 
 func TestProcessingFailureCodesRemainActionable(t *testing.T) {
+	if failure := Fail("model_acquisition_failed"); failure.Code != "model_acquisition_failed" || failure.Message == "The operation failed." {
+		t.Fatal("acquisition failure lost its actionable outcome")
+	}
 	for _, code := range []string{"timing_unavailable", "invalid_audio", "audio_limit", "unsupported_audio", "model_unavailable", "unsupported_capability", "input_limit", "invalid_engine_output", "invalid_timing", "engine_ci_forbidden", "engine_unavailable", "unsupported_device", "invalid_embedding"} {
 		if Fail(code).Code != code {
 			t.Fatalf("collapsed %s", code)

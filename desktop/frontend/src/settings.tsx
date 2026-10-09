@@ -14,6 +14,7 @@ import {
 import { Client, result, type Obj } from './client';
 import { uuid } from './forms';
 import { Pager, type Run } from './screens';
+import { ModelSettings } from './model-settings';
 type Props = { client: Client; run: Run; appearance: (value: Obj) => void };
 function ToolFields({
   label,
@@ -82,8 +83,10 @@ export function Settings({ client, run, appearance }: Props) {
     [fileRole, setFileRole] = useState('weights'),
     [fileURL, setFileURL] = useState(''),
     [fileHash, setFileHash] = useState(''),
+    [fileLocalHTTP,setFileLocalHTTP]=useState(false),
     [fileSize, setFileSize] = useState('0'),
     [files, setFiles] = useState<Obj[]>([]);
+  const [modelCompatibility,setModelCompatibility]=useState('');
   const load = async () => {
     const s = await client.call('settings.show');
     setSettings(s);
@@ -448,6 +451,7 @@ export function Settings({ client, run, appearance }: Props) {
         </Actions>
         {credentialState && <Facts value={credentialState} />}
       </Card>
+      <ModelSettings client={client} run={run}/>
       <Card heading="Downloaded models">
         <Table
           caption="Managed model installations"
@@ -531,6 +535,8 @@ export function Settings({ client, run, appearance }: Props) {
           onChange={setCapability}
           options={['transcription', 'diarization']}
         />
+        <Area label="Model compatibility JSON" value={modelCompatibility} onChange={setModelCompatibility}
+          description="Optional explicit adapter, contract_version, architecture, runtime_format and sample_rates/channels. Omit to inspect an exact legacy role layout; declarations do not make unsupported architectures executable."/>
         <Input
           label="Model file role"
           value={fileRole}
@@ -546,6 +552,7 @@ export function Settings({ client, run, appearance }: Props) {
           value={fileHash}
           onChange={setFileHash}
         />
+        <Check label="Model file uses explicit loopback HTTP" value={fileLocalHTTP} onChange={setFileLocalHTTP}/>
         <Input
           label="Model file byte size"
           type="number"
@@ -562,6 +569,7 @@ export function Settings({ client, run, appearance }: Props) {
                 url: fileURL,
                 sha256: fileHash,
                 size: Number(fileSize),
+                ...(fileLocalHTTP?{local_http:true}:{}),
               },
             ])
           }
@@ -586,6 +594,7 @@ export function Settings({ client, run, appearance }: Props) {
                     upstream_revision: upstream,
                     license,
                     capabilities: [capability],
+                    ...(modelCompatibility.trim()?{compatibility:JSON.parse(modelCompatibility)}:{}),
                     files,
                   };
                   await client.call(`models.${action}`, '', { manifest });

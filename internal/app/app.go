@@ -23,31 +23,32 @@ type worker struct {
 	cancel  context.CancelFunc
 }
 type App struct {
-	AssistanceFixture assistance.Fixture // Non-nil only in explicit deterministic test/qualification construction.
-	graphMu           sync.Mutex
-	Graph             graph.Adapter
-	recordingFactory  func() (*recordingExecution, error)
-	hostedClient      *http.Client // Only injected by deterministic protocol fixtures.
-	Workspace         *workspace.Workspace
-	Session           string
-	Catalog           catalog.Catalog
-	mu                sync.Mutex
-	attempts          map[string]*worker
-	ctx               context.Context
-	cancel            context.CancelFunc
-	wg                sync.WaitGroup
-	closed            bool
-	artifactMu        sync.Mutex
-	Artifacts         *artifact.Service
-	secrets           contracts.SecretProvider
-	secretOwner       *liveSecrets
-	workMu            sync.Mutex
-	workers           map[string]*realWorker
-	settingsMu        sync.Mutex
-	playbackMu        sync.Mutex
-	playbacks         map[string]*playbackEntry
-	playbackPreparing int
-	playbackPreview   func(context.Context, *playbackEntry, catalog.LibraryEntry) error
+	AssistanceFixture    assistance.Fixture // Non-nil only in explicit deterministic test/qualification construction.
+	graphMu              sync.Mutex
+	Graph                graph.Adapter
+	recordingFactory     func() (*recordingExecution, error)
+	enforceModelElection bool         // Deterministic engine fixtures may elect real managed models.
+	hostedClient         *http.Client // Only injected by deterministic protocol fixtures.
+	Workspace            *workspace.Workspace
+	Session              string
+	Catalog              catalog.Catalog
+	mu                   sync.Mutex
+	attempts             map[string]*worker
+	ctx                  context.Context
+	cancel               context.CancelFunc
+	wg                   sync.WaitGroup
+	closed               bool
+	artifactMu           sync.Mutex
+	Artifacts            *artifact.Service
+	secrets              contracts.SecretProvider
+	secretOwner          *liveSecrets
+	workMu               sync.Mutex
+	workers              map[string]*realWorker
+	settingsMu           sync.Mutex
+	playbackMu           sync.Mutex
+	playbacks            map[string]*playbackEntry
+	playbackPreparing    int
+	playbackPreview      func(context.Context, *playbackEntry, catalog.LibraryEntry) error
 }
 
 const leaseTTL = 5 * time.Second
@@ -405,7 +406,7 @@ func (a *App) DispatchContext(ctx context.Context, req contracts.Request) contra
 			result, err = a.desktopDispatch(req)
 		} else if strings.HasPrefix(req.Operation, "credentials.") {
 			result, err = a.credentialDispatch(req)
-		} else if configuredOperation(req.Operation) || req.ItemID != "" || len(req.Data) > 0 || req.Operation == "media.list" || req.Operation == "models.list" || req.Operation == "work.list" {
+		} else if configuredOperation(req.Operation) || strings.HasPrefix(req.Operation, "models.") || req.ItemID != "" || len(req.Data) > 0 || req.Operation == "media.list" || req.Operation == "work.list" {
 			result, err = a.domainDispatch(req)
 		} else {
 			result, err = a.artifactDispatch(req)

@@ -69,3 +69,27 @@ func TestRosterManifestElectionPrecedence(t *testing.T) {
 		t.Fatalf("CSV elections %+v %v", r, e)
 	}
 }
+
+func TestManifestModelReferencesShareJSONAndCSVGrammar(t *testing.T) {
+	for _, reference := range []string{"voices", "base:11111111-1111-4111-8111-111111111111", "source:examples/voices-v1"} {
+		dir := t.TempDir()
+		jsonPath := filepath.Join(dir, "models.json")
+		document := map[string]any{"kind": "import-manifest", "schema_version": "0.0.0", "defaults": map[string]string{"attribution": "diarize", "diarization_model_id": reference}, "items": []any{map[string]string{"source": "audio.wav"}}}
+		data, _ := json.Marshal(document)
+		if e := os.WriteFile(jsonPath, data, 0600); e != nil {
+			t.Fatal(e)
+		}
+		parsed, e := ReadManifest(jsonPath)
+		if e != nil || parsed.Defaults.DiarizationModelID != reference {
+			t.Fatal("JSON reference grammar", reference, e)
+		}
+		csvPath := filepath.Join(dir, "models.csv")
+		if e = os.WriteFile(csvPath, []byte("source,attribution,diarization_model_id\naudio.wav,diarize,"+reference+"\n"), 0600); e != nil {
+			t.Fatal(e)
+		}
+		parsed, e = ReadManifest(csvPath)
+		if e != nil || parsed.Items[0].DiarizationModelID != reference {
+			t.Fatal("CSV reference grammar", reference, e)
+		}
+	}
+}

@@ -11,6 +11,16 @@ import (
 // Catalog is the shared backend-neutral authority used by runtime operations.
 // Both official adapters implement it; callers never receive SQL connections.
 type Catalog interface {
+	Artifact(context.Context, string) (Artifact, error)
+	ModelAlias(context.Context, string) (ModelAlias, error)
+	ModelAliases(context.Context) ([]ModelAlias, error)
+	PutModelAlias(context.Context, string, int64, ModelAlias) (ModelAlias, error)
+	RemoveModelAlias(context.Context, string, int64, string) (ModelAlias, error)
+	ModelSource(context.Context, string) (ModelSource, error)
+	ModelSources(context.Context) ([]ModelSource, error)
+	PutModelSource(context.Context, string, int64, ModelSource) (ModelSource, error)
+	RemoveModelSource(context.Context, string, int64, string) (ModelSource, error)
+	SpeakerModelVersion(context.Context, string) (SpeakerModelLineage, error)
 	Roster(context.Context, string) (Roster, error)
 	ResolveSpeakers(context.Context, []string) ([]string, error)
 	MutateRoster(context.Context, string, string, int64, string, []string) (Roster, error)

@@ -265,6 +265,9 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 		return fail()
 	}
 	group := args[0]
+	if group == "models" && (args[1] == "resolve" || args[1] == "discover" || args[1] == "alias" || args[1] == "source") {
+		return parseModelReferences(args)
+	}
 	if group == "models" && args[1] == "base" {
 		args = append([]string{"models"}, args[2:]...)
 		if len(args) < 2 {

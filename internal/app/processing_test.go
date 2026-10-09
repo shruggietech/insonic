@@ -16,7 +16,7 @@ func TestRecordingOptionsAndDurablePayload(t *testing.T) {
 	for _, bad := range []RecordingOptions{
 		{Transcription: "generate", Diarization: "run"},
 		{Transcription: "reuse", Diarization: "reuse"},
-		{Transcription: "supplied", Diarization: "run", DiarizationModelID: "model-name"},
+		{Transcription: "supplied", Diarization: "run", DiarizationModelID: " model-name"},
 		{Transcription: "reuse", Diarization: "run", DiarizationModelID: contracts.ID(), Audio: processing.AudioOptions{Channel: ptrInt(-1)}},
 	} {
 		if validateRecordingOptions(bad) == nil {

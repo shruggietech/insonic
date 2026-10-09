@@ -406,6 +406,38 @@ async function qualifyJourney(
   if (!document.documentElement.classList.contains('bb-light'))
     throw new Error('Theme preference not applied.');
   flags.ui_settings = 'passed';
+  await bridge.QualificationStep?.('model-references');
+  const manifest=fixtures.model_manifest;
+  if(!manifest||!fixtures.model_id||!fixtures.model_catalog_url)throw new Error('Synthetic model fixtures unavailable.');
+  for(const [label,value] of [['Model name',manifest.name],['Model version',manifest.model_version],['Upstream revision',manifest.upstream_revision],['Model license',manifest.license],['Model capability','transcription']])await fill(label,value);
+  const loopbackLabel=[...document.querySelectorAll('label')].find(l=>l.textContent==='Model file uses explicit loopback HTTP');
+  const loopback=loopbackLabel&&document.getElementById(loopbackLabel.htmlFor);
+  if(!(loopback instanceof HTMLInputElement))throw new Error('Missing loopback model source control.');
+  if(!loopback.checked){loopback.click();await idle();}
+  for(const file of manifest.files){
+    for(const [label,value] of [['Model file role',file.role],['Model file source URL',file.url],['Model file SHA-256',file.sha256],['Model file byte size',String(file.size)]])await fill(label,value);
+    await click('Add pinned file');
+  }
+  await click('Register model manifest');
+  await wait(async()=>{const models=await call('models.list','',{limit:100});return models.items.some((model:Obj)=>model.id===fixtures.model_id&&model.state==='registered');},'Synthetic model registration did not complete.');
+  await fill('Model alias name','native-speech');
+  await fill('Exact model target JSON',JSON.stringify({kind:'base',id:fixtures.model_id,operation:'transcription'}));
+  await click('Save model alias');
+  await fill('Model source name','native-source');
+  await fill('Model source configuration JSON',JSON.stringify({url:fixtures.model_catalog_url,local_http:true}));
+  await click('Save model source');
+  const sources=await call('models.source.list','',{limit:100});
+  const source=sources.items.find((item:Obj)=>item.name==='native-source');
+  if(!source)throw new Error('Native configured model source missing.');
+  await fill('Discovery source',source.id);await click('Discover source models');
+  await fill('Model reference','source:native-source/tiny');await click('Resolve model reference');
+  await fill('Model reference','native-speech');await click('Resolve model reference');
+  await click('Download pinned model');
+  await wait(async()=>{const selected=await call('models.show',fixtures.model_id);return selected.state==='available';},'Synthetic model acquisition did not complete.');
+  await click('Resolve model reference');
+  const selected=await call('models.resolve','',{reference:'native-speech',operation:'transcription'});
+  if(!selected.compatible||selected.target.id!==fixtures.model_id||selected.state!=='available')throw new Error('Native reference did not retain its exact verified model.');
+  flags.ui_model_references='passed';
   await bridge.QualificationStep?.('keyboard-help');
   for (const field of document.querySelectorAll('input,select,textarea'))
     if (

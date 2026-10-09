@@ -278,7 +278,7 @@ def desktop():
         args = ['xvfb-run', '-a', *args]
     output = child(args, env=env, timeout=90)
     write_receipt(BUILD / 'webview-receipt.json', output,
-                  {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'schema_version': VERSION})
+                  {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'schema_version': VERSION})
 
 def secrets():
     BUILD.mkdir(parents=True, exist_ok=True)
@@ -301,6 +301,86 @@ def cli_workspace():
             import time
             time.sleep(31)
             raise
+
+def qualify_model_references(executable, directory):
+    # Tiny non-model files prove real CLI/catalog/download contracts only.
+    # No engine import, model initialization or inference occurs here.
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    import threading
+    roles = ['config.json', 'model.bin', 'tokenizer.json', 'vocabulary.txt']
+    contents = {role: ('synthetic CLI bundle ' + role).encode('utf-8') for role in roles}
+    catalog_payload = b''
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            data = catalog_payload if self.path == '/catalog' else contents.get(self.path.removeprefix('/'))
+            if data is None:
+                self.send_error(404)
+                return
+            self.send_response(200)
+            self.send_header('Content-Length', str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+        def log_message(self, *_args):
+            pass
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        origin = 'http://127.0.0.1:' + str(server.server_port)
+        manifest = {'kind': 'base-model-manifest', 'schema_version': VERSION,
+                    'name': 'cli-synthetic-model', 'model_version': '1', 'upstream_revision': 'fixture-exact-v1',
+                    'capabilities': ['transcription'], 'license': 'fixture-only',
+                    'files': [{'role': role, 'sha256': hashlib.sha256(contents[role]).hexdigest(),
+                               'size': len(contents[role]), 'url': origin + '/' + role,
+                               'local_http': True} for role in roles]}
+        catalog_payload = json.dumps({'kind': 'model-catalog', 'schema_version': VERSION,
+                                      'entries': [{'selector': 'speech:v1', 'manifest': manifest}]}).encode('utf-8')
+        update_file = Path(directory) / 'model-reference-input.json'
+        def call(*args, data=None):
+            argv = [executable, '--workspace', directory, 'models', *args]
+            if data is not None:
+                update_file.write_text(json.dumps(data) + '\n', encoding='utf-8')
+                argv.extend(['--input', update_file])
+            return json.loads(child([*argv, '--json']))['result']
+        source_id = '10000000-0000-4000-8000-000000000050'
+        source = call('source', 'set', source_id, data={'expected_revision': 0,
+                      'source': {'id': source_id, 'name': 'fixture', 'state': 'active',
+                                 'url': origin + '/catalog', 'local_http': True}})
+        discovered = call('discover', source_id)
+        if len(discovered['items']) != 1 or discovered['items'][0]['reference'] != 'source:fixture/speech:v1':
+            raise ValueError('CLI model discovery differs')
+        manifest_path = Path(directory) / 'synthetic-model.json'
+        manifest_path.write_text(json.dumps(manifest) + '\n', encoding='utf-8')
+        registered = call('register', manifest_path)
+        completed = json.loads(child([executable, '--workspace', directory, 'work', 'wait', registered['work_id'],
+                                      '--timeout-ms', '30000', '--json']))['result']
+        model_id = completed['result']['model_id']
+        alias_id = '10000000-0000-4000-8000-000000000051'
+        alias = call('alias', 'set', alias_id, data={'expected_revision': 0,
+                     'alias': {'id': alias_id, 'name': 'speech-main', 'state': 'active',
+                               'target': {'kind': 'base', 'id': model_id, 'operation': 'transcription'}}})
+        resolved = call('resolve', 'speech-main', '--operation', 'transcription')
+        if resolved['target']['id'] != model_id or resolved['manifest_digest'] != discovered['items'][0]['manifest_digest']:
+            raise ValueError('CLI alias exact resolution differs')
+        acquired = call('acquire', manifest_path)
+        accepted = json.loads(child([executable, '--workspace', directory, 'work', 'wait', acquired['work_id'],
+                                     '--timeout-ms', '30000', '--json']))['result']
+        if accepted['state'] != 'succeeded' or not call('verify', model_id)['verified']:
+            raise ValueError('CLI synthetic model acquisition failed')
+        replay = call('acquire', manifest_path)
+        if replay.get('acquisition_ids') != acquired.get('acquisition_ids') or not acquired.get('acquisition_ids'):
+            raise ValueError('CLI acquisition was not deduplicated')
+        call('alias', 'show', alias_id)
+        call('source', 'show', source_id)
+        if len(call('alias', 'list')['items']) != 1 or len(call('source', 'list')['items']) != 1:
+            raise ValueError('CLI alias/source inventory differs')
+        call('alias', 'remove', alias_id, '--expected-revision', str(alias['revision']))
+        call('source', 'remove', source_id, '--expected-revision', str(source['revision']))
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
 
 def cli():
     executable = ROOT / ('build/insonic.exe' if os.name == 'nt' else 'build/insonic')
@@ -329,6 +409,7 @@ def cli():
                 config_input.write_text(json.dumps(data) + '\n', encoding='utf-8')
                 args.extend(['--input', config_input])
             return json.loads(child([*args, '--json']))['result']
+        qualify_model_references(executable, directory)
         definition = {
             'recognition': {'adapter': 'faster-whisper', 'contract_version': '1', 'mode': 'local',
                             'model_id': '10000000-0000-4000-8000-000000000014'},
@@ -443,7 +524,7 @@ def cli():
         restored_attempts = next(table['rows'] for table in restored['state'] if table['name'] == 'job_attempt')
         if restored_attempts != attempts or restored['revision'] != exported['revision'] + 1:
             raise ValueError('CLI restore did not preserve durable history and restoration receipt')
-    (BUILD / 'cli-receipt.json').write_text(json.dumps({'owner_reuse': 'passed', 'cancel_retry': 'passed', 'durable_history': 'passed', 'catalog_transfer': 'passed', 'artifact_journey': 'passed', 'saved_configuration': 'passed', 'scoped_hints': 'passed', 'recording_replacement': 'passed', 'declared_roster': 'passed', 'inference': 'not-run'}) + '\n', encoding='utf-8')
+    (BUILD / 'cli-receipt.json').write_text(json.dumps({'owner_reuse': 'passed', 'cancel_retry': 'passed', 'durable_history': 'passed', 'catalog_transfer': 'passed', 'artifact_journey': 'passed', 'saved_configuration': 'passed', 'scoped_hints': 'passed', 'recording_replacement': 'passed', 'declared_roster': 'passed', 'model_references': 'passed', 'inference': 'not-run'}) + '\n', encoding='utf-8')
 
 if __name__ == '__main__':
     validate_pins()

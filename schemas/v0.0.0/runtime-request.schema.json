@@ -129,7 +129,17 @@
         "recordings.roster.add",
         "recordings.roster.remove",
         "recordings.roster.replace",
-        "recordings.roster.clear"
+        "recordings.roster.clear",
+        "models.resolve",
+        "models.discover",
+        "models.alias.list",
+        "models.alias.show",
+        "models.alias.set",
+        "models.alias.remove",
+        "models.source.list",
+        "models.source.show",
+        "models.source.set",
+        "models.source.remove"
       ],
       "description": "Shared operation selected by either client."
     },
@@ -681,7 +691,17 @@
               "terms.list",
               "terms.show",
               "terms.set",
-              "terms.compile"
+              "terms.compile",
+              "models.resolve",
+              "models.discover",
+              "models.alias.list",
+              "models.alias.show",
+              "models.alias.set",
+              "models.alias.remove",
+              "models.source.list",
+              "models.source.show",
+              "models.source.set",
+              "models.source.remove"
             ],
             "description": "Operation family with an exact argument shape."
           }
@@ -1277,12 +1297,12 @@
                 "description": "Run managed local diarization or reuse current assignment evidence."
               },
               "recognition_model_id": {
-                "$ref": "common.schema.json#/$defs/uuid",
-                "description": "Available managed recognition model; required when generation is explicitly selected."
+                "$ref": "common.schema.json#/$defs/modelReference",
+                "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
               },
               "diarization_model_id": {
-                "$ref": "common.schema.json#/$defs/uuid",
-                "description": "Available managed diarization model required for a new attribution run."
+                "$ref": "common.schema.json#/$defs/modelReference",
+                "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
               },
               "subtitle_format": {
                 "enum": [
@@ -4864,6 +4884,458 @@
                 "description": "One or more speaker references for add or remove."
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.resolve"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "reference": {
+                "$ref": "common.schema.json#/$defs/modelReference",
+                "description": "Reference to resolve without acquiring files."
+              },
+              "operation": {
+                "$ref": "common.schema.json#/$defs/modelOperation",
+                "description": "Intended consumer operation."
+              }
+            },
+            "required": [
+              "reference",
+              "operation"
+            ],
+            "description": "Reference inspection input."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.discover"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "source_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Explicit configured source identity."
+              }
+            },
+            "required": [
+              "source_id"
+            ],
+            "description": "Bounded source metadata discovery."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.alias.list"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "after_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exclusive stable identity page cursor."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Maximum records in this page."
+              }
+            },
+            "required": [],
+            "description": "Bounded reference inventory page."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.alias.show"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.alias.set"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Zero creates; a positive exact revision fences retargeting."
+              },
+              "alias": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Stable workspace-scoped alias identity."
+                  },
+                  "name": {
+                    "$ref": "common.schema.json#/$defs/modelAliasName",
+                    "description": "Short workspace name."
+                  },
+                  "revision": {
+                    "const": 0,
+                    "description": "Optional zero-valued typed input; accepted revisions are returned by the catalog, never supplied as a new record revision."
+                  },
+                  "state": {
+                    "enum": [
+                      "active",
+                      "deleted"
+                    ],
+                    "description": "Active reference or retained revision tombstone."
+                  },
+                  "target": {
+                    "$ref": "common.schema.json#/$defs/modelTarget",
+                    "description": "Exact target; retargeting never changes prior elections."
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "state",
+                  "target"
+                ],
+                "description": "Portable revisioned alias retaining exact target kind and identity."
+              }
+            },
+            "required": [
+              "expected_revision",
+              "alias"
+            ],
+            "description": "Revision-fenced explicit reference mutation."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.alias.remove"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Exact revision to remove while preserving the tombstone."
+              }
+            },
+            "required": [
+              "expected_revision"
+            ],
+            "description": "Revision-fenced reference removal."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.source.list"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "after_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exclusive stable identity page cursor."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Maximum records in this page."
+              }
+            },
+            "required": [],
+            "description": "Bounded reference inventory page."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.source.show"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.source.set"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Zero creates; a positive exact revision fences retargeting."
+              },
+              "source": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Stable configured source identity."
+                  },
+                  "name": {
+                    "$ref": "common.schema.json#/$defs/modelAliasName",
+                    "description": "Configured source name used by source:NAME/SELECTOR."
+                  },
+                  "revision": {
+                    "const": 0,
+                    "description": "Optional zero-valued typed input; accepted revisions are returned by the catalog, never supplied as a new record revision."
+                  },
+                  "state": {
+                    "enum": [
+                      "active",
+                      "deleted"
+                    ],
+                    "description": "Active configuration or retained revision tombstone."
+                  },
+                  "url": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048,
+                    "description": "Configured catalog URL using HTTPS or explicitly elected loopback HTTP.",
+                    "format": "uri"
+                  },
+                  "credential_id": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Opaque source credential reference."
+                  },
+                  "local_http": {
+                    "type": "boolean",
+                    "description": "Permit HTTP only for an explicitly selected loopback catalog."
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "state",
+                  "url"
+                ],
+                "description": "Portable source configuration without credential values."
+              }
+            },
+            "required": [
+              "expected_revision",
+              "source"
+            ],
+            "description": "Revision-fenced explicit reference mutation."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.source.remove"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Exact revision to remove while preserving the tombstone."
+              }
+            },
+            "required": [
+              "expected_revision"
+            ],
+            "description": "Revision-fenced reference removal."
           }
         }
       }

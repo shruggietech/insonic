@@ -20,6 +20,8 @@ type domainTable struct {
 }
 
 var domains = []domainTable{
+	{"model_alias", "ModelAliases", "id", "CHECK(revision>0 AND state IN ('active','deleted')), UNIQUE(workspace_id,name)", nil},
+	{"model_source", "ModelSources", "id", "CHECK(revision>0 AND state IN ('active','deleted')), UNIQUE(workspace_id,name)", nil},
 	{"profile_revision", "Profiles", "id,revision", "CHECK (revision>0), CHECK (role IN ('storage','catalog','graph'))", nil},
 	{"artifact", "Artifacts", "id", "CHECK (size>=0 AND length(digest)=64)", nil},
 	{"artifact_location", "Locations", "id", "CHECK (profile_revision>0), CHECK (state IN ('available','missing','retired','pending'))", []string{"artifact_id:artifact:id", "profile_id,profile_revision:profile_revision:id,revision"}},
@@ -112,6 +114,12 @@ func fieldValue(v reflect.Value, path []int) any {
 	if v.Type() == rawType {
 		return string(v.Bytes())
 	}
+	if v.Kind() == reflect.Bool {
+		if v.Bool() {
+			return int64(1)
+		}
+		return int64(0)
+	}
 	return v.Interface()
 }
 func (d domainTable) ddl() string {
@@ -126,7 +134,7 @@ func (d domainTable) ddl() string {
 			nullable = true
 		}
 		sqlType := "TEXT"
-		if typ.Kind() == reflect.Int64 {
+		if typ.Kind() == reflect.Int64 || typ.Kind() == reflect.Bool {
 			sqlType = "BIGINT"
 		}
 		null := " NOT NULL"
@@ -226,6 +234,20 @@ func (s *Store) migrate(ctx context.Context) error {
 	var digest string
 	e = tx.QueryRowContext(ctx, "SELECT version,digest FROM catalog_schema WHERE singleton=1").Scan(&version, &digest)
 	if e == nil {
+		if version == 7 && digest == historicalV7Digest() {
+			for _, q := range migrationStatements() {
+				if _, e = tx.ExecContext(ctx, q); e != nil {
+					return sanitize(e)
+				}
+			}
+			if _, e = s.exec(ctx, tx, "UPDATE catalog_schema SET version=?,digest=? WHERE singleton=1", SchemaVersion, migrationDigest()); e != nil {
+				return sanitize(e)
+			}
+			if _, e = s.exec(ctx, tx, "UPDATE workspace SET schema_version=?", SchemaVersion); e != nil {
+				return sanitize(e)
+			}
+			return sanitize(tx.Commit())
+		}
 		if (version == 5 && digest == historicalV5Digest()) || (version == 6 && digest == historicalV6Digest()) {
 			if e = s.migrateRecordingState(ctx, tx); e != nil {
 				return sanitize(e)
@@ -326,6 +348,14 @@ func validateRecord(value any) error {
 		}
 	}
 	switch r := value.(type) {
+	case ModelAlias:
+		if !validModelAlias(r) || r.Revision < 1 {
+			return contracts.Fail("invalid_request")
+		}
+	case ModelSource:
+		if !validModelSource(r) || r.Revision < 1 {
+			return contracts.Fail("invalid_request")
+		}
 	case RosterHeader:
 		if r.Revision < 1 {
 			return contracts.Fail("invalid_request")
@@ -512,7 +542,21 @@ func (s *Store) readRecords(ctx context.Context, tx *sql.Tx, selected ...string)
 			continue
 		}
 		cols := columns(d.typ())
-		rows, e := tx.QueryContext(ctx, s.query("SELECT "+strings.Join(names(cols), ",")+" FROM "+d.name+" WHERE workspace_id=? ORDER BY "+d.primary), s.workspace)
+		query := "SELECT " + strings.Join(names(cols), ",") + " FROM " + d.name + " WHERE workspace_id=?"
+		args := []any{s.workspace}
+		if len(selected) == 3 {
+			found := false
+			for _, c := range cols {
+				found = found || c.name == selected[1]
+			}
+			if !found || !contracts.ValidID(selected[2]) {
+				return out, contracts.Fail("invalid_request")
+			}
+			query += " AND " + selected[1] + "=?"
+			args = append(args, selected[2])
+		}
+		query += " ORDER BY " + d.primary
+		rows, e := tx.QueryContext(ctx, s.query(query), args...)
 		if e != nil {
 			return out, e
 		}
@@ -529,6 +573,14 @@ func (s *Store) readRecords(ctx context.Context, tx *sql.Tx, selected ...string)
 			doc := map[string]any{}
 			for i, c := range cols {
 				val := vals[i]
+				if c.typ.Kind() == reflect.Bool {
+					n, ok := val.(int64)
+					if !ok || n < 0 || n > 1 {
+						rows.Close()
+						return out, contracts.Fail("invalid_request")
+					}
+					val = n == 1
+				}
 				if b, ok := val.([]byte); ok {
 					val = string(b)
 				}

@@ -9,6 +9,7 @@ import (
 	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/internal/subtitles"
 	"github.com/shruggietech/insonic/internal/workspace"
+	"github.com/shruggietech/insonic/schemas"
 	"os"
 	"path/filepath"
 	"testing"
@@ -156,6 +157,45 @@ func configuredResult(t *testing.T, r contracts.Response) map[string]any {
 		t.Fatal("invalid response shape")
 	}
 	return value
+}
+
+func configuredContractResult(t *testing.T, response contracts.Response) map[string]any {
+	t.Helper()
+	raw, err := json.Marshal(response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = schemas.ValidateResponse(raw); err != nil {
+		t.Fatalf("runtime response violates its published schema: %v; %s", err, raw)
+	}
+	return configuredResult(t, response)
+}
+
+func TestPipelineInspectUnresolvedModelDiagnostics(t *testing.T) {
+	for _, reference := range []string{contracts.ID(), "missing-alias", "source:missing-source/default"} {
+		t.Run(reference, func(t *testing.T) {
+			a := configuredApp(t)
+			id := contracts.ID()
+			definition := localDefinition()
+			definition["recognition"].(map[string]any)["model_id"] = reference
+			p := map[string]any{"id": id, "name": "Missing selection", "preset": "local", "configuration": definition}
+			configuredResult(t, realRequest(a, "pipelines.set", id, map[string]any{"expected_revision": 0, "pipeline": p}))
+			result := configuredContractResult(t, realRequest(a, "pipelines.inspect", id, nil))
+			selections := result["model_selections"].([]any)
+			selected := selections[0].(map[string]any)
+			target := selected["target"].(map[string]any)
+			if selected["reference"] != reference || selected["state"] != "missing" || selected["compatible"] != false || selected["manifest_digest"] != "" || selected["upstream_revision"] != "" || target["kind"] != "unresolved" || target["operation"] != "transcription" || len(target) != 2 {
+				t.Fatalf("missing reference invented a resolution: %#v", selected)
+			}
+			if len(selected["diagnostics"].([]any)) == 0 {
+				t.Fatal("missing reference lacks recovery diagnostics")
+			}
+			work, err := a.Catalog.Works(context.Background())
+			if err != nil || len(work) != 0 {
+				t.Fatal("inspection queued acquisition", err)
+			}
+		})
+	}
 }
 func localDefinition() map[string]any {
 	return map[string]any{

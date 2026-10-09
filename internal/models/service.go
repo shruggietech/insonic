@@ -54,9 +54,13 @@ func (s *Service) Execute(ctx context.Context, work catalog.Work) (any, error) {
 		return nil, contracts.Fail("invalid_request")
 	}
 	m := req.Manifest
+	// Replays may inspect an accepted installation, but stale/cancelled claims
+	// cannot perform scratch cleanup or new recovery effects.
+	if _, e := s.Catalog.RenewWork(ctx, work, 30*time.Second); e != nil {
+		return nil, e
+	}
 	digest := m.Digest()
-	logicalVersion, _ := json.Marshal([]string{m.Name, m.ModelVersion})
-	id := StableID("model:" + string(logicalVersion))
+	id := InstallationID(m)
 	raw, _ := json.Marshal(m)
 	install := catalog.BaseModelInstall{ID: id, Name: m.Name, Version: m.ModelVersion, Digest: digest, Manifest: raw, PublicationIDs: json.RawMessage(`[]`), State: "registered"}
 	if current, e := s.Catalog.BaseModel(ctx, id); e == nil {
@@ -65,30 +69,45 @@ func (s *Service) Execute(ctx context.Context, work catalog.Work) (any, error) {
 		}
 		install.Revision = current.Revision
 		if current.State == "available" {
-			if e = s.Verify(ctx, id); e != nil {
-				return nil, e
+			verifyErr := s.Verify(ctx, id)
+			if verifyErr != nil && work.Kind == "models.register" {
+				return nil, verifyErr
 			}
-			for _, f := range m.Files {
-				if e = s.removeDownload(work.ID, f); e != nil {
-					return nil, e
+			if verifyErr == nil {
+				for _, f := range m.Files {
+					if e = s.removeDownload(work.ID, f); e != nil {
+						return nil, e
+					}
 				}
+				return map[string]any{"model_id": id, "state": "available"}, nil
 			}
-			return map[string]any{"model_id": id, "state": "available"}, nil
 		}
 	}
 	if work.Kind == "models.acquire" {
 		ids := []string{}
+		var currentIDs []string
+		if old, e := s.Catalog.BaseModel(ctx, id); e == nil {
+			currentIDs, _ = catalog.PublicationIDs(old.PublicationIDs)
+		}
 		for i, f := range m.Files {
 			if ctx.Err() != nil {
 				return nil, contracts.Fail("cancelled")
 			}
 			pubID := StableID("model-file:" + id + ":" + f.Role + ":" + f.SHA256)
+			if len(currentIDs) == len(m.Files) {
+				pubID = currentIDs[i]
+			}
 			p, e := s.Catalog.Publication(ctx, pubID)
-			if e == nil && p.State == "available" {
-				if p.Digest != f.SHA256 || p.Size != f.Size || s.Artifacts.Verify(ctx, pubID) != nil {
+			if e == nil && p.State != "pending" {
+				if p.Digest != f.SHA256 || p.Size != f.Size {
 					return nil, contracts.Fail("conflict")
 				}
-			} else {
+				if p.State != "available" || s.Artifacts.Verify(ctx, pubID) != nil {
+					pubID = StableID("model-file-recovery:" + id + ":" + f.Role + ":" + f.SHA256 + ":" + work.ID + ":" + strconv.FormatInt(work.Generation, 10))
+					p, e = s.Catalog.Publication(ctx, pubID)
+				}
+			}
+			if e != nil || p.State != "available" {
 				if e == nil && p.State == "pending" {
 					p, e = s.Artifacts.Reconcile(ctx, pubID)
 				}

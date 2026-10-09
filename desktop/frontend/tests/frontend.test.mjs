@@ -743,6 +743,99 @@ test('rendered pinned model registration matches the published manifest contract
   );
   await unmount();
 });
+
+test('model aliases and configured source discovery use revisioned shared requests', async () => {
+  const bridge=mock(), original=bridge.Operate;
+  let aliases=[], sources=[];
+  bridge.Operate=async request=>{
+    if(request.operation.startsWith('models.alias.')||request.operation.startsWith('models.source.')||request.operation==='models.discover'||request.operation==='models.resolve'){
+      const validation=validateNativeRequest(request);assert.equal(validation.valid,true,validation.errors);bridge.calls.push(request);
+      const aliasOperation=request.operation.startsWith('models.alias.');
+      const items=aliasOperation?aliases:sources;
+      if(request.operation.endsWith('.list'))return {result:{items,next_id:''}};
+      if(request.operation.endsWith('.set')){
+        const value={...(aliasOperation?request.data.alias:request.data.source),revision:items.length?8:7};
+        assert.equal(request.data.expected_revision,items[0]?.revision??0);
+        if(aliasOperation)aliases=[value];else sources=[value];
+        return {result:value};
+      }
+      if(request.operation.endsWith('.show'))return {result:items[0]};
+      if(request.operation.endsWith('.remove')){assert.equal(request.data.expected_revision,items[0].revision);if(aliasOperation)aliases=[];else sources=[];return {result:{state:'deleted'}};}
+      if(request.operation==='models.discover')return {result:{items:[{selector:'tiny',reference:'source:local/tiny',manifest_digest:'a'.repeat(64),state:'discovered',compatible:true,diagnostics:[]}]}};
+      return {result:{reference:request.data.reference,target:{kind:'base',id:mid,operation:request.data.operation},state:'registered',compatible:true,manifest_digest:'a'.repeat(64),upstream_revision:'exact',diagnostics:[]}};
+    }
+    return original(request);
+  };
+  await mount(bridge);await click('Settings');
+  await fill('Model alias name','speech');await fill('Exact model target JSON',JSON.stringify({kind:'base',id:mid,operation:'transcription'}));await click('Save model alias');
+  assert.match(document.body.textContent,/speech/);assert.match(document.body.textContent,/Expected alias revision: 7/);
+  await click('Edit alias speech');await fill('Exact model target JSON',JSON.stringify({kind:'base',id:wid,operation:'transcription'}));await click('Save model alias');
+  assert.equal(bridge.calls.filter(c=>c.operation==='models.alias.set').at(-1).data.expected_revision,7);
+  await fill('Model source name','local');await fill('Model source configuration JSON',JSON.stringify({url:'http://127.0.0.1:8123/catalog',local_http:true}));await click('Save model source');
+  await fill('Discovery source',sources[0].id);await click('Discover source models');
+  assert.match(document.body.textContent,/discovered/);assert.match(document.body.textContent,/not an installed or verified model/);
+  await fill('Model reference','source:local/tiny');await click('Resolve model reference');
+  assert.equal(bridge.calls.find(c=>c.operation==='models.resolve').data.reference,'source:local/tiny');
+  assert.equal(bridge.calls.some(c=>c.operation==='models.acquire'),false);
+  await click('Remove alias speech');await click('Remove source local');await unmount();
+});
+
+test('shared selectors accept missing aliases and show compatibility without hiding exact identity',async()=>{
+  const bridge=mock(),original=bridge.Operate;
+  bridge.Operate=async request=>{
+    if(request.operation==='models.list')return {result:{items:[{id:mid,name:'declared-speech',model_version:'v1',capabilities:['transcription'],state:'registered',operation_compatibility:{transcription:false,diarization:false}}],next_id:''}};
+    if(request.operation==='models.alias.list')return {result:{items:[{id:wid,name:'queued-speech',revision:4,state:'active',target:{kind:'base',id:mid,operation:'transcription'}}],next_id:''}};
+    if(request.operation==='models.resolve'){assert.equal(validateNativeRequest(request).valid,true);bridge.calls.push(request);return {result:{reference:request.data.reference,target:{kind:'base',id:mid,operation:'transcription'},state:'registered',compatible:false,diagnostics:['unsupported-runtime'],manifest_digest:'a'.repeat(64),upstream_revision:'immutable'}};}
+    return original(request);
+  };
+  await mount(bridge);await click('Open Committed speech');await fill('Transcription input','generate');
+  assert.match(field('Local recognition model').textContent,/queued-speech/);
+  assert.match(field('Local recognition model').textContent,/queued-speech.*incompatible with default adapter/);
+  assert.match(field('Local recognition model').textContent,/declared-speech.*v1, transcription, registered.*incompatible with default adapter/);
+  await fill('Local recognition model','queued-speech');await click('Inspect local recognition model reference');
+  assert.match(document.body.textContent,/Incompatible reference: registered/);assert.match(document.body.textContent,/unsupported-runtime/);
+  await fill('Local diarization model reference','base:'+mid);await click('Rerun processing');
+  const request=bridge.calls.find(c=>c.operation==='recordings.process');assert.equal(request.data.recognition_model_id,'queued-speech');assert.equal(request.data.diarization_model_id,'base:'+mid);assert.equal(validateNativeRequest(request).valid,true);
+  await unmount();
+});
+
+test('local import, processing and pipeline choices offer base aliases while retaining other kinds in global inspection',async()=>{
+  const bridge=mock(),original=bridge.Operate;
+  const aliases=['transcription','diarization'].flatMap((operation,operationIndex)=>['base','speaker','hosted'].map((kind,index)=>({id:`${operationIndex*3+index+1}1111111-1111-4111-8111-111111111111`,name:`${kind}-${operation}`,revision:1,state:'active',target:{kind,operation,...(kind==='hosted'?{adapter:'insonic-http',contract_version:'1',endpoint:'https://example.test/worker',remote_model:'remote',upstream_revision:'1'}:{id:mid})}})));
+  bridge.Operate=async request=>{
+    if(request.operation==='models.alias.list')return {result:{items:aliases,next_id:''}};
+    if(request.operation==='models.resolve')return {result:{reference:request.data.reference,target:aliases.find(alias=>alias.name===request.data.reference).target,state:'hosted-only',compatible:true,diagnostics:[]}};
+    return original(request);
+  };
+  const choices=(label,operation)=>{
+    const options=[...field(label).options].map(option=>option.value);
+    assert.equal(options.includes(`base-${operation}`),true,label);
+    for(const kind of ['speaker','hosted'])assert.equal(options.includes(`${kind}-${operation}`),false,`${label} cannot offer ${kind} for local execution`);
+  };
+  await mount(bridge);
+  await fill('Import speaker attribution','diarize');choices('Import diarization model','diarization');
+  await click('Open Committed speech');await fill('Transcription input','generate');
+  choices('Local recognition model','transcription');choices('Local diarization model','diarization');
+  await fill('Local recognition model reference','hosted-transcription');
+  assert.equal([...field('Local recognition model').options].find(option=>option.value==='hosted-transcription').disabled,true);
+  await click('Inspect local recognition model reference');assert.match(document.body.textContent,/Unavailable for local processing: hosted-only/);
+  await click('Pipelines');choices('recognition model','transcription');choices('diarization model','diarization');
+  await click('Settings');
+  const table=[...document.querySelectorAll('table')].find(table=>table.querySelector('caption')?.textContent==='Workspace model aliases');
+  assert.match(table.textContent,/speaker-transcription/);assert.match(table.textContent,/hosted-transcription/);
+  await unmount();
+});
+
+test('job details distinguish frozen models and acquisition work from processing completion',async()=>{
+  const bridge=mock(),original=bridge.Operate;
+  bridge.Operate=async request=>{
+    if(request.operation==='work.list')return {result:{items:[{id:mid,kind:'recordings.process',state:'pending',phase:'acquiring-models'}],next_id:''}};
+    if(request.operation==='work.show')return {result:{id:mid,state:'pending',phase:'acquiring-models',generation:0,model_selections:[{reference:'speech',manifest_digest:'a'.repeat(64)}],acquisition_ids:[wid]}};
+    return original(request);
+  };
+  await mount(bridge);await click('Jobs');await click('Inspect job');
+  assert.match(document.body.textContent,/acquiring-models/);assert.match(document.body.textContent,/selected models/);assert.match(document.body.textContent,/acquisition jobs/);assert.match(document.body.textContent,/speech/);await unmount();
+});
 test('rendered terminology form persists and rereads the shared contract', async () => {
   const bridge = mock();
   await mount(bridge);

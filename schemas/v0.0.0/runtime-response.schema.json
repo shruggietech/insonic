@@ -32,7 +32,37 @@
     },
     "result": {
       "type": "object",
-      "description": "Operation-specific workspace, diagnostic or attempt result. Resolved credentials are excluded."
+      "description": "Operation-specific workspace, diagnostic or attempt result. Resolved credentials are excluded.",
+      "properties": {
+        "model_selections": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/modelResolution",
+            "description": "Frozen exact model selection."
+          },
+          "maxItems": 128,
+          "description": "Exact selected models retained by a durable work election."
+        },
+        "acquisition_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Shared exact-bundle acquisition work identity."
+          },
+          "maxItems": 128,
+          "description": "Separate prerequisite work IDs; pending acquisition never means inference succeeded."
+        },
+        "model_selection_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total frozen model/acquisition entries; bounded inspection may show only the first hundred."
+        },
+        "acquisition_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total frozen model/acquisition entries; bounded inspection may show only the first hundred."
+        }
+      }
     },
     "error": {
       "type": "object",
@@ -66,7 +96,8 @@
             "engine_ci_forbidden",
             "engine_unavailable",
             "unsupported_device",
-            "invalid_embedding"
+            "invalid_embedding",
+            "model_acquisition_failed"
           ],
           "description": "Stable machine-readable failure category."
         },

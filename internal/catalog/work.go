@@ -50,14 +50,29 @@ func (s *Store) domainTx(ctx context.Context, tx *sql.Tx, field, id string, out 
 	if e := s.row(ctx, tx, "SELECT "+strings.Join(names(cols), ",")+" FROM "+d.name+" WHERE workspace_id=? AND id=?", s.workspace, id).Scan(ptr...); e != nil {
 		return e
 	}
+	return decodeDomainRow(cols, vals, out)
+}
+
+func decodeDomainRow(cols []column, vals []any, out any) error {
 	doc := map[string]any{}
 	for i, c := range cols {
 		v := vals[i]
+		if c.typ.Kind() == reflect.Bool {
+			n, ok := v.(int64)
+			if !ok || n < 0 || n > 1 {
+				return contracts.Fail("invalid_request")
+			}
+			v = n == 1
+		}
 		if b, ok := v.([]byte); ok {
 			v = string(b)
 		}
 		if c.typ == rawType {
-			raw := []byte(v.(string))
+			encoded, ok := v.(string)
+			if !ok {
+				return contracts.Fail("invalid_request")
+			}
+			raw := []byte(encoded)
 			if e := ValidateJSON(raw); e != nil {
 				return e
 			}
@@ -75,16 +90,21 @@ func (s *Store) readOne(ctx context.Context, field, id string, out any) error {
 	if !contracts.ValidID(id) {
 		return contracts.Fail("invalid_request")
 	}
-	tx, e := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
-	if e != nil {
+	// One SELECT supplies a coherent row snapshot. Release its connection
+	// before expensive JSON decoding; SQLite's immediate transactions would
+	// otherwise reserve the writer while decoding large paginated results.
+	d := domainNamed(field)
+	cols := columns(d.typ())
+	vals := make([]any, len(cols))
+	ptr := make([]any, len(cols))
+	for i := range vals {
+		ptr[i] = &vals[i]
+	}
+	query := "SELECT " + strings.Join(names(cols), ",") + " FROM " + d.name + " WHERE workspace_id=? AND id=?"
+	if e := s.db.QueryRowContext(ctx, s.query(query), s.workspace, id).Scan(ptr...); e != nil {
 		return sanitize(e)
 	}
-	defer tx.Rollback()
-	e = s.domainTx(ctx, tx, field, id, out)
-	if e != nil {
-		return sanitize(e)
-	}
-	return sanitize(tx.Commit())
+	return sanitize(decodeDomainRow(cols, vals, out))
 }
 func (s *Store) currentRecords(ctx context.Context, field string) (Records, error) {
 	tx, e := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
@@ -303,8 +323,44 @@ func (s *Store) transitionWork(ctx context.Context, op, id string, retry bool) (
 			return e
 		}
 		if retry {
-			if w.State != "failed" && w.State != "cancelled" && w.State != "interrupted" {
+			if w.State != "failed" && w.State != "cancelled" && w.State != "interrupted" && !(w.State == "succeeded" && w.Kind == "models.acquire") {
 				return contracts.Fail("conflict")
+			}
+			// Reset frozen acquisition dependencies in the same transaction as
+			// their consumer. No scheduler can observe a retried parent against
+			// its previous failed dependency. Successful acquisition is rechecked
+			// by its worker, which reuses verified bytes without downloading.
+			var frozen struct {
+				ModelDependencies []string `json:"model_dependencies"`
+			}
+			if e = json.Unmarshal(w.Payload, &frozen); e != nil {
+				return contracts.Fail("invalid_request")
+			}
+			seen := map[string]bool{}
+			for _, dependencyID := range frozen.ModelDependencies {
+				if !contracts.ValidID(dependencyID) || dependencyID == w.ID || seen[dependencyID] {
+					return contracts.Fail("invalid_request")
+				}
+				seen[dependencyID] = true
+				var dependency Work
+				if e = s.domainTx(ctx, tx, "Works", dependencyID, &dependency); e != nil {
+					return e
+				}
+				if dependency.Kind != "models.acquire" {
+					return contracts.Fail("invalid_request")
+				}
+				if dependency.State == "failed" || dependency.State == "cancelled" || dependency.State == "interrupted" || dependency.State == "succeeded" {
+					dependency.State = "pending"
+					dependency.Owner = ""
+					dependency.LeaseUntil = 0
+					dependency.Phase = ""
+					dependency.Error = ""
+					dependency.Result = json.RawMessage(`null`)
+					if e = s.recordWork(ctx, tx, &dependency, rev); e != nil {
+						return e
+					}
+					rev++
+				}
 			}
 			w.State = "pending"
 			w.Result = json.RawMessage(`null`)

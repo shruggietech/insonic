@@ -18,6 +18,7 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/library"
+	"github.com/shruggietech/insonic/internal/models"
 	"github.com/shruggietech/insonic/internal/pipeline"
 	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/internal/subtitles"
@@ -46,15 +47,17 @@ type RecordingOptions struct {
 	Attribution        processing.DiarizationOptions `json:"attribution,omitempty"`
 }
 type recordingPayload struct {
-	RequestDigest  string             `json:"request_digest,omitempty"`
-	Tools          *ProcessingTools   `json:"tools,omitempty"`
-	Election       *recordingElection `json:"election,omitempty"`
-	ModelDigests   map[string]string  `json:"model_digests,omitempty"`
-	MediaID        string             `json:"media_id"`
-	Expected       int64              `json:"expected_revision"`
-	SourceRevision int64              `json:"source_revision"`
-	Options        RecordingOptions   `json:"options"`
-	AssemblyDigest string             `json:"assembly_digest,omitempty"`
+	ModelSelections   []models.Resolution `json:"model_selections,omitempty"`
+	ModelDependencies []string            `json:"model_dependencies,omitempty"`
+	RequestDigest     string              `json:"request_digest,omitempty"`
+	Tools             *ProcessingTools    `json:"tools,omitempty"`
+	Election          *recordingElection  `json:"election,omitempty"`
+	ModelDigests      map[string]string   `json:"model_digests,omitempty"`
+	MediaID           string              `json:"media_id"`
+	Expected          int64               `json:"expected_revision"`
+	SourceRevision    int64               `json:"source_revision"`
+	Options           RecordingOptions    `json:"options"`
+	AssemblyDigest    string              `json:"assembly_digest,omitempty"`
 }
 type AssemblyInput struct {
 	SubtitleFormat string            `json:"subtitle_format,omitempty"`
@@ -178,16 +181,16 @@ func validateRecordingOptions(o RecordingOptions) error {
 	if o.Transcription == "reuse" && o.Diarization == "reuse" {
 		return contracts.Fail("invalid_request")
 	}
-	if o.PipelineID == "" && o.Transcription == "generate" && !contracts.ValidID(o.RecognitionModelID) {
+	if o.PipelineID == "" && o.Transcription == "generate" && !models.ValidateReference(o.RecognitionModelID) {
 		return contracts.Fail("invalid_request")
 	}
-	if o.PipelineID == "" && o.Diarization != "reuse" && !contracts.ValidID(o.DiarizationModelID) {
+	if o.PipelineID == "" && o.Diarization != "reuse" && !models.ValidateReference(o.DiarizationModelID) {
 		return contracts.Fail("invalid_request")
 	}
-	if o.RecognitionModelID != "" && !contracts.ValidID(o.RecognitionModelID) {
+	if o.RecognitionModelID != "" && !models.ValidateReference(o.RecognitionModelID) {
 		return contracts.Fail("invalid_request")
 	}
-	if o.DiarizationModelID != "" && !contracts.ValidID(o.DiarizationModelID) {
+	if o.DiarizationModelID != "" && !models.ValidateReference(o.DiarizationModelID) {
 		return contracts.Fail("invalid_request")
 	}
 	if o.SubtitleFormat != "" && o.SubtitleFormat != "srt" && o.SubtitleFormat != "vtt" {
@@ -271,7 +274,7 @@ func (a *App) processRecording(ctx context.Context, claim catalog.Work) (any, er
 	if strictPayload(claim.Payload, &input) != nil || !contracts.ValidID(input.MediaID) || validateRecordingOptions(input.Options) != nil {
 		return nil, contracts.Fail("invalid_request")
 	}
-	if validateElection(input) != nil {
+	if validateElection(input) != nil || validateModelElection(input) != nil {
 		return nil, contracts.Fail("invalid_request")
 	}
 	if result, accepted, e := a.Catalog.AcceptedRecordingWork(ctx, claim.ID, input.MediaID); e != nil {
@@ -280,6 +283,9 @@ func (a *App) processRecording(ctx context.Context, claim catalog.Work) (any, er
 		var value any
 		json.Unmarshal(result, &value)
 		return value, nil
+	}
+	if e := a.verifyElectedModels(ctx, input.ModelSelections); e != nil {
+		return nil, e
 	}
 	entry, e := a.Catalog.Library(ctx, input.MediaID)
 	if e != nil {
@@ -314,6 +320,9 @@ func (a *App) processRecording(ctx context.Context, claim catalog.Work) (any, er
 		}
 	}
 	provenance := map[string]any{"audio": session.Provenance}
+	if len(input.ModelSelections) > 0 {
+		provenance["model_elections"] = modelSelectionSummaries(input.ModelSelections)
+	}
 	diagnostics := []any{session.Diagnostics}
 	var doc json.RawMessage
 	state := "ready"
@@ -643,7 +652,7 @@ func (a *App) recordingDispatch(req contracts.Request) (any, error) {
 				if original.RequestDigest != requestDigest {
 					return nil, contracts.Fail("conflict")
 				}
-				return workView(old), nil
+				return a.modelWorkView(old), nil
 			}
 		}
 		entry, e := a.Catalog.Library(a.ctx, req.ItemID)
@@ -688,22 +697,30 @@ func (a *App) recordingDispatch(req contracts.Request) (any, error) {
 			if !bytes.Equal(elected, was) {
 				return nil, contracts.Fail("conflict")
 			}
-			return workView(old), nil
+			return a.modelWorkView(old), nil
 		}
 		tools, e := a.electedProcessingTools()
 		if e != nil {
 			return nil, e
 		}
-		modelDigests, e := a.electModelDigests(options)
+		options, election, modelSelections, e := a.electProcessingModels(options, election)
 		if e != nil {
 			return nil, e
 		}
-		raw, _ := json.Marshal(recordingPayload{RequestDigest: requestDigest, Tools: tools, Election: election, ModelDigests: modelDigests, MediaID: req.ItemID, Expected: expected, SourceRevision: entry.Revision, Options: options})
+		modelDigests := map[string]string{}
+		for _, selected := range modelSelections {
+			modelDigests[selected.Target.ID] = selected.Digest
+		}
+		dependencies, e := a.queueModelSelections(a.ctx, modelSelections)
+		if e != nil {
+			return nil, e
+		}
+		raw, _ := json.Marshal(recordingPayload{ModelSelections: modelSelections, ModelDependencies: dependencies, RequestDigest: requestDigest, Tools: tools, Election: election, ModelDigests: modelDigests, MediaID: req.ItemID, Expected: expected, SourceRevision: entry.Revision, Options: options})
 		work, e := a.Catalog.EnqueueWork(a.ctx, req.RequestID, "recordings.process", raw)
 		if e == nil {
 			a.recoverWork()
 		}
-		return workView(work), e
+		return a.modelWorkView(work), e
 	case "recordings.show":
 		r, e := a.Catalog.Recording(a.ctx, req.ItemID)
 		if e != nil {

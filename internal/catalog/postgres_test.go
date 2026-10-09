@@ -156,6 +156,9 @@ func TestPostgreSQLWorkAuthority(t *testing.T)  { workSuite(t, postgresStore(t, 
 func TestPostgreSQLCurrentLibrary(t *testing.T) { librarySuite(t, postgresStore(t, contracts.ID())) }
 
 func TestPostgreSQLBaseModelInstall(t *testing.T) { modelSuite(t, postgresStore(t, contracts.ID())) }
+func TestPostgreSQLModelReferences(t *testing.T) {
+	modelReferenceSuite(t, postgresStore(t, contracts.ID()))
+}
 
 func TestPostgreSQLLatestCurrentProof(t *testing.T) {
 	latestCurrentProofSuite(t, postgresStore(t, contracts.ID()))

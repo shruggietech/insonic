@@ -7,8 +7,12 @@ All notable changes to this project will be documented here. The format follows 
 ### Decisions
 
 - 2026-10-09: Constitution 2.2.1 removes a hypothetical pre-v1 bulk audio-migration obligation where no deployed data requires it. Explicit replacement, normal catalog/schema evolution and transcript-version interoperability retain their independent integrity contracts.
+- 2026-10-09: Freeze model aliases and configured catalog selectors into exact complete bundle identities before durable acquisition. Shared acquisitions precede dependent processing without occupying waiting worker slots. Explicit manifest catalogs preserve configured transport rules; direct provider downloads are not advertised without their own qualified adapter.
+- 2026-10-09: Extend cross-process CLI and source/relocated native WebView qualification with synthetic model catalogs and tiny verified bundles. Required package receipts include the model-reference journey; acoustic engine loading and real weights remain excluded.
 
 ### Added
+
+- Workspace model aliases, configured discovery, non-loading compatibility inspection and acquire-on-demand processing/import elections through shared CLI/runtime/desktop contracts. Portable reference state preserves base, trained-version and hosted-handle distinctions; full speaker matching and training remain separate work.
 
 - Explicit stable-ID canonical audio replacement with keep/clear/replace transcript policies and source-bound evidence retirement. Declared speaker rosters support atomic initial import, independent CAS edits, portable current proofs and separate graph context through shared CLI/runtime/desktop operations.
 

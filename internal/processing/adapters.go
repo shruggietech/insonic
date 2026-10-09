@@ -23,24 +23,9 @@ import (
 	"github.com/shruggietech/insonic/internal/workspace"
 )
 
-var rolePattern = regexp.MustCompile(`^[A-Za-z0-9_-][A-Za-z0-9._/-]*$`)
 var languagePattern = regexp.MustCompile(`^[a-z]{2,3}$`)
 
-func validRole(role string) bool {
-	if len(role) == 0 || len(role) > 128 || !rolePattern.MatchString(role) || path.Clean(role) != role || strings.HasSuffix(role, "/") {
-		return false
-	}
-	for _, part := range strings.Split(role, "/") {
-		if part == "" || strings.HasPrefix(part, ".") || strings.HasSuffix(part, ".") {
-			return false
-		}
-		name := strings.ToUpper(strings.SplitN(part, ".", 2)[0])
-		if name == "CON" || name == "PRN" || name == "AUX" || name == "NUL" || len(name) == 4 && (strings.HasPrefix(name, "COM") || strings.HasPrefix(name, "LPT")) && name[3] >= '1' && name[3] <= '9' {
-			return false
-		}
-	}
-	return true
-}
+func validRole(role string) bool { return models.ValidRole(role) }
 
 func (s *Session) model(ctx context.Context, id, capability string) (string, map[string]any, error) {
 	return s.modelWithDigest(ctx, id, capability, "")
@@ -67,40 +52,13 @@ func (s *Session) modelWithDigest(ctx context.Context, id, capability, expectedD
 	if install.State != "available" || models.DecodeManifest(install.Manifest, &manifest) != nil || manifest.Digest() != install.Digest {
 		return "", nil, contracts.Fail("model_unavailable")
 	}
-	capable := false
-	for _, value := range manifest.Capabilities {
-		if value == capability {
-			capable = true
-		}
-	}
-	if !capable {
-		return "", nil, contracts.Fail("unsupported_capability")
+	adapter, version := models.DefaultAdapter(capability)
+	if err := models.CheckCompatibility(manifest, capability, adapter, version); err != nil {
+		return "", nil, err
 	}
 	ids, err := catalog.PublicationIDs(install.PublicationIDs)
 	if err != nil || len(ids) != len(manifest.Files) {
 		return "", nil, contracts.Fail("conflict")
-	}
-	// Detect filesystem aliases case-insensitively, but retain exact spellings.
-	// Engines require canonical role paths even on case-sensitive hosts.
-	roles := map[string]string{}
-	for _, file := range manifest.Files {
-		if !validRole(file.Role) {
-			return "", nil, contracts.Fail("invalid_request")
-		}
-		key := strings.ToLower(file.Role)
-		if _, exists := roles[key]; exists {
-			return "", nil, contracts.Fail("invalid_request")
-		}
-		roles[key] = file.Role
-	}
-	required := []string{"config.json", "model.bin", "tokenizer.json", "vocabulary.txt"}
-	if capability == "diarization" {
-		required = []string{"config.yaml", "embedding/pytorch_model.bin", "segmentation/pytorch_model.bin", "plda/plda.npz", "plda/xvec_transform.npz"}
-	}
-	for _, role := range required {
-		if roles[role] != role {
-			return "", nil, contracts.Fail("model_unavailable")
-		}
 	}
 	directory, err := os.MkdirTemp(s.directory, "model-")
 	if err != nil {

@@ -146,8 +146,8 @@
           "description": "Case-insensitive embedded subtitle language filter."
         },
         "diarization_model_id": {
-          "$ref": "common.schema.json#/$defs/uuid",
-          "description": "Managed model UUID for explicitly elected import diarization."
+          "$ref": "common.schema.json#/$defs/modelReference",
+          "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
         },
         "replace_audio": {
           "type": "boolean",
@@ -392,8 +392,8 @@
             "description": "Case-insensitive embedded subtitle language filter."
           },
           "diarization_model_id": {
-            "$ref": "common.schema.json#/$defs/uuid",
-            "description": "Managed model UUID for explicitly elected import diarization."
+            "$ref": "common.schema.json#/$defs/modelReference",
+            "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
           },
           "transcript": {
             "type": "string",
@@ -833,8 +833,8 @@
           "description": "Case-insensitive embedded subtitle language filter."
         },
         "diarization_model_id": {
-          "$ref": "common.schema.json#/$defs/uuid",
-          "description": "Managed model UUID for explicitly elected import diarization."
+          "$ref": "common.schema.json#/$defs/modelReference",
+          "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
         },
         "replace_audio": {
           "type": "boolean",

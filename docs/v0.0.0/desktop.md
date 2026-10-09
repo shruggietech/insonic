@@ -16,7 +16,7 @@ The source-buildable desktop exposes Library, Jobs, Pipelines, Speakers, Terms, 
 | Current Cueson assembly, configured processing, rerun, export and speaker mappings | Implemented | Library detail controls and current cues |
 | Saved pipelines and context, speaker identities/aliases/current evidence, terminology | Implemented | Pipelines, Speakers and Terms controls |
 | Durable work inspection, cancellation, retry and recovery | Implemented | Jobs controls; window closure preserves work |
-| Downloaded model register/acquire/list/show/verify/materialize and credentials | Implemented | Models and Settings controls |
+| Model register/acquire/list/show/verify/materialize, aliases, discovery and resolution | Shared versioned commands | Models controls, shared reference selectors and advanced source/alias configuration |
 | Media/processing tool configuration and appearance | Shared settings operations | Revision-checked Settings forms |
 | Original/preview playback and current cue/span seeking | Shared playback contracts | Native audio/video controls |
 | Low-level artifact retention/leases, catalog snapshots, profile migration and detailed raw bundles | Advanced commands | Readable profiles; advanced operations remain in the CLI |
@@ -25,6 +25,8 @@ The source-buildable desktop exposes Library, Jobs, Pipelines, Speakers, Terms, 
 | Speaker-model training | Delivery contract | Subsequent implementation |
 
 The matrix describes implemented interfaces, not an official product release. Dedicated profile migration controls follow catalog migration/backup delivery; saving an appearance or tool setting does not replace storage/catalog configuration.
+
+Model selectors distinguish registered declarations from verified availability, and show aliases, exact versions and compatibility. Missing compatible selections acquire before elected processing; Jobs exposes acquisition dependencies and failure rather than claiming inference has completed. Model settings manage references and discover configured catalogs through the shared runtime. Speaker-version and hosted-handle inspection does not imply training or voice matching is implemented. Source configuration remains an advanced structured input; it never silently guesses download URLs.
 
 The following examples illustrate the product contracts. Training requires later implementation; consult each capability page for its current executable command syntax:
 

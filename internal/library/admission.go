@@ -534,12 +534,18 @@ func (s *Service) makeRecording(ctx context.Context, entry catalog.LibraryEntry,
 	sourceMap := marshal(map[string]any{"policy": "supplied-document-source-clock;no-retiming", "embedded_tracks": tracks})
 	provenance := marshal(map[string]any{"mode": "import", "original_schema_version": input.OriginalVersion, "translated": input.Translated, "attribution": options.Attribution, "attribution_basis": input.AttributionBasis, "transcript_acquisition": acquisition})
 	if options.Attribution == "diarize" {
-		if s.Diarize == nil {
+		if s.Diarize == nil && s.DiarizePinned == nil {
 			return nil, contracts.Fail("unavailable")
 		}
 		originalProvenance := provenance
 		var err error
-		input, provenance, err = s.Diarize(ctx, entry, input.Document, options.DiarizationModelID)
+		if s.DiarizePinned != nil {
+			input, provenance, err = s.DiarizePinned(ctx, entry, input.Document, options.DiarizationModelID, options.DiarizationModelDigest)
+		} else if options.DiarizationModelDigest != "" {
+			return nil, contracts.Fail("invalid_request")
+		} else {
+			input, provenance, err = s.Diarize(ctx, entry, input.Document, options.DiarizationModelID)
+		}
 		if err != nil {
 			return nil, err
 		}

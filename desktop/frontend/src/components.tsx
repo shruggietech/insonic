@@ -51,7 +51,7 @@ export function Select({
   label: string;
   value: string;
   onChange: (value: string) => void;
-  options: (string | { value: string; label: string })[];
+  options: (string | { value: string; label: string; disabled?: boolean })[];
 }) {
   const id = useId();
   return (
@@ -67,6 +67,7 @@ export function Select({
             <option
               key={typeof o === 'string' ? o : o.value}
               value={typeof o === 'string' ? o : o.value}
+              disabled={typeof o === 'string' ? undefined : o.disabled}
             >
               {typeof o === 'string' ? o : o.label}
             </option>

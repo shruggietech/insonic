@@ -8,7 +8,7 @@ Saved Local, Connected and Custom pipelines use stable IDs and expected-revision
 
 ```mermaid
 flowchart TB
-  Input[Verified original and supplied subtitles] --> Audio[Extract selected mapped audio]
+  Input[Verified current canonical audio and supplied subtitles] --> Audio[Extract selected mapped audio]
   Audio --> Recognition[Generate timed text when elected]
   Input --> Supplied[Use supplied or current subtitles]
   Recognition --> Normalize[Pinned Cueson normalization]
@@ -65,9 +65,9 @@ For example, a new local definition uses explicit managed model IDs:
 }
 ```
 
-The model IDs must identify compatible managed installations before their stages execute. Saving or inspecting the definition performs no model download or inference.
+Local `model_id` fields accept exact base installation UUIDs, `base:UUID`, short workspace aliases and `source:NAME/SELECTOR` references. Saving or inspecting a definition performs no model acquisition or inference. Processing resolves the references once, validates the selected adapter contract and complete file layout, and freezes exact model identities before acquisition. Registered compatible models can be selected before their bytes are available.
 
-Recording processing can elect `pipeline_id`, optional `pipeline_revision`, `overrides` and speaker/language/context filters. Submission freezes the saved revision, normalized effective configuration, selected nonsecret tool identities, local model manifest digests and compiled recognition hints. Execution revalidates each elected local manifest digest and verified model bytes; a changed model installation fails rather than silently changing queued work. Later edits affect new submissions; retry uses the original election. Recognition and diarization reuse still follow the current-document compatibility rules. Omitting a pipeline retains direct managed-model processing inputs.
+Recording processing can elect `pipeline_id`, optional `pipeline_revision`, `overrides` and speaker/language/context filters. Submission freezes the saved revision, normalized effective configuration, selected nonsecret tool identities, local model manifest digests and compiled recognition hints. Missing elected bundles acquire through shared durable work; dependent processing waits without occupying an inference worker slot. Work inspection identifies acquisition dependencies separately from processing. Execution revalidates each elected local manifest digest and verified bytes. Alias, source and pipeline edits affect future submissions; retry retains the original election. Recognition and diarization reuse still follow current-document compatibility rules. Omitting a pipeline retains direct `recognition_model_id` and `diarization_model_id` inputs with the same reference syntax. Import's explicitly elected diarization also freezes its model identity. See [model selection and acquisition](models.md).
 
 Entity lists accept optional JSON input with `after_id` and `limit` (1 through 100), and return `items` and `next_id`. Every command accepts the normal workspace, request-ID and JSON-output options. [JSON contracts](contracts.md) describe exact worker and configuration fields.
 
