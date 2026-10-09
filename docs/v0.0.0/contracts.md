@@ -18,6 +18,8 @@ Compatibility is a priority, not an absolute prohibition on useful change. When 
 
 ## Validation and documentation
 
+Speaker-work requests distinguish dataset creation/inspection, elected training, exact speaker-version retrieval, profile CAS updates and matching-only work. Public matching input cannot supply server-frozen recording/model digests or replace the declared roster with a cluster-count hint. Zero score thresholds and ambiguity margins are explicit values. Catalog schema 9 carries portable output/profile/checkpoint authority and origin-qualified mappings; model/dataset manifests validate against their exact child contracts.
+
 The repository checks master registration, matching release identities, schema validity, field descriptions and embedded examples. Every document example must validate both against its child schema and the master. Contract checks also reject malformed identities, contradictory inputs and mismatched kinds/versions. Structural validation is complemented by application checks for source ownership, time bounds, permissions, revision ordering and backend capabilities; JSON Schema cannot prove those relationships by itself.
 
 The generated reference is read-only output. Edit descriptions, examples and field constraints in the authoritative JSON files, then rebuild documentation. The same packaged definitions serve CLI validation, adapter interchange and offline help. [Catalog relationships](schema.md), [import behavior](ingestion.md) and [speaker model lineage](voice-models.md) explain the domain rules around these payloads.

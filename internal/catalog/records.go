@@ -177,22 +177,25 @@ type ModelAssociation struct {
 	Reason    string `json:"reason"`
 }
 type Records struct {
-	ModelAliases    []ModelAlias       `json:"model_aliases,omitempty"`
-	ModelSources    []ModelSource      `json:"model_sources,omitempty"`
-	Rosters         []RosterHeader     `json:"rosters,omitempty"`
-	RosterMembers   []RosterMember     `json:"roster_members,omitempty"`
-	Extractions     []Extraction       `json:"extractions,omitempty"`
-	SavedQueries    []SavedQuery       `json:"saved_queries,omitempty"`
-	Layouts         []GraphLayout      `json:"graph_layouts,omitempty"`
-	Pipelines       []Pipeline         `json:"pipelines,omitempty"`
-	Aliases         []SpeakerAlias     `json:"speaker_aliases,omitempty"`
-	Terms           []Term             `json:"terms,omitempty"`
-	Recordings      []Recording        `json:"recordings,omitempty"`
-	SpeakerMappings []SpeakerMapping   `json:"speaker_mappings,omitempty"`
-	Library         []LibraryEntry     `json:"library,omitempty"`
-	BaseModels      []BaseModelInstall `json:"base_models,omitempty"`
-	Works           []Work             `json:"works,omitempty"`
-	Cleanups        []Cleanup          `json:"cleanups,omitempty"`
+	SpeakerOutputs     []SpeakerOutput     `json:"speaker_outputs,omitempty"`
+	SpeakerProfiles    []SpeakerProfile    `json:"speaker_profiles,omitempty"`
+	SpeakerCheckpoints []SpeakerCheckpoint `json:"speaker_checkpoints,omitempty"`
+	ModelAliases       []ModelAlias        `json:"model_aliases,omitempty"`
+	ModelSources       []ModelSource       `json:"model_sources,omitempty"`
+	Rosters            []RosterHeader      `json:"rosters,omitempty"`
+	RosterMembers      []RosterMember      `json:"roster_members,omitempty"`
+	Extractions        []Extraction        `json:"extractions,omitempty"`
+	SavedQueries       []SavedQuery        `json:"saved_queries,omitempty"`
+	Layouts            []GraphLayout       `json:"graph_layouts,omitempty"`
+	Pipelines          []Pipeline          `json:"pipelines,omitempty"`
+	Aliases            []SpeakerAlias      `json:"speaker_aliases,omitempty"`
+	Terms              []Term              `json:"terms,omitempty"`
+	Recordings         []Recording         `json:"recordings,omitempty"`
+	SpeakerMappings    []SpeakerMapping    `json:"speaker_mappings,omitempty"`
+	Library            []LibraryEntry      `json:"library,omitempty"`
+	BaseModels         []BaseModelInstall  `json:"base_models,omitempty"`
+	Works              []Work              `json:"works,omitempty"`
+	Cleanups           []Cleanup           `json:"cleanups,omitempty"`
 
 	Profiles          []Profile          `json:"profiles"`
 	Artifacts         []Artifact         `json:"artifacts"`

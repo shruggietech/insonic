@@ -296,6 +296,20 @@ func Build(s catalog.Snapshot) (Corpus, error) {
 	for _, v := range s.Records.ModelAssociations {
 		edge("model:"+v.ModelID, "speaker:"+v.SpeakerID, "associated-with")
 	}
+	for _, v := range s.Records.SpeakerOutputs {
+		id := "version:" + v.ID
+		row, exists := c.Rows[id]
+		if !exists {
+			continue
+		}
+		row.Provenance = map[string]any{"output_version_id": v.ID, "originating_speaker_id": v.SpeakerID, "dataset_id": v.DatasetID, "work_id": v.WorkID}
+		c.Rows[id] = row
+	}
+	for _, v := range s.Records.SpeakerProfiles {
+		if v.State == "active" {
+			edge("speaker:"+v.ID, "version:"+v.VersionID, "uses-profile")
+		}
+	}
 	for _, v := range s.Records.BaseModels {
 		node("base-model:"+v.ID, "base-model", map[string]any{"base_model_id": v.ID, "revision": v.Revision}, Row{Label: v.Name, ModelKind: "base"})
 	}

@@ -104,7 +104,7 @@ func (s *Store) Export(ctx context.Context) (Snapshot, error) {
 	return out, e
 }
 func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
-	if snap.Version != contracts.Version || (snap.CatalogSchema != SchemaVersion && snap.CatalogSchema != 1 && snap.CatalogSchema != 2 && snap.CatalogSchema != 5 && snap.CatalogSchema != 6 && snap.CatalogSchema != 7) {
+	if snap.Version != contracts.Version || (snap.CatalogSchema != SchemaVersion && snap.CatalogSchema != 1 && snap.CatalogSchema != 2 && snap.CatalogSchema != 5 && snap.CatalogSchema != 6 && snap.CatalogSchema != 7 && snap.CatalogSchema != 8) {
 		return contracts.Fail("incompatible_version")
 	}
 	if snap.CatalogSchema < 8 && len(snap.Records.ModelAliases)+len(snap.Records.ModelSources) > 0 {
@@ -153,6 +153,14 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 	digest, e := snap.digest()
 	if e != nil || digest != snap.Digest {
 		return contracts.Fail("invalid_request")
+	}
+	if snap.CatalogSchema < 9 {
+		if len(snap.Records.SpeakerOutputs)+len(snap.Records.SpeakerProfiles)+len(snap.Records.SpeakerCheckpoints) > 0 {
+			return contracts.Fail("invalid_request")
+		}
+		if e = normalizeHistoricalMappings(&snap.Records); e != nil {
+			return e
+		}
 	}
 	if snap.CatalogSchema == 1 {
 		if len(snap.State) != len(stateTables)-1 {
@@ -266,6 +274,9 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 			return e
 		}
 		if e = s.validateModelReferenceState(ctx, tx, snap.Records); e != nil {
+			return e
+		}
+		if e = s.validateSpeakerModelState(ctx, tx, snap.Records); e != nil {
 			return e
 		}
 		return s.validateLibraryState(ctx, tx, true)

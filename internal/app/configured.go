@@ -142,6 +142,12 @@ func (a *App) configuredDispatch(req contracts.Request) (any, error) {
 		if e != nil {
 			return nil, e
 		}
+		if !pipeline.HasProcessing(d) {
+			if input.Overrides.Recognition != nil || input.Overrides.Diarization != nil || input.Overrides.Quality != nil {
+				return nil, contracts.Fail("unsupported_capability")
+			}
+			return map[string]any{"pipeline_id": p.ID, "revision": p.Revision, "preset": p.Preset, "configuration": d, "capabilities": []string{"speaker-model-training"}, "reachability": "not-probed"}, nil
+		}
 		d, e = pipeline.Elect(p.Preset, d, input.Overrides)
 		if e != nil {
 			return nil, e

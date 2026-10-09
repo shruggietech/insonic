@@ -161,6 +161,21 @@ class WorkerTests(unittest.TestCase):
         with self.assertRaises(worker.WorkerError):
             worker.validate_request({"operation": "transcribe", "model_path": "Systran/faster-whisper-tiny"})
 
+    def test_embedding_batch_requires_bounded_exact_local_paths(self):
+        worker = load("processing_batch_request", "processing-worker.py")
+        with tempfile.TemporaryDirectory() as directory:
+            audio = Path(directory) / "input.wav"
+            audio.write_bytes(b"fixture")
+            model = Path(directory) / "model"
+            model.mkdir()
+            request = {"operation": "embed-batch", "audio_path": str(audio), "audio_paths": [str(audio)], "model_path": str(model)}
+            worker.validate_request(request)
+            for paths in ([], [str(audio)] * 65, ["relative.wav"], [str(model / "missing.wav")]):
+                with self.assertRaises(worker.WorkerError):
+                    worker.validate_request({**request, "audio_paths": paths})
+            with self.assertRaises(worker.WorkerError):
+                worker.validate_request({**request, "operation": "embed"})
+
     def test_duplicate_json_and_srt_delimiter_are_rejected(self):
         worker = load("processing_strict", "processing-worker.py")
         with self.assertRaises(worker.WorkerError):

@@ -169,7 +169,7 @@ func (s *Session) workerSelected(ctx context.Context, operation string, id strin
 	}
 	python := config.RecognitionPython
 	capability := "transcription"
-	if operation == "diarize" {
+	if operation == "diarize" || operation == "embed" || operation == "embed-batch" {
 		python = config.DiarizationPython
 		capability = "diarization"
 	}

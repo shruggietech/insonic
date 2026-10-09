@@ -340,6 +340,18 @@
         "local_speaker_id": {
           "$ref": "common.schema.json#/$defs/localSpeakerID",
           "description": "Recording-scoped local speaker token occurring in this cue attribution."
+        },
+        "source_digest": {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Exact canonical audio content digest resolved for this current reference."
+        },
+        "source_map_digest": {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Exact canonical source-clock mapping digest resolved for this current reference."
+        },
+        "mapping_revision": {
+          "$ref": "common.schema.json#/$defs/revision",
+          "description": "Revision of the independent manual mapping used for this current reference."
         }
       },
       "required": [

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   Actions,
   Area,
@@ -14,6 +14,7 @@ import {
 } from './components';
 import { appendCapture, Client, rationalSeconds, type Obj } from './client';
 import { ModelChoice } from './models';
+import { SpeakerTraining, RosterMatching } from './speaker-models';
 import {
   lines,
   pipelinePayload,
@@ -177,6 +178,18 @@ export function Library({ client, run }: Props) {
   const [playback, setPlayback] = useState<Obj>();
   const media = useRef<HTMLMediaElement | null>(null),
     selected = useRef(0);
+  const pendingSeek = useRef<{url:string;seconds:number} | undefined>(undefined);
+  const applyPendingSeek = () => {
+    const pending = pendingSeek.current, node = media.current;
+    if (pending && node?.getAttribute('src') === pending.url)
+      node.currentTime = pending.seconds;
+  };
+  const confirmPendingSeek = () => {
+    const pending = pendingSeek.current, node = media.current;
+    if (pending && node?.getAttribute('src') === pending.url && node.readyState >= 2 &&
+        !node.seeking && Math.abs(node.currentTime - pending.seconds) < 0.001)
+      pendingSeek.current = undefined;
+  };
   const entryID = entry?.id ?? entry?.media_id ?? '';
   const select = async (id: string) => {
     client.invalidate();
@@ -316,16 +329,15 @@ export function Library({ client, run }: Props) {
     },
     [],
   );
-  useEffect(() => {
-    if (
-      media.current &&
-      playback?.seek !== undefined &&
-      media.current.readyState >= 1
-    )
-      media.current.currentTime = Math.max(
-        0,
-        playback.seek - (playback.timeline_offset_seconds ?? 0),
-      );
+  useLayoutEffect(() => {
+    // Native decoders may lose a metadata-time seek while data becomes ready.
+    // Keep the elected source position pending until seeked confirms it; later
+    // readiness events must never rewind ordinary playback after confirmation.
+    pendingSeek.current = playback?.seek === undefined ? undefined : {
+      url:playback.url,
+      seconds:Math.max(0,playback.seek-(playback.timeline_offset_seconds??0)),
+    };
+    if (media.current && media.current.readyState >= 1) applyPendingSeek();
   }, [playback]);
   return (
     <>
@@ -570,14 +582,10 @@ export function Library({ client, run }: Props) {
                     ref={(node) => {
                       media.current = node;
                     }}
-                    onLoadedMetadata={() => {
-                      if (media.current && playback.seek !== undefined)
-                        media.current.currentTime = Math.max(
-                          0,
-                          playback.seek -
-                            (playback.timeline_offset_seconds ?? 0),
-                        );
-                    }}
+                    onLoadedMetadata={applyPendingSeek}
+                    onLoadedData={applyPendingSeek}
+                    onCanPlay={applyPendingSeek}
+                    onSeeked={confirmPendingSeek}
                     onError={() =>
                       run(async () => {
                         throw new Error(
@@ -595,14 +603,10 @@ export function Library({ client, run }: Props) {
                     ref={(node) => {
                       media.current = node;
                     }}
-                    onLoadedMetadata={() => {
-                      if (media.current && playback.seek !== undefined)
-                        media.current.currentTime = Math.max(
-                          0,
-                          playback.seek -
-                            (playback.timeline_offset_seconds ?? 0),
-                        );
-                    }}
+                    onLoadedMetadata={applyPendingSeek}
+                    onLoadedData={applyPendingSeek}
+                    onCanPlay={applyPendingSeek}
+                    onSeeked={confirmPendingSeek}
                   />
                 )}
               </>
@@ -622,6 +626,7 @@ export function Library({ client, run }: Props) {
               <Button variant="secondary" onClick={()=>run(async()=>setRoster(await client.roster(entryID)))}>Refresh roster</Button>
             </Actions>
           </Card>
+          <RosterMatching key={entryID} client={client} run={run} recordingID={entryID} roster={roster}/>
           <Card heading="Recording date">
             <p>
               Keep unknown dates explicit. Date-only values preserve precision
@@ -1340,6 +1345,8 @@ export function Pipelines({ client, run }: Props) {
             }}
             options={['local', 'connected', 'custom']}
           />
+          <Check label="Include transcription and diarization" value={values.processing_enabled} onChange={value=>update('processing_enabled',value)}/>
+          {values.processing_enabled&&<>
           {['recognition', 'diarization'].map((kind) => (
             <fieldset key={kind}>
               <legend>
@@ -1459,6 +1466,8 @@ export function Pipelines({ client, run }: Props) {
               />
             ),
           )}
+          </>}
+          <Area label="Saved speaker training configuration" value={values.speaker_training} onChange={value=>update('speaker_training',value)} description="Optional selected adapter, output kind, base model reference and parameters. A training-only profile can omit transcription and diarization."/>
           <Button type="submit">Save pipeline</Button>
         </form>
         {current && (
@@ -1758,6 +1767,7 @@ export function Speakers({ client, run }: Props) {
           </>
         )}
       </Card>
+      {current&&<SpeakerTraining key={current.speaker.id} client={client} run={run} speakerID={current.speaker.id}/>}
     </>
   );
 }

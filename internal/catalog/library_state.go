@@ -23,6 +23,7 @@ func (s *Store) libraryArtifactReference(ctx context.Context, tx *sql.Tx, artifa
 		"l.original_publication_id=p.id OR l.subtitle_publication_id=p.id OR " +
 		"EXISTS (SELECT 1 FROM " + libraryRefs + " WHERE refs.value=p.id))) OR " +
 		"EXISTS (SELECT 1 FROM current_recording r WHERE r.workspace_id=p.workspace_id AND r.mapped_audio_publication_id=p.id) OR " +
+		"EXISTS (SELECT 1 FROM speaker_checkpoint c WHERE c.workspace_id=p.workspace_id AND c.publication_id=p.id) OR " +
 		"EXISTS (SELECT 1 FROM base_model_install m WHERE m.workspace_id=p.workspace_id AND " +
 		"EXISTS (SELECT 1 FROM " + modelRefs + " WHERE refs.value=p.id))))"
 	var referenced bool
@@ -95,6 +96,18 @@ func (s *Store) latestCurrentProofs(ctx context.Context, tx *sql.Tx) (map[string
 				return nil, nil, nil, nil, contracts.Fail("invalid_request")
 			}
 			works[envelope.WorkID] = currentDomainProof{id, revision, envelope.WorkDigest}
+		}
+		var multi struct {
+			Proofs map[string]string `json:"reconciled_work_proofs"`
+		}
+		if json.Unmarshal([]byte(result), &multi) != nil {
+			return nil, nil, nil, nil, contracts.Fail("invalid_request")
+		}
+		for work, d := range multi.Proofs {
+			if !contracts.ValidID(work) || !digestPattern.MatchString(d) {
+				return nil, nil, nil, nil, contracts.Fail("invalid_request")
+			}
+			works[work] = currentDomainProof{id, revision, d}
 		}
 		for _, publicationID := range envelope.CleanupIDs {
 			entryID := envelope.CleanupEntryID
@@ -192,7 +205,16 @@ func (s *Store) validateLibraryState(ctx context.Context, tx *sql.Tx, expire boo
 			return contracts.Fail("invalid_request")
 		}
 		var proof map[string]any
-		if strict([]byte(result), &proof) != nil || proof["work_id"] != w.ID || proof["work_digest"] != workJournalDigest(w) {
+		if strict([]byte(result), &proof) != nil {
+			return contracts.Fail("invalid_request")
+		}
+		valid := proof["work_id"] == w.ID && proof["work_digest"] == workJournalDigest(w)
+		if !valid {
+			if multi, ok := proof["reconciled_work_proofs"].(map[string]any); ok {
+				valid = multi[w.ID] == workJournalDigest(w)
+			}
+		}
+		if !valid {
 			return contracts.Fail("invalid_request")
 		}
 		if expire {

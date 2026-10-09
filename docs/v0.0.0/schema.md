@@ -145,7 +145,9 @@ Unknown duration is null, known zero remains zero, and full media duration is me
 
 Dataset and model provenance can retain source identities and hashes. It cannot preserve obsolete assignments or frozen subtitle text. Document replacement removes affected segment memberships; mapping correction invalidates affected selection while preserving the document. Invalidated dataset/run/model records clear obsolete derived manifest/preparation references and copied options, then queue their removed managed publications for physical retirement. Current corpus reuse requires rebuilding valid preparation. Original sources and durable completed model weights/checkpoints retain their independent provenance.
 
-Downloaded base models, trained models, embeddings and provider handles are separate kinds. A provider-only version names its sanitized stable handle and actual retrieval capability, without inventing a digest for unavailable weights. Credentials remain local references. Fetching an exact supported output never substitutes a default model silently. Broader training operations remain their separate implementation contract.
+Downloaded base models, trained models, embeddings and provider handles are separate kinds. A provider-only version names its sanitized stable handle and actual retrieval capability, without inventing a digest for unavailable weights. Credentials remain local references. Fetching an exact supported output never substitutes a default model silently. Elected training and roster-constrained matching use the shared [speaker-model runtime](voice-models.md).
+
+Catalog schema 9 adds immutable speaker outputs, revisioned exact current profiles and durable checkpoint records. A training run links to actual durable work. Mapping origin distinguishes manual corrections from automatic results; legacy independently confirmed mappings become manual. Schema-8 migration definitions remain frozen. Portable restore validates receipt proofs, output/publication relationships and current evidence, while source corrections retire obsolete matching payloads and assignment-bearing inputs.
 
 ## Durable jobs, outbox and queries
 

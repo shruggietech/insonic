@@ -193,6 +193,17 @@
           "type": "integer",
           "description": "Accepted external mapping revision.",
           "minimum": 1
+        },
+        "origin": {
+          "enum": [
+            "manual",
+            "automatic"
+          ],
+          "description": "Manual correction or automatic acoustic match; historical absence means manual."
+        },
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/nonsecretOptions",
+          "description": "Bounded current matching provenance without copied assignments or secrets."
         }
       },
       "required": [

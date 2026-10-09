@@ -51,6 +51,8 @@ A portable workspace export includes a manifest, content-addressed managed asset
 
 ## Explicit audio replacement
 
+Speaker training and matching reuse canonical source-clock audio preparation. Training selects independently confirmed current cue/local-voice references and applies its elected channel and quality filters. Matching uses the existing current voices and explicit roster profiles, preserving track/channel provenance without running recognition or diarization again. Prepared clips are transient execution inputs; obsolete attribution arrays are not copied into another durable store. See [speaker-model workflows](voice-models.md).
+
 Target an existing recording by UUID or unique exact title. Without `--replace-audio`, admission returns a successful skip before opening or downloading the candidate. Replacement retains the recording ID and canonical codec/container, track separation and exact source-clock policy. Source facts are captured before transformation. The new source and elected current transcript/roster effects commit together; a failed, cancelled or stale attempt preserves the accepted recording.
 
 When a current transcript exists, choose `--existing-transcript keep|clear|replace`. Keep requires `--transcript-applies`, preserves exact document bytes and validates known cue/consumer intervals in the new source clock. Unknown audio bounds remain diagnosed uncertainty. Clear publishes `untranscribed` with a null document, without asserting silence. Replace requires a validated explicit or selected embedded transcript. Without an existing document, selected transcript input implies replace; otherwise replacement clears. Processing follows only a separately elected stage.

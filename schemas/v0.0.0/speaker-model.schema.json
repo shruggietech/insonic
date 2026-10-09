@@ -342,19 +342,26 @@
                 "sha256",
                 "byte_length"
               ],
-              "type": "object"
+              "type": "object",
+              "properties": {
+                "byte_length": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "A preparation JSON receipt has nonempty verified bytes."
+                }
+              }
             }
           ],
-          "description": "Published preparation manifest bytes, including exact member/input-artifact maps."
+          "description": "Published noncontent preparation receipt with exact current member/input hashes and source-clock provenance; transient audio and text need not be retained."
         },
         "input_artifact_ids": {
           "type": "array",
-          "description": "Ordered final audio/text input artifact IDs consumed by this run.",
+          "description": "Durable prepared media artifact identities when retained; empty when verified prepared clips are transient and their hashes/current-source references are recorded in the preparation manifest.",
           "items": {
             "$ref": "common.schema.json#/$defs/uuid",
             "description": "One final immutable training input artifact."
           },
-          "minItems": 1
+          "minItems": 0
         },
         "adapter_id": {
           "type": "string",

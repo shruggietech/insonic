@@ -79,6 +79,7 @@ export function pipelinePayload(values: Obj, previous?: Obj): Obj {
       preset: values.preset,
       revision: previous?.revision ?? 0,
       configuration: {
+        ...(values.processing_enabled===false?{}:{
         recognition: stage('recognition'),
         diarization: stage('diarization'),
         quality: {
@@ -87,6 +88,8 @@ export function pipelinePayload(values: Obj, previous?: Obj): Obj {
           max_overlap_fraction: Number(values.max_overlap_fraction ?? 0.2),
           short_turn_us: Number(values.short_turn_us ?? 250000),
         },
+        }),
+        ...(values.speaker_training?.trim()?{speaker_training:JSON.parse(values.speaker_training)}:{}),
       },
     },
   };
@@ -96,6 +99,8 @@ export function pipelineValues(p?: Obj): Obj {
   const value: Obj = {
     name: p?.name ?? '',
     preset: p?.preset ?? 'local',
+    processing_enabled: !p||!!c.recognition||!!c.diarization,
+    speaker_training: c.speaker_training?JSON.stringify(c.speaker_training,null,2):'',
     quality: c.quality?.enabled ?? true,
     language: c.recognition?.recognition?.language ?? 'en',
     hints: (c.recognition?.recognition?.hints ?? []).join('\n'),

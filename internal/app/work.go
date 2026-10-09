@@ -14,6 +14,7 @@ import (
 	"github.com/shruggietech/insonic/internal/models"
 	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/internal/subtitles"
+	"github.com/shruggietech/insonic/internal/voicemodels"
 )
 
 type realWorker struct {
@@ -206,6 +207,27 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 		}
 	} else if claim.Kind == "recordings.process" {
 		result, e = a.processRecording(ctx, claim)
+	} else if claim.Kind == "models.train" || claim.Kind == "recordings.match" {
+		selected, _, err := frozenModelDependencies(claim)
+		e = err
+		if e == nil {
+			e = a.verifyElectedModels(ctx, selected)
+		}
+		if e == nil {
+			tools, err := speakerPayloadTools(claim)
+			e = err
+			var service *voicemodels.Service
+			if e == nil {
+				service, err = a.speakerModelServiceWithTools(tools)
+			}
+			e = err
+			if e == nil && claim.Kind == "models.train" {
+				result, e = service.ExecuteTrain(ctx, claim)
+			}
+			if e == nil && claim.Kind == "recordings.match" {
+				result, e = service.ExecuteMatch(ctx, claim)
+			}
+		}
 	} else if strings.HasPrefix(claim.Kind, "models.") {
 		var s *models.Service
 		s, e = a.modelService()
@@ -257,6 +279,9 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 }
 
 func domainRequestValid(req contracts.Request) bool {
+	if speakerWorkOperation(req.Operation) {
+		return speakerWorkRequestValid(req)
+	}
 	if modelReferenceOperation(req.Operation) {
 		return modelReferenceRequestValid(req)
 	}
@@ -285,6 +310,9 @@ func domainRequestValid(req contracts.Request) bool {
 	return (list && req.ItemID == "") || (req.Operation == "work.results" && contracts.ValidID(req.ItemID)) || (input && req.ItemID == "" && len(req.Data) > 0) || (update && contracts.ValidID(req.ItemID) && len(req.Data) > 0) || (!list && !input && !update && contracts.ValidID(req.ItemID) && len(req.Data) == 0)
 }
 func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
+	if speakerWorkOperation(req.Operation) {
+		return a.speakerWorkDispatch(req)
+	}
 	if modelReferenceOperation(req.Operation) {
 		return a.modelReferenceDispatch(req)
 	}

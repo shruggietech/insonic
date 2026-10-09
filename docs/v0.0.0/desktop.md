@@ -4,7 +4,7 @@
 
 The application is CLI-first. Every core capability has an automation-ready CLI contract, and the GUI installs the CLI and wraps equivalent shared-runtime operations. Both use the same workspace IDs, job states, pipeline definitions, query parameters and errors. No core behavior lives only in GUI code. Shared capability and release matrices record which client exposes each operation.
 
-Advanced or experimental CLI capabilities may ship before their GUI controls. Each release documents that lag in its capability matrix, including the CLI command, current GUI availability and its follow-up outcome. This exception does not turn mature core operations into permanent CLI-only features. Speaker-model discovery and retrieval begin with CLI contracts; desktop controls follow the shared operation model.
+Advanced or experimental CLI capabilities may ship before their GUI controls. Each release documents that lag in its capability matrix, including the CLI command, current GUI availability and its follow-up outcome. This exception does not turn mature core operations into permanent CLI-only features. Speaker-model dataset, training, discovery, retrieval, profile selection and matching controls use the same shared operations as the CLI.
 
 CLI groups are `workspace`, `media`, `pipelines`, `jobs`, `speakers`, `terms`, `search`, `query`, `export`, `models`, `settings` and `doctor`. Human output is concise; `--json` provides versioned machine-readable records, diagnostics go to stderr, and exit statuses distinguish failure and partial completion. Noninteractive invocations never prompt. Secret entry uses a protected input channel, not command-line values.
 
@@ -22,13 +22,14 @@ The source-buildable desktop exposes Library, Jobs, Pipelines, Speakers, Terms, 
 | Low-level artifact retention/leases, catalog snapshots, profile migration and detailed raw bundles | Advanced commands | Readable profiles; advanced operations remain in the CLI |
 | Text/graph queries, current evidence extraction, calendars, recording timelines, saved definitions/layouts | Implemented | Explore controls, source playback, force graph and accessible tables |
 | Optional query assistance | Shared elected HTTP provider and validated current queries | Explore configuration, prompt, suggestion/edit/run/save and explicit auto-run |
-| Speaker-model training | Delivery contract | Subsequent implementation |
+| Speaker-model datasets, elected training, exact retrieval and profile selection | Implemented shared commands | Speakers training and Models discovery/fetch/profile controls |
+| Roster-constrained matching of current voices | Matching-only command | Library controls and bounded outcome pages |
 
 The matrix describes implemented interfaces, not an official product release. Dedicated profile migration controls follow catalog migration/backup delivery; saving an appearance or tool setting does not replace storage/catalog configuration.
 
-Model selectors distinguish registered declarations from verified availability, and show aliases, exact versions and compatibility. Missing compatible selections acquire before elected processing; Jobs exposes acquisition dependencies and failure rather than claiming inference has completed. Model settings manage references and discover configured catalogs through the shared runtime. Speaker-version and hosted-handle inspection does not imply training or voice matching is implemented. Source configuration remains an advanced structured input; it never silently guesses download URLs.
+Model selectors distinguish registered declarations from verified availability, and show aliases, exact versions and compatibility. Missing compatible selections acquire before elected processing; Jobs exposes acquisition dependencies and failure rather than claiming inference has completed. Models discovers trained outputs by speaker, fetches an exact version and selects or clears its current profile with a displayed revision. Speakers accepts explicit adapter configuration or a saved training profile at an exact revision. Source configuration remains an advanced structured input; it never silently guesses download URLs.
 
-The following examples illustrate the product contracts. Training requires later implementation; consult each capability page for its current executable command syntax:
+The following examples illustrate the product contracts; consult each capability page for complete input files and current executable command syntax:
 
 ```sh
 insonic workspace create --path PATH
@@ -39,10 +40,10 @@ insonic media import --manifest imports.json
 insonic media attach-subtitle MEDIA_ID SUBTITLE_FILE
 insonic jobs list --json
 insonic search "sample phrase" --json
-insonic models dataset create --speaker SPEAKER_ID --preset speech-clean
-insonic models train --dataset DATASET_ID --pipeline PIPELINE_ID
-insonic models list --speaker SPEAKER_ID
-insonic models show MODEL_VERSION_ID
+insonic models dataset create --input dataset.json
+insonic models train --input training.json
+insonic models speaker list --speaker SPEAKER_ID
+insonic models speaker show MODEL_VERSION_ID
 insonic models fetch MODEL_VERSION_ID --output MODEL_DIRECTORY
 ```
 

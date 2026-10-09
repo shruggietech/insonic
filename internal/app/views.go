@@ -104,6 +104,27 @@ func (a *App) workResults(req contracts.Request) (any, error) {
 	if e != nil {
 		return nil, e
 	}
+	if w.Kind == "recordings.match" {
+		var matching struct {
+			Recording string            `json:"recording_id"`
+			Decisions []json.RawMessage `json:"decisions"`
+			Missing   []string          `json:"missing_profiles"`
+			Mappings  int               `json:"mapping_count"`
+			State     string            `json:"state"`
+		}
+		if len(w.Result) == 0 || json.Unmarshal(w.Result, &matching) != nil || matching.Decisions == nil {
+			return workView(w), nil
+		}
+		if p.After > len(matching.Decisions) {
+			return nil, contracts.Fail("invalid_request")
+		}
+		end := min(len(matching.Decisions), p.After+p.Limit)
+		var next any
+		if end < len(matching.Decisions) {
+			next = end
+		}
+		return map[string]any{"work_id": w.ID, "state": w.State, "phase": w.Phase, "error": w.Error, "result": map[string]any{"recording_id": matching.Recording, "decisions": matching.Decisions[p.After:end], "missing_profiles": matching.Missing[:min(len(matching.Missing), 100)], "missing_profile_count": len(matching.Missing), "mapping_count": matching.Mappings, "state": matching.State}, "next_ordinal": next}, nil
+	}
 	var result library.ImportResult
 	if w.Kind != "media.import" || json.Unmarshal(w.Result, &result) != nil {
 		return workView(w), nil

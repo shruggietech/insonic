@@ -32,6 +32,7 @@ if (process.argv.includes('--tests')) {
       path.join(root, 'src/forms.ts'),
       path.join(root, 'src/qualification.ts'),
       path.join(root, 'src/graph-view.tsx'),
+      path.join(root, 'src/speaker-models.tsx'),
     ],
     bundle: true,
     packages: 'external',

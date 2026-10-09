@@ -60,7 +60,7 @@ func validRecording(r Recording) bool {
 	return subtitles.ValidateDocument(r.Document) == nil
 }
 func validSpeakerMapping(m SpeakerMapping) bool {
-	return contracts.ValidID(m.ID) && contracts.ValidID(m.RecordingID) && contracts.ValidLocalSpeakerID(m.LocalSpeakerID) && contracts.ValidID(m.SpeakerID) && digestPattern.MatchString(m.DocumentDigest) && m.Revision > 0
+	return contracts.ValidID(m.ID) && contracts.ValidID(m.RecordingID) && contracts.ValidLocalSpeakerID(m.LocalSpeakerID) && contracts.ValidID(m.SpeakerID) && digestPattern.MatchString(m.DocumentDigest) && m.Revision > 0 && (m.Origin == "manual" || m.Origin == "automatic") && len(m.Provenance) <= 16384 && referenceOnlyOptions(m.Provenance)
 }
 func recordingDigest(r Recording) string { r.Revision = 0; d, _ := intent(r); return d }
 func (s *Store) Recording(ctx context.Context, id string) (Recording, error) {
@@ -95,9 +95,11 @@ func (s *Store) recordingMappings(ctx context.Context, tx *sql.Tx, id string) ([
 	out := []SpeakerMapping{}
 	for rows.Next() {
 		var m SpeakerMapping
-		if e = rows.Scan(&m.ID, &m.RecordingID, &m.LocalSpeakerID, &m.SpeakerID, &m.DocumentDigest, &m.Revision); e != nil {
+		var provenance string
+		if e = rows.Scan(&m.ID, &m.RecordingID, &m.LocalSpeakerID, &m.SpeakerID, &m.DocumentDigest, &m.Revision, &m.Origin, &provenance); e != nil {
 			return nil, e
 		}
+		m.Provenance = json.RawMessage(provenance)
 		out = append(out, m)
 	}
 	return out, rows.Err()
@@ -212,7 +214,7 @@ func (s *Store) saveRecording(ctx context.Context, tx *sql.Tx, expected int64, r
 	}
 	present := documentSpeakers(r.Document)
 	for _, m := range mappings {
-		if !present[m.LocalSpeakerID] {
+		if !present[m.LocalSpeakerID] || m.Origin == "automatic" && (old.DocumentDigest != r.DocumentDigest || old.SourceDigest != r.SourceDigest || old.SourceRevision != r.SourceRevision || !bytes.Equal(old.SourceMap, r.SourceMap)) {
 			if _, e = s.exec(ctx, tx, "DELETE FROM speaker_mapping WHERE workspace_id=? AND id=?", s.workspace, m.ID); e != nil {
 				return e
 			}
@@ -272,6 +274,9 @@ func (s *Store) CommitRecording(ctx context.Context, claim Work, expected int64,
 	return r, e
 }
 func (s *Store) SetSpeakerMapping(ctx context.Context, op string, expected int64, m SpeakerMapping) (SpeakerMapping, error) {
+	// This public correction boundary always supplies independent human authority.
+	m.Origin = "manual"
+	m.Provenance = json.RawMessage(`{}`)
 	if !contracts.ValidID(op) || !contracts.ValidID(m.RecordingID) || !contracts.ValidLocalSpeakerID(m.LocalSpeakerID) || !contracts.ValidID(m.SpeakerID) || expected < 1 {
 		return m, contracts.Fail("invalid_request")
 	}
@@ -400,7 +405,7 @@ func (s *Store) validateRecordingState(ctx context.Context, tx *sql.Tx, records 
 			return e
 		}
 		md, e := intent(mappings)
-		if e != nil || mappingProofs[r.ID] != md {
+		if e != nil || mappingProofs[r.ID] != md && mappingProofs[r.ID] != legacyMappingDigest(mappings) {
 			return contracts.Fail("invalid_request")
 		}
 		delete(mappingProofs, r.ID)

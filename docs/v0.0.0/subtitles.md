@@ -53,7 +53,7 @@ Diarization-only reruns reuse current subtitle text and cue IDs without recognit
 
 Accepted replacement removes superseded current rows and queues physical retirement of removed managed derivatives through recoverable cleanup. Referenced or leased bytes remain pending until their retirement conditions are met. Temporary candidates never become hidden retained alternatives. Interrupted work before acceptance resubmits ephemeral assembly input or recomputes configured processing; after acceptance it reconciles the receipt without rerunning inference.
 
-Playback, query, export and future training resolve current references. Missing cues/local IDs, changed mapping or changed document identity invalidate obsolete dependent evidence and preparation. Preserve provenance IDs/digests and completed model outputs without keeping old assignments or alternative transcripts.
+Playback, query, export and elected training resolve current references. Missing cues/local IDs, changed mapping or changed document identity invalidate obsolete dependent evidence and preparation. Preserve provenance IDs/digests and completed model outputs without keeping old assignments or alternative transcripts. Matching-only work reads these same current voices; it does not rerun recognition or diarization. Manual mappings take precedence, and automatic mappings remain separate from independent enrollment evidence.
 
 ## Export and bounds
 

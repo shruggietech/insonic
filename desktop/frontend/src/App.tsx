@@ -13,6 +13,7 @@ import {
 import { Jobs, Library, Pipelines, Speakers, Terms, type Run } from './screens';
 import { Settings } from './settings';
 import { Explore } from './explore';
+import { SpeakerModels } from './speaker-models';
 export function App({ bridge }: { bridge: NativeBridge }) {
   const client = useMemo(() => new Client(bridge), [bridge]);
   const [workspace, setWorkspace] = useState<Obj>(),
@@ -114,6 +115,7 @@ export function App({ bridge }: { bridge: NativeBridge }) {
     'Pipelines',
     'Speakers',
     'Terms',
+    'Models',
     'Settings',
   ];
   const header = (
@@ -224,6 +226,8 @@ export function App({ bridge }: { bridge: NativeBridge }) {
               <Speakers client={client} run={run} />
             ) : screen === 'Terms' ? (
               <Terms client={client} run={run} />
+            ) : screen === 'Models' ? (
+              <SpeakerModels client={client} run={run} />
             ) : (
               <Settings
                 client={client}

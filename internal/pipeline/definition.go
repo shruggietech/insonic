@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net"
 	"net/url"
+	"reflect"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -14,12 +15,14 @@ import (
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/models"
 	"github.com/shruggietech/insonic/internal/processing"
+	"github.com/shruggietech/insonic/internal/voicemodels"
 )
 
 type Definition struct {
-	Recognition Stage                    `json:"recognition"`
-	Diarization Stage                    `json:"diarization"`
-	Quality     processing.QualityConfig `json:"quality"`
+	Recognition     Stage                    `json:"recognition,omitzero"`
+	Diarization     Stage                    `json:"diarization,omitzero"`
+	Quality         processing.QualityConfig `json:"quality,omitzero"`
+	SpeakerTraining json.RawMessage          `json:"speaker_training,omitempty"`
 }
 type Stage struct {
 	Adapter       string                        `json:"adapter"`
@@ -183,6 +186,22 @@ func Validate(preset string, d Definition) error {
 	if preset != "local" && preset != "connected" && preset != "custom" {
 		return contracts.Fail("invalid_request")
 	}
+	if len(d.SpeakerTraining) > 0 {
+		if voicemodels.ValidateTrainingConfiguration(d.SpeakerTraining) != nil {
+			return contracts.Fail("invalid_request")
+		}
+		var training struct {
+			Adapter struct {
+				Mode string `json:"mode"`
+			} `json:"adapter"`
+		}
+		if json.Unmarshal(d.SpeakerTraining, &training) != nil || preset == "local" && training.Adapter.Mode != "local" || preset == "connected" && training.Adapter.Mode != "hosted" {
+			return contracts.Fail("invalid_request")
+		}
+		if !HasProcessing(d) {
+			return nil
+		}
+	}
 	if e := ValidateStage(d.Recognition, "transcription"); e != nil {
 		return e
 	}
@@ -194,7 +213,13 @@ func Validate(preset string, d Definition) error {
 	}
 	return processing.ValidateQuality(d.Quality)
 }
+func HasProcessing(d Definition) bool {
+	return !reflect.ValueOf(d.Recognition).IsZero() || !reflect.ValueOf(d.Diarization).IsZero()
+}
 func Elect(preset string, d Definition, o Override) (Definition, error) {
+	if !HasProcessing(d) {
+		return Definition{}, contracts.Fail("unsupported_capability")
+	}
 	if o.Recognition != nil {
 		d.Recognition = *o.Recognition
 	}

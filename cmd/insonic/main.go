@@ -65,6 +65,9 @@ func execute(args []string) int {
 		fmt.Println("insonic work wait <work-id> [--timeout-ms 30000] (one-process bounded wait; terminal failures preserve state and exit nonzero)")
 		fmt.Println("insonic models resolve <UUID/base:UUID/speaker:UUID/alias/source:NAME/SELECTOR> --operation transcription/diarization/voice-matching/speaker-model-training | models discover <source-id>")
 		fmt.Println("insonic models alias/source list [--input page.json] | models alias/source show <UUID> | models alias/source set <UUID> --input update.json | models alias/source remove <UUID> --expected-revision N")
+		fmt.Println("insonic models dataset create --input JSON | models dataset list [--input JSON] | models dataset show <UUID> | models train --input JSON")
+		fmt.Println("insonic models speaker list [--input JSON] | models list --speaker <UUID> [--limit N] | models speaker show <VERSION_UUID> | models speaker fetch <VERSION_UUID> --destination <directory> | models profile set <SPEAKER_UUID> --input JSON")
+		fmt.Println("insonic recordings match <media-id> --input JSON (matches current voices against frozen roster profiles without rerunning transcription or diarization)")
 		return 0
 	}
 	if len(positional) == 3 && positional[0] == "workspace" && positional[1] == "init" {

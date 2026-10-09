@@ -81,7 +81,7 @@ Both graph adapters must pass projection replay, corrections, dataset/model line
 
 ## Executable exploration operations
 
-The source CLI and desktop Explore route implement current evidence extraction, the seven normalized operations, bounded native reads, calendars, recording timelines, saved query versions and separate layouts. Optional query assistance is implemented through an explicitly configured local or hosted HTTP adapter; training engines retain a separate delivery contract.
+The source CLI and desktop Explore route implement current evidence extraction, the seven normalized operations, bounded native reads, calendars, recording timelines, saved query versions and separate layouts. Optional query assistance uses an explicitly configured local or hosted HTTP adapter. Completed speaker-model versions retain originating speaker, dataset and work lineage. A current speaker profile adds a `uses-profile` edge to the exact version; clearing that association removes the edge while retaining the immutable output.
 
 ```sh
 insonic graph capabilities --json

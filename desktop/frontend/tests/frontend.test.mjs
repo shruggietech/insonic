@@ -1526,6 +1526,31 @@ test('library playback tickets reset media readiness before applying a new sourc
   } finally { await unmount(); }
 });
 
+test('library source seek survives an early metadata seek lost before playable data', async () => {
+  const bridge = mock();
+  await mount(bridge);
+  await click('Open Committed speech');
+  await click('Seek 1250 ms');
+  const audio = document.querySelector('audio');
+  let ready = 1, time = 0;
+  Object.defineProperty(audio, 'readyState', {get: () => ready});
+  Object.defineProperty(audio, 'currentTime', {get: () => time,set: value => {time=value;}});
+  try {
+    await act(async()=>audio.dispatchEvent(new Event('loadedmetadata',{bubbles:true})));
+    await act(async()=>audio.dispatchEvent(new Event('seeked',{bubbles:true})));
+    time=0;
+    assert.equal(audio.currentTime,0,'native decoder can lose a seek before media data arrives');
+    ready=2;
+    await act(async()=>audio.dispatchEvent(new Event('loadeddata',{bubbles:true})));
+    assert.equal(audio.currentTime,1.25,'pending source seek must recover when data becomes playable');
+    await act(async()=>audio.dispatchEvent(new Event('seeked',{bubbles:true})));
+    audio.currentTime=2;
+    ready=4;
+    await act(async()=>audio.dispatchEvent(new Event('canplay',{bubbles:true})));
+    assert.equal(audio.currentTime,2,'later buffering must preserve user playback after confirmed seek');
+  } finally {await unmount();}
+});
+
 test('native mount readiness waits for delayed workspace controls and still rejects missing screens', async () => {
   const {qualificationMounted} = await import('../.test-build/qualification.js');
   const host = document.createElement('div');

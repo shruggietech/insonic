@@ -53,21 +53,58 @@ type ResolvedSegment struct {
 	KnownSpeaker *SpeakerMapping `json:"known_speaker"`
 }
 
-func (s *Store) segmentCue(ctx context.Context, tx *sql.Tx, segment Segment) (json.RawMessage, error) {
-	var r Recording
-	if e := s.domainTx(ctx, tx, "Recordings", segment.RecordingID, &r); e != nil {
+type cachedEvidenceRecording struct {
+	Recording Recording
+	Cues      map[string]json.RawMessage
+}
+type evidenceRecordingCache map[string]*cachedEvidenceRecording
+
+func (s *Store) evidenceRecordingTx(ctx context.Context, tx *sql.Tx, id string, cache evidenceRecordingCache) (*cachedEvidenceRecording, error) {
+	if existing, ok := cache[id]; ok {
+		return existing, nil
+	}
+	value := &cachedEvidenceRecording{}
+	if e := s.domainTx(ctx, tx, "Recordings", id, &value.Recording); e != nil {
 		return nil, e
 	}
+	cache[id] = value
+	return value, nil
+}
+func (s *Store) segmentCue(ctx context.Context, tx *sql.Tx, segment Segment) (json.RawMessage, error) {
+	return s.segmentCueCached(ctx, tx, segment, evidenceRecordingCache{})
+}
+func (s *Store) segmentCueCached(ctx context.Context, tx *sql.Tx, segment Segment, cache evidenceRecordingCache) (json.RawMessage, error) {
+	value, e := s.evidenceRecordingTx(ctx, tx, segment.RecordingID, cache)
+	if e != nil {
+		return nil, e
+	}
+	r := value.Recording
 	if r.State != "ready" || r.DocumentDigest != segment.DocumentDigest {
 		return nil, contracts.Fail("conflict")
 	}
-	var document struct {
-		Cues []json.RawMessage `json:"cues"`
+	if value.Cues == nil {
+		var document struct {
+			Cues []json.RawMessage `json:"cues"`
+		}
+		if json.Unmarshal(r.Document, &document) != nil {
+			return nil, contracts.Fail("invalid_request")
+		}
+		indexed := map[string]json.RawMessage{}
+		for _, raw := range document.Cues {
+			var cue struct {
+				ID string `json:"id"`
+			}
+			if json.Unmarshal(raw, &cue) != nil {
+				return nil, contracts.Fail("invalid_request")
+			}
+			if _, duplicate := indexed[cue.ID]; cue.ID == "" || duplicate {
+				return nil, contracts.Fail("invalid_request")
+			}
+			indexed[cue.ID] = raw
+		}
+		value.Cues = indexed
 	}
-	if json.Unmarshal(r.Document, &document) != nil {
-		return nil, contracts.Fail("invalid_request")
-	}
-	for _, raw := range document.Cues {
+	if raw, ok := value.Cues[segment.CueID]; ok {
 		var cue struct {
 			ID           string `json:"id"`
 			Attributions []struct {
@@ -76,9 +113,6 @@ func (s *Store) segmentCue(ctx context.Context, tx *sql.Tx, segment Segment) (js
 		}
 		if json.Unmarshal(raw, &cue) != nil {
 			return nil, contracts.Fail("invalid_request")
-		}
-		if cue.ID != segment.CueID {
-			continue
 		}
 		for _, a := range cue.Attributions {
 			if a.SpeakerID == segment.LocalSpeakerID {
@@ -89,8 +123,9 @@ func (s *Store) segmentCue(ctx context.Context, tx *sql.Tx, segment Segment) (js
 	return nil, contracts.Fail("conflict")
 }
 func (s *Store) validateEvidence(ctx context.Context, tx *sql.Tx, segments []Segment) error {
+	cache := evidenceRecordingCache{}
 	for _, segment := range segments {
-		if _, e := s.segmentCue(ctx, tx, segment); e != nil {
+		if _, e := s.segmentCueCached(ctx, tx, segment, cache); e != nil {
 			return e
 		}
 	}

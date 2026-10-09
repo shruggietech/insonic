@@ -64,6 +64,8 @@ func DefaultAdapter(operation string) (string, string) {
 		return "faster-whisper", "1"
 	case "diarization":
 		return "pyannote", "1"
+	case "voice-matching", "speaker-model-training":
+		return "pyannote", "1"
 	}
 	return "", ""
 }
@@ -73,7 +75,7 @@ func CheckCompatibility(m Manifest, operation, adapter, version string) error {
 	}
 	capable := false
 	for _, v := range m.Capabilities {
-		capable = capable || v == operation
+		capable = capable || v == operation || (operation == "voice-matching" || operation == "speaker-model-training") && v == "diarization"
 	}
 	if !capable {
 		return contracts.Fail("unsupported_capability")
@@ -81,7 +83,7 @@ func CheckCompatibility(m Manifest, operation, adapter, version string) error {
 	if adapter == "" {
 		adapter, version = DefaultAdapter(operation)
 	}
-	if version != "1" || adapter != "faster-whisper" && adapter != "pyannote" || adapter == "faster-whisper" && operation != "transcription" || adapter == "pyannote" && operation != "diarization" {
+	if version != "1" || adapter != "faster-whisper" && adapter != "pyannote" || adapter == "faster-whisper" && operation != "transcription" || adapter == "pyannote" && operation != "diarization" && operation != "voice-matching" && operation != "speaker-model-training" {
 		return contracts.Fail("unsupported_capability")
 	}
 	required := []string{"config.json", "model.bin", "tokenizer.json", "vocabulary.txt"}

@@ -27,3 +27,35 @@ func TestDeclaredRosterProjectionIsIndependent(t *testing.T) {
 		t.Fatal("roster context missing")
 	}
 }
+
+func TestSelectedSpeakerProfileLinksExactOutputWithoutReplacingOrigin(t *testing.T) {
+	sp, family, version := contracts.ID(), contracts.ID(), contracts.ID()
+	s := catalog.Snapshot{Records: catalog.Records{Speakers: []catalog.Speaker{{ID: sp, Name: "Known", Revision: 1, State: "active"}}, Models: []catalog.Model{{ID: family, SpeakerID: sp, Name: "Profile"}}, Versions: []catalog.ModelVersion{{ID: version, ModelID: family, Kind: "voice-embedding", State: "invalidated"}}, SpeakerOutputs: []catalog.SpeakerOutput{{ID: version, ModelID: family, SpeakerID: sp, Kind: "voice-embedding", Name: "Profile"}}, SpeakerProfiles: []catalog.SpeakerProfile{{ID: sp, Revision: 3, VersionID: version, State: "active"}}}}
+	c, e := Build(s)
+	if e != nil {
+		t.Fatal(e)
+	}
+	selected := false
+	for _, edge := range c.Refs.Edges {
+		if edge.Kind == "uses-profile" && edge.From == "speaker:"+sp && edge.To == "version:"+version {
+			selected = true
+		}
+	}
+	if !selected {
+		t.Fatal("exact selected profile missing from graph")
+	}
+	s.Records.SpeakerProfiles[0].State = "cleared"
+	s.Records.SpeakerProfiles[0].VersionID = ""
+	c, e = Build(s)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, edge := range c.Refs.Edges {
+		if edge.Kind == "uses-profile" {
+			t.Fatal("cleared profile projected as active")
+		}
+	}
+	if _, ok := c.Rows["version:"+version]; !ok {
+		t.Fatal("profile clear removed immutable version")
+	}
+}

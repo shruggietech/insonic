@@ -53,10 +53,10 @@ def read_request(stream):
 def validate_request(request):
     allowed = {"operation", "audio_path", "model_path", "device", "language",
                "min_speakers", "max_speakers", "threads", "max_duration_us",
-               "source_start_numerator", "source_start_denominator", "hints", "context_digest"}
+               "source_start_numerator", "source_start_denominator", "hints", "context_digest", "audio_paths"}
     if not isinstance(request, dict) or set(request) - allowed:
         raise WorkerError("invalid_request")
-    if request.get("operation") not in {"transcribe", "diarize"}:
+    if request.get("operation") not in {"transcribe", "diarize", "embed", "embed-batch"}:
         raise WorkerError("invalid_request")
     for key in ("audio_path", "model_path"):
         value = request.get(key)
@@ -86,7 +86,18 @@ def validate_request(request):
     if int(request.get("source_start_denominator", "1")) <= 0:
         raise WorkerError("invalid_request")
     validate_hints(request)
-    if request["operation"] == "diarize" and request.get("hints"):
+    if request["operation"] == "embed-batch":
+        paths = request.get("audio_paths")
+        if not isinstance(paths, list) or not 1 <= len(paths) <= 64:
+            raise WorkerError("input_limit")
+        for path in paths:
+            if not isinstance(path, str) or not Path(path).is_absolute() or not Path(path).is_file():
+                raise WorkerError("audio_unavailable")
+        if paths[0] != request["audio_path"]:
+            raise WorkerError("invalid_request")
+    elif "audio_paths" in request:
+        raise WorkerError("invalid_request")
+    if request["operation"] in {"diarize", "embed", "embed-batch"} and request.get("hints"):
         raise WorkerError("unsupported_capability")
     return request
 
@@ -401,17 +412,43 @@ def run(request):
         pipeline.to(torch.device(device))
         minimum = guard_pyannote_embeddings(pipeline, torch, np)
         audio = torch.from_numpy(np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0).reshape(1, -1)
-        options = {key: request[key] for key in ("min_speakers", "max_speakers") if request.get(key)}
-        with torch.inference_mode():
-            output = pipeline({"waveform": audio, "sample_rate": rate}, **options)
-        turns, padding_diagnostics = intersect_pyannote_media(((turn.start, turn.end, str(label)) for turn, _, label in output.speaker_diarization.itertracks(yield_label=True)), duration_us)
-        result = diarization_result(turns, duration_us)
-        result["diagnostics"].extend(padding_diagnostics)
+        if request["operation"] in {"embed", "embed-batch"}:
+            paths = request.get("audio_paths", [request["audio_path"]])
+            vectors = []
+            skipped = 0
+            for path in paths:
+                clip_pcm, clip_count, clip_rate = read_audio(path, request.get("max_duration_us", 3600000000))
+                if clip_count < minimum:
+                    if request["operation"] == "embed-batch":
+                        vectors.append(None)
+                        skipped += 1
+                        continue
+                    raise WorkerError("invalid_embedding")
+                clip_audio = torch.from_numpy(np.frombuffer(clip_pcm, dtype="<i2").astype(np.float32) / 32768.0).reshape(1, 1, -1)
+                with torch.inference_mode():
+                    values = pipeline._embedding(clip_audio)
+                if values.ndim != 2 or values.shape[0] != 1 or not np.isfinite(values).all():
+                    raise WorkerError("invalid_embedding")
+                vector = values[0]
+                norm = np.linalg.norm(vector)
+                if not np.isfinite(norm) or norm < 1e-12:
+                    raise WorkerError("invalid_embedding")
+                vectors.append((vector/norm).tolist())
+            key = "vectors" if request["operation"] == "embed-batch" else "vector"
+            diagnostics = [{"code": "embedding_short_clip_excluded", "count": skipped}] if skipped else []
+            result = {key: vectors if key == "vectors" else vectors[0], "diagnostics": diagnostics, "provenance": {"input_count": len(paths)}}
+        else:
+            options = {key: request[key] for key in ("min_speakers", "max_speakers") if request.get(key)}
+            with torch.inference_mode():
+                output = pipeline({"waveform": audio, "sample_rate": rate}, **options)
+            turns, padding_diagnostics = intersect_pyannote_media(((turn.start, turn.end, str(label)) for turn, _, label in output.speaker_diarization.itertracks(yield_label=True)), duration_us)
+            result = diarization_result(turns, duration_us)
+            result["diagnostics"].extend(padding_diagnostics)
+            embeddings = getattr(output, "speaker_embeddings", None)
+            if embeddings is not None and not np.isfinite(embeddings).all():
+                raise WorkerError("invalid_embedding")
         result["provenance"].update(embedding_minimum_samples=minimum,
                                      model_boundary_policy="Community-1 frame/media intersection;max250ms overhang;diagnose each change")
-        embeddings = getattr(output, "speaker_embeddings", None)
-        if embeddings is not None and not np.isfinite(embeddings).all():
-            raise WorkerError("invalid_embedding")
     with Path(request["audio_path"]).open("rb") as source:
         audio_digest = hashlib.file_digest(source, "sha256").hexdigest()
     result["provenance"].update(packages=versions, device=device, threads=threads,

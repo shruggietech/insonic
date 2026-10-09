@@ -265,6 +265,9 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 		return fail()
 	}
 	group := args[0]
+	if speakerModelCommand(args) {
+		return parseSpeakerModels(args)
+	}
 	if group == "models" && (args[1] == "resolve" || args[1] == "discover" || args[1] == "alias" || args[1] == "source") {
 		return parseModelReferences(args)
 	}
