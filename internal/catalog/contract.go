@@ -11,6 +11,10 @@ import (
 // Catalog is the shared backend-neutral authority used by runtime operations.
 // Both official adapters implement it; callers never receive SQL connections.
 type Catalog interface {
+	Roster(context.Context, string) (Roster, error)
+	ResolveSpeakers(context.Context, []string) ([]string, error)
+	MutateRoster(context.Context, string, string, int64, string, []string) (Roster, error)
+	CommitElectedAdmission(context.Context, Work, int, int64, LibraryEntry, *Recording, AdmissionElection, ...json.RawMessage) (LibraryEntry, *Recording, error)
 	GraphTarget() string
 	EnqueueGraphRebuild(context.Context, string) (Receipt, error)
 	AdvanceOutboxGeneration(context.Context, string, int64, time.Duration) error

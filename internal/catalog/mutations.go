@@ -65,7 +65,7 @@ func (s *Store) accept(ctx context.Context, tx *sql.Tx, id, digest string, revis
 	return r, e
 }
 func (s *Store) Commit(ctx context.Context, m Mutation) (Receipt, error) {
-	if len(m.Records.Extractions)+len(m.Records.SavedQueries)+len(m.Records.Layouts) > 0 || len(m.Records.Pipelines)+len(m.Records.Aliases)+len(m.Records.Terms)+len(m.Records.Recordings)+len(m.Records.SpeakerMappings)+len(m.Records.Library)+len(m.Records.BaseModels)+len(m.Records.Works)+len(m.Records.Cleanups) > 0 || !contracts.ValidID(m.OperationID) || m.Expected < 0 || m.Expected == math.MaxInt64 {
+	if len(m.Records.Rosters)+len(m.Records.RosterMembers) > 0 || len(m.Records.Extractions)+len(m.Records.SavedQueries)+len(m.Records.Layouts) > 0 || len(m.Records.Pipelines)+len(m.Records.Aliases)+len(m.Records.Terms)+len(m.Records.Recordings)+len(m.Records.SpeakerMappings)+len(m.Records.Library)+len(m.Records.BaseModels)+len(m.Records.Works)+len(m.Records.Cleanups) > 0 || !contracts.ValidID(m.OperationID) || m.Expected < 0 || m.Expected == math.MaxInt64 {
 		return Receipt{}, contracts.Fail("invalid_request")
 	}
 	digest, e := intent(m)

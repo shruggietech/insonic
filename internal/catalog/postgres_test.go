@@ -181,3 +181,5 @@ func TestPostgreSQLAssistanceSettings(t *testing.T) { namedSettingSuite(t, postg
 func TestPostgreSQLCompositeAdmission(t *testing.T) {
 	admissionSuite(t, postgresStore(t, contracts.ID()))
 }
+
+func TestPostgreSQLDeclaredRosters(t *testing.T) { rosterSuite(t, postgresStore(t, contracts.ID())) }

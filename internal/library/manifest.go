@@ -82,7 +82,7 @@ func readCSV(data []byte) (ImportRequest, error) {
 		return r, contracts.Fail("invalid_request")
 	}
 	allowed := map[string]bool{"source": true, "subtitle": true, "title": true, "copy": true, "originated_at": true, "originated_on": true, "originated_earliest": true, "originated_latest": true, "timezone": true, "dst_fold": true, "dst_gap": true, "preset": true, "date_precedence": true, "credential_id": true, "acquisition_adapter": true, "new_entry": true}
-	for _, field := range []string{"local_http", "acquisition_max_bytes", "acquisition_timeout_ms", "transcript", "record", "transcript_credential_id", "transcript_adapter", "transcript_max_bytes", "transcript_timeout_ms", "replace_transcript", "attribution", "transcript_format", "subtitle_stream_index", "subtitle_language", "diarization_model_id", "expected_revision", "expected_recording_revision"} {
+	for _, field := range []string{"local_http", "acquisition_max_bytes", "acquisition_timeout_ms", "transcript", "record", "transcript_credential_id", "transcript_adapter", "transcript_max_bytes", "transcript_timeout_ms", "replace_transcript", "attribution", "transcript_format", "subtitle_stream_index", "subtitle_language", "diarization_model_id", "expected_revision", "expected_recording_revision", "kind", "replace_audio", "existing_transcript", "transcript_applies", "existing_roster", "known_speakers", "expected_roster_revision"} {
 		allowed[field] = true
 	}
 	seen := map[string]bool{}
@@ -109,18 +109,24 @@ func readCSV(data []byte) (ImportRequest, error) {
 				continue
 			}
 			h := headers[i]
-			if h == "copy" || h == "new_entry" || h == "local_http" || h == "replace_transcript" {
+			if h == "copy" || h == "new_entry" || h == "local_http" || h == "replace_transcript" || h == "replace_audio" || h == "transcript_applies" {
 				v, e := strconv.ParseBool(value)
 				if e != nil {
 					return r, contracts.Fail("invalid_request")
 				}
 				doc[h] = v
-			} else if h == "acquisition_max_bytes" || h == "acquisition_timeout_ms" || h == "transcript_max_bytes" || h == "transcript_timeout_ms" || h == "subtitle_stream_index" || h == "expected_revision" || h == "expected_recording_revision" {
+			} else if h == "acquisition_max_bytes" || h == "acquisition_timeout_ms" || h == "transcript_max_bytes" || h == "transcript_timeout_ms" || h == "subtitle_stream_index" || h == "expected_revision" || h == "expected_recording_revision" || h == "expected_roster_revision" {
 				v, e := strconv.ParseInt(value, 10, 64)
 				if e != nil {
 					return r, contracts.Fail("invalid_request")
 				}
 				doc[h] = v
+			} else if h == "known_speakers" {
+				var refs []string
+				if json.Unmarshal([]byte(value), &refs) != nil || refs == nil {
+					return r, contracts.Fail("invalid_request")
+				}
+				doc[h] = refs
 			} else if h == "originated_earliest" || h == "originated_latest" {
 				bound, e := BoundInstant(value)
 				if e != nil {

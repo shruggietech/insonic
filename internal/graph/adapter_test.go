@@ -110,7 +110,19 @@ func qualifyAdapter(t *testing.T, a Adapter) {
 		t.Fatal("reset did not install restored lineage", cp, e)
 	}
 	native.engine = original
-
+	roster := testClaim(w, target, 2, 3, Change{Kind: "refresh", CatalogRevision: 44, Nodes: []Node{{ID: "media:one", Kind: "media", Reference: json.RawMessage(`{"media_id":"11111111-1111-4111-8111-111111111111"}`)}, {ID: "roster:one", Kind: "declared-roster", Reference: json.RawMessage(`{"recording_id":"11111111-1111-4111-8111-111111111111","revision":44}`)}, {ID: "speaker:one", Kind: "speaker", Reference: json.RawMessage(`{"speaker_id":"22222222-2222-4222-8222-222222222222"}`)}}, Edges: []Edge{{ID: "roster-link", From: "media:one", To: "roster:one", Kind: "has-roster"}, {ID: "declaration", From: "roster:one", To: "speaker:one", Kind: "declares"}, {ID: "declared-context", From: "media:one", To: "speaker:one", Kind: "declared-speaker"}}})
+	if e = a.ApplyRevision(ctx, roster); e != nil {
+		t.Fatal("declared roster projection", e)
+	}
+	refs, e = a.ReadRefs(ctx, w)
+	if e != nil || len(refs.Nodes) != 3 || len(refs.Edges) != 3 {
+		t.Fatal("declared roster roundtrip", refs, e)
+	}
+	for _, edge := range refs.Edges {
+		if edge.Kind == "maps-to" {
+			t.Fatal("declared roster became acoustic mapping")
+		}
+	}
 }
 
 func cNodes(c catalog.OutboxClaim) []Node {

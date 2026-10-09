@@ -256,6 +256,9 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 		}
 	}()
 	if strings.HasPrefix(req.Operation, "recordings.") {
+		if strings.HasPrefix(req.Operation, "recordings.roster.") {
+			return a.rosterOperation(req)
+		}
 		return a.recordingDispatch(req)
 	}
 	switch req.Operation {
@@ -341,6 +344,7 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 				return nil, contracts.Fail("invalid_request")
 			}
 			prepared.Items[i].TargetError = ""
+			prepared.Items[i].ResolvedSpeakerIDs = nil
 		}
 		original, _ := json.Marshal(prepared)
 		requestDigest := documentHash(original)

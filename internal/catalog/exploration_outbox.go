@@ -39,7 +39,7 @@ func (s *Store) explorationMutation(ctx context.Context, tx *sql.Tx, op string, 
 		return data, nil
 	}
 	dirty := false
-	for _, key := range []string{"media_id", "model_id", "recording_id", "mapping_recording_id", "speaker_proofs", "term_proofs", "extraction_proofs", "graph_dirty", "accepted"} {
+	for _, key := range []string{"media_id", "model_id", "recording_id", "mapping_recording_id", "speaker_proofs", "roster_proofs", "term_proofs", "extraction_proofs", "graph_dirty", "accepted"} {
 		if _, ok := result[key]; ok {
 			dirty = true
 		}

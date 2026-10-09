@@ -67,6 +67,45 @@ func TestEvidenceReferencesRejectCopiedAssignments(t *testing.T) {
 func TestEvidenceReplacementInvalidatesCorpusAndRetiresOnlyDerived(t *testing.T) {
 	evidenceReplacementSuite(t, localStore(t, contracts.ID()))
 }
+
+func TestKeptDocumentNewAudioInvalidatesSegmentsAndMappings(t *testing.T) {
+	ctx := context.Background()
+	s := localStore(t, contracts.ID())
+	_, r, local := evidenceRecording(t, s)
+	sp, e := s.PutSpeaker(ctx, contracts.ID(), 0, SpeakerIdentity{Speaker: Speaker{ID: contracts.ID(), Name: "Known"}})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, e = s.SetSpeakerMapping(ctx, contracts.ID(), r.Revision, SpeakerMapping{RecordingID: r.ID, LocalSpeakerID: local, SpeakerID: sp.Speaker.ID, DocumentDigest: r.DocumentDigest}); e != nil {
+		t.Fatal(e)
+	}
+	rev, _ := s.Revision(ctx)
+	segment := Segment{ID: contracts.ID(), Revision: 1, RecordingID: r.ID, DocumentDigest: r.DocumentDigest, CueID: "cue-000000", LocalSpeakerID: local}
+	if _, e = s.Commit(ctx, Mutation{OperationID: contracts.ID(), Expected: rev, Records: Records{Segments: []Segment{segment}}}); e != nil {
+		t.Fatal(e)
+	}
+	old, _ := s.Library(ctx, r.ID)
+	next, entry := entryFixture(t, s)
+	entry.ID = old.ID
+	entry.Revision = old.Revision
+	entry.Digest = "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+	kept := r
+	kept.SourceDigest = entry.Digest
+	kept.SourceMap = json.RawMessage(`{"policy":"supplied-document-source-clock;no-retiming"}`)
+	if _, _, e = s.CommitElectedAdmission(ctx, next, 0, r.Revision, entry, &kept, AdmissionElection{ReplaceAudio: true}); e != nil {
+		t.Fatal(e)
+	}
+	snap, e := s.Export(ctx)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if len(snap.Records.Segments) != 0 || len(snap.Records.SpeakerMappings) != 0 || snap.Records.Recordings[0].DocumentDigest != r.DocumentDigest {
+		t.Fatal("source-bound references survived")
+	}
+	if _, e = s.CommitRecording(ctx, next, kept.Revision, r); e == nil {
+		t.Fatal("old source processing accepted")
+	}
+}
 func evidenceReplacementSuite(t *testing.T, s *Store) {
 	ctx := context.Background()
 	_, r, local := evidenceRecording(t, s)

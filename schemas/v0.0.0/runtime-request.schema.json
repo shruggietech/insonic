@@ -124,7 +124,12 @@
         "views.save",
         "query.assist",
         "query.assistance-show",
-        "query.assistance-set"
+        "query.assistance-set",
+        "recordings.roster.show",
+        "recordings.roster.add",
+        "recordings.roster.remove",
+        "recordings.roster.replace",
+        "recordings.roster.clear"
       ],
       "description": "Shared operation selected by either client."
     },
@@ -1175,7 +1180,12 @@
               "recordings.mappings",
               "recordings.map-speaker",
               "recordings.export",
-              "recordings.resolve-segment"
+              "recordings.resolve-segment",
+              "recordings.roster.show",
+              "recordings.roster.add",
+              "recordings.roster.remove",
+              "recordings.roster.replace",
+              "recordings.roster.clear"
             ],
             "description": "Current recording operation."
           }
@@ -4764,6 +4774,99 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.roster.show",
+            "description": "Selected declared-roster operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "data"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "recordings.roster.add",
+              "recordings.roster.remove",
+              "recordings.roster.replace",
+              "recordings.roster.clear"
+            ],
+            "description": "Selected declared-roster operation."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "expected_revision",
+              "speakers"
+            ],
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Observed independent roster revision, zero only when no header exists."
+              },
+              "speakers": {
+                "type": "array",
+                "maxItems": 1000,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                "description": "Speaker references by UUID, exact canonical name or unique active alias."
+              }
+            },
+            "description": "Revision-fenced declared roster mutation; membership is independent of acoustic assignments."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "recordings.roster.add",
+              "recordings.roster.remove"
+            ],
+            "description": "Membership edits require one or more speaker references."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Nonempty membership edit input.",
+            "properties": {
+              "speakers": {
+                "type": "array",
+                "minItems": 1,
+                "description": "One or more speaker references for add or remove."
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "examples": [
@@ -4808,6 +4911,32 @@
         "pipeline_revision": 1,
         "transcription": "generate",
         "diarization": "run"
+      }
+    },
+    {
+      "schema_version": "0.0.0",
+      "kind": "runtime-request",
+      "workspace_id": "11111111-1111-4111-8111-111111111111",
+      "request_id": "33333333-3333-4333-8333-333333333333",
+      "operation": "recordings.roster.replace",
+      "item_id": "44444444-4444-4444-8444-444444444444",
+      "data": {
+        "expected_revision": 0,
+        "speakers": [
+          "22222222-2222-4222-8222-222222222222"
+        ]
+      }
+    },
+    {
+      "schema_version": "0.0.0",
+      "kind": "runtime-request",
+      "workspace_id": "11111111-1111-4111-8111-111111111111",
+      "request_id": "33333333-3333-4333-8333-333333333333",
+      "operation": "recordings.roster.clear",
+      "item_id": "44444444-4444-4444-8444-444444444444",
+      "data": {
+        "expected_revision": 0,
+        "speakers": []
       }
     }
   ],

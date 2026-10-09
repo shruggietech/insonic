@@ -52,11 +52,19 @@ func parseFlags(args []string) ([]string, domainFlags, error) {
 		if arg == "--copy" || arg == "--reference" {
 			key = "copy-choice"
 		}
-		if f.seen[key] {
+		if f.seen[key] && key != "--known-speaker" {
 			return nil, f, contracts.Fail("invalid_request")
 		}
 		f.seen[key] = true
 		switch arg {
+		case "--replace-audio":
+			yes := true
+			f.options.ReplaceAudio = &yes
+			continue
+		case "--transcript-applies":
+			yes := true
+			f.options.TranscriptApplies = &yes
+			continue
 		case "--replace-transcript":
 			yes := true
 			f.options.ReplaceTranscript = &yes
@@ -85,6 +93,12 @@ func parseFlags(args []string) ([]string, domainFlags, error) {
 			return nil, f, contracts.Fail("invalid_request")
 		}
 		switch arg {
+		case "--known-speaker":
+			f.options.KnownSpeakers = append(f.options.KnownSpeakers, value)
+		case "--existing-transcript":
+			f.options.ExistingTranscript = value
+		case "--existing-roster":
+			f.options.ExistingRoster = value
 		case "--manifest":
 			f.manifest = value
 		case "--subtitle", "--transcript":
@@ -381,6 +395,7 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 	if command == "import" {
 		allowed := append(append([]string{}, dateFlags...), "copy-choice", "--manifest", "transcript-choice", "--title", "--credential-id", "--acquisition-adapter", "--local-http", "--acquisition-max-bytes", "--acquisition-timeout-ms", "--new-entry", "--preset")
 		allowed = append(allowed, transcriptFlags...)
+		allowed = append(allowed, "--known-speaker", "--replace-audio", "--existing-transcript", "--transcript-applies", "--existing-roster")
 		if !flagsAllowed(f, allowed...) || f.manifest != "" && len(positional) > 0 || f.manifest == "" && len(positional) == 0 {
 			return fail()
 		}
@@ -419,7 +434,13 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 				item.TranscriptAdapter = f.transcriptAdapter
 			}
 			if f.record != "" {
-				return fail()
+				if len(req.Items) != 1 {
+					return fail()
+				}
+				item.Record = f.record
+			}
+			if item.Kind == "" && item.Source != "" {
+				item.Kind = "media"
 			}
 			if f.legacySidecar {
 				return fail()

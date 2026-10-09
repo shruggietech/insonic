@@ -104,8 +104,11 @@ func (s *Store) Export(ctx context.Context) (Snapshot, error) {
 	return out, e
 }
 func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
-	if snap.Version != contracts.Version || (snap.CatalogSchema != SchemaVersion && snap.CatalogSchema != 1 && snap.CatalogSchema != 2 && snap.CatalogSchema != 5) {
+	if snap.Version != contracts.Version || (snap.CatalogSchema != SchemaVersion && snap.CatalogSchema != 1 && snap.CatalogSchema != 2 && snap.CatalogSchema != 5 && snap.CatalogSchema != 6) {
 		return contracts.Fail("incompatible_version")
+	}
+	if snap.CatalogSchema < 7 && (len(snap.Records.Rosters)+len(snap.Records.RosterMembers) > 0) {
+		return contracts.Fail("invalid_request")
 	}
 	if snap.CatalogSchema < 6 && (len(snap.Records.Extractions) > 0 || len(snap.Records.SavedQueries) > 0 || len(snap.Records.Layouts) > 0) {
 		return contracts.Fail("invalid_request")

@@ -60,7 +60,8 @@
           "enum": [
             "ready",
             "no-speech",
-            "no-timed-subtitles"
+            "no-timed-subtitles",
+            "untranscribed"
           ],
           "description": "Explicit representable subtitle outcome; no invented cues."
         },

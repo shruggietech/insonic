@@ -4,7 +4,13 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+### Decisions
+
+- 2026-10-09: Constitution 2.2.1 removes a hypothetical pre-v1 bulk audio-migration obligation where no deployed data requires it. Explicit replacement, normal catalog/schema evolution and transcript-version interoperability retain their independent integrity contracts.
+
 ### Added
+
+- Explicit stable-ID canonical audio replacement with keep/clear/replace transcript policies and source-bound evidence retirement. Declared speaker rosters support atomic initial import, independent CAS edits, portable current proofs and separate graph context through shared CLI/runtime/desktop operations.
 
 - Canonical audio admission with stereo/multitrack FLAC, eligible mono MP3 V0, preserved source clocks and captured metadata. Shared local/remote/embedded transcript import preserves annotated Cue JSON, upgrades validated historical versions and converts legacy managed sidecars through atomic current acceptance.
 

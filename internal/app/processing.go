@@ -857,6 +857,10 @@ func recordingRequestValid(req contracts.Request) bool {
 		return false
 	}
 	switch req.Operation {
+	case "recordings.roster.show":
+		return len(req.Data) == 0
+	case "recordings.roster.add", "recordings.roster.remove", "recordings.roster.replace", "recordings.roster.clear":
+		return len(req.Data) > 0
 	case "recordings.show":
 		return len(req.Data) == 0
 	case "recordings.document", "recordings.mappings":

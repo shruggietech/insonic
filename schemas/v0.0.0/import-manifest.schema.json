@@ -148,6 +148,39 @@
         "diarization_model_id": {
           "$ref": "common.schema.json#/$defs/uuid",
           "description": "Managed model UUID for explicitly elected import diarization."
+        },
+        "replace_audio": {
+          "type": "boolean",
+          "description": "Explicit election to replace canonical audio at an existing stable recording."
+        },
+        "existing_transcript": {
+          "enum": [
+            "keep",
+            "clear",
+            "replace"
+          ],
+          "description": "Required document election when replacement has a current transcript."
+        },
+        "transcript_applies": {
+          "type": "boolean",
+          "description": "Affirm that the current transcript applies to elected replacement audio."
+        },
+        "existing_roster": {
+          "enum": [
+            "retain",
+            "clear"
+          ],
+          "description": "Explicit declared-roster election during audio replacement."
+        },
+        "known_speakers": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "description": "Initial declared identities by UUID or unique exact canonical name/active alias. Empty declares an empty roster."
         }
       },
       "not": {
@@ -390,6 +423,51 @@
             "type": "integer",
             "minimum": 0,
             "description": "Optional observed current document revision (zero means absent)."
+          },
+          "replace_audio": {
+            "type": "boolean",
+            "description": "Explicit election to replace canonical audio at an existing stable recording."
+          },
+          "existing_transcript": {
+            "enum": [
+              "keep",
+              "clear",
+              "replace"
+            ],
+            "description": "Required document election when replacement has a current transcript."
+          },
+          "transcript_applies": {
+            "type": "boolean",
+            "description": "Affirm that the current transcript applies to elected replacement audio."
+          },
+          "existing_roster": {
+            "enum": [
+              "retain",
+              "clear"
+            ],
+            "description": "Explicit declared-roster election during audio replacement."
+          },
+          "known_speakers": {
+            "type": "array",
+            "maxItems": 1000,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "description": "Initial declared identities by UUID or unique exact canonical name/active alias. Empty declares an empty roster."
+          },
+          "kind": {
+            "enum": [
+              "media",
+              "transcript"
+            ],
+            "description": "Media with record targets audio; transcript preserves the standalone source alias."
+          },
+          "expected_roster_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Observed roster revision, zero for absent."
           }
         },
         "required": [],
@@ -438,11 +516,44 @@
         "oneOf": [
           {
             "required": [
+              "source",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "media",
+                "description": "Selected input discriminator."
+              }
+            },
+            "not": {
+              "required": [
+                "transcript",
+                "subtitle"
+              ]
+            }
+          },
+          {
+            "required": [
               "source"
             ],
             "not": {
-              "required": [
-                "record"
+              "anyOf": [
+                {
+                  "required": [
+                    "record"
+                  ]
+                },
+                {
+                  "required": [
+                    "kind"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "media",
+                      "description": "Selected input discriminator."
+                    }
+                  }
+                }
               ]
             }
           },
@@ -450,21 +561,74 @@
             "required": [
               "record"
             ],
+            "not": {
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "media",
+                  "description": "Selected input discriminator."
+                }
+              }
+            },
             "oneOf": [
               {
                 "required": [
                   "source"
-                ]
+                ],
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "transcript"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "subtitle"
+                      ]
+                    }
+                  ]
+                }
               },
               {
                 "required": [
                   "transcript"
-                ]
+                ],
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "source"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "subtitle"
+                      ]
+                    }
+                  ]
+                }
               },
               {
                 "required": [
                   "subtitle"
-                ]
+                ],
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "source"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "transcript"
+                      ]
+                    }
+                  ]
+                }
               }
             ]
           }
@@ -474,6 +638,9 @@
             "record"
           ],
           "expected_recording_revision": [
+            "record"
+          ],
+          "expected_roster_revision": [
             "record"
           ]
         }
@@ -509,6 +676,25 @@
           "source": "video/session.mp4",
           "originated_on": "2026-10-03",
           "subtitle": "video/session.srt"
+        }
+      ]
+    },
+    {
+      "kind": "import-manifest",
+      "schema_version": "0.0.0",
+      "items": [
+        {
+          "source": "audio/new.flac",
+          "known_speakers": []
+        },
+        {
+          "kind": "media",
+          "source": "audio/replacement.flac",
+          "record": "44444444-4444-4444-8444-444444444444",
+          "replace_audio": true,
+          "existing_transcript": "keep",
+          "transcript_applies": true,
+          "existing_roster": "retain"
         }
       ]
     }
@@ -649,6 +835,39 @@
         "diarization_model_id": {
           "$ref": "common.schema.json#/$defs/uuid",
           "description": "Managed model UUID for explicitly elected import diarization."
+        },
+        "replace_audio": {
+          "type": "boolean",
+          "description": "Explicit election to replace canonical audio at an existing stable recording."
+        },
+        "existing_transcript": {
+          "enum": [
+            "keep",
+            "clear",
+            "replace"
+          ],
+          "description": "Required document election when replacement has a current transcript."
+        },
+        "transcript_applies": {
+          "type": "boolean",
+          "description": "Affirm that the current transcript applies to elected replacement audio."
+        },
+        "existing_roster": {
+          "enum": [
+            "retain",
+            "clear"
+          ],
+          "description": "Explicit declared-roster election during audio replacement."
+        },
+        "known_speakers": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "description": "Initial declared identities by UUID or unique exact canonical name/active alias. Empty declares an empty roster."
         }
       },
       "not": {

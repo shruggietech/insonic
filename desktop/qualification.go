@@ -48,7 +48,7 @@ func (b *Bridge) QualificationStep(step string) bool {
 		return false
 	}
 	switch step {
-	case "module", "fixtures", "mounted", "ready", "library-import", "audio-playback", "video-playback", "metadata-date", "assembly", "cue-seek", "terms", "speakers", "pipelines", "jobs", "settings", "keyboard-help", "explore-calendar", "explore-query", "explore-graph", "query-assistance", "complete":
+	case "module", "fixtures", "mounted", "ready", "library-import", "audio-playback", "video-playback", "metadata-date", "assembly", "cue-seek", "terms", "speakers", "pipelines", "jobs", "settings", "keyboard-help", "explore-calendar", "explore-query", "explore-graph", "query-assistance", "rosters", "audio-replacement", "complete":
 		fmt.Fprintln(os.Stderr, "Desktop qualification stage:", step)
 		return true
 	}

@@ -66,6 +66,10 @@ export class Client {
   invalidate() {
     this.generation++;
   }
+  roster(recordingID:string) {return this.call('recordings.roster.show',recordingID)}
+  updateRoster(recordingID:string,revision:number,mode:'add'|'remove'|'replace'|'clear',speakers:string[]) {
+    return this.call('recordings.roster.'+mode,recordingID,{expected_revision:revision,speakers});
+  }
   async call(operation: string, itemID = '', data?: Obj): Promise<any> {
     const workspace = this.workspace,
       generation = this.generation;

@@ -119,6 +119,7 @@ Keep recording/origination, publication, retrieval, import, filesystem modificat
 | `context_term` | Stable term ID/revision, canonical/variant spellings, language/context/state and optional speaker/alias links |
 | `processing_run` | Source/model/tool digests, effective settings, work fence and noncontent accepted result references |
 | `recording` | Library entry/source digest, current revision/state, sole embedded Cue JSON and document digest, measured nullable duration, current mapped-audio publication and exact source map |
+| `recording_roster` / `roster_member` | Independent positive header/member revision, stable library parent and unique centralized speaker references; undeclared and empty are distinct |
 | `recording_speaker_mapping` | Recording/document identity, local speaker token, known speaker ID and expected current recording and mapping revisions |
 | `segment` | Recording/document/cue/local-UUID references and optional current clip artifact; no copied interval/channel/known-person assignment |
 | `speaker` / `speaker_identity_revision` | Stable known-speaker identity, name/attributes and current identity state |
@@ -126,7 +127,7 @@ Keep recording/origination, publication, retrieval, import, filesystem modificat
 | `term_revision` / `term_speaker_association` | Specialized terms, pronunciation/context and explicit speaker links |
 | `evidence_chunk` / `assertion_revision` | Current recording/document/cue references, extraction provenance and explicit current/invalidated state |
 
-Only the embedded Cue JSON stores recording-local assignments. Native source labels remain separate upstream observations. External known-speaker corrections preserve document text and bytes. Segment/query/playback/training consumers resolve current cue/token references rather than freezing another assignment list. A replacement removes stale segment/membership references and invalidates dependent preparation/evidence. Historical receipts retain IDs/digests/diagnostics without copied documents or turn arrays.
+Only the embedded Cue JSON stores recording-local assignments. Native source labels remain separate upstream observations. External known-speaker corrections preserve document text and bytes. Segment/query/playback/training consumers resolve current cue/token references rather than freezing another assignment list. Audio replacement removes stale acoustic segment/dataset membership references and invalidates dependent preparation/evidence even when document bytes are kept. Declared roster membership has its own revision and is retained or cleared only by its explicit election. Historical receipts retain IDs/digests/diagnostics without copied documents or turn arrays.
 
 Unknown duration is null, known zero remains zero, and full media duration is measured independently of cue coverage. Preserve exact original-clock integer/rational mapping outside Cue JSON; deliberately project the consumer millisecond representation under [subtitles](subtitles.md#exact-source-time-and-millisecond-projection).
 
@@ -168,3 +169,5 @@ Artifact retirement is a catalog operation with an expected lifecycle generation
 SQLite/PostgreSQL migrations preserve foreign keys, unknown/precision values, metadata capture states, workspace isolation, current-result replacement receipts, speaker lineage, valid or explicitly invalidated dataset/model references, job claims, stale-worker fencing, idempotent operation reconciliation, outbox replay and consistent export/restore. Shared fixtures compare application results, including JSON/nulls and deterministic ordering. Backend-specific indexes and queue locks optimize operations without changing the contract.
 
 Artifact-store migration copies and verifies bytes/locations before switching selected profiles. Catalog migration transfers typed records and validates all constraints at a paused revision. Graph migration rebuilds from catalog evidence and revalidates saved queries. Cross-store operations use the recovery contracts above. Interruptions retain a recoverable old authority and explicit pending state rather than activating a partly copied workspace. Release packages declare their supported database/server versions.
+
+Catalog schema 7 adds declared roster domains and the truthful `untranscribed` state. Startup migration widens current-state representation and retains normal logical export/restore integrity; it does not convert media bytes. Portable roster proofs contain IDs and digests, while current membership remains in typed catalog records.

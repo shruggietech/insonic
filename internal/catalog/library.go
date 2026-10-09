@@ -182,6 +182,9 @@ func (s *Store) librarySource(ctx context.Context, tx *sql.Tx, e LibraryEntry, c
 	return s.insertRecords(ctx, tx, rows)
 }
 func (s *Store) saveLibrary(ctx context.Context, tx *sql.Tx, entry *LibraryEntry, expected, rev int64) error {
+	return s.saveElectedLibrary(ctx, tx, entry, expected, rev, false)
+}
+func (s *Store) saveElectedLibrary(ctx context.Context, tx *sql.Tx, entry *LibraryEntry, expected, rev int64, replace bool) error {
 	if !validLibrary(*entry) {
 		return contracts.Fail("invalid_request")
 	}
@@ -191,7 +194,7 @@ func (s *Store) saveLibrary(ctx context.Context, tx *sql.Tx, entry *LibraryEntry
 		return err
 	}
 	if err == nil {
-		if old.Revision != expected || old.AssetID != entry.AssetID || old.Digest != entry.Digest || old.Size != entry.Size || old.Mode != entry.Mode {
+		if old.Revision != expected || !replace && (old.AssetID != entry.AssetID || old.Digest != entry.Digest || old.Size != entry.Size || old.Mode != entry.Mode) {
 			return contracts.Fail("conflict")
 		}
 		if e := s.queueRemoved(ctx, tx, entry.ID, old.ReportPublicationIDs, entry.ReportPublicationIDs, rev+1); e != nil {
@@ -213,12 +216,34 @@ func (s *Store) saveLibrary(ctx context.Context, tx *sql.Tx, entry *LibraryEntry
 	if e := s.putDomain(ctx, tx, "Library", *entry); e != nil {
 		return e
 	}
+	if replace {
+		if _, e := s.exec(ctx, tx, "UPDATE media_entry_asset SET asset_id=? WHERE workspace_id=? AND media_id=? AND role='original'", entry.AssetID, s.workspace, entry.ID); e != nil {
+			return e
+		}
+		if e := s.queueRemoved(ctx, tx, entry.ID, publicationList(old.OriginalPublicationID), publicationList(entry.OriginalPublicationID), rev+1); e != nil {
+			return e
+		}
+		if old.AssetID != entry.AssetID {
+			var owners int
+			if e := s.row(ctx, tx, "SELECT count(*) FROM media_entry_asset WHERE workspace_id=? AND asset_id=?", s.workspace, old.AssetID).Scan(&owners); e != nil {
+				return e
+			}
+			if owners == 0 {
+				if e := s.removeLegacyMetadata(ctx, tx, old, rev+1); e != nil {
+					return e
+				}
+				if _, e := s.exec(ctx, tx, "DELETE FROM media_asset WHERE workspace_id=? AND id=? AND NOT EXISTS(SELECT 1 FROM library_entry WHERE workspace_id=? AND asset_id=?)", s.workspace, old.AssetID, s.workspace, old.AssetID); e != nil {
+					return e
+				}
+			}
+		}
+	}
 	var current Recording
-	if e := s.domainTx(ctx, tx, "Recordings", entry.ID, &current); e == nil {
+	if e := s.domainTx(ctx, tx, "Recordings", entry.ID, &current); e == nil && !replace {
 		if e = s.validateRecordingSource(ctx, tx, current, false); e != nil {
 			return e
 		}
-	} else if e != sql.ErrNoRows {
+	} else if e != nil && e != sql.ErrNoRows {
 		return e
 	}
 	_, e := s.exec(ctx, tx, "UPDATE media_entry SET title=?,class=? WHERE workspace_id=? AND id=?", entry.Title, entry.Class, s.workspace, entry.ID)

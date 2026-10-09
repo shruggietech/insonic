@@ -2,6 +2,7 @@
 package catalog
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -230,7 +231,7 @@ func (s *Store) reconcileRecordingEvidence(ctx context.Context, tx *sql.Tx, old,
 	}
 	// Called on document replacement, or conservatively on known-speaker mapping
 	// correction with the same document. The latter preserves current segments.
-	if old.DocumentDigest == new.DocumentDigest && old.State == new.State {
+	if old.DocumentDigest == new.DocumentDigest && old.State == new.State && old.SourceDigest == new.SourceDigest && old.SourceRevision == new.SourceRevision && bytes.Equal(old.SourceMap, new.SourceMap) {
 		return s.invalidateRecordingDatasets(ctx, tx, old.ID, revision)
 	}
 	artifacts, e := s.evidenceArtifacts(ctx, tx, "SELECT clip_artifact_id FROM speaker_segment WHERE workspace_id=? AND recording_id=?", s.workspace, old.ID)

@@ -30,14 +30,19 @@ type Tools struct {
 	FFprobe  Tool   `json:"ffprobe"`
 }
 type Options struct {
-	TranscriptMaxBytes  *int64 `json:"transcript_max_bytes,omitempty"`
-	TranscriptTimeoutMS *int64 `json:"transcript_timeout_ms,omitempty"`
-	Attribution         string `json:"attribution,omitempty"`
-	TranscriptFormat    string `json:"transcript_format,omitempty"`
-	ReplaceTranscript   *bool  `json:"replace_transcript,omitempty"`
-	SubtitleStreamIndex *int   `json:"subtitle_stream_index,omitempty"`
-	SubtitleLanguage    string `json:"subtitle_language,omitempty"`
-	DiarizationModelID  string `json:"diarization_model_id,omitempty"`
+	ReplaceAudio        *bool    `json:"replace_audio,omitempty"`
+	ExistingTranscript  string   `json:"existing_transcript,omitempty"`
+	TranscriptApplies   *bool    `json:"transcript_applies,omitempty"`
+	ExistingRoster      string   `json:"existing_roster,omitempty"`
+	KnownSpeakers       []string `json:"known_speakers,omitzero"`
+	TranscriptMaxBytes  *int64   `json:"transcript_max_bytes,omitempty"`
+	TranscriptTimeoutMS *int64   `json:"transcript_timeout_ms,omitempty"`
+	Attribution         string   `json:"attribution,omitempty"`
+	TranscriptFormat    string   `json:"transcript_format,omitempty"`
+	ReplaceTranscript   *bool    `json:"replace_transcript,omitempty"`
+	SubtitleStreamIndex *int     `json:"subtitle_stream_index,omitempty"`
+	SubtitleLanguage    string   `json:"subtitle_language,omitempty"`
+	DiarizationModelID  string   `json:"diarization_model_id,omitempty"`
 
 	LocalHTTP            *bool            `json:"local_http,omitempty"`
 	AcquisitionMaxBytes  *int64           `json:"acquisition_max_bytes,omitempty"`
@@ -55,14 +60,17 @@ type Options struct {
 	Extensions           json.RawMessage  `json:"extensions,omitempty"`
 }
 type Item struct {
-	ExpectedRevision          *int64 `json:"expected_revision,omitempty"`
-	ExpectedRecordingRevision *int64 `json:"expected_recording_revision,omitempty"`
-	TargetError               string `json:"target_error,omitempty"`
-	Transcript                string `json:"transcript,omitempty"`
-	Record                    string `json:"record,omitempty"`
-	TranscriptCredentialID    string `json:"transcript_credential_id,omitempty"`
-	TranscriptAdapter         string `json:"transcript_adapter,omitempty"`
-	AcceptedReceipt           string `json:"accepted_receipt,omitempty"`
+	Kind                      string   `json:"kind,omitempty"`
+	ExpectedRosterRevision    *int64   `json:"expected_roster_revision,omitempty"`
+	ResolvedSpeakerIDs        []string `json:"resolved_speaker_ids,omitzero"`
+	ExpectedRevision          *int64   `json:"expected_revision,omitempty"`
+	ExpectedRecordingRevision *int64   `json:"expected_recording_revision,omitempty"`
+	TargetError               string   `json:"target_error,omitempty"`
+	Transcript                string   `json:"transcript,omitempty"`
+	Record                    string   `json:"record,omitempty"`
+	TranscriptCredentialID    string   `json:"transcript_credential_id,omitempty"`
+	TranscriptAdapter         string   `json:"transcript_adapter,omitempty"`
+	AcceptedReceipt           string   `json:"accepted_receipt,omitempty"`
 
 	Source             string `json:"source,omitempty"`
 	Subtitle           string `json:"subtitle,omitempty"`
@@ -114,6 +122,21 @@ func DerivedID(op, label string) string {
 	return s[:8] + "-" + s[8:12] + "-" + s[12:16] + "-" + s[16:20] + "-" + s[20:]
 }
 func merged(base, item Options) Options {
+	if item.ReplaceAudio != nil {
+		base.ReplaceAudio = item.ReplaceAudio
+	}
+	if item.TranscriptApplies != nil {
+		base.TranscriptApplies = item.TranscriptApplies
+	}
+	if item.ExistingTranscript != "" {
+		base.ExistingTranscript = item.ExistingTranscript
+	}
+	if item.ExistingRoster != "" {
+		base.ExistingRoster = item.ExistingRoster
+	}
+	if item.KnownSpeakers != nil {
+		base.KnownSpeakers = item.KnownSpeakers
+	}
 	if item.TranscriptMaxBytes != nil {
 		base.TranscriptMaxBytes = item.TranscriptMaxBytes
 	}
@@ -190,6 +213,14 @@ func merged(base, item Options) Options {
 	return base
 }
 func validOptions(o Options) bool {
+	if o.ExistingTranscript != "" && o.ExistingTranscript != "keep" && o.ExistingTranscript != "clear" && o.ExistingTranscript != "replace" || o.ExistingRoster != "" && o.ExistingRoster != "retain" && o.ExistingRoster != "clear" || len(o.KnownSpeakers) > 1000 {
+		return false
+	}
+	for _, ref := range o.KnownSpeakers {
+		if strings.TrimSpace(ref) == "" || len(ref) > 512 {
+			return false
+		}
+	}
 	if o.TranscriptMaxBytes != nil && (*o.TranscriptMaxBytes < 1 || *o.TranscriptMaxBytes > 16<<20) || o.TranscriptTimeoutMS != nil && (*o.TranscriptTimeoutMS < 1 || *o.TranscriptTimeoutMS > 600000) || o.SubtitleStreamIndex != nil && *o.SubtitleStreamIndex < 0 {
 		return false
 	}
@@ -235,6 +266,9 @@ func PrepareImport(r ImportRequest) (ImportRequest, error) {
 	}
 	for i := range r.Items {
 		item := &r.Items[i]
+		if item.Kind != "" && item.Kind != "media" && item.Kind != "transcript" || item.ExpectedRosterRevision != nil && (*item.ExpectedRosterRevision < 0 || item.Record == "") {
+			return r, contracts.Fail("invalid_request")
+		}
 		if item.ExpectedRevision != nil && (*item.ExpectedRevision < 1 || item.Record == "") || item.ExpectedRecordingRevision != nil && (*item.ExpectedRecordingRevision < 0 || item.Record == "") {
 			return r, contracts.Fail("invalid_request")
 		}
@@ -242,12 +276,15 @@ func PrepareImport(r ImportRequest) (ImportRequest, error) {
 		if effective.Attribution == "diarize" && !contracts.ValidID(effective.DiarizationModelID) {
 			return r, contracts.Fail("invalid_request")
 		}
-		if item.Record != "" && item.Source != "" && item.Source != "<accepted>" {
+		if item.Record != "" && item.Source != "" && item.Source != "<accepted>" && item.Kind != "media" && !(effective.ReplaceAudio != nil && *effective.ReplaceAudio) {
 			if item.Transcript != "" || item.Subtitle != "" {
 				return r, contracts.Fail("invalid_request")
 			}
 			item.Transcript = item.Source
 			item.Source = ""
+		}
+		if err := validateReplacementItem(*item, effective); err != nil {
+			return r, err
 		}
 
 		if (r.Items[i].Source == "" && (r.Items[i].Record == "" || r.Items[i].Transcript == "" && r.Items[i].Subtitle == "")) || !validOptions(r.Items[i].Options) || (r.Items[i].CredentialID != "" && !contracts.ValidID(r.Items[i].CredentialID)) {

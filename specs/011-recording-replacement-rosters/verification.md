@@ -1,0 +1,62 @@
+# S011 verification ledger
+
+## Spec Kit gates (2026-10-09)
+
+Slice S011 maps to codex/011-recording-replacement-rosters and specs/011-recording-replacement-rosters. Baseline bfb2ad1 is merged S010. Completion targets #30/#33; #35 roster foundation only. Spec Kit specify/clarify, research and design use installed command skills/helpers. No extensions.yml hooks exist. Checklist helper required a plan file, so setup_plan materialized the template before domain checklist generation; this did not skip requirements review. Helper feature numbering is independent of actual Git branch; direct Git verifies the codex-prefixed branch.
+
+Owner explicitly authorizes push/official PR and at most two external review rounds, then owner merge handoff. No merge/tag/release is authorized. Owner confirms no application audio exists before reliable v1; this removes hypothetical bulk conversion, while normal schema/portable integrity remains required. Constitution 2.2.1 is amended separately outside analyze, with its effect recorded in changelog.
+
+## Implementation and delivery
+
+Implementation and local qualification are complete. Publication, external reviews and exact final-head CI evidence follow below as they complete.
+
+### Requirements analysis
+
+The read-only analyze gate covered 20 functional requirements, five success criteria, three stories and 14 plan decisions. Both requirements checklists pass (7/7 built-in, 8/8 independently reviewed). No critical/high conflict remains. The persisted-revision ambiguity was corrected outside analysis: header/member revisions are positive; expected revision zero denotes an absent header. T007's nonexistent validation.go pointer was corrected to records.go/library_state.go.
+
+| Requirements | Planned implementation/verification |
+| --- | --- |
+| FR001-003 | T009-012, T020-024 |
+| FR004-005 | T009, T012, T018, T024 |
+| FR006-007 | T004-008, T011, T018-019 |
+| FR008-009 | T004, T008, T013, T017, T024 |
+| FR010-013 | T005-007, T014-017, T021-022 |
+| FR014-015 | T018-022, T024 |
+| FR016-017 | T006-007, T015-017, T020-024 |
+| FR018-020 | T023-027 |
+| SC001-004 | T004-024 |
+| SC005 | T025-027 |
+
+All 25 measurable requirements/criteria have planned coverage, with no orphan story or contradictory scope. Constitution 2.2.1 reflects the owner's explicit deployment facts. Implementation proceeds under the checked reviewer-owned requirements gate; these checkboxes are not implementation evidence.
+
+### Foundation checks
+
+The initial roster test failed to compile against absent APIs; the CLI roster/replacement test failed invalid_request before grammar implementation. After foundation changes, full catalog and library tests pass. A bounded native waveform fixture verifies initial atomic roster, unelected skip before missing-source access, required roster election, stable-ID clear replacement, retained independent roster revision and accepted replay after input removal. Portable catalog validation rejects forged roster revisions. Schema 7 DDL has an exact frozen schema 6 comparison test and startup migration test.
+
+### Convergence and local qualification (2026-10-09)
+
+Convergence appended T028-T031 for retained-subtitle policy/atomic compatibility, source-revision evidence invalidation/selected layout checks, empty-list precedence and native roster revision comparison, and authoritative documentation/help. All four are implemented. The second read-only convergence pass checked 20 FRs, five SCs, 16 story acceptance scenarios, 14 decisions and five constitution principles; no further build gap remains and tasks.md was unchanged during that pass. Final-head CI and review completion remain delivery evidence.
+
+Passed root check (650 text files, 20 schemas, 18 contracts, 25 examples), 58 root tests, frontend typecheck and rendered tests, documentation build/link and anchor checks, full Go tests and go vet. Affected catalog/library/app/desktop race tests passed. Python qualification tests passed (20). Additional native tests cover legacy retained subtitle keep, known stream/channel and rational bounds, queued aliases, stale roster election, response-loss reconciliation after input removal, leased retirement and populated published schema-6 migration retaining documents, mappings and segments.
+
+Passed native dependency/media qualification, cross-process CLI replacement with initial roster and retained revision, desktop shared bridge and real WebView replacement/roster journey. The relocated Windows package passed real audio/video imports, empty-roster replacement, native subtitle/Cueson assembly, desktop bridge/WebView and inventory checks with development libraries isolated and restored. This is dirty-tree local qualification, not a published release. Acoustic inference was not run. Public binary distribution remains governed by existing corresponding-source requirements outside this slice.
+
+PostgreSQL/S3/ArcadeDB fixture execution and Linux/macOS native qualification are assigned to the configured PR CI jobs; local passing fixtures do not claim those jobs passed before results arrive. No pre-v1 owner audio conversion is required. Normal catalog/schema and transcript compatibility are qualified separately.
+
+### Published review round one (2026-10-09)
+
+Official PR #37 was opened on a9eaa75a515a1dcedbc099c34fd67b07eb70b2bc; opening triggered Codex review round one. CI foundation, documentation, Windows core and alternative-backend fixtures passed. Native platform/package jobs continue independently. Codex reported two findings: P1 replacement decoded the date envelope as an array, losing retained date state; P2 kept documents were absent from new subtitle facts/receipts. Both are fixed with regressions preserving every prior date observation/selection/policy, permitting explicit new dates, and checking retained current subtitle state in library facts and item receipts. Final round and final-head CI are pending.
+
+### Published review round two (2026-10-09)
+
+One final review request comment, https://github.com/shruggietech/insonic/pull/37#issuecomment-6080155279, requested Codex code and security review on be6585edd53223dfc0f9177f5306b6e955a9dfda. The connector reported a completed code review with one P2 finding: empty add/remove input could mutate an undeclared roster through runtime/desktop while CLI rejected it. Shared catalog/runtime checks and runtime schema now require nonempty references for those two modes; desktop rejects blank edits before submission. Explicit empty replace/clear remain valid. SQLite/PostgreSQL shared roster tests verify rejected edits preserve catalog and roster authority; runtime, schema and rendered UI regressions also pass. Root tests now total 59, frontend tests 56. No third review is requested. The connector posted no separate security-review result; no security finding was posted.
+
+Post-review convergence confirms the nonempty membership edit contract across interfaces. Final correction CI and terminal review-thread readback remain the handoff gate.
+
+### Delivery qualification (2026-10-09)
+
+All seven jobs in https://github.com/shruggietech/insonic/actions/runs/37926281545 passed on the final code commit 2de37df8c66ac0ae6529ba8b0713b6ac5e7c7c98: foundation, documentation, Windows core, PostgreSQL/S3/ArcadeDB adapter fixtures and native/package qualification on Windows, Linux and macOS. The final roster finding was answered and resolved after its correction was pushed. Terminal API readback confirms all three review threads resolved. Both authorized review rounds completed; no third round was triggered. No separate security-review result was posted, and no security finding arrived.
+
+All implementation, convergence and delivery tasks are complete. #30/#33 completion is linked by the official PR closing keywords; issues close on owner merge. #35 remains open for acoustic matching, with declared roster context/import/edit/retain-clear foundation implemented. #34/#15/#14 remain model-reference, training and release work. Native and fixture qualification did not execute acoustic inference or claim a reliable v1 release.
+
+This final evidence-only update changes tasks.md and verification.md, preserving the qualified code bytes. Its own exact-head CI must be green before owner handoff. The final run and final-head identity are recorded in the PR delivery comment; no further source, merge, tag or release operation follows this handoff.

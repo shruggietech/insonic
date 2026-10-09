@@ -51,7 +51,7 @@ func validRecording(r Recording) bool {
 		return false
 	}
 	null := bytes.Equal(bytes.TrimSpace(r.Document), []byte("null"))
-	if r.State == "no-speech" || r.State == "no-timed-subtitles" {
+	if r.State == "untranscribed" || r.State == "no-speech" || r.State == "no-timed-subtitles" {
 		return null && r.DocumentDigest == ""
 	}
 	if r.State != "ready" || null || !validJSON(r.Document) || !digestPattern.MatchString(r.DocumentDigest) || hash(r.Document) != r.DocumentDigest {
