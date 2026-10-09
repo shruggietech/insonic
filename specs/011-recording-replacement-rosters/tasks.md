@@ -46,7 +46,7 @@
 - [x] T024 Extend bounded native CLI/desktop/package journeys for replacement and rosters in internal/qualification/, scripts/qualify.py and desktop/frontend/src/qualification.ts without inference.
 - [x] T025 Run required root check/test, Go/vet/affected race, frontend/site and native/backend checks, recording actual evidence in specs/011-recording-replacement-rosters/verification.md (local qualification passed; alternative-backend and cross-platform results are verified by T027 exact-head CI).
 - [x] T026 Execute speckit-converge against every requirement, story acceptance and plan decision; append and implement remaining build findings in specs/011-recording-replacement-rosters/tasks.md.
-- [ ] T027 Commit/push official PR, close #30/#33 acceptance, identify #35 remaining matching scope and address every finding within two rounds, verify exact final-head CI, then stop before owner merge in specs/011-recording-replacement-rosters/verification.md.
+- [x] T027 Commit/push official PR, close #30/#33 acceptance, identify #35 remaining matching scope and address every finding within two rounds, verify exact final-head CI, then stop before owner merge in specs/011-recording-replacement-rosters/verification.md.
 
 ## Dependencies and parallel opportunities
 
