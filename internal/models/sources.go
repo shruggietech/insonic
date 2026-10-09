@@ -11,6 +11,8 @@ import (
 	"github.com/shruggietech/insonic/internal/contracts"
 	"io"
 	"net/http"
+	"net/netip"
+	"net/url"
 	"strings"
 )
 
@@ -34,6 +36,33 @@ type Discovery struct {
 }
 
 func digestBytes(raw []byte) string { sum := sha256.Sum256(raw); return hex.EncodeToString(sum[:]) }
+
+func loopbackCatalogURL(u *url.URL) bool {
+	host := strings.TrimSuffix(strings.ToLower(u.Hostname()), ".")
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return true
+	}
+	ip, e := netip.ParseAddr(host)
+	return e == nil && ip.Unmap().IsLoopback()
+}
+
+// A remote catalog supplies declarations, not authority for new local routes.
+// Only an owner-configured loopback source with its local opt-in can declare
+// loopback model files. Direct owner-supplied manifests retain their policy.
+func catalogFileRouting(source *url.URL, localOptIn bool, m Manifest) error {
+	localSource := localOptIn && loopbackCatalogURL(source)
+	for _, file := range m.Files {
+		target, e := sourceURL(file.URL, file.LocalHTTP)
+		if e != nil {
+			return e
+		}
+		if loopbackCatalogURL(target) && !localSource {
+			return contracts.Fail("invalid_request")
+		}
+	}
+	return nil
+}
+
 func (r *Resolver) sourceCatalog(ctx context.Context, ref string) (catalog.ModelSource, SourceCatalog, error) {
 	source, e := r.Catalog.ModelSource(ctx, ref)
 	var out SourceCatalog
@@ -43,7 +72,8 @@ func (r *Resolver) sourceCatalog(ctx context.Context, ref string) (catalog.Model
 	if source.State != "active" {
 		return source, out, contracts.Fail("not_found")
 	}
-	if _, e = sourceURL(source.URL, source.LocalHTTP); e != nil {
+	configuredURL, e := sourceURL(source.URL, source.LocalHTTP)
+	if e != nil {
 		return source, out, e
 	}
 	req, e := http.NewRequestWithContext(ctx, "GET", source.URL, nil)
@@ -101,6 +131,9 @@ func (r *Resolver) sourceCatalog(ctx context.Context, ref string) (catalog.Model
 	for _, entry := range out.Entries {
 		if !modelText(entry.Selector, 256) || seen[entry.Selector] || entry.Manifest.Validate() != nil {
 			return source, out, contracts.Fail("invalid_request")
+		}
+		if e = catalogFileRouting(configuredURL, source.LocalHTTP, entry.Manifest); e != nil {
+			return source, out, e
 		}
 		seen[entry.Selector] = true
 	}

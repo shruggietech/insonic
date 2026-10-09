@@ -799,6 +799,33 @@ test('shared selectors accept missing aliases and show compatibility without hid
   await unmount();
 });
 
+test('local import, processing and pipeline choices offer base aliases while retaining other kinds in global inspection',async()=>{
+  const bridge=mock(),original=bridge.Operate;
+  const aliases=['transcription','diarization'].flatMap((operation,operationIndex)=>['base','speaker','hosted'].map((kind,index)=>({id:`${operationIndex*3+index+1}1111111-1111-4111-8111-111111111111`,name:`${kind}-${operation}`,revision:1,state:'active',target:{kind,operation,...(kind==='hosted'?{adapter:'insonic-http',contract_version:'1',endpoint:'https://example.test/worker',remote_model:'remote',upstream_revision:'1'}:{id:mid})}})));
+  bridge.Operate=async request=>{
+    if(request.operation==='models.alias.list')return {result:{items:aliases,next_id:''}};
+    if(request.operation==='models.resolve')return {result:{reference:request.data.reference,target:aliases.find(alias=>alias.name===request.data.reference).target,state:'hosted-only',compatible:true,diagnostics:[]}};
+    return original(request);
+  };
+  const choices=(label,operation)=>{
+    const options=[...field(label).options].map(option=>option.value);
+    assert.equal(options.includes(`base-${operation}`),true,label);
+    for(const kind of ['speaker','hosted'])assert.equal(options.includes(`${kind}-${operation}`),false,`${label} cannot offer ${kind} for local execution`);
+  };
+  await mount(bridge);
+  await fill('Import speaker attribution','diarize');choices('Import diarization model','diarization');
+  await click('Open Committed speech');await fill('Transcription input','generate');
+  choices('Local recognition model','transcription');choices('Local diarization model','diarization');
+  await fill('Local recognition model reference','hosted-transcription');
+  assert.equal([...field('Local recognition model').options].find(option=>option.value==='hosted-transcription').disabled,true);
+  await click('Inspect local recognition model reference');assert.match(document.body.textContent,/Unavailable for local processing: hosted-only/);
+  await click('Pipelines');choices('recognition model','transcription');choices('diarization model','diarization');
+  await click('Settings');
+  const table=[...document.querySelectorAll('table')].find(table=>table.querySelector('caption')?.textContent==='Workspace model aliases');
+  assert.match(table.textContent,/speaker-transcription/);assert.match(table.textContent,/hosted-transcription/);
+  await unmount();
+});
+
 test('job details distinguish frozen models and acquisition work from processing completion',async()=>{
   const bridge=mock(),original=bridge.Operate;
   bridge.Operate=async request=>{

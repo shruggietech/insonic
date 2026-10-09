@@ -26,6 +26,8 @@ accepting the bundle does not establish inference compatibility for a task.
 Pipeline inspection retains an unavailable reference as a `missing` selection
 with an `unresolved` target and the intended operation. It reports no model ID,
 manifest digest or upstream revision until resolution succeeds.
+An alias declared for another operation retains its exact target and reports
+the operation mismatch as incompatible.
 
 ```sh
 insonic models resolve speech-main --operation transcription --json
@@ -81,6 +83,9 @@ and file URLs must follow the configured transport policy: HTTPS by default,
 explicit loopback HTTP where permitted, no password/user information or query
 credentials, and same-origin redirects only. Saved credential values are not
 included in source records, manifests, durable work or status.
+Catalog content cannot authorize loopback file downloads. Such files require
+an owner-configured loopback source with its local opt-in enabled. An explicit
+owner-supplied manifest retains its own local transport option.
 
 The implemented source protocol is a `model-catalog` document with
 `schema_version`, and up to 128 `entries`, each containing `selector` and a

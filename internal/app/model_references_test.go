@@ -12,6 +12,40 @@ import (
 	"github.com/shruggietech/insonic/internal/models"
 )
 
+func TestPipelineInspectAliasOperationMismatchRetainsIdentity(t *testing.T) {
+	a := configuredApp(t)
+	m := dependencyManifest(t, "mismatch", http.HandlerFunc(func(http.ResponseWriter, *http.Request) { t.Error("inspection downloaded weights") }))
+	registerDependencyManifest(t, a, m)
+	target := catalog.ModelTarget{Kind: "base", ID: models.InstallationID(m), Operation: "transcription"}
+	alias := catalog.ModelAlias{ID: contracts.ID(), Name: "speech-only", State: "active", Target: encodedModelTarget(target)}
+	if _, err := a.Catalog.PutModelAlias(a.ctx, contracts.ID(), 0, alias); err != nil {
+		t.Fatal(err)
+	}
+	before, _ := a.Catalog.Works(a.ctx)
+	id := contracts.ID()
+	definition := localDefinition()
+	definition["diarization"].(map[string]any)["model_id"] = alias.Name
+	p := map[string]any{"id": id, "name": "Task mismatch", "preset": "local", "configuration": definition}
+	configuredResult(t, realRequest(a, "pipelines.set", id, map[string]any{"expected_revision": 0, "pipeline": p}))
+	result := configuredContractResult(t, realRequest(a, "pipelines.inspect", id, nil))
+	selection := result["model_selections"].([]any)[1].(map[string]any)
+	resolved := selection["target"].(map[string]any)
+	if selection["state"] != "registered" || selection["compatible"] != false || selection["alias_id"] != alias.ID || selection["manifest_digest"] != m.Digest() || resolved["id"] != target.ID || resolved["operation"] != "transcription" {
+		t.Fatalf("operation mismatch lost exact identity: %#v", selection)
+	}
+	diagnostic := selection["diagnostics"].([]any)[0].(string)
+	if !strings.Contains(diagnostic, "declares transcription") || !strings.Contains(diagnostic, "requires diarization") || strings.Contains(diagnostic, "source") {
+		t.Fatal("operation mismatch lacks actionable diagnostic", diagnostic)
+	}
+	after, err := a.Catalog.Works(a.ctx)
+	if err != nil || len(after) != len(before) {
+		t.Fatal("incompatible inspection acquired files", err)
+	}
+	if response := realRequest(a, "models.resolve", "", map[string]any{"reference": alias.Name, "operation": "diarization"}); response.Error == nil || response.Error.Code != "unsupported_capability" {
+		t.Fatal("explicit mismatched operation was accepted", response.Error)
+	}
+}
+
 func encodedModelTarget(target catalog.ModelTarget) json.RawMessage {
 	raw, _ := json.Marshal(target)
 	return raw

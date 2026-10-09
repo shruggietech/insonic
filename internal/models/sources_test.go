@@ -6,11 +6,73 @@ import (
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 )
+
+type sourceTransportFunc func(*http.Request) (*http.Response, error)
+
+func (f sourceTransportFunc) RoundTrip(req *http.Request) (*http.Response, error) { return f(req) }
+func TestCatalogContentCannotAuthorizeLoopbackModelRoutes(t *testing.T) {
+	cases := []struct {
+		name, sourceURL, fileURL        string
+		sourceLocal, fileLocal, allowed bool
+	}{
+		{"remote-http-opt-in", "https://catalog.example.test/models", "http://127.0.0.1:9999/weights", false, true, false},
+		{"remote-source-flag", "https://catalog.example.test/models", "http://localhost:9999/weights", true, true, false},
+		{"remote-https-loopback", "https://catalog.example.test/models", "https://127.0.0.1:9999/weights", false, false, false},
+		{"remote-https-localhost", "https://catalog.example.test/models", "https://LOCALHOST.:9999/weights", false, false, false},
+		{"remote-ipv6-loopback", "https://catalog.example.test/models", "https://[::1]:9999/weights", false, false, false},
+		{"remote-ipv4-mapped-loopback", "https://catalog.example.test/models", "https://[::ffff:127.0.0.1]:9999/weights", false, false, false},
+		{"remote-localhost-subdomain", "https://catalog.example.test/models", "https://models.localhost:9999/weights", false, false, false},
+		{"loopback-without-owner-opt-in", "https://localhost:8443/models", "https://localhost:9999/weights", false, false, false},
+		{"owner-http-loopback", "http://127.0.0.1:8888/models", "http://127.0.0.1:9999/weights", true, true, true},
+		{"owner-https-loopback", "https://localhost:8443/models", "https://[::1]:9999/weights", true, false, true},
+		{"ordinary-https-bundle", "https://catalog.example.test/models", "https://files.example.test/weights", false, false, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, db := modelServiceFixture(t)
+			ctx := context.Background()
+			m := fixtureManifest()
+			m.Files[0].URL = tc.fileURL
+			m.Files[0].LocalHTTP = tc.fileLocal
+			// The file flag remains valid in an owner-supplied direct manifest; it is
+			// remote metadata's authority to grant that route which is restricted.
+			if e := m.Validate(); e != nil {
+				t.Fatal("direct manifest policy changed", e)
+			}
+			source, e := db.PutModelSource(ctx, contracts.ID(), 0, catalog.ModelSource{Name: "routes", State: "active", URL: tc.sourceURL, LocalHTTP: tc.sourceLocal})
+			if e != nil {
+				t.Fatal(e)
+			}
+			encoded, _ := json.Marshal(SourceCatalog{Kind: "model-catalog", Version: contracts.Version, Entries: []CatalogEntry{{Selector: "pinned", Manifest: m}}})
+			var requests int
+			resolver := NewResolver(db, nil)
+			resolver.Client.Transport = sourceTransportFunc(func(req *http.Request) (*http.Response, error) {
+				requests++
+				if req.URL.String() != tc.sourceURL {
+					t.Fatal("file route contacted during metadata inspection")
+				}
+				return &http.Response{StatusCode: http.StatusOK, Header: http.Header{}, Body: io.NopCloser(strings.NewReader(string(encoded))), Request: req}, nil
+			})
+			_, e = resolver.Discover(ctx, source.ID)
+			if (e == nil) != tc.allowed {
+				t.Fatalf("discovery route authority: allowed=%v, error=%v", tc.allowed, e)
+			}
+			_, e = resolver.ResolveSource(ctx, source.ID, "pinned", "transcription")
+			if (e == nil) != tc.allowed {
+				t.Fatalf("election route authority: allowed=%v, error=%v", tc.allowed, e)
+			}
+			if requests != 2 {
+				t.Fatal("unexpected transport effects", requests)
+			}
+		})
+	}
+}
 
 func TestSourceSelectorPinsCompleteManifest(t *testing.T) {
 	_, db := modelServiceFixture(t)

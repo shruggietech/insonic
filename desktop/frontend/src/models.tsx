@@ -30,7 +30,7 @@ export function ModelChoice({ label, value, onChange, operation, client, run }: 
   };
   useEffect(() => { setInspection(undefined); run(() => load()); }, [client.workspace]);
   const choices = [
-    ...aliases.filter((alias) => alias.state === 'active' && alias.target.operation === operation).map((alias) => {
+    ...aliases.filter((alias) => alias.state === 'active' && alias.target.kind === 'base' && alias.target.operation === operation).map((alias) => {
       const target = models.find((model) => model.id === alias.target.id);
       const compatibility = target?.operation_compatibility?.[operation] === false ? ', incompatible with default adapter' : '';
       return {value:alias.name, label:`${alias.name} → ${alias.target.kind}:${alias.target.id ?? alias.target.remote_model} (${target?.model_version ?? target?.version ?? 'exact target'}, ${operation}, ${target?.state ?? 'resolve to inspect'})${compatibility}`};
@@ -41,19 +41,22 @@ export function ModelChoice({ label, value, onChange, operation, client, run }: 
       return {value:model.id, label:modelLabel(model)+compatibility};
     }),
   ];
+  const selectedAlias=aliases.find((alias)=>alias.name===value);
+  const unavailableAlias=selectedAlias&&selectedAlias.target.kind!=='base';
+  const localInspection=inspection?.target?.kind==='base';
   return <>
     <Select label={label} value={value} onChange={(reference) => {setInspection(undefined);onChange(reference);}} options={[
       {value:'',label:`Choose a ${operation} model`},
-      ...(value && !choices.some((choice) => choice.value === value) ? [{value,label:value}] : []),
+      ...(value && !choices.some((choice) => choice.value === value) ? [{value,label:value+(unavailableAlias?' (unavailable for local processing)':''),disabled:!!unavailableAlias}] : []),
       ...choices,
     ]} />
     <Input label={`${label} reference`} value={value} onChange={(reference) => {setInspection(undefined);onChange(reference);}}
-      description="Alias, exact model ID, base:ID, speaker:ID or configured source selector. Missing verified files acquire automatically when you submit processing." />
+      description="Base-model alias, exact base model ID, base:ID or configured source selector. Local processing requires a base bundle; select hosted routing in a saved pipeline for a hosted model. Missing verified files acquire automatically when you submit processing." />
     <Actions>
       <Button variant="secondary" onClick={() => run(() => load())}>Refresh {label.toLowerCase()} choices</Button>
       {(modelNext || aliasNext) && <Button variant="secondary" onClick={() => run(() => load(true))}>More {label.toLowerCase()} choices</Button>}
       <Button variant="secondary" onClick={() => run(async () => {setInspection(await client.call('models.resolve','',{reference:value,operation}));})}>Inspect {label.toLowerCase()} reference</Button>
     </Actions>
-    {inspection && <><p>{inspection.compatible ? 'Compatible reference' : 'Incompatible reference'}: {inspection.state}. Inspection does not acquire files or execute models.</p><Facts value={inspection}/></>}
+    {inspection && <><p>{!localInspection ? 'Unavailable for local processing' : inspection.compatible ? 'Compatible reference' : 'Incompatible reference'}: {inspection.state}. Inspection does not acquire files or execute models.</p><Facts value={inspection}/></>}
   </>;
 }

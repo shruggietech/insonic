@@ -172,7 +172,21 @@ func (a *App) configuredDispatch(req contracts.Request) (any, error) {
 			}
 			selected, err := resolver.Resolve(a.ctx, stage.configuration.ModelID, stage.operation)
 			if err != nil {
-				selected = models.Resolution{Reference: stage.configuration.ModelID, Target: catalog.ModelTarget{Kind: "unresolved", Operation: stage.operation}, State: "missing", Diagnostics: []string{"The selected reference is unavailable in this workspace; resolve it after configuring its source."}}
+				typed, ok := err.(*contracts.Error)
+				if !ok {
+					return nil, err
+				}
+				switch typed.Code {
+				case "not_found", "unavailable":
+					selected = models.Resolution{Reference: stage.configuration.ModelID, Target: catalog.ModelTarget{Kind: "unresolved", Operation: stage.operation}, State: "missing", Diagnostics: []string{"The selected reference is unavailable in this workspace; resolve it after configuring its source."}}
+				case "unsupported_capability":
+					if selected.Target.Kind == "" {
+						return nil, err
+					}
+					selected.Compatible = false
+				default:
+					return nil, err
+				}
 			} else if selected.Target.Kind != "base" {
 				selected.Compatible = false
 				selected.Diagnostics = []string{localModelSelectionError(selected).Error()}

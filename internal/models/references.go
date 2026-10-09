@@ -127,7 +127,14 @@ func (r *Resolver) Resolve(ctx context.Context, ref, operation string) (Resoluti
 		}
 		out.AliasID, out.AliasRevision = alias.ID, alias.Revision
 		if target.Operation != operation {
-			return out, contracts.Fail("unsupported_capability")
+			got, err := r.ResolveTarget(ctx, target, target.Operation)
+			if err != nil {
+				return out, err
+			}
+			got.Reference, got.AliasID, got.AliasRevision = ref, alias.ID, alias.Revision
+			got.Compatible = false
+			got.Diagnostics = []string{fmt.Sprintf("The selected alias declares %s, but this stage requires %s. Select an alias for the intended operation.", target.Operation, operation)}
+			return got, contracts.Fail("unsupported_capability")
 		}
 	}
 	got, e := r.ResolveTarget(ctx, target, operation)
