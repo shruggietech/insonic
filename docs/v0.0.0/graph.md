@@ -81,7 +81,7 @@ Both graph adapters must pass projection replay, corrections, dataset/model line
 
 ## Executable exploration operations
 
-The source CLI and desktop Explore route implement current evidence extraction, the seven normalized operations, bounded native reads, calendars, recording timelines, saved query versions and separate layouts. AI assistance and training engines remain separate delivery contracts.
+The source CLI and desktop Explore route implement current evidence extraction, the seven normalized operations, bounded native reads, calendars, recording timelines, saved query versions and separate layouts. Optional query assistance is implemented through an explicitly configured local or hosted HTTP adapter; training engines retain a separate delivery contract.
 
 ```sh
 insonic graph capabilities --json
@@ -114,3 +114,33 @@ Saved updates contain `expected_revision` and `query` (title, definition and typ
 Calendar input contains `filter` (`from`, `through`, `timezone`, `include_undated`) and optional pagination. Day precision preserves its literal day; instants use the selected timezone and approximate ranges intersect the viewport. Recording timelines resolve current cues/assertions/segments on the original clock. Desktop selections and playback tickets are fenced against replacement; a changed recording clears inspected evidence on the next authority check.
 
 Required tests use supplied current cues and deterministic extraction replies, real pinned graph transactions and native Explore/package journeys. They never initialize or run recognition/diarization models or download weights.
+
+
+## Configured query assistance
+
+`insonic query assistance-show --json` reads workspace configuration without contacting a provider. `insonic query assistance-set --input assistance-setting.json --json` saves `expected_revision` and `configuration` with compare-and-swap. Settings travel with catalog snapshots; credentials remain opaque IDs resolved by the selected credential backend. Assistance is disabled until elected. The `insonic-http` contract version `1` works with a local loopback or hosted endpoint that implements this protocol. A generic model API requires a compatible adapter service.
+
+```json
+{
+  "expected_revision": 0,
+  "configuration": {
+    "enabled": true,
+    "adapter": "insonic-http",
+    "contract_version": "1",
+    "route": "local",
+    "endpoint": "http://127.0.0.1:9001/query",
+    "model": "selected-model",
+    "mode": "suggest"
+  }
+}
+```
+
+`insonic query assist --input assistance-request.json --json` accepts `{"prompt":"List current recordings","mode":"suggest"}`. Omit `mode` to use the saved preference, or elect `auto-run` to validate and execute a current read. An optional `configuration` overrides the saved choice for that request; `settings_revision` fences the observed configuration. No failure chooses another route or model. The response includes the exact `proposal`, `explanation`, validation status, route/model/settings/capability provenance and, for auto-run, current `execution`. The desktop Explore screen exposes the same configuration and separate Suggest query and Assist and run query actions. Load proposal into editor preserves the entire query, including fields outside the compact controls, for editing, direct execution or versioned saving. Pending UI results are discarded after prompt/settings/editor changes, navigation or an explicit discard action; discarding UI ownership does not promise to undo a read already sent to the runtime.
+
+The provider receives one JSON POST containing `contract_version`, `operation: "query-assistance"`, `model`, `prompt`, self-contained bare query schema, selected capabilities, finite `limits` and optional `context`. It returns exactly `{"contract_version":"1","query":{"definition":{"mode":"normalized","operation":"media-list","pagination":{"limit":5}}},"explanation":"List current recordings"}`. Unknown fields, duplicate keys, trailing documents, malformed parameters and structural mutations fail. A normalized proposal must select an explicit bounded first page, without a cursor. Native text declares a compatible dialect and must pass the ordinary read guard and actual selected backend EXPLAIN before auto-run. Unreachable validation stays pending in a suggestion and cannot auto-run. The physical native schema uses `Entity(id, workspace, entity_id, kind, reference)` and `EvidenceLink(id, kind)`; normalized operations hydrate current catalog text and clocks.
+
+Default provider timeout is 30 seconds (maximum 60); one aggregate query budget of at most 20 seconds covers backend probing, optional context collection and validation/execution. Provider time has its own budget. Together with five seconds of overhead, these fit within the 90-second assistance IPC ceiling. Prompts are at most 16 KiB. Provider responses default to 256 KiB (maximum 512 KiB). Results default to 100 rows (maximum 500) and 512 KiB; native engines retain their existing 500-row/512-KiB ceiling and a lower elected result ceiling is checked before returning. All limits can be reduced. Result excerpts are absent by default. An explicit normalized `context_query` elects at most 25 current rows and 32 KiB, retaining exact source-clock strings. Neither configuration nor a saved query stores these results. HTTP redirects are refused, credentials require HTTPS except on loopback, and provider bodies never become diagnostic messages.
+
+Required checks refuse production assistance under CI environment markers before HTTP or credential access. Deterministic fixture construction exercises the same proposal validation, ordinary backend execution and mounted native UI without model loading, inference or weight downloads. Maintainers may elect a compatible provider outside CI.
+
+Typed integer parameters accept JSON integers or canonical signed decimal strings in the 64-bit range. Assistance emits browser-unsafe integers as decimal strings so desktop inspection, editing, saving and execution preserve every digit; the selected native engine receives an integer value.

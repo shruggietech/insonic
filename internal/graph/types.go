@@ -426,12 +426,14 @@ func (a *adapter) Query(ctx context.Context, dialect, text string, params map[st
 		if d.Decode(&v) != nil {
 			return nil, contracts.Fail("invalid_request")
 		}
-		if n, ok := v.(json.Number); ok {
-			if p.Type == "integer" {
-				v, _ = n.Int64()
-			} else {
-				v, _ = n.Float64()
+		if p.Type == "integer" {
+			var e error
+			v, e = contracts.IntegerParameter(v)
+			if e != nil {
+				return nil, e
 			}
+		} else if n, ok := v.(json.Number); ok {
+			v, _ = n.Float64()
 		}
 		values[k] = v
 	}

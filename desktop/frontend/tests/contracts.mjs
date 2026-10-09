@@ -16,6 +16,7 @@ for (const name of [
   'pipeline-config',
   'media-tools',
   'processing-tools',
+  'query-assistance',
   'runtime-request',
 ]) {
   const schema = JSON.parse(

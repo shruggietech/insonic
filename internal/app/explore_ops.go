@@ -58,6 +58,16 @@ func queryDocument(w string, q catalog.SavedQuery) any {
 }
 func (a *App) exploreDispatch(req contracts.Request) (any, error) {
 	switch req.Operation {
+	case "query.assistance-show":
+		return a.assistanceShow(req)
+	case "query.assistance-set":
+		return a.assistanceSet(req)
+	case "query.run", "query.explain":
+		q, e := a.queryInput(req.Data)
+		if e != nil {
+			return nil, e
+		}
+		return a.runQuery(a.ctx, q, req.Operation)
 	case "evidence.extract":
 		return a.submitExtraction(req)
 	case "evidence.show":
@@ -219,57 +229,7 @@ func (a *App) exploreDispatch(req contracts.Request) (any, error) {
 			return nil, e
 		}
 		return a.graphState(a.ctx)
-	case "query.run", "query.explain":
-		q, e := a.queryInput(req.Data)
-		if e != nil {
-			return nil, e
-		}
-		if q.Definition.Mode == "native" {
-			if e = graph.ValidateNative(q.Definition.Dialect, q.Definition.Text, q.Parameters); e != nil {
-				return nil, e
-			}
-		}
-		g, c, e := a.publishGraph(a.ctx)
-		if e != nil {
-			if q.Definition.Mode == "normalized" && req.Operation == "query.run" {
-				return a.catalogQuery(q, e)
-			}
-			return nil, e
-		}
-		if q.Definition.Mode == "native" {
-			var rows graph.Rows
-			if req.Operation == "query.explain" {
-				rows, e = g.Explain(a.ctx, q.Definition.Dialect, q.Definition.Text, q.Parameters)
-			} else {
-				rows, e = g.Query(a.ctx, q.Definition.Dialect, q.Definition.Text, q.Parameters)
-			}
-			if e != nil {
-				return nil, e
-			}
-			status, e := a.Catalog.GraphStatus(a.ctx)
-			if e != nil {
-				return nil, e
-			}
-			if status["pending_events"] > 0 {
-				return nil, contracts.Fail("conflict")
-			}
-			return map[string]any{"items": rows, "dialect": q.Definition.Dialect, "catalog_revision": c.Revision, "freshness": status}, nil
-		}
-		if req.Operation == "query.explain" {
-			return map[string]any{"operation": q.Definition.Operation, "adapter": g.Capabilities(), "plan": "typed current-reference selection, catalog hydration, filtering, deterministic ordering and bounded pagination"}, nil
-		}
-		refs, e := g.ReadRefs(a.ctx, req.WorkspaceID)
-		if e != nil {
-			return nil, e
-		}
-		status, e := a.Catalog.GraphStatus(a.ctx)
-		if e != nil {
-			return nil, e
-		}
-		if status["pending_events"] > 0 {
-			return nil, contracts.Fail("conflict")
-		}
-		return explore.Query(c, refs, q)
+
 	}
 	return nil, contracts.Fail("invalid_request")
 }

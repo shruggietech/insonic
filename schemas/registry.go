@@ -4,9 +4,11 @@ package schemas
 import (
 	"bytes"
 	"embed"
+	"encoding/json"
 	"errors"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/shruggietech/insonic/internal/subtitles"
+	"strings"
 	"sync"
 )
 
@@ -121,4 +123,52 @@ func validate(schema *jsonschema.Schema, data []byte) error {
 		return err
 	}
 	return schema.Validate(doc)
+}
+
+// QuerySchemaBytes expands the packaged bare QueryInput using local definitions.
+// Providers receive no dangling references and no saved-query envelope fields.
+func QuerySchemaBytes() []byte {
+	var request, common map[string]any
+	load := func(path string, target any) {
+		raw, _ := registry.ReadFile(path)
+		decoder := json.NewDecoder(bytes.NewReader(raw))
+		decoder.UseNumber()
+		_ = decoder.Decode(target)
+	}
+	load("v0.0.0/runtime-request.schema.json", &request)
+	load("v0.0.0/common.schema.json", &common)
+	var expand func(any) any
+	expand = func(value any) any {
+		switch node := value.(type) {
+		case map[string]any:
+			out := map[string]any{}
+			if ref, ok := node["$ref"].(string); ok {
+				doc := request
+				if strings.HasPrefix(ref, "common.schema.json") {
+					doc = common
+				}
+				var target any = doc
+				for _, part := range strings.Split(strings.SplitN(ref, "#", 2)[1][1:], "/") {
+					target = target.(map[string]any)[part]
+				}
+				out = expand(target).(map[string]any)
+			}
+			for key, child := range node {
+				if key != "$ref" {
+					out[key] = expand(child)
+				}
+			}
+			return out
+		case []any:
+			out := make([]any, len(node))
+			for i, child := range node {
+				out[i] = expand(child)
+			}
+			return out
+		default:
+			return value
+		}
+	}
+	raw, _ := json.Marshal(expand(request["$defs"].(map[string]any)["exploreQuery"]))
+	return raw
 }

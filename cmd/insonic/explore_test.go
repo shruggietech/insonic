@@ -41,3 +41,20 @@ func TestExploreCLIContracts(t *testing.T) {
 		}
 	}
 }
+
+func TestAssistanceCLIContracts(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "assist.json")
+	if e := os.WriteFile(p, []byte(`{"prompt":"List media","mode":"suggest"}`), 0600); e != nil {
+		t.Fatal(e)
+	}
+	for _, args := range [][]string{{"query", "assist", "--input", p}, {"query", "assistance-show"}} {
+		op, id, data, e := parseExplore(args)
+		if e != nil {
+			t.Fatal(e)
+		}
+		raw, _ := json.Marshal(contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: contracts.ID(), RequestID: contracts.ID(), Operation: op, ItemID: id, Data: data})
+		if e := schemas.ValidateRequest(raw); e != nil {
+			t.Fatal(e)
+		}
+	}
+}

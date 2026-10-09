@@ -1,7 +1,9 @@
 package schemas
 
 import (
+	"bytes"
 	"encoding/json"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"testing"
 )
 
@@ -33,5 +35,28 @@ func TestRuntimeRequestArguments(t *testing.T) {
 				t.Fatal("request contract outcome")
 			}
 		})
+	}
+}
+
+func TestAssistantReceivesBareSelfContainedQuerySchema(t *testing.T) {
+	raw := QuerySchemaBytes()
+	if bytes.Contains(raw, []byte(`"$ref"`)) {
+		t.Fatal("dangling provider reference")
+	}
+	doc, e := jsonschema.UnmarshalJSON(bytes.NewReader(raw))
+	if e != nil {
+		t.Fatal(e)
+	}
+	c := jsonschema.NewCompiler()
+	if e = c.AddResource("urn:query", doc); e != nil {
+		t.Fatal(e)
+	}
+	schema, e := c.Compile("urn:query")
+	if e != nil {
+		t.Fatal(e)
+	}
+	good, e := jsonschema.UnmarshalJSON(bytes.NewReader([]byte(`{"definition":{"mode":"normalized","operation":"media-list","pagination":{"limit":5}}}`)))
+	if e != nil || schema.Validate(good) != nil {
+		t.Fatal("bare query rejected", e)
 	}
 }

@@ -58,7 +58,7 @@ func execute(args []string) int {
 		fmt.Println("insonic media tools <configuration.json> | media import <files...> or --manifest <CSV/JSON> [--reference] [--originated-at/on VALUE] [--timezone ZONE] | media list/show/metadata/raw/refresh/set-origin/relocate | models register/acquire <manifest> | models list/show/verify/materialize | work list/show/wait/cancel/retry")
 		fmt.Println("insonic settings show | settings set --input JSON | recordings cues <media-id> [--input JSON] | media playback/playback-check/playback-close <media-id> --input JSON")
 		fmt.Println("insonic media capture <media-id> --input JSON (exact current metadata/facts/date byte pages)")
-		fmt.Println("insonic graph capabilities/status/publish/rebuild | evidence extract/show <media-id> [--input JSON] | query run/explain/validate --input JSON | query run --saved <query-id> [--revision N] | query list/show/save | timeline calendar/recording | views show/save (mutation definitions use --input JSON)")
+		fmt.Println("insonic graph capabilities/status/publish/rebuild | evidence extract/show <media-id> [--input JSON] | query assist/assistance-set --input JSON | query assistance-show | query run/explain/validate --input JSON | query run --saved <query-id> [--revision N] | query list/show/save | timeline calendar/recording | views show/save (mutation definitions use --input JSON)")
 		fmt.Println("insonic work wait <work-id> [--timeout-ms 30000] (one-process bounded wait; terminal failures preserve state and exit nonzero)")
 		return 0
 	}

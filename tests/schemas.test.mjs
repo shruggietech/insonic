@@ -12,8 +12,8 @@ const { master, examples } = validateCatalog(catalog);
 const example = kind => structuredClone(catalog.contracts.find(item => item.schema.properties.kind.const === kind).schema.examples[0]);
 
 test('all documented contracts and local references validate through the release master', () => {
-  assert.equal(catalog.contracts.length, 17);
-  assert.equal(examples, 21);
+  assert.equal(catalog.contracts.length, 18);
+  assert.equal(examples, 22);
   for (const item of catalog.contracts) for (const value of item.schema.examples) assert.equal(master(value), true);
 });
 
@@ -262,4 +262,12 @@ test('remote acquisition budgets and explicit local transport are typed per batc
   value.defaults.acquisition_timeout_ms = -1; assert.equal(master(value), false);
   value.defaults.acquisition_timeout_ms = 5000;
   value.items[0].local_http = 'true'; assert.equal(master(value), false);
+});
+
+test('assistance requests keep elections outside generated query data',()=>{
+ const base={...example('runtime-request'),operation:'query.assist',data:{prompt:'List media',mode:'suggest'}};assert.equal(master(base),true);
+ assert.equal(master({...base,data:{...base.data,credential:'secret'}}),false);
+ assert.equal(master({...base,data:{...base.data,configuration:{enabled:true,limits:{max_rows:501}}}}),false);
+ assert.equal(master({...base,item_id:'22222222-2222-4222-8222-222222222222'}),false);
+ assert.equal(master({...base,operation:'query.assistance-show',data:{}}),false);
 });

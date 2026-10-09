@@ -6,6 +6,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Optional local/hosted query assistance with revisioned settings, complete editable proposals and elected validated current execution in CLI and desktop Explore. Deterministic provider fixtures qualify ordinary backend and native package journeys without model inference.
+
 - Current source-backed evidence extraction, real LadybugDB/ArcadeDB reference publication and portable/native queries, with whole-library calendars, recording timelines, versioned saved definitions and separate force-graph layouts in CLI and desktop Explore.
 
 - Native desktop Library, Jobs, Pipelines, Speakers, Terms, Models and Settings controls over the shared runtime, including current recording actions, exact raw capture display, scoped ranged audio/video playback, bounded previews and original-time cue seeking.
@@ -78,6 +80,10 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Reset Library playback media state for each verified ticket before seeking newly loaded source metadata.
+
+- Preserve large generated integer parameters through desktop JSON with exact decimal-string transport and real native integer binding. Legacy numeric parameter inputs remain supported.
+
 - Reconcile durable acknowledgement receipts after ownership expires; validate restored checkpoints against accepted acknowledgements, reject scalar coercion, and restore large catalog exports without an asymmetric file-size limit.
 - Reject common credential-key aliases in persisted options while retaining opaque references, preserve shutdown evidence, and keep replayed requests from detaching newer work or blocking at runtime capacity.
 - Keep the landing archive widget at the tallest tab's natural height so switching views leaves following content in place.
@@ -93,3 +99,5 @@ All notable changes to this project will be documented here. The format follows 
 - Prepare real graph adapters in native packages and required backend/UI qualification. Inference, model initialization and weight downloads remain excluded from required CI.
 - Windows native graph DLLs reside beside the CLI and GUI so the operating-system loader resolves them before runtime startup, without development PATH dependencies.
 - Pin Windows OpenSSL 3.5.9 loader companions and their Apache 2.0 notice, with a pinned archive decoder; native preparation and relocated checks no longer depend on ambient OpenSSL installations.
+
+- Query assistance uses an explicitly elected versioned HTTP provider, portable catalog settings and the shared current query path. Suggestions are the default; auto-run requires ordinary read validation and selected-engine EXPLAIN. Required checks use injected deterministic provider replies and refuse production provider calls under CI markers.

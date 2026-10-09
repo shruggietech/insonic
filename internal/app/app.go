@@ -4,6 +4,7 @@ package app
 import (
 	"context"
 	"github.com/shruggietech/insonic/internal/artifact"
+	"github.com/shruggietech/insonic/internal/assistance"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/credentialcmd"
@@ -22,6 +23,7 @@ type worker struct {
 	cancel  context.CancelFunc
 }
 type App struct {
+	AssistanceFixture assistance.Fixture // Non-nil only in explicit deterministic test/qualification construction.
 	graphMu           sync.Mutex
 	Graph             graph.Adapter
 	recordingFactory  func() (*recordingExecution, error)
@@ -322,6 +324,13 @@ func (a *App) Close() {
 }
 
 func (a *App) Dispatch(req contracts.Request) contracts.Response {
+	return a.DispatchContext(a.ctx, req)
+}
+func (a *App) DispatchContext(ctx context.Context, req contracts.Request) contracts.Response {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	stop := context.AfterFunc(a.ctx, cancel)
+	defer stop()
 	response := contracts.Response{Kind: "runtime-response", Version: contracts.Version, WorkspaceID: a.Workspace.Config.WorkspaceID, RequestID: req.RequestID, SessionID: a.Session}
 	if !contracts.ValidID(req.RequestID) {
 		response.RequestID = ""
@@ -382,7 +391,15 @@ func (a *App) Dispatch(req contracts.Request) contracts.Response {
 			result, err = a.Catalog.HistoryPage(a.ctx, req.JobID, req.AfterGeneration)
 		}
 	default:
-		if contracts.ExploreOperation(req.Operation) {
+		if req.Operation == "query.assist" {
+			result, err = a.assist(ctx, req)
+		} else if req.Operation == "query.run" || req.Operation == "query.explain" {
+			var q contracts.QueryInput
+			q, err = a.queryInput(req.Data)
+			if err == nil {
+				result, err = a.runQuery(ctx, q, req.Operation)
+			}
+		} else if contracts.ExploreOperation(req.Operation) {
 			result, err = a.exploreDispatch(req)
 		} else if contracts.DesktopOperation(req.Operation) {
 			result, err = a.desktopDispatch(req)

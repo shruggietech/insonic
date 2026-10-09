@@ -490,6 +490,7 @@ export function Library({ client, run }: Props) {
                 </p>
                 {entry.class === 'video' ? (
                   <video
+                    key={playback.url}
                     aria-label="Original video"
                     controls
                     src={playback.url}
@@ -514,6 +515,7 @@ export function Library({ client, run }: Props) {
                   />
                 ) : (
                   <audio
+                    key={playback.url}
                     aria-label="Original audio"
                     controls
                     src={playback.url}

@@ -14,6 +14,16 @@ export function mediaDiagnostics(media: HTMLMediaElement | null): string {
   // only bounded numeric state and known error categories during qualification.
   return `readyState=${media.readyState},networkState=${media.networkState},error=${code}(${errors[code] ?? 'unknown'}),buffered=${media.buffered.length},duration=${Number.isFinite(media.duration) && media.duration > 0 ? 'positive' : 'unavailable'}`;
 }
+// Mounting includes the asynchronous workspace Show call. Cold runner startup
+// uses the same bounded readiness window as the rest of the native journey.
+export async function qualificationMounted(timeout = 25000): Promise<void> {
+  const ready = () => !!document.querySelector('[data-bb-host="wails"]') &&
+    !!document.querySelector('form') && !!document.querySelector('[aria-label="Library controls"]');
+  const until = Date.now() + timeout;
+  while (!ready() && Date.now() < until)
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  if (!ready()) throw new Error('Desktop screens did not mount.');
+}
 // A webview may leave play() pending while media is outside its viewport.
 // Bound startup separately so failed decode produces diagnostics before quit.
 export async function qualificationPlay(media: HTMLMediaElement, timeout = 8000): Promise<void> {
@@ -256,7 +266,10 @@ async function qualifyJourney(
           audio.readyState >= 1 &&
           Math.abs(audio.currentTime - 2.5) < 0.02
         );
-      }, 'Speaker span seek did not reach 2.5 source seconds.');
+      }, () => {
+        const audio = document.querySelector('audio');
+        return `Speaker span seek did not reach 2.5 source seconds: time=${audio?.currentTime ?? 'missing'},` + mediaDiagnostics(audio);
+      });
       flags.ui_cue_seek = 'passed';
     }
   }
@@ -355,6 +368,17 @@ async function qualifyJourney(
   await fill('Saved query title','Qualification current evidence');
   await click('Save query version');
   flags.ui_explore_query='passed';
+  await bridge.QualificationStep?.('query-assistance');
+  await fill('Assistance prompt','List current recordings');
+  await click('Suggest query');
+  if(!document.body.textContent?.includes('Deterministic current media suggestion')||!document.querySelector('[aria-label="Complete proposed query"]'))throw new Error('Complete assistance suggestion missing.');
+  await click('Load proposal into editor');
+  await click('Run current query');
+  await click('Save query version');
+  await click('Assist and run query');
+  if(!document.body.textContent?.includes('Executed current query.'))throw new Error('Elected assistance execution missing.');
+  await click('Save query version');
+  flags.ui_query_assistance='passed';
   await bridge.QualificationStep?.('explore-graph');
   await click('Graph');
   await click('Run current query');

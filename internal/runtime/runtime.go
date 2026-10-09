@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/app"
+	"github.com/shruggietech/insonic/internal/assistance"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/credentialcmd"
@@ -25,9 +26,10 @@ const MaxFrame = 1 << 20
 const MaxRequestFrame = contracts.MaxWorkPayload + (64 << 10)
 
 type Options struct {
-	Idle  time.Duration
-	Ready chan<- struct{}
-	Input *credentialcmd.Input
+	AssistanceFixture assistance.Fixture // Explicit deterministic qualification only.
+	Idle              time.Duration
+	Ready             chan<- struct{}
+	Input             *credentialcmd.Input
 }
 
 func frame(reader io.Reader) ([]byte, error) {
@@ -84,6 +86,7 @@ func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
 		}
 		return err
 	}
+	application.AssistanceFixture = options.AssistanceFixture
 	defer application.Close()
 	if options.Idle <= 0 {
 		options.Idle = 30 * time.Second
@@ -161,7 +164,13 @@ func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
 				}
 			} else {
 				conn.SetDeadline(time.Now().Add(OperationTimeout(request.Operation, 5*time.Second)))
-				response = application.Dispatch(request)
+				operationCtx, finish := context.WithTimeout(ctx, OperationTimeout(request.Operation, 5*time.Second))
+				if request.Operation == "query.assist" {
+					// One request per connection. Any further input or disconnect cancels this ephemeral operation.
+					go func() { var extra [1]byte; conn.Read(extra[:]); finish() }()
+				}
+				response = application.DispatchContext(operationCtx, request)
+				finish()
 			}
 			encoded, e := json.Marshal(response)
 			if e != nil || len(encoded)+1 > MaxFrame {
@@ -182,6 +191,8 @@ func Call(ctx context.Context, w *workspace.Workspace, request contracts.Request
 		return contracts.Response{Kind: "runtime-response"}, contracts.Fail("unavailable")
 	}
 	defer conn.Close()
+	stop := context.AfterFunc(ctx, func() { conn.Close() })
+	defer stop()
 	deadline := time.Now().Add(OperationTimeout(request.Operation, 5*time.Second))
 	if value, ok := ctx.Deadline(); ok && value.Before(deadline) {
 		deadline = value

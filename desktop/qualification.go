@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/shruggietech/insonic/internal/assistance"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -47,7 +48,7 @@ func (b *Bridge) QualificationStep(step string) bool {
 		return false
 	}
 	switch step {
-	case "module", "fixtures", "mounted", "ready", "library-import", "audio-playback", "video-playback", "metadata-date", "assembly", "cue-seek", "terms", "speakers", "pipelines", "jobs", "settings", "keyboard-help", "explore-calendar", "explore-query", "explore-graph", "complete":
+	case "module", "fixtures", "mounted", "ready", "library-import", "audio-playback", "video-playback", "metadata-date", "assembly", "cue-seek", "terms", "speakers", "pipelines", "jobs", "settings", "keyboard-help", "explore-calendar", "explore-query", "explore-graph", "query-assistance", "complete":
 		fmt.Fprintln(os.Stderr, "Desktop qualification stage:", step)
 		return true
 	}
@@ -165,6 +166,14 @@ func PrepareWebviewQualification(b *Bridge) error {
 	assembled := call("recordings.assemble", audioID, app.AssemblyInput{SubtitleFormat: "srt", Turns: []processing.Turn{{Label: "qualification voice", StartUS: 0, EndUS: 1_000_000}}})
 	if assembled.Error != nil {
 		return assembled.Error
+	}
+	cfg := assistance.DefaultConfig()
+	cfg.Enabled = true
+	cfg.Endpoint = "http://127.0.0.1:1/fixture"
+	cfg.Model = "qualification-no-inference"
+	configured := call("query.assistance-set", "", map[string]any{"expected_revision": 0, "configuration": cfg})
+	if configured.Error != nil {
+		return configured.Error
 	}
 	fixtures["audio_id"] = audioID
 	fixtures["video_id"] = imported.Items[1].MediaID
