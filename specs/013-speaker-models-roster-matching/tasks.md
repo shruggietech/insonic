@@ -62,7 +62,7 @@ Independent test: strict runtime/CLI/UI payloads and snapshot/backend tests pres
 - [x] T020 Update authoritative docs/v0.0.0 voice-models/models/speakers/pipelines/media/schema/contracts/desktop/help/glossary/index and CHANGELOG.md to exact shipped contracts (FR-016).
 - [x] T021 Run targeted tests, npm check/test, affected product/desktop/site builds and inspect encoding through specs/013-speaker-models-roster-matching/quickstart.md (FR-015, SC-001 through SC-004).
 - [x] T022 Run read-only convergence and complete appended gaps in specs/013-speaker-models-roster-matching/tasks.md.
-- [ ] T023 Publish official PR automatically, resolve all findings within two rounds and verify green final-head CI; record receipts in specs/013-speaker-models-roster-matching/verification.md (SC-004).
+- [x] T023 Publish official PR automatically, resolve all findings within two rounds and verify green final-head CI; record receipts in specs/013-speaker-models-roster-matching/verification.md (SC-004).
 
 ## Dependencies and execution order
 
