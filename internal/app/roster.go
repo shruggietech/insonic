@@ -17,7 +17,7 @@ func (a *App) rosterOperation(req contracts.Request) (any, error) {
 		return a.Catalog.Roster(a.ctx, req.ItemID)
 	}
 	var input rosterMutation
-	if strictPayload(req.Data, &input) != nil || input.ExpectedRevision == nil || *input.ExpectedRevision < 0 || input.Speakers == nil {
+	if strictPayload(req.Data, &input) != nil || input.ExpectedRevision == nil || *input.ExpectedRevision < 0 || input.Speakers == nil || (mode == "add" || mode == "remove") && len(input.Speakers) == 0 {
 		return nil, contracts.Fail("invalid_request")
 	}
 	return a.Catalog.MutateRoster(a.ctx, req.RequestID, req.ItemID, *input.ExpectedRevision, mode, input.Speakers)

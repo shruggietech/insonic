@@ -46,3 +46,9 @@ PostgreSQL/S3/ArcadeDB fixture execution and Linux/macOS native qualification ar
 ### Published review round one (2026-10-09)
 
 Official PR #37 was opened on a9eaa75a515a1dcedbc099c34fd67b07eb70b2bc; opening triggered Codex review round one. CI foundation, documentation, Windows core and alternative-backend fixtures passed. Native platform/package jobs continue independently. Codex reported two findings: P1 replacement decoded the date envelope as an array, losing retained date state; P2 kept documents were absent from new subtitle facts/receipts. Both are fixed with regressions preserving every prior date observation/selection/policy, permitting explicit new dates, and checking retained current subtitle state in library facts and item receipts. Final round and final-head CI are pending.
+
+### Published review round two (2026-10-09)
+
+One final review request comment, https://github.com/shruggietech/insonic/pull/37#issuecomment-6080155279, requested Codex code and security review on be6585edd53223dfc0f9177f5306b6e955a9dfda. The connector reported a completed code review with one P2 finding: empty add/remove input could mutate an undeclared roster through runtime/desktop while CLI rejected it. Shared catalog/runtime checks and runtime schema now require nonempty references for those two modes; desktop rejects blank edits before submission. Explicit empty replace/clear remain valid. SQLite/PostgreSQL shared roster tests verify rejected edits preserve catalog and roster authority; runtime, schema and rendered UI regressions also pass. Root tests now total 59, frontend tests 56. No third review is requested. The connector posted no separate security-review result; no security finding was posted.
+
+Post-review convergence confirms the nonempty membership edit contract across interfaces. Final correction CI and terminal review-thread readback remain the handoff gate.

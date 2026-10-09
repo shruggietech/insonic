@@ -28,6 +28,16 @@ func TestRosterSharedRuntimeAudioOnly(t *testing.T) {
 	if read.Error != nil || read.Result.(catalog.Roster).Declared {
 		t.Fatalf("read %+v", read)
 	}
+	for _, mode := range []string{"add", "remove"} {
+		empty := realRequest(a, "recordings.roster."+mode, id, map[string]any{"expected_revision": 0, "speakers": []string{}})
+		if empty.Error == nil || empty.Error.Code != "invalid_request" {
+			t.Fatal("empty roster mutation accepted", mode)
+		}
+	}
+	read = realRequest(a, "recordings.roster.show", id, nil)
+	if read.Error != nil || read.Result.(catalog.Roster).Declared {
+		t.Fatal("blank edit changed roster authority")
+	}
 	add := realRequest(a, "recordings.roster.add", id, map[string]any{"expected_revision": 0, "speakers": []string{sp.Speaker.ID}})
 	if add.Error != nil {
 		t.Fatal(add.Error)

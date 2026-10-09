@@ -25,6 +25,17 @@ func rosterSuite(t *testing.T, s *Store) {
 	if e != nil || before.Declared || before.Revision != 0 {
 		t.Fatalf("absent: %+v %v", before, e)
 	}
+	revision, _ := s.Revision(ctx)
+	for _, mode := range []string{"add", "remove"} {
+		if _, e = s.MutateRoster(ctx, contracts.ID(), entry.ID, 0, mode, []string{}); e == nil {
+			t.Fatal("empty roster mutation accepted", mode)
+		}
+	}
+	after, _ := s.Revision(ctx)
+	absent, _ := s.Roster(ctx, entry.ID)
+	if after != revision || absent.Declared || absent.Revision != 0 {
+		t.Fatal("empty roster mutation changed authority")
+	}
 	op := contracts.ID()
 	r, e := s.MutateRoster(ctx, op, entry.ID, 0, "add", []string{"Roster Alias", id})
 	if e != nil || !r.Declared || len(r.Members) != 1 {

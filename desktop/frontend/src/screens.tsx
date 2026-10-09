@@ -224,7 +224,9 @@ export function Library({ client, run }: Props) {
   };
   const mutateRoster=async(mode:'add'|'remove'|'replace'|'clear')=>{
     if (!roster) return;
-    try {setRoster(await client.updateRoster(entryID,roster.revision??0,mode,mode==='clear'?[]:lines(rosterRefs)));setRosterRefs('');}
+    const references=mode==='clear'?[]:lines(rosterRefs);
+    if((mode==='add'||mode==='remove')&&references.length===0)throw new Error('Enter at least one speaker reference for add or remove.');
+    try {setRoster(await client.updateRoster(entryID,roster.revision??0,mode,references));setRosterRefs('');}
     catch(error){if((error as Obj).code==='conflict') setRoster(await client.roster(entryID));throw error;}
   };
   const capture = async (section = 'metadata') => {

@@ -4839,6 +4839,34 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "recordings.roster.add",
+              "recordings.roster.remove"
+            ],
+            "description": "Membership edits require one or more speaker references."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Nonempty membership edit input.",
+            "properties": {
+              "speakers": {
+                "type": "array",
+                "minItems": 1,
+                "description": "One or more speaker references for add or remove."
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "examples": [

@@ -85,6 +85,8 @@ Term compilation accepts optional `pipeline_id`, `pipeline_revision`, `speaker_i
 
 ## Declared recording rosters
 
+Add and remove require at least one speaker reference in every interface; blank edits fail without changing roster authority. Replace accepts an explicit empty list, and clear declares an empty roster.
+
 A declared roster expresses intended speaker context for a recording, including one with no transcript. Its header anchors to the stable library recording ID; each unique membership references an existing centralized speaker ID. It stores no copied names, profiles or assignments. An undeclared roster has revision zero; an explicitly empty roster has a positive header revision. Names and active/inactive states are read from the current speaker catalog.
 
 ```sh

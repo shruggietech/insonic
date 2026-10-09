@@ -17,6 +17,15 @@ test('all documented contracts and local references validate through the release
   for (const item of catalog.contracts) for (const value of item.schema.examples) assert.equal(master(value), true);
 });
 
+test('roster add/remove require selectors while replace/clear allow empty declarations',()=>{
+ const base={...example('runtime-request'),item_id:'44444444-4444-4444-8444-444444444444',data:{expected_revision:0,speakers:[]}};
+ for(const mode of ['add','remove']) {
+  assert.equal(master({...base,operation:'recordings.roster.'+mode}),false);
+  assert.equal(master({...base,operation:'recordings.roster.'+mode,data:{...base.data,speakers:['Known']}}),true);
+ }
+ for(const mode of ['replace','clear'])assert.equal(master({...base,operation:'recordings.roster.'+mode}),true);
+});
+
 test('recording operation requests keep transient assembly separate from durable settings', () => {
   const base = {...example('runtime-request'), operation:'recordings.process', item_id:'22222222-2222-4222-8222-222222222222', data:{transcription:'supplied',diarization:'run',diarization_model_id:'33333333-3333-4333-8333-333333333333'}};
   assert.equal(master(base),true);

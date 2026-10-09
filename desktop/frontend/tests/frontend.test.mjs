@@ -1487,6 +1487,7 @@ test('audio-only roster distinguishes absent and empty and rereads conflicts',as
   return original(req);
  };
  await mount(bridge);await click('Open Committed speech');assert.match(document.body.textContent,/Roster not declared/);
+ await click('Apply roster edit');assert.match(document.body.textContent,/Enter at least one speaker reference/);assert.equal(bridge.calls.filter(c=>c.operation==='recordings.roster.add'||c.operation==='recordings.roster.remove').length,0);
  await click('Clear roster');assert.match(document.body.textContent,/Explicitly empty roster/);assert.match(document.body.textContent,/Revision 7/);
  conflict=true;await fill('Roster speaker references',mid);await click('Apply roster edit');assert.match(document.body.textContent,/Roster changed/);assert.match(document.body.textContent,/Revision 8/);await unmount();
 });

@@ -184,7 +184,7 @@ func (s *Store) saveRoster(ctx context.Context, tx *sql.Tx, id string, expected,
 	return s.rosterTx(ctx, tx, id)
 }
 func (s *Store) MutateRoster(ctx context.Context, op, id string, expected int64, mode string, refs []string) (Roster, error) {
-	if !contracts.ValidID(op) || !contracts.ValidID(id) || expected < 0 || len(refs) > 1000 || (mode != "add" && mode != "remove" && mode != "replace" && mode != "clear") || mode == "clear" && len(refs) > 0 {
+	if !contracts.ValidID(op) || !contracts.ValidID(id) || expected < 0 || len(refs) > 1000 || (mode != "add" && mode != "remove" && mode != "replace" && mode != "clear") || mode == "clear" && len(refs) > 0 || (mode == "add" || mode == "remove") && len(refs) == 0 {
 		return Roster{}, contracts.Fail("invalid_request")
 	}
 	digest, e := intent([]any{"roster", id, expected, mode, refs})
