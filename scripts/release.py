@@ -30,6 +30,10 @@ PLATFORMS = ('windows_amd64', 'linux_amd64', 'darwin_arm64')
 VARIANTS = ('cli', 'desktop')
 VERSION_PATTERN = r'(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)'
 SHA_PATTERN = r'[a-f0-9]{64}'
+DEPLOYMENT_ENVIRONMENT = 'documentation-deployment'
+AUTOMATION_CREDENTIAL_NAMES = {'GH_TOKEN', 'GITHUB_TOKEN', 'GH_ENTERPRISE_TOKEN', 'GITHUB_PAT',
+                               'ACTIONS_RUNTIME_TOKEN', 'ACTIONS_ID_TOKEN_REQUEST_TOKEN', 'SYSTEM_ACCESSTOKEN'}
+AUTOMATION_ENVIRONMENT_PREFIXES = ('GH_', 'GITHUB_', 'ACTIONS_', 'RUNNER_')
 
 
 def write_json(path, value):
@@ -89,6 +93,37 @@ def exact_source(revision, root=ROOT, runner=child, tag=None):
         raise ValueError('release source must be clean')
     if tag is not None and runner(['git', 'rev-parse', tag + '^{commit}'], root) != revision:
         raise ValueError('release tag does not identify the candidate source')
+
+
+def trusted_history(revision, api, root=ROOT, runner=child):
+    if not re.fullmatch(r'[a-f0-9]{40}', revision or ''):
+        raise ValueError('trusted release revision must be a full commit SHA')
+    repository = api.call('GET', f'repos/{REPOSITORY}')
+    branch = api.call('GET', f'repos/{REPOSITORY}/branches/main')
+    if (not repository or repository.get('default_branch') != 'main' or not branch
+            or branch.get('protected') is not True or branch.get('name') != 'main'
+            or not re.fullmatch(r'[a-f0-9]{40}', branch.get('commit', {}).get('sha', ''))):
+        raise ValueError('release tooling requires the protected default main branch')
+    trusted = branch['commit']['sha']
+    exact_source(trusted, root, runner)
+    try:
+        runner(['git', 'merge-base', '--is-ancestor', revision, trusted], root)
+    except ValueError:
+        raise ValueError('candidate revision is outside trusted main history') from None
+    return {'trusted_revision': trusted, 'revision': revision}
+
+
+def deployment_environment(api):
+    endpoint = f'repos/{REPOSITORY}/environments/{DEPLOYMENT_ENVIRONMENT}'
+    environment = api.call('GET', endpoint)
+    policy = environment.get('deployment_branch_policy', {}) if environment else {}
+    rules = api.call('GET', endpoint + '/deployment-branch-policies') if policy.get('custom_branch_policies') is True else None
+    branches = rules.get('branch_policies', []) if rules else []
+    if (policy.get('protected_branches') is not False or policy.get('custom_branch_policies') is not True
+            or not rules or rules.get('total_count') != 1 or len(branches) != 1
+            or branches[0].get('name') != 'main' or branches[0].get('type') != 'branch'):
+        raise ValueError('documentation deployment environment must restrict deployment branches to main only')
+    return {'deployment_environment': 'verified'}
 
 
 def rewrite_owned_schema(node, old, new, fields=None, context=None):
@@ -449,7 +484,8 @@ def load_candidate(directory, verifier=verify_package):
     return value, expected
 
 
-def published_candidate(output, revision, api, root=ROOT, runner=child, verifier=verify_package):
+def published_candidate(output, revision, api, root=ROOT, runner=child, verifier=verify_package, trusted_root=None):
+    trusted_history(revision, api, trusted_root or root, runner)
     version = versions(root)
     if version == '0.0.0':
         raise ValueError('published candidate requires a prepared release version')
@@ -512,7 +548,8 @@ def current_release_suite(api, revision, context=None):
     return run['check_suite_id'] if run['head_sha'] == revision else None
 
 
-def publish(directory, highlights, api, root=ROOT, runner=child, verifier=verify_package):
+def publish(directory, highlights, api, root=ROOT, runner=child, verifier=verify_package, trusted_root=None):
+    trusted_history(read_json(directory / 'release-manifest.json').get('revision'), api, trusted_root or root, runner)
     value, expected = load_candidate(directory, verifier)
     if versions(root) != value['version'] or value['version'] == '0.0.0': raise ValueError('publication requires prepared release versions')
     exact_source(value['revision'], root, runner, value['tag'])
@@ -572,6 +609,8 @@ def deployment_configuration(config, environment=None):
     if (not isinstance(names, list) or any(not isinstance(name, str) or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', name) for name in names)
             or len(names) != len(set(names))):
         raise ValueError('deployment environment references must be unique variable names')
+    if any(name.upper() in AUTOMATION_CREDENTIAL_NAMES or name.upper().startswith(AUTOMATION_ENVIRONMENT_PREFIXES) for name in names):
+        raise ValueError('deployment cannot forward reserved automation credentials')
     selected = os.environ if environment is None else environment
     if any(not selected.get(name) for name in names):
         raise ValueError('a configured documentation deployment environment reference is unavailable')
@@ -592,8 +631,11 @@ def materialize_deployment(path, environment=None):
     return {'deployment_configuration': 'validated'}
 
 
-def promote(directory, config, api, runner=child, verifier=verify_package):
-    value, expected = load_candidate(directory, verifier); verify_tag(api, value['tag'], value['revision'])
+def promote(directory, config, api, runner=child, verifier=verify_package, trusted_root=ROOT, history_runner=child):
+    trusted_history(read_json(directory / 'release-manifest.json').get('revision'), api, trusted_root, history_runner)
+    deployment_environment(api)
+    value, expected = load_candidate(directory, verifier)
+    verify_tag(api, value['tag'], value['revision'])
     release = api.call('GET', f'repos/{REPOSITORY}/releases/tags/{value["tag"]}')
     if not release or release.get('draft') is not False or release.get('target_commitish') != value['revision']: raise ValueError('documentation promotion requires the exact published release')
     remote_assets(api, release, expected)
@@ -616,8 +658,9 @@ def main():
     p = sub.add_parser('docs'); p.add_argument('--revision', required=True); p.add_argument('--output', type=Path, required=True)
     p = sub.add_parser('candidate'); p.add_argument('--revision', required=True); p.add_argument('--assets', type=Path, required=True); p.add_argument('--output', type=Path, required=True); p.add_argument('receipts', nargs='+', type=Path)
     p = sub.add_parser('collect'); p.add_argument('--revision', required=True); p.add_argument('--input', type=Path, required=True); p.add_argument('--output', type=Path, required=True)
-    p = sub.add_parser('publish'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--highlights', type=Path, required=True)
-    p = sub.add_parser('published'); p.add_argument('--revision', required=True); p.add_argument('--output', type=Path, required=True)
+    p = sub.add_parser('trusted'); p.add_argument('--revision', required=True)
+    p = sub.add_parser('publish'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--highlights', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT)
+    p = sub.add_parser('published'); p.add_argument('--revision', required=True); p.add_argument('--output', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT)
     p = sub.add_parser('deployment'); p.add_argument('--configuration', type=Path, required=True)
     p = sub.add_parser('promote'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--configuration', type=Path, required=True)
     options = parser.parse_args()
@@ -626,9 +669,10 @@ def main():
     elif options.command == 'docs': document_archives(options.output, options.revision); result = {'documentation': 'packaged'}
     elif options.command == 'candidate': result = candidate(options.receipts, options.assets, options.output, options.revision)
     elif options.command == 'collect': result = collect(options.input, options.output, options.revision)
-    elif options.command == 'publish': result = publish(options.candidate, options.highlights.read_text(encoding='utf-8'), GitHub(os.environ.get('GH_TOKEN', '')))
-    elif options.command == 'published': result = published_candidate(options.output, options.revision, GitHub(os.environ.get('GH_TOKEN', '')))
-    elif options.command == 'deployment': result = materialize_deployment(options.configuration)
+    elif options.command == 'trusted': result = trusted_history(options.revision, GitHub(os.environ.get('GH_TOKEN', '')))
+    elif options.command == 'publish': result = publish(options.candidate, options.highlights.read_text(encoding='utf-8'), GitHub(os.environ.get('GH_TOKEN', '')), root=options.source_root, trusted_root=ROOT)
+    elif options.command == 'published': result = published_candidate(options.output, options.revision, GitHub(os.environ.get('GH_TOKEN', '')), root=options.source_root, trusted_root=ROOT)
+    elif options.command == 'deployment': deployment_environment(GitHub(os.environ.get('GH_TOKEN', ''))); result = materialize_deployment(options.configuration)
     else: result = promote(options.candidate, read_json(options.configuration), GitHub(os.environ.get('GH_TOKEN', '')))
     print(json.dumps(result))
 

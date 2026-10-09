@@ -24,6 +24,7 @@ NEXT_VERSION = f'{int(CURRENT.split(".")[0]) + 2}.0.0'
 def runner(args, root=None):
     if args[:3] == ['git', 'rev-parse', 'HEAD'] or args[:2] == ['git', 'rev-parse']: return REVISION
     if args[:2] == ['git', 'status']: return ''
+    if args[:3] == ['git', 'merge-base', '--is-ancestor']: return ''
     raise AssertionError(args)
 
 def verify_fixture(path, receipt):
@@ -69,6 +70,10 @@ class GitHubFixture:
 
     def call(self, method, endpoint, value=None, path=None):
         self.calls.append((method, endpoint, copy.deepcopy(value)))
+        if endpoint == f'repos/{release.REPOSITORY}': return {'default_branch': 'main'}
+        if endpoint.endswith('/branches/main'): return {'name': 'main', 'protected': True, 'commit': {'sha': REVISION}}
+        if endpoint.endswith('/environments/documentation-deployment'): return {'deployment_branch_policy': {'protected_branches': False, 'custom_branch_policies': True}}
+        if endpoint.endswith('/deployment-branch-policies'): return {'total_count': 1, 'branch_policies': [{'name': 'main', 'type': 'branch'}]}
         if '/git/ref/' in endpoint: return {'object': {'type': 'commit', 'sha': REVISION}}
         if '/check-runs?' in endpoint: return {'check_runs': copy.deepcopy(self.checks)}
         if '/actions/runs/' in endpoint: return copy.deepcopy(self.workflow)
@@ -161,6 +166,73 @@ class ReleaseDeliveryTests(unittest.TestCase):
         lock = self.root / 'desktop/frontend/package-lock.json'; value = release.read_json(lock); value['packages']['']['version'] = '999.999.999'; release.write_json(lock, value)
         with self.assertRaisesRegex(ValueError, 'versions'): release.versions(self.root)
 
+    def test_privileged_publication_uses_trusted_main_history_and_historical_version_data(self):
+        target = self.candidate(); api = GitHubFixture(); original_call = api.call
+        trusted = self.root / 'trusted-tooling'; trusted.mkdir()
+        (trusted / 'VERSION').write_text('999.0.0\n')  # Tooling version is independent of historical release data.
+        main_sha = 'b' * 40; calls = []
+        def transport(method, endpoint, value=None, path=None):
+            if endpoint.endswith('/branches/main'): return {'name': 'main', 'protected': True, 'commit': {'sha': main_sha}}
+            return original_call(method, endpoint, value, path)
+        api.call = transport
+        def historical_runner(args, root):
+            calls.append((args, root))
+            if args == ['git', 'rev-parse', 'HEAD'] and root == trusted: return main_sha
+            if args[:3] == ['git', 'merge-base', '--is-ancestor']:
+                self.assertEqual(args[3:], [REVISION, main_sha]); self.assertEqual(root, trusted); return ''
+            return runner(args, root)
+        result = release.publish(target, 'Highlights.', api, self.root, historical_runner, verify_fixture, trusted)
+        self.assertTrue(result['published']); self.assertEqual(api.release['tag_name'], 'v' + VERSION)
+        self.assertTrue(any(args[:2] == ['git', 'merge-base'] for args, _ in calls))
+        api.calls.clear()
+        def outside(args, root):
+            if args[:3] == ['git', 'merge-base', '--is-ancestor']: raise ValueError('not ancestor')
+            return historical_runner(args, root)
+        with self.assertRaisesRegex(ValueError, 'outside trusted main history'):
+            release.publish(target, 'Highlights.', api, self.root, outside, lambda *args: self.fail('verifier ran for untrusted source'), trusted)
+        self.assertFalse(any(call[0] in ('POST', 'PATCH') for call in api.calls))
+
+    def test_missing_branch_protection_or_wrong_tool_checkout_blocks_privileged_tools(self):
+        api = GitHubFixture(); original = api.call
+        for protected in (False, None):
+            def transport(method, endpoint, value=None, path=None):
+                if endpoint.endswith('/branches/main'): return {'name': 'main', 'protected': protected, 'commit': {'sha': REVISION}}
+                return original(method, endpoint, value, path)
+            api.call = transport
+            with self.assertRaisesRegex(ValueError, 'protected default main'):
+                release.trusted_history(REVISION, api, self.root, runner)
+        api.call = original
+        with self.assertRaisesRegex(ValueError, 'exact full current commit'):
+            release.trusted_history(REVISION, api, self.root, lambda args, root: 'f' * 40)
+
+    def test_deployment_environment_requires_only_main_branch_policy(self):
+        api = GitHubFixture(); original = api.call
+        self.assertEqual(release.deployment_environment(api), {'deployment_environment': 'verified'})
+        for branches in ([], [{'name': '*', 'type': 'branch'}], [{'name': 'main', 'type': 'tag'}],
+                         [{'name': 'main', 'type': 'branch'}, {'name': 'feature', 'type': 'branch'}]):
+            def transport(method, endpoint, value=None, path=None):
+                if endpoint.endswith('/deployment-branch-policies'): return {'total_count': len(branches), 'branch_policies': branches}
+                return original(method, endpoint, value, path)
+            api.call = transport
+            with self.assertRaisesRegex(ValueError, 'main only'): release.deployment_environment(api)
+
+    def test_automation_credentials_are_rejected_case_insensitively_and_never_forwarded(self):
+        executable = str(Path(sys.executable).resolve())
+        for name in release.AUTOMATION_CREDENTIAL_NAMES | {'GH_CUSTOM_CREDENTIAL', 'GITHUB_CUSTOM_TOKEN', 'ACTIONS_CUSTOM_TOKEN', 'RUNNER_SECRET'}:
+            for spelling in (name, name.lower(), name.swapcase()):
+                with self.assertRaisesRegex(ValueError, 'reserved automation'):
+                    release.deployment_configuration({'argv': [executable, '{archive}'], 'environment_names': [spelling]}, {spelling: 'automation credential'})
+        target = self.candidate(); api = GitHubFixture()
+        release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
+        invoked = []
+        def deployment_child(args, environment=None): invoked.append((args, environment))
+        secret_name = 'INSONIC_DOCUMENTATION_DEPLOYMENT_CREDENTIAL'
+        with patch.dict(os.environ, {'GH_TOKEN': 'write-token', 'GITHUB_TOKEN': 'automation-token', secret_name: 'dedicated deployment credential'}), patch.object(release, 'child', deployment_child):
+            release.promote(target, {'argv': [executable, '{archive}'], 'environment_names': [secret_name]}, api,
+                            deployment_child, verify_fixture, self.root, runner)
+        self.assertEqual(invoked[0][1][secret_name], 'dedicated deployment credential')
+        self.assertNotIn('GH_TOKEN', invoked[0][1]); self.assertNotIn('GITHUB_TOKEN', invoked[0][1])
+
     def test_stale_or_forged_documentation_marker_fails(self):
         for directory in ('site/out', 'site/offline'):
             path = self.root / directory; path.mkdir(parents=True); (path / 'index.html').write_text('<html></html>')
@@ -202,11 +274,11 @@ class ReleaseDeliveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'interruption'): release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
         self.assertTrue(api.release['draft']); self.assertFalse(any(call[0] == 'PATCH' for call in api.calls))
         invoked = []
-        with self.assertRaisesRegex(ValueError, 'published'): release.promote(target, {'argv': ['/usr/bin/deploy', '{archive}']}, api, lambda args: invoked.append(args), verify_fixture)
+        with self.assertRaisesRegex(ValueError, 'published'): release.promote(target, {'argv': ['/usr/bin/deploy', '{archive}']}, api, lambda args: invoked.append(args), verify_fixture, self.root, runner)
         self.assertEqual(invoked, [])
         api.fail_upload = False; release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
         self.assertEqual(len(api.assets), 10)
-        release.promote(target, {'argv': [str(Path(sys.executable).resolve()), '{archive}', '{version}', '{revision}']}, api, lambda args: invoked.append(args), verify_fixture)
+        release.promote(target, {'argv': [str(Path(sys.executable).resolve()), '{archive}', '{version}', '{revision}']}, api, lambda args: invoked.append(args), verify_fixture, self.root, runner)
         self.assertEqual(invoked[0][2:], [VERSION, REVISION])
 
     def test_deployment_configuration_is_materialized_before_publication_without_invocation(self):
@@ -284,7 +356,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
             self.assertEqual((retrieved / path.name).read_bytes(), path.read_bytes())
         invoked = []
         release.promote(retrieved, {'argv': [str(Path(sys.executable).resolve()), '{archive}']}, api,
-                        lambda args: invoked.append(args), verify_fixture)
+                        lambda args: invoked.append(args), verify_fixture, self.root, runner)
         self.assertEqual(invoked[0][1], str((retrieved / 'documentation.tar.gz').resolve()))
         self.assertTrue(all(call[0] == 'GET' for call in api.calls))
 
@@ -337,7 +409,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
     def test_remote_tag_digest_or_candidate_tampering_prevents_promotion(self):
         target = self.candidate(); api = GitHubFixture(); release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
         api.assets[0]['digest'] = 'sha256:' + 'f' * 64
-        with self.assertRaisesRegex(ValueError, 'digest'): release.promote(target, {'argv': [str(self.root / 'deploy')]}, api, lambda args: self.fail('deployment ran'), verify_fixture)
+        with self.assertRaisesRegex(ValueError, 'digest'): release.promote(target, {'argv': [str(self.root / 'deploy')]}, api, lambda args: self.fail('deployment ran'), verify_fixture, self.root, runner)
         (target / 'offline-help.tar.gz').write_bytes(b'tampered')
         with self.assertRaisesRegex(ValueError, 'changed'): release.load_candidate(target, verify_fixture)
 

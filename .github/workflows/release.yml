@@ -163,9 +163,32 @@ jobs:
           path: build/release/candidate
           if-no-files-found: error
           retention-days: 14
+  deployment-preflight:
+    if: inputs.promote_docs && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: documentation-deployment
+    permissions:
+      contents: read
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_REVISION: ${{ inputs.revision }}
+      INSONIC_DOCUMENTATION_DEPLOYMENT_JSON: ${{ vars.INSONIC_DOCUMENTATION_DEPLOYMENT_JSON }}
+      INSONIC_DOCUMENTATION_DEPLOYMENT_CREDENTIAL: ${{ secrets.INSONIC_DOCUMENTATION_DEPLOYMENT_CREDENTIAL }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify protected main tooling and candidate ancestry
+        run: python scripts/release.py trusted --revision "$SOURCE_REVISION"
+      - name: Validate configured destination and dedicated deployment credentials before publication
+        run: python scripts/release.py deployment --configuration build/release/documentation-deployment.json
   publish:
-    if: always() && ((inputs.publish && needs.candidate.result == 'success') || (!inputs.publish && inputs.promote_docs))
-    needs: candidate
+    if: always() && github.ref == 'refs/heads/main' && inputs.publish && needs.candidate.result == 'success' && (!inputs.promote_docs || needs.deployment-preflight.result == 'success')
+    needs: [candidate, deployment-preflight]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -176,29 +199,61 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       SOURCE_REVISION: ${{ inputs.revision }}
       RELEASE_HIGHLIGHTS: ${{ inputs.highlights }}
-      INSONIC_DOCUMENTATION_DEPLOYMENT_JSON: ${{ vars.INSONIC_DOCUMENTATION_DEPLOYMENT_JSON }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ inputs.revision }}
+          ref: main
           fetch-depth: 0
-      - name: Validate configured documentation destination before publication
-        if: inputs.promote_docs
-        run: python scripts/release.py deployment --configuration build/release/documentation-deployment.json
+          persist-credentials: false
+      - name: Verify protected main tooling and candidate ancestry before reading candidate data
+        run: python scripts/release.py trusted --revision "$SOURCE_REVISION"
+      - name: Check out exact candidate source as data only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.revision }}
+          path: build/release/source
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
-        if: inputs.publish
         with:
           name: release-candidate
           path: build/release/candidate
-      - name: Retrieve and verify the original published candidate without rebuilding
-        if: inputs.publish == false && inputs.promote_docs
-        run: python scripts/release.py published --revision "$SOURCE_REVISION" --output build/release/candidate
       - name: Write brief highlights as data
-        if: inputs.publish
         run: python -c "import os,pathlib; pathlib.Path('build/release/highlights.md').write_text(os.environ['RELEASE_HIGHLIGHTS'],encoding='utf-8',newline='\n')"
       - name: Upload complete draft, verify remote digests, then publish
-        if: inputs.publish
-        run: python scripts/release.py publish --candidate build/release/candidate --highlights build/release/highlights.md
+        run: python scripts/release.py publish --source-root build/release/source --candidate build/release/candidate --highlights build/release/highlights.md
+  promote:
+    if: always() && github.ref == 'refs/heads/main' && inputs.promote_docs && needs.deployment-preflight.result == 'success' && (!inputs.publish || needs.publish.result == 'success')
+    needs: [publish, deployment-preflight]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: documentation-deployment
+    permissions:
+      contents: read
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_REVISION: ${{ inputs.revision }}
+      INSONIC_DOCUMENTATION_DEPLOYMENT_JSON: ${{ vars.INSONIC_DOCUMENTATION_DEPLOYMENT_JSON }}
+      INSONIC_DOCUMENTATION_DEPLOYMENT_CREDENTIAL: ${{ secrets.INSONIC_DOCUMENTATION_DEPLOYMENT_CREDENTIAL }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify protected main tooling and candidate ancestry before reading candidate data
+        run: python scripts/release.py trusted --revision "$SOURCE_REVISION"
+      - name: Check out exact candidate source as data only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.revision }}
+          path: build/release/source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate configured documentation destination
+        run: python scripts/release.py deployment --configuration build/release/documentation-deployment.json
+      - name: Retrieve and verify the original published candidate without rebuilding
+        run: python scripts/release.py published --source-root build/release/source --revision "$SOURCE_REVISION" --output build/release/candidate
       - name: Promote matching published documentation through configured host
-        if: inputs.promote_docs
         run: python scripts/release.py promote --candidate build/release/candidate --configuration build/release/documentation-deployment.json

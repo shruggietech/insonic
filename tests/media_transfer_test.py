@@ -36,7 +36,7 @@ class MediaTransferTests(unittest.TestCase):
             output.addfile(member, io.BytesIO(data))
         self.pins = {'ffmpeg': {'name': archive.name, 'sha256': source.sha(archive), 'root': 'root'}}
         common = {'key': KEY, 'platform': 'linux_amd64', 'compiler': 'fixture compiler',
-                  'recipe_sha256': '3' * 64, 'sources': self.pins}
+                  'recipe_sha256': '3' * 64, 'launcher_sha256': '5' * 64, 'sources': self.pins}
         files = {'install/lib/libdependency.a': b'owned dependency archive',
                  'install/include/dependency.h': b'header', 'install/lib/pkgconfig/library.pc': b'private prefix'}
         for name, data in files.items():
@@ -183,6 +183,82 @@ class MediaTransferTests(unittest.TestCase):
         original.write_bytes(b'wrong original archive')
         with patch.object(source, 'fetch_pin', return_value=original), self.assertRaises(ValueError):
             transfer.prepare_sources()
+
+    def parts(self, collision=None):
+        archives = []
+        common = json.loads((self.directory / 'dependency-receipt.json').read_text())
+        for group, required in source.DEPENDENCY_PART_REQUIRED.items():
+            shutil.rmtree(self.directory / 'install')
+            files = {}
+            for name in [*required, 'include/shared.h']:
+                path = self.directory / 'install' / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                data = (b'different' if group == collision else b'identical') if name == 'include/shared.h' else name.encode()
+                path.write_bytes(data); files['install/' + name] = source.sha(path)
+            receipt = dict(common, kind='media-dependency-part-build', group=group, files=files, elapsed_seconds=1.0)
+            source.write_json(self.directory / transfer.receipt_name(group), receipt)
+            archive = self.root / ('dependency-' + group + '.tar.gz')
+            transfer.pack(group, REVISION, archive); archives.append(archive)
+        return archives
+
+    def test_group_merge_preserves_verified_receipts_and_identical_shared_files(self):
+        archives = self.parts()
+        shutil.rmtree(self.directory)
+        shutil.rmtree(self.root / 'build/media-source-pins')
+        result = transfer.merge(REVISION, archives)
+        self.assertEqual(result['dependency_groups'], sorted(source.DEPENDENCY_GROUPS))
+        for group, required in source.DEPENDENCY_PART_REQUIRED.items():
+            receipt = json.loads((self.directory / transfer.receipt_name(group)).read_text())
+            self.assertTrue(source.dependency_part_cache_valid(self.directory, receipt, KEY, group, allow_extra=True))
+            for name in required: self.assertTrue((self.directory / 'install' / name).is_file())
+        self.assertEqual((self.directory / 'install/include/shared.h').read_bytes(), b'identical')
+        with patch.object(source.urllib.request, 'urlopen', side_effect=AssertionError('merge should preserve original archives without network')):
+            self.assertEqual(transfer.prepare_sources()['source_archives'], 1)
+
+    def test_group_merge_rejects_conflicts_missing_groups_and_tampering_before_activation(self):
+        archives = self.parts(collision='audio')
+        marker = self.directory / 'keep'; marker.write_bytes(b'previous build')
+        with self.assertRaisesRegex(ValueError, 'collision'): transfer.merge(REVISION, archives)
+        self.assertEqual(marker.read_bytes(), b'previous build')
+        archives = self.parts()
+        with self.assertRaisesRegex(ValueError, 'every independent'): transfer.merge(REVISION, archives[:-1])
+        with self.assertRaisesRegex(ValueError, 'unique independent'): transfer.merge(REVISION, [archives[0]] * 3)
+        damaged = self.repack(archives[0], lambda member, data: (member, b'changed') if member.name.endswith('/libz.a') else (member, data))
+        with self.assertRaises(ValueError): transfer.merge(REVISION, [damaged, *archives[1:]])
+        self.assertEqual(marker.read_bytes(), b'previous build')
+
+    def test_group_merge_readback_failure_restores_prior_prefix(self):
+        archives = self.parts(); marker = self.directory / 'keep'; marker.write_bytes(b'previous build')
+        original = source.dependency_part_cache_valid
+        def interrupt(directory, *args, **kwargs):
+            if directory == self.directory: return False
+            return original(directory, *args, **kwargs)
+        with patch.object(source, 'dependency_part_cache_valid', side_effect=interrupt), self.assertRaisesRegex(ValueError, 'closure changed'):
+            transfer.merge(REVISION, archives)
+        self.assertEqual(marker.read_bytes(), b'previous build')
+
+    def test_complete_transfer_preserves_partial_provenance_without_private_headers(self):
+        archives = self.parts(); transfer.merge(REVISION, archives)
+        common = json.loads((self.directory / 'dependency-compression-receipt.json').read_text())
+        for name in ['ffmpeg', 'ffprobe']: (self.directory / name).write_bytes(name.encode())
+        for name in ['libxml2.a', 'libgme.a', 'libvorbis.a', 'libvorbisenc.a', 'libopenmpt.a']:
+            (self.directory / 'install/lib' / name).write_bytes(name.encode())
+        receipt = dict(common, source_complete=True, versions={'ffmpeg': source.VERSION, 'ffprobe': source.VERSION},
+                       binaries={name: source.sha(self.directory / name) for name in ['ffmpeg', 'ffprobe']},
+                       static_libraries=[{'path': path.relative_to(self.directory).as_posix(), 'sha256': source.sha(path)} for path in (self.directory / 'install/lib').glob('*.a')],
+                       runtime_notices=[], dependency_parts=[{'group': group, 'elapsed_seconds': 1.0, 'receipt_sha256': source.sha(self.directory / transfer.receipt_name(group))} for group in source.DEPENDENCY_GROUPS])
+        source.write_json(self.directory / 'build-receipt.json', receipt)
+        archive = self.root / 'complete-parts.tar.gz'
+        manifest = transfer.pack('complete', REVISION, archive)
+        self.assertTrue(all('media/' + transfer.receipt_name(group) in manifest['files'] for group in source.DEPENDENCY_GROUPS))
+        self.assertNotIn('media/install/include/iconv.h', manifest['files'])
+        shutil.rmtree(self.directory); transfer.restore('complete', REVISION, archive)
+        self.assertTrue(transfer.ready('complete', REVISION))
+        part = self.directory / 'dependency-audio-receipt.json'; original = json.loads(part.read_text())
+        source.write_json(part, dict(original, launcher_sha256='6' * 64))
+        receipt['dependency_parts'][1]['receipt_sha256'] = source.sha(part)
+        source.write_json(self.directory / 'build-receipt.json', receipt)
+        with self.assertRaisesRegex(ValueError, 'provenance differs'): transfer.pack('complete', REVISION, archive)
 
 
 if __name__ == '__main__':

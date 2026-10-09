@@ -46,32 +46,60 @@ def context(revision):
 
 
 def receipt_files(stage, receipt, names):
-    if stage == 'dependencies':
+    if stage == 'dependencies' or stage in source.DEPENDENCY_GROUPS:
         files = set(receipt['files'])
         if any(not name.startswith('install/') for name in files):
             raise ValueError('dependency receipt contains files outside its private prefix')
-        files.add('dependency-receipt.json')
+        files.add(receipt_name(stage))
     else:
         files = set(names) | {'build-receipt.json'}
         files.update(item['path'] for item in receipt['static_libraries'])
         files.update(item['path'] for item in receipt.get('runtime_notices', []))
+    files.update(receipt_name(item['group']) for item in receipt.get('dependency_parts', []))
     for name in files:
         relative(name)
     return files
 
 
+def receipt_name(stage):
+    return ('dependency-' + stage + '-receipt.json' if stage in source.DEPENDENCY_GROUPS
+            else 'dependency-receipt.json' if stage == 'dependencies' else 'build-receipt.json')
+
+
+def verify_part_provenance(directory, receipt, identity):
+    if not source.dependency_part_receipts_valid(directory, receipt):
+        raise ValueError('dependency provenance differs from the exact source toolchain')
+    for item in receipt.get('dependency_parts', []):
+        path = directory / receipt_name(item['group'])
+        part = json.loads(path.read_text(encoding='utf-8'))
+        if (not re.fullmatch(r'[a-f0-9]{64}', part.get('launcher_sha256', ''))
+                or part.get('install_prefix') != str(source.BUILD / identity['key'] / 'install')):
+            raise ValueError('dependency provenance differs from the exact source toolchain')
+        # Complete transfers intentionally omit private headers, but retain the
+        # original receipt bytes and bind every carried static archive to them.
+        for name, digest in part.get('files', {}).items():
+            relative(name)
+            if not name.startswith('install/'):
+                raise ValueError('dependency provenance member is outside its private prefix')
+            carried = directory / name
+            if carried.exists() and (not carried.is_file() or carried.is_symlink() or source.sha(carried) != digest):
+                raise ValueError('dependency provenance carried member differs')
+
+
 def verified_receipt(directory, stage, identity, names, temporary=False):
-    filename = 'dependency-receipt.json' if stage == 'dependencies' else 'build-receipt.json'
+    filename = receipt_name(stage)
     receipt = json.loads((directory / filename).read_text(encoding='utf-8'))
     if any(receipt.get(field) != identity[field] for field in ['key', 'platform', 'compiler', 'recipe_sha256']):
         raise ValueError('media receipt does not match the current source toolchain')
     receipt_files(stage, receipt, names)
-    if stage == 'dependencies':
+    verify_part_provenance(directory, receipt, identity)
+    if stage == 'dependencies' or stage in source.DEPENDENCY_GROUPS:
         final = source.BUILD / identity['key'] / 'install'
         if receipt.get('install_prefix') != str(final):
             raise ValueError('dependency prefix does not match this runner workspace')
         check = dict(receipt, install_prefix=str(directory / 'install')) if temporary else receipt
-        valid = source.dependency_cache_valid(directory, check, identity['key'])
+        valid = (source.dependency_part_cache_valid(directory, check, identity['key'], stage)
+                 if stage in source.DEPENDENCY_GROUPS else source.dependency_cache_valid(directory, check, identity['key']))
     else:
         valid = source.cache_valid(directory, receipt, identity['key'], names)
     if not valid:
@@ -147,7 +175,39 @@ def pack(stage, revision, output):
     return manifest
 
 
-def restore(stage, revision, archive_path):
+def activate(media, originals, destination, staging, verify):
+    """Activate one verified build and source set, restoring both on failure."""
+    pins = source.ROOT / 'build/media-source-pins'; pins.mkdir(parents=True, exist_ok=True)
+    if destination.is_symlink() or pins.is_symlink():
+        raise ValueError('transfer destination is a symbolic link')
+    for path in originals.iterdir():
+        target = pins / path.name
+        if target.is_symlink() or (target.exists() and not target.is_file()):
+            raise ValueError('source archive destination is not a regular file')
+    saved_sources = staging / 'previous-sources'; saved_sources.mkdir()
+    previous = staging / 'previous-media'; moved_pins = []
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if destination.exists(): destination.replace(previous)
+    try:
+        media.replace(destination)
+        verify(destination)
+        for path in originals.iterdir():
+            target = pins / path.name
+            if target.exists(): target.replace(saved_sources / path.name)
+            moved_pins.append(path.name); path.replace(target)
+        for pin in source.source_pins().values():
+            if source.sha(pins / pin['name']) != pin['sha256']:
+                raise ValueError('activated original source digest differs')
+    except BaseException:
+        if destination.exists(): shutil.rmtree(destination)
+        if previous.exists(): previous.replace(destination)
+        for name in moved_pins:
+            target = pins / name; target.unlink(missing_ok=True)
+            if (saved_sources / name).exists(): (saved_sources / name).replace(target)
+        raise
+
+
+def restore(stage, revision, archive_path, isolated_destination=None):
     identity, names = context(revision)
     build = source.ROOT / 'build'
     build.mkdir(parents=True, exist_ok=True)
@@ -209,45 +269,70 @@ def restore(stage, revision, archive_path):
         if stage == 'complete':
             for name, pin in source.source_pins().items():
                 source.extract_source(staging / 'sources' / pin['name'], staging / 'media' / (name + '-source'), pin['root'])
+        if isolated_destination is not None:
+            destination = Path(isolated_destination)
+            if not destination.resolve().is_relative_to(build.resolve()) or destination.exists():
+                raise ValueError('isolated transfer destination must be new and inside build')
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            (staging / 'media').replace(destination)
+            (staging / 'sources').replace(destination / '.original-sources')
+            return identity
         destination = source.BUILD / identity['key']
         if not destination.resolve().is_relative_to(build.resolve()):
             raise ValueError('transfer destination escapes the workspace build directory')
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        pins = build / 'media-source-pins'
-        pins.mkdir(exist_ok=True)
-        if destination.is_symlink() or pins.is_symlink():
-            raise ValueError('transfer destination is a symbolic link')
-        originals = staging / 'previous-sources'
-        originals.mkdir()
-        for path in (staging / 'sources').iterdir():
-            target = pins / path.name
-            if target.is_symlink() or (target.exists() and not target.is_file()):
-                raise ValueError('source archive destination is not a regular file')
-        previous = staging / 'previous-media'
-        moved_pins = []
-        if destination.exists():
-            destination.replace(previous)
-        try:
-            (staging / 'media').replace(destination)
-            verified_receipt(destination, stage, identity, names)
-            for path in (staging / 'sources').iterdir():
-                target = pins / path.name
-                if target.exists():
-                    target.replace(originals / path.name)
-                moved_pins.append(path.name)
-                path.replace(target)
-        except BaseException:
-            if destination.exists():
-                shutil.rmtree(destination)
-            if previous.exists():
-                previous.replace(destination)
-            for name in moved_pins:
-                target = pins / name
-                target.unlink(missing_ok=True)
-                if (originals / name).exists():
-                    (originals / name).replace(target)
-            raise
+        activate(staging / 'media', staging / 'sources', destination, staging,
+                 lambda directory: verified_receipt(directory, stage, identity, names))
     return identity
+
+
+def merge(revision, archives):
+    """Validate all independent prefixes before atomically replacing the cache."""
+    identity, names = context(revision)
+    build = source.ROOT / 'build'; build.mkdir(parents=True, exist_ok=True)
+    destination = source.BUILD / identity['key']
+    if not destination.resolve().is_relative_to(build.resolve()) or destination.is_symlink():
+        raise ValueError('dependency merge destination escapes the workspace')
+    with tempfile.TemporaryDirectory(prefix='media-merge-', dir=build) as temporary:
+        staging = Path(temporary); merged = staging / 'merged'; merged.mkdir()
+        groups, receipts, files = set(), [], {}
+        originals = staging / 'originals'; originals.mkdir()
+        for archive_path in archives:
+            with tarfile.open(archive_path) as archive:
+                member = archive.getmember('transfer.json')
+                if not member.isfile() or member.size > 2 * 1024 * 1024:
+                    raise ValueError('dependency merge inventory is invalid')
+                group = json.loads(archive.extractfile(member).read()).get('stage')
+            if group not in source.DEPENDENCY_GROUPS or group in groups:
+                raise ValueError('dependency merge requires unique independent groups')
+            groups.add(group)
+            part = staging / group
+            restore(group, revision, archive_path, isolated_destination=part)
+            receipt = verified_receipt(part, group, identity, names, temporary=True)
+            receipts.append((group, receipt))
+            for path in (part / '.original-sources').iterdir():
+                target = originals / path.name
+                if target.exists() and source.sha(target) != source.sha(path):
+                    raise ValueError('dependency group original source collision differs')
+                if not target.exists(): shutil.copy2(path, target)
+            for name in receipt_files(group, receipt, names):
+                path = part / name; target = merged / name
+                folded = name.casefold()
+                if folded in files:
+                    if files[folded] != name or source.sha(target) != source.sha(path):
+                        raise ValueError('dependency group private prefix collision differs')
+                    continue
+                files[folded] = name; target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, target)
+        if groups != set(source.DEPENDENCY_GROUPS):
+            raise ValueError('dependency merge requires every independent group')
+        def verify(directory):
+            for group, receipt in receipts:
+                adjusted = dict(receipt, install_prefix=str(directory / 'install'))
+                if not source.dependency_part_cache_valid(directory, adjusted, identity['key'], group, allow_extra=True):
+                    raise ValueError('merged dependency group closure changed')
+        verify(merged)
+        activate(merged, originals, destination, staging, verify)
+    return dict(identity, dependency_groups=sorted(groups))
 
 
 def main():
@@ -257,12 +342,13 @@ def main():
     commands.add_parser('sources')
     for command in ['pack', 'restore', 'ready']:
         item = commands.add_parser(command)
-        item.add_argument('--stage', choices=['dependencies', 'complete'], required=True)
+        item.add_argument('--stage', choices=['dependencies', 'complete', *source.DEPENDENCY_GROUPS], required=True)
         item.add_argument('--revision', required=True)
         if command == 'pack':
             item.add_argument('--output', required=True)
         elif command == 'restore':
             item.add_argument('archive')
+    item = commands.add_parser('merge'); item.add_argument('--revision', required=True); item.add_argument('archives', nargs='+')
     args = parser.parse_args()
     if args.command == 'identity':
         platform, _, key, compiler, recipe = source.cache_identity()
@@ -283,6 +369,8 @@ def main():
         if os.environ.get('GITHUB_OUTPUT'):
             with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8', newline='\n') as output:
                 output.write('ready=' + str(result['ready']).lower() + '\n')
+    elif args.command == 'merge':
+        result = merge(args.revision, args.archives)
     else:
         result = restore(args.stage, args.revision, args.archive)
     print(json.dumps(result, sort_keys=True))

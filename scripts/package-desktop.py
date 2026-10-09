@@ -359,6 +359,22 @@ def inventory(root, revision, dependencies, distribution, variant='desktop', sig
             'distribution': distribution, 'inference': 'not-run', 'model_weights': 'not-included'}
 
 
+def package_directories(root, key, variant):
+    if key.startswith('darwin') and variant == 'desktop':
+        return root / 'MacOS', root / 'Resources'
+    return root, root
+
+
+def arrange_macos_bundle(executable_root):
+    """Keep code in MacOS and ordinary payloads in the sealed Resources tree."""
+    resources = executable_root.parent / 'Resources'
+    resources.mkdir()
+    for path in sorted(executable_root.iterdir()):
+        if path.name not in ['insonic', 'insonic-desktop', 'native']:
+            path.replace(resources / path.name)
+    return executable_root.parent, resources
+
+
 def verify_inventory(root, value):
     expected = set()
     for entry in value['files']:
@@ -371,12 +387,15 @@ def verify_inventory(root, value):
     actual = {path.relative_to(root).as_posix() for path in root.rglob('*') if path.is_file() and path != root / 'package-inventory.json'}
     if actual != expected:
         raise ValueError('package has unrecorded bytes')
-    required = ['insonic-companions.json', 'LICENSE', 'NOTICE', 'help/index.html', 'INSTALL.txt']
+    executables, resources = package_directories(root, value['platform'], value.get('variant', 'desktop'))
+    required = [(resources / name).relative_to(root).as_posix()
+                for name in ['insonic-companions.json', 'LICENSE', 'NOTICE', 'help/index.html', 'INSTALL.txt']]
     executable = '.exe' if value['platform'].startswith('windows') else ''
-    required += ['insonic' + executable,
-                 'companions/cueson/cueson' + executable, 'companions/cueson/cueson.schema.json']
+    required += [(executables / ('insonic' + executable)).relative_to(root).as_posix(),
+                 (resources / ('companions/cueson/cueson' + executable)).relative_to(root).as_posix(),
+                 (resources / 'companions/cueson/cueson.schema.json').relative_to(root).as_posix()]
     if value.get('variant', 'desktop') == 'desktop':
-        required.append('insonic-desktop' + executable)
+        required.append((executables / ('insonic-desktop' + executable)).relative_to(root).as_posix())
     if any(name not in expected for name in required):
         raise ValueError('package lacks required product/help/companion bytes')
 
@@ -407,6 +426,11 @@ def collect_corresponding_sources(root, source_media, receipt, directory):
     for name in ['build-media-source.py', 'media_source_build.py', 'process_tree.py']:
         shutil.copyfile(ROOT / 'scripts' / name, target / name)
     shutil.copyfile(ROOT / 'internal/qualification/media-tools.json', target / 'media-tools.json')
+    if not source_media.dependency_part_receipts_valid(directory, receipt):
+        raise ValueError('corresponding source dependency group provenance differs')
+    for descriptor in receipt.get('dependency_parts', []):
+        name = 'dependency-' + descriptor['group'] + '-receipt.json'
+        shutil.copyfile(directory / name, target / name)
     write_json(target / 'ffmpeg-build.json', receipt)
     (target / 'REBUILD.txt').write_text(
         'Exact media companion corresponding sources and owned build recipe.\n'
@@ -480,6 +504,8 @@ def verify_corresponding_sources(root, manifest=None):
         raise ValueError('package corresponding source recipe differs from executed recipe')
     if receipt.get('launcher_sha256') != entries['process_tree.py']['sha256']:
         raise ValueError('package corresponding source launcher differs from executed launcher')
+    if not source_module().dependency_part_receipts_valid(target, receipt):
+        raise ValueError('package corresponding source dependency group provenance differs')
     return manifest
 
 
@@ -612,12 +638,15 @@ def build(variant='desktop'):
             raise ValueError('packaged media binary differs from its owned source build')
     collect_corresponding_sources(root, source_media, source_receipt, source_directory)
     installers(root, key, variant)
+    resource_root = root
+    if key.startswith('darwin') and variant == 'desktop':
+        root, resource_root = arrange_macos_bundle(root)
     signing = sign_native(root, key)
-    manifest = installed_manifest(root)
-    write_json(root / 'insonic-companions.json', manifest)
+    manifest = installed_manifest(resource_root)
+    write_json(resource_root / 'insonic-companions.json', manifest)
     signing = seal_application(target, key, variant, signing)
     distribution = {'binary_publication': 'eligible', 'corresponding_source': 'included',
-                    'source_complete': True, 'source_manifest_sha256': sha(root / 'sources/source-manifest.json')}
+                    'source_complete': True, 'source_manifest_sha256': sha(resource_root / 'sources/source-manifest.json')}
     revision = child(['git', 'rev-parse', 'HEAD']).decode().strip()
     source_dirty = bool(child(['git', 'status', '--porcelain', '--untracked-files=normal']).strip())
     dependencies = {'go': qualify.LOCK['go'], 'wails': qualify.LOCK['wails'],
@@ -736,13 +765,14 @@ def verify_archive_receipt(archive, receipt):
             expected.add(receipt['dirname'] + '/' + item['path'])
         if {path.relative_to(location).as_posix() for path in location.rglob('*') if path.is_file()} != expected:
             raise ValueError('package archive contains bytes outside its complete inventory')
-        manifest = verify_corresponding_sources(root)
-        if sha(root / 'sources/source-manifest.json') != receipt['distribution']['source_manifest_sha256']:
+        _, resources = package_directories(root, receipt['platform'], receipt['variant'])
+        manifest = verify_corresponding_sources(resources)
+        if sha(resources / 'sources/source-manifest.json') != receipt['distribution']['source_manifest_sha256']:
             raise ValueError('package source manifest differs from receipt identity')
         if not receipt['signing']['configured']:
-            media = json.loads((root / 'sources/ffmpeg-build.json').read_text(encoding='utf-8'))
+            media = json.loads((resources / 'sources/ffmpeg-build.json').read_text(encoding='utf-8'))
             for name, digest in media['binaries'].items():
-                if sha(root / 'companions/media' / name) != digest:
+                if sha(resources / 'companions/media' / name) != digest:
                     raise ValueError('unsigned packaged media differs from corresponding source build')
         return {'inventory': value, 'sources': manifest}
 
@@ -769,12 +799,13 @@ def _smoke(archive=None, dirname=None, receipt=None):
                 raise ValueError('macOS app bundle inventory mismatch')
         if sha(inventory_file) != receipt['inventory_sha256']:
             raise ValueError('extracted inventory identity differs')
-        verify_loader_paths(root, receipt['platform'], receipt['variant'])
+        executables, _ = package_directories(root, receipt['platform'], receipt['variant'])
+        verify_loader_paths(executables, receipt['platform'], receipt['variant'])
         env = package_environment()
         env['INSONIC_DESKTOP_FIXTURE_DIRECTORY'] = str(ROOT / 'tests/fixtures/media')
         suffix = '.exe' if os.name == 'nt' else ''
-        cli = root / ('insonic' + suffix)
-        gui = root / ('insonic-desktop' + suffix)
+        cli = executables / ('insonic' + suffix)
+        gui = executables / ('insonic-desktop' + suffix)
         if child([cli, 'version'], directory=root, env=env).decode().strip() != VERSION:
             raise ValueError('packaged CLI version differs')
         workspace = Path(temporary) / 'workspace with spaces'

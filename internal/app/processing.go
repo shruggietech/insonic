@@ -26,10 +26,11 @@ import (
 )
 
 type ProcessingTools struct {
-	Kind       string            `json:"kind"`
-	Version    string            `json:"schema_version"`
-	Cueson     subtitles.Tool    `json:"cueson"`
-	Processing processing.Config `json:"processing"`
+	Kind          string               `json:"kind"`
+	Version       string               `json:"schema_version"`
+	Cueson        subtitles.Tool       `json:"cueson"`
+	Processing    processing.Config    `json:"processing"`
+	PortableFiles []library.PinnedFile `json:"portable_files,omitempty"`
 }
 type RecordingOptions struct {
 	PipelineID         string                        `json:"pipeline_id,omitempty"`
@@ -105,6 +106,19 @@ func ValidateProcessingTools(c ProcessingTools) error {
 	if c.Kind != "processing-tools" || c.Version != contracts.Version {
 		return contracts.Fail("incompatible_version")
 	}
+	if len(c.PortableFiles) > 128 {
+		return contracts.Fail("invalid_request")
+	}
+	seen := map[string]bool{}
+	for _, pin := range c.PortableFiles {
+		if _, valid := catalog.PortableFileDigest(catalog.PortableFile(pin.SHA256)); !valid || !filepath.IsAbs(pin.Path) || seen[pin.SHA256] {
+			return contracts.Fail("invalid_request")
+		}
+		seen[pin.SHA256] = true
+		if e := verifyPortablePin(pin); e != nil {
+			return e
+		}
+	}
 	if e := processing.ValidateConfig(c.Processing); e != nil {
 		return e
 	}
@@ -131,6 +145,7 @@ func (a *App) electedProcessingTools() (*ProcessingTools, error) {
 		}
 		c.Processing.FFmpeg = lib.Tools.FFmpeg
 	}
+	c.PortableFiles = nil // Destination-local bindings are not part of an election.
 	return &c, nil
 }
 func (a *App) recordingExecutorWithTools(elected *ProcessingTools) (*recordingExecution, error) {

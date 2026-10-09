@@ -11,6 +11,7 @@ import (
 // Catalog is the shared backend-neutral authority used by runtime operations.
 // Both official adapters implement it; callers never receive SQL connections.
 type Catalog interface {
+	PortableWorkInput(context.Context, Work) (bool, string, error)
 	CreateSpeakerDataset(context.Context, string, string, []CurrentReference, string, json.RawMessage, json.RawMessage, string) (SpeakerDataset, error)
 	ReplaySpeakerDataset(context.Context, string, string, json.RawMessage) (SpeakerDataset, bool, error)
 	SpeakerDataset(context.Context, string) (SpeakerDataset, error)

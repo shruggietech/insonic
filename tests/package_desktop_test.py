@@ -18,6 +18,27 @@ spec.loader.exec_module(package)
 
 
 class NativePackageIntegrityTests(unittest.TestCase):
+    def test_macos_bundle_resources_leave_only_native_code_in_macos(self):
+        with tempfile.TemporaryDirectory(prefix='insonic relocated app ') as temporary:
+            root = Path(temporary) / 'insonic.app/Contents/MacOS'
+            root.mkdir(parents=True)
+            names = ['insonic', 'insonic-desktop', 'native/liblbug.dylib', 'LICENSE', 'NOTICE',
+                     'INSTALL.txt', 'help/index.html', 'sources/source-manifest.json',
+                     'companions/cueson/cueson', 'companions/cueson/cueson.schema.json']
+            for name in names:
+                path = root / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(name.encode())
+            contents, resources = package.arrange_macos_bundle(root)
+            self.assertEqual({path.name for path in root.iterdir()}, {'insonic', 'insonic-desktop', 'native'})
+            self.assertEqual((resources / 'INSTALL.txt').read_bytes(), b'INSTALL.txt')
+            self.assertEqual((resources / 'companions/cueson/cueson').read_bytes(), b'companions/cueson/cueson')
+            (resources / 'insonic-companions.json').write_bytes(b'pinned companion manifest')
+            with patch.object(package, 'platform_key', return_value='darwin_arm64'):
+                value = package.inventory(contents, 'a' * 40, {}, {}, 'desktop')
+            package.verify_inventory(contents, value)
+            (resources / 'INSTALL.txt').replace(root / 'INSTALL.txt')
+            with self.assertRaisesRegex(ValueError, 'missing file'):
+                package.verify_inventory(contents, value)
+
     def source_fixture(self, root):
         target = root / 'sources'
         target.mkdir()

@@ -44,6 +44,7 @@ func (a *App) speakerModelServiceWithTools(tools *ProcessingTools) (*voicemodels
 		return nil, err
 	}
 	service := voicemodels.NewService(artifacts, a.Catalog, a.secrets)
+	service.BindPortableConfiguration = a.bindPortableConfiguration
 	service.Client = a.hostedClient
 	if a.speakerFactory != nil {
 		return a.speakerFactory(service), nil

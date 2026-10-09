@@ -24,34 +24,51 @@ test('release version checks include desktop locks and the shared runtime bindin
   } finally { rmSync(temporary, { recursive: true, force: true }); }
 });
 
-test('documentation promotion can run independently and never implicitly publishes', () => {
+test('publication and promotion execute trusted tools and isolate deployment credentials', () => {
   const workflow = parse(readFileSync(new URL('.github/workflows/release.yml', source), 'utf8'));
   const job = workflow.jobs.publish;
-  assert.equal(job.if, 'always() && ((inputs.publish && needs.candidate.result == \'success\') || (!inputs.publish && inputs.promote_docs))');
+  assert.ok(job.if.includes('inputs.publish && needs.candidate.result'));
+  assert.ok(job.if.includes("needs.deployment-preflight.result == 'success'"));
   assert.equal(workflow.jobs.media.if, 'inputs.publish || !inputs.promote_docs');
   assert.equal(job.permissions.checks, 'read');
   assert.equal(job.permissions.actions, 'read');
   const publication = job.steps.find(step => step.run?.startsWith('python scripts/release.py publish '));
-  const preparation = job.steps.find(step => step.run?.startsWith('python scripts/release.py deployment '));
-  const promotion = job.steps.find(step => step.run?.startsWith('python scripts/release.py promote '));
-  assert.equal(publication.if, 'inputs.publish');
-  assert.equal(preparation.if, 'inputs.promote_docs');
-  assert.equal(promotion.if, 'inputs.promote_docs');
-  assert.ok(job.steps.indexOf(preparation) < job.steps.indexOf(publication));
-  assert.ok(job.steps.indexOf(publication) < job.steps.indexOf(promotion));
-  assert.ok(preparation.run.includes('build/release/documentation-deployment.json'));
-  assert.ok(promotion.run.includes('build/release/documentation-deployment.json'));
-  const retrieval = job.steps.find(step => step.run?.startsWith('python scripts/release.py published '));
-  assert.equal(retrieval.if, 'inputs.publish == false && inputs.promote_docs');
-  const candidateDownload = job.steps.find(step => step.with?.name === 'release-candidate');
-  assert.equal(candidateDownload.if, 'inputs.publish');
-  assert.ok(job.steps.indexOf(preparation) < job.steps.indexOf(retrieval));
+  assert.ok(publication.run.includes('--source-root build/release/source'));
+  assert.equal(job.env.INSONIC_DOCUMENTATION_DEPLOYMENT_CREDENTIAL, undefined);
+  assert.equal(job.env.INSONIC_DOCUMENTATION_DEPLOYMENT_JSON, undefined);
+  const preflight = workflow.jobs['deployment-preflight'];
+  const promote = workflow.jobs.promote;
+  assert.ok(promote.if.includes('!inputs.publish || needs.publish.result'));
+  for (const protectedJob of [preflight, promote]) {
+    assert.equal(protectedJob.environment, 'documentation-deployment');
+    assert.equal(protectedJob.permissions.contents, 'read');
+    assert.equal(protectedJob.env.INSONIC_DOCUMENTATION_DEPLOYMENT_CREDENTIAL, '${{ secrets.INSONIC_DOCUMENTATION_DEPLOYMENT_CREDENTIAL }}');
+    assert.ok(protectedJob.steps.some(step => step.run?.startsWith('python scripts/release.py deployment ')));
+  }
+  assert.ok(promote.steps.some(step => step.run?.startsWith('python scripts/release.py published --source-root build/release/source')));
+  assert.ok(promote.steps.some(step => step.run?.startsWith('python scripts/release.py promote ')));
+  assert.ok(!promote.steps.some(step => step.run?.includes('scripts/package-desktop.py') || step.run?.includes('scripts/release.py publish ')));
+  for (const trustedJob of [job, preflight, promote]) {
+    assert.ok(trustedJob.if.includes("github.ref == 'refs/heads/main'"));
+    const checkout = trustedJob.steps[0];
+    assert.equal(checkout.with.ref, 'main');
+    assert.equal(checkout.with['persist-credentials'], false);
+    const gate = trustedJob.steps.findIndex(step => step.run?.startsWith('python scripts/release.py trusted '));
+    assert.equal(gate, 1);
+    const data = trustedJob.steps.findIndex(step => step.with?.path === 'build/release/source');
+    if (data >= 0) {
+      assert.ok(data > gate);
+      assert.equal(trustedJob.steps[data].with.ref, '${{ inputs.revision }}');
+      assert.equal(trustedJob.steps[data].with['persist-credentials'], false);
+    }
+    assert.ok(trustedJob.steps.every(step => !step.run?.includes('build/release/source/scripts/')));
+  }
 });
 
 test('media and release jobs select the toolkit installed by the pinned MSYS2 action', () => {
   const media = parse(readFileSync(new URL('.github/workflows/media-source.yml', source), 'utf8'));
   const release = parse(readFileSync(new URL('.github/workflows/release.yml', source), 'utf8'));
-  for (const job of [media.jobs.dependencies, media.jobs.ffmpeg, release.jobs.native]) {
+  for (const job of [media.jobs.probe, media.jobs.groups, media.jobs.ffmpeg, release.jobs.native]) {
     const setup = job.steps.find(step => step.uses?.startsWith('msys2/setup-msys2@'));
     const selection = job.steps.find(step => step.env?.MSYS2_ACTION_LOCATION);
     assert.equal(setup.id, 'msys2');

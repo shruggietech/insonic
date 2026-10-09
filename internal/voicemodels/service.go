@@ -54,7 +54,7 @@ func (s *Service) ValidateTrain(ctx context.Context, o TrainOptions) (TrainOptio
 		if err != nil {
 			return o, err
 		}
-		if checkpoint.AdapterDigest != adapterDigest(o.Adapter) || checkpoint.BaseDigest != o.BaseDigest {
+		if checkpoint.AdapterDigest != adapterDigest(o.Adapter) && checkpoint.AdapterDigest != s.PortableAdapterDigest || checkpoint.BaseDigest != o.BaseDigest {
 			return o, contracts.Fail("incompatible_checkpoint")
 		}
 		producing, err := s.Catalog.Work(ctx, checkpoint.WorkID)

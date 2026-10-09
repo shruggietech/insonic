@@ -42,7 +42,17 @@ func (s *Service) ResolveTrainingPipeline(ctx context.Context, o TrainOptions) (
 		return o, contracts.Fail("conflict")
 	}
 	var fields map[string]json.RawMessage
-	if json.Unmarshal(saved.Configuration, &fields) != nil || ValidateTrainingConfiguration(fields["speaker_training"]) != nil {
+	if json.Unmarshal(saved.Configuration, &fields) != nil {
+		return o, contracts.Fail("unsupported_capability")
+	}
+	if s.BindPortableConfiguration != nil {
+		bound, e := s.BindPortableConfiguration(fields["speaker_training"])
+		if e != nil {
+			return o, e
+		}
+		fields["speaker_training"] = bound
+	}
+	if ValidateTrainingConfiguration(fields["speaker_training"]) != nil {
 		return o, contracts.Fail("unsupported_capability")
 	}
 	var c TrainingConfiguration

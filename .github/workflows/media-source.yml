@@ -13,7 +13,7 @@ on:
 permissions:
   contents: read
 jobs:
-  dependencies:
+  probe:
     runs-on: ${{ inputs.os }}
     timeout-minutes: 10
     outputs:
@@ -92,6 +92,7 @@ jobs:
           path: |
             build/native/source-media/*/install
             build/native/source-media/*/dependency-receipt.json
+            build/native/source-media/*/dependency-*-receipt.json
             build/native/source-media/*/build-receipt.json
             build/native/source-media/*/ffmpeg
             build/native/source-media/*/ffprobe
@@ -114,30 +115,79 @@ jobs:
           path: build/transfer/media-source.tar.gz
           if-no-files-found: error
           retention-days: 3
+  groups:
+    needs: probe
+    if: needs.probe.outputs.complete != 'true'
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [compression, audio, av1]
+    env:
+      SOURCE_REVISION: ${{ inputs.revision }}
+    steps:
+      - name: Require an exact source identity
+        shell: bash
+        env:
+          SOURCE_RUNNER: ${{ inputs.os }}
+        run: python -c "import os,re; assert re.fullmatch('[0-9a-f]{40}',os.environ['SOURCE_REVISION']), 'exact 40-character revision required'; assert os.environ['SOURCE_RUNNER'] in ['ubuntu-24.04','windows-2022','macos-15'], 'unqualified source runner'"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.revision }}
+      - if: runner.os == 'Linux'
+        name: Linux source compiler prerequisites
+        run: |
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 update -qq
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 install -y --no-install-recommends build-essential cmake ninja-build pkg-config nasm
+      - if: runner.os == 'Windows'
+        id: msys2
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
+        with:
+          msystem: UCRT64
+          update: false
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-make mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-nasm make diffutils
+      - name: Select the exact Windows source toolkit installed by the action
+        if: runner.os == 'Windows'
+        env:
+          MSYS2_ACTION_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
+        run: |
+          python -c "import os; from pathlib import Path; value=os.environ['MSYS2_ACTION_LOCATION']; assert value and '\n' not in value and '\r' not in value, 'invalid MSYS2 action location'; root=Path(value); assert root.is_absolute() and all((root/name).is_file() for name in ['usr/bin/bash.exe','ucrt64/bin/gcc.exe','ucrt64/bin/nasm.exe']), 'installed MSYS2 source toolkit is incomplete'; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+str(root)+'\n')"
+      - name: Pinned source build coordinator
+        run: python -m pip install --disable-pip-version-check --no-input meson==1.8.3
+      - name: Exact compiler, source pins and owned recipe cache identity
+        id: identity
+        run: python scripts/media-transfer.py identity
+      - name: Cache original archives independently of compiler and recipe changes
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: build/media-source-pins
+          key: media-original-sources-${{ steps.identity.outputs.source_pins_key }}
+          enableCrossOsArchive: true
+          restore-keys: media-original-sources-Linux-${{ steps.identity.outputs.source_pins_key }}
+      - name: Rehash and materialize every exact original source archive
+        id: original_sources
+        run: python scripts/media-transfer.py sources
       - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
-        if: steps.ready.outputs.ready != 'true'
         with:
           path: |
             build/native/source-media/*/install
-            build/native/source-media/*/dependency-receipt.json
-          key: media-dependencies-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}
-      - name: Build or fully verify every private static dependency
-        if: steps.ready.outputs.ready != 'true'
-        run: python scripts/build-media-source.py --stage dependencies
+            build/native/source-media/*/dependency-${{ matrix.group }}-receipt.json
+          key: media-dependency-${{ matrix.group }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}
+      - name: Build or fully verify the independent private static dependency group
+        run: python scripts/build-media-source.py --stage ${{ matrix.group }}
       - name: Transfer exact dependency headers, archives and original sources
-        if: steps.ready.outputs.ready != 'true'
         shell: bash
-        run: python scripts/media-transfer.py pack --stage dependencies --revision "$SOURCE_REVISION" --output build/transfer/dependencies.tar.gz
+        run: python scripts/media-transfer.py pack --stage ${{ matrix.group }} --revision "$SOURCE_REVISION" --output build/transfer/dependencies-${{ matrix.group }}.tar.gz
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        if: steps.ready.outputs.ready != 'true'
         with:
-          name: media-dependencies-${{ inputs.os }}
-          path: build/transfer/dependencies.tar.gz
+          name: media-dependencies-${{ inputs.os }}-${{ matrix.group }}
+          path: build/transfer/dependencies-${{ matrix.group }}.tar.gz
           if-no-files-found: error
           retention-days: 3
   ffmpeg:
-    needs: dependencies
-    if: needs.dependencies.outputs.complete != 'true'
+    needs: [probe, groups]
+    if: needs.probe.outputs.complete != 'true'
     runs-on: ${{ inputs.os }}
     timeout-minutes: 10
     env:
@@ -184,6 +234,7 @@ jobs:
           path: |
             build/native/source-media/*/install
             build/native/source-media/*/dependency-receipt.json
+            build/native/source-media/*/dependency-*-receipt.json
             build/native/source-media/*/build-receipt.json
             build/native/source-media/*/ffmpeg
             build/native/source-media/*/ffprobe
@@ -193,12 +244,13 @@ jobs:
           key: media-complete-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
-          name: media-dependencies-${{ inputs.os }}
+          pattern: media-dependencies-${{ inputs.os }}-*
           path: build/transfer
+          merge-multiple: true
       - name: Verify and restore this run's exact dependency prefix
         shell: bash
-        run: python scripts/media-transfer.py restore --stage dependencies --revision "$SOURCE_REVISION" build/transfer/dependencies.tar.gz
-      - name: Compile FFmpeg or fully verify the exact completed source cache
+        run: python scripts/media-transfer.py merge --revision "$SOURCE_REVISION" build/transfer/dependencies-compression.tar.gz build/transfer/dependencies-audio.tar.gz build/transfer/dependencies-av1.tar.gz
+      - name: Complete dependent formats and FFmpeg or fully verify the exact completed source cache
         id: ffmpeg_compile
         run: python scripts/build-media-source.py --stage complete
       - name: Preserve bounded FFmpeg failure diagnostics

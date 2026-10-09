@@ -46,7 +46,16 @@ func Defaults() (Environment, bool, error) {
 	if err != nil {
 		return Environment{}, false, contracts.Fail("unavailable")
 	}
-	return Read(filepath.Dir(executable))
+	return Read(resourceDirectory(executable))
+}
+
+func resourceDirectory(executable string) string {
+	directory := filepath.Dir(executable)
+	contents := filepath.Dir(directory)
+	if filepath.Base(directory) == "MacOS" && filepath.Base(contents) == "Contents" && strings.HasSuffix(filepath.Base(filepath.Dir(contents)), ".app") {
+		return filepath.Join(contents, "Resources")
+	}
+	return directory
 }
 
 func Read(directory string) (Environment, bool, error) {

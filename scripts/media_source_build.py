@@ -15,6 +15,7 @@ import sys
 import tarfile
 import tempfile
 import time
+import threading
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -27,6 +28,13 @@ COMMIT, SOURCE_SHA256, SOURCE_URL, VERSION = (PIN[name] for name in ['commit', '
 CONFIGURE, LAME = PIN['configure'], PIN['lame']
 VERSION_POLICY = 'pinned-release-VERSION-v1'
 BUILD = ROOT / 'build/native/source-media'
+DEPENDENCY_GROUPS = {'compression': ['zlib', 'bzip2', 'xz', 'iconv'],
+                     'audio': ['lame', 'ogg', 'mpg123'], 'av1': ['dav1d']}
+DEPENDENCY_PART_REQUIRED = {
+    'compression': ['lib/libz.a', 'lib/libbz2.a', 'lib/liblzma.a', 'lib/libiconv.a', 'include/iconv.h'],
+    'audio': ['lib/libmp3lame.a', 'lib/libogg.a', 'lib/libmpg123.a', 'include/ogg/ogg.h'],
+    'av1': ['lib/libdav1d.a', 'include/dav1d/dav1d.h']}
+PROGRESS_LOCK = threading.Lock()
 
 
 def sha(path):
@@ -175,23 +183,39 @@ def validate_build_tools(platform_id, env):
 def child(args, directory, timeout=360, *, env=None, commands=None, shell=False):
     args = [str(arg) for arg in args]
     selected = env or os.environ.copy()
+    command = {'directory': str(directory.relative_to(BUILD)) if directory.is_relative_to(BUILD) else str(directory),
+               'arguments': args}
     if commands is not None:
-        commands.append({'directory': str(directory.relative_to(BUILD)) if directory.is_relative_to(BUILD) else str(directory),
-                         'arguments': args})
+        commands.append(command)
     if shell:
         executable = selected.get('INSONIC_SOURCE_SHELL', '/bin/sh')
         args = [executable, '-c', shlex.join(args)]
-    with ProcessTree(args, cwd=directory, env=selected) as tree:
-        try:
-            output, error = tree.process.communicate(timeout=timeout)
-        except subprocess.TimeoutExpired as error:
-            tree.kill()
-            output, error_output = tree.process.communicate(timeout=5)
-            raise RuntimeError('source media build timed out after ' + str(timeout) + ' seconds: '
-                               + shlex.join(args) + '\n' + (output + error_output).decode(errors='replace')[-8000:]) from error
-        if tree.process.returncode:
-            raise RuntimeError('source media build failed: ' + (output + error).decode(errors='replace')[-8000:])
-        return output
+    started = time.monotonic()
+    def progress(status, **values):
+        with PROGRESS_LOCK:
+            print(json.dumps({'kind': 'media-build-child', **command, 'status': status, **values}), flush=True)
+    if commands is not None:
+        progress('started', timeout_seconds=timeout)
+    try:
+        with ProcessTree(args, cwd=directory, env=selected) as tree:
+            try:
+                output, error = tree.process.communicate(timeout=timeout)
+            except subprocess.TimeoutExpired as error:
+                tree.kill()
+                output, error_output = tree.process.communicate(timeout=5)
+                raise RuntimeError('source media build timed out after ' + str(timeout) + ' seconds: '
+                                   + shlex.join(args) + '\n' + (output + error_output).decode(errors='replace')[-8000:]) from error
+            if tree.process.returncode:
+                raise RuntimeError('source media build failed: ' + (output + error).decode(errors='replace')[-8000:])
+    except BaseException as error:
+        if commands is not None:
+            command.update(status='failed', elapsed_seconds=round(time.monotonic() - started, 3))
+            progress('failed', error=str(error))
+        raise
+    if commands is not None:
+        command.update(status='succeeded', elapsed_seconds=round(time.monotonic() - started, 3))
+        progress('succeeded')
+    return output
 
 
 def source_pins():
@@ -213,7 +237,8 @@ def validate_capabilities(output, required, category):
     available = set()
     for line in output.splitlines():
         columns = line.split()
-        if len(columns) > 1 and re.fullmatch(r'[A-Z.]{1,8}', columns[0]):
+        if (len(columns) > 1 and re.fullmatch(r'[A-Z.]{1,8}', columns[0])
+                and re.fullmatch(r'[A-Za-z0-9_.,-]+', columns[1])):
             available.update(columns[1].split(','))
     missing = sorted(set(required) - available)
     if missing:
@@ -225,6 +250,7 @@ def cache_valid(directory, receipt, key, names):
     try:
         return (receipt.get('key') == key and receipt.get('source_complete') is True
                 and receipt.get('sources') == source_pins()
+                and dependency_part_receipts_valid(directory, receipt)
                 and len(receipt['static_libraries']) >= len(PIN['libraries']) + 1
                 and receipt.get('versions') == {'ffmpeg': VERSION, 'ffprobe': VERSION}
                 and all((directory / name).is_file() and sha(directory / name) == receipt['binaries'][name] for name in names)
@@ -234,6 +260,29 @@ def cache_valid(directory, receipt, key, names):
                 and all((directory / item['path']).is_file() and sha(directory / item['path']) == item['sha256']
                         for item in receipt.get('runtime_notices', [])))
     except (KeyError, OSError, TypeError):
+        return False
+
+
+def dependency_part_receipts_valid(directory, receipt):
+    """Bind portable compilation provenance without requiring installed headers."""
+    try:
+        groups = set()
+        for descriptor in receipt.get('dependency_parts', []):
+            group = descriptor['group']
+            if group not in DEPENDENCY_GROUPS or group in groups:
+                return False
+            groups.add(group)
+            path = directory / ('dependency-' + group + '-receipt.json')
+            if not path.is_file() or path.is_symlink() or sha(path) != descriptor['receipt_sha256']:
+                return False
+            part = json.loads(path.read_text(encoding='utf-8'))
+            if (part.get('kind') != 'media-dependency-part-build' or part.get('group') != group
+                    or any(part.get(field) != receipt.get(field) for field in
+                           ['key', 'sources', 'platform', 'compiler', 'recipe_sha256', 'launcher_sha256'])
+                    or part.get('elapsed_seconds') != descriptor['elapsed_seconds']):
+                return False
+        return True
+    except (ValueError, KeyError, OSError, TypeError):
         return False
 
 
@@ -275,7 +324,7 @@ def normalize_prefix_aliases(prefix):
     return audit
 
 
-def dependency_cache_errors(directory, receipt, key):
+def dependency_cache_errors(directory, receipt, key, group=None, allow_extra=False):
     """Explain rejected closure identities without silently accepting aliases."""
     errors = []
     try:
@@ -283,11 +332,16 @@ def dependency_cache_errors(directory, receipt, key):
         files = receipt['files']
         if not isinstance(files, dict):
             return ['dependency files inventory is not an object']
-        for field, expected in [('key', key), ('kind', 'media-dependency-build'),
+        for field, expected in [('key', key), ('kind', 'media-dependency-part-build' if group else 'media-dependency-build'),
                                 ('sources', source_pins()), ('install_prefix', str(prefix))]:
             if receipt.get(field) != expected:
                 errors.append('receipt ' + field + ' differs')
-        if len([name for name in files if name.endswith('.a')]) < len(PIN['libraries']) + 1:
+        if group and (group not in DEPENDENCY_GROUPS or receipt.get('group') != group):
+            errors.append('dependency group differs')
+        if group:
+            errors.extend('required group member missing: install/' + name
+                          for name in DEPENDENCY_PART_REQUIRED.get(group, []) if 'install/' + name not in files)
+        elif len([name for name in files if name.endswith('.a')]) < len(PIN['libraries']) + 1:
             errors.append('static archive closure has too few members')
         if prefix.is_symlink():
             errors.append('install prefix is a symbolic link')
@@ -300,7 +354,8 @@ def dependency_cache_errors(directory, receipt, key):
                 actual.add(name)
             elif not path.is_dir():
                 errors.append('nonregular member: ' + name)
-        errors.extend('unrecorded member: ' + name for name in sorted(actual - set(files)))
+        if not allow_extra:
+            errors.extend('unrecorded member: ' + name for name in sorted(actual - set(files)))
         errors.extend('missing member: ' + name for name in sorted(set(files) - actual))
         for name, digest in files.items():
             path = directory / name
@@ -327,6 +382,10 @@ def dependency_cache_valid(directory, receipt, key):
     return not dependency_cache_errors(directory, receipt, key)
 
 
+def dependency_part_cache_valid(directory, receipt, key, group, allow_extra=False):
+    return not dependency_cache_errors(directory, receipt, key, group, allow_extra)
+
+
 def cache_identity():
     """Return the exact identity used by source builds and artifact transfers."""
     platform_id = platform_key()
@@ -351,8 +410,21 @@ def compile_dav1d(target, build, prefix, parallel_jobs, run):
     run([sys.executable, '-m', 'mesonbuild.mesonmain', 'install', '-C', build], build.parent, 60)
 
 
+def xml2_options(prefix):
+    header, archive = prefix / 'include/iconv.h', prefix / 'lib/libiconv.a'
+    if any(not path.is_file() or path.is_symlink() for path in [header, archive]):
+        raise ValueError('libxml2 requires the complete private GNU iconv header/archive')
+    # CMake's libc probe can succeed on Linux while another dependency adds
+    # our GNU header to the compile includes. Bind both sides explicitly so
+    # libxml2's static pkg-config metadata retains the required -liconv.
+    return ['-DLIBXML2_WITH_PROGRAMS=OFF', '-DLIBXML2_WITH_TESTS=OFF', '-DLIBXML2_WITH_PYTHON=OFF',
+            '-DLIBXML2_WITH_ZLIB=ON', '-DLIBXML2_WITH_LZMA=ON', '-DLIBXML2_WITH_ICONV=ON',
+            '-DIconv_IS_BUILT_IN=OFF', '-DIconv_INCLUDE_DIR=' + header.parent.as_posix(),
+            '-DIconv_LIBRARY=' + archive.as_posix()]
+
+
 def prepare(stage='complete'):
-    if stage not in ['dependencies', 'complete']:
+    if stage not in ['dependencies', 'complete', *DEPENDENCY_GROUPS]:
         raise ValueError('unknown source build stage')
     platform_id, names, key, compiler, recipe_sha = cache_identity()
     suffix = '.exe' if platform_id.startswith('windows') else ''
@@ -360,6 +432,12 @@ def prepare(stage='complete'):
     receipt_path = directory / 'build-receipt.json'
     dependency_path = directory / 'dependency-receipt.json'
     source = fetch_source()
+    if stage in DEPENDENCY_GROUPS:
+        part_path = directory / ('dependency-' + stage + '-receipt.json')
+        if part_path.is_file():
+            part = json.loads(part_path.read_text(encoding='utf-8'))
+            if dependency_part_cache_valid(directory, part, key, stage):
+                return directory, part, source
     if stage == 'complete' and receipt_path.is_file():
         receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
         if cache_valid(directory, receipt, key, names):
@@ -423,20 +501,50 @@ def prepare(stage='complete'):
     # configure; no partially installed library enters a link command.
     jobs = str(parallel_jobs)
     if not dependencies_ready:
+        operations = {'dav1d': build_dav1d, 'zlib': build_zlib, 'bzip2': build_bzip2,
+                      'xz': lambda: cmake('xz', ['-DBUILD_TESTING=OFF', '-DXZ_TOOL_XZ=OFF', '-DXZ_TOOL_XZDEC=OFF', '-DXZ_TOOL_LZMADEC=OFF', '-DXZ_TOOL_LZMAINFO=OFF']),
+                      'iconv': lambda: autotools('iconv', ['--disable-nls']),
+                      'lame': lambda: autotools('lame', LAME['configure']),
+                      'ogg': lambda: cmake('ogg', ['-DBUILD_TESTING=OFF', '-DINSTALL_DOCS=OFF']),
+                      'mpg123': lambda: autotools('mpg123', ['--disable-network'])}
+        if stage in DEPENDENCY_GROUPS:
+            # Independent CI groups each receive the runner's full CPU budget.
+            # Serial builds avoid permanently splitting a two-core Windows host.
+            for name in DEPENDENCY_GROUPS[stage]:
+                operations[name]()
+            aliases = normalize_prefix_aliases(prefix)
+            part = {'kind': 'media-dependency-part-build', 'group': stage, 'key': key, 'sources': pins,
+                    'platform': platform_id, 'compiler': compiler, 'recipe_sha256': recipe_sha,
+                    'launcher_sha256': sha(ROOT / 'scripts/process_tree.py'), 'install_prefix': str(prefix),
+                    'commands': commands, 'normalized_aliases': aliases,
+                    'files': {path.relative_to(directory).as_posix(): sha(path)
+                              for path in sorted(prefix.rglob('*')) if path.is_file()},
+                    'elapsed_seconds': round(time.monotonic() - started, 3)}
+            if not dependency_part_cache_valid(directory, part, key, stage):
+                raise ValueError('source dependency group closure is incomplete: ' + stage)
+            write_json(directory / ('dependency-' + stage + '-receipt.json'), part)
+            return directory, part, source
+        imported_parts = []
+        for group in DEPENDENCY_GROUPS:
+            path = directory / ('dependency-' + group + '-receipt.json')
+            if path.is_file():
+                part = json.loads(path.read_text(encoding='utf-8'))
+                if not dependency_part_cache_valid(directory, part, key, group, allow_extra=True):
+                    raise ValueError('imported dependency group closure differs: ' + group)
+                imported_parts.append(part)
+                commands.extend(part['commands'])
+        present = {part['group'] for part in imported_parts}
         jobs = str(max(1, parallel_jobs // 3))
-        parallel([build_dav1d, build_zlib, build_bzip2,
-                  lambda: cmake('xz', ['-DBUILD_TESTING=OFF', '-DXZ_TOOL_XZ=OFF', '-DXZ_TOOL_XZDEC=OFF', '-DXZ_TOOL_LZMADEC=OFF', '-DXZ_TOOL_LZMAINFO=OFF']),
-                  lambda: autotools('iconv', ['--disable-nls']),
-                  lambda: autotools('lame', LAME['configure']),
-                  lambda: cmake('ogg', ['-DBUILD_TESTING=OFF', '-DINSTALL_DOCS=OFF']),
-                  lambda: autotools('mpg123', ['--disable-network'])])
-        parallel([lambda: cmake('xml2', ['-DLIBXML2_WITH_PROGRAMS=OFF', '-DLIBXML2_WITH_TESTS=OFF', '-DLIBXML2_WITH_PYTHON=OFF', '-DLIBXML2_WITH_ZLIB=ON', '-DLIBXML2_WITH_LZMA=ON']),
+        parallel([operations[name] for group, names_in_group in DEPENDENCY_GROUPS.items()
+                  if group not in present for name in names_in_group])
+        parallel([lambda: cmake('xml2', xml2_options(prefix)),
                   lambda: cmake('gme', ['-DENABLE_UBSAN=OFF']),
                   lambda: cmake('vorbis', ['-DBUILD_TESTING=OFF'])])
         jobs = str(parallel_jobs)
         autotools('openmpt', ['--disable-openmpt123', '--disable-examples', '--disable-tests',
                             '--without-portaudio', '--without-portaudiocpp', '--without-pulseaudio', '--without-sdl2', '--without-sndfile', '--without-flac'])
-        normalized_aliases = normalize_prefix_aliases(prefix)
+        normalized_aliases = [alias for part in imported_parts for alias in part.get('normalized_aliases', [])]
+        normalized_aliases += normalize_prefix_aliases(prefix)
         dependency_receipt = {'kind': 'media-dependency-build', 'key': key, 'sources': pins,
                               'platform': platform_id, 'compiler': compiler, 'recipe_sha256': recipe_sha,
                               'launcher_sha256': sha(ROOT / 'scripts/process_tree.py'),
@@ -445,6 +553,11 @@ def prepare(stage='complete'):
                               'files': {path.relative_to(directory).as_posix(): sha(path)
                                         for path in sorted(prefix.rglob('*')) if path.is_file()},
                               'elapsed_seconds': round(time.monotonic() - started, 3)}
+        if imported_parts:
+            dependency_receipt['dependency_parts'] = [
+                {'group': part['group'], 'elapsed_seconds': part['elapsed_seconds'],
+                 'receipt_sha256': sha(directory / ('dependency-' + part['group'] + '-receipt.json'))}
+                for part in imported_parts]
         write_json(dependency_path, dependency_receipt)
         closure_errors = dependency_cache_errors(directory, dependency_receipt, key)
         if closure_errors:
@@ -502,6 +615,7 @@ def prepare(stage='complete'):
                'runtime_notices': runtime_notices,
                'normalized_aliases': dependency_receipt.get('normalized_aliases', []),
                'dependency_elapsed_seconds': dependency_receipt['elapsed_seconds'],
+               'dependency_parts': dependency_receipt.get('dependency_parts', []),
                'ffmpeg_elapsed_seconds': round(time.monotonic() - ffmpeg_started, 3),
                'version_override': {'file': 'VERSION', 'value': VERSION, 'policy': VERSION_POLICY},
                'elapsed_seconds': round(time.monotonic() - started, 3), 'license': 'LGPL-2.1-or-later',

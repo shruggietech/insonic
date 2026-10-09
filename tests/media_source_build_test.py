@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 import io
+import json
 import os
 from pathlib import Path
 import sys
@@ -15,6 +16,74 @@ import media_source_build as source
 
 
 class OwnedSourceIntegrity(unittest.TestCase):
+    def test_complete_source_cache_binds_each_imported_group_receipt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            identity = {'key': 'a' * 64, 'sources': source.source_pins(), 'platform': 'linux_amd64',
+                        'compiler': 'controlled GCC', 'recipe_sha256': 'b' * 64, 'launcher_sha256': 'c' * 64}
+            part = {**identity, 'kind': 'media-dependency-part-build', 'group': 'av1', 'elapsed_seconds': 12.3}
+            path = directory / 'dependency-av1-receipt.json'; source.write_json(path, part)
+            receipt = {**identity, 'dependency_parts': [
+                {'group': 'av1', 'elapsed_seconds': 12.3, 'receipt_sha256': source.sha(path)}]}
+            self.assertTrue(source.dependency_part_receipts_valid(directory, receipt))
+            path.write_bytes(b'altered compilation provenance')
+            self.assertFalse(source.dependency_part_receipts_valid(directory, receipt))
+            source.write_json(path, {**part, 'compiler': 'different GCC'})
+            receipt['dependency_parts'][0]['receipt_sha256'] = source.sha(path)
+            self.assertFalse(source.dependency_part_receipts_valid(directory, receipt))
+            path.unlink()
+            self.assertFalse(source.dependency_part_receipts_valid(directory, receipt))
+
+    def test_dependency_part_rejects_missing_changed_wrong_group_and_unrecorded_files(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary); prefix = directory / 'install'
+            files = {}
+            for name in source.DEPENDENCY_PART_REQUIRED['av1']:
+                path = prefix / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(name.encode())
+                files['install/' + name] = source.sha(path)
+            receipt = {'kind': 'media-dependency-part-build', 'group': 'av1', 'key': 'a' * 64,
+                       'sources': source.source_pins(), 'install_prefix': str(prefix), 'files': files}
+            self.assertTrue(source.dependency_part_cache_valid(directory, receipt, 'a' * 64, 'av1'))
+            self.assertFalse(source.dependency_part_cache_valid(directory, receipt, 'a' * 64, 'audio'))
+            extra = prefix / 'lib/another.a'; extra.write_bytes(b'other verified group')
+            self.assertFalse(source.dependency_part_cache_valid(directory, receipt, 'a' * 64, 'av1'))
+            self.assertTrue(source.dependency_part_cache_valid(directory, receipt, 'a' * 64, 'av1', allow_extra=True))
+            library = prefix / 'lib/libdav1d.a'; library.write_bytes(b'changed')
+            self.assertFalse(source.dependency_part_cache_valid(directory, receipt, 'a' * 64, 'av1', allow_extra=True))
+            library.unlink()
+            self.assertFalse(source.dependency_part_cache_valid(directory, receipt, 'a' * 64, 'av1', allow_extra=True))
+
+    def test_child_timing_is_flushed_even_when_parallel_child_fails(self):
+        tree = Mock(); tree.__enter__ = Mock(return_value=tree); tree.__exit__ = Mock(return_value=False)
+        tree.process.communicate.return_value = (b'compile output', b'precise linker failure')
+        tree.process.returncode = 1
+        commands = []
+        with patch.object(source, 'ProcessTree', return_value=tree), patch('builtins.print') as output:
+            with self.assertRaisesRegex(RuntimeError, 'precise linker failure'):
+                source.child(['compiler', '--controlled'], source.BUILD / 'fixture', commands=commands)
+        events = [json.loads(call.args[0]) for call in output.call_args_list]
+        self.assertEqual([event['status'] for event in events], ['started', 'failed'])
+        self.assertTrue(all(call.kwargs['flush'] for call in output.call_args_list))
+        self.assertIn('precise linker failure', events[-1]['error'])
+        self.assertGreaterEqual(events[-1]['elapsed_seconds'], 0)
+        self.assertEqual(commands[0]['status'], 'failed')
+
+    def test_xml2_binds_the_owned_iconv_header_and_archive_together(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            prefix = Path(temporary) / 'private install with spaces'
+            (prefix / 'include').mkdir(parents=True); (prefix / 'lib').mkdir()
+            header, archive = prefix / 'include/iconv.h', prefix / 'lib/libiconv.a'
+            header.write_bytes(b'owned GNU iconv header'); archive.write_bytes(b'owned static library')
+            options = source.xml2_options(prefix)
+            self.assertIn('-DIconv_IS_BUILT_IN=OFF', options)
+            self.assertIn('-DIconv_INCLUDE_DIR=' + header.parent.as_posix(), options)
+            self.assertIn('-DIconv_LIBRARY=' + archive.as_posix(), options)
+            self.assertIn('-DLIBXML2_WITH_ICONV=ON', options)
+            self.assertIn('--enable-libxml2', source.CONFIGURE)
+            archive.unlink()
+            with self.assertRaisesRegex(ValueError, 'private GNU iconv header/archive'):
+                source.xml2_options(prefix)
+
     def test_linux_static_gme_retains_emulation_with_its_explicit_math_dependency(self):
         self.assertIn('--enable-libgme', source.CONFIGURE)
         self.assertIn('--enable-zlib', source.CONFIGURE)
@@ -207,8 +276,9 @@ class OwnedSourceIntegrity(unittest.TestCase):
                 source.extract_source(archive, root / 'duplicate', 'source')
 
     def test_required_external_capabilities_cannot_be_replaced_by_header_text(self):
-        output = 'Demuxers:\n D  matroska,webm  Matroska input\n D  libopenmpt  Module input\n'
+        output = 'Demuxers:\n D = Demuxing supported\n D  matroska,webm  Matroska input\n D  libopenmpt  Module input\n'
         self.assertIn('webm', source.validate_capabilities(output, ['matroska', 'libopenmpt'], 'demuxers'))
+        self.assertNotIn('=', source.validate_capabilities(output, [], 'demuxers'))
         with self.assertRaisesRegex(ValueError, 'libdav1d'):
             source.validate_capabilities('Decoder libdav1d\n V....D h264 native\n', ['libdav1d'], 'decoders')
 
