@@ -169,6 +169,7 @@ jobs:
     permissions:
       contents: write
       checks: read
+      actions: read
     env:
       GH_TOKEN: ${{ github.token }}
       RELEASE_HIGHLIGHTS: ${{ inputs.highlights }}

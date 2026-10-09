@@ -22,6 +22,7 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-09: Verify complete source caches before scheduling compilation and use independent platform source chains. Qualify CLI-only and desktop packages on separate native runners, retaining all existing checks and avoiding shared library-isolation races.
 - 2026-10-09: Preserve originating absolute path semantics in cross-platform backup proofs and require native backup lifecycle ownership before pin/release mutations. Reject manual-reference collisions, released-ID reuse and partial release before writes.
 - 2026-10-09: Bind hosted Windows builds to the installed MSYS2 action output and normalize only completely validated internal dependency file aliases for portable transfers. Preflight explicit documentation deployment configuration before publication and allow promotion-only runs without implicit release publication.
+- 2026-10-09: Cache original media sources independently of build recipes, retain exact archive verification and bound transient downloads. Give dav1d available compilation cores and run shared runtime acceptance independently of the six package journeys. Publication excludes only its verified same-revision release run's own unfinished suite while requiring every other check.
 
 ### Added
 

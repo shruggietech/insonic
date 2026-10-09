@@ -3,12 +3,14 @@ import copy
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import shutil
 import sys
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('release_tool', ROOT / 'scripts/release.py')
@@ -57,12 +59,18 @@ def candidates(root):
 
 
 class GitHubFixture:
-    def __init__(self, fail_upload=False): self.release = None; self.assets = []; self.calls = []; self.fail_upload = fail_upload
+    def __init__(self, fail_upload=False):
+        self.release = None; self.assets = []; self.calls = []; self.fail_upload = fail_upload
+        self.checks = [{'name': name, 'status': 'completed', 'conclusion': 'success', 'check_suite': {'id': 11}} for name in ('foundation', 'docs')]
+        self.workflow = {'id': 77, 'repository': {'full_name': release.REPOSITORY},
+                         'path': '.github/workflows/release.yml@refs/heads/main', 'event': 'workflow_dispatch',
+                         'head_sha': REVISION, 'check_suite_id': 42}
 
     def call(self, method, endpoint, value=None, path=None):
         self.calls.append((method, endpoint, copy.deepcopy(value)))
         if '/git/ref/' in endpoint: return {'object': {'type': 'commit', 'sha': REVISION}}
-        if '/check-runs?' in endpoint: return {'check_runs': [{'name': name, 'status': 'completed', 'conclusion': 'success'} for name in ('foundation', 'docs')]}
+        if '/check-runs?' in endpoint: return {'check_runs': copy.deepcopy(self.checks)}
+        if '/actions/runs/' in endpoint: return copy.deepcopy(self.workflow)
         if '/releases/tags/' in endpoint: return copy.deepcopy(self.release)
         if endpoint.endswith('/releases') and method == 'POST':
             self.release = {**value, 'id': 7, 'upload_url': 'https://uploads.github.com/repos/shruggietech/insonic/releases/7/assets{?name,label}'}; return copy.deepcopy(self.release)
@@ -78,6 +86,8 @@ class GitHubFixture:
 
 class ReleaseDeliveryTests(unittest.TestCase):
     def setUp(self):
+        workflow_environment = patch.dict(os.environ, {'GITHUB_RUN_ID': '', 'GITHUB_REPOSITORY': '', 'GITHUB_SHA': ''})
+        workflow_environment.start(); self.addCleanup(workflow_environment.stop)
         self.temporary = tempfile.TemporaryDirectory(); self.root = Path(self.temporary.name); fixture(self.root)
         self.assets, self.receipts = candidates(self.root)
 
@@ -217,6 +227,43 @@ class ReleaseDeliveryTests(unittest.TestCase):
                 release.publish(self.candidate(), 'Highlights.', api, self.root, runner, verify_fixture)
             self.assertEqual(api.calls, [])
             self.assertFalse(path.exists())
+
+    def test_current_publisher_suite_is_excluded_but_external_red_or_pending_checks_still_block(self):
+        target = self.candidate()
+        context = {'GITHUB_RUN_ID': '77', 'GITHUB_REPOSITORY': release.REPOSITORY, 'GITHUB_SHA': REVISION}
+        with patch.dict(os.environ, context):
+            api = GitHubFixture()
+            api.checks.append({'name': 'publish', 'status': 'in_progress', 'conclusion': None, 'check_suite': {'id': 42}})
+            self.assertTrue(release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)['published'])
+            for status, conclusion in [('in_progress', None), ('completed', 'failure')]:
+                blocked = GitHubFixture()
+                blocked.checks.extend([{'name': 'publish', 'status': 'in_progress', 'conclusion': None, 'check_suite': {'id': 42}},
+                                       {'name': 'security review', 'status': status, 'conclusion': conclusion, 'check_suite': {'id': 23}}])
+                with self.assertRaisesRegex(ValueError, 'not green'):
+                    release.publish(target, 'Highlights.', blocked, self.root, runner, verify_fixture)
+                self.assertFalse(any(call[0] in ['POST', 'PATCH'] for call in blocked.calls))
+                required = GitHubFixture()
+                required.checks[0].update(status=status, conclusion=conclusion)
+                with self.assertRaisesRegex(ValueError, 'not green'):
+                    release.publish(target, 'Highlights.', required, self.root, runner, verify_fixture)
+
+    def test_unverified_or_irrelevant_suites_cannot_hide_checks(self):
+        context = {'GITHUB_RUN_ID': '77', 'GITHUB_REPOSITORY': release.REPOSITORY, 'GITHUB_SHA': REVISION}
+        api = GitHubFixture()
+        for changes in [{'path': '.github/workflows/ci.yml'}, {'id': 78}, {'check_suite_id': None},
+                        {'repository': {'full_name': 'someone/else'}}, {'head_sha': 'b' * 40}]:
+            fixture_api = GitHubFixture(); fixture_api.workflow.update(changes)
+            with self.assertRaises(ValueError):
+                release.current_release_suite(fixture_api, REVISION, context)
+        self.assertEqual(release.current_release_suite(api, 'b' * 40, context), None)
+        target = self.candidate()
+        api.checks.append({'name': 'publish', 'status': 'in_progress', 'conclusion': None, 'check_suite': {'id': 999}})
+        with patch.dict(os.environ, context), self.assertRaisesRegex(ValueError, 'not green'):
+            release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
+        historical = GitHubFixture()
+        historical.workflow['head_sha'] = 'b' * 40
+        with patch.dict(os.environ, dict(context, GITHUB_SHA='b' * 40)):
+            self.assertTrue(release.publish(target, 'Highlights.', historical, self.root, runner, verify_fixture)['published'])
 
     def test_remote_tag_digest_or_candidate_tampering_prevents_promotion(self):
         target = self.candidate(); api = GitHubFixture(); release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)

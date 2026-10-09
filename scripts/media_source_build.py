@@ -15,6 +15,8 @@ import sys
 import tarfile
 import tempfile
 import time
+import urllib.error
+import urllib.parse
 import urllib.request
 
 from process_tree import ProcessTree
@@ -43,10 +45,31 @@ def fetch_pin(pin):
     target = cache / pin['name']
     if not target.is_file() or sha(target) != pin['sha256']:
         temporary = target.with_suffix('.download')
+        deadline = time.monotonic() + 60
         try:
             request = urllib.request.Request(pin['url'], headers={'User-Agent': 'insonic-source-build'})
-            with urllib.request.urlopen(request, timeout=90) as source, temporary.open('wb') as output:
-                shutil.copyfileobj(source, output)
+            host = urllib.parse.urlsplit(pin['url']).hostname
+            for attempt in range(3):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise RuntimeError('media source acquisition budget exceeded: ' + pin['name'] + ' from ' + host)
+                try:
+                    with urllib.request.urlopen(request, timeout=min(20, remaining)) as source, temporary.open('wb') as output:
+                        while True:
+                            if time.monotonic() >= deadline:
+                                raise TimeoutError('source acquisition deadline reached')
+                            chunk = source.read(1024 * 1024)
+                            if not chunk:
+                                break
+                            output.write(chunk)
+                    break
+                except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
+                    retry = (not isinstance(error, urllib.error.HTTPError)
+                             or error.code in [408, 429, 500, 502, 503, 504])
+                    if not retry or attempt == 2:
+                        raise RuntimeError('media source acquisition failed: ' + pin['name'] + ' from ' + host
+                                           + ' after ' + str(attempt + 1) + ' attempt(s): ' + str(error)) from error
+                    time.sleep(attempt + 1)
             if sha(temporary) != pin['sha256'] or ('size_bytes' in pin and temporary.stat().st_size != pin['size_bytes']):
                 raise ValueError('media source identity mismatch: ' + pin['name'])
             temporary.replace(target)
@@ -161,10 +184,11 @@ def child(args, directory, timeout=360, *, env=None, commands=None, shell=False)
     with ProcessTree(args, cwd=directory, env=selected) as tree:
         try:
             output, error = tree.process.communicate(timeout=timeout)
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as error:
             tree.kill()
-            tree.process.communicate(timeout=5)
-            raise
+            output, error_output = tree.process.communicate(timeout=5)
+            raise RuntimeError('source media build timed out after ' + str(timeout) + ' seconds: '
+                               + shlex.join(args) + '\n' + (output + error_output).decode(errors='replace')[-8000:]) from error
         if tree.process.returncode:
             raise RuntimeError('source media build failed: ' + (output + error).decode(errors='replace')[-8000:])
         return output
@@ -317,6 +341,16 @@ def cache_identity():
     return platform_id, names, key, compiler, recipe_sha
 
 
+def compile_dav1d(target, build, prefix, parallel_jobs, run):
+    run([sys.executable, '-m', 'mesonbuild.mesonmain', 'setup', build, target, '--prefix=' + prefix.as_posix(),
+         '--libdir=lib', '--default-library=static', '--buildtype=release', '-Db_staticpic=true',
+         '-Denable_tools=false', '-Denable_examples=false', '-Denable_tests=false', '-Denable_docs=false'], build.parent)
+    # Assembly-heavy AV1 compilation can outlive the other independent builds.
+    # Use the available cores rather than a permanently divided worker count.
+    run(['ninja', '-C', build, '-j', str(max(1, min(parallel_jobs, 8)))], build.parent, 240)
+    run([sys.executable, '-m', 'mesonbuild.mesonmain', 'install', '-C', build], build.parent, 60)
+
+
 def prepare(stage='complete'):
     if stage not in ['dependencies', 'complete']:
         raise ValueError('unknown source build stage')
@@ -378,12 +412,7 @@ def prepare(stage='complete'):
         shutil.copyfile(source_directories['bzip2'] / 'libbz2.a', prefix / 'lib/libbz2.a')
         shutil.copyfile(source_directories['bzip2'] / 'bzlib.h', prefix / 'include/bzlib.h')
     def build_dav1d():
-        target, build = source_directories['dav1d'], directory / 'dav1d-build'
-        run([sys.executable, '-m', 'mesonbuild.mesonmain', 'setup', build, target, '--prefix=' + prefix.as_posix(),
-             '--libdir=lib', '--default-library=static', '--buildtype=release', '-Db_staticpic=true',
-             '-Denable_tools=false', '-Denable_examples=false', '-Denable_tests=false', '-Denable_docs=false'], directory)
-        run(['ninja', '-C', build, '-j', jobs], directory)
-        run([sys.executable, '-m', 'mesonbuild.mesonmain', 'install', '-C', build], directory, 60)
+        compile_dav1d(source_directories['dav1d'], directory / 'dav1d-build', prefix, parallel_jobs, run)
     def parallel(operations):
         with ThreadPoolExecutor(max_workers=3) as executor:
             futures = [executor.submit(operation) for operation in operations]
@@ -395,12 +424,12 @@ def prepare(stage='complete'):
     jobs = str(parallel_jobs)
     if not dependencies_ready:
         jobs = str(max(1, parallel_jobs // 3))
-        parallel([build_zlib, build_bzip2,
+        parallel([build_dav1d, build_zlib, build_bzip2,
                   lambda: cmake('xz', ['-DBUILD_TESTING=OFF', '-DXZ_TOOL_XZ=OFF', '-DXZ_TOOL_XZDEC=OFF', '-DXZ_TOOL_LZMADEC=OFF', '-DXZ_TOOL_LZMAINFO=OFF']),
                   lambda: autotools('iconv', ['--disable-nls']),
                   lambda: autotools('lame', LAME['configure']),
                   lambda: cmake('ogg', ['-DBUILD_TESTING=OFF', '-DINSTALL_DOCS=OFF']),
-                  lambda: autotools('mpg123', ['--disable-network']), build_dav1d])
+                  lambda: autotools('mpg123', ['--disable-network'])])
         parallel([lambda: cmake('xml2', ['-DLIBXML2_WITH_PROGRAMS=OFF', '-DLIBXML2_WITH_TESTS=OFF', '-DLIBXML2_WITH_PYTHON=OFF', '-DLIBXML2_WITH_ZLIB=ON', '-DLIBXML2_WITH_LZMA=ON']),
                   lambda: cmake('gme', ['-DENABLE_UBSAN=OFF']),
                   lambda: cmake('vorbis', ['-DBUILD_TESTING=OFF'])])

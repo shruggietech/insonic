@@ -184,8 +184,9 @@ def main():
         candidates = list((ROOT / 'build/native/cueson').rglob('cueson.exe' if os.name == 'nt' else 'cueson'))
         if candidates:
             env['CUESON_EXECUTABLE'] = str(candidates[0])
-        if os.name == 'nt' and Path('C:/msys64/ucrt64/bin').is_dir():
-            env['PATH'] = 'C:/msys64/ucrt64/bin' + os.pathsep + os.environ['PATH']
+        compiler_bin = Path(os.environ.get('INSONIC_MSYS2_ROOT', 'C:/msys64')) / 'ucrt64/bin'
+        if os.name == 'nt' and compiler_bin.is_dir():
+            env['PATH'] = str(compiler_bin) + os.pathsep + os.environ['PATH']
         output = child(['go', 'test', '-count=1', '-v', './internal/library', './internal/app',
                         '-run', 'TestNativeMedia|TestNativeCanonical|TestNativeStereo|TestNativeAdmission|TestNativeDirectPlaybackNonzeroSourceClock'], env=env)
         print(output.decode(), end='')

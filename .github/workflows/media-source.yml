@@ -52,6 +52,13 @@ jobs:
       - name: Exact compiler, source pins and owned recipe cache identity
         id: identity
         run: python scripts/media-transfer.py identity
+      - name: Cache original archives independently of compiler and recipe changes
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: build/media-source-pins
+          key: media-original-sources-${{ runner.os }}-${{ steps.identity.outputs.source_pins_key }}
+      - name: Rehash and materialize every exact original source archive
+        run: python scripts/media-transfer.py sources
       - name: Restore exact complete source cache before scheduling cold stages
         uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
         with:
@@ -64,7 +71,6 @@ jobs:
             build/native/source-media/*/ffmpeg.exe
             build/native/source-media/*/ffprobe.exe
             build/native/source-media/*/compiler-notices
-            build/media-source-pins
           key: media-complete-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}
       - name: Verify complete binaries, static closure and all original source pins
         id: ready
@@ -87,7 +93,6 @@ jobs:
           path: |
             build/native/source-media/*/install
             build/native/source-media/*/dependency-receipt.json
-            build/media-source-pins
           key: media-dependencies-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}
       - name: Build or fully verify every private static dependency
         if: steps.ready.outputs.ready != 'true'
@@ -137,6 +142,13 @@ jobs:
       - name: Exact compiler, source pins and owned recipe cache identity
         id: identity
         run: python scripts/media-transfer.py identity
+      - name: Cache original archives independently of compiler and recipe changes
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: build/media-source-pins
+          key: media-original-sources-${{ runner.os }}-${{ steps.identity.outputs.source_pins_key }}
+      - name: Rehash and materialize every exact original source archive
+        run: python scripts/media-transfer.py sources
       - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
         id: cache
         with:
@@ -149,7 +161,6 @@ jobs:
             build/native/source-media/*/ffmpeg.exe
             build/native/source-media/*/ffprobe.exe
             build/native/source-media/*/compiler-notices
-            build/media-source-pins
           key: media-complete-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:

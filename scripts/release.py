@@ -399,6 +399,27 @@ def load_candidate(directory, verifier=verify_package):
     return value, expected
 
 
+def current_release_suite(api, revision, context=None):
+    selected = os.environ if context is None else context
+    run_id = selected.get('GITHUB_RUN_ID', '')
+    if not run_id:
+        return None
+    if not re.fullmatch(r'[1-9][0-9]*', run_id) or selected.get('GITHUB_REPOSITORY') != REPOSITORY:
+        raise ValueError('current release workflow context does not identify this repository')
+    run = api.call('GET', f'repos/{REPOSITORY}/actions/runs/{run_id}')
+    if (not isinstance(run, dict) or run.get('id') != int(run_id)
+            or run.get('repository', {}).get('full_name') != REPOSITORY
+            or not isinstance(run.get('path'), str) or run['path'].split('@', 1)[0] != '.github/workflows/release.yml'
+            or run.get('event') != 'workflow_dispatch'
+            or type(run.get('check_suite_id')) is not int or run['check_suite_id'] <= 0
+            or not re.fullmatch(r'[a-f0-9]{40}', run.get('head_sha', ''))
+            or (selected.get('GITHUB_SHA') and selected['GITHUB_SHA'] != run['head_sha'])):
+        raise ValueError('current release workflow suite identity could not be verified')
+    # A dispatch can build an older reviewed commit. Its own suite is then absent
+    # from that commit's checks, so there is no check suite to exclude there.
+    return run['check_suite_id'] if run['head_sha'] == revision else None
+
+
 def publish(directory, highlights, api, root=ROOT, runner=child, verifier=verify_package):
     value, expected = load_candidate(directory, verifier)
     if versions(root) != value['version'] or value['version'] == '0.0.0': raise ValueError('publication requires prepared release versions')
@@ -407,7 +428,9 @@ def publish(directory, highlights, api, root=ROOT, runner=child, verifier=verify
     checks = api.call('GET', f'repos/{REPOSITORY}/commits/{value["revision"]}/check-runs?per_page=100')
     required = read_json(root / '.github/bootstrap.json')['required_checks']
     runs = checks.get('check_runs', [])
-    if checks.get('total_count', len(runs)) > len(runs) or not all(any(c['name'] == name and c.get('conclusion') == 'success' and c.get('status') == 'completed' for c in runs) for name in required) or any(c.get('status') != 'completed' or c.get('conclusion') not in ('success', 'neutral', 'skipped') for c in runs):
+    suite = current_release_suite(api, value['revision'])
+    external_runs = [check for check in runs if suite is None or check.get('check_suite', {}).get('id') != suite]
+    if checks.get('total_count', len(runs)) > len(runs) or not all(any(c['name'] == name and c.get('conclusion') == 'success' and c.get('status') == 'completed' for c in external_runs) for name in required) or any(c.get('status') != 'completed' or c.get('conclusion') not in ('success', 'neutral', 'skipped') for c in external_runs):
         raise ValueError('exact-source automated checks are not green')
     if not highlights.strip() or len(highlights.split()) > 180: raise ValueError('release highlights must be concise')
     suffix = f'[Full changelog](https://github.com/{REPOSITORY}/blob/{value["tag"]}/CHANGELOG.md)'

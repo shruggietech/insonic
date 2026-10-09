@@ -6,7 +6,8 @@ import sys
 import tarfile
 import tempfile
 import unittest
-from unittest.mock import patch
+import urllib.error
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
@@ -14,6 +15,57 @@ import media_source_build as source
 
 
 class OwnedSourceIntegrity(unittest.TestCase):
+    def test_dav1d_uses_available_cores_with_a_bounded_library_compile_budget(self):
+        for cores, expected in [(2, '2'), (4, '4'), (64, '8')]:
+            with self.subTest(cores=cores):
+                root = Path('private-source-build'); run = Mock()
+                source.compile_dav1d(root / 'source', root / 'build', root / 'install', cores, run)
+                compilation = next(call for call in run.call_args_list if call.args[0][0] == 'ninja')
+                self.assertEqual(compilation.args[0][-2:], ['-j', expected])
+                self.assertEqual(compilation.args[2], 240)
+                self.assertLess(compilation.args[2], 600)
+
+    def test_source_network_retry_keeps_pin_integrity_and_bounded_timeouts(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); payload = b'exact upstream source'
+            archive = root / 'verified'; archive.write_bytes(payload)
+            pin = {'name': 'source.tar', 'url': 'https://source.example/archive.tar',
+                   'sha256': source.sha(archive), 'size_bytes': len(payload)}
+            transient = urllib.error.URLError('network temporarily unreachable')
+            with patch.object(source, 'ROOT', root), \
+                 patch.object(source.urllib.request, 'urlopen', side_effect=[transient, io.BytesIO(payload)]) as fetch, \
+                 patch.object(source.time, 'sleep') as sleep:
+                target = source.fetch_pin(pin)
+                self.assertEqual(target.read_bytes(), payload)
+                self.assertEqual(fetch.call_count, 2)
+                self.assertTrue(all(call.kwargs['timeout'] <= 20 for call in fetch.call_args_list))
+                sleep.assert_called_once_with(1)
+
+    def test_source_acquisition_fails_fast_for_integrity_and_permanent_http_errors(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); archive = root / 'verified'; archive.write_bytes(b'exact')
+            pin = {'name': 'source.tar', 'url': 'https://source.example/archive.tar', 'sha256': source.sha(archive)}
+            for response, message in [(io.BytesIO(b'altered'), 'identity mismatch'),
+                                      (urllib.error.HTTPError(pin['url'], 404, 'missing', {}, None), 'source.tar from source.example')]:
+                with self.subTest(message=message), patch.object(source, 'ROOT', root), \
+                     patch.object(source.urllib.request, 'urlopen', side_effect=response if isinstance(response, Exception) else [response]) as fetch, \
+                     patch.object(source.time, 'sleep') as sleep:
+                    with self.assertRaisesRegex((ValueError, RuntimeError), message):
+                        source.fetch_pin(pin)
+                    self.assertEqual(fetch.call_count, 1)
+                    sleep.assert_not_called()
+                    self.assertFalse((root / 'build/media-source-pins/source.download').exists())
+
+    def test_source_transient_failure_stops_after_three_attempts_with_pin_and_host(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            pin = {'name': 'source.tar', 'url': 'https://source.example/archive.tar', 'sha256': 'f' * 64}
+            with patch.object(source, 'ROOT', Path(temporary)), \
+                 patch.object(source.urllib.request, 'urlopen', side_effect=urllib.error.URLError('unreachable')) as fetch, \
+                 patch.object(source.time, 'sleep'):
+                with self.assertRaisesRegex(RuntimeError, 'source.tar from source.example after 3 attempt'):
+                    source.fetch_pin(pin)
+                self.assertEqual(fetch.call_count, 3)
+
     def link(self, path, target, directory=False):
         try:
             path.symlink_to(target, target_is_directory=directory)

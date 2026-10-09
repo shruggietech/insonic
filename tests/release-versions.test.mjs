@@ -29,6 +29,7 @@ test('documentation promotion can run independently and never implicitly publish
   const job = workflow.jobs.publish;
   assert.equal(job.if, 'inputs.publish || inputs.promote_docs');
   assert.equal(job.permissions.checks, 'read');
+  assert.equal(job.permissions.actions, 'read');
   const publication = job.steps.find(step => step.run?.startsWith('python scripts/release.py publish '));
   const preparation = job.steps.find(step => step.run?.startsWith('python scripts/release.py deployment '));
   const promotion = job.steps.find(step => step.run?.startsWith('python scripts/release.py promote '));

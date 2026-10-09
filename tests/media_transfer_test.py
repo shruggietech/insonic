@@ -172,6 +172,18 @@ class MediaTransferTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             transfer.ready('complete', '4' * 40)
 
+    def test_original_source_cache_identity_is_independent_and_every_archive_is_rehashed(self):
+        key = transfer.source_pins_key()
+        with patch.object(source, 'cache_identity', return_value=('other-platform', [], 'another build', 'other compiler', 'other recipe')):
+            self.assertEqual(transfer.source_pins_key(), key)
+        with patch.object(source, 'source_pins', return_value={**self.pins, 'extra': {'name': 'other', 'sha256': 'f' * 64}}):
+            self.assertNotEqual(transfer.source_pins_key(), key)
+        self.assertEqual(transfer.prepare_sources(), {'source_archives': 1, 'source_pins_key': key})
+        original = self.root / 'build/media-source-pins/pin.tar.gz'
+        original.write_bytes(b'wrong original archive')
+        with patch.object(source, 'fetch_pin', return_value=original), self.assertRaises(ValueError):
+            transfer.prepare_sources()
+
 
 if __name__ == '__main__':
     unittest.main()

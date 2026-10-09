@@ -21,6 +21,20 @@ def relative(name):
     return path
 
 
+def source_pins_key():
+    import hashlib
+    return hashlib.sha256(json.dumps(source.source_pins(), sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
+def prepare_sources():
+    pins = source.source_pins()
+    for pin in pins.values():
+        path = source.fetch_pin(pin)
+        if path.is_symlink() or source.sha(path) != pin['sha256']:
+            raise ValueError('original media source archive differs from the pinned identity')
+    return {'source_archives': len(pins), 'source_pins_key': source_pins_key()}
+
+
 def context(revision):
     if not re.fullmatch(r'[0-9a-f]{40}', revision):
         raise ValueError('transfer requires an exact source revision')
@@ -240,6 +254,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest='command', required=True)
     commands.add_parser('identity')
+    commands.add_parser('sources')
     for command in ['pack', 'restore', 'ready']:
         item = commands.add_parser(command)
         item.add_argument('--stage', choices=['dependencies', 'complete'], required=True)
@@ -251,10 +266,14 @@ def main():
     args = parser.parse_args()
     if args.command == 'identity':
         platform, _, key, compiler, recipe = source.cache_identity()
-        result = {'platform': platform, 'key': key, 'compiler': compiler, 'recipe_sha256': recipe}
+        result = {'platform': platform, 'key': key, 'compiler': compiler, 'recipe_sha256': recipe,
+                  'source_pins_key': source_pins_key()}
         if os.environ.get('GITHUB_OUTPUT'):
             with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8', newline='\n') as output:
                 output.write('key=' + key + '\n')
+                output.write('source_pins_key=' + result['source_pins_key'] + '\n')
+    elif args.command == 'sources':
+        result = prepare_sources()
     elif args.command == 'pack':
         manifest = pack(args.stage, args.revision, args.output)
         result = {field: manifest[field] for field in ['stage', 'revision', 'platform', 'key']}
