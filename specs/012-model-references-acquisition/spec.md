@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-09
 
-**Status**: Specification
+**Status**: Implemented; owner final review and merge pending
 
 **Input**: Owner-authorized S012 completes #34 after merged S011. Specify, implement, verify, push and publish an official PR; satisfy CI and every review finding, request at most one second round, then stop for owner final review and squash merge.
 

@@ -58,8 +58,8 @@ Goal: Shared consistent references and portable records. Test: CLI/rendered desk
 - [x] T025 Run full affected root/Go/vet/race/frontend/site/Python/native checks and record truthful evidence in specs/012-model-references-acquisition/verification.md.
 - [x] T026 Run speckit-converge, resolve findings and check UTF-8/LF/mojibake and clean diff.
 - [x] T027 Commit, automatically push, publish official PR closing #34 and attach it to the chat; no merge/release.
-- [ ] T028 Wait for CI and every review/reaction, answer and resolve all findings, request at most one second round and verify exact final head.
-- [ ] T029 Complete delivery records and ping owner for final review/squash merge with remaining matching/training/release scope explicit.
+- [x] T028 Wait for CI and every review/reaction, answer and resolve all findings, request at most one second round and verify exact final head.
+- [x] T029 Complete delivery records and ping owner for final review/squash merge with remaining matching/training/release scope explicit.
 
 ## Dependencies and parallel team strategy
 
