@@ -153,3 +153,21 @@ func TestNativeLabelOriginsAndPartialNonClobber(t *testing.T) {
 		}
 	}
 }
+
+func TestAssemblyPreservesNonUUIDUntimedParticipation(t *testing.T) {
+	token := "Imported local voice 日本語"
+	result, err := AssembleDocument(testDocument(t), nil, nil, []Participation{{CueID: "cue-000000", SpeakerID: token}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc semanticDocument
+	json.Unmarshal(result.Document, &doc)
+	if len(doc.Cues[0].Attributions) != 1 || doc.Cues[0].Attributions[0].SpeakerID != token || doc.Cues[0].Attributions[0].Start != nil {
+		t.Fatal("untimed local token changed")
+	}
+	for _, token := range []string{" leading", "trailing ", "a\u202eb"} {
+		if _, err := AssembleDocument(testDocument(t), nil, nil, []Participation{{CueID: "cue-000000", SpeakerID: token}}); err == nil {
+			t.Fatal("invalid local token admitted")
+		}
+	}
+}

@@ -112,3 +112,22 @@ func TestTranscriptDomainUsesSharedImportContract(t *testing.T) {
 		t.Fatal("two explicit transcript choices accepted")
 	}
 }
+
+func TestTranscriptManifestCredentialAndAdapterPrecedence(t *testing.T) {
+	cliCredential := contracts.ID()
+	itemCredential := contracts.ID()
+	manifest := filepath.Join(t.TempDir(), "transcripts.json")
+	request := library.ImportRequest{Kind: "import-manifest", Version: contracts.Version, Items: []library.Item{{Record: contracts.ID(), Transcript: "https://captions.invalid/a.vtt"}, {Record: contracts.ID(), Transcript: "https://captions.invalid/b.vtt", TranscriptCredentialID: itemCredential, TranscriptAdapter: "custom"}}}
+	data, _ := json.Marshal(request)
+	if err := os.WriteFile(manifest, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	op, _, raw, err := parseDomain([]string{"transcript", "import", "--manifest", manifest, "--transcript-credential-id", cliCredential, "--transcript-adapter", "https"})
+	if err != nil || op != "media.import" {
+		t.Fatal(op, err)
+	}
+	json.Unmarshal(raw, &request)
+	if request.Items[0].TranscriptCredentialID != cliCredential || request.Items[0].TranscriptAdapter != "https" || request.Items[1].TranscriptCredentialID != itemCredential || request.Items[1].TranscriptAdapter != "custom" {
+		t.Fatal("CLI fallback or explicit item election lost", string(raw))
+	}
+}

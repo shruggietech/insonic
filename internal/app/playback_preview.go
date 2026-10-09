@@ -98,14 +98,14 @@ func directPlaybackOffset(facts library.Facts) (float64, error) {
 
 func previewArguments(source, output, class string, facts library.Facts) []string {
 	args := []string{"-nostdin", "-hide_banner", "-loglevel", "error", "-threads", "2", "-copyts", "-start_at_zero", "-i", source}
-	if class == "audio" {
-		audioMap := "0:a:0"
-		for _, stream := range facts.Streams {
-			if stream.Kind == "audio" {
-				audioMap = "0:" + strconv.Itoa(stream.Index)
-				break
-			}
+	audioMap := "0:a:0"
+	for _, stream := range facts.Streams {
+		if stream.Kind == "audio" {
+			audioMap = "0:" + strconv.Itoa(stream.Index)
+			break
 		}
+	}
+	if class == "audio" {
 		args = append(args, "-map", audioMap, "-vn", "-c:a", "pcm_s16le", "-ac", "2", "-ar", "48000", "-f", "wav")
 	} else {
 		codec := ""
@@ -115,7 +115,7 @@ func previewArguments(source, output, class string, facts library.Facts) []strin
 				break
 			}
 		}
-		args = append(args, "-map", "0:v:0", "-map", "0:a:0?")
+		args = append(args, "-map", "0:v:0", "-map", audioMap+"?")
 		if codec == "h264" {
 			args = append(args, "-c:v", "copy")
 		} else if runtime.GOOS == "darwin" {
@@ -237,7 +237,7 @@ func (a *App) previewPlayback(ctx context.Context, p *playbackEntry, entry catal
 	if p.streamIndex != nil {
 		filtered := []library.Stream{}
 		for _, stream := range facts.Streams {
-			if stream.Kind == "audio" && stream.Index == *p.streamIndex {
+			if stream.Kind == "video" || stream.Kind == "audio" && stream.Index == *p.streamIndex {
 				filtered = append(filtered, stream)
 			}
 		}
@@ -275,7 +275,7 @@ func (a *App) previewPlayback(ctx context.Context, p *playbackEntry, entry catal
 	// HTML retains explicit nonnegative media timelines. A source's nonzero
 	// first timestamp is therefore not an offset to subtract from untouched
 	// media. Normalize such sources into a preview with a measured clock map.
-	if !previewRequired(facts, entry.Class) && math.Abs(offset) <= 0.000001 {
+	if !previewRequired(facts, entry.Class) && math.Abs(offset) <= 0.000001 && !(entry.Class == "video" && p.streamIndex != nil) {
 		p.descriptor.TimelineOffsetSeconds = originalOffset
 		return nil
 	}
@@ -302,7 +302,7 @@ func (a *App) previewPlayback(ctx context.Context, p *playbackEntry, entry catal
 	if p.streamIndex != nil {
 		filtered := []library.Stream{}
 		for _, stream := range source.Streams {
-			if stream.Index == *p.streamIndex {
+			if stream.Kind == "video" || stream.Index == *p.streamIndex {
 				filtered = append(filtered, stream)
 			}
 		}

@@ -156,7 +156,7 @@ func AssembleDocument(data []byte, durationNS *int64, turns []Turn, participatio
 	}
 	for _, participant := range participation {
 		index, ok := cueIDs[participant.CueID]
-		if !ok || !contracts.ValidID(participant.SpeakerID) {
+		if !ok || !contracts.ValidLocalSpeakerID(participant.SpeakerID) {
 			return result, contracts.Fail("invalid_request")
 		}
 		if len(assignments[index]) >= 1024 || total >= MaxAssignments {

@@ -279,7 +279,14 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 				return "", "", nil, err
 			}
 			overrideOptions(&request.Defaults, f.options)
-			for _, item := range request.Items {
+			for i := range request.Items {
+				item := &request.Items[i]
+				if item.TranscriptCredentialID == "" {
+					item.TranscriptCredentialID = f.transcriptCredential
+				}
+				if item.TranscriptAdapter == "" {
+					item.TranscriptAdapter = f.transcriptAdapter
+				}
 				if item.Record == "" {
 					return fail()
 				}

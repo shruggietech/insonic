@@ -300,3 +300,87 @@ func TestNativeCanonicalSurroundPlayback(t *testing.T) {
 		t.Fatal("temporary preview not retired", err)
 	}
 }
+
+func TestVideoPreviewMapsExplicitAudioIndex(t *testing.T) {
+	facts := library.Facts{Extension: ".mp4", Streams: []library.Stream{{Index: 0, Kind: "video", Codec: "h264"}, {Index: 2, Kind: "audio", Codec: "aac"}}}
+	joined := strings.Join(previewArguments("source", "preview", "video", facts), " ")
+	if !strings.Contains(joined, "-map 0:2?") || !strings.Contains(joined, "-c:v copy") {
+		t.Fatal("selected video audio or video stream lost", joined)
+	}
+}
+
+func TestNativeLegacyVideoSelectedAudioPlayback(t *testing.T) {
+	config := os.Getenv("INSONIC_LIBRARY_TOOLS_FILE")
+	if config == "" {
+		t.Skip("pinned native tools not selected")
+	}
+	raw, err := os.ReadFile(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tools library.Tools
+	json.Unmarshal(raw, &tools)
+	ctx := context.Background()
+	video, _ := filepath.Abs("../../tests/fixtures/media/sintel-dialogue.mkv")
+	speech, _ := filepath.Abs("../../tests/fixtures/media/speech.flac")
+	target := filepath.Join(t.TempDir(), "two-audio.mp4")
+	args := []string{"-nostdin", "-v", "error", "-y", "-i", video, "-i", speech, "-map", "0:v:0", "-map", "0:a:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-ac", "2", target}
+	if _, err := process.Capture(ctx, process.Spec{Executable: tools.FFmpeg.Path, Args: args, CleanEnv: true, Env: process.LocalEnvironment(), MaxOutput: 64 << 10}); err != nil {
+		t.Fatal(err)
+	}
+	original, err := probePlayback(ctx, tools.FFprobe, target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := range original.Streams {
+		if original.Streams[i].Kind == "video" {
+			original.Streams[i].Codec = "h264"
+		} else if original.Streams[i].Kind == "audio" {
+			original.Streams[i].Codec = "aac"
+		}
+	}
+	a := configuredApp(t)
+	os.WriteFile(filepath.Join(a.Workspace.Control, "media-tools.json"), raw, 0600)
+	id := seedLegacyMedia(t, a, target, "")
+	entry, err := a.Catalog.Library(ctx, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry.Class = "video"
+	duration := int64(30_000_000)
+	entry.DurationUS = &duration
+	entry.Facts, _ = json.Marshal(library.Facts{Extension: ".mp4", Container: "mov,mp4", Streams: original.Streams, DurationUS: &duration})
+	entry, err = a.Catalog.UpdateLibrary(ctx, contracts.ID(), entry.Revision, entry)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := realRequest(a, "media.playback", id, map[string]any{"revision": entry.Revision, "stream_index": 2})
+	if response.Error != nil {
+		t.Fatal(response.Error)
+	}
+	descriptor := response.Result.(PlaybackDescriptor)
+	if !descriptor.Preview || descriptor.StreamIndex == nil || *descriptor.StreamIndex != 2 || descriptor.SourceDigest != entry.Digest {
+		t.Fatal("selected legacy video served unchanged container", descriptor)
+	}
+	preview, err := probePlayback(ctx, tools.FFprobe, descriptor.Path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundVideo, foundAudio := false, false
+	for _, stream := range preview.Streams {
+		if stream.Kind == "video" {
+			foundVideo = true
+		}
+		if stream.Kind == "audio" {
+			span, err := probeSeconds(stream.Duration, 0)
+			if err != nil || math.Abs(span-10.8) > 0.1 {
+				t.Fatal("first 30-second audio track substituted for selected 10.8-second track", span, err)
+			}
+			foundAudio = true
+		}
+	}
+	if !foundVideo || !foundAudio {
+		t.Fatal("selected presentation lost video/audio")
+	}
+	realRequest(a, "media.playback-close", id, map[string]any{"playback_id": descriptor.PlaybackID})
+}
