@@ -58,4 +58,9 @@ Final read-only convergence checks the same 34 requirement/criterion/acceptance 
 
 ## Publication and review ledger
 
-No PR yet. Round 1 begins on official PR publication; at most one second explicit request is permitted. No merge/release authorization.
+Official [PR #38](https://github.com/shruggietech/insonic/pull/38) was published and attached to the chat from commit 10548d7d7daa6e2b4dd42e5c0ef1ca9c553fbb85. It closes #34, advances #29 and carries the M5 milestone. Round 1 began automatically on PR opening at 15:03:07 UTC; at most one second explicit request is permitted. No merge/release authorization.
+
+[CI run 37948774811](https://github.com/shruggietech/insonic/actions/runs/37948774811) passed foundation, documentation, Windows core and actual alternative-backend fixtures. PostgreSQL alias/source CAS and portable snapshot tests, S3 model missing-byte recovery and ArcadeDB graph operations passed. All seven jobs subsequently passed at this code head, including relocated Windows, Linux and macOS packages. Longest job was Windows native at 8m40s, below ten minutes. The first external code review completed with two P2 response-contract findings: operation-neutral acquisition and unavailable pipeline selection. Both are addressed with response-only targets and actual runtime/schema regressions; review replies and the second round follow publication of the corrections.
+
+
+Round 1 corrections preserve strict alias/execution targets while adding response-only exact base acquisition (empty operation) and unresolved missing-stage targets. The existing offline schema compiler now validates actual acquisition, pending/completed work.show and pipeline inspection responses in regression tests. Missing UUID, alias and source references retain task diagnostics without fabricated identities or queued downloads. Root checks, 63 root tests, Go schema tests and targeted application race tests (2.508s) pass; diff integrity is clean.

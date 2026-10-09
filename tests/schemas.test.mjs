@@ -71,6 +71,22 @@ test('model catalog and compatibility contracts retain complete pinned bundle me
   snapshot.records.model_aliases[0].revision=0;assert.equal(master(snapshot),false);
 });
 
+test('work model summaries distinguish operation-neutral acquisition from missing consumer selections',()=>{
+  const id='33333333-3333-4333-8333-333333333333';
+  const resolution={reference:'base:'+id,target:{kind:'base',id,operation:''},manifest_digest:'a'.repeat(64),upstream_revision:'immutable-1',state:'registered',compatible:true,diagnostics:[]};
+  const response=selection=>({kind:'runtime-response',schema_version:'0.0.0',result:{model_selections:[selection]}});
+  assert.equal(master(response(resolution)),true,'explicit acquisition does not elect an inference operation');
+  for(const change of [{target:{kind:'speaker',id,operation:''}},{target:{kind:'base',id,operation:'invented'}},{target:{kind:'base',id,operation:'',adapter:'faster-whisper'}},{state:'missing'},{manifest_digest:''}])
+    assert.equal(master(response({...resolution,...change})),false,'neutral acquisition cannot weaken execution or immutable identity');
+  const missing={reference:'missing-speech',target:{kind:'unresolved',operation:'transcription'},manifest_digest:'',upstream_revision:'',state:'missing',compatible:false,diagnostics:['Selected model reference is missing.']};
+  assert.equal(master(response(missing)),true,'pipeline inspection can diagnose an unresolved alias without inventing an ID');
+  for(const change of [{compatible:true},{state:'registered'},{manifest_digest:'a'.repeat(64)},{target:{...missing.target,id}},{target:{kind:'unresolved',operation:''}}])
+    assert.equal(master(response({...missing,...change})),false,'unresolved targets exist only in nonexecutable missing diagnostics');
+  const alias={...example('runtime-request'),item_id:id,operation:'models.alias.set',data:{expected_revision:0,alias:{id,name:'speech',state:'active',target:resolution.target}}};
+  assert.equal(master(alias),false,'aliases still require an operation-specific exact target');
+  alias.data.alias.target=missing.target;assert.equal(master(alias),false,'an unresolved diagnostic is never an alias target');
+});
+
 test('recording operation requests keep transient assembly separate from durable settings', () => {
   const base = {...example('runtime-request'), operation:'recordings.process', item_id:'22222222-2222-4222-8222-222222222222', data:{transcription:'supplied',diarization:'run',diarization_model_id:'33333333-3333-4333-8333-333333333333'}};
   assert.equal(master(base),true);

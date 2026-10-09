@@ -21,6 +21,12 @@ require the current expected revision. Removal preserves a tombstone so an old
 edit cannot change a recreated alias; recreation uses the existing ID/revision.
 Changing an alias affects future submissions, never accepted job elections.
 
+Direct bundle acquisition reports an exact base target with an empty operation;
+accepting the bundle does not establish inference compatibility for a task.
+Pipeline inspection retains an unavailable reference as a `missing` selection
+with an `unresolved` target and the intended operation. It reports no model ID,
+manifest digest or upstream revision until resolution succeeds.
+
 ```sh
 insonic models resolve speech-main --operation transcription --json
 insonic models resolve base:MODEL_ID --operation transcription --json

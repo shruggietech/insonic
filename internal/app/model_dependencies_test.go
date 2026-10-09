@@ -144,7 +144,21 @@ func TestExplicitAcquisitionRequestsShareBytesAndCancelIndependently(t *testing.
 	}))
 	input, _ := json.Marshal(models.Request{Manifest: m})
 	request := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: a.Workspace.Config.WorkspaceID, RequestID: contracts.ID(), Operation: "models.acquire", Data: input}
-	first := configuredResult(t, a.Dispatch(request))
+	first := configuredContractResult(t, a.Dispatch(request))
+	assertAcquisitionSelection := func(view map[string]any) {
+		t.Helper()
+		selections := view["model_selections"].([]any)
+		if len(selections) != 1 {
+			t.Fatal("acquisition selection missing")
+		}
+		selected := selections[0].(map[string]any)
+		target := selected["target"].(map[string]any)
+		if target["kind"] != "base" || target["id"] != models.InstallationID(m) || target["operation"] != "" || len(target) != 3 || selected["manifest_digest"] != m.Digest() || selected["upstream_revision"] != m.Revision {
+			t.Fatalf("acquisition pretends to elect an inference task: %#v", selected)
+		}
+	}
+	assertAcquisitionSelection(first)
+	assertAcquisitionSelection(configuredContractResult(t, realRequest(a, "work.show", first["work_id"].(string), nil)))
 	originalRequest := request
 	request.RequestID = contracts.ID()
 	second := configuredResult(t, a.Dispatch(request))
@@ -178,6 +192,7 @@ func TestExplicitAcquisitionRequestsShareBytesAndCancelIndependently(t *testing.
 	if done.State != "succeeded" {
 		t.Fatal("second consumer did not finish", string(done.Result))
 	}
+	assertAcquisitionSelection(configuredContractResult(t, realRequest(a, "work.show", second["work_id"].(string), nil)))
 	cancelled, err := a.Catalog.Work(a.ctx, first["work_id"].(string))
 	if err != nil || cancelled.State != "cancelled" {
 		t.Fatal("cancelled parent revived", err)

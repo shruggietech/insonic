@@ -48,7 +48,7 @@ Goal: Shared consistent references and portable records. Test: CLI/rendered desk
 
 - [x] T019 [P] [US4] Update model/source/alias runtime, manifest/pipeline/import and snapshot JSON contracts in schemas/v0.0.0/ and tests/schemas.test.mjs.
 - [x] T020 [P] [US4] Add shared model choices, alias/discovery/settings and acquisition phases with rendered tests in desktop/frontend/src/ and desktop/frontend/tests/frontend.test.mjs.
-- [ ] T021 [US4] Qualify alias/source/model portable proof relationships and graph/backend parity in internal/catalog/ and internal/graph/ tests.
+- [x] T021 [US4] Qualify alias/source/model portable proof relationships and graph/backend parity in internal/catalog/ and internal/graph/ tests.
 - [x] T022 [P] [US4] Add executable CLI/native/desktop synthetic acquisition journeys in cmd/insonic/ tests, scripts/qualify.py and desktop/qualification.go.
 
 ## Phase 7: Polish and delivery
@@ -57,7 +57,7 @@ Goal: Shared consistent references and portable records. Test: CLI/rendered desk
 - [x] T024 Run blocking speckit-analyze and resolve coverage/constitution findings in specs/012-model-references-acquisition/verification.md before implementation.
 - [x] T025 Run full affected root/Go/vet/race/frontend/site/Python/native checks and record truthful evidence in specs/012-model-references-acquisition/verification.md.
 - [x] T026 Run speckit-converge, resolve findings and check UTF-8/LF/mojibake and clean diff.
-- [ ] T027 Commit, automatically push, publish official PR closing #34 and attach it to the chat; no merge/release.
+- [x] T027 Commit, automatically push, publish official PR closing #34 and attach it to the chat; no merge/release.
 - [ ] T028 Wait for CI and every review/reaction, answer and resolve all findings, request at most one second round and verify exact final head.
 - [ ] T029 Complete delivery records and ping owner for final review/squash merge with remaining matching/training/release scope explicit.
 

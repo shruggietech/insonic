@@ -17,6 +17,7 @@ var registry embed.FS
 var once sync.Once
 var compiled *jsonschema.Schema
 var requestSchema *jsonschema.Schema
+var responseSchema *jsonschema.Schema
 var processingToolsSchema *jsonschema.Schema
 var pipelineConfigurationSchema *jsonschema.Schema
 var mediaToolsSchema *jsonschema.Schema
@@ -70,6 +71,9 @@ func initialize() {
 			requestSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/runtime-request.schema.json")
 		}
 		if compileErr == nil {
+			responseSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/runtime-response.schema.json")
+		}
+		if compileErr == nil {
 			processingToolsSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/processing-tools.schema.json")
 		}
 		if compileErr == nil {
@@ -93,6 +97,13 @@ func ValidateWorkspace(data []byte) error {
 func ValidateRequest(data []byte) error {
 	initialize()
 	return validate(requestSchema, data)
+}
+
+// ValidateResponse checks the public shared-runtime result envelope offline.
+// Operation-specific summaries retain their distinct acquisition/missing states.
+func ValidateResponse(data []byte) error {
+	initialize()
+	return validate(responseSchema, data)
 }
 
 func ValidateMediaTools(data []byte) error {

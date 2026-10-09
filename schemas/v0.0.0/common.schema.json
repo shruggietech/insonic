@@ -595,8 +595,21 @@
           "description": "Original selector retained with the exact election."
         },
         "target": {
-          "$ref": "common.schema.json#/$defs/modelTarget",
-          "description": "Exact typed target."
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/modelTarget",
+              "description": "Operation-specific exact target."
+            },
+            {
+              "$ref": "common.schema.json#/$defs/modelAcquisitionTarget",
+              "description": "Explicit bundle-acquisition target without an inference election."
+            },
+            {
+              "$ref": "common.schema.json#/$defs/modelUnresolvedTarget",
+              "description": "Missing consumer reference diagnosis without an invented identity."
+            }
+          ],
+          "description": "Exact consumer selection, operation-neutral acquisition selection or explicitly unresolved missing diagnosis."
         },
         "manifest": {
           "$ref": "base-model-manifest.schema.json",
@@ -605,7 +618,7 @@
         "manifest_digest": {
           "type": "string",
           "pattern": "^(?:[0-9a-f]{64})?$",
-          "description": "Immutable manifest digest, empty only where a trained descriptor has no manifest artifact."
+          "description": "Immutable manifest digest, empty only when a trained descriptor has no manifest artifact or a missing reference has no resolved manifest."
         },
         "upstream_revision": {
           "type": "string",
@@ -620,9 +633,10 @@
             "discovered",
             "hosted-only",
             "current",
-            "invalidated"
+            "invalidated",
+            "missing"
           ],
-          "description": "Registry or exact target state; acquisition/inference state belongs to durable work."
+          "description": "Registry or exact target state, or missing when inspection could not establish a valid selection; acquisition/inference state belongs to durable work."
         },
         "alias_id": {
           "$ref": "common.schema.json#/$defs/uuid",
@@ -642,7 +656,7 @@
         },
         "compatible": {
           "type": "boolean",
-          "description": "Whether an implemented consumer accepts the target for its operation."
+          "description": "Whether a consumer accepts the target for its operation. Operation-neutral acquisition instead reports accepted bundle metadata; it does not assert inference compatibility. Missing selections are always false."
         },
         "diagnostics": {
           "type": "array",
@@ -716,7 +730,169 @@
         "diagnostics"
       ],
       "additionalProperties": false,
-      "description": "Frozen exact selection or nonexecuting inspection response, retaining source/alias revisions."
+      "description": "Frozen exact selection or nonexecuting inspection response, retaining source/alias revisions.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "target": {
+                "type": "object",
+                "description": "Inspect the declared target operation.",
+                "properties": {
+                  "operation": {
+                    "const": "",
+                    "description": "An operation-neutral acquisition selection."
+                  }
+                },
+                "required": [
+                  "operation"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reference": {
+                "type": "string",
+                "pattern": "^base:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                "description": "Explicit immutable base installation selected from the complete manifest."
+              },
+              "state": {
+                "enum": [
+                  "registered",
+                  "available",
+                  "discovered"
+                ],
+                "description": "Known immutable base-bundle registry state."
+              },
+              "manifest_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "Exact complete immutable bundle manifest digest."
+              },
+              "upstream_revision": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Pinned nonempty upstream revision."
+              },
+              "compatible": {
+                "const": true,
+                "description": "Bundle metadata accepted for acquisition, without an inference operation."
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "target": {
+                "type": "object",
+                "description": "Inspect whether the target is unresolved.",
+                "properties": {
+                  "kind": {
+                    "const": "unresolved",
+                    "description": "An unresolved consumer reference."
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "state": {
+                "const": "missing",
+                "description": "Unresolved references only occur in missing-selection diagnostics."
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "missing",
+                "description": "No valid exact selection could be established."
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "compatible": {
+                "const": false,
+                "description": "Missing selections cannot claim consumer compatibility."
+              },
+              "manifest_digest": {
+                "const": "",
+                "description": "No manifest was resolved."
+              },
+              "upstream_revision": {
+                "const": "",
+                "description": "No upstream revision was resolved."
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "manifest"
+                  ]
+                },
+                {
+                  "required": [
+                    "lineage"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "modelAcquisitionTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "base",
+          "description": "An immutable base bundle selected for acquisition only."
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Exact immutable base installation identity."
+        },
+        "operation": {
+          "const": "",
+          "description": "No inference operation is elected by direct bundle acquisition."
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "operation"
+      ],
+      "description": "Response-only operation-neutral acquisition target. Alias and processing targets retain their strict operation-specific contract."
+    },
+    "modelUnresolvedTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "unresolved",
+          "description": "The reference could not establish an exact valid consumer election."
+        },
+        "operation": {
+          "$ref": "common.schema.json#/$defs/modelOperation",
+          "description": "Intended stage operation retained with the unavailable reference."
+        }
+      },
+      "required": [
+        "kind",
+        "operation"
+      ],
+      "description": "Response-only missing-selection diagnosis. It never fabricates a model ID or authorizes execution."
     }
   }
 }
