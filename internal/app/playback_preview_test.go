@@ -234,3 +234,69 @@ func TestNativeCanonicalGroupedSelectedPlayback(t *testing.T) {
 		realRequest(a, "media.playback-close", entry.ID, map[string]any{"playback_id": descriptor.PlaybackID})
 	}
 }
+
+func TestNativeCanonicalSurroundPlayback(t *testing.T) {
+	config := os.Getenv("INSONIC_LIBRARY_TOOLS_FILE")
+	if config == "" {
+		t.Skip("pinned native tools not selected")
+	}
+	raw, err := os.ReadFile(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tools library.Tools
+	json.Unmarshal(raw, &tools)
+	a := configuredApp(t)
+	os.WriteFile(filepath.Join(a.Workspace.Control, "media-tools.json"), raw, 0600)
+	source, _ := filepath.Abs("../../tests/fixtures/media/sintel-dialogue.mkv")
+	accepted := realRequest(a, "media.import", "", library.ImportRequest{Items: []library.Item{{Source: source}}})
+	if accepted.Error != nil {
+		t.Fatal(accepted.Error)
+	}
+	work := awaitWork(t, a, accepted.Result.(map[string]any)["work_id"].(string))
+	var result library.ImportResult
+	json.Unmarshal(work.Result, &result)
+	if work.State != "succeeded" {
+		t.Fatal(string(work.Result))
+	}
+	entry, err := a.Catalog.Library(context.Background(), result.Items[0].MediaID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var facts library.Facts
+	json.Unmarshal(entry.Facts, &facts)
+	if len(facts.Streams) != 1 || facts.Streams[0].Channels == nil || *facts.Streams[0].Channels != 6 {
+		t.Fatal("canonical surround master changed")
+	}
+	response := realRequest(a, "media.playback", entry.ID, map[string]any{"revision": entry.Revision})
+	if response.Error != nil {
+		t.Fatal(response.Error)
+	}
+	descriptor := response.Result.(PlaybackDescriptor)
+	if !descriptor.Preview || descriptor.MIME != "audio/wav" || descriptor.SourceDigest != entry.Digest {
+		t.Fatal("surround presentation did not use temporary preview", descriptor)
+	}
+	probe, err := process.Capture(context.Background(), process.Spec{Executable: tools.FFprobe.Path, Args: []string{"-v", "error", "-show_entries", "stream=channels:format=duration", "-of", "json", descriptor.Path}, CleanEnv: true, Env: process.LocalEnvironment(), MaxOutput: 64 << 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var actual struct {
+		Streams []struct {
+			Channels int `json:"channels"`
+		} `json:"streams"`
+		Format struct {
+			Duration string `json:"duration"`
+		} `json:"format"`
+	}
+	json.Unmarshal(probe.Stdout, &actual)
+	duration, err := probeSeconds(actual.Format.Duration, 0)
+	if err != nil || len(actual.Streams) != 1 || actual.Streams[0].Channels != 2 || math.Abs(duration-30) > 0.01 {
+		t.Fatal("preview channels or complete duration", string(probe.Stdout))
+	}
+	if closed := realRequest(a, "media.playback-close", entry.ID, map[string]any{"playback_id": descriptor.PlaybackID}); closed.Error != nil {
+		t.Fatal(closed.Error)
+	}
+	if _, err := os.Stat(descriptor.Path); !os.IsNotExist(err) {
+		t.Fatal("temporary preview not retired", err)
+	}
+}

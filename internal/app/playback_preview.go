@@ -35,6 +35,11 @@ func previewRequired(facts library.Facts, class string) bool {
 			if stream.Kind != "audio" {
 				continue
 			}
+			// WKWebView rejects the qualified six-channel FLAC master.
+			// Present multichannel audio through the disposable stereo preview.
+			if stream.Channels != nil && *stream.Channels > 2 {
+				return true
+			}
 			if ext == "m4a" && stream.Codec != "aac" && stream.Codec != "mp3" {
 				return true
 			}
