@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -346,6 +347,55 @@ class GitHub:
             if error.code == 404: return None
             raise ValueError(f'GitHub publication operation failed ({error.code})') from None
 
+    def download_asset(self, asset_id, path, size, digest):
+        if type(asset_id) is not int or asset_id <= 0 or type(size) is not int or size < 0 or not re.fullmatch(SHA_PATTERN, digest):
+            raise ValueError('published asset metadata is invalid')
+        url = f'https://api.github.com/repos/{REPOSITORY}/releases/assets/{asset_id}'
+        headers = {'Authorization': 'Bearer ' + self.token, 'Accept': 'application/octet-stream',
+                   'X-GitHub-Api-Version': '2022-11-28'}
+        started = time.monotonic()
+        created = False
+        try:
+            for attempt in range(4):
+                try:
+                    response = self.opener.open(urllib.request.Request(url, headers=headers), timeout=30)
+                    break
+                except urllib.error.HTTPError as error:
+                    if error.code not in (301, 302, 303, 307, 308):
+                        raise ValueError(f'published asset download failed ({error.code})') from None
+                    destination = error.headers.get('Location', '')
+                    parsed = urllib.parse.urlsplit(destination)
+                    if (parsed.scheme != 'https' or parsed.hostname not in ('release-assets.githubusercontent.com', 'objects.githubusercontent.com')
+                            or parsed.username is not None or parsed.port not in (None, 443) or parsed.fragment):
+                        raise ValueError('published asset redirect destination is invalid') from None
+                    # Signed official CDN URLs need no GitHub token. NoRedirect
+                    # prevents urllib from forwarding Authorization implicitly.
+                    url, headers = destination, {'Accept': 'application/octet-stream'}
+                    error.close()
+            else:
+                raise ValueError('published asset download has too many redirects')
+            with response, path.open('xb') as output:
+                created = True
+                total = 0
+                while True:
+                    if time.monotonic() - started > 120:
+                        raise ValueError('published asset download exceeded its time budget')
+                    data = response.read(min(1024 * 1024, size - total + 1))
+                    if not data:
+                        break
+                    total += len(data)
+                    if total > size:
+                        raise ValueError('published asset download exceeds its declared size')
+                    output.write(data)
+            if total != size or sha(path) != digest:
+                raise ValueError('published asset bytes differ from their declared identity')
+        except (OSError, urllib.error.URLError):
+            if created: path.unlink(missing_ok=True)
+            raise ValueError('published asset download failed') from None
+        except BaseException:
+            if created: path.unlink(missing_ok=True)
+            raise
+
 
 def verify_tag(api, tag, revision):
     ref = api.call('GET', f'repos/{REPOSITORY}/git/ref/tags/{tag}')
@@ -397,6 +447,48 @@ def load_candidate(directory, verifier=verify_package):
     sums = ''.join(f"{entry['sha256']}  {entry['name']}\n" for entry in sorted(expected[:-1], key=lambda e: e['name']))
     if (directory / 'SHA256SUMS').read_text() != sums: raise ValueError('candidate checksums differ')
     return value, expected
+
+
+def published_candidate(output, revision, api, root=ROOT, runner=child, verifier=verify_package):
+    version = versions(root)
+    if version == '0.0.0':
+        raise ValueError('published candidate requires a prepared release version')
+    tag = 'v' + version
+    exact_source(revision, root, runner, tag)
+    verify_tag(api, tag, revision)
+    release = api.call('GET', f'repos/{REPOSITORY}/releases/tags/{tag}')
+    if (not release or release.get('draft') is not False or release.get('tag_name') != tag
+            or release.get('target_commitish') != revision):
+        raise ValueError('published candidate requires the exact existing published release')
+    assets = api.call('GET', f'repos/{REPOSITORY}/releases/{release["id"]}/assets?per_page=100')
+    if (not isinstance(assets, list) or len(assets) != 10 or len({a.get('name') for a in assets}) != 10
+            or not {'release-manifest.json', 'SHA256SUMS', 'documentation.tar.gz', 'offline-help.tar.gz'}.issubset({a.get('name') for a in assets})):
+        raise ValueError('published candidate asset set is incomplete or unexpected')
+    for asset in assets:
+        asset_name(asset.get('name'))
+        if (asset.get('state') != 'uploaded' or type(asset.get('id')) is not int or asset['id'] <= 0
+                or type(asset.get('size')) is not int or asset['size'] < 0
+                or not re.fullmatch('sha256:' + SHA_PATTERN, asset.get('digest', ''))):
+            raise ValueError('published candidate asset metadata is invalid')
+    if output.exists():
+        raise ValueError('published candidate output must be new')
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='published-candidate-', dir=output.parent) as temporary:
+        staged = Path(temporary) / 'candidate'; staged.mkdir()
+        for asset in assets:
+            path = staged / asset['name']
+            api.download_asset(asset['id'], path, asset['size'], asset['digest'].removeprefix('sha256:'))
+            if file_entry(path) != {'name': asset['name'], 'size_bytes': asset['size'], 'sha256': asset['digest'].removeprefix('sha256:')}:
+                raise ValueError('downloaded published candidate bytes changed')
+        value, expected = load_candidate(staged, verifier)
+        if value['version'] != version or value['revision'] != revision or value['tag'] != tag:
+            raise ValueError('published candidate identity differs from the selected release')
+        remote_assets(api, release, expected)
+        verify_tag(api, tag, revision)
+        if output.exists():
+            raise ValueError('published candidate output must be new')
+        staged.replace(output)
+    return {'candidate': 'retrieved-and-verified', 'version': version, 'revision': revision}
 
 
 def current_release_suite(api, revision, context=None):
@@ -525,6 +617,7 @@ def main():
     p = sub.add_parser('candidate'); p.add_argument('--revision', required=True); p.add_argument('--assets', type=Path, required=True); p.add_argument('--output', type=Path, required=True); p.add_argument('receipts', nargs='+', type=Path)
     p = sub.add_parser('collect'); p.add_argument('--revision', required=True); p.add_argument('--input', type=Path, required=True); p.add_argument('--output', type=Path, required=True)
     p = sub.add_parser('publish'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--highlights', type=Path, required=True)
+    p = sub.add_parser('published'); p.add_argument('--revision', required=True); p.add_argument('--output', type=Path, required=True)
     p = sub.add_parser('deployment'); p.add_argument('--configuration', type=Path, required=True)
     p = sub.add_parser('promote'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--configuration', type=Path, required=True)
     options = parser.parse_args()
@@ -534,6 +627,7 @@ def main():
     elif options.command == 'candidate': result = candidate(options.receipts, options.assets, options.output, options.revision)
     elif options.command == 'collect': result = collect(options.input, options.output, options.revision)
     elif options.command == 'publish': result = publish(options.candidate, options.highlights.read_text(encoding='utf-8'), GitHub(os.environ.get('GH_TOKEN', '')))
+    elif options.command == 'published': result = published_candidate(options.output, options.revision, GitHub(os.environ.get('GH_TOKEN', '')))
     elif options.command == 'deployment': result = materialize_deployment(options.configuration)
     else: result = promote(options.candidate, read_json(options.configuration), GitHub(os.environ.get('GH_TOKEN', '')))
     print(json.dumps(result))

@@ -61,6 +61,7 @@ def candidates(root):
 class GitHubFixture:
     def __init__(self, fail_upload=False):
         self.release = None; self.assets = []; self.calls = []; self.fail_upload = fail_upload
+        self.asset_bytes = {}; self.downloads = []
         self.checks = [{'name': name, 'status': 'completed', 'conclusion': 'success', 'check_suite': {'id': 11}} for name in ('foundation', 'docs')]
         self.workflow = {'id': 77, 'repository': {'full_name': release.REPOSITORY},
                          'path': '.github/workflows/release.yml@refs/heads/main', 'event': 'workflow_dispatch',
@@ -77,11 +78,17 @@ class GitHubFixture:
         if '/assets?per_page=' in endpoint: return copy.deepcopy(self.assets)
         if path is not None:
             if self.fail_upload and self.assets: raise ValueError('controlled interruption')
-            entry = release.file_entry(path); value = {'name': entry['name'], 'size': entry['size_bytes'], 'digest': 'sha256:' + entry['sha256'], 'state': 'uploaded'}; self.assets.append(value); return value
+            entry = release.file_entry(path); asset_id = len(self.assets) + 100
+            self.asset_bytes[asset_id] = path.read_bytes()
+            value = {'id': asset_id, 'name': entry['name'], 'size': entry['size_bytes'], 'digest': 'sha256:' + entry['sha256'], 'state': 'uploaded'}; self.assets.append(value); return value
         if endpoint.endswith('/releases/7'):
             if method == 'PATCH': self.release.update(value)
             return copy.deepcopy(self.release)
         raise AssertionError((method, endpoint))
+
+    def download_asset(self, asset_id, path, size, digest):
+        self.downloads.append(asset_id)
+        path.write_bytes(self.asset_bytes[asset_id])
 
 
 class ReleaseDeliveryTests(unittest.TestCase):
@@ -264,6 +271,68 @@ class ReleaseDeliveryTests(unittest.TestCase):
         historical.workflow['head_sha'] = 'b' * 40
         with patch.dict(os.environ, dict(context, GITHUB_SHA='b' * 40)):
             self.assertTrue(release.publish(target, 'Highlights.', historical, self.root, runner, verify_fixture)['published'])
+
+    def test_promotion_only_retrieves_original_candidate_without_rebuilding_or_publishing(self):
+        original = self.candidate(); api = GitHubFixture()
+        release.publish(original, 'Highlights.', api, self.root, runner, verify_fixture)
+        api.calls.clear()
+        retrieved = self.root / 'retrieved'
+        result = release.published_candidate(retrieved, REVISION, api, self.root, runner, verify_fixture)
+        self.assertEqual(result, {'candidate': 'retrieved-and-verified', 'version': VERSION, 'revision': REVISION})
+        self.assertEqual(len(api.downloads), 10)
+        for path in original.iterdir():
+            self.assertEqual((retrieved / path.name).read_bytes(), path.read_bytes())
+        invoked = []
+        release.promote(retrieved, {'argv': [str(Path(sys.executable).resolve()), '{archive}']}, api,
+                        lambda args: invoked.append(args), verify_fixture)
+        self.assertEqual(invoked[0][1], str((retrieved / 'documentation.tar.gz').resolve()))
+        self.assertTrue(all(call[0] == 'GET' for call in api.calls))
+
+    def test_retrieved_candidate_rejects_changed_bytes_and_wrong_release_identity_without_completion(self):
+        original = self.candidate(); api = GitHubFixture()
+        release.publish(original, 'Highlights.', api, self.root, runner, verify_fixture)
+        saved = copy.deepcopy(api.release)
+        for changes in [{'draft': True}, {'target_commitish': 'b' * 40}, {'tag_name': 'v999.0.0'}]:
+            api.release = {**saved, **changes}
+            with self.assertRaisesRegex(ValueError, 'exact existing'):
+                release.published_candidate(self.root / 'retrieved', REVISION, api, self.root, runner, verify_fixture)
+            self.assertFalse((self.root / 'retrieved').exists())
+        self.assertEqual(api.downloads, [])
+        api.release = saved
+        changed = next(asset for asset in api.assets if asset['name'] == 'documentation.tar.gz')
+        api.asset_bytes[changed['id']] = b'rebuilt bytes from the same source'
+        with self.assertRaisesRegex(ValueError, 'bytes changed'):
+            release.published_candidate(self.root / 'retrieved', REVISION, api, self.root, runner, verify_fixture)
+        self.assertFalse((self.root / 'retrieved').exists())
+
+    def test_asset_download_strips_auth_on_official_cdn_redirect_and_rejects_other_destinations(self):
+        data = b'controlled immutable bytes'; digest = release.hashlib.sha256(data).hexdigest()
+        class DownloadOpener:
+            def __init__(self, destination): self.destination = destination; self.requests = []
+            def open(self, request, timeout):
+                self.requests.append(request)
+                if len(self.requests) == 1:
+                    raise release.urllib.error.HTTPError(request.full_url, 302, 'redirect', {'Location': self.destination}, io.BytesIO())
+                return io.BytesIO(data)
+        api = release.GitHub('fixture-token')
+        api.opener = DownloadOpener('https://release-assets.githubusercontent.com/asset?signed=fixture')
+        downloaded = self.root / 'downloaded'
+        api.download_asset(100, downloaded, len(data), digest)
+        self.assertEqual(downloaded.read_bytes(), data)
+        self.assertEqual(api.opener.requests[0].get_header('Authorization'), 'Bearer fixture-token')
+        self.assertIsNone(api.opener.requests[1].get_header('Authorization'))
+        self.assertNotIn('fixture-token', api.opener.requests[1].full_url)
+        api.opener = DownloadOpener('https://release-assets.githubusercontent.com/asset')
+        with self.assertRaisesRegex(ValueError, 'download failed'):
+            api.download_asset(100, downloaded, len(data), digest)
+        self.assertEqual(downloaded.read_bytes(), data)
+        for destination in ['https://untrusted.example/asset', 'http://release-assets.githubusercontent.com/asset',
+                            'https://user@release-assets.githubusercontent.com/asset', 'https://release-assets.githubusercontent.com:444/asset']:
+            api.opener = DownloadOpener(destination)
+            with self.assertRaisesRegex(ValueError, 'redirect destination'):
+                api.download_asset(100, self.root / 'blocked', len(data), digest)
+            self.assertEqual(len(api.opener.requests), 1)
+            self.assertFalse((self.root / 'blocked').exists())
 
     def test_remote_tag_digest_or_candidate_tampering_prevents_promotion(self):
         target = self.candidate(); api = GitHubFixture(); release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)

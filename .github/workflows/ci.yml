@@ -73,7 +73,7 @@ jobs:
       os: ${{ matrix.os }}
   native:
     needs: [foundation, media]
-    if: always() && needs.foundation.result == 'success' && (needs.media.result == 'success' || needs.media.result == 'skipped')
+    if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.core == 'true'
     name: native (${{ matrix.os }})
     strategy:
       fail-fast: false
@@ -204,7 +204,7 @@ jobs:
           if-no-files-found: error
   packages:
     needs: [foundation, media]
-    if: needs.foundation.outputs.native == 'true'
+    if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.native == 'true'
     name: package (${{ matrix.os }}, ${{ matrix.variant }})
     strategy:
       fail-fast: false
@@ -338,7 +338,7 @@ jobs:
           python -m unittest discover -s tests -p '*_test.py'
   adapters:
     needs: [foundation, media]
-    if: needs.foundation.outputs.adapters == 'true'
+    if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.adapters == 'true'
     name: adapter fixtures
     runs-on: ubuntu-24.04
     timeout-minutes: 10

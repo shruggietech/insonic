@@ -27,7 +27,8 @@ test('release version checks include desktop locks and the shared runtime bindin
 test('documentation promotion can run independently and never implicitly publishes', () => {
   const workflow = parse(readFileSync(new URL('.github/workflows/release.yml', source), 'utf8'));
   const job = workflow.jobs.publish;
-  assert.equal(job.if, 'inputs.publish || inputs.promote_docs');
+  assert.equal(job.if, 'always() && ((inputs.publish && needs.candidate.result == \'success\') || (!inputs.publish && inputs.promote_docs))');
+  assert.equal(workflow.jobs.media.if, 'inputs.publish || !inputs.promote_docs');
   assert.equal(job.permissions.checks, 'read');
   assert.equal(job.permissions.actions, 'read');
   const publication = job.steps.find(step => step.run?.startsWith('python scripts/release.py publish '));
@@ -40,6 +41,11 @@ test('documentation promotion can run independently and never implicitly publish
   assert.ok(job.steps.indexOf(publication) < job.steps.indexOf(promotion));
   assert.ok(preparation.run.includes('build/release/documentation-deployment.json'));
   assert.ok(promotion.run.includes('build/release/documentation-deployment.json'));
+  const retrieval = job.steps.find(step => step.run?.startsWith('python scripts/release.py published '));
+  assert.equal(retrieval.if, 'inputs.publish == false && inputs.promote_docs');
+  const candidateDownload = job.steps.find(step => step.with?.name === 'release-candidate');
+  assert.equal(candidateDownload.if, 'inputs.publish');
+  assert.ok(job.steps.indexOf(preparation) < job.steps.indexOf(retrieval));
 });
 
 test('media and release jobs select the toolkit installed by the pinned MSYS2 action', () => {
@@ -58,4 +64,14 @@ test('media and release jobs select the toolkit installed by the pinned MSYS2 ac
     assert.ok(job.steps.indexOf(selection) < job.steps.indexOf(consumer));
     assert.ok(setup.with.install.includes('mingw-w64-ucrt-x86_64-nasm'));
   }
+});
+
+test('fresh release qualification prepares its sibling CLI before the macOS desktop app', () => {
+  const workflow = parse(readFileSync(new URL('.github/workflows/release.yml', source), 'utf8'));
+  const steps = workflow.jobs.native.steps;
+  const cli = steps.findIndex(step => step.run?.includes('python scripts/qualify.py cli'));
+  const desktop = steps.findIndex(step => step.run?.includes('python scripts/qualify.py desktop'));
+  const packages = steps.findIndex(step => step.run?.includes('python scripts/package-desktop.py all --variant both'));
+  assert.ok(cli >= 0 && cli < desktop);
+  assert.ok(desktop < packages);
 });

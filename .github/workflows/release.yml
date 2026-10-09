@@ -25,6 +25,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   media:
+    if: inputs.publish || !inputs.promote_docs
     strategy:
       fail-fast: false
       matrix:
@@ -102,6 +103,7 @@ jobs:
           python scripts/qualify.py prepare
           python scripts/media-tools.py
           python scripts/qualify.py native
+          python scripts/qualify.py cli
       - name: Validate software and build matching documentation and desktop
         run: |
           npm ci --ignore-scripts
@@ -162,7 +164,7 @@ jobs:
           if-no-files-found: error
           retention-days: 14
   publish:
-    if: inputs.publish || inputs.promote_docs
+    if: always() && ((inputs.publish && needs.candidate.result == 'success') || (!inputs.publish && inputs.promote_docs))
     needs: candidate
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -172,6 +174,7 @@ jobs:
       actions: read
     env:
       GH_TOKEN: ${{ github.token }}
+      SOURCE_REVISION: ${{ inputs.revision }}
       RELEASE_HIGHLIGHTS: ${{ inputs.highlights }}
       INSONIC_DOCUMENTATION_DEPLOYMENT_JSON: ${{ vars.INSONIC_DOCUMENTATION_DEPLOYMENT_JSON }}
     steps:
@@ -179,16 +182,20 @@ jobs:
         with:
           ref: ${{ inputs.revision }}
           fetch-depth: 0
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
-        with:
-          name: release-candidate
-          path: build/release/candidate
-      - name: Write brief highlights as data
-        if: inputs.publish
-        run: python -c "import os,pathlib; pathlib.Path('build/release/highlights.md').write_text(os.environ['RELEASE_HIGHLIGHTS'],encoding='utf-8',newline='\n')"
       - name: Validate configured documentation destination before publication
         if: inputs.promote_docs
         run: python scripts/release.py deployment --configuration build/release/documentation-deployment.json
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        if: inputs.publish
+        with:
+          name: release-candidate
+          path: build/release/candidate
+      - name: Retrieve and verify the original published candidate without rebuilding
+        if: inputs.publish == false && inputs.promote_docs
+        run: python scripts/release.py published --revision "$SOURCE_REVISION" --output build/release/candidate
+      - name: Write brief highlights as data
+        if: inputs.publish
+        run: python -c "import os,pathlib; pathlib.Path('build/release/highlights.md').write_text(os.environ['RELEASE_HIGHLIGHTS'],encoding='utf-8',newline='\n')"
       - name: Upload complete draft, verify remote digests, then publish
         if: inputs.publish
         run: python scripts/release.py publish --candidate build/release/candidate --highlights build/release/highlights.md

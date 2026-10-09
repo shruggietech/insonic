@@ -15,6 +15,13 @@ import media_source_build as source
 
 
 class OwnedSourceIntegrity(unittest.TestCase):
+    def test_linux_static_gme_retains_emulation_with_its_explicit_math_dependency(self):
+        self.assertIn('--enable-libgme', source.CONFIGURE)
+        self.assertIn('--enable-zlib', source.CONFIGURE)
+        self.assertIn('--extra-libs=-lm', source.PIN['platform_configure']['linux_amd64'])
+        self.assertIn('libgme', source.PIN['required_capabilities']['demuxers'])
+        self.assertFalse(any(flag.startswith('--disable-demuxer') for flag in source.CONFIGURE))
+
     def test_dav1d_uses_available_cores_with_a_bounded_library_compile_budget(self):
         for cores, expected in [(2, '2'), (4, '4'), (64, '8')]:
             with self.subTest(cores=cores):

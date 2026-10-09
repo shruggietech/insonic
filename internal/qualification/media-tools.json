@@ -74,7 +74,9 @@
         "--arch=x86_64",
         "--extra-ldflags=-static"
       ],
-      "linux_amd64": [],
+      "linux_amd64": [
+        "--extra-libs=-lm"
+      ],
       "darwin_arm64": [
         "--enable-videotoolbox",
         "--enable-encoder=h264_videotoolbox"

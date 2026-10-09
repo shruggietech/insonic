@@ -56,9 +56,36 @@ jobs:
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
         with:
           path: build/media-source-pins
-          key: media-original-sources-${{ runner.os }}-${{ steps.identity.outputs.source_pins_key }}
+          key: media-original-sources-${{ steps.identity.outputs.source_pins_key }}
+          enableCrossOsArchive: true
+          restore-keys: media-original-sources-Linux-${{ steps.identity.outputs.source_pins_key }}
       - name: Rehash and materialize every exact original source archive
+        id: original_sources
         run: python scripts/media-transfer.py sources
+      - name: Diagnose a failed Windows source download without changing its cache
+        if: failure() && runner.os == 'Windows' && steps.original_sources.conclusion == 'failure'
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, json, urllib.parse, urllib.request
+          from pathlib import Path
+          pin = json.loads(Path('internal/qualification/media-tools.json').read_text(encoding='utf-8'))['source_build']['libraries']['zlib']
+          try:
+              request = urllib.request.Request(pin['url'], headers={'User-Agent': 'insonic-source-build'})
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  body = response.read(pin['size_bytes'] + 1)
+                  final = urllib.parse.urlsplit(response.url)
+                  print(json.dumps({'read_only': True, 'pin': pin['name'], 'status': response.status,
+                                    'url': urllib.parse.urlunsplit((final.scheme, final.hostname or '', final.path, '', '')),
+                                    'content_type': response.headers.get('Content-Type'),
+                                    'content_length': response.headers.get('Content-Length'),
+                                    'received_bytes': len(body), 'received_sha256': hashlib.sha256(body).hexdigest(),
+                                    'body_read_limit': pin['size_bytes'] + 1, 'exceeds_expected_size': len(body) > pin['size_bytes'],
+                                    'expected_bytes': pin['size_bytes'], 'expected_sha256': pin['sha256']}))
+          except Exception as error:
+              print(json.dumps({'read_only': True, 'pin': pin['name'], 'diagnostic_error': type(error).__name__,
+                                'http_status': getattr(error, 'code', None)}))
+          PY
       - name: Restore exact complete source cache before scheduling cold stages
         uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
         with:
@@ -146,7 +173,9 @@ jobs:
         uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
         with:
           path: build/media-source-pins
-          key: media-original-sources-${{ runner.os }}-${{ steps.identity.outputs.source_pins_key }}
+          key: media-original-sources-${{ steps.identity.outputs.source_pins_key }}
+          enableCrossOsArchive: true
+          restore-keys: media-original-sources-Linux-${{ steps.identity.outputs.source_pins_key }}
       - name: Rehash and materialize every exact original source archive
         run: python scripts/media-transfer.py sources
       - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
@@ -170,7 +199,29 @@ jobs:
         shell: bash
         run: python scripts/media-transfer.py restore --stage dependencies --revision "$SOURCE_REVISION" build/transfer/dependencies.tar.gz
       - name: Compile FFmpeg or fully verify the exact completed source cache
+        id: ffmpeg_compile
         run: python scripts/build-media-source.py --stage complete
+      - name: Preserve bounded FFmpeg failure diagnostics
+        if: failure() && steps.ffmpeg_compile.conclusion == 'failure'
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import uuid
+          root = Path('build/native/source-media')
+          token = uuid.uuid4().hex
+          print('::stop-commands::' + token)
+          try:
+              for path in sorted(root.glob('*/ffmpeg-source/ffbuild/config.log')):
+                  if path.is_symlink() or not path.resolve().is_relative_to(root.resolve()):
+                      continue
+                  with path.open('rb') as source:
+                      source.seek(-min(path.stat().st_size, 20000), 2)
+                      print(str(path) + ': final 20000 bytes')
+                      print(source.read(20000).decode('utf-8', errors='replace'))
+          finally:
+              print('::' + token + '::')
+          PY
       - name: Transfer qualified binaries, static closure, notices and original sources
         shell: bash
         run: python scripts/media-transfer.py pack --stage complete --revision "$SOURCE_REVISION" --output build/transfer/media-source.tar.gz
