@@ -33,6 +33,8 @@ The [logical schema](schema.md) defines IDs, revisions and relationships indepen
 
 ## Publication across independent systems
 
+An elected audio replacement retains the recording ID and accepts candidate audio, current transcript policy and roster effect in one catalog transaction. Source, document and independent roster revisions fence queued work. Superseded mappings, segment and corpus preparation lose current authority even if the document bytes remain unchanged. Artifact retirement follows acceptance and checks current references and active leases. Declared rosters are catalog context projected into the graph independently of acoustic assignments.
+
 Artifact storage, catalog and graph do not share a transaction. Publish and verify immutable objects first. Commit their references, the accepted catalog revision and a graph outbox event in one catalog transaction. Each projection target assigns its own consecutive event sequence in that transaction. One ordered publisher applies the next sequence only when the graph checkpoint matches its predecessor, committing facts, event receipt and checkpoint together. A higher catalog revision cannot skip an earlier required event. Acknowledge the matching event afterward; a lost graph response is resolved through exact event/operation receipts and its checkpoint.
 
 ```mermaid

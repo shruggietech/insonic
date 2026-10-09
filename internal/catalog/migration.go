@@ -35,7 +35,9 @@ var domains = []domainTable{
 	{"context_term", "Terms", "id", "CHECK(revision>0 AND state IN ('active','inactive'))", []string{"speaker_id:speaker:id", "alias_id:speaker_alias:id"}},
 	{"current_pipeline", "Pipelines", "id", "CHECK(revision>0 AND preset IN ('local','connected','custom'))", nil},
 	{"library_entry", "Library", "id", "CHECK (revision>0 AND size>=0), CHECK (duration_us IS NULL OR duration_us>=0), CHECK (mode IN ('copy','reference'))", []string{"id:media_entry:id", "asset_id:media_asset:id"}},
-	{"current_recording", "Recordings", "id", "CHECK (revision>0 AND source_revision>0), CHECK (state IN ('ready','no-speech','no-timed-subtitles'))", []string{"id:library_entry:id"}},
+	{"recording_roster", "Rosters", "id", "CHECK (revision>0)", []string{"id:library_entry:id"}},
+	{"roster_member", "RosterMembers", "id", "CHECK (revision>0), UNIQUE (workspace_id,recording_id,speaker_id)", []string{"recording_id:recording_roster:id", "speaker_id:speaker:id"}},
+	{"current_recording", "Recordings", "id", "CHECK (revision>0 AND source_revision>0), CHECK (state IN ('ready','no-speech','no-timed-subtitles','untranscribed'))", []string{"id:library_entry:id"}},
 	{"speaker_segment", "Segments", "id,revision", "CHECK (revision>0 AND length(document_digest)=64 AND length(cue_id)>0)", []string{"recording_id:current_recording:id", "clip_artifact_id:artifact:id"}},
 	{"training_dataset", "Datasets", "id", "CHECK (state IN ('current','invalidated'))", []string{"speaker_id:speaker:id", "manifest_artifact_id:artifact:id"}},
 	{"dataset_member", "Members", "id", "CHECK (ordinal>=0 AND segment_revision>0), UNIQUE (workspace_id,dataset_id,ordinal)", []string{"dataset_id:training_dataset:id", "segment_id,segment_revision:speaker_segment:id,revision"}},
@@ -196,7 +198,18 @@ func (s *Store) checkVersion(ctx context.Context) error {
 	return nil
 }
 func (s *Store) migrate(ctx context.Context) error {
-	tx, e := s.db.BeginTx(ctx, nil)
+	conn, e := s.db.Conn(ctx)
+	if e != nil {
+		return sanitize(e)
+	}
+	defer conn.Close()
+	if s.backend == "sqlite" {
+		if _, e = conn.ExecContext(ctx, "PRAGMA foreign_keys=OFF"); e != nil {
+			return sanitize(e)
+		}
+		defer conn.ExecContext(context.WithoutCancel(ctx), "PRAGMA foreign_keys=ON")
+	}
+	tx, e := conn.BeginTx(ctx, nil)
 	if e != nil {
 		return sanitize(e)
 	}
@@ -213,7 +226,10 @@ func (s *Store) migrate(ctx context.Context) error {
 	var digest string
 	e = tx.QueryRowContext(ctx, "SELECT version,digest FROM catalog_schema WHERE singleton=1").Scan(&version, &digest)
 	if e == nil {
-		if version == 5 && digest == historicalV5Digest() {
+		if (version == 5 && digest == historicalV5Digest()) || (version == 6 && digest == historicalV6Digest()) {
+			if e = s.migrateRecordingState(ctx, tx); e != nil {
+				return sanitize(e)
+			}
 			for _, q := range migrationStatements() {
 				if _, e = tx.ExecContext(ctx, q); e != nil {
 					return sanitize(e)
@@ -246,6 +262,11 @@ func (s *Store) migrate(ctx context.Context) error {
 			}
 			for _, q := range migrationStatements() {
 				if _, e = tx.ExecContext(ctx, q); e != nil {
+					return sanitize(e)
+				}
+			}
+			if version >= 3 {
+				if e = s.migrateRecordingState(ctx, tx); e != nil {
 					return sanitize(e)
 				}
 			}
@@ -305,6 +326,14 @@ func validateRecord(value any) error {
 		}
 	}
 	switch r := value.(type) {
+	case RosterHeader:
+		if r.Revision < 1 {
+			return contracts.Fail("invalid_request")
+		}
+	case RosterMember:
+		if r.Revision < 1 {
+			return contracts.Fail("invalid_request")
+		}
 	case Extraction:
 		if !validExtraction(r) {
 			return contracts.Fail("invalid_request")

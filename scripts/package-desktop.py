@@ -620,6 +620,13 @@ def _smoke(archive=None, dirname=None, receipt=None):
             if capabilities.get('backend_version') != qualify.LOCK['ladybug']['version']:
                 raise ValueError('packaged graph version differs')
             call('graph', 'rebuild')
+            roster = call('recordings', 'roster', 'clear', items[0]['media_id'], '--expected-revision', '0')
+            replaced = call('media', 'import', media / 'speech.flac', '--record', items[0]['media_id'], '--replace-audio', '--existing-transcript', 'clear', '--existing-roster', 'retain')
+            replacement = call('work', 'wait', replaced['work_id'], '--timeout-ms', '30000')
+            retained = call('recordings', 'roster', 'show', items[0]['media_id'])
+            recording = call('recordings', 'show', items[0]['media_id'])
+            if replacement['state'] != 'succeeded' or recording['recording']['state'] != 'untranscribed' or retained['revision'] != roster['revision'] or retained['members']:
+                raise ValueError('packaged replacement/declared-empty roster authority changed')
             qualification_output = child([gui, '--qualification'], directory=root, env=env, timeout=30)
             qualify.write_receipt(ROOT / 'build/native/package-desktop-receipt.json', qualification_output,
                                   {'desktop_bridge': 'passed', 'offline_help': 'packaged', 'schema_version': VERSION})
@@ -634,7 +641,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
             # catalog handles at the existing bounded idle exit.
             time.sleep(31)
     receipt.update({'extracted_inventory': 'passed', 'relocation_path_spaces': 'passed',
-                    'cli_real_audio_video_import': 'passed', 'cueson_assembly': 'passed', 'native_subtitle_export': 'passed',
+                    'cli_real_audio_video_import': 'passed', 'recording_replacement': 'passed', 'declared_roster': 'passed', 'cueson_assembly': 'passed', 'native_subtitle_export': 'passed',
                     'gui_bridge': 'passed', 'native_webview': 'passed', 'development_paths': 'not-required',
                     'inference': 'not-run', 'elapsed_seconds': round(time.monotonic() - started, 3)})
     return receipt

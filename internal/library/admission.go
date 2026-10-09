@@ -206,7 +206,55 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 		return out, contracts.Fail("unavailable")
 	}
 	defer os.RemoveAll(directory)
-	if item.Record != "" {
+	if item.TargetError != "" {
+		return out, contracts.Fail(item.TargetError)
+	}
+	var replacing *catalog.LibraryEntry
+	var previous *catalog.Recording
+	if targetedMedia(item, options) {
+		target, current, e := s.replacementTarget(ctx, item, options)
+		if e != nil {
+			return out, e
+		}
+		if !audioElection(options) {
+			out = resultOf(ordinal, target)
+			out.State = "skipped"
+			e = s.Catalog.SkipAdmission(ctx, work, ordinal, marshal(out))
+			return out, e
+		}
+		replacing = &target
+		previous = current
+		if options.ExistingTranscript == "keep" && (previous == nil || previous.DocumentDigest == "") {
+			data, format, _, e := s.transcript(ctx, Item{Transcript: "<managed>"}, options, directory, &target)
+			if e != nil {
+				return out, e
+			}
+			doc, e := s.document(ctx, data, format, target.ID, "off")
+			if e != nil {
+				return out, e
+			}
+			// Stage compatibility conversion without changing accepted state. The
+			// prior current revision remains the transaction's compare-and-swap fence.
+			compatibilityOptions := options
+			compatibilityOptions.Attribution = "off"
+			previous, e = s.makeRecording(ctx, target, doc, compatibilityOptions, nil, nil)
+			if e != nil {
+				return out, e
+			}
+			previous.Revision = 0
+			if current != nil {
+				previous.Revision = current.Revision
+			}
+		}
+		if options.ExistingTranscript == "" {
+			if item.Transcript != "" || options.SubtitleStreamIndex != nil || options.SubtitleLanguage != "" {
+				options.ExistingTranscript = "replace"
+			} else {
+				options.ExistingTranscript = "clear"
+			}
+		}
+	}
+	if item.Record != "" && replacing == nil {
 		return s.admitTranscript(ctx, work, ordinal, item, options, directory)
 	}
 	if options.Copy != nil && !*options.Copy {
@@ -250,8 +298,11 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 	staged.Close()
 	defer os.Remove(path)
 	entryID := DerivedID(work.ID, "media-"+strconv.Itoa(ordinal))
+	if replacing != nil {
+		entryID = replacing.ID
+	}
 	// Canonical source identity replaces the discarded local locator as the dedup key.
-	if !item.NewEntry {
+	if !item.NewEntry && replacing == nil {
 		for _, existing := range known.content {
 			var facts Facts
 			json.Unmarshal(existing.Facts, &facts)
@@ -286,7 +337,9 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 	var input []byte
 	format := ""
 	var transcriptAcquisition *Acquisition
-	if item.Transcript != "" {
+	if replacing != nil && options.ExistingTranscript != "replace" {
+		// Existing-document policy deliberately bypasses candidate embedded text.
+	} else if item.Transcript != "" {
 		phase = "transcript-acquisition"
 		input, format, transcriptAcquisition, err = s.transcript(ctx, item, options, directory, nil)
 		if len(tracks) > 0 {
@@ -306,6 +359,9 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 	}
 	if err != nil {
 		return out, err
+	}
+	if replacing != nil && options.ExistingTranscript == "replace" && len(input) == 0 {
+		return out, contracts.Fail("invalid_request")
 	}
 	var document *subtitles.Admission
 	if len(input) > 0 {
@@ -346,6 +402,9 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 	}
 	candidates = append(candidates, reportID)
 	title := item.Title
+	if title == "" && replacing != nil {
+		title = replacing.Title
+	}
 	if title == "" {
 		title = filepath.Base(source)
 		if acquisition != nil {
@@ -357,7 +416,11 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 		title = "Imported recording"
 	}
 	scrubBundle(&bundle, source, path, item.Source, directory)
-	dates := s.dates(bundle, options, nil)
+	var oldDates []Date
+	if replacing != nil {
+		json.Unmarshal(replacing.Dates, &oldDates)
+	}
+	dates := s.dates(bundle, options, oldDates)
 	if document != nil {
 		bundle.Facts.SubtitleState = "current"
 	}
@@ -367,6 +430,37 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 	}
 	entry := catalog.LibraryEntry{ID: entryID, AssetID: publication.ArtifactID, Title: title, Class: "audio", Mode: "copy", SourceLocator: locator, Digest: publication.Digest, Size: publication.Size, OriginalPublicationID: &publication.ID, DurationUS: bundle.Facts.DurationUS, Facts: marshal(bundle.Facts), Metadata: marshal(bundle.Metadata), Dates: marshal(dates), ReportPublicationIDs: marshal([]string{reportID})}
 	var recording *catalog.Recording
+	expectedRecording := int64(0)
+	if replacing != nil {
+		entry.Revision = replacing.Revision
+		if previous != nil {
+			expectedRecording = previous.Revision
+		}
+		if options.ExistingTranscript == "keep" {
+			if err = validateKeptSelection(*replacing, entry, previous); err != nil {
+				return out, err
+			}
+			copy := *previous
+			copy.SourceDigest = entry.Digest
+			copy.SourceRevision = 1
+			copy.MappedAudioPublicationID = nil
+			mapping := map[string]json.RawMessage{}
+			json.Unmarshal(previous.SourceMap, &mapping)
+			keptMap := map[string]any{"policy": "supplied-document-source-clock;no-retiming", "kept_with_applicability_assertion": true}
+			for _, key := range []string{"stream_index", "channel"} {
+				if value, ok := mapping[key]; ok {
+					keptMap[key] = value
+				}
+			}
+			copy.SourceMap = marshal(keptMap)
+			recording = &copy
+			if entry.DurationUS == nil {
+				notices = append(notices, "kept_transcript_audio_bounds_unknown")
+			}
+		} else if options.ExistingTranscript == "clear" {
+			recording = &catalog.Recording{ID: entry.ID, SourceDigest: entry.Digest, SourceRevision: 1, State: "untranscribed", Document: json.RawMessage(`null`), SourceMap: json.RawMessage(`{}`), Provenance: marshal(map[string]any{"mode": "explicit-audio-replacement;transcript-clear"}), Diagnostics: json.RawMessage(`[]`)}
+		}
+	}
 	if document != nil {
 		phase = "current-document"
 		recording, err = s.makeRecording(ctx, entry, *document, options, tracks, transcriptAcquisition)
@@ -382,7 +476,31 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 	out = resultOf(ordinal, entry)
 	out.Notices = notices
 	phase = "current-acceptance"
-	entry, recording, err = s.Catalog.CommitAdmission(ctx, work, ordinal, 0, entry, recording, marshal(out))
+	if replacing != nil {
+		out.State = "replaced"
+	}
+	if replacing != nil || options.KnownSpeakers != nil {
+		ids := item.ResolvedSpeakerIDs
+		if options.KnownSpeakers != nil && ids == nil {
+			ids, err = s.Catalog.ResolveSpeakers(ctx, options.KnownSpeakers)
+			if err != nil {
+				return out, err
+			}
+		}
+		rosterRevision := int64(0)
+		if item.ExpectedRosterRevision != nil {
+			rosterRevision = *item.ExpectedRosterRevision
+		} else if replacing != nil {
+			roster, e := s.Catalog.Roster(ctx, entry.ID)
+			if e != nil {
+				return out, e
+			}
+			rosterRevision = roster.Revision
+		}
+		entry, recording, err = s.Catalog.CommitElectedAdmission(ctx, work, ordinal, expectedRecording, entry, recording, catalog.AdmissionElection{ReplaceAudio: replacing != nil, ExpectedRosterRevision: rosterRevision, RosterPolicy: options.ExistingRoster, SpeakerIDs: ids}, marshal(out))
+	} else {
+		entry, recording, err = s.Catalog.CommitAdmission(ctx, work, ordinal, 0, entry, recording, marshal(out))
+	}
 	if err != nil {
 		return out, err
 	}
@@ -543,6 +661,15 @@ func FreezeTargets(ctx context.Context, db catalog.Catalog, request ImportReques
 	for i := range request.Items {
 		item := &request.Items[i]
 		item.TargetError = ""
+		options := merged(request.Defaults, item.Options)
+		if options.KnownSpeakers != nil {
+			ids, e := db.ResolveSpeakers(ctx, options.KnownSpeakers)
+			if e != nil {
+				item.TargetError = code(e)
+				continue
+			}
+			item.ResolvedSpeakerIDs = ids
+		}
 		if item.Record == "" {
 			continue
 		}
@@ -563,6 +690,17 @@ func FreezeTargets(ctx context.Context, db catalog.Catalog, request ImportReques
 			item.TargetError = "conflict"
 			continue
 		}
+		roster, e := db.Roster(ctx, entry.ID)
+		if e != nil {
+			item.TargetError = code(e)
+			continue
+		}
+		if item.ExpectedRosterRevision != nil && *item.ExpectedRosterRevision != roster.Revision {
+			item.TargetError = "conflict"
+			continue
+		}
+		rr := roster.Revision
+		item.ExpectedRosterRevision = &rr
 		item.Record = entry.ID
 		observed := entry.Revision
 		item.ExpectedRevision = &observed

@@ -8,6 +8,59 @@ import (
 	"testing"
 )
 
+func TestElectedAudioReplacementAtomic(t *testing.T) {
+	ctx := context.Background()
+	s := localStore(t, contracts.ID())
+	claim, entry := entryFixture(t, s)
+	r := Recording{ID: entry.ID, SourceDigest: entry.Digest, SourceRevision: 1, State: "untranscribed", Document: json.RawMessage(`null`), SourceMap: json.RawMessage(`{}`), Provenance: json.RawMessage(`{}`), Diagnostics: json.RawMessage(`[]`)}
+	old, doc, e := s.CommitAdmission(ctx, claim, 0, 0, entry, &r)
+	if e != nil {
+		t.Fatal(e)
+	}
+	next, candidate := entryFixture(t, s)
+	candidate.ID = old.ID
+	candidate.Revision = old.Revision
+	changed := r
+	changed.SourceDigest = candidate.Digest
+	if _, _, e = s.CommitAdmission(ctx, next, 0, doc.Revision, candidate, &changed); e == nil {
+		t.Fatal("generic source mutation")
+	}
+	if _, _, e = s.CommitElectedAdmission(ctx, next, 0, doc.Revision+1, candidate, &changed, AdmissionElection{ReplaceAudio: true}); e == nil {
+		t.Fatal("stale document accepted")
+	}
+	unchanged, _ := s.Library(ctx, old.ID)
+	if unchanged.AssetID != old.AssetID {
+		t.Fatal("failed mutation escaped")
+	}
+	got, newdoc, e := s.CommitElectedAdmission(ctx, next, 0, doc.Revision, candidate, &changed, AdmissionElection{ReplaceAudio: true})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if got.ID != old.ID || got.AssetID == old.AssetID || newdoc.Revision != got.Revision || newdoc.State != "untranscribed" {
+		t.Fatalf("replacement %+v %+v", got, newdoc)
+	}
+	snap, e := s.Export(ctx)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = localStore(t, s.workspace).Restore(ctx, snap); e != nil {
+		t.Fatal("portable replacement", e)
+	}
+	stopped, candidate := entryFixture(t, s)
+	candidate.ID = got.ID
+	candidate.Revision = got.Revision
+	if _, e = s.CancelWork(ctx, contracts.ID(), stopped.ID); e != nil {
+		t.Fatal(e)
+	}
+	if _, _, e = s.CommitElectedAdmission(ctx, stopped, 0, newdoc.Revision, candidate, newdoc, AdmissionElection{ReplaceAudio: true}); e == nil {
+		t.Fatal("cancelled source publication")
+	}
+	actual, _ := s.Library(ctx, got.ID)
+	if actual.Revision != got.Revision {
+		t.Fatal("cancelled source changed current")
+	}
+}
+
 func TestAdmissionAtomicReplayAndPortableProof(t *testing.T) {
 	admissionSuite(t, localStore(t, contracts.ID()))
 }

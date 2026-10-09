@@ -77,7 +77,8 @@
         3,
         4,
         5,
-        6
+        6,
+        7
       ]
     },
     "digest": {
@@ -1833,6 +1834,66 @@
             ],
             "additionalProperties": false
           }
+        },
+        "rosters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "revision"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Stable workspace-scoped UUID."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Positive accepted current roster revision."
+              }
+            }
+          },
+          "description": "Current intentional roster headers, independent of transcripts."
+        },
+        "roster_members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "recording_id",
+              "speaker_id",
+              "revision"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Stable workspace-scoped UUID."
+              },
+              "recording_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Stable parent recording UUID."
+              },
+              "speaker_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Existing centralized speaker UUID."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Positive accepted current roster revision."
+              }
+            }
+          },
+          "description": "Unique references to existing centralized speaker identities."
         }
       },
       "required": [

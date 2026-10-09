@@ -38,7 +38,7 @@ func TestFrozenV5AndExistingDatabaseMigration(t *testing.T) {
 	}
 	defer s.Close()
 	snap, e := s.Export(context.Background())
-	if e != nil || snap.CatalogSchema != 6 {
+	if e != nil || snap.CatalogSchema != SchemaVersion {
 		t.Fatal(snap.CatalogSchema, e)
 	}
 }

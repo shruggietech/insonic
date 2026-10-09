@@ -130,6 +130,9 @@ func (s *Store) validateLibraryState(ctx context.Context, tx *sql.Tx, expire boo
 	if e != nil {
 		return e
 	}
+	if e = s.validateRosterState(ctx, tx, r); e != nil {
+		return e
+	}
 	if e = s.validateRecordingState(ctx, tx, r); e != nil {
 		return e
 	}

@@ -163,3 +163,20 @@ Media and transcript HTTP acquisition have separate credential IDs and budgets. 
 All embedded subtitle candidates remain inspectable in captured source-stream facts. An explicit transcript wins and reports unused embedded alternatives. Otherwise explicit index/language filters apply, then default disposition, non-forced disposition and stream order choose one supported text track. Alternatives are never concatenated. Image-only subtitles report an OCR requirement; burned-in captions require a separately elected OCR capability. Neither route silently runs an engine.
 
 Standalone target selectors resolve to a recording ID and observed source/document revisions when queued. A delayed stale replacement fails instead of overwriting a later edit. Advanced manifest items can supply `expected_revision` and `expected_recording_revision` explicitly. Resubmit a new request to elect a changed target; accepted work retries reconcile their original receipts.
+
+## Replacement and initial speaker context
+
+`media import SOURCE --record ID` targets existing audio and skips without candidate access unless `--replace-audio` is elected. Transcript and declared-roster policies follow [audio replacement](media.md#explicit-audio-replacement). Repeated `--known-speaker` references declare initial context on a new entry. A duplicate existing source keeps its accepted roster; use roster edits for that recording.
+
+JSON items use `kind: "media"` for targeted audio and `kind: "transcript"` for the standalone `record` plus `source` transcript alias. Options `replace_audio`, `existing_transcript`, `transcript_applies`, `existing_roster` and `known_speakers` share batch/default and per-item precedence. Omitted `known_speakers` leaves the roster undeclared; `[]` declares empty. CSV accepts the same columns, with a JSON string array in each `known_speakers` cell. Observed `expected_revision`, `expected_recording_revision` and `expected_roster_revision` reject stale elected targets. Runtime work freezes resolved speaker IDs and target revisions before acquisition.
+
+```json
+{
+  "kind": "import-manifest",
+  "schema_version": "0.0.0",
+  "defaults": { "timezone": "UTC", "attribution": "off" },
+  "items": [
+    { "kind": "media", "source": "new.wav", "known_speakers": [] }
+  ]
+}
+```

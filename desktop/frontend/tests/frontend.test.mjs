@@ -89,6 +89,7 @@ function mock() {
       let result = { items: [], next_id: '' };
       if (request.operation === 'media.list') result.items = [entry];
       if (request.operation === 'media.show') result = entry;
+      if(request.operation==='recordings.roster.show')result={recording_id:mid,declared:false,revision:0,members:[]};
       if (request.operation === 'media.metadata')
         result = {
           observations: [
@@ -1462,4 +1463,33 @@ test('rendered standalone transcript keeps independent limits and replacement el
 
 test('invalid numeric admission controls fail before native submission',async()=>{
  const bridge=mock();await mount(bridge);await fill('Media path or URL','/fixture.wav');await fill('Transcript byte limit','NaN');await click('Import');assert.equal(bridge.calls.some(c=>c.operation==='media.import'),false);assert.match(document.body.textContent,/Enter valid transcript limits/);await unmount();
+});
+
+test('rendered replacement submits explicit stable-target elections',async()=>{
+ const bridge=mock();await mount(bridge);
+ await act(async()=>field('Target existing recording audio').click());await tick();
+ await fill('Existing recording ID or exact title',mid);await fill('Media path or URL','/replacement.wav');
+ await act(async()=>field('Replace current audio').click());await tick();
+ await fill('Existing transcript policy','keep');await fill('Existing roster policy','retain');
+ await act(async()=>field('Current transcript applies to replacement audio').click());await tick();await click('Import');
+ const req=bridge.calls.find(c=>c.operation==='media.import');assert.equal(req.data.items[0].record,mid);assert.equal(req.data.items[0].kind,'media');assert.equal(req.data.defaults.replace_audio,true);assert.equal(req.data.defaults.existing_transcript,'keep');assert.equal(req.data.defaults.transcript_applies,true);assert.equal(req.data.defaults.existing_roster,'retain');assert.equal(validateNativeRequest(req).valid,true);await unmount();
+});
+test('audio-only roster distinguishes absent and empty and rereads conflicts',async()=>{
+ const bridge=mock(),original=bridge.Operate;let roster={recording_id:mid,declared:false,revision:0,members:[]}, conflict=false;
+ bridge.Operate=async req=>{
+  if(req.operation.startsWith('recordings.roster.')){
+   assert.equal(validateNativeRequest(req).valid,true);bridge.calls.push(req);
+   if(req.operation==='recordings.roster.show')return {result:roster};
+   if(conflict){roster={...roster,revision:8};return {error:{code:'conflict',message:'Roster changed. Refresh and retry.'}};}
+   assert.equal(req.data.expected_revision,roster.revision);roster={...roster,declared:true,revision:7,members:[]};return {result:roster};
+  }
+  if(req.operation==='recordings.cues')return {error:{code:'not_found',message:'No document'}};
+  return original(req);
+ };
+ await mount(bridge);await click('Open Committed speech');assert.match(document.body.textContent,/Roster not declared/);
+ await click('Clear roster');assert.match(document.body.textContent,/Explicitly empty roster/);assert.match(document.body.textContent,/Revision 7/);
+ conflict=true;await fill('Roster speaker references',mid);await click('Apply roster edit');assert.match(document.body.textContent,/Roster changed/);assert.match(document.body.textContent,/Revision 8/);await unmount();
+});
+test('initial desktop roster preserves explicit empty membership',async()=>{
+ const bridge=mock();await mount(bridge);await fill('Media path or URL','/fixture.wav');await act(async()=>field('Declare known speakers at import').click());await tick();await click('Import');const req=bridge.calls.find(c=>c.operation==='media.import');assert.deepEqual(req.data.defaults.known_speakers,[]);assert.equal(validateNativeRequest(req).valid,true);await unmount();
 });

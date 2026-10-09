@@ -13,7 +13,7 @@ const example = kind => structuredClone(catalog.contracts.find(item => item.sche
 
 test('all documented contracts and local references validate through the release master', () => {
   assert.equal(catalog.contracts.length, 18);
-  assert.equal(examples, 22);
+  assert.equal(examples, 25);
   for (const item of catalog.contracts) for (const value of item.schema.examples) assert.equal(master(value), true);
 });
 

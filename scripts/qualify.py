@@ -392,6 +392,21 @@ def cli():
         artifact_call('lease-release', lease_id)
         if Path(materialized['path']).exists() or artifact_call('cache-prune') != []:
             raise ValueError('artifact cache release')
+        child([executable, '--workspace', directory, 'media', 'tools', BUILD / 'media-tools.json', '--json'])
+        imported = json.loads(child([executable, '--workspace', directory, 'media', 'import', ROOT / 'tests/fixtures/media/speech.flac', '--known-speaker', speaker_id, '--json']))['result']
+        accepted_media = json.loads(child([executable, '--workspace', directory, 'work', 'wait', imported['work_id'], '--timeout-ms', '30000', '--json']))['result']
+        if accepted_media['state'] != 'succeeded':
+            raise ValueError('CLI roster media admission failed')
+        recording_id = accepted_media['result']['items'][0]['media_id']
+        roster_args = [executable, '--workspace', directory, 'recordings', 'roster', 'show', recording_id, '--json']
+        roster = json.loads(child(roster_args))['result']
+        if len(roster['members']) != 1 or roster['members'][0]['id'] != speaker_id:
+            raise ValueError('CLI initial roster missing')
+        replaced = json.loads(child([executable, '--workspace', directory, 'media', 'import', ROOT / 'tests/fixtures/media/speech.flac', '--record', recording_id, '--replace-audio', '--existing-transcript', 'clear', '--existing-roster', 'retain', '--json']))['result']
+        replacement = json.loads(child([executable, '--workspace', directory, 'work', 'wait', replaced['work_id'], '--timeout-ms', '30000', '--json']))['result']
+        retained = json.loads(child(roster_args))['result']
+        if replacement['state'] != 'succeeded' or replacement['result']['items'][0]['media_id'] != recording_id or retained['revision'] != roster['revision']:
+            raise ValueError('CLI replacement/roster authority changed')
         request_id = '10000000-0000-4000-8000-000000000002'
         start_args = [executable, '--workspace', directory, '--request-id', request_id, 'jobs', 'start', '1000', '--json']
         started = json.loads(child(start_args))
@@ -428,7 +443,7 @@ def cli():
         restored_attempts = next(table['rows'] for table in restored['state'] if table['name'] == 'job_attempt')
         if restored_attempts != attempts or restored['revision'] != exported['revision'] + 1:
             raise ValueError('CLI restore did not preserve durable history and restoration receipt')
-    (BUILD / 'cli-receipt.json').write_text(json.dumps({'owner_reuse': 'passed', 'cancel_retry': 'passed', 'durable_history': 'passed', 'catalog_transfer': 'passed', 'artifact_journey': 'passed', 'saved_configuration': 'passed', 'scoped_hints': 'passed', 'inference': 'not-run'}) + '\n', encoding='utf-8')
+    (BUILD / 'cli-receipt.json').write_text(json.dumps({'owner_reuse': 'passed', 'cancel_retry': 'passed', 'durable_history': 'passed', 'catalog_transfer': 'passed', 'artifact_journey': 'passed', 'saved_configuration': 'passed', 'scoped_hints': 'passed', 'recording_replacement': 'passed', 'declared_roster': 'passed', 'inference': 'not-run'}) + '\n', encoding='utf-8')
 
 if __name__ == '__main__':
     validate_pins()

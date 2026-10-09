@@ -2,6 +2,7 @@
 package library
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -41,5 +42,30 @@ func TestManifestsResolveRelativeAndOverrideDateKind(t *testing.T) {
 	os.WriteFile(file, []byte(`{"kind":"import-manifest","schema_version":"0.0.0","items":[{"source":"https://example.test/%zz?token=private"}]}`), 0600)
 	if _, e = ReadManifest(file); e == nil {
 		t.Fatal("manifest path resolution concealed malformed credential URL")
+	}
+}
+
+func TestRosterManifestElectionPrecedence(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "rosters.json")
+	os.WriteFile(path, []byte(`{"kind":"import-manifest","schema_version":"0.0.0","defaults":{"known_speakers":["Alice"],"copy":true},"items":[{"source":"a.wav","known_speakers":[],"replace_audio":false},{"source":"b.wav"}]}`), 0600)
+	r, e := ReadManifest(path)
+	if e != nil {
+		t.Fatal(e)
+	}
+	first := merged(r.Defaults, r.Items[0].Options)
+	if first.KnownSpeakers == nil || len(first.KnownSpeakers) != 0 || first.ReplaceAudio == nil || *first.ReplaceAudio {
+		t.Fatal("explicit empty/false did not override defaults")
+	}
+	raw := marshal(r.Items[0])
+	var item Item
+	if json.Unmarshal(raw, &item) != nil || item.KnownSpeakers == nil {
+		t.Fatal("empty roster election lost on durable serialization")
+	}
+	path = filepath.Join(dir, "rosters.csv")
+	os.WriteFile(path, []byte("kind,source,record,replace_audio,existing_transcript,transcript_applies,existing_roster,known_speakers\nmedia,a.wav,Existing,true,keep,true,retain,\nmedia,b.wav,,,,,,[]\n"), 0600)
+	r, e = ReadManifest(path)
+	if e != nil || r.Items[0].Kind != "media" || r.Items[0].ExistingTranscript != "keep" || r.Items[0].TranscriptApplies == nil || !*r.Items[0].TranscriptApplies || r.Items[1].KnownSpeakers == nil {
+		t.Fatalf("CSV elections %+v %v", r, e)
 	}
 }

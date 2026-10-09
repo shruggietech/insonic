@@ -19,7 +19,7 @@ A user adds media with original metadata and optional recording dates/subtitles,
 
 ```mermaid
 flowchart TB
-  Import[Audio or video with optional subtitles] --> Library[Tracked original and derived assets]
+  Import[Audio or video with optional subtitles] --> Library[Canonical audio and captured source facts]
   Library --> Pipeline[User-selected local or hosted pipeline]
   Pipeline --> Cues[Correlated Cueson transcript and speaker evidence]
   Cues --> Query[Search and source-linked graph queries]

@@ -124,6 +124,10 @@ export function Library({ client, run }: Props) {
   const { page, load } = useList(client, 'media.list', run);
   const [entry, setEntry] = useState<Obj>();
   const [metadata, setMetadata] = useState<Obj>();
+  const [targetAudio,setTargetAudio]=useState(false),[replaceAudio,setReplaceAudio]=useState(false),
+    [existingTranscript,setExistingTranscript]=useState(''),[transcriptApplies,setTranscriptApplies]=useState(false),
+    [existingRoster,setExistingRoster]=useState(''),[declareRoster,setDeclareRoster]=useState(false),[knownSpeakers,setKnownSpeakers]=useState('');
+  const [roster,setRoster]=useState<Obj>(),[rosterMode,setRosterMode]=useState<'add'|'remove'|'replace'>('add'),[rosterRefs,setRosterRefs]=useState('');
   const [source, setSource] = useState(''),
     [subtitle, setSubtitle] = useState(''),
     [title, setTitle] = useState(''),
@@ -177,6 +181,8 @@ export function Library({ client, run }: Props) {
     client.invalidate();
     const generation = ++selected.current;
     setEntry(undefined);
+    setRoster(undefined);
+    setRosterRefs('');
     setPlayback(undefined);
     setPlaybackTrack('');
     setCues(undefined);
@@ -187,12 +193,13 @@ export function Library({ client, run }: Props) {
     const nextEntry = await client.call('media.show', id);
     if (generation !== selected.current) return;
     setEntry(nextEntry);
-    const [p, s, m] = await Promise.all([
+    const [p, s, m, rosterResult] = await Promise.all([
       client.call('pipelines.list', '', { limit: 100 }),
       client.call('speakers.list', '', { limit: 100 }),
       client
         .call('recordings.mappings', id, { limit: 100 })
         .catch(() => ({ items: [] })),
+      client.roster(id),
     ]);
     if (generation !== selected.current) return;
     if (pipeline && !p.items.some((value: Obj) => value.id === pipeline))
@@ -203,6 +210,7 @@ export function Library({ client, run }: Props) {
     setSpeakers(s.items.map((item: Obj) => item.speaker));
     setSpeakerCursor(s.next_id);
     setMappings(m);
+    setRoster(rosterResult);
     try {
       const current = await client.call('recordings.cues', id, { limit: 25 });
       if (generation === selected.current) setCues(current);
@@ -213,6 +221,11 @@ export function Library({ client, run }: Props) {
   const refresh = async () => {
     if (entryID) await select(entryID);
     await load();
+  };
+  const mutateRoster=async(mode:'add'|'remove'|'replace'|'clear')=>{
+    if (!roster) return;
+    try {setRoster(await client.updateRoster(entryID,roster.revision??0,mode,mode==='clear'?[]:lines(rosterRefs)));setRosterRefs('');}
+    catch(error){if((error as Obj).code==='conflict') setRoster(await client.roster(entryID));throw error;}
   };
   const capture = async (section = 'metadata') => {
     setMetadata(
@@ -324,6 +337,8 @@ export function Library({ client, run }: Props) {
                 schema_version: '0.0.0',
                 defaults: { ...dateOptions(),attribution:admissionAttribution,
  replace_transcript:replaceTranscript,
+ ...(targetAudio?{replace_audio:replaceAudio,...(existingTranscript?{existing_transcript:existingTranscript}:{}),...(existingTranscript==='keep'?{transcript_applies:transcriptApplies}:{}),...(existingRoster?{existing_roster:existingRoster}:{})}:{}),
+ ...(!targetAudio&&!transcriptOnly&&declareRoster?{known_speakers:lines(knownSpeakers)}:{}),
  ...(transcriptHint?{transcript_format:transcriptHint}:{}),
  ...(embeddedIndex!==''?{subtitle_stream_index:Number(embeddedIndex)}:{}),
  ...(embeddedLanguage?{subtitle_language:embeddedLanguage}:{}),
@@ -332,7 +347,7 @@ export function Library({ client, run }: Props) {
  },
                 items: [
                   {
-                    ...(transcriptOnly?{record:recordTarget,transcript:subtitle}:{source,...(subtitle?{transcript:subtitle}:{}),...(newEntry?{new_entry:true}:{})}),
+                    ...(transcriptOnly?{kind:'transcript',record:recordTarget,transcript:subtitle}:{kind:'media',source,...(targetAudio?{record:recordTarget}:{}),...(subtitle?{transcript:subtitle}:{}),...(!targetAudio&&newEntry?{new_entry:true}:{})}),
                     ...(mediaCredential&&!transcriptOnly?{credential_id:mediaCredential}:{}),
                     ...(transcriptCredential?{transcript_credential_id:transcriptCredential}:{}),
                     ...(title ? { title } : {}),
@@ -344,8 +359,22 @@ export function Library({ client, run }: Props) {
             });
           }}
         >
-          <Check label="Import transcript into an existing recording" value={transcriptOnly} onChange={setTranscriptOnly}/>
-          {transcriptOnly && <Input label="Existing recording ID or exact title" value={recordTarget} onChange={setRecordTarget} required/>}
+          <Check label="Import transcript into an existing recording" value={transcriptOnly} onChange={(v)=>{setTranscriptOnly(v);if(v)setTargetAudio(false)}}/>
+          <Check label="Target existing recording audio" value={targetAudio} onChange={(v)=>{setTargetAudio(v);if(v)setTranscriptOnly(false)}}/>
+          {targetAudio && <>
+            <Check label="Replace current audio" value={replaceAudio} onChange={setReplaceAudio}/>
+            <p>Without replacement elected, the target is skipped before opening the candidate source.</p>
+            {replaceAudio && <>
+              <Select label="Existing transcript policy" value={existingTranscript} onChange={setExistingTranscript} options={[{value:'',label:'Choose when a transcript exists'},{value:'keep',label:'Keep current transcript'},{value:'clear',label:'Clear current transcript'},{value:'replace',label:'Replace with selected transcript'}]}/>
+              {existingTranscript==='keep' && <Check label="Current transcript applies to replacement audio" value={transcriptApplies} onChange={setTranscriptApplies}/>}
+              <Select label="Existing roster policy" value={existingRoster} onChange={setExistingRoster} options={[{value:'',label:'Choose when a roster is declared'},{value:'retain',label:'Retain declared roster'},{value:'clear',label:'Clear declared roster'}]}/>
+            </>}
+          </>}
+          {!targetAudio&&!transcriptOnly && <>
+            <Check label="Declare known speakers at import" value={declareRoster} onChange={setDeclareRoster}/>
+            {declareRoster && <Area label="Known speaker IDs, names or aliases" value={knownSpeakers} onChange={setKnownSpeakers} description="One existing identity per line. An empty list declares an empty roster."/>}
+          </>}
+          {(transcriptOnly||targetAudio) && <Input label="Existing recording ID or exact title" value={recordTarget} onChange={setRecordTarget} required/>}
           <Input
             label="Media path or URL"
             value={source}
@@ -575,6 +604,20 @@ export function Library({ client, run }: Props) {
                 )}
               </>
             )}
+          </Card>
+          <Card heading="Declared speaker roster">
+            <p>{roster?.declared ? ((roster.members?.length??0)===0?'Explicitly empty roster':'Declared roster') : 'Roster not declared'}. Revision {roster?.revision??0}.</p>
+            <p>Declared speakers are intentional context. Membership does not assign transcript voices or provide acoustic evidence.</p>
+            <Table caption="Declared roster members" heads={['Speaker','Identity','State']}>
+              {(roster?.members??[]).map((sp:Obj)=><tr key={sp.id}><td>{sp.name}</td><td>{sp.id}</td><td>{sp.state}</td></tr>)}
+            </Table>
+            <Select label="Roster edit" value={rosterMode} onChange={(v)=>setRosterMode(v as typeof rosterMode)} options={[{value:'add',label:'Add members'},{value:'remove',label:'Remove members'},{value:'replace',label:'Replace membership'}]}/>
+            <Area label="Roster speaker references" value={rosterRefs} onChange={setRosterRefs} description="One ID, unique name or active alias per line. Inactive members can be removed by ID."/>
+            <Actions>
+              <Button onClick={()=>run(()=>mutateRoster(rosterMode))}>Apply roster edit</Button>
+              <Button variant="secondary" onClick={()=>run(()=>mutateRoster('clear'))}>Clear roster</Button>
+              <Button variant="secondary" onClick={()=>run(async()=>setRoster(await client.roster(entryID)))}>Refresh roster</Button>
+            </Actions>
           </Card>
           <Card heading="Recording date">
             <p>

@@ -82,3 +82,22 @@ Use the returned revision as `expected_revision` for the next edit. Alias arrays
 Speaker selection and diagnostics accept optional `cursor`, `limit` (1 through 100), `recording_id` and `quality`. A `quality` object accepts `enabled`, defaulting to true; `{"quality":{"enabled":false}}` suppresses optional correlation diagnostics. The response reports the effective setting. Current-reference validation, timing resolution, deduplication and explicit untimed participation remain mandatory with diagnostics disabled. Current evidence binds recording, document, mapping, source and source-map revisions/digests. Intervals are computed from current embedded assignments when requested, with overlap and untimed participation disclosed. Repeated source evidence is deduplicated across cursor pages; changing page size preserves unique spans and aggregate diagnostic counts. Missing timing does not yield an invented clip. Changing the current recording or mapping invalidates an old selection cursor rather than silently returning mismatched evidence. Selection prepares references and measurements; it does not train a model or publish audio clips.
 
 Term compilation accepts optional `pipeline_id`, `pipeline_revision`, `speaker_ids`, `language`, `context` and `max_hint_bytes`. It can run without input, using active general terms and a default 200-byte budget. A selected pipeline supplies the recognizer's capability, budget and configured hints. When no language filter is supplied, compilation uses that recognizer's language. Pipeline inspection applies the same rules to its effective saved or overridden stage, so its hint preview matches a generated recognition election. Compilation runs no model and proves no speaking identity. Dedicated pipeline/speaker/terms GUI controls follow the desktop delivery contract. Corrections use the same IDs, expected revisions and current-reference validation in every client.
+
+## Declared recording rosters
+
+A declared roster expresses intended speaker context for a recording, including one with no transcript. Its header anchors to the stable library recording ID; each unique membership references an existing centralized speaker ID. It stores no copied names, profiles or assignments. An undeclared roster has revision zero; an explicitly empty roster has a positive header revision. Names and active/inactive states are read from the current speaker catalog.
+
+```sh
+insonic recordings roster show RECORDING_ID --json
+insonic recordings roster add RECORDING_ID --speaker SPEAKER_ID --speaker "Exact alias" --expected-revision 0 --json
+insonic recordings roster remove RECORDING_ID --speaker SPEAKER_ID --expected-revision REVISION --json
+insonic recordings roster replace RECORDING_ID --speaker SPEAKER_ID --expected-revision REVISION --json
+insonic recordings roster clear RECORDING_ID --expected-revision REVISION --json
+insonic media import session.wav --known-speaker SPEAKER_ID --known-speaker "Exact alias" --json
+```
+
+Mutations compare the independent roster revision and reconcile repeated request IDs. Set no-ops preserve the roster revision. References resolve by UUID, unique exact canonical name or active alias; ambiguity and inactive new elections fail. Use `name:` for a UUID-shaped name. Existing inactive members remain visible and removable by ID. Membership is bounded to 1,000 speakers and selectors to 512 UTF-8 bytes. An empty replacement or clear declares an empty roster.
+
+Initial known-speaker references resolve once when work is queued; later alias edits cannot retarget the frozen IDs. Audio and membership publish in one current transaction, leaving no orphan roster on failure. Transcript or mapping edits preserve membership. Audio replacement explicitly retains or clears an existing roster. Portable snapshots validate parent identities, unique membership, revisions and accepted current proofs on SQLite/PostgreSQL. Graph projection exposes separate `declared-speaker` context edges.
+
+The desktop Library exposes initial roster input, a current roster table and add/remove/replace/clear controls using the displayed revision. A conflict refreshes current roster authority and reports the failed election. Declared membership does not assign a transcript voice, create training evidence, run acoustic matching or infer how many speakers actually spoke. Automatic matching remains a separate delivery contract.

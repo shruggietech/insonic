@@ -29,7 +29,7 @@ Supplied SRT/WebVTT/ASS/SSA or Cue JSON bypasses unnecessary recognition. Local 
 
 A completed result records source identity, mapped-audio relationship, tool/model/settings provenance, valid current Cue JSON and its digest. Work receipts retain IDs, hashes and diagnostics, without another document or turn array. Acceptance validates document correctness separately from the [diarization quality diagnostics](pipelines.md#local-processing-and-quality-diagnostics).
 
-No-speech has an explicit outcome with a null document. Speech without usable subtitle timing is `no-timed-subtitles`, with its limitation reported. SRT/WebVTT requires a nonempty cue sequence; do not invent text, cues or timestamps to fit that container. A failed processing attempt preserves originals and the previously accepted current result.
+Explicit audio replacement with a cleared or absent transcript publishes `untranscribed` with a null document. It makes no recognition or silence claim. No-speech has an explicit outcome with a null document. Speech without usable subtitle timing is `no-timed-subtitles`, with its limitation reported. SRT/WebVTT requires a nonempty cue sequence; do not invent text, cues or timestamps to fit that container. A failed processing attempt preserves originals and the previously accepted current result.
 
 ## Recording-local identity
 

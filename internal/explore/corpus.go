@@ -117,6 +117,14 @@ func Build(s catalog.Snapshot) (Corpus, error) {
 	for _, v := range s.Records.MediaAssets {
 		edge("media:"+v.MediaID, "asset:"+v.AssetID, "has-asset")
 	}
+	for _, h := range s.Records.Rosters {
+		node("roster:"+h.ID, "declared-roster", map[string]any{"recording_id": h.ID, "revision": h.Revision}, Row{Label: "Declared speaker roster", MediaID: h.ID, Provenance: map[string]any{"declared": true, "revision": h.Revision}})
+		edge("media:"+h.ID, "roster:"+h.ID, "has-roster")
+	}
+	for _, m := range s.Records.RosterMembers {
+		edge("media:"+m.RecordingID, "speaker:"+m.SpeakerID, "declared-speaker")
+		edge("roster:"+m.RecordingID, "speaker:"+m.SpeakerID, "declares")
+	}
 	for _, v := range s.Records.Metadata {
 		node("snapshot:"+v.ID, "metadata-snapshot", map[string]any{"snapshot_id": v.ID}, Row{Label: v.Extractor + " " + v.State})
 		edge("asset:"+v.AssetID, "snapshot:"+v.ID, "has-metadata-snapshot")

@@ -17,6 +17,12 @@ func admissionOperation(work string, ordinal int) string {
 // Candidate artifacts are verified first; current references and cleanup
 // obligations change only under this live work fence.
 func (s *Store) CommitAdmission(ctx context.Context, claim Work, ordinal int, expectedRecording int64, entry LibraryEntry, r *Recording, itemResult ...json.RawMessage) (LibraryEntry, *Recording, error) {
+	return s.CommitElectedAdmission(ctx, claim, ordinal, expectedRecording, entry, r, AdmissionElection{}, itemResult...)
+}
+func (s *Store) CommitElectedAdmission(ctx context.Context, claim Work, ordinal int, expectedRecording int64, entry LibraryEntry, r *Recording, election AdmissionElection, itemResult ...json.RawMessage) (LibraryEntry, *Recording, error) {
+	if election.ExpectedRosterRevision < 0 || election.ReplaceAudio && r == nil || election.RosterPolicy != "" && election.RosterPolicy != "retain" && election.RosterPolicy != "clear" || election.ReplaceAudio && election.SpeakerIDs != nil || !election.ReplaceAudio && election.RosterPolicy != "" {
+		return entry, r, contracts.Fail("invalid_request")
+	}
 	if len(itemResult) > 1 || len(itemResult) == 1 && !referenceResult(itemResult[0]) || ordinal < 0 || ordinal >= 10000 || expectedRecording < 0 || !validLibrary(entry) || (r != nil && (r.ID != entry.ID || r.SourceDigest != entry.Digest)) {
 		return entry, r, contracts.Fail("invalid_request")
 	}
@@ -29,7 +35,11 @@ func (s *Store) CommitAdmission(ctx context.Context, claim Work, ordinal int, ex
 		copy.SourceRevision = 0
 		elected = &copy
 	}
-	digest, e := intent([]any{"admission", ordinal, expectedLibrary, expectedRecording, entry, elected})
+	intentFields := []any{"admission", ordinal, expectedLibrary, expectedRecording, entry, elected}
+	if election.ReplaceAudio || election.ExpectedRosterRevision != 0 || election.RosterPolicy != "" || election.SpeakerIDs != nil {
+		intentFields = append(intentFields, election)
+	}
+	digest, e := intent(intentFields)
 	if e != nil {
 		return entry, r, e
 	}
@@ -56,7 +66,10 @@ func (s *Store) CommitAdmission(ctx context.Context, claim Work, ordinal int, ex
 		if oldErr != nil && oldErr != sql.ErrNoRows {
 			return oldErr
 		}
-		if e = s.saveLibrary(ctx, tx, &entry, expectedLibrary, rev); e != nil {
+		if election.ReplaceAudio && (oldErr != nil || expectedLibrary == 0) {
+			return contracts.Fail("conflict")
+		}
+		if e = s.saveElectedLibrary(ctx, tx, &entry, expectedLibrary, rev, election.ReplaceAudio); e != nil {
 			return e
 		}
 		if old.SubtitlePublicationID != nil && entry.SubtitlePublicationID == nil {
@@ -87,6 +100,11 @@ func (s *Store) CommitAdmission(ctx context.Context, claim Work, ordinal int, ex
 				return contracts.Fail("invalid_request")
 			}
 			// Imported equal tokens alone cannot carry a prior identity election.
+			if election.ReplaceAudio {
+				if _, e = s.exec(ctx, tx, "DELETE FROM speaker_mapping WHERE workspace_id=? AND recording_id=?", s.workspace, r.ID); e != nil {
+					return e
+				}
+			}
 			if _, e = s.exec(ctx, tx, "DELETE FROM speaker_mapping WHERE workspace_id=? AND recording_id=? AND document_digest<>?", s.workspace, r.ID, r.DocumentDigest); e != nil {
 				return e
 			}
@@ -110,6 +128,29 @@ func (s *Store) CommitAdmission(ctx context.Context, claim Work, ordinal int, ex
 			}
 			// Both current domains share the same cleanup entry and revision.
 			result["cleanup_ids"] = recordingResult["cleanup_ids"]
+		}
+		roster, e := s.rosterTx(ctx, tx, entry.ID)
+		if e != nil {
+			return e
+		}
+		if election.ReplaceAudio {
+			if roster.Revision != election.ExpectedRosterRevision || roster.Declared && election.RosterPolicy == "" {
+				return contracts.Fail("conflict")
+			}
+			if election.RosterPolicy != "" {
+				roster, e = s.saveRoster(ctx, tx, entry.ID, election.ExpectedRosterRevision, rev, election.RosterPolicy, nil)
+			}
+		} else if election.SpeakerIDs != nil {
+			if expectedLibrary != 0 {
+				return contracts.Fail("invalid_request")
+			}
+			roster, e = s.saveRoster(ctx, tx, entry.ID, 0, rev, "replace", election.SpeakerIDs)
+		}
+		if e != nil {
+			return e
+		}
+		if roster.Declared {
+			result["roster_proofs"] = map[string]string{entry.ID: rosterDigest(roster)}
 		}
 		if len(itemResult) == 1 {
 			var detail map[string]json.RawMessage
