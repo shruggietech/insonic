@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-09
 
-**Status**: Specified
+**Status**: Implemented and CI-qualified; awaiting owner final review and merge
 
 **Input**: Complete #31/#32 through one import boundary, with shared transcript UX from #30 and new canonical admission from #33. Push/PR publication and at most two external review rounds are authorized; merge is not.
 

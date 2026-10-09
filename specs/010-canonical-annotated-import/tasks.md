@@ -37,15 +37,15 @@
 - [x] T018 [US3] Implement owner-approved canonical conversion/probe/provenance and dedup in internal/library/canonical.go, extract.go and service.go.
 - [x] T019 [US3] Scrub accepted source locators from durable input/metadata with receipt integrity and retry preservation in internal/catalog/admission.go, library_state.go and internal/library/extract.go.
 - [x] T020 [US3] Reconcile selected canonical track clocks with processing/playback consumers in internal/processing/audio.go and internal/app/playback_preview.go.
-- [ ] T021 [US3] Qualify pinned MP3 V0 support on every platform and update required source packaging/notices in internal/qualification/media-tools.json and scripts/build-media-source.py.
+- [x] T021 [US3] Qualify pinned MP3 V0 support on every platform and update required source packaging/notices in internal/qualification/media-tools.json and scripts/build-media-source.py.
 
 ## Phase 6: Integration and delivery
 
 - [x] T022 Implement consistent desktop admission/selection/replacement controls and rendered tests in desktop/frontend/src/screens.tsx and desktop/frontend/tests/.
 - [x] T023 Update affected schema examples, authoritative docs, glossary, constitution and changelog in schemas/, docs/, .specify/memory/constitution.md and CHANGELOG.md.
-- [ ] T024 Run repository/schema, Go/vet/affected race, frontend/site and native/backend checks; record actual evidence in specs/010-canonical-annotated-import/verification.md.
+- [x] T024 Run repository/schema, Go/vet/affected race, frontend/site and native/backend checks; record actual evidence in specs/010-canonical-annotated-import/verification.md.
 - [x] T025 Execute speckit-converge against every requirement and child acceptance, repair remaining gaps and mark actual completed tasks in specs/010-canonical-annotated-import/tasks.md.
-- [ ] T026 Commit/push official PR, address every review thread, request at most one second round, verify final-head CI and stop before owner merge in specs/010-canonical-annotated-import/verification.md.
+- [x] T026 Commit/push official PR, address every review thread, request at most one second round, verify final-head CI and stop before owner merge in specs/010-canonical-annotated-import/verification.md.
 
 ## Dependencies and parallel opportunities
 
