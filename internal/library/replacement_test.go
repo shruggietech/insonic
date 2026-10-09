@@ -151,6 +151,11 @@ func TestNativeReplacementRosterElectionAndReplay(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
+	entry, e = s.SetOrigin(ctx, contracts.ID(), entry.ID, entry.Revision, Options{OriginatedOn: "2025-03-04", Timezone: "UTC"})
+	if e != nil {
+		t.Fatal(e)
+	}
+	beforeDates := decodeDates(entry.Dates)
 	roster, e := db.Roster(ctx, entry.ID)
 	if e != nil || len(roster.Members) != 1 {
 		t.Fatalf("roster %+v %v", roster, e)
@@ -188,6 +193,22 @@ func TestNativeReplacementRosterElectionAndReplay(t *testing.T) {
 	if current.Digest == entry.Digest || doc.State != "untranscribed" || current.Revision != doc.Revision {
 		t.Fatal("replacement authority")
 	}
+	afterDates := decodeDates(current.Dates)
+	if beforeDates.Selected == nil || afterDates.Selected == nil || beforeDates.Selected.ID != afterDates.Selected.ID || !sameDateValue(*beforeDates.Selected, *afterDates.Selected) || afterDates.Policy != beforeDates.Policy {
+		t.Fatal("replacement discarded date selection")
+	}
+	for _, observation := range beforeDates.Observations {
+		found := false
+		for _, candidate := range afterDates.Observations {
+			if bytes.Equal(marshal(observation), marshal(candidate)) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatal("prior date observation lost")
+		}
+	}
 	got, _ := db.Roster(ctx, entry.ID)
 	if got.Revision != roster.Revision || len(got.Members) != 1 {
 		t.Fatal("retained roster")
@@ -218,6 +239,15 @@ func TestNativeReplacementRosterElectionAndReplay(t *testing.T) {
 	raw, _ := json.Marshal(snap)
 	if len(raw) == 0 {
 		t.Fatal("snapshot")
+	}
+	newDate := executeTranscript(t, s, db, Item{Kind: "media", Record: entry.ID, Source: wavFixture(t), Options: Options{ReplaceAudio: &yes, ExistingTranscript: "clear", ExistingRoster: "retain", OriginatedOn: "2025-03-05"}})
+	if newDate.State != "replaced" {
+		t.Fatal("explicit new recording date", newDate)
+	}
+	elected, _ := db.Library(ctx, entry.ID)
+	dates := decodeDates(elected.Dates)
+	if dates.Selected == nil || dates.Selected.Literal != "2025-03-05" {
+		t.Fatal("new date election ignored")
 	}
 }
 
@@ -267,6 +297,12 @@ func TestNativeKeepAndReplaceDocumentPolicies(t *testing.T) {
 	kept, _ := db.Recording(ctx, entry.ID)
 	if kept.DocumentDigest != old.DocumentDigest || string(kept.Document) != string(old.Document) || kept.Revision <= old.Revision || kept.MappedAudioPublicationID != nil {
 		t.Fatal("kept authority")
+	}
+	accepted, _ := db.Library(ctx, entry.ID)
+	var facts Facts
+	json.Unmarshal(accepted.Facts, &facts)
+	if facts.SubtitleState != "current" || v.(ImportResult).Items[0].SubtitleState != "current" {
+		t.Fatal("kept transcript missing from facts or receipt")
 	}
 	stale := claimLibraryWork(t, db, "media.import", req)
 	v, e = s.Execute(ctx, stale)

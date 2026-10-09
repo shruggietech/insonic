@@ -416,12 +416,29 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 		title = "Imported recording"
 	}
 	scrubBundle(&bundle, source, path, item.Source, directory)
-	var oldDates []Date
+	var oldDates Dates
 	if replacing != nil {
 		json.Unmarshal(replacing.Dates, &oldDates)
 	}
-	dates := s.dates(bundle, options, oldDates)
-	if document != nil {
+	dateOptions := options
+	if dateOptions.DatePrecedence == "" {
+		dateOptions.DatePrecedence = oldDates.Policy
+	}
+	dates := s.dates(bundle, dateOptions, oldDates.Observations)
+	if replacing != nil && !hasOrigin(options) && options.DatePrecedence == "" && oldDates.Policy != "" {
+		// A new source contributes observations without silently electing a new
+		// recording date. Preserve the accepted selection and policy authority.
+		dates.Selected, dates.Policy, dates.Revision, dates.Reason = oldDates.Selected, oldDates.Policy, oldDates.Revision, oldDates.Reason
+		dates.Conflict = oldDates.Conflict
+		if dates.Selected != nil {
+			for _, d := range dates.Observations {
+				if (d.State == "resolved" || d.State == "date-only" || validBoundedDate(d)) && d.Basis != "filesystem-modified" && !sameDateValue(d, *dates.Selected) {
+					dates.Conflict = true
+				}
+			}
+		}
+	}
+	if document != nil || replacing != nil && options.ExistingTranscript == "keep" {
 		bundle.Facts.SubtitleState = "current"
 	}
 	phase = "metadata-publication"
