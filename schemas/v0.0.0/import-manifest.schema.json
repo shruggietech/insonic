@@ -93,6 +93,61 @@
           "maximum": 9223372036854,
           "default": 600000,
           "description": "Positive total acquisition deadline in milliseconds, default ten minutes. Per-item values override batch defaults."
+        },
+        "transcript_max_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216,
+          "default": 16777216,
+          "description": "Independent transcript acquisition and document byte ceiling (maximum 16 MiB)."
+        },
+        "transcript_timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600000,
+          "default": 120000,
+          "description": "Independent transcript acquisition timeout in milliseconds."
+        },
+        "attribution": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "native",
+            "off",
+            "diarize"
+          ],
+          "default": "auto",
+          "description": "Preserve existing assignments; derive structured participation only when none exist. Diarize explicitly elects configured acoustic processing without recognition."
+        },
+        "transcript_format": {
+          "type": "string",
+          "enum": [
+            "cueson",
+            "srt",
+            "vtt",
+            "ass",
+            "ssa"
+          ],
+          "description": "Explicit native or Cue JSON format hint validated against input bytes."
+        },
+        "replace_transcript": {
+          "type": "boolean",
+          "default": false,
+          "description": "Elect replacement when the target already has a current transcript."
+        },
+        "subtitle_stream_index": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Absolute embedded subtitle stream index to select."
+        },
+        "subtitle_language": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Case-insensitive embedded subtitle language filter."
+        },
+        "diarization_model_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Managed model UUID for explicitly elected import diarization."
         }
       },
       "not": {
@@ -151,7 +206,7 @@
           "subtitle": {
             "type": "string",
             "minLength": 1,
-            "description": "Optional supplied subtitle path attached to this item; missing subtitles do not block import.",
+            "description": "Compatibility alias for transcript, with the same independent acquisition and validation contract.",
             "examples": [
               "video/session.srt"
             ]
@@ -251,11 +306,93 @@
             "maximum": 9223372036854,
             "default": 600000,
             "description": "Positive total acquisition deadline in milliseconds, default ten minutes. Per-item values override batch defaults."
+          },
+          "transcript_max_bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16777216,
+            "default": 16777216,
+            "description": "Independent transcript acquisition and document byte ceiling (maximum 16 MiB)."
+          },
+          "transcript_timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 600000,
+            "default": 120000,
+            "description": "Independent transcript acquisition timeout in milliseconds."
+          },
+          "attribution": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "native",
+              "off",
+              "diarize"
+            ],
+            "default": "auto",
+            "description": "Preserve existing assignments; derive structured participation only when none exist. Diarize explicitly elects configured acoustic processing without recognition."
+          },
+          "transcript_format": {
+            "type": "string",
+            "enum": [
+              "cueson",
+              "srt",
+              "vtt",
+              "ass",
+              "ssa"
+            ],
+            "description": "Explicit native or Cue JSON format hint validated against input bytes."
+          },
+          "replace_transcript": {
+            "type": "boolean",
+            "default": false,
+            "description": "Elect replacement when the target already has a current transcript."
+          },
+          "subtitle_stream_index": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Absolute embedded subtitle stream index to select."
+          },
+          "subtitle_language": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Case-insensitive embedded subtitle language filter."
+          },
+          "diarization_model_id": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Managed model UUID for explicitly elected import diarization."
+          },
+          "transcript": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Independent local or authorized acquisition locator for native subtitles or Cue JSON. Explicit invalid input fails; it never falls back to embedded/generated text."
+          },
+          "record": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Existing recording UUID or unambiguous exact title for standalone transcript admission."
+          },
+          "transcript_credential_id": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Independent credential UUID for transcript acquisition."
+          },
+          "transcript_adapter": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Explicit independent transcript acquisition adapter."
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Optional observed target media revision for standalone transcript admission."
+          },
+          "expected_recording_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Optional observed current document revision (zero means absent)."
           }
         },
-        "required": [
-          "source"
-        ],
+        "required": [],
         "not": {
           "type": "object",
           "anyOf": [
@@ -291,7 +428,31 @@
             }
           ]
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "source"
+            ]
+          },
+          {
+            "required": [
+              "record"
+            ],
+            "anyOf": [
+              {
+                "required": [
+                  "transcript"
+                ]
+              },
+              {
+                "required": [
+                  "subtitle"
+                ]
+              }
+            ]
+          }
+        ]
       },
       "maxItems": 10000
     },
@@ -409,6 +570,61 @@
           "maximum": 9223372036854,
           "default": 600000,
           "description": "Positive total acquisition deadline in milliseconds, default ten minutes. Per-item values override batch defaults."
+        },
+        "transcript_max_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216,
+          "default": 16777216,
+          "description": "Independent transcript acquisition and document byte ceiling (maximum 16 MiB)."
+        },
+        "transcript_timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600000,
+          "default": 120000,
+          "description": "Independent transcript acquisition timeout in milliseconds."
+        },
+        "attribution": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "native",
+            "off",
+            "diarize"
+          ],
+          "default": "auto",
+          "description": "Preserve existing assignments; derive structured participation only when none exist. Diarize explicitly elects configured acoustic processing without recognition."
+        },
+        "transcript_format": {
+          "type": "string",
+          "enum": [
+            "cueson",
+            "srt",
+            "vtt",
+            "ass",
+            "ssa"
+          ],
+          "description": "Explicit native or Cue JSON format hint validated against input bytes."
+        },
+        "replace_transcript": {
+          "type": "boolean",
+          "default": false,
+          "description": "Elect replacement when the target already has a current transcript."
+        },
+        "subtitle_stream_index": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Absolute embedded subtitle stream index to select."
+        },
+        "subtitle_language": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Case-insensitive embedded subtitle language filter."
+        },
+        "diarization_model_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Managed model UUID for explicitly elected import diarization."
         }
       },
       "not": {

@@ -49,7 +49,10 @@ class DecoderPins(unittest.TestCase):
         self.assertNotIn('--enable-gpl', source['configure'])
         self.assertIn('--disable-autodetect', source['configure'])
         self.assertIn('--enable-videotoolbox', source['configure'])
-        self.assertIn('--enable-encoder=aac,flac,pcm_s16le', source['configure'])
+        self.assertIn('--enable-encoder=aac,flac,pcm_s16le,pcm_s32le,libmp3lame,subrip,ass,webvtt', source['configure'])
+        self.assertIn('--enable-libmp3lame',source['configure'])
+        self.assertEqual(source['lame']['sha256'],'ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e')
+        self.assertIn('--disable-shared',source['lame']['configure'])
 
     def test_source_extraction_accepts_codeload_root_and_rejects_escape(self):
         source_spec = importlib.util.spec_from_file_location('media_source', ROOT / 'scripts/build-media-source.py')

@@ -12,6 +12,8 @@ import (
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/library"
 	"github.com/shruggietech/insonic/internal/models"
+	"github.com/shruggietech/insonic/internal/processing"
+	"github.com/shruggietech/insonic/internal/subtitles"
 )
 
 type realWorker struct {
@@ -44,7 +46,60 @@ func (a *App) libraryService() (*library.Service, error) {
 	if e != nil {
 		return nil, e
 	}
-	return library.NewService(artifacts, a.Catalog, a.secrets, tools), nil
+	service := library.NewService(artifacts, a.Catalog, a.secrets, tools)
+	service.NativeIngest = func(ctx context.Context, data []byte, format string) (json.RawMessage, error) {
+		config, err := ReadProcessingTools(a.Workspace)
+		if err != nil {
+			return nil, err
+		}
+		driver, err := subtitles.New(config.Cueson)
+		if err != nil {
+			return nil, err
+		}
+		return driver.Ingest(ctx, data, format)
+	}
+	service.Diarize = func(ctx context.Context, entry catalog.LibraryEntry, document json.RawMessage, model string) (subtitles.Admission, json.RawMessage, error) {
+		result := subtitles.Admission{Document: document, OriginalVersion: subtitles.SchemaVersion, AttributionBasis: []subtitles.Observation{}}
+		if !contracts.ValidID(model) {
+			return result, nil, contracts.Fail("invalid_request")
+		}
+		executor, err := a.recordingExecutor()
+		if err != nil {
+			return result, nil, err
+		}
+		session, err := executor.Prepare(ctx, entry, processing.AudioOptions{})
+		if err != nil {
+			return result, nil, err
+		}
+		defer session.Close()
+		diarization, err := session.Diarize(ctx, model, processing.DiarizationOptions{})
+		if err != nil {
+			return result, nil, err
+		}
+		turns, err := localTurns(entry.ID, library.DerivedID(entry.ID, documentHash(document)), diarization.Turns)
+		if err != nil {
+			return result, nil, err
+		}
+		assembly, err := executor.Subtitles.Assemble(ctx, document, nil, turns, nil)
+		if err != nil {
+			return result, nil, err
+		}
+		var before, after map[string]json.RawMessage
+		json.Unmarshal(document, &before)
+		json.Unmarshal(assembly.Document, &after)
+		if timing, ok := before["media_timing"]; ok {
+			after["media_timing"] = timing
+		} else {
+			delete(after, "media_timing")
+		}
+		result.Document, _ = json.Marshal(after)
+		if err = subtitles.ValidateDocument(result.Document); err != nil {
+			return result, nil, err
+		}
+		provenance, _ := json.Marshal(map[string]any{"mode": "supplied-text;explicit-diarization;recognition-bypassed", "audio": session.Provenance, "source_map": session.SourceMap, "diarization": diarization.Provenance, "diagnostics": flattenDiagnostics([]any{session.Diagnostics, diarization.Diagnostics, assembly.Diagnostics})})
+		return result, provenance, nil
+	}
+	return service, nil
 }
 func (a *App) modelService() (*models.Service, error) {
 	artifacts, e := a.artifactService()
@@ -280,6 +335,29 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 		if e != nil {
 			return nil, e
 		}
+		prepared.RequestDigest = ""
+		for i := range prepared.Items {
+			if prepared.Items[i].AcceptedReceipt != "" {
+				return nil, contracts.Fail("invalid_request")
+			}
+			prepared.Items[i].TargetError = ""
+		}
+		original, _ := json.Marshal(prepared)
+		requestDigest := documentHash(original)
+		if prior, err := a.Catalog.Work(a.ctx, req.RequestID); err == nil {
+			var frozen library.ImportRequest
+			if prior.Kind != req.Operation || json.Unmarshal(prior.Payload, &frozen) != nil || frozen.RequestDigest != requestDigest {
+				return nil, contracts.Fail("conflict")
+			}
+			return workView(prior), nil
+		} else {
+			typed, ok := err.(*contracts.Error)
+			if !ok || typed.Code != "not_found" {
+				return nil, err
+			}
+		}
+		prepared = library.FreezeTargets(a.ctx, a.Catalog, prepared)
+		prepared.RequestDigest = requestDigest
 		raw, _ := json.Marshal(prepared)
 		out, e := a.Catalog.EnqueueWork(a.ctx, req.RequestID, req.Operation, raw)
 		if e == nil {

@@ -244,6 +244,31 @@
           "example.org/note": "Optional annotation"
         }
       ]
+    },
+    "localSpeakerID": {
+      "title": "Consumer speaker identifier",
+      "description": "Exact bounded recording-local speaker token. It is not a global person identity.",
+      "examples": [
+        "Alex",
+        "f7746aa9-d48c-49ba-9f26-9c30219b1029",
+        "日本語",
+        "é",
+        "🙂"
+      ],
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "allOf": [
+        {
+          "pattern": "^[^\u0000-\u001f-  ؜‎‏‪-‮⁦-⁩﻿]*$"
+        },
+        {
+          "pattern": "^[^\t-\r    -     　]"
+        },
+        {
+          "pattern": "[^\t-\r    -     　]$"
+        }
+      ]
     }
   }
 }

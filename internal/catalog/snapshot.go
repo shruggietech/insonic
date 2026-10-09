@@ -292,7 +292,7 @@ func restoreCell(table, column string, raw json.RawMessage) (any, error) {
 		if !ok {
 			return nil, contracts.Fail("invalid_request")
 		}
-		if (column == "id" || strings.HasSuffix(column, "_id")) && !contracts.ValidID(text) {
+		if (column == "local_speaker_id" && !contracts.ValidLocalSpeakerID(text)) || (column != "local_speaker_id" && (column == "id" || strings.HasSuffix(column, "_id")) && !contracts.ValidID(text)) {
 			return nil, contracts.Fail("invalid_request")
 		}
 		if (column == "role" && text == "") || (column == "name" && (text == "" || len(text) > 256)) {

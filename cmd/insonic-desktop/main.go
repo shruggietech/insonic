@@ -104,7 +104,7 @@ func run() int {
 			raw, _ := json.Marshal(response.Result)
 			var result map[string]any
 			json.Unmarshal(raw, &result)
-			for _, name := range []string{"ui_library_import", "ui_metadata_date", "ui_current_assembly", "ui_audio_playback", "ui_video_playback", "ui_cue_seek", "ui_terms", "ui_speakers", "ui_pipelines", "ui_jobs", "ui_settings", "ui_keyboard_help", "ui_explore_calendar", "ui_explore_query", "ui_explore_graph", "ui_query_assistance"} {
+			for _, name := range []string{"ui_library_import", "ui_metadata_date", "ui_current_assembly", "ui_audio_playback", "ui_video_source_audio_playback", "ui_cue_seek", "ui_terms", "ui_speakers", "ui_pipelines", "ui_jobs", "ui_settings", "ui_keyboard_help", "ui_explore_calendar", "ui_explore_query", "ui_explore_graph", "ui_query_assistance"} {
 				passed = passed && result[name] == "passed"
 			}
 			smokePassed.Store(passed)
@@ -120,7 +120,7 @@ func run() int {
 			case "media":
 				return wailsruntime.OpenFileDialog(ctx, wailsruntime.OpenDialogOptions{Title: "Choose audio or video"})
 			case "subtitle":
-				return wailsruntime.OpenFileDialog(ctx, wailsruntime.OpenDialogOptions{Title: "Choose subtitles", Filters: []wailsruntime.FileFilter{{DisplayName: "Subtitles", Pattern: "*.srt;*.vtt;*.cueson;*.json"}}})
+				return wailsruntime.OpenFileDialog(ctx, wailsruntime.OpenDialogOptions{Title: "Choose subtitles", Filters: []wailsruntime.FileFilter{{DisplayName: "Subtitles", Pattern: "*.srt;*.vtt;*.ass;*.ssa;*.cueson;*.json"}}})
 			case "output":
 				return wailsruntime.SaveFileDialog(ctx, wailsruntime.SaveDialogOptions{Title: "Export subtitles"})
 			}

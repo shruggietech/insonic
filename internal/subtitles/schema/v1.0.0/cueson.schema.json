@@ -1,0 +1,2036 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cueson.io/schema/v1.0.0/cueson.schema.json",
+  "title": "Cue JSON",
+  "description": "Canonical Cue JSON contract for Cueson v1.0.0.",
+  "examples": [
+    {
+      "$schema": "https://cueson.io/schema/v1.0.0/cueson.schema.json",
+      "schema_version": "1.0.0",
+      "format": "subrip",
+      "format_support": {
+        "status": "stable",
+        "ingest_supported": true,
+        "render_supported": true,
+        "restore_supported": true,
+        "ocr_required_for_semantic_output": false
+      },
+      "producer": {
+        "name": "cueson-contract-example",
+        "version": "1.0.0"
+      },
+      "source": {
+        "primary_asset_id": "asset-0",
+        "assets": [
+          {
+            "id": "asset-0",
+            "role": "primary",
+            "file_name": "captions.srt",
+            "media_type": "application/x-subrip",
+            "size": {
+              "bytes": 53,
+              "text": "53 bytes"
+            },
+            "hashes": {
+              "sha256": "955096d8a9c0df1a51bc836d0fd7cfc2d06c75807c5908b5017791d436673eea"
+            },
+            "timestamps": {
+              "created": {
+                "iso": "2026-09-09T00:00:00Z",
+                "unix_ns": 1788912000000000000
+              },
+              "modified": {
+                "iso": "2026-09-09T00:00:00Z",
+                "unix_ns": 1788912000000000000
+              },
+              "accessed": {
+                "iso": "2026-09-09T00:00:00Z",
+                "unix_ns": 1788912000000000000
+              },
+              "created_source": "birthtime"
+            },
+            "encoding": {
+              "bom": null,
+              "line_endings": "lf",
+              "detected_encoding": "utf-8",
+              "confidence": 1
+            },
+            "data_base64": "MQowMDowMDowMSwyNTAgLS0+IDAwOjAwOjA0LDIwMAo8aT5IZWxsbywgd29ybGQuPC9pPgo="
+          }
+        ]
+      },
+      "metadata": {
+        "title": null,
+        "language": "en",
+        "kind": "subtitles",
+        "description": null
+      },
+      "document": {
+        "cue_count": 1,
+        "media_start_milliseconds": 1250,
+        "media_end_milliseconds": 4200,
+        "media_span_milliseconds": 2950,
+        "has_word_level_timing": false
+      },
+      "cues": [
+        {
+          "id": "cue-000000",
+          "ordinal": 0,
+          "source_order": 0,
+          "source_identifier": "1",
+          "timing": {
+            "start_milliseconds": 1250,
+            "end_milliseconds": 4200,
+            "duration_milliseconds": 2950
+          },
+          "payload": {
+            "raw_text": "<i>Hello, world.</i>",
+            "plain_text": "Hello, world.",
+            "lines": [
+              "<i>Hello, world.</i>"
+            ]
+          },
+          "speakers": [],
+          "tokens": [],
+          "ocr_observations": [],
+          "placement": null,
+          "format_data": {
+            "subrip": {
+              "sequence_line_raw": "1",
+              "timing_line_raw": "00:00:01,250 --> 00:00:04,200"
+            }
+          }
+        }
+      ],
+      "format_data": {
+        "subrip": {
+          "dialect": "subrip",
+          "decoding_notes": null
+        }
+      },
+      "diagnostics": [],
+      "stats": {
+        "cue_count": 1,
+        "diagnostic_count": 0,
+        "warning_count": 0,
+        "error_count": 0,
+        "has_word_level_timing": false,
+        "media_span_milliseconds": 2950
+      }
+    }
+  ],
+  "type": "object",
+  "required": [
+    "$schema",
+    "schema_version",
+    "format",
+    "format_support",
+    "producer",
+    "source",
+    "metadata",
+    "document",
+    "cues",
+    "format_data",
+    "diagnostics",
+    "stats"
+  ],
+  "properties": {
+    "$schema": {
+      "description": "Exact canonical schema identifier used by this Cue JSON instance.",
+      "examples": [
+        "https://cueson.io/schema/v1.0.0/cueson.schema.json"
+      ],
+      "const": "https://cueson.io/schema/v1.0.0/cueson.schema.json"
+    },
+    "schema_version": {
+      "description": "Cue JSON contract version targeted by this instance, independent of third-party producer versions.",
+      "examples": [
+        "1.0.0"
+      ],
+      "const": "1.0.0"
+    },
+    "format": {
+      "description": "Canonical format-family key for the source and matching native format data.",
+      "examples": [
+        "subrip",
+        "webvtt"
+      ],
+      "enum": [
+        "subrip",
+        "webvtt"
+      ]
+    },
+    "format_support": {
+      "description": "Official stable Cueson capability declaration for the selected format in the v1 contract.",
+      "examples": [
+        {
+          "status": "stable",
+          "ingest_supported": true,
+          "render_supported": true,
+          "restore_supported": true,
+          "ocr_required_for_semantic_output": false
+        }
+      ],
+      "$ref": "#/$defs/format_support"
+    },
+    "producer": {
+      "description": "Software identity that produced the instance; its version is independent from schema_version.",
+      "examples": [
+        {
+          "name": "cueson-contract-example",
+          "version": "1.0.0"
+        }
+      ],
+      "$ref": "#/$defs/producer"
+    },
+    "source": {
+      "description": "Authoritative source envelope containing portable asset identity, integrity metadata, and original bytes.",
+      "examples": [
+        {
+          "primary_asset_id": "asset-0",
+          "assets": [
+            {
+              "id": "asset-0",
+              "role": "primary",
+              "file_name": "captions.srt",
+              "media_type": "application/x-subrip",
+              "size": {
+                "bytes": 0,
+                "text": "0 bytes"
+              },
+              "hashes": {
+                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+              },
+              "timestamps": {
+                "created": null,
+                "modified": null,
+                "accessed": null,
+                "created_source": "unavailable"
+              },
+              "encoding": null,
+              "data_base64": ""
+            }
+          ]
+        }
+      ],
+      "$ref": "#/$defs/source"
+    },
+    "metadata": {
+      "description": "Optional descriptive document metadata whose null values mean the producer made no supported observation.",
+      "examples": [
+        {
+          "title": "Sample captions",
+          "language": "en",
+          "kind": "subtitles",
+          "description": null
+        }
+      ],
+      "$ref": "#/$defs/metadata"
+    },
+    "document": {
+      "description": "Derived document-level summary computed from the common cue model.",
+      "examples": [
+        {
+          "cue_count": 1,
+          "media_start_milliseconds": 1250,
+          "media_end_milliseconds": 4200,
+          "media_span_milliseconds": 2950,
+          "has_word_level_timing": false
+        }
+      ],
+      "$ref": "#/$defs/document_summary"
+    },
+    "cues": {
+      "description": "Ordered timed semantic units in the format-neutral common model, with adjacent native fidelity data.",
+      "examples": [
+        [
+          {
+            "id": "cue-000000",
+            "ordinal": 0,
+            "source_order": 0,
+            "source_identifier": "1",
+            "timing": {
+              "start_milliseconds": 1250,
+              "end_milliseconds": 4200,
+              "duration_milliseconds": 2950
+            },
+            "payload": {
+              "raw_text": "Hello, world.",
+              "plain_text": "Hello, world.",
+              "lines": [
+                "Hello, world."
+              ]
+            },
+            "speakers": [],
+            "tokens": [],
+            "ocr_observations": [],
+            "placement": null,
+            "format_data": {
+              "subrip": {
+                "sequence_line_raw": "1",
+                "timing_line_raw": "00:00:01,250 --> 00:00:04,200"
+              }
+            }
+          }
+        ]
+      ],
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/cue"
+      }
+    },
+    "format_data": {
+      "description": "Document-level native data for the selected format; this preserves fidelity and does not replace source bytes.",
+      "examples": [
+        {
+          "subrip": {
+            "dialect": "subrip",
+            "decoding_notes": null
+          }
+        }
+      ],
+      "$ref": "#/$defs/document_format_data"
+    },
+    "diagnostics": {
+      "description": "Ordered deterministic observations about tolerated, malformed, unsupported, or lossy source information.",
+      "examples": [
+        [],
+        [
+          {
+            "severity": "warning",
+            "code": "source_variant",
+            "message": "A tolerated source variant was preserved.",
+            "source_order": 0,
+            "cue_id": "cue-000000"
+          }
+        ]
+      ],
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      }
+    },
+    "stats": {
+      "description": "Derived aggregate counts and timing facts for the validated document.",
+      "examples": [
+        {
+          "cue_count": 1,
+          "diagnostic_count": 0,
+          "warning_count": 0,
+          "error_count": 0,
+          "has_word_level_timing": false,
+          "media_span_milliseconds": 2950
+        }
+      ],
+      "$ref": "#/$defs/stats"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "format": {
+            "const": "subrip"
+          }
+        },
+        "required": [
+          "format"
+        ]
+      },
+      "then": {
+        "properties": {
+          "format_support": {
+            "$ref": "#/$defs/subrip_format_support"
+          },
+          "format_data": {
+            "$ref": "#/$defs/subrip_document_format_data"
+          },
+          "cues": {
+            "items": {
+              "properties": {
+                "format_data": {
+                  "$ref": "#/$defs/subrip_cue_format_data"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "format": {
+            "const": "webvtt"
+          }
+        },
+        "required": [
+          "format"
+        ]
+      },
+      "then": {
+        "properties": {
+          "format_support": {
+            "$ref": "#/$defs/webvtt_format_support"
+          },
+          "format_data": {
+            "$ref": "#/$defs/webvtt_document_format_data"
+          },
+          "cues": {
+            "items": {
+              "properties": {
+                "format_data": {
+                  "$ref": "#/$defs/webvtt_cue_format_data"
+                },
+                "speakers": {
+                  "items": {
+                    "properties": {
+                      "origin": {
+                        "const": "native"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "nullable_string": {
+      "title": "Nullable string",
+      "description": "A textual observation that is null when the value was unavailable or not observed.",
+      "examples": [
+        "observed value",
+        null
+      ],
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "non_negative_integer": {
+      "title": "Non-negative integer",
+      "description": "An integer count, index, size, or duration that cannot be negative.",
+      "examples": [
+        0,
+        1250
+      ],
+      "type": "integer",
+      "minimum": 0
+    },
+    "identifier": {
+      "title": "Document-local identifier",
+      "description": "A lowercase hyphenated identifier that is unique within its documented Cue JSON scope.",
+      "examples": [
+        "asset-0",
+        "cue-000000"
+      ],
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "format_support": {
+      "title": "Official format support",
+      "description": "Capabilities declared by the official Cueson contract for one recognized format family.",
+      "type": "object",
+      "required": [
+        "status",
+        "ingest_supported",
+        "render_supported",
+        "restore_supported",
+        "ocr_required_for_semantic_output"
+      ],
+      "properties": {
+        "status": {
+          "description": "Maturity of official support; current SubRip and WebVTT documents declare stable support.",
+          "examples": [
+            "envelope_only",
+            "experimental",
+            "stable"
+          ],
+          "enum": [
+            "envelope_only",
+            "experimental",
+            "stable"
+          ]
+        },
+        "ingest_supported": {
+          "description": "Whether official Cueson software can parse this format into the common and native models.",
+          "type": "boolean"
+        },
+        "render_supported": {
+          "description": "Whether official Cueson software can render this format from the structured model.",
+          "type": "boolean"
+        },
+        "restore_supported": {
+          "description": "Whether original source assets can be restored exactly from the source envelope.",
+          "type": "boolean"
+        },
+        "ocr_required_for_semantic_output": {
+          "description": "Whether semantic cue output for this format requires derived OCR observations.",
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "subrip_format_support": {
+      "title": "SubRip format support",
+      "description": "Current official stable capabilities for the recognized SubRip format family.",
+      "examples": [
+        {
+          "status": "stable",
+          "ingest_supported": true,
+          "render_supported": true,
+          "restore_supported": true,
+          "ocr_required_for_semantic_output": false
+        }
+      ],
+      "allOf": [
+        {
+          "$ref": "#/$defs/format_support"
+        },
+        {
+          "properties": {
+            "status": {
+              "const": "stable"
+            },
+            "ingest_supported": {
+              "const": true
+            },
+            "render_supported": {
+              "const": true
+            },
+            "restore_supported": {
+              "const": true
+            },
+            "ocr_required_for_semantic_output": {
+              "const": false
+            }
+          }
+        }
+      ]
+    },
+    "webvtt_format_support": {
+      "title": "WebVTT format support",
+      "description": "Current official stable capabilities for the recognized WebVTT format family.",
+      "examples": [
+        {
+          "status": "stable",
+          "ingest_supported": true,
+          "render_supported": true,
+          "restore_supported": true,
+          "ocr_required_for_semantic_output": false
+        }
+      ],
+      "allOf": [
+        {
+          "$ref": "#/$defs/format_support"
+        },
+        {
+          "properties": {
+            "status": {
+              "const": "stable"
+            },
+            "ingest_supported": {
+              "const": true
+            },
+            "render_supported": {
+              "const": true
+            },
+            "restore_supported": {
+              "const": true
+            },
+            "ocr_required_for_semantic_output": {
+              "const": false
+            }
+          }
+        }
+      ]
+    },
+    "producer": {
+      "title": "Producer identity",
+      "description": "Identity of the software that created this Cue JSON instance.",
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "description": "Non-empty name of the producer software or integration.",
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "description": "Producer software version, which is independent from the Cue JSON schema version.",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "source": {
+      "title": "Source envelope",
+      "description": "Authoritative ordered bundle of original source assets and their integrity metadata.",
+      "type": "object",
+      "required": [
+        "primary_asset_id",
+        "assets"
+      ],
+      "properties": {
+        "primary_asset_id": {
+          "description": "Document-local identifier resolving to exactly one primary asset in assets.",
+          "$ref": "#/$defs/identifier"
+        },
+        "assets": {
+          "description": "Ordered source assets whose original bytes remain authoritative for exact restoration.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/source_asset"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "source_asset": {
+      "title": "Source asset",
+      "description": "One portable source-envelope member with original bytes, integrity facts, and observations.",
+      "type": "object",
+      "required": [
+        "id",
+        "role",
+        "file_name",
+        "media_type",
+        "size",
+        "hashes",
+        "timestamps",
+        "encoding",
+        "data_base64"
+      ],
+      "properties": {
+        "id": {
+          "description": "Document-local asset identifier used by source and derived observation references.",
+          "$ref": "#/$defs/identifier"
+        },
+        "role": {
+          "description": "Whether this asset is the bundle primary or an associated companion asset.",
+          "examples": [
+            "primary",
+            "companion"
+          ],
+          "enum": [
+            "primary",
+            "companion"
+          ]
+        },
+        "file_name": {
+          "description": "Safe original basename only, without any directory, URI, drive, host, or traversal component.",
+          "examples": [
+            "captions.srt"
+          ],
+          "$ref": "#/$defs/safe_basename"
+        },
+        "media_type": {
+          "description": "Observed media type for the source asset, or null when unavailable.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "size": {
+          "description": "Exact decoded byte length plus an optional human-readable size observation.",
+          "$ref": "#/$defs/asset_size"
+        },
+        "hashes": {
+          "description": "Cryptographic identities calculated from the authoritative original bytes.",
+          "$ref": "#/$defs/asset_hashes"
+        },
+        "timestamps": {
+          "description": "Captured source timestamp observations and truthful creation-time provenance.",
+          "$ref": "#/$defs/timestamps"
+        },
+        "encoding": {
+          "description": "Text encoding observations, or null when the asset is binary or no observation is available.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/encoding_observation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "data_base64": {
+          "description": "Authoritative original asset bytes encoded as canonical standard base64.",
+          "examples": [
+            "SGVsbG8sIHdvcmxkLgo=",
+            ""
+          ],
+          "type": "string",
+          "contentEncoding": "base64"
+        }
+      },
+      "additionalProperties": false
+    },
+    "safe_basename": {
+      "title": "Portable safe basename",
+      "description": "A source filename without path components or names unsafe on supported filesystems.",
+      "examples": [
+        "captions.srt",
+        "captions-en.vtt"
+      ],
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^[^<>:\"/\\\\|?*\u0000-\u001f\u007f]+$",
+      "not": {
+        "anyOf": [
+          {
+            "description": "Relative directory markers forbidden as source basenames.",
+            "examples": [
+              ".",
+              ".."
+            ],
+            "enum": [
+              ".",
+              ".."
+            ]
+          },
+          {
+            "pattern": "[ .]$"
+          },
+          {
+            "pattern": "^([cC][oO][nN]|[pP][rR][nN]|[aA][uU][xX]|[nN][uU][lL]|[cC][lL][oO][cC][kK]\\$|[cC][oO][nN][iI][nN]\\$|[cC][oO][nN][oO][uU][tT]\\$|[cC][oO][mM][1-9¹²³]|[lL][pP][tT][1-9¹²³])(\\..*)?$"
+          }
+        ]
+      }
+    },
+    "asset_size": {
+      "title": "Source asset size",
+      "description": "Exact source byte length and optional display text supplied by the producer.",
+      "type": "object",
+      "required": [
+        "bytes",
+        "text"
+      ],
+      "properties": {
+        "bytes": {
+          "description": "Exact number of bytes recovered after decoding data_base64.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "text": {
+          "description": "Optional human-readable size label, or null when not supplied.",
+          "$ref": "#/$defs/nullable_string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "asset_hashes": {
+      "title": "Source asset hashes",
+      "description": "Cryptographic hashes calculated from the authoritative original source bytes.",
+      "examples": [
+        {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "type": "object",
+      "required": [
+        "sha256"
+      ],
+      "properties": {
+        "sha256": {
+          "description": "Lowercase hexadecimal SHA-256 digest of the decoded original asset bytes.",
+          "examples": [
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          ],
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "timestamps": {
+      "title": "Source timestamps",
+      "description": "Untrusted captured timestamp observations with explicit creation-time provenance.",
+      "type": "object",
+      "required": [
+        "created",
+        "modified",
+        "accessed",
+        "created_source"
+      ],
+      "properties": {
+        "created": {
+          "description": "Observed creation or birth instant, or null when unavailable.",
+          "$ref": "#/$defs/nullable_timestamp"
+        },
+        "modified": {
+          "description": "Observed modification instant, or null when unavailable.",
+          "$ref": "#/$defs/nullable_timestamp"
+        },
+        "accessed": {
+          "description": "Observed access instant, or null when unavailable.",
+          "$ref": "#/$defs/nullable_timestamp"
+        },
+        "created_source": {
+          "description": "Provenance of created, distinguishing true birth time, Windows creation time, fallback ctime, and absence.",
+          "examples": [
+            "birthtime",
+            "windows_creation_time",
+            "ctime_fallback",
+            "unavailable"
+          ],
+          "enum": [
+            "birthtime",
+            "windows_creation_time",
+            "ctime_fallback",
+            "unavailable"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "nullable_timestamp": {
+      "title": "Nullable timestamp",
+      "description": "A timestamp observation, or null when that timestamp was unavailable.",
+      "examples": [
+        {
+          "iso": "2026-09-09T00:00:00Z",
+          "unix_ns": 1788912000000000000
+        },
+        null
+      ],
+      "oneOf": [
+        {
+          "$ref": "#/$defs/timestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "timestamp": {
+      "title": "Timestamp observation",
+      "description": "One instant represented both as RFC 3339 text and Unix nanoseconds for exact comparison.",
+      "examples": [
+        {
+          "iso": "2026-09-09T00:00:00Z",
+          "unix_ns": 1788912000000000000
+        }
+      ],
+      "type": "object",
+      "required": [
+        "iso",
+        "unix_ns"
+      ],
+      "properties": {
+        "iso": {
+          "description": "RFC 3339 date-time representation of the observed instant.",
+          "type": "string",
+          "format": "date-time"
+        },
+        "unix_ns": {
+          "description": "Nanoseconds since the Unix epoch for the same instant represented by iso.",
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "encoding_observation": {
+      "title": "Text encoding observation",
+      "description": "Derived observations about byte-order marks, line endings, encoding, and confidence.",
+      "type": "object",
+      "required": [
+        "bom",
+        "line_endings",
+        "detected_encoding",
+        "confidence"
+      ],
+      "properties": {
+        "bom": {
+          "description": "Observed byte-order mark name, or null when no mark was present or recognized.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "line_endings": {
+          "description": "Observed physical line-ending style in the authoritative source bytes.",
+          "examples": [
+            "none",
+            "lf",
+            "crlf",
+            "cr",
+            "mixed",
+            "unknown"
+          ],
+          "enum": [
+            "none",
+            "lf",
+            "crlf",
+            "cr",
+            "mixed",
+            "unknown"
+          ]
+        },
+        "detected_encoding": {
+          "description": "Detected or declared text encoding name, or null when unavailable.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "confidence": {
+          "description": "Derived confidence from zero through one, or null when the detector provides no score.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "metadata": {
+      "title": "Document metadata",
+      "description": "Optional descriptive metadata observed or supplied for the subtitle document.",
+      "type": "object",
+      "required": [
+        "title",
+        "language",
+        "kind",
+        "description"
+      ],
+      "properties": {
+        "title": {
+          "description": "Human-readable document title, or null when no title is available.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "language": {
+          "description": "Observed or declared language tag, or null when unavailable.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "kind": {
+          "description": "Observed semantic kind such as subtitles or captions, or null when unavailable.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "description": {
+          "description": "Human-readable document description, or null when none is available.",
+          "$ref": "#/$defs/nullable_string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "document_summary": {
+      "title": "Document summary",
+      "description": "Derived aggregate timing and cue facts calculated from the common model.",
+      "type": "object",
+      "required": [
+        "cue_count",
+        "media_start_milliseconds",
+        "media_end_milliseconds",
+        "media_span_milliseconds",
+        "has_word_level_timing"
+      ],
+      "properties": {
+        "cue_count": {
+          "description": "Number of cues in the common model.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "media_start_milliseconds": {
+          "description": "Earliest cue start in milliseconds, or null when no timed range is available.",
+          "$ref": "#/$defs/nullable_non_negative_integer"
+        },
+        "media_end_milliseconds": {
+          "description": "Latest cue end in milliseconds, or null when no timed range is available.",
+          "$ref": "#/$defs/nullable_non_negative_integer"
+        },
+        "media_span_milliseconds": {
+          "description": "Milliseconds from the earliest cue start to latest cue end, or null when unavailable.",
+          "$ref": "#/$defs/nullable_non_negative_integer"
+        },
+        "has_word_level_timing": {
+          "description": "Whether any common-model token carries word-level timing.",
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "nullable_non_negative_integer": {
+      "title": "Nullable non-negative integer",
+      "description": "A non-negative integer observation, or null when the measurement is unavailable.",
+      "examples": [
+        0,
+        2950,
+        null
+      ],
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "cue": {
+      "title": "Cue",
+      "description": "One ordered timed semantic unit with common-model content and adjacent native fidelity data.",
+      "type": "object",
+      "required": [
+        "id",
+        "ordinal",
+        "source_order",
+        "source_identifier",
+        "timing",
+        "payload",
+        "speakers",
+        "tokens",
+        "ocr_observations",
+        "placement",
+        "format_data"
+      ],
+      "properties": {
+        "id": {
+          "description": "Document-local cue identifier used by diagnostics and other cue references.",
+          "$ref": "#/$defs/identifier"
+        },
+        "ordinal": {
+          "description": "Zero-based ordinal of this cue among semantic cues.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "source_order": {
+          "description": "Zero-based position in the combined native cue and non-cue source sequence.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "source_identifier": {
+          "description": "Native cue identifier or sequence text, or null when the format supplies none.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "timing": {
+          "description": "Normalized cue timing in integer milliseconds.",
+          "$ref": "#/$defs/timing"
+        },
+        "payload": {
+          "description": "Decoded native text and its derived plain-text representation without replacing source bytes.",
+          "$ref": "#/$defs/payload"
+        },
+        "speakers": {
+          "description": "Ordered native or heuristic speaker observations derived from cue content.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/speaker"
+          }
+        },
+        "tokens": {
+          "description": "Ordered derived text tokens with optional native timing provenance.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/token"
+          }
+        },
+        "ocr_observations": {
+          "description": "Repeatable derived OCR observations that never replace native text, images, or source assets.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ocr_observation"
+          }
+        },
+        "placement": {
+          "description": "Normalized placement hints, or null when no common placement was observed.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/placement"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "format_data": {
+          "description": "Cue-level native data for the selected source format.",
+          "$ref": "#/$defs/cue_format_data"
+        }
+      },
+      "additionalProperties": false
+    },
+    "timing": {
+      "title": "Normalized cue timing",
+      "description": "Start, end, and duration values in integer milliseconds for one cue.",
+      "examples": [
+        {
+          "start_milliseconds": 1250,
+          "end_milliseconds": 4200,
+          "duration_milliseconds": 2950
+        }
+      ],
+      "type": "object",
+      "required": [
+        "start_milliseconds",
+        "end_milliseconds",
+        "duration_milliseconds"
+      ],
+      "properties": {
+        "start_milliseconds": {
+          "description": "Cue start offset in milliseconds from the media timeline origin.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "end_milliseconds": {
+          "description": "Cue end offset in milliseconds from the media timeline origin.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "duration_milliseconds": {
+          "description": "Cue duration in milliseconds, equal to end_milliseconds minus start_milliseconds.",
+          "$ref": "#/$defs/non_negative_integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "payload": {
+      "title": "Cue text payload",
+      "description": "Native decoded text plus derived plain text and ordered logical lines.",
+      "type": "object",
+      "required": [
+        "raw_text",
+        "plain_text",
+        "lines"
+      ],
+      "properties": {
+        "raw_text": {
+          "description": "Decoded native textual payload retained without destructive semantic normalization.",
+          "type": "string"
+        },
+        "plain_text": {
+          "description": "Derived readable text with supported native markup semantics removed.",
+          "type": "string"
+        },
+        "lines": {
+          "description": "Ordered logical text lines exposed by the common model.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "speaker": {
+      "title": "Speaker observation",
+      "description": "A named speaker derived from native markup or a documented heuristic.",
+      "type": "object",
+      "required": [
+        "name",
+        "origin"
+      ],
+      "properties": {
+        "name": {
+          "description": "Non-empty speaker name as observed or inferred from cue content.",
+          "type": "string",
+          "minLength": 1
+        },
+        "origin": {
+          "description": "Whether the speaker came from native format syntax or a heuristic observation.",
+          "examples": [
+            "native",
+            "heuristic"
+          ],
+          "enum": [
+            "native",
+            "heuristic"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "token": {
+      "title": "Timed text token",
+      "description": "A derived cue-text token with normalized timing and optional native timing syntax.",
+      "type": "object",
+      "required": [
+        "text",
+        "start_milliseconds",
+        "end_milliseconds",
+        "native_timing"
+      ],
+      "properties": {
+        "text": {
+          "description": "Token text in reading order.",
+          "type": "string"
+        },
+        "start_milliseconds": {
+          "description": "Token start offset in integer milliseconds.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "end_milliseconds": {
+          "description": "Token end offset in integer milliseconds.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "native_timing": {
+          "description": "Retained native timing syntax, or null when the token has no native timing source.",
+          "$ref": "#/$defs/nullable_string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ocr_observation": {
+      "title": "OCR observation",
+      "description": "A repeatable derived recognition result with explicit engine and source provenance.",
+      "type": "object",
+      "required": [
+        "id",
+        "derived",
+        "engine",
+        "text",
+        "lines",
+        "source_asset_id"
+      ],
+      "properties": {
+        "id": {
+          "description": "Document-local identifier for this OCR observation.",
+          "$ref": "#/$defs/identifier"
+        },
+        "derived": {
+          "description": "Confirms that OCR output is derived observation data and never source truth.",
+          "const": true
+        },
+        "engine": {
+          "description": "Non-empty identity of the OCR engine that produced this observation.",
+          "type": "string",
+          "minLength": 1
+        },
+        "engine_version": {
+          "description": "OCR engine version, or null when the engine did not report one.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "model": {
+          "description": "OCR model identity, or null when no model was reported.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "language": {
+          "description": "Observed or requested OCR language, or null when unavailable.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "text": {
+          "description": "Derived recognized text for this observation.",
+          "type": "string"
+        },
+        "lines": {
+          "description": "Ordered lines of derived recognized text.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "confidence": {
+          "description": "Derived recognition confidence from zero through one, or null when unavailable.",
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "alternatives": {
+          "description": "Ordered alternative recognized strings reported by the OCR engine.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source_asset_id": {
+          "description": "Document-local identifier of the authoritative source asset observed by OCR.",
+          "$ref": "#/$defs/identifier"
+        },
+        "source_event_id": {
+          "description": "Provider-specific source event identifier, or null when unavailable.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "source_image_id": {
+          "description": "Provider-specific source image identifier, or null when unavailable.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "source_regions": {
+          "description": "Ordered image regions from which this OCR observation was derived.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source_region"
+          }
+        },
+        "processing_options": {
+          "description": "Namespaced provider options used to derive the observation.",
+          "$ref": "#/$defs/extension_map"
+        }
+      },
+      "additionalProperties": false
+    },
+    "source_region": {
+      "title": "OCR source region",
+      "description": "A non-negative rectangular image region used as OCR input.",
+      "type": "object",
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "x": {
+          "description": "Horizontal origin of the source region in provider-defined image units.",
+          "type": "number",
+          "minimum": 0
+        },
+        "y": {
+          "description": "Vertical origin of the source region in provider-defined image units.",
+          "type": "number",
+          "minimum": 0
+        },
+        "width": {
+          "description": "Strictly positive width of the source region in provider-defined image units.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "description": "Strictly positive height of the source region in provider-defined image units.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "extension_map": {
+      "title": "Namespaced extension map",
+      "description": "Extension object whose property names use a lowercase namespace and local name separated by a colon.",
+      "examples": [
+        {
+          "example:mode": "accurate"
+        }
+      ],
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$"
+      }
+    },
+    "placement": {
+      "title": "Normalized cue placement",
+      "description": "Common placement observations whose nullable fields mean no corresponding value was available.",
+      "type": "object",
+      "required": [
+        "line",
+        "position",
+        "size",
+        "align"
+      ],
+      "properties": {
+        "line": {
+          "description": "Normalized line placement, or null when no line placement was observed.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "position": {
+          "description": "Normalized horizontal position, or null when no position was observed.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "size": {
+          "description": "Normalized cue-box size, or null when no size was observed.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "align": {
+          "description": "Normalized cue alignment, or null when no alignment was observed.",
+          "$ref": "#/$defs/nullable_string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "cue_format_data": {
+      "title": "Cue native format data",
+      "description": "Exactly one cue-level native representation matching the document format.",
+      "examples": [
+        {
+          "subrip": {
+            "sequence_line_raw": "1",
+            "timing_line_raw": "00:00:01,250 --> 00:00:04,200"
+          }
+        }
+      ],
+      "oneOf": [
+        {
+          "$ref": "#/$defs/subrip_cue_format_data"
+        },
+        {
+          "$ref": "#/$defs/webvtt_cue_format_data"
+        }
+      ]
+    },
+    "subrip_cue_format_data": {
+      "title": "SubRip cue format data",
+      "description": "Cue native-data wrapper used when format is subrip.",
+      "type": "object",
+      "required": [
+        "subrip"
+      ],
+      "properties": {
+        "subrip": {
+          "description": "Native SubRip fields retained for this cue.",
+          "$ref": "#/$defs/subrip_cue_data"
+        }
+      },
+      "additionalProperties": false
+    },
+    "webvtt_cue_format_data": {
+      "title": "WebVTT cue format data",
+      "description": "Cue native-data wrapper used when format is webvtt.",
+      "type": "object",
+      "required": [
+        "webvtt"
+      ],
+      "properties": {
+        "webvtt": {
+          "description": "Native WebVTT fields retained for this cue.",
+          "$ref": "#/$defs/webvtt_cue_data"
+        }
+      },
+      "additionalProperties": false
+    },
+    "subrip_cue_data": {
+      "title": "Native SubRip cue data",
+      "description": "Original decoded SubRip sequence and timing syntax plus optional coordinates.",
+      "examples": [
+        {
+          "sequence_line_raw": "1",
+          "timing_line_raw": "00:00:01,250 --> 00:00:04,200"
+        },
+        {
+          "sequence_line_raw": "2",
+          "timing_line_raw": "00:00:05,000 --> 00:00:07,000 X1:10 X2:90 Y1:20 Y2:80",
+          "coordinates": {
+            "x1": 10,
+            "x2": 90,
+            "y1": 20,
+            "y2": 80
+          }
+        }
+      ],
+      "type": "object",
+      "required": [
+        "sequence_line_raw",
+        "timing_line_raw"
+      ],
+      "properties": {
+        "sequence_line_raw": {
+          "description": "Decoded SubRip sequence line exactly as retained by native ingest.",
+          "type": "string"
+        },
+        "timing_line_raw": {
+          "description": "Decoded native SubRip timing line, including retained coordinate syntax when present.",
+          "type": "string"
+        },
+        "coordinates": {
+          "description": "Parsed SubRip coordinate extension when all four native coordinates are present.",
+          "$ref": "#/$defs/coordinates"
+        }
+      },
+      "additionalProperties": false
+    },
+    "coordinates": {
+      "title": "SubRip coordinates",
+      "description": "Four native integer coordinates parsed from a SubRip timing line.",
+      "type": "object",
+      "required": [
+        "x1",
+        "x2",
+        "y1",
+        "y2"
+      ],
+      "properties": {
+        "x1": {
+          "description": "First native horizontal coordinate.",
+          "type": "integer"
+        },
+        "x2": {
+          "description": "Second native horizontal coordinate.",
+          "type": "integer"
+        },
+        "y1": {
+          "description": "First native vertical coordinate.",
+          "type": "integer"
+        },
+        "y2": {
+          "description": "Second native vertical coordinate.",
+          "type": "integer"
+        }
+      },
+      "additionalProperties": false
+    },
+    "webvtt_cue_data": {
+      "title": "Native WebVTT cue data",
+      "description": "Retained WebVTT identifier, timing, settings, occurrences, and payload syntax for one cue.",
+      "examples": [
+        {
+          "identifier_raw": "intro",
+          "timing_line_raw": "00:01.250 --> 00:04.200 align:start",
+          "settings_raw": "align:start",
+          "settings": {
+            "align": "start"
+          },
+          "setting_occurrences": [
+            {
+              "raw": "align:start",
+              "name": "align",
+              "value": "start",
+              "recognized": true,
+              "valid": true
+            }
+          ],
+          "raw_payload": "<v Narrator>Hello.</v>",
+          "raw_payload_lines": [
+            "<v Narrator>Hello.</v>"
+          ]
+        }
+      ],
+      "type": "object",
+      "required": [
+        "identifier_raw",
+        "timing_line_raw",
+        "settings_raw",
+        "settings",
+        "setting_occurrences",
+        "raw_payload",
+        "raw_payload_lines"
+      ],
+      "properties": {
+        "identifier_raw": {
+          "description": "Decoded native WebVTT cue identifier, or null when the cue has none.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "timing_line_raw": {
+          "description": "Decoded WebVTT timing line including all retained native settings syntax.",
+          "type": "string"
+        },
+        "settings_raw": {
+          "description": "Decoded settings substring following the WebVTT cue timing range.",
+          "type": "string"
+        },
+        "settings": {
+          "description": "Effective recognized WebVTT cue settings after native occurrence processing.",
+          "type": "object",
+          "propertyNames": {
+            "description": "Recognized WebVTT cue setting name.",
+            "examples": [
+              "region",
+              "vertical",
+              "line",
+              "position",
+              "size",
+              "align"
+            ],
+            "enum": [
+              "region",
+              "vertical",
+              "line",
+              "position",
+              "size",
+              "align"
+            ]
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "setting_occurrences": {
+          "description": "Ordered raw WebVTT cue setting occurrences, including invalid and unrecognized settings.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/webvtt_setting_occurrence"
+          }
+        },
+        "raw_payload": {
+          "description": "Decoded WebVTT cue payload joined with LF while preserving native markup.",
+          "type": "string"
+        },
+        "raw_payload_lines": {
+          "description": "Ordered non-empty physical WebVTT payload lines without embedded line terminators.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\r\\n]*$"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "webvtt_setting_occurrence": {
+      "title": "WebVTT setting occurrence",
+      "description": "One ordered raw setting occurrence with parsed name, value, recognition, and validity facts.",
+      "type": "object",
+      "required": [
+        "raw",
+        "name",
+        "value",
+        "recognized",
+        "valid"
+      ],
+      "properties": {
+        "raw": {
+          "description": "Non-empty raw native setting token exactly as decoded.",
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "description": "Parsed setting name, which may be empty when the raw occurrence is malformed.",
+          "type": "string"
+        },
+        "value": {
+          "description": "Parsed setting value, which may be empty when the raw occurrence is malformed.",
+          "type": "string"
+        },
+        "recognized": {
+          "description": "Whether the setting name is recognized by the WebVTT implementation.",
+          "type": "boolean"
+        },
+        "valid": {
+          "description": "Whether the occurrence is both recognized and valid for its setting grammar.",
+          "type": "boolean"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "valid": {
+                "const": true
+              }
+            },
+            "required": [
+              "valid"
+            ]
+          },
+          "then": {
+            "properties": {
+              "name": {
+                "minLength": 1
+              },
+              "value": {
+                "minLength": 1
+              },
+              "recognized": {
+                "const": true
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "document_format_data": {
+      "title": "Document native format data",
+      "description": "Exactly one document-level native representation matching the document format.",
+      "examples": [
+        {
+          "subrip": {
+            "dialect": "subrip",
+            "decoding_notes": null
+          }
+        }
+      ],
+      "oneOf": [
+        {
+          "$ref": "#/$defs/subrip_document_format_data"
+        },
+        {
+          "$ref": "#/$defs/webvtt_document_format_data"
+        }
+      ]
+    },
+    "subrip_document_format_data": {
+      "title": "SubRip document format data",
+      "description": "Document native-data wrapper used when format is subrip.",
+      "type": "object",
+      "required": [
+        "subrip"
+      ],
+      "properties": {
+        "subrip": {
+          "description": "Native SubRip document observations.",
+          "$ref": "#/$defs/subrip_document_data"
+        }
+      },
+      "additionalProperties": false
+    },
+    "webvtt_document_format_data": {
+      "title": "WebVTT document format data",
+      "description": "Document native-data wrapper used when format is webvtt.",
+      "type": "object",
+      "required": [
+        "webvtt"
+      ],
+      "properties": {
+        "webvtt": {
+          "description": "Native WebVTT document observations and retained non-cue blocks.",
+          "$ref": "#/$defs/webvtt_document_data"
+        }
+      },
+      "additionalProperties": false
+    },
+    "subrip_document_data": {
+      "title": "Native SubRip document data",
+      "description": "Document-level native SubRip dialect identity and optional decoding observations.",
+      "examples": [
+        {
+          "dialect": "subrip",
+          "decoding_notes": null
+        }
+      ],
+      "type": "object",
+      "required": [
+        "dialect",
+        "decoding_notes"
+      ],
+      "properties": {
+        "dialect": {
+          "description": "Canonical native dialect identity for SubRip document data.",
+          "const": "subrip"
+        },
+        "decoding_notes": {
+          "description": "Producer decoding observations, or null when no additional note is needed.",
+          "$ref": "#/$defs/nullable_string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "webvtt_document_data": {
+      "title": "Native WebVTT document data",
+      "description": "Retained WebVTT signature, header metadata, and ordered non-cue blocks.",
+      "examples": [
+        {
+          "signature": "WEBVTT",
+          "signature_line_raw": "WEBVTT Sample",
+          "description": "Sample",
+          "metadata_lines": [
+            "Kind: captions"
+          ],
+          "blocks": []
+        }
+      ],
+      "type": "object",
+      "required": [
+        "signature",
+        "signature_line_raw",
+        "description",
+        "metadata_lines",
+        "blocks"
+      ],
+      "properties": {
+        "signature": {
+          "description": "Required WebVTT signature token identifying the native document grammar.",
+          "const": "WEBVTT"
+        },
+        "signature_line_raw": {
+          "description": "Decoded complete WebVTT signature line, including an optional header description.",
+          "type": "string",
+          "pattern": "^WEBVTT(?:[ \\t][^\\r\\n]*)?$"
+        },
+        "description": {
+          "description": "Text following WEBVTT on the signature line, or null when absent.",
+          "$ref": "#/$defs/nullable_string"
+        },
+        "metadata_lines": {
+          "description": "Ordered decoded metadata lines between the signature and first native block.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "blocks": {
+          "description": "Ordered retained non-cue WebVTT blocks interleaved with cues by source_order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/webvtt_block"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "webvtt_block": {
+      "title": "Native WebVTT non-cue block",
+      "description": "A retained NOTE, STYLE, REGION, or unrecognized block in native source order.",
+      "examples": [
+        {
+          "type": "note",
+          "source_order": 0,
+          "raw": "NOTE retained comment",
+          "raw_lines": [
+            "NOTE retained comment"
+          ]
+        },
+        {
+          "type": "region",
+          "source_order": 1,
+          "raw": "REGION\nid:fred",
+          "raw_lines": [
+            "REGION",
+            "id:fred"
+          ],
+          "region": {
+            "settings_raw": "id:fred",
+            "settings": {
+              "id": "fred"
+            },
+            "setting_occurrences": [
+              {
+                "raw": "id:fred",
+                "name": "id",
+                "value": "fred",
+                "recognized": true,
+                "valid": true
+              }
+            ]
+          }
+        }
+      ],
+      "type": "object",
+      "required": [
+        "type",
+        "source_order",
+        "raw",
+        "raw_lines"
+      ],
+      "properties": {
+        "type": {
+          "description": "Class of retained WebVTT non-cue block.",
+          "examples": [
+            "note",
+            "style",
+            "region",
+            "unrecognized"
+          ],
+          "enum": [
+            "note",
+            "style",
+            "region",
+            "unrecognized"
+          ]
+        },
+        "source_order": {
+          "description": "Zero-based position in the combined native cue and non-cue source sequence.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "raw": {
+          "description": "Complete decoded block body joined with LF without replacing original source bytes.",
+          "type": "string"
+        },
+        "raw_lines": {
+          "description": "Ordered physical block lines without embedded line terminators.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[^\\r\\n]*$"
+          }
+        },
+        "region": {
+          "description": "Parsed REGION data, present only when type is region.",
+          "$ref": "#/$defs/webvtt_region_data"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "region"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "required": [
+              "region"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "region"
+              ]
+            }
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "webvtt_region_data": {
+      "title": "Native WebVTT region data",
+      "description": "Retained raw REGION settings, effective recognized values, and ordered occurrences.",
+      "examples": [
+        {
+          "settings_raw": "id:fred width:40%",
+          "settings": {
+            "id": "fred",
+            "width": "40%"
+          },
+          "setting_occurrences": [
+            {
+              "raw": "id:fred",
+              "name": "id",
+              "value": "fred",
+              "recognized": true,
+              "valid": true
+            },
+            {
+              "raw": "width:40%",
+              "name": "width",
+              "value": "40%",
+              "recognized": true,
+              "valid": true
+            }
+          ]
+        }
+      ],
+      "type": "object",
+      "required": [
+        "settings_raw",
+        "settings",
+        "setting_occurrences"
+      ],
+      "properties": {
+        "settings_raw": {
+          "description": "Decoded REGION settings text following the native REGION marker.",
+          "type": "string"
+        },
+        "settings": {
+          "description": "Effective recognized WebVTT REGION settings after occurrence processing.",
+          "type": "object",
+          "propertyNames": {
+            "description": "Recognized WebVTT REGION setting name.",
+            "examples": [
+              "id",
+              "width",
+              "lines",
+              "regionanchor",
+              "viewportanchor",
+              "scroll"
+            ],
+            "enum": [
+              "id",
+              "width",
+              "lines",
+              "regionanchor",
+              "viewportanchor",
+              "scroll"
+            ]
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "setting_occurrences": {
+          "description": "Ordered raw REGION setting occurrences, including invalid and unrecognized settings.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/webvtt_setting_occurrence"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "diagnostic": {
+      "title": "Diagnostic",
+      "description": "One deterministic observation about source interpretation, tolerance, support, or loss.",
+      "examples": [
+        {
+          "severity": "warning",
+          "code": "source_variant",
+          "message": "A tolerated source variant was preserved.",
+          "source_order": 0,
+          "cue_id": "cue-000000"
+        }
+      ],
+      "type": "object",
+      "required": [
+        "severity",
+        "code",
+        "message",
+        "source_order",
+        "cue_id"
+      ],
+      "properties": {
+        "severity": {
+          "description": "Diagnostic impact level used for deterministic reporting and stream policy.",
+          "examples": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ]
+        },
+        "code": {
+          "description": "Stable lowercase snake_case diagnostic identifier.",
+          "examples": [
+            "source_variant"
+          ],
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "message": {
+          "description": "Non-empty human-readable diagnostic explanation without sensitive source content.",
+          "type": "string",
+          "minLength": 1
+        },
+        "source_order": {
+          "description": "Related native source-order position, or null for a document-level diagnostic.",
+          "$ref": "#/$defs/nullable_non_negative_integer"
+        },
+        "cue_id": {
+          "description": "Related document-local cue identifier, or null when the diagnostic is not cue-specific.",
+          "$ref": "#/$defs/nullable_string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "stats": {
+      "title": "Document statistics",
+      "description": "Derived aggregate counts and timing facts for the validated Cue JSON document.",
+      "type": "object",
+      "required": [
+        "cue_count",
+        "diagnostic_count",
+        "warning_count",
+        "error_count",
+        "has_word_level_timing",
+        "media_span_milliseconds"
+      ],
+      "properties": {
+        "cue_count": {
+          "description": "Number of cues in the common model.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "diagnostic_count": {
+          "description": "Total number of diagnostics in the ordered diagnostics collection.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "warning_count": {
+          "description": "Number of diagnostics whose severity is warning.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "error_count": {
+          "description": "Number of diagnostics whose severity is error.",
+          "$ref": "#/$defs/non_negative_integer"
+        },
+        "has_word_level_timing": {
+          "description": "Whether any common-model token carries word-level timing.",
+          "type": "boolean"
+        },
+        "media_span_milliseconds": {
+          "description": "Milliseconds from earliest cue start to latest cue end, or null when unavailable.",
+          "$ref": "#/$defs/nullable_non_negative_integer"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

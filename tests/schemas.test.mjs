@@ -46,7 +46,9 @@ test('recording read, mapping and export requests enforce typed argument bounds'
   assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,mapping_revision:0}}),true);
   assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,mapping_revision:9}}),true);
   assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,mapping_revision:-1}}),false);
-  assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,local_speaker_id:'voice1'}}),false);
+  assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,local_speaker_id:'voice1'}}),true);
+  assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,local_speaker_id:' voice1'}}),false);
+  assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,speaker_id:'voice1'}}),false);
   assert.equal(master({...base,operation:'recordings.export',data:{format:'cueson',destination:'/tmp/export.json',strict:true}}),true);
   assert.equal(master({...base,operation:'recordings.export',data:{format:'invented',destination:'/tmp/export.json'}}),false);
   assert.equal(master({...base,operation:'recordings.process',data:{diarization_model_id:'33333333-3333-4333-8333-333333333333'},publication_id:'55555555-5555-4555-8555-555555555555'}),false);

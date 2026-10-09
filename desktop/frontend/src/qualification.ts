@@ -146,14 +146,6 @@ async function qualifyJourney(
     distinct.click();
     await idle();
   }
-  const copyLabel = [...document.querySelectorAll('label')].find(
-    (l) => l.textContent === 'Copy original into workspace storage',
-  );
-  const copy = copyLabel && document.getElementById(copyLabel.htmlFor);
-  if (copy instanceof HTMLInputElement && copy.checked) {
-    copy.click();
-    await idle();
-  }
   for (const [kind, path] of [
     ['audio', fixtures.audio_path],
     ['video', fixtures.video_path],
@@ -162,7 +154,7 @@ async function qualifyJourney(
     await fill('Media path or URL', path);
     await fill('Title', `Desktop qualification ${kind}`);
     await fill(
-      'Supplied subtitle path',
+      'Transcript path or URL',
       kind === 'audio' ? fixtures.subtitle_path : '',
     );
     await click('Import');
@@ -176,11 +168,11 @@ async function qualifyJourney(
     await click('Refresh library');
     await click(`Open Desktop qualification ${kind}`);
     await bridge.QualificationStep?.(`${kind}-playback`);
-    await click('Play original');
+    await click('Play recording audio');
     stage(`Wait for ${kind} playback metadata`);
     const playbackElement = () =>
       document.querySelector(
-        kind === 'video' ? 'video' : 'audio',
+        'audio',
       ) as HTMLMediaElement | null;
     await wait(
       () => {
@@ -195,7 +187,7 @@ async function qualifyJourney(
         `${kind} playback metadata unavailable: ${mediaDiagnostics(playbackElement())}.`,
     );
     const element = document.querySelector(
-      kind === 'video' ? 'video' : 'audio',
+      'audio',
     ) as HTMLMediaElement;
     element.muted = true;
     element.scrollIntoView({block:'center'});
@@ -216,7 +208,7 @@ async function qualifyJourney(
       8000,
     );
     element.pause();
-    flags[`ui_${kind}_playback`] = 'passed';
+    flags[`ui_${kind==='video'?'video_source_audio':kind}_playback`] = 'passed';
     if (kind === 'audio') {
       await bridge.QualificationStep?.('metadata-date');
       await click('Inspect raw metadata and dates');
@@ -224,8 +216,7 @@ async function qualifyJourney(
         throw new Error('Metadata details did not render.');
       await fill('Origination date', '1961-01-20');
       await click('Save date correction');
-      await fill('New original path', fixtures.audio_path);
-      await click('Verify identity and reconnect');
+      if(document.body.textContent?.includes('Verify identity and reconnect')) throw new Error('Canonical audio exposed reference relocation.');
       flags.ui_metadata_date = 'passed';
       await bridge.QualificationStep?.('assembly');
       await fill('Turn label', 'Qualification voice');

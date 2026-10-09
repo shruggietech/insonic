@@ -41,20 +41,25 @@ type Extraction struct {
 	Truncated    bool     `json:"truncated"`
 }
 type Stream struct {
-	Index         int                        `json:"index"`
-	Kind          string                     `json:"codec_type"`
-	Codec         string                     `json:"codec_name"`
-	SampleRate    string                     `json:"sample_rate"`
-	Channels      *int64                     `json:"channels"`
-	ChannelLayout string                     `json:"channel_layout"`
-	TimeBase      string                     `json:"time_base"`
-	StartPTS      *int64                     `json:"start_pts"`
-	DurationTS    *int64                     `json:"duration_ts"`
-	StartTime     string                     `json:"start_time"`
-	Duration      string                     `json:"duration"`
-	Tags          map[string]json.RawMessage `json:"tags"`
+	SampleFormat     string                     `json:"sample_fmt"`
+	BitsPerRawSample string                     `json:"bits_per_raw_sample"`
+	BitsPerSample    int                        `json:"bits_per_sample"`
+	Disposition      map[string]int             `json:"disposition,omitempty"`
+	Index            int                        `json:"index"`
+	Kind             string                     `json:"codec_type"`
+	Codec            string                     `json:"codec_name"`
+	SampleRate       string                     `json:"sample_rate"`
+	Channels         *int64                     `json:"channels"`
+	ChannelLayout    string                     `json:"channel_layout"`
+	TimeBase         string                     `json:"time_base"`
+	StartPTS         *int64                     `json:"start_pts"`
+	DurationTS       *int64                     `json:"duration_ts"`
+	StartTime        string                     `json:"start_time"`
+	Duration         string                     `json:"duration"`
+	Tags             map[string]json.RawMessage `json:"tags"`
 }
 type Facts struct {
+	Canonical          *Canonical   `json:"canonical,omitempty"`
 	DurationUS         *int64       `json:"duration_us"`
 	Streams            []Stream     `json:"streams"`
 	Container          string       `json:"container"`
@@ -150,9 +155,9 @@ func verifyTool(ctx context.Context, tool Tool, name string) error {
 		return contracts.Fail("unavailable")
 	}
 	version := strings.TrimSpace(string(result.Stdout))
-	if name == "ffprobe" {
+	if name == "ffprobe" || name == "ffmpeg" {
 		fields := strings.Fields(version)
-		if len(fields) < 3 || fields[0] != "ffprobe" || fields[1] != "version" {
+		if len(fields) < 3 || fields[0] != name || fields[1] != "version" {
 			return contracts.Fail("incompatible_version")
 		}
 		version = fields[2]

@@ -259,6 +259,24 @@ func (s *Service) Prepare(ctx context.Context, entry catalog.LibraryEntry, optio
 		return nil, contracts.Fail("unsupported_audio")
 	}
 	mapping, err := sourceClock(*selected)
+	if facts.Canonical != nil {
+		found := false
+		for _, track := range facts.Canonical.Tracks {
+			if track.Index == selected.Index {
+				start, ok := new(big.Rat).SetString(track.StartNumerator + "/" + track.StartDenominator)
+				if !ok {
+					return nil, contracts.Fail("timing_unavailable")
+				}
+				mapping = SourceMap{StartNumerator: start.Num().String(), StartDenominator: start.Denom().String(), StreamIndex: selected.Index, SampleRate: 16000, Policy: "full-selected-canonical-stream;original-start-rational;sample-clock;no-seeking"}
+				err = nil
+				found = true
+				break
+			}
+		}
+		if !found {
+			return nil, contracts.Fail("timing_unavailable")
+		}
+	}
 	if err != nil {
 		return nil, err
 	}

@@ -19,14 +19,16 @@ import (
 )
 
 type domainFlags struct {
-	options                                        library.Options
-	manifest, subtitle, title, credential, adapter string
-	revision                                       int64
-	after                                          string
-	afterOrdinal                                   int64
-	limit                                          int
-	newEntry                                       bool
-	seen                                           map[string]bool
+	options                                         library.Options
+	manifest, subtitle, title, credential, adapter  string
+	record, transcriptCredential, transcriptAdapter string
+	legacySidecar                                   bool
+	revision                                        int64
+	after                                           string
+	afterOrdinal                                    int64
+	limit                                           int
+	newEntry                                        bool
+	seen                                            map[string]bool
 }
 
 func parseFlags(args []string) ([]string, domainFlags, error) {
@@ -44,6 +46,9 @@ func parseFlags(args []string) ([]string, domainFlags, error) {
 			continue
 		}
 		key := arg
+		if arg == "--transcript" || arg == "--subtitle" {
+			key = "transcript-choice"
+		}
 		if arg == "--copy" || arg == "--reference" {
 			key = "copy-choice"
 		}
@@ -52,6 +57,13 @@ func parseFlags(args []string) ([]string, domainFlags, error) {
 		}
 		f.seen[key] = true
 		switch arg {
+		case "--replace-transcript":
+			yes := true
+			f.options.ReplaceTranscript = &yes
+			continue
+		case "--legacy-sidecar":
+			f.legacySidecar = true
+			continue
 		case "--copy", "--reference":
 			copy := arg == "--copy"
 			f.options.Copy = &copy
@@ -75,8 +87,41 @@ func parseFlags(args []string) ([]string, domainFlags, error) {
 		switch arg {
 		case "--manifest":
 			f.manifest = value
-		case "--subtitle":
+		case "--subtitle", "--transcript":
 			f.subtitle = value
+		case "--record":
+			f.record = value
+		case "--transcript-credential-id":
+			if !contracts.ValidID(value) {
+				return nil, f, contracts.Fail("invalid_request")
+			}
+			f.transcriptCredential = value
+		case "--transcript-adapter":
+			f.transcriptAdapter = value
+		case "--attribution":
+			f.options.Attribution = value
+		case "--transcript-format":
+			f.options.TranscriptFormat = value
+		case "--subtitle-language":
+			f.options.SubtitleLanguage = value
+		case "--diarization-model-id":
+			f.options.DiarizationModelID = value
+		case "--subtitle-stream-index":
+			n, e := strconv.Atoi(value)
+			if e != nil || n < 0 {
+				return nil, f, contracts.Fail("invalid_request")
+			}
+			f.options.SubtitleStreamIndex = &n
+		case "--transcript-max-bytes", "--transcript-timeout-ms":
+			n, e := strconv.ParseInt(value, 10, 64)
+			if e != nil || n < 1 {
+				return nil, f, contracts.Fail("invalid_request")
+			}
+			if arg == "--transcript-max-bytes" {
+				f.options.TranscriptMaxBytes = &n
+			} else {
+				f.options.TranscriptTimeoutMS = &n
+			}
 		case "--title":
 			f.title = value
 		case "--credential-id":
@@ -221,6 +266,44 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 		return "", "", nil, e
 	}
 	operation := group + "." + command
+	if group == "transcript" && command == "import" {
+		if !flagsAllowed(f, transcriptFlags...) {
+			return fail()
+		}
+		if f.manifest != "" {
+			if len(positional) != 0 || f.record != "" || f.legacySidecar {
+				return fail()
+			}
+			request, err := library.ReadManifest(f.manifest)
+			if err != nil {
+				return "", "", nil, err
+			}
+			overrideOptions(&request.Defaults, f.options)
+			for _, item := range request.Items {
+				if item.Record == "" {
+					return fail()
+				}
+			}
+			data, err := payload(request)
+			return "media.import", "", data, err
+		}
+		if f.record == "" || (!f.legacySidecar && len(positional) != 1) || (f.legacySidecar && len(positional) != 0) || !flagsAllowed(f, transcriptFlags...) {
+			return fail()
+		}
+		source := "<managed>"
+		if !f.legacySidecar {
+			source, e = absoluteSource(positional[0])
+			if e != nil {
+				return fail()
+			}
+		}
+		request, err := library.PrepareImport(library.ImportRequest{Defaults: f.options, Items: []library.Item{{Record: f.record, Transcript: source, TranscriptCredentialID: f.transcriptCredential, TranscriptAdapter: f.transcriptAdapter}}})
+		if err != nil {
+			return "", "", nil, err
+		}
+		data, err := payload(request)
+		return "media.import", "", data, err
+	}
 	if (group == "media" || group == "models" || group == "work") && command == "list" && len(positional) == 0 && flagsAllowed(f, "--after", "--limit") {
 		if len(f.seen) == 0 {
 			return operation, "", nil, nil
@@ -289,7 +372,8 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 		return operation, positional[0], nil, nil
 	}
 	if command == "import" {
-		allowed := append(append([]string{}, dateFlags...), "copy-choice", "--manifest", "--subtitle", "--title", "--credential-id", "--acquisition-adapter", "--local-http", "--acquisition-max-bytes", "--acquisition-timeout-ms", "--new-entry", "--preset")
+		allowed := append(append([]string{}, dateFlags...), "copy-choice", "--manifest", "transcript-choice", "--title", "--credential-id", "--acquisition-adapter", "--local-http", "--acquisition-max-bytes", "--acquisition-timeout-ms", "--new-entry", "--preset")
+		allowed = append(allowed, transcriptFlags...)
 		if !flagsAllowed(f, allowed...) || f.manifest != "" && len(positional) > 0 || f.manifest == "" && len(positional) == 0 {
 			return fail()
 		}
@@ -311,15 +395,27 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 		overrideOptions(&req.Defaults, f.options)
 		subtitle := f.subtitle
 		if subtitle != "" {
-			subtitle, e = filepath.Abs(subtitle)
+			subtitle, e = absoluteSource(subtitle)
 			if e != nil {
 				return fail()
 			}
 		}
 		for i := range req.Items {
 			item := &req.Items[i]
-			if subtitle != "" && item.Subtitle == "" {
-				item.Subtitle = subtitle
+			if subtitle != "" && item.Subtitle == "" && item.Transcript == "" {
+				item.Transcript = subtitle
+			}
+			if item.TranscriptCredentialID == "" {
+				item.TranscriptCredentialID = f.transcriptCredential
+			}
+			if item.TranscriptAdapter == "" {
+				item.TranscriptAdapter = f.transcriptAdapter
+			}
+			if f.record != "" {
+				return fail()
+			}
+			if f.legacySidecar {
+				return fail()
 			}
 			if f.title != "" && item.Title == "" {
 				item.Title = f.title
@@ -377,45 +473,7 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 	return fail()
 }
 func overrideOptions(target *library.Options, source library.Options) {
-	if source.LocalHTTP != nil {
-		target.LocalHTTP = source.LocalHTTP
-	}
-	if source.AcquisitionMaxBytes != nil {
-		target.AcquisitionMaxBytes = source.AcquisitionMaxBytes
-	}
-	if source.AcquisitionTimeoutMS != nil {
-		target.AcquisitionTimeoutMS = source.AcquisitionTimeoutMS
-	}
-	if source.Copy != nil {
-		target.Copy = source.Copy
-	}
-	if source.OriginatedAt != "" {
-		target.OriginatedAt = source.OriginatedAt
-		target.OriginatedOn = ""
-		target.OriginatedEarliest, target.OriginatedLatest = nil, nil
-	}
-	if source.OriginatedOn != "" {
-		target.OriginatedOn = source.OriginatedOn
-		target.OriginatedAt = ""
-		target.OriginatedEarliest, target.OriginatedLatest = nil, nil
-	}
-	if source.OriginatedEarliest != nil || source.OriginatedLatest != nil {
-		target.OriginatedEarliest, target.OriginatedLatest = source.OriginatedEarliest, source.OriginatedLatest
-		target.OriginatedAt, target.OriginatedOn = "", ""
-	}
-	if source.Timezone != "" {
-		target.Timezone = source.Timezone
-	}
-	if source.DSTFold != "" {
-		target.DSTFold = source.DSTFold
-	}
-	if source.DSTGap != "" {
-		target.DSTGap = source.DSTGap
-	}
-	if source.Preset != "" {
-		target.Preset = source.Preset
-	}
-	if source.DatePrecedence != "" {
-		target.DatePrecedence = source.DatePrecedence
-	}
+	*target = library.MergeOptions(*target, source)
 }
+
+var transcriptFlags = []string{"--record", "--legacy-sidecar", "--replace-transcript", "--attribution", "--transcript-format", "--transcript-credential-id", "--transcript-adapter", "--transcript-max-bytes", "--transcript-timeout-ms", "--subtitle-stream-index", "--subtitle-language", "--diarization-model-id", "--local-http", "--manifest"}

@@ -17,6 +17,7 @@ import (
 )
 
 type playbackDescriptor struct {
+	StreamIndex           *int    `json:"stream_index,omitempty"`
 	PlaybackID            string  `json:"playback_id"`
 	MediaID               string  `json:"media_id"`
 	Revision              int64   `json:"revision"`
@@ -68,6 +69,15 @@ func decodePlayback(response contracts.Response) (playbackDescriptor, bool) {
 // Playback mediates a shared runtime handle into a client-scoped native URL.
 // Paths and cache leases remain native-only and cannot be selected by the browser.
 func (b *Bridge) Playback(mediaID string, revision, recordingRevision int64, documentDigest string) contracts.Response {
+	return b.playback(mediaID, revision, recordingRevision, documentDigest, nil)
+}
+func (b *Bridge) PlaybackTrack(mediaID string, revision, recordingRevision int64, documentDigest string, streamIndex int) contracts.Response {
+	if streamIndex < 0 {
+		return b.failed(contracts.Fail("invalid_request"))
+	}
+	return b.playback(mediaID, revision, recordingRevision, documentDigest, &streamIndex)
+}
+func (b *Bridge) playback(mediaID string, revision, recordingRevision int64, documentDigest string, streamIndex *int) contracts.Response {
 	w := SelectedWorkspace(b)
 	selected := &Bridge{Workspace: w}
 	if w == nil {
@@ -77,6 +87,9 @@ func (b *Bridge) Playback(mediaID string, revision, recordingRevision int64, doc
 		return selected.failed(contracts.Fail("invalid_request"))
 	}
 	data := map[string]any{"revision": revision}
+	if streamIndex != nil {
+		data["stream_index"] = *streamIndex
+	}
 	if recordingRevision > 0 {
 		data["recording_revision"] = recordingRevision
 	}
@@ -88,7 +101,7 @@ func (b *Bridge) Playback(mediaID string, revision, recordingRevision int64, doc
 		return response
 	}
 	descriptor, ok := decodePlayback(response)
-	if !ok || descriptor.MediaID != mediaID || descriptor.Revision != revision ||
+	if !ok || streamIndex != nil && (descriptor.StreamIndex == nil || *descriptor.StreamIndex != *streamIndex) || descriptor.MediaID != mediaID || descriptor.Revision != revision ||
 		recordingRevision != 0 && descriptor.RecordingRevision != recordingRevision ||
 		documentDigest != "" && descriptor.DocumentDigest != documentDigest {
 		if contracts.ValidID(descriptor.PlaybackID) {

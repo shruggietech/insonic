@@ -6,6 +6,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Canonical audio admission with stereo/multitrack FLAC, eligible mono MP3 V0, preserved source clocks and captured metadata. Shared local/remote/embedded transcript import preserves annotated Cue JSON, upgrades validated historical versions and converts legacy managed sidecars through atomic current acceptance.
+
 - Optional local/hosted query assistance with revisioned settings, complete editable proposals and elected validated current execution in CLI and desktop Explore. Deterministic provider fixtures qualify ordinary backend and native package journeys without model inference.
 
 - Current source-backed evidence extraction, real LadybugDB/ArcadeDB reference publication and portable/native queries, with whole-library calendars, recording timelines, versioned saved definitions and separate force-graph layouts in CLI and desktop Explore.
@@ -101,3 +103,6 @@ All notable changes to this project will be documented here. The format follows 
 - Pin Windows OpenSSL 3.5.9 loader companions and their Apache 2.0 notice, with a pinned archive decoder; native preparation and relocated checks no longer depend on ambient OpenSSL installations.
 
 - Query assistance uses an explicitly elected versioned HTTP provider, portable catalog settings and the shared current query path. Suggestions are the default; auto-run requires ordinary read validation and selected-engine EXPLAIN. Required checks use injected deterministic provider replies and refuse production provider calls under CI markers.
+## Decisions (2026-10-09)
+
+- Amend constitution to 2.2.0 for canonical managed audio and one current embedded document. New reference admission is unsupported; existing legacy references remain readable. Imported local speaker tokens retain exact upstream-valid values. Original owner inputs stay untouched, while accepted work and captured metadata omit original local locators.

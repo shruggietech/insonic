@@ -99,24 +99,13 @@ func TestNativeDirectPlaybackNonzeroSourceClock(t *testing.T) {
 			if e = os.WriteFile(filepath.Join(a.Workspace.Control, "media-tools.json"), raw, 0600); e != nil {
 				t.Fatal(e)
 			}
-			service, e := a.libraryService()
+			id := seedLegacyMedia(t, a, target, "")
+			entry, e := a.Catalog.Library(ctx, id)
 			if e != nil {
 				t.Fatal(e)
 			}
-			claim, e := a.Catalog.EnqueueWork(ctx, contracts.ID(), "media.import", json.RawMessage(`{}`))
-			if e != nil {
-				t.Fatal(e)
-			}
-			claim, e = a.Catalog.ClaimWork(ctx, claim.ID, contracts.ID(), time.Minute)
-			if e != nil {
-				t.Fatal(e)
-			}
-			copyMode := false
-			result, e := service.Import(ctx, claim, library.ImportRequest{Items: []library.Item{{Source: target, Options: library.Options{Copy: &copyMode}}}})
-			if e != nil || len(result.Items) != 1 || result.Items[0].MediaID == "" {
-				t.Fatal("clock fixture import", result, e)
-			}
-			entry, e := a.Catalog.Library(ctx, result.Items[0].MediaID)
+			entry.Facts, _ = json.Marshal(library.Facts{Streams: probe.Streams, Container: probe.Format.Name, Extension: filepath.Ext(target)})
+			entry, e = a.Catalog.UpdateLibrary(ctx, contracts.ID(), entry.Revision, entry)
 			if e != nil {
 				t.Fatal(e)
 			}
@@ -188,5 +177,60 @@ func TestPreviewSourceClockRejectsNonfiniteOrUnboundedOffsets(t *testing.T) {
 	}
 	if value, err := probeSeconds("1.125", 0); err != nil || math.Abs(value-1.125) > 0.0001 {
 		t.Fatal("valid original offset lost")
+	}
+}
+
+func TestNativeCanonicalGroupedSelectedPlayback(t *testing.T) {
+	config := os.Getenv("INSONIC_LIBRARY_TOOLS_FILE")
+	if config == "" {
+		t.Skip("pinned native tools not selected")
+	}
+	raw, err := os.ReadFile(config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var tools library.Tools
+	json.Unmarshal(raw, &tools)
+	ctx := context.Background()
+	source, _ := filepath.Abs("../../tests/fixtures/media/speech.flac")
+	target := filepath.Join(t.TempDir(), "tracks.mka")
+	args := []string{"-nostdin", "-v", "error", "-y", "-copyts", "-itsoffset", "1.25", "-i", source, "-itsoffset", "2.5", "-i", source, "-map", "0:a:0", "-map", "1:a:0", "-c:a", "copy", target}
+	if _, err = process.Capture(ctx, process.Spec{Executable: tools.FFmpeg.Path, Args: args, CleanEnv: true, Env: process.LocalEnvironment(), MaxOutput: 64 << 10}); err != nil {
+		t.Fatal(err)
+	}
+	a := configuredApp(t)
+	os.WriteFile(filepath.Join(a.Workspace.Control, "media-tools.json"), raw, 0600)
+	request := realRequest(a, "media.import", "", library.ImportRequest{Items: []library.Item{{Source: target}}})
+	if request.Error != nil {
+		t.Fatal(request.Error)
+	}
+	work := awaitWork(t, a, request.Result.(map[string]any)["work_id"].(string))
+	var result library.ImportResult
+	json.Unmarshal(work.Result, &result)
+	if work.State != "succeeded" {
+		t.Fatal(work.State, string(work.Result))
+	}
+	entry, err := a.Catalog.Library(ctx, result.Items[0].MediaID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for index, want := range []float64{1.25, 2.5} {
+		response := realRequest(a, "media.playback", entry.ID, map[string]any{"revision": entry.Revision, "stream_index": index})
+		if response.Error != nil {
+			t.Fatal(index, response.Error)
+		}
+		descriptor := response.Result.(PlaybackDescriptor)
+		if descriptor.StreamIndex == nil || *descriptor.StreamIndex != index || !descriptor.Preview || math.Abs(descriptor.TimelineOffsetSeconds-want) > 0.000001 {
+			t.Fatal("selected track clock", descriptor)
+		}
+		preview, err := probePlayback(ctx, tools.FFprobe, descriptor.Path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		duration, err := probeSeconds(preview.Format.Duration, 0)
+		if err != nil || math.Abs(duration-10.8) > 0.01 {
+			t.Fatal("selected track duration", duration, err)
+		}
+		realRequest(a, "media.playback-close", entry.ID, map[string]any{"playback_id": descriptor.PlaybackID})
 	}
 }

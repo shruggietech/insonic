@@ -33,6 +33,7 @@ const maxPlaybackBytes int64 = 10 << 30
 // PlaybackDescriptor is exchanged only with native clients. The desktop wraps
 // its path in an opaque ticket and never supplies it to browser JavaScript.
 type PlaybackDescriptor struct {
+	StreamIndex           *int    `json:"stream_index,omitempty"`
 	PlaybackID            string  `json:"playback_id"`
 	MediaID               string  `json:"media_id"`
 	Revision              int64   `json:"revision"`
@@ -50,6 +51,7 @@ type PlaybackDescriptor struct {
 	LeaseID               string  `json:"lease_id,omitempty"`
 }
 type playbackEntry struct {
+	streamIndex      *int
 	descriptor       PlaybackDescriptor
 	touched          time.Time
 	sourceLocator    string
@@ -103,6 +105,7 @@ func (a *App) desktopDispatch(req contracts.Request) (any, error) {
 
 func (a *App) openPlayback(req contracts.Request) (any, error) {
 	var input struct {
+		StreamIndex       *int   `json:"stream_index,omitempty"`
 		Revision          int64  `json:"revision"`
 		RecordingRevision int64  `json:"recording_revision,omitempty"`
 		DocumentDigest    string `json:"document_digest,omitempty"`
@@ -138,7 +141,22 @@ func (a *App) openPlayback(req contracts.Request) (any, error) {
 	if entry.Size > input.MaxBytes {
 		return nil, contracts.Fail("output_limit")
 	}
-	descriptor := PlaybackDescriptor{PlaybackID: contracts.ID(), MediaID: entry.ID, Revision: entry.Revision, Digest: entry.Digest, Size: entry.Size, SourceDigest: entry.Digest, SourceSize: entry.Size, MIME: playbackMIME(entry)}
+	if input.StreamIndex != nil {
+		var facts library.Facts
+		if json.Unmarshal(entry.Facts, &facts) != nil {
+			return nil, contracts.Fail("invalid_request")
+		}
+		found := false
+		for _, stream := range facts.Streams {
+			if stream.Kind == "audio" && stream.Index == *input.StreamIndex {
+				found = true
+			}
+		}
+		if !found {
+			return nil, contracts.Fail("unsupported_audio")
+		}
+	}
+	descriptor := PlaybackDescriptor{StreamIndex: input.StreamIndex, PlaybackID: contracts.ID(), MediaID: entry.ID, Revision: entry.Revision, Digest: entry.Digest, Size: entry.Size, SourceDigest: entry.Digest, SourceSize: entry.Size, MIME: playbackMIME(entry)}
 	if input.RecordingRevision > 0 {
 		record, e := a.Catalog.Recording(ctx, entry.ID)
 		if e != nil {
@@ -154,7 +172,7 @@ func (a *App) openPlayback(req contracts.Request) (any, error) {
 	if e != nil {
 		return nil, e
 	}
-	p := &playbackEntry{descriptor: descriptor, touched: time.Now(), sourceLocator: entry.SourceLocator}
+	p := &playbackEntry{streamIndex: input.StreamIndex, descriptor: descriptor, touched: time.Now(), sourceLocator: entry.SourceLocator}
 	if entry.Mode == "copy" {
 		if entry.OriginalPublicationID == nil {
 			return nil, contracts.Fail("not_found")

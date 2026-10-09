@@ -164,7 +164,15 @@ func (s *Store) EnqueueWork(ctx context.Context, op, kind string, payload json.R
 		if e = s.putDomain(ctx, tx, "Works", w); e != nil {
 			return e
 		}
-		_, e = s.accept(ctx, tx, op, digest, rev, map[string]any{"work_id": op, "state": "pending", "work_digest": workJournalDigest(w)})
+		result := map[string]any{"work_id": op, "state": "pending", "work_digest": workJournalDigest(w)}
+		if kind == "media.import" || kind == "library.import" {
+			if base, items, err := importInputProof(payload); err == nil {
+				result["input_intent_digest"] = digest
+				result["input_envelope_digest"] = base
+				result["item_intent_digests"] = items
+			}
+		}
+		_, e = s.accept(ctx, tx, op, digest, rev, result)
 		return e
 	})
 	return w, e

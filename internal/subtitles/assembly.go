@@ -66,7 +66,7 @@ func AssembleDocument(data []byte, durationNS *int64, turns []Turn, participatio
 		return result, contracts.Fail("invalid_request")
 	}
 	for _, turn := range turns {
-		if !contracts.ValidID(turn.SpeakerID) || turn.StartNS < 0 || turn.EndNS <= turn.StartNS || durationNS != nil && turn.EndNS > *durationNS {
+		if !contracts.ValidLocalSpeakerID(turn.SpeakerID) || turn.StartNS < 0 || turn.EndNS <= turn.StartNS || durationNS != nil && turn.EndNS > *durationNS {
 			return result, contracts.Fail("invalid_request")
 		}
 	}

@@ -37,7 +37,7 @@ func awaitWork(t *testing.T, a *App, id string) catalog.Work {
 	t.Fatal("work did not finish")
 	return catalog.Work{}
 }
-func TestRealImportExecutorRestartAndPartialCapture(t *testing.T) {
+func TestLegacyMediaRestartAndPartialCapture(t *testing.T) {
 	w, e := workspace.Init(t.TempDir(), "real work")
 	if e != nil {
 		t.Fatal(e)
@@ -50,20 +50,9 @@ func TestRealImportExecutorRestartAndPartialCapture(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	r := realRequest(a, "media.import", "", library.ImportRequest{Items: []library.Item{{Source: source}}})
-	if r.Error != nil {
-		t.Fatal(r.Error)
-	}
-	workID := r.Result.(map[string]any)["work_id"].(string)
-	done := awaitWork(t, a, workID)
-	if done.State != "succeeded" {
-		t.Fatalf("executor %+v", done)
-	}
-	var result library.ImportResult
-	if json.Unmarshal(done.Result, &result) != nil || !result.Partial || len(result.Items) != 1 || result.Items[0].MediaID == "" {
-		t.Fatalf("partial admission %s", done.Result)
-	}
-	id := result.Items[0].MediaID
+	id := seedLegacyMedia(t, a, source, "")
+	var r contracts.Response
+
 	a.Close()
 	os.Remove(source)
 	a, e = New(w)

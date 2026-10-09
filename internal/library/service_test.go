@@ -36,7 +36,9 @@ func libraryFixture(t *testing.T) (*Service, catalog.Catalog) {
 	}
 	t.Cleanup(func() { a.Close() })
 	a.Grace = 0
-	return NewService(a, db, nil, Tools{}), db
+	s := NewService(a, db, nil, Tools{})
+	s.legacyFixture = true
+	return s, db
 }
 func claimLibraryWork(t *testing.T, db catalog.Catalog, kind string, payload any) catalog.Work {
 	t.Helper()

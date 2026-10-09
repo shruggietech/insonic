@@ -47,7 +47,7 @@ func TestOfflineCurrentValidation(t *testing.T) {
 		assignments string
 		media       string
 	}{
-		{"arbitrary-global-id", `[{"speaker_id":"global-name"}]`, `{"duration_milliseconds":1000}`},
+		{"leading-whitespace-id", `[{"speaker_id":" global-name"}]`, `{"duration_milliseconds":1000}`},
 		{"outside-cue", `[{"speaker_id":"11111111-1111-4111-8111-111111111111","start_milliseconds":100,"end_milliseconds":1001}]`, `{"duration_milliseconds":2000}`},
 		{"outside-media", `[{"speaker_id":"11111111-1111-4111-8111-111111111111","start_milliseconds":100,"end_milliseconds":600}]`, `{"duration_milliseconds":500}`},
 		{"half-pair", `[{"speaker_id":"11111111-1111-4111-8111-111111111111","start_milliseconds":100}]`, `{"duration_milliseconds":1000}`},

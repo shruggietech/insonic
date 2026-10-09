@@ -17,9 +17,15 @@ import (
 	"github.com/shruggietech/insonic/internal/artifact"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/subtitles"
 )
 
 type Service struct {
+	NativeIngest func(context.Context, []byte, string) (json.RawMessage, error)
+	Diarize      func(context.Context, catalog.LibraryEntry, json.RawMessage, string) (subtitles.Admission, json.RawMessage, error)
+	// Used only by historical fixture builders, never enabled by application construction.
+	legacyFixture bool
+
 	Artifacts           *artifact.Service
 	Catalog             catalog.Catalog
 	Secrets             contracts.SecretProvider
@@ -94,7 +100,10 @@ func (s *Service) Import(ctx context.Context, work catalog.Work, req ImportReque
 			if ctx.Err() != nil {
 				return result, contracts.Fail("cancelled")
 			}
-			out = ItemResult{Ordinal: ordinal, State: "failed", Error: code(e), QueuedJobIDs: []string{}}
+			out = ItemResult{Ordinal: ordinal, State: "failed", Error: code(e), QueuedJobIDs: []string{}, Notices: out.Notices}
+			if out.Error == "incompatible_version" {
+				out.Notices = append(out.Notices, "supported_cueson_versions:1.0.0,1.1.0,1.2.0")
+			}
 			result.Partial = true
 		}
 		if out.CaptureState != "captured" && out.CaptureState != "no-embedded-metadata" {
@@ -146,7 +155,7 @@ func (k *libraryLookup) remember(entry catalog.LibraryEntry) {
 		k.content[key] = entry
 	}
 }
-func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, item Item, options Options, known *libraryLookup) (out ItemResult, returned error) {
+func (s *Service) admitLegacy(ctx context.Context, work catalog.Work, ordinal int, item Item, options Options, known *libraryLookup) (out ItemResult, returned error) {
 	entryID := DerivedID(work.ID, "media-"+strconv.Itoa(ordinal))
 	reportID, e := s.candidateAttempt(ctx, DerivedID(work.ID, "report-"+strconv.Itoa(ordinal)))
 	if e != nil {
@@ -481,6 +490,16 @@ func (s *Service) Refresh(ctx context.Context, work catalog.Work, req RefreshReq
 	bundle, e := s.captureOrRecover(ctx, work, reportID, stage.Name(), entry.SourceLocator, options, directory)
 	if e != nil {
 		return entry, e
+	}
+	if oldFacts.Canonical != nil {
+		bundle.Facts.Canonical = oldFacts.Canonical
+		bundle.Facts.Extension = oldFacts.Extension
+		// Original captured tags remain authoritative after the source is retired.
+		if json.Unmarshal(entry.Metadata, &bundle.Metadata) != nil {
+			return entry, contracts.Fail("operation_failed")
+		}
+
+		scrubBundle(&bundle, source, stage.Name(), entry.SourceLocator, directory)
 	}
 	bundle.Facts.Acquisition = oldFacts.Acquisition
 	bundle.Facts.SubtitleState = oldFacts.SubtitleState

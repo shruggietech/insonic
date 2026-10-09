@@ -2,7 +2,7 @@
 
 ## Evidence graph and supported adapters
 
-LadybugDB is the default semantic graph; ArcadeDB is a fully supported alternative. The selected SQLite or PostgreSQL catalog remains the operational authority described in [architecture](architecture.md). Both graph adapters project media, assets, metadata/date selections, current recording/document/cue references, local voice UUIDs, speaker identities, terms, assertions, concepts, evidence spans, speaker audio segments and trained-model lineage. Every assertion cites actual cue IDs, original source intervals, current document digest and processing-run identity. Model relationships cite reference-only dataset/run provenance and durable output versions rather than implying that a model is the speaker.
+LadybugDB is the default semantic graph; ArcadeDB is a fully supported alternative. The selected SQLite or PostgreSQL catalog remains the operational authority described in [architecture](architecture.md). Both graph adapters project media, assets, metadata/date selections, current recording/document/cue references, local voice tokens, speaker identities, terms, assertions, concepts, evidence spans, speaker audio segments and trained-model lineage. Every assertion cites actual cue IDs, original source intervals, current document digest and processing-run identity. Model relationships cite reference-only dataset/run provenance and durable output versions rather than implying that a model is the speaker.
 
 ```mermaid
 flowchart TB
@@ -10,7 +10,7 @@ flowchart TB
   Asset --> Transcript[Current embedded Cue JSON]
   Transcript --> Cue[Timed cue]
   Cue --> Evidence[Evidence span]
-  Cue --> Voice[Current cue and local UUID reference]
+  Cue --> Voice[Current cue and local speaker token reference]
   Voice --> Speaker[Catalog speaker]
   Asset --> Segment[Mapped speaker audio segment]
   Segment --> Speaker

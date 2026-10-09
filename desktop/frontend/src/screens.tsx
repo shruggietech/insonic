@@ -127,9 +127,20 @@ export function Library({ client, run }: Props) {
   const [source, setSource] = useState(''),
     [subtitle, setSubtitle] = useState(''),
     [title, setTitle] = useState(''),
-    [copy, setCopy] = useState(true),
+    [transcriptOnly, setTranscriptOnly] = useState(false),
     [newEntry, setNewEntry] = useState(false);
-  const [date, setDate] = useState(''),
+  const [recordTarget, setRecordTarget] = useState(''),
+ [replaceTranscript,setReplaceTranscript]=useState(false),
+ [admissionAttribution,setAdmissionAttribution]=useState('auto'),
+ [transcriptHint,setTranscriptHint]=useState(''),
+ [embeddedIndex,setEmbeddedIndex]=useState(''),
+ [embeddedLanguage,setEmbeddedLanguage]=useState(''),
+ [mediaCredential,setMediaCredential]=useState(''),
+ [transcriptCredential,setTranscriptCredential]=useState(''),
+ [transcriptMax,setTranscriptMax]=useState('16777216'),
+ [transcriptTimeout,setTranscriptTimeout]=useState('120000'),
+ [playbackTrack,setPlaybackTrack]=useState('');
+ const [date, setDate] = useState(''),
     [precision, setPrecision] = useState('date'),
     [zone, setZone] = useState(''),
     [fold, setFold] = useState(''),
@@ -167,6 +178,7 @@ export function Library({ client, run }: Props) {
     const generation = ++selected.current;
     setEntry(undefined);
     setPlayback(undefined);
+    setPlaybackTrack('');
     setCues(undefined);
     setMetadata(undefined);
     setMappings({ items: [] });
@@ -225,7 +237,9 @@ export function Library({ client, run }: Props) {
   });
   const play = async (seek?: number) => {
     const generation = selected.current;
-    const response = await client.bridge.Playback(
+    const response = playbackTrack!=='' && client.bridge.PlaybackTrack
+ ? await client.bridge.PlaybackTrack(entryID,entry?.revision??0,cues?.revision??0,cues?.document_digest??'',Number(playbackTrack))
+ : await client.bridge.Playback(
       entryID,
       entry?.revision ?? 0,
       cues?.revision ?? 0,
@@ -304,15 +318,23 @@ export function Library({ client, run }: Props) {
           onSubmit={(e) => {
             e.preventDefault();
             run(async () => {
+              if (!/^\d+$/.test(transcriptMax) || Number(transcriptMax)<1 || Number(transcriptMax)>16777216 || !/^\d+$/.test(transcriptTimeout) || Number(transcriptTimeout)<1 || Number(transcriptTimeout)>600000 || (embeddedIndex!=='' && (!/^\d+$/.test(embeddedIndex) || !Number.isSafeInteger(Number(embeddedIndex))))) throw new Error('Enter valid transcript limits and a nonnegative stream index.');
               await client.call('media.import', '', {
                 kind: 'import-manifest',
                 schema_version: '0.0.0',
-                defaults: { copy, ...dateOptions() },
+                defaults: { ...dateOptions(),attribution:admissionAttribution,
+ replace_transcript:replaceTranscript,
+ ...(transcriptHint?{transcript_format:transcriptHint}:{}),
+ ...(embeddedIndex!==''?{subtitle_stream_index:Number(embeddedIndex)}:{}),
+ ...(embeddedLanguage?{subtitle_language:embeddedLanguage}:{}),
+ transcript_max_bytes:Number(transcriptMax),transcript_timeout_ms:Number(transcriptTimeout),
+ ...(admissionAttribution==='diarize'?{diarization_model_id:diarizationModel}:{}),
+ },
                 items: [
                   {
-                    source,
-                    ...(newEntry ? { new_entry: true } : {}),
-                    ...(subtitle ? { subtitle } : {}),
+                    ...(transcriptOnly?{record:recordTarget,transcript:subtitle}:{source,...(subtitle?{transcript:subtitle}:{}),...(newEntry?{new_entry:true}:{})}),
+                    ...(mediaCredential&&!transcriptOnly?{credential_id:mediaCredential}:{}),
+                    ...(transcriptCredential?{transcript_credential_id:transcriptCredential}:{}),
                     ...(title ? { title } : {}),
                   },
                 ],
@@ -322,11 +344,13 @@ export function Library({ client, run }: Props) {
             });
           }}
         >
+          <Check label="Import transcript into an existing recording" value={transcriptOnly} onChange={setTranscriptOnly}/>
+          {transcriptOnly && <Input label="Existing recording ID or exact title" value={recordTarget} onChange={setRecordTarget} required/>}
           <Input
             label="Media path or URL"
             value={source}
             onChange={setSource}
-            required
+            required={!transcriptOnly}
           />
           <Button
             variant="secondary"
@@ -341,9 +365,10 @@ export function Library({ client, run }: Props) {
           </Button>
           <Input label="Title" value={title} onChange={setTitle} />
           <Input
-            label="Supplied subtitle path"
+            label="Transcript path or URL"
             value={subtitle}
             onChange={setSubtitle}
+            required={transcriptOnly}
           />
           <Button
             variant="secondary"
@@ -356,11 +381,21 @@ export function Library({ client, run }: Props) {
           >
             Choose subtitle
           </Button>
-          <Check
-            label="Copy original into workspace storage"
-            value={copy}
-            onChange={setCopy}
-          />
+          <p>New recordings retain canonical audio and captured source facts. Owner-owned inputs remain untouched.</p>
+          <Check label="Replace an existing current transcript" value={replaceTranscript} onChange={setReplaceTranscript}/>
+          <Select label="Import speaker attribution" value={admissionAttribution} onChange={setAdmissionAttribution} options={[
+            {value:'auto',label:'Auto (preserve assignments, then native or heuristic observations)'},{value:'native',label:'Native observations only'},{value:'off',label:'Preserve without deriving assignments'},{value:'diarize',label:'Run configured diarization without recognition'}
+          ]}/>
+          {admissionAttribution==='diarize' && <Input label="Import diarization model ID" value={diarizationModel} onChange={setDiarizationModel} required/>}
+          <Select label="Transcript format" value={transcriptHint} onChange={setTranscriptHint} options={[
+            {value:'',label:'Detect from bytes'},...['cueson','srt','vtt','ass','ssa'].map(value=>({value,label:value.toUpperCase()}))
+          ]}/>
+          <Input label="Embedded subtitle stream index (optional)" value={embeddedIndex} onChange={setEmbeddedIndex}/>
+          <Input label="Embedded subtitle language (optional)" value={embeddedLanguage} onChange={setEmbeddedLanguage}/>
+          <Input label="Media credential ID (optional)" value={mediaCredential} onChange={setMediaCredential}/>
+          <Input label="Transcript credential ID (optional)" value={transcriptCredential} onChange={setTranscriptCredential}/>
+          <Input label="Transcript byte limit" value={transcriptMax} onChange={setTranscriptMax}/>
+          <Input label="Transcript timeout in milliseconds" value={transcriptTimeout} onChange={setTranscriptTimeout}/>
           <Check
             label="Create a distinct library entry for this source"
             value={newEntry}
@@ -412,7 +447,13 @@ export function Library({ client, run }: Props) {
               }}
             />
             <Actions>
-              <Button onClick={() => run(() => play())}>Play original</Button>
+              {(entry.facts?.streams??[]).filter((stream:Obj)=>stream.codec_type==='audio').length>1 && <Select label="Playback audio track" value={playbackTrack} onChange={setPlaybackTrack} options={[
+                {value:'',label:'First audio track'},...(entry.facts?.streams??[]).filter((stream:Obj)=>stream.codec_type==='audio').map((stream:Obj)=>({value:String(stream.index),label:`Track ${stream.index}: ${stream.tags?.language??'unknown language'}, ${stream.channels??'?'} channels`}))
+              ]}/>}
+              <Button onClick={() => run(() => play())}>Play recording audio</Button>
+              {entry.subtitle_publication_id && <Button variant="secondary" onClick={()=>run(async()=>{
+                await client.call('media.import','',{kind:'import-manifest',schema_version:'0.0.0',defaults:{replace_transcript:replaceTranscript,attribution:admissionAttribution,...(admissionAttribution==='diarize'?{diarization_model_id:diarizationModel}:{})},items:[{record:entryID,transcript:'<managed>'}]});await refresh();
+              })}>Convert managed legacy subtitle</Button>}
               <Button
                 variant="secondary"
                 onClick={() =>
@@ -594,7 +635,7 @@ export function Library({ client, run }: Props) {
               Save date correction
             </Button>
           </Card>
-          <Card heading="Relocate original">
+          {entry.mode==='reference' && <Card heading="Relocate original">
             <Input
               label="New original path"
               value={relocation}
@@ -624,7 +665,7 @@ export function Library({ client, run }: Props) {
             >
               Verify identity and reconnect
             </Button>
-          </Card>
+          </Card>}
           <Card heading="Processing">
             <Select
               label="Saved pipeline"

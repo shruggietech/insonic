@@ -97,3 +97,18 @@ func TestDomainPaginationAndWorkResults(t *testing.T) {
 		}
 	}
 }
+
+func TestTranscriptDomainUsesSharedImportContract(t *testing.T) {
+	id := contracts.ID()
+	op, item, raw, err := parseDomain([]string{"transcript", "import", "caption.ass", "--record", id, "--replace-transcript", "--attribution", "native", "--transcript-max-bytes", "4096", "--transcript-timeout-ms", "30000"})
+	if err != nil || op != "media.import" || item != "" {
+		t.Fatal(op, item, err)
+	}
+	var request library.ImportRequest
+	if json.Unmarshal(raw, &request) != nil || request.Items[0].Record != id || !filepath.IsAbs(request.Items[0].Transcript) || request.Items[0].Source != "" || request.Defaults.Attribution != "native" || !*request.Defaults.ReplaceTranscript || *request.Defaults.TranscriptMaxBytes != 4096 {
+		t.Fatal(string(raw))
+	}
+	if _, _, _, err = parseDomain([]string{"media", "import", "file.wav", "--subtitle", "one.srt", "--transcript", "two.vtt"}); err == nil {
+		t.Fatal("two explicit transcript choices accepted")
+	}
+}

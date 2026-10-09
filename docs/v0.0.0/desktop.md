@@ -96,3 +96,9 @@ Support keyboard navigation, readable contrast, reduced motion, scalable text, s
 Help opens the documentation-only bundle from `site/offline/` for the installed application version. The public product landing page is part of the website export in `site/out/` and is excluded from installed help. It works without a network connection and clearly states the version. Online help offers the matching version first and latest docs as a deliberate navigation choice. The GUI cannot imply that a feature documented for a newer release exists in an older installation.
 
 The documentation website and bundled offline help follow the operating-system theme by default. A sun/moon toggle switches between light and dark mode and remembers the choice when browser storage is available. This setting controls documentation appearance independently of the desktop application's preference.
+
+## Canonical admission controls
+
+Library imports accept a media path/URL plus an optional transcript path/URL, or a transcript into an existing recording selected by UUID or exact title. Controls expose replacement, auto/native/off/explicit diarization, format hints, embedded index/language, independent credential IDs and transcript budgets. Native file selection includes SRT, WebVTT, ASS, SSA and Cue JSON. Legacy managed sidecars can be converted from recording details. Advanced manifest adapter selection and loopback credential HTTP election remain CLI/runtime options.
+
+Grouped audio offers a playback-track selector. Browser-compatible playback uses a verified selected track or a bounded temporary preview, with the original track clock carried separately for cue seeking. Canonical masters retain all tracks and channels. Existing legacy video/reference playback remains available.

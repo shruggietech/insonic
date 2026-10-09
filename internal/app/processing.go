@@ -319,7 +319,7 @@ func (a *App) processRecording(ctx context.Context, claim catalog.Work) (any, er
 	state := "ready"
 	mode := input.Options.Transcription
 	if mode == "" {
-		if entry.SubtitlePublicationID != nil {
+		if entry.SubtitlePublicationID != nil || previousErr == nil && previous.State == "ready" {
 			mode = "supplied"
 		} else {
 			mode = "generate"
@@ -336,11 +336,7 @@ func (a *App) processRecording(ctx context.Context, claim catalog.Work) (any, er
 		provenance["transcription"] = prior["transcription"]
 		provenance["transcription_reuse_digest"] = previous.DocumentDigest
 	case "supplied":
-		raw, e := a.subtitleInput(ctx, entry)
-		if e != nil {
-			return nil, e
-		}
-		doc, e = execution.Subtitles.Ingest(ctx, raw, nativeFormat(raw, input.Options.SubtitleFormat))
+		doc, e = a.suppliedDocument(ctx, entry, execution.Subtitles, input.Options.SubtitleFormat)
 		if e != nil {
 			return nil, e
 		}
@@ -584,11 +580,7 @@ func (a *App) assembleClaim(ctx context.Context, claim catalog.Work, entry catal
 	if e != nil {
 		return nil, e
 	}
-	raw, e := a.subtitleInput(ctx, entry)
-	if e != nil {
-		return nil, e
-	}
-	doc, e := execution.Subtitles.Ingest(ctx, raw, nativeFormat(raw, input.SubtitleFormat))
+	doc, e := a.suppliedDocument(ctx, entry, execution.Subtitles, input.SubtitleFormat)
 	if e != nil {
 		return nil, e
 	}
@@ -659,7 +651,7 @@ func (a *App) recordingDispatch(req contracts.Request) (any, error) {
 			return nil, e
 		}
 		if options.Transcription == "" {
-			if entry.SubtitlePublicationID != nil {
+			if current, err := a.Catalog.Recording(a.ctx, entry.ID); entry.SubtitlePublicationID != nil || err == nil && current.State == "ready" {
 				options.Transcription = "supplied"
 			} else {
 				options.Transcription = "generate"
@@ -934,4 +926,25 @@ func subtitleDiagnostics(input []subtitles.Diagnostic) []contracts.Diagnostic {
 		output[i] = contracts.Diagnostic{Code: item.Code, Pointer: item.Pointer, Message: item.Message, Count: 1}
 	}
 	return output
+}
+
+func (a *App) suppliedDocument(ctx context.Context, entry catalog.LibraryEntry, engine subtitleEngine, format string) (json.RawMessage, error) {
+	if entry.SubtitlePublicationID == nil {
+		current, err := a.Catalog.Recording(ctx, entry.ID)
+		if err != nil {
+			return nil, err
+		}
+		if current.State != "ready" || current.SourceDigest != entry.Digest {
+			return nil, contracts.Fail("not_found")
+		}
+		if err = subtitles.ValidateDocument(current.Document); err != nil {
+			return nil, err
+		}
+		return current.Document, nil
+	}
+	raw, err := a.subtitleInput(ctx, entry)
+	if err != nil {
+		return nil, err
+	}
+	return engine.Ingest(ctx, raw, nativeFormat(raw, format))
 }

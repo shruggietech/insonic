@@ -22,6 +22,7 @@ SOURCE_URL = PIN['url']
 VERSION = PIN['version']
 VERSION_POLICY = 'pinned-release-VERSION-v1'
 CONFIGURE = PIN['configure']
+LAME = PIN['lame']
 BUILD = ROOT / 'build/native/source-media'
 
 
@@ -47,6 +48,24 @@ def fetch_source(commit=COMMIT, digest=SOURCE_SHA256):
     return target
 
 
+def fetch_lame():
+    cache = ROOT / 'build/media-source-pins'
+    cache.mkdir(parents=True, exist_ok=True)
+    target = cache / ('lame-' + LAME['version'] + '.tar.gz')
+    if not target.exists() or sha(target) != LAME['sha256']:
+        temporary = target.with_suffix('.download')
+        try:
+            request = urllib.request.Request(LAME['url'], headers={'User-Agent': 'insonic-source-build'})
+            with urllib.request.urlopen(request, timeout=90) as source, temporary.open('wb') as output:
+                shutil.copyfileobj(source, output)
+            if temporary.stat().st_size != LAME['size_bytes'] or sha(temporary) != LAME['sha256']:
+                raise ValueError('LAME source identity mismatch')
+            temporary.replace(target)
+        finally:
+            temporary.unlink(missing_ok=True)
+    return target
+
+
 def child(args, directory, timeout=360):
     env = os.environ.copy()
     env['MACOSX_DEPLOYMENT_TARGET'] = '13.3'
@@ -62,8 +81,8 @@ def child(args, directory, timeout=360):
         return output
 
 
-def extract_source(source, directory):
-    root_name = 'FFmpeg-' + COMMIT
+def extract_source(source, directory, root_name=None):
+    root_name = root_name or 'FFmpeg-' + COMMIT
     prefix = root_name + '/'
     with tarfile.open(source) as archive:
         for item in archive:
@@ -101,7 +120,7 @@ def pin_release_version(directory):
 def prepare():
     if platform.system() != 'Darwin' or platform.machine() not in ['arm64', 'aarch64']:
         raise ValueError('source media build is qualified only for darwin_arm64')
-    key = hashlib.sha256(json.dumps({'source': SOURCE_SHA256, 'configuration': CONFIGURE,
+    key = hashlib.sha256(json.dumps({'source': SOURCE_SHA256, 'configuration': CONFIGURE, 'lame': LAME,
                                     'version': VERSION, 'version_policy': VERSION_POLICY,
                                     'platform': 'darwin_arm64', 'deployment': '13.3'}, sort_keys=True).encode()).hexdigest()
     source = fetch_source()
@@ -115,7 +134,16 @@ def prepare():
     started = time.monotonic()
     extract_source(source, directory)
     pin_release_version(directory)
-    child(['/bin/sh', './configure', *CONFIGURE], directory, timeout=90)
+    lame_source = fetch_lame()
+    lame_directory = directory / 'lame-source'
+    lame_directory.mkdir(exist_ok=True)
+    extract_source(lame_source, lame_directory, 'lame-' + LAME['version'])
+    prefix = directory / 'lame-install'
+    child(['/bin/sh', './configure', '--prefix=' + str(prefix), *LAME['configure']], lame_directory, timeout=90)
+    child(['/usr/bin/make', '-j' + str(min(os.cpu_count() or 2, 4))], lame_directory, timeout=90)
+    child(['/usr/bin/make', 'install'], lame_directory, timeout=30)
+    effective_configure = [*CONFIGURE, '--extra-cflags=-I' + str(prefix / 'include'), '--extra-ldflags=-L' + str(prefix / 'lib')]
+    child(['/bin/sh', './configure', *effective_configure], directory, timeout=90)
     child(['/usr/bin/make', '-j' + str(min(os.cpu_count() or 2, 4)), 'ffmpeg', 'ffprobe'], directory, timeout=360)
     versions = {}
     configurations = {}
@@ -127,13 +155,16 @@ def prepare():
         if versions[name] != VERSION:
             raise ValueError('source media companion reports a different release version')
         configurations[name] = output
+        dependencies = child(['/usr/bin/otool', '-L', directory / name], directory, timeout=10).decode()
+        if 'libmp3lame' in dependencies:
+            raise ValueError('media companion retained external LAME dylib')
     receipt = {'key': key, 'source_commit': COMMIT, 'source_sha256': SOURCE_SHA256,
                'source_url': SOURCE_URL, 'configure': CONFIGURE, 'platform': 'darwin_arm64',
                'binaries': {name: sha(directory / name) for name in ['ffmpeg', 'ffprobe']},
                'versions': versions, 'configuration_output': configurations,
                'version_override': {'file': 'VERSION', 'value': VERSION, 'policy': VERSION_POLICY},
                'elapsed_seconds': round(time.monotonic() - started, 3), 'license': 'LGPL-2.1-or-later',
-               'external_codec_libraries': 'none', 'system_framework': 'VideoToolbox'}
+               'external_codec_libraries': [{'name': 'LAME', **LAME, 'library_sha256': sha(prefix / 'lib/libmp3lame.a')}], 'system_framework': 'VideoToolbox'}
     receipt_path.write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
     return directory, receipt, source
 
