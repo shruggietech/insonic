@@ -60,3 +60,11 @@ func TestProcessingFailureCodesRemainActionable(t *testing.T) {
 		}
 	}
 }
+
+func TestSpeakerWorkFailuresRetainDistinctRecoveryOutcomes(t *testing.T) {
+	for _, code := range []string{"unsupported_retrieval", "empty_dataset", "unsupported_resume", "incompatible_checkpoint", "training_incomplete", "text_unavailable"} {
+		if failure := Fail(code); failure.Code != code || failure.Message == "The operation failed." {
+			t.Fatal("speaker recovery diagnostic collapsed", code, failure)
+		}
+	}
+}

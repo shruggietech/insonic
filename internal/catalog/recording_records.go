@@ -21,10 +21,12 @@ type Recording struct {
 
 // SpeakerMapping is external identity correlation, never another assignment list.
 type SpeakerMapping struct {
-	ID             string `json:"id"`
-	RecordingID    string `json:"recording_id"`
-	LocalSpeakerID string `json:"local_speaker_id"`
-	SpeakerID      string `json:"speaker_id"`
-	DocumentDigest string `json:"document_digest"`
-	Revision       int64  `json:"revision"`
+	ID             string          `json:"id"`
+	RecordingID    string          `json:"recording_id"`
+	LocalSpeakerID string          `json:"local_speaker_id"`
+	SpeakerID      string          `json:"speaker_id"`
+	DocumentDigest string          `json:"document_digest"`
+	Revision       int64           `json:"revision"`
+	Origin         string          `json:"origin,omitempty"`
+	Provenance     json.RawMessage `json:"provenance,omitempty"`
 }

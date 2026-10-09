@@ -124,7 +124,9 @@ Pause prevents new claims, Cancel revokes current authority and terminates super
 
 Before acceptance, configured processing can recompute stages after interruption. Explicit assembly input is ephemeral and must be resubmitted. After acceptance, recovery reconciles the receipt and cleanup without rerunning engines. Physical retirement waits for active leases/references and retries uncertain removal without resurrecting obsolete output.
 
-Current replacement invalidates stale segment/evidence references, dataset membership and prepared inputs rather than retaining frozen copies of old assignments. Completed model outputs and their source IDs/digests remain provenance. Graph assertion extraction and optional query assistance use elected versioned HTTP adapters. General scheduling and training engines retain their separate delivery contracts.
+Current replacement invalidates stale segment/evidence references, dataset membership and prepared inputs rather than retaining frozen copies of old assignments. Completed model outputs and their source IDs/digests remain provenance. Graph assertion extraction and optional query assistance use elected versioned HTTP adapters. Speaker training uses an explicitly selected local or hosted adapter, or local embedding-profile enrollment; see [speaker-model workflows](voice-models.md).
+
+A saved configuration can contain `speaker_training` with `adapter`, `output_kind`, optional `base_model_id` and `parameters`. Training accepts the exact `pipeline_id` and `pipeline_revision`. A training-only definition can omit recognition and diarization; ordinary recording processing requires both stages. A mixed definition can serve either workflow. Inspection reports capabilities without loading a model or contacting the selected provider.
 
 ## Required checks and maintainer evidence
 

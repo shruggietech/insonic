@@ -17,6 +17,27 @@ test('all documented contracts and local references validate through the release
   for (const item of catalog.contracts) for (const value of item.schema.examples) assert.equal(master(value), true);
 });
 
+test('speaker output snapshots preserve invalidated hosted lineage without inventing retained publications',()=>{
+ const model=example('speaker-model');
+ const snapshot=example('catalog-snapshot');snapshot.catalog_schema=9;
+ const output={id:model.model_version_id,model_id:model.model_family_id,speaker_id:model.originating_speaker_id,dataset_id:model.training.dataset.dataset_snapshot_id,work_id:model.training.job_id,kind:model.compatibility.model_kind,name:model.display_name,metadata:model,publication_ids:[]};
+ snapshot.records.speaker_outputs=[output];
+ assert.equal(master(snapshot),false,'current output needs its accepted manifest');
+ output.publication_ids=[model.model_version_id];assert.equal(master(snapshot),true);
+ model.state='invalidated';model.manifest_sha256=null;model.training.preparation=null;model.training.dataset.state='invalidated';model.training.dataset.manifest_sha256=null;
+ output.publication_ids=[];
+ assert.equal(master(snapshot),true,JSON.stringify(master.errors));
+ model.training.dataset.manifest_sha256='a'.repeat(64);assert.equal(master(snapshot),false,'obsolete dataset digest is not current authority');
+});
+
+test('speaker preparation supports verified transient clips without fabricated durable audio',()=>{
+ const model=example('speaker-model');
+ model.training.preparation.input_artifact_ids=[];
+ assert.equal(master(model),true,JSON.stringify(master.errors));
+ model.training.preparation.artifact.byte_length=0;
+ assert.equal(master(model),false,'noncontent preparation receipt still needs verified bytes');
+});
+
 test('roster add/remove require selectors while replace/clear allow empty declarations',()=>{
  const base={...example('runtime-request'),item_id:'44444444-4444-4444-8444-444444444444',data:{expected_revision:0,speakers:[]}};
  for(const mode of ['add','remove']) {

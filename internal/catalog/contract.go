@@ -11,6 +11,18 @@ import (
 // Catalog is the shared backend-neutral authority used by runtime operations.
 // Both official adapters implement it; callers never receive SQL connections.
 type Catalog interface {
+	CreateSpeakerDataset(context.Context, string, string, []CurrentReference, string, json.RawMessage, json.RawMessage, string) (SpeakerDataset, error)
+	SpeakerDataset(context.Context, string) (SpeakerDataset, error)
+	SpeakerDatasets(context.Context, string) ([]SpeakerDataset, error)
+	CommitSpeakerOutput(context.Context, Work, SpeakerOutput) (SpeakerOutput, error)
+	SpeakerOutput(context.Context, string) (SpeakerOutput, error)
+	SpeakerOutputs(context.Context, string) ([]SpeakerOutput, error)
+	SpeakerProfile(context.Context, string) (SpeakerProfile, error)
+	SetSpeakerProfile(context.Context, string, string, int64, string) (SpeakerProfile, error)
+	SpeakerCheckpoint(context.Context, string) (SpeakerCheckpoint, error)
+	CommitSpeakerCheckpoint(context.Context, Work, SpeakerCheckpoint) (SpeakerCheckpoint, error)
+	FreezeSpeakerMatching(context.Context, string) (SpeakerMatchingSnapshot, error)
+	CommitSpeakerMatching(context.Context, Work, SpeakerMatchingSnapshot, []SpeakerMatchDecision, json.RawMessage) ([]SpeakerMapping, error)
 	Artifact(context.Context, string) (Artifact, error)
 	ModelAlias(context.Context, string) (ModelAlias, error)
 	ModelAliases(context.Context) ([]ModelAlias, error)

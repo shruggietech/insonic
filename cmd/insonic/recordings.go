@@ -22,7 +22,7 @@ func parseRecording(args []string) (string, string, json.RawMessage, error) {
 		return fail()
 	}
 	operation := "recordings." + args[1]
-	if !strings.Contains("|show|document|mappings|process|assemble|map-speaker|export|resolve-segment|", "|"+args[1]+"|") {
+	if !strings.Contains("|show|document|mappings|process|assemble|map-speaker|match|export|resolve-segment|", "|"+args[1]+"|") {
 		return fail()
 	}
 	var raw json.RawMessage

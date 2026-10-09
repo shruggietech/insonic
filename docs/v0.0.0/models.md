@@ -188,10 +188,13 @@ fabricates a valid trained output or a runnable unsupported adapter.
 Local processing/import model selections require compatible base bundles.
 Hosted aliases support identity inspection; executing a hosted route uses the
 existing saved pipeline's explicit endpoint, remote model and adapter settings.
-Trained speaker references expose lineage until a compatible consumer is
-implemented. Inspection does not make these targets selectable by local adapters.
-[Speaker-associated training](voice-models.md) and acoustic identity matching
-remain separate delivery contracts.
+Trained speaker references expose immutable output lineage. Compatible embedding
+profiles can be elected for roster-constrained identity matching; arbitrary
+trained weights require their declared consumer and are not substituted for a
+recognition or diarization base model. [Speaker-associated training](voice-models.md)
+supports exact version discovery/fetch and revisioned current profile selection.
+The Models screen exposes these operations, while Speakers starts dataset creation
+and elected training and Library starts matching-only work.
 
 CLI/runtime and desktop share these operations. Models settings support
 reference configuration/discovery; shared selectors and Jobs distinguish exact

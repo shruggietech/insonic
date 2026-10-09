@@ -38,6 +38,12 @@ func (s *Store) explorationMutation(ctx context.Context, tx *sql.Tx, op string, 
 	if strict(data, &result) != nil {
 		return data, nil
 	}
+	if e := s.reconcileSpeakerOutputLineage(ctx, tx, result); e != nil {
+		return nil, e
+	}
+	if e := s.reconcileSpeakerWorkAuthority(ctx, tx, op, result); e != nil {
+		return nil, e
+	}
 	dirty := false
 	for _, key := range []string{"media_id", "model_id", "recording_id", "mapping_recording_id", "speaker_proofs", "roster_proofs", "term_proofs", "extraction_proofs", "model_alias_proofs", "model_source_proofs", "graph_dirty", "accepted"} {
 		if _, ok := result[key]; ok {

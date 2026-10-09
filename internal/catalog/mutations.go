@@ -65,6 +65,9 @@ func (s *Store) accept(ctx context.Context, tx *sql.Tx, id, digest string, revis
 	return r, e
 }
 func (s *Store) Commit(ctx context.Context, m Mutation) (Receipt, error) {
+	if len(m.Records.SpeakerOutputs)+len(m.Records.SpeakerProfiles)+len(m.Records.SpeakerCheckpoints) > 0 {
+		return Receipt{}, contracts.Fail("invalid_request")
+	}
 	if len(m.Records.ModelAliases)+len(m.Records.ModelSources) > 0 {
 		return Receipt{}, contracts.Fail("invalid_request")
 	}

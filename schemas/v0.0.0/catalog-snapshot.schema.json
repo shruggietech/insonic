@@ -79,7 +79,8 @@
         5,
         6,
         7,
-        8
+        8,
+        9
       ]
     },
     "digest": {
@@ -932,7 +933,7 @@
               },
               "job_id": {
                 "$ref": "common.schema.json#/$defs/uuid",
-                "description": "Workspace-scoped stable record identity."
+                "description": "Producing durable work identity; historical job identity remains accepted for earlier records."
               },
               "options": {
                 "description": "Lossless structured report/options value; credentials remain references."
@@ -1917,6 +1918,249 @@
             "description": "Typed workspace-scoped portable record."
           },
           "description": "Deterministically ordered alias/source records including revision tombstones."
+        },
+        "speaker_outputs": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exact workspace-scoped id."
+              },
+              "model_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exact workspace-scoped model id."
+              },
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exact workspace-scoped speaker id."
+              },
+              "dataset_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exact workspace-scoped dataset id."
+              },
+              "work_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exact workspace-scoped work id."
+              },
+              "kind": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "description": "Declared immutable output kind."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Speaker model name."
+              },
+              "metadata": {
+                "$ref": "speaker-model.schema.json",
+                "description": "Immutable noncontent output identity, compatibility and origin manifest."
+              },
+              "publication_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "common.schema.json#/$defs/uuid",
+                  "description": "Exact verified artifact publication."
+                },
+                "maxItems": 128,
+                "description": "Available durable output publications.",
+                "minItems": 0
+              }
+            },
+            "required": [
+              "id",
+              "model_id",
+              "speaker_id",
+              "dataset_id",
+              "work_id",
+              "kind",
+              "name",
+              "metadata",
+              "publication_ids"
+            ],
+            "description": "Immutable speaker output, independent of current preparation validity.",
+            "allOf": [
+              {
+                "if": {
+                  "type": "object",
+                  "properties": {
+                    "metadata": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "const": "current",
+                          "description": "Current lineage requires its accepted manifest publication."
+                        }
+                      },
+                      "required": [
+                        "state"
+                      ],
+                      "description": "Current portable lineage condition."
+                    }
+                  },
+                  "required": [
+                    "metadata"
+                  ]
+                },
+                "then": {
+                  "type": "object",
+                  "properties": {
+                    "publication_ids": {
+                      "type": "array",
+                      "minItems": 1,
+                      "description": "Current outputs include the accepted model manifest publication."
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "description": "Completed exact outputs preserved when current corpus is invalidated."
+        },
+        "speaker_profiles": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Centralized speaker identity owning the current profile."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Positive revision fencing profile changes."
+              },
+              "version_id": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 36,
+                "description": "Exact selected output version, empty only when cleared."
+              },
+              "state": {
+                "enum": [
+                  "active",
+                  "cleared"
+                ],
+                "description": "Current profile election state."
+              }
+            },
+            "required": [
+              "id",
+              "revision",
+              "version_id",
+              "state"
+            ],
+            "description": "Revisioned current speaker profile head.",
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "active"
+                      ],
+                      "description": "Active profile selection."
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "version_id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Exact selected immutable output version."
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "version_id": {
+                      "const": "",
+                      "description": "Cleared profile retains no selected version."
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "description": "Explicit exact version selections for roster matching."
+        },
+        "speaker_checkpoints": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Immutable checkpoint identity."
+              },
+              "work_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Producing durable work identity."
+              },
+              "attempt": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Producing work attempt generation."
+              },
+              "step": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Declared training step."
+              },
+              "base_digest": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 64,
+                "description": "Exact base digest, empty only for base-independent output."
+              },
+              "compatibility": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Declared resume compatibility identity."
+              },
+              "adapter_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "Exact producing adapter declaration digest."
+              },
+              "publication_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Verified checkpoint publication."
+              }
+            },
+            "required": [
+              "id",
+              "work_id",
+              "attempt",
+              "step",
+              "base_digest",
+              "compatibility",
+              "adapter_digest",
+              "publication_id"
+            ],
+            "description": "Immutable producing-attempt checkpoint."
+          },
+          "description": "Validated resumable state distinct from completed models."
         }
       },
       "required": [

@@ -48,10 +48,11 @@ type ContextSnapshot struct {
 	ExtraHints []string          `json:"extra_hints,omitempty"`
 }
 type SpeakerSelection struct {
-	SpeakerID   string `json:"speaker_id"`
-	RecordingID string `json:"recording_id,omitempty"`
-	Cursor      string `json:"cursor,omitempty"`
-	Limit       int    `json:"limit,omitempty"`
+	ConfirmedOnly bool   `json:"confirmed_only,omitempty"`
+	SpeakerID     string `json:"speaker_id"`
+	RecordingID   string `json:"recording_id,omitempty"`
+	Cursor        string `json:"cursor,omitempty"`
+	Limit         int    `json:"limit,omitempty"`
 }
 type CurrentReference struct {
 	RecordingID       string `json:"recording_id"`

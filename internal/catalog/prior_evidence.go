@@ -83,6 +83,9 @@ func (s *Store) ComparePriorSpeakerEvidence(ctx context.Context, selection Speak
 	// cannot establish equivalence across separate library entries.
 	prior := "SELECT r.id,r.document,m.local_speaker_id FROM speaker_mapping m JOIN current_recording r ON r.workspace_id=m.workspace_id AND r.id=m.recording_id WHERE m.workspace_id=? AND m.speaker_id=? AND r.state='ready' AND m.document_digest=r.document_digest AND r.source_digest=? AND r.id<=?"
 	args := []any{s.workspace, selection.SpeakerID, ref.SourceDigest, ref.RecordingID}
+	if selection.ConfirmedOnly {
+		prior += " AND m.origin='manual'"
+	}
 	if selection.RecordingID != "" {
 		prior += " AND r.id=?"
 		args = append(args, selection.RecordingID)

@@ -46,7 +46,7 @@
     "revision",
     "configuration"
   ],
-  "description": "A saved revision of an explicitly selected Local, Connected or Custom recognition and diarization pipeline.",
+  "description": "Saved revision of elected processing stages or speaker-training profile; shared runtime freezes effective adapter/settings identity.",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/pipeline-config.schema.json",
   "title": "insonic pipeline configuration",
@@ -66,13 +66,59 @@
         "quality": {
           "$ref": "#/$defs/quality",
           "description": "Quality."
+        },
+        "speaker_training": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "adapter": {
+              "$ref": "runtime-request.schema.json#/$defs/speakerAdapter",
+              "description": "Exact elected speaker training adapter declaration."
+            },
+            "base_model_id": {
+              "$ref": "common.schema.json#/$defs/modelReference",
+              "description": "Optional selected base model reference."
+            },
+            "output_kind": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Declared desired output kind."
+            },
+            "parameters": {
+              "$ref": "common.schema.json#/$defs/nonsecretOptions",
+              "description": "Effective training parameters."
+            }
+          },
+          "required": [
+            "adapter",
+            "output_kind"
+          ],
+          "description": "Saved speaker-training profile, independent of recognition and diarization."
         }
       },
-      "required": [
-        "recognition",
-        "diarization"
+      "description": "Saved worker selections and optional quality configuration. Defaults are normalized when an immutable election is submitted.",
+      "anyOf": [
+        {
+          "required": [
+            "recognition",
+            "diarization"
+          ]
+        },
+        {
+          "required": [
+            "speaker_training"
+          ]
+        }
       ],
-      "description": "Saved worker selections and optional quality configuration. Defaults are normalized when an immutable election is submitted."
+      "dependentRequired": {
+        "recognition": [
+          "diarization"
+        ],
+        "diarization": [
+          "recognition"
+        ]
+      }
     },
     "stage": {
       "type": "object",

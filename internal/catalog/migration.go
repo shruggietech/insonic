@@ -43,7 +43,7 @@ var domains = []domainTable{
 	{"speaker_segment", "Segments", "id,revision", "CHECK (revision>0 AND length(document_digest)=64 AND length(cue_id)>0)", []string{"recording_id:current_recording:id", "clip_artifact_id:artifact:id"}},
 	{"training_dataset", "Datasets", "id", "CHECK (state IN ('current','invalidated'))", []string{"speaker_id:speaker:id", "manifest_artifact_id:artifact:id"}},
 	{"dataset_member", "Members", "id", "CHECK (ordinal>=0 AND segment_revision>0), UNIQUE (workspace_id,dataset_id,ordinal)", []string{"dataset_id:training_dataset:id", "segment_id,segment_revision:speaker_segment:id,revision"}},
-	{"training_run", "Runs", "id", "CHECK (state IN ('current','invalidated'))", []string{"dataset_id:training_dataset:id", "speaker_id:speaker:id", "job_id:job:id", "preparation_artifact_id:artifact:id"}},
+	{"training_run", "Runs", "id", "CHECK (state IN ('current','invalidated'))", []string{"dataset_id:training_dataset:id", "speaker_id:speaker:id", "preparation_artifact_id:artifact:id"}},
 	{"speaker_model", "Models", "id", "", []string{"speaker_id:speaker:id"}},
 	{"model_version", "Versions", "id", "CHECK (state IN ('current','invalidated'))", []string{"model_id:speaker_model:id", "run_id:training_run:id", "dataset_id:training_dataset:id", "manifest_artifact_id:artifact:id"}},
 	{"model_artifact", "ModelArtifacts", "id", "", []string{"version_id:model_version:id", "artifact_id:artifact:id"}},
@@ -55,6 +55,9 @@ var domains = []domainTable{
 	{"current_extraction", "Extractions", "id", "CHECK(revision>0 AND recording_revision>0 AND length(document_digest)=64)", []string{"id:current_recording:id"}},
 	{"saved_query", "SavedQueries", "id,revision", "CHECK(revision>0)", nil},
 	{"graph_layout", "Layouts", "id", "CHECK(revision>0)", nil},
+	{"speaker_output", "SpeakerOutputs", "id", "", []string{"id:model_version:id", "model_id:speaker_model:id", "speaker_id:speaker:id", "dataset_id:training_dataset:id", "work_id:work_operation:id"}},
+	{"speaker_profile", "SpeakerProfiles", "id", "CHECK(revision>0 AND state IN ('active','cleared'))", []string{"id:speaker:id"}},
+	{"speaker_checkpoint", "SpeakerCheckpoints", "id", "CHECK(attempt>0 AND step>=0)", []string{"work_id:work_operation:id"}},
 }
 
 type column struct {
@@ -234,11 +237,31 @@ func (s *Store) migrate(ctx context.Context) error {
 	var digest string
 	e = tx.QueryRowContext(ctx, "SELECT version,digest FROM catalog_schema WHERE singleton=1").Scan(&version, &digest)
 	if e == nil {
+		if version == 8 && digest == historicalV8Digest() {
+			for _, q := range migrationStatements() {
+				if _, e = tx.ExecContext(ctx, q); e != nil {
+					return sanitize(e)
+				}
+			}
+			if e = s.migrateSpeakerAuthority(ctx, tx); e != nil {
+				return sanitize(e)
+			}
+			if _, e = s.exec(ctx, tx, "UPDATE catalog_schema SET version=?,digest=? WHERE singleton=1", SchemaVersion, migrationDigest()); e != nil {
+				return sanitize(e)
+			}
+			if _, e = s.exec(ctx, tx, "UPDATE workspace SET schema_version=?", SchemaVersion); e != nil {
+				return sanitize(e)
+			}
+			return sanitize(tx.Commit())
+		}
 		if version == 7 && digest == historicalV7Digest() {
 			for _, q := range migrationStatements() {
 				if _, e = tx.ExecContext(ctx, q); e != nil {
 					return sanitize(e)
 				}
+			}
+			if e = s.migrateSpeakerAuthority(ctx, tx); e != nil {
+				return sanitize(e)
 			}
 			if _, e = s.exec(ctx, tx, "UPDATE catalog_schema SET version=?,digest=? WHERE singleton=1", SchemaVersion, migrationDigest()); e != nil {
 				return sanitize(e)
@@ -256,6 +279,9 @@ func (s *Store) migrate(ctx context.Context) error {
 				if _, e = tx.ExecContext(ctx, q); e != nil {
 					return sanitize(e)
 				}
+			}
+			if e = s.migrateSpeakerAuthority(ctx, tx); e != nil {
+				return sanitize(e)
 			}
 			if _, e = s.exec(ctx, tx, "UPDATE catalog_schema SET version=?,digest=? WHERE singleton=1", SchemaVersion, migrationDigest()); e != nil {
 				return sanitize(e)
@@ -300,6 +326,9 @@ func (s *Store) migrate(ctx context.Context) error {
 			if e = s.attestMigratedIdentities(ctx, tx); e != nil {
 				return sanitize(e)
 			}
+			if e = s.migrateSpeakerAuthority(ctx, tx); e != nil {
+				return sanitize(e)
+			}
 			if _, e = s.exec(ctx, tx, "UPDATE catalog_schema SET version=?,digest=? WHERE singleton=1", SchemaVersion, migrationDigest()); e != nil {
 				return sanitize(e)
 			}
@@ -333,6 +362,9 @@ func (s *Store) ensureWorkspace(ctx context.Context) error {
 func validateRecord(value any) error {
 	v := reflect.ValueOf(value)
 	for _, c := range columns(v.Type()) {
+		if p, ok := value.(SpeakerProfile); ok && p.State == "cleared" && c.name == "version_id" {
+			continue
+		}
 		x := fieldValue(v, c.path)
 		if x == nil {
 			continue
@@ -463,7 +495,7 @@ func validateRecord(value any) error {
 			return contracts.Fail("invalid_request")
 		}
 	case TrainingRun:
-		if r.Adapter == "" || !referenceOnlyOptions(r.Options) || !validEvidenceState(r.State, r.PreparationArtifactID) {
+		if r.Adapter == "" || !referenceOnlyOptions(r.Options) || (r.State != "current" && r.State != "invalidated") || (r.State == "invalidated" && r.PreparationArtifactID != nil) {
 			return contracts.Fail("invalid_request")
 		}
 	case ModelVersion:
@@ -472,6 +504,18 @@ func validateRecord(value any) error {
 		}
 	case ModelAssociation:
 		if !positive(r.Revision) {
+			return contracts.Fail("invalid_request")
+		}
+	case SpeakerOutput:
+		if !validSpeakerOutput(r) {
+			return contracts.Fail("invalid_request")
+		}
+	case SpeakerProfile:
+		if !validSpeakerProfile(r) {
+			return contracts.Fail("invalid_request")
+		}
+	case SpeakerCheckpoint:
+		if !validSpeakerCheckpoint(r) {
 			return contracts.Fail("invalid_request")
 		}
 	}
@@ -521,6 +565,7 @@ func (s *Store) insertRecords(ctx context.Context, tx *sql.Tx, records Records) 
 		"SELECT count(*) FROM date_selection s JOIN date_observation o ON o.workspace_id=s.workspace_id AND o.id=s.date_id WHERE s.workspace_id=? AND s.media_id<>o.media_id",
 		"SELECT count(*) FROM training_run r JOIN training_dataset d ON d.workspace_id=r.workspace_id AND d.id=r.dataset_id WHERE r.workspace_id=? AND r.speaker_id<>d.speaker_id",
 		"SELECT count(*) FROM model_version v JOIN training_run r ON r.workspace_id=v.workspace_id AND r.id=v.run_id JOIN speaker_model m ON m.workspace_id=v.workspace_id AND m.id=v.model_id WHERE v.workspace_id=? AND (v.dataset_id<>r.dataset_id OR m.speaker_id<>r.speaker_id)",
+		"SELECT count(*) FROM training_run r WHERE r.workspace_id=? AND NOT EXISTS(SELECT 1 FROM job j WHERE j.workspace_id=r.workspace_id AND j.id=r.job_id) AND NOT EXISTS(SELECT 1 FROM work_operation w WHERE w.workspace_id=r.workspace_id AND w.id=r.job_id)",
 	} {
 		if e = s.row(ctx, tx, q, s.workspace).Scan(&invalid); e != nil {
 			return e

@@ -139,7 +139,16 @@
         "models.source.list",
         "models.source.show",
         "models.source.set",
-        "models.source.remove"
+        "models.source.remove",
+        "models.dataset.create",
+        "models.dataset.list",
+        "models.dataset.show",
+        "models.train",
+        "models.speaker.list",
+        "models.speaker.show",
+        "models.speaker.fetch",
+        "models.profile.set",
+        "recordings.match"
       ],
       "description": "Shared operation selected by either client."
     },
@@ -701,7 +710,16 @@
               "models.source.list",
               "models.source.show",
               "models.source.set",
-              "models.source.remove"
+              "models.source.remove",
+              "models.dataset.create",
+              "models.dataset.list",
+              "models.dataset.show",
+              "models.train",
+              "models.speaker.list",
+              "models.speaker.show",
+              "models.speaker.fetch",
+              "models.profile.set",
+              "recordings.match"
             ],
             "description": "Operation family with an exact argument shape."
           }
@@ -5339,6 +5357,261 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.dataset.create"
+            ],
+            "description": "Speaker operation with exact argument layout."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Originating centralized speaker."
+              },
+              "recipe": {
+                "$ref": "#/$defs/speakerRecipe",
+                "description": "Optional effective corpus selection."
+              }
+            },
+            "required": [
+              "speaker_id"
+            ],
+            "description": "Create complete current speaker dataset."
+          }
+        },
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.dataset.list",
+              "models.speaker.list"
+            ],
+            "description": "Speaker operation with exact argument layout."
+          }
+        }
+      },
+      "then": {
+        "required": [],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Optional speaker lineage filter."
+              },
+              "after_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exclusive stable record cursor."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Maximum rows returned.",
+                "maximum": 100
+              }
+            },
+            "required": [],
+            "description": "Bounded speaker dataset/model inventory."
+          }
+        },
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.dataset.show",
+              "models.speaker.show"
+            ],
+            "description": "Speaker operation with exact argument layout."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.train"
+            ],
+            "description": "Speaker operation with exact argument layout."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/speakerTrain",
+            "description": "Durable elected training request."
+          }
+        },
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.speaker.fetch"
+            ],
+            "description": "Speaker operation with exact argument layout."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "destination": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096,
+                "description": "Explicit output destination directory."
+              }
+            },
+            "required": [
+              "destination"
+            ],
+            "description": "Exact version retrieval."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.profile.set"
+            ],
+            "description": "Speaker operation with exact argument layout."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Zero creates; positive exact revision updates or clears."
+              },
+              "version_id": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|)$",
+                "description": "Exact output version; empty clears current profile."
+              }
+            },
+            "required": [
+              "expected_revision",
+              "version_id"
+            ],
+            "description": "Revisioned current speaker profile selection."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "recordings.match"
+            ],
+            "description": "Speaker operation with exact argument layout."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/speakerMatch",
+            "description": "Elected current voice identity matching."
+          }
+        }
+      }
     }
   ],
   "examples": [
@@ -6008,6 +6281,472 @@
       "required": [
         "limit"
       ]
+    },
+    "speakerPinnedFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "description": "Exact absolute selected executable or support file path."
+        },
+        "sha256": {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Expected selected file content digest."
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "description": "Hash-pinned local adapter file."
+    },
+    "speakerLimits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_input_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum prepared input bytes.",
+          "maximum": 68719476736
+        },
+        "max_output_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum adapter output bytes.",
+          "maximum": 68719476736
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Adapter execution deadline in milliseconds.",
+          "maximum": 86400000
+        }
+      },
+      "required": [],
+      "description": "Explicit bounded speaker adapter budgets."
+    },
+    "speakerAdapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "enum": [
+            "insonic-speaker",
+            "pyannote-profile"
+          ],
+          "description": "Implemented elected generic training or pinned offline profile adapter."
+        },
+        "contract_version": {
+          "enum": [
+            "1"
+          ],
+          "description": "Implemented speaker adapter wire version."
+        },
+        "mode": {
+          "enum": [
+            "local",
+            "hosted"
+          ],
+          "description": "Explicit local or hosted route."
+        },
+        "architecture": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Declared output architecture."
+        },
+        "output_kinds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Declared supported output kind."
+          },
+          "maxItems": 32,
+          "description": "Output kinds emitted by this adapter."
+        },
+        "consumers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Declared compatible consumer."
+          },
+          "maxItems": 32,
+          "description": "Compatible consumer adapter identities."
+        },
+        "needs_text": {
+          "type": "boolean",
+          "description": "Whether selected current transcript text is required transient input."
+        },
+        "supports_resume": {
+          "type": "boolean",
+          "description": "Whether this exact adapter supports declared checkpoint resume."
+        },
+        "executable": {
+          "$ref": "#/$defs/speakerPinnedFile",
+          "description": "Pinned local training executable."
+        },
+        "arguments": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "description": "Literal selected noninteractive argument."
+          },
+          "maxItems": 32,
+          "description": "Explicit local arguments."
+        },
+        "support_files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/speakerPinnedFile",
+            "description": "Pinned local dependency file."
+          },
+          "maxItems": 64,
+          "description": "Required pinned support files."
+        },
+        "endpoint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "description": "Explicit hosted HTTPS or loopback HTTP route."
+        },
+        "remote_model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Exact hosted model identity."
+        },
+        "upstream_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Immutable upstream identity."
+        },
+        "credential_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Encrypted credential reference, never credential bytes."
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Adapter or output license declaration."
+        },
+        "limits": {
+          "$ref": "#/$defs/speakerLimits",
+          "description": "Input/output/time limits."
+        },
+        "supported_operations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "description": "Operations the elected training adapter can declare for its output."
+        },
+        "supports_cancel": {
+          "type": "boolean",
+          "description": "Whether the selected hosted contract implements cancellation of this exact work attempt."
+        }
+      },
+      "required": [
+        "id",
+        "contract_version",
+        "mode",
+        "architecture",
+        "output_kinds",
+        "consumers"
+      ],
+      "description": "Elected local, hosted or offline embedding speaker adapter.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "hosted"
+                ],
+                "description": "Hosted adapter transport."
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "endpoint",
+              "remote_model",
+              "upstream_revision"
+            ],
+            "properties": {
+              "limits": {
+                "type": "object",
+                "properties": {
+                  "max_input_bytes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum hosted media bytes buffered by this JSON transport.",
+                    "maximum": 134217728
+                  },
+                  "max_output_bytes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum hosted JSON response bytes.",
+                    "maximum": 16777216
+                  }
+                },
+                "description": "Hosted JSON transport memory limits."
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "executable"
+                  ]
+                },
+                {
+                  "required": [
+                    "arguments"
+                  ]
+                },
+                {
+                  "required": [
+                    "support_files"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "endpoint"
+                  ]
+                },
+                {
+                  "required": [
+                    "credential_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "remote_model"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "speakerRecipe": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "recording_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Optional exact recording corpus filter."
+        },
+        "min_duration_us": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum included source interval duration."
+        },
+        "max_duration_us": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum included source interval duration."
+        },
+        "exclude_overlap": {
+          "type": "boolean",
+          "description": "Exclude overlapping current voice evidence."
+        },
+        "recording_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Selected exact recording identity."
+          },
+          "maxItems": 1000,
+          "description": "Optional recording allowlist."
+        },
+        "languages": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "Current cue language selector."
+          },
+          "maxItems": 64,
+          "description": "Optional language allowlist."
+        },
+        "channel": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Zero-based selected source audio channel.",
+          "maximum": 63
+        },
+        "excluded_references": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "description": "Exact recording/cue/local-speaker reference key."
+          },
+          "maxItems": 10000,
+          "description": "Explicit current-reference exclusions."
+        },
+        "min_rms": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Minimum normalized decoded root mean square amplitude."
+        },
+        "max_clipping_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Maximum fraction of decoded full-scale samples."
+        }
+      },
+      "required": [],
+      "description": "Current independently attributed corpus selection recipe."
+    },
+    "speakerTrain": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dataset_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Exact valid current dataset."
+        },
+        "family_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Optional existing output family."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Speaker model display name."
+        },
+        "output_kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Declared desired output kind."
+        },
+        "adapter": {
+          "$ref": "#/$defs/speakerAdapter",
+          "description": "Exact elected training adapter."
+        },
+        "base_model_id": {
+          "$ref": "common.schema.json#/$defs/modelReference",
+          "description": "Explicit immutable or alias base-model election."
+        },
+        "pipeline_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Optional exact saved training configuration identity."
+        },
+        "pipeline_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Exact elected pipeline revision."
+        },
+        "parameters": {
+          "$ref": "common.schema.json#/$defs/nonsecretOptions",
+          "description": "Effective training hyperparameters without credentials."
+        },
+        "checkpoint_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Exact compatible checkpoint to resume."
+        }
+      },
+      "required": [
+        "dataset_id",
+        "name"
+      ],
+      "description": "Elected durable speaker training input.",
+      "anyOf": [
+        {
+          "required": [
+            "adapter",
+            "output_kind"
+          ]
+        },
+        {
+          "required": [
+            "pipeline_id",
+            "pipeline_revision"
+          ]
+        }
+      ],
+      "dependentRequired": {
+        "pipeline_id": [
+          "pipeline_revision"
+        ],
+        "pipeline_revision": [
+          "pipeline_id"
+        ]
+      }
+    },
+    "speakerMatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model_id": {
+          "$ref": "common.schema.json#/$defs/modelReference",
+          "description": "Explicit embedding or matching model election."
+        },
+        "adapter": {
+          "$ref": "#/$defs/speakerAdapter",
+          "description": "Exact elected matching adapter."
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1,
+          "description": "Minimum accepted score with declared cosine similarity semantics."
+        },
+        "ambiguity_margin": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Minimum score separation from the next eligible candidate."
+        },
+        "min_evidence_us": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Minimum current voice evidence duration."
+        }
+      },
+      "required": [
+        "model_id",
+        "adapter",
+        "threshold",
+        "ambiguity_margin",
+        "min_evidence_us"
+      ],
+      "description": "Matching-only election over frozen current roster profiles."
     }
   }
 }

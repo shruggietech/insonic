@@ -10,6 +10,7 @@ import (
 )
 
 type evidenceCursor struct {
+	ConfirmedOnly bool   `json:"confirmed_only,omitempty"`
 	Epoch         string `json:"epoch"`
 	SpeakerID     string `json:"speaker_id"`
 	RecordingID   string `json:"recording_id"`
@@ -32,7 +33,7 @@ func (s *Store) CurrentSpeakerReferences(ctx context.Context, selection SpeakerS
 	cursor := evidenceCursor{}
 	if selection.Cursor != "" {
 		raw, err := base64.RawURLEncoding.DecodeString(selection.Cursor)
-		if err != nil || len(raw) > 4096 || strict(raw, &cursor) != nil || cursor.SpeakerID != selection.SpeakerID || cursor.RecordingID != selection.RecordingID {
+		if err != nil || len(raw) > 4096 || strict(raw, &cursor) != nil || cursor.SpeakerID != selection.SpeakerID || cursor.RecordingID != selection.RecordingID || cursor.ConfirmedOnly != selection.ConfirmedOnly {
 			return out, contracts.Fail("invalid_request")
 		}
 	}
@@ -71,6 +72,9 @@ func (s *Store) CurrentSpeakerReferences(ctx context.Context, selection SpeakerS
 	}
 	q := "SELECT r.id,r.revision,r.document_digest," + cueID + "," + cueOrdinal + ",m.local_speaker_id,m.revision,r.source_digest,r.source_map FROM speaker_mapping m JOIN current_recording r ON r.workspace_id=m.workspace_id AND r.id=m.recording_id " + expand + " WHERE m.workspace_id=? AND m.speaker_id=? AND r.state='ready' AND m.document_digest=r.document_digest AND " + match
 	args := []any{s.workspace, selection.SpeakerID}
+	if selection.ConfirmedOnly {
+		q += " AND m.origin='manual'"
+	}
 	if selection.RecordingID != "" {
 		q += " AND r.id=?"
 		args = append(args, selection.RecordingID)
@@ -115,7 +119,7 @@ func (s *Store) CurrentSpeakerReferences(ctx context.Context, selection SpeakerS
 	if len(out.References) > selection.Limit {
 		out.References = out.References[:selection.Limit]
 		last := out.References[len(out.References)-1]
-		raw, _ := json.Marshal(evidenceCursor{epoch, selection.SpeakerID, selection.RecordingID, last.RecordingID, lastOrdinal, last.LocalSpeakerID})
+		raw, _ := json.Marshal(evidenceCursor{ConfirmedOnly: selection.ConfirmedOnly, Epoch: epoch, SpeakerID: selection.SpeakerID, RecordingID: selection.RecordingID, LastRecording: last.RecordingID, CueOrdinal: lastOrdinal, LocalID: last.LocalSpeakerID})
 		out.Next = base64.RawURLEncoding.EncodeToString(raw)
 	}
 	return out, sanitize(tx.Commit())

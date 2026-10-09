@@ -10,7 +10,7 @@ import (
 
 func TestFreezeV7(t *testing.T) {
 	current := []string{}
-	for _, q := range migrationStatements() {
+	for _, q := range historicalV8DDL {
 		if strings.Contains(q, "CREATE TABLE IF NOT EXISTS model_alias ") || strings.Contains(q, "CREATE TABLE IF NOT EXISTS model_source ") {
 			continue
 		}
@@ -50,7 +50,7 @@ func TestPopulatedV7ModelMigrationAndSnapshot(t *testing.T) {
 		t.Fatal("lost current authority", e)
 	}
 	snapshot, e = s.Export(ctx)
-	if e != nil || snapshot.CatalogSchema != 8 {
+	if e != nil || snapshot.CatalogSchema != SchemaVersion {
 		t.Fatal("schema8", e)
 	}
 }

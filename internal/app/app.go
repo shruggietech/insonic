@@ -10,6 +10,7 @@ import (
 	"github.com/shruggietech/insonic/internal/credentialcmd"
 	"github.com/shruggietech/insonic/internal/graph"
 	"github.com/shruggietech/insonic/internal/processing"
+	"github.com/shruggietech/insonic/internal/voicemodels"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"net/http"
 	"strings"
@@ -27,8 +28,9 @@ type App struct {
 	graphMu              sync.Mutex
 	Graph                graph.Adapter
 	recordingFactory     func() (*recordingExecution, error)
-	enforceModelElection bool         // Deterministic engine fixtures may elect real managed models.
-	hostedClient         *http.Client // Only injected by deterministic protocol fixtures.
+	speakerFactory       func(*voicemodels.Service) *voicemodels.Service // Explicit deterministic fixtures only.
+	enforceModelElection bool                                            // Deterministic engine fixtures may elect real managed models.
+	hostedClient         *http.Client                                    // Only injected by deterministic protocol fixtures.
 	Workspace            *workspace.Workspace
 	Session              string
 	Catalog              catalog.Catalog

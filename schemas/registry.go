@@ -18,6 +18,8 @@ var once sync.Once
 var compiled *jsonschema.Schema
 var requestSchema *jsonschema.Schema
 var responseSchema *jsonschema.Schema
+var speakerModelSchema *jsonschema.Schema
+var speakerDatasetSchema *jsonschema.Schema
 var processingToolsSchema *jsonschema.Schema
 var pipelineConfigurationSchema *jsonschema.Schema
 var mediaToolsSchema *jsonschema.Schema
@@ -85,7 +87,32 @@ func initialize() {
 		if compileErr == nil {
 			mediaToolsSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/media-tools.schema.json")
 		}
+		if compileErr == nil {
+			speakerModelSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/speaker-model.schema.json")
+		}
+		if compileErr == nil {
+			speakerDatasetSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/speaker-dataset.schema.json")
+		}
 	})
+}
+
+// ValidateSpeakerDocument checks the portable speaker contracts packaged in the release master.
+func ValidateSpeakerDocument(data []byte) error {
+	initialize()
+	var envelope struct {
+		Kind string `json:"kind"`
+	}
+	if json.Unmarshal(data, &envelope) != nil {
+		return errors.New("invalid speaker document")
+	}
+	switch envelope.Kind {
+	case "speaker-model":
+		return validate(speakerModelSchema, data)
+	case "speaker-dataset":
+		return validate(speakerDatasetSchema, data)
+	default:
+		return errors.New("unsupported speaker document")
+	}
 }
 
 func ValidateGraphQuery(data []byte) error { initialize(); return validate(graphQuerySchema, data) }

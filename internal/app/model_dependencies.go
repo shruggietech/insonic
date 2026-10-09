@@ -11,6 +11,7 @@ import (
 	"github.com/shruggietech/insonic/internal/library"
 	"github.com/shruggietech/insonic/internal/models"
 	"github.com/shruggietech/insonic/internal/pipeline"
+	"github.com/shruggietech/insonic/internal/voicemodels"
 )
 
 // A shared acquisition is independent durable work. Waiting consumers never
@@ -68,6 +69,18 @@ func (a *App) queueModelSelections(ctx context.Context, selections []models.Reso
 
 func frozenModelDependencies(work catalog.Work) ([]models.Resolution, []string, error) {
 	switch work.Kind {
+	case "models.train":
+		var p voicemodels.TrainPayload
+		if strictPayload(work.Payload, &p) != nil {
+			return nil, nil, contracts.Fail("invalid_request")
+		}
+		return p.ModelSelections, p.ModelDependencies, nil
+	case "recordings.match":
+		var p voicemodels.MatchPayload
+		if strictPayload(work.Payload, &p) != nil {
+			return nil, nil, contracts.Fail("invalid_request")
+		}
+		return p.ModelSelections, p.ModelDependencies, nil
 	case "recordings.process", "models.ensure":
 		var p recordingPayload
 		if strictPayload(work.Payload, &p) != nil {

@@ -9,8 +9,12 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-09: Constitution 2.2.1 removes a hypothetical pre-v1 bulk audio-migration obligation where no deployed data requires it. Explicit replacement, normal catalog/schema evolution and transcript-version interoperability retain their independent integrity contracts.
 - 2026-10-09: Freeze model aliases and configured catalog selectors into exact complete bundle identities before durable acquisition. Shared acquisitions precede dependent processing without occupying waiting worker slots. Explicit manifest catalogs preserve configured transport rules; direct provider downloads are not advertised without their own qualified adapter.
 - 2026-10-09: Extend cross-process CLI and source/relocated native WebView qualification with synthetic model catalogs and tiny verified bundles. Required package receipts include the model-reference journey; acoustic engine loading and real weights remain excluded.
+- 2026-10-09: Implement S013 for speaker-model training/retrieval and roster-constrained matching. Catalog schema 9 freezes schema-8 migration bytes, adds receipt-validated immutable outputs/checkpoints and revisioned current profiles, and distinguishes manual from automatic mappings. Current-reference preparation and frozen admission prevent stale evidence publication; retained outputs preserve their originating identity.
+- 2026-10-09: Add elected pinned local and configured HTTP speaker-training adapters, saved exact training profiles and bounded batch embedding reuse. Required checks use deterministic adapters and synthetic vectors; real acoustic quality remains separately measured. Include the new desktop speaker-model entry point in the frontend fixture build.
 
 ### Added
+
+- Complete current independent speaker datasets, elected local/hosted training and local embedding enrollment, exact output discovery/fetch, profile CAS selection and matching-only roster attribution across shared CLI/runtime/desktop contracts. Unknown and ambiguous outcomes remain visible, manual corrections take precedence, and automatic matches do not become their own training evidence.
 
 - Workspace model aliases, configured discovery, non-loading compatibility inspection and acquire-on-demand processing/import elections through shared CLI/runtime/desktop contracts. Portable reference state preserves base, trained-version and hosted-handle distinctions; full speaker matching and training remain separate work.
 

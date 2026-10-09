@@ -54,6 +54,9 @@ func TestPostgreSQLSecurityAndConcurrency(t *testing.T) {
 	securitySuite(t, postgresStore(t, contracts.ID()))
 }
 func TestPostgreSQLCorpusAssociations(t *testing.T) { corpusSuite(t, postgresStore(t, contracts.ID())) }
+func TestPostgreSQLSpeakerModelsAndMatching(t *testing.T) {
+	speakerModelSuite(t, postgresStore(t, contracts.ID()))
+}
 func TestPostgreSQLArtifactAuthority(t *testing.T) {
 	artifactAuthoritySuite(t, postgresStore(t, contracts.ID()), func(id string) *Store { return postgresStore(t, id) })
 }

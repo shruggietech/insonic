@@ -14,6 +14,7 @@ import {
 } from './components';
 import { appendCapture, Client, rationalSeconds, type Obj } from './client';
 import { ModelChoice } from './models';
+import { SpeakerTraining, RosterMatching } from './speaker-models';
 import {
   lines,
   pipelinePayload,
@@ -622,6 +623,7 @@ export function Library({ client, run }: Props) {
               <Button variant="secondary" onClick={()=>run(async()=>setRoster(await client.roster(entryID)))}>Refresh roster</Button>
             </Actions>
           </Card>
+          <RosterMatching key={entryID} client={client} run={run} recordingID={entryID} roster={roster}/>
           <Card heading="Recording date">
             <p>
               Keep unknown dates explicit. Date-only values preserve precision
@@ -1340,6 +1342,8 @@ export function Pipelines({ client, run }: Props) {
             }}
             options={['local', 'connected', 'custom']}
           />
+          <Check label="Include transcription and diarization" value={values.processing_enabled} onChange={value=>update('processing_enabled',value)}/>
+          {values.processing_enabled&&<>
           {['recognition', 'diarization'].map((kind) => (
             <fieldset key={kind}>
               <legend>
@@ -1459,6 +1463,8 @@ export function Pipelines({ client, run }: Props) {
               />
             ),
           )}
+          </>}
+          <Area label="Saved speaker training configuration" value={values.speaker_training} onChange={value=>update('speaker_training',value)} description="Optional selected adapter, output kind, base model reference and parameters. A training-only profile can omit transcription and diarization."/>
           <Button type="submit">Save pipeline</Button>
         </form>
         {current && (
@@ -1758,6 +1764,7 @@ export function Speakers({ client, run }: Props) {
           </>
         )}
       </Card>
+      {current&&<SpeakerTraining key={current.speaker.id} client={client} run={run} speakerID={current.speaker.id}/>}
     </>
   );
 }

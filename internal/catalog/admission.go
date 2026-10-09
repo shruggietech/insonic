@@ -264,6 +264,9 @@ func (s *Store) validateWorkInput(ctx context.Context, tx *sql.Tx, w Work, initi
 	if want == initialDigest {
 		return nil
 	}
+	if w.Kind == "recordings.match" {
+		return s.validateScrubbedSpeakerWorkInput(ctx, tx, w, initialDigest)
+	}
 	if w.Kind != "media.import" && w.Kind != "library.import" {
 		return contracts.Fail("invalid_request")
 	}
