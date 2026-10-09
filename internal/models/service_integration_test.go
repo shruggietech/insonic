@@ -357,6 +357,76 @@ func TestAvailableModelReplayRechecksStoredBytes(t *testing.T) {
 	}
 }
 
+func TestModelAcquireRetryRecoversCorruptAndMissingBytes(t *testing.T) {
+	for _, missing := range []bool{false, true} {
+		t.Run(fmt.Sprint(missing), func(t *testing.T) {
+			s, db := modelServiceFixture(t)
+			ctx := context.Background()
+			body := []byte("recovery model fixture")
+			var downloads atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { downloads.Add(1); w.Write(body) }))
+			defer server.Close()
+			m := fixtureManifest()
+			m.Files = []File{localModelFile("weights", server.URL+"/weights", body)}
+			work := modelWork(t, db, "models.acquire", m)
+			id := completedModel(t, s, work)
+			current, e := db.BaseModel(ctx, id)
+			if e != nil {
+				t.Fatal(e)
+			}
+			ids, _ := catalog.PublicationIDs(current.PublicationIDs)
+			p, e := db.Publication(ctx, ids[0])
+			if e != nil {
+				t.Fatal(e)
+			}
+			storage := s.Artifacts.Workspace.Config.Profiles.Storage.Configuration["root"].(string)
+			if !filepath.IsAbs(storage) {
+				storage = filepath.Join(s.Artifacts.Workspace.Control, storage)
+			}
+			path := filepath.Join(storage, filepath.FromSlash(p.Key))
+			if missing {
+				e = os.Remove(path)
+			} else {
+				e = os.WriteFile(path, []byte(strings.Repeat("x", len(body))), 0600)
+			}
+			if e != nil {
+				t.Fatal(e)
+			}
+			if s.Verify(ctx, id) == nil {
+				t.Fatal("corruption accepted")
+			}
+			if _, e = db.CheckpointWork(ctx, work, "complete", "succeeded", json.RawMessage(`{"state":"available"}`), time.Minute); e != nil {
+				t.Fatal(e)
+			}
+			retry, e := db.RetryWork(ctx, contracts.ID(), work.ID)
+			if e != nil {
+				t.Fatal(e)
+			}
+			claim, e := db.ClaimWork(ctx, retry.ID, contracts.ID(), time.Minute)
+			if e != nil {
+				t.Fatal(e)
+			}
+			if _, e = s.Execute(ctx, claim); e != nil {
+				t.Fatal("recover exact bundle", e)
+			}
+			if s.Verify(ctx, id) != nil || downloads.Load() != 2 {
+				t.Fatal("verified recovery", downloads.Load())
+			}
+			recovered, e := db.BaseModel(ctx, id)
+			if e != nil || recovered.Digest != current.Digest || recovered.Revision <= current.Revision {
+				t.Fatal("immutable manifest changed", e)
+			}
+			newIDs, _ := catalog.PublicationIDs(recovered.PublicationIDs)
+			if newIDs[0] == ids[0] {
+				t.Fatal("overwrote immutable publication")
+			}
+			if _, e = s.Execute(ctx, work); e == nil {
+				t.Fatal("stale generation republished")
+			}
+		})
+	}
+}
+
 func TestModelServiceRejectsUnknownWorkKindEvenAfterInstallation(t *testing.T) {
 	s, db := modelServiceFixture(t)
 	body := []byte("model fixture")

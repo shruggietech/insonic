@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"strconv"
 )
 
 func PublicationIDs(raw json.RawMessage) ([]string, error) {
@@ -319,7 +320,7 @@ func (s *Store) CommitBaseModel(ctx context.Context, claim Work, m BaseModelInst
 	if e != nil {
 		return m, e
 	}
-	op := operationID("base-model-current", claim.ID, m.ID)
+	op := operationID("base-model-current", claim.ID, m.ID, strconv.FormatInt(claim.Generation, 10))
 	e = s.write(ctx, func(tx *sql.Tx, rev int64) error {
 		if _, e := s.workAuthority(ctx, tx, claim); e != nil {
 			return e

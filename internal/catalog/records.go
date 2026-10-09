@@ -177,6 +177,8 @@ type ModelAssociation struct {
 	Reason    string `json:"reason"`
 }
 type Records struct {
+	ModelAliases    []ModelAlias       `json:"model_aliases,omitempty"`
+	ModelSources    []ModelSource      `json:"model_sources,omitempty"`
 	Rosters         []RosterHeader     `json:"rosters,omitempty"`
 	RosterMembers   []RosterMember     `json:"roster_members,omitempty"`
 	Extractions     []Extraction       `json:"extractions,omitempty"`

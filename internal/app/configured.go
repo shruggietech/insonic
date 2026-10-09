@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/models"
 	"github.com/shruggietech/insonic/internal/pipeline"
 	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/internal/speakers"
@@ -160,7 +161,30 @@ func (a *App) configuredDispatch(req contracts.Request) (any, error) {
 		}
 		d.Recognition.Recognition.Hints = context.Hints
 		d.Recognition.Recognition.ContextDigest = processing.HintsDigest(context.Hints)
-		return map[string]any{"pipeline_id": p.ID, "revision": p.Revision, "preset": p.Preset, "configuration": d, "capabilities": []pipeline.Capability{recognition, diarization}, "context": context, "reachability": "not-probed"}, nil
+		selections := []models.Resolution{}
+		resolver := models.NewResolver(a.Catalog, a.secrets)
+		for _, stage := range []struct {
+			configuration pipeline.Stage
+			operation     string
+		}{{d.Recognition, "transcription"}, {d.Diarization, "diarization"}} {
+			if stage.configuration.Mode != "local" {
+				continue
+			}
+			selected, err := resolver.Resolve(a.ctx, stage.configuration.ModelID, stage.operation)
+			if err != nil {
+				selected = models.Resolution{Reference: stage.configuration.ModelID, State: "missing", Diagnostics: []string{"The selected reference is unavailable in this workspace; resolve it after configuring its source."}}
+			} else if selected.Target.Kind != "base" {
+				selected.Compatible = false
+				selected.Diagnostics = []string{localModelSelectionError(selected).Error()}
+			} else if selected.Manifest != nil && models.CheckCompatibility(*selected.Manifest, stage.operation, stage.configuration.Adapter, stage.configuration.Version) != nil {
+				selected.Compatible = false
+				selected.Diagnostics = []string{"The selected model is incompatible with this stage adapter contract."}
+			}
+			selected.Manifest = nil
+			selected.Lineage = nil
+			selections = append(selections, selected)
+		}
+		return map[string]any{"pipeline_id": p.ID, "revision": p.Revision, "preset": p.Preset, "configuration": d, "capabilities": []pipeline.Capability{recognition, diarization}, "model_selections": selections, "context": context, "reachability": "not-probed"}, nil
 	case "speakers.show":
 		return a.Catalog.Speaker(a.ctx, req.ItemID)
 	case "speakers.set":

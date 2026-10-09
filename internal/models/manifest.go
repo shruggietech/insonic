@@ -23,14 +23,15 @@ type File struct {
 	LocalHTTP    bool   `json:"local_http,omitempty"`
 }
 type Manifest struct {
-	Kind         string   `json:"kind"`
-	Version      string   `json:"schema_version"`
-	Name         string   `json:"name"`
-	ModelVersion string   `json:"model_version"`
-	Revision     string   `json:"upstream_revision"`
-	Capabilities []string `json:"capabilities"`
-	License      string   `json:"license"`
-	Files        []File   `json:"files"`
+	Kind          string         `json:"kind"`
+	Version       string         `json:"schema_version"`
+	Name          string         `json:"name"`
+	ModelVersion  string         `json:"model_version"`
+	Revision      string         `json:"upstream_revision"`
+	Capabilities  []string       `json:"capabilities"`
+	License       string         `json:"license"`
+	Files         []File         `json:"files"`
+	Compatibility *Compatibility `json:"compatibility,omitempty"`
 }
 
 var digestPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
@@ -49,6 +50,9 @@ func sourceURL(raw string, local bool) (*url.URL, error) {
 	return u, nil
 }
 func (m Manifest) Validate() error {
+	if m.Compatibility != nil && m.Compatibility.Validate() != nil {
+		return contracts.Fail("invalid_request")
+	}
 	if m.Kind != "base-model-manifest" || m.Version != contracts.Version || len(m.Name) == 0 || len(m.Name) > 256 || len(m.ModelVersion) == 0 || len(m.ModelVersion) > 256 || len(m.Revision) == 0 || len(m.Revision) > 512 || len(m.License) == 0 || len(m.Files) == 0 || len(m.Files) > 64 || len(m.Capabilities) == 0 || len(m.Capabilities) > 32 {
 		return contracts.Fail("invalid_request")
 	}

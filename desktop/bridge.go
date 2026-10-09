@@ -35,6 +35,7 @@ type Bridge struct {
 }
 
 func (b *Bridge) CompleteSmoke(response contracts.Response) {
+	closeQualificationModelSource()
 	if b.SmokeResult != nil {
 		b.SmokeResult(response)
 	}

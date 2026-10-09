@@ -299,6 +299,32 @@ func Build(s catalog.Snapshot) (Corpus, error) {
 	for _, v := range s.Records.BaseModels {
 		node("base-model:"+v.ID, "base-model", map[string]any{"base_model_id": v.ID, "revision": v.Revision}, Row{Label: v.Name, ModelKind: "base"})
 	}
+	for _, v := range s.Records.ModelSources {
+		if v.State == "active" {
+			node("model-source:"+v.ID, "model-source", map[string]any{"source_id": v.ID, "revision": v.Revision}, Row{Label: v.Name})
+		}
+	}
+	for _, v := range s.Records.ModelAliases {
+		if v.State != "active" {
+			continue
+		}
+		target, err := catalog.DecodeModelTarget(v.Target)
+		if err != nil {
+			return c, err
+		}
+		id := "model-alias:" + v.ID
+		node(id, "model-alias", map[string]any{"alias_id": v.ID, "revision": v.Revision, "operation": target.Operation, "target_kind": target.Kind}, Row{Label: v.Name, ModelKind: target.Kind})
+		switch target.Kind {
+		case "base":
+			edge(id, "base-model:"+target.ID, "resolves-to")
+		case "speaker":
+			edge(id, "version:"+target.ID, "resolves-to")
+		case "hosted":
+			hosted := "hosted-model:" + v.ID
+			node(hosted, "hosted-model", map[string]any{"adapter": target.Adapter, "contract_version": target.ContractVersion, "upstream_revision": target.UpstreamRevision}, Row{Label: target.RemoteModel, ModelKind: "hosted"})
+			edge(id, hosted, "resolves-to")
+		}
+	}
 	// Normalize order so identical catalog facts yield identical events on either backend.
 	sort.Slice(c.Refs.Nodes, func(i, j int) bool { return c.Refs.Nodes[i].ID < c.Refs.Nodes[j].ID })
 	sort.Slice(c.Refs.Edges, func(i, j int) bool { return c.Refs.Edges[i].ID < c.Refs.Edges[j].ID })

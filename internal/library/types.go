@@ -9,6 +9,7 @@ import (
 
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/models"
 )
 
 type PinnedFile struct {
@@ -30,19 +31,20 @@ type Tools struct {
 	FFprobe  Tool   `json:"ffprobe"`
 }
 type Options struct {
-	ReplaceAudio        *bool    `json:"replace_audio,omitempty"`
-	ExistingTranscript  string   `json:"existing_transcript,omitempty"`
-	TranscriptApplies   *bool    `json:"transcript_applies,omitempty"`
-	ExistingRoster      string   `json:"existing_roster,omitempty"`
-	KnownSpeakers       []string `json:"known_speakers,omitzero"`
-	TranscriptMaxBytes  *int64   `json:"transcript_max_bytes,omitempty"`
-	TranscriptTimeoutMS *int64   `json:"transcript_timeout_ms,omitempty"`
-	Attribution         string   `json:"attribution,omitempty"`
-	TranscriptFormat    string   `json:"transcript_format,omitempty"`
-	ReplaceTranscript   *bool    `json:"replace_transcript,omitempty"`
-	SubtitleStreamIndex *int     `json:"subtitle_stream_index,omitempty"`
-	SubtitleLanguage    string   `json:"subtitle_language,omitempty"`
-	DiarizationModelID  string   `json:"diarization_model_id,omitempty"`
+	ReplaceAudio           *bool    `json:"replace_audio,omitempty"`
+	ExistingTranscript     string   `json:"existing_transcript,omitempty"`
+	TranscriptApplies      *bool    `json:"transcript_applies,omitempty"`
+	ExistingRoster         string   `json:"existing_roster,omitempty"`
+	KnownSpeakers          []string `json:"known_speakers,omitzero"`
+	TranscriptMaxBytes     *int64   `json:"transcript_max_bytes,omitempty"`
+	TranscriptTimeoutMS    *int64   `json:"transcript_timeout_ms,omitempty"`
+	Attribution            string   `json:"attribution,omitempty"`
+	TranscriptFormat       string   `json:"transcript_format,omitempty"`
+	ReplaceTranscript      *bool    `json:"replace_transcript,omitempty"`
+	SubtitleStreamIndex    *int     `json:"subtitle_stream_index,omitempty"`
+	SubtitleLanguage       string   `json:"subtitle_language,omitempty"`
+	DiarizationModelID     string   `json:"diarization_model_id,omitempty"`
+	DiarizationModelDigest string   `json:"diarization_model_digest,omitempty"`
 
 	LocalHTTP            *bool            `json:"local_http,omitempty"`
 	AcquisitionMaxBytes  *int64           `json:"acquisition_max_bytes,omitempty"`
@@ -81,12 +83,14 @@ type Item struct {
 	Options
 }
 type ImportRequest struct {
-	RequestDigest string          `json:"request_digest,omitempty"`
-	Kind          string          `json:"kind,omitempty"`
-	Version       string          `json:"schema_version,omitempty"`
-	Defaults      Options         `json:"defaults,omitempty"`
-	Items         []Item          `json:"items"`
-	Extensions    json.RawMessage `json:"extensions,omitempty"`
+	ModelSelections   []json.RawMessage `json:"model_selections,omitempty"`
+	ModelDependencies []string          `json:"model_dependencies,omitempty"`
+	RequestDigest     string            `json:"request_digest,omitempty"`
+	Kind              string            `json:"kind,omitempty"`
+	Version           string            `json:"schema_version,omitempty"`
+	Defaults          Options           `json:"defaults,omitempty"`
+	Items             []Item            `json:"items"`
+	Extensions        json.RawMessage   `json:"extensions,omitempty"`
 }
 type RefreshRequest struct {
 	MediaID string  `json:"media_id"`
@@ -160,6 +164,7 @@ func merged(base, item Options) Options {
 	}
 	if item.DiarizationModelID != "" {
 		base.DiarizationModelID = item.DiarizationModelID
+		base.DiarizationModelDigest = item.DiarizationModelDigest
 	}
 
 	if item.LocalHTTP != nil {
@@ -227,7 +232,10 @@ func validOptions(o Options) bool {
 	if o.Attribution != "" && o.Attribution != "auto" && o.Attribution != "native" && o.Attribution != "off" && o.Attribution != "diarize" {
 		return false
 	}
-	if o.DiarizationModelID != "" && !contracts.ValidID(o.DiarizationModelID) {
+	if o.DiarizationModelID != "" && !models.ValidateReference(o.DiarizationModelID) {
+		return false
+	}
+	if o.DiarizationModelDigest != "" && (len(o.DiarizationModelDigest) != 64 || o.DiarizationModelDigest != strings.ToLower(o.DiarizationModelDigest)) {
 		return false
 	}
 	if o.TranscriptFormat != "" && o.TranscriptFormat != "cueson" && o.TranscriptFormat != "srt" && o.TranscriptFormat != "vtt" && o.TranscriptFormat != "ass" && o.TranscriptFormat != "ssa" {
@@ -273,7 +281,7 @@ func PrepareImport(r ImportRequest) (ImportRequest, error) {
 			return r, contracts.Fail("invalid_request")
 		}
 		effective := merged(r.Defaults, item.Options)
-		if effective.Attribution == "diarize" && !contracts.ValidID(effective.DiarizationModelID) {
+		if effective.Attribution == "diarize" && !models.ValidateReference(effective.DiarizationModelID) {
 			return r, contracts.Fail("invalid_request")
 		}
 		if item.Record != "" && item.Source != "" && item.Source != "<accepted>" && item.Kind != "media" && !(effective.ReplaceAudio != nil && *effective.ReplaceAudio) {

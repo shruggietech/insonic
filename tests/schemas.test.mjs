@@ -12,8 +12,8 @@ const { master, examples } = validateCatalog(catalog);
 const example = kind => structuredClone(catalog.contracts.find(item => item.schema.properties.kind.const === kind).schema.examples[0]);
 
 test('all documented contracts and local references validate through the release master', () => {
-  assert.equal(catalog.contracts.length, 18);
-  assert.equal(examples, 25);
+  assert.equal(catalog.contracts.length, 19);
+  assert.equal(examples, 26);
   for (const item of catalog.contracts) for (const value of item.schema.examples) assert.equal(master(value), true);
 });
 
@@ -24,6 +24,51 @@ test('roster add/remove require selectors while replace/clear allow empty declar
   assert.equal(master({...base,operation:'recordings.roster.'+mode,data:{...base.data,speakers:['Known']}}),true);
  }
  for(const mode of ['replace','clear'])assert.equal(master({...base,operation:'recordings.roster.'+mode}),true);
+});
+
+test('model references share bounded syntax across processing, pipelines and import', () => {
+  const request = {...example('runtime-request'), operation:'recordings.process', item_id:'22222222-2222-4222-8222-222222222222'};
+  for (const reference of ['speech', 'speech-v2', 'source:catalog/speech', 'base:33333333-3333-4333-8333-333333333333', 'speaker:33333333-3333-4333-8333-333333333333']) {
+    assert.equal(master({...request,data:{transcription:'generate',diarization:'reuse',recognition_model_id:reference}}),true,reference);
+    const pipeline=example('pipeline-config');
+    pipeline.configuration.recognition.model_id=reference;
+    assert.equal(master(pipeline),true,reference);
+    const input=example('import-manifest');
+    input.defaults.attribution='diarize';input.defaults.diarization_model_id=reference;
+    assert.equal(master(input),true,reference);
+  }
+  for (const reference of ['Speech',' speech','speech ','https://example.org/model','a'.repeat(65),'base:invalid','source//speech']) {
+    assert.equal(master({...request,data:{transcription:'generate',diarization:'reuse',recognition_model_id:reference}}),false,reference);
+  }
+});
+
+test('revisioned model references reject untyped targets, misplaced IDs and credentials',()=>{
+  const request={...example('runtime-request'),item_id:'22222222-2222-4222-8222-222222222222',operation:'models.alias.set',data:{expected_revision:0,alias:{id:'22222222-2222-4222-8222-222222222222',name:'speech',state:'active',target:{kind:'base',id:'33333333-3333-4333-8333-333333333333',operation:'transcription'}}}};
+  assert.equal(master(request),true);
+  const invalid=structuredClone(request);invalid.data.alias.target.kind='invented';assert.equal(master(invalid),false);
+  invalid.data.alias.target.kind='base';invalid.data.alias.target.credential_id='44444444-4444-4444-8444-444444444444';assert.equal(master(invalid),false);
+  assert.equal(master({...request,data:{...request.data,expected_revision:-1}}),false);
+  assert.equal(master({...request,operation:'models.alias.remove',data:{expected_revision:0}}),false);
+  assert.equal(master({...request,operation:'models.resolve',data:{reference:'speech',operation:'transcription'}}),false,'resolve carries reference in data, never item ID');
+  const resolve={...example('runtime-request'),operation:'models.resolve',data:{reference:'source:archive/release/1',operation:'transcription'}};
+  assert.equal(master(resolve),true);
+  assert.equal(master({...resolve,data:{...resolve.data,operation:'voice-matching'}}),true);
+  assert.equal(master({...resolve,data:{...resolve.data,token:'secret'}}),false);
+});
+
+test('model catalog and compatibility contracts retain complete pinned bundle metadata',()=>{
+  const manifest=example('base-model-manifest');
+  manifest.compatibility={adapter:'faster-whisper',contract_version:'1',architecture:'whisper',runtime_format:'ctranslate2',sample_rates:[16000],channels:[1]};
+  assert.equal(master(manifest),true);
+  manifest.compatibility.channels=[0];assert.equal(master(manifest),false);
+  manifest.compatibility.channels=[1,1];assert.equal(master(manifest),false);
+  manifest.compatibility.channels=[1];
+  const source={kind:'model-catalog',schema_version:'0.0.0',entries:[{selector:'release-1',manifest}]};
+  assert.equal(master(source),true);
+  assert.equal(master({...source,entries:Array.from({length:129},()=>source.entries[0])}),false);
+  const snapshot=example('catalog-snapshot');snapshot.catalog_schema=8;snapshot.records.model_aliases=[{id:'22222222-2222-4222-8222-222222222222',name:'speech',revision:1,state:'deleted',target:{kind:'base',id:'33333333-3333-4333-8333-333333333333',operation:'transcription'}}];
+  assert.equal(master(snapshot),true);
+  snapshot.records.model_aliases[0].revision=0;assert.equal(master(snapshot),false);
 });
 
 test('recording operation requests keep transient assembly separate from durable settings', () => {

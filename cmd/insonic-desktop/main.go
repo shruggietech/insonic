@@ -104,7 +104,7 @@ func run() int {
 			raw, _ := json.Marshal(response.Result)
 			var result map[string]any
 			json.Unmarshal(raw, &result)
-			for _, name := range []string{"ui_library_import", "ui_metadata_date", "ui_current_assembly", "ui_audio_playback", "ui_video_source_audio_playback", "ui_cue_seek", "ui_terms", "ui_speakers", "ui_pipelines", "ui_jobs", "ui_settings", "ui_keyboard_help", "ui_explore_calendar", "ui_explore_query", "ui_explore_graph", "ui_query_assistance"} {
+			for _, name := range []string{"ui_library_import", "ui_metadata_date", "ui_current_assembly", "ui_audio_playback", "ui_video_source_audio_playback", "ui_cue_seek", "ui_terms", "ui_speakers", "ui_pipelines", "ui_jobs", "ui_settings", "ui_model_references", "ui_keyboard_help", "ui_explore_calendar", "ui_explore_query", "ui_explore_graph", "ui_query_assistance"} {
 				passed = passed && result[name] == "passed"
 			}
 			smokePassed.Store(passed)
@@ -147,7 +147,7 @@ func run() int {
 			fmt.Fprintln(os.Stderr, "Native webview qualification failed.")
 			return 1
 		}
-		json.NewEncoder(os.Stdout).Encode(map[string]any{"schema_version": contracts.Version, "native_webview": "passed", "frontend_bridge_ipc": "passed", "desktop_journeys": "passed", "audio_video_playback": "passed", "model_execution": "not-run"})
+		json.NewEncoder(os.Stdout).Encode(map[string]any{"schema_version": contracts.Version, "native_webview": "passed", "frontend_bridge_ipc": "passed", "desktop_journeys": "passed", "ui_model_references": "passed", "audio_video_playback": "passed", "model_execution": "not-run"})
 	}
 	return 0
 }

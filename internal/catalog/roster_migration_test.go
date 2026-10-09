@@ -12,6 +12,9 @@ import (
 func TestPublishedV6DDLAndMigration(t *testing.T) {
 	current := []string{}
 	for _, q := range migrationStatements() {
+		if strings.Contains(q, "CREATE TABLE IF NOT EXISTS model_alias ") || strings.Contains(q, "CREATE TABLE IF NOT EXISTS model_source ") {
+			continue
+		}
 		if strings.Contains(q, "CREATE TABLE IF NOT EXISTS recording_roster") || strings.Contains(q, "CREATE TABLE IF NOT EXISTS roster_member") {
 			continue
 		}

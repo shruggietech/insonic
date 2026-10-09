@@ -256,4 +256,4 @@ jobs:
           INSONIC_LIBRARY_TOOLS_FILE: ${{ github.workspace }}/build/native/media-tools.json
         run: |
           python scripts/media-tools.py --prepare-only
-          go test -v -p 1 -tags integration ./internal/qualification ./internal/catalog ./internal/artifact ./internal/library ./internal/graph ./internal/app
+          go test -v -p 1 -tags integration ./internal/qualification ./internal/catalog ./internal/artifact ./internal/models ./internal/library ./internal/graph ./internal/app

@@ -635,7 +635,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
                 args = ['/usr/bin/xvfb-run', '-a', *args]
             qualification_output = child(args, directory=root, env=env, timeout=90)
             qualify.write_receipt(ROOT / 'build/native/package-webview-receipt.json', qualification_output,
-                                  {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'schema_version': VERSION})
+                                  {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'schema_version': VERSION})
         finally:
             # The detached runtime owns its jobs and releases its own scratch
             # catalog handles at the existing bounded idle exit.

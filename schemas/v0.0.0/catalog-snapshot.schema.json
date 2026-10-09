@@ -78,7 +78,8 @@
         4,
         5,
         6,
-        7
+        7,
+        8
       ]
     },
     "digest": {
@@ -1894,6 +1895,28 @@
             }
           },
           "description": "Unique references to existing centralized speaker identities."
+        },
+        "model_aliases": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "common.schema.json#/$defs/modelAlias",
+            "description": "Typed workspace-scoped portable record."
+          },
+          "description": "Deterministically ordered alias/source records including revision tombstones."
+        },
+        "model_sources": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "common.schema.json#/$defs/modelSource",
+            "description": "Typed workspace-scoped portable record."
+          },
+          "description": "Deterministically ordered alias/source records including revision tombstones."
         }
       },
       "required": [

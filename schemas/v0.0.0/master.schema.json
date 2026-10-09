@@ -79,6 +79,10 @@
     "query-assistance": {
       "$ref": "query-assistance.schema.json",
       "description": "Optional elected query assistance settings."
+    },
+    "model-catalog": {
+      "$ref": "model-catalog.schema.json",
+      "description": "Configured metadata-only model discovery catalog."
     }
   },
   "oneOf": [
@@ -135,6 +139,9 @@
     },
     {
       "$ref": "#/$defs/query-assistance"
+    },
+    {
+      "$ref": "#/$defs/model-catalog"
     }
   ]
 }

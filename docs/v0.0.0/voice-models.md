@@ -8,7 +8,7 @@ The catalog records dataset provenance, durable model storage and CLI lookup/ret
 
 ```mermaid
 flowchart TB
-  Library[Original audio and video throughout the library] --> Segments[Mapped voice intervals and audio segments]
+  Library[Current canonical audio throughout the library] --> Segments[Mapped voice intervals and audio segments]
   Attribution[Current embedded speaker assignments] --> Select[Reusable selection recipe for one speaker]
   Segments --> Select
   Select --> Snapshot[Current reference manifest and diagnostics]
@@ -33,6 +33,8 @@ A document replacement removes stale segment/membership references and invalidat
 
 The broader training engines and dataset/model CLI remain delivery contracts. Current recording and migration behavior establish their current-reference integrity before those engines are implemented.
 ## Training adapters and durable runs
+
+Model reference inspection distinguishes downloaded base installations, existing immutable speaker versions and hosted-only handles. `speaker:VERSION_UUID` resolves the existing speaker family/version/run/dataset lineage; aliases do not copy or rewrite it. A hosted handle remains an explicitly configured provider reference, without an invented downloadable weight bundle. Unavailable or unsupported trained outputs are diagnosed honestly. This reference foundation does not implement training, enrollment or acoustic identity matching. See [model references](models.md).
 
 Declared recording rosters describe expected centralized identities and contribute no acoustic segment, assignment or corpus membership by themselves. Audio replacement invalidates source-bound preparation and current segment references even when retaining the same document; dependent work must resolve the new source authority before publication.
 

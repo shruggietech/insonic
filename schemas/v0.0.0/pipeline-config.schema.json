@@ -98,8 +98,8 @@
           "description": "Mode."
         },
         "model_id": {
-          "$ref": "common.schema.json#/$defs/uuid",
-          "description": "Id."
+          "$ref": "common.schema.json#/$defs/modelReference",
+          "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
         },
         "remote_model": {
           "type": "string",

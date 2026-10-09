@@ -7,9 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/shruggietech/insonic/internal/assistance"
+	"github.com/shruggietech/insonic/internal/models"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"time"
 
 	"github.com/shruggietech/insonic/internal/app"
@@ -20,6 +24,51 @@ import (
 	"github.com/shruggietech/insonic/internal/subtitles"
 	"github.com/shruggietech/insonic/internal/workspace"
 )
+
+var qualificationModels struct {
+	sync.Mutex
+	server *httptest.Server
+}
+
+func closeQualificationModelSource() {
+	qualificationModels.Lock()
+	server := qualificationModels.server
+	qualificationModels.server = nil
+	qualificationModels.Unlock()
+	if server != nil {
+		server.Close()
+	}
+}
+
+// The native journey serves only tiny literal fixture bytes. These are never
+// engine weights and no inference consumer is invoked during qualification.
+func qualificationModelManifest() models.Manifest {
+	closeQualificationModelSource()
+	payload := []byte("synthetic model acquisition fixture\n")
+	digest := sha256.Sum256(payload)
+	var manifest models.Manifest
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/catalog" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]any{"kind": "model-catalog", "schema_version": contracts.Version, "entries": []any{map[string]any{"selector": "tiny", "manifest": manifest}}})
+			return
+		}
+		if r.URL.Path != "/bytes" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Write(payload)
+	}))
+	manifest = models.Manifest{Kind: "base-model-manifest", Version: contracts.Version, Name: "native-acquisition-fixture", ModelVersion: "1", Revision: "synthetic-immutable-1", License: "test-fixture", Capabilities: []string{"transcription"}}
+	for _, role := range []string{"config.json", "model.bin", "tokenizer.json", "vocabulary.txt"} {
+		manifest.Files = append(manifest.Files, models.File{Role: role, SHA256: hex.EncodeToString(digest[:]), Size: int64(len(payload)), URL: server.URL + "/bytes", LocalHTTP: true})
+	}
+	qualificationModels.Lock()
+	qualificationModels.server = server
+	qualificationModels.Unlock()
+	return manifest
+}
 
 // QualificationStartsHidden keeps local smoke tests out of the foreground.
 // Hosted macOS needs an onscreen WKWebView to run media and its JS timers.
@@ -48,7 +97,7 @@ func (b *Bridge) QualificationStep(step string) bool {
 		return false
 	}
 	switch step {
-	case "module", "fixtures", "mounted", "ready", "library-import", "audio-playback", "video-playback", "metadata-date", "assembly", "cue-seek", "terms", "speakers", "pipelines", "jobs", "settings", "keyboard-help", "explore-calendar", "explore-query", "explore-graph", "query-assistance", "rosters", "audio-replacement", "complete":
+	case "module", "fixtures", "mounted", "ready", "library-import", "audio-playback", "video-playback", "metadata-date", "assembly", "cue-seek", "terms", "speakers", "pipelines", "jobs", "settings", "keyboard-help", "explore-calendar", "explore-query", "explore-graph", "query-assistance", "rosters", "audio-replacement", "model-references", "complete":
 		fmt.Fprintln(os.Stderr, "Desktop qualification stage:", step)
 		return true
 	}
@@ -177,6 +226,10 @@ func PrepareWebviewQualification(b *Bridge) error {
 	}
 	fixtures["audio_id"] = audioID
 	fixtures["video_id"] = imported.Items[1].MediaID
+	modelManifest := qualificationModelManifest()
+	fixtures["model_manifest"] = modelManifest
+	fixtures["model_id"] = models.InstallationID(modelManifest)
+	fixtures["model_catalog_url"] = qualificationModels.server.URL + "/catalog"
 	b.mu.Lock()
 	b.qualification = fixtures
 	b.mu.Unlock()

@@ -158,6 +158,16 @@ Exact packaged Cueson 1.0.0 and 1.1.0 documents validate under their original sc
 
 `--attribution auto` preserves any complete or partial assignments. Only a document with zero assignments derives recording-scoped untimed participation from structured native/heuristic speaker observations. `native` restricts derivation to native observations, and `off` preserves without deriving assignments. `diarize` requires `--diarization-model-id`, explicitly runs configured diarization and bypasses recognition for supplied text. Labels alone never create timed acoustic evidence or a known-person identity.
 
+`--diarization-model-id` and JSON/CSV `diarization_model_id` accept the shared
+[model reference grammar](models.md): exact base IDs, `base:UUID`, aliases or
+`source:NAME/SELECTOR`. Batch defaults apply unless an item overrides its
+reference. Submission resolves each selected reference once, validates the
+diarization adapter and freezes its complete manifest digest. Missing files
+acquire through shared durable dependencies before import diarization; partial
+batch retry retains that election after alias or source changes. Job inspection
+shows the selected models and acquisition IDs. Supplied text is preserved and
+recognition stays bypassed.
+
 Media and transcript HTTP acquisition have separate credential IDs and budgets. Set `--transcript-credential-id`, `--transcript-max-bytes` (default and maximum 16 MiB), and `--transcript-timeout-ms` (default 120000, maximum 600000). Transcript bytes determine format independently of MIME and filename; HTML error bodies, incomplete downloads and invalid documents fail. `--transcript-format cueson|srt|vtt|ass|ssa` is an explicit hint validated by the selected parser. JSON/CSV item fields override batch defaults using the same shared contract. Advanced acquisition adapters are available through manifests/runtime input.
 
 All embedded subtitle candidates remain inspectable in captured source-stream facts. An explicit transcript wins and reports unused embedded alternatives. Otherwise explicit index/language filters apply, then default disposition, non-forced disposition and stream order choose one supported text track. Alternatives are never concatenated. Image-only subtitles report an OCR requirement; burned-in captions require a separately elected OCR capability. Neither route silently runs an engine.

@@ -58,10 +58,26 @@ func (a *App) libraryService() (*library.Service, error) {
 		}
 		return driver.Ingest(ctx, data, format)
 	}
-	service.Diarize = func(ctx context.Context, entry catalog.LibraryEntry, document json.RawMessage, model string) (subtitles.Admission, json.RawMessage, error) {
+	service.DiarizePinned = func(ctx context.Context, entry catalog.LibraryEntry, document json.RawMessage, model, digest string) (subtitles.Admission, json.RawMessage, error) {
 		result := subtitles.Admission{Document: document, OriginalVersion: subtitles.SchemaVersion, AttributionBasis: []subtitles.Observation{}}
 		if !contracts.ValidID(model) {
 			return result, nil, contracts.Fail("invalid_request")
+		}
+		if digest != "" {
+			install, err := a.Catalog.BaseModel(ctx, model)
+			if err != nil {
+				return result, nil, err
+			}
+			if install.Digest != digest {
+				return result, nil, contracts.Fail("conflict")
+			}
+			service, err := a.modelService()
+			if err != nil {
+				return result, nil, err
+			}
+			if err = service.Verify(ctx, model); err != nil {
+				return result, nil, err
+			}
 		}
 		executor, err := a.recordingExecutor()
 		if err != nil {
@@ -72,7 +88,7 @@ func (a *App) libraryService() (*library.Service, error) {
 			return result, nil, err
 		}
 		defer session.Close()
-		diarization, err := session.Diarize(ctx, model, processing.DiarizationOptions{})
+		diarization, err := session.Diarize(ctx, model, processing.DiarizationOptions{ExpectedModelDigest: digest})
 		if err != nil {
 			return result, nil, err
 		}
@@ -146,8 +162,22 @@ func (a *App) recoverWork() {
 		if item.State != "pending" && item.State != "interrupted" && item.State != "running" {
 			continue
 		}
+		ready, dependencyError := a.dependenciesReady(item)
+		if !ready && dependencyError == nil {
+			continue
+		}
 		claim, e := a.Catalog.ClaimWork(a.ctx, item.ID, a.Session, leaseTTL)
 		if e != nil {
+			continue
+		}
+		if dependencyError != nil {
+			code := "model_acquisition_failed"
+			if typed, ok := dependencyError.(*contracts.Error); ok {
+				code = typed.Code
+			}
+			_, dependencies, _ := frozenModelDependencies(item)
+			raw, _ := json.Marshal(map[string]any{"state": "failed", "error": code, "acquisition_ids": dependencies})
+			_, _ = a.Catalog.CheckpointWork(a.ctx, claim, "model-acquisition-failed", "failed", raw, leaseTTL)
 			continue
 		}
 		ctx, cancel := context.WithCancel(a.ctx)
@@ -163,6 +193,17 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 	var e error
 	if claim.Kind == "evidence.extract" {
 		result, e = a.processEvidence(ctx, claim)
+	} else if claim.Kind == "models.ensure" {
+		selected, _, err := frozenModelDependencies(claim)
+		e = err
+		if e == nil {
+			e = a.verifyElectedModels(ctx, selected)
+		}
+		if e == nil && len(selected) == 1 {
+			result = map[string]any{"model_id": selected[0].Target.ID, "state": "available", "manifest_digest": selected[0].Digest}
+		} else if e == nil {
+			e = contracts.Fail("invalid_request")
+		}
 	} else if claim.Kind == "recordings.process" {
 		result, e = a.processRecording(ctx, claim)
 	} else if strings.HasPrefix(claim.Kind, "models.") {
@@ -216,6 +257,9 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 }
 
 func domainRequestValid(req contracts.Request) bool {
+	if modelReferenceOperation(req.Operation) {
+		return modelReferenceRequestValid(req)
+	}
 	if contracts.ExploreOperation(req.Operation) {
 		return contracts.ExploreRequestValid(req)
 	}
@@ -241,12 +285,15 @@ func domainRequestValid(req contracts.Request) bool {
 	return (list && req.ItemID == "") || (req.Operation == "work.results" && contracts.ValidID(req.ItemID)) || (input && req.ItemID == "" && len(req.Data) > 0) || (update && contracts.ValidID(req.ItemID) && len(req.Data) > 0) || (!list && !input && !update && contracts.ValidID(req.ItemID) && len(req.Data) == 0)
 }
 func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
+	if modelReferenceOperation(req.Operation) {
+		return a.modelReferenceDispatch(req)
+	}
 	if configuredOperation(req.Operation) {
 		return a.configuredDispatch(req)
 	}
 	defer func() {
 		if w, ok := result.(catalog.Work); ok {
-			result = workView(w)
+			result = a.modelWorkView(w)
 		}
 		if entry, ok := result.(catalog.LibraryEntry); ok {
 			raw, _ := json.Marshal(entry)
@@ -271,7 +318,11 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 		if e != nil {
 			return nil, e
 		}
-		return pageViews(all, p, func(w catalog.Work) string { return w.ID }, func(w catalog.Work) any { view := workView(w).(map[string]any); delete(view, "result"); return view }), nil
+		return pageViews(all, p, func(w catalog.Work) string { return w.ID }, func(w catalog.Work) any {
+			view := a.modelWorkView(w).(map[string]any)
+			delete(view, "result")
+			return view
+		}), nil
 	case "work.results":
 		return a.workResults(req)
 	case "work.show":
@@ -292,6 +343,8 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 		if current.Kind == "recordings.assemble" {
 			return nil, &contracts.Error{Code: "invalid_request", Message: "Resubmit the assembly inputs through recordings.assemble to retry this job."}
 		}
+		// Catalog resets terminal frozen dependencies atomically with retry;
+		// its replay path retains idempotency after execution finishes again.
 		out, e := a.Catalog.RetryWork(a.ctx, req.RequestID, req.ItemID)
 		if e == nil {
 			a.recoverWork()
@@ -302,7 +355,32 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 		if strictPayload(req.Data, &input) != nil || input.Manifest.Validate() != nil {
 			return nil, contracts.Fail("invalid_request")
 		}
-		out, e := a.Catalog.EnqueueWork(a.ctx, req.RequestID, req.Operation, req.Data)
+		var out catalog.Work
+		var e error
+		if req.Operation == "models.acquire" {
+			requestDigest := documentHash(configurationBytes(input))
+			if prior, err := a.Catalog.Work(a.ctx, req.RequestID); err == nil {
+				var p recordingPayload
+				if prior.Kind != "models.ensure" || strictPayload(prior.Payload, &p) != nil || p.RequestDigest != requestDigest {
+					return nil, contracts.Fail("conflict")
+				}
+				return a.modelWorkView(prior), nil
+			} else if typed, ok := err.(*contracts.Error); !ok || typed.Code != "not_found" {
+				return nil, err
+			}
+			selected, err := models.ResolveManifest(input.Manifest, "")
+			if err != nil {
+				return nil, err
+			}
+			dependencies, err := a.queueModelSelections(a.ctx, []models.Resolution{selected})
+			if err != nil {
+				return nil, err
+			}
+			raw, _ := json.Marshal(recordingPayload{RequestDigest: requestDigest, ModelSelections: []models.Resolution{selected}, ModelDependencies: dependencies})
+			out, e = a.Catalog.EnqueueWork(a.ctx, req.RequestID, "models.ensure", raw)
+		} else {
+			out, e = a.Catalog.EnqueueWork(a.ctx, req.RequestID, req.Operation, req.Data)
+		}
 		if e == nil {
 			a.recoverWork()
 		}
@@ -334,6 +412,14 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 		if strictPayload(req.Data, &input) != nil {
 			return nil, contracts.Fail("invalid_request")
 		}
+		if len(input.ModelSelections) != 0 || len(input.ModelDependencies) != 0 || input.Defaults.DiarizationModelDigest != "" {
+			return nil, contracts.Fail("invalid_request")
+		}
+		for _, item := range input.Items {
+			if item.DiarizationModelDigest != "" {
+				return nil, contracts.Fail("invalid_request")
+			}
+		}
 		prepared, e := library.PrepareImport(input)
 		if e != nil {
 			return nil, e
@@ -353,7 +439,7 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 			if prior.Kind != req.Operation || json.Unmarshal(prior.Payload, &frozen) != nil || frozen.RequestDigest != requestDigest {
 				return nil, contracts.Fail("conflict")
 			}
-			return workView(prior), nil
+			return a.modelWorkView(prior), nil
 		} else {
 			typed, ok := err.(*contracts.Error)
 			if !ok || typed.Code != "not_found" {
@@ -361,6 +447,10 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 			}
 		}
 		prepared = library.FreezeTargets(a.ctx, a.Catalog, prepared)
+		prepared, e = a.freezeImportModels(prepared)
+		if e != nil {
+			return nil, e
+		}
 		prepared.RequestDigest = requestDigest
 		raw, _ := json.Marshal(prepared)
 		out, e := a.Catalog.EnqueueWork(a.ctx, req.RequestID, req.Operation, raw)

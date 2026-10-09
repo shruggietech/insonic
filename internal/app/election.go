@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
-	"github.com/shruggietech/insonic/internal/models"
 	"github.com/shruggietech/insonic/internal/pipeline"
 	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/internal/speakers"
@@ -158,42 +157,4 @@ func (a *App) electedDiarize(ctx context.Context, s *audioExecution, p recording
 		return processing.DiarizationResult{}, e
 	}
 	return (&pipeline.Executor{Secrets: a.secrets, Client: a.hostedClient}).Diarize(ctx, s.Path, mapping, p.Election.Definition.Diarization, options)
-}
-
-func (a *App) electModelDigests(o RecordingOptions) (map[string]string, error) {
-	// Deterministic recording fixtures replace the managed-model execution seam.
-	if a.recordingFactory != nil {
-		return nil, nil
-	}
-	out := map[string]string{}
-	for _, stage := range []struct {
-		id, capability string
-		selected       bool
-	}{
-		{o.RecognitionModelID, "transcription", o.Transcription == "generate"},
-		{o.DiarizationModelID, "diarization", o.Diarization != "reuse"},
-	} {
-		if !stage.selected || stage.id == "" {
-			continue
-		}
-		install, e := a.Catalog.BaseModel(a.ctx, stage.id)
-		if e != nil {
-			return nil, e
-		}
-		var manifest models.Manifest
-		if install.State != "available" || models.DecodeManifest(install.Manifest, &manifest) != nil || manifest.Digest() != install.Digest {
-			return nil, contracts.Fail("model_unavailable")
-		}
-		capable := false
-		for _, c := range manifest.Capabilities {
-			if c == stage.capability {
-				capable = true
-			}
-		}
-		if !capable {
-			return nil, contracts.Fail("unsupported_capability")
-		}
-		out[stage.id] = install.Digest
-	}
-	return out, nil
 }

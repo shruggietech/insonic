@@ -29,6 +29,14 @@ func corpusSuite(t *testing.T, s *Store) {
 	if _, e = s.Commit(ctx, Mutation{OperationID: contracts.ID(), Expected: rev, Records: rows}); e != nil {
 		t.Fatal(e)
 	}
+	lineage, e := s.SpeakerModelVersion(ctx, version)
+	if e != nil || lineage.Version.ID != version || lineage.Model.SpeakerID != speaker || lineage.Run.DatasetID != dataset || len(lineage.Artifacts) != 1 || len(lineage.Associations) != 1 {
+		t.Fatal("exact trained lineage", e)
+	}
+	target, _ := json.Marshal(ModelTarget{Kind: "speaker", ID: version, Operation: "voice-matching"})
+	if _, e = s.PutModelAlias(ctx, contracts.ID(), 0, ModelAlias{Name: "speaker-profile", State: "active", Target: target}); e != nil {
+		t.Fatal("trained alias", e)
+	}
 	snap, e := s.Export(ctx)
 	if e != nil {
 		t.Fatal(e)

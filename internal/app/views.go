@@ -6,6 +6,7 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/library"
+	"github.com/shruggietech/insonic/internal/models"
 	"sort"
 )
 
@@ -72,7 +73,17 @@ func mediaSummary(v library.EntryView) any {
 	return map[string]any{"media_id": e.ID, "id": e.ID, "title": e.Title, "class": e.Class, "mode": e.Mode, "digest": e.Digest, "size_bytes": e.Size, "duration_us": e.DurationUS, "availability": v.Availability, "revision": e.Revision}
 }
 func modelSummary(m catalog.BaseModelInstall) any {
-	return map[string]any{"model_id": m.ID, "id": m.ID, "name": m.Name, "model_version": m.Version, "manifest_digest": m.Digest, "state": m.State, "revision": m.Revision}
+	capabilities := []string{}
+	compatibility := map[string]bool{"transcription": false, "diarization": false, "voice-matching": false, "speaker-model-training": false}
+	var manifest models.Manifest
+	if models.DecodeManifest(m.Manifest, &manifest) == nil && manifest.Digest() == m.Digest {
+		capabilities = append(capabilities, manifest.Capabilities[:min(32, len(manifest.Capabilities))]...)
+		for operation := range compatibility {
+			adapter, version := models.DefaultAdapter(operation)
+			compatibility[operation] = models.CheckCompatibility(manifest, operation, adapter, version) == nil
+		}
+	}
+	return map[string]any{"model_id": m.ID, "id": m.ID, "name": m.Name, "model_version": m.Version, "manifest_digest": m.Digest, "state": m.State, "revision": m.Revision, "capabilities": capabilities, "operation_compatibility": compatibility}
 }
 func (a *App) workResults(req contracts.Request) (any, error) {
 	var p struct {

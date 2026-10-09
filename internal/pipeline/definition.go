@@ -12,6 +12,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/models"
 	"github.com/shruggietech/insonic/internal/processing"
 )
 
@@ -151,7 +152,7 @@ func ValidateStage(s Stage, operation string) error {
 		return e
 	}
 	if s.Mode == "local" {
-		if !contracts.ValidID(s.ModelID) || s.RemoteModel != "" || s.Endpoint != "" || s.CredentialID != "" || len(s.Capabilities) > 0 || s.SupportsHints != nil || s.MaxHintBytes != 0 {
+		if !models.ValidateReference(s.ModelID) || s.RemoteModel != "" || s.Endpoint != "" || s.CredentialID != "" || len(s.Capabilities) > 0 || s.SupportsHints != nil || s.MaxHintBytes != 0 {
 			return contracts.Fail("invalid_request")
 		}
 	} else {

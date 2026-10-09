@@ -13,6 +13,7 @@ import {
   Table,
 } from './components';
 import { appendCapture, Client, rationalSeconds, type Obj } from './client';
+import { ModelChoice } from './models';
 import {
   lines,
   pipelinePayload,
@@ -417,7 +418,7 @@ export function Library({ client, run }: Props) {
           <Select label="Import speaker attribution" value={admissionAttribution} onChange={setAdmissionAttribution} options={[
             {value:'auto',label:'Auto (preserve assignments, then native or heuristic observations)'},{value:'native',label:'Native observations only'},{value:'off',label:'Preserve without deriving assignments'},{value:'diarize',label:'Run configured diarization without recognition'}
           ]}/>
-          {admissionAttribution==='diarize' && <Input label="Import diarization model ID" value={diarizationModel} onChange={setDiarizationModel} required/>}
+          {admissionAttribution==='diarize' && <ModelChoice label="Import diarization model" value={diarizationModel} onChange={setDiarizationModel} operation="diarization" client={client} run={run}/>}
           <Select label="Transcript format" value={transcriptHint} onChange={setTranscriptHint} options={[
             {value:'',label:'Detect from bytes'},...['cueson','srt','vtt','ass','ssa'].map(value=>({value,label:value.toUpperCase()}))
           ]}/>
@@ -761,30 +762,28 @@ export function Library({ client, run }: Props) {
             {!pipeline && (
               <>
                 {(!transcription || transcription === 'generate') && (
-                  <CatalogChoice
+                  <ModelChoice
                     label="Local recognition model"
-                    operation="models.list"
+                    operation="transcription"
                     value={recognitionModel}
                     onChange={setRecognitionModel}
                     client={client}
                     run={run}
-                    empty="Choose an available transcription model"
                   />
                 )}
                 {diarization === 'run' && (
-                  <CatalogChoice
+                  <ModelChoice
                     label="Local diarization model"
-                    operation="models.list"
+                    operation="diarization"
                     value={diarizationModel}
                     onChange={setDiarizationModel}
                     client={client}
                     run={run}
-                    empty="Choose an available diarization model"
                   />
                 )}
                 <p>
-                  Choose managed models with the required capability. Model
-                  files must be available before processing starts.
+                  Choose a compatible model reference. The runtime freezes its
+                  exact version and acquires missing verified files before processing.
                 </p>
               </>
             )}
@@ -1226,6 +1225,10 @@ export function Jobs({ client, run }: Props) {
               id: detail.id,
               state: detail.state,
               phase: detail.phase,
+              selected_models: detail.model_selections,
+              selected_model_count: detail.model_selection_count,
+              acquisition_jobs: detail.acquisition_ids,
+              acquisition_job_count: detail.acquisition_count,
               attempt: detail.generation,
               error: detail.error,
               result: results,
@@ -1352,19 +1355,13 @@ export function Pipelines({ client, run }: Props) {
               />
               {values[`${kind}_mode`] === 'local' ? (
                 <>
-                  <CatalogChoice
-                    label={`${kind} installed model`}
-                    operation="models.list"
+                  <ModelChoice
+                    label={`${kind} model`}
+                    operation={kind==='recognition'?'transcription':'diarization'}
                     value={values[`${kind}_model`]}
                     onChange={(value) => update(`${kind}_model`, value)}
                     client={client}
                     run={run}
-                    empty="Choose installed model"
-                  />
-                  <Input
-                    label={`${kind} managed model ID`}
-                    value={values[`${kind}_model`]}
-                    onChange={(v) => update(`${kind}_model`, v)}
                   />
                   <Select
                     label={`${kind} device`}

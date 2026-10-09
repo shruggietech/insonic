@@ -21,8 +21,9 @@ import (
 )
 
 type Service struct {
-	NativeIngest func(context.Context, []byte, string) (json.RawMessage, error)
-	Diarize      func(context.Context, catalog.LibraryEntry, json.RawMessage, string) (subtitles.Admission, json.RawMessage, error)
+	NativeIngest  func(context.Context, []byte, string) (json.RawMessage, error)
+	Diarize       func(context.Context, catalog.LibraryEntry, json.RawMessage, string) (subtitles.Admission, json.RawMessage, error)
+	DiarizePinned func(context.Context, catalog.LibraryEntry, json.RawMessage, string, string) (subtitles.Admission, json.RawMessage, error)
 	// Used only by historical fixture builders, never enabled by application construction.
 	legacyFixture bool
 
