@@ -9,9 +9,11 @@ import platform
 import re
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
 import urllib.request
 
@@ -134,6 +136,19 @@ def build_environment(key, prefix):
     return env
 
 
+def validate_build_tools(platform_id, env):
+    # A verified complete cache needs its compiler identity and hashes, without
+    # requiring tools used only to produce that cache. Cold builds check these
+    # before extracting archives or spending time compiling dependencies.
+    if platform_id.startswith('windows'):
+        msys = Path(env['INSONIC_SOURCE_SHELL']).parents[2]
+        for relative in ['ucrt64/bin/gcc.exe', 'ucrt64/bin/g++.exe', 'ucrt64/bin/nasm.exe',
+                         'ucrt64/bin/cmake.exe', 'ucrt64/bin/ninja.exe', 'ucrt64/bin/pkg-config.exe',
+                         'usr/bin/make.exe']:
+            if not (msys / relative).is_file():
+                raise ValueError('configured MSYS2 source tool is missing: ' + str(msys / relative))
+
+
 def child(args, directory, timeout=360, *, env=None, commands=None, shell=False):
     args = [str(arg) for arg in args]
     selected = env or os.environ.copy()
@@ -198,19 +213,94 @@ def cache_valid(directory, receipt, key, names):
         return False
 
 
-def dependency_cache_valid(directory, receipt, key):
+def normalize_prefix_aliases(prefix):
+    """Materialize only private-prefix aliases to ordinary installed files."""
+    if prefix.is_symlink():
+        raise ValueError('dependency install prefix is a symbolic link: ' + str(prefix))
+    root = prefix.resolve(strict=True)
+    aliases = []
+    # Validate the whole install before replacing any link. An invalid later
+    # alias must not leave a partially normalized dependency installation.
+    for path in sorted(prefix.rglob('*')):
+        if not path.is_symlink():
+            if not (path.is_dir() or stat.S_ISREG(path.lstat().st_mode)):
+                raise ValueError('dependency install has a nonregular member: ' + str(path))
+            continue
+        try:
+            target = path.resolve(strict=True)
+        except (OSError, RuntimeError) as error:
+            raise ValueError('dependency alias is missing or cyclic: ' + str(path)) from error
+        if not target.is_relative_to(root):
+            raise ValueError('dependency alias escapes private prefix: ' + str(path))
+        if not stat.S_ISREG(target.stat().st_mode):
+            raise ValueError('dependency alias target is not a regular file: ' + str(path))
+        aliases.append((path, target, sha(target)))
+    audit = []
+    for path, target, digest in aliases:
+        with tempfile.NamedTemporaryFile(dir=path.parent, prefix='.insonic-alias-', delete=False) as output:
+            temporary = Path(output.name)
+        try:
+            shutil.copy2(target, temporary)
+            if sha(temporary) != digest:
+                raise ValueError('dependency alias changed while materializing: ' + str(path))
+            temporary.replace(path)
+        finally:
+            temporary.unlink(missing_ok=True)
+        audit.append({'path': path.relative_to(prefix).as_posix(),
+                      'target': target.relative_to(root).as_posix(), 'sha256': digest})
+    return audit
+
+
+def dependency_cache_errors(directory, receipt, key):
+    """Explain rejected closure identities without silently accepting aliases."""
+    errors = []
     try:
         prefix = directory / 'install'
         files = receipt['files']
-        return (receipt.get('key') == key and receipt.get('kind') == 'media-dependency-build'
-                and receipt.get('sources') == source_pins()
-                and receipt.get('install_prefix') == str(prefix)
-                and len([name for name in files if name.endswith('.a')]) >= len(PIN['libraries']) + 1
-                and set(files) == {path.relative_to(directory).as_posix() for path in prefix.rglob('*') if path.is_file()}
-                and all(not (directory / name).is_symlink() and sha(directory / name) == digest
-                        for name, digest in files.items()))
-    except (KeyError, OSError, TypeError):
-        return False
+        if not isinstance(files, dict):
+            return ['dependency files inventory is not an object']
+        for field, expected in [('key', key), ('kind', 'media-dependency-build'),
+                                ('sources', source_pins()), ('install_prefix', str(prefix))]:
+            if receipt.get(field) != expected:
+                errors.append('receipt ' + field + ' differs')
+        if len([name for name in files if name.endswith('.a')]) < len(PIN['libraries']) + 1:
+            errors.append('static archive closure has too few members')
+        if prefix.is_symlink():
+            errors.append('install prefix is a symbolic link')
+        actual = set()
+        for path in prefix.rglob('*'):
+            name = path.relative_to(directory).as_posix()
+            if path.is_symlink():
+                errors.append('symbolic link remains: ' + name)
+            elif path.is_file():
+                actual.add(name)
+            elif not path.is_dir():
+                errors.append('nonregular member: ' + name)
+        errors.extend('unrecorded member: ' + name for name in sorted(actual - set(files)))
+        errors.extend('missing member: ' + name for name in sorted(set(files) - actual))
+        for name, digest in files.items():
+            path = directory / name
+            relative = PurePosixPath(name)
+            if (relative.is_absolute() or '..' in relative.parts or ':' in name or '\\' in name
+                    or not path.resolve().is_relative_to(prefix.resolve())):
+                errors.append('inventory member escapes private prefix: ' + name)
+            elif path.is_file() and not path.is_symlink() and sha(path) != digest:
+                errors.append('member digest differs: ' + name)
+        for alias in receipt.get('normalized_aliases', []):
+            path = prefix / alias['path']
+            target = prefix / alias['target']
+            if (not path.resolve().is_relative_to(prefix.resolve())
+                    or not target.resolve().is_relative_to(prefix.resolve())
+                    or files.get(path.relative_to(directory).as_posix()) != alias['sha256']
+                    or files.get(target.relative_to(directory).as_posix()) != alias['sha256']):
+                errors.append('normalized alias audit differs: ' + alias['path'])
+    except (KeyError, OSError, TypeError, ValueError, RuntimeError) as error:
+        errors.append('invalid dependency receipt: ' + str(error))
+    return errors
+
+
+def dependency_cache_valid(directory, receipt, key):
+    return not dependency_cache_errors(directory, receipt, key)
 
 
 def cache_identity():
@@ -249,6 +339,9 @@ def prepare(stage='complete'):
         return directory, dependency_receipt, source
     if dependencies_ready:
         commands.extend(dependency_receipt['commands'])
+    prefix = directory / 'install'
+    env = build_environment(platform_id, prefix)
+    validate_build_tools(platform_id, env)
     source_directories = {}
     for name, pin in pins.items():
         target = directory / (name + '-source')
@@ -256,9 +349,7 @@ def prepare(stage='complete'):
         extract_source(fetch_pin(pin), target, pin['root'])
         source_directories[name] = target
     validate_source_notices(directory, pins)
-    prefix = directory / 'install'
     prefix.mkdir(exist_ok=True)
-    env = build_environment(platform_id, prefix)
     parallel_jobs = min(os.cpu_count() or 2, 8)
     jobs = str(max(1, parallel_jobs // 3))
     def run(args, cwd, timeout=180, shell=False):
@@ -316,16 +407,19 @@ def prepare(stage='complete'):
         jobs = str(parallel_jobs)
         autotools('openmpt', ['--disable-openmpt123', '--disable-examples', '--disable-tests',
                             '--without-portaudio', '--without-portaudiocpp', '--without-pulseaudio', '--without-sdl2', '--without-sndfile', '--without-flac'])
+        normalized_aliases = normalize_prefix_aliases(prefix)
         dependency_receipt = {'kind': 'media-dependency-build', 'key': key, 'sources': pins,
                               'platform': platform_id, 'compiler': compiler, 'recipe_sha256': recipe_sha,
                               'launcher_sha256': sha(ROOT / 'scripts/process_tree.py'),
                               'install_prefix': str(prefix), 'commands': commands,
+                              'normalized_aliases': normalized_aliases,
                               'files': {path.relative_to(directory).as_posix(): sha(path)
                                         for path in sorted(prefix.rglob('*')) if path.is_file()},
                               'elapsed_seconds': round(time.monotonic() - started, 3)}
         write_json(dependency_path, dependency_receipt)
-        if not dependency_cache_valid(directory, dependency_receipt, key):
-            raise ValueError('source dependency closure is incomplete')
+        closure_errors = dependency_cache_errors(directory, dependency_receipt, key)
+        if closure_errors:
+            raise ValueError('source dependency closure is incomplete: ' + '; '.join(closure_errors[:20]))
     if stage == 'dependencies':
         return directory, dependency_receipt, source
     ffmpeg_started = time.monotonic()
@@ -377,6 +471,7 @@ def prepare(stage='complete'):
                'binaries': {name: sha(directory / name) for name in names}, 'versions': versions,
                'configuration_output': configurations, 'capabilities': capabilities, 'static_libraries': libraries,
                'runtime_notices': runtime_notices,
+               'normalized_aliases': dependency_receipt.get('normalized_aliases', []),
                'dependency_elapsed_seconds': dependency_receipt['elapsed_seconds'],
                'ffmpeg_elapsed_seconds': round(time.monotonic() - ffmpeg_started, 3),
                'version_override': {'file': 'VERSION', 'value': VERSION, 'policy': VERSION_POLICY},

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 import io
+import os
 from pathlib import Path
 import sys
 import tarfile
@@ -13,6 +14,84 @@ import media_source_build as source
 
 
 class OwnedSourceIntegrity(unittest.TestCase):
+    def link(self, path, target, directory=False):
+        try:
+            path.symlink_to(target, target_is_directory=directory)
+        except OSError as error:
+            if os.name == 'nt' and error.winerror == 1314:
+                self.skipTest('Windows runner does not grant symbolic-link creation')
+            raise
+
+    def test_internal_aliases_are_materialized_with_exact_bytes_and_mode(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            prefix = Path(temporary) / 'install'
+            prefix.mkdir()
+            target = prefix / 'xzdiff'; target.write_bytes(b'installed helper\n'); target.chmod(0o755)
+            self.link(prefix / 'xzcmp', 'xzdiff')
+            self.link(prefix / 'second', 'xzcmp')
+            expected_mode = target.stat().st_mode
+            audit = source.normalize_prefix_aliases(prefix)
+            self.assertEqual([item['path'] for item in audit], ['second', 'xzcmp'])
+            for name in ['second', 'xzcmp']:
+                self.assertFalse((prefix / name).is_symlink())
+                self.assertEqual((prefix / name).read_bytes(), target.read_bytes())
+                self.assertEqual((prefix / name).stat().st_mode, expected_mode)
+            self.assertEqual({item['target'] for item in audit}, {'xzdiff'})
+            self.assertEqual({item['sha256'] for item in audit}, {source.sha(target)})
+
+    def test_invalid_aliases_reject_before_any_materialization(self):
+        for kind in ['external', 'directory', 'cycle', 'missing']:
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary); prefix = root / 'install'; prefix.mkdir()
+                (prefix / 'target').write_bytes(b'helper')
+                self.link(prefix / 'a-valid', 'target')
+                if kind == 'external':
+                    (root / 'outside').write_bytes(b'outside')
+                    self.link(prefix / 'z-invalid', '../outside')
+                elif kind == 'directory':
+                    (prefix / 'subdirectory').mkdir()
+                    self.link(prefix / 'z-invalid', 'subdirectory', directory=True)
+                elif kind == 'cycle':
+                    self.link(prefix / 'z-invalid', 'z-other')
+                    self.link(prefix / 'z-other', 'z-invalid')
+                else:
+                    self.link(prefix / 'z-invalid', 'absent')
+                with self.assertRaisesRegex(ValueError, 'dependency alias'):
+                    source.normalize_prefix_aliases(prefix)
+                self.assertTrue((prefix / 'a-valid').is_symlink())
+
+    def test_wrong_windows_toolchain_fails_before_compiler_discovery(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); (root / 'usr/bin').mkdir(parents=True)
+            (root / 'usr/bin/bash.exe').write_bytes(b'placeholder')
+            with patch.dict(os.environ, {'INSONIC_MSYS2_ROOT': str(root)}):
+                with self.assertRaisesRegex(ValueError, 'MSYS2 source tool is missing.*gcc.exe'):
+                    source.validate_build_tools('windows_amd64', source.build_environment('windows_amd64', root / 'install'))
+
+    def test_verified_complete_cache_does_not_require_cold_build_tools(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            build = Path(temporary); root = build / 'exact-key'; root.mkdir()
+            binaries = ['ffmpeg.exe', 'ffprobe.exe']
+            for name in binaries:
+                (root / name).write_bytes(b'controlled binary')
+            libraries = []
+            for index in range(len(source.PIN['libraries']) + 1):
+                path = root / ('library' + str(index) + '.a'); path.write_bytes(b'library')
+                libraries.append({'path': path.name, 'sha256': source.sha(path)})
+            notice = root / 'compiler-notice'; notice.write_bytes(b'permission')
+            receipt = {'key': 'exact-key', 'source_complete': True, 'sources': source.source_pins(),
+                       'versions': {'ffmpeg': source.VERSION, 'ffprobe': source.VERSION},
+                       'binaries': {name: source.sha(root / name) for name in binaries},
+                       'static_libraries': libraries,
+                       'runtime_notices': [{'path': notice.name, 'sha256': source.sha(notice)}]}
+            source.write_json(root / 'build-receipt.json', receipt)
+            with patch.object(source, 'BUILD', build), \
+                 patch.object(source, 'cache_identity', return_value=('windows_amd64', binaries, 'exact-key', 'gcc', 'recipe')), \
+                 patch.object(source, 'fetch_source', return_value=build / 'archive'), \
+                 patch.object(source, 'validate_build_tools') as prerequisites:
+                self.assertEqual(source.prepare()[1], receipt)
+                prerequisites.assert_not_called()
+
     def test_missing_license_is_rejected_before_any_build_command(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -106,9 +185,11 @@ class OwnedSourceIntegrity(unittest.TestCase):
             self.assertTrue(source.dependency_cache_valid(root, receipt, 'exact-key'))
             (prefix / 'unrecorded.a').write_bytes(b'unrecorded')
             self.assertFalse(source.dependency_cache_valid(root, receipt, 'exact-key'))
+            self.assertIn('unrecorded member: install/lib/unrecorded.a', source.dependency_cache_errors(root, receipt, 'exact-key'))
             (prefix / 'unrecorded.a').unlink()
             (prefix / 'lib0.a').write_bytes(b'changed')
             self.assertFalse(source.dependency_cache_valid(root, receipt, 'exact-key'))
+            self.assertIn('member digest differs: install/lib/lib0.a', source.dependency_cache_errors(root, receipt, 'exact-key'))
 
 
 if __name__ == '__main__':

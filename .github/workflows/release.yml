@@ -11,7 +11,7 @@ on:
         default: false
         type: boolean
       promote_docs:
-        description: Promote documentation using configured deployment arguments after publication
+        description: Promote documentation using INSONIC_DOCUMENTATION_DEPLOYMENT_JSON repository variable after publication
         default: false
         type: boolean
       highlights:
@@ -75,11 +75,18 @@ jobs:
           sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 update -qq
           sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 install -y --no-install-recommends libgtk-3-dev libwebkit2gtk-4.1-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav xvfb gnome-keyring dbus-x11 cmake ninja-build pkg-config nasm
       - if: runner.os == 'Windows'
+        id: msys2
         uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
         with:
           msystem: UCRT64
           update: false
           install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-openssl mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-make mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-nasm make diffutils
+      - name: Select the exact Windows native toolkit installed by the action
+        if: runner.os == 'Windows'
+        env:
+          MSYS2_ACTION_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
+        run: |
+          python -c "import os; from pathlib import Path; value=os.environ['MSYS2_ACTION_LOCATION']; assert value and '\n' not in value and '\r' not in value, 'invalid MSYS2 action location'; root=Path(value); assert root.is_absolute() and all((root/name).is_file() for name in ['usr/bin/bash.exe','ucrt64/bin/gcc.exe','ucrt64/bin/nasm.exe']), 'installed MSYS2 native toolkit is incomplete'; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+str(root)+'\n')"
       - if: runner.os == 'Windows'
         run: |
           python -m pip install --disable-pip-version-check --no-input --only-binary=:all: --target build/native/python zstandard==0.25.0
@@ -155,15 +162,17 @@ jobs:
           if-no-files-found: error
           retention-days: 14
   publish:
-    if: inputs.publish
+    if: inputs.publish || inputs.promote_docs
     needs: candidate
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: write
+      checks: read
     env:
       GH_TOKEN: ${{ github.token }}
       RELEASE_HIGHLIGHTS: ${{ inputs.highlights }}
+      INSONIC_DOCUMENTATION_DEPLOYMENT_JSON: ${{ vars.INSONIC_DOCUMENTATION_DEPLOYMENT_JSON }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -174,9 +183,14 @@ jobs:
           name: release-candidate
           path: build/release/candidate
       - name: Write brief highlights as data
+        if: inputs.publish
         run: python -c "import os,pathlib; pathlib.Path('build/release/highlights.md').write_text(os.environ['RELEASE_HIGHLIGHTS'],encoding='utf-8',newline='\n')"
+      - name: Validate configured documentation destination before publication
+        if: inputs.promote_docs
+        run: python scripts/release.py deployment --configuration build/release/documentation-deployment.json
       - name: Upload complete draft, verify remote digests, then publish
+        if: inputs.publish
         run: python scripts/release.py publish --candidate build/release/candidate --highlights build/release/highlights.md
       - name: Promote matching published documentation through configured host
         if: inputs.promote_docs
-        run: python scripts/release.py promote --candidate build/release/candidate --configuration .github/documentation-deployment.json
+        run: python scripts/release.py promote --candidate build/release/candidate --configuration build/release/documentation-deployment.json

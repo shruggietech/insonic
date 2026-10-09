@@ -74,11 +74,12 @@ jobs:
   native:
     needs: [foundation, media]
     if: always() && needs.foundation.result == 'success' && (needs.media.result == 'success' || needs.media.result == 'skipped')
-    name: native (${{ matrix.os }})
+    name: ${{ matrix.variant == 'desktop' && 'native' || 'CLI package' }} (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, windows-2022, macos-15]
+        variant: [cli, desktop]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     env:
@@ -116,15 +117,22 @@ jobs:
           sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15 install -y --no-install-recommends libgtk-3-dev libwebkit2gtk-4.1-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-libav xvfb gnome-keyring dbus-x11 cmake ninja-build pkg-config nasm
       - name: Windows native compiler and loader dependencies
         if: runner.os == 'Windows' && needs.foundation.outputs.core == 'true'
+        id: msys2
         uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e # v2
         with:
           msystem: UCRT64
           update: false
           install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-openssl make diffutils
+      - name: Bind the installed Windows toolchain
+        if: runner.os == 'Windows' && needs.foundation.outputs.core == 'true'
+        env:
+          SELECTED_MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
+        run: python -c "import os; assert os.environ['SELECTED_MSYS2_ROOT']; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+os.environ['SELECTED_MSYS2_ROOT']+'\n')"
       - name: Core acceptance
-        if: needs.foundation.outputs.core == 'true' && runner.os != 'Windows'
+        if: needs.foundation.outputs.core == 'true' && runner.os != 'Windows' && matrix.variant == 'desktop'
         shell: bash
         run: |
+          npm ci --ignore-scripts
           go test ./...
           go vet ./...
           python -m unittest discover -s tests -p '*_test.py'
@@ -149,16 +157,16 @@ jobs:
         if: needs.foundation.outputs.core == 'true'
         run: python scripts/media-tools.py
       - name: Real native dependency operations
-        if: needs.foundation.outputs.native == 'true'
+        if: needs.foundation.outputs.native == 'true' && matrix.variant == 'desktop'
         run: python scripts/qualify.py native
       - name: Cross-process CLI acceptance
-        if: needs.foundation.outputs.cli == 'true'
+        if: needs.foundation.outputs.cli == 'true' && matrix.variant == 'desktop'
         run: python scripts/qualify.py cli
       - name: Native credential lifecycle on Windows and macOS
-        if: needs.foundation.outputs.native == 'true' && runner.os != 'Linux'
+        if: needs.foundation.outputs.native == 'true' && runner.os != 'Linux' && matrix.variant == 'desktop'
         run: python scripts/qualify.py secrets
       - name: Native credential lifecycle in private Linux Secret Service
-        if: needs.foundation.outputs.native == 'true' && runner.os == 'Linux'
+        if: needs.foundation.outputs.native == 'true' && runner.os == 'Linux' && matrix.variant == 'desktop'
         shell: bash
         run: |
           dbus-run-session -- bash -euo pipefail -c '
@@ -171,26 +179,29 @@ jobs:
               gnome-keyring-daemon --daemonize --unlock --components=secrets --control-directory "$GNOME_KEYRING_CONTROL" >/dev/null
             python scripts/qualify.py secrets
           '
-      - name: Build local help and desktop assets
+      - name: Install package notice inputs and build local help
         if: needs.foundation.outputs.native == 'true'
         run: |
           npm --prefix desktop/frontend ci --ignore-scripts
-          npm --prefix desktop/frontend run check
-          npm --prefix desktop/frontend test
-          npm --prefix desktop/frontend run build
           npm --prefix site ci --ignore-scripts
           npm --prefix site run build
           python scripts/qualify.py assets
+      - name: Check and build desktop frontend
+        if: needs.foundation.outputs.native == 'true' && matrix.variant == 'desktop'
+        run: |
+          npm --prefix desktop/frontend run check
+          npm --prefix desktop/frontend test
+          npm --prefix desktop/frontend run build
       - name: Desktop shared bridge qualification
-        if: needs.foundation.outputs.native == 'true'
+        if: needs.foundation.outputs.native == 'true' && matrix.variant == 'desktop'
         run: python scripts/qualify.py desktop
-      - name: Assemble and qualify both relocated native package variants
+      - name: Assemble and qualify this relocated native package variant
         if: needs.foundation.outputs.native == 'true'
-        run: python scripts/package-desktop.py all --variant both
+        run: python scripts/package-desktop.py all --variant ${{ matrix.variant }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always() && needs.foundation.outputs.core == 'true'
         with:
-          name: native-receipts-${{ matrix.os }}-${{ github.sha }}
+          name: native-receipts-${{ matrix.os }}-${{ matrix.variant }}-${{ github.sha }}
           path: |
             build/native/*receipt.json
             build/native/package-inventory.json
@@ -207,12 +218,23 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: npm
+      - name: Release schema test dependencies
+        run: npm ci --ignore-scripts
       - name: Windows native compiler and loader dependencies
+        id: msys2
         uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
         with:
           msystem: UCRT64
           update: false
           install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-openssl
+      - name: Bind the installed Windows toolchain
+        env:
+          SELECTED_MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
+        run: python -c "import os; assert os.environ['SELECTED_MSYS2_ROOT']; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+os.environ['SELECTED_MSYS2_ROOT']+'\n')"
       - name: Core acceptance
         shell: bash
         run: |

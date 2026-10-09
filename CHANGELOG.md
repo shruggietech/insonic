@@ -19,6 +19,9 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-09: Split source dependency compilation, FFmpeg compilation and native package qualification into verified cached stages. Same-run transfers bind source revision, compiler, recipe and original archive hashes, retaining the complete decoder set and all qualification checks within bounded jobs.
 - 2026-10-09: Resolve bare Windows qualification executables against the selected child PATH before hidden creation, so compiler identity and build commands use the same configured toolchain without parent-PATH fallback.
 - 2026-10-09: Initialize the native graph before measuring aggregate query phases in the assistance timeout fixture, separating first-open initialization variance from query-budget behavior without changing product timeouts.
+- 2026-10-09: Verify complete source caches before scheduling compilation and use independent platform source chains. Qualify CLI-only and desktop packages on separate native runners, retaining all existing checks and avoiding shared library-isolation races.
+- 2026-10-09: Preserve originating absolute path semantics in cross-platform backup proofs and require native backup lifecycle ownership before pin/release mutations. Reject manual-reference collisions, released-ID reuse and partial release before writes.
+- 2026-10-09: Bind hosted Windows builds to the installed MSYS2 action output and normalize only completely validated internal dependency file aliases for portable transfers. Preflight explicit documentation deployment configuration before publication and allow promotion-only runs without implicit release publication.
 
 ### Added
 

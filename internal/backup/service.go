@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/shruggietech/insonic/internal/artifact"
@@ -131,6 +132,27 @@ func hashStream(ctx context.Context, w io.Writer, r io.Reader, size int64, expec
 	}
 	return nil
 }
+
+// Source locators describe the originating host. Validate their absolute form
+// without reinterpreting Windows roots as destination-relative Unix paths, or
+// Unix roots as destination-relative Windows paths.
+func absoluteOriginPath(path string) bool {
+	if path == "" || strings.ContainsRune(path, '\x00') {
+		return false
+	}
+	if strings.HasPrefix(path, "/") {
+		return true
+	}
+	if len(path) >= 3 && (path[0] >= 'A' && path[0] <= 'Z' || path[0] >= 'a' && path[0] <= 'z') && path[1] == ':' && (path[2] == '\\' || path[2] == '/') {
+		return true
+	}
+	if strings.HasPrefix(path, `\\`) {
+		parts := strings.Split(strings.ReplaceAll(path[2:], `\`, "/"), "/")
+		return len(parts) >= 2 && parts[0] != "" && parts[1] != "" && parts[0] != "." && parts[0] != ".." && parts[1] != "." && parts[1] != ".."
+	}
+	return false
+}
+
 func openStorage(ctx context.Context, p workspace.Profile, control string, provider contracts.SecretProvider) (artifact.Store, error) {
 	raw, e := json.Marshal(p.Configuration)
 	if e != nil {
@@ -143,6 +165,9 @@ func openStorage(ctx context.Context, p workspace.Profile, control string, provi
 		}
 		if strict(raw, &c) != nil || c.Root == "" {
 			return nil, contracts.Fail("invalid_request")
+		}
+		if absoluteOriginPath(c.Root) && !filepath.IsAbs(c.Root) {
+			return nil, contracts.Fail("unsupported_capability")
 		}
 		if !filepath.IsAbs(c.Root) {
 			c.Root = filepath.Join(control, c.Root)
@@ -553,11 +578,11 @@ func readBundle(ctx context.Context, directory string) (Manifest, catalog.Snapsh
 		}
 		if p.Adapter == "filesystem" {
 			rootValue, ok := comparison["root"].(string)
-			if !ok || !filepath.IsAbs(rootValue) {
+			if !ok || !absoluteOriginPath(rootValue) {
 				return m, snap, contracts.Fail("invalid_request")
 			}
 			originalRoot, ok := configuration["root"].(string)
-			if !ok || filepath.IsAbs(originalRoot) && originalRoot != rootValue {
+			if !ok || absoluteOriginPath(originalRoot) && originalRoot != rootValue {
 				return m, snap, contracts.Fail("conflict")
 			}
 			delete(configuration, "root")

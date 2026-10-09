@@ -599,6 +599,73 @@ func TestManifestPublicationTamperingRejectedBeforeTargetWrites(t *testing.T) {
 	}
 }
 
+func TestSelfContainedOriginRootsRestoreAcrossHostPathSyntax(t *testing.T) {
+	for _, origin := range []string{`C:\origin\artifacts`, `D:/origin/artifacts`, `\\source-server\audio-share\artifacts`, "/origin/artifacts"} {
+		t.Run(origin, func(t *testing.T) {
+			ctx := context.Background()
+			w, db, service := fixture(t)
+			p := publish(t, service, "portable cross-host bytes", "canonical-audio")
+			dir := filepath.Join(t.TempDir(), "bundle")
+			m, e := Create(ctx, w, db, nil, CreateOptions{ID: contracts.ID(), Directory: dir})
+			if e != nil {
+				t.Fatal(e)
+			}
+			// The captured profile uses an originating-relative root. Its resolved
+			// locator in the manifest uses the originating host's path syntax.
+			m.SourceProfiles[0].Configuration["root"] = origin
+			m.Digest, e = manifestDigest(m)
+			if e != nil {
+				t.Fatal(e)
+			}
+			raw, _ := json.Marshal(m)
+			if e = os.WriteFile(filepath.Join(dir, "manifest.json"), raw, 0600); e != nil {
+				t.Fatal(e)
+			}
+			if _, e = Inspect(ctx, dir); e != nil {
+				t.Fatal("origin syntax rejected", e)
+			}
+			target := destination(t)
+			if _, e = RestoreWorkspace(ctx, target, nil, dir); e != nil {
+				t.Fatal("cross-host restore", e)
+			}
+			store, e := catalog.OpenWorkspace(ctx, target, nil, false)
+			if e != nil {
+				t.Fatal(e)
+			}
+			defer store.Close()
+			artifacts, e := artifact.NewService(ctx, target, store, nil, contracts.ID())
+			if e != nil {
+				t.Fatal(e)
+			}
+			defer artifacts.Close()
+			if e = artifacts.Verify(ctx, p.ID); e != nil {
+				t.Fatal("restored cross-host bytes", e)
+			}
+		})
+	}
+}
+
+func TestOriginRootClassificationDoesNotRebaseDependencies(t *testing.T) {
+	for _, invalid := range []string{"artifacts", `C:artifacts`, `\artifacts`, `\\server`, `\\server\`, `\\..\share`, "", "C:\\bad\x00root"} {
+		if absoluteOriginPath(invalid) {
+			t.Fatal("relative or invalid origin root accepted", invalid)
+		}
+	}
+	for _, origin := range []string{`C:\origin\artifacts`, `\\source-server\audio-share\artifacts`, "/origin/artifacts"} {
+		if !absoluteOriginPath(origin) {
+			t.Fatal("absolute origin rejected", origin)
+		}
+		if filepath.IsAbs(origin) {
+			continue
+		}
+		p := workspace.Profile{Adapter: "filesystem", Configuration: map[string]any{"root": origin}}
+		if store, e := openStorage(context.Background(), p, t.TempDir(), nil); e == nil {
+			store.Close()
+			t.Fatal("foreign dependency rebased onto current host", origin)
+		}
+	}
+}
+
 func TestCancelledCreateAndNonemptyRestore(t *testing.T) {
 	ctx := context.Background()
 	w, db, s := fixture(t)

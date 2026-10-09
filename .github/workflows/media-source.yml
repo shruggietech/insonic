@@ -35,11 +35,18 @@ jobs:
           sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 update -qq
           sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 install -y --no-install-recommends build-essential cmake ninja-build pkg-config nasm
       - if: runner.os == 'Windows'
+        id: msys2
         uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
         with:
           msystem: UCRT64
           update: false
           install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-make mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-nasm make diffutils
+      - name: Select the exact Windows source toolkit installed by the action
+        if: runner.os == 'Windows'
+        env:
+          MSYS2_ACTION_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
+        run: |
+          python -c "import os; from pathlib import Path; value=os.environ['MSYS2_ACTION_LOCATION']; assert value and '\n' not in value and '\r' not in value, 'invalid MSYS2 action location'; root=Path(value); assert root.is_absolute() and all((root/name).is_file() for name in ['usr/bin/bash.exe','ucrt64/bin/gcc.exe','ucrt64/bin/nasm.exe']), 'installed MSYS2 source toolkit is incomplete'; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+str(root)+'\n')"
       - name: Pinned source build coordinator
         run: python -m pip install --disable-pip-version-check --no-input meson==1.8.3
       - name: Exact compiler, source pins and owned recipe cache identity
@@ -113,11 +120,18 @@ jobs:
           sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 update -qq
           sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 install -y --no-install-recommends build-essential cmake ninja-build pkg-config nasm
       - if: runner.os == 'Windows'
+        id: msys2
         uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
         with:
           msystem: UCRT64
           update: false
           install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-make mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-nasm make diffutils
+      - name: Select the exact Windows source toolkit installed by the action
+        if: runner.os == 'Windows'
+        env:
+          MSYS2_ACTION_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
+        run: |
+          python -c "import os; from pathlib import Path; value=os.environ['MSYS2_ACTION_LOCATION']; assert value and '\n' not in value and '\r' not in value, 'invalid MSYS2 action location'; root=Path(value); assert root.is_absolute() and all((root/name).is_file() for name in ['usr/bin/bash.exe','ucrt64/bin/gcc.exe','ucrt64/bin/nasm.exe']), 'installed MSYS2 source toolkit is incomplete'; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+str(root)+'\n')"
       - name: Pinned source build coordinator
         run: python -m pip install --disable-pip-version-check --no-input meson==1.8.3
       - name: Exact compiler, source pins and owned recipe cache identity

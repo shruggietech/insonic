@@ -3,6 +3,7 @@ package catalog
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"os"
 	"strings"
@@ -252,5 +253,165 @@ func TestBackupPinAtomicityAndRelease(t *testing.T) {
 	}
 	if _, e := s.ClaimRetirement(ctx, a.ID, contracts.ID(), 0, time.Minute); e != nil {
 		t.Fatal(e)
+	}
+}
+
+func TestBackupReferenceLifecycleDoesNotAdoptManualOwnership(t *testing.T) {
+	ctx := context.Background()
+	s := localStore(t, contracts.ID())
+	a, omitted := availableArtifact(t, s), availableArtifact(t, s)
+	id := contracts.ID()
+	if e := s.ArtifactReference(ctx, omitted.ID, id, false); e != nil {
+		t.Fatal(e)
+	}
+	before, _ := s.Revision(ctx)
+	if e := s.PinBackup(ctx, id, []Publication{a}); e == nil {
+		t.Fatal("manual reference on omitted publication adopted")
+	}
+	if e := s.ReleaseBackup(ctx, id, []Publication{omitted}); e == nil {
+		t.Fatal("unproven backup release removed manual ownership")
+	}
+	after, _ := s.Revision(ctx)
+	got, _ := s.Publication(ctx, omitted.ID)
+	other, _ := s.Publication(ctx, a.ID)
+	if before != after || !got.References[id] || other.References[id] {
+		t.Fatal("ownership rejection changed authority")
+	}
+	if e := s.ArtifactReference(ctx, omitted.ID, id, true); e != nil {
+		t.Fatal("unrelated manual release restricted", e)
+	}
+}
+
+func TestBackupReferenceReservationRetryAndRelease(t *testing.T) {
+	ctx := context.Background()
+	s := localStore(t, contracts.ID())
+	a, b := availableArtifact(t, s), availableArtifact(t, s)
+	id, manual := contracts.ID(), contracts.ID()
+	if e := s.ArtifactReference(ctx, a.ID, manual, false); e != nil {
+		t.Fatal(e)
+	}
+	if e := s.PinBackup(ctx, id, []Publication{a}); e != nil {
+		t.Fatal(e)
+	}
+	before, _ := s.Revision(ctx)
+	if e := s.PinBackup(ctx, id, []Publication{a}); e != nil {
+		t.Fatal("pin retry", e)
+	}
+	after, _ := s.Revision(ctx)
+	if before != after {
+		t.Fatal("pin retry changed authority")
+	}
+	for _, action := range []struct {
+		publication string
+		release     bool
+	}{{a.ID, true}, {b.ID, false}} {
+		if e := s.ArtifactReference(ctx, action.publication, id, action.release); e == nil {
+			t.Fatal("manual reference mutated backup ownership")
+		}
+	}
+	if e := s.ReleaseBackup(ctx, id, []Publication{a}); e != nil {
+		t.Fatal(e)
+	}
+	before, _ = s.Revision(ctx)
+	if e := s.ReleaseBackup(ctx, id, []Publication{a}); e != nil {
+		t.Fatal("release retry", e)
+	}
+	if e := s.PinBackup(ctx, id, []Publication{a}); e == nil {
+		t.Fatal("released backup ID reused")
+	}
+	if e := s.ArtifactReference(ctx, b.ID, id, false); e == nil {
+		t.Fatal("released lifecycle ID adopted manually")
+	}
+	after, _ = s.Revision(ctx)
+	got, _ := s.Publication(ctx, a.ID)
+	if before != after || got.References[id] || !got.References[manual] {
+		t.Fatal("release/reuse changed unrelated ownership")
+	}
+	if _, e := s.ClaimRetirement(ctx, a.ID, contracts.ID(), 0, time.Minute); e == nil {
+		t.Fatal("manual retention ignored")
+	}
+	if e := s.ArtifactReference(ctx, a.ID, manual, true); e != nil {
+		t.Fatal("ordinary manual release failed", e)
+	}
+	if _, e := s.ClaimRetirement(ctx, a.ID, contracts.ID(), 0, time.Minute); e != nil {
+		t.Fatal("source cleanup after release", e)
+	}
+}
+
+func TestPortableRestoreDoesNotGuessBackupOwnershipFromUnrelatedReceipt(t *testing.T) {
+	ctx := context.Background()
+	s := localStore(t, contracts.ID())
+	p := availableArtifact(t, s)
+	manual := contracts.ID()
+	if e := s.ArtifactReference(ctx, p.ID, manual, false); e != nil {
+		t.Fatal(e)
+	}
+	if e := s.write(ctx, func(tx *sql.Tx, rev int64) error {
+		_, e := s.accept(ctx, tx, contracts.ID(), hash([]byte("unrelated acceptance")), rev, map[string]any{"backup_reference_id": manual, "backup_state": "pinned"})
+		return e
+	}); e != nil {
+		t.Fatal(e)
+	}
+	snap, e := s.Export(ctx)
+	if e != nil {
+		t.Fatal(e)
+	}
+	pubs, e := BackupPublications(snap)
+	if e != nil {
+		t.Fatal(e)
+	}
+	w, e := workspace.Init(t.TempDir(), "Manual retention destination")
+	if e != nil {
+		t.Fatal(e)
+	}
+	w.Config.WorkspaceID = s.workspace
+	for i := range pubs {
+		pubs[i].ProfileID = w.Config.Profiles.Storage.ID
+		pubs[i].ProfileRevision = w.Config.Profiles.Storage.Revision
+		pubs[i].Key = "objects/manual-retention/" + pubs[i].ID
+		pubs[i].Version = ""
+	}
+	target := localStore(t, s.workspace)
+	if e = target.RestorePortable(ctx, snap, w, pubs, false); e != nil {
+		t.Fatal(e)
+	}
+	got, e := target.Publication(ctx, p.ID)
+	if e != nil || !got.References[manual] {
+		t.Fatal("unrelated receipt stripped manual ownership", e)
+	}
+}
+
+func TestBackupPartialReleaseRejectsBeforeAuthorityChanges(t *testing.T) {
+	ctx := context.Background()
+	s := localStore(t, contracts.ID())
+	a, b := availableArtifact(t, s), availableArtifact(t, s)
+	id := contracts.ID()
+	if e := s.PinBackup(ctx, id, []Publication{a, b}); e != nil {
+		t.Fatal(e)
+	}
+	before, _ := s.Revision(ctx)
+	if e := s.ReleaseBackup(ctx, id, []Publication{a}); e == nil {
+		t.Fatal("partial release accepted")
+	}
+	after, _ := s.Revision(ctx)
+	if before != after {
+		t.Fatal("partial release committed authority")
+	}
+	for _, p := range []Publication{a, b} {
+		got, e := s.Publication(ctx, p.ID)
+		if e != nil || !got.References[id] {
+			t.Fatal("partial release removed pin", e)
+		}
+	}
+	if e := s.ReleaseBackupID(ctx, id); e != nil {
+		t.Fatal("complete release recovery", e)
+	}
+	before, _ = s.Revision(ctx)
+	if e := s.ReleaseBackup(ctx, id, []Publication{a, b}); e != nil {
+		t.Fatal("completed release retry", e)
+	}
+	after, _ = s.Revision(ctx)
+	if before != after {
+		t.Fatal("release retry committed authority")
 	}
 }

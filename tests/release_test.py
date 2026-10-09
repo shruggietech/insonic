@@ -5,6 +5,7 @@ import io
 import json
 from pathlib import Path
 import shutil
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -188,8 +189,34 @@ class ReleaseDeliveryTests(unittest.TestCase):
         self.assertEqual(invoked, [])
         api.fail_upload = False; release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
         self.assertEqual(len(api.assets), 10)
-        release.promote(target, {'argv': [str(self.root / 'deploy'), '{archive}', '{version}', '{revision}']}, api, lambda args: invoked.append(args), verify_fixture)
+        release.promote(target, {'argv': [str(Path(sys.executable).resolve()), '{archive}', '{version}', '{revision}']}, api, lambda args: invoked.append(args), verify_fixture)
         self.assertEqual(invoked[0][2:], [VERSION, REVISION])
+
+    def test_deployment_configuration_is_materialized_before_publication_without_invocation(self):
+        path = self.root / 'build/release/documentation-deployment.json'
+        config = {'argv': [str(Path(sys.executable).resolve()), '{archive}', '{version}', '{revision}'],
+                  'environment_names': ['DEPLOY_TOKEN']}
+        environment = {'INSONIC_DOCUMENTATION_DEPLOYMENT_JSON': json.dumps(config), 'DEPLOY_TOKEN': 'fixture credential'}
+        self.assertEqual(release.materialize_deployment(path, environment), {'deployment_configuration': 'validated'})
+        self.assertEqual(release.read_json(path), config)
+        self.assertNotIn('fixture credential', path.read_text())
+        self.assertFalse(path.read_bytes().startswith(b'\xef\xbb\xbf'))
+
+    def test_missing_or_invalid_deployment_configuration_cannot_reach_publication(self):
+        path = self.root / 'build/release/documentation-deployment.json'
+        executable = str(Path(sys.executable).resolve())
+        invalid = ['', 'not json', '[]', json.dumps({'argv': ['relative-command', '{archive}']}),
+                   json.dumps({'argv': [str(self.root / 'absent'), '{archive}']}),
+                   json.dumps({'argv': [executable]}), json.dumps({'argv': [executable, '{archive}'], 'host': 'invented'}),
+                   json.dumps({'argv': [executable, '{archive}'], 'environment_names': ['MISSING_TOKEN']}),
+                   json.dumps({'argv': [executable, '{archive}'], 'environment_names': ['BAD-NAME']})]
+        for raw in invalid:
+            api = GitHubFixture()
+            with self.assertRaises(ValueError):
+                release.materialize_deployment(path, {'INSONIC_DOCUMENTATION_DEPLOYMENT_JSON': raw})
+                release.publish(self.candidate(), 'Highlights.', api, self.root, runner, verify_fixture)
+            self.assertEqual(api.calls, [])
+            self.assertFalse(path.exists())
 
     def test_remote_tag_digest_or_candidate_tampering_prevents_promotion(self):
         target = self.candidate(); api = GitHubFixture(); release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)

@@ -442,16 +442,50 @@ def publish(directory, highlights, api, root=ROOT, runner=child, verifier=verify
     return {'published': True, 'tag': value['tag'], 'revision': value['revision'], 'release_id': confirmed['id']}
 
 
+def deployment_configuration(config, environment=None):
+    if not isinstance(config, dict) or set(config) - {'argv', 'environment_names'}:
+        raise ValueError('documentation deployment requires only argv and optional environment_names')
+    argv = config.get('argv')
+    if (not isinstance(argv, list) or not argv or any(not isinstance(arg, str) or not arg or '\0' in arg for arg in argv)
+            or not Path(argv[0]).is_absolute()):
+        raise ValueError('documentation deployment requires configured argument array and absolute executable')
+    if not Path(argv[0]).is_file() or (os.name != 'nt' and not os.access(argv[0], os.X_OK)):
+        raise ValueError('documentation deployment executable is unavailable on this runner')
+    if '{archive}' not in '\n'.join(argv[1:]):
+        raise ValueError('documentation deployment arguments must reference the verified {archive}')
+    names = config.get('environment_names', [])
+    if (not isinstance(names, list) or any(not isinstance(name, str) or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', name) for name in names)
+            or len(names) != len(set(names))):
+        raise ValueError('deployment environment references must be unique variable names')
+    selected = os.environ if environment is None else environment
+    if any(not selected.get(name) for name in names):
+        raise ValueError('a configured documentation deployment environment reference is unavailable')
+    return {'argv': list(argv), 'environment_names': list(names)}
+
+
+def materialize_deployment(path, environment=None):
+    selected = os.environ if environment is None else environment
+    raw = selected.get('INSONIC_DOCUMENTATION_DEPLOYMENT_JSON', '')
+    if not raw.strip():
+        raise ValueError('documentation promotion requires INSONIC_DOCUMENTATION_DEPLOYMENT_JSON configuration before publication')
+    try:
+        config = json.loads(raw)
+    except (ValueError, TypeError):
+        raise ValueError('documentation deployment configuration must be valid JSON') from None
+    validated = deployment_configuration(config, selected)
+    write_json(path, validated)
+    return {'deployment_configuration': 'validated'}
+
+
 def promote(directory, config, api, runner=child, verifier=verify_package):
     value, expected = load_candidate(directory, verifier); verify_tag(api, value['tag'], value['revision'])
     release = api.call('GET', f'repos/{REPOSITORY}/releases/tags/{value["tag"]}')
     if not release or release.get('draft') is not False or release.get('target_commitish') != value['revision']: raise ValueError('documentation promotion requires the exact published release')
     remote_assets(api, release, expected)
-    if not isinstance(config.get('argv'), list) or not config['argv'] or any(not isinstance(a, str) or not a for a in config['argv']) or not Path(config['argv'][0]).is_absolute(): raise ValueError('documentation deployment requires configured argument array and absolute executable')
+    config = deployment_configuration(config)
     # The configured program receives a verified immutable archive; no shell.
     args = [a.replace('{archive}', str((directory / 'documentation.tar.gz').resolve())).replace('{version}', value['version']).replace('{revision}', value['revision']) for a in config['argv']]
     environment_names = config.get('environment_names', [])
-    if not isinstance(environment_names, list) or any(not isinstance(name, str) or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', name) for name in environment_names): raise ValueError('deployment environment references must be variable names')
     if runner is child:
         system_names = ('PATH', 'SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'TMPDIR', 'HOME', 'USERPROFILE', 'LANG', 'LC_ALL')
         selected = {name: value for name, value in os.environ.items() if name.upper() in {n.upper() for n in (*system_names, *environment_names)}}
@@ -468,6 +502,7 @@ def main():
     p = sub.add_parser('candidate'); p.add_argument('--revision', required=True); p.add_argument('--assets', type=Path, required=True); p.add_argument('--output', type=Path, required=True); p.add_argument('receipts', nargs='+', type=Path)
     p = sub.add_parser('collect'); p.add_argument('--revision', required=True); p.add_argument('--input', type=Path, required=True); p.add_argument('--output', type=Path, required=True)
     p = sub.add_parser('publish'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--highlights', type=Path, required=True)
+    p = sub.add_parser('deployment'); p.add_argument('--configuration', type=Path, required=True)
     p = sub.add_parser('promote'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--configuration', type=Path, required=True)
     options = parser.parse_args()
     if options.command == 'prepare': result = prepare(options.version, options.date, options.highlights.read_text(encoding='utf-8'))
@@ -476,6 +511,7 @@ def main():
     elif options.command == 'candidate': result = candidate(options.receipts, options.assets, options.output, options.revision)
     elif options.command == 'collect': result = collect(options.input, options.output, options.revision)
     elif options.command == 'publish': result = publish(options.candidate, options.highlights.read_text(encoding='utf-8'), GitHub(os.environ.get('GH_TOKEN', '')))
+    elif options.command == 'deployment': result = materialize_deployment(options.configuration)
     else: result = promote(options.candidate, read_json(options.configuration), GitHub(os.environ.get('GH_TOKEN', '')))
     print(json.dumps(result))
 

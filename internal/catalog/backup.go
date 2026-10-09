@@ -290,6 +290,53 @@ func (s *Store) PinBackup(ctx context.Context, id string, publications []Publica
 		return contracts.Fail("invalid_request")
 	}
 	return s.write(ctx, func(tx *sql.Tx, rev int64) error {
+		identities := []any{}
+		for _, p := range publications {
+			identities = append(identities, []any{publicationIntent(p), p.Version})
+		}
+		d, e := intent([]any{"backup-pin", id, identities})
+		if e != nil {
+			return e
+		}
+		op := operationID("backup-pin", id)
+		_, replayed, e := s.replay(ctx, tx, op, d)
+		if e != nil {
+			return e
+		}
+		var released int
+		if e = s.row(ctx, tx, "SELECT count(*) FROM operation_receipt WHERE workspace_id=? AND id=?", s.workspace, operationID("backup-release", id)).Scan(&released); e != nil {
+			return e
+		}
+		if released != 0 {
+			return contracts.Fail("conflict")
+		}
+		if !replayed {
+			rows, e := tx.QueryContext(ctx, s.query("SELECT data FROM artifact_publication WHERE workspace_id=?"), s.workspace)
+			if e != nil {
+				return e
+			}
+			for rows.Next() {
+				var raw string
+				if e = rows.Scan(&raw); e != nil {
+					rows.Close()
+					return e
+				}
+				p, e := decodePublication(raw)
+				if e != nil {
+					rows.Close()
+					return e
+				}
+				if p.References[id] {
+					rows.Close()
+					return contracts.Fail("conflict")
+				}
+			}
+			e = rows.Err()
+			rows.Close()
+			if e != nil {
+				return e
+			}
+		}
 		for _, want := range publications {
 			p, e := s.publicationTx(ctx, tx, want.ID)
 			if e != nil {
@@ -301,6 +348,9 @@ func (s *Store) PinBackup(ctx context.Context, id string, publications []Publica
 				return contracts.Fail("conflict")
 			}
 			if p.References[id] {
+				if !replayed {
+					return contracts.Fail("conflict")
+				}
 				continue
 			}
 			p.References[id] = true
@@ -309,23 +359,31 @@ func (s *Store) PinBackup(ctx context.Context, id string, publications []Publica
 			}
 			rev++
 		}
-		identities := []any{}
-		for _, p := range publications {
-			identities = append(identities, []any{publicationIntent(p), p.Version})
-		}
-		d, e := intent([]any{"backup-pin", id, identities})
-		if e != nil {
-			return e
-		}
-		op := operationID("backup-pin", id)
-		if _, ok, e := s.replay(ctx, tx, op, d); e != nil {
-			return e
-		} else if ok {
+		if replayed {
 			return nil
 		}
 		_, e = s.accept(ctx, tx, op, d, rev, map[string]any{"backup_reference_id": id, "backup_state": "pinned"})
 		return e
 	})
+}
+
+func (s *Store) backupReferenceReserved(ctx context.Context, tx *sql.Tx, id string) (bool, error) {
+	var raw string
+	e := s.row(ctx, tx, "SELECT result FROM operation_receipt WHERE workspace_id=? AND id=?", s.workspace, operationID("backup-pin", id)).Scan(&raw)
+	if e == sql.ErrNoRows {
+		return false, nil
+	}
+	if e != nil {
+		return false, e
+	}
+	var proof struct {
+		ID    string `json:"backup_reference_id"`
+		State string `json:"backup_state"`
+	}
+	if json.Unmarshal([]byte(raw), &proof) != nil {
+		return false, contracts.Fail("invalid_request")
+	}
+	return proof.ID == id && proof.State == "pinned", nil
 }
 
 // ReleaseBackupID reconciles retained pins after interrupted bundle creation,
@@ -376,6 +434,49 @@ func (s *Store) ReleaseBackup(ctx context.Context, id string, publications []Pub
 		return contracts.Fail("invalid_request")
 	}
 	return s.write(ctx, func(tx *sql.Tx, rev int64) error {
+		var raw string
+		if e := s.row(ctx, tx, "SELECT result FROM operation_receipt WHERE workspace_id=? AND id=?", s.workspace, operationID("backup-pin", id)).Scan(&raw); e != nil {
+			return e
+		}
+		var proof struct {
+			ID    string `json:"backup_reference_id"`
+			State string `json:"backup_state"`
+		}
+		if json.Unmarshal([]byte(raw), &proof) != nil || proof.ID != id || proof.State != "pinned" {
+			return contracts.Fail("invalid_request")
+		}
+		provided := map[string]bool{}
+		for _, p := range publications {
+			if !contracts.ValidID(p.ID) || provided[p.ID] {
+				return contracts.Fail("invalid_request")
+			}
+			provided[p.ID] = true
+		}
+		rows, e := tx.QueryContext(ctx, s.query("SELECT data FROM artifact_publication WHERE workspace_id=?"), s.workspace)
+		if e != nil {
+			return e
+		}
+		for rows.Next() {
+			var raw string
+			if e = rows.Scan(&raw); e != nil {
+				rows.Close()
+				return e
+			}
+			p, e := decodePublication(raw)
+			if e != nil {
+				rows.Close()
+				return e
+			}
+			if p.References[id] && !provided[p.ID] {
+				rows.Close()
+				return contracts.Fail("conflict")
+			}
+		}
+		e = rows.Err()
+		rows.Close()
+		if e != nil {
+			return e
+		}
 		for _, want := range publications {
 			p, e := s.publicationTx(ctx, tx, want.ID)
 			if e != nil {
@@ -433,8 +534,8 @@ func (s *Store) restorePortable(ctx context.Context, snap Snapshot, w *workspace
 				if len(row) != 4 {
 					return contracts.Fail("invalid_request")
 				}
-				var raw string
-				if strict(row[3], &raw) != nil {
+				var receiptID, raw string
+				if strict(row[0], &receiptID) != nil || strict(row[3], &raw) != nil {
 					return contracts.Fail("invalid_request")
 				}
 				var result struct {
@@ -445,7 +546,15 @@ func (s *Store) restorePortable(ctx context.Context, snap Snapshot, w *workspace
 					return contracts.Fail("invalid_request")
 				}
 				if result.ID != "" {
-					if !contracts.ValidID(result.ID) || (result.State != "pinned" && result.State != "released") {
+					if !contracts.ValidID(result.ID) {
+						continue
+					}
+					pinned := receiptID == operationID("backup-pin", result.ID)
+					released := receiptID == operationID("backup-release", result.ID)
+					if !pinned && !released {
+						continue
+					}
+					if pinned && result.State != "pinned" || released && result.State != "released" {
 						return contracts.Fail("invalid_request")
 					}
 					backupReferences[result.ID] = true

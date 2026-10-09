@@ -349,6 +349,13 @@ func (s *Store) ArtifactReference(ctx context.Context, id, ref string, release b
 		return contracts.Fail("invalid_request")
 	}
 	return s.write(ctx, func(tx *sql.Tx, rev int64) error {
+		reserved, e := s.backupReferenceReserved(ctx, tx, ref)
+		if e != nil {
+			return e
+		}
+		if reserved {
+			return contracts.Fail("conflict")
+		}
 		p, e := s.publicationTx(ctx, tx, id)
 		if e != nil {
 			return e
