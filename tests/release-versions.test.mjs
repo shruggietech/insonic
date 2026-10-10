@@ -68,7 +68,7 @@ test('publication and promotion execute trusted tools and isolate deployment cre
 test('media and release jobs select the toolkit installed by the pinned MSYS2 action', () => {
   const media = parse(readFileSync(new URL('.github/workflows/media-source.yml', source), 'utf8'));
   const release = parse(readFileSync(new URL('.github/workflows/release.yml', source), 'utf8'));
-  for (const job of [media.jobs.probe, media.jobs.groups, media.jobs.ffmpeg, release.jobs.native]) {
+  for (const job of [...Object.values(media.jobs), release.jobs.native]) {
     const setup = job.steps.find(step => step.uses?.startsWith('msys2/setup-msys2@'));
     const selection = job.steps.find(step => step.env?.MSYS2_ACTION_LOCATION);
     assert.equal(setup.id, 'msys2');
@@ -91,4 +91,7 @@ test('fresh release qualification prepares its sibling CLI before the macOS desk
   const packages = steps.findIndex(step => step.run?.includes('python scripts/package-desktop.py all --variant both'));
   assert.ok(cli >= 0 && cli < desktop);
   assert.ok(desktop < packages);
+  const linux = steps.find(step => step.name === 'Native Linux dependencies');
+  assert.ok(linux.run.includes('sudo python3 scripts/prepare-apt-mirror.py'));
+  assert.ok(linux.run.includes('Acquire::https::Timeout=15'));
 });

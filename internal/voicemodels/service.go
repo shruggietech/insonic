@@ -8,7 +8,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/shruggietech/insonic/internal/catalog"
@@ -54,7 +56,7 @@ func (s *Service) ValidateTrain(ctx context.Context, o TrainOptions) (TrainOptio
 		if err != nil {
 			return o, err
 		}
-		if checkpoint.AdapterDigest != adapterDigest(o.Adapter) && checkpoint.AdapterDigest != s.PortableAdapterDigest || checkpoint.BaseDigest != o.BaseDigest {
+		if checkpoint.AdapterDigest != checkpointAdapterDigest(o.Adapter) && checkpoint.AdapterDigest != adapterDigest(o.Adapter) && checkpoint.AdapterDigest != s.PortableAdapterDigest || checkpoint.BaseDigest != o.BaseDigest {
 			return o, contracts.Fail("incompatible_checkpoint")
 		}
 		producing, err := s.Catalog.Work(ctx, checkpoint.WorkID)
@@ -68,6 +70,40 @@ func (s *Service) ValidateTrain(ctx context.Context, o TrainOptions) (TrainOptio
 	}
 	o.Adapter.Limits, err = normalizeLimits(o.Adapter.Limits)
 	return o, err
+}
+
+// Checkpoint compatibility binds executable bytes and frozen adapter settings,
+// independently of the local paths selected to invoke those identical bytes.
+// adapterDigest remains unchanged for existing configuration/receipt identity.
+func checkpointAdapterDigest(a Adapter) string {
+	paths := map[string]string{}
+	if a.Executable.Path != "" {
+		paths[a.Executable.Path] = catalog.PortableFile(a.Executable.SHA256)
+		a.Executable.Path = paths[a.Executable.Path]
+	}
+	a.SupportFiles = append(a.SupportFiles[:0:0], a.SupportFiles...)
+	for i, pin := range a.SupportFiles {
+		paths[pin.Path] = catalog.PortableFile(pin.SHA256)
+		a.SupportFiles[i].Path = paths[pin.Path]
+	}
+	ordered := make([]string, 0, len(paths))
+	for path := range paths {
+		ordered = append(ordered, path)
+	}
+	sort.Slice(ordered, func(i, j int) bool {
+		if len(ordered[i]) == len(ordered[j]) {
+			return ordered[i] < ordered[j]
+		}
+		return len(ordered[i]) > len(ordered[j])
+	})
+	a.Arguments = append(a.Arguments[:0:0], a.Arguments...)
+	for i, argument := range a.Arguments {
+		for _, path := range ordered {
+			argument = strings.ReplaceAll(argument, path, paths[path])
+		}
+		a.Arguments[i] = argument
+	}
+	return adapterDigest(a)
 }
 func (s *Service) phase(ctx context.Context, claim catalog.Work, name string, result any) error {
 	raw, _ := json.Marshal(result)
@@ -261,7 +297,7 @@ func (s *Service) ExecuteTrain(ctx context.Context, claim catalog.Work) (any, er
 		}
 		published = append(published, publication)
 		ids = append(ids, publication.ID)
-		_, err = s.Catalog.CommitSpeakerCheckpoint(ctx, claim, catalog.SpeakerCheckpoint{ID: checkpoint.ID, WorkID: claim.ID, Attempt: claim.Generation, Step: checkpoint.Step, BaseDigest: checkpoint.BaseDigest, Compatibility: checkpoint.Compatibility, AdapterDigest: adapterDigest(options.Adapter), PublicationID: publication.ID})
+		_, err = s.Catalog.CommitSpeakerCheckpoint(ctx, claim, catalog.SpeakerCheckpoint{ID: checkpoint.ID, WorkID: claim.ID, Attempt: claim.Generation, Step: checkpoint.Step, BaseDigest: checkpoint.BaseDigest, Compatibility: checkpoint.Compatibility, AdapterDigest: checkpointAdapterDigest(options.Adapter), PublicationID: publication.ID})
 		if err != nil {
 			return nil, err
 		}

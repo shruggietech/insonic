@@ -53,10 +53,13 @@ test('platform qualification waits only for its own exact same-run source build'
  for (const job of [runtime, qualification.jobs.packages]) {
   assert.equal(job['runs-on'], '${{ inputs.os }}');
   assert.equal(job.env.SOURCE_REVISION, '${{ inputs.revision }}');
-  assert.equal(job.steps[0].with.ref, '${{ inputs.revision }}');
+  assert.equal(job.steps.find(step => step.uses?.startsWith('actions/checkout@')).with.ref, '${{ inputs.revision }}');
   assert.equal(job.steps[0].with['persist-credentials'], false);
   assert.ok(job.steps.some(step => step.with?.name === 'media-source-${{ inputs.os }}'));
   assert.ok(job.steps.some(step => step.run?.includes('media-transfer.py restore --stage complete --revision "$SOURCE_REVISION"')));
+  const apt = job.steps.find(step => step.name === 'Linux webview dependencies');
+  assert.ok(apt.run.includes('sudo python3 scripts/prepare-apt-mirror.py'));
+  assert.ok(apt.run.includes('--no-install-recommends libgtk-3-dev libwebkit2gtk-4.1-dev'));
  }
  const packages = qualification.jobs.packages.steps.map(step => step.run ?? '').join('\n');
  assert.ok(packages.includes('scripts/package-desktop.py all --variant ${{ matrix.variant }}'));
@@ -66,4 +69,26 @@ test('platform qualification waits only for its own exact same-run source build'
  assert.deepEqual(Object.keys(ci.jobs.adapters.services).sort(), ['arcade', 'postgres', 's3']);
  const backends = ci.jobs.adapters.steps.map(step => step.run ?? '').join('\n');
  for (const target of ['qualification', 'catalog', 'artifact', 'models', 'library', 'graph', 'app', 'backup']) assert.ok(backends.includes(`./internal/${target}`));
+});
+
+test('cold source dependency formats and FFmpeg transfer independently verified provenance', () => {
+ const media = parse(readFileSync(new URL('../.github/workflows/media-source.yml', import.meta.url), 'utf8'));
+ assert.deepEqual(media.jobs.formats.needs, ['probe', 'groups']);
+ assert.deepEqual(media.jobs.ffmpeg.needs, ['probe', 'formats']);
+ assert.deepEqual(media.jobs.groups.strategy.matrix.group, ['compression', 'audio', 'av1']);
+ const formats = media.jobs.formats.steps.map(step => step.run ?? '').join('\n');
+ assert.ok(formats.includes('media-transfer.py merge --revision "$SOURCE_REVISION"'));
+ assert.ok(formats.includes('scripts/build-media-source.py --stage dependencies'));
+ assert.ok(formats.includes('media-transfer.py pack --stage dependencies --revision "$SOURCE_REVISION"'));
+ assert.ok(!formats.includes('build-media-source.py --stage complete'));
+ const ffmpeg = media.jobs.ffmpeg.steps.map(step => step.run ?? '').join('\n');
+ assert.ok(ffmpeg.includes('media-transfer.py restore --stage dependencies --revision "$SOURCE_REVISION"'));
+ assert.ok(ffmpeg.includes('build-media-source.py --stage complete'));
+ assert.ok(ffmpeg.includes('media-transfer.py pack --stage complete --revision "$SOURCE_REVISION"'));
+ assert.ok(media.jobs.ffmpeg.steps.some(step => step.with?.name === 'media-formats-${{ inputs.os }}'));
+ for (const job of Object.values(media.jobs)) {
+  assert.equal(job['timeout-minutes'], 10);
+  assert.equal(job.env.SOURCE_REVISION, '${{ inputs.revision }}');
+  assert.equal(job.steps.find(step => step.uses?.startsWith('actions/checkout@')).with.ref, '${{ inputs.revision }}');
+ }
 });

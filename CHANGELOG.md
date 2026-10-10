@@ -29,6 +29,7 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-09: Bind libxml2 to the same private iconv header and static archive. Move macOS package resources out of the executable directory and discover verified companions from relocated application resources.
 - 2026-10-09: Remove source-local processing/training tool paths and transient context from portable job authority. Resume elected work automatically with ephemeral destination tool bindings and rebuilt accepted context while retaining exact model identities, settings and completed lineage.
 - 2026-10-09: Compile independent media dependency groups on separate runners, merge exact prefixes and original archives transactionally, and retain each group's receipt in the complete source proof. Start qualification independently per platform and overlap core checks with source compilation; keep full runtime, package and alternative-backend acceptance.
+- 2026-10-09: Bind new speaker-training checkpoints to exact pinned adapter bytes and settings independently of invocation paths, so checkpoints produced after restore remain resumable after another move. Retain existing checkpoint compatibility and reject changed elected adapter settings.
 
 ### Added
 

@@ -185,8 +185,83 @@ jobs:
           path: build/transfer/dependencies-${{ matrix.group }}.tar.gz
           if-no-files-found: error
           retention-days: 3
-  ffmpeg:
+  formats:
     needs: [probe, groups]
+    if: needs.probe.outputs.complete != 'true'
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 10
+    env:
+      SOURCE_REVISION: ${{ inputs.revision }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.revision }}
+      - if: runner.os == 'Linux'
+        name: Linux source compiler prerequisites
+        run: |
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 update -qq
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 install -y --no-install-recommends build-essential cmake ninja-build pkg-config nasm
+      - if: runner.os == 'Windows'
+        id: msys2
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
+        with:
+          msystem: UCRT64
+          update: false
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-make mingw-w64-ucrt-x86_64-ninja mingw-w64-ucrt-x86_64-pkgconf mingw-w64-ucrt-x86_64-nasm make diffutils
+      - name: Select the exact Windows source toolkit installed by the action
+        if: runner.os == 'Windows'
+        env:
+          MSYS2_ACTION_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
+        run: |
+          python -c "import os; from pathlib import Path; value=os.environ['MSYS2_ACTION_LOCATION']; assert value and '\n' not in value and '\r' not in value, 'invalid MSYS2 action location'; root=Path(value); assert root.is_absolute() and all((root/name).is_file() for name in ['usr/bin/bash.exe','ucrt64/bin/gcc.exe','ucrt64/bin/nasm.exe']), 'installed MSYS2 source toolkit is incomplete'; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+str(root)+'\n')"
+      - name: Pinned source build coordinator
+        run: python -m pip install --disable-pip-version-check --no-input meson==1.8.3
+      - name: Exact compiler, source pins and owned recipe cache identity
+        id: identity
+        run: python scripts/media-transfer.py identity
+      - name: Cache original archives independently of compiler and recipe changes
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: build/media-source-pins
+          key: media-original-sources-${{ steps.identity.outputs.source_pins_key }}
+          enableCrossOsArchive: true
+          restore-keys: media-original-sources-Linux-${{ steps.identity.outputs.source_pins_key }}
+      - name: Rehash and materialize every exact original source archive
+        run: python scripts/media-transfer.py sources
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: |
+            build/native/source-media/*/install
+            build/native/source-media/*/dependency-receipt.json
+            build/native/source-media/*/dependency-*-receipt.json
+          key: media-formats-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}
+      - name: Verify every cached dependent format, private header and static archive
+        id: formats_ready
+        shell: bash
+        run: python scripts/media-transfer.py ready --stage dependencies --revision "$SOURCE_REVISION"
+      - if: steps.formats_ready.outputs.ready != 'true'
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          pattern: media-dependencies-${{ inputs.os }}-*
+          path: build/transfer
+          merge-multiple: true
+      - name: Verify and restore this run's exact independent dependency prefixes
+        if: steps.formats_ready.outputs.ready != 'true'
+        shell: bash
+        run: python scripts/media-transfer.py merge --revision "$SOURCE_REVISION" build/transfer/dependencies-compression.tar.gz build/transfer/dependencies-audio.tar.gz build/transfer/dependencies-av1.tar.gz
+      - name: Complete or fully verify every dependent static format library
+        run: python scripts/build-media-source.py --stage dependencies
+      - name: Transfer exact full static dependencies and all group provenance
+        shell: bash
+        run: python scripts/media-transfer.py pack --stage dependencies --revision "$SOURCE_REVISION" --output build/transfer/dependency-formats.tar.gz
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: media-formats-${{ inputs.os }}
+          path: build/transfer/dependency-formats.tar.gz
+          if-no-files-found: error
+          retention-days: 3
+  ffmpeg:
+    needs: [probe, formats]
     if: needs.probe.outputs.complete != 'true'
     runs-on: ${{ inputs.os }}
     timeout-minutes: 10
@@ -242,15 +317,20 @@ jobs:
             build/native/source-media/*/ffprobe.exe
             build/native/source-media/*/compiler-notices
           key: media-complete-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
-        with:
-          pattern: media-dependencies-${{ inputs.os }}-*
-          path: build/transfer
-          merge-multiple: true
-      - name: Verify and restore this run's exact dependency prefix
+      - name: Verify any completed source cache that became available after the initial probe
+        id: complete_ready
         shell: bash
-        run: python scripts/media-transfer.py merge --revision "$SOURCE_REVISION" build/transfer/dependencies-compression.tar.gz build/transfer/dependencies-audio.tar.gz build/transfer/dependencies-av1.tar.gz
-      - name: Complete dependent formats and FFmpeg or fully verify the exact completed source cache
+        run: python scripts/media-transfer.py ready --stage complete --revision "$SOURCE_REVISION"
+      - if: steps.complete_ready.outputs.ready != 'true'
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: media-formats-${{ inputs.os }}
+          path: build/transfer
+      - name: Verify and restore this run's exact full static dependency closure
+        if: steps.complete_ready.outputs.ready != 'true'
+        shell: bash
+        run: python scripts/media-transfer.py restore --stage dependencies --revision "$SOURCE_REVISION" build/transfer/dependency-formats.tar.gz
+      - name: Compile FFmpeg or fully verify the exact completed source cache
         id: ffmpeg_compile
         run: python scripts/build-media-source.py --stage complete
       - name: Preserve bounded FFmpeg failure diagnostics

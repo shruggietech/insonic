@@ -116,7 +116,13 @@ func backendWorkspace(t *testing.T, backend, storage string) (*workspace.Workspa
 		config := catalog.PostgreSQLConfig{Host: c.Host, Port: c.Port, Database: c.Database, Schema: schema, TLSMode: "local", CredentialID: id}
 		raw, _ = json.Marshal(config)
 		w.Config.Profiles.Catalog.Adapter = backend
-		json.Unmarshal(raw, &w.Config.Profiles.Catalog.Configuration)
+		// Unmarshal into a fresh map: decoding into the existing SQLite profile
+		// retains its path key, which strict PostgreSQL configuration rejects.
+		var configuration map[string]any
+		if e = json.Unmarshal(raw, &configuration); e != nil {
+			t.Fatal(e)
+		}
+		w.Config.Profiles.Catalog.Configuration = configuration
 		t.Cleanup(func() {
 			connection, e := pgx.Connect(context.Background(), dsn)
 			if e == nil {
