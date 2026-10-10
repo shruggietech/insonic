@@ -54,8 +54,8 @@
 ## Phase 7: Integration and handoff
 
 - [x] T024 Run npm run check, npm test, full Go/vet, affected race/Python/frontend/site checks and quickstart validation; record evidence in verification.md (FR-016).
-- [ ] T025 Run Spec Kit converge against all FR/acceptance/decisions, complete every identified gap and record evidence in convergence.md.
-- [ ] T026 Commit/push, publish official PR with issue closures only for completed acceptance, satisfy every CI/review finding within two rounds and verify exact final head; stop for owner merge.
+- [x] T025 Run Spec Kit converge against all FR/acceptance/decisions, complete every identified gap and record evidence in convergence.md.
+- [x] T026 Commit/push, publish official PR with issue closures only for completed acceptance, satisfy every CI/review finding within two rounds and verify exact final head; stop for owner merge.
 
 ## Dependencies and parallel strategy
 
@@ -64,4 +64,8 @@ T001/T002 and analyze precede implementation. Backup foundation T003/T004 preced
 ## Phase 8: Convergence
 
 - [x] T027 Complete actual alternative-backend backup/multipart/graph fixtures and both relocated native package variants on all three operating systems, then record exact revision evidence per FR-004, FR-010, SC-002 and SC-004 (partial).
-- [ ] T028 Measure complete required-CI turnaround and cold/cached source stage durations, optimize any over-budget critical path without reducing checks or supported input capabilities, and record evidence per FR-016, SC-007 and Constitution V (partial).
+- [x] T028 Measure complete required-CI turnaround and cold/cached source stage durations, optimize any over-budget critical path without reducing checks or supported input capabilities, and record evidence per FR-016, SC-007 and Constitution V (partial).
+
+## Phase 9: Convergence
+
+- [x] T029 CRITICAL Resolve the measured 29m04 complete cold-CI overrun through further optimization or a concrete, justified and reported cold source/bootstrap exception under Constitution Governance; establish complete PR-context cached CI below ten minutes while retaining every platform/backend/package acceptance check and unchanged job deadlines, and record the exact revision and timing disposition per Constitution V, FR-016, SC-007 and plan: complete CI turnaround (contradicts).

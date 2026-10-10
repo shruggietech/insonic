@@ -36,3 +36,9 @@ No release version/tag/destination/signing identity is invented. Publication is 
 ## Verification
 
 Backup current-authority/lineage roundtrip, corruption/missing-byte/path rejection, no-overwrite, retention-release, stale transfer owners and interruption. Same authority checks on alternative backend fixtures and graph rebuild. Native real media/canonical operations and relocated package checks on all three operating systems and both variants. Release mismatch/failure/readback/signing tests. Canonical tracking history preservation. npm run check, npm test, full Go/vet, affected race tests, Python tests, frontend checks/build and site build. Exact final PR head CI and every external review thread verified.
+
+## Measured timing disposition, 2026-10-10
+
+Complete fresh source/bootstrap qualification passed in 29m04 after the exact source recipe invalidated compiled caches. All individual jobs met unchanged ten-minute deadlines. Independent dependency groups, verified format/FFmpeg stages, immediate complete-cache transfer and parallel qualification preserve all capabilities and acceptance checks. Complete cached PR qualification subsequently passed in 9m46 on the same recipe, with every runtime/platform/package/backend lane retained.
+
+Invoke Constitution Governance's concrete, justified and reported exception for this measured S014 cold source bootstrap only. The complete cold turnaround remains a disclosed deviation from the original target; the cached full workflow meets it. This is not per-job reinterpretation, a product scope reduction, a waiver of future cached regressions or a blanket exception for future source recipes. Verification records the exact revisions, source/cache identity, cold and cached durations and retained checks. No attended approval stage is added to the autonomous workflow.
