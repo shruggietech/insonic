@@ -1,0 +1,482 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/job-event.schema.json",
+  "title": "insonic durable job event",
+  "description": "Versioned ordered event for a durable job/attempt. Event syntax does not establish a committed catalog or graph result: publication receipts/checkpoints and application state transitions retain that authority.",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0",
+      "description": "Version of this insonic document contract."
+    },
+    "kind": {
+      "const": "job-event",
+      "description": "Document discriminator registered by the master schema."
+    },
+    "event_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Idempotent event identity for replay/deduplication."
+    },
+    "workspace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Workspace scope of the job."
+    },
+    "job_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Stable durable job identity."
+    },
+    "sequence": {
+      "$ref": "common.schema.json#/$defs/revision",
+      "description": "Strictly increasing sequence within this job event stream; application rejects duplicate/conflicting sequence content."
+    },
+    "occurred_at": {
+      "$ref": "common.schema.json#/$defs/utcInstant",
+      "description": "UTC audit instant emitted by the runtime."
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "attempt-started",
+        "stage-started",
+        "progress",
+        "artifact-published",
+        "checkpoint",
+        "completed",
+        "failed",
+        "cancelled",
+        "publication-pending"
+      ],
+      "description": "Declared event type controlling required detail fields."
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "queued",
+        "running",
+        "waiting",
+        "cancelling",
+        "cancelled",
+        "failed",
+        "succeeded",
+        "publication-pending"
+      ],
+      "description": "Durable application job state after the event; application enforces valid transitions."
+    },
+    "attempt_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Producing attempt identity, absent before the first claim."
+    },
+    "attempt_number": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "One-based attempt count for this job."
+    },
+    "claim_generation": {
+      "$ref": "common.schema.json#/$defs/revision",
+      "description": "Fencing generation of the worker claim; stale claims cannot commit newer state."
+    },
+    "stage_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Capability stage producing this event."
+    },
+    "progress": {
+      "type": "object",
+      "description": "Adapter-reported progress; absence is distinct from zero progress.",
+      "properties": {
+        "fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Fraction complete when the adapter supplies a meaningful denominator."
+        },
+        "completed_units": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Nonnegative completed work quantity."
+        },
+        "total_units": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Positive expected quantity when known; application additionally checks completed <= total."
+        },
+        "unit": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unit for quantities, such as seconds, segments or training steps."
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Plain-language progress message excluding secrets and full source/transcript payloads."
+        }
+      },
+      "additionalProperties": false
+    },
+    "artifact_refs": {
+      "type": "array",
+      "description": "Immutable artifact references produced by this event, not temporary paths.",
+      "items": {
+        "$ref": "common.schema.json#/$defs/artifactReference",
+        "description": "Published logical artifact reference."
+      }
+    },
+    "checkpoint_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Catalog checkpoint record ID, including hosted checkpoints without downloadable bytes."
+    },
+    "error": {
+      "type": "object",
+      "description": "Redacted actionable failure details; unknown commit outcomes remain explicitly reconcilable.",
+      "properties": {
+        "category": {
+          "type": "string",
+          "enum": [
+            "source-unavailable",
+            "storage-unavailable",
+            "catalog-unavailable",
+            "graph-unavailable",
+            "decode-failure",
+            "capacity",
+            "model-unavailable",
+            "authentication",
+            "quota",
+            "invalid-output",
+            "cancelled",
+            "unknown-commit",
+            "other"
+          ],
+          "description": "Failure boundary used by recovery and user guidance."
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable adapter/application error code."
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Readable next-action message without credential values or whole transcripts."
+        },
+        "retryable": {
+          "type": "boolean",
+          "description": "Whether the configured retry policy can retry this operation without rerouting."
+        },
+        "operation_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Operation receipt to reconcile when commit status is unknown."
+        }
+      },
+      "required": [
+        "category",
+        "code",
+        "message",
+        "retryable"
+      ],
+      "additionalProperties": false
+    },
+    "publication": {
+      "type": "object",
+      "description": "Catalog-to-graph publication state associated with this event.",
+      "properties": {
+        "catalog_revision": {
+          "$ref": "common.schema.json#/$defs/revision",
+          "description": "Exact accepted catalog revision awaiting or completing projection."
+        },
+        "target_profile": {
+          "$ref": "common.schema.json#/$defs/backendProfileReference",
+          "description": "Selected graph projection target."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "committed",
+            "reconciling"
+          ],
+          "description": "Publication state; committed means the matching checkpoint has been verified."
+        }
+      },
+      "required": [
+        "catalog_revision",
+        "target_profile",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions",
+      "description": "Optional namespaced extension data without changing event/query authority."
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "event_id",
+    "workspace_id",
+    "job_id",
+    "sequence",
+    "occurred_at",
+    "event_type",
+    "state"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "schema_version": "1.0.0",
+      "kind": "job-event",
+      "event_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      "workspace_id": "11111111-1111-4111-8111-111111111111",
+      "job_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      "sequence": 3,
+      "occurred_at": {
+        "iso": "2026-10-04T18:32:00Z",
+        "unix_ns": 1791138720000000000
+      },
+      "event_type": "progress",
+      "state": "running",
+      "attempt_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      "attempt_number": 1,
+      "claim_generation": 1,
+      "stage_id": "transcribe",
+      "progress": {
+        "fraction": 0.5,
+        "completed_units": 30,
+        "total_units": 60,
+        "unit": "seconds"
+      }
+    }
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "queued",
+            "description": "Declared event type controlling required detail fields."
+          }
+        },
+        "required": [
+          "event_type"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "state": {
+            "const": "queued",
+            "description": "Durable application job state after the event; application enforces valid transitions."
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "enum": [
+              "attempt-started",
+              "stage-started",
+              "progress",
+              "artifact-published",
+              "checkpoint"
+            ],
+            "description": "Declared event type controlling required detail fields."
+          }
+        },
+        "required": [
+          "event_type"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "required": [
+          "attempt_id",
+          "attempt_number",
+          "claim_generation"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "progress",
+            "description": "Declared event type controlling required detail fields."
+          }
+        },
+        "required": [
+          "event_type"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "required": [
+          "progress"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "artifact-published",
+            "description": "Declared event type controlling required detail fields."
+          }
+        },
+        "required": [
+          "event_type"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "required": [
+          "artifact_refs"
+        ],
+        "properties": {
+          "artifact_refs": {
+            "minItems": 1,
+            "description": "Immutable artifact references produced by this event, not temporary paths.",
+            "type": "array"
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "checkpoint",
+            "description": "Declared event type controlling required detail fields."
+          }
+        },
+        "required": [
+          "event_type"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "required": [
+          "checkpoint_id"
+        ],
+        "type": "object"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "completed",
+            "description": "Declared event type controlling required detail fields."
+          }
+        },
+        "required": [
+          "event_type"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "state": {
+            "const": "succeeded",
+            "description": "Durable application job state after the event; application enforces valid transitions."
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "failed",
+            "description": "Declared event type controlling required detail fields."
+          }
+        },
+        "required": [
+          "event_type"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "state": {
+            "const": "failed",
+            "description": "Durable application job state after the event; application enforces valid transitions."
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "cancelled",
+            "description": "Declared event type controlling required detail fields."
+          }
+        },
+        "required": [
+          "event_type"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "properties": {
+          "state": {
+            "const": "cancelled",
+            "description": "Durable application job state after the event; application enforces valid transitions."
+          }
+        },
+        "type": "object"
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "const": "publication-pending",
+            "description": "Declared event type controlling required detail fields."
+          }
+        },
+        "required": [
+          "event_type"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "required": [
+          "publication"
+        ],
+        "properties": {
+          "state": {
+            "const": "publication-pending",
+            "description": "Durable application job state after the event; application enforces valid transitions."
+          },
+          "publication": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "pending",
+                  "reconciling"
+                ],
+                "description": "Publication state; committed means the matching checkpoint has been verified."
+              }
+            },
+            "description": "Catalog-to-graph publication state associated with this event.",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      }
+    }
+  ]
+}

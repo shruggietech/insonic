@@ -8,8 +8,8 @@ Include the affected version, a minimal reproduction, impact and any relevant de
 
 ## Supported versions
 
-v0.0.0 is a specification and maintainer-tooling baseline. No product binaries are supported yet. Once application releases exist, the latest stable release receives security fixes, with exceptions documented per advisory.
+v1.0.0 is an unpublished release candidate; v0.0.0 remains a specification and maintainer-tooling baseline. No official product binaries are supported yet. Once application releases exist, the latest stable release receives security fixes, with exceptions documented per advisory.
 
 ## Credential and dependency handling
 
-The intended product [credential contract](docs/v0.0.0/security.md) requires encrypted secret storage, status-only display and redacted diagnostics. Dependencies and release artifacts are pinned and checked. Security fixes remain tracked work with truthful verification, not an implied guarantee from a passing CI badge.
+The intended product [credential contract](docs/v1.0.0/security.md) requires encrypted secret storage, status-only display and redacted diagnostics. Dependencies and release artifacts are pinned and checked. Security fixes remain tracked work with truthful verification, not an implied guarantee from a passing CI badge.

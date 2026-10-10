@@ -26,7 +26,7 @@ export function issueBody(planned, repository) {
     `<!-- insonic-work-slice: ${planned.slice} -->`,
     planned.acceptance,
     `Requirements: ${planned.requirements}.`,
-    `System specification: https://github.com/${repository}/blob/main/docs/v0.0.0/roadmap.md`,
+    `System specification: https://github.com/${repository}/blob/main/docs/v${readFileSync(new URL('../VERSION', import.meta.url), 'utf8').trim()}/roadmap.md`,
     'Create a focused Spec Kit slice before implementation. This issue records intended work, not completed behavior.'
   ].join('\n\n');
 }

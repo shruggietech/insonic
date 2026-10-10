@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/model-catalog.schema.json",
+  "title": "Configured model source catalog",
+  "description": "Declared bounded metadata catalog.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "model-catalog",
+      "description": "Configured source metadata discriminator."
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "description": "Shared release contract version."
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "selector": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "Exact source-local selector; unique within this catalog."
+          },
+          "manifest": {
+            "$ref": "base-model-manifest.schema.json",
+            "description": "Complete pinned model bundle with all required files."
+          }
+        },
+        "required": [
+          "selector",
+          "manifest"
+        ],
+        "description": "One selectable pinned bundle."
+      },
+      "maxItems": 128,
+      "description": "Source catalog entries; the runtime additionally bounds total metadata to four MiB."
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "entries"
+  ],
+  "examples": [
+    {
+      "kind": "model-catalog",
+      "schema_version": "1.0.0",
+      "entries": []
+    }
+  ]
+}

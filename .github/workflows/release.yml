@@ -257,4 +257,4 @@ jobs:
       - name: Retrieve and verify the original published candidate without rebuilding
         run: python scripts/release.py published --source-root build/release/source --revision "$SOURCE_REVISION" --output build/release/candidate
       - name: Promote matching published documentation through configured host
-        run: python scripts/release.py promote --candidate build/release/candidate --configuration build/release/documentation-deployment.json
+        run: python scripts/release.py promote --source-root build/release/source --candidate build/release/candidate --configuration build/release/documentation-deployment.json

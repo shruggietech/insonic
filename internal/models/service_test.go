@@ -10,7 +10,7 @@ import (
 
 func fixtureManifest() Manifest {
 	sum := sha256.Sum256([]byte("model fixture"))
-	return Manifest{Kind: "base-model-manifest", Version: "0.0.0", Name: "fixture", ModelVersion: "v1", Revision: "immutable-v1", Capabilities: []string{"transcription"}, License: "unknown", Files: []File{{Role: "weights", SHA256: hex.EncodeToString(sum[:]), Size: 13, URL: "https://example.org/fixture.bin"}}}
+	return Manifest{Kind: "base-model-manifest", Version: "1.0.0", Name: "fixture", ModelVersion: "v1", Revision: "immutable-v1", Capabilities: []string{"transcription"}, License: "unknown", Files: []File{{Role: "weights", SHA256: hex.EncodeToString(sum[:]), Size: 13, URL: "https://example.org/fixture.bin"}}}
 }
 func TestManifestExactIntegrityAndNonsecretSources(t *testing.T) {
 	good := fixtureManifest()

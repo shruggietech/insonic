@@ -35,7 +35,7 @@ func TestPipelineConfigurationPackagedDefaultsAndBounds(t *testing.T) {
 func TestConfiguredRequestsShareOfflineSchema(t *testing.T) {
 	id := "11111111-1111-4111-8111-111111111111"
 	envelope := func(op string, item bool, data any) []byte {
-		d := map[string]any{"kind": "runtime-request", "schema_version": "0.0.0", "workspace_id": id, "request_id": id, "operation": op}
+		d := map[string]any{"kind": "runtime-request", "schema_version": "1.0.0", "workspace_id": id, "request_id": id, "operation": op}
 		if item {
 			d["item_id"] = id
 		}
@@ -65,7 +65,7 @@ func TestConfiguredRequestsShareOfflineSchema(t *testing.T) {
 // They must preserve direct managed-model client compatibility.
 func TestDirectRecordingRequestAllowsEmptyEncodedOverrides(t *testing.T) {
 	id := "11111111-1111-4111-8111-111111111111"
-	base := map[string]any{"kind": "runtime-request", "schema_version": "0.0.0", "workspace_id": id, "request_id": id, "operation": "recordings.process", "item_id": id}
+	base := map[string]any{"kind": "runtime-request", "schema_version": "1.0.0", "workspace_id": id, "request_id": id, "operation": "recordings.process", "item_id": id}
 	options := map[string]any{"transcription": "reuse", "diarization": "run", "diarization_model_id": id, "overrides": map[string]any{}}
 	base["data"] = options
 	raw, _ := json.Marshal(base)

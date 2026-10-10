@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
+const version = readFileSync(new URL('../../../VERSION', import.meta.url), 'utf8').trim();
 const ajv = new Ajv2020({
   allErrors: true,
   strict: true,
@@ -21,7 +22,7 @@ for (const name of [
 ]) {
   const schema = JSON.parse(
     readFileSync(
-      new URL(`../../../schemas/v0.0.0/${name}.schema.json`, import.meta.url),
+      new URL(`../../../schemas/v${version}/${name}.schema.json`, import.meta.url),
       'utf8',
     ),
   );
@@ -32,7 +33,7 @@ const validate = ajv.getSchema(requestID);
 export function validateNativeRequest(request) {
   const envelope = {
     kind: 'runtime-request',
-    schema_version: '0.0.0',
+    schema_version: '1.0.0',
     request_id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
     ...request,
   };

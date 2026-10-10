@@ -189,7 +189,7 @@ func validateSnapshotSchema(t *testing.T, snap Snapshot) {
 	if e = compiler.AddResource(subtitles.SchemaID, upstream); e != nil {
 		t.Fatal(e)
 	}
-	paths, e := filepath.Glob("../../schemas/v0.0.0/*.json")
+	paths, e := filepath.Glob("../../schemas/v1.0.0/*.json")
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -206,7 +206,7 @@ func validateSnapshotSchema(t *testing.T, snap Snapshot) {
 			t.Fatal(e)
 		}
 	}
-	schema, e := compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v0.0.0/schemas/v0.0.0/catalog-snapshot.schema.json")
+	schema, e := compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/catalog-snapshot.schema.json")
 	if e != nil {
 		t.Fatal(e)
 	}

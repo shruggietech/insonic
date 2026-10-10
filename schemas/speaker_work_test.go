@@ -9,7 +9,7 @@ import (
 func TestSpeakerVersionRequestsRemainExactAndRejectEnvelopeDrift(t *testing.T) {
 	id := "11111111-1111-4111-8111-111111111111"
 	for _, operation := range []string{"models.dataset.show", "models.speaker.show"} {
-		request := map[string]any{"kind": "runtime-request", "schema_version": "0.0.0", "workspace_id": id, "request_id": id, "operation": operation, "item_id": id}
+		request := map[string]any{"kind": "runtime-request", "schema_version": "1.0.0", "workspace_id": id, "request_id": id, "operation": operation, "item_id": id}
 		check := func(valid bool) {
 			t.Helper()
 			raw, _ := json.Marshal(request)
@@ -31,7 +31,7 @@ func TestSpeakerVersionRequestsRemainExactAndRejectEnvelopeDrift(t *testing.T) {
 
 func TestSpeakerFetchConfinesItsArgumentContract(t *testing.T) {
 	id := "11111111-1111-4111-8111-111111111111"
-	request := map[string]any{"kind": "runtime-request", "schema_version": "0.0.0", "workspace_id": id, "request_id": id, "operation": "models.speaker.fetch", "item_id": id, "data": map[string]any{"destination": "/explicit/model-output"}}
+	request := map[string]any{"kind": "runtime-request", "schema_version": "1.0.0", "workspace_id": id, "request_id": id, "operation": "models.speaker.fetch", "item_id": id, "data": map[string]any{"destination": "/explicit/model-output"}}
 	check := func(valid bool) {
 		t.Helper()
 		raw, _ := json.Marshal(request)
@@ -62,7 +62,7 @@ func TestSpeakerTrainingProfilesAndMatchingHaveStrictElections(t *testing.T) {
 	if ValidatePipelineConfiguration(raw) == nil {
 		t.Fatal("unpaired processing stage accepted")
 	}
-	request := map[string]any{"kind": "runtime-request", "schema_version": "0.0.0", "workspace_id": id, "request_id": id, "operation": "models.train", "data": map[string]any{"dataset_id": id, "name": "Training", "pipeline_id": id, "pipeline_revision": 1}}
+	request := map[string]any{"kind": "runtime-request", "schema_version": "1.0.0", "workspace_id": id, "request_id": id, "operation": "models.train", "data": map[string]any{"dataset_id": id, "name": "Training", "pipeline_id": id, "pipeline_revision": 1}}
 	check := func(valid bool) {
 		t.Helper()
 		raw, _ := json.Marshal(request)

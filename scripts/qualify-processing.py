@@ -21,6 +21,14 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 CI_VARIABLES = ("CI", "GITHUB_ACTIONS", "TF_BUILD", "BUILD_BUILDID", "JENKINS_URL")
+
+
+class CLIResponseError(ValueError):
+    def __init__(self, code, response):
+        super().__init__('CLI operation failed: ' + code)
+        self.response = response
+
+
 PINS = {
     "transcribe": {
         "id": "Systran/faster-whisper-tiny", "revision": "d90ca5fe260221311c53c58e660288d3deb8d356", "license": "MIT",
@@ -140,7 +148,7 @@ def child(command, *, request=None, timeout=600, max_output=16 << 20):
         return _child(command, environment, request=request, timeout=timeout, max_output=max_output)
 
 
-def _child(command, environment, *, request=None, timeout=600, max_output=16 << 20):
+def _child(command, environment, *, request=None, timeout=600, max_output=16 << 20, cli_response=False):
     process = subprocess.Popen([str(item) for item in command], cwd=ROOT, env=environment,
                                stdin=subprocess.PIPE if request is not None else subprocess.DEVNULL,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -178,6 +186,15 @@ def _child(command, environment, *, request=None, timeout=600, max_output=16 << 
     if overflow.is_set():
         raise ValueError("Qualification output exceeded bounded limit")
     if code:
+        if cli_response:
+            for buffer in buffers:
+                try:
+                    response = json.loads(bytes(buffer))
+                    failure_code = response['error']['code']
+                    if isinstance(failure_code, str) and re.fullmatch(r'[a-z_]{1,64}', failure_code):
+                        raise CLIResponseError(failure_code, response)
+                except (KeyError, TypeError, json.JSONDecodeError):
+                    pass
         # Engine output may contain private paths. Only bounded explicit code
         # objects are included, never raw traceback or arbitrary stderr.
         try:

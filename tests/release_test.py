@@ -120,6 +120,26 @@ class ReleaseDeliveryTests(unittest.TestCase):
         self.assertTrue((self.root / 'build/release/highlights.md').read_text().rstrip().endswith(f'/blob/v{VERSION}/CHANGELOG.md)'))
         with self.assertRaisesRegex(ValueError, 'newer'): release.prepare(VERSION, '2026-10-09', 'Highlights.', self.root)
 
+    def test_preparation_is_an_unpublished_candidate_and_advances_owned_doc_examples(self):
+        manifest = release.read_json(self.root / 'docs/versions.json')
+        entry = next(entry for entry in manifest['versions'] if entry['version'] == VERSION)
+        self.assertEqual(entry['status'], 'candidate')
+        index = (self.root / f'docs/v{VERSION}/index.md').read_text(encoding='utf-8')
+        self.assertIn('prepared release candidate', index)
+        self.assertIn('Official product downloads have not been published', index)
+        ingestion = (self.root / f'docs/v{VERSION}/ingestion.md').read_text(encoding='utf-8')
+        self.assertNotIn('"schema_version": "' + CURRENT + '"', ingestion)
+        self.assertIn('"schema_version": "' + VERSION + '"', ingestion)
+        self.assertFalse(release.read_json(self.root / 'build/release/version-preparation.json')['published'])
+
+    def test_preparation_does_not_rewrite_generic_baseline_test_fixture(self):
+        target = self.root / 'tests/check.test.mjs'
+        target.parent.mkdir(parents=True, exist_ok=True)
+        text = "const version='" + VERSION + "'; const path='v" + VERSION + "';\n"
+        target.write_text(text, encoding='utf-8', newline='\n')
+        release.prepare(NEXT_VERSION, '2026-10-10', 'Candidate update.', self.root)
+        self.assertEqual(target.read_text(encoding='utf-8'), text)
+
     def test_prepared_actual_schema_tree_and_all_examples_validate_at_new_version(self):
         node = shutil.which('node')
         if not node and Path('C:/nvm4w/nodejs/node.exe').is_file(): node = 'C:/nvm4w/nodejs/node.exe'

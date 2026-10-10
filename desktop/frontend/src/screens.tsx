@@ -349,7 +349,7 @@ export function Library({ client, run }: Props) {
               if (!/^\d+$/.test(transcriptMax) || Number(transcriptMax)<1 || Number(transcriptMax)>16777216 || !/^\d+$/.test(transcriptTimeout) || Number(transcriptTimeout)<1 || Number(transcriptTimeout)>600000 || (embeddedIndex!=='' && (!/^\d+$/.test(embeddedIndex) || !Number.isSafeInteger(Number(embeddedIndex))))) throw new Error('Enter valid transcript limits and a nonnegative stream index.');
               await client.call('media.import', '', {
                 kind: 'import-manifest',
-                schema_version: '0.0.0',
+                schema_version: '1.0.0',
                 defaults: { ...dateOptions(),attribution:admissionAttribution,
  replace_transcript:replaceTranscript,
  ...(targetAudio?{replace_audio:replaceAudio,...(existingTranscript?{existing_transcript:existingTranscript}:{}),...(existingTranscript==='keep'?{transcript_applies:transcriptApplies}:{}),...(existingRoster?{existing_roster:existingRoster}:{})}:{}),
@@ -496,7 +496,7 @@ export function Library({ client, run }: Props) {
               ]}/>}
               <Button onClick={() => run(() => play())}>Play recording audio</Button>
               {entry.subtitle_publication_id && <Button variant="secondary" onClick={()=>run(async()=>{
-                await client.call('media.import','',{kind:'import-manifest',schema_version:'0.0.0',defaults:{replace_transcript:replaceTranscript,attribution:admissionAttribution,...(admissionAttribution==='diarize'?{diarization_model_id:diarizationModel}:{})},items:[{record:entryID,transcript:'<managed>'}]});await refresh();
+                await client.call('media.import','',{kind:'import-manifest',schema_version:'1.0.0',defaults:{replace_transcript:replaceTranscript,attribution:admissionAttribution,...(admissionAttribution==='diarize'?{diarization_model_id:diarizationModel}:{})},items:[{record:entryID,transcript:'<managed>'}]});await refresh();
               })}>Convert managed legacy subtitle</Button>}
               <Button
                 variant="secondary"

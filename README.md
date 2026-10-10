@@ -15,7 +15,7 @@ Organize audio and video, correlate subtitles and speakers, and explore what was
 
 ## Documentation
 
-Read the [v0.0.0 system specification](docs/v0.0.0/index.md), [technology decisions](docs/v0.0.0/technology.md) and [delivery outcomes](docs/v0.0.0/roadmap.md). The specification index identifies the current implementation status.
+Read the [v1.0.0 system contracts](docs/v1.0.0/index.md), [technology decisions](docs/v1.0.0/technology.md) and [delivery outcomes](docs/v1.0.0/roadmap.md). The documentation index identifies candidate and publication status.
 
 ## Capabilities
 

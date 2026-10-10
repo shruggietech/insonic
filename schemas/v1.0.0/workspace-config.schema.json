@@ -1,0 +1,705 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/workspace-config.schema.json",
+  "title": "insonic workspace configuration",
+  "description": "Versioned nonsecret configuration selecting artifact, catalog and graph adapters independently. Filesystem/SQLite/LadybugDB are defaults, while S3/PostgreSQL/ArcadeDB have full planned application support.",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0",
+      "description": "Version of this public insonic contract."
+    },
+    "kind": {
+      "const": "workspace-config",
+      "description": "Document discriminator selected by the master registry."
+    },
+    "workspace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Stable workspace scope used by all domain records."
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "User-facing workspace name."
+    },
+    "control_directory": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Selected local directory for control files, scratch and caches even when authority is remote."
+    },
+    "profiles": {
+      "type": "object",
+      "description": "Three independent required backend selections.",
+      "properties": {
+        "storage": {
+          "type": "object",
+          "description": "Selected artifact storage profile with an immutable configuration revision.",
+          "properties": {
+            "profile_id": {
+              "$ref": "common.schema.json#/$defs/uuid",
+              "description": "Stable configured profile identity."
+            },
+            "profile_revision": {
+              "$ref": "common.schema.json#/$defs/revision",
+              "description": "Selected profile configuration revision."
+            },
+            "adapter_id": {
+              "type": "string",
+              "enum": [
+                "filesystem",
+                "s3"
+              ],
+              "description": "Backend adapter selected for this role."
+            },
+            "contract_version": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Versioned insonic adapter contract."
+            },
+            "configuration": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/filesystemConfiguration",
+                  "description": "Default local filesystem artifact store. The root is a selected location, not a source identity."
+                },
+                {
+                  "$ref": "#/$defs/s3Configuration",
+                  "description": "Generic S3 API configuration, applicable to remote providers and user-run filesystem-backed S3 endpoints."
+                }
+              ],
+              "description": "Nonsecret adapter configuration matching adapter_id; conditional rules identify the exact permitted shape."
+            },
+            "expected_backend_version": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Optional tested backend version constraint; health/capability checks verify it before use."
+            }
+          },
+          "required": [
+            "profile_id",
+            "profile_revision",
+            "adapter_id",
+            "contract_version",
+            "configuration"
+          ],
+          "additionalProperties": false,
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "adapter_id": {
+                    "const": "filesystem",
+                    "description": "Backend adapter selected for this role."
+                  }
+                },
+                "required": [
+                  "adapter_id"
+                ],
+                "type": "object"
+              },
+              "then": {
+                "properties": {
+                  "configuration": {
+                    "$ref": "#/$defs/filesystemConfiguration",
+                    "description": "Default local filesystem artifact store. The root is a selected location, not a source identity."
+                  }
+                },
+                "type": "object"
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "adapter_id": {
+                    "const": "s3",
+                    "description": "Backend adapter selected for this role."
+                  }
+                },
+                "required": [
+                  "adapter_id"
+                ],
+                "type": "object"
+              },
+              "then": {
+                "properties": {
+                  "configuration": {
+                    "$ref": "#/$defs/s3Configuration",
+                    "description": "Generic S3 API configuration, applicable to remote providers and user-run filesystem-backed S3 endpoints."
+                  }
+                },
+                "type": "object"
+              }
+            }
+          ]
+        },
+        "catalog": {
+          "type": "object",
+          "description": "Selected operational catalog profile with an immutable configuration revision.",
+          "properties": {
+            "profile_id": {
+              "$ref": "common.schema.json#/$defs/uuid",
+              "description": "Stable configured profile identity."
+            },
+            "profile_revision": {
+              "$ref": "common.schema.json#/$defs/revision",
+              "description": "Selected profile configuration revision."
+            },
+            "adapter_id": {
+              "type": "string",
+              "enum": [
+                "sqlite",
+                "postgresql"
+              ],
+              "description": "Backend adapter selected for this role."
+            },
+            "contract_version": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Versioned insonic adapter contract."
+            },
+            "configuration": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/sqliteConfiguration",
+                  "description": "Default local SQLite catalog configuration."
+                },
+                {
+                  "$ref": "#/$defs/postgresqlConfiguration",
+                  "description": "Full PostgreSQL catalog configuration. Credentials remain outside this document and application transactions retain workspace scope."
+                }
+              ],
+              "description": "Nonsecret adapter configuration matching adapter_id; conditional rules identify the exact permitted shape."
+            },
+            "expected_backend_version": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Optional tested backend version constraint; health/capability checks verify it before use."
+            }
+          },
+          "required": [
+            "profile_id",
+            "profile_revision",
+            "adapter_id",
+            "contract_version",
+            "configuration"
+          ],
+          "additionalProperties": false,
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "adapter_id": {
+                    "const": "sqlite",
+                    "description": "Backend adapter selected for this role."
+                  }
+                },
+                "required": [
+                  "adapter_id"
+                ],
+                "type": "object"
+              },
+              "then": {
+                "properties": {
+                  "configuration": {
+                    "$ref": "#/$defs/sqliteConfiguration",
+                    "description": "Default local SQLite catalog configuration."
+                  }
+                },
+                "type": "object"
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "adapter_id": {
+                    "const": "postgresql",
+                    "description": "Backend adapter selected for this role."
+                  }
+                },
+                "required": [
+                  "adapter_id"
+                ],
+                "type": "object"
+              },
+              "then": {
+                "properties": {
+                  "configuration": {
+                    "$ref": "#/$defs/postgresqlConfiguration",
+                    "description": "Full PostgreSQL catalog configuration. Credentials remain outside this document and application transactions retain workspace scope."
+                  }
+                },
+                "type": "object"
+              }
+            }
+          ]
+        },
+        "graph": {
+          "type": "object",
+          "description": "Selected graph projection profile with an immutable configuration revision.",
+          "properties": {
+            "profile_id": {
+              "$ref": "common.schema.json#/$defs/uuid",
+              "description": "Stable configured profile identity."
+            },
+            "profile_revision": {
+              "$ref": "common.schema.json#/$defs/revision",
+              "description": "Selected profile configuration revision."
+            },
+            "adapter_id": {
+              "type": "string",
+              "enum": [
+                "ladybugdb",
+                "arcadedb",
+                "community"
+              ],
+              "description": "Backend adapter selected for this role."
+            },
+            "contract_version": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Versioned insonic adapter contract."
+            },
+            "configuration": {
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ladybugdbConfiguration",
+                  "description": "Default embedded LadybugDB projection attached to the owning runtime."
+                },
+                {
+                  "$ref": "#/$defs/arcadedbConfiguration",
+                  "description": "ArcadeDB server graph adapter configuration, distinct from the operational catalog role."
+                },
+                {
+                  "$ref": "#/$defs/communityConfiguration",
+                  "description": "Optional user-provided graph adapter configuration. This does not make its engine officially supported or redistributed."
+                }
+              ],
+              "description": "Nonsecret adapter configuration matching adapter_id; conditional rules identify the exact permitted shape."
+            },
+            "expected_backend_version": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Optional tested backend version constraint; health/capability checks verify it before use."
+            }
+          },
+          "required": [
+            "profile_id",
+            "profile_revision",
+            "adapter_id",
+            "contract_version",
+            "configuration"
+          ],
+          "additionalProperties": false,
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "adapter_id": {
+                    "const": "ladybugdb",
+                    "description": "Backend adapter selected for this role."
+                  }
+                },
+                "required": [
+                  "adapter_id"
+                ],
+                "type": "object"
+              },
+              "then": {
+                "properties": {
+                  "configuration": {
+                    "$ref": "#/$defs/ladybugdbConfiguration",
+                    "description": "Default embedded LadybugDB projection attached to the owning runtime."
+                  }
+                },
+                "type": "object"
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "adapter_id": {
+                    "const": "arcadedb",
+                    "description": "Backend adapter selected for this role."
+                  }
+                },
+                "required": [
+                  "adapter_id"
+                ],
+                "type": "object"
+              },
+              "then": {
+                "properties": {
+                  "configuration": {
+                    "$ref": "#/$defs/arcadedbConfiguration",
+                    "description": "ArcadeDB server graph adapter configuration, distinct from the operational catalog role."
+                  }
+                },
+                "type": "object"
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "adapter_id": {
+                    "const": "community",
+                    "description": "Backend adapter selected for this role."
+                  }
+                },
+                "required": [
+                  "adapter_id"
+                ],
+                "type": "object"
+              },
+              "then": {
+                "properties": {
+                  "configuration": {
+                    "$ref": "#/$defs/communityConfiguration",
+                    "description": "Optional user-provided graph adapter configuration. This does not make its engine officially supported or redistributed."
+                  }
+                },
+                "type": "object"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "storage",
+        "catalog",
+        "graph"
+      ],
+      "additionalProperties": false
+    },
+    "default_import_timezone": {
+      "$ref": "common.schema.json#/$defs/timezone",
+      "description": "Default timezone captured when creating an import batch."
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions",
+      "description": "Optional namespaced nonsecret extension data."
+    },
+    "credential_namespace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Optional nonsecret local credential-store namespace, defaulting to workspace_id. Restore preserves the independently configured destination namespace when adopting source catalog identity; it never copies credential values."
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "workspace_id",
+    "display_name",
+    "control_directory",
+    "profiles"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "schema_version": "1.0.0",
+      "kind": "workspace-config",
+      "workspace_id": "11111111-1111-4111-8111-111111111111",
+      "display_name": "My library",
+      "control_directory": "/home/user/MediaLibrary",
+      "default_import_timezone": "local",
+      "profiles": {
+        "storage": {
+          "profile_id": "33333333-3333-4333-8333-333333333333",
+          "profile_revision": 1,
+          "adapter_id": "filesystem",
+          "contract_version": "1",
+          "configuration": {
+            "root": "objects"
+          }
+        },
+        "catalog": {
+          "profile_id": "44444444-4444-4444-8444-444444444444",
+          "profile_revision": 1,
+          "adapter_id": "sqlite",
+          "contract_version": "1",
+          "configuration": {
+            "path": "catalog.sqlite"
+          }
+        },
+        "graph": {
+          "profile_id": "55555555-5555-4555-8555-555555555555",
+          "profile_revision": 1,
+          "adapter_id": "ladybugdb",
+          "contract_version": "1",
+          "configuration": {
+            "path": "graph/library.lbug"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "filesystemConfiguration": {
+      "type": "object",
+      "description": "Default local filesystem artifact store. The root is a selected location, not a source identity.",
+      "properties": {
+        "root": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Managed local artifact root; installation directories and disposable caches are not durable storage.",
+          "examples": [
+            "/home/user/MediaLibrary/objects"
+          ]
+        }
+      },
+      "required": [
+        "root"
+      ],
+      "additionalProperties": false,
+      "title": "filesystem configuration"
+    },
+    "s3Configuration": {
+      "type": "object",
+      "description": "Generic S3 API configuration, applicable to remote providers and user-run filesystem-backed S3 endpoints.",
+      "properties": {
+        "endpoint": {
+          "$ref": "common.schema.json#/$defs/endpoint",
+          "description": "Selected S3 service endpoint without credentials in its URL."
+        },
+        "bucket": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Existing or explicitly created bucket used by this workspace.",
+          "examples": [
+            "media-library"
+          ]
+        },
+        "prefix": {
+          "type": "string",
+          "description": "Workspace-managed object-key prefix; empty is allowed.",
+          "examples": [
+            "insonic/"
+          ]
+        },
+        "region": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Region/signing value required by this provider.",
+          "examples": [
+            "us-east-1"
+          ]
+        },
+        "addressing_style": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "path",
+            "virtual"
+          ],
+          "description": "S3 bucket addressing mode qualified for this endpoint."
+        },
+        "authentication": {
+          "type": "string",
+          "enum": [
+            "credential",
+            "environment",
+            "anonymous"
+          ],
+          "description": "Explicit credential resolution mode; environment uses a selected runtime credential chain, not exported secret values."
+        },
+        "credential_id": {
+          "$ref": "common.schema.json#/$defs/credentialId",
+          "description": "Opaque credential reference required for credential mode."
+        }
+      },
+      "required": [
+        "endpoint",
+        "bucket",
+        "region",
+        "addressing_style",
+        "authentication"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "authentication": {
+                "const": "credential",
+                "description": "Explicit credential resolution mode; environment uses a selected runtime credential chain, not exported secret values."
+              }
+            },
+            "required": [
+              "authentication"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "required": [
+              "credential_id"
+            ],
+            "type": "object"
+          }
+        }
+      ],
+      "title": "s3 configuration"
+    },
+    "sqliteConfiguration": {
+      "type": "object",
+      "description": "Default local SQLite catalog configuration.",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Local catalog file path on a supported filesystem; not an S3 object or network-shared live file.",
+          "examples": [
+            "catalog.sqlite"
+          ]
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false,
+      "title": "sqlite configuration"
+    },
+    "postgresqlConfiguration": {
+      "type": "object",
+      "description": "Full PostgreSQL catalog configuration. Credentials remain outside this document and application transactions retain workspace scope.",
+      "properties": {
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "description": "PostgreSQL hostname or explicitly selected local transport location.",
+          "examples": [
+            "db.example.com"
+          ]
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535,
+          "description": "PostgreSQL service port.",
+          "examples": [
+            5432
+          ]
+        },
+        "database": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Configured database containing the catalog."
+        },
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Dedicated catalog schema namespace.",
+          "examples": [
+            "insonic"
+          ]
+        },
+        "tls_mode": {
+          "type": "string",
+          "enum": [
+            "verify-full",
+            "local"
+          ],
+          "description": "verify-full verifies the remote server certificate and hostname; local is an explicit local transport configuration."
+        },
+        "ca_file": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional local CA certificate path for verified TLS."
+        },
+        "credential_id": {
+          "$ref": "common.schema.json#/$defs/credentialId",
+          "description": "Opaque PostgreSQL authentication reference when credentials are required."
+        }
+      },
+      "required": [
+        "host",
+        "port",
+        "database",
+        "schema",
+        "tls_mode"
+      ],
+      "additionalProperties": false,
+      "title": "postgresql configuration"
+    },
+    "ladybugdbConfiguration": {
+      "type": "object",
+      "description": "Default embedded LadybugDB projection attached to the owning runtime.",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Local graph directory/file location; never a live object-store database.",
+          "examples": [
+            "graph/library.lbug"
+          ]
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false,
+      "title": "ladybugdb configuration"
+    },
+    "arcadedbConfiguration": {
+      "type": "object",
+      "description": "ArcadeDB server graph adapter configuration, distinct from the operational catalog role.",
+      "properties": {
+        "endpoint": {
+          "$ref": "common.schema.json#/$defs/endpoint",
+          "description": "Configured ArcadeDB HTTP service endpoint."
+        },
+        "database": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Selected ArcadeDB database for this workspace graph."
+        },
+        "credential_id": {
+          "$ref": "common.schema.json#/$defs/credentialId",
+          "description": "Opaque service credential reference resolved by the runtime."
+        },
+        "preferred_dialect": {
+          "type": "string",
+          "enum": [
+            "arcade-opencypher",
+            "arcade-sql"
+          ],
+          "description": "Requested native query dialect, qualified against the actual server capabilities."
+        }
+      },
+      "required": [
+        "endpoint",
+        "database"
+      ],
+      "additionalProperties": false,
+      "title": "arcadedb configuration"
+    },
+    "communityConfiguration": {
+      "type": "object",
+      "description": "Optional user-provided graph adapter configuration. This does not make its engine officially supported or redistributed.",
+      "properties": {
+        "plugin_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "User-selected adapter extension identity."
+        },
+        "contract_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Versioned graph adapter contract implemented by the extension."
+        },
+        "options": {
+          "$ref": "common.schema.json#/$defs/nonsecretOptions",
+          "description": "Plugin options validated by its declared configuration contract."
+        },
+        "credential_id": {
+          "$ref": "common.schema.json#/$defs/credentialId",
+          "description": "Optional opaque credential reference for this extension."
+        }
+      },
+      "required": [
+        "plugin_id",
+        "contract_version",
+        "options"
+      ],
+      "additionalProperties": false,
+      "title": "community configuration"
+    }
+  }
+}

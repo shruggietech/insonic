@@ -1,0 +1,602 @@
+{
+  "kind": "connected-product-qualification",
+  "mode": "controlled",
+  "required_check": false,
+  "platform": "Windows",
+  "device": "cpu",
+  "cli_sha256": "826292c0c2093bb49fb551f164b343b7e2dd6b54fe5d3de886393cbd8510e78f",
+  "worker_sha256": "74db3392cfbba39c3f0bf2fd4e21cb13aa382bef849c76690308abb8f256908b",
+  "product_version": "1.0.0",
+  "source_revision": "26d7da834f82d5068974b4a6c20a6f42b3d24464",
+  "source_dirty": true,
+  "source_inputs_sha256": "a63309838ed699a08386e07b8c46190132b5cf5faa8efb27d5604cb018b771b4",
+  "operation_bound_seconds": 180,
+  "overall_bound_seconds": 900,
+  "hard_rss_limit_bytes": null,
+  "operations": [
+    {
+      "kind": "models.register",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 0.0790000000015425
+    },
+    {
+      "kind": "models.ensure",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 0.6879999999982829
+    },
+    {
+      "kind": "models.register",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 0.0779999999977008
+    },
+    {
+      "kind": "models.ensure",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 0.7029999999977008
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 1.2969999999986612
+    },
+    {
+      "kind": "recordings.process",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 1.3129999999982829
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 1.2970000000022992
+    },
+    {
+      "kind": "recordings.process",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 1.2970000000022992
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 1.2969999999986612
+    },
+    {
+      "kind": "recordings.process",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 1.0940000000009604
+    },
+    {
+      "kind": "models.train",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 0.6880000000019209
+    },
+    {
+      "kind": "recordings.match",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 0.48399999999674037
+    }
+  ],
+  "records": [
+    {
+      "fixture": "speech",
+      "media_id": "483d3114-4fe1-4a97-a73c-58710e5cc5fb",
+      "document_digest": "7f6c36e94c05a33fe6c44ecac5f0b52b5b292f14d03e403ac9f62ca0488de7c7",
+      "source_map": {
+        "channel": null,
+        "policy": "full-selected-canonical-stream;original-start-rational;sample-clock;no-seeking",
+        "sample_count": 172800,
+        "sample_rate": 16000,
+        "start_denominator": "1",
+        "start_numerator": "0",
+        "stream_index": 0
+      },
+      "provenance": {
+        "audio": {
+          "audio_format": "pcm_s16le",
+          "channels": 1,
+          "decoder": "ffmpeg",
+          "decoder_sha256": "7290a5120bb38bec3ac2962dfd9535bcf43d59f74312321ef5f885b775e4e741",
+          "decoder_version": "7.0.2",
+          "mapped_audio_sha256": "153adb3a729aa12a9b77641c61026e1a09bf3de91412af60f5c592d7f10b7927",
+          "sample_rate": 16000,
+          "source_channel": null,
+          "source_channels": 1,
+          "source_sha256": "84abd505cc39ab506ab583ea210136617e63b038d190af4fd0e109e651ee0661",
+          "source_size": 495371,
+          "source_start_pts": 0,
+          "source_stream": 0,
+          "source_time_base": "1/48000"
+        },
+        "diarization": {
+          "context_digest": "",
+          "model_id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+          "model_license": "CC-BY-4.0",
+          "model_manifest_sha256": "579594df48a073a83503c0bbca9ea3f9a4e07228b32ba526cfd38c967f230fef",
+          "model_name": "pyannote/speaker-diarization-community-1",
+          "model_revision": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee",
+          "model_version": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee",
+          "offline": true,
+          "python_sha256": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d",
+          "quality_diagnostics_enabled": true,
+          "source_clock_projection": "exact-source-origin;ceil-start/floor-end-microsecond",
+          "worker_sha256": "74db3392cfbba39c3f0bf2fd4e21cb13aa382bef849c76690308abb8f256908b"
+        },
+        "model_elections": [
+          {
+            "compatible": true,
+            "diagnostics": [],
+            "manifest_digest": "f5e9284268accce50c1f8b7b36d352743c22a7716127d4d51175f3647726d0c0",
+            "reference": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+            "state": "available",
+            "target": {
+              "adapter": "faster-whisper",
+              "contract_version": "1",
+              "id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+              "kind": "base",
+              "operation": "transcription"
+            },
+            "upstream_revision": "d90ca5fe260221311c53c58e660288d3deb8d356"
+          },
+          {
+            "compatible": true,
+            "diagnostics": [],
+            "manifest_digest": "579594df48a073a83503c0bbca9ea3f9a4e07228b32ba526cfd38c967f230fef",
+            "reference": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+            "state": "available",
+            "target": {
+              "adapter": "pyannote",
+              "contract_version": "1",
+              "id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+              "kind": "base",
+              "operation": "diarization"
+            },
+            "upstream_revision": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee"
+          }
+        ],
+        "pipeline_election": {
+          "configuration": {
+            "diarization": {
+              "adapter": "pyannote",
+              "contract_version": "1",
+              "diarization": {},
+              "limits": {},
+              "mode": "local",
+              "model_id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+              "recognition": {}
+            },
+            "recognition": {
+              "adapter": "faster-whisper",
+              "contract_version": "1",
+              "diarization": {},
+              "limits": {},
+              "mode": "local",
+              "model_id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+              "recognition": {
+                "context_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+                "device": "cpu",
+                "language": "en"
+              }
+            }
+          },
+          "context": {
+            "budget": 200,
+            "bytes": 0,
+            "diagnostics": [],
+            "digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "hints": [],
+            "joined": "",
+            "omitted": [],
+            "omitted_total": 0,
+            "omitted_truncated": false,
+            "revision": 74,
+            "snapshot_digest": "186525aa1c427c749cfbb7a934d533bf447a2783e20e01e908b88425ffa17d29"
+          },
+          "pipeline_digest": "",
+          "pipeline_id": "",
+          "pipeline_revision": 0,
+          "preset": "local"
+        },
+        "transcription": {
+          "context_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "model_id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+          "model_license": "MIT",
+          "model_manifest_sha256": "f5e9284268accce50c1f8b7b36d352743c22a7716127d4d51175f3647726d0c0",
+          "model_name": "Systran/faster-whisper-tiny",
+          "model_revision": "d90ca5fe260221311c53c58e660288d3deb8d356",
+          "model_version": "d90ca5fe260221311c53c58e660288d3deb8d356",
+          "offline": true,
+          "python_sha256": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d",
+          "worker_sha256": "74db3392cfbba39c3f0bf2fd4e21cb13aa382bef849c76690308abb8f256908b"
+        }
+      },
+      "diagnostics": [
+        {
+          "code": "speech_coverage_fraction",
+          "count": 1,
+          "value": 0.46296296296296297
+        },
+        {
+          "code": "overlap_fraction",
+          "count": 1,
+          "value": 0
+        }
+      ]
+    },
+    {
+      "fixture": "cross-clip",
+      "media_id": "7dba3fa8-eec4-4ac4-b03b-b4d3f979fd8a",
+      "document_digest": "7f7260f69ba1a2a1b6e1420e61a720cfc65f174e87aa0b150e960d36f49c9dc0",
+      "source_map": {
+        "channel": null,
+        "policy": "full-selected-canonical-stream;original-start-rational;sample-clock;no-seeking",
+        "sample_count": 128000,
+        "sample_rate": 16000,
+        "start_denominator": "1",
+        "start_numerator": "0",
+        "stream_index": 0
+      },
+      "provenance": {
+        "audio": {
+          "audio_format": "pcm_s16le",
+          "channels": 1,
+          "decoder": "ffmpeg",
+          "decoder_sha256": "7290a5120bb38bec3ac2962dfd9535bcf43d59f74312321ef5f885b775e4e741",
+          "decoder_version": "7.0.2",
+          "mapped_audio_sha256": "703ccabb53c4b734eb6a7752d70009f5968568adffce2f6ded4c1c77c6c03ad9",
+          "sample_rate": 16000,
+          "source_channel": null,
+          "source_channels": 1,
+          "source_sha256": "9e4488956968a70433cac979c91dc4b6bf06611be6cb9cbdb5dfd52e97899a03",
+          "source_size": 144744,
+          "source_start_pts": 0,
+          "source_stream": 0,
+          "source_time_base": "1/16000"
+        },
+        "diarization": {
+          "context_digest": "",
+          "model_id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+          "model_license": "CC-BY-4.0",
+          "model_manifest_sha256": "579594df48a073a83503c0bbca9ea3f9a4e07228b32ba526cfd38c967f230fef",
+          "model_name": "pyannote/speaker-diarization-community-1",
+          "model_revision": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee",
+          "model_version": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee",
+          "offline": true,
+          "python_sha256": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d",
+          "quality_diagnostics_enabled": true,
+          "source_clock_projection": "exact-source-origin;ceil-start/floor-end-microsecond",
+          "worker_sha256": "74db3392cfbba39c3f0bf2fd4e21cb13aa382bef849c76690308abb8f256908b"
+        },
+        "model_elections": [
+          {
+            "compatible": true,
+            "diagnostics": [],
+            "manifest_digest": "f5e9284268accce50c1f8b7b36d352743c22a7716127d4d51175f3647726d0c0",
+            "reference": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+            "state": "available",
+            "target": {
+              "adapter": "faster-whisper",
+              "contract_version": "1",
+              "id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+              "kind": "base",
+              "operation": "transcription"
+            },
+            "upstream_revision": "d90ca5fe260221311c53c58e660288d3deb8d356"
+          },
+          {
+            "compatible": true,
+            "diagnostics": [],
+            "manifest_digest": "579594df48a073a83503c0bbca9ea3f9a4e07228b32ba526cfd38c967f230fef",
+            "reference": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+            "state": "available",
+            "target": {
+              "adapter": "pyannote",
+              "contract_version": "1",
+              "id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+              "kind": "base",
+              "operation": "diarization"
+            },
+            "upstream_revision": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee"
+          }
+        ],
+        "pipeline_election": {
+          "configuration": {
+            "diarization": {
+              "adapter": "pyannote",
+              "contract_version": "1",
+              "diarization": {},
+              "limits": {},
+              "mode": "local",
+              "model_id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+              "recognition": {}
+            },
+            "recognition": {
+              "adapter": "faster-whisper",
+              "contract_version": "1",
+              "diarization": {},
+              "limits": {},
+              "mode": "local",
+              "model_id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+              "recognition": {
+                "context_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+                "device": "cpu",
+                "language": "en"
+              }
+            }
+          },
+          "context": {
+            "budget": 200,
+            "bytes": 0,
+            "diagnostics": [],
+            "digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "hints": [],
+            "joined": "",
+            "omitted": [],
+            "omitted_total": 0,
+            "omitted_truncated": false,
+            "revision": 139,
+            "snapshot_digest": "3c5e0e659cd4d9d57a561f188ddea080c3891b8d19b8d7108672db68f5073b69"
+          },
+          "pipeline_digest": "",
+          "pipeline_id": "",
+          "pipeline_revision": 0,
+          "preset": "local"
+        },
+        "transcription": {
+          "context_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "model_id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+          "model_license": "MIT",
+          "model_manifest_sha256": "f5e9284268accce50c1f8b7b36d352743c22a7716127d4d51175f3647726d0c0",
+          "model_name": "Systran/faster-whisper-tiny",
+          "model_revision": "d90ca5fe260221311c53c58e660288d3deb8d356",
+          "model_version": "d90ca5fe260221311c53c58e660288d3deb8d356",
+          "offline": true,
+          "python_sha256": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d",
+          "worker_sha256": "74db3392cfbba39c3f0bf2fd4e21cb13aa382bef849c76690308abb8f256908b"
+        }
+      },
+      "diagnostics": [
+        {
+          "code": "speech_coverage_fraction",
+          "count": 1,
+          "value": 0.625
+        },
+        {
+          "code": "overlap_fraction",
+          "count": 1,
+          "value": 0
+        }
+      ]
+    },
+    {
+      "fixture": "sintel-dialogue",
+      "media_id": "a6b04d01-2563-4a58-b515-23a757e009ea",
+      "document_digest": "1ef1149db0ae45ea3d42612bddbfa080f4d77fdcb0b4801673a52dc9b49f8372",
+      "source_map": {
+        "channel": 2,
+        "policy": "full-selected-canonical-stream;original-start-rational;sample-clock;no-seeking",
+        "sample_count": 480000,
+        "sample_rate": 16000,
+        "start_denominator": "1",
+        "start_numerator": "0",
+        "stream_index": 0
+      },
+      "provenance": {
+        "audio": {
+          "audio_format": "pcm_s16le",
+          "channels": 1,
+          "decoder": "ffmpeg",
+          "decoder_sha256": "7290a5120bb38bec3ac2962dfd9535bcf43d59f74312321ef5f885b775e4e741",
+          "decoder_version": "7.0.2",
+          "mapped_audio_sha256": "c4076cc89631e9d816ea88df54bab62884999ea2249ae082490930b3f475f232",
+          "sample_rate": 16000,
+          "source_channel": 2,
+          "source_channels": 6,
+          "source_sha256": "0b76bdae8172b1b1cac6919bf0a1d4e8264f791bbeb77a68045129597a5bdac4",
+          "source_size": 3748776,
+          "source_start_pts": 0,
+          "source_stream": 0,
+          "source_time_base": "1/48000"
+        },
+        "diarization": {
+          "context_digest": "",
+          "model_id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+          "model_license": "CC-BY-4.0",
+          "model_manifest_sha256": "579594df48a073a83503c0bbca9ea3f9a4e07228b32ba526cfd38c967f230fef",
+          "model_name": "pyannote/speaker-diarization-community-1",
+          "model_revision": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee",
+          "model_version": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee",
+          "offline": true,
+          "python_sha256": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d",
+          "quality_diagnostics_enabled": true,
+          "source_clock_projection": "exact-source-origin;ceil-start/floor-end-microsecond",
+          "worker_sha256": "74db3392cfbba39c3f0bf2fd4e21cb13aa382bef849c76690308abb8f256908b"
+        },
+        "model_elections": [
+          {
+            "compatible": true,
+            "diagnostics": [],
+            "manifest_digest": "f5e9284268accce50c1f8b7b36d352743c22a7716127d4d51175f3647726d0c0",
+            "reference": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+            "state": "available",
+            "target": {
+              "adapter": "faster-whisper",
+              "contract_version": "1",
+              "id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+              "kind": "base",
+              "operation": "transcription"
+            },
+            "upstream_revision": "d90ca5fe260221311c53c58e660288d3deb8d356"
+          },
+          {
+            "compatible": true,
+            "diagnostics": [],
+            "manifest_digest": "579594df48a073a83503c0bbca9ea3f9a4e07228b32ba526cfd38c967f230fef",
+            "reference": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+            "state": "available",
+            "target": {
+              "adapter": "pyannote",
+              "contract_version": "1",
+              "id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+              "kind": "base",
+              "operation": "diarization"
+            },
+            "upstream_revision": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee"
+          }
+        ],
+        "pipeline_election": {
+          "configuration": {
+            "diarization": {
+              "adapter": "pyannote",
+              "contract_version": "1",
+              "diarization": {},
+              "limits": {},
+              "mode": "local",
+              "model_id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+              "recognition": {}
+            },
+            "recognition": {
+              "adapter": "faster-whisper",
+              "contract_version": "1",
+              "diarization": {},
+              "limits": {},
+              "mode": "local",
+              "model_id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+              "recognition": {
+                "context_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+                "device": "cpu",
+                "language": "en"
+              }
+            }
+          },
+          "context": {
+            "budget": 200,
+            "bytes": 0,
+            "diagnostics": [],
+            "digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "hints": [],
+            "joined": "",
+            "omitted": [],
+            "omitted_total": 0,
+            "omitted_truncated": false,
+            "revision": 209,
+            "snapshot_digest": "df3cb0d26c0b782dcaf9e59e62b9567e439fdc10769b88c2bbc0f42ac72525fa"
+          },
+          "pipeline_digest": "",
+          "pipeline_id": "",
+          "pipeline_revision": 0,
+          "preset": "local"
+        },
+        "transcription": {
+          "context_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "model_id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+          "model_license": "MIT",
+          "model_manifest_sha256": "f5e9284268accce50c1f8b7b36d352743c22a7716127d4d51175f3647726d0c0",
+          "model_name": "Systran/faster-whisper-tiny",
+          "model_revision": "d90ca5fe260221311c53c58e660288d3deb8d356",
+          "model_version": "d90ca5fe260221311c53c58e660288d3deb8d356",
+          "offline": true,
+          "python_sha256": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d",
+          "worker_sha256": "74db3392cfbba39c3f0bf2fd4e21cb13aa382bef849c76690308abb8f256908b"
+        }
+      },
+      "diagnostics": [
+        {
+          "code": "speech_coverage_fraction",
+          "count": 1,
+          "value": 0.16666666666666666
+        },
+        {
+          "code": "overlap_fraction",
+          "count": 1,
+          "value": 0
+        }
+      ]
+    }
+  ],
+  "graph": {
+    "adapter_id": "ladybugdb",
+    "atomic_publication": true,
+    "backend_version": "0.21.2",
+    "cancellation": true,
+    "contract_version": "1.0.0",
+    "dialects": [
+      "ladybug-cypher"
+    ],
+    "limits": {
+      "native_bytes": 65536,
+      "projection_bytes": 134217728,
+      "reference_page_rows": 1000,
+      "result_bytes": 524288,
+      "result_rows": 500,
+      "timeout_seconds": 20
+    },
+    "operations": [
+      "media-list",
+      "speaker-search",
+      "model-list",
+      "text-search",
+      "time-range",
+      "evidence-traverse",
+      "graph-view"
+    ],
+    "read_only": true,
+    "schema_version": 1,
+    "state": "available",
+    "typed_parameters": [
+      "string",
+      "integer",
+      "number",
+      "boolean",
+      "null"
+    ]
+  },
+  "speaker_model": {
+    "dataset_id": "4e1d70f4-569a-5324-8093-c144557f6a43",
+    "version_id": "186e5baf-406f-5848-b9ab-19001d5e4d11",
+    "enrollment": "duration-weighted normalized embeddings; no base-weight retraining",
+    "matching_result": {
+      "decisions": [
+        {
+          "evidence_us": 5000000,
+          "local_speaker_id": "af962ec3-1d55-415b-a9a1-43283285ff80",
+          "score": 1,
+          "speaker_id": "3c0c88ad-e1ae-4441-927b-c0fa1b0ae9a2",
+          "state": "accepted",
+          "version_id": "186e5baf-406f-5848-b9ab-19001d5e4d11"
+        }
+      ],
+      "mapping_count": 1,
+      "missing_profiles": [],
+      "recording_id": "7dba3fa8-eec4-4ac4-b03b-b4d3f979fd8a",
+      "state": "accepted"
+    },
+    "quality_claim": "Cross-clip consistency, not independent identification accuracy"
+  },
+  "state": "passed",
+  "source_store": "unavailable at original path",
+  "authority_comparison": "exact values and hashes preserved",
+  "query_operations": [
+    "media-list",
+    "speaker-search",
+    "model-list",
+    "text-search"
+  ],
+  "queried_after_restore": true,
+  "retrieved_model_files": {
+    "manifest.json": "8fdb52a4c9dabe0f0e65c64b4b150bdec609f56e838458a1c4c4531dfd70e2a8",
+    "profile.json": "2b846e06540181e0493a931194cf6563afb825178312c1f1a21e6e0bac17854b"
+  },
+  "acoustic_quality": "not measured",
+  "wall_seconds": 80.84400000000096
+}

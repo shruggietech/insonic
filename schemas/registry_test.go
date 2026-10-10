@@ -8,7 +8,7 @@ import (
 )
 
 func TestRuntimeRequestArguments(t *testing.T) {
-	base := map[string]any{"schema_version": "0.0.0", "kind": "runtime-request", "workspace_id": "10000000-0000-4000-8000-000000000001", "request_id": "10000000-0000-4000-8000-000000000002", "operation": "workspace.show"}
+	base := map[string]any{"schema_version": "1.0.0", "kind": "runtime-request", "workspace_id": "10000000-0000-4000-8000-000000000001", "request_id": "10000000-0000-4000-8000-000000000002", "operation": "workspace.show"}
 	for _, scenario := range []struct {
 		name   string
 		fields map[string]any

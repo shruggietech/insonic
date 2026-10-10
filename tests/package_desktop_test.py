@@ -109,6 +109,33 @@ class NativePackageIntegrityTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'complete dependency closure'):
                 package.verify_corresponding_sources(root, manifest)
 
+    def test_self_consistent_old_source_recipe_cannot_qualify_current_checkout(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manifest = self.source_fixture(root)
+            expected = root / 'checkout'
+            (expected / 'internal/qualification').mkdir(parents=True)
+            (expected / 'scripts').mkdir()
+            (expected / 'internal/qualification/media-tools.json').write_bytes((root / 'sources/media-tools.json').read_bytes())
+            for name in ('build-media-source.py', 'media_source_build.py', 'process_tree.py'):
+                (expected / 'scripts' / name).write_bytes((root / 'sources' / name).read_bytes())
+            (expected / 'scripts/media_source_build.py').write_bytes(b'current exact recipe')
+            with self.assertRaisesRegex(ValueError, 'selected checkout'):
+                package.verify_corresponding_sources(root, manifest, expected_source_root=expected)
+
+    def test_missing_dependency_groups_cannot_qualify_current_checkout(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manifest = self.source_fixture(root)
+            expected = root / 'checkout'
+            (expected / 'internal/qualification').mkdir(parents=True)
+            (expected / 'scripts').mkdir()
+            (expected / 'internal/qualification/media-tools.json').write_bytes((root / 'sources/media-tools.json').read_bytes())
+            for name in ('build-media-source.py', 'media_source_build.py', 'process_tree.py'):
+                (expected / 'scripts' / name).write_bytes((root / 'sources' / name).read_bytes())
+            with self.assertRaisesRegex(ValueError, 'all dependency groups'):
+                package.verify_corresponding_sources(root, manifest, expected_source_root=expected)
+
     def test_configured_signing_failure_never_becomes_verified(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -236,7 +263,7 @@ class NativePackageIntegrityTests(unittest.TestCase):
                 package.verify_inventory(root, value)
 
     def test_package_tool_defaults_are_relative_and_drop_development_interpreter(self):
-        fake = {'kind': 'media-tools', 'schema_version': '0.0.0', 'exiftool': {
+        fake = {'kind': 'media-tools', 'schema_version': '1.0.0', 'exiftool': {
             'path': str(ROOT / 'build/native/media/exiftool/exiftool'), 'sha256': 'a' * 64, 'version': '13.59',
             'interpreter': {'path': '/usr/bin/perl', 'sha256': 'b' * 64}, 'support_files': [
                 {'path': str(ROOT / 'build/native/media/exiftool/lib/support.pm'), 'sha256': 'c' * 64}]},

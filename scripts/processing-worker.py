@@ -180,13 +180,22 @@ def _stamp(milliseconds):
     return f"{hours:02d}:{minutes:02d}:{seconds:02d},{ms:03d}"
 
 
-def recognition_result(segments, duration_us, source_start=Fraction(0)):
+def recognition_result(segments, duration_us, source_start=Fraction(0), *, intersect_whisper_end=False):
     output, diagnostics, count = [], [], 0
     for segment in segments:
         count += 1
         if count > MAX_RESULTS:
             raise WorkerError("output_limit")
-        start, end = _interval(segment["start"], segment["end"], duration_us)
+        start, end = _us(segment["start"]), _us(segment["end"])
+        # The pinned Whisper decoder can place its final timestamp just beyond
+        # decoded media (observed 80 ms). Bound this elected adapter policy to
+        # 250 ms and diagnose the exact intersection; generic results stay strict.
+        if intersect_whisper_end and start < duration_us < end <= duration_us + 250000:
+            diagnostics.append({"code": "whisper_end_intersected_decoded_media", "count": 1,
+                                "value": (end - duration_us) / 1000000})
+            end = duration_us
+        if start >= end or end > duration_us:
+            raise WorkerError("invalid_timing")
         text = segment["text"]
         if not isinstance(text, str) or len(text) > 65536 or any(ord(c) < 32 and c not in "\n\t\r" for c in text):
             raise WorkerError("invalid_text")
@@ -390,7 +399,8 @@ def run(request):
         audio = np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768.0
         segments, info = model.transcribe(audio, **recognition_arguments(request))
         origin = Fraction(int(request.get("source_start_numerator", "0")), int(request.get("source_start_denominator", "1")))
-        result = recognition_result(({"start": segment.start, "end": segment.end, "text": segment.text} for segment in segments), duration_us, origin)
+        result = recognition_result(({"start": segment.start, "end": segment.end, "text": segment.text} for segment in segments), duration_us, origin, intersect_whisper_end=True)
+        result["provenance"]["recognition_boundary_policy"] = "pinned-Whisper end/media intersection;max250ms overhang;diagnose each change"
         result["provenance"].update(language=info.language, beam_size=5, vad_filter=False,
                                      condition_on_previous_text=False, compute_type="int8" if device == "cpu" else "float16")
         hints, context_digest = validate_hints(request)

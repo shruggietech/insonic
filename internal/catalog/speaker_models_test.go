@@ -89,7 +89,7 @@ func TestSpeakerDatasetAdmitsCorpusAboveTenThousand(t *testing.T) {
 
 func speakerMetadataFixture(t *testing.T, v SpeakerOutput) json.RawMessage {
 	t.Helper()
-	raw, err := os.ReadFile("../../schemas/v0.0.0/speaker-model.schema.json")
+	raw, err := os.ReadFile("../../schemas/v1.0.0/speaker-model.schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}

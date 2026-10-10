@@ -456,7 +456,7 @@ def collect_corresponding_sources(root, source_media, receipt, directory):
     return manifest
 
 
-def verify_corresponding_sources(root, manifest=None):
+def verify_corresponding_sources(root, manifest=None, expected_source_root=None):
     target = root / 'sources'
     if manifest is None:
         manifest = json.loads((target / 'source-manifest.json').read_text(encoding='utf-8'))
@@ -504,6 +504,15 @@ def verify_corresponding_sources(root, manifest=None):
         raise ValueError('package corresponding source recipe differs from executed recipe')
     if receipt.get('launcher_sha256') != entries['process_tree.py']['sha256']:
         raise ValueError('package corresponding source launcher differs from executed launcher')
+    if expected_source_root is not None:
+        expected_source_root = Path(expected_source_root)
+        selected = json.loads((expected_source_root / 'internal/qualification/media-tools.json').read_text(encoding='utf-8'))['source_build']
+        packaged = json.loads((target / 'media-tools.json').read_text(encoding='utf-8'))['source_build']
+        if packaged != selected or any(sha(target / name) != sha(expected_source_root / 'scripts' / name)
+                                      for name in ('build-media-source.py', 'media_source_build.py', 'process_tree.py')):
+            raise ValueError('package corresponding source recipe or pins differ from selected checkout')
+        if {part.get('group') for part in receipt.get('dependency_parts', [])} != set(source_module().DEPENDENCY_GROUPS):
+            raise ValueError('package corresponding source provenance requires all dependency groups')
     if not source_module().dependency_part_receipts_valid(target, receipt):
         raise ValueError('package corresponding source dependency group provenance differs')
     return manifest
@@ -739,7 +748,7 @@ def package_environment():
     return env
 
 
-def verify_archive_receipt(archive, receipt):
+def verify_archive_receipt(archive, receipt, expected_source_root=ROOT):
     if sha(archive) != receipt['archive_sha256'] or archive.stat().st_size != receipt['archive_size_bytes']:
         raise ValueError('package archive differs from receipt identity')
     with tempfile.TemporaryDirectory(prefix='insonic package integrity ') as temporary:
@@ -766,7 +775,7 @@ def verify_archive_receipt(archive, receipt):
         if {path.relative_to(location).as_posix() for path in location.rglob('*') if path.is_file()} != expected:
             raise ValueError('package archive contains bytes outside its complete inventory')
         _, resources = package_directories(root, receipt['platform'], receipt['variant'])
-        manifest = verify_corresponding_sources(resources)
+        manifest = verify_corresponding_sources(resources, expected_source_root=expected_source_root)
         if sha(resources / 'sources/source-manifest.json') != receipt['distribution']['source_manifest_sha256']:
             raise ValueError('package source manifest differs from receipt identity')
         if not receipt['signing']['configured']:
