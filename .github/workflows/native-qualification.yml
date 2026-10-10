@@ -98,7 +98,7 @@ jobs:
         run: python scripts/qualify.py native
       - name: Cross-process CLI acceptance
         if: inputs.cli
-        run: python scripts/qualify.py cli
+        run: python scripts/qualify.py cli ${{ inputs.native && '--native' || '' }}
       - name: Native credential lifecycle on Windows and macOS
         if: inputs.native && runner.os != 'Linux'
         run: python scripts/qualify.py secrets

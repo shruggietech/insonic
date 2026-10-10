@@ -46,6 +46,7 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-10: Render an elected release-target public/offline artifact before publication, record that target with source identity and reject candidate snapshots from publication/promotion. Keep ordinary builds and source history explicit about candidate status; released landing pages expose all six exact-tag package links.
 - 2026-10-10: Prepare current contract examples with the selected version's native package names and platform archive formats, updating owned common-type descriptions while preserving immutable baseline and upstream identities.
 - 2026-10-10: Separate native Go build caches from the immutable core cache, allowing CLI and desktop/runtime qualification to retain their tagged build artifacts while preserving every integrity check.
+- 2026-10-10: Qualify the packaged CLI and actual LadybugDB graph with the selected native compiler/loader on native lanes, retaining the generic CLI path on lightweight lanes and every cross-process scenario.
 
 ### Added
 

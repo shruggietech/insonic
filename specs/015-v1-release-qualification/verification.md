@@ -42,7 +42,7 @@ The current index and landing/docs pages identify an unpublished candidate. Base
 | --- | --- |
 | `npm run check` | PASS; UTF-8/BOM/LF/mojibake, Markdown/navigation/JSON/YAML/kit checks and 23 schemas/21 contracts/28 examples. |
 | `npm test` | PASS, 82 tests. |
-| Python maintainer tests | PASS, 102 tests, including Windows native credential lifecycle and both review rounds' regressions. |
+| Python maintainer tests | PASS, 106 tests, including Windows native credential lifecycle, both review rounds' regressions and native/generic CLI lane checks. |
 | Processing worker tests | PASS, 16 deterministic tests; no acoustic inference. |
 | `go test ./...` | PASS, all packages. |
 | `go vet ./...` | PASS. |
@@ -69,6 +69,10 @@ The authorized second review on `b9a4f79` produced one additional finding: curre
 [The first complete candidate run](https://github.com/shruggietech/insonic/actions/runs/38025395531) passed all six real packages, all platform native/credential/bridge checks and the full alternative-backend fixture matrix on branch head `b9a4f7994d0150bb9b399ddaa74ed171c669bf4b`. Its clean actual build revision is `ba69f6d0750dae8aa19a551189eac1de6f3c14d0`, attempt 1. [Retained candidate/CI receipt](evidence/candidate-ci-first.json) records all six source-complete package inventories/hashes, matching public/offline archives and artifact digest. Collection executed its actual selected-source verifier, rather than relying on fixture archives.
 
 Execution took 617 seconds (10m17s), plus 93 seconds queued behind the cancelled failed run, for 710 seconds total. This exceeds the target. Native jobs restored the existing core Go cache primary key and explicitly skipped saving their tagged/native additions. Runtime/desktop now share a distinct dependency/frontend-bound native key, and CLI has its own key; core cache scope and every check remain. The new key must first be retained, then a complete warm run measured. This is a correction in progress, not an accepted timing waiver.
+
+[Corrected-source candidate evidence](evidence/candidate-ci-warm.json) binds head `088244c3ee412a29bb3d998509ea5a051cb3d51f`, clean build revision `95be94d86e5d7425735566b5b5cc7bc0eb960959`, [run 38026179037 attempt 2](https://github.com/shruggietech/insonic/actions/runs/38026179037/attempts/2) and all six packages/documentation. Attempt 1 filled the native keys and passed collection, but Windows native Go compile/test hit its unchanged 180-second command bound. Windows desktop retained the complete native key; the unchanged full rerun passed every check in 646 seconds execution, 650 seconds attempt turnaround. That still exceeds the target.
+
+The remaining generic CLI stage took 195 seconds and built a different compiler/graph variant from the native package. Native lanes now elect `qualify.py cli --native`, sharing the selected compiler/loader and packaged `system_ladybug` build; actual LadybugDB availability is required before the same CLI scenarios continue. Generic lightweight lanes still require no native assets. The actual Windows native CLI qualification passes locally; the 106-test Python suite covers lane selection, environment restoration on failure, native build identity and fallback rejection. No existing scenario or timeout was removed/extended. Final complete native-mode timing remains pending.
 
 ## Readiness and unexecuted behavior
 

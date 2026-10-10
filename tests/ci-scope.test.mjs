@@ -73,6 +73,8 @@ test('platform qualification waits only for its own exact same-run source build'
 
 test('native caches can retain tagged builds independently of the immutable core cache', () => {
  const qualification = parse(readFileSync(new URL('../.github/workflows/native-qualification.yml', import.meta.url), 'utf8'));
+ assert.equal(qualification.jobs.runtime.steps.find(step => step.name === 'Cross-process CLI acceptance').run,
+  "python scripts/qualify.py cli ${{ inputs.native && '--native' || '' }}");
  const goCache = job => job.steps.find(step => step.uses?.startsWith('actions/setup-go@')).with['cache-dependency-path'];
  const runtime = goCache(qualification.jobs.runtime).trim().split('\n');
  const packageInputs = goCache(qualification.jobs.packages).trim().split('\n');
