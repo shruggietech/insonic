@@ -42,6 +42,10 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+          cache-dependency-path: |
+            go.sum
+            internal/qualification/dependencies.json
+            desktop/frontend/package-lock.json
       - if: inputs.native
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -158,6 +162,10 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+          cache-dependency-path: |
+            go.sum
+            internal/qualification/dependencies.json
+            ${{ matrix.variant == 'desktop' && 'desktop/frontend/package-lock.json' || 'internal/contracts/contracts.go' }}
       - if: inputs.native
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:

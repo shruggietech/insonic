@@ -152,6 +152,18 @@ class ReleaseDeliveryTests(unittest.TestCase):
         self.assertEqual(candidate['properties']['tag']['const'], 'v' + VERSION)
         self.assertEqual(candidate['properties']['packages']['items']['properties']['product_version']['const'], VERSION)
 
+    def test_preparation_advances_owned_asset_examples_and_common_description(self):
+        schema = release.read_json(self.root / f'schemas/v{VERSION}/release-candidate.schema.json')
+        expected = {f'insonic_{VERSION}_{platform}_{variant}' + ('.tar.gz' if platform == 'linux_amd64' else '.zip')
+                    for platform in release.PLATFORMS for variant in release.VARIANTS}
+        for example in schema['examples']:
+            self.assertEqual({item['archive'] for item in example['packages']}, expected)
+            self.assertEqual({item['name'] for item in example['assets'] if item['name'].startswith('insonic_')}, expected)
+        common = release.read_json(self.root / f'schemas/v{VERSION}/common.schema.json')
+        self.assertTrue(common['description'].startswith(f'Shared logical types for the v{VERSION} contract.'))
+        self.assertEqual((self.root / f'schemas/v{CURRENT}/common.schema.json').read_bytes(),
+                         (ROOT / f'schemas/v{CURRENT}/common.schema.json').read_bytes())
+
     def test_next_preparation_preserves_upstream_versions_equal_to_owned_version(self):
         upstream = self.root / 'tests/fixtures/cueson/upstream.json'
         upstream.parent.mkdir(parents=True, exist_ok=True)

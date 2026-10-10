@@ -135,8 +135,21 @@ def rewrite_owned_schema(node, old, new, fields=None, context=None):
     if isinstance(node, str):
         if context in fields and node == old: return new
         if context == 'tag' and node == 'v' + old: return 'v' + new
+        package = re.fullmatch(r'insonic_' + VERSION_PATTERN + r'_(windows_amd64|linux_amd64|darwin_arm64)_(cli|desktop)\.(?:zip|tar\.gz)', node)
+        if package:
+            extension = '.tar.gz' if package[1] == 'linux_amd64' else '.zip'
+            return f'insonic_{new}_{package[1]}_{package[2]}{extension}'
         return node.replace(f'https://raw.githubusercontent.com/{REPOSITORY}/v{old}/schemas/v{old}/', f'https://raw.githubusercontent.com/{REPOSITORY}/v{new}/schemas/v{new}/')
     return node
+
+
+def prepare_schema(value, filename, old, version):
+    fields = {'schema_version'} | ({'version', 'product_version', 'documentation_version', 'tag'} if filename == 'release-candidate.schema.json' else set())
+    value = rewrite_owned_schema(value, old, version, fields)
+    if filename == 'common.schema.json':
+        value['description'] = re.sub(r'^Shared logical types for the v' + VERSION_PATTERN + r' contract(?: baseline)?\.',
+                                      f'Shared logical types for the v{version} contract.', value['description'])
+    return value
 
 
 def glossary_scan(directory):
@@ -216,8 +229,7 @@ def prepare(version, date, highlights, root=ROOT):
                 frozen[destination] = source.read_bytes()
     frozen[docs / 'references/CHANGELOG.md'] = changelog.encode('utf-8')
     for source in (root / f'schemas/v{old}').glob('*.json'):
-        fields = {'schema_version'} | ({'version', 'product_version', 'documentation_version', 'tag'} if source.name == 'release-candidate.schema.json' else set())
-        value = rewrite_owned_schema(read_json(source), old, version, fields)
+        value = prepare_schema(read_json(source), source.name, old, version)
         frozen[schemas / source.name] = (json.dumps(value, indent=2) + '\n').encode('utf-8')
     changes[root / 'VERSION'] = version + '\n'
     # Roll back all activation files on an I/O or final consistency failure.

@@ -61,7 +61,7 @@ site/ go.mod go.sum                 # candidate status and exact dependency upda
 
 ## Decisions and Measurement
 
-[research.md](research.md) records D01-D12. CI artifacts identify the actual clean PR merge SHA, with branch head separately reported. Squash merge requires a new exact-main release candidate. Publisher identity/deployment settings are currently absent; report that disposition without provisioning them. Actual local paths stay in ignored harness configuration.
+[research.md](research.md) records D01-D13. CI artifacts identify the actual clean PR merge SHA, with branch head separately reported. Squash merge requires a new exact-main release candidate. Publisher identity/deployment settings are currently absent; report that disposition without provisioning them. Actual local paths stay in ignored harness configuration.
 
 ## Complexity Tracking
 

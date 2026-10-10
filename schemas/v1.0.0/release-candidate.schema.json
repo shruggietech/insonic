@@ -323,7 +323,7 @@
           "variant": "cli",
           "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "source_dirty": false,
-          "archive": "insonic_0.0.0_windows_amd64_cli.zip",
+          "archive": "insonic_1.0.0_windows_amd64_cli.zip",
           "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "archive_size_bytes": 1,
           "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
@@ -347,7 +347,7 @@
           "variant": "desktop",
           "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "source_dirty": false,
-          "archive": "insonic_0.0.0_windows_amd64_desktop.zip",
+          "archive": "insonic_1.0.0_windows_amd64_desktop.zip",
           "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "archive_size_bytes": 1,
           "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
@@ -371,7 +371,7 @@
           "variant": "cli",
           "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "source_dirty": false,
-          "archive": "insonic_0.0.0_linux_amd64_cli.zip",
+          "archive": "insonic_1.0.0_linux_amd64_cli.tar.gz",
           "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "archive_size_bytes": 1,
           "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
@@ -395,7 +395,7 @@
           "variant": "desktop",
           "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "source_dirty": false,
-          "archive": "insonic_0.0.0_linux_amd64_desktop.zip",
+          "archive": "insonic_1.0.0_linux_amd64_desktop.tar.gz",
           "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "archive_size_bytes": 1,
           "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
@@ -419,7 +419,7 @@
           "variant": "cli",
           "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "source_dirty": false,
-          "archive": "insonic_0.0.0_darwin_arm64_cli.zip",
+          "archive": "insonic_1.0.0_darwin_arm64_cli.zip",
           "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "archive_size_bytes": 1,
           "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
@@ -443,7 +443,7 @@
           "variant": "desktop",
           "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "source_dirty": false,
-          "archive": "insonic_0.0.0_darwin_arm64_desktop.zip",
+          "archive": "insonic_1.0.0_darwin_arm64_desktop.zip",
           "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "archive_size_bytes": 1,
           "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
@@ -461,32 +461,32 @@
       ],
       "assets": [
         {
-          "name": "insonic_0.0.0_windows_amd64_cli.zip",
+          "name": "insonic_1.0.0_windows_amd64_cli.zip",
           "size_bytes": 1,
           "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         },
         {
-          "name": "insonic_0.0.0_windows_amd64_desktop.zip",
+          "name": "insonic_1.0.0_windows_amd64_desktop.zip",
           "size_bytes": 1,
           "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         },
         {
-          "name": "insonic_0.0.0_linux_amd64_cli.zip",
+          "name": "insonic_1.0.0_linux_amd64_cli.tar.gz",
           "size_bytes": 1,
           "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         },
         {
-          "name": "insonic_0.0.0_linux_amd64_desktop.zip",
+          "name": "insonic_1.0.0_linux_amd64_desktop.tar.gz",
           "size_bytes": 1,
           "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         },
         {
-          "name": "insonic_0.0.0_darwin_arm64_cli.zip",
+          "name": "insonic_1.0.0_darwin_arm64_cli.zip",
           "size_bytes": 1,
           "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         },
         {
-          "name": "insonic_0.0.0_darwin_arm64_desktop.zip",
+          "name": "insonic_1.0.0_darwin_arm64_desktop.zip",
           "size_bytes": 1,
           "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         },

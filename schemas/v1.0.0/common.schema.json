@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/common.schema.json",
   "title": "insonic common contract definitions",
-  "description": "Shared logical types for the v0.0.0 contract baseline. This resource defines reusable values and is not a standalone application document envelope. Format annotations require a format-aware validator; semantic comparisons and timezone resolution remain application validation.",
+  "description": "Shared logical types for the v1.0.0 contract. This resource defines reusable values and is not a standalone application document envelope. Format annotations require a format-aware validator; semantic comparisons and timezone resolution remain application validation.",
   "$defs": {
     "uuid": {
       "type": "string",

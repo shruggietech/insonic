@@ -41,8 +41,8 @@ The current index and landing/docs pages identify an unpublished candidate. Base
 | Check | Result |
 | --- | --- |
 | `npm run check` | PASS; UTF-8/BOM/LF/mojibake, Markdown/navigation/JSON/YAML/kit checks and 23 schemas/21 contracts/28 examples. |
-| `npm test` | PASS, 81 tests. |
-| Python maintainer tests | PASS, 97 tests, including Windows native credential lifecycle. |
+| `npm test` | PASS, 82 tests. |
+| Python maintainer tests | PASS, 102 tests, including Windows native credential lifecycle and both review rounds' regressions. |
 | Processing worker tests | PASS, 16 deterministic tests; no acoustic inference. |
 | `go test ./...` | PASS, all packages. |
 | `go vet ./...` | PASS. |
@@ -63,6 +63,12 @@ Pending official PR publication, six native variants/candidate collection, final
 Also corrected future preparation when upstream Cueson and insonic share a version number: upstream fixture bytes and external tags remain unchanged. The regression failed before the fix. Initial CI and review disposition remain in progress; a second review has not yet been requested.
 
 The first CI attempt built and retained the cold Windows source-media cache (405.969 seconds of FFmpeg compilation), exceeding the ten-minute overall turnaround target. Five native package variants passed; the Windows desktop job stopped before assembly when its pinned OpenSSL download timed out. Acquisition now retries transient network failures up to three times within a 60-second acquisition budget, preserves the exact checksum/size limit, installs only verified bytes atomically and removes partial downloads. Corrupt bytes and permanent HTTP failures are not retried. Dedicated tests cover recovery, identity rejection, repeated failures, cache reuse and exhausted budget. A complete cached candidate run remains required.
+
+The authorized second review on `b9a4f79` produced one additional finding: current schema examples retained baseline archive names and incorrect Linux ZIP formats, plus baseline common-type description text. Preparation now derives owned package names/formats for the selected version and updates only the owned common-type introduction. Corrected the current two schemas while preserving the immutable baseline. The new preparation regression failed before correction, then passed with the full 102-test Python suite, repository/schema checks and actual public/offline contract rendering. Both first-round threads are answered/resolved. No third review will be requested.
+
+[The first complete candidate run](https://github.com/shruggietech/insonic/actions/runs/38025395531) passed all six real packages, all platform native/credential/bridge checks and the full alternative-backend fixture matrix on branch head `b9a4f7994d0150bb9b399ddaa74ed171c669bf4b`. Its clean actual build revision is `ba69f6d0750dae8aa19a551189eac1de6f3c14d0`, attempt 1. [Retained candidate/CI receipt](evidence/candidate-ci-first.json) records all six source-complete package inventories/hashes, matching public/offline archives and artifact digest. Collection executed its actual selected-source verifier, rather than relying on fixture archives.
+
+Execution took 617 seconds (10m17s), plus 93 seconds queued behind the cancelled failed run, for 710 seconds total. This exceeds the target. Native jobs restored the existing core Go cache primary key and explicitly skipped saving their tagged/native additions. Runtime/desktop now share a distinct dependency/frontend-bound native key, and CLI has its own key; core cache scope and every check remain. The new key must first be retained, then a complete warm run measured. This is a correction in progress, not an accepted timing waiver.
 
 ## Readiness and unexecuted behavior
 
