@@ -30,7 +30,7 @@
 - [x] T011 [US2] Add same-run/attempt producer-consumer, read-only collection and retained-full-check regressions in `tests/ci-scope.test.mjs` or `tests/release-versions.test.mjs` (FR-006, FR-007, FR-011).
 - [x] T012 [US2] Add independent complete package/runtime lanes, successful archive uploads and read-only candidate collection in `.github/workflows/native-qualification.yml` and `.github/workflows/ci.yml` (FR-006, FR-007, FR-011).
 - [x] T013 [US2] Prepare 1.0.0 through corrected `scripts/release.py`, updating current owned bindings and creating `docs/v1.0.0/`/`schemas/v1.0.0/` without changing baseline bytes (FR-005).
-- [ ] T014 [US2] Qualify all six native variants and validate real exact-source collection, recording signing/deployment disposition and actual complete cached timing in `specs/015-v1-release-qualification/verification.md` (FR-006, FR-007, FR-010, FR-011, SC-003).
+- [x] T014 [US2] Qualify all six native variants and validate real exact-source collection, recording signing/deployment disposition and actual complete cached timing in `specs/015-v1-release-qualification/verification.md` (FR-006, FR-007, FR-010, FR-011, SC-003).
 
 ## Phase 5: User Story 3, major-version documentation
 
@@ -43,8 +43,8 @@
 ## Phase 6: Integration and owner handoff
 
 - [x] T018 Run repository/schema/Node/Python/Go/vet/affected-race/frontend/site parity and retain results in `specs/015-v1-release-qualification/verification.md` (FR-011, SC-005).
-- [ ] T019 Run current-code converge and implement any appended remaining work, recording assessment in `specs/015-v1-release-qualification/convergence.md` (FR-011).
-- [ ] T020 Push/open the official PR, complete at most two review rounds, answer/resolve every received finding and verify final-head full CI in `specs/015-v1-release-qualification/verification.md` and the PR (FR-012, SC-005).
+- [x] T019 Run current-code converge and implement any appended remaining work, recording assessment in `specs/015-v1-release-qualification/convergence.md` (FR-011).
+- [x] T020 Push/open the official PR, complete at most two review rounds, answer/resolve every received finding and verify final-head full CI in `specs/015-v1-release-qualification/verification.md` and the PR (FR-012, SC-005).
 
 ## Dependencies and implementation strategy
 
@@ -54,5 +54,5 @@ Deliver the whole approved slice, not only the first independently testable stor
 
 ## Phase 7: Convergence
 
-- [ ] T021 Verify all six real native packages and the exact same-run candidate, retain actual complete cached timing and resolve any failures in `specs/015-v1-release-qualification/verification.md` per FR-006, FR-007, FR-011 and SC-003 (partial).
-- [ ] T022 Complete official PR publication, every received review disposition within two rounds and final-head green checks in `specs/015-v1-release-qualification/verification.md` per FR-012 and SC-005 (missing).
+- [x] T021 Verify all six real native packages and the exact same-run candidate, retain actual complete cached timing and resolve any failures in `specs/015-v1-release-qualification/verification.md` per FR-006, FR-007, FR-011 and SC-003 (partial).
+- [x] T022 Complete official PR publication, every received review disposition within two rounds and final-head green checks in `specs/015-v1-release-qualification/verification.md` per FR-012 and SC-005 (missing).

@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-10
 
-**Status**: Specified
+**Status**: Implemented and qualified (unpublished candidate)
 
 **Input**: Owner-authorized S015 follows the merged portability slice: integrate the new runtime dependencies, exercise complete fresh-workspace behavior with separate real-engine measurements, prepare synchronized 1.0.0 contracts/documentation, qualify six native package variants and assemble a release candidate. Push and official PR publication are authorized; stop after green exact-head checks and all received review findings are resolved, within two review rounds, for owner merge.
 
