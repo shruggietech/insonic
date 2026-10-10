@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { issueBody, runBootstrap } from '../scripts/github-bootstrap.mjs';
+import { issueBody, outcomeLabels, runBootstrap } from '../scripts/github-bootstrap.mjs';
 
 const manifest = {
   repository: 'shruggietech/insonic', description: 'A media orchestrator',
@@ -15,6 +15,29 @@ const manifest = {
 const defaults = [{ id: 'opt-todo', name: 'Todo', color: 'GRAY', description: 'Original description' }, { id: 'opt-done', name: 'Done', color: 'GREEN', description: 'Finished work' }];
 const copy = value => structuredClone(value);
 const arg = (args, name) => args[args.indexOf(name) + 1];
+
+test('canonical outcomes have one type, priority and effort and meaningful areas', () => {
+  const canonical = copy(manifest);
+  canonical.taxonomy = { type: ['epic'], priority: ['medium'], effort: ['xl'], area: ['platform', 'testing'] };
+  canonical.labels.push(...['type: epic', 'priority: medium', 'effort: xl', 'area: platform', 'area: testing'].map(name => ({ name, color: '123456' })));
+  Object.assign(canonical.issues[0], { type: 'epic', priority: 'medium', effort: 'xl', areas: ['platform', 'testing'] });
+  assert.deepEqual(outcomeLabels(canonical.issues[0], canonical), ['work-slice', 'type: epic', 'priority: medium', 'effort: xl', 'area: platform', 'area: testing']);
+  const { state, command } = mockGitHub();
+  runBootstrap(canonical, { apply: true, command });
+  assert.deepEqual(state.issues[0].labels, outcomeLabels(canonical.issues[0], canonical));
+  assert.equal([...state.items.values()][0].values['field-Priority'], 'medium');
+  assert.equal([...state.items.values()][0].values['field-Area'], 'platform, testing');
+  state.issues[0].state = 'closed'; state.issues[0].title = 'Owner edited title';
+  state.issues[0].body += '\n\nOwner corrections'; state.issues[0].labels = ['owner-history'];
+  const historical = copy(state.issues[0]); state.calls = [];
+  runBootstrap(canonical, { apply: true, command });
+  assert.deepEqual(state.issues[0], historical);
+  assert.equal(itemEdits(state).length, 0);
+  assert.ok(!state.calls.some(call => call.args[1].includes('/issues') && call.args.includes('PATCH')));
+  canonical.issues[0].priority = 'unapproved'; let called = false;
+  assert.throws(() => runBootstrap(canonical, { apply: true, command: () => { called = true; } }), /Invalid priority/);
+  assert.equal(called, false);
+});
 
 test('bootstrap preserves zero mandatory human approvals and detects an obsolete approval gate', () => {
   const { state, command } = mockGitHub();

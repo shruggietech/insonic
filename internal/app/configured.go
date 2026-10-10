@@ -28,6 +28,15 @@ func pipelineDefinition(p catalog.Pipeline) (pipeline.Definition, error) {
 	return d, pipeline.Validate(p.Preset, d)
 }
 
+func (a *App) configuredPipelineDefinition(p catalog.Pipeline) (pipeline.Definition, error) {
+	bound, e := a.bindPortableConfiguration(p.Configuration)
+	if e != nil {
+		return pipeline.Definition{}, e
+	}
+	p.Configuration = bound
+	return pipelineDefinition(p)
+}
+
 type compileInput struct {
 	PipelineID       string   `json:"pipeline_id,omitempty"`
 	PipelineRevision int64    `json:"pipeline_revision,omitempty"`
@@ -72,7 +81,7 @@ func (a *App) compileRecognitionContext(input compileInput) (speakers.CompiledCo
 		if input.PipelineRevision != 0 && p.Revision != input.PipelineRevision {
 			return speakers.CompiledContext{}, contracts.Fail("conflict")
 		}
-		d, e := pipelineDefinition(p)
+		d, e := a.configuredPipelineDefinition(p)
 		if e != nil {
 			return speakers.CompiledContext{}, e
 		}
@@ -138,7 +147,7 @@ func (a *App) configuredDispatch(req contracts.Request) (any, error) {
 		if input.Revision != 0 && input.Revision != p.Revision {
 			return nil, contracts.Fail("conflict")
 		}
-		d, e := pipelineDefinition(p)
+		d, e := a.configuredPipelineDefinition(p)
 		if e != nil {
 			return nil, e
 		}

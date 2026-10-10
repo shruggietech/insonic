@@ -22,5 +22,6 @@ export async function buildOffline() {
   const version = getManifest().latest;
   await fs.writeFile(path.join(offline, 'index.html'), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=docs/index.html"><title>insonic ${version} documentation</title></head><body><main><h1>insonic documentation</h1><a href="docs/index.html">Open versioned documentation</a></main></body></html>\n`, 'utf8');
   await fs.writeFile(path.join(offline, 'offline-manifest.json'), `${JSON.stringify({ version, entrypoint: 'docs/index.html', public_landing_included: false }, null, 2)}\n`, 'utf8');
+  await fs.copyFile(path.join(out, 'documentation-build.json'), path.join(offline, 'documentation-build.json'));
   return offline;
 }

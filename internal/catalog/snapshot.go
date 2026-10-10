@@ -104,6 +104,10 @@ func (s *Store) Export(ctx context.Context) (Snapshot, error) {
 	return out, e
 }
 func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
+	return s.restoreSnapshot(ctx, snap, nil)
+}
+
+func (s *Store) restoreSnapshot(ctx context.Context, snap Snapshot, activate func(*sql.Tx) error) error {
 	if snap.Version != contracts.Version || (snap.CatalogSchema != SchemaVersion && snap.CatalogSchema != 1 && snap.CatalogSchema != 2 && snap.CatalogSchema != 5 && snap.CatalogSchema != 6 && snap.CatalogSchema != 7 && snap.CatalogSchema != 8) {
 		return contracts.Fail("incompatible_version")
 	}
@@ -177,7 +181,11 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 		}
 		for _, table := range stateTables {
 			var n int
-			if e := s.row(ctx, tx, "SELECT count(*) FROM "+table.name+" WHERE workspace_id=?", s.workspace).Scan(&n); e != nil {
+			q := "SELECT count(*) FROM " + table.name + " WHERE workspace_id=?"
+			if _, owned := ctx.Value(transferContextKey{}).(transferAuthority); owned && table.name == "workspace_lease" {
+				q += " AND role<>'portable-transfer'"
+			}
+			if e := s.row(ctx, tx, q, s.workspace).Scan(&n); e != nil {
 				return e
 			}
 			if n != 0 {
@@ -204,6 +212,15 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 			for _, r := range data.Rows {
 				if len(r) != len(cols) {
 					return contracts.Fail("invalid_request")
+				}
+				if _, owned := ctx.Value(transferContextKey{}).(transferAuthority); owned && table.name == "workspace_lease" {
+					var role string
+					if strict(r[0], &role) != nil {
+						return contracts.Fail("invalid_request")
+					}
+					if role == "portable-transfer" {
+						continue
+					}
 				}
 				args := []any{s.workspace}
 				for j, raw := range r {
@@ -279,7 +296,13 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 		if e = s.validateSpeakerModelState(ctx, tx, snap.Records); e != nil {
 			return e
 		}
-		return s.validateLibraryState(ctx, tx, true)
+		if e = s.validateLibraryState(ctx, tx, true); e != nil {
+			return e
+		}
+		if activate != nil {
+			return activate(tx)
+		}
+		return nil
 	})
 }
 

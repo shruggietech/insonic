@@ -2,6 +2,7 @@
 import importlib.util
 import io
 import json
+from copy import deepcopy
 from pathlib import Path
 import stat
 import tarfile
@@ -17,6 +18,122 @@ spec.loader.exec_module(package)
 
 
 class NativePackageIntegrityTests(unittest.TestCase):
+    def test_macos_bundle_resources_leave_only_native_code_in_macos(self):
+        with tempfile.TemporaryDirectory(prefix='insonic relocated app ') as temporary:
+            root = Path(temporary) / 'insonic.app/Contents/MacOS'
+            root.mkdir(parents=True)
+            names = ['insonic', 'insonic-desktop', 'native/liblbug.dylib', 'LICENSE', 'NOTICE',
+                     'INSTALL.txt', 'help/index.html', 'sources/source-manifest.json',
+                     'companions/cueson/cueson', 'companions/cueson/cueson.schema.json']
+            for name in names:
+                path = root / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(name.encode())
+            contents, resources = package.arrange_macos_bundle(root)
+            self.assertEqual({path.name for path in root.iterdir()}, {'insonic', 'insonic-desktop', 'native'})
+            self.assertEqual((resources / 'INSTALL.txt').read_bytes(), b'INSTALL.txt')
+            self.assertEqual((resources / 'companions/cueson/cueson').read_bytes(), b'companions/cueson/cueson')
+            (resources / 'insonic-companions.json').write_bytes(b'pinned companion manifest')
+            with patch.object(package, 'platform_key', return_value='darwin_arm64'):
+                value = package.inventory(contents, 'a' * 40, {}, {}, 'desktop')
+            package.verify_inventory(contents, value)
+            (resources / 'INSTALL.txt').replace(root / 'INSTALL.txt')
+            with self.assertRaisesRegex(ValueError, 'missing file'):
+                package.verify_inventory(contents, value)
+
+    def source_fixture(self, root):
+        target = root / 'sources'
+        target.mkdir()
+        pin = deepcopy(package.source_module().PIN)
+        sources = package.source_module().source_pins()
+        sources = deepcopy(sources)
+        for name, source in sources.items():
+            path = target / source['name']
+            path.write_bytes(('controlled corresponding source ' + name).encode())
+            source['sha256'] = package.sha(path)
+            if name == 'ffmpeg':
+                pin['sha256'] = source['sha256']
+            elif name == 'lame':
+                pin['lame'] = source
+            else:
+                pin['libraries'][name] = source
+        for name in ['build-media-source.py', 'media_source_build.py', 'process_tree.py', 'REBUILD.txt']:
+            (target / name).write_bytes(b'controlled rebuild recipe')
+        package.write_json(target / 'media-tools.json', {'source_build': pin})
+        receipt = {'source_complete': True, 'sources': sources, 'platform': 'linux_amd64', 'compiler': 'fixture GCC',
+                   'binaries': {'ffmpeg': 'a' * 64, 'ffprobe': 'b' * 64},
+                   'versions': {'ffmpeg': pin['version'], 'ffprobe': pin['version']},
+                   'launcher_sha256': package.sha(target / 'process_tree.py'),
+                   'recipe_sha256': package.sha(target / 'media_source_build.py')}
+        package.write_json(target / 'ffmpeg-build.json', receipt)
+        manifest = {'kind': 'corresponding-sources', 'source_complete': True, 'sources': sources,
+                    'redistribution_closure': package.media_runtime_permissions(receipt),
+                    'build_receipt': 'ffmpeg-build.json', 'files': [
+                        {'path': path.name, 'size_bytes': path.stat().st_size, 'sha256': package.sha(path)}
+                        for path in sorted(target.iterdir())]}
+        package.write_json(target / 'source-manifest.json', manifest)
+        return manifest
+
+    def test_complete_source_closure_detects_missing_changed_and_extra_sources(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manifest = self.source_fixture(root)
+            package.verify_corresponding_sources(root)
+            filename = manifest['sources']['openmpt']['name']
+            original = (root / 'sources' / filename).read_bytes()
+            (root / 'sources' / filename).write_bytes(b'other source version')
+            with self.assertRaisesRegex(ValueError, 'bytes differ'):
+                package.verify_corresponding_sources(root)
+            (root / 'sources' / filename).write_bytes(original)
+            (root / 'sources/extra-source').write_bytes(b'not inventoried')
+            with self.assertRaisesRegex(ValueError, 'unrecorded'):
+                package.verify_corresponding_sources(root)
+            (root / 'sources/extra-source').unlink()
+            (root / 'sources' / filename).unlink()
+            with self.assertRaisesRegex(ValueError, 'bytes differ'):
+                package.verify_corresponding_sources(root)
+
+    def test_a_claimed_complete_receipt_cannot_omit_an_external_decoder(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            manifest = self.source_fixture(root)
+            del manifest['sources']['dav1d']
+            # Even rewriting the receipt and its hash cannot make an incomplete
+            # source closure agree with the configured decoder inputs.
+            receipt_path = root / 'sources/ffmpeg-build.json'
+            receipt = json.loads(receipt_path.read_text())
+            del receipt['sources']['dav1d']
+            manifest['redistribution_closure'] = package.media_runtime_permissions(receipt)
+            package.write_json(receipt_path, receipt)
+            for entry in manifest['files']:
+                if entry['path'] == 'ffmpeg-build.json':
+                    entry.update(sha256=package.sha(receipt_path), size_bytes=receipt_path.stat().st_size)
+            with self.assertRaisesRegex(ValueError, 'complete dependency closure'):
+                package.verify_corresponding_sources(root, manifest)
+
+    def test_configured_signing_failure_never_becomes_verified(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / 'insonic.exe').write_bytes(b'controlled native program')
+            with patch.dict(package.os.environ, {'INSONIC_WINDOWS_SIGN_CERT_SHA1': 'a' * 40}), \
+                 patch.object(package, 'child', side_effect=RuntimeError('signer rejected identity')):
+                with self.assertRaisesRegex(RuntimeError, 'rejected'):
+                    package.sign_native(root, 'windows_amd64')
+            with patch.dict(package.os.environ, {'INSONIC_WINDOWS_SIGN_CERT_SHA1': ''}):
+                self.assertEqual(package.sign_native(root, 'windows_amd64')['status'], 'unconfigured')
+
+    def test_cli_inventory_does_not_require_a_gui_executable(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            names = ['insonic-companions.json', 'LICENSE', 'NOTICE', 'help/index.html', 'INSTALL.txt',
+                     'insonic', 'companions/cueson/cueson', 'companions/cueson/cueson.schema.json']
+            for name in names:
+                path = root / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(b'fixture')
+            value = {'platform': 'linux_amd64', 'variant': 'cli', 'files': [
+                {'path': name, 'size_bytes': 7, 'sha256': package.sha(root / name)} for name in names]}
+            package.verify_inventory(root, value)
+            value['variant'] = 'desktop'
+            with self.assertRaisesRegex(ValueError, 'required'):
+                package.verify_inventory(root, value)
+
     def test_macos_app_transport_exception_is_only_its_loopback_media_host(self):
         info = package.qualify.desktop_application_info()
         self.assertEqual(info['CFBundleExecutable'], 'insonic-desktop')
@@ -145,7 +262,7 @@ class NativePackageIntegrityTests(unittest.TestCase):
 
     def test_qualified_architectures_and_system_source_configuration(self):
         lock = json.loads((ROOT / 'internal/qualification/media-tools.json').read_text())
-        self.assertEqual(lock['source_build']['platform'], 'darwin_arm64')
+        self.assertEqual(set(lock['source_build']['platforms']), {'windows_amd64', 'linux_amd64', 'darwin_arm64'})
         self.assertNotIn('--enable-nonfree', lock['source_build']['configure'])
         self.assertIn('--disable-autodetect', lock['source_build']['configure'])
         environment = package.package_environment()

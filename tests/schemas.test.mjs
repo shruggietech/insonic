@@ -12,9 +12,29 @@ const { master, examples } = validateCatalog(catalog);
 const example = kind => structuredClone(catalog.contracts.find(item => item.schema.properties.kind.const === kind).schema.examples[0]);
 
 test('all documented contracts and local references validate through the release master', () => {
-  assert.equal(catalog.contracts.length, 19);
-  assert.equal(examples, 26);
+  assert.equal(catalog.contracts.length, 21);
+  assert.equal(examples, 28);
   for (const item of catalog.contracts) for (const value of item.schema.examples) assert.equal(master(value), true);
+});
+
+test('backup source and portable authority proofs and configured signing have explicit contracts', () => {
+  const backup = example('workspace-backup');
+  assert.equal(master(backup), true);
+  delete backup.source_catalog_digest;
+  assert.equal(master(backup), false, 'source capture proof cannot be omitted');
+  const release = example('release-candidate');
+  release.packages[0].signing.configured = true;
+  assert.equal(master(release), false, 'configured signing cannot claim unverified success');
+  release.packages[0].signing.verified = true;
+  release.packages[0].signing.status = 'signed';
+  assert.equal(master(release), true, JSON.stringify(master.errors));
+  release.packages[0].signing.configured = false;
+  assert.equal(master(release), false, 'unconfigured signing cannot claim publisher verification');
+  release.packages[0].signing.verified = false;
+  release.packages[0].signing.status = 'unconfigured';
+  assert.equal(master(release), true, JSON.stringify(master.errors));
+  release.packages.pop();
+  assert.equal(master(release), false, 'complete native matrix requires six variants');
 });
 
 test('speaker output snapshots preserve invalidated hosted lineage without inventing retained publications',()=>{

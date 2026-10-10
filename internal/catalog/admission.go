@@ -264,6 +264,12 @@ func (s *Store) validateWorkInput(ctx context.Context, tx *sql.Tx, w Work, initi
 	if want == initialDigest {
 		return nil
 	}
+	if portable, e := s.validatePortableProcessingInput(ctx, tx, w, initialDigest); e != nil || portable {
+		return e
+	}
+	if w.Phase == "portable-source-required" {
+		return s.validatePortableWorkInput(ctx, tx, w, initialDigest)
+	}
 	if w.Kind == "recordings.match" {
 		return s.validateScrubbedSpeakerWorkInput(ctx, tx, w, initialDigest)
 	}

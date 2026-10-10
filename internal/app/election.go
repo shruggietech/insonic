@@ -61,7 +61,7 @@ func (a *App) electRecordingOptions(o RecordingOptions) (RecordingOptions, *reco
 		if o.PipelineRevision != 0 && o.PipelineRevision != p.Revision {
 			return o, nil, contracts.Fail("conflict")
 		}
-		d, e := pipelineDefinition(p)
+		d, e := a.configuredPipelineDefinition(p)
 		if e != nil {
 			return o, nil, e
 		}

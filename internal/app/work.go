@@ -163,6 +163,12 @@ func (a *App) recoverWork() {
 		if item.State != "pending" && item.State != "interrupted" && item.State != "running" {
 			continue
 		}
+		invocation, e := a.portableInvocation(item)
+		if e != nil {
+			// A missing destination tool binding is recoverable configuration.
+			// Keep the elected work queued and retry automatically on the next tick.
+			continue
+		}
 		ready, dependencyError := a.dependenciesReady(item)
 		if !ready && dependencyError == nil {
 			continue
@@ -171,6 +177,7 @@ func (a *App) recoverWork() {
 		if e != nil {
 			continue
 		}
+		claim.Payload = invocation
 		if dependencyError != nil {
 			code := "model_acquisition_failed"
 			if typed, ok := dependencyError.(*contracts.Error); ok {
@@ -222,6 +229,9 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 			}
 			e = err
 			if e == nil && claim.Kind == "models.train" {
+				if original, readErr := a.Catalog.Work(ctx, claim.ID); readErr == nil {
+					_, service.PortableAdapterDigest, _ = a.Catalog.PortableWorkInput(ctx, original)
+				}
 				result, e = service.ExecuteTrain(ctx, claim)
 			}
 			if e == nil && claim.Kind == "recordings.match" {

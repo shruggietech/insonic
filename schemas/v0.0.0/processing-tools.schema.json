@@ -34,6 +34,28 @@
       ],
       "description": "Exact selected native subtitle encoder."
     },
+    "portable_files": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096,
+            "description": "Absolute selected destination-local file path."
+          },
+          "sha256": {
+            "$ref": "common.schema.json#/$defs/sha256",
+            "description": "Expected lowercase SHA-256 of the custom adapter or support file."
+          }
+        },
+        "required": ["path", "sha256"]
+      },
+      "description": "Destination-local hash-pinned custom adapter and support files used to resume portable work. Paths remain outside portable bundles; standard tool roles use the destination's selected tools."
+    },
     "processing": {
       "type": "object",
       "additionalProperties": false,
@@ -154,6 +176,12 @@
         "executable": "/opt/insonic/tools/cueson",
         "executable_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
+      "portable_files": [
+        {
+          "path": "/opt/insonic/speaker-adapter.py",
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        }
+      ],
       "processing": {
         "recognition_python": {
           "path": "/opt/insonic/recognition/bin/python",

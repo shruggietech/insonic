@@ -6,6 +6,21 @@ import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { loadSchemaCatalog, root } from './schema-catalog.mjs';
 
+export function validateOwnedVersions(repository = root) {
+  const version = readFileSync(resolve(repository, 'VERSION'), 'utf8').trim();
+  for (const directory of ['', 'site', 'desktop/frontend']) {
+    const prefix = directory ? `${directory}/` : '';
+    const pkg = JSON.parse(readFileSync(resolve(repository, prefix + 'package.json'), 'utf8'));
+    const lock = JSON.parse(readFileSync(resolve(repository, prefix + 'package-lock.json'), 'utf8'));
+    if (pkg.version !== version || lock.version !== version || lock.packages?.['']?.version !== version) throw new Error(`Software package/lock version mismatch: ${prefix || 'root'}`);
+  }
+  const contracts = readFileSync(resolve(repository, 'internal/contracts/contracts.go'), 'utf8');
+  if (contracts.match(/const Version = "([^"]+)"/)?.[1] !== version) throw new Error('Runtime contract version must match VERSION.');
+  const versions = JSON.parse(readFileSync(resolve(repository, 'docs/versions.json'), 'utf8'));
+  if (versions.latest !== version) throw new Error('Documentation version must match VERSION.');
+  return version;
+}
+
 export function validateCatalog(catalog) {
   const ajv = new Ajv2020({ allErrors: true, strict: true, strictRequired: false });
   addFormats(ajv);
@@ -55,6 +70,7 @@ export function validateCatalog(catalog) {
 }
 
 export function checkSchemas() {
+  validateOwnedVersions();
   const catalog = loadSchemaCatalog();
   const manifest = JSON.parse(readFileSync(resolve(root, 'docs/versions.json'), 'utf8'));
   const packageVersion = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')).version;

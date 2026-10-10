@@ -113,14 +113,17 @@ type Audio struct {
 	Close     func() error
 }
 type Service struct {
-	Catalog     catalog.Catalog
-	Artifacts   *artifact.Service
-	Secrets     contracts.SecretProvider
-	Client      *http.Client
-	Prepare     func(context.Context, catalog.LibraryEntry, processing.AudioOptions) (*Audio, error)
-	Embed       func(context.Context, string, processing.SourceMap, string, string) ([]float64, error)
-	EmbedBatch  func(context.Context, []PreparedInput, string, string) ([][]float64, error)
-	LocalRunner func(context.Context, Adapter, AdapterRequest) (Output, error)
+	// Supplied only by native portable-work recovery, never by caller JSON.
+	PortableAdapterDigest     string
+	BindPortableConfiguration func(json.RawMessage) (json.RawMessage, error)
+	Catalog                   catalog.Catalog
+	Artifacts                 *artifact.Service
+	Secrets                   contracts.SecretProvider
+	Client                    *http.Client
+	Prepare                   func(context.Context, catalog.LibraryEntry, processing.AudioOptions) (*Audio, error)
+	Embed                     func(context.Context, string, processing.SourceMap, string, string) ([]float64, error)
+	EmbedBatch                func(context.Context, []PreparedInput, string, string) ([][]float64, error)
+	LocalRunner               func(context.Context, Adapter, AdapterRequest) (Output, error)
 }
 
 func NewService(artifacts *artifact.Service, db catalog.Catalog, secrets contracts.SecretProvider) *Service {

@@ -75,6 +75,29 @@ func TestRelocatedCompanionsDoNotRetainOldAbsolutePaths(t *testing.T) {
 	}
 }
 
+func TestAppBundleCompanionsResolveUnderRelocatedResources(t *testing.T) {
+	original := filepath.Join(t.TempDir(), "original.app")
+	resources := filepath.Join(original, "Contents", "Resources")
+	manifest := fixture(t, resources)
+	writeManifest(t, resources, manifest)
+	relocated := filepath.Join(filepath.Dir(original), "relocated application.app")
+	if err := os.Rename(original, relocated); err != nil {
+		t.Fatal(err)
+	}
+	executable := filepath.Join(relocated, "Contents", "MacOS", "insonic")
+	tools, found, err := Read(resourceDirectory(executable))
+	if err != nil || !found {
+		t.Fatalf("missing relocated app resources: found=%v error=%v", found, err)
+	}
+	if !strings.Contains(tools.Media.FFmpeg.Path, filepath.Join("Contents", "Resources", "companions")) || strings.Contains(tools.Cueson.Executable, original) {
+		t.Fatal("app companion lookup retained executable-directory or source paths")
+	}
+	plain := filepath.Join(t.TempDir(), "Contents", "MacOS", "insonic")
+	if resourceDirectory(plain) != filepath.Dir(plain) {
+		t.Fatal("non-app installation changed its companion root")
+	}
+}
+
 func TestCompanionTamperAndEscapeNeverBecomeDefaults(t *testing.T) {
 	for _, change := range []string{"bytes", "support", "escape", "absolute", "separator", "platform"} {
 		t.Run(change, func(t *testing.T) {

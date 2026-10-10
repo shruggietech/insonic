@@ -162,8 +162,14 @@ def prepare():
 def native_env():
     values = json.loads((BUILD / 'environment.json').read_text(encoding='utf-8'))
     values['PATH'] = values['INSONIC_NATIVE_LIBRARY'] + os.pathsep + os.environ['PATH']
-    if os.name == 'nt' and Path('C:/msys64/ucrt64/bin').is_dir():
-        values['PATH'] = str(BUILD / 'openssl') + os.pathsep + 'C:/msys64/ucrt64/bin' + os.pathsep + values['PATH']
+    if os.name == 'nt':
+        # Loader dependencies belong to the prepared library, independently of
+        # whether compilation uses the default or an isolated MSYS2 toolchain.
+        compiler = Path(os.environ.get('INSONIC_MSYS2_ROOT', 'C:/msys64')) / 'ucrt64/bin'
+        paths = [str(BUILD / 'openssl')]
+        if compiler.is_dir():
+            paths.append(str(compiler))
+        values['PATH'] = os.pathsep.join(paths + [values['PATH']])
     return values
 
 def cueson_probe(env):
@@ -223,7 +229,7 @@ def native():
     sys.stdout.buffer.write(child([sys.executable, ROOT / "scripts/media-fixtures.py", "--native"]))
     env = native_env()
     cueson = cueson_probe(env)
-    output = child(['go', 'test', '-v', '-tags', 'native_ladybug,system_ladybug', './internal/qualification', './internal/subtitles', './internal/graph', './internal/app'], env=env)
+    output = child(['go', 'test', '-v', '-tags', 'native_ladybug,system_ladybug', './internal/qualification', './internal/subtitles', './internal/graph', './internal/app', './internal/backup'], env=env)
     sys.stdout.buffer.write(output)
     (BUILD / 'native-receipt.json').write_text(json.dumps({'cueson': cueson, 'native_pair': 'passed'}, indent=2) + '\n', encoding='utf-8')
 

@@ -20,6 +20,7 @@ from process_tree import ProcessTree
 ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / 'build/native/media'
 LOCK = json.loads((ROOT / 'internal/qualification/media-tools.json').read_text(encoding='utf-8'))
+PRODUCT_VERSION = (ROOT / 'VERSION').read_text(encoding='utf-8').strip()
 
 
 def sha(path):
@@ -104,37 +105,26 @@ def tool_identity(path, version_output):
 
 
 def prepare_avtool(name, key, os_name):
-    if key == 'darwin_arm64':
-        spec = importlib.util.spec_from_file_location('source_media', ROOT / 'scripts/build-media-source.py')
-        source_media = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(source_media)
-        directory, receipt, source = source_media.prepare()
-        executable = BUILD / name
-        shutil.copyfile(directory / name, executable)
-        executable.chmod(0o755)
-        notices = BUILD / 'notices'
-        notices.mkdir(exist_ok=True)
-        shutil.copyfile(directory / 'COPYING.LGPLv2.1', notices / 'darwin-arm64.LICENSE')
-        for name in ['COPYING', 'LICENSE']:
-            shutil.copyfile(directory / 'lame-source' / name, notices / ('LAME-' + name))
-        (notices / 'darwin-arm64.README').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
-        (ROOT / 'build/native/media-source-build-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
-        return tool_identity(executable, child([executable, '-version'])), {
-            'name': source.name, 'sha256': source_media.SOURCE_SHA256,
-            'license': 'darwin-arm64.LICENSE', 'readme': 'darwin-arm64.README'}
-    selected = LOCK[name]
-    pin = selected['assets'][key]
-    archive = fetch(pin['name'], selected['base_url'] + pin['name'], pin['sha256'])
+    spec = importlib.util.spec_from_file_location('source_media', ROOT / 'scripts/build-media-source.py')
+    source_media = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(source_media)
+    directory, receipt, source = source_media.prepare()
     executable = BUILD / (name + '.exe' if os_name == 'windows' else name)
-    with gzip.open(archive, 'rb') as data, executable.open('wb') as output:
-        shutil.copyfileobj(data, output)
+    shutil.copyfile(directory / executable.name, executable)
     executable.chmod(0o755)
     notices = BUILD / 'notices'
     notices.mkdir(exist_ok=True)
-    for field in ['license', 'readme']:
-        notice = fetch(pin[field], selected['base_url'] + pin[field], pin[field + '_sha256'])
-        shutil.copyfile(notice, notices / pin[field])
-    return tool_identity(executable, child([executable, '-version'])), pin
+    for dependency, pin in source_media.source_pins().items():
+        for notice in pin['notices']:
+            shutil.copyfile(directory / (dependency + '-source') / notice, notices / (dependency + '-' + Path(notice).name))
+    for item in receipt.get('runtime_notices', []):
+        shutil.copyfile(directory / item['path'], notices / Path(item['path']).name)
+    license_name, readme_name = key + '.LICENSE', key + '.README'
+    shutil.copyfile(directory / 'ffmpeg-source/COPYING.LGPLv2.1', notices / license_name)
+    (notices / readme_name).write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8', newline='\n')
+    (ROOT / 'build/native/media-source-build-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8', newline='\n')
+    return tool_identity(executable, child([executable, '-version'])), {
+        'name': source.name, 'sha256': source_media.SOURCE_SHA256, 'license': license_name, 'readme': readme_name}
 
 
 def prepare():
@@ -142,6 +132,11 @@ def prepare():
     arch = {'AMD64': 'amd64', 'x86_64': 'amd64', 'arm64': 'arm64', 'aarch64': 'arm64'}[platform.machine()]
     key = os_name + '_' + arch
     BUILD.mkdir(parents=True, exist_ok=True)
+    notices = BUILD / 'notices'
+    if notices.exists():
+        if notices.is_symlink() or not notices.resolve().is_relative_to(BUILD.resolve()):
+            raise ValueError('media notice refresh escapes controlled build')
+        shutil.rmtree(notices)
     exif = LOCK['exiftool']['windows' if os_name == 'windows' else 'unix']
     archive = fetch(exif['name'], exif['url'], exif['sha256'], exif['integrity'])
     target = BUILD / 'exiftool'
@@ -162,7 +157,7 @@ def prepare():
     support = [{'path': str(path), 'sha256': sha(path)} for path in sorted(target.rglob('*')) if path.is_file() and path != executable]
     probe, pin = prepare_avtool('ffprobe', key, os_name)
     decoder, decoder_pin = prepare_avtool('ffmpeg', key, os_name)
-    tools = {'kind': 'media-tools', 'schema_version': '0.0.0',
+    tools = {'kind': 'media-tools', 'schema_version': PRODUCT_VERSION,
              'exiftool': {'path': str(executable), 'sha256': sha(executable), 'version': exif_version, 'support_files': support},
              'ffprobe': probe, 'ffmpeg': decoder}
     if interpreter:
@@ -189,8 +184,9 @@ def main():
         candidates = list((ROOT / 'build/native/cueson').rglob('cueson.exe' if os.name == 'nt' else 'cueson'))
         if candidates:
             env['CUESON_EXECUTABLE'] = str(candidates[0])
-        if os.name == 'nt' and Path('C:/msys64/ucrt64/bin').is_dir():
-            env['PATH'] = 'C:/msys64/ucrt64/bin' + os.pathsep + os.environ['PATH']
+        compiler_bin = Path(os.environ.get('INSONIC_MSYS2_ROOT', 'C:/msys64')) / 'ucrt64/bin'
+        if os.name == 'nt' and compiler_bin.is_dir():
+            env['PATH'] = str(compiler_bin) + os.pathsep + os.environ['PATH']
         output = child(['go', 'test', '-count=1', '-v', './internal/library', './internal/app',
                         '-run', 'TestNativeMedia|TestNativeCanonical|TestNativeStereo|TestNativeAdmission|TestNativeDirectPlaybackNonzeroSourceClock'], env=env)
         print(output.decode(), end='')

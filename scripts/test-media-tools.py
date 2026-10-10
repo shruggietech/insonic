@@ -18,14 +18,18 @@ spec.loader.exec_module(tools)
 class DecoderPins(unittest.TestCase):
     def test_all_native_platforms_have_matching_decoder_distribution(self):
         lock = json.loads((ROOT / 'internal/qualification/media-tools.json').read_text())
-        self.assertEqual(lock['ffmpeg']['release'], lock['ffprobe']['release'])
-        self.assertEqual(set(lock['ffmpeg']['assets']), set(lock['ffprobe']['assets']))
-        for key, pin in lock['ffmpeg']['assets'].items():
+        source = lock['source_build']
+        self.assertEqual(set(source['platforms']), {'windows_amd64', 'linux_amd64', 'darwin_arm64'})
+        self.assertEqual(set(source['platform_configure']), set(source['platforms']))
+        self.assertNotIn('ffmpeg', lock)
+        self.assertNotIn('ffprobe', lock)
+        self.assertEqual(set(source['libraries']), {'zlib', 'bzip2', 'xz', 'iconv', 'xml2', 'ogg', 'vorbis', 'mpg123', 'gme', 'dav1d', 'openmpt'})
+        for name, pin in source['libraries'].items():
             self.assertRegex(pin['sha256'], r'^[0-9a-f]{64}$')
-            self.assertTrue(pin['name'].startswith('ffmpeg-'))
-            for field in ['license', 'readme']:
-                self.assertEqual(pin[field], lock['ffprobe']['assets'][key][field])
-                self.assertEqual(pin[field + '_sha256'], lock['ffprobe']['assets'][key][field + '_sha256'])
+            self.assertTrue(pin['url'].startswith('https://'))
+            self.assertTrue(pin['root'])
+            self.assertTrue(pin['notices'])
+            self.assertGreater(pin['size_bytes'], 0)
 
     def test_generated_decoder_identity_is_exact(self):
         with self.assertRaises(ValueError):
@@ -40,15 +44,17 @@ class DecoderPins(unittest.TestCase):
     def test_macos_companions_build_from_pinned_redistributable_source(self):
         lock = json.loads((ROOT / 'internal/qualification/media-tools.json').read_text())
         source = lock['source_build']
-        self.assertEqual(source['platform'], 'darwin_arm64')
+        self.assertIn('darwin_arm64', source['platforms'])
         self.assertRegex(source['commit'], r'^[0-9a-f]{40}$')
         self.assertRegex(source['sha256'], r'^[0-9a-f]{64}$')
-        self.assertNotIn('darwin_arm64', lock['ffmpeg']['assets'])
-        self.assertNotIn('darwin_arm64', lock['ffprobe']['assets'])
         self.assertNotIn('--enable-nonfree', source['configure'])
         self.assertNotIn('--enable-gpl', source['configure'])
         self.assertIn('--disable-autodetect', source['configure'])
-        self.assertIn('--enable-videotoolbox', source['configure'])
+        self.assertIn('--enable-videotoolbox', source['platform_configure']['darwin_arm64'])
+        self.assertNotIn('--disable-decoders', source['configure'])
+        self.assertNotIn('--disable-demuxers', source['configure'])
+        for flag in ['--enable-zlib', '--enable-bzlib', '--enable-lzma', '--enable-iconv', '--enable-libxml2', '--enable-libdav1d', '--enable-libgme', '--enable-libopenmpt']:
+            self.assertIn(flag, source['configure'])
         self.assertIn('--enable-encoder=aac,flac,pcm_s16le,pcm_s32le,libmp3lame,subrip,ass,webvtt', source['configure'])
         self.assertIn('--enable-libmp3lame',source['configure'])
         self.assertEqual(source['lame']['sha256'],'ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e')
