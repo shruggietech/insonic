@@ -54,7 +54,7 @@ def candidates(root):
             path = root / f'{platform}-{variant}-receipt.json'; release.write_json(path, receipt); receipts.append(path)
     for name in ('documentation', 'offline-help'):
         with tarfile.open(assets / (name + '.tar.gz'), 'w:gz') as archive:
-            for filename, value in [('release-documentation.json', {'version': VERSION, 'revision': REVISION, 'kind': name}), ('documentation-build.json', {'version': VERSION, 'revision': REVISION, 'source_dirty': False})]:
+            for filename, value in [('release-documentation.json', {'version': VERSION, 'revision': REVISION, 'kind': name}), ('documentation-build.json', {'version': VERSION, 'revision': REVISION, 'source_dirty': False, 'documentation_target': 'release'})]:
                 raw = json.dumps(value).encode(); info = tarfile.TarInfo(filename); info.size = len(raw); archive.addfile(info, io.BytesIO(raw))
     return assets, receipts
 
@@ -151,6 +151,31 @@ class ReleaseDeliveryTests(unittest.TestCase):
         self.assertEqual(candidate['properties']['version']['const'], VERSION)
         self.assertEqual(candidate['properties']['tag']['const'], 'v' + VERSION)
         self.assertEqual(candidate['properties']['packages']['items']['properties']['product_version']['const'], VERSION)
+
+    def test_next_preparation_preserves_upstream_versions_equal_to_owned_version(self):
+        upstream = self.root / 'tests/fixtures/cueson/upstream.json'
+        upstream.parent.mkdir(parents=True, exist_ok=True)
+        upstream.write_text(json.dumps({'schema_version': VERSION, 'upstream_version': VERSION}), encoding='utf-8')
+        page = self.root / f'docs/v{VERSION}/technology.md'
+        upstream_link = f'https://github.com/shruggietech/cueson/blob/v{VERSION}/docs/schema.md'
+        page.write_text(page.read_text() + '\n[Cueson upstream](' + upstream_link + ')\n', encoding='utf-8')
+        release.prepare(NEXT_VERSION, '2026-10-10', 'Candidate update.', self.root)
+        self.assertEqual(json.loads(upstream.read_text())['schema_version'], VERSION)
+        self.assertIn(upstream_link, (self.root / f'docs/v{NEXT_VERSION}/technology.md').read_text())
+
+    def test_candidate_snapshot_cannot_be_published_or_promoted(self):
+        for name in ('documentation', 'offline-help'):
+            with tarfile.open(self.assets / (name + '.tar.gz'), 'w:gz') as archive:
+                for filename, value in [('release-documentation.json', {'version': VERSION, 'revision': REVISION, 'kind': name}), ('documentation-build.json', {'version': VERSION, 'revision': REVISION, 'source_dirty': False, 'documentation_target': 'snapshot'})]:
+                    raw = json.dumps(value).encode(); info = tarfile.TarInfo(filename); info.size = len(raw); archive.addfile(info, io.BytesIO(raw))
+        target = self.candidate()
+        api = GitHubFixture()
+        with self.assertRaisesRegex(ValueError, 'release-target documentation'):
+            release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
+        self.assertFalse(any(call[0] in ('POST', 'PATCH') for call in api.calls))
+        with self.assertRaisesRegex(ValueError, 'release-target documentation'):
+            release.promote(target, {'argv': [str(Path(sys.executable).resolve()), '{archive}']}, api,
+                            lambda args: self.fail('deployment ran'), verify_fixture, self.root, runner)
 
     def test_generated_complete_unsigned_candidate_passes_prepared_release_master(self):
         target = self.candidate(); node = shutil.which('node') or 'C:/nvm4w/nodejs/node.exe'
@@ -257,7 +282,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
         for directory in ('site/out', 'site/offline'):
             path = self.root / directory; path.mkdir(parents=True); (path / 'index.html').write_text('<html></html>')
             release.write_json(path / 'documentation-build.json', {'version': VERSION, 'revision': 'b' * 40, 'source_dirty': False})
-        with self.assertRaisesRegex(ValueError, 'stale'): release.document_archives(self.root / 'doc-assets', REVISION, self.root, runner)
+        with self.assertRaisesRegex(ValueError, 'source'): release.document_archives(self.root / 'doc-assets', REVISION, self.root, runner)
         with tarfile.open(self.assets / 'documentation.tar.gz', 'w:gz') as archive:
             for filename, value in [('release-documentation.json', {'version': VERSION, 'revision': REVISION, 'kind': 'documentation'}), ('documentation-build.json', {'version': VERSION, 'revision': 'b' * 40, 'source_dirty': False})]:
                 raw = json.dumps(value).encode(); info = tarfile.TarInfo(filename); info.size = len(raw); archive.addfile(info, io.BytesIO(raw))

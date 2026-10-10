@@ -15,6 +15,7 @@
 9. **D09, delivery boundary**: Issue #42 and milestone v1.0.0 release candidate track S015. Owner authorized push/official PR and two review rounds; no tag, product release, deployment or merge is performed.
 10. **D10, timing**: Measure full cached CI including candidate collection. Retain all integrity checks. The prior recipe's cold-bootstrap exception does not excuse cached overrun or authorize an unmeasured future cold path.
 11. **D11, measured boundary correction**: The actual pinned Whisper decoder emitted a final 8.08-second endpoint for eight seconds of decoded speech. Rejecting that bounded prediction prevented connected processing. Elect an explicit end/media intersection of at most 250 milliseconds, diagnose each exact change and preserve strict generic adapters, negative/reversed intervals and larger excursions. This follows the existing bounded, diagnosed local-model boundary pattern without extending audio or inventing source timing.
+12. **D12, publication-specific documentation**: First-round review exposed candidate wording persisting after publication and released homepage fallbacks. An elected release workflow builds a release-target snapshot without editing historical source, records its target with exact build identity and requires it before publication, retrieval or promotion. Default PR builds remain candidate snapshots; promotion still requires verified published original assets. Released pages expose exact package names from the supported six-variant matrix.
 
 ## Alternatives considered
 

@@ -115,6 +115,7 @@ test('media and release jobs select the toolkit installed by the pinned MSYS2 ac
 test('fresh release qualification prepares its sibling CLI before the macOS desktop app', () => {
   const workflow = parse(readFileSync(new URL('.github/workflows/release.yml', source), 'utf8'));
   const steps = workflow.jobs.native.steps;
+  assert.equal(workflow.jobs.native.env.INSONIC_DOCUMENTATION_TARGET, 'release');
   const cli = steps.findIndex(step => step.run?.includes('python scripts/qualify.py cli'));
   const desktop = steps.findIndex(step => step.run?.includes('python scripts/qualify.py desktop'));
   const packages = steps.findIndex(step => step.run?.includes('python scripts/package-desktop.py all --variant both'));

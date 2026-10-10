@@ -41,8 +41,8 @@ The current index and landing/docs pages identify an unpublished candidate. Base
 | Check | Result |
 | --- | --- |
 | `npm run check` | PASS; UTF-8/BOM/LF/mojibake, Markdown/navigation/JSON/YAML/kit checks and 23 schemas/21 contracts/28 examples. |
-| `npm test` | PASS, 78 tests. |
-| Python maintainer tests | PASS, 95 tests, including Windows native credential lifecycle. |
+| `npm test` | PASS, 81 tests. |
+| Python maintainer tests | PASS, 97 tests, including Windows native credential lifecycle. |
 | Processing worker tests | PASS, 16 deterministic tests; no acoustic inference. |
 | `go test ./...` | PASS, all packages. |
 | `go vet ./...` | PASS. |
@@ -57,6 +57,10 @@ The earlier local source preparation attempt correctly refused an unconfigured M
 ## External completion
 
 Pending official PR publication, six native variants/candidate collection, final-head CI timing and review disposition. T014 and T020 remain open until their evidence arrives. No success is inferred from workflow text or synthetic archive tests.
+
+2026-10-10: Published [PR #43](https://github.com/shruggietech/insonic/pull/43), attached it to the task and moved issue #42 to In review. The initial automatic Codex review produced two findings: publication archives retaining candidate text, and released homepage state/downloads falling back to specification. Implemented an elected release-target public/offline render, retained in the exact-source build marker, required before publication/retrieval/promotion. Ordinary PR artifacts remain candidate snapshots. Added explicit released homepage state and six exact-tag CLI/desktop links. Both actual local exports passed: release target has six links/no pending controls/a release index; default snapshot has no release links/pending controls/a candidate index. No publication or deployment occurred during these checks.
+
+Also corrected future preparation when upstream Cueson and insonic share a version number: upstream fixture bytes and external tags remain unchanged. The regression failed before the fix. Initial CI and review disposition remain in progress; a second review has not yet been requested.
 
 ## Readiness and unexecuted behavior
 

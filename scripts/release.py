@@ -180,6 +180,7 @@ def prepare(version, date, highlights, root=ROOT):
         for path in paths:
             if not path.is_file() or path.suffix not in ('.go', '.mjs', '.tsx', '.ts', '.py', '.json'): continue
             if path.relative_to(root).as_posix() in ('tests/check.test.mjs', 'tests/ci-scope.test.mjs'): continue
+            if path.is_relative_to(root / 'tests/fixtures/cueson'): continue
             if 'schemas' in path.parts and path.parent.name.startswith('v'): continue
             if path.suffix == '.json' and not path.is_relative_to(root / 'tests'): continue
             text = path.read_text(encoding='utf-8')
@@ -197,7 +198,13 @@ def prepare(version, date, highlights, root=ROOT):
         target = docs / path.relative_to(source_docs)
         frozen[target] = path.read_bytes()
         if path.suffix == '.md' and 'references' not in path.relative_to(source_docs).parts:
-            text = path.read_text(encoding='utf-8').replace('v' + old, 'v' + version)
+            text = path.read_text(encoding='utf-8')
+            # Only owned routes and the product index advance. Upstream tags
+            # can share the same numeric version and keep their own authority.
+            text = text.replace(f'https://raw.githubusercontent.com/{REPOSITORY}/v{old}/schemas/v{old}/', f'https://raw.githubusercontent.com/{REPOSITORY}/v{version}/schemas/v{version}/')
+            text = text.replace(f'schemas/v{old}/', f'schemas/v{version}/').replace(f'docs/v{old}/', f'docs/v{version}/')
+            if path.name == 'index.md':
+                text = re.sub(r'(?m)^(# insonic v|v)' + re.escape(old) + r'(?=\s|$)', lambda match: match[1] + version, text)
             text = re.sub(r'("schema_version"\s*:\s*")' + re.escape(old) + r'(")', lambda match: match[1] + version + match[2], text)
             if path.name == 'index.md':
                 text = re.sub(r'(?m)^v' + re.escape(version) + r' (?:is a specification baseline|documents (?:this release|the prepared release candidate))[^\n]*', f'v{version} documents the prepared release candidate. Official product downloads have not been published; package availability and executed qualification are recorded in its candidate manifest.', text)
@@ -274,7 +281,19 @@ def verify_selected_package(path, receipt, verifier, source_root):
         verifier(path, receipt)
 
 
-def verify_documentation(path, version, revision):
+def verify_documentation_build(marker, version, revision, require_release=False):
+    fields = {'version', 'revision', 'source_dirty'}
+    if not isinstance(marker, dict) or set(marker) not in (fields, fields | {'documentation_target'}) or marker.get('version') != version or marker.get('revision') != revision or marker.get('source_dirty') is not False:
+        raise ValueError('documentation build source differs from candidate')
+    target = marker.get('documentation_target', 'snapshot')
+    if target not in ('snapshot', 'release'):
+        raise ValueError('invalid documentation publication target')
+    if require_release and target != 'release':
+        raise ValueError('publication requires release-target documentation, not a candidate snapshot')
+    return target
+
+
+def verify_documentation(path, version, revision, require_release=False):
     with tarfile.open(path, 'r:gz') as archive:
         names = set()
         for member in archive.getmembers():
@@ -285,7 +304,7 @@ def verify_documentation(path, version, revision):
         identity = json.load(archive.extractfile('release-documentation.json'))
         if identity != {'version': version, 'revision': revision, 'kind': path.name.removesuffix('.tar.gz')}: raise ValueError('documentation identity differs from candidate')
         marker = json.load(archive.extractfile('documentation-build.json'))
-        if marker != {'version': version, 'revision': revision, 'source_dirty': False}: raise ValueError('documentation build source differs from candidate')
+        return verify_documentation_build(marker, version, revision, require_release)
 
 
 def candidate(receipts, assets, output, revision, root=ROOT, verifier=verify_package, runner=child):
@@ -333,7 +352,7 @@ def document_archives(output, revision, root=ROOT, runner=child):
     output.mkdir(parents=True, exist_ok=True)
     for name, directory in [('documentation', root / 'site/out'), ('offline-help', root / 'site/offline')]:
         if not (directory / 'index.html').is_file(): raise ValueError('documentation export is missing')
-        if read_json(directory / 'documentation-build.json') != {'version': version, 'revision': revision, 'source_dirty': False}: raise ValueError('documentation export is stale or dirty')
+        verify_documentation_build(read_json(directory / 'documentation-build.json'), version, revision)
         identity = {'version': version, 'revision': revision, 'kind': name}
         with tempfile.TemporaryDirectory() as temporary:
             marker = Path(temporary) / 'release-documentation.json'; write_json(marker, identity)
@@ -527,6 +546,8 @@ def published_candidate(output, revision, api, root=ROOT, runner=child, verifier
             if file_entry(path) != {'name': asset['name'], 'size_bytes': asset['size'], 'sha256': asset['digest'].removeprefix('sha256:')}:
                 raise ValueError('downloaded published candidate bytes changed')
         value, expected = load_candidate(staged, verifier, root)
+        for name in ('documentation.tar.gz', 'offline-help.tar.gz'):
+            verify_documentation(staged / name, value['version'], value['revision'], require_release=True)
         if value['version'] != version or value['revision'] != revision or value['tag'] != tag:
             raise ValueError('published candidate identity differs from the selected release')
         remote_assets(api, release, expected)
@@ -562,6 +583,8 @@ def publish(directory, highlights, api, root=ROOT, runner=child, verifier=verify
     trusted_history(read_json(directory / 'release-manifest.json').get('revision'), api, trusted_root or root, runner)
     value, expected = load_candidate(directory, verifier, root)
     if versions(root) != value['version'] or value['version'] == '0.0.0': raise ValueError('publication requires prepared release versions')
+    for name in ('documentation.tar.gz', 'offline-help.tar.gz'):
+        verify_documentation(directory / name, value['version'], value['revision'], require_release=True)
     exact_source(value['revision'], root, runner, value['tag'])
     verify_tag(api, value['tag'], value['revision'])
     checks = api.call('GET', f'repos/{REPOSITORY}/commits/{value["revision"]}/check-runs?per_page=100')
@@ -645,6 +668,8 @@ def promote(directory, config, api, runner=child, verifier=verify_package, trust
     trusted_history(read_json(directory / 'release-manifest.json').get('revision'), api, trusted_root, history_runner)
     deployment_environment(api)
     value, expected = load_candidate(directory, verifier, source_root)
+    for name in ('documentation.tar.gz', 'offline-help.tar.gz'):
+        verify_documentation(directory / name, value['version'], value['revision'], require_release=True)
     verify_tag(api, value['tag'], value['revision'])
     release = api.call('GET', f'repos/{REPOSITORY}/releases/tags/{value["tag"]}')
     if not release or release.get('draft') is not False or release.get('target_commitish') != value['revision']: raise ValueError('documentation promotion requires the exact published release')

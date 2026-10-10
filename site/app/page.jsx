@@ -2,11 +2,13 @@
 import { getManifest, versionPath } from '../lib/docs.mjs';
 import { getBrandMessaging } from '../lib/brand.mjs';
 import ArchivePreview from './components/ArchivePreview.jsx';
+import { releaseDownloads } from '../lib/release-status.mjs';
 
 export default function Home() {
   const manifest = getManifest();
   const brand = getBrandMessaging();
   const latest = manifest.versions.find((entry) => entry.version === manifest.latest);
+  const released = latest.status === 'released';
   return (
     <main id="main" className="landing product-landing" data-public-landing="true">
       <section className="product-hero" aria-labelledby="product-heading">
@@ -19,7 +21,7 @@ export default function Home() {
             <a className="button" href="#downloads">Download insonic <span aria-hidden="true">↓</span></a>
             <a className="button button-secondary" href={versionPath(latest.version, latest.pages[0].slug)}>Read the docs <span aria-hidden="true">→</span></a>
           </div>
-          <p className="product-stage">v{latest.version} {latest.status === 'candidate' ? 'prepared release candidate' : 'system specification'}. Official product downloads have not been published.</p>
+          <p className="product-stage">v{latest.version} {released ? 'released. Official packages are available below.' : latest.status === 'candidate' ? 'prepared release candidate. Official product downloads have not been published.' : 'system specification. Official product downloads have not been published.'}</p>
           <p className="product-platforms">Windows · macOS · Linux <span>CLI + desktop</span></p>
         </div>
         <ArchivePreview />
@@ -43,9 +45,9 @@ export default function Home() {
       </section>
       <section id="downloads" className="product-section download-section" aria-labelledby="download-heading">
         <p className="eyebrow">CLI + desktop</p><h2 id="download-heading">Download insonic.</h2>
-        <p>Release packages for macOS, Windows and Linux appear here after publication. v{latest.version} {latest.status === 'candidate' ? 'is a prepared release candidate' : 'is the system specification baseline'}; official product downloads have not been published.</p>
+        <p>{released ? `Download v${latest.version} for macOS, Windows or Linux. Choose the desktop application with its CLI or the CLI-only package.` : `v${latest.version} ${latest.status === 'candidate' ? 'is a prepared release candidate' : 'is the system specification baseline'}; official product downloads have not been published.`}</p>
         <div className="download-grid">
-          {['macOS', 'Windows', 'Linux'].map(platform => <article key={platform}><h3>{platform}</h3><p>Desktop + CLI</p><button type="button" disabled>{platform} download pending</button></article>)}
+          {releaseDownloads(latest.version).map(platform => <article key={platform.label}><h3>{platform.label}</h3><p>Desktop + CLI</p>{released ? <><a className="button" href={platform.desktop}>Download desktop + CLI</a><a className="text-action" href={platform.cli}>Download CLI only</a></> : <button type="button" disabled>{platform.label} download pending</button>}</article>)}
         </div>
         <a className="text-action" href={versionPath(latest.version, 'desktop')}>Installation and packaging requirements <span aria-hidden="true">→</span></a>
       </section>
