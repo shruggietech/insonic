@@ -62,6 +62,8 @@ Pending official PR publication, six native variants/candidate collection, final
 
 Also corrected future preparation when upstream Cueson and insonic share a version number: upstream fixture bytes and external tags remain unchanged. The regression failed before the fix. Initial CI and review disposition remain in progress; a second review has not yet been requested.
 
+The first CI attempt built and retained the cold Windows source-media cache (405.969 seconds of FFmpeg compilation), exceeding the ten-minute overall turnaround target. Five native package variants passed; the Windows desktop job stopped before assembly when its pinned OpenSSL download timed out. Acquisition now retries transient network failures up to three times within a 60-second acquisition budget, preserves the exact checksum/size limit, installs only verified bytes atomically and removes partial downloads. Corrupt bytes and permanent HTTP failures are not retried. Dedicated tests cover recovery, identity rejection, repeated failures, cache reuse and exhausted budget. A complete cached candidate run remains required.
+
 ## Readiness and unexecuted behavior
 
 Read-only repository inspection found no signing/deployment variables, no repository secret names and no documentation-deployment environment. Signing/notarization and hosted deployment are unconfigured, not qualified. No identities, hosts or credentials were provisioned. No product tag, release, deployment or owner merge was performed.

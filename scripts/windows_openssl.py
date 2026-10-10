@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 import sys
 import tarfile
+import time
+import urllib.error
 import urllib.request
 import zipfile
 
@@ -14,6 +16,41 @@ BUILD = ROOT / 'build/native'
 SELECTED = {'Library/bin/libssl-3-x64.dll': 'libssl-3-x64.dll',
             'Library/bin/libcrypto-3-x64.dll': 'libcrypto-3-x64.dll',
             'info/licenses/LICENSE.txt': 'OpenSSL-LICENSE.txt'}
+
+def fetch_archive(pin, archive):
+    if archive.is_file() and hashlib.sha256(archive.read_bytes()).hexdigest() == pin['sha256']:
+        return
+    deadline = time.monotonic() + 60
+    temporary = archive.with_suffix('.download')
+    try:
+        for attempt in range(3):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError('OpenSSL acquisition budget exceeded')
+            try:
+                request = urllib.request.Request(pin['url'], headers={'User-Agent': 'insonic-native-qualification'})
+                with urllib.request.urlopen(request, timeout=min(20, remaining)) as source, temporary.open('wb') as output:
+                    size = 0
+                    while True:
+                        if time.monotonic() >= deadline:
+                            raise TimeoutError('OpenSSL acquisition deadline reached')
+                        chunk = source.read(1024 * 1024)
+                        if not chunk:
+                            break
+                        size += len(chunk)
+                        if size > 32 << 20:
+                            raise ValueError('oversized OpenSSL archive')
+                        output.write(chunk)
+                break
+            except (urllib.error.URLError, TimeoutError, ConnectionError) as error:
+                if (isinstance(error, urllib.error.HTTPError) and error.code not in [408, 429, 500, 502, 503, 504]) or attempt == 2:
+                    raise
+                time.sleep(attempt + 1)
+        if hashlib.sha256(temporary.read_bytes()).hexdigest() != pin['sha256']:
+            raise ValueError('OpenSSL archive checksum mismatch')
+        temporary.replace(archive)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 def extract_members(source, destination, found):
     for entry in source:
@@ -35,12 +72,7 @@ def prepare():
     pin = json.loads((ROOT / 'internal/qualification/dependencies.json').read_text())['windows_openssl']
     BUILD.mkdir(parents=True, exist_ok=True)
     archive = BUILD / pin['filename']
-    if not archive.is_file() or hashlib.sha256(archive.read_bytes()).hexdigest() != pin['sha256']:
-        with urllib.request.urlopen(pin['url'], timeout=30) as source:
-            data = source.read((32 << 20) + 1)
-        if len(data) > 32 << 20 or hashlib.sha256(data).hexdigest() != pin['sha256']:
-            raise ValueError('OpenSSL archive checksum mismatch')
-        archive.write_bytes(data)
+    fetch_archive(pin, archive)
     sys.path.insert(0, str(BUILD / 'python'))
     import zstandard
     destination = BUILD / 'openssl'
