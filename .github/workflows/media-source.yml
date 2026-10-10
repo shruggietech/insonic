@@ -111,7 +111,7 @@ jobs:
       - if: steps.ready.outputs.ready == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: media-source-${{ inputs.os }}
+          name: media-source-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer/media-source.tar.gz
           if-no-files-found: error
           retention-days: 3
@@ -181,7 +181,7 @@ jobs:
         run: python scripts/media-transfer.py pack --stage ${{ matrix.group }} --revision "$SOURCE_REVISION" --output build/transfer/dependencies-${{ matrix.group }}.tar.gz
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: media-dependencies-${{ inputs.os }}-${{ matrix.group }}
+          name: media-dependencies-${{ inputs.os }}-${{ matrix.group }}-${{ github.run_attempt }}
           path: build/transfer/dependencies-${{ matrix.group }}.tar.gz
           if-no-files-found: error
           retention-days: 3
@@ -242,7 +242,7 @@ jobs:
       - if: steps.formats_ready.outputs.ready != 'true'
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
-          pattern: media-dependencies-${{ inputs.os }}-*
+          pattern: media-dependencies-${{ inputs.os }}-*-${{ github.run_attempt }}
           path: build/transfer
           merge-multiple: true
       - name: Verify and restore this run's exact independent dependency prefixes
@@ -256,7 +256,7 @@ jobs:
         run: python scripts/media-transfer.py pack --stage dependencies --revision "$SOURCE_REVISION" --output build/transfer/dependency-formats.tar.gz
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: media-formats-${{ inputs.os }}
+          name: media-formats-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer/dependency-formats.tar.gz
           if-no-files-found: error
           retention-days: 3
@@ -324,7 +324,7 @@ jobs:
       - if: steps.complete_ready.outputs.ready != 'true'
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
-          name: media-formats-${{ inputs.os }}
+          name: media-formats-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer
       - name: Verify and restore this run's exact full static dependency closure
         if: steps.complete_ready.outputs.ready != 'true'
@@ -359,7 +359,7 @@ jobs:
         run: python scripts/media-transfer.py pack --stage complete --revision "$SOURCE_REVISION" --output build/transfer/media-source.tar.gz
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: media-source-${{ inputs.os }}
+          name: media-source-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer/media-source.tar.gz
           if-no-files-found: error
           retention-days: 3

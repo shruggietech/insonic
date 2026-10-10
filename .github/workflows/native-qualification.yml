@@ -76,7 +76,7 @@ jobs:
         if: inputs.core
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
-          name: media-source-${{ inputs.os }}
+          name: media-source-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer
       - name: Verify source build transfer before reuse
         if: inputs.core
@@ -127,7 +127,7 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always() && inputs.core
         with:
-          name: native-receipts-${{ inputs.os }}-${{ inputs.revision }}
+          name: native-receipts-${{ inputs.os }}-${{ inputs.revision }}-${{ github.run_attempt }}
           path: |
             build/native/*receipt.json
             build/native/package-inventory.json
@@ -192,7 +192,7 @@ jobs:
         if: inputs.core
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
-          name: media-source-${{ inputs.os }}
+          name: media-source-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer
       - name: Verify source build transfer before reuse
         if: inputs.core
@@ -218,7 +218,7 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always() && inputs.core
         with:
-          name: package-receipts-${{ inputs.os }}-${{ matrix.variant }}-${{ inputs.revision }}
+          name: package-receipts-${{ inputs.os }}-${{ matrix.variant }}-${{ inputs.revision }}-${{ github.run_attempt }}
           path: |
             build/native/*receipt.json
             build/native/package-inventory.json

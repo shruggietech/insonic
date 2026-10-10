@@ -94,7 +94,7 @@ jobs:
           python -m pip install --disable-pip-version-check --no-input --only-binary=:all: --target build/native/python zstandard==0.25.0
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
-          name: media-source-${{ matrix.os }}
+          name: media-source-${{ matrix.os }}-${{ github.run_attempt }}
           path: build/transfer
       - name: Verify and restore exact same-run source companions
         shell: bash
@@ -122,7 +122,7 @@ jobs:
         run: python scripts/package-desktop.py all --variant both
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: release-native-${{ matrix.os }}
+          name: release-native-${{ matrix.os }}-${{ github.run_attempt }}
           path: |
             build/packages/*.zip
             build/packages/*.tar.gz
@@ -137,7 +137,7 @@ jobs:
       - if: runner.os == 'Linux'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: release-documentation
+          name: release-documentation-${{ github.run_attempt }}
           path: build/release/docs
           if-no-files-found: error
           retention-days: 14
@@ -154,13 +154,13 @@ jobs:
           fetch-depth: 0
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
-          pattern: release-*
+          pattern: release-*-${{ github.run_attempt }}
           path: build/release/downloads
       - name: Verify complete six-variant matrix, sources and documentation
         run: python scripts/release.py collect --revision "$SOURCE_REVISION" --input build/release/downloads --output build/release/candidate
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
-          name: release-candidate
+          name: release-candidate-${{ github.run_attempt }}
           path: build/release/candidate
           if-no-files-found: error
           retention-days: 14
@@ -217,7 +217,7 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
-          name: release-candidate
+          name: release-candidate-${{ github.run_attempt }}
           path: build/release/candidate
       - name: Write brief highlights as data
         run: python -c "import os,pathlib; pathlib.Path('build/release/highlights.md').write_text(os.environ['RELEASE_HIGHLIGHTS'],encoding='utf-8',newline='\n')"

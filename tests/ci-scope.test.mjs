@@ -55,7 +55,7 @@ test('platform qualification waits only for its own exact same-run source build'
   assert.equal(job.env.SOURCE_REVISION, '${{ inputs.revision }}');
   assert.equal(job.steps.find(step => step.uses?.startsWith('actions/checkout@')).with.ref, '${{ inputs.revision }}');
   assert.equal(job.steps[0].with['persist-credentials'], false);
-  assert.ok(job.steps.some(step => step.with?.name === 'media-source-${{ inputs.os }}'));
+  assert.ok(job.steps.some(step => step.with?.name === 'media-source-${{ inputs.os }}-${{ github.run_attempt }}'));
   assert.ok(job.steps.some(step => step.run?.includes('media-transfer.py restore --stage complete --revision "$SOURCE_REVISION"')));
   const apt = job.steps.find(step => step.name === 'Linux webview dependencies');
   assert.ok(apt.run.includes('sudo python3 scripts/prepare-apt-mirror.py'));
@@ -85,10 +85,49 @@ test('cold source dependency formats and FFmpeg transfer independently verified 
  assert.ok(ffmpeg.includes('media-transfer.py restore --stage dependencies --revision "$SOURCE_REVISION"'));
  assert.ok(ffmpeg.includes('build-media-source.py --stage complete'));
  assert.ok(ffmpeg.includes('media-transfer.py pack --stage complete --revision "$SOURCE_REVISION"'));
- assert.ok(media.jobs.ffmpeg.steps.some(step => step.with?.name === 'media-formats-${{ inputs.os }}'));
+ assert.ok(media.jobs.ffmpeg.steps.some(step => step.with?.name === 'media-formats-${{ inputs.os }}-${{ github.run_attempt }}'));
  for (const job of Object.values(media.jobs)) {
   assert.equal(job['timeout-minutes'], 10);
   assert.equal(job.env.SOURCE_REVISION, '${{ inputs.revision }}');
   assert.equal(job.steps.find(step => step.uses?.startsWith('actions/checkout@')).with.ref, '${{ inputs.revision }}');
+ }
+});
+
+test('full workflow attempts preserve old artifacts and consume only their matching producers', () => {
+ const workflow = name => parse(readFileSync(new URL(`../.github/workflows/${name}.yml`, import.meta.url), 'utf8'));
+ const transfers = documents => documents.flatMap(document => Object.values(document.jobs).flatMap(job => job.steps ?? []))
+  .filter(step => /actions\/(?:upload|download)-artifact@/.test(step.uses ?? ''));
+ const expand = (template, values) => template.replace(/\$\{\{\s*([^}]+?)\s*\}\}/g, (_, field) => {
+  assert.ok(Object.hasOwn(values, field), `unknown artifact field: ${field}`);
+  return values[field];
+ });
+ const matches = (selector, value) => new RegExp('^' + selector.split('*').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$').test(value);
+ for (const documents of [[workflow('ci'), workflow('native-qualification'), workflow('media-source')], [workflow('release'), workflow('media-source')]]) {
+  const steps = transfers(documents);
+  for (const step of steps) {
+   assert.ok((step.with.name ?? step.with.pattern).endsWith('-${{ github.run_attempt }}'));
+   if (step.uses.includes('/upload-')) assert.ok(!step.with.overwrite); // Keep earlier attempt evidence immutable.
+  }
+  const platforms = ['ubuntu-24.04', 'windows-2022', 'macos-15'];
+  const variants = ['cli', 'desktop'], groups = ['compression', 'audio', 'av1'];
+  const names = attempt => new Set(steps.filter(step => step.uses.includes('/upload-')).flatMap(step =>
+   platforms.flatMap(os => variants.flatMap(variant => groups.map(group => expand(step.with.name, {
+     'github.run_attempt': String(attempt), 'github.sha': 'a'.repeat(40),
+     'inputs.revision': 'a'.repeat(40), 'inputs.os': os, 'matrix.os': os,
+     'matrix.variant': variant, 'matrix.group': group,
+    }))))));
+  const oldNames = names(1), currentNames = names(2);
+  assert.equal([...currentNames].some(name => oldNames.has(name)), false);
+  for (const os of platforms) {
+   for (const step of steps.filter(step => step.uses.includes('/download-'))) {
+    const selector = expand(step.with.name ?? step.with.pattern, {
+     'github.run_attempt': '2', 'github.sha': 'a'.repeat(40),
+     'inputs.revision': 'a'.repeat(40), 'inputs.os': os, 'matrix.os': os,
+     'matrix.variant': 'desktop', 'matrix.group': 'compression',
+    });
+    assert.ok([...currentNames].some(name => matches(selector, name)), `missing same-attempt producer: ${selector}`);
+    assert.equal([...oldNames].some(name => matches(selector, name)), false, `stale attempt matched: ${selector}`);
+   }
+  }
  }
 });

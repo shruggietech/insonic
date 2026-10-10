@@ -50,13 +50,13 @@ jobs:
           NEXT_TELEMETRY_DISABLED: 1
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: documentation-${{ github.sha }}
+          name: documentation-${{ github.sha }}-${{ github.run_attempt }}
           path: site/out
           if-no-files-found: error
           retention-days: 14
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: offline-help-${{ github.sha }}
+          name: offline-help-${{ github.sha }}-${{ github.run_attempt }}
           path: site/offline
           if-no-files-found: error
           retention-days: 14
@@ -221,7 +221,7 @@ jobs:
       - name: Download exact Linux source build for backend qualification
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
-          name: media-source-ubuntu-24.04
+          name: media-source-ubuntu-24.04-${{ github.run_attempt }}
           path: build/transfer
       - name: Qualify alternative-backend operations
         env:

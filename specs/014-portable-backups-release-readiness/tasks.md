@@ -22,7 +22,7 @@
 - [x] T008 [US1] Implement empty-target receipt-preserving relocation restore and graph checkpoint reset in internal/catalog/backup.go and internal/backup/service.go (FR-004, FR-005).
 - [x] T009 [US1] Add offline CLI backup create/verify/restore/release and machine envelopes in cmd/insonic/backup.go; document advanced maintenance availability (FR-009).
 - [x] T010 [US1] Add corruption/missing-byte/traversal/no-overwrite/interruption and exact metadata/lineage tests in internal/backup/ and cmd/insonic/ (FR-005, FR-007, FR-008).
-- [ ] T011 [US1] Qualify alternative-backend restore and accepted-evidence graph rebuild using internal/backup integration fixtures and .github/workflows/ci.yml (FR-004, FR-016).
+- [x] T011 [US1] Qualify alternative-backend restore and accepted-evidence graph rebuild using internal/backup integration fixtures and .github/workflows/ci.yml (FR-004, FR-016).
 
 ## Phase 4: US2 Reference lifetime
 
@@ -35,12 +35,12 @@
 
 **Independent test**: Six native variants relocate successfully, complete sources and exact release identity validate.
 
-- [ ] T014 [P] [US3] Build all-platform source-complete FFmpeg companions preserving required input capabilities in scripts/build-media-source.py and scripts/media-tools.py (FR-010).
+- [x] T014 [P] [US3] Build all-platform source-complete FFmpeg companions preserving required input capabilities in scripts/build-media-source.py and scripts/media-tools.py (FR-010).
 - [x] T015 [US3] Add source/build inventories, CLI-only/desktop variants and configured native signing before hashes in scripts/package-desktop.py and package tests (FR-010, FR-012).
 - [x] T016 [P] [US3] Implement owned version preparation, immutable historical docs/schema and comprehensive version checks in scripts/ and schemas/registry.go (FR-011, FR-015).
 - [x] T017 [US3] Implement six-variant candidate manifests/checksums, integrity/source/signing rejection tests in scripts/ and tests/ (FR-011, FR-012).
 - [x] T018 [US3] Implement draft-first complete publication/readback and configured exact-version docs promotion in .github/workflows/release.yml and scripts/ with failure tests (FR-013).
-- [ ] T019 [US3] Qualify real media and relocated packages on all three operating systems with measured cache/build inputs in .github/workflows/ci.yml (FR-010, FR-016).
+- [x] T019 [US3] Qualify real media and relocated packages on all three operating systems with measured cache/build inputs in .github/workflows/ci.yml (FR-010, FR-016).
 
 ## Phase 6: US4 Tracking and final authority
 
@@ -63,5 +63,5 @@ T001/T002 and analyze precede implementation. Backup foundation T003/T004 preced
 
 ## Phase 8: Convergence
 
-- [ ] T027 Complete actual alternative-backend backup/multipart/graph fixtures and both relocated native package variants on all three operating systems, then record exact revision evidence per FR-004, FR-010, SC-002 and SC-004 (partial).
+- [x] T027 Complete actual alternative-backend backup/multipart/graph fixtures and both relocated native package variants on all three operating systems, then record exact revision evidence per FR-004, FR-010, SC-002 and SC-004 (partial).
 - [ ] T028 Measure complete required-CI turnaround and cold/cached source stage durations, optimize any over-budget critical path without reducing checks or supported input capabilities, and record evidence per FR-016, SC-007 and Constitution V (partial).
