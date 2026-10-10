@@ -1,0 +1,911 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/import-manifest.schema.json",
+  "title": "insonic import manifest",
+  "description": "Batch import input for the CLI and its GUI wrapper. Syntax validation precedes application validation of source access, calendar values, timezone/DST policy and admission. No approval per item is required for already configured routing.",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0",
+      "description": "Version of the insonic document contract."
+    },
+    "kind": {
+      "const": "import-manifest",
+      "description": "Document discriminator used by the master registry."
+    },
+    "defaults": {
+      "type": "object",
+      "description": "Recording-date defaults and policies. Exact timestamp, calendar date and approximate UTC range are mutually exclusive.",
+      "properties": {
+        "originated_at": {
+          "$ref": "common.schema.json#/$defs/wallTimestamp",
+          "description": "Entered recording timestamp, distinct from import, publication and file modification times."
+        },
+        "originated_on": {
+          "$ref": "common.schema.json#/$defs/calendarDate",
+          "description": "Entered recording date when the recording time is unknown."
+        },
+        "timezone": {
+          "$ref": "common.schema.json#/$defs/timezone",
+          "description": "Timezone for unzoned recording timestamps; local is resolved once for the batch."
+        },
+        "dst_fold": {
+          "type": "string",
+          "enum": [
+            "earlier",
+            "later"
+          ],
+          "description": "Explicit choice of offset for an ambiguous repeated daylight-saving wall time."
+        },
+        "dst_gap": {
+          "type": "string",
+          "const": "shift-forward",
+          "description": "Explicit policy to resolve a nonexistent wall time by shifting forward; absent means no silent correction."
+        },
+        "copy": {
+          "type": "boolean",
+          "default": true,
+          "description": "True admits a managed copy into the selected artifact store; false keeps an explicitly tracked local reference."
+        },
+        "preset": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Configured processing/import preset name or ID; does not embed provider configuration.",
+          "examples": [
+            "local"
+          ]
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions",
+          "description": "Optional nonsecret input annotations."
+        },
+        "date_precedence": {
+          "type": "string",
+          "enum": [
+            "owner-first",
+            "embedded-first",
+            "filesystem-fallback"
+          ],
+          "description": "Versioned recording-date precedence rule. Filesystem modification becomes a recording-date candidate only under the explicit filesystem-fallback rule."
+        },
+        "originated_earliest": {
+          "$ref": "common.schema.json#/$defs/utcInstant",
+          "description": "Inclusive earliest recording instant for an owner-supplied approximate date range. Preserve the exact UTC timestamp and integer clock."
+        },
+        "originated_latest": {
+          "$ref": "common.schema.json#/$defs/utcInstant",
+          "description": "Inclusive latest recording instant for an owner-supplied approximate date range. Application validation checks bound ordering."
+        },
+        "local_http": {
+          "type": "boolean",
+          "default": false,
+          "description": "Explicitly elect HTTP credential transport for a loopback endpoint only. Credentials otherwise require HTTPS; unauthenticated HTTP sources remain supported."
+        },
+        "acquisition_max_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 68719476736,
+          "description": "Maximum acquired original bytes, default 64 GiB. Declared and streamed lengths are bounded before publication."
+        },
+        "acquisition_timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854,
+          "default": 600000,
+          "description": "Positive total acquisition deadline in milliseconds, default ten minutes. Per-item values override batch defaults."
+        },
+        "transcript_max_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216,
+          "default": 16777216,
+          "description": "Independent transcript acquisition and document byte ceiling (maximum 16 MiB)."
+        },
+        "transcript_timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600000,
+          "default": 120000,
+          "description": "Independent transcript acquisition timeout in milliseconds."
+        },
+        "attribution": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "native",
+            "off",
+            "diarize"
+          ],
+          "default": "auto",
+          "description": "Preserve existing assignments; derive structured participation only when none exist. Diarize explicitly elects configured acoustic processing without recognition."
+        },
+        "transcript_format": {
+          "type": "string",
+          "enum": [
+            "cueson",
+            "srt",
+            "vtt",
+            "ass",
+            "ssa"
+          ],
+          "description": "Explicit native or Cue JSON format hint validated against input bytes."
+        },
+        "replace_transcript": {
+          "type": "boolean",
+          "default": false,
+          "description": "Elect replacement when the target already has a current transcript."
+        },
+        "subtitle_stream_index": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Absolute embedded subtitle stream index to select."
+        },
+        "subtitle_language": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Case-insensitive embedded subtitle language filter."
+        },
+        "diarization_model_id": {
+          "$ref": "common.schema.json#/$defs/modelReference",
+          "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
+        },
+        "replace_audio": {
+          "type": "boolean",
+          "description": "Explicit election to replace canonical audio at an existing stable recording."
+        },
+        "existing_transcript": {
+          "enum": [
+            "keep",
+            "clear",
+            "replace"
+          ],
+          "description": "Required document election when replacement has a current transcript."
+        },
+        "transcript_applies": {
+          "type": "boolean",
+          "description": "Affirm that the current transcript applies to elected replacement audio."
+        },
+        "existing_roster": {
+          "enum": [
+            "retain",
+            "clear"
+          ],
+          "description": "Explicit declared-roster election during audio replacement."
+        },
+        "known_speakers": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "description": "Initial declared identities by UUID or unique exact canonical name/active alias. Empty declares an empty roster."
+        }
+      },
+      "not": {
+        "type": "object",
+        "anyOf": [
+          {
+            "required": [
+              "originated_at",
+              "originated_on"
+            ]
+          },
+          {
+            "required": [
+              "originated_at",
+              "originated_earliest"
+            ]
+          },
+          {
+            "required": [
+              "originated_at",
+              "originated_latest"
+            ]
+          },
+          {
+            "required": [
+              "originated_on",
+              "originated_earliest"
+            ]
+          },
+          {
+            "required": [
+              "originated_on",
+              "originated_latest"
+            ]
+          }
+        ]
+      },
+      "additionalProperties": false
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Inputs in deterministic admission order, with independent partial-result reporting.",
+      "items": {
+        "type": "object",
+        "description": "Recording-date defaults and policies. Exact timestamp, calendar date and approximate UTC range are mutually exclusive.",
+        "properties": {
+          "source": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Local source path or acquisition-adapter source locator. Credentials and temporary signed URLs must be resolved separately.",
+            "examples": [
+              "audio/session.wav"
+            ]
+          },
+          "subtitle": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Compatibility alias for transcript, with the same independent acquisition and validation contract.",
+            "examples": [
+              "video/session.srt"
+            ]
+          },
+          "originated_at": {
+            "$ref": "common.schema.json#/$defs/wallTimestamp",
+            "description": "Entered recording timestamp, distinct from import, publication and file modification times."
+          },
+          "originated_on": {
+            "$ref": "common.schema.json#/$defs/calendarDate",
+            "description": "Entered recording date when the recording time is unknown."
+          },
+          "timezone": {
+            "$ref": "common.schema.json#/$defs/timezone",
+            "description": "Timezone for unzoned recording timestamps; local is resolved once for the batch."
+          },
+          "dst_fold": {
+            "type": "string",
+            "enum": [
+              "earlier",
+              "later"
+            ],
+            "description": "Explicit choice of offset for an ambiguous repeated daylight-saving wall time."
+          },
+          "dst_gap": {
+            "type": "string",
+            "const": "shift-forward",
+            "description": "Explicit policy to resolve a nonexistent wall time by shifting forward; absent means no silent correction."
+          },
+          "copy": {
+            "type": "boolean",
+            "default": true,
+            "description": "True admits a managed copy into the selected artifact store; false keeps an explicitly tracked local reference."
+          },
+          "preset": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Configured processing/import preset name or ID; does not embed provider configuration.",
+            "examples": [
+              "local"
+            ]
+          },
+          "extensions": {
+            "$ref": "common.schema.json#/$defs/extensions",
+            "description": "Optional nonsecret input annotations."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Optional library display title; source identity still comes from verified bytes."
+          },
+          "new_entry": {
+            "type": "boolean",
+            "default": false,
+            "description": "Explicitly create another library entry even when this source was already admitted. Identical bytes can share the source asset."
+          },
+          "credential_id": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Workspace-scoped acquisition credential reference, resolved privately by the configured adapter."
+          },
+          "acquisition_adapter": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Explicit configured acquisition adapter; absent selects the source URI scheme without changing providers on failure."
+          },
+          "date_precedence": {
+            "type": "string",
+            "enum": [
+              "owner-first",
+              "embedded-first",
+              "filesystem-fallback"
+            ],
+            "description": "Versioned recording-date precedence rule. Filesystem modification becomes a recording-date candidate only under the explicit filesystem-fallback rule."
+          },
+          "originated_earliest": {
+            "$ref": "common.schema.json#/$defs/utcInstant",
+            "description": "Inclusive earliest recording instant for an owner-supplied approximate date range. Preserve the exact UTC timestamp and integer clock."
+          },
+          "originated_latest": {
+            "$ref": "common.schema.json#/$defs/utcInstant",
+            "description": "Inclusive latest recording instant for an owner-supplied approximate date range. Application validation checks bound ordering."
+          },
+          "local_http": {
+            "type": "boolean",
+            "default": false,
+            "description": "Explicitly elect HTTP credential transport for a loopback endpoint only. Credentials otherwise require HTTPS; unauthenticated HTTP sources remain supported."
+          },
+          "acquisition_max_bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 68719476736,
+            "description": "Maximum acquired original bytes, default 64 GiB. Declared and streamed lengths are bounded before publication."
+          },
+          "acquisition_timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854,
+            "default": 600000,
+            "description": "Positive total acquisition deadline in milliseconds, default ten minutes. Per-item values override batch defaults."
+          },
+          "transcript_max_bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16777216,
+            "default": 16777216,
+            "description": "Independent transcript acquisition and document byte ceiling (maximum 16 MiB)."
+          },
+          "transcript_timeout_ms": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 600000,
+            "default": 120000,
+            "description": "Independent transcript acquisition timeout in milliseconds."
+          },
+          "attribution": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "native",
+              "off",
+              "diarize"
+            ],
+            "default": "auto",
+            "description": "Preserve existing assignments; derive structured participation only when none exist. Diarize explicitly elects configured acoustic processing without recognition."
+          },
+          "transcript_format": {
+            "type": "string",
+            "enum": [
+              "cueson",
+              "srt",
+              "vtt",
+              "ass",
+              "ssa"
+            ],
+            "description": "Explicit native or Cue JSON format hint validated against input bytes."
+          },
+          "replace_transcript": {
+            "type": "boolean",
+            "default": false,
+            "description": "Elect replacement when the target already has a current transcript."
+          },
+          "subtitle_stream_index": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Absolute embedded subtitle stream index to select."
+          },
+          "subtitle_language": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Case-insensitive embedded subtitle language filter."
+          },
+          "diarization_model_id": {
+            "$ref": "common.schema.json#/$defs/modelReference",
+            "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
+          },
+          "transcript": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Independent local or authorized acquisition locator for native subtitles or Cue JSON. Explicit invalid input fails; it never falls back to embedded/generated text."
+          },
+          "record": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Existing recording UUID or unambiguous exact title for standalone transcript admission."
+          },
+          "transcript_credential_id": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Independent credential UUID for transcript acquisition."
+          },
+          "transcript_adapter": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Explicit independent transcript acquisition adapter."
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Optional observed target media revision for standalone transcript admission."
+          },
+          "expected_recording_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Optional observed current document revision (zero means absent)."
+          },
+          "replace_audio": {
+            "type": "boolean",
+            "description": "Explicit election to replace canonical audio at an existing stable recording."
+          },
+          "existing_transcript": {
+            "enum": [
+              "keep",
+              "clear",
+              "replace"
+            ],
+            "description": "Required document election when replacement has a current transcript."
+          },
+          "transcript_applies": {
+            "type": "boolean",
+            "description": "Affirm that the current transcript applies to elected replacement audio."
+          },
+          "existing_roster": {
+            "enum": [
+              "retain",
+              "clear"
+            ],
+            "description": "Explicit declared-roster election during audio replacement."
+          },
+          "known_speakers": {
+            "type": "array",
+            "maxItems": 1000,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "description": "Initial declared identities by UUID or unique exact canonical name/active alias. Empty declares an empty roster."
+          },
+          "kind": {
+            "enum": [
+              "media",
+              "transcript"
+            ],
+            "description": "Media with record targets audio; transcript preserves the standalone source alias."
+          },
+          "expected_roster_revision": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Observed roster revision, zero for absent."
+          }
+        },
+        "required": [],
+        "not": {
+          "type": "object",
+          "anyOf": [
+            {
+              "required": [
+                "originated_at",
+                "originated_on"
+              ]
+            },
+            {
+              "required": [
+                "originated_at",
+                "originated_earliest"
+              ]
+            },
+            {
+              "required": [
+                "originated_at",
+                "originated_latest"
+              ]
+            },
+            {
+              "required": [
+                "originated_on",
+                "originated_earliest"
+              ]
+            },
+            {
+              "required": [
+                "originated_on",
+                "originated_latest"
+              ]
+            },
+            {
+              "required": [
+                "transcript",
+                "subtitle"
+              ]
+            }
+          ]
+        },
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "required": [
+              "source",
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "const": "media",
+                "description": "Selected input discriminator."
+              }
+            },
+            "not": {
+              "required": [
+                "transcript",
+                "subtitle"
+              ]
+            }
+          },
+          {
+            "required": [
+              "source"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "record"
+                  ]
+                },
+                {
+                  "required": [
+                    "kind"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "media",
+                      "description": "Selected input discriminator."
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "required": [
+              "record"
+            ],
+            "not": {
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "media",
+                  "description": "Selected input discriminator."
+                }
+              }
+            },
+            "oneOf": [
+              {
+                "required": [
+                  "source"
+                ],
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "transcript"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "subtitle"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "required": [
+                  "transcript"
+                ],
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "source"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "subtitle"
+                      ]
+                    }
+                  ]
+                }
+              },
+              {
+                "required": [
+                  "subtitle"
+                ],
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "source"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "transcript"
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "dependentRequired": {
+          "expected_revision": [
+            "record"
+          ],
+          "expected_recording_revision": [
+            "record"
+          ],
+          "expected_roster_revision": [
+            "record"
+          ]
+        }
+      },
+      "maxItems": 10000
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions",
+      "description": "Optional namespaced additions preserved without changing the core contract."
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "items"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "schema_version": "1.0.0",
+      "kind": "import-manifest",
+      "defaults": {
+        "copy": true,
+        "timezone": "America/New_York",
+        "preset": "local"
+      },
+      "items": [
+        {
+          "source": "audio/session.wav",
+          "originated_at": "2026-10-04T14:30:00"
+        },
+        {
+          "source": "video/session.mp4",
+          "originated_on": "2026-10-03",
+          "subtitle": "video/session.srt"
+        }
+      ]
+    },
+    {
+      "kind": "import-manifest",
+      "schema_version": "1.0.0",
+      "items": [
+        {
+          "source": "audio/new.flac",
+          "known_speakers": []
+        },
+        {
+          "kind": "media",
+          "source": "audio/replacement.flac",
+          "record": "44444444-4444-4444-8444-444444444444",
+          "replace_audio": true,
+          "existing_transcript": "keep",
+          "transcript_applies": true,
+          "existing_roster": "retain"
+        }
+      ]
+    }
+  ],
+  "$defs": {
+    "options": {
+      "type": "object",
+      "description": "Recording-date defaults and policies. Exact timestamp, calendar date and approximate UTC range are mutually exclusive.",
+      "properties": {
+        "originated_at": {
+          "$ref": "common.schema.json#/$defs/wallTimestamp",
+          "description": "Entered recording timestamp, distinct from import, publication and file modification times."
+        },
+        "originated_on": {
+          "$ref": "common.schema.json#/$defs/calendarDate",
+          "description": "Entered recording date when the recording time is unknown."
+        },
+        "timezone": {
+          "$ref": "common.schema.json#/$defs/timezone",
+          "description": "Timezone for unzoned recording timestamps; local is resolved once for the batch."
+        },
+        "dst_fold": {
+          "type": "string",
+          "enum": [
+            "earlier",
+            "later"
+          ],
+          "description": "Explicit choice of offset for an ambiguous repeated daylight-saving wall time."
+        },
+        "dst_gap": {
+          "type": "string",
+          "const": "shift-forward",
+          "description": "Explicit policy to resolve a nonexistent wall time by shifting forward; absent means no silent correction."
+        },
+        "copy": {
+          "type": "boolean",
+          "default": true,
+          "description": "True admits a managed copy into the selected artifact store; false keeps an explicitly tracked local reference."
+        },
+        "preset": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Configured processing/import preset name or ID; does not embed provider configuration.",
+          "examples": [
+            "local"
+          ]
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions",
+          "description": "Optional nonsecret input annotations."
+        },
+        "date_precedence": {
+          "type": "string",
+          "enum": [
+            "owner-first",
+            "embedded-first",
+            "filesystem-fallback"
+          ],
+          "description": "Versioned recording-date precedence rule. Filesystem modification becomes a recording-date candidate only under the explicit filesystem-fallback rule."
+        },
+        "originated_earliest": {
+          "$ref": "common.schema.json#/$defs/utcInstant",
+          "description": "Inclusive earliest recording instant for an owner-supplied approximate date range. Preserve the exact UTC timestamp and integer clock."
+        },
+        "originated_latest": {
+          "$ref": "common.schema.json#/$defs/utcInstant",
+          "description": "Inclusive latest recording instant for an owner-supplied approximate date range. Application validation checks bound ordering."
+        },
+        "local_http": {
+          "type": "boolean",
+          "default": false,
+          "description": "Explicitly elect HTTP credential transport for a loopback endpoint only. Credentials otherwise require HTTPS; unauthenticated HTTP sources remain supported."
+        },
+        "acquisition_max_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 68719476736,
+          "description": "Maximum acquired original bytes, default 64 GiB. Declared and streamed lengths are bounded before publication."
+        },
+        "acquisition_timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9223372036854,
+          "default": 600000,
+          "description": "Positive total acquisition deadline in milliseconds, default ten minutes. Per-item values override batch defaults."
+        },
+        "transcript_max_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216,
+          "default": 16777216,
+          "description": "Independent transcript acquisition and document byte ceiling (maximum 16 MiB)."
+        },
+        "transcript_timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 600000,
+          "default": 120000,
+          "description": "Independent transcript acquisition timeout in milliseconds."
+        },
+        "attribution": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "native",
+            "off",
+            "diarize"
+          ],
+          "default": "auto",
+          "description": "Preserve existing assignments; derive structured participation only when none exist. Diarize explicitly elects configured acoustic processing without recognition."
+        },
+        "transcript_format": {
+          "type": "string",
+          "enum": [
+            "cueson",
+            "srt",
+            "vtt",
+            "ass",
+            "ssa"
+          ],
+          "description": "Explicit native or Cue JSON format hint validated against input bytes."
+        },
+        "replace_transcript": {
+          "type": "boolean",
+          "default": false,
+          "description": "Elect replacement when the target already has a current transcript."
+        },
+        "subtitle_stream_index": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Absolute embedded subtitle stream index to select."
+        },
+        "subtitle_language": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Case-insensitive embedded subtitle language filter."
+        },
+        "diarization_model_id": {
+          "$ref": "common.schema.json#/$defs/modelReference",
+          "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
+        },
+        "replace_audio": {
+          "type": "boolean",
+          "description": "Explicit election to replace canonical audio at an existing stable recording."
+        },
+        "existing_transcript": {
+          "enum": [
+            "keep",
+            "clear",
+            "replace"
+          ],
+          "description": "Required document election when replacement has a current transcript."
+        },
+        "transcript_applies": {
+          "type": "boolean",
+          "description": "Affirm that the current transcript applies to elected replacement audio."
+        },
+        "existing_roster": {
+          "enum": [
+            "retain",
+            "clear"
+          ],
+          "description": "Explicit declared-roster election during audio replacement."
+        },
+        "known_speakers": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "description": "Initial declared identities by UUID or unique exact canonical name/active alias. Empty declares an empty roster."
+        }
+      },
+      "not": {
+        "type": "object",
+        "anyOf": [
+          {
+            "required": [
+              "originated_at",
+              "originated_on"
+            ]
+          },
+          {
+            "required": [
+              "originated_at",
+              "originated_earliest"
+            ]
+          },
+          {
+            "required": [
+              "originated_at",
+              "originated_latest"
+            ]
+          },
+          {
+            "required": [
+              "originated_on",
+              "originated_earliest"
+            ]
+          },
+          {
+            "required": [
+              "originated_on",
+              "originated_latest"
+            ]
+          }
+        ]
+      },
+      "additionalProperties": false
+    }
+  }
+}

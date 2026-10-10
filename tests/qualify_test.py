@@ -8,6 +8,8 @@ import subprocess
 import sys
 import time
 import unittest
+import os
+from unittest.mock import patch
 import zipfile
 
 spec = importlib.util.spec_from_file_location('qualify', Path(__file__).resolve().parents[1] / 'scripts/qualify.py')
@@ -15,6 +17,34 @@ qualify = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(qualify)
 
 class QualificationArchiveTests(unittest.TestCase):
+    def test_generic_cli_lane_does_not_require_native_assets(self):
+        with patch.object(qualify, 'native_env', side_effect=AssertionError('generic lane must not require native assets')), patch.object(qualify, 'qualify_cli') as run:
+            qualify.cli()
+            run.assert_called_once_with(False)
+
+    def test_native_cli_environment_is_selected_and_restored_after_failure(self):
+        original = os.environ.copy()
+        def run(native):
+            self.assertTrue(native)
+            self.assertEqual(os.environ['CC'], 'selected-compiler')
+            self.assertEqual(os.environ['INSONIC_NATIVE_LIBRARY'], 'selected-library')
+            raise ValueError('controlled failure')
+        with patch.object(qualify, 'native_env', return_value={'CC': 'selected-compiler', 'INSONIC_NATIVE_LIBRARY': 'selected-library'}), patch.object(qualify, 'qualify_cli', side_effect=run):
+            with self.assertRaisesRegex(ValueError, 'controlled failure'): qualify.cli(native=True)
+        self.assertEqual(dict(os.environ), original)
+
+    def test_cli_build_uses_the_packaged_native_tag_only_in_native_lanes(self):
+        for native in (False, True):
+            with patch.object(qualify, 'child', side_effect=RuntimeError('stop before workspace')) as build:
+                with self.assertRaisesRegex(RuntimeError, 'stop before workspace'): qualify.qualify_cli(native)
+                self.assertEqual('system_ladybug' in build.call_args.args[0], native)
+
+    def test_native_cli_cannot_qualify_a_fallback_or_other_graph(self):
+        qualify.require_native_cli_graph({'state': 'available', 'adapter_id': 'ladybugdb'})
+        qualify.require_native_cli_graph({'result': {'state': 'available', 'adapter_id': 'ladybugdb'}})
+        for value in ({}, {'state': 'unavailable', 'adapter_id': 'ladybugdb'}, {'state': 'available', 'adapter_id': 'arcadedb'}):
+            with self.assertRaisesRegex(ValueError, 'actual LadybugDB'): qualify.require_native_cli_graph(value)
+
     def test_qualification_pins_match_actual_modules(self):
         source = (qualify.ROOT / 'go.mod').read_text(encoding='utf-8')
         qualify.validate_pins(source)
@@ -22,8 +52,8 @@ class QualificationArchiveTests(unittest.TestCase):
             qualify.validate_pins(source.replace('v' + qualify.LOCK['wails'], 'v0.0.1'))
 
     def test_receipt_is_json_despite_native_loader_warnings(self):
-        output = b'libEGL warning: no accelerated rendering\n{"native_webview":"passed","frontend_bridge_ipc":"passed","schema_version":"0.0.0"}\n'
-        expected = {'native_webview': 'passed', 'frontend_bridge_ipc': 'passed', 'schema_version': '0.0.0'}
+        output = b'libEGL warning: no accelerated rendering\n{"native_webview":"passed","frontend_bridge_ipc":"passed","schema_version":"1.0.0"}\n'
+        expected = {'native_webview': 'passed', 'frontend_bridge_ipc': 'passed', 'schema_version': '1.0.0'}
         with tempfile.TemporaryDirectory() as directory:
             receipt = Path(directory) / 'webview-receipt.json'
             qualify.write_receipt(receipt, output, expected)

@@ -1,0 +1,249 @@
+{
+  "kind": "maintainer-real-engine-qualification",
+  "required_check": false,
+  "ci": false,
+  "worker_sha256": "53be55cae83a826a4ca24bbd046232dc5d13698a5b5a4b3433388db9c373fa4b",
+  "models": {
+    "transcribe": {
+      "id": "Systran/faster-whisper-tiny",
+      "revision": "d90ca5fe260221311c53c58e660288d3deb8d356",
+      "license": "MIT",
+      "files": {
+        "config.json": [
+          2249,
+          "a73a28cdfe1c43ccc7202fa333d1f89c202477271407ae9a7f19afa52039cac8"
+        ],
+        "model.bin": [
+          75538270,
+          "dcb76c6586fc06cbdac6dd21f14cfd129cc4cdd9dce19bf4ffa62e59cbe6e6d1"
+        ],
+        "tokenizer.json": [
+          2203239,
+          "fb7b63191e9bb045082c79fd742a3106a12c99513ab30df4a0d47fa6cb6fd0ab"
+        ],
+        "vocabulary.txt": [
+          459861,
+          "34ce3fe1c5041027b3f8d42912270993f986dbc4bb34cf27f951e34a1e453913"
+        ]
+      }
+    },
+    "diarize": {
+      "id": "pyannote/speaker-diarization-community-1",
+      "revision": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee",
+      "license": "CC-BY-4.0",
+      "files": {
+        "config.yaml": [
+          444,
+          "5ce2bfa9a938dc132cec1172592d65173cbb8f444ea1e4133f10f9391de155be"
+        ],
+        "embedding/pytorch_model.bin": [
+          26646242,
+          "6f10ff60898a1d185fa22e1d11e0bfa8a92efec811f11bca48cb8cafebefd929"
+        ],
+        "segmentation/pytorch_model.bin": [
+          5906507,
+          "7ad24338d844fb95985486eb1a464e32d229f6d7a03c9abe60f978bacf3f816e"
+        ],
+        "plda/plda.npz": [
+          133852,
+          "9b77bcd840692710dd3496f62ecfeed8d8e5f002fd991b785079b244eab7d255"
+        ],
+        "plda/xvec_transform.npz": [
+          134376,
+          "325f1ce8e48f7e55e9c8aa47e05d2766b7c48c4b25b8de8dd751e7a4cc5fbe8f"
+        ]
+      }
+    }
+  },
+  "child_environment": "explicit platform execution/native-loader allowlist; private empty home; offline flags; no inherited application or provider credentials",
+  "python_sha256": {
+    "transcribe": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d",
+    "diarize": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d"
+  },
+  "ffmpeg_sha256": "7290a5120bb38bec3ac2962dfd9535bcf43d59f74312321ef5f885b775e4e741",
+  "fixtures": [
+    {
+      "id": "speech",
+      "source_sha256": "62a3fcd36560793a065d53b5ea749dcf710d85028c837802063247ef787e38c3",
+      "mapped_sha256": "153adb3a729aa12a9b77641c61026e1a09bf3de91412af60f5c592d7f10b7927",
+      "stream": 0,
+      "channel": null,
+      "transcribe": {
+        "no_speech": false,
+        "provenance": {
+          "segment_count": 4,
+          "native_timing_projection": "nearest-microsecond;exact-source-origin;ceil-start/floor-end-millisecond",
+          "recognition_boundary_policy": "pinned-Whisper end/media intersection;max250ms overhang;diagnose each change",
+          "language": "en",
+          "beam_size": 5,
+          "vad_filter": false,
+          "condition_on_previous_text": false,
+          "compute_type": "int8",
+          "context_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "hint_count": 0,
+          "context_application": "hotwords-each-decoding-window",
+          "packages": {
+            "faster-whisper": "1.2.1",
+            "ctranslate2": "4.8.2",
+            "av": "18.1.0"
+          },
+          "device": "cpu",
+          "threads": 2,
+          "wall_seconds": 0.751665799998591,
+          "cpu_seconds": 1.390625,
+          "peak_rss_bytes": 229138432,
+          "audio_sha256": "153adb3a729aa12a9b77641c61026e1a09bf3de91412af60f5c592d7f10b7927",
+          "sample_count": 172800,
+          "sample_rate": 16000,
+          "telemetry_enabled": false,
+          "offline": true
+        },
+        "diagnostics": [],
+        "reference_comparison": {
+          "reference_words": 33,
+          "generated_words": 34,
+          "edit_distance": 4,
+          "word_error_rate": 0.12121212121212122
+        }
+      },
+      "diarize": {
+        "no_speech": false,
+        "provenance": {
+          "speaker_count": 2,
+          "turn_count": 4,
+          "quality_diagnostics_enabled": true,
+          "embedding_minimum_samples": 1680,
+          "model_boundary_policy": "Community-1 frame/media intersection;max250ms overhang;diagnose each change",
+          "packages": {
+            "pyannote.audio": "4.0.7",
+            "torch": "2.14.0+cu130",
+            "torchaudio": "2.11.0+cu130"
+          },
+          "device": "cpu",
+          "threads": 2,
+          "wall_seconds": 5.466286599999876,
+          "cpu_seconds": 6.90625,
+          "peak_rss_bytes": 1215209472,
+          "audio_sha256": "153adb3a729aa12a9b77641c61026e1a09bf3de91412af60f5c592d7f10b7927",
+          "sample_count": 172800,
+          "sample_rate": 16000,
+          "telemetry_enabled": false,
+          "offline": true
+        },
+        "diagnostics": [
+          {
+            "code": "speech_coverage_fraction",
+            "value": 0.9471325
+          },
+          {
+            "code": "overlap_fraction",
+            "value": 0.0
+          },
+          {
+            "code": "model_frame_intersected_decoded_media",
+            "count": 1,
+            "value": 0.115344
+          }
+        ],
+        "turn_count": 4,
+        "accuracy_limit": "No auditory-verified tight speaker boundaries exist; coverage and counts are diagnostics, not measured diarization error rate."
+      }
+    },
+    {
+      "id": "sintel-dialogue",
+      "source_sha256": "f61adfa5641913a5b70e23f9dda2cef1012d9edc59ad895f6da7fd5c07874d6e",
+      "mapped_sha256": "c4076cc89631e9d816ea88df54bab62884999ea2249ae082490930b3f475f232",
+      "stream": 1,
+      "channel": 2,
+      "transcribe": {
+        "no_speech": false,
+        "provenance": {
+          "segment_count": 5,
+          "native_timing_projection": "nearest-microsecond;exact-source-origin;ceil-start/floor-end-millisecond",
+          "recognition_boundary_policy": "pinned-Whisper end/media intersection;max250ms overhang;diagnose each change",
+          "language": "en",
+          "beam_size": 5,
+          "vad_filter": false,
+          "condition_on_previous_text": false,
+          "compute_type": "int8",
+          "context_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "hint_count": 0,
+          "context_application": "hotwords-each-decoding-window",
+          "packages": {
+            "faster-whisper": "1.2.1",
+            "ctranslate2": "4.8.2",
+            "av": "18.1.0"
+          },
+          "device": "cpu",
+          "threads": 2,
+          "wall_seconds": 0.7379956000004313,
+          "cpu_seconds": 1.390625,
+          "peak_rss_bytes": 229896192,
+          "audio_sha256": "c4076cc89631e9d816ea88df54bab62884999ea2249ae082490930b3f475f232",
+          "sample_count": 480000,
+          "sample_rate": 16000,
+          "telemetry_enabled": false,
+          "offline": true
+        },
+        "diagnostics": [],
+        "reference_comparison": {
+          "reference_words": 31,
+          "generated_words": 30,
+          "edit_distance": 2,
+          "word_error_rate": 0.06451612903225806
+        }
+      },
+      "diarize": {
+        "no_speech": false,
+        "provenance": {
+          "speaker_count": 1,
+          "turn_count": 6,
+          "quality_diagnostics_enabled": true,
+          "embedding_minimum_samples": 1680,
+          "model_boundary_policy": "Community-1 frame/media intersection;max250ms overhang;diagnose each change",
+          "packages": {
+            "pyannote.audio": "4.0.7",
+            "torch": "2.14.0+cu130",
+            "torchaudio": "2.11.0+cu130"
+          },
+          "device": "cpu",
+          "threads": 2,
+          "wall_seconds": 20.83008450000125,
+          "cpu_seconds": 36.609375,
+          "peak_rss_bytes": 2716884992,
+          "audio_sha256": "c4076cc89631e9d816ea88df54bab62884999ea2249ae082490930b3f475f232",
+          "sample_count": 480000,
+          "sample_rate": 16000,
+          "telemetry_enabled": false,
+          "offline": true
+        },
+        "diagnostics": [
+          {
+            "code": "speech_coverage_fraction",
+            "value": 0.262125
+          },
+          {
+            "code": "overlap_fraction",
+            "value": 0.0
+          },
+          {
+            "code": "acoustic_count_differs_published_dialogue_characters",
+            "count": 1
+          }
+        ],
+        "turn_count": 6,
+        "accuracy_limit": "No auditory-verified tight speaker boundaries exist; coverage and counts are diagnostics, not measured diarization error rate.",
+        "reference_character_count": 2,
+        "reference_character_count_matches_acoustic_count": false
+      }
+    }
+  ],
+  "resource_limits": {
+    "timeout_seconds_per_operation": 120,
+    "threads": 2,
+    "max_decoded_duration_us": 60000000,
+    "max_output_bytes_per_stream": 16777216,
+    "hard_rss_limit_bytes": null,
+    "rss_policy": "measured peak, no portable hard RSS cap claimed"
+  }
+}

@@ -1,0 +1,444 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/workspace-backup.schema.json",
+  "title": "Portable workspace backup",
+  "description": "Completed portable authority bundle with consistent catalog proof, current immutable byte inventory and explicit retention dependencies. Runtime validates digests, relations and store availability in addition to this structural contract.",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "const": "workspace-backup",
+      "description": "Portable workspace backup discriminator."
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "description": "Synchronized software/documentation/schema release."
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Backup identity and persistent retention owner."
+    },
+    "mode": {
+      "enum": [
+        "self-contained",
+        "reference-only"
+      ],
+      "description": "Copied immutable bytes or explicit original-store dependency."
+    },
+    "workspace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Source authority workspace, adopted only after validated restoration."
+    },
+    "catalog_revision": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Consistent exact snapshot revision."
+    },
+    "catalog_digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Validated logical catalog snapshot digest."
+    },
+    "catalog_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 of exact catalog.json bytes."
+    },
+    "workspace": {
+      "$ref": "workspace-config.schema.json",
+      "description": "Nonsecret source configuration; destination access is configured separately."
+    },
+    "source_profiles": {
+      "type": "array",
+      "items": {
+        "$ref": "workspace-config.schema.json#/properties/profiles/properties/storage"
+      },
+      "description": "Exact nonsecret storage profiles needed by retained source identities."
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "publication": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable id in immutable publication history."
+              },
+              "artifact_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable artifact id in immutable publication history."
+              },
+              "location_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable location id in immutable publication history."
+              },
+              "profile_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable profile id in immutable publication history."
+              },
+              "owner": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable owner in immutable publication history."
+              },
+              "admission_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable admission id in immutable publication history."
+              },
+              "journal_receipt_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable journal receipt id in immutable publication history."
+              },
+              "profile_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Exact profile revision."
+              },
+              "generation": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Exact generation."
+              },
+              "size": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Exact size; availability and lease clocks are integer nanoseconds."
+              },
+              "part_size": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Exact part size; availability and lease clocks are integer nanoseconds."
+              },
+              "lease_until": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Exact lease until; availability and lease clocks are integer nanoseconds."
+              },
+              "available_at": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Exact available at; availability and lease clocks are integer nanoseconds."
+              },
+              "digest": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$",
+                "description": "SHA-256 of immutable artifact bytes."
+              },
+              "kind": {
+                "type": "string",
+                "description": "Recorded kind. The key/version identifies source-store bytes, not a local input path."
+              },
+              "key": {
+                "type": "string",
+                "description": "Recorded key. The key/version identifies source-store bytes, not a local input path."
+              },
+              "version": {
+                "type": "string",
+                "description": "Recorded version. The key/version identifies source-store bytes, not a local input path."
+              },
+              "verification": {
+                "type": "string",
+                "description": "Recorded verification. The key/version identifies source-store bytes, not a local input path."
+              },
+              "upload_id": {
+                "type": "string",
+                "description": "Recorded upload id. The key/version identifies source-store bytes, not a local input path."
+              },
+              "state": {
+                "type": "string",
+                "description": "Recorded state. The key/version identifies source-store bytes, not a local input path."
+              },
+              "completion_requested": {
+                "type": "boolean",
+                "description": "Recorded immutable publication completion intent."
+              },
+              "parts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "number": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "One-based upload part."
+                    },
+                    "etag": {
+                      "type": "string",
+                      "description": "Provider transport receipt, not a content digest."
+                    },
+                    "size": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Exact part byte count."
+                    }
+                  },
+                  "required": [
+                    "number",
+                    "etag",
+                    "size"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Historical multipart transport receipts."
+              },
+              "references": {
+                "type": "object",
+                "propertyNames": {
+                  "$ref": "common.schema.json#/$defs/uuid"
+                },
+                "additionalProperties": {
+                  "const": true
+                },
+                "description": "Persistent catalog retention references, including explicit backup lifetime ownership."
+              },
+              "leases": {
+                "type": "object",
+                "propertyNames": {
+                  "$ref": "common.schema.json#/$defs/uuid"
+                },
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Materialization lease identity."
+                    },
+                    "owner": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Lease owner."
+                    },
+                    "generation": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Fenced lease generation."
+                    },
+                    "until": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Expiry in integer nanoseconds."
+                    },
+                    "released": {
+                      "type": "boolean",
+                      "description": "Explicit release disposition."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "owner",
+                    "generation",
+                    "until",
+                    "released"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "Historical leases, expired on restoration."
+              },
+              "events": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Publication lifecycle event identities."
+              }
+            },
+            "required": [
+              "id",
+              "artifact_id",
+              "location_id",
+              "profile_id",
+              "owner",
+              "admission_id",
+              "journal_receipt_id",
+              "profile_revision",
+              "generation",
+              "size",
+              "part_size",
+              "lease_until",
+              "available_at",
+              "digest",
+              "kind",
+              "key",
+              "version",
+              "verification",
+              "upload_id",
+              "state",
+              "completion_requested",
+              "parts",
+              "references",
+              "leases",
+              "events"
+            ],
+            "additionalProperties": false,
+            "description": "Immutable receipt-backed source publication authority."
+          },
+          "file": {
+            "type": "string",
+            "pattern": "^objects/[a-f0-9]{64}$",
+            "description": "Digest-addressed byte file, required only for self-contained mode."
+          }
+        },
+        "required": [
+          "publication"
+        ],
+        "additionalProperties": false
+      },
+      "description": "Complete current/durable authority inventory; transient and superseded bytes are excluded."
+    },
+    "graph_disposition": {
+      "const": "accepted-evidence-rebuild",
+      "description": "Destination graph rebuilds from accepted catalog evidence; imported checkpoints never assert currency."
+    },
+    "dependency": {
+      "type": "string",
+      "description": "Explicit original-store dependency for reference-only mode, otherwise none."
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "Manifest SHA-256 with this field set to an empty string during canonical calculation."
+    },
+    "source_catalog_revision": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Exact source capture revision before proof-backed portable sanitization."
+    },
+    "source_catalog_digest": {
+      "$ref": "common.schema.json#/$defs/sha256",
+      "description": "Untouched source snapshot digest; portable catalog_digest may differ when incomplete local acquisition input is replaced by an explicit interrupted-input marker."
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "id",
+    "mode",
+    "workspace_id",
+    "catalog_revision",
+    "catalog_digest",
+    "catalog_sha256",
+    "workspace",
+    "source_profiles",
+    "artifacts",
+    "graph_disposition",
+    "dependency",
+    "sha256",
+    "source_catalog_revision",
+    "source_catalog_digest"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "kind": "workspace-backup",
+      "schema_version": "1.0.0",
+      "id": "00000000-0000-4000-8000-000000000001",
+      "mode": "self-contained",
+      "workspace_id": "00000000-0000-4000-8000-000000000002",
+      "catalog_revision": 0,
+      "catalog_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "catalog_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "workspace": {
+        "schema_version": "1.0.0",
+        "kind": "workspace-config",
+        "workspace_id": "00000000-0000-4000-8000-000000000002",
+        "display_name": "My library",
+        "control_directory": "/home/user/MediaLibrary",
+        "default_import_timezone": "local",
+        "profiles": {
+          "storage": {
+            "profile_id": "33333333-3333-4333-8333-333333333333",
+            "profile_revision": 1,
+            "adapter_id": "filesystem",
+            "contract_version": "1",
+            "configuration": {
+              "root": "objects"
+            }
+          },
+          "catalog": {
+            "profile_id": "44444444-4444-4444-8444-444444444444",
+            "profile_revision": 1,
+            "adapter_id": "sqlite",
+            "contract_version": "1",
+            "configuration": {
+              "path": "catalog.sqlite"
+            }
+          },
+          "graph": {
+            "profile_id": "55555555-5555-4555-8555-555555555555",
+            "profile_revision": 1,
+            "adapter_id": "ladybugdb",
+            "contract_version": "1",
+            "configuration": {
+              "path": "graph/library.lbug"
+            }
+          }
+        }
+      },
+      "source_profiles": [],
+      "artifacts": [],
+      "graph_disposition": "accepted-evidence-rebuild",
+      "dependency": "none",
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "source_catalog_revision": 0,
+      "source_catalog_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "self-contained",
+            "description": "Selected backup byte-retention mode."
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "artifacts": {
+            "items": {
+              "required": [
+                "file"
+              ],
+              "type": "object"
+            },
+            "type": "array",
+            "description": "Artifact file-presence requirements for the selected backup mode."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mode": {
+            "const": "reference-only",
+            "description": "Selected backup byte-retention mode."
+          }
+        },
+        "required": [
+          "mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "artifacts": {
+            "items": {
+              "not": {
+                "required": [
+                  "file"
+                ]
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "description": "Artifact file-presence requirements for the selected backup mode."
+          }
+        }
+      }
+    }
+  ]
+}

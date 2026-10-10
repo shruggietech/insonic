@@ -7,7 +7,7 @@ import (
 )
 
 func TestProcessingConfigurationUsesRegisteredContract(t *testing.T) {
-	raw, err := registry.ReadFile("v0.0.0/master.schema.json")
+	raw, err := registry.ReadFile("v1.0.0/master.schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -19,14 +19,14 @@ func TestProcessingConfigurationUsesRegisteredContract(t *testing.T) {
 	if json.Unmarshal(raw, &master) != nil || master.Definitions["processing-tools"].Reference != "processing-tools.schema.json" {
 		t.Fatal("selected processing contract is not registered in the packaged master")
 	}
-	valid := []byte(`{"kind":"processing-tools","schema_version":"0.0.0","cueson":{"executable":"/opt/insonic/cueson","executable_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"processing":{}}`)
+	valid := []byte(`{"kind":"processing-tools","schema_version":"1.0.0","cueson":{"executable":"/opt/insonic/cueson","executable_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"processing":{}}`)
 	if err := ValidateDocument(valid); err != nil {
 		t.Fatal(err)
 	}
 	for _, invalid := range []string{
-		`{"kind":"processing-tools","schema_version":"0.0.0","cueson":{},"processing":{}}`,
-		`{"kind":"processing-tools","schema_version":"0.0.0","cueson":{"executable":"/opt/cueson","executable_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"processing":{"threads":0}}`,
-		`{"kind":"processing-tools","schema_version":"0.0.0","cueson":{"executable":"/opt/cueson","executable_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"processing":{"worker":{"path":"/opt/worker"}}}`,
+		`{"kind":"processing-tools","schema_version":"1.0.0","cueson":{},"processing":{}}`,
+		`{"kind":"processing-tools","schema_version":"1.0.0","cueson":{"executable":"/opt/cueson","executable_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"processing":{"threads":0}}`,
+		`{"kind":"processing-tools","schema_version":"1.0.0","cueson":{"executable":"/opt/cueson","executable_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"processing":{"worker":{"path":"/opt/worker"}}}`,
 	} {
 		if err := ValidateDocument([]byte(invalid)); err == nil {
 			t.Fatal("invalid processing configuration admitted")

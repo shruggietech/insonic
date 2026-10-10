@@ -1,6 +1,6 @@
 # insonic documentation site
 
-Markdown in `docs/v<version>/` is the documentation source. `docs/versions.json` defines the published versions, page order, and latest version. v0.0.0 is a system specification, not an application release.
+Markdown in `docs/v<version>/` is the documentation source. `docs/versions.json` defines the version status, page order and latest version. v1.0.0 is an unpublished release candidate; v0.0.0 remains the preserved system specification baseline.
 
 Use Node.js 22.12 or newer. From the repository root:
 
@@ -22,6 +22,8 @@ The landing hero and metadata read the approved message roles directly from the 
 Syntax highlighting is rendered at build time. JSON keys, values and literals use distinct semantic colors in both themes; CLI examples preserve shell syntax and highlight the executable, flags and placeholders. Purely sequential procedures use numbered steps. Retained diagrams show branches, relationships, dependencies, feedback or retry behavior.
 
 Keep the version manifest in lock-step with release preparation. Add the release's Markdown snapshot and change `latest` together; do not relabel an older snapshot as a new version. Publish the checked export for the latest repository release and retain earlier versions for users of earlier installs.
+
+The default build preserves the source publication status. The elected release workflow uses `INSONIC_DOCUMENTATION_TARGET=release` for a publication-specific public/offline artifact with released status and exact-tag downloads. The build marker records that target. Publication and promotion reject ordinary candidate snapshots; building a release-target artifact alone does not publish it or change source history.
 
 The contracts page derives its reference tables and examples from `schemas/v<version>/`. Root checks compile all registered schemas and validate their examples through the master schema. The changelog page reads the root changelog while a version is a specification. Before marking a version as released, copy its tagged root `CHANGELOG.md` to `docs/v<version>/references/CHANGELOG.md`. The build requires that snapshot and renders it for that release.
 

@@ -11,7 +11,7 @@ import (
 func TestManifestsResolveRelativeAndOverrideDateKind(t *testing.T) {
 	dir := t.TempDir()
 	file := filepath.Join(dir, "batch.json")
-	data := `{"kind":"import-manifest","schema_version":"0.0.0","defaults":{"originated_at":"2026-10-07T12:00:00","timezone":"UTC"},"items":[{"source":"a.wav","originated_on":"2026-10-06","subtitle":"a.srt"}]}`
+	data := `{"kind":"import-manifest","schema_version":"1.0.0","defaults":{"originated_at":"2026-10-07T12:00:00","timezone":"UTC"},"items":[{"source":"a.wav","originated_on":"2026-10-06","subtitle":"a.srt"}]}`
 	os.WriteFile(file, []byte(data), 0600)
 	r, e := ReadManifest(file)
 	if e != nil {
@@ -39,7 +39,7 @@ func TestManifestsResolveRelativeAndOverrideDateKind(t *testing.T) {
 	if _, e = ReadManifest(csv); e == nil {
 		t.Fatal("ambiguous duplicate CSV accepted")
 	}
-	os.WriteFile(file, []byte(`{"kind":"import-manifest","schema_version":"0.0.0","items":[{"source":"https://example.test/%zz?token=private"}]}`), 0600)
+	os.WriteFile(file, []byte(`{"kind":"import-manifest","schema_version":"1.0.0","items":[{"source":"https://example.test/%zz?token=private"}]}`), 0600)
 	if _, e = ReadManifest(file); e == nil {
 		t.Fatal("manifest path resolution concealed malformed credential URL")
 	}
@@ -48,7 +48,7 @@ func TestManifestsResolveRelativeAndOverrideDateKind(t *testing.T) {
 func TestRosterManifestElectionPrecedence(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "rosters.json")
-	os.WriteFile(path, []byte(`{"kind":"import-manifest","schema_version":"0.0.0","defaults":{"known_speakers":["Alice"],"copy":true},"items":[{"source":"a.wav","known_speakers":[],"replace_audio":false},{"source":"b.wav"}]}`), 0600)
+	os.WriteFile(path, []byte(`{"kind":"import-manifest","schema_version":"1.0.0","defaults":{"known_speakers":["Alice"],"copy":true},"items":[{"source":"a.wav","known_speakers":[],"replace_audio":false},{"source":"b.wav"}]}`), 0600)
 	r, e := ReadManifest(path)
 	if e != nil {
 		t.Fatal(e)
@@ -74,7 +74,7 @@ func TestManifestModelReferencesShareJSONAndCSVGrammar(t *testing.T) {
 	for _, reference := range []string{"voices", "base:11111111-1111-4111-8111-111111111111", "source:examples/voices-v1"} {
 		dir := t.TempDir()
 		jsonPath := filepath.Join(dir, "models.json")
-		document := map[string]any{"kind": "import-manifest", "schema_version": "0.0.0", "defaults": map[string]string{"attribution": "diarize", "diarization_model_id": reference}, "items": []any{map[string]string{"source": "audio.wav"}}}
+		document := map[string]any{"kind": "import-manifest", "schema_version": "1.0.0", "defaults": map[string]string{"attribution": "diarize", "diarization_model_id": reference}, "items": []any{map[string]string{"source": "audio.wav"}}}
 		data, _ := json.Marshal(document)
 		if e := os.WriteFile(jsonPath, data, 0600); e != nil {
 			t.Fatal(e)

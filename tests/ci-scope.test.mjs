@@ -71,6 +71,25 @@ test('platform qualification waits only for its own exact same-run source build'
  for (const target of ['qualification', 'catalog', 'artifact', 'models', 'library', 'graph', 'app', 'backup']) assert.ok(backends.includes(`./internal/${target}`));
 });
 
+test('native caches can retain tagged builds independently of the immutable core cache', () => {
+ const qualification = parse(readFileSync(new URL('../.github/workflows/native-qualification.yml', import.meta.url), 'utf8'));
+ assert.equal(qualification.jobs.runtime.steps.find(step => step.name === 'Cross-process CLI acceptance').run,
+  "python scripts/qualify.py cli ${{ inputs.native && '--native' || '' }}");
+ const goCache = job => job.steps.find(step => step.uses?.startsWith('actions/setup-go@')).with['cache-dependency-path'];
+ const runtime = goCache(qualification.jobs.runtime).trim().split('\n');
+ const packageInputs = goCache(qualification.jobs.packages).trim().split('\n');
+ assert.deepEqual(runtime, ['go.sum', 'internal/qualification/dependencies.json', 'desktop/frontend/package-lock.json']);
+ assert.deepEqual(packageInputs.slice(0, 2), runtime.slice(0, 2));
+ const select = variant => packageInputs.map(value => value.startsWith('${{') ? (variant === 'desktop' ? 'desktop/frontend/package-lock.json' : 'internal/contracts/contracts.go') : value);
+ assert.deepEqual(select('desktop'), runtime);
+ assert.notDeepEqual(select('cli'), runtime);
+ for (const value of [...runtime, ...select('cli')]) assert.ok(readFileSync(new URL('../' + value, import.meta.url)).length);
+ const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+ for (const job of [ci.jobs.core, ci.jobs['core-windows']]) {
+  assert.equal(goCache(job), undefined); // The default go.sum core key cannot capture native additions.
+ }
+});
+
 test('cold source dependency formats and FFmpeg transfer independently verified provenance', () => {
  const media = parse(readFileSync(new URL('../.github/workflows/media-source.yml', import.meta.url), 'utf8'));
  assert.deepEqual(media.jobs.formats.needs, ['probe', 'groups']);

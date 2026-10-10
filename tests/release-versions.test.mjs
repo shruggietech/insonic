@@ -8,6 +8,35 @@ import { parse } from 'yaml';
 import { validateOwnedVersions } from '../scripts/check-schemas.mjs';
 const source = new URL('../', import.meta.url);
 
+test('PR candidate collection uses complete independent package lanes with no publication authority', () => {
+  const workflow = parse(readFileSync(new URL('.github/workflows/ci.yml', source), 'utf8'));
+  const native = parse(readFileSync(new URL('.github/workflows/native-qualification.yml', source), 'utf8'));
+  const candidate = workflow.jobs.candidate;
+  assert.equal(candidate.permissions.contents, 'read');
+  assert.equal(candidate.environment, undefined);
+  assert.equal(candidate.env.SOURCE_REVISION, '${{ github.sha }}');
+  assert.deepEqual(candidate.needs, ['docs', 'package-linux', 'package-windows', 'package-macos']);
+  assert.ok(!JSON.stringify(candidate).includes('secrets.'));
+  assert.ok(!JSON.stringify(candidate).includes('scripts/release.py publish'));
+  assert.equal(candidate.steps[0].with['persist-credentials'], false);
+  assert.ok(candidate.steps.some(step => step.run?.includes('release.py collect')));
+  assert.equal(native.on.workflow_call.inputs.lane.default, 'both');
+  assert.ok(native.jobs.runtime.if.includes("inputs.lane != 'packages'"));
+  assert.ok(native.jobs.packages.if.includes("inputs.lane != 'runtime'"));
+  for (const platform of ['linux', 'windows', 'macos']) {
+    const runtime = workflow.jobs[`qualify-${platform}`], packages = workflow.jobs[`package-${platform}`];
+    assert.equal(runtime.with.lane, 'runtime');
+    assert.equal(packages.with.lane, 'packages');
+    assert.equal(packages.with.revision, '${{ github.sha }}');
+    assert.deepEqual(packages.needs, runtime.needs);
+  }
+  const assets = native.jobs.packages.steps.find(step => step.with?.name?.startsWith('candidate-package-'));
+  assert.ok(assets.if.includes('success()'));
+  assert.ok(assets.with.path.includes('build/packages/*.zip'));
+  assert.ok(assets.with.path.includes('build/packages/*.tar.gz'));
+  assert.ok(workflow.jobs.docs.steps.some(step => step.run?.includes('release.py docs')));
+});
+
 test('release version checks include desktop locks and the shared runtime binding', () => {
   const temporary = mkdtempSync(join(tmpdir(), 'insonic-version-'));
   try {
@@ -86,6 +115,7 @@ test('media and release jobs select the toolkit installed by the pinned MSYS2 ac
 test('fresh release qualification prepares its sibling CLI before the macOS desktop app', () => {
   const workflow = parse(readFileSync(new URL('.github/workflows/release.yml', source), 'utf8'));
   const steps = workflow.jobs.native.steps;
+  assert.equal(workflow.jobs.native.env.INSONIC_DOCUMENTATION_TARGET, 'release');
   const cli = steps.findIndex(step => step.run?.includes('python scripts/qualify.py cli'));
   const desktop = steps.findIndex(step => step.run?.includes('python scripts/qualify.py desktop'));
   const packages = steps.findIndex(step => step.run?.includes('python scripts/package-desktop.py all --variant both'));

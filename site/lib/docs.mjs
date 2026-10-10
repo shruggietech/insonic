@@ -6,6 +6,7 @@ import MarkdownIt from 'markdown-it';
 import taskLists from 'markdown-it-task-lists';
 import { highlightSource } from './highlight.mjs';
 import { loadSchemaCatalog, renderSchemaReference } from '../../scripts/schema-catalog.mjs';
+import { documentationTarget, publicationManifest, publicationDocument } from './release-status.mjs';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const docsRoot = path.join(root, 'docs');
@@ -24,7 +25,7 @@ export function getManifest() {
       slugs.add(page.slug);
     }
   }
-  return manifest;
+  return publicationManifest(manifest, documentationTarget());
 }
 
 export function versionPath(version, slug) {
@@ -75,6 +76,7 @@ export function readDocument(version, slug) {
     if (!fs.existsSync(changelog)) throw new Error(`Release documentation must freeze its changelog: ${changelog}`);
     source = fs.readFileSync(changelog, 'utf8');
   }
+  if (entry.version === getManifest().latest) source = publicationDocument(source, entry, slug, documentationTarget());
   return { entry, page, source };
 }
 

@@ -113,11 +113,15 @@ export function markdownTargets(text) {
 
 export async function validateLinks(root, file, text) {
   const problems = [];
+  // Frozen repository references retain their original link base, matching
+  // the documentation renderer rather than their physical snapshot directory.
+  const reference = file.match(/^docs\/v[^/]+\/references\/(.+)$/);
+  const linkBase = reference ? reference[1] : file;
   for (const { target, line } of markdownTargets(text)) {
     if (/^(?:[a-z][a-z0-9+.-]*:|\/)/i.test(target)) continue;
     let path; let anchor;
     try { const hash = target.indexOf('#'); path = decodeURIComponent((hash >= 0 ? target.slice(0, hash) : target).split('?')[0]); anchor = hash >= 0 ? decodeURIComponent(target.slice(hash + 1)) : ''; } catch { problems.push(location(file, line, `Malformed link: ${target}`)); continue; }
-    let destination = path ? resolve(root, dirname(file), path) : resolve(root, file);
+    let destination = path ? resolve(root, dirname(linkBase), path) : resolve(root, file);
     const within = relative(resolve(root), destination);
     if (within === '..' || within.startsWith(`..${sep}`)) { problems.push(location(file, line, `Relative link leaves the repository: ${target}`)); continue; }
     try {

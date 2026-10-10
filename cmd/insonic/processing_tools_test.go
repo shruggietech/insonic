@@ -16,7 +16,7 @@ func TestProcessingToolsCLIRejectsExplicitZeroBudgetBeforePublication(t *testing
 		t.Fatal(err)
 	}
 	path := filepath.Join(t.TempDir(), "config.json")
-	config := map[string]any{"kind": "processing-tools", "schema_version": "0.0.0", "cueson": map[string]any{"executable": filepath.Join(t.TempDir(), "unselected-cueson"), "executable_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, "processing": map[string]any{"threads": 0}}
+	config := map[string]any{"kind": "processing-tools", "schema_version": "1.0.0", "cueson": map[string]any{"executable": filepath.Join(t.TempDir(), "unselected-cueson"), "executable_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}, "processing": map[string]any{"threads": 0}}
 	raw, _ := json.Marshal(config)
 	if err := os.WriteFile(path, raw, 0600); err != nil {
 		t.Fatal(err)

@@ -24,12 +24,20 @@ func validProvenance(value map[string]any) bool {
 	allowed := map[string]bool{"segment_count": true, "native_timing_projection": true, "language": true, "beam_size": true, "vad_filter": true, "condition_on_previous_text": true, "compute_type": true, "speaker_count": true, "turn_count": true, "quality_diagnostics_enabled": true, "packages": true, "device": true, "threads": true, "wall_seconds": true, "cpu_seconds": true, "peak_rss_bytes": true, "audio_sha256": true, "sample_count": true, "sample_rate": true, "telemetry_enabled": true, "offline": true}
 	allowed["embedding_minimum_samples"] = true
 	allowed["model_boundary_policy"] = true
+	allowed["recognition_boundary_policy"] = true
 	allowed["context_digest"] = true
 	allowed["hint_count"] = true
 	allowed["context_application"] = true
+	allowed["input_count"] = true
 	for key, item := range value {
 		if !allowed[key] {
 			return false
+		}
+		if key == "input_count" {
+			count, ok := item.(float64)
+			if !ok || count < 1 || count > 64 || math.Trunc(count) != count {
+				return false
+			}
 		}
 		if key == "packages" {
 			packages, ok := item.(map[string]any)

@@ -145,6 +145,17 @@ class WorkerTests(unittest.TestCase):
         with self.assertRaises(worker.WorkerError):
             worker.diarization_result([(0, float("inf"), "speaker_A")], 2000000)
 
+    def test_whisper_end_overhang_is_explicit_bounded_and_not_generic(self):
+        worker = load("processing_whisper_boundary", "processing-worker.py")
+        segment = {"start": 5.36, "end": 8.08, "text": "observed final segment"}
+        result = worker.recognition_result([segment], 8000000, intersect_whisper_end=True)
+        self.assertIn("00:00:05,360 --> 00:00:08,000", result["srt"])
+        self.assertEqual(result["diagnostics"], [{"code": "whisper_end_intersected_decoded_media", "count": 1, "value": 0.08}])
+        with self.assertRaises(worker.WorkerError): worker.recognition_result([segment], 8000000)
+        for start, end in ((0, 8.250001), (8, 8.08), (-0.01, 1), (1, float('inf'))):
+            with self.assertRaises(worker.WorkerError):
+                worker.recognition_result([{"start": start, "end": end, "text": "invalid"}], 8000000, intersect_whisper_end=True)
+
     def test_source_origin_is_exact_and_conservatively_projected(self):
         worker = load("processing_source_clock", "processing-worker.py")
         result = worker.recognition_result([{"start": 0.25, "end": 1.75, "text": "hello"}], 2000000, Fraction(96001, 48000))

@@ -1,0 +1,2542 @@
+{
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/catalog-snapshot.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Consistent logical catalog export with typed provenance and ordered operational rows. Restoration verifies digest, workspace, supported migration version and all relationships, admits only an empty destination and expires imported authority. It does not copy artifact bytes or activate a different profile.",
+  "examples": [
+    {
+      "kind": "catalog-snapshot",
+      "schema_version": "1.0.0",
+      "catalog_schema": 1,
+      "workspace_id": "10000000-0000-4000-8000-000000000001",
+      "revision": 0,
+      "records": {
+        "profiles": null,
+        "artifacts": null,
+        "locations": null,
+        "media": null,
+        "assets": null,
+        "media_assets": null,
+        "metadata": null,
+        "observations": null,
+        "dates": null,
+        "date_selections": null,
+        "speakers": null,
+        "segments": null,
+        "datasets": null,
+        "members": null,
+        "runs": null,
+        "models": null,
+        "versions": null,
+        "model_artifacts": null,
+        "model_associations": null,
+        "library": null,
+        "works": null,
+        "cleanups": null,
+        "base_models": null
+      },
+      "state": [
+        {
+          "name": "operation_receipt",
+          "rows": []
+        },
+        {
+          "name": "setting_revision",
+          "rows": []
+        },
+        {
+          "name": "job",
+          "rows": []
+        },
+        {
+          "name": "job_attempt",
+          "rows": []
+        },
+        {
+          "name": "workspace_lease",
+          "rows": []
+        },
+        {
+          "name": "graph_target",
+          "rows": []
+        },
+        {
+          "name": "graph_event",
+          "rows": []
+        }
+      ],
+      "digest": "17c5708b98f6e943d890677b193f530dcc759356a9501269ed7a3443f0919d1f"
+    }
+  ],
+  "properties": {
+    "catalog_schema": {
+      "description": "Portable migration schema version supported by this catalog.",
+      "enum": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ]
+    },
+    "digest": {
+      "$ref": "common.schema.json#/$defs/sha256",
+      "description": "SHA-256 of losslessly canonicalized snapshot with digest set to an empty string; checked during restoration."
+    },
+    "kind": {
+      "const": "catalog-snapshot",
+      "description": "Master-registry document discriminator."
+    },
+    "records": {
+      "additionalProperties": false,
+      "description": "Typed Records record with scoped associations.",
+      "properties": {
+        "artifacts": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Artifact record with scoped associations.",
+            "properties": {
+              "digest": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "kind": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "size": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "digest",
+              "size",
+              "kind"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "assets": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Asset record with scoped associations.",
+            "properties": {
+              "artifact_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "duration_us": {
+                "description": "Legacy numeric source duration retained for existing catalog compatibility. When a current library record exists, its nullable duration_us is authoritative and an unknown value must not fall back to this legacy number.",
+                "type": "integer"
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "role": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "artifact_id",
+              "role",
+              "duration_us"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "datasets": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Dataset record with scoped associations.",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "manifest_artifact_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Current managed derived artifact identity."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Derived artifact reference, or null after evidence invalidation."
+              },
+              "options": {
+                "description": "Lossless structured report/options value; credentials remain references."
+              },
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "state": {
+                "enum": [
+                  "current",
+                  "invalidated"
+                ],
+                "description": "Whether current evidence authorizes this lineage."
+              },
+              "invalidated_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Accepted evidence invalidation revision, or zero for current lineage."
+              },
+              "invalidated_by": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Recording or workspace responsible for accepted invalidation."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Current invalidation owner, or null for current lineage."
+              }
+            },
+            "required": [
+              "id",
+              "speaker_id",
+              "manifest_artifact_id",
+              "options",
+              "state",
+              "invalidated_revision",
+              "invalidated_by"
+            ],
+            "type": "object",
+            "allOf": [
+              {
+                "if": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "const": "invalidated",
+                      "description": "Evidence-state condition selecting current or invalidated lineage."
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ]
+                },
+                "then": {
+                  "type": "object",
+                  "properties": {
+                    "manifest_artifact_id": {
+                      "type": "null",
+                      "description": "Derived artifact reference is cleared when its evidence is invalidated."
+                    }
+                  }
+                },
+                "else": {
+                  "type": "object",
+                  "properties": {
+                    "manifest_artifact_id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Derived artifact reference is cleared when its evidence is invalidated."
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "date_selections": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed DateSelection record with scoped associations.",
+            "properties": {
+              "date_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Workspace-scoped stable identity; relational provenance is validated by the adapter."
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "media_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "policy": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "reason": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "revision": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "media_id",
+              "revision",
+              "date_id",
+              "policy",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "dates": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed DateObservation record with scoped associations.",
+            "properties": {
+              "basis": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "literal": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "media_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "observation_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Workspace-scoped stable identity; relational provenance is validated by the adapter."
+              },
+              "offset_seconds": {
+                "anyOf": [
+                  {
+                    "description": "Exact signed integer value; adapter enforces the logical field range.",
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              },
+              "precision": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "resolved": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/utcInstant",
+                    "description": "Exact ISO/Unix-nanosecond audit instant; adapter checks agreement."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              },
+              "rules_version": {
+                "anyOf": [
+                  {
+                    "description": "Typed text value retained without reinterpretation.",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              },
+              "zone": {
+                "anyOf": [
+                  {
+                    "description": "Typed text value retained without reinterpretation.",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              }
+            },
+            "required": [
+              "id",
+              "media_id",
+              "observation_id",
+              "basis",
+              "literal",
+              "zone",
+              "offset_seconds",
+              "rules_version",
+              "precision",
+              "resolved"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "locations": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed ArtifactLocation record with scoped associations.",
+            "properties": {
+              "artifact_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "key": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "profile_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "profile_revision": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              },
+              "state": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "version": {
+                "anyOf": [
+                  {
+                    "description": "Typed text value retained without reinterpretation.",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              }
+            },
+            "required": [
+              "id",
+              "artifact_id",
+              "profile_id",
+              "profile_revision",
+              "key",
+              "version",
+              "state"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "media": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Media record with scoped associations.",
+            "properties": {
+              "class": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "title": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "class"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "media_assets": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed MediaAsset record with scoped associations.",
+            "properties": {
+              "asset_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "media_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "role": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "media_id",
+              "asset_id",
+              "role"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "members": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed DatasetMember record with scoped associations.",
+            "properties": {
+              "dataset_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "ordinal": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              },
+              "segment_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "segment_revision": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "dataset_id",
+              "ordinal",
+              "segment_id",
+              "segment_revision"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "metadata": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed MetadataSnapshot record with scoped associations.",
+            "properties": {
+              "asset_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "captured": {
+                "$ref": "common.schema.json#/$defs/utcInstant",
+                "description": "Exact ISO/Unix-nanosecond audit instant; adapter checks agreement."
+              },
+              "extractor": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "report_artifact_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Workspace-scoped stable identity; relational provenance is validated by the adapter."
+              },
+              "state": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "version": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "asset_id",
+              "report_artifact_id",
+              "state",
+              "extractor",
+              "version",
+              "captured"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "model_artifacts": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed ModelArtifact record with scoped associations.",
+            "properties": {
+              "artifact_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "format": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "role": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "version_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              }
+            },
+            "required": [
+              "id",
+              "version_id",
+              "artifact_id",
+              "role",
+              "format"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "model_associations": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed ModelAssociation record with scoped associations.",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "model_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "reason": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "revision": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              },
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              }
+            },
+            "required": [
+              "id",
+              "model_id",
+              "speaker_id",
+              "revision",
+              "reason"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "models": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Model record with scoped associations.",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "name": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              }
+            },
+            "required": [
+              "id",
+              "speaker_id",
+              "name"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "observations": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Observation record with scoped associations.",
+            "properties": {
+              "family": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "instance": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              },
+              "precision": {
+                "anyOf": [
+                  {
+                    "description": "Typed text value retained without reinterpretation.",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              },
+              "raw": {
+                "description": "Lossless structured report/options value; credentials remain references."
+              },
+              "snapshot_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "tag": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "unit": {
+                "anyOf": [
+                  {
+                    "description": "Typed text value retained without reinterpretation.",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              },
+              "value": {
+                "description": "Lossless structured report/options value; credentials remain references."
+              }
+            },
+            "required": [
+              "id",
+              "snapshot_id",
+              "family",
+              "tag",
+              "instance",
+              "raw",
+              "value",
+              "unit",
+              "precision"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "profiles": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Profile record with scoped associations.",
+            "properties": {
+              "adapter": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "configuration": {
+                "description": "Lossless structured report/options value; credentials remain references."
+              },
+              "credential_id": {
+                "anyOf": [
+                  {
+                    "description": "Typed text value retained without reinterpretation.",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              },
+              "expected_backend_version": {
+                "anyOf": [
+                  {
+                    "description": "Typed text value retained without reinterpretation.",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Typed catalog value, or null when unknown."
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "revision": {
+                "description": "Exact signed integer value; adapter enforces the logical field range.",
+                "type": "integer"
+              },
+              "role": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "version": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "expected_backend_version",
+              "id",
+              "revision",
+              "role",
+              "adapter",
+              "version",
+              "configuration",
+              "credential_id"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "runs": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed TrainingRun record with scoped associations.",
+            "properties": {
+              "adapter": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "dataset_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "job_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Producing durable work identity; historical job identity remains accepted for earlier records."
+              },
+              "options": {
+                "description": "Lossless structured report/options value; credentials remain references."
+              },
+              "preparation_artifact_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Current managed derived artifact identity."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Derived artifact reference, or null after evidence invalidation."
+              },
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "state": {
+                "enum": [
+                  "current",
+                  "invalidated"
+                ],
+                "description": "Whether current evidence authorizes this lineage."
+              }
+            },
+            "required": [
+              "id",
+              "dataset_id",
+              "speaker_id",
+              "job_id",
+              "preparation_artifact_id",
+              "adapter",
+              "options",
+              "state"
+            ],
+            "type": "object",
+            "allOf": [
+              {
+                "if": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "const": "invalidated",
+                      "description": "Evidence-state condition selecting current or invalidated lineage."
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ]
+                },
+                "then": {
+                  "type": "object",
+                  "properties": {
+                    "preparation_artifact_id": {
+                      "type": "null",
+                      "description": "Derived artifact reference is cleared when its evidence is invalidated."
+                    }
+                  }
+                },
+                "else": {
+                  "type": "object",
+                  "properties": {
+                    "preparation_artifact_id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Derived artifact reference is cleared when its evidence is invalidated."
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "segments": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "type": "object",
+            "description": "Reference to current embedded subtitle/speaker evidence. Timings, attribution payloads and known-person assignments are resolved from the current recording and mapping; they are not copied here.",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable segment reference identity."
+              },
+              "revision": {
+                "$ref": "common.schema.json#/$defs/revision",
+                "description": "Immutable reference revision."
+              },
+              "recording_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current recording owning the embedded Cueson evidence."
+              },
+              "document_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "Exact current embedded document digest; stale references fail resolution."
+              },
+              "cue_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1024,
+                "description": "Cue identity inside the current embedded document."
+              },
+              "local_speaker_id": {
+                "$ref": "common.schema.json#/$defs/localSpeakerID",
+                "description": "Recording-scoped local speaker token occurring in this cue attribution."
+              },
+              "clip_artifact_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Optional managed prepared clip identity."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional derived clip identity, or null. A clip does not become assignment authority."
+              }
+            },
+            "required": [
+              "id",
+              "revision",
+              "recording_id",
+              "document_digest",
+              "cue_id",
+              "local_speaker_id",
+              "clip_artifact_id"
+            ],
+            "additionalProperties": false
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "speakers": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed Speaker record with scoped associations.",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "name": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Accepted aggregate revision used for compare-and-swap."
+              },
+              "state": {
+                "enum": [
+                  "active",
+                  "inactive"
+                ],
+                "description": "Explicit context eligibility; deactivation preserves stable identity and links."
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "type": "object"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "versions": {
+          "description": "Deterministically ordered typed records, or null when empty.",
+          "items": {
+            "additionalProperties": false,
+            "description": "Typed ModelVersion record with scoped associations.",
+            "properties": {
+              "dataset_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "kind": {
+                "description": "Typed text value retained without reinterpretation.",
+                "type": "string"
+              },
+              "manifest_artifact_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Current managed derived artifact identity."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Derived artifact reference, or null after evidence invalidation."
+              },
+              "model_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "run_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped stable record identity."
+              },
+              "state": {
+                "enum": [
+                  "current",
+                  "invalidated"
+                ],
+                "description": "Whether current evidence authorizes this lineage."
+              }
+            },
+            "required": [
+              "id",
+              "model_id",
+              "run_id",
+              "dataset_id",
+              "manifest_artifact_id",
+              "kind",
+              "state"
+            ],
+            "type": "object",
+            "allOf": [
+              {
+                "if": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "const": "invalidated",
+                      "description": "Evidence-state condition selecting current or invalidated lineage."
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ]
+                },
+                "then": {
+                  "type": "object",
+                  "properties": {
+                    "manifest_artifact_id": {
+                      "type": "null",
+                      "description": "Derived artifact reference is cleared when its evidence is invalidated."
+                    }
+                  }
+                },
+                "else": {
+                  "type": "object",
+                  "properties": {
+                    "manifest_artifact_id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Derived artifact reference is cleared when its evidence is invalidated."
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "library": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Current typed records, or null when empty.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "asset_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "title": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "class": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "mode": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "source_locator": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "digest": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "size": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "integer"
+              },
+              "original_publication_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "subtitle_publication_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "duration_us": {
+                "description": "Authoritative measured recording duration in integer microseconds. Null is unknown; zero is measured zero. Subtitle coverage never supplies this value.",
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "facts": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "metadata": {
+                "description": "Only the current normalized capture, with complete extraction provenance and explicit coverage. Superseded derived payloads are removed."
+              },
+              "dates": {
+                "description": "Current owner and source date observations, conflicts, interpretation state and selected precedence rule. Owner date evidence survives computed-capture replacement."
+              },
+              "report_publication_ids": {
+                "type": "array",
+                "description": "Current raw metadata report publication identities. Replacements remove superseded references and queue physical retirement.",
+                "items": {
+                  "$ref": "common.schema.json#/$defs/uuid",
+                  "description": "Workspace-scoped managed publication identity."
+                },
+                "uniqueItems": true
+              },
+              "revision": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "asset_id",
+              "title",
+              "class",
+              "mode",
+              "source_locator",
+              "digest",
+              "size",
+              "original_publication_id",
+              "subtitle_publication_id",
+              "duration_us",
+              "facts",
+              "metadata",
+              "dates",
+              "report_publication_ids",
+              "revision"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "works": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Current typed records, or null when empty.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "journal_receipt_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "kind": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "payload": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "state": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "owner": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "generation": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "integer"
+              },
+              "lease_until": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "integer"
+              },
+              "phase": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "result": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "error": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              }
+            },
+            "required": [
+              "journal_receipt_id",
+              "id",
+              "kind",
+              "payload",
+              "state",
+              "owner",
+              "generation",
+              "lease_until",
+              "phase",
+              "result",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "cleanups": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Current typed records, or null when empty.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "entry_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "state": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Accepted current-replacement revision whose receipt lists this publication for physical cleanup. Restore verifies that association before a worker can retire bytes."
+              },
+              "legacy_location_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Exact legacy location identity requiring selected-store verified adoption."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional location-only migration obligation. Pending has no invented admission; completion requires actual retirement."
+              }
+            },
+            "required": [
+              "id",
+              "entry_id",
+              "state",
+              "revision"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "base_models": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Current typed records, or null when empty.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints."
+              },
+              "name": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "version": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "digest": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "manifest": {
+                "$ref": "base-model-manifest.schema.json",
+                "description": "Exact selected downloaded-model manifest, separate from speaker-trained model lineage."
+              },
+              "publication_ids": {
+                "type": "array",
+                "description": "Ordered verified required model-file publication identities.",
+                "items": {
+                  "$ref": "common.schema.json#/$defs/uuid",
+                  "description": "Workspace-scoped managed publication identity."
+                },
+                "uniqueItems": true
+              },
+              "state": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "string"
+              },
+              "revision": {
+                "description": "Current typed catalog value; adapter enforces scoped identity and logical constraints.",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "version",
+              "digest",
+              "manifest",
+              "publication_ids",
+              "state",
+              "revision"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "recordings": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Current authority rows, never alternate derived results.",
+          "items": {
+            "$ref": "recording.schema.json#/$defs/current"
+          }
+        },
+        "speaker_mappings": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "description": "Current authority rows, never alternate derived results.",
+          "items": {
+            "$ref": "recording.schema.json#/$defs/mapping"
+          }
+        },
+        "speaker_aliases": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable alias identity."
+              },
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Owning known-speaker identity."
+              },
+              "text": {
+                "type": "string",
+                "description": "Explicit alias text.",
+                "maxLength": 512
+              },
+              "language": {
+                "type": "string",
+                "description": "Language scope or empty for any selected language.",
+                "maxLength": 80
+              },
+              "scope": {
+                "type": "string",
+                "description": "Context scope or empty for any selected context.",
+                "maxLength": 256
+              },
+              "state": {
+                "enum": [
+                  "active",
+                  "inactive"
+                ],
+                "description": "Explicit context eligibility; deactivation preserves stable identity and links."
+              },
+              "provenance": {
+                "type": "object",
+                "description": "Nonsecret reference-only origin metadata; credentials, transcript copies and attribution arrays are rejected by the catalog."
+              }
+            },
+            "required": [
+              "id",
+              "speaker_id",
+              "text",
+              "language",
+              "scope",
+              "state",
+              "provenance"
+            ],
+            "description": "Current alias; updates are fenced by the owning speaker aggregate revision."
+          },
+          "description": "Current typed records, ordered by stable identity; null or omission denotes an empty domain."
+        },
+        "terms": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable vocabulary entry identity."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Accepted term revision used for compare-and-swap."
+              },
+              "canonical": {
+                "type": "string",
+                "description": "Canonical recognition hint.",
+                "maxLength": 512
+              },
+              "variants": {
+                "type": "array",
+                "maxItems": 128,
+                "items": {
+                  "type": "string",
+                  "description": "Explicit recognition variant.",
+                  "maxLength": 512
+                },
+                "description": "Ordered variants, deduplicated only during context compilation."
+              },
+              "language": {
+                "type": "string",
+                "description": "Language scope or empty for any selected language.",
+                "maxLength": 80
+              },
+              "context": {
+                "type": "string",
+                "description": "Context scope or empty for any selected context.",
+                "maxLength": 256
+              },
+              "state": {
+                "enum": [
+                  "active",
+                  "inactive"
+                ],
+                "description": "Explicit context eligibility; deactivation preserves stable identity and links."
+              },
+              "speaker_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Optional known-speaker link."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional known-speaker link."
+              },
+              "alias_id": {
+                "anyOf": [
+                  {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Optional alias link; must belong to the linked speaker when both are supplied."
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional alias link."
+              },
+              "provenance": {
+                "type": "object",
+                "description": "Nonsecret reference-only origin metadata; credentials, transcript copies and attribution arrays are rejected by the catalog."
+              }
+            },
+            "required": [
+              "id",
+              "revision",
+              "canonical",
+              "variants",
+              "language",
+              "context",
+              "state",
+              "speaker_id",
+              "alias_id",
+              "provenance"
+            ],
+            "description": "Current revisioned recognition term."
+          },
+          "description": "Current typed records, ordered by stable identity; null or omission denotes an empty domain."
+        },
+        "pipelines": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable saved pipeline identity."
+              },
+              "name": {
+                "type": "string",
+                "description": "Readable pipeline name.",
+                "maxLength": 512
+              },
+              "preset": {
+                "enum": [
+                  "local",
+                  "connected",
+                  "custom"
+                ],
+                "description": "Canonical preset; stage election validates its explicit routing."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Accepted pipeline revision used for compare-and-swap."
+              },
+              "configuration": {
+                "$ref": "pipeline-config.schema.json#/$defs/configuration",
+                "description": "Effective stage defaults with credential references only."
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "preset",
+              "revision",
+              "configuration"
+            ],
+            "description": "Current saved pipeline definition; work captures its effective revision separately."
+          },
+          "description": "Current typed records, ordered by stable identity; null or omission denotes an empty domain."
+        },
+        "extractions": {
+          "type": "array",
+          "description": "Portable typed extractions, validated against accepted current-state proofs.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "id in the current exploration contract."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "revision in the current exploration contract."
+              },
+              "recording_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "recording revision in the current exploration contract."
+              },
+              "document_digest": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$",
+                "description": "document digest in the current exploration contract."
+              },
+              "assertions": {
+                "type": "array",
+                "description": "assertions in the current exploration contract."
+              },
+              "provenance": {
+                "type": "object",
+                "description": "provenance in the current exploration contract."
+              },
+              "diagnostics": {
+                "type": "array",
+                "description": "diagnostics in the current exploration contract."
+              }
+            },
+            "required": [
+              "id",
+              "revision",
+              "recording_revision",
+              "document_digest",
+              "assertions",
+              "provenance",
+              "diagnostics"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "saved_queries": {
+          "type": "array",
+          "description": "Portable typed saved queries, validated against accepted current-state proofs.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "id in the current exploration contract."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "revision in the current exploration contract."
+              },
+              "definition": {
+                "type": "object",
+                "description": "definition in the current exploration contract."
+              },
+              "validations": {
+                "type": "array",
+                "description": "Immutable backend compatibility findings for this saved version.",
+                "items": {
+                  "type": "object",
+                  "description": "Compatibility check result."
+                }
+              }
+            },
+            "required": [
+              "id",
+              "revision",
+              "definition",
+              "validations"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "graph_layouts": {
+          "type": "array",
+          "description": "Portable typed graph layouts, validated against accepted current-state proofs.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "id in the current exploration contract."
+              },
+              "query_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "query id in the current exploration contract."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "revision in the current exploration contract."
+              },
+              "layout": {
+                "type": "object",
+                "description": "layout in the current exploration contract."
+              }
+            },
+            "required": [
+              "id",
+              "query_id",
+              "revision",
+              "layout"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "rosters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "revision"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Stable workspace-scoped UUID."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Positive accepted current roster revision."
+              }
+            }
+          },
+          "description": "Current intentional roster headers, independent of transcripts."
+        },
+        "roster_members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "recording_id",
+              "speaker_id",
+              "revision"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Stable workspace-scoped UUID."
+              },
+              "recording_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Stable parent recording UUID."
+              },
+              "speaker_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Existing centralized speaker UUID."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Positive accepted current roster revision."
+              }
+            }
+          },
+          "description": "Unique references to existing centralized speaker identities."
+        },
+        "model_aliases": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "common.schema.json#/$defs/modelAlias",
+            "description": "Typed workspace-scoped portable record."
+          },
+          "description": "Deterministically ordered alias/source records including revision tombstones."
+        },
+        "model_sources": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "common.schema.json#/$defs/modelSource",
+            "description": "Typed workspace-scoped portable record."
+          },
+          "description": "Deterministically ordered alias/source records including revision tombstones."
+        },
+        "speaker_outputs": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exact workspace-scoped id."
+              },
+              "model_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exact workspace-scoped model id."
+              },
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exact workspace-scoped speaker id."
+              },
+              "dataset_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exact workspace-scoped dataset id."
+              },
+              "work_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exact workspace-scoped work id."
+              },
+              "kind": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "description": "Declared immutable output kind."
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Speaker model name."
+              },
+              "metadata": {
+                "$ref": "speaker-model.schema.json",
+                "description": "Immutable noncontent output identity, compatibility and origin manifest."
+              },
+              "publication_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "common.schema.json#/$defs/uuid",
+                  "description": "Exact verified artifact publication."
+                },
+                "maxItems": 128,
+                "description": "Available durable output publications.",
+                "minItems": 0
+              }
+            },
+            "required": [
+              "id",
+              "model_id",
+              "speaker_id",
+              "dataset_id",
+              "work_id",
+              "kind",
+              "name",
+              "metadata",
+              "publication_ids"
+            ],
+            "description": "Immutable speaker output, independent of current preparation validity.",
+            "allOf": [
+              {
+                "if": {
+                  "type": "object",
+                  "properties": {
+                    "metadata": {
+                      "type": "object",
+                      "properties": {
+                        "state": {
+                          "const": "current",
+                          "description": "Current lineage requires its accepted manifest publication."
+                        }
+                      },
+                      "required": [
+                        "state"
+                      ],
+                      "description": "Current portable lineage condition."
+                    }
+                  },
+                  "required": [
+                    "metadata"
+                  ]
+                },
+                "then": {
+                  "type": "object",
+                  "properties": {
+                    "publication_ids": {
+                      "type": "array",
+                      "minItems": 1,
+                      "description": "Current outputs include the accepted model manifest publication."
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "description": "Completed exact outputs preserved when current corpus is invalidated."
+        },
+        "speaker_profiles": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Centralized speaker identity owning the current profile."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Positive revision fencing profile changes."
+              },
+              "version_id": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 36,
+                "description": "Exact selected output version, empty only when cleared."
+              },
+              "state": {
+                "enum": [
+                  "active",
+                  "cleared"
+                ],
+                "description": "Current profile election state."
+              }
+            },
+            "required": [
+              "id",
+              "revision",
+              "version_id",
+              "state"
+            ],
+            "description": "Revisioned current speaker profile head.",
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "active"
+                      ],
+                      "description": "Active profile selection."
+                    }
+                  },
+                  "required": [
+                    "state"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "version_id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Exact selected immutable output version."
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "version_id": {
+                      "const": "",
+                      "description": "Cleared profile retains no selected version."
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "description": "Explicit exact version selections for roster matching."
+        },
+        "speaker_checkpoints": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Immutable checkpoint identity."
+              },
+              "work_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Producing durable work identity."
+              },
+              "attempt": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Producing work attempt generation."
+              },
+              "step": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Declared training step."
+              },
+              "base_digest": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 64,
+                "description": "Exact base digest, empty only for base-independent output."
+              },
+              "compatibility": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Declared resume compatibility identity."
+              },
+              "adapter_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "Exact producing adapter declaration digest."
+              },
+              "publication_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Verified checkpoint publication."
+              }
+            },
+            "required": [
+              "id",
+              "work_id",
+              "attempt",
+              "step",
+              "base_digest",
+              "compatibility",
+              "adapter_digest",
+              "publication_id"
+            ],
+            "description": "Immutable producing-attempt checkpoint."
+          },
+          "description": "Validated resumable state distinct from completed models."
+        }
+      },
+      "required": [
+        "profiles",
+        "artifacts",
+        "locations",
+        "media",
+        "assets",
+        "media_assets",
+        "metadata",
+        "observations",
+        "dates",
+        "date_selections",
+        "speakers",
+        "segments",
+        "datasets",
+        "members",
+        "runs",
+        "models",
+        "versions",
+        "model_artifacts",
+        "model_associations"
+      ],
+      "type": "object"
+    },
+    "revision": {
+      "description": "Accepted workspace revision in the same consistent export transaction.",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "description": "Shared software/documentation/contract release version."
+    },
+    "state": {
+      "description": "Operational tables in dependency order; includes receipts, selections, jobs, attempts, leases, targets and events. Schema 1 has seven tables; schema 2 adds the typed artifact publication/lifecycle journal.",
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "Fixed operational table identity; SQL identifiers are never supplied by the caller.",
+            "enum": [
+              "operation_receipt",
+              "setting_revision",
+              "job",
+              "job_attempt",
+              "workspace_lease",
+              "graph_target",
+              "graph_event",
+              "artifact_publication"
+            ]
+          },
+          "rows": {
+            "description": "Ordered complete rows in the table's portable layout; restoration validates width, types and semantic relationships.",
+            "items": {
+              "description": "Operational row cells in the fixed table column order. JSON reports/results are stored as strings; integer cells remain exact.",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "maxItems": 8,
+      "minItems": 7,
+      "type": "array"
+    },
+    "workspace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Workspace-scoped stable record identity."
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "catalog_schema",
+    "workspace_id",
+    "revision",
+    "records",
+    "state",
+    "digest"
+  ],
+  "title": "Portable catalog snapshot",
+  "type": "object",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "catalog_schema": {
+            "const": 5,
+            "description": "Current catalog schema contract."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "records": {
+            "type": "object",
+            "properties": {
+              "speakers": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Known-speaker identity, independent of recording-local voice IDs."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Canonical display name; equal names never merge people.",
+                      "maxLength": 512
+                    },
+                    "revision": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Accepted aggregate revision used for compare-and-swap."
+                    },
+                    "state": {
+                      "enum": [
+                        "active",
+                        "inactive"
+                      ],
+                      "description": "Explicit context eligibility; deactivation preserves stable identity and links."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "revision",
+                    "state"
+                  ],
+                  "description": "Current known-speaker identity."
+                },
+                "description": "Current speakers contract."
+              }
+            },
+            "description": "Current records contract."
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "speaker": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Known-speaker identity, independent of recording-local voice IDs."
+        },
+        "name": {
+          "type": "string",
+          "description": "Canonical display name; equal names never merge people.",
+          "maxLength": 512
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Accepted aggregate revision used for compare-and-swap."
+        },
+        "state": {
+          "enum": [
+            "active",
+            "inactive"
+          ],
+          "description": "Explicit context eligibility; deactivation preserves stable identity and links."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "revision",
+        "state"
+      ],
+      "description": "Current known-speaker identity."
+    },
+    "speakerAlias": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Stable alias identity."
+        },
+        "speaker_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Owning known-speaker identity."
+        },
+        "text": {
+          "type": "string",
+          "description": "Explicit alias text.",
+          "maxLength": 512
+        },
+        "language": {
+          "type": "string",
+          "description": "Language scope or empty for any selected language.",
+          "maxLength": 80
+        },
+        "scope": {
+          "type": "string",
+          "description": "Context scope or empty for any selected context.",
+          "maxLength": 256
+        },
+        "state": {
+          "enum": [
+            "active",
+            "inactive"
+          ],
+          "description": "Explicit context eligibility; deactivation preserves stable identity and links."
+        },
+        "provenance": {
+          "type": "object",
+          "description": "Nonsecret reference-only origin metadata; credentials, transcript copies and attribution arrays are rejected by the catalog."
+        }
+      },
+      "required": [
+        "id",
+        "speaker_id",
+        "text",
+        "language",
+        "scope",
+        "state",
+        "provenance"
+      ],
+      "description": "Current alias; updates are fenced by the owning speaker aggregate revision."
+    },
+    "term": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Stable vocabulary entry identity."
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Accepted term revision used for compare-and-swap."
+        },
+        "canonical": {
+          "type": "string",
+          "description": "Canonical recognition hint.",
+          "maxLength": 512
+        },
+        "variants": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "string",
+            "description": "Explicit recognition variant.",
+            "maxLength": 512
+          },
+          "description": "Ordered variants, deduplicated only during context compilation."
+        },
+        "language": {
+          "type": "string",
+          "description": "Language scope or empty for any selected language.",
+          "maxLength": 80
+        },
+        "context": {
+          "type": "string",
+          "description": "Context scope or empty for any selected context.",
+          "maxLength": 256
+        },
+        "state": {
+          "enum": [
+            "active",
+            "inactive"
+          ],
+          "description": "Explicit context eligibility; deactivation preserves stable identity and links."
+        },
+        "speaker_id": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/uuid",
+              "description": "Optional known-speaker link."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional known-speaker link."
+        },
+        "alias_id": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/uuid",
+              "description": "Optional alias link; must belong to the linked speaker when both are supplied."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional alias link."
+        },
+        "provenance": {
+          "type": "object",
+          "description": "Nonsecret reference-only origin metadata; credentials, transcript copies and attribution arrays are rejected by the catalog."
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "canonical",
+        "variants",
+        "language",
+        "context",
+        "state",
+        "speaker_id",
+        "alias_id",
+        "provenance"
+      ],
+      "description": "Current revisioned recognition term."
+    },
+    "pipeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Stable saved pipeline identity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Readable pipeline name.",
+          "maxLength": 512
+        },
+        "preset": {
+          "enum": [
+            "local",
+            "connected",
+            "custom"
+          ],
+          "description": "Canonical preset; stage election validates its explicit routing."
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Accepted pipeline revision used for compare-and-swap."
+        },
+        "configuration": {
+          "$ref": "pipeline-config.schema.json#/$defs/configuration",
+          "description": "Effective stage defaults with credential references only."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "preset",
+        "revision",
+        "configuration"
+      ],
+      "description": "Current saved pipeline definition; work captures its effective revision separately."
+    }
+  }
+}

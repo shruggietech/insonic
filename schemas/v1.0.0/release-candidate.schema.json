@@ -1,0 +1,521 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/release-candidate.schema.json",
+  "title": "Verified native release candidate",
+  "description": "Exact-version complete native package and documentation inventory. Structural validation complements source revision, corresponding-source, signing, checksum and publication readback checks. Synthetic examples illustrate shape and do not represent a shipped release.",
+  "type": "object",
+  "properties": {
+    "kind": {
+      "const": "release-candidate",
+      "description": "Complete verified release candidate manifest."
+    },
+    "schema_version": {
+      "const": "1.0.0",
+      "description": "Synchronized contract version."
+    },
+    "version": {
+      "const": "1.0.0",
+      "description": "Software, documentation and master-schema release version."
+    },
+    "revision": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$",
+      "description": "Exact clean source commit."
+    },
+    "tag": {
+      "const": "v1.0.0",
+      "description": "Exact release tag; baseline candidates are never published as a product release."
+    },
+    "repository": {
+      "const": "shruggietech/insonic",
+      "description": "Release publication repository."
+    },
+    "packages": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "const": "native-package-receipt",
+            "description": "Native package qualification receipt."
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "description": "Release contract version."
+          },
+          "product_version": {
+            "const": "1.0.0",
+            "description": "Owned software version."
+          },
+          "documentation_version": {
+            "const": "1.0.0",
+            "description": "Packaged documentation version."
+          },
+          "platform": {
+            "enum": [
+              "windows_amd64",
+              "linux_amd64",
+              "darwin_arm64"
+            ],
+            "description": "Qualified native operating system and architecture."
+          },
+          "variant": {
+            "enum": [
+              "cli",
+              "desktop"
+            ],
+            "description": "CLI-only or GUI-with-CLI distribution."
+          },
+          "revision": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$",
+            "description": "Exact reviewed source commit."
+          },
+          "source_dirty": {
+            "const": false,
+            "description": "Candidate source must be clean."
+          },
+          "archive": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^/\\\\:]+$",
+            "description": "Portable archive basename."
+          },
+          "archive_sha256": {
+            "$ref": "common.schema.json#/$defs/sha256",
+            "description": "Final archive digest after configured signing."
+          },
+          "archive_size_bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Exact archive byte count."
+          },
+          "inventory_sha256": {
+            "$ref": "common.schema.json#/$defs/sha256",
+            "description": "Final package inventory digest."
+          },
+          "distribution": {
+            "type": "object",
+            "properties": {
+              "source_complete": {
+                "const": true,
+                "description": "Exact corresponding sources and build material verified."
+              },
+              "binary_publication": {
+                "const": "eligible",
+                "description": "Corresponding-source publication gate passed."
+              },
+              "corresponding_source": {
+                "const": "included",
+                "description": "Source material travels inside the package."
+              }
+            },
+            "required": [
+              "source_complete",
+              "binary_publication",
+              "corresponding_source"
+            ],
+            "description": "Verified distribution disposition; detailed source inventory is inside the package."
+          },
+          "signing": {
+            "type": "object",
+            "properties": {
+              "configured": {
+                "type": "boolean",
+                "description": "Explicit publisher signing configuration exists."
+              },
+              "verified": {
+                "type": "boolean",
+                "description": "Configured signing was verified."
+              },
+              "status": {
+                "enum": [
+                  "unconfigured",
+                  "signed",
+                  "notarized"
+                ],
+                "description": "Truthful publisher signing status; ad-hoc signatures do not imply publisher signing."
+              }
+            },
+            "required": [
+              "configured",
+              "verified",
+              "status"
+            ],
+            "description": "Publisher signing evidence, distinct from operating-system ad-hoc sealing.",
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "configured": {
+                      "const": true,
+                      "description": "Whether publisher signing is configured."
+                    }
+                  },
+                  "required": [
+                    "configured"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "verified": {
+                      "const": true,
+                      "description": "Configured publisher signing must be verified before release."
+                    },
+                    "status": {
+                      "enum": [
+                        "signed",
+                        "notarized"
+                      ],
+                      "description": "Configured signing requires a signed or notarized disposition."
+                    }
+                  }
+                },
+                "else": {
+                  "properties": {
+                    "verified": {
+                      "const": false,
+                      "description": "Unconfigured signing cannot assert publisher verification."
+                    },
+                    "status": {
+                      "const": "unconfigured",
+                      "description": "No publisher signing identity was configured."
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "schema_version",
+          "product_version",
+          "documentation_version",
+          "platform",
+          "variant",
+          "revision",
+          "source_dirty",
+          "archive",
+          "archive_sha256",
+          "archive_size_bytes",
+          "inventory_sha256",
+          "distribution",
+          "signing"
+        ]
+      },
+      "description": "All three native platforms and both variants. Runtime verifies unique matrix identities, inventory and corresponding-source proof."
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^/\\\\:]+$",
+            "description": "Safe immutable release asset basename."
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Exact byte length."
+          },
+          "sha256": {
+            "$ref": "common.schema.json#/$defs/sha256",
+            "description": "Complete asset SHA-256."
+          }
+        },
+        "required": [
+          "name",
+          "size_bytes",
+          "sha256"
+        ],
+        "additionalProperties": false
+      },
+      "description": "Six native packages plus exact public documentation and offline-help archives; checksums and this manifest are companion assets."
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "variants": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "cli",
+              "desktop"
+            ]
+          },
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "description": "Qualified native variants."
+        },
+        "platforms": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "windows_amd64",
+              "linux_amd64",
+              "darwin_arm64"
+            ]
+          },
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "description": "Qualified operating systems and architectures."
+        },
+        "advanced_cli": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true,
+          "description": "Advanced CLI capabilities awaiting dedicated GUI controls."
+        },
+        "inference_qualification": {
+          "const": "not-executed",
+          "description": "Required package checks do not initialize models or execute acoustic inference."
+        }
+      },
+      "required": [
+        "variants",
+        "platforms",
+        "advanced_cli",
+        "inference_qualification"
+      ],
+      "additionalProperties": false,
+      "description": "CLI/GUI and qualification disposition."
+    }
+  },
+  "required": [
+    "kind",
+    "schema_version",
+    "version",
+    "revision",
+    "tag",
+    "repository",
+    "packages",
+    "assets",
+    "capabilities"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "kind": "release-candidate",
+      "schema_version": "1.0.0",
+      "version": "1.0.0",
+      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "tag": "v1.0.0",
+      "repository": "shruggietech/insonic",
+      "packages": [
+        {
+          "kind": "native-package-receipt",
+          "schema_version": "1.0.0",
+          "product_version": "1.0.0",
+          "documentation_version": "1.0.0",
+          "platform": "windows_amd64",
+          "variant": "cli",
+          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dirty": false,
+          "archive": "insonic_1.0.0_windows_amd64_cli.zip",
+          "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "archive_size_bytes": 1,
+          "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "distribution": {
+            "source_complete": true,
+            "binary_publication": "eligible",
+            "corresponding_source": "included"
+          },
+          "signing": {
+            "configured": false,
+            "verified": false,
+            "status": "unconfigured"
+          }
+        },
+        {
+          "kind": "native-package-receipt",
+          "schema_version": "1.0.0",
+          "product_version": "1.0.0",
+          "documentation_version": "1.0.0",
+          "platform": "windows_amd64",
+          "variant": "desktop",
+          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dirty": false,
+          "archive": "insonic_1.0.0_windows_amd64_desktop.zip",
+          "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "archive_size_bytes": 1,
+          "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "distribution": {
+            "source_complete": true,
+            "binary_publication": "eligible",
+            "corresponding_source": "included"
+          },
+          "signing": {
+            "configured": false,
+            "verified": false,
+            "status": "unconfigured"
+          }
+        },
+        {
+          "kind": "native-package-receipt",
+          "schema_version": "1.0.0",
+          "product_version": "1.0.0",
+          "documentation_version": "1.0.0",
+          "platform": "linux_amd64",
+          "variant": "cli",
+          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dirty": false,
+          "archive": "insonic_1.0.0_linux_amd64_cli.tar.gz",
+          "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "archive_size_bytes": 1,
+          "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "distribution": {
+            "source_complete": true,
+            "binary_publication": "eligible",
+            "corresponding_source": "included"
+          },
+          "signing": {
+            "configured": false,
+            "verified": false,
+            "status": "unconfigured"
+          }
+        },
+        {
+          "kind": "native-package-receipt",
+          "schema_version": "1.0.0",
+          "product_version": "1.0.0",
+          "documentation_version": "1.0.0",
+          "platform": "linux_amd64",
+          "variant": "desktop",
+          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dirty": false,
+          "archive": "insonic_1.0.0_linux_amd64_desktop.tar.gz",
+          "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "archive_size_bytes": 1,
+          "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "distribution": {
+            "source_complete": true,
+            "binary_publication": "eligible",
+            "corresponding_source": "included"
+          },
+          "signing": {
+            "configured": false,
+            "verified": false,
+            "status": "unconfigured"
+          }
+        },
+        {
+          "kind": "native-package-receipt",
+          "schema_version": "1.0.0",
+          "product_version": "1.0.0",
+          "documentation_version": "1.0.0",
+          "platform": "darwin_arm64",
+          "variant": "cli",
+          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dirty": false,
+          "archive": "insonic_1.0.0_darwin_arm64_cli.zip",
+          "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "archive_size_bytes": 1,
+          "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "distribution": {
+            "source_complete": true,
+            "binary_publication": "eligible",
+            "corresponding_source": "included"
+          },
+          "signing": {
+            "configured": false,
+            "verified": false,
+            "status": "unconfigured"
+          }
+        },
+        {
+          "kind": "native-package-receipt",
+          "schema_version": "1.0.0",
+          "product_version": "1.0.0",
+          "documentation_version": "1.0.0",
+          "platform": "darwin_arm64",
+          "variant": "desktop",
+          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dirty": false,
+          "archive": "insonic_1.0.0_darwin_arm64_desktop.zip",
+          "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "archive_size_bytes": 1,
+          "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "distribution": {
+            "source_complete": true,
+            "binary_publication": "eligible",
+            "corresponding_source": "included"
+          },
+          "signing": {
+            "configured": false,
+            "verified": false,
+            "status": "unconfigured"
+          }
+        }
+      ],
+      "assets": [
+        {
+          "name": "insonic_1.0.0_windows_amd64_cli.zip",
+          "size_bytes": 1,
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "name": "insonic_1.0.0_windows_amd64_desktop.zip",
+          "size_bytes": 1,
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "name": "insonic_1.0.0_linux_amd64_cli.tar.gz",
+          "size_bytes": 1,
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "name": "insonic_1.0.0_linux_amd64_desktop.tar.gz",
+          "size_bytes": 1,
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "name": "insonic_1.0.0_darwin_arm64_cli.zip",
+          "size_bytes": 1,
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "name": "insonic_1.0.0_darwin_arm64_desktop.zip",
+          "size_bytes": 1,
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "name": "documentation.tar.gz",
+          "size_bytes": 1,
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        {
+          "name": "offline-help.tar.gz",
+          "size_bytes": 1,
+          "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        }
+      ],
+      "capabilities": {
+        "variants": [
+          "cli",
+          "desktop"
+        ],
+        "platforms": [
+          "windows_amd64",
+          "linux_amd64",
+          "darwin_arm64"
+        ],
+        "advanced_cli": [
+          "backup"
+        ],
+        "inference_qualification": "not-executed"
+      }
+    }
+  ]
+}

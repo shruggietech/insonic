@@ -13,7 +13,7 @@ import (
 	"unicode/utf8"
 )
 
-const Version = "0.0.0"
+const Version = "1.0.0"
 
 // MaxWorkPayload bounds normalized durable input independently of the smaller
 // response frame budget. Import manifests and runtime requests share this limit.

@@ -17,11 +17,15 @@ on:
       native:
         required: true
         type: boolean
+      lane:
+        required: false
+        default: both
+        type: string
 permissions:
   contents: read
 jobs:
   runtime:
-    if: inputs.core
+    if: inputs.core && inputs.lane != 'packages'
     name: native (${{ inputs.os }})
     runs-on: ${{ inputs.os }}
     timeout-minutes: 10
@@ -38,6 +42,10 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+          cache-dependency-path: |
+            go.sum
+            internal/qualification/dependencies.json
+            desktop/frontend/package-lock.json
       - if: inputs.native
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -90,7 +98,7 @@ jobs:
         run: python scripts/qualify.py native
       - name: Cross-process CLI acceptance
         if: inputs.cli
-        run: python scripts/qualify.py cli
+        run: python scripts/qualify.py cli ${{ inputs.native && '--native' || '' }}
       - name: Native credential lifecycle on Windows and macOS
         if: inputs.native && runner.os != 'Linux'
         run: python scripts/qualify.py secrets
@@ -133,7 +141,7 @@ jobs:
             build/native/package-inventory.json
           if-no-files-found: error
   packages:
-    if: inputs.native
+    if: inputs.native && inputs.lane != 'runtime'
     name: package (${{ inputs.os }}, ${{ matrix.variant }})
     strategy:
       fail-fast: false
@@ -154,6 +162,10 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+          cache-dependency-path: |
+            go.sum
+            internal/qualification/dependencies.json
+            ${{ matrix.variant == 'desktop' && 'desktop/frontend/package-lock.json' || 'internal/contracts/contracts.go' }}
       - if: inputs.native
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
@@ -215,6 +227,18 @@ jobs:
       - name: Assemble and qualify this relocated native package variant
         if: inputs.native
         run: python scripts/package-desktop.py all --variant ${{ matrix.variant }}
+      - name: Retain qualified candidate package bytes
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: success() && inputs.native
+        with:
+          name: candidate-package-${{ inputs.os }}-${{ matrix.variant }}-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: |
+            build/packages/*.zip
+            build/packages/*.tar.gz
+            build/native/package-${{ matrix.variant }}-receipt.json
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always() && inputs.core
         with:

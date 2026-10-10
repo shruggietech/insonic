@@ -1,0 +1,898 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/common.schema.json",
+  "title": "insonic common contract definitions",
+  "description": "Shared logical types for the v1.0.0 contract. This resource defines reusable values and is not a standalone application document envelope. Format annotations require a format-aware validator; semantic comparisons and timezone resolution remain application validation.",
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+      "description": "Stable application-generated UUID identity. UUIDs identify logical records, not database row IDs or filesystem locations.",
+      "examples": [
+        "11111111-1111-4111-8111-111111111111"
+      ]
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Lowercase SHA-256 digest of the complete immutable byte sequence. Provider ETags and multipart/composite checksums are not this digest.",
+      "examples": [
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+      ]
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9223372036854775807,
+      "description": "Monotonically increasing logical revision within one entity or ordered revision stream. Expected-revision checks prevent lost updates; database-native sequences are not exposed as identity.",
+      "examples": [
+        1
+      ]
+    },
+    "utcInstant": {
+      "title": "Cueson-compatible timestamp",
+      "type": "object",
+      "description": "Absolute instant in Cueson's timestamp format: RFC 3339 text and Unix nanoseconds representing the same instant. The application verifies agreement and preserves integer precision; import wall-time literals and media-relative intervals use distinct types.",
+      "properties": {
+        "iso": {
+          "type": "string",
+          "format": "date-time",
+          "description": "RFC 3339 representation of the instant, including its UTC offset and available fractional-second precision. Audit output uses UTC.",
+          "examples": [
+            "2026-10-04T18:30:00.123456Z",
+            "1970-01-01T00:00:00.123456789Z"
+          ]
+        },
+        "unix_ns": {
+          "type": "integer",
+          "description": "Nanoseconds since the Unix epoch for the same instant as iso. Parse and serialize this integer without floating-point rounding; JSON Schema validation alone does not verify agreement with iso.",
+          "examples": [
+            123456789
+          ]
+        }
+      },
+      "required": [
+        "iso",
+        "unix_ns"
+      ],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "iso": "1970-01-01T00:00:00.123456789Z",
+          "unix_ns": 123456789
+        }
+      ]
+    },
+    "calendarDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Calendar date with day precision, formatted YYYY-MM-DD. A date does not assert a known recording time.",
+      "examples": [
+        "2026-10-04"
+      ]
+    },
+    "wallTimestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])T(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](?:\\.[0-9]{1,9})?(?:Z|[+-](?:(?:0[0-9]|1[0-3]):[0-5][0-9]|14:00))?$",
+      "description": "Entered timestamp literal with seconds and up to nanosecond precision, Z or numeric offset. Without a zone, the captured import timezone policy applies. Calendar validity, DST folds/gaps and zone-offset agreement require application validation.",
+      "examples": [
+        "2026-10-04T14:30:00",
+        "2026-10-04T18:30:00Z"
+      ]
+    },
+    "timezone": {
+      "type": "string",
+      "pattern": "^(?:[A-Za-z_][A-Za-z0-9_.+-]*(?:/[A-Za-z0-9_.+-]+)*|[+-](?:(?:0[0-9]|1[0-3]):[0-5][0-9]|14:00))$",
+      "description": "Timezone selector: local, UTC, an IANA identifier or a numeric offset. This pattern validates shape, not IANA membership. Resolve local once and persist its actual interpretation.",
+      "examples": [
+        "local",
+        "UTC",
+        "America/New_York",
+        "+02:00"
+      ]
+    },
+    "mediaInterval": {
+      "type": "object",
+      "description": "Positive-duration, half-open original-media interval in integer microseconds. The application must additionally validate end_us > start_us and probed-duration/codec tolerance.",
+      "properties": {
+        "start_us": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Inclusive interval start on the original media clock in microseconds.",
+          "examples": [
+            0
+          ]
+        },
+        "end_us": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Exclusive interval end on the same original clock in microseconds.",
+          "examples": [
+            1250000
+          ]
+        }
+      },
+      "required": [
+        "start_us",
+        "end_us"
+      ],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "start_us": 0,
+          "end_us": 1250000
+        }
+      ]
+    },
+    "artifactReference": {
+      "type": "object",
+      "description": "Portable reference to an immutable logical artifact. Digest and size can accompany the stable ID when available; location/materialization and access credentials belong to separate runtime records.",
+      "properties": {
+        "artifact_id": {
+          "$ref": "#/$defs/uuid",
+          "description": "Stable catalog artifact ID, independent of object key or local cache path."
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256",
+          "description": "Expected complete-content digest when the caller has verified bytes."
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Expected length of the complete content in bytes, including zero-length nonmedia artifacts.",
+          "examples": [
+            4096
+          ]
+        },
+        "extensions": {
+          "$ref": "#/$defs/extensions",
+          "description": "Optional namespaced reference annotations without changing identity."
+        }
+      },
+      "required": [
+        "artifact_id"
+      ],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "artifact_id": "22222222-2222-4222-8222-222222222222",
+          "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+          "byte_length": 4096
+        }
+      ]
+    },
+    "backendProfileReference": {
+      "type": "object",
+      "description": "Reference to a selected versioned backend profile. Profile records hold configuration and opaque credential references; application documents do not embed credentials.",
+      "properties": {
+        "profile_id": {
+          "$ref": "#/$defs/uuid",
+          "description": "Stable configured backend profile ID."
+        },
+        "profile_revision": {
+          "$ref": "#/$defs/revision",
+          "description": "Selected immutable profile revision."
+        },
+        "adapter_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Adapter identity used to interpret the referenced profile.",
+          "examples": [
+            "filesystem"
+          ]
+        },
+        "contract_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version of the adapter contract selected for this profile.",
+          "examples": [
+            "1"
+          ]
+        }
+      },
+      "required": [
+        "profile_id",
+        "profile_revision"
+      ],
+      "additionalProperties": false,
+      "examples": [
+        {
+          "profile_id": "33333333-3333-4333-8333-333333333333",
+          "profile_revision": 1,
+          "adapter_id": "filesystem",
+          "contract_version": "1"
+        }
+      ]
+    },
+    "credentialId": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+      "description": "Opaque credential ID resolved by SecretStore. This field never contains a password, API key, session token or secret-bearing connection URL.",
+      "examples": [
+        "11111111-1111-4111-8111-111111111111"
+      ]
+    },
+    "endpoint": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https?://[^/@?#\\s]+(?:/[^?#\\s]*)?$",
+      "description": "Configured HTTP(S) service endpoint without URL user information, query tokens or fragments. Local HTTP is permitted explicitly; service credentials are separate opaque references.",
+      "examples": [
+        "https://objects.example.com",
+        "http://127.0.0.1:2480"
+      ]
+    },
+    "nonsecretOptions": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Adapter-specific, versioned options validated further against that adapter's capability/configuration schema. These properties are intentionally extensible and must not contain credential values.",
+      "examples": [
+        {
+          "sample_rate": 16000,
+          "device": "cpu"
+        }
+      ]
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Optional namespaced extension data. Core consumers may preserve unknown extensions without interpreting them. Extensions must not redefine required fields, hide credentials or mutate immutable provenance.",
+      "examples": [
+        {
+          "example.org/note": "Optional annotation"
+        }
+      ]
+    },
+    "localSpeakerID": {
+      "title": "Consumer speaker identifier",
+      "description": "Exact bounded recording-local speaker token. It is not a global person identity.",
+      "examples": [
+        "Alex",
+        "f7746aa9-d48c-49ba-9f26-9c30219b1029",
+        "\u65e5\u672c\u8a9e",
+        "e\u0301",
+        "\ud83d\ude42"
+      ],
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "allOf": [
+        {
+          "pattern": "^[^\u0000-\u001f\u007f-\u009f\u2028\u2029\u061c\u200e\u200f\u202a-\u202e\u2066-\u2069\ufeff]*$"
+        },
+        {
+          "pattern": "^[^\t-\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]"
+        },
+        {
+          "pattern": "[^\t-\r \u0085\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]$"
+        }
+      ]
+    },
+    "modelAliasName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Case-sensitive lowercase workspace shorthand.",
+      "pattern": "^[a-z][a-z0-9._-]{0,63}$",
+      "not": {
+        "$ref": "#/$defs/uuid"
+      }
+    },
+    "modelReference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 328,
+      "description": "Lowercase alias, exact UUID, typed base/speaker UUID or explicitly configured source:NAME/SELECTOR. Submission freezes its immutable target.",
+      "pattern": "^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|(?:base|speaker):[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|[a-z][a-z0-9._-]{0,63}|source:[a-z][a-z0-9._-]{0,63}/[^\\s\\x00-\\x1f\\x7f-\\x9f](?:[^\\x00-\\x1f\\x7f-\\x9f]{0,254}[^\\s\\x00-\\x1f\\x7f-\\x9f])?)$",
+      "not": {
+        "pattern": "^source:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/"
+      }
+    },
+    "modelOperation": {
+      "type": "string",
+      "enum": [
+        "transcription",
+        "diarization",
+        "voice-matching",
+        "speaker-model-training"
+      ],
+      "description": "Declared intended operation. Declaration does not establish an executable adapter."
+    },
+    "modelTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "base",
+            "speaker",
+            "hosted"
+          ],
+          "description": "Exact base installation, trained speaker version or hosted-only provider handle."
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Exact installation or speaker-version identity."
+        },
+        "operation": {
+          "$ref": "common.schema.json#/$defs/modelOperation",
+          "description": "Declared operation."
+        },
+        "adapter": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Selected adapter identity."
+        },
+        "contract_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Adapter contract version."
+        },
+        "endpoint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "Hosted endpoint without credential-bearing URL data.",
+          "format": "uri"
+        },
+        "remote_model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Exact hosted provider handle."
+        },
+        "credential_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Opaque credential routing reference."
+        },
+        "upstream_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Exact upstream revision or declared provider identity."
+        }
+      },
+      "required": [
+        "kind",
+        "operation"
+      ],
+      "description": "Typed exact target; base and speaker identities remain separate from hosted handles.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "enum": [
+                  "base",
+                  "speaker"
+                ],
+                "description": "Discriminator or constraint for kind."
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "id"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "endpoint"
+                  ]
+                },
+                {
+                  "required": [
+                    "remote_model"
+                  ]
+                },
+                {
+                  "required": [
+                    "credential_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "upstream_revision"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "hosted",
+                "description": "Discriminator or constraint for kind."
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "adapter",
+              "contract_version",
+              "endpoint",
+              "remote_model",
+              "upstream_revision"
+            ],
+            "not": {
+              "required": [
+                "id"
+              ]
+            },
+            "properties": {
+              "adapter": {
+                "const": "insonic-http",
+                "description": "Implemented hosted adapter identity."
+              },
+              "contract_version": {
+                "const": "1",
+                "description": "Implemented hosted contract version."
+              }
+            }
+          }
+        }
+      ]
+    },
+    "modelCompatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Compatible adapter contract identity."
+        },
+        "contract_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Compatible adapter contract version."
+        },
+        "architecture": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Declared model architecture."
+        },
+        "runtime_format": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Declared loader/runtime format."
+        },
+        "sample_rates": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 768000,
+            "description": "Compatible input sample rate in hertz."
+          },
+          "maxItems": 32,
+          "description": "Supported sample rates where declared.",
+          "uniqueItems": true
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64,
+            "description": "Compatible input channel count."
+          },
+          "maxItems": 32,
+          "description": "Supported channel counts where declared.",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "adapter",
+        "contract_version",
+        "architecture",
+        "runtime_format"
+      ],
+      "description": "Optional explicit compatibility; unsupported declarations remain inspectable and cannot execute."
+    },
+    "modelAlias": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Stable workspace-scoped alias identity."
+        },
+        "name": {
+          "$ref": "common.schema.json#/$defs/modelAliasName",
+          "description": "Short workspace name."
+        },
+        "revision": {
+          "$ref": "common.schema.json#/$defs/revision",
+          "description": "Concurrent-edit fencing revision."
+        },
+        "state": {
+          "enum": [
+            "active",
+            "deleted"
+          ],
+          "description": "Active reference or retained revision tombstone."
+        },
+        "target": {
+          "$ref": "common.schema.json#/$defs/modelTarget",
+          "description": "Exact target; retargeting never changes prior elections."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "revision",
+        "state",
+        "target"
+      ],
+      "description": "Portable revisioned alias retaining exact target kind and identity."
+    },
+    "modelSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Stable configured source identity."
+        },
+        "name": {
+          "$ref": "common.schema.json#/$defs/modelAliasName",
+          "description": "Configured source name used by source:NAME/SELECTOR."
+        },
+        "revision": {
+          "$ref": "common.schema.json#/$defs/revision",
+          "description": "Concurrent-edit fencing revision."
+        },
+        "state": {
+          "enum": [
+            "active",
+            "deleted"
+          ],
+          "description": "Active configuration or retained revision tombstone."
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "description": "Configured catalog URL using HTTPS or explicitly elected loopback HTTP.",
+          "format": "uri"
+        },
+        "credential_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Opaque source credential reference."
+        },
+        "local_http": {
+          "type": "boolean",
+          "description": "Permit HTTP only for an explicitly selected loopback catalog."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "revision",
+        "state",
+        "url"
+      ],
+      "description": "Portable source configuration without credential values."
+    },
+    "modelResolution": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "$ref": "common.schema.json#/$defs/modelReference",
+          "description": "Original selector retained with the exact election."
+        },
+        "target": {
+          "oneOf": [
+            {
+              "$ref": "common.schema.json#/$defs/modelTarget",
+              "description": "Operation-specific exact target."
+            },
+            {
+              "$ref": "common.schema.json#/$defs/modelAcquisitionTarget",
+              "description": "Explicit bundle-acquisition target without an inference election."
+            },
+            {
+              "$ref": "common.schema.json#/$defs/modelUnresolvedTarget",
+              "description": "Missing consumer reference diagnosis without an invented identity."
+            }
+          ],
+          "description": "Exact consumer selection, operation-neutral acquisition selection or explicitly unresolved missing diagnosis."
+        },
+        "manifest": {
+          "$ref": "base-model-manifest.schema.json",
+          "description": "Exact complete pinned base bundle when applicable."
+        },
+        "manifest_digest": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{64})?$",
+          "description": "Immutable manifest digest, empty only when a trained descriptor has no manifest artifact or a missing reference has no resolved manifest."
+        },
+        "upstream_revision": {
+          "type": "string",
+          "maxLength": 512,
+          "description": "Declared immutable upstream revision, or empty when unavailable."
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "registered",
+            "available",
+            "discovered",
+            "hosted-only",
+            "current",
+            "invalidated",
+            "missing"
+          ],
+          "description": "Registry or exact target state, or missing when inspection could not establish a valid selection; acquisition/inference state belongs to durable work."
+        },
+        "alias_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Resolved alias identity when applicable."
+        },
+        "alias_revision": {
+          "$ref": "common.schema.json#/$defs/revision",
+          "description": "Alias revision frozen at election."
+        },
+        "source_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Explicit source identity when applicable."
+        },
+        "source_revision": {
+          "$ref": "common.schema.json#/$defs/revision",
+          "description": "Source revision frozen at election."
+        },
+        "compatible": {
+          "type": "boolean",
+          "description": "Whether a consumer accepts the target for its operation. Operation-neutral acquisition instead reports accepted bundle metadata; it does not assert inference compatibility. Missing selections are always false."
+        },
+        "diagnostics": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "Actionable compatibility/availability diagnosis without credential values."
+          },
+          "description": "Separate diagnoses; compatibility does not claim acoustic qualification."
+        },
+        "lineage": {
+          "type": "object",
+          "properties": {
+            "version": {
+              "$ref": "catalog-snapshot.schema.json#/properties/records/properties/versions/items",
+              "description": "Exact originating version record."
+            },
+            "model": {
+              "$ref": "catalog-snapshot.schema.json#/properties/records/properties/models/items",
+              "description": "Exact originating model record."
+            },
+            "run": {
+              "$ref": "catalog-snapshot.schema.json#/properties/records/properties/runs/items",
+              "description": "Exact originating run record."
+            },
+            "dataset": {
+              "$ref": "catalog-snapshot.schema.json#/properties/records/properties/datasets/items",
+              "description": "Exact originating dataset record."
+            },
+            "artifacts": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "catalog-snapshot.schema.json#/properties/records/properties/model_artifacts/items"
+              },
+              "description": "Origin and current association records; no synthesized training output."
+            },
+            "associations": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "$ref": "catalog-snapshot.schema.json#/properties/records/properties/model_associations/items"
+              },
+              "description": "Origin and current association records; no synthesized training output."
+            }
+          },
+          "required": [
+            "version",
+            "model",
+            "run",
+            "dataset",
+            "artifacts",
+            "associations"
+          ],
+          "additionalProperties": false,
+          "description": "Trained version family/run/dataset/artifact/current-association lineage."
+        }
+      },
+      "required": [
+        "reference",
+        "target",
+        "manifest_digest",
+        "upstream_revision",
+        "state",
+        "compatible",
+        "diagnostics"
+      ],
+      "additionalProperties": false,
+      "description": "Frozen exact selection or nonexecuting inspection response, retaining source/alias revisions.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "target": {
+                "type": "object",
+                "description": "Inspect the declared target operation.",
+                "properties": {
+                  "operation": {
+                    "const": "",
+                    "description": "An operation-neutral acquisition selection."
+                  }
+                },
+                "required": [
+                  "operation"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reference": {
+                "type": "string",
+                "pattern": "^base:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+                "description": "Explicit immutable base installation selected from the complete manifest."
+              },
+              "state": {
+                "enum": [
+                  "registered",
+                  "available",
+                  "discovered"
+                ],
+                "description": "Known immutable base-bundle registry state."
+              },
+              "manifest_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "Exact complete immutable bundle manifest digest."
+              },
+              "upstream_revision": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Pinned nonempty upstream revision."
+              },
+              "compatible": {
+                "const": true,
+                "description": "Bundle metadata accepted for acquisition, without an inference operation."
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "target": {
+                "type": "object",
+                "description": "Inspect whether the target is unresolved.",
+                "properties": {
+                  "kind": {
+                    "const": "unresolved",
+                    "description": "An unresolved consumer reference."
+                  }
+                },
+                "required": [
+                  "kind"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "state": {
+                "const": "missing",
+                "description": "Unresolved references only occur in missing-selection diagnostics."
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "missing",
+                "description": "No valid exact selection could be established."
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "compatible": {
+                "const": false,
+                "description": "Missing selections cannot claim consumer compatibility."
+              },
+              "manifest_digest": {
+                "const": "",
+                "description": "No manifest was resolved."
+              },
+              "upstream_revision": {
+                "const": "",
+                "description": "No upstream revision was resolved."
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "manifest"
+                  ]
+                },
+                {
+                  "required": [
+                    "lineage"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "modelAcquisitionTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "base",
+          "description": "An immutable base bundle selected for acquisition only."
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Exact immutable base installation identity."
+        },
+        "operation": {
+          "const": "",
+          "description": "No inference operation is elected by direct bundle acquisition."
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "operation"
+      ],
+      "description": "Response-only operation-neutral acquisition target. Alias and processing targets retain their strict operation-specific contract."
+    },
+    "modelUnresolvedTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "unresolved",
+          "description": "The reference could not establish an exact valid consumer election."
+        },
+        "operation": {
+          "$ref": "common.schema.json#/$defs/modelOperation",
+          "description": "Intended stage operation retained with the unavailable reference."
+        }
+      },
+      "required": [
+        "kind",
+        "operation"
+      ],
+      "description": "Response-only missing-selection diagnosis. It never fabricates a model ID or authorizes execution."
+    }
+  }
+}

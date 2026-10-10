@@ -5,6 +5,7 @@ import { build } from 'esbuild';
 import { spawnSync } from 'node:child_process';
 import { root, getManifest, getRepositoryReferences } from '../lib/docs.mjs';
 import { loadSchemaCatalog } from '../../scripts/schema-catalog.mjs';
+import { documentationTarget } from '../lib/release-status.mjs';
 
 export async function prepare() {
   const site = path.join(root, 'site');
@@ -35,7 +36,7 @@ export async function prepare() {
     if (result.status !== 0) throw new Error('Documentation source identity could not be read.');
     return result.stdout.trim();
   };
-  await fs.writeFile(path.join(site, 'public', 'documentation-build.json'), `${JSON.stringify({ version: releaseVersion, revision: git(['rev-parse', 'HEAD']), source_dirty: Boolean(git(['status', '--porcelain', '--untracked-files=normal'])) }, null, 2)}\n`, 'utf8');
+  await fs.writeFile(path.join(site, 'public', 'documentation-build.json'), `${JSON.stringify({ version: releaseVersion, revision: git(['rev-parse', 'HEAD']), source_dirty: Boolean(git(['status', '--porcelain', '--untracked-files=normal'])), documentation_target: documentationTarget() }, null, 2)}\n`, 'utf8');
   for (const entry of manifest.versions) {
     const catalog = loadSchemaCatalog(entry.version);
     const destination = path.join(site, 'public', 'schemas', `v${entry.version}`);

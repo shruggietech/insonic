@@ -1,0 +1,752 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0",
+      "description": "Schema version."
+    },
+    "kind": {
+      "const": "pipeline-config",
+      "description": "Kind."
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Id."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Name."
+    },
+    "preset": {
+      "enum": [
+        "local",
+        "connected",
+        "custom"
+      ],
+      "description": "Preset."
+    },
+    "revision": {
+      "$ref": "common.schema.json#/$defs/revision",
+      "description": "Revision."
+    },
+    "configuration": {
+      "$ref": "#/$defs/configuration",
+      "description": "Configuration."
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "id",
+    "name",
+    "preset",
+    "revision",
+    "configuration"
+  ],
+  "description": "Saved revision of elected processing stages or speaker-training profile; shared runtime freezes effective adapter/settings identity.",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/pipeline-config.schema.json",
+  "title": "insonic pipeline configuration",
+  "$defs": {
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "recognition": {
+          "$ref": "#/$defs/recognitionStage",
+          "description": "Recognition."
+        },
+        "diarization": {
+          "$ref": "#/$defs/diarizationStage",
+          "description": "Diarization."
+        },
+        "quality": {
+          "$ref": "#/$defs/quality",
+          "description": "Quality."
+        },
+        "speaker_training": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "adapter": {
+              "$ref": "runtime-request.schema.json#/$defs/speakerAdapter",
+              "description": "Exact elected speaker training adapter declaration."
+            },
+            "base_model_id": {
+              "$ref": "common.schema.json#/$defs/modelReference",
+              "description": "Optional selected base model reference."
+            },
+            "output_kind": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Declared desired output kind."
+            },
+            "parameters": {
+              "$ref": "common.schema.json#/$defs/nonsecretOptions",
+              "description": "Effective training parameters."
+            }
+          },
+          "required": [
+            "adapter",
+            "output_kind"
+          ],
+          "description": "Saved speaker-training profile, independent of recognition and diarization."
+        }
+      },
+      "description": "Saved worker selections and optional quality configuration. Defaults are normalized when an immutable election is submitted.",
+      "anyOf": [
+        {
+          "required": [
+            "recognition",
+            "diarization"
+          ]
+        },
+        {
+          "required": [
+            "speaker_training"
+          ]
+        }
+      ],
+      "dependentRequired": {
+        "recognition": [
+          "diarization"
+        ],
+        "diarization": [
+          "recognition"
+        ]
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "adapter": {
+          "enum": [
+            "faster-whisper",
+            "pyannote",
+            "insonic-http"
+          ],
+          "description": "Adapter."
+        },
+        "contract_version": {
+          "const": "1",
+          "description": "Contract version."
+        },
+        "mode": {
+          "enum": [
+            "local",
+            "hosted"
+          ],
+          "description": "Mode."
+        },
+        "model_id": {
+          "$ref": "common.schema.json#/$defs/modelReference",
+          "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
+        },
+        "remote_model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Remote model."
+        },
+        "endpoint": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 4096,
+          "description": "Endpoint."
+        },
+        "credential_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Id."
+        },
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "transcription",
+              "diarization"
+            ]
+          },
+          "description": "Capabilities."
+        },
+        "supports_hints": {
+          "type": "boolean",
+          "description": "Supports hints."
+        },
+        "max_hint_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8192,
+          "description": "Max hint bytes."
+        },
+        "limits": {
+          "$ref": "#/$defs/limits",
+          "description": "Limits."
+        },
+        "recognition": {
+          "$ref": "#/$defs/recognitionOptions",
+          "description": "Recognition."
+        },
+        "diarization": {
+          "$ref": "#/$defs/diarizationOptions",
+          "description": "Diarization."
+        }
+      },
+      "required": [
+        "adapter",
+        "contract_version",
+        "mode"
+      ],
+      "description": "A selected local or hosted worker. Semantic validation verifies endpoint authority, capability compatibility, routing and option relationships.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "local",
+                "description": "Mode."
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "model_id"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "remote_model"
+                  ]
+                },
+                {
+                  "required": [
+                    "endpoint"
+                  ]
+                },
+                {
+                  "required": [
+                    "credential_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "capabilities"
+                  ]
+                },
+                {
+                  "required": [
+                    "supports_hints"
+                  ]
+                },
+                {
+                  "required": [
+                    "max_hint_bytes"
+                  ]
+                }
+              ]
+            },
+            "properties": {
+              "adapter": {
+                "enum": [
+                  "faster-whisper",
+                  "pyannote"
+                ],
+                "description": "Adapter."
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "hosted",
+                "description": "Mode."
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "remote_model",
+              "endpoint",
+              "capabilities"
+            ],
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "model_id"
+                  ]
+                }
+              ]
+            },
+            "properties": {
+              "adapter": {
+                "const": "insonic-http",
+                "description": "Adapter."
+              },
+              "recognition": {
+                "type": "object",
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "device"
+                      ]
+                    }
+                  ]
+                },
+                "description": "Recognition."
+              },
+              "diarization": {
+                "type": "object",
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "device"
+                      ]
+                    }
+                  ]
+                },
+                "description": "Diarization."
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "supports_hints": {
+                "const": true,
+                "description": "Supports hints."
+              }
+            },
+            "required": [
+              "supports_hints"
+            ]
+          },
+          "then": {
+            "required": [
+              "max_hint_bytes"
+            ],
+            "properties": {
+              "capabilities": {
+                "type": "array",
+                "contains": {
+                  "const": "transcription"
+                },
+                "description": "Capabilities."
+              }
+            }
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "max_hint_bytes"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "recognitionStage": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/stage"
+        },
+        {
+          "properties": {
+            "diarization": {
+              "type": "object",
+              "maxProperties": 0,
+              "description": "Diarization."
+            }
+          },
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "local",
+                "description": "Mode."
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "adapter": {
+                "const": "faster-whisper",
+                "description": "Adapter."
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "capabilities": {
+                "type": "array",
+                "contains": {
+                  "const": "transcription"
+                },
+                "description": "Capabilities."
+              }
+            }
+          }
+        }
+      ]
+    },
+    "diarizationStage": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/stage"
+        },
+        {
+          "properties": {
+            "recognition": {
+              "type": "object",
+              "maxProperties": 0,
+              "description": "Recognition."
+            }
+          },
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "local",
+                "description": "Mode."
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "adapter": {
+                "const": "pyannote",
+                "description": "Adapter."
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "capabilities": {
+                "type": "array",
+                "contains": {
+                  "const": "diarization"
+                },
+                "description": "Capabilities."
+              }
+            }
+          }
+        }
+      ]
+    },
+    "recognitionOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "device": {
+          "enum": [
+            "cpu",
+            "cuda"
+          ],
+          "description": "Device."
+        },
+        "language": {
+          "type": "string",
+          "pattern": "^([a-z]{2,3}|auto)$",
+          "description": "Language."
+        },
+        "hints": {
+          "type": "array",
+          "maxItems": 1024,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "description": "Hints."
+        },
+        "context_digest": {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Context digest."
+        }
+      },
+      "required": [],
+      "description": "Recognition options. The runtime verifies UTF-8 joined hint byte limits and digest agreement."
+    },
+    "diarizationOptions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "device": {
+          "enum": [
+            "cpu",
+            "cuda"
+          ],
+          "description": "Device."
+        },
+        "min_speakers": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64,
+          "description": "Min speakers."
+        },
+        "max_speakers": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64,
+          "description": "Max speakers."
+        }
+      },
+      "required": [],
+      "description": "Diarization options; zero maximum means unconstrained. Runtime verifies minimum does not exceed a positive maximum."
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enabled."
+        },
+        "min_speech_coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Min speech coverage."
+        },
+        "max_overlap_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Max overlap fraction."
+        },
+        "short_turn_us": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000000,
+          "description": "Short turn us."
+        }
+      },
+      "required": [],
+      "description": "Optional quality policy; omitted values use enabled checks and a 250000 microsecond short-turn threshold. Mandatory document validation is independent."
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_audio_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 68719476736,
+          "description": "Max audio bytes."
+        },
+        "max_response_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216,
+          "description": "Max response bytes."
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 86400000,
+          "description": "Timeout ms."
+        }
+      },
+      "required": [],
+      "description": "Explicit execution ceilings; omitted values use 128 MiB input, 16 MiB response and 600000 millisecond timeout."
+    },
+    "overrides": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "recognition": {
+          "$ref": "#/$defs/recognitionStage",
+          "description": "Recognition."
+        },
+        "diarization": {
+          "$ref": "#/$defs/diarizationStage",
+          "description": "Diarization."
+        },
+        "quality": {
+          "$ref": "#/$defs/quality",
+          "description": "Quality."
+        }
+      },
+      "required": [],
+      "description": "Full replacement of each supplied stage or quality policy; omitted sections retain the saved revision."
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Id."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Name."
+        },
+        "preset": {
+          "enum": [
+            "local",
+            "connected",
+            "custom"
+          ],
+          "description": "Preset."
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807,
+          "description": "Revision."
+        },
+        "configuration": {
+          "$ref": "#/$defs/configuration",
+          "description": "Configuration."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "preset",
+        "configuration"
+      ],
+      "description": "Stable saved pipeline with monotonic revision. Expected revision controls mutation; new input revision may be omitted or zero."
+    }
+  },
+  "examples": [
+    {
+      "schema_version": "1.0.0",
+      "kind": "pipeline-config",
+      "id": "66666666-6666-4666-8666-666666666666",
+      "name": "Local transcription and diarization",
+      "preset": "local",
+      "revision": 1,
+      "configuration": {
+        "recognition": {
+          "adapter": "faster-whisper",
+          "contract_version": "1",
+          "mode": "local",
+          "model_id": "11111111-1111-4111-8111-111111111111"
+        },
+        "diarization": {
+          "adapter": "pyannote",
+          "contract_version": "1",
+          "mode": "local",
+          "model_id": "22222222-2222-4222-8222-222222222222"
+        },
+        "quality": {}
+      }
+    }
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "preset": {
+            "const": "local",
+            "description": "Saved routing preset."
+          }
+        },
+        "required": [
+          "preset"
+        ]
+      },
+      "then": {
+        "properties": {
+          "configuration": {
+            "type": "object",
+            "description": "Preset-compatible worker routes.",
+            "properties": {
+              "recognition": {
+                "type": "object",
+                "description": "Preset-compatible stage.",
+                "properties": {
+                  "mode": {
+                    "const": "local",
+                    "description": "Elected execution route."
+                  }
+                }
+              },
+              "diarization": {
+                "type": "object",
+                "description": "Preset-compatible stage.",
+                "properties": {
+                  "mode": {
+                    "const": "local",
+                    "description": "Elected execution route."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "preset": {
+            "const": "connected",
+            "description": "Saved routing preset."
+          }
+        },
+        "required": [
+          "preset"
+        ]
+      },
+      "then": {
+        "properties": {
+          "configuration": {
+            "type": "object",
+            "description": "Preset-compatible worker routes.",
+            "properties": {
+              "recognition": {
+                "type": "object",
+                "description": "Preset-compatible stage.",
+                "properties": {
+                  "mode": {
+                    "const": "hosted",
+                    "description": "Elected execution route."
+                  }
+                }
+              },
+              "diarization": {
+                "type": "object",
+                "description": "Preset-compatible stage.",
+                "properties": {
+                  "mode": {
+                    "const": "hosted",
+                    "description": "Elected execution route."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

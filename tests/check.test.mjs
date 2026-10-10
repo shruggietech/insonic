@@ -46,6 +46,8 @@ test('relative links and anchors resolve from root, site, and versioned document
     await writeFile(join(root, 'docs', 'v0.0.0', 'index.md'), '# Start\n## Install\n');
     assert.deepEqual(await validateLinks(root, 'site/README.md', '# Site\n[Source](../README.md#overview)\n[Guide](../docs/v0.0.0/index.md#install)\n'), []);
     assert.deepEqual(await validateLinks(root, 'docs/v0.0.0/index.md', '# Start\n[Project](../../README.md#overview)\n'), []);
+    assert.deepEqual(await validateLinks(root, 'docs/v0.0.0/references/CONTRIBUTING.md', '# Contributing\n[Guide](docs/v0.0.0/index.md#install)\n'), []);
+    assert.match((await validateLinks(root, 'docs/v0.0.0/references/CONTRIBUTING.md', '# Contributing\n[Guide](docs/v0.0.0/index.md#absent)\n')).join('\n'), /Missing Markdown anchor/);
     assert.match((await validateLinks(root, 'README.md', '# Project\n[Missing](missing.md)\n[Missing anchor](README.md#absent)\n')).join('\n'), /Missing relative link target/);
     assert.match((await validateLinks(root, 'README.md', '# Project\n[Missing anchor](README.md#absent)\n')).join('\n'), /Missing Markdown anchor/);
     assert.match((await validateLinks(root, 'README.md', '# Project\n[Outside](../outside.md)\n')).join('\n'), /leaves the repository/);

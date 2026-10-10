@@ -25,7 +25,7 @@ func TestDomainImportFlagsAndManifestPrecedence(t *testing.T) {
 	}
 	dir := t.TempDir()
 	manifest := filepath.Join(dir, "inputs.json")
-	if e = os.WriteFile(manifest, []byte(`{"kind":"import-manifest","schema_version":"0.0.0","items":[{"source":"fixture.wav","originated_on":"2025-01-02"}]}`), 0600); e != nil {
+	if e = os.WriteFile(manifest, []byte(`{"kind":"import-manifest","schema_version":"1.0.0","items":[{"source":"fixture.wav","originated_on":"2025-01-02"}]}`), 0600); e != nil {
 		t.Fatal(e)
 	}
 	_, _, data, e = parseDomain([]string{"media", "import", "--manifest", manifest, "--originated-on", "2026-10-07", "--timezone", "UTC"})

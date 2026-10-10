@@ -388,9 +388,25 @@ def qualify_model_references(executable, directory):
         thread.join(timeout=5)
 
 
-def cli():
+def cli(native=False):
+    if not native:
+        return qualify_cli(False)
+    saved = os.environ.copy()
+    try:
+        os.environ.update(native_env())
+        return qualify_cli(True)
+    finally:
+        os.environ.clear()
+        os.environ.update(saved)
+
+def require_native_cli_graph(value):
+    result = value.get('result', value)
+    if result.get('state') != 'available' or result.get('adapter_id') != 'ladybugdb':
+        raise ValueError('native CLI qualification requires the actual LadybugDB graph')
+
+def qualify_cli(native):
     executable = ROOT / ('build/insonic.exe' if os.name == 'nt' else 'build/insonic')
-    child(['go', 'build', '-o', executable, './cmd/insonic'])
+    child(['go', 'build', *(['-tags', 'system_ladybug'] if native else []), '-o', executable, './cmd/insonic'])
     with cli_workspace() as directory:
         child([executable, 'workspace', 'init', directory, '--json'])
         # General CLI fixtures elect transient credentials explicitly. Native
@@ -400,6 +416,8 @@ def cli():
         second = json.loads(child([executable, '--workspace', directory, 'workspace', 'show', '--json']))
         if first['runtime_session_id'] != second['runtime_session_id']:
             raise ValueError('CLI clients reached different owners')
+        if native:
+            require_native_cli_graph(json.loads(child([executable, '--workspace', directory, 'graph', 'capabilities', '--json'])))
         # Saved configuration and context run through the actual shared owner.
         # Synthetic managed IDs are inspected, never downloaded or executed.
         pipeline_id = '10000000-0000-4000-8000-000000000010'
@@ -536,5 +554,8 @@ if __name__ == '__main__':
     validate_pins()
     parser = argparse.ArgumentParser()
     parser.add_argument('stage', choices=['prepare', 'native', 'assets', 'desktop', 'cli', 'secrets'])
+    parser.add_argument('--native', action='store_true', help='Qualify the native packaged CLI instead of the generic development CLI.')
     options = parser.parse_args()
-    globals()[options.stage]()
+    if options.native and options.stage != 'cli': parser.error('--native applies only to CLI qualification')
+    if options.stage == 'cli': cli(native=options.native)
+    else: globals()[options.stage]()

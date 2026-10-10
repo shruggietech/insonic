@@ -60,6 +60,17 @@ jobs:
           path: site/offline
           if-no-files-found: error
           retention-days: 14
+      - name: Package exact-source candidate documentation
+        env:
+          SOURCE_REVISION: ${{ github.sha }}
+        run: python scripts/release.py docs --revision "$SOURCE_REVISION" --output build/release/docs
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: candidate-documentation-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/release/docs
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
   media-linux:
     needs: foundation
     if: needs.foundation.outputs.native == 'true' || needs.foundation.outputs.adapters == 'true'
@@ -77,6 +88,18 @@ jobs:
       core: ${{ needs.foundation.outputs.core == 'true' }}
       cli: ${{ needs.foundation.outputs.cli == 'true' }}
       native: ${{ needs.foundation.outputs.native == 'true' }}
+      lane: runtime
+  package-linux:
+    needs: [foundation, media-linux]
+    if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.native == 'true' && needs.media-linux.result == 'success'
+    uses: ./.github/workflows/native-qualification.yml
+    with:
+      revision: ${{ github.sha }}
+      os: ubuntu-24.04
+      core: true
+      cli: true
+      native: true
+      lane: packages
   media-windows:
     needs: foundation
     if: needs.foundation.outputs.native == 'true' || needs.foundation.outputs.adapters == 'true'
@@ -94,6 +117,18 @@ jobs:
       core: ${{ needs.foundation.outputs.core == 'true' }}
       cli: ${{ needs.foundation.outputs.cli == 'true' }}
       native: ${{ needs.foundation.outputs.native == 'true' }}
+      lane: runtime
+  package-windows:
+    needs: [foundation, media-windows]
+    if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.native == 'true' && needs.media-windows.result == 'success'
+    uses: ./.github/workflows/native-qualification.yml
+    with:
+      revision: ${{ github.sha }}
+      os: windows-2022
+      core: true
+      cli: true
+      native: true
+      lane: packages
   media-macos:
     needs: foundation
     if: needs.foundation.outputs.native == 'true' || needs.foundation.outputs.adapters == 'true'
@@ -111,6 +146,48 @@ jobs:
       core: ${{ needs.foundation.outputs.core == 'true' }}
       cli: ${{ needs.foundation.outputs.cli == 'true' }}
       native: ${{ needs.foundation.outputs.native == 'true' }}
+      lane: runtime
+  package-macos:
+    needs: [foundation, media-macos]
+    if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.native == 'true' && needs.media-macos.result == 'success'
+    uses: ./.github/workflows/native-qualification.yml
+    with:
+      revision: ${{ github.sha }}
+      os: macos-15
+      core: true
+      cli: true
+      native: true
+      lane: packages
+  candidate:
+    needs: [docs, package-linux, package-windows, package-macos]
+    if: always() && needs.docs.result == 'success' && needs.package-linux.result == 'success' && needs.package-windows.result == 'success' && needs.package-macos.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      SOURCE_REVISION: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          pattern: candidate-package-*-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/release/downloads
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: candidate-documentation-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/release/downloads/documentation
+      - name: Verify the complete exact-source candidate
+        run: python scripts/release.py collect --revision "$SOURCE_REVISION" --input build/release/downloads --output build/release/candidate
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: release-candidate-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/release/candidate
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
   core:
     needs: foundation
     if: needs.foundation.outputs.core == 'true'

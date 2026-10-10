@@ -135,8 +135,21 @@ def rewrite_owned_schema(node, old, new, fields=None, context=None):
     if isinstance(node, str):
         if context in fields and node == old: return new
         if context == 'tag' and node == 'v' + old: return 'v' + new
+        package = re.fullmatch(r'insonic_' + VERSION_PATTERN + r'_(windows_amd64|linux_amd64|darwin_arm64)_(cli|desktop)\.(?:zip|tar\.gz)', node)
+        if package:
+            extension = '.tar.gz' if package[1] == 'linux_amd64' else '.zip'
+            return f'insonic_{new}_{package[1]}_{package[2]}{extension}'
         return node.replace(f'https://raw.githubusercontent.com/{REPOSITORY}/v{old}/schemas/v{old}/', f'https://raw.githubusercontent.com/{REPOSITORY}/v{new}/schemas/v{new}/')
     return node
+
+
+def prepare_schema(value, filename, old, version):
+    fields = {'schema_version'} | ({'version', 'product_version', 'documentation_version', 'tag'} if filename == 'release-candidate.schema.json' else set())
+    value = rewrite_owned_schema(value, old, version, fields)
+    if filename == 'common.schema.json':
+        value['description'] = re.sub(r'^Shared logical types for the v' + VERSION_PATTERN + r' contract(?: baseline)?\.',
+                                      f'Shared logical types for the v{version} contract.', value['description'])
+    return value
 
 
 def glossary_scan(directory):
@@ -179,6 +192,8 @@ def prepare(version, date, highlights, root=ROOT):
         paths = [base] if base.is_file() else list(base.rglob('*'))
         for path in paths:
             if not path.is_file() or path.suffix not in ('.go', '.mjs', '.tsx', '.ts', '.py', '.json'): continue
+            if path.relative_to(root).as_posix() in ('tests/check.test.mjs', 'tests/ci-scope.test.mjs'): continue
+            if path.is_relative_to(root / 'tests/fixtures/cueson'): continue
             if 'schemas' in path.parts and path.parent.name.startswith('v'): continue
             if path.suffix == '.json' and not path.is_relative_to(root / 'tests'): continue
             text = path.read_text(encoding='utf-8')
@@ -187,7 +202,7 @@ def prepare(version, date, highlights, root=ROOT):
             if rewritten != text: changes[path] = rewritten
     manifest = read_json(root / 'docs/versions.json')
     entry = json.loads(json.dumps(next(e for e in manifest['versions'] if e['version'] == old)))
-    entry.update(version=version, status='released'); manifest['latest'] = version; manifest['versions'].append(entry)
+    entry.update(version=version, status='candidate'); manifest['latest'] = version; manifest['versions'].append(entry)
     changes[root / 'docs/versions.json'] = json.dumps(manifest, indent=2) + '\n'
     frozen = {}
     source_docs = root / f'docs/v{old}'
@@ -196,9 +211,16 @@ def prepare(version, date, highlights, root=ROOT):
         target = docs / path.relative_to(source_docs)
         frozen[target] = path.read_bytes()
         if path.suffix == '.md' and 'references' not in path.relative_to(source_docs).parts:
-            text = path.read_text(encoding='utf-8').replace('v' + old, 'v' + version)
+            text = path.read_text(encoding='utf-8')
+            # Only owned routes and the product index advance. Upstream tags
+            # can share the same numeric version and keep their own authority.
+            text = text.replace(f'https://raw.githubusercontent.com/{REPOSITORY}/v{old}/schemas/v{old}/', f'https://raw.githubusercontent.com/{REPOSITORY}/v{version}/schemas/v{version}/')
+            text = text.replace(f'schemas/v{old}/', f'schemas/v{version}/').replace(f'docs/v{old}/', f'docs/v{version}/')
             if path.name == 'index.md':
-                text = re.sub(r'(?m)^v' + re.escape(version) + r' is a specification baseline[^\n]*', f'v{version} documents this release. Package availability and executed qualification are recorded in its release manifest.', text)
+                text = re.sub(r'(?m)^(# insonic v|v)' + re.escape(old) + r'(?=\s|$)', lambda match: match[1] + version, text)
+            text = re.sub(r'("schema_version"\s*:\s*")' + re.escape(old) + r'(")', lambda match: match[1] + version + match[2], text)
+            if path.name == 'index.md':
+                text = re.sub(r'(?m)^v' + re.escape(version) + r' (?:is a specification baseline|documents (?:this release|the prepared release candidate))[^\n]*', f'v{version} documents the prepared release candidate. Official product downloads have not been published; package availability and executed qualification are recorded in its candidate manifest.', text)
             frozen[target] = text.encode('utf-8')
             for relative in re.findall(r'\]\((\.\./[^)#? ]+)', text):
                 source = (source_docs / relative).resolve()
@@ -207,8 +229,7 @@ def prepare(version, date, highlights, root=ROOT):
                 frozen[destination] = source.read_bytes()
     frozen[docs / 'references/CHANGELOG.md'] = changelog.encode('utf-8')
     for source in (root / f'schemas/v{old}').glob('*.json'):
-        fields = {'schema_version'} | ({'version', 'product_version', 'documentation_version', 'tag'} if source.name == 'release-candidate.schema.json' else set())
-        value = rewrite_owned_schema(read_json(source), old, version, fields)
+        value = prepare_schema(read_json(source), source.name, old, version)
         frozen[schemas / source.name] = (json.dumps(value, indent=2) + '\n').encode('utf-8')
     changes[root / 'VERSION'] = version + '\n'
     # Roll back all activation files on an I/O or final consistency failure.
@@ -259,12 +280,32 @@ def package_module():
     return module
 
 
-def verify_package(path, receipt):
+def verify_package(path, receipt, source_root=ROOT):
     module = package_module()
-    module.verify_archive_receipt(path, receipt)
+    module.verify_archive_receipt(path, receipt, expected_source_root=source_root)
 
 
-def verify_documentation(path, version, revision):
+def verify_selected_package(path, receipt, verifier, source_root):
+    # Execute the trusted verifier; candidate checkout inputs are data only.
+    if verifier is verify_package:
+        verifier(path, receipt, source_root)
+    else:
+        verifier(path, receipt)
+
+
+def verify_documentation_build(marker, version, revision, require_release=False):
+    fields = {'version', 'revision', 'source_dirty'}
+    if not isinstance(marker, dict) or set(marker) not in (fields, fields | {'documentation_target'}) or marker.get('version') != version or marker.get('revision') != revision or marker.get('source_dirty') is not False:
+        raise ValueError('documentation build source differs from candidate')
+    target = marker.get('documentation_target', 'snapshot')
+    if target not in ('snapshot', 'release'):
+        raise ValueError('invalid documentation publication target')
+    if require_release and target != 'release':
+        raise ValueError('publication requires release-target documentation, not a candidate snapshot')
+    return target
+
+
+def verify_documentation(path, version, revision, require_release=False):
     with tarfile.open(path, 'r:gz') as archive:
         names = set()
         for member in archive.getmembers():
@@ -275,7 +316,7 @@ def verify_documentation(path, version, revision):
         identity = json.load(archive.extractfile('release-documentation.json'))
         if identity != {'version': version, 'revision': revision, 'kind': path.name.removesuffix('.tar.gz')}: raise ValueError('documentation identity differs from candidate')
         marker = json.load(archive.extractfile('documentation-build.json'))
-        if marker != {'version': version, 'revision': revision, 'source_dirty': False}: raise ValueError('documentation build source differs from candidate')
+        return verify_documentation_build(marker, version, revision, require_release)
 
 
 def candidate(receipts, assets, output, revision, root=ROOT, verifier=verify_package, runner=child):
@@ -297,7 +338,7 @@ def candidate(receipts, assets, output, revision, root=ROOT, verifier=verify_pac
         name = asset_name(receipt.get('archive'))
         path = assets / name; entry = file_entry(path)
         if entry['sha256'] != receipt.get('archive_sha256') or entry['size_bytes'] != receipt.get('archive_size_bytes'): raise ValueError('package archive differs from receipt')
-        verifier(path, receipt); files.append(entry); packages.append(receipt)
+        verify_selected_package(path, receipt, verifier, root); files.append(entry); packages.append(receipt)
     if selected != {(p, v) for p in PLATFORMS for v in VARIANTS}: raise ValueError('candidate requires all six native package variants')
     for filename in ('documentation.tar.gz', 'offline-help.tar.gz'):
         files.append(file_entry(assets / filename))
@@ -323,7 +364,7 @@ def document_archives(output, revision, root=ROOT, runner=child):
     output.mkdir(parents=True, exist_ok=True)
     for name, directory in [('documentation', root / 'site/out'), ('offline-help', root / 'site/offline')]:
         if not (directory / 'index.html').is_file(): raise ValueError('documentation export is missing')
-        if read_json(directory / 'documentation-build.json') != {'version': version, 'revision': revision, 'source_dirty': False}: raise ValueError('documentation export is stale or dirty')
+        verify_documentation_build(read_json(directory / 'documentation-build.json'), version, revision)
         identity = {'version': version, 'revision': revision, 'kind': name}
         with tempfile.TemporaryDirectory() as temporary:
             marker = Path(temporary) / 'release-documentation.json'; write_json(marker, identity)
@@ -454,7 +495,7 @@ def remote_assets(api, release, expected):
             raise ValueError('remote release asset digest or size differs')
 
 
-def load_candidate(directory, verifier=verify_package):
+def load_candidate(directory, verifier=verify_package, source_root=ROOT):
     value = read_json(directory / 'release-manifest.json')
     if value.get('kind') != 'release-candidate' or value.get('repository') != REPOSITORY or not re.fullmatch(VERSION_PATTERN, value.get('version', '')) or value.get('tag') != 'v' + value['version'] or not re.fullmatch(r'[a-f0-9]{40}', value.get('revision', '')):
         raise ValueError('invalid release candidate identity')
@@ -477,7 +518,7 @@ def load_candidate(directory, verifier=verify_package):
     for receipt in packages:
         archive_entry = next(a for a in value['assets'] if a['name'] == receipt['archive'])
         if archive_entry['sha256'] != receipt.get('archive_sha256') or archive_entry['size_bytes'] != receipt.get('archive_size_bytes'): raise ValueError('candidate receipt differs from archive identity')
-        verifier(directory / receipt['archive'], receipt)
+        verify_selected_package(directory / receipt['archive'], receipt, verifier, source_root)
     for name in ('documentation.tar.gz', 'offline-help.tar.gz'): verify_documentation(directory / name, value['version'], value['revision'])
     sums = ''.join(f"{entry['sha256']}  {entry['name']}\n" for entry in sorted(expected[:-1], key=lambda e: e['name']))
     if (directory / 'SHA256SUMS').read_text() != sums: raise ValueError('candidate checksums differ')
@@ -516,7 +557,9 @@ def published_candidate(output, revision, api, root=ROOT, runner=child, verifier
             api.download_asset(asset['id'], path, asset['size'], asset['digest'].removeprefix('sha256:'))
             if file_entry(path) != {'name': asset['name'], 'size_bytes': asset['size'], 'sha256': asset['digest'].removeprefix('sha256:')}:
                 raise ValueError('downloaded published candidate bytes changed')
-        value, expected = load_candidate(staged, verifier)
+        value, expected = load_candidate(staged, verifier, root)
+        for name in ('documentation.tar.gz', 'offline-help.tar.gz'):
+            verify_documentation(staged / name, value['version'], value['revision'], require_release=True)
         if value['version'] != version or value['revision'] != revision or value['tag'] != tag:
             raise ValueError('published candidate identity differs from the selected release')
         remote_assets(api, release, expected)
@@ -550,8 +593,10 @@ def current_release_suite(api, revision, context=None):
 
 def publish(directory, highlights, api, root=ROOT, runner=child, verifier=verify_package, trusted_root=None):
     trusted_history(read_json(directory / 'release-manifest.json').get('revision'), api, trusted_root or root, runner)
-    value, expected = load_candidate(directory, verifier)
+    value, expected = load_candidate(directory, verifier, root)
     if versions(root) != value['version'] or value['version'] == '0.0.0': raise ValueError('publication requires prepared release versions')
+    for name in ('documentation.tar.gz', 'offline-help.tar.gz'):
+        verify_documentation(directory / name, value['version'], value['revision'], require_release=True)
     exact_source(value['revision'], root, runner, value['tag'])
     verify_tag(api, value['tag'], value['revision'])
     checks = api.call('GET', f'repos/{REPOSITORY}/commits/{value["revision"]}/check-runs?per_page=100')
@@ -631,10 +676,12 @@ def materialize_deployment(path, environment=None):
     return {'deployment_configuration': 'validated'}
 
 
-def promote(directory, config, api, runner=child, verifier=verify_package, trusted_root=ROOT, history_runner=child):
+def promote(directory, config, api, runner=child, verifier=verify_package, trusted_root=ROOT, history_runner=child, source_root=ROOT):
     trusted_history(read_json(directory / 'release-manifest.json').get('revision'), api, trusted_root, history_runner)
     deployment_environment(api)
-    value, expected = load_candidate(directory, verifier)
+    value, expected = load_candidate(directory, verifier, source_root)
+    for name in ('documentation.tar.gz', 'offline-help.tar.gz'):
+        verify_documentation(directory / name, value['version'], value['revision'], require_release=True)
     verify_tag(api, value['tag'], value['revision'])
     release = api.call('GET', f'repos/{REPOSITORY}/releases/tags/{value["tag"]}')
     if not release or release.get('draft') is not False or release.get('target_commitish') != value['revision']: raise ValueError('documentation promotion requires the exact published release')
@@ -662,7 +709,7 @@ def main():
     p = sub.add_parser('publish'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--highlights', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT)
     p = sub.add_parser('published'); p.add_argument('--revision', required=True); p.add_argument('--output', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT)
     p = sub.add_parser('deployment'); p.add_argument('--configuration', type=Path, required=True)
-    p = sub.add_parser('promote'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--configuration', type=Path, required=True)
+    p = sub.add_parser('promote'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--configuration', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT)
     options = parser.parse_args()
     if options.command == 'prepare': result = prepare(options.version, options.date, options.highlights.read_text(encoding='utf-8'))
     elif options.command == 'validate': result = {'version': versions(), 'revision': options.revision}; exact_source(options.revision, tag=options.tag)
@@ -673,7 +720,7 @@ def main():
     elif options.command == 'publish': result = publish(options.candidate, options.highlights.read_text(encoding='utf-8'), GitHub(os.environ.get('GH_TOKEN', '')), root=options.source_root, trusted_root=ROOT)
     elif options.command == 'published': result = published_candidate(options.output, options.revision, GitHub(os.environ.get('GH_TOKEN', '')), root=options.source_root, trusted_root=ROOT)
     elif options.command == 'deployment': deployment_environment(GitHub(os.environ.get('GH_TOKEN', ''))); result = materialize_deployment(options.configuration)
-    else: result = promote(options.candidate, read_json(options.configuration), GitHub(os.environ.get('GH_TOKEN', '')))
+    else: result = promote(options.candidate, read_json(options.configuration), GitHub(os.environ.get('GH_TOKEN', '')), source_root=options.source_root)
     print(json.dumps(result))
 
 

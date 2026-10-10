@@ -54,7 +54,7 @@ def candidates(root):
             path = root / f'{platform}-{variant}-receipt.json'; release.write_json(path, receipt); receipts.append(path)
     for name in ('documentation', 'offline-help'):
         with tarfile.open(assets / (name + '.tar.gz'), 'w:gz') as archive:
-            for filename, value in [('release-documentation.json', {'version': VERSION, 'revision': REVISION, 'kind': name}), ('documentation-build.json', {'version': VERSION, 'revision': REVISION, 'source_dirty': False})]:
+            for filename, value in [('release-documentation.json', {'version': VERSION, 'revision': REVISION, 'kind': name}), ('documentation-build.json', {'version': VERSION, 'revision': REVISION, 'source_dirty': False, 'documentation_target': 'release'})]:
                 raw = json.dumps(value).encode(); info = tarfile.TarInfo(filename); info.size = len(raw); archive.addfile(info, io.BytesIO(raw))
     return assets, receipts
 
@@ -120,6 +120,26 @@ class ReleaseDeliveryTests(unittest.TestCase):
         self.assertTrue((self.root / 'build/release/highlights.md').read_text().rstrip().endswith(f'/blob/v{VERSION}/CHANGELOG.md)'))
         with self.assertRaisesRegex(ValueError, 'newer'): release.prepare(VERSION, '2026-10-09', 'Highlights.', self.root)
 
+    def test_preparation_is_an_unpublished_candidate_and_advances_owned_doc_examples(self):
+        manifest = release.read_json(self.root / 'docs/versions.json')
+        entry = next(entry for entry in manifest['versions'] if entry['version'] == VERSION)
+        self.assertEqual(entry['status'], 'candidate')
+        index = (self.root / f'docs/v{VERSION}/index.md').read_text(encoding='utf-8')
+        self.assertIn('prepared release candidate', index)
+        self.assertIn('Official product downloads have not been published', index)
+        ingestion = (self.root / f'docs/v{VERSION}/ingestion.md').read_text(encoding='utf-8')
+        self.assertNotIn('"schema_version": "' + CURRENT + '"', ingestion)
+        self.assertIn('"schema_version": "' + VERSION + '"', ingestion)
+        self.assertFalse(release.read_json(self.root / 'build/release/version-preparation.json')['published'])
+
+    def test_preparation_does_not_rewrite_generic_baseline_test_fixture(self):
+        target = self.root / 'tests/check.test.mjs'
+        target.parent.mkdir(parents=True, exist_ok=True)
+        text = "const version='" + VERSION + "'; const path='v" + VERSION + "';\n"
+        target.write_text(text, encoding='utf-8', newline='\n')
+        release.prepare(NEXT_VERSION, '2026-10-10', 'Candidate update.', self.root)
+        self.assertEqual(target.read_text(encoding='utf-8'), text)
+
     def test_prepared_actual_schema_tree_and_all_examples_validate_at_new_version(self):
         node = shutil.which('node')
         if not node and Path('C:/nvm4w/nodejs/node.exe').is_file(): node = 'C:/nvm4w/nodejs/node.exe'
@@ -131,6 +151,43 @@ class ReleaseDeliveryTests(unittest.TestCase):
         self.assertEqual(candidate['properties']['version']['const'], VERSION)
         self.assertEqual(candidate['properties']['tag']['const'], 'v' + VERSION)
         self.assertEqual(candidate['properties']['packages']['items']['properties']['product_version']['const'], VERSION)
+
+    def test_preparation_advances_owned_asset_examples_and_common_description(self):
+        schema = release.read_json(self.root / f'schemas/v{VERSION}/release-candidate.schema.json')
+        expected = {f'insonic_{VERSION}_{platform}_{variant}' + ('.tar.gz' if platform == 'linux_amd64' else '.zip')
+                    for platform in release.PLATFORMS for variant in release.VARIANTS}
+        for example in schema['examples']:
+            self.assertEqual({item['archive'] for item in example['packages']}, expected)
+            self.assertEqual({item['name'] for item in example['assets'] if item['name'].startswith('insonic_')}, expected)
+        common = release.read_json(self.root / f'schemas/v{VERSION}/common.schema.json')
+        self.assertTrue(common['description'].startswith(f'Shared logical types for the v{VERSION} contract.'))
+        self.assertEqual((self.root / f'schemas/v{CURRENT}/common.schema.json').read_bytes(),
+                         (ROOT / f'schemas/v{CURRENT}/common.schema.json').read_bytes())
+
+    def test_next_preparation_preserves_upstream_versions_equal_to_owned_version(self):
+        upstream = self.root / 'tests/fixtures/cueson/upstream.json'
+        upstream.parent.mkdir(parents=True, exist_ok=True)
+        upstream.write_text(json.dumps({'schema_version': VERSION, 'upstream_version': VERSION}), encoding='utf-8')
+        page = self.root / f'docs/v{VERSION}/technology.md'
+        upstream_link = f'https://github.com/shruggietech/cueson/blob/v{VERSION}/docs/schema.md'
+        page.write_text(page.read_text() + '\n[Cueson upstream](' + upstream_link + ')\n', encoding='utf-8')
+        release.prepare(NEXT_VERSION, '2026-10-10', 'Candidate update.', self.root)
+        self.assertEqual(json.loads(upstream.read_text())['schema_version'], VERSION)
+        self.assertIn(upstream_link, (self.root / f'docs/v{NEXT_VERSION}/technology.md').read_text())
+
+    def test_candidate_snapshot_cannot_be_published_or_promoted(self):
+        for name in ('documentation', 'offline-help'):
+            with tarfile.open(self.assets / (name + '.tar.gz'), 'w:gz') as archive:
+                for filename, value in [('release-documentation.json', {'version': VERSION, 'revision': REVISION, 'kind': name}), ('documentation-build.json', {'version': VERSION, 'revision': REVISION, 'source_dirty': False, 'documentation_target': 'snapshot'})]:
+                    raw = json.dumps(value).encode(); info = tarfile.TarInfo(filename); info.size = len(raw); archive.addfile(info, io.BytesIO(raw))
+        target = self.candidate()
+        api = GitHubFixture()
+        with self.assertRaisesRegex(ValueError, 'release-target documentation'):
+            release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
+        self.assertFalse(any(call[0] in ('POST', 'PATCH') for call in api.calls))
+        with self.assertRaisesRegex(ValueError, 'release-target documentation'):
+            release.promote(target, {'argv': [str(Path(sys.executable).resolve()), '{archive}']}, api,
+                            lambda args: self.fail('deployment ran'), verify_fixture, self.root, runner)
 
     def test_generated_complete_unsigned_candidate_passes_prepared_release_master(self):
         target = self.candidate(); node = shutil.which('node') or 'C:/nvm4w/nodejs/node.exe'
@@ -237,7 +294,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
         for directory in ('site/out', 'site/offline'):
             path = self.root / directory; path.mkdir(parents=True); (path / 'index.html').write_text('<html></html>')
             release.write_json(path / 'documentation-build.json', {'version': VERSION, 'revision': 'b' * 40, 'source_dirty': False})
-        with self.assertRaisesRegex(ValueError, 'stale'): release.document_archives(self.root / 'doc-assets', REVISION, self.root, runner)
+        with self.assertRaisesRegex(ValueError, 'source'): release.document_archives(self.root / 'doc-assets', REVISION, self.root, runner)
         with tarfile.open(self.assets / 'documentation.tar.gz', 'w:gz') as archive:
             for filename, value in [('release-documentation.json', {'version': VERSION, 'revision': REVISION, 'kind': 'documentation'}), ('documentation-build.json', {'version': VERSION, 'revision': 'b' * 40, 'source_dirty': False})]:
                 raw = json.dumps(value).encode(); info = tarfile.TarInfo(filename); info.size = len(raw); archive.addfile(info, io.BytesIO(raw))
