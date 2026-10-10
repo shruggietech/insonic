@@ -410,6 +410,18 @@ def compile_dav1d(target, build, prefix, parallel_jobs, run):
     run([sys.executable, '-m', 'mesonbuild.mesonmain', 'install', '-C', build], build.parent, 60)
 
 
+def compile_openmpt(target, prefix, platform_id, parallel_jobs, run):
+    host = 'x86_64-w64-mingw32' if platform_id.startswith('windows') else ('aarch64-apple-darwin' if platform_id.startswith('darwin') else 'x86_64-pc-linux-gnu')
+    run(['./configure', '--prefix=' + prefix.as_posix(), '--host=' + host, '--disable-shared', '--enable-static',
+         '--disable-openmpt123', '--disable-examples', '--disable-tests', '--without-portaudio',
+         '--without-portaudiocpp', '--without-pulseaudio', '--without-sdl2', '--without-sndfile', '--without-flac'],
+        target, shell=True)
+    # The C++ module decoders took over four minutes on a slower Windows CI
+    # runner. Keep their full build bounded within the ten-minute formats job.
+    run(['make', '-j' + str(parallel_jobs)], target, 360, shell=platform_id.startswith('windows'))
+    run(['make', 'install'], target, 60, shell=platform_id.startswith('windows'))
+
+
 def xml2_options(prefix):
     header, archive = prefix / 'include/iconv.h', prefix / 'lib/libiconv.a'
     if any(not path.is_file() or path.is_symlink() for path in [header, archive]):
@@ -541,8 +553,7 @@ def prepare(stage='complete'):
                   lambda: cmake('gme', ['-DENABLE_UBSAN=OFF']),
                   lambda: cmake('vorbis', ['-DBUILD_TESTING=OFF'])])
         jobs = str(parallel_jobs)
-        autotools('openmpt', ['--disable-openmpt123', '--disable-examples', '--disable-tests',
-                            '--without-portaudio', '--without-portaudiocpp', '--without-pulseaudio', '--without-sdl2', '--without-sndfile', '--without-flac'])
+        compile_openmpt(source_directories['openmpt'], prefix, platform_id, parallel_jobs, run)
         normalized_aliases = [alias for part in imported_parts for alias in part.get('normalized_aliases', [])]
         normalized_aliases += normalize_prefix_aliases(prefix)
         dependency_receipt = {'kind': 'media-dependency-build', 'key': key, 'sources': pins,

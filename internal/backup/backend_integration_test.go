@@ -23,6 +23,7 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/workspace"
+	"github.com/shruggietech/insonic/schemas"
 )
 
 func TestPortableRestoreResumesExactS3MultipartUpload(t *testing.T) {
@@ -154,6 +155,13 @@ func backendWorkspace(t *testing.T, backend, storage string) (*workspace.Workspa
 			}
 			client.RemoveBucket(context.Background(), bucket)
 		})
+	}
+	configurationJSON, e := json.Marshal(w.Config)
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = schemas.ValidateWorkspace(configurationJSON); e != nil {
+		t.Fatal("backend fixture profile violates workspace contract", e)
 	}
 	return w, provider
 }

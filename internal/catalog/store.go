@@ -118,8 +118,8 @@ type PostgreSQLConfig struct {
 	Database     string `json:"database"`
 	Schema       string `json:"schema"`
 	TLSMode      string `json:"tls_mode"`
-	CAFile       string `json:"ca_file"`
-	CredentialID string `json:"credential_id"`
+	CAFile       string `json:"ca_file,omitempty"`
+	CredentialID string `json:"credential_id,omitempty"`
 }
 type Credentials struct {
 	Username string `json:"username"`

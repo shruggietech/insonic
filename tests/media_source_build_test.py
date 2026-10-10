@@ -91,6 +91,25 @@ class OwnedSourceIntegrity(unittest.TestCase):
         self.assertIn('libgme', source.PIN['required_capabilities']['demuxers'])
         self.assertFalse(any(flag.startswith('--disable-demuxer') for flag in source.CONFIGURE))
 
+    def test_openmpt_keeps_module_decoders_and_static_build_with_bounded_runner_budget(self):
+        for platform_id, host, shell in [('windows_amd64', 'x86_64-w64-mingw32', True),
+                                        ('linux_amd64', 'x86_64-pc-linux-gnu', False),
+                                        ('darwin_arm64', 'aarch64-apple-darwin', False)]:
+            with self.subTest(platform=platform_id):
+                target = Path('private-source-build/openmpt-source'); prefix = target.parent / 'install'; run = Mock()
+                source.compile_openmpt(target, prefix, platform_id, 4, run)
+                configure, compilation, install = run.call_args_list
+                self.assertIn('--host=' + host, configure.args[0])
+                self.assertIn('--disable-shared', configure.args[0])
+                self.assertIn('--enable-static', configure.args[0])
+                self.assertFalse(any(flag.startswith(('--disable-mod', '--without-mpg123', '--without-vorbis', '--without-zlib'))
+                                     for flag in configure.args[0]))
+                self.assertEqual(compilation.args, (['make', '-j4'], target, 360))
+                self.assertEqual(compilation.kwargs, {'shell': shell})
+                self.assertLess(compilation.args[2], 600)
+                self.assertEqual(install.args, (['make', 'install'], target, 60))
+                self.assertEqual(install.kwargs, {'shell': shell})
+
     def test_dav1d_uses_available_cores_with_a_bounded_library_compile_budget(self):
         for cores, expected in [(2, '2'), (4, '4'), (64, '8')]:
             with self.subTest(cores=cores):
