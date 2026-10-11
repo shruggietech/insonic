@@ -37,7 +37,7 @@ def fixture(root):
     for prefix in ('', 'site', 'desktop/frontend'):
         for name in ('package.json', 'package-lock.json'):
             destination = root / prefix / name; destination.parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(ROOT / prefix / name, destination)
-    shutil.copytree(ROOT / f'schemas/v{CURRENT}', root / f'schemas/v{CURRENT}')
+    shutil.copytree(ROOT / 'schemas', root / 'schemas')
     shutil.copytree(ROOT / f'docs/v{CURRENT}', root / f'docs/v{CURRENT}')
     release.prepare(VERSION, '2026-10-09', 'Portable packages and current-authority recovery.', root)
 
@@ -132,6 +132,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
     def test_preparation_preserves_old_bytes_and_freezes_release_authorities(self):
         self.assertEqual(release.versions(self.root), VERSION)
         self.assertEqual((self.root / f'schemas/v{CURRENT}/master.schema.json').read_bytes(), (ROOT / f'schemas/v{CURRENT}/master.schema.json').read_bytes())
+        self.assertEqual((self.root / 'schemas/v1.0.0/base-model-manifest.schema.json').read_bytes(), (ROOT / 'schemas/v1.0.0/base-model-manifest.schema.json').read_bytes())
         self.assertEqual((self.root / f'docs/v{CURRENT}/index.md').read_bytes(), (ROOT / f'docs/v{CURRENT}/index.md').read_bytes())
         self.assertEqual((self.root / f'docs/v{VERSION}/references/CHANGELOG.md').read_bytes(), (self.root / 'CHANGELOG.md').read_bytes())
         self.assertTrue((self.root / f'docs/v{VERSION}/references/CONTRIBUTING.md').is_file())

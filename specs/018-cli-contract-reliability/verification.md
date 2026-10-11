@@ -15,3 +15,9 @@
 ## Remaining delivery gates
 
 Native CLI qualification passed, including exact nanoseconds and typed causes after owner restart. Extracted Windows CLI/desktop packages are the remaining local delivery gate. Linux/macOS/Windows native packages, alternative backend fixtures and exact-head CI will be verified on the official PR. Initial external reviews and at most one requested second round must be satisfied before the owner handoff. No acoustic inference, merge, tag or release is part of this slice.
+
+## Initial review correction
+
+The initial external Codex review identified a historical import-manifest/current IPC version mismatch. A failing CLI parser-to-shared-schema regression reproduced it. Admission now normalizes the operation copy while preserving source bytes and exact timestamps. The adjacent model-manifest boundary retains historical declared versions and content digests through explicitly packaged schema references; its register/acquire regression also passes. Schema help, offline compilation and release/catalog test fixtures include those historical dependencies.
+
+All Go packages, npm checks and 83 tests, the 141-test Python suite (plus the 35-test affected release suite), and site/offline documentation pass after this correction. Initial Linux/macOS native and both package variants plus alternative-backend fixtures pass on the PR. Windows hosted stages remain pending. Local extracted-package validation rejects a monolithic media source cache without the required split dependency receipts; the owned staged build is regenerating that provenance. Final-head package/CI evidence and the second external review round are recorded on PR #71 before owner handoff.

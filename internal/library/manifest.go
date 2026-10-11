@@ -52,6 +52,8 @@ func ReadManifest(path string) (ImportRequest, error) {
 	if e != nil {
 		return r, e
 	}
+	// The file remains immutable; the admitted operation copy uses current IPC.
+	r.Version = contracts.Version
 	for i := range r.Items {
 		if r.Items[i].Source != "" {
 			r.Items[i].Source = resolvePath(filepath.Dir(absolute), r.Items[i].Source)

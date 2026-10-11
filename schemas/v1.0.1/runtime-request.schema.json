@@ -917,8 +917,15 @@
             "additionalProperties": false,
             "properties": {
               "manifest": {
-                "$ref": "base-model-manifest.schema.json",
-                "description": "Exact downloaded base-model identity and file contract."
+                "anyOf": [
+                  {
+                    "$ref": "base-model-manifest.schema.json"
+                  },
+                  {
+                    "$ref": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/base-model-manifest.schema.json"
+                  }
+                ],
+                "description": "Current or supported immutable historical model manifest. Its declared version, content digest and identity are retained."
               }
             },
             "description": "Typed input for the selected operation."

@@ -54,3 +54,8 @@ Within US1, independent source/flag inventory reads may run together. Within US2
 ## Implementation strategy
 
 Complete all four stories and package qualification before publication. Preserve old document bytes and journal proofs. Never widen schema UUID/secret validation or introduce new mandatory reviews. Publication is authorized; merge/tag/product release are not part of this handoff.
+
+## Phase 8: Review convergence
+
+- [x] T021 Normalize historical import request copies before current IPC validation, preserve source bytes, add a CLI-to-shared-schema regression, and qualify the final source (FR-011, initial Codex review).
+- [x] T022 Retain immutable historical model manifest hashes during current request admission with explicit packaged historical schema references and CLI/shared-schema regression (FR-011, adjacent review boundary).

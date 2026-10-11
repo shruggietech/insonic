@@ -52,3 +52,5 @@ Durable work retains generated classified causes across reload, result paging an
 The current reader supports persisted insonic 1.0.0 documents alongside the current document version. Existing workspace/profile identities, revisions, accepted document/model bytes and hashes remain intact. New transport envelopes and package identities use the current release version. A new portable backup uses the current envelope while retaining its historical source profiles and proofs. Older product versions are not promised to understand newly classified causes or current response shapes.
 
 Importing a supported historical tools file with `media tools FILE` or `processing tools FILE` creates a current-version setting while preserving the source file and executable integrity pins. Direct `settings set` payloads use the current input contract.
+
+A supported historical media-import manifest is normalized in the request copy after admission; the source file remains unchanged. Model register/acquire retains an immutable historical manifest's declared version and content digest, using its packaged historical schema inside the current request envelope.

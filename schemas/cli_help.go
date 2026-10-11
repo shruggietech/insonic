@@ -62,7 +62,22 @@ func expandHelp(value any, document map[string]any, depth int) any {
 			targetDoc := document
 			if parts[0] != "" {
 				var raw map[string]any
-				data, e := registry.ReadFile("v" + contracts.Version + "/" + parts[0])
+				lookup := "v" + contracts.Version + "/" + parts[0]
+				if index := strings.LastIndex(parts[0], "/schemas/"); index >= 0 {
+					lookup = parts[0][index+len("/schemas/"):]
+				} else if id, ok := document["$id"].(string); ok {
+					if index := strings.LastIndex(id, "/schemas/"); index >= 0 {
+						base := id[index+len("/schemas/"):]
+						slash := strings.LastIndex(base, "/")
+						if slash >= 0 {
+							lookup = base[:slash+1] + parts[0]
+						}
+					}
+				}
+				data, e := registry.ReadFile(lookup)
+				if e != nil {
+					return n
+				}
 				if e == nil {
 					d := json.NewDecoder(bytes.NewReader(data))
 					d.UseNumber()

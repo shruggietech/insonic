@@ -5,11 +5,74 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/library"
+	"github.com/shruggietech/insonic/internal/models"
+	"github.com/shruggietech/insonic/schemas"
 )
+
+func TestHistoricalManifestAdmittedIntoCurrentRuntimeRequest(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "historical.json")
+	original := []byte(`{"kind":"import-manifest","schema_version":"1.0.0","defaults":{"originated_at":"2020-01-01T00:00:00.123456789Z"},"items":[{"source":"fixture.wav"}]}`)
+	if e := os.WriteFile(file, original, 0600); e != nil {
+		t.Fatal(e)
+	}
+	op, item, data, e := parseDomain([]string{"media", "import", "--manifest", file})
+	if e != nil {
+		t.Fatal(e)
+	}
+	raw, e := json.Marshal(contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: contracts.ID(), RequestID: contracts.ID(), Operation: op, ItemID: item, Data: data})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = schemas.ValidateRequest(raw); e != nil {
+		t.Fatal("historical file rejected at IPC admission", e)
+	}
+	var request library.ImportRequest
+	if e = json.Unmarshal(data, &request); e != nil || request.Version != contracts.Version || request.Defaults.OriginatedAt != "2020-01-01T00:00:00.123456789Z" {
+		t.Fatal("request normalization", request, e)
+	}
+	after, e := os.ReadFile(file)
+	if e != nil || string(after) != string(original) {
+		t.Fatal("historical source rewritten", e)
+	}
+}
+
+func TestHistoricalModelManifestKeepsDigestThroughCurrentAdmission(t *testing.T) {
+	m := models.Manifest{Kind: "base-model-manifest", Version: "1.0.0", Name: "historical", ModelVersion: "1", Revision: "immutable", License: "fixture", Capabilities: []string{"transcription"}, Files: []models.File{{Role: "weights", Size: 1, SHA256: strings.Repeat("a", 64), URL: "https://example.org/weights"}}}
+	original, e := json.Marshal(m)
+	if e != nil {
+		t.Fatal(e)
+	}
+	file := filepath.Join(t.TempDir(), "historical-model.json")
+	if e = os.WriteFile(file, original, 0600); e != nil {
+		t.Fatal(e)
+	}
+	for _, action := range []string{"register", "acquire"} {
+		op, item, data, e := parseDomain([]string{"models", action, file})
+		if e != nil {
+			t.Fatal(e)
+		}
+		raw, e := json.Marshal(contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: contracts.ID(), RequestID: contracts.ID(), Operation: op, ItemID: item, Data: data})
+		if e != nil {
+			t.Fatal(e)
+		}
+		if e = schemas.ValidateRequest(raw); e != nil {
+			t.Fatal("historical model rejected at IPC admission", e)
+		}
+		var request models.Request
+		if e = json.Unmarshal(data, &request); e != nil || request.Manifest.Digest() != m.Digest() {
+			t.Fatal("immutable model manifest changed", e)
+		}
+	}
+	after, e := os.ReadFile(file)
+	if e != nil || string(after) != string(original) {
+		t.Fatal("historical model source rewritten", e)
+	}
+}
 
 func TestDomainImportFlagsAndManifestPrecedence(t *testing.T) {
 	operation, id, data, e := parseDomain([]string{"media", "import", "one.wav", "two.mp4", "--reference", "--originated-on", "2026-10-07", "--timezone", "UTC"})

@@ -59,22 +59,8 @@ func validateDocument(current *jsonschema.Schema, filename string, data []byte) 
 		if err := compiler.AddResource(subtitles.SchemaID, upstream); err != nil {
 			return err
 		}
-		files, err := registry.ReadDir("v" + header.Version)
-		if err != nil {
+		if err := addReleaseResources(compiler, header.Version); err != nil {
 			return err
-		}
-		for _, file := range files {
-			raw, err := registry.ReadFile("v" + header.Version + "/" + file.Name())
-			if err != nil {
-				return err
-			}
-			doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(raw))
-			if err != nil {
-				return err
-			}
-			if err := compiler.AddResource(doc.(map[string]any)["$id"].(string), doc); err != nil {
-				return err
-			}
 		}
 		schema, err = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + header.Version + "/schemas/v" + header.Version + "/" + filename)
 		if err != nil {
@@ -83,6 +69,27 @@ func validateDocument(current *jsonschema.Schema, filename string, data []byte) 
 		historicalSchemas[key] = schema
 	}
 	return validate(schema, data)
+}
+
+func addReleaseResources(compiler *jsonschema.Compiler, version string) error {
+	files, err := registry.ReadDir("v" + version)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		raw, err := registry.ReadFile("v" + version + "/" + file.Name())
+		if err != nil {
+			return err
+		}
+		doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(raw))
+		if err != nil {
+			return err
+		}
+		if err := compiler.AddResource(doc.(map[string]any)["$id"].(string), doc); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type offlineLoader struct{}
@@ -105,24 +112,8 @@ func initialize() {
 			compileErr = err
 			return
 		}
-		files, err := registry.ReadDir("v" + contracts.Version)
-		if err != nil {
-			compileErr = err
-			return
-		}
-		for _, file := range files {
-			data, err := registry.ReadFile("v" + contracts.Version + "/" + file.Name())
-			if err != nil {
-				compileErr = err
-				return
-			}
-			doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(data))
-			if err != nil {
-				compileErr = err
-				return
-			}
-			id := doc.(map[string]any)["$id"].(string)
-			if err := compiler.AddResource(id, doc); err != nil {
+		for _, version := range []string{"1.0.0", contracts.Version} {
+			if err := addReleaseResources(compiler, version); err != nil {
 				compileErr = err
 				return
 			}
