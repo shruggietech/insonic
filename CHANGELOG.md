@@ -4,24 +4,12 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
-### Changed
-
-- Share independent engine, desktop/credential and package lanes between PR and release qualification, with separate runtime caches and standalone native CLI preparation for desktop checks. Keep all acceptance, source and inventory checks.
-- Add verified original-release promotion to the existing `insonic.io` GitHub Pages source, with read-only preflight, nonforced parented ref updates and exact-commit build completion. Retain separately configured generic hosting.
-- Include the processing worker in both native package inventories and qualify connected Windows CPU journeys from an elected extracted archive with package-only companion resolution.
-
-### Decisions
-
-- 2026-10-10: Implement S016 release workflow hardening and launch preparation. Measure complete warm PR and publication-disabled release runs, separate product package identity from harness identity, and preserve explicit signing/deployment/acoustic limitations. Product tagging, official publication and live documentation promotion remain a subsequent owner-authorized launch.
-- 2026-10-11: Stage complete Windows codec compilation before final FFmpeg linking after an independent release cold build exceeded its compile bound. Preserve all decoders and unchanged timeouts; verify configured source/dependency identities, integer timestamps and reuse of compiled objects.
-- 2026-10-11: Preserve older nested Next.js segment URLs as aliases to their exact verified flat-file replacements during Pages preparation. Continue rejecting missing historical pages/schemas, unmatched segments, case collisions and excessive payloads before writes.
-
-## [1.0.0] - 2026-10-10
+## [1.0.0] - 2026-10-11
 
 ### Compatibility
 
 - Current insonic workspace/runtime envelopes and master JSON contracts identify version 1.0.0. The preserved 0.0.0 tree remains a specification baseline, not a deployed product data migration. Cueson transcript versions and catalog schema revisions retain their separate compatibility rules.
-- Official downloads and hosted documentation deployment remain unpublished at candidate preparation. Signing requires a separately configured publisher identity.
+- Native packages have no configured publisher signing identity or notarization. macOS ARM64 retains platform-required ad-hoc loader signatures. Required qualification does not establish acoustic prediction or speaker-identification accuracy.
 
 ### Decisions
 
@@ -59,6 +47,17 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-10: Prepare current contract examples with the selected version's native package names and platform archive formats, updating owned common-type descriptions while preserving immutable baseline and upstream identities.
 - 2026-10-10: Separate native Go build caches from the immutable core cache, allowing CLI and desktop/runtime qualification to retain their tagged build artifacts while preserving every integrity check.
 - 2026-10-10: Qualify the packaged CLI and actual LadybugDB graph with the selected native compiler/loader on native lanes, retaining the generic CLI path on lightweight lanes and every cross-process scenario.
+
+- 2026-10-10: Implement S016 release workflow hardening and launch preparation. Measure complete warm PR and publication-disabled release runs, separate product package identity from harness identity, and preserve explicit signing/deployment/acoustic limitations. Product tagging, official publication and live documentation promotion remain a subsequent owner-authorized launch.
+- 2026-10-11: Stage complete Windows codec compilation before final FFmpeg linking after an independent release cold build exceeded its compile bound. Preserve all decoders and unchanged timeouts; verify configured source/dependency identities, integer timestamps and reuse of compiled objects.
+- 2026-10-11: Preserve older nested Next.js segment URLs as aliases to their exact verified flat-file replacements during Pages preparation. Continue rejecting missing historical pages/schemas, unmatched segments, case collisions and excessive payloads before writes.
+- 2026-10-11: Publish the first official 1.0.0 release and matching documentation through the existing exact-source qualification, verified asset publication and original-archive Pages promotion. Provide concise release highlights with a full changelog link; publisher-signing setup and acoustic accuracy checks are excluded.
+
+### Changed
+
+- Share independent engine, desktop/credential and package lanes between PR and release qualification, with separate runtime caches and standalone native CLI preparation for desktop checks. Keep all acceptance, source and inventory checks.
+- Add verified original-release promotion to the existing `insonic.io` GitHub Pages source, with read-only preflight, nonforced parented ref updates and exact-commit build completion. Retain separately configured generic hosting.
+- Include the processing worker in both native package inventories and qualify connected Windows CPU journeys from an elected extracted archive with package-only companion resolution.
 
 ### Added
 

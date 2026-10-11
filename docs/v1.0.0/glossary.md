@@ -4,6 +4,8 @@ This glossary defines the technical vocabulary used in the system contracts. Eac
 
 | Term | Meaning in insonic | Learn and local usage |
 | --- | --- | --- |
+| Ad-hoc code signature | A code-integrity signature without a configured publisher identity. macOS ARM64 uses it for native loader integrity; it does not establish publisher signing or notarization. | [Apple ad-hoc signature flag](https://developer.apple.com/documentation/security/seccodesignatureflags/adhoc); [Releases](releases.md), [desktop](desktop.md) |
+| CNAME (Pages file) | The repository file retaining the existing custom domain for the static documentation host. It is distinct from a DNS CNAME record, which aliases one DNS name to another. | [GitHub Pages custom domains](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site); [Releases](releases.md) |
 | GitHub Pages | The existing static documentation host. Release promotion preserves its selected source/domain and accepts deployment only when the build reports the exact staged commit. | [GitHub Pages builds](https://docs.github.com/en/rest/pages/pages#request-a-github-pages-build); [Releases](releases.md), [development](development.md) |
 | ABI (application binary interface) | Native calling, symbol and data-layout rules that compiled libraries and their loaders must agree on. | [Go cgo](https://pkg.go.dev/cmd/cgo); [Technology](technology.md), [releases](releases.md) |
 | AES-GCM | Authenticated encryption used by the explicit encrypted credential vault; authentication failure rejects altered ciphertext. | [NIST GCM specification](https://csrc.nist.gov/pubs/sp/800/38/d/final); [Security](security.md), [credential commands](secrets.md) |
