@@ -1,0 +1,16 @@
+{
+  "kind": "read-only-pages-preparation",
+  "repository": "shruggietech/insonic",
+  "source_revision": "c1a51624501da3239e38c40a4a6bc6444e14b2fa",
+  "domain": "insonic.io",
+  "branch": "gh-pages",
+  "head": "857a743dccb58238de5b1ce541e2b72c9f483d29",
+  "tree": "83d97d0d8948a8b5a872e2690d63d6e856bf40a5",
+  "destination_files": 308,
+  "prepared_files": 484,
+  "payload_bytes": 21641501,
+  "retained_historical_files": 127,
+  "domain_preserved": true,
+  "mutations": 0,
+  "live_deployment": "not executed"
+}

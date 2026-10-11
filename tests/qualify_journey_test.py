@@ -46,6 +46,7 @@ class JourneyGuardTests(unittest.TestCase):
         self.assertEqual(environment['CUESON_EXECUTABLE'], '')
         self.assertNotIn('development', environment['PATH'])
         self.assertEqual(environment['LD_LIBRARY_PATH'], '')
+        self.assertEqual(environment['DYLD_FALLBACK_LIBRARY_PATH'], '')
 
     def test_extracted_selector_rejects_companion_escape_worker_drift_and_changed_archive(self):
         package = journey.package_module()

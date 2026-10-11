@@ -17,3 +17,5 @@ Publisher signing is not configured in the observed repository variables/secrets
 
 
 The first PR attempt 38107213628 failed at Windows FFmpeg make -j4 after its existing 360-second compile bound (8m45s job). Linux/macOS acceptance passed. The initial concurrent release run is obsolete after a recipe correction. An accidental invalid-revision dispatch 38107221600 failed its identity/checkout checks before qualification and performed no publication. These attempts do not count as warm acceptance.
+
+The corrected cold source run 38108058997 completed Windows FFmpeg compilation using make -j8 in 340.766 seconds, within the unchanged 360-second child limit. Configuration took 69.281 seconds; the full FFmpeg job took 498 seconds including toolkit setup, source/dependency verification, transfer and cache save. Original pins, optimization and decoder configuration remained unchanged. All three platforms saved verified complete source caches; downstream Windows qualification and the warm-run acceptance are separate checks.

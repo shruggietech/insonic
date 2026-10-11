@@ -12,7 +12,7 @@ Full change history: [CHANGELOG.md at v1.0.0](https://github.com/shruggietech/in
 
 ## Subsequent authorized launch sequence
 
-1. Squash merge the approved PR and synchronize clean main. Resolve `FULL_MAIN_SHA` to the actual 40-character merged commit; do not reuse a PR merge/head candidate.
+1. Squash merge the approved PR and synchronize clean main. Before electing the launch revision, finalize the actual release date and consolidate pending Unreleased entries into the 1.0.0 changelog section, refreshing its frozen documentation reference. Review and commit that release metadata, then resolve `FULL_MAIN_SHA` to its actual clean 40-character main commit; do not reuse a PR merge/head candidate.
 2. Confirm current publisher-signing configuration and its disposition. Missing identities remain explicitly unsigned; macOS ad-hoc signing is separate.
 3. Dispatch `gh workflow run release.yml --ref main -f revision=FULL_MAIN_SHA -f publish=false -f promote_docs=false` and verify its complete six-package release-target candidate and all required checks.
 4. With product-publication authorization, create the exact `v1.0.0` tag on that reviewed SHA and dispatch from main with `publish=true`, `promote_docs=true`, `documentation-transport=pages` and the brief highlights above. The protected-main verifier requires the exact existing tag, green checks, full original asset set and successful read-only destination preflight.

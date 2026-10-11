@@ -743,7 +743,8 @@ def package_environment():
     env = {'CUESON_EXECUTABLE': '', 'INSONIC_NATIVE_LIBRARY': '', 'INSONIC_LIBRARY_TOOLS_FILE': '',
            'INSONIC_FIXTURE_POSTGRES': '', 'INSONIC_FIXTURE_S3': '', 'INSONIC_FIXTURE_ARCADE': '',
            'PYTHONPATH': '', 'PERL5OPT': '', 'PERL5LIB': '', 'PERLLIB': '', 'EXIFTOOL_HOME': '',
-           'LD_LIBRARY_PATH': '', 'DYLD_LIBRARY_PATH': '', 'LD_PRELOAD': '', 'DYLD_INSERT_LIBRARIES': ''}
+           'LD_LIBRARY_PATH': '', 'DYLD_LIBRARY_PATH': '', 'DYLD_FALLBACK_LIBRARY_PATH': '',
+           'LD_PRELOAD': '', 'DYLD_INSERT_LIBRARIES': ''}
     if os.name == 'nt':
         system = os.environ.get('SystemRoot', 'C:/Windows')
         env['PATH'] = str(Path(system) / 'System32') + os.pathsep + system
