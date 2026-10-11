@@ -59,3 +59,4 @@ Complete all four stories and package qualification before publication. Preserve
 
 - [x] T021 Normalize historical import request copies before current IPC validation, preserve source bytes, add a CLI-to-shared-schema regression, and qualify the final source (FR-011, initial Codex review).
 - [x] T022 Retain immutable historical model manifest hashes during current request admission with explicit packaged historical schema references and CLI/shared-schema regression (FR-011, adjacent review boundary).
+- [x] T023 Use the shared schema catalog in frontend request validation and pass type checking/all 73 frontend tests after CI exposed missing historical dependencies (FR-012).
