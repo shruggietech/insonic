@@ -1,0 +1,336 @@
+{
+  "repository": "shruggietech/insonic",
+  "run_id": 38114565871,
+  "attempt": 1,
+  "url": "https://github.com/shruggietech/insonic/actions/runs/38114565871",
+  "event": "pull_request",
+  "head_sha": "c617ae83311619d940d69cb27538bf4bdbe1585a",
+  "conclusion": "success",
+  "started_at": "2026-10-11T05:22:20Z",
+  "last_job_completed_at": "2026-10-11T05:29:51Z",
+  "wall_seconds": 451.0,
+  "jobs": [
+    {
+      "id": 114396786640,
+      "name": "foundation",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:22:23Z",
+      "completed_at": "2026-10-11T05:22:37Z"
+    },
+    {
+      "id": 114396786795,
+      "name": "docs",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:22:23Z",
+      "completed_at": "2026-10-11T05:22:50Z"
+    },
+    {
+      "id": 114396827964,
+      "name": "core (ubuntu-24.04)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:22:39Z",
+      "completed_at": "2026-10-11T05:23:37Z"
+    },
+    {
+      "id": 114396827979,
+      "name": "core (windows-2022)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:22:40Z",
+      "completed_at": "2026-10-11T05:27:07Z"
+    },
+    {
+      "id": 114396828019,
+      "name": "media-macos / probe",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:22:44Z",
+      "completed_at": "2026-10-11T05:23:06Z"
+    },
+    {
+      "id": 114396828048,
+      "name": "core (macos-15)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:22:43Z",
+      "completed_at": "2026-10-11T05:23:58Z"
+    },
+    {
+      "id": 114396828051,
+      "name": "media-linux / probe",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:22:39Z",
+      "completed_at": "2026-10-11T05:23:21Z"
+    },
+    {
+      "id": 114396828073,
+      "name": "media-windows / probe",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:22:39Z",
+      "completed_at": "2026-10-11T05:24:00Z"
+    },
+    {
+      "id": 114396906603,
+      "name": "media-macos / groups",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:23:07Z",
+      "completed_at": "2026-10-11T05:23:07Z"
+    },
+    {
+      "id": 114396906951,
+      "name": "media-macos / formats",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:23:07Z",
+      "completed_at": "2026-10-11T05:23:07Z"
+    },
+    {
+      "id": 114396907461,
+      "name": "media-macos / codec",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:23:07Z",
+      "completed_at": "2026-10-11T05:23:07Z"
+    },
+    {
+      "id": 114396907531,
+      "name": "package-macos / package (macos-15, cli)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:23:17Z",
+      "completed_at": "2026-10-11T05:26:08Z"
+    },
+    {
+      "id": 114396907533,
+      "name": "qualify-macos / native-desktop (macos-15)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:23:14Z",
+      "completed_at": "2026-10-11T05:24:58Z"
+    },
+    {
+      "id": 114396907546,
+      "name": "package-macos / package (macos-15, desktop)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:23:15Z",
+      "completed_at": "2026-10-11T05:26:05Z"
+    },
+    {
+      "id": 114396907592,
+      "name": "qualify-macos / native-engine (macos-15)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:23:17Z",
+      "completed_at": "2026-10-11T05:26:25Z"
+    },
+    {
+      "id": 114396907606,
+      "name": "media-macos / ffmpeg",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:23:07Z",
+      "completed_at": "2026-10-11T05:23:07Z"
+    },
+    {
+      "id": 114396908414,
+      "name": "qualify-macos / package (${{ inputs.os }}, ${{ matrix.variant }})",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:23:08Z",
+      "completed_at": "2026-10-11T05:23:07Z"
+    },
+    {
+      "id": 114396908461,
+      "name": "package-macos / native (${{ inputs.os }})",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:23:08Z",
+      "completed_at": "2026-10-11T05:23:07Z"
+    },
+    {
+      "id": 114396908503,
+      "name": "package-macos / native-${{ matrix.runtime_lane }} (${{ inputs.os }})",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:23:08Z",
+      "completed_at": "2026-10-11T05:23:07Z"
+    },
+    {
+      "id": 114396943162,
+      "name": "media-linux / groups",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:23:21Z",
+      "completed_at": "2026-10-11T05:23:21Z"
+    },
+    {
+      "id": 114396943472,
+      "name": "media-linux / formats",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:23:21Z",
+      "completed_at": "2026-10-11T05:23:21Z"
+    },
+    {
+      "id": 114396943857,
+      "name": "adapter fixtures",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:23:24Z",
+      "completed_at": "2026-10-11T05:26:35Z"
+    },
+    {
+      "id": 114396943958,
+      "name": "qualify-linux / native-desktop (ubuntu-24.04)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:23:23Z",
+      "completed_at": "2026-10-11T05:26:24Z"
+    },
+    {
+      "id": 114396944012,
+      "name": "package-linux / package (ubuntu-24.04, desktop)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:23:24Z",
+      "completed_at": "2026-10-11T05:27:28Z"
+    },
+    {
+      "id": 114396944022,
+      "name": "qualify-linux / native-engine (ubuntu-24.04)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:23:24Z",
+      "completed_at": "2026-10-11T05:25:14Z"
+    },
+    {
+      "id": 114396944109,
+      "name": "media-linux / ffmpeg",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:23:22Z",
+      "completed_at": "2026-10-11T05:23:21Z"
+    },
+    {
+      "id": 114396944129,
+      "name": "package-linux / package (ubuntu-24.04, cli)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:23:24Z",
+      "completed_at": "2026-10-11T05:25:44Z"
+    },
+    {
+      "id": 114396944188,
+      "name": "media-linux / codec",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:23:22Z",
+      "completed_at": "2026-10-11T05:23:21Z"
+    },
+    {
+      "id": 114396944852,
+      "name": "package-linux / native-${{ matrix.runtime_lane }} (${{ inputs.os }})",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:23:22Z",
+      "completed_at": "2026-10-11T05:23:22Z"
+    },
+    {
+      "id": 114396944915,
+      "name": "qualify-linux / package (${{ inputs.os }}, ${{ matrix.variant }})",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:23:22Z",
+      "completed_at": "2026-10-11T05:23:22Z"
+    },
+    {
+      "id": 114396945045,
+      "name": "package-linux / native (${{ inputs.os }})",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:23:22Z",
+      "completed_at": "2026-10-11T05:23:22Z"
+    },
+    {
+      "id": 114397041083,
+      "name": "media-windows / groups",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:24:01Z",
+      "completed_at": "2026-10-11T05:24:00Z"
+    },
+    {
+      "id": 114397041170,
+      "name": "media-windows / formats",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:24:01Z",
+      "completed_at": "2026-10-11T05:24:00Z"
+    },
+    {
+      "id": 114397041511,
+      "name": "media-windows / codec",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:24:01Z",
+      "completed_at": "2026-10-11T05:24:00Z"
+    },
+    {
+      "id": 114397041586,
+      "name": "package-windows / package (windows-2022, cli)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:24:03Z",
+      "completed_at": "2026-10-11T05:28:03Z"
+    },
+    {
+      "id": 114397041600,
+      "name": "qualify-windows / native-desktop (windows-2022)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:24:03Z",
+      "completed_at": "2026-10-11T05:28:08Z"
+    },
+    {
+      "id": 114397041658,
+      "name": "package-windows / package (windows-2022, desktop)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:24:03Z",
+      "completed_at": "2026-10-11T05:29:09Z"
+    },
+    {
+      "id": 114397041694,
+      "name": "qualify-windows / native-engine (windows-2022)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:24:03Z",
+      "completed_at": "2026-10-11T05:28:47Z"
+    },
+    {
+      "id": 114397042060,
+      "name": "media-windows / ffmpeg",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:24:01Z",
+      "completed_at": "2026-10-11T05:24:01Z"
+    },
+    {
+      "id": 114397042347,
+      "name": "qualify-windows / package (${{ inputs.os }}, ${{ matrix.variant }})",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:24:01Z",
+      "completed_at": "2026-10-11T05:24:01Z"
+    },
+    {
+      "id": 114397042353,
+      "name": "package-windows / native-${{ matrix.runtime_lane }} (${{ inputs.os }})",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:24:01Z",
+      "completed_at": "2026-10-11T05:24:01Z"
+    },
+    {
+      "id": 114397042507,
+      "name": "package-windows / native (${{ inputs.os }})",
+      "conclusion": "skipped",
+      "started_at": "2026-10-11T05:24:01Z",
+      "completed_at": "2026-10-11T05:24:01Z"
+    },
+    {
+      "id": 114397409204,
+      "name": "qualify-linux / native (ubuntu-24.04)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:26:26Z",
+      "completed_at": "2026-10-11T05:26:29Z"
+    },
+    {
+      "id": 114397411658,
+      "name": "qualify-macos / native (macos-15)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:26:28Z",
+      "completed_at": "2026-10-11T05:26:32Z"
+    },
+    {
+      "id": 114397771204,
+      "name": "qualify-windows / native (windows-2022)",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:28:49Z",
+      "completed_at": "2026-10-11T05:28:53Z"
+    },
+    {
+      "id": 114397826184,
+      "name": "candidate",
+      "conclusion": "success",
+      "started_at": "2026-10-11T05:29:11Z",
+      "completed_at": "2026-10-11T05:29:51Z"
+    }
+  ]
+}

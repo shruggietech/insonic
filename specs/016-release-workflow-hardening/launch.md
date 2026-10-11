@@ -12,6 +12,10 @@ Full change history: [CHANGELOG.md at v1.0.0](https://github.com/shruggietech/in
 
 ## Subsequent authorized launch sequence
 
+Completed functional candidate: `c617ae83311619d940d69cb27538bf4bdbe1585a`, six packages and both exports. Complete warm PR runs took 451s and 438s; publication-disabled release took 417s. Extracted Windows controlled/real CPU journeys passed in 99.328s/158.25s with exact disconnected-source recovery. See [verification.md](verification.md) and [convergence.md](convergence.md). The evidence completion commit is separately gated by exact-head PR CI; its final run and review audit belong in the PR closure comment.
+
+Publisher signatures are unconfigured for all six packages, and notarization is unexecuted. macOS library relocation and the desktop seal receive ad-hoc integrity signatures. Existing Pages preparation was read only (127 historical files and 23 compatibility URLs retained, zero mutations). Actual matching returned unknown rather than forcing an identification; broader acoustic accuracy and non-Windows inference remain unmeasured. Both authorized reviews completed without findings; post-review corrections received meaningful regressions/full CI, with no third request. No independent security approval is claimed.
+
 1. Squash merge the approved PR and synchronize clean main. Before electing the launch revision, finalize the actual release date and consolidate pending Unreleased entries into the 1.0.0 changelog section, refreshing its frozen documentation reference. Review and commit that release metadata, then resolve `FULL_MAIN_SHA` to its actual clean 40-character main commit; do not reuse a PR merge/head candidate.
 2. Confirm current publisher-signing configuration and its disposition. Missing identities remain explicitly unsigned; macOS ad-hoc signing is separate.
 3. Dispatch `gh workflow run release.yml --ref main -f revision=FULL_MAIN_SHA -f publish=false -f promote_docs=false` and verify its complete six-package release-target candidate and all required checks.

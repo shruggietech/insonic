@@ -1,0 +1,843 @@
+{
+  "kind": "connected-product-qualification",
+  "mode": "real",
+  "required_check": false,
+  "platform": "Windows",
+  "device": "cpu",
+  "cli_sha256": "95237b880c20d0d6eb5c16c3b42de4294a9711edbef663159963638ba387c3dc",
+  "worker_sha256": "53be55cae83a826a4ca24bbd046232dc5d13698a5b5a4b3433388db9c373fa4b",
+  "product_version": "1.0.0",
+  "source_revision": "c617ae83311619d940d69cb27538bf4bdbe1585a",
+  "source_dirty": false,
+  "operation_bound_seconds": 180,
+  "overall_bound_seconds": 900,
+  "hard_rss_limit_bytes": null,
+  "operations": [
+    {
+      "kind": "models.register",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 0.07899999999790452
+    },
+    {
+      "kind": "models.ensure",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 0.8910000000032596
+    },
+    {
+      "kind": "models.register",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 0.07800000000861473
+    },
+    {
+      "kind": "models.ensure",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 0.7029999999940628
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 1.312000000005355
+    },
+    {
+      "kind": "recordings.process",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 14.468999999997322
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 1.2969999999913853
+    },
+    {
+      "kind": "recordings.process",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 8.389999999999418
+    },
+    {
+      "kind": "media.import",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 1.2970000000059372
+    },
+    {
+      "kind": "recordings.process",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 27.01600000000326
+    },
+    {
+      "kind": "models.train",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 5.952999999994063
+    },
+    {
+      "kind": "recordings.match",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 5.780999999988126
+    }
+  ],
+  "records": [
+    {
+      "fixture": "speech",
+      "media_id": "ac4144c0-9c12-40a7-864a-bdf9e879b042",
+      "document_digest": "8b97012020873d81769b12bfa8a9042eb0e8cc104483d6dee7db73063e5324c5",
+      "source_map": {
+        "channel": null,
+        "policy": "full-selected-canonical-stream;original-start-rational;sample-clock;no-seeking",
+        "sample_count": 172800,
+        "sample_rate": 16000,
+        "start_denominator": "1",
+        "start_numerator": "0",
+        "stream_index": 0
+      },
+      "provenance": {
+        "audio": {
+          "audio_format": "pcm_s16le",
+          "channels": 1,
+          "decoder": "ffmpeg",
+          "decoder_sha256": "d03c5f0788f24307be854315cb926011bce158b22ff59a0795847a7c149fc1b8",
+          "decoder_version": "7.0.2",
+          "mapped_audio_sha256": "153adb3a729aa12a9b77641c61026e1a09bf3de91412af60f5c592d7f10b7927",
+          "sample_rate": 16000,
+          "source_channel": null,
+          "source_channels": 1,
+          "source_sha256": "84abd505cc39ab506ab583ea210136617e63b038d190af4fd0e109e651ee0661",
+          "source_size": 495371,
+          "source_start_pts": 0,
+          "source_stream": 0,
+          "source_time_base": "1/48000"
+        },
+        "diarization": {
+          "audio_sha256": "153adb3a729aa12a9b77641c61026e1a09bf3de91412af60f5c592d7f10b7927",
+          "cpu_seconds": 9.234375,
+          "device": "cpu",
+          "embedding_minimum_samples": 1680,
+          "model_boundary_policy": "Community-1 frame/media intersection;max250ms overhang;diagnose each change",
+          "model_id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+          "model_license": "CC-BY-4.0",
+          "model_manifest_sha256": "76d300da6c8803709092a77998fb15161e8612904b533ad714734b223662f0c3",
+          "model_name": "pyannote/speaker-diarization-community-1",
+          "model_revision": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee",
+          "model_version": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee",
+          "offline": true,
+          "packages": {
+            "pyannote.audio": "4.0.7",
+            "torch": "2.14.0+cu130",
+            "torchaudio": "2.11.0+cu130"
+          },
+          "peak_rss_bytes": 1209217024,
+          "python_sha256": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d",
+          "quality_diagnostics_enabled": true,
+          "sample_count": 172800,
+          "sample_rate": 16000,
+          "source_clock_projection": "exact-source-origin;ceil-start/floor-end-microsecond",
+          "speaker_count": 2,
+          "telemetry_enabled": false,
+          "threads": 2,
+          "turn_count": 4,
+          "wall_seconds": 10.616375199999311,
+          "worker_sha256": "53be55cae83a826a4ca24bbd046232dc5d13698a5b5a4b3433388db9c373fa4b"
+        },
+        "model_elections": [
+          {
+            "compatible": true,
+            "diagnostics": [],
+            "manifest_digest": "5f3710101fbab296405cd8623bb9325c2a9dd9412baa9e2cfc3f3fafc9819357",
+            "reference": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+            "state": "available",
+            "target": {
+              "adapter": "faster-whisper",
+              "contract_version": "1",
+              "id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+              "kind": "base",
+              "operation": "transcription"
+            },
+            "upstream_revision": "d90ca5fe260221311c53c58e660288d3deb8d356"
+          },
+          {
+            "compatible": true,
+            "diagnostics": [],
+            "manifest_digest": "76d300da6c8803709092a77998fb15161e8612904b533ad714734b223662f0c3",
+            "reference": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+            "state": "available",
+            "target": {
+              "adapter": "pyannote",
+              "contract_version": "1",
+              "id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+              "kind": "base",
+              "operation": "diarization"
+            },
+            "upstream_revision": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee"
+          }
+        ],
+        "pipeline_election": {
+          "configuration": {
+            "diarization": {
+              "adapter": "pyannote",
+              "contract_version": "1",
+              "diarization": {},
+              "limits": {},
+              "mode": "local",
+              "model_id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+              "recognition": {}
+            },
+            "recognition": {
+              "adapter": "faster-whisper",
+              "contract_version": "1",
+              "diarization": {},
+              "limits": {},
+              "mode": "local",
+              "model_id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+              "recognition": {
+                "context_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+                "device": "cpu",
+                "language": "en"
+              }
+            }
+          },
+          "context": {
+            "budget": 200,
+            "bytes": 0,
+            "diagnostics": [],
+            "digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "hints": [],
+            "joined": "",
+            "omitted": [],
+            "omitted_total": 0,
+            "omitted_truncated": false,
+            "revision": 72,
+            "snapshot_digest": "ce6e5d10e87ea2f2f637384cbd37e2a44a417e21f91e38d5864ee8f0e45a9999"
+          },
+          "pipeline_digest": "",
+          "pipeline_id": "",
+          "pipeline_revision": 0,
+          "preset": "local"
+        },
+        "transcription": {
+          "audio_sha256": "153adb3a729aa12a9b77641c61026e1a09bf3de91412af60f5c592d7f10b7927",
+          "beam_size": 5,
+          "compute_type": "int8",
+          "condition_on_previous_text": false,
+          "context_application": "hotwords-each-decoding-window",
+          "context_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "cpu_seconds": 1.34375,
+          "device": "cpu",
+          "hint_count": 0,
+          "language": "en",
+          "model_id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+          "model_license": "MIT",
+          "model_manifest_sha256": "5f3710101fbab296405cd8623bb9325c2a9dd9412baa9e2cfc3f3fafc9819357",
+          "model_name": "Systran/faster-whisper-tiny",
+          "model_revision": "d90ca5fe260221311c53c58e660288d3deb8d356",
+          "model_version": "d90ca5fe260221311c53c58e660288d3deb8d356",
+          "native_timing_projection": "nearest-microsecond;exact-source-origin;ceil-start/floor-end-millisecond",
+          "offline": true,
+          "packages": {
+            "av": "18.1.0",
+            "ctranslate2": "4.8.2",
+            "faster-whisper": "1.2.1"
+          },
+          "peak_rss_bytes": 229281792,
+          "python_sha256": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d",
+          "recognition_boundary_policy": "pinned-Whisper end/media intersection;max250ms overhang;diagnose each change",
+          "sample_count": 172800,
+          "sample_rate": 16000,
+          "segment_count": 4,
+          "telemetry_enabled": false,
+          "threads": 2,
+          "vad_filter": false,
+          "wall_seconds": 0.8619076999893878,
+          "worker_sha256": "53be55cae83a826a4ca24bbd046232dc5d13698a5b5a4b3433388db9c373fa4b"
+        }
+      },
+      "diagnostics": [
+        {
+          "code": "model_frame_intersected_decoded_media",
+          "count": 1,
+          "value": 0.115344
+        },
+        {
+          "code": "speech_coverage_fraction",
+          "count": 1,
+          "value": 0.9471325
+        },
+        {
+          "code": "overlap_fraction",
+          "count": 1,
+          "value": 0
+        },
+        {
+          "code": "timing_rounded",
+          "count": 4,
+          "message": "Endpoints were deliberately projected inward to integer milliseconds.",
+          "pointer": "/cues/0/speaker_attributions/0"
+        },
+        {
+          "code": "timing_clipped",
+          "count": 1,
+          "message": "The turn was explicitly intersected with cue coverage.",
+          "pointer": "/cues/3/speaker_attributions/0"
+        },
+        {
+          "code": "timing_uncovered",
+          "count": 1,
+          "message": "Some of the turn has no subtitle cue coverage; no cue or timestamp was invented.",
+          "pointer": "/cues"
+        }
+      ]
+    },
+    {
+      "fixture": "cross-clip",
+      "media_id": "6f9ddf0a-6819-4bbe-a3c6-0b4c2a43f1cd",
+      "document_digest": "2f82ee22598db1488409a0e48cf04d8e20ff341da303d37493e203eb8552aeb8",
+      "source_map": {
+        "channel": null,
+        "policy": "full-selected-canonical-stream;original-start-rational;sample-clock;no-seeking",
+        "sample_count": 128000,
+        "sample_rate": 16000,
+        "start_denominator": "1",
+        "start_numerator": "0",
+        "stream_index": 0
+      },
+      "provenance": {
+        "audio": {
+          "audio_format": "pcm_s16le",
+          "channels": 1,
+          "decoder": "ffmpeg",
+          "decoder_sha256": "d03c5f0788f24307be854315cb926011bce158b22ff59a0795847a7c149fc1b8",
+          "decoder_version": "7.0.2",
+          "mapped_audio_sha256": "703ccabb53c4b734eb6a7752d70009f5968568adffce2f6ded4c1c77c6c03ad9",
+          "sample_rate": 16000,
+          "source_channel": null,
+          "source_channels": 1,
+          "source_sha256": "9e4488956968a70433cac979c91dc4b6bf06611be6cb9cbdb5dfd52e97899a03",
+          "source_size": 144744,
+          "source_start_pts": 0,
+          "source_stream": 0,
+          "source_time_base": "1/16000"
+        },
+        "diarization": {
+          "audio_sha256": "703ccabb53c4b734eb6a7752d70009f5968568adffce2f6ded4c1c77c6c03ad9",
+          "cpu_seconds": 5.859375,
+          "device": "cpu",
+          "embedding_minimum_samples": 1680,
+          "model_boundary_policy": "Community-1 frame/media intersection;max250ms overhang;diagnose each change",
+          "model_id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+          "model_license": "CC-BY-4.0",
+          "model_manifest_sha256": "76d300da6c8803709092a77998fb15161e8612904b533ad714734b223662f0c3",
+          "model_name": "pyannote/speaker-diarization-community-1",
+          "model_revision": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee",
+          "model_version": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee",
+          "offline": true,
+          "packages": {
+            "pyannote.audio": "4.0.7",
+            "torch": "2.14.0+cu130",
+            "torchaudio": "2.11.0+cu130"
+          },
+          "peak_rss_bytes": 1068036096,
+          "python_sha256": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d",
+          "quality_diagnostics_enabled": true,
+          "sample_count": 128000,
+          "sample_rate": 16000,
+          "source_clock_projection": "exact-source-origin;ceil-start/floor-end-microsecond",
+          "speaker_count": 1,
+          "telemetry_enabled": false,
+          "threads": 2,
+          "turn_count": 4,
+          "wall_seconds": 5.032600899998215,
+          "worker_sha256": "53be55cae83a826a4ca24bbd046232dc5d13698a5b5a4b3433388db9c373fa4b"
+        },
+        "model_elections": [
+          {
+            "compatible": true,
+            "diagnostics": [],
+            "manifest_digest": "5f3710101fbab296405cd8623bb9325c2a9dd9412baa9e2cfc3f3fafc9819357",
+            "reference": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+            "state": "available",
+            "target": {
+              "adapter": "faster-whisper",
+              "contract_version": "1",
+              "id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+              "kind": "base",
+              "operation": "transcription"
+            },
+            "upstream_revision": "d90ca5fe260221311c53c58e660288d3deb8d356"
+          },
+          {
+            "compatible": true,
+            "diagnostics": [],
+            "manifest_digest": "76d300da6c8803709092a77998fb15161e8612904b533ad714734b223662f0c3",
+            "reference": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+            "state": "available",
+            "target": {
+              "adapter": "pyannote",
+              "contract_version": "1",
+              "id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+              "kind": "base",
+              "operation": "diarization"
+            },
+            "upstream_revision": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee"
+          }
+        ],
+        "pipeline_election": {
+          "configuration": {
+            "diarization": {
+              "adapter": "pyannote",
+              "contract_version": "1",
+              "diarization": {},
+              "limits": {},
+              "mode": "local",
+              "model_id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+              "recognition": {}
+            },
+            "recognition": {
+              "adapter": "faster-whisper",
+              "contract_version": "1",
+              "diarization": {},
+              "limits": {},
+              "mode": "local",
+              "model_id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+              "recognition": {
+                "context_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+                "device": "cpu",
+                "language": "en"
+              }
+            }
+          },
+          "context": {
+            "budget": 200,
+            "bytes": 0,
+            "diagnostics": [],
+            "digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "hints": [],
+            "joined": "",
+            "omitted": [],
+            "omitted_total": 0,
+            "omitted_truncated": false,
+            "revision": 165,
+            "snapshot_digest": "44513a481c887025fb08c8a58f37583aebae582cd591522bfcada06ce5b7950b"
+          },
+          "pipeline_digest": "",
+          "pipeline_id": "",
+          "pipeline_revision": 0,
+          "preset": "local"
+        },
+        "transcription": {
+          "audio_sha256": "703ccabb53c4b734eb6a7752d70009f5968568adffce2f6ded4c1c77c6c03ad9",
+          "beam_size": 5,
+          "compute_type": "int8",
+          "condition_on_previous_text": false,
+          "context_application": "hotwords-each-decoding-window",
+          "context_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "cpu_seconds": 1.3125,
+          "device": "cpu",
+          "hint_count": 0,
+          "language": "en",
+          "model_id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+          "model_license": "MIT",
+          "model_manifest_sha256": "5f3710101fbab296405cd8623bb9325c2a9dd9412baa9e2cfc3f3fafc9819357",
+          "model_name": "Systran/faster-whisper-tiny",
+          "model_revision": "d90ca5fe260221311c53c58e660288d3deb8d356",
+          "model_version": "d90ca5fe260221311c53c58e660288d3deb8d356",
+          "native_timing_projection": "nearest-microsecond;exact-source-origin;ceil-start/floor-end-millisecond",
+          "offline": true,
+          "packages": {
+            "av": "18.1.0",
+            "ctranslate2": "4.8.2",
+            "faster-whisper": "1.2.1"
+          },
+          "peak_rss_bytes": 229072896,
+          "python_sha256": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d",
+          "recognition_boundary_policy": "pinned-Whisper end/media intersection;max250ms overhang;diagnose each change",
+          "sample_count": 128000,
+          "sample_rate": 16000,
+          "segment_count": 2,
+          "telemetry_enabled": false,
+          "threads": 2,
+          "vad_filter": false,
+          "wall_seconds": 0.7074995999864768,
+          "worker_sha256": "53be55cae83a826a4ca24bbd046232dc5d13698a5b5a4b3433388db9c373fa4b"
+        }
+      },
+      "diagnostics": [
+        {
+          "code": "whisper_end_intersected_decoded_media",
+          "count": 1,
+          "value": 0.08
+        },
+        {
+          "code": "speech_coverage_fraction",
+          "count": 1,
+          "value": 0.926015625
+        },
+        {
+          "code": "overlap_fraction",
+          "count": 1,
+          "value": 0
+        },
+        {
+          "code": "timing_rounded",
+          "count": 5,
+          "message": "Endpoints were deliberately projected inward to integer milliseconds.",
+          "pointer": "/cues/0/speaker_attributions/0"
+        },
+        {
+          "code": "timing_clipped",
+          "count": 2,
+          "message": "The turn was explicitly intersected with cue coverage.",
+          "pointer": "/cues/0/speaker_attributions/2"
+        }
+      ]
+    },
+    {
+      "fixture": "sintel-dialogue",
+      "media_id": "22c6bc87-6c9a-4cfa-bd2a-ece7fd808cb5",
+      "document_digest": "4aa9ffd094482b8ee39c10866bb64ab01c568ac9330209731acdeb5cd5bba1a2",
+      "source_map": {
+        "channel": 2,
+        "policy": "full-selected-canonical-stream;original-start-rational;sample-clock;no-seeking",
+        "sample_count": 480000,
+        "sample_rate": 16000,
+        "start_denominator": "1",
+        "start_numerator": "0",
+        "stream_index": 0
+      },
+      "provenance": {
+        "audio": {
+          "audio_format": "pcm_s16le",
+          "channels": 1,
+          "decoder": "ffmpeg",
+          "decoder_sha256": "d03c5f0788f24307be854315cb926011bce158b22ff59a0795847a7c149fc1b8",
+          "decoder_version": "7.0.2",
+          "mapped_audio_sha256": "c4076cc89631e9d816ea88df54bab62884999ea2249ae082490930b3f475f232",
+          "sample_rate": 16000,
+          "source_channel": 2,
+          "source_channels": 6,
+          "source_sha256": "0b76bdae8172b1b1cac6919bf0a1d4e8264f791bbeb77a68045129597a5bdac4",
+          "source_size": 3748776,
+          "source_start_pts": 0,
+          "source_stream": 0,
+          "source_time_base": "1/48000"
+        },
+        "diarization": {
+          "audio_sha256": "c4076cc89631e9d816ea88df54bab62884999ea2249ae082490930b3f475f232",
+          "cpu_seconds": 41.546875,
+          "device": "cpu",
+          "embedding_minimum_samples": 1680,
+          "model_boundary_policy": "Community-1 frame/media intersection;max250ms overhang;diagnose each change",
+          "model_id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+          "model_license": "CC-BY-4.0",
+          "model_manifest_sha256": "76d300da6c8803709092a77998fb15161e8612904b533ad714734b223662f0c3",
+          "model_name": "pyannote/speaker-diarization-community-1",
+          "model_revision": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee",
+          "model_version": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee",
+          "offline": true,
+          "packages": {
+            "pyannote.audio": "4.0.7",
+            "torch": "2.14.0+cu130",
+            "torchaudio": "2.11.0+cu130"
+          },
+          "peak_rss_bytes": 2712313856,
+          "python_sha256": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d",
+          "quality_diagnostics_enabled": true,
+          "sample_count": 480000,
+          "sample_rate": 16000,
+          "source_clock_projection": "exact-source-origin;ceil-start/floor-end-microsecond",
+          "speaker_count": 1,
+          "telemetry_enabled": false,
+          "threads": 2,
+          "turn_count": 6,
+          "wall_seconds": 23.508620799999335,
+          "worker_sha256": "53be55cae83a826a4ca24bbd046232dc5d13698a5b5a4b3433388db9c373fa4b"
+        },
+        "model_elections": [
+          {
+            "compatible": true,
+            "diagnostics": [],
+            "manifest_digest": "5f3710101fbab296405cd8623bb9325c2a9dd9412baa9e2cfc3f3fafc9819357",
+            "reference": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+            "state": "available",
+            "target": {
+              "adapter": "faster-whisper",
+              "contract_version": "1",
+              "id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+              "kind": "base",
+              "operation": "transcription"
+            },
+            "upstream_revision": "d90ca5fe260221311c53c58e660288d3deb8d356"
+          },
+          {
+            "compatible": true,
+            "diagnostics": [],
+            "manifest_digest": "76d300da6c8803709092a77998fb15161e8612904b533ad714734b223662f0c3",
+            "reference": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+            "state": "available",
+            "target": {
+              "adapter": "pyannote",
+              "contract_version": "1",
+              "id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+              "kind": "base",
+              "operation": "diarization"
+            },
+            "upstream_revision": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee"
+          }
+        ],
+        "pipeline_election": {
+          "configuration": {
+            "diarization": {
+              "adapter": "pyannote",
+              "contract_version": "1",
+              "diarization": {},
+              "limits": {},
+              "mode": "local",
+              "model_id": "43ce29cc-5365-5df2-9472-b55ee6cbf8b7",
+              "recognition": {}
+            },
+            "recognition": {
+              "adapter": "faster-whisper",
+              "contract_version": "1",
+              "diarization": {},
+              "limits": {},
+              "mode": "local",
+              "model_id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+              "recognition": {
+                "context_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+                "device": "cpu",
+                "language": "en"
+              }
+            }
+          },
+          "context": {
+            "budget": 200,
+            "bytes": 0,
+            "diagnostics": [],
+            "digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "hints": [],
+            "joined": "",
+            "omitted": [],
+            "omitted_total": 0,
+            "omitted_truncated": false,
+            "revision": 238,
+            "snapshot_digest": "e00a139441755c769d6b11b742015012cd439eafb540704872133b6617b7e386"
+          },
+          "pipeline_digest": "",
+          "pipeline_id": "",
+          "pipeline_revision": 0,
+          "preset": "local"
+        },
+        "transcription": {
+          "audio_sha256": "c4076cc89631e9d816ea88df54bab62884999ea2249ae082490930b3f475f232",
+          "beam_size": 5,
+          "compute_type": "int8",
+          "condition_on_previous_text": false,
+          "context_application": "hotwords-each-decoding-window",
+          "context_digest": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "cpu_seconds": 1.390625,
+          "device": "cpu",
+          "hint_count": 0,
+          "language": "en",
+          "model_id": "f948c94a-535e-5f7f-9f58-2f28c5f3b685",
+          "model_license": "MIT",
+          "model_manifest_sha256": "5f3710101fbab296405cd8623bb9325c2a9dd9412baa9e2cfc3f3fafc9819357",
+          "model_name": "Systran/faster-whisper-tiny",
+          "model_revision": "d90ca5fe260221311c53c58e660288d3deb8d356",
+          "model_version": "d90ca5fe260221311c53c58e660288d3deb8d356",
+          "native_timing_projection": "nearest-microsecond;exact-source-origin;ceil-start/floor-end-millisecond",
+          "offline": true,
+          "packages": {
+            "av": "18.1.0",
+            "ctranslate2": "4.8.2",
+            "faster-whisper": "1.2.1"
+          },
+          "peak_rss_bytes": 229949440,
+          "python_sha256": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d",
+          "recognition_boundary_policy": "pinned-Whisper end/media intersection;max250ms overhang;diagnose each change",
+          "sample_count": 480000,
+          "sample_rate": 16000,
+          "segment_count": 5,
+          "telemetry_enabled": false,
+          "threads": 2,
+          "vad_filter": false,
+          "wall_seconds": 0.7714779999951134,
+          "worker_sha256": "53be55cae83a826a4ca24bbd046232dc5d13698a5b5a4b3433388db9c373fa4b"
+        }
+      },
+      "diagnostics": [
+        {
+          "code": "speech_coverage_fraction",
+          "count": 1,
+          "value": 0.262125
+        },
+        {
+          "code": "overlap_fraction",
+          "count": 1,
+          "value": 0
+        },
+        {
+          "code": "timing_rounded",
+          "count": 6,
+          "message": "Endpoints were deliberately projected inward to integer milliseconds.",
+          "pointer": "/cues/0/speaker_attributions/0"
+        }
+      ]
+    }
+  ],
+  "package": {
+    "revision": "c617ae83311619d940d69cb27538bf4bdbe1585a",
+    "platform": "windows_amd64",
+    "variant": "cli",
+    "schema_version": "1.0.0",
+    "product_version": "1.0.0",
+    "documentation_version": "1.0.0",
+    "archive_sha256": "11b699a48308bac72ad11809ead83f73827f128d998d989221ecf411b0ec0a12",
+    "inventory_sha256": "767542d03ddd30e3e761bdf0455d6fcb59236d40d6d2d77530185078945b736b",
+    "source_dirty": false
+  },
+  "harness_revision": "c617ae83311619d940d69cb27538bf4bdbe1585a",
+  "harness_dirty": false,
+  "harness_inputs_sha256": "44d3539820e02319c28dde9e82659a66568baaef23b64dabd315403f9b141838",
+  "worker_origin": "installed-package",
+  "graph": {
+    "adapter_id": "ladybugdb",
+    "atomic_publication": true,
+    "backend_version": "0.21.2",
+    "cancellation": true,
+    "contract_version": "1.0.0",
+    "dialects": [
+      "ladybug-cypher"
+    ],
+    "limits": {
+      "native_bytes": 65536,
+      "projection_bytes": 134217728,
+      "reference_page_rows": 1000,
+      "result_bytes": 524288,
+      "result_rows": 500,
+      "timeout_seconds": 20
+    },
+    "operations": [
+      "media-list",
+      "speaker-search",
+      "model-list",
+      "text-search",
+      "time-range",
+      "evidence-traverse",
+      "graph-view"
+    ],
+    "read_only": true,
+    "schema_version": 1,
+    "state": "available",
+    "typed_parameters": [
+      "string",
+      "integer",
+      "number",
+      "boolean",
+      "null"
+    ]
+  },
+  "python_executable_sha256": {
+    "transcribe": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d",
+    "diarize": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d"
+  },
+  "companion_sha256": {
+    "ffmpeg": "d03c5f0788f24307be854315cb926011bce158b22ff59a0795847a7c149fc1b8",
+    "ffprobe": "fd7e5426c274e4a4ac6b128c5a8ff7dc570c4737af400fca2c0a96c3971df05f",
+    "exiftool": "68c079c32fdae0d6c7130e9a5fb73f8ac9dabdf9ab8da312da4f6c549d6d3385",
+    "cueson": "a074673e71ced8567f6d84a9537ddd3d80600cc02964bb847273d69246903d19"
+  },
+  "model_inputs": {
+    "transcribe": {
+      "id": "Systran/faster-whisper-tiny",
+      "revision": "d90ca5fe260221311c53c58e660288d3deb8d356",
+      "files": {
+        "config.json": {
+          "size_bytes": 2249,
+          "sha256": "a73a28cdfe1c43ccc7202fa333d1f89c202477271407ae9a7f19afa52039cac8"
+        },
+        "model.bin": {
+          "size_bytes": 75538270,
+          "sha256": "dcb76c6586fc06cbdac6dd21f14cfd129cc4cdd9dce19bf4ffa62e59cbe6e6d1"
+        },
+        "tokenizer.json": {
+          "size_bytes": 2203239,
+          "sha256": "fb7b63191e9bb045082c79fd742a3106a12c99513ab30df4a0d47fa6cb6fd0ab"
+        },
+        "vocabulary.txt": {
+          "size_bytes": 459861,
+          "sha256": "34ce3fe1c5041027b3f8d42912270993f986dbc4bb34cf27f951e34a1e453913"
+        }
+      }
+    },
+    "diarize": {
+      "id": "pyannote/speaker-diarization-community-1",
+      "revision": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee",
+      "files": {
+        "config.yaml": {
+          "size_bytes": 444,
+          "sha256": "5ce2bfa9a938dc132cec1172592d65173cbb8f444ea1e4133f10f9391de155be"
+        },
+        "embedding/pytorch_model.bin": {
+          "size_bytes": 26646242,
+          "sha256": "6f10ff60898a1d185fa22e1d11e0bfa8a92efec811f11bca48cb8cafebefd929"
+        },
+        "segmentation/pytorch_model.bin": {
+          "size_bytes": 5906507,
+          "sha256": "7ad24338d844fb95985486eb1a464e32d229f6d7a03c9abe60f978bacf3f816e"
+        },
+        "plda/plda.npz": {
+          "size_bytes": 133852,
+          "sha256": "9b77bcd840692710dd3496f62ecfeed8d8e5f002fd991b785079b244eab7d255"
+        },
+        "plda/xvec_transform.npz": {
+          "size_bytes": 134376,
+          "sha256": "325f1ce8e48f7e55e9c8aa47e05d2766b7c48c4b25b8de8dd751e7a4cc5fbe8f"
+        }
+      }
+    }
+  },
+  "speaker_model": {
+    "dataset_id": "53c14bd1-b6bc-5e0a-848e-7278fc4fbf9e",
+    "version_id": "0443b91c-2408-565a-b8fd-5fb52a6eebc5",
+    "enrollment": "duration-weighted normalized embeddings; no base-weight retraining",
+    "matching_result": {
+      "decisions": [
+        {
+          "evidence_us": 7405000,
+          "local_speaker_id": "e4a1bac3-f2d4-4d68-95a6-c5ea1e7e9712",
+          "score": 0.6774461035799777,
+          "state": "unknown"
+        }
+      ],
+      "mapping_count": 0,
+      "missing_profiles": [],
+      "recording_id": "6f9ddf0a-6819-4bbe-a3c6-0b4c2a43f1cd",
+      "state": "accepted"
+    },
+    "quality_claim": "Cross-clip consistency, not independent identification accuracy"
+  },
+  "state": "passed",
+  "source_store": "unavailable at original path",
+  "authority_comparison": "exact values and hashes preserved",
+  "query_operations": [
+    "media-list",
+    "speaker-search",
+    "model-list",
+    "text-search"
+  ],
+  "queried_after_restore": true,
+  "retrieved_model_files": {
+    "manifest.json": "2e3f537b99796b74ea02f1056b25d2bed1f69d94faebee3d7864f8ddaa7c9126",
+    "profile.json": "8946d643a3cffca740dc9d36be13926eface22f74ade870fbf261c9df7a1fd83"
+  },
+  "acoustic_quality": "measured separately",
+  "wall_seconds": 158.25
+}
