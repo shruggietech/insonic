@@ -75,7 +75,10 @@ class GitHubFixture:
         if endpoint.endswith('/environments/documentation-deployment'): return {'deployment_branch_policy': {'protected_branches': False, 'custom_branch_policies': True}}
         if endpoint.endswith('/deployment-branch-policies'): return {'total_count': 1, 'branch_policies': [{'name': 'main', 'type': 'branch'}]}
         if '/git/ref/' in endpoint: return {'object': {'type': 'commit', 'sha': REVISION}}
-        if '/check-runs?' in endpoint: return {'check_runs': copy.deepcopy(self.checks)}
+        if '/check-runs?' in endpoint:
+            page = int(release.urllib.parse.parse_qs(release.urllib.parse.urlsplit(endpoint).query).get('page', ['1'])[0])
+            checks = [{**check, 'id': index + 1} for index, check in enumerate(self.checks)]
+            return {'total_count': len(checks), 'check_runs': copy.deepcopy(checks[(page - 1) * 100:page * 100])}
         if '/actions/runs/' in endpoint: return copy.deepcopy(self.workflow)
         if '/releases/tags/' in endpoint: return copy.deepcopy(self.release)
         if endpoint.endswith('/releases') and method == 'POST':
@@ -416,6 +419,53 @@ class ReleaseDeliveryTests(unittest.TestCase):
         historical.workflow['head_sha'] = 'b' * 40
         with patch.dict(os.environ, dict(context, GITHUB_SHA='b' * 40)):
             self.assertTrue(release.publish(target, 'Highlights.', historical, self.root, runner, verify_fixture)['published'])
+
+    def test_publication_reads_required_checks_after_the_first_hundred(self):
+        target = self.candidate(); api = GitHubFixture()
+        api.checks = [{'name': f'qualified lane {index}', 'status': 'completed', 'conclusion': 'success',
+                       'check_suite': {'id': 23}} for index in range(105)] + api.checks
+        self.assertTrue(release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)['published'])
+        self.assertEqual(len([call for call in api.calls if '/check-runs?' in call[1]]), 2)
+
+    def test_publication_blocks_red_or_pending_checks_on_later_pages(self):
+        target = self.candidate()
+        for status, conclusion in [('in_progress', None), ('completed', 'failure')]:
+            api = GitHubFixture()
+            api.checks.extend({'name': f'qualified lane {index}', 'status': 'completed', 'conclusion': 'success',
+                               'check_suite': {'id': 23}} for index in range(100))
+            api.checks.append({'name': 'external review', 'status': status, 'conclusion': conclusion,
+                               'check_suite': {'id': 23}})
+            with self.assertRaisesRegex(ValueError, 'not green'):
+                release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
+            self.assertFalse(any(call[0] in ('POST', 'PATCH') for call in api.calls))
+
+    def test_verified_current_suite_exclusion_applies_on_later_pages(self):
+        target = self.candidate(); api = GitHubFixture()
+        api.checks.extend({'name': f'qualified lane {index}', 'status': 'completed', 'conclusion': 'success',
+                           'check_suite': {'id': 23}} for index in range(100))
+        api.checks.append({'name': 'publish', 'status': 'in_progress', 'conclusion': None,
+                           'check_suite': {'id': 42}})
+        with patch.dict(os.environ, {'GITHUB_RUN_ID': '77', 'GITHUB_REPOSITORY': release.REPOSITORY, 'GITHUB_SHA': REVISION}):
+            self.assertTrue(release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)['published'])
+
+    def test_incomplete_or_changing_check_inventory_cannot_publish(self):
+        target = self.candidate()
+        for malformed in ('empty', 'count', 'duplicate'):
+            api = GitHubFixture()
+            api.checks.extend({'name': f'qualified lane {index}', 'status': 'completed', 'conclusion': 'success',
+                               'check_suite': {'id': 23}} for index in range(100))
+            original = api.call
+            def changed(method, endpoint, value=None, path=None):
+                response = original(method, endpoint, value, path)
+                if '/check-runs?' in endpoint and 'page=2' in endpoint:
+                    if malformed == 'empty': response['check_runs'] = []
+                    if malformed == 'count': response['total_count'] += 1
+                    if malformed == 'duplicate': response['check_runs'][0]['id'] = 1
+                return response
+            api.call = changed
+            with self.assertRaisesRegex(ValueError, 'check inventory'):
+                release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
+            self.assertFalse(any(call[0] in ('POST', 'PATCH') for call in api.calls))
 
     def test_promotion_only_retrieves_original_candidate_without_rebuilding_or_publishing(self):
         original = self.candidate(); api = GitHubFixture()
