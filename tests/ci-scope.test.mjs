@@ -44,7 +44,7 @@ test('platform qualification waits only for its own exact same-run source build'
   const commands = job.steps.map(step => step.run ?? '').join('\n');
   for (const command of ['go test ./...', 'go vet ./...', "python -m unittest discover -s tests -p '*_test.py'"]) assert.ok(commands.includes(command));
  }
- const runtime = qualification.jobs.runtime;
+ const runtime = qualification.jobs.runtime_checks;
  const commands = runtime.steps.map(step => step.run ?? '').join('\n');
  for (const command of ['python scripts/media-tools.py', 'python scripts/qualify.py prepare', 'python scripts/qualify.py native', 'python scripts/qualify.py cli', 'python scripts/qualify.py secrets', 'python scripts/qualify.py desktop', 'npm --prefix desktop/frontend run check', 'npm --prefix desktop/frontend test', 'npm --prefix desktop/frontend run build', 'npm --prefix site run build']) assert.ok(commands.includes(command), command);
  assert.ok(!commands.includes('go test ./...')); // Platform core tests now overlap source compilation.
@@ -73,17 +73,18 @@ test('platform qualification waits only for its own exact same-run source build'
 
 test('native caches can retain tagged builds independently of the immutable core cache', () => {
  const qualification = parse(readFileSync(new URL('../.github/workflows/native-qualification.yml', import.meta.url), 'utf8'));
- assert.equal(qualification.jobs.runtime.steps.find(step => step.name === 'Cross-process CLI acceptance').run,
+ assert.equal(qualification.jobs.runtime_checks.steps.find(step => step.name === 'Cross-process CLI acceptance').run,
   "python scripts/qualify.py cli ${{ inputs.native && '--native' || '' }}");
  const goCache = job => job.steps.find(step => step.uses?.startsWith('actions/setup-go@')).with['cache-dependency-path'];
- const runtime = goCache(qualification.jobs.runtime).trim().split('\n');
+ const runtime = goCache(qualification.jobs.runtime_checks).trim().split('\n');
  const packageInputs = goCache(qualification.jobs.packages).trim().split('\n');
- assert.deepEqual(runtime, ['go.sum', 'internal/qualification/dependencies.json', 'desktop/frontend/package-lock.json']);
+ assert.deepEqual(runtime, ['go.sum', 'internal/qualification/dependencies.json', '.github/workflows/cache-keys/native-${{ matrix.runtime_lane }}']);
  assert.deepEqual(packageInputs.slice(0, 2), runtime.slice(0, 2));
  const select = variant => packageInputs.map(value => value.startsWith('${{') ? (variant === 'desktop' ? 'desktop/frontend/package-lock.json' : 'internal/contracts/contracts.go') : value);
- assert.deepEqual(select('desktop'), runtime);
- assert.notDeepEqual(select('cli'), runtime);
- for (const value of [...runtime, ...select('cli')]) assert.ok(readFileSync(new URL('../' + value, import.meta.url)).length);
+ const engine = runtime.map(value => value.replace('${{ matrix.runtime_lane }}', 'engine'));
+ const desktop = runtime.map(value => value.replace('${{ matrix.runtime_lane }}', 'desktop'));
+ assert.equal(new Set([engine.join('\n'), desktop.join('\n'), select('cli').join('\n'), select('desktop').join('\n')]).size, 4);
+ for (const value of [...engine, ...desktop, ...select('cli'), ...select('desktop')]) assert.ok(readFileSync(new URL('../' + value, import.meta.url)).length);
  const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
  for (const job of [ci.jobs.core, ci.jobs['core-windows']]) {
   assert.equal(goCache(job), undefined); // The default go.sum core key cannot capture native additions.
@@ -121,7 +122,7 @@ test('full workflow attempts preserve old artifacts and consume only their match
   return values[field];
  });
  const matches = (selector, value) => new RegExp('^' + selector.split('*').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$').test(value);
- for (const documents of [[workflow('ci'), workflow('native-qualification'), workflow('media-source')], [workflow('release'), workflow('media-source')]]) {
+ for (const documents of [[workflow('ci'), workflow('native-qualification'), workflow('media-source')], [workflow('release'), workflow('native-qualification'), workflow('media-source')]]) {
   const steps = transfers(documents);
   for (const step of steps) {
    assert.ok((step.with.name ?? step.with.pattern).endsWith('-${{ github.run_attempt }}'));
@@ -130,11 +131,11 @@ test('full workflow attempts preserve old artifacts and consume only their match
   const platforms = ['ubuntu-24.04', 'windows-2022', 'macos-15'];
   const variants = ['cli', 'desktop'], groups = ['compression', 'audio', 'av1'];
   const names = attempt => new Set(steps.filter(step => step.uses.includes('/upload-')).flatMap(step =>
-   platforms.flatMap(os => variants.flatMap(variant => groups.map(group => expand(step.with.name, {
+   platforms.flatMap(os => variants.flatMap(variant => ['engine', 'desktop'].flatMap(runtime_lane => groups.map(group => expand(step.with.name, {
      'github.run_attempt': String(attempt), 'github.sha': 'a'.repeat(40),
      'inputs.revision': 'a'.repeat(40), 'inputs.os': os, 'matrix.os': os,
-     'matrix.variant': variant, 'matrix.group': group,
-    }))))));
+     'matrix.variant': variant, 'matrix.group': group, 'matrix.runtime_lane': runtime_lane,
+    })))))));
   const oldNames = names(1), currentNames = names(2);
   assert.equal([...currentNames].some(name => oldNames.has(name)), false);
   for (const os of platforms) {
@@ -142,7 +143,7 @@ test('full workflow attempts preserve old artifacts and consume only their match
     const selector = expand(step.with.name ?? step.with.pattern, {
      'github.run_attempt': '2', 'github.sha': 'a'.repeat(40),
      'inputs.revision': 'a'.repeat(40), 'inputs.os': os, 'matrix.os': os,
-     'matrix.variant': 'desktop', 'matrix.group': 'compression',
+     'matrix.variant': 'desktop', 'matrix.group': 'compression', 'matrix.runtime_lane': 'engine',
     });
     assert.ok([...currentNames].some(name => matches(selector, name)), `missing same-attempt producer: ${selector}`);
     assert.equal([...oldNames].some(name => matches(selector, name)), false, `stale attempt matched: ${selector}`);

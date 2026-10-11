@@ -17,6 +17,77 @@ class JourneyGuardTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls): spec.loader.exec_module(journey)
 
+    def test_package_election_requires_exact_clean_revision_version_and_platform(self):
+        receipt = {'revision': 'a' * 40, 'schema_version': '1.0.0', 'product_version': '1.0.0', 'documentation_version': '1.0.0',
+                   'platform': 'windows_amd64', 'source_dirty': False, 'variant': 'cli'}
+        journey.validate_package_election(receipt, 'a' * 40, '1.0.0', 'windows_amd64')
+        for change in ({'revision': 'b' * 40}, {'schema_version': '0.0.0'}, {'product_version': '0.0.0'},
+                       {'documentation_version': '0.0.0'}, {'platform': 'linux_amd64'}, {'source_dirty': True}, {'variant': 'unknown'}):
+            with self.assertRaises(ValueError): journey.validate_package_election({**receipt, **change}, 'a' * 40, '1.0.0', 'windows_amd64')
+
+    def test_package_selection_rejects_source_tool_or_cli_overrides(self):
+        for field in ('cli', 'tools', 'cueson'):
+            args = SimpleNamespace(package='archive', package_receipt='receipt', revision='a' * 40, cli=None, tools=None, cueson=None)
+            setattr(args, field, 'development fallback')
+            with self.assertRaisesRegex(ValueError, 'override'): journey.validate_selection(args)
+
+    def test_missing_package_receipt_and_unselected_source_tools_are_rejected(self):
+        for args in (SimpleNamespace(package='archive', package_receipt=None, revision='a' * 40, cli=None, tools=None, cueson=None),
+                     SimpleNamespace(package=None, package_receipt=None, revision=None, cli='cli', tools=None, cueson=None)):
+            with self.assertRaises(ValueError): journey.validate_selection(args)
+
+    def test_package_environment_strips_native_tool_and_credential_overrides(self):
+        original = {'PATH': 'development tooling', 'INSONIC_NATIVE_LIBRARY': 'development native', 'GH_TOKEN': 'private token',
+                    'LD_LIBRARY_PATH': 'development native', 'CUESON_EXECUTABLE': 'development cueson'}
+        with patch.dict(os.environ, original):
+            environment = journey.packaged_environment()
+        self.assertNotIn('GH_TOKEN', environment)
+        self.assertEqual(environment['INSONIC_NATIVE_LIBRARY'], '')
+        self.assertEqual(environment['CUESON_EXECUTABLE'], '')
+        self.assertNotIn('development', environment['PATH'])
+        self.assertEqual(environment['LD_LIBRARY_PATH'], '')
+
+    def test_extracted_selector_rejects_companion_escape_worker_drift_and_changed_archive(self):
+        package = journey.package_module()
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            archive = base / 'package.zip'; archive.write_bytes(b'controlled archive')
+            receipt_path = base / 'receipt.json'
+            receipt = {'revision': 'a' * 40, 'schema_version': '1.0.0', 'product_version': '1.0.0',
+                       'documentation_version': '1.0.0', 'platform': 'linux_amd64', 'source_dirty': False, 'variant': 'cli',
+                       'archive_sha256': package.sha(archive), 'inventory_sha256': journey.hashlib.sha256(b'{}').hexdigest(),
+                       'inventory_root': 'installed', 'inventory_path': 'installed/package-inventory.json'}
+            journey.write_json(receipt_path, receipt)
+            args = SimpleNamespace(package=str(archive), package_receipt=str(receipt_path), revision='a' * 40)
+            def extract(selected, location):
+                root = location / 'installed'; root.mkdir()
+                (root / 'package-inventory.json').write_bytes(b'{}')
+                for name in ('ffmpeg', 'ffprobe', 'exiftool', 'cueson', 'insonic'):
+                    (root / name).write_bytes(b'fixture')
+                worker = root / 'companions/processing/processing-worker.py'; worker.parent.mkdir(parents=True)
+                worker.write_bytes((ROOT / 'scripts/processing-worker.py').read_bytes())
+                manifest = {'kind': 'installed-companions', 'schema_version': '1.0.0', 'platform': 'linux_amd64',
+                            'media': {name: {'path': name, 'sha256': package.sha(root / name)} for name in ('ffmpeg', 'ffprobe', 'exiftool')},
+                            'cueson': {'executable': 'cueson', 'executable_sha256': package.sha(root / 'cueson')}}
+                if case == 'escape': manifest['media']['ffmpeg']['path'] = '../outside'
+                if case == 'worker': worker.write_bytes(b'changed worker')
+                if case == 'archive': selected.write_bytes(b'changed archive')
+                journey.write_json(root / 'insonic-companions.json', manifest)
+            for case in ('escape', 'worker', 'archive', 'valid'):
+                archive.write_bytes(b'controlled archive')
+                selected_base = base / case; selected_base.mkdir()
+                with patch.object(journey, 'package_module', return_value=package), patch.object(package, 'platform_key', return_value='linux_amd64'), \
+                     patch.object(package, 'verify_archive_receipt'), patch.object(package, 'verify_inventory'), \
+                     patch.object(package, 'extract_package', side_effect=extract):
+                    if case != 'valid':
+                        with self.assertRaises(ValueError): journey.select_package(args, selected_base)
+                    else:
+                        cli, tools, cueson, worker, identity = journey.select_package(args, selected_base)
+                        self.assertTrue(all(path.is_relative_to(selected_base) for path in (cli, cueson, worker)))
+                        self.assertIn('with spaces', str(cli))
+                        self.assertEqual(identity['revision'], receipt['revision'])
+                        self.assertTrue(Path(tools['ffmpeg']['path']).is_relative_to(selected_base))
+
     def test_real_and_controlled_modes_require_explicit_election_outside_ci(self):
         with patch.dict(os.environ, {'CI': '', 'GITHUB_ACTIONS': '', 'TF_BUILD': '', 'BUILD_BUILDID': '', 'JENKINS_URL': ''}):
             with self.assertRaisesRegex(ValueError, 'explicit'): journey.require_mode(None)

@@ -676,9 +676,8 @@ def materialize_deployment(path, environment=None):
     return {'deployment_configuration': 'validated'}
 
 
-def promote(directory, config, api, runner=child, verifier=verify_package, trusted_root=ROOT, history_runner=child, source_root=ROOT):
+def promotion_authority(directory, api, verifier=verify_package, trusted_root=ROOT, history_runner=child, source_root=ROOT):
     trusted_history(read_json(directory / 'release-manifest.json').get('revision'), api, trusted_root, history_runner)
-    deployment_environment(api)
     value, expected = load_candidate(directory, verifier, source_root)
     for name in ('documentation.tar.gz', 'offline-help.tar.gz'):
         verify_documentation(directory / name, value['version'], value['revision'], require_release=True)
@@ -686,6 +685,27 @@ def promote(directory, config, api, runner=child, verifier=verify_package, trust
     release = api.call('GET', f'repos/{REPOSITORY}/releases/tags/{value["tag"]}')
     if not release or release.get('draft') is not False or release.get('target_commitish') != value['revision']: raise ValueError('documentation promotion requires the exact published release')
     remote_assets(api, release, expected)
+    return value
+
+
+def pages_module():
+    spec = importlib.util.spec_from_file_location('insonic_pages', ROOT / 'scripts/pages.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def pages_promote(directory, api, verifier=verify_package, trusted_root=ROOT, history_runner=child, source_root=ROOT):
+    value = promotion_authority(directory, api, verifier, trusted_root, history_runner, source_root)
+    transport = pages_module()
+    destination = transport.preflight(api, REPOSITORY)
+    files = transport.prepare_tree(directory / 'documentation.tar.gz', destination, value['version'], value['revision'])
+    return transport.promote_tree(api, REPOSITORY, destination, files, value['version'], value['revision'])
+
+
+def promote(directory, config, api, runner=child, verifier=verify_package, trusted_root=ROOT, history_runner=child, source_root=ROOT):
+    value = promotion_authority(directory, api, verifier, trusted_root, history_runner, source_root)
+    deployment_environment(api)
     config = deployment_configuration(config)
     # The configured program receives a verified immutable archive; no shell.
     args = [a.replace('{archive}', str((directory / 'documentation.tar.gz').resolve())).replace('{version}', value['version']).replace('{revision}', value['revision']) for a in config['argv']]
@@ -709,6 +729,8 @@ def main():
     p = sub.add_parser('publish'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--highlights', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT)
     p = sub.add_parser('published'); p.add_argument('--revision', required=True); p.add_argument('--output', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT)
     p = sub.add_parser('deployment'); p.add_argument('--configuration', type=Path, required=True)
+    sub.add_parser('pages-preflight')
+    p = sub.add_parser('pages-promote'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT)
     p = sub.add_parser('promote'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--configuration', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT)
     options = parser.parse_args()
     if options.command == 'prepare': result = prepare(options.version, options.date, options.highlights.read_text(encoding='utf-8'))
@@ -720,6 +742,11 @@ def main():
     elif options.command == 'publish': result = publish(options.candidate, options.highlights.read_text(encoding='utf-8'), GitHub(os.environ.get('GH_TOKEN', '')), root=options.source_root, trusted_root=ROOT)
     elif options.command == 'published': result = published_candidate(options.output, options.revision, GitHub(os.environ.get('GH_TOKEN', '')), root=options.source_root, trusted_root=ROOT)
     elif options.command == 'deployment': deployment_environment(GitHub(os.environ.get('GH_TOKEN', ''))); result = materialize_deployment(options.configuration)
+    elif options.command == 'pages-preflight':
+        destination = pages_module().preflight(GitHub(os.environ.get('GH_TOKEN', '')), REPOSITORY)
+        result = {key: destination[key] for key in ('repository', 'domain', 'branch', 'head')}
+        result['pages_destination'] = 'verified'
+    elif options.command == 'pages-promote': result = pages_promote(options.candidate, GitHub(os.environ.get('GH_TOKEN', '')), source_root=options.source_root)
     else: result = promote(options.candidate, read_json(options.configuration), GitHub(os.environ.get('GH_TOKEN', '')), source_root=options.source_root)
     print(json.dumps(result))
 

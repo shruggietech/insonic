@@ -18,13 +18,27 @@ spec.loader.exec_module(package)
 
 
 class NativePackageIntegrityTests(unittest.TestCase):
+    def test_both_variants_require_an_inventoried_processing_worker(self):
+        for variant in ('cli', 'desktop'):
+            with tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                names = ['insonic-companions.json', 'LICENSE', 'NOTICE', 'help/index.html', 'INSTALL.txt',
+                         'insonic', 'companions/cueson/cueson', 'companions/cueson/cueson.schema.json']
+                if variant == 'desktop': names.append('insonic-desktop')
+                for name in names:
+                    path = root / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(b'fixture')
+                value = {'platform': 'linux_amd64', 'variant': variant, 'files': [
+                    {'path': name, 'size_bytes': 7, 'sha256': package.sha(root / name)} for name in names]}
+                with self.assertRaisesRegex(ValueError, 'required'): package.verify_inventory(root, value)
+
     def test_macos_bundle_resources_leave_only_native_code_in_macos(self):
         with tempfile.TemporaryDirectory(prefix='insonic relocated app ') as temporary:
             root = Path(temporary) / 'insonic.app/Contents/MacOS'
             root.mkdir(parents=True)
             names = ['insonic', 'insonic-desktop', 'native/liblbug.dylib', 'LICENSE', 'NOTICE',
                      'INSTALL.txt', 'help/index.html', 'sources/source-manifest.json',
-                     'companions/cueson/cueson', 'companions/cueson/cueson.schema.json']
+                     'companions/cueson/cueson', 'companions/cueson/cueson.schema.json',
+                     'companions/processing/processing-worker.py']
             for name in names:
                 path = root / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(name.encode())
             contents, resources = package.arrange_macos_bundle(root)
@@ -151,7 +165,8 @@ class NativePackageIntegrityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             names = ['insonic-companions.json', 'LICENSE', 'NOTICE', 'help/index.html', 'INSTALL.txt',
-                     'insonic', 'companions/cueson/cueson', 'companions/cueson/cueson.schema.json']
+                     'insonic', 'companions/cueson/cueson', 'companions/cueson/cueson.schema.json',
+                     'companions/processing/processing-worker.py']
             for name in names:
                 path = root / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(b'fixture')
             value = {'platform': 'linux_amd64', 'variant': 'cli', 'files': [
@@ -241,7 +256,8 @@ class NativePackageIntegrityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             required = ['insonic-companions.json', 'LICENSE', 'NOTICE', 'help/index.html', 'INSTALL.txt',
-                        'insonic', 'insonic-desktop', 'companions/cueson/cueson', 'companions/cueson/cueson.schema.json']
+                        'insonic', 'insonic-desktop', 'companions/cueson/cueson', 'companions/cueson/cueson.schema.json',
+                        'companions/processing/processing-worker.py']
             for name in required:
                 path = package.path_inside(root, name)
                 path.parent.mkdir(parents=True, exist_ok=True)

@@ -58,7 +58,7 @@ test('publication and promotion execute trusted tools and isolate deployment cre
   const job = workflow.jobs.publish;
   assert.ok(job.if.includes('inputs.publish && needs.candidate.result'));
   assert.ok(job.if.includes("needs.deployment-preflight.result == 'success'"));
-  assert.equal(workflow.jobs.media.if, 'inputs.publish || !inputs.promote_docs');
+  for (const os of ['linux', 'windows', 'macos']) assert.equal(workflow.jobs[`media-${os}`].if, 'inputs.publish || !inputs.promote_docs');
   assert.equal(job.permissions.checks, 'read');
   assert.equal(job.permissions.actions, 'read');
   const publication = job.steps.find(step => step.run?.startsWith('python scripts/release.py publish '));
@@ -94,10 +94,9 @@ test('publication and promotion execute trusted tools and isolate deployment cre
   }
 });
 
-test('media and release jobs select the toolkit installed by the pinned MSYS2 action', () => {
+test('media jobs select the toolkit installed by the pinned MSYS2 action', () => {
   const media = parse(readFileSync(new URL('.github/workflows/media-source.yml', source), 'utf8'));
-  const release = parse(readFileSync(new URL('.github/workflows/release.yml', source), 'utf8'));
-  for (const job of [...Object.values(media.jobs), release.jobs.native]) {
+  for (const job of Object.values(media.jobs)) {
     const setup = job.steps.find(step => step.uses?.startsWith('msys2/setup-msys2@'));
     const selection = job.steps.find(step => step.env?.MSYS2_ACTION_LOCATION);
     assert.equal(setup.id, 'msys2');
@@ -112,16 +111,51 @@ test('media and release jobs select the toolkit installed by the pinned MSYS2 ac
   }
 });
 
-test('fresh release qualification prepares its sibling CLI before the macOS desktop app', () => {
+test('release qualification reuses parallel native/package lanes and matching release-target docs', () => {
   const workflow = parse(readFileSync(new URL('.github/workflows/release.yml', source), 'utf8'));
-  const steps = workflow.jobs.native.steps;
-  assert.equal(workflow.jobs.native.env.INSONIC_DOCUMENTATION_TARGET, 'release');
-  const cli = steps.findIndex(step => step.run?.includes('python scripts/qualify.py cli'));
-  const desktop = steps.findIndex(step => step.run?.includes('python scripts/qualify.py desktop'));
-  const packages = steps.findIndex(step => step.run?.includes('python scripts/package-desktop.py all --variant both'));
-  assert.ok(cli >= 0 && cli < desktop);
-  assert.ok(desktop < packages);
-  const linux = steps.find(step => step.name === 'Native Linux dependencies');
-  assert.ok(linux.run.includes('sudo python3 scripts/prepare-apt-mirror.py'));
-  assert.ok(linux.run.includes('Acquire::https::Timeout=15'));
+  const native = parse(readFileSync(new URL('.github/workflows/native-qualification.yml', source), 'utf8'));
+  const calls = ['linux', 'windows', 'macos'].flatMap(os => [`qualify-${os}`, `package-${os}`]);
+  for (const name of calls) {
+    const job = workflow.jobs[name];
+    assert.equal(job.uses, './.github/workflows/native-qualification.yml');
+    assert.equal(job.with.revision, '${{ inputs.revision }}');
+    assert.equal(job.with['documentation-target'], 'release');
+    assert.equal(job.with.lane, name.startsWith('package-') ? 'packages' : 'runtime');
+    assert.ok(!JSON.stringify(job).includes('secrets.'));
+  }
+  assert.ok(calls.every(name => workflow.jobs.candidate.needs.includes(name)));
+  assert.ok(workflow.jobs.candidate.needs.includes('docs'));
+  assert.equal(workflow.jobs.docs.env.INSONIC_DOCUMENTATION_TARGET, 'release');
+  assert.ok(workflow.jobs.candidate.steps.some(step => step.with?.pattern === 'candidate-package-*-${{ inputs.revision }}-${{ github.run_attempt }}'));
+  assert.ok(native.jobs.runtime_checks.strategy.matrix.runtime_lane.includes('engine'));
+  assert.ok(native.jobs.runtime_checks.strategy.matrix.runtime_lane.includes('desktop'));
+  assert.deepEqual(native.jobs.runtime.needs, ['runtime_checks']);
+  assert.equal(native.jobs.runtime.name, 'native (${{ inputs.os }})');
+  assert.ok(native.jobs.runtime.if.includes('always()'));
+  const steps = native.jobs.runtime_checks.steps;
+  const cache = steps.find(step => step.uses?.startsWith('actions/setup-go@'));
+  assert.ok(cache.with['cache-dependency-path'].includes('cache-keys/native-'));
+  assert.ok(steps.find(step => step.run?.includes('qualify.py cli')).run.includes('--native'));
+  for (const job of [native.jobs.runtime_checks, native.jobs.packages]) assert.equal(job.timeout_minutes ?? job['timeout-minutes'], 10);
+  assert.equal(native.on.workflow_call.inputs['documentation-target'].default, 'snapshot');
+});
+
+test('deployment routes separate Pages authority from generic host secrets', () => {
+  const workflow = parse(readFileSync(new URL('.github/workflows/release.yml', source), 'utf8'));
+  assert.equal(workflow.on.workflow_dispatch.inputs['documentation-transport'].default, 'pages');
+  const preflight = workflow.jobs['pages-preflight'], promotion = workflow.jobs['promote-pages'];
+  assert.equal(preflight.permissions.pages, 'read');
+  assert.equal(promotion.permissions.pages, 'write');
+  assert.equal(promotion.permissions.contents, 'write');
+  for (const job of [preflight, promotion]) {
+    assert.equal(job.environment, undefined);
+    assert.ok(job.if.includes("github.ref == 'refs/heads/main'"));
+    assert.ok(job.if.includes("inputs.documentation-transport == 'pages'"));
+    assert.ok(!JSON.stringify(job).includes('secrets.'));
+    assert.equal(job.steps[0].with.ref, 'main');
+    assert.equal(job.steps[0].with['persist-credentials'], false);
+  }
+  assert.ok(promotion.steps.some(step => step.run?.includes('release.py published --source-root')));
+  assert.ok(promotion.steps.some(step => step.run?.includes('release.py pages-promote --source-root')));
+  assert.ok(workflow.jobs.promote.if.includes("inputs.documentation-transport == 'generic'"));
 });
