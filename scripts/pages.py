@@ -101,7 +101,28 @@ def prepare_tree(archive_path, destination, version, revision):
     if '.nojekyll' in files and files['.nojekyll']:
         raise ValueError('Pages archive static marker differs')
     historical = {name for name in destination['entries'] if name.startswith(('docs/v', 'schemas/v'))}
-    if not historical.issubset(files): raise ValueError('Pages archive would remove historical version routes')
+    for name in sorted(historical - files.keys()):
+        # Next's segment export changed from nested paths to flat filenames.
+        # Keep the old URL only when its exact replacement exists in the
+        # verified archive beside the same public page. No old remote bytes
+        # or guessed replacement content enter the deployment tree.
+        parts = PurePosixPath(name).parts
+        segment = next((index for index, part in enumerate(parts) if part.startswith('__next.')), None)
+        replacement = None
+        if (name.startswith('docs/v') and segment is not None and segment >= 2
+                and segment < len(parts) - 1 and parts[-1] == '__PAGE__.txt'):
+            directory = '/'.join(parts[:segment])
+            if directory + '/index.html' in files:
+                replacement = directory + '/' + '.'.join(parts[segment:])
+        if replacement not in files:
+            raise ValueError('Pages archive would remove historical version routes')
+        if name.casefold() in aliases:
+            raise ValueError('Pages historical compatibility alias is ambiguous')
+        total += len(files[replacement])
+        if total > 64 << 20 or len(files) >= 10000:
+            raise ValueError('Pages historical aliases exceed the bounded static payload')
+        files[name] = files[replacement]
+        aliases.add(name.casefold())
     files['CNAME'], files['.nojekyll'] = (DOMAIN + '\n').encode(), b''
     return files
 

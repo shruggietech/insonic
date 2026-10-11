@@ -70,3 +70,7 @@ The first Windows cold source build hit its unchanged 360-second FFmpeg compile 
 ## Cold-build convergence (2026-10-11)
 
 After the successful corrected cold PR, an independent release cold build exceeded the same compile bound. Add a Windows-only codec archive stage between full static dependencies and final FFmpeg compilation. Transfer the configured tree and complete dependency prefix with exact per-file hashes, modes, sizes and integer timestamps, bound to source/configuration/compiler/recipe/launcher and absolute runner prefixes. Resume skips FFmpeg extraction, VERSION rewriting and configuration, checks Make's dependency graph and rejects any rebuilt staged object. Other platforms retain their complete build path. Requalify the changed recipe through actual cold execution, two full warm PR attempts and a full publication-disabled warm release. Earlier measurements remain pre-staging observations.
+
+## Historical segment compatibility (2026-10-11)
+
+Actual hosted archive preparation found 23 nested historical Next.js segment paths whose current export equivalents have flat filenames. Extend Pages tree preparation to retain those exact URLs as aliases to verified same-page archive bytes. Missing pages/schemas or unmatched segments still reject; archive case and expanded payload bounds apply to aliases too. No destination writes or remote-byte substitution occur. The native workflow and media recipe remain unchanged; validate the complete combined code before handoff.

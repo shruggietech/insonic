@@ -14,6 +14,7 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-10-10: Implement S016 release workflow hardening and launch preparation. Measure complete warm PR and publication-disabled release runs, separate product package identity from harness identity, and preserve explicit signing/deployment/acoustic limitations. Product tagging, official publication and live documentation promotion remain a subsequent owner-authorized launch.
 - 2026-10-11: Stage complete Windows codec compilation before final FFmpeg linking after an independent release cold build exceeded its compile bound. Preserve all decoders and unchanged timeouts; verify configured source/dependency identities, integer timestamps and reuse of compiled objects.
+- 2026-10-11: Preserve older nested Next.js segment URLs as aliases to their exact verified flat-file replacements during Pages preparation. Continue rejecting missing historical pages/schemas, unmatched segments, case collisions and excessive payloads before writes.
 
 ## [1.0.0] - 2026-10-10
 
