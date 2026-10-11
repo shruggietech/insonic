@@ -2,6 +2,7 @@
 package library
 
 import (
+	"encoding/json"
 	"testing"
 )
 
@@ -104,5 +105,67 @@ func TestOffsetRequiresASCIIDigits(t *testing.T) {
 		if d := ResolveDate("2026-10-07T12:00:00", "instant", zone, "", "", "owner"); d.Resolved == nil {
 			t.Fatal("standard zone rejected")
 		}
+	}
+}
+
+func TestPreparedOffsetRetainsAuthorityAndExplicitZoneConflict(t *testing.T) {
+	for _, timezone := range []string{"", "local", "UTC"} {
+		r, e := PrepareImport(ImportRequest{Defaults: Options{Timezone: timezone, OriginatedAt: "2026-10-11T12:00:00.123456789+05:30"}, Items: []Item{{Source: "fixture.wav"}}})
+		if e != nil {
+			t.Fatal(e)
+		}
+		raw, _ := json.Marshal(r)
+		var recovered ImportRequest
+		if json.Unmarshal(raw, &recovered) != nil {
+			t.Fatal("decode")
+		}
+		recovered, e = PrepareImport(recovered)
+		if e != nil {
+			t.Fatal(e)
+		}
+		d := ownerDate(merged(recovered.Defaults, recovered.Items[0].Options))
+		if timezone == "UTC" {
+			if d.State != "invalid" || d.Resolved != nil {
+				t.Fatal("explicit conflict lost", d)
+			}
+		} else if d.Resolved == nil || d.Resolved.ISO != "2026-10-11T06:30:00.123456789Z" || d.ZoneSource != "entered-offset" {
+			t.Fatal("implicit policy overrode entered offset", d)
+		}
+	}
+}
+
+func TestPreparedItemTimezoneOverridesAndReplay(t *testing.T) {
+	for _, c := range []struct{ batch, item, state, source string }{
+		{"", "UTC", "invalid", "import-policy"}, {"UTC", "local", "resolved", "entered-offset"},
+		{"UTC", "", "invalid", "import-policy"}, {"", "", "resolved", "entered-offset"},
+	} {
+		r, e := PrepareImport(ImportRequest{Defaults: Options{Timezone: c.batch}, Items: []Item{{Source: "fixture.wav", Options: Options{Timezone: c.item, OriginatedAt: "2026-10-11T12:00:00.123456789+05:30"}}}})
+		if e != nil {
+			t.Fatal(e)
+		}
+		d := ownerDate(merged(r.Defaults, r.Items[0].Options))
+		if d.State != c.state || d.ZoneSource != c.source {
+			t.Fatal(c, d)
+		}
+		raw, _ := json.Marshal(r)
+		var next ImportRequest
+		if e = json.Unmarshal(raw, &next); e != nil {
+			t.Fatal(e)
+		}
+		next, e = PrepareImport(next)
+		if e != nil {
+			t.Fatal(e)
+		}
+		after := ownerDate(merged(next.Defaults, next.Items[0].Options))
+		before, _ := json.Marshal(d)
+		got, _ := json.Marshal(after)
+		if string(before) != string(got) {
+			t.Fatal("replay changed date", d, after)
+		}
+	}
+	frozen := Options{Timezone: "America/New_York", TimezoneImplicit: true, OriginatedAt: "2026-11-01T01:30:00", DSTFold: "later"}
+	d := ownerDate(CaptureDateOptions(frozen))
+	if d.Resolved == nil || d.Resolved.ISO != "2026-11-01T06:30:00Z" || d.ZoneSource != "captured-local" {
+		t.Fatal("frozen host replay", d)
 	}
 }

@@ -41,7 +41,7 @@ export function validateCatalog(catalog) {
   // This compiler resource delegates the external reference to the exact
   // packaged upstream validator. Published JSON retains its authoritative URI.
   ajv.addSchema({ $id: upstreamSchema.$id, packagedCueson: true });
-  for (const item of catalog.schemas) ajv.addSchema(item.schema);
+  for (const item of [...catalog.schemas, ...(catalog.dependencies ?? [])]) ajv.addSchema(item.schema);
   const master = ajv.getSchema(catalog.master.schema.$id);
   let examples = 0;
   function documentation(node, location) {

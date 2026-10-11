@@ -842,7 +842,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
         try:
             import_input = Path(temporary) / 'import fixtures.json'
             write_json(import_input, {'kind': 'import-manifest', 'schema_version': VERSION, 'items': [
-                {'source': str(media / 'speech.flac'), 'subtitle': str(media / 'speech.srt')},
+                {'source': str(media / 'speech.flac'), 'subtitle': str(media / 'speech.srt'), 'originated_at': '2020-01-01T00:00:00.123456789Z'},
                 {'source': str(media / 'sintel-dialogue.mkv'), 'subtitle': str(media / 'sintel.srt')}]})
             accepted = call('media', 'import', '--manifest', import_input, allow_detached=True)
             job_id = accepted['work_id']
@@ -852,7 +852,11 @@ def _smoke(archive=None, dirname=None, receipt=None):
             items = current['result']['items']
             if len(items) != 2 or any(item.get('state') != 'admitted' or item.get('capture_state') not in ['captured', 'no-embedded-metadata'] for item in items):
                 raise ValueError('packaged import did not complete both licensed fixtures')
+            from cli_contract_qualification import qualify as qualify_contract
+            contract_receipt = qualify_contract(cli, workspace, env=env, cwd=root)
             entry = call('media', 'show', items[0]['media_id'])
+            if entry['dates']['selected']['resolved'] != {'iso': '2020-01-01T00:00:00.123456789Z', 'unix_ns': 1577836800123456789}:
+                raise ValueError('Packaged timestamp or numeric fidelity differs')
             tools_files = [workspace / '.insonic/media-tools.json', workspace / '.insonic/processing-tools.json']
             if any(path.exists() for path in tools_files):
                 raise ValueError('package discovery persisted installation paths into workspace')
@@ -902,7 +906,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
             # The detached runtime owns its jobs and releases its own scratch
             # catalog handles at the existing bounded idle exit.
             time.sleep(31)
-    receipt.update({'extracted_inventory': 'passed', 'relocation_path_spaces': 'passed',
+    receipt.update({'cli_contract': contract_receipt, 'extracted_inventory': 'passed', 'relocation_path_spaces': 'passed',
                     'cli_real_audio_video_import': 'passed', 'recording_replacement': 'passed', 'declared_roster': 'passed', 'cueson_assembly': 'passed', 'native_subtitle_export': 'passed',
                     'gui_bridge': 'passed' if receipt['variant'] == 'desktop' else 'not-included',
                     'native_webview': 'passed' if receipt['variant'] == 'desktop' else 'not-included', 'development_paths': 'not-required',

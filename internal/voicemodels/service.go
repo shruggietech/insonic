@@ -305,7 +305,7 @@ func (s *Service) ExecuteTrain(ctx context.Context, claim catalog.Work) (any, er
 	if output.State == "checkpointed" {
 		result := map[string]any{"state": "checkpointed", "checkpoint_ids": checkpointIDs(output.Checkpoints), "dataset_id": options.DatasetID, "diagnostics": output.Diagnostics}
 		raw, _ := json.Marshal(result)
-		if _, err = s.Catalog.CheckpointWork(ctx, claim, "checkpointed", "failed", raw, 30*time.Second); err != nil {
+		if _, err = s.Catalog.CheckpointWorkFailure(ctx, claim, "checkpointed", raw, 30*time.Second, "training_incomplete"); err != nil {
 			return nil, err
 		}
 		return result, contracts.Fail("training_incomplete")

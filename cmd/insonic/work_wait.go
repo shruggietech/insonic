@@ -115,17 +115,5 @@ func workWaitCommand(ctx context.Context, w *workspace.Workspace, args []string,
 	response.WorkspaceID = w.Config.WorkspaceID
 	response.RequestID = requestID
 	response.Error = typed
-	// Preserve the observed terminal/last state together with its error, so wait
-	// failures remain inspectable in the machine-readable result.
-	output(response, nil, machine)
-	switch typed.Code {
-	case "invalid_request":
-		return 2
-	case "incompatible_version":
-		return 3
-	case "unavailable":
-		return 4
-	default:
-		return 1
-	}
+	return output(response, typed, machine)
 }

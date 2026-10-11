@@ -26,14 +26,14 @@ def selected_executable(args, cwd, env):
 
 
 class ProcessTree:
-    def __init__(self, args, *, cwd, env, allow_detached=False):
+    def __init__(self, args, *, cwd, env, allow_detached=False, input_pipe=False):
         self.job = None
         self.process = None
         args = selected_executable(args, cwd, env)
         if os.name == 'nt':
             self._windows_job(allow_detached)
         try:
-            self.process = subprocess.Popen(args, cwd=cwd, env=env, stdin=subprocess.DEVNULL,
+            self.process = subprocess.Popen(args, cwd=cwd, env=env, stdin=subprocess.PIPE if input_pipe else subprocess.DEVNULL,
                                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                             start_new_session=os.name != 'nt',
                                             creationflags=0x08000004 if os.name == 'nt' else 0)

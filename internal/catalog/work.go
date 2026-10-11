@@ -128,7 +128,7 @@ func (s *Store) Works(ctx context.Context) ([]Work, error) {
 	return r.Works, e
 }
 func validWork(w Work) bool {
-	return contracts.ValidID(w.ID) && contracts.ValidID(w.JournalReceiptID) && w.Kind != "" && len(w.Kind) < 128 && len(w.Payload) <= contracts.MaxWorkPayload && nonsecret(w.Payload) && referenceResult(w.Result) && w.Generation >= 0 && len(w.Phase) < 256 && (w.Owner == "" || contracts.ValidID(w.Owner)) && (w.Error == "" || w.Error == "operation_failed") && strings.Contains("|pending|running|succeeded|failed|cancelled|interrupted|", "|"+w.State+"|") && ((w.State == "running" && w.Owner != "" && w.Generation > 0) || (w.State != "running" && w.LeaseUntil == 0))
+	return contracts.ValidID(w.ID) && contracts.ValidID(w.JournalReceiptID) && w.Kind != "" && len(w.Kind) < 128 && len(w.Payload) <= contracts.MaxWorkPayload && nonsecret(w.Payload) && referenceResult(w.Result) && w.Generation >= 0 && len(w.Phase) < 256 && (w.Owner == "" || contracts.ValidID(w.Owner)) && (w.Error == "" || contracts.Fail(w.Error).Code == w.Error) && strings.Contains("|pending|running|succeeded|failed|cancelled|interrupted|", "|"+w.State+"|") && ((w.State == "running" && w.Owner != "" && w.Generation > 0) || (w.State != "running" && w.LeaseUntil == 0))
 }
 func referenceResult(raw json.RawMessage) bool {
 	// A manifest can admit 10,000 independent items. Preserve their bounded
@@ -277,6 +277,18 @@ func (s *Store) RenewWork(ctx context.Context, claim Work, ttl time.Duration) (W
 	return w, e
 }
 func (s *Store) CheckpointWork(ctx context.Context, claim Work, phase, state string, result json.RawMessage, ttl time.Duration) (Work, error) {
+	return s.checkpointWork(ctx, claim, phase, state, result, ttl, "operation_failed")
+}
+
+// CheckpointWorkFailure records only the bounded generated failure vocabulary.
+// Historical generic errors and their receipt hashes are never reinterpreted.
+func (s *Store) CheckpointWorkFailure(ctx context.Context, claim Work, phase string, result json.RawMessage, ttl time.Duration, cause string) (Work, error) {
+	if contracts.Fail(cause).Code != cause {
+		return Work{}, contracts.Fail("invalid_request")
+	}
+	return s.checkpointWork(ctx, claim, phase, "failed", result, ttl, cause)
+}
+func (s *Store) checkpointWork(ctx context.Context, claim Work, phase, state string, result json.RawMessage, ttl time.Duration, cause string) (Work, error) {
 	var w Work
 	if (state != "running" && state != "succeeded" && state != "failed") || !validTTL(ttl) || !referenceResult(result) {
 		return w, contracts.Fail("invalid_request")
@@ -299,7 +311,7 @@ func (s *Store) CheckpointWork(ctx context.Context, claim Work, phase, state str
 			w.LeaseUntil = now + int64(ttl)
 		}
 		if state == "failed" {
-			w.Error = "operation_failed"
+			w.Error = cause
 		}
 		return s.recordWork(ctx, tx, &w, rev)
 	})

@@ -37,7 +37,7 @@ def fixture(root):
     for prefix in ('', 'site', 'desktop/frontend'):
         for name in ('package.json', 'package-lock.json'):
             destination = root / prefix / name; destination.parent.mkdir(parents=True, exist_ok=True); shutil.copyfile(ROOT / prefix / name, destination)
-    shutil.copytree(ROOT / f'schemas/v{CURRENT}', root / f'schemas/v{CURRENT}')
+    shutil.copytree(ROOT / 'schemas', root / 'schemas')
     shutil.copytree(ROOT / f'docs/v{CURRENT}', root / f'docs/v{CURRENT}')
     release.prepare(VERSION, '2026-10-09', 'Portable packages and current-authority recovery.', root)
 
@@ -132,6 +132,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
     def test_preparation_preserves_old_bytes_and_freezes_release_authorities(self):
         self.assertEqual(release.versions(self.root), VERSION)
         self.assertEqual((self.root / f'schemas/v{CURRENT}/master.schema.json').read_bytes(), (ROOT / f'schemas/v{CURRENT}/master.schema.json').read_bytes())
+        self.assertEqual((self.root / 'schemas/v1.0.0/base-model-manifest.schema.json').read_bytes(), (ROOT / 'schemas/v1.0.0/base-model-manifest.schema.json').read_bytes())
         self.assertEqual((self.root / f'docs/v{CURRENT}/index.md').read_bytes(), (ROOT / f'docs/v{CURRENT}/index.md').read_bytes())
         self.assertEqual((self.root / f'docs/v{VERSION}/references/CHANGELOG.md').read_bytes(), (self.root / 'CHANGELOG.md').read_bytes())
         self.assertTrue((self.root / f'docs/v{VERSION}/references/CONTRIBUTING.md').is_file())
@@ -187,11 +188,19 @@ class ReleaseDeliveryTests(unittest.TestCase):
         upstream = self.root / 'tests/fixtures/cueson/upstream.json'
         upstream.parent.mkdir(parents=True, exist_ok=True)
         upstream.write_text(json.dumps({'schema_version': VERSION, 'upstream_version': VERSION}), encoding='utf-8')
+        reader = self.root / 'internal/subtitles/admission.go'
+        reader.parent.mkdir(parents=True, exist_ok=True)
+        reader.write_text('const upstream = "' + VERSION + '"\n', encoding='utf-8')
+        brand = self.root / 'tests/brand-sync.test.mjs'
+        brand.parent.mkdir(parents=True, exist_ok=True)
+        brand.write_text('const brand = "' + VERSION + '";\n', encoding='utf-8')
         page = self.root / f'docs/v{VERSION}/technology.md'
         upstream_link = f'https://github.com/shruggietech/cueson/blob/v{VERSION}/docs/schema.md'
         page.write_text(page.read_text() + '\n[Cueson upstream](' + upstream_link + ')\n', encoding='utf-8')
         release.prepare(NEXT_VERSION, '2026-10-10', 'Candidate update.', self.root)
         self.assertEqual(json.loads(upstream.read_text())['schema_version'], VERSION)
+        self.assertIn(VERSION, reader.read_text())
+        self.assertIn(VERSION, brand.read_text())
         self.assertIn(upstream_link, (self.root / f'docs/v{NEXT_VERSION}/technology.md').read_text())
 
     def test_candidate_snapshot_cannot_be_published_or_promoted(self):

@@ -748,6 +748,7 @@ func (s *Service) SetOrigin(ctx context.Context, op, id string, expected int64, 
 	if !validOptions(options) || !hasOrigin(options) {
 		return entry, contracts.Fail("invalid_request")
 	}
+	options = CaptureDateOptions(options)
 	entry = applyOrigin(entry, op, options)
 	return s.Catalog.UpdateLibrary(ctx, op, expected, entry)
 }

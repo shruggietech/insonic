@@ -103,12 +103,12 @@ export function Settings({ client, run, appearance }: Props) {
       : {};
     const mediaEditor = {
       kind: 'media-tools',
-      schema_version: '1.0.0',
+      schema_version: '1.0.1',
       ...media,
     };
     const processingEditor = {
       kind: 'processing-tools',
-      schema_version: '1.0.0',
+      schema_version: '1.0.1',
       ...processing,
     };
     setMediaOverride(mediaExplicit);
@@ -287,7 +287,7 @@ export function Settings({ client, run, appearance }: Props) {
               setProcessingTools((old) => ({
                 ...old,
                 kind: 'processing-tools',
-                schema_version: '1.0.0',
+                schema_version: '1.0.1',
                 cueson: value,
               }))
             }
@@ -302,7 +302,7 @@ export function Settings({ client, run, appearance }: Props) {
                   setProcessingTools((old) => ({
                     ...old,
                     kind: 'processing-tools',
-                    schema_version: '1.0.0',
+                    schema_version: '1.0.1',
                     processing: { ...old.processing, [key]: value },
                   }))
                 }
@@ -325,7 +325,7 @@ export function Settings({ client, run, appearance }: Props) {
                 setProcessingTools((old) => ({
                   ...old,
                   kind: 'processing-tools',
-                  schema_version: '1.0.0',
+                  schema_version: '1.0.1',
                   processing: { ...old.processing, [key]: Number(value) },
                 }))
               }
@@ -588,7 +588,7 @@ export function Settings({ client, run, appearance }: Props) {
                 run(async () => {
                   const manifest = {
                     kind: 'base-model-manifest',
-                    schema_version: '1.0.0',
+                    schema_version: '1.0.1',
                     name: modelName,
                     model_version: modelVersion,
                     upstream_revision: upstream,

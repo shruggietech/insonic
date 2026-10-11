@@ -192,8 +192,8 @@ def prepare(version, date, highlights, root=ROOT):
         paths = [base] if base.is_file() else list(base.rglob('*'))
         for path in paths:
             if not path.is_file() or path.suffix not in ('.go', '.mjs', '.tsx', '.ts', '.py', '.json'): continue
-            if path.relative_to(root).as_posix() in ('tests/check.test.mjs', 'tests/ci-scope.test.mjs'): continue
-            if path.is_relative_to(root / 'tests/fixtures/cueson'): continue
+            if path.relative_to(root).as_posix() in ('tests/check.test.mjs', 'tests/ci-scope.test.mjs', 'tests/brand-sync.test.mjs'): continue
+            if path.is_relative_to(root / 'tests/fixtures/cueson') or path.is_relative_to(root / 'internal/subtitles'): continue
             if 'schemas' in path.parts and path.parent.name.startswith('v'): continue
             if path.suffix == '.json' and not path.is_relative_to(root / 'tests'): continue
             text = path.read_text(encoding='utf-8')

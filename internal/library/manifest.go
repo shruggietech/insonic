@@ -45,13 +45,15 @@ func ReadManifest(path string) (ImportRequest, error) {
 		r, e = readCSV(data)
 	} else {
 		e = strict(data, &r)
-		if e == nil && (r.Kind != "import-manifest" || r.Version != contracts.Version) {
+		if e == nil && (r.Kind != "import-manifest" || !contracts.SupportedDocumentVersion(r.Version)) {
 			e = contracts.Fail("invalid_request")
 		}
 	}
 	if e != nil {
 		return r, e
 	}
+	// The file remains immutable; the admitted operation copy uses current IPC.
+	r.Version = contracts.Version
 	for i := range r.Items {
 		if r.Items[i].Source != "" {
 			r.Items[i].Source = resolvePath(filepath.Dir(absolute), r.Items[i].Source)

@@ -110,4 +110,20 @@ func TestCredentialVaultUnlockRetainsUnlockedRuntimeManager(t *testing.T) {
 	if json.Unmarshal(raw, &status) != nil || status.State != "configured" {
 		t.Fatal("unlock was not retained", string(raw))
 	}
+	// Re-selecting the live vault replaces its manager in the locked state.
+	if code := credentialCommand(context.Background(), w, []string{"select", "vault"}, true); code != 0 {
+		t.Fatal(code)
+	}
+	credentialInput(t, `{"passphrase":"fixture-passphrase"}`)
+	if code := credentialCommand(context.Background(), w, []string{"delete", id}, true); code != 0 {
+		t.Fatal("live locked vault delete failed", code)
+	}
+	check, e := secrets.Open(w, secrets.Options{Mode: "vault", Passphrase: []byte("fixture-passphrase")})
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer check.Close()
+	if state, _ := check.Status(context.Background(), id); state == "configured" {
+		t.Fatal("deleted entry retained")
+	}
 }

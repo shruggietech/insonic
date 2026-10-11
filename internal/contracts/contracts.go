@@ -13,7 +13,14 @@ import (
 	"unicode/utf8"
 )
 
-const Version = "1.0.0"
+const Version = "1.0.1"
+
+// SupportedDocumentVersion admits retained release documents without changing
+// their bytes, revisions or receipt digests. IPC and installed package identity
+// continue to require the exact Version.
+func SupportedDocumentVersion(version string) bool {
+	return version == Version || version == "1.0.0"
+}
 
 // MaxWorkPayload bounds normalized durable input independently of the smaller
 // response frame budget. Import manifests and runtime requests share this limit.
@@ -65,6 +72,9 @@ type Error struct {
 func (e *Error) Error() string { return e.Code + ": " + e.Message }
 func Fail(code string) *Error {
 	message := map[string]string{
+		"checksum_mismatch":        "The acquired bytes do not match the elected checksum. Replace damaged bytes or correct the manifest before retrying.",
+		"acquisition_timeout":      "Acquisition exceeded its configured deadline. Retry after checking the source or timeout.",
+		"mixed_item_failure":       "Some work items failed. Inspect work results for each item before retrying.",
 		"timing_unavailable":       "The selected stream has no usable source-clock timing.",
 		"invalid_audio":            "The selected audio is invalid or cannot be decoded.",
 		"audio_limit":              "The audio exceeds the configured resource limit.",

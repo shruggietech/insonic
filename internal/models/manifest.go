@@ -53,7 +53,7 @@ func (m Manifest) Validate() error {
 	if m.Compatibility != nil && m.Compatibility.Validate() != nil {
 		return contracts.Fail("invalid_request")
 	}
-	if m.Kind != "base-model-manifest" || m.Version != contracts.Version || len(m.Name) == 0 || len(m.Name) > 256 || len(m.ModelVersion) == 0 || len(m.ModelVersion) > 256 || len(m.Revision) == 0 || len(m.Revision) > 512 || len(m.License) == 0 || len(m.Files) == 0 || len(m.Files) > 64 || len(m.Capabilities) == 0 || len(m.Capabilities) > 32 {
+	if m.Kind != "base-model-manifest" || !contracts.SupportedDocumentVersion(m.Version) || len(m.Name) == 0 || len(m.Name) > 256 || len(m.ModelVersion) == 0 || len(m.ModelVersion) > 256 || len(m.Revision) == 0 || len(m.Revision) > 512 || len(m.License) == 0 || len(m.Files) == 0 || len(m.Files) > 64 || len(m.Capabilities) == 0 || len(m.Capabilities) > 32 {
 		return contracts.Fail("invalid_request")
 	}
 	roles := map[string]bool{}

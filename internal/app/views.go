@@ -62,7 +62,7 @@ func idFromLast[T any](all []T, p listPage, id func(T) string) string {
 func workView(w catalog.Work) any {
 	var result any
 	if len(w.Result) <= 16<<10 {
-		json.Unmarshal(w.Result, &result)
+		strictPayload(w.Result, &result)
 	} else {
 		result = map[string]any{"state": "paged", "operation": "work.results"}
 	}
@@ -137,5 +137,5 @@ func (a *App) workResults(req contracts.Request) (any, error) {
 	if end < len(result.Items) {
 		next = end
 	}
-	return map[string]any{"work_id": w.ID, "state": w.State, "items": result.Items[p.After:end], "next_ordinal": next, "partial": result.Partial, "captured_timezone": result.CapturedTimezone}, nil
+	return map[string]any{"work_id": w.ID, "state": w.State, "phase": w.Phase, "error": w.Error, "items": result.Items[p.After:end], "next_ordinal": next, "partial": result.Partial, "captured_timezone": result.CapturedTimezone}, nil
 }

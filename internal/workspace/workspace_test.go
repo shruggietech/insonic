@@ -134,3 +134,31 @@ func TestSchemaRejectsBadProfileAndSecretOptions(t *testing.T) {
 		t.Fatal("secret-bearing config admitted")
 	}
 }
+
+func TestHistoricalWorkspaceKeepsOriginalBytesAndProfiles(t *testing.T) {
+	root := t.TempDir()
+	w, err := Init(root, "historical")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Config.Version = "1.0.0"
+	w.Config.Profiles.Storage.Version = "1.0.0"
+	w.Config.Profiles.Catalog.Version = "1.0.0"
+	w.Config.Profiles.Graph.Version = "1.0.0"
+	raw, _ := json.Marshal(w.Config)
+	file := filepath.Join(root, ".insonic", "workspace.json")
+	if err := os.WriteFile(file, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	opened, err := Open(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if opened.Config.WorkspaceID != w.Config.WorkspaceID || opened.Config.Profiles.Catalog.ID != w.Config.Profiles.Catalog.ID {
+		t.Fatal("historical identity changed")
+	}
+	after, _ := os.ReadFile(file)
+	if string(after) != string(raw) {
+		t.Fatal("historical bytes rewritten")
+	}
+}

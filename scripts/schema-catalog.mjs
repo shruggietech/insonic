@@ -25,7 +25,29 @@ export function loadSchemaCatalog(version = readFileSync(resolve(root, 'VERSION'
   const contracts = schemas.filter(item => item.schema.properties?.kind?.const);
   const branches = new Set((master.schema.oneOf ?? []).map(item => item.$ref));
   for (const item of contracts) if (!branches.has(`#/$defs/${item.schema.properties.kind.const}`)) throw new Error(`Missing master document branch: ${item.filename}`);
-  return { version, directory, schemas, contracts, master };
+  // Explicit references to immutable owned releases are resolved from disk.
+  // Keep dependencies separate from the current release's master inventory.
+  const dependencies = [];
+  const loaded = new Set(schemas.map(item => item.schema.$id));
+  const visit = (node, baseUri) => {
+    if (!node || typeof node !== 'object') return;
+    const reference = typeof node.$ref === 'string' ? new URL(node.$ref, baseUri).href.split('#')[0] : '';
+    const owned = reference.match(/^https:\/\/raw\.githubusercontent\.com\/shruggietech\/insonic\/v(\d+\.\d+\.\d+)\/schemas\/v\1\/([a-z0-9-]+\.schema\.json)$/);
+    if (owned && !loaded.has(reference)) {
+      const schema = JSON.parse(readFileSync(resolve(repositoryRoot, 'schemas', `v${owned[1]}`, owned[2]), 'utf8'));
+      if (schema.$id !== reference) throw new Error(`Historical schema identity mismatch: ${reference}`);
+      loaded.add(reference);
+      dependencies.push({ filename: owned[2], schema });
+      visit(schema, schema.$id);
+    }
+    for (const [key, value] of Object.entries(node)) {
+      if (['examples', 'default', 'const', 'enum'].includes(key)) continue;
+      if (Array.isArray(value)) value.forEach(item => visit(item, baseUri));
+      else if (value && typeof value === 'object') visit(value, baseUri);
+    }
+  };
+  schemas.forEach(item => visit(item.schema, item.schema.$id));
+  return { version, directory, schemas, dependencies, contracts, master };
 }
 
 const clean = value => String(value ?? '').replaceAll('|', '\\|').replace(/\r?\n/g, ' ');

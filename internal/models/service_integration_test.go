@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/shruggietech/insonic/internal/artifact"
 	"github.com/shruggietech/insonic/internal/catalog"
@@ -215,6 +216,11 @@ func TestLateModelDigestFailureLeavesNoAvailableInstall(t *testing.T) {
 	work := modelWork(t, db, "models.acquire", m)
 	if _, e := s.Execute(context.Background(), work); e == nil {
 		t.Fatal("late hash failure accepted")
+	} else {
+		var typed *contracts.Error
+		if !errors.As(e, &typed) || typed.Code != "checksum_mismatch" {
+			t.Fatal("checksum classification", e)
+		}
 	}
 	list, e := db.BaseModels(context.Background())
 	if e != nil || len(list) != 0 {
@@ -463,5 +469,22 @@ func TestModelRedirectRejectsFragmentBeforeFetchingTarget(t *testing.T) {
 	}
 	if fetched.Load() {
 		t.Fatal("forbidden redirect target fetched")
+	}
+}
+
+func TestModelAcquisitionDeadlineRetainsSpecificCause(t *testing.T) {
+	s, db := modelServiceFixture(t)
+	body := []byte("model fixture")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { <-r.Context().Done() }))
+	defer server.Close()
+	m := fixtureManifest()
+	m.Files = []File{localModelFile("weights", server.URL+"/weights", body)}
+	work := modelWork(t, db, "models.acquire", m)
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	_, e := s.Execute(ctx, work)
+	var typed *contracts.Error
+	if !errors.As(e, &typed) || typed.Code != "acquisition_timeout" {
+		t.Fatal("deadline classification", e)
 	}
 }

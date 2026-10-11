@@ -203,7 +203,7 @@ func captureTool(ctx context.Context, name string, tool Tool, args []string, max
 	return out
 }
 func (s *Service) capture(ctx context.Context, path, original string, options Options) (captureBundle, error) {
-	if (s.Tools.Kind != "" && s.Tools.Kind != "media-tools") || (s.Tools.Version != "" && s.Tools.Version != contracts.Version) {
+	if (s.Tools.Kind != "" && s.Tools.Kind != "media-tools") || (s.Tools.Version != "" && !contracts.SupportedDocumentVersion(s.Tools.Version)) {
 		return captureBundle{}, contracts.Fail("incompatible_version")
 	}
 	now := time.Now().UTC()

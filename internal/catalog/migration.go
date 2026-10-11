@@ -449,7 +449,7 @@ func validateRecord(value any) error {
 			return contracts.Fail("invalid_request")
 		}
 	case Profile:
-		if !positive(r.Revision) || r.Version != contracts.Version || !nonsecret(r.Configuration) {
+		if !positive(r.Revision) || !contracts.SupportedDocumentVersion(r.Version) || !nonsecret(r.Configuration) {
 			return contracts.Fail("invalid_request")
 		}
 	case Artifact:
