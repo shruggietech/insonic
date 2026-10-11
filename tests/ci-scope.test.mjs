@@ -94,7 +94,14 @@ test('native caches can retain tagged builds independently of the immutable core
 test('cold source dependency formats and FFmpeg transfer independently verified provenance', () => {
  const media = parse(readFileSync(new URL('../.github/workflows/media-source.yml', import.meta.url), 'utf8'));
  assert.deepEqual(media.jobs.formats.needs, ['probe', 'groups']);
- assert.deepEqual(media.jobs.ffmpeg.needs, ['probe', 'formats']);
+ assert.deepEqual(media.jobs.codec.needs, ['probe', 'formats']);
+ assert.ok(media.jobs.codec.if.includes("inputs.os == 'windows-2022'"));
+ assert.deepEqual(media.jobs.ffmpeg.needs, ['probe', 'formats', 'codec']);
+ assert.ok(media.jobs.ffmpeg.if.includes('always()'));
+ assert.ok(media.jobs.ffmpeg.if.includes("needs.codec.result == 'success'"));
+ const codec = media.jobs.codec.steps.map(step => step.run ?? '').join('\n');
+ assert.ok(codec.includes('build-media-source.py --stage codec'));
+ assert.ok(codec.includes('media-transfer.py pack --stage codec --revision "$SOURCE_REVISION"'));
  assert.deepEqual(media.jobs.groups.strategy.matrix.group, ['compression', 'audio', 'av1']);
  const formats = media.jobs.formats.steps.map(step => step.run ?? '').join('\n');
  assert.ok(formats.includes('media-transfer.py merge --revision "$SOURCE_REVISION"'));
@@ -104,6 +111,7 @@ test('cold source dependency formats and FFmpeg transfer independently verified 
  const ffmpeg = media.jobs.ffmpeg.steps.map(step => step.run ?? '').join('\n');
  assert.ok(ffmpeg.includes('media-transfer.py restore --stage dependencies --revision "$SOURCE_REVISION"'));
  assert.ok(ffmpeg.includes('build-media-source.py --stage complete'));
+ assert.ok(ffmpeg.includes('media-transfer.py restore --stage codec --revision "$SOURCE_REVISION"'));
  assert.ok(ffmpeg.includes('media-transfer.py pack --stage complete --revision "$SOURCE_REVISION"'));
  assert.ok(media.jobs.ffmpeg.steps.some(step => step.with?.name === 'media-formats-${{ inputs.os }}-${{ github.run_attempt }}'));
  for (const job of Object.values(media.jobs)) {

@@ -72,3 +72,8 @@ Deliver shared helper and runtime lanes first, release-path reuse next, then Pag
 ## Phase 7: Measured source-build correction
 
 - [x] T023 Preserve the full decoder/source/deadline contract while testing bounded Windows FFmpeg launch parallelism in scripts/media_source_build.py and tests/media_source_build_test.py; validate the actual cold result with T008 (FR-001, FR-003).
+
+## Phase 8: Convergence
+
+- [ ] T024 Stage the complete Windows codec archive before final FFmpeg linking in scripts/media_source_build.py, scripts/media-transfer.py and .github/workflows/media-source.yml; bind unchanged configuration, compiler, source/recipe/launcher, dependency prefix, exact files and integer timestamps, reject tampering and resume without re-extraction or reconfiguration per FR-001/FR-002 (partial, HIGH).
+- [ ] T025 Validate the staged actual cold build and repeat full warm PR/release qualification with current source and exact receipts in specs/016-release-workflow-hardening/evidence/ per AC-001/AC-002 and SC-001/SC-002 (partial, HIGH).

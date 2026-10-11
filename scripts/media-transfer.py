@@ -46,7 +46,11 @@ def context(revision):
 
 
 def receipt_files(stage, receipt, names):
-    if stage == 'dependencies' or stage in source.DEPENDENCY_GROUPS:
+    if stage == 'codec':
+        files = set(receipt['files']) | {'codec-receipt.json', 'dependency-receipt.json'}
+        if any(not name.startswith(('ffmpeg-source/', 'install/')) for name in receipt['files']):
+            raise ValueError('codec receipt contains files outside its configured build closure')
+    elif stage == 'dependencies' or stage in source.DEPENDENCY_GROUPS:
         files = set(receipt['files'])
         if any(not name.startswith('install/') for name in files):
             raise ValueError('dependency receipt contains files outside its private prefix')
@@ -63,7 +67,8 @@ def receipt_files(stage, receipt, names):
 
 def receipt_name(stage):
     return ('dependency-' + stage + '-receipt.json' if stage in source.DEPENDENCY_GROUPS
-            else 'dependency-receipt.json' if stage == 'dependencies' else 'build-receipt.json')
+            else 'dependency-receipt.json' if stage == 'dependencies'
+            else 'codec-receipt.json' if stage == 'codec' else 'build-receipt.json')
 
 
 def verify_part_provenance(directory, receipt, identity):
@@ -93,7 +98,10 @@ def verified_receipt(directory, stage, identity, names, temporary=False):
         raise ValueError('media receipt does not match the current source toolchain')
     receipt_files(stage, receipt, names)
     verify_part_provenance(directory, receipt, identity)
-    if stage == 'dependencies' or stage in source.DEPENDENCY_GROUPS:
+    if stage == 'codec':
+        valid = source.codec_cache_valid(directory, receipt, identity['key'], identity['platform'],
+                                         identity['compiler'], identity['recipe_sha256'], temporary)
+    elif stage == 'dependencies' or stage in source.DEPENDENCY_GROUPS:
         final = source.BUILD / identity['key'] / 'install'
         if receipt.get('install_prefix') != str(final):
             raise ValueError('dependency prefix does not match this runner workspace')
@@ -147,6 +155,8 @@ def pack(stage, revision, output):
             raise ValueError('transfer requires regular build files')
         inventory[name] = {'sha256': source.sha(path), 'size_bytes': path.stat().st_size,
                            'mode': path.stat().st_mode & 0o777}
+        if stage == 'codec':
+            inventory[name]['mtime_ns'] = path.stat().st_mtime_ns
     manifest = dict(identity, kind='media-build-transfer', stage=stage, files=inventory,
                     source_pins=source.source_pins())
     output = Path(output)
@@ -167,7 +177,8 @@ def pack(stage, revision, output):
                     archive.addfile(member, stream)
         # The exported bytes must still describe the source files read for the inventory.
         for name, path in files.items():
-            if source.sha(path) != inventory[name]['sha256']:
+            if (source.sha(path) != inventory[name]['sha256']
+                    or (stage == 'codec' and path.stat().st_mtime_ns != inventory[name]['mtime_ns'])):
                 raise ValueError('build files changed while transferring')
         temporary.replace(output)
     finally:
@@ -223,7 +234,7 @@ def restore(stage, revision, archive_path, isolated_destination=None):
                     raise ValueError('transfer contains duplicate or nonregular members')
                 seen.add(folded)
                 if member.name == 'transfer.json':
-                    if member.size > 2 * 1024 * 1024:
+                    if member.size > (16 if stage == 'codec' else 2) * 1024 * 1024:
                         raise ValueError('transfer inventory is too large')
                     manifest = json.loads(archive.extractfile(member).read())
                     if (manifest.get('kind') != 'media-build-transfer' or manifest.get('stage') != stage
@@ -236,6 +247,9 @@ def restore(stage, revision, archive_path, isolated_destination=None):
                             raise ValueError('transfer inventory has an unexpected root')
                         if not isinstance(item.get('size_bytes'), int) or item['size_bytes'] < 0:
                             raise ValueError('transfer inventory has an invalid size')
+                        if stage == 'codec' and (type(item.get('mtime_ns')) is not int
+                                                 or not 0 <= item['mtime_ns'] < 2**63):
+                            raise ValueError('codec transfer has an invalid integer timestamp')
                 else:
                     if manifest is None or member.name not in manifest['files']:
                         raise ValueError('transfer member is absent from completion inventory')
@@ -247,6 +261,10 @@ def restore(stage, revision, archive_path, isolated_destination=None):
                     with archive.extractfile(member) as stream, target.open('xb') as output:
                         shutil.copyfileobj(stream, output)
                     target.chmod(member.mode & 0o777)
+                    if stage == 'codec':
+                        os.utime(target, ns=(item['mtime_ns'], item['mtime_ns']))
+                        if target.stat().st_mtime_ns != item['mtime_ns']:
+                            raise ValueError('codec transfer filesystem did not preserve its exact timestamp')
                     if source.sha(target) != item['sha256']:
                         raise ValueError('transfer member digest changed')
         if manifest is None or seen != {'transfer.json'} | {name.casefold() for name in manifest['files']}:
@@ -342,7 +360,7 @@ def main():
     commands.add_parser('sources')
     for command in ['pack', 'restore', 'ready']:
         item = commands.add_parser(command)
-        item.add_argument('--stage', choices=['dependencies', 'complete', *source.DEPENDENCY_GROUPS], required=True)
+        item.add_argument('--stage', choices=['dependencies', 'codec', 'complete', *source.DEPENDENCY_GROUPS], required=True)
         item.add_argument('--revision', required=True)
         if command == 'pack':
             item.add_argument('--output', required=True)

@@ -66,3 +66,7 @@ No constitution exceptions. A built-in Pages transport avoids unnecessary creden
 ## Measured implementation adjustment
 
 The first Windows cold source build hit its unchanged 360-second FFmpeg compile bound (job 8m45s). Test-first bounded Windows make parallelism now overlaps process-launch/filesystem work with at most twice the compiler-slot count, capped at 16. Decoder/configuration/optimization/source pins, recipe binding and all deadlines remain unchanged. Actual subsequent source builds must validate the improvement; warm cache receipts cannot replace a successful cold compile.
+
+## Cold-build convergence (2026-10-11)
+
+After the successful corrected cold PR, an independent release cold build exceeded the same compile bound. Add a Windows-only codec archive stage between full static dependencies and final FFmpeg compilation. Transfer the configured tree and complete dependency prefix with exact per-file hashes, modes, sizes and integer timestamps, bound to source/configuration/compiler/recipe/launcher and absolute runner prefixes. Resume skips FFmpeg extraction, VERSION rewriting and configuration, checks Make's dependency graph and rejects any rebuilt staged object. Other platforms retain their complete build path. Requalify the changed recipe through actual cold execution, two full warm PR attempts and a full publication-disabled warm release. Earlier measurements remain pre-staging observations.

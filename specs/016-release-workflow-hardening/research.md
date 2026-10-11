@@ -21,3 +21,9 @@ Primary Pages behavior sources: [publishing source](https://docs.github.com/en/p
 ## Implementation observation (2026-10-10)
 
 The initial Windows FFmpeg make -j4 attempt timed out at 360 seconds; this was a real cold-build limit, not an acceptance failure. A bounded -j8 experiment on that runner preserves the complete decoder configuration and compile timeout. The modified owned recipe forces fresh source/cache identities on every platform. Its effectiveness remains subject to actual full builds.
+
+## Cold-build convergence (2026-10-11)
+
+The complete corrected cold PR succeeded, followed by pre-staging warm PR attempts of 400 and 427 seconds. A separate release cold build at the same code then exceeded the unchanged 360-second make bound after 81.938 seconds of configuration. PR merge-ref caches are unavailable to branch-dispatched workflows, so this exposed an independent cold path. Overlap alone is insufficiently reliable.
+
+Pinned upstream `ffbuild/library.mak` defines `libavcodec/libavcodec.a` directly from the complete configured codec object set. The inspected completed tree contains 973 codec objects among 2,045 total objects. A Windows-only cold stage now builds that archive before final FFmpeg linking. It preserves the full configuration, dependency prefix, generated headers, original sources, toolchain/recipe identities and integer file timestamps. Final Make must report the archive up to date and preserve every staged object/archive hash and timestamp. Configuration, compilation and job deadlines remain unchanged; no decoder is excluded. Actual cold timing remains required. If a further split is necessary, derive object prerequisites from configured Make rather than maintaining codec lists.

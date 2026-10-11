@@ -3,6 +3,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import shutil
 import sys
@@ -27,6 +28,9 @@ class MediaTransferTests(unittest.TestCase):
         self.root = Path(self.temporary.name)
         self.directory = self.root / 'build/native/source-media' / KEY
         self.directory.mkdir(parents=True)
+        launcher = self.root / 'scripts/process_tree.py'
+        launcher.parent.mkdir()
+        launcher.write_bytes(b'owned hidden launcher')
         archive = self.root / 'build/media-source-pins/pin.tar.gz'
         archive.parent.mkdir(parents=True)
         with tarfile.open(archive, 'w:gz') as output:
@@ -36,7 +40,7 @@ class MediaTransferTests(unittest.TestCase):
             output.addfile(member, io.BytesIO(data))
         self.pins = {'ffmpeg': {'name': archive.name, 'sha256': source.sha(archive), 'root': 'root'}}
         common = {'key': KEY, 'platform': 'linux_amd64', 'compiler': 'fixture compiler',
-                  'recipe_sha256': '3' * 64, 'launcher_sha256': '5' * 64, 'sources': self.pins}
+                  'recipe_sha256': '3' * 64, 'launcher_sha256': source.sha(launcher), 'sources': self.pins}
         files = {'install/lib/libdependency.a': b'owned dependency archive',
                  'install/include/dependency.h': b'header', 'install/lib/pkgconfig/library.pc': b'private prefix'}
         for name, data in files.items():
@@ -45,7 +49,8 @@ class MediaTransferTests(unittest.TestCase):
             path.write_bytes(data)
         dependencies = dict(common, kind='media-dependency-build',
                             install_prefix=str(self.directory / 'install'),
-                            files={name: source.sha(self.directory / name) for name in files})
+                            files={name: source.sha(self.directory / name) for name in files},
+                            commands=[], elapsed_seconds=1.0)
         source.write_json(self.directory / 'dependency-receipt.json', dependencies)
         for name in ['ffmpeg', 'ffprobe']:
             (self.directory / name).write_bytes(name.encode())
@@ -76,6 +81,93 @@ class MediaTransferTests(unittest.TestCase):
                     member.size = len(data)
                     output.addfile(member, io.BytesIO(data))
         return changed
+
+    def codec(self):
+        for name in [*source.CODEC_REQUIRED, 'libavcodec/fixture.o', 'libavcodec/fixture.d']:
+            path = self.directory / 'ffmpeg-source' / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(name.encode())
+        for path in self.directory.rglob('*'):
+            if path.is_file():
+                os.utime(path, ns=(1700000000123456700, 1700000000123456700))
+        receipt = source.make_codec_receipt(self.directory, KEY, 'linux_amd64', 'fixture compiler',
+                                            '3' * 64, [{'arguments': ['make', '-j4', source.CODEC_TARGET],
+                                                        'status': 'succeeded'}], 1.25)
+        source.write_json(self.directory / 'codec-receipt.json', receipt)
+        return receipt
+
+    def test_codec_transfer_preserves_integer_timestamps_without_reextracting(self):
+        receipt = self.codec()
+        archive = self.root / 'codec.tar.gz'
+        manifest = transfer.pack('codec', REVISION, archive)
+        self.assertEqual(manifest['files']['media/install/include/dependency.h']['mtime_ns'],
+                         receipt['files']['install/include/dependency.h']['mtime_ns'])
+        shutil.rmtree(self.directory)
+        with patch.object(source, 'extract_source', side_effect=AssertionError('configured tree must not be re-extracted')):
+            transfer.restore('codec', REVISION, archive)
+        self.assertEqual(source.codec_inventory(self.directory), receipt['files'])
+        self.assertTrue(transfer.ready('codec', REVISION))
+
+    def test_codec_transfer_rejects_changed_timestamps_and_receipt_identity_before_activation(self):
+        receipt = self.codec()
+        archive = self.root / 'codec.tar.gz'
+        transfer.pack('codec', REVISION, archive)
+        marker = self.directory / 'prior-cache-marker'; marker.write_bytes(b'keep prior build')
+        def alter_manifest(member, data):
+            if member.name == 'transfer.json':
+                value = json.loads(data)
+                value['files']['media/ffmpeg-source/libavcodec/fixture.o']['mtime_ns'] += 100
+                data = json.dumps(value).encode()
+            return member, data
+        with self.assertRaises(ValueError):
+            transfer.restore('codec', REVISION, self.repack(archive, alter_manifest))
+        self.assertEqual(marker.read_bytes(), b'keep prior build')
+        for field, value in [('target', 'other.a'), ('configure', []), ('source_prefix', 'elsewhere'),
+                             ('launcher_sha256', 'f' * 64), ('dependency_receipt_sha256', 'f' * 64)]:
+            changed = dict(receipt, **{field: value})
+            source.write_json(self.directory / 'codec-receipt.json', changed)
+            self.assertFalse(transfer.ready('codec', REVISION), field)
+        source.write_json(self.directory / 'codec-receipt.json', receipt)
+        target = self.directory / 'ffmpeg-source/libavcodec/fixture.o'
+        os.utime(target, ns=(receipt['files']['ffmpeg-source/libavcodec/fixture.o']['mtime_ns'] + 100,) * 2)
+        self.assertFalse(transfer.ready('codec', REVISION))
+
+    def test_codec_transfer_rejects_missing_objects_and_unrecorded_source_inputs(self):
+        receipt = self.codec()
+        extra = self.directory / 'ffmpeg-source/unrecorded.h'; extra.write_bytes(b'unrecorded input')
+        self.assertFalse(transfer.ready('codec', REVISION))
+        extra.unlink()
+        (self.directory / 'ffmpeg-source/libavcodec/fixture.o').unlink()
+        self.assertFalse(transfer.ready('codec', REVISION))
+        self.assertIn('ffmpeg-source/libavcodec/fixture.o', receipt['files'])
+
+    def test_verified_codec_resume_skips_configuration_and_preserves_objects(self):
+        receipt = self.codec()
+        calls = []
+        def run(args, cwd, timeout, shell=False):
+            calls.append((args, timeout, shell))
+        source.resume_codec(self.directory, receipt, 'windows_amd64', 4, run)
+        self.assertEqual(calls, [(['make', '-q', source.CODEC_TARGET], 60, True),
+                                 (['make', '-j8', 'ffmpeg.exe', 'ffprobe.exe'], 360, True)])
+        def rebuild(args, cwd, timeout, shell=False):
+            if '-q' not in args:
+                path = cwd / 'libavcodec/fixture.o'
+                os.utime(path, ns=(path.stat().st_mtime_ns + 100,) * 2)
+        with self.assertRaisesRegex(ValueError, 'recompiled'):
+            source.resume_codec(self.directory, receipt, 'windows_amd64', 4, rebuild)
+
+    def test_prepare_continues_verified_codec_without_reextracting_or_repinning(self):
+        self.codec()
+        (self.directory / 'build-receipt.json').unlink()
+        with patch.object(source, 'fetch_source', return_value=Path('original pin')), \
+             patch.object(source, 'build_environment', return_value={}), \
+             patch.object(source, 'validate_build_tools'), patch.object(source, 'validate_source_notices'), \
+             patch.object(source, 'extract_source', side_effect=AssertionError('must preserve configured tree')), \
+             patch.object(source, 'pin_release_version', side_effect=AssertionError('must preserve VERSION')), \
+             patch.object(source, 'resume_codec', side_effect=RuntimeError('reached verified continuation')) as resume:
+            with self.assertRaisesRegex(RuntimeError, 'reached verified continuation'):
+                source.prepare('complete')
+            resume.assert_called_once()
 
     def test_dependencies_round_trip_preserves_entire_private_prefix(self):
         archive = self.root / 'dependencies.tar.gz'
