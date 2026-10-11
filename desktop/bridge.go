@@ -81,7 +81,7 @@ func (b *Bridge) operate(request contracts.Request) contracts.Response {
 	ctx, cancel := operationContext(request.Operation)
 	defer cancel()
 	if err := local.Ensure(ctx, b.Workspace, b.CLIExecutable); err != nil {
-		return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Error: contracts.Fail("unavailable")}
+		return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Error: contracts.SafeError(err)}
 	}
 	response, err := local.Call(ctx, b.Workspace, request)
 	if err != nil {

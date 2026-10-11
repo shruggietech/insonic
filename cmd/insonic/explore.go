@@ -52,7 +52,7 @@ func parseExplore(args []string) (string, string, json.RawMessage, error) {
 		}
 		f, e := os.Open(args[index+1])
 		if e != nil {
-			return "", "", nil, contracts.Fail("unavailable")
+			return "", "", nil, contracts.Condition("unavailable", "input_missing")
 		}
 		defer f.Close()
 		raw, e = io.ReadAll(io.LimitReader(f, (1<<20)+1))

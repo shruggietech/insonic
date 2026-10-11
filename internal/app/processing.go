@@ -307,7 +307,7 @@ func (a *App) processRecording(ctx context.Context, claim catalog.Work) (any, er
 		return nil, e
 	}
 	if entry.Revision != input.SourceRevision {
-		return nil, contracts.Fail("conflict")
+		return nil, contracts.Condition("conflict", "revision_stale")
 	}
 	previous, previousErr := a.Catalog.Recording(ctx, entry.ID)
 	if input.Expected == 0 && previousErr == nil || input.Expected != 0 && (previousErr != nil || previous.Revision != input.Expected) {
@@ -331,7 +331,7 @@ func (a *App) processRecording(ctx context.Context, claim catalog.Work) (any, er
 	defer session.Close()
 	if input.Options.Diarization == "reuse" {
 		if previousErr != nil || compatibleReuseMap(previous.SourceMap, session.SourceMap) != nil {
-			return nil, contracts.Fail("conflict")
+			return nil, contracts.Condition("conflict", "source_map_incompatible")
 		}
 	}
 	provenance := map[string]any{"audio": session.Provenance}

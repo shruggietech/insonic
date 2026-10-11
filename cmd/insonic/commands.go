@@ -18,9 +18,12 @@ type commandDefinition struct {
 	Required []string
 }
 type invocation struct {
-	Args, Path      []string
-	Root, RequestID string
-	Machine, Help   bool
+	Args, Path            []string
+	Root, RequestID       string
+	StartupID             string
+	Machine, Help         bool
+	Quiet, Verbose, Debug bool
+	LogLevel, LogFile     string
 }
 type cliOption struct {
 	Value    bool
@@ -31,10 +34,10 @@ type cliOption struct {
 
 var optionDefinitions = func() map[string]cliOption {
 	out := map[string]cliOption{}
-	for _, key := range strings.Fields("--workspace --request-id --input --manifest --title --record --transcript --subtitle --credential-id --acquisition-adapter --acquisition-max-bytes --acquisition-timeout-ms --originated-at --originated-on --originated-earliest --originated-latest --timezone --dst-fold --dst-gap --date-precedence --preset --attribution --transcript-format --transcript-credential-id --transcript-adapter --transcript-max-bytes --transcript-timeout-ms --subtitle-stream-index --subtitle-language --diarization-model-id --known-speaker --existing-transcript --existing-roster --revision --after --after-ordinal --limit --speaker --media --dialect --file --parameters --saved --operation --expected-revision --destination --mode --timeout-ms") {
+	for _, key := range strings.Fields("--workspace --request-id --startup-id --log-level --log-file --input --manifest --title --record --transcript --subtitle --credential-id --acquisition-adapter --acquisition-max-bytes --acquisition-timeout-ms --originated-at --originated-on --originated-earliest --originated-latest --timezone --dst-fold --dst-gap --date-precedence --preset --attribution --transcript-format --transcript-credential-id --transcript-adapter --transcript-max-bytes --transcript-timeout-ms --subtitle-stream-index --subtitle-language --diarization-model-id --known-speaker --existing-transcript --existing-roster --revision --after --after-ordinal --limit --speaker --media --dialect --file --parameters --saved --operation --expected-revision --destination --mode --timeout-ms") {
 		out[key] = cliOption{Value: true}
 	}
-	for _, key := range strings.Fields("--json --copy --reference --local-http --new-entry --replace-audio --transcript-applies --replace-transcript --legacy-sidecar --secret-input --help -h --version") {
+	for _, key := range strings.Fields("--json --verbose --debug --quiet --copy --reference --local-http --new-entry --replace-audio --transcript-applies --replace-transcript --legacy-sidecar --secret-input --help -h --version") {
 		out[key] = cliOption{}
 	}
 	enums := map[string]string{"--dst-fold": "earlier|later", "--dst-gap": "shift-forward", "--date-precedence": "owner-first|embedded-first|filesystem-fallback", "--attribution": "auto|native|off|diarize", "--transcript-format": "cueson|srt|vtt|ass|ssa", "--existing-transcript": "keep|clear|replace", "--existing-roster": "retain|clear", "--mode": "self-contained|reference-only", "--operation": "transcription|diarization|voice-matching|speaker-model-training", "--dialect": "ladybug-cypher|arcade-opencypher|arcade-sql"}
@@ -62,7 +65,7 @@ var commandDefinitions = func() []commandDefinition {
 	add("doctor", "", 0, 0, "", "")
 	add("workspace init", "DIRECTORY", 1, 1, "", "")
 	add("workspace show", "", 0, 0, "", "")
-	add("runtime serve", "", 0, 0, "--secret-input", "")
+	add("runtime serve", "", 0, 0, "--secret-input --startup-id", "")
 	for _, a := range strings.Fields("select add replace delete status unlock load") {
 		min, max, operand := 1, 1, "UUID"
 		if a == "unlock" || a == "load" {
@@ -340,6 +343,16 @@ func parseInvocation(args []string) (invocation, error) {
 			fail(argumentError(key + " is a switch and takes no value."))
 		}
 		switch key {
+		case "--verbose":
+			out.Verbose = true
+		case "--debug":
+			out.Debug = true
+		case "--quiet":
+			out.Quiet = true
+		case "--log-level":
+			out.LogLevel = value
+		case "--log-file":
+			out.LogFile = value
 		case "--json":
 			out.Machine = true
 		case "--help", "-h":
@@ -352,6 +365,8 @@ func parseInvocation(args []string) (invocation, error) {
 			out.Root = value
 		case "--request-id":
 			out.RequestID = value
+		case "--startup-id":
+			out.StartupID = value
 		default:
 			options = append(options, key)
 			if spec.Value {
@@ -412,6 +427,27 @@ func parseInvocation(args []string) (invocation, error) {
 		if count > 1 && !repeat {
 			return out, argumentError(key + " may be supplied only once.")
 		}
+	}
+	if out.Quiet && (out.Verbose || out.Debug) {
+		return out, argumentError("--quiet cannot be combined with --verbose or --debug.")
+	}
+	if out.LogLevel == "" {
+		out.LogLevel = "info"
+		if out.Debug {
+			out.LogLevel = "debug"
+		}
+	}
+	if !containsOption([]string{"error", "warn", "info", "debug"}, out.LogLevel) {
+		return out, argumentError("--log-level accepts error|warn|info|debug.")
+	}
+	if seen["--log-file"] > 0 && out.LogFile == "" {
+		return out, argumentError("--log-file requires a nonempty file path.")
+	}
+	if seen["--log-level"] > 0 && values["--log-level"] == "" {
+		return out, argumentError("--log-level requires a value.")
+	}
+	if seen["--startup-id"] > 0 && (!contracts.ValidID(out.StartupID) || strings.Join(out.Path, " ") != "runtime serve") {
+		return out, argumentError("--startup-id is reserved for runtime serve and requires a UUID.")
 	}
 	if seen["--request-id"] > 0 && !contracts.ValidID(out.RequestID) {
 		return out, argumentError("--request-id requires a UUID.")
@@ -582,6 +618,7 @@ func commandHelp(path []string) string {
 			if p == "credentials unlock" || p == "credentials add" || p == "credentials replace" || p == "credentials delete" {
 				b.WriteString("Protected stdin template for vault: {\"passphrase\":\"...\"}; add/replace also require \"value\":\"...\".\n")
 			}
+			b.WriteString("Diagnostic controls: --verbose adds request/workspace identifiers; --debug adds generated progress detail; --quiet suppresses informational human output and progress. Warnings/errors remain visible. --log-level error|warn|info|debug selects diagnostic severity (default info, debug with --debug). --log-file FILE elects private rotating JSONL logs (1 MiB plus two predecessors); its directory must exist. No arguments, input documents, credentials, endpoints or environment values are logged. These controls do not change --json result envelopes.\n")
 			b.WriteString("Global options may precede or follow command options. Scalar options appear once; value options accept --name=value. -- ends option and help recognition. Machine success uses stdout; machine failure uses stderr.\n")
 			example := c.Operands
 			for _, key := range c.Required {

@@ -61,7 +61,7 @@ func parseExploreAlias(args []string) (string, string, json.RawMessage, error) {
 		read := func(path string, limit int64) ([]byte, error) {
 			f, e := os.Open(path)
 			if e != nil {
-				return nil, contracts.Fail("unavailable")
+				return nil, contracts.Condition("unavailable", "input_missing")
 			}
 			defer f.Close()
 			raw, e := io.ReadAll(io.LimitReader(f, limit+1))

@@ -414,14 +414,13 @@ func (a *App) DispatchContext(ctx context.Context, req contracts.Request) contra
 			result, err = a.artifactDispatch(req)
 		}
 	}
+	response.Result = result
 	if err != nil {
 		if typed, ok := err.(*contracts.Error); ok {
 			response.Error = typed
 		} else {
 			response.Error = contracts.Fail("operation_failed")
 		}
-	} else {
-		response.Result = result
 	}
 	return response
 }

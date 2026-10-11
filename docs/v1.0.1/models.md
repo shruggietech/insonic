@@ -27,7 +27,7 @@ Pipeline inspection retains an unavailable reference as a `missing` selection
 with an `unresolved` target and the intended operation. It reports no model ID,
 manifest digest or upstream revision until resolution succeeds.
 An alias declared for another operation retains its exact target and reports
-the operation mismatch as incompatible.
+the operation mismatch as incompatible. Direct `models resolve` and pipeline inspection succeed with `compatible: false` for this inspection, retaining target, alias revision, manifest digest and upstream revision. Execution election still rejects it before acquisition or inference.
 
 ```sh
 insonic models resolve speech-main --operation transcription --json
@@ -167,7 +167,9 @@ not trusted by cache filename. Missing/corrupt bytes require exact recovery.
 Cancelled/stale work cannot publish a late processing result. Cancelling one
 consumer does not cancel shared acquisition still used by another consumer.
 
-Materialization returns verified local paths with renewable artifact leases.
+Model show includes response-only `registry_state`, `readiness` and `verification` facts. Existing shared acquisition work adds its exact ID and state; inspection does not invent a work item or change stored availability. Registered resources report not acquired; active acquisition reports acquiring. Availability alone is not a verification performed by the current inspection. Verify/materialize retain these facts even when they fail, distinguishing proven damaged bytes from an unavailable storage backend. Reacquire with the original manifest file, or inspect/retry existing acquisition work; the acquisition operand is not a model UUID.
+
+Model materialization returns an object with verified readiness and a `files` array. Each entry names its immutable manifest role, model ID/digest, declared size/SHA-256, exact publication ID, local path and lease ID/details. Materialization returns verified local paths with renewable artifact leases.
 Release leases after the consumer finishes. Temporary/base caches are separate
 from durable speaker profiles and trained artifacts; their cleanup cannot purge
 trained output or active readers.

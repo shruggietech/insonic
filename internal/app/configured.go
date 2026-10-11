@@ -205,7 +205,7 @@ func (a *App) configuredDispatch(req contracts.Request) (any, error) {
 			} else if selected.Target.Kind != "base" {
 				selected.Compatible = false
 				selected.Diagnostics = []string{localModelSelectionError(selected).Error()}
-			} else if selected.Manifest != nil && models.CheckCompatibility(*selected.Manifest, stage.operation, stage.configuration.Adapter, stage.configuration.Version) != nil {
+			} else if selected.Compatible && selected.Manifest != nil && models.CheckCompatibility(*selected.Manifest, stage.operation, stage.configuration.Adapter, stage.configuration.Version) != nil {
 				selected.Compatible = false
 				selected.Diagnostics = []string{"The selected model is incompatible with this stage adapter contract."}
 			}

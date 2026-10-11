@@ -41,8 +41,9 @@ func TestPipelineInspectAliasOperationMismatchRetainsIdentity(t *testing.T) {
 	if err != nil || len(after) != len(before) {
 		t.Fatal("incompatible inspection acquired files", err)
 	}
-	if response := realRequest(a, "models.resolve", "", map[string]any{"reference": alias.Name, "operation": "diarization"}); response.Error == nil || response.Error.Code != "unsupported_capability" {
-		t.Fatal("explicit mismatched operation was accepted", response.Error)
+	selected := configuredContractResult(t, realRequest(a, "models.resolve", "", map[string]any{"reference": alias.Name, "operation": "diarization"}))
+	if selected["compatible"] != false || selected["manifest_digest"] != m.Digest() || selected["target"].(map[string]any)["id"] != target.ID {
+		t.Fatal("inspection lost mismatched target", selected)
 	}
 }
 

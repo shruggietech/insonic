@@ -1,0 +1,85 @@
+{
+  "kind": "s019-local-qualification",
+  "candidate_version": "1.0.1",
+  "required_local_checks": "passed",
+  "node_tests": 84,
+  "python_tests": 141,
+  "frontend_tests": 73,
+  "site_pages": 78,
+  "source_native_cli": "passed",
+  "packages": [
+    {
+      "variant": "cli",
+      "archive_sha256": "06ce565947fb12aee7bff06e2ca983b37526f70257973a7e21b56854c2a888ba",
+      "revision": "30fa97dacfe34872391aabe7f4ebd1623b53adda",
+      "source_dirty": true,
+      "elapsed_seconds": 124.891,
+      "cli_contract": {
+        "help_paths": 143,
+        "settings": "passed",
+        "initial_speaker_cursor": "passed",
+        "protected_vault_delete": "passed",
+        "typed_failures": [
+          [
+            "2d5d52f8-2f4a-4cf1-a54d-55ee22ada4a9",
+            "conflict"
+          ],
+          [
+            "bdcea9fb-bf73-475f-9073-7cfeb95c1f4f",
+            "model_acquisition_failed"
+          ],
+          [
+            "31559108-23e5-5a47-95c6-0a790f95c3d1",
+            "checksum_mismatch"
+          ]
+        ],
+        "operator_feedback": "passed",
+        "cold_startup_failure": "passed",
+        "detached_owner": "passed",
+        "model_roles_leases": "passed",
+        "diagnostic_redaction": "passed"
+      },
+      "partial_date_feedback": "passed",
+      "gui_bridge": "not-included",
+      "native_webview": "not-included",
+      "inference": "not-run"
+    },
+    {
+      "variant": "desktop",
+      "archive_sha256": "ea6e746433db5cb3326cea0f39b052832ce8af6406fe35ccd02f5474d97d28b3",
+      "revision": "30fa97dacfe34872391aabe7f4ebd1623b53adda",
+      "source_dirty": true,
+      "elapsed_seconds": 209.516,
+      "cli_contract": {
+        "help_paths": 143,
+        "settings": "passed",
+        "initial_speaker_cursor": "passed",
+        "protected_vault_delete": "passed",
+        "typed_failures": [
+          [
+            "e8ce39f6-fd8e-428f-982c-8184acc53b25",
+            "conflict"
+          ],
+          [
+            "48ffa360-6f16-4d55-8ba7-1270eb0ec7fd",
+            "model_acquisition_failed"
+          ],
+          [
+            "4e163122-43ca-5d04-935a-5476613d0dd9",
+            "checksum_mismatch"
+          ]
+        ],
+        "operator_feedback": "passed",
+        "cold_startup_failure": "passed",
+        "detached_owner": "passed",
+        "model_roles_leases": "passed",
+        "diagnostic_redaction": "passed"
+      },
+      "partial_date_feedback": "passed",
+      "gui_bridge": "passed",
+      "native_webview": "passed",
+      "inference": "not-run"
+    }
+  ],
+  "external_ci_and_reviews": "pending"
+}

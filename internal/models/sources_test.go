@@ -136,8 +136,8 @@ func TestModelAliasResolutionAndRetargetIsolation(t *testing.T) {
 	if e != nil || out.Target.ID != InstallationID(m) || out.Compatible || out.State != "registered" {
 		t.Fatal("exact incompatible inspect", out, e)
 	}
-	if _, e = resolver.Resolve(ctx, "tiny", "diarization"); e == nil {
-		t.Fatal("wrong operation")
+	if mismatch, err := resolver.Resolve(ctx, "tiny", "diarization"); err != nil || mismatch.Compatible || mismatch.Target.ID != InstallationID(m) || mismatch.Target.Operation != "transcription" || RequireCompatible(mismatch) == nil {
+		t.Fatal("operation inspection/election mismatch", mismatch, err)
 	}
 	second := m
 	second.ModelVersion = "2"

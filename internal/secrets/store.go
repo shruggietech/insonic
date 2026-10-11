@@ -28,9 +28,12 @@ type Options struct {
 	Session    map[string][]byte
 }
 type CredentialStatus struct {
-	CredentialID string `json:"credential_id"`
-	Backend      string `json:"backend"`
-	State        string `json:"state"`
+	CredentialID   string `json:"credential_id"`
+	Backend        string `json:"backend"`
+	State          string `json:"state"`
+	Stored         bool   `json:"stored"`
+	Locked         bool   `json:"locked"`
+	Authentication string `json:"authentication"`
 }
 type nativeBackend interface {
 	available(context.Context) error
@@ -181,7 +184,7 @@ func (m *Manager) locked(ctx context.Context, fn func() error) error {
 	return fn()
 }
 func (m *Manager) Inspect(ctx context.Context, id string) (CredentialStatus, error) {
-	result := CredentialStatus{CredentialID: id, Backend: m.mode, State: "missing"}
+	result := CredentialStatus{CredentialID: id, Backend: m.mode, State: "missing", Authentication: "not-checked"}
 	if !contracts.ValidID(id) {
 		return result, contracts.Fail("invalid_request")
 	}
@@ -193,10 +196,7 @@ func (m *Manager) Inspect(ctx context.Context, id string) (CredentialStatus, err
 			}
 		case "vault":
 			// Status validates only the nonsecret envelope. It never decrypts saved values.
-			if len(m.passphrase) == 0 {
-				result.State = "rejected"
-				return nil
-			}
+			result.Locked = len(m.passphrase) == 0
 			raw, e := readFile(m.root, "vault.json")
 			if os.IsNotExist(e) {
 				return nil
@@ -231,6 +231,10 @@ func (m *Manager) Inspect(ctx context.Context, id string) (CredentialStatus, err
 		}
 		return nil
 	})
+	result.Stored = result.State == "configured"
+	if result.Stored && result.Locked {
+		result.State = "locked"
+	}
 	return result, e
 }
 func (m *Manager) Status(ctx context.Context, id string) (string, error) {
@@ -343,10 +347,10 @@ func (m *Manager) write(ctx context.Context, id string, value []byte, replace, r
 			return contracts.Fail("not_found")
 		}
 		if exists && !replace && !remove {
-			return contracts.Fail("conflict")
+			return contracts.Condition("conflict", "credential_duplicate")
 		}
 		if !remove && (!exists || m.mode == "native" && !ids[id]) && count >= maxCredentials {
-			return contracts.Fail("conflict")
+			return contracts.Condition("conflict", "credential_capacity")
 		}
 		if m.mode == "native" {
 			if remove {

@@ -291,7 +291,7 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 			code = typed.Code
 		}
 		cause = code
-		result = map[string]any{"state": "failed", "error": code}
+		result = map[string]any{"state": "failed", "error": code, "cause": contracts.SafeError(e)}
 	}
 	raw, _ := json.Marshal(result)
 	if state == "failed" {
@@ -447,17 +447,9 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 		}
 		return pageViews(all, p, func(w catalog.BaseModelInstall) string { return w.ID }, modelSummary), nil
 	case "models.show":
-		return a.Catalog.BaseModel(a.ctx, req.ItemID)
+		return a.modelReadiness(req.ItemID)
 	case "models.verify", "models.materialize":
-		s, e := a.modelService()
-		if e != nil {
-			return nil, e
-		}
-		if req.Operation == "models.verify" {
-			e = s.Verify(a.ctx, req.ItemID)
-			return map[string]bool{"verified": e == nil}, e
-		}
-		return s.Materialize(a.ctx, req.ItemID)
+		return a.inspectModel(req)
 	case "media.import":
 		var input library.ImportRequest
 		if strictPayload(req.Data, &input) != nil {

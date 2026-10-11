@@ -373,7 +373,7 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 		if (command == "register" || command == "acquire") && len(positional) == 1 {
 			file, e := os.Open(positional[0])
 			if e != nil {
-				return "", "", nil, contracts.Fail("unavailable")
+				return "", "", nil, contracts.Condition("unavailable", "input_missing")
 			}
 			defer file.Close()
 			raw, e := io.ReadAll(io.LimitReader(file, (1<<20)+1))

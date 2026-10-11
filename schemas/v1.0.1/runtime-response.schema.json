@@ -151,6 +151,38 @@
             }
           },
           "maxItems": 64
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "workspace_missing",
+            "input_missing",
+            "input_invalid",
+            "revision_stale",
+            "credential_duplicate",
+            "credential_capacity",
+            "credential_locked",
+            "credential_bootstrap",
+            "source_map_incompatible",
+            "backup_checksum",
+            "backup_size",
+            "backup_identity",
+            "model_not_acquired",
+            "model_damaged",
+            "model_storage_unavailable",
+            "profile_prerequisite",
+            "runtime_directory",
+            "runtime_owner",
+            "runtime_endpoint",
+            "runtime_catalog",
+            "startup_launch",
+            "startup_exit",
+            "startup_report",
+            "startup_timeout",
+            "wait_timeout",
+            "wait_interrupted"
+          ],
+          "description": "Allowlisted locally generated operation condition; never external text."
         }
       }
     }

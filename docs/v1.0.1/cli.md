@@ -27,6 +27,26 @@ insonic --workspace LIBRARY work wait WORK_UUID --timeout-ms 30000 --json
 
 Catalog migration/export/restore and portable backup operations are advanced maintenance commands. Mutating maintenance requires exclusive workspace ownership. `runtime serve` is the internal noninteractive owner normally launched by clients; contextual help keeps its syntax available.
 
+## Human results and work progress
+
+Commands without `--json` print readable named fields, empty states, warnings and supported next commands. Human results preserve exact numeric tokens but are a display, rather than an automation contract: at most 128 lines, 64 items per collection, six levels of detail and 512 UTF-8 bytes per displayed value. Use JSON and the applicable paging operation for complete detail. Terminal controls in values are replaced with spaces.
+
+Document pages display readable UTF-8 text instead of base64. Binary pages and omitted document detail identify the JSON/page retrieval route. Materialized paths include publication and lease identities with release/renew commands. Registration and startup describe configured resources; they do not establish provider authentication or acoustic inference readiness.
+
+`work wait` shows changed durable state, stage and available item/file counts on an interactive human terminal. It does not invent percentages. Redirected human output and JSON contain only the final or last observed result. A timeout or interrupted wait leaves durable work running; inspect, wait or cancel the same work ID. Interrupted or failed work exposes its retry route.
+
+Accepted media with unresolved date observations remains useful and successful unless an item actually failed. Human results identify the affected item/media, date state and inspection/correction commands. Date-only precision is not itself an error. Large results identify result paging instead of claiming omitted items have no warnings.
+
+## Diagnostics
+
+Global `--verbose` adds request/workspace identifiers. `--debug` also adds generated terminal progress detail and defaults elected logs to debug severity. `--quiet` suppresses informational human results and progress while retaining warnings/errors. Quiet cannot combine with verbose/debug. All three preserve JSON envelopes and exit meanings.
+
+`--log-file FILE` explicitly elects a private JSONL diagnostic file; its directory must exist. `--log-level error|warn|info|debug` selects severity, with info as the normal default. The log retains timestamps, request/workspace UUIDs, operation, generated code/reason, work state and elapsed time. It excludes arguments, input documents, credential values, protected stdin, prompts, endpoints, environment values and arbitrary tool/provider output.
+
+Each data file is bounded to 1 MiB, with at most two predecessors (`FILE.1` and `FILE.2`). A private empty `FILE.lock` coordinates ownership; concurrent commands must elect separate files. Files use current-user Windows ACLs or Unix mode 0600. Opening or securing an elected log fails before command effects; later logging/output delivery failures return a nonzero status and do not undo accepted work. No log is required when logging was not elected.
+
+Hidden runtime startup reports readiness or a fixed classified failure through a bounded 4096-byte internal channel, with a shared ten-second startup deadline. Early child exit and malformed reports fail promptly. Profile/control-directory, ownership, endpoint, credential bootstrap and application/catalog failures give supported corrections without repeating protected input. A competing cold client joins the live owner; the detached owner survives its launching client and retains existing idle/work lifetime.
+
 ## Machine output
 
 Every `--json` result uses the current `runtime-response` envelope. Help and version have structured results; local initialization, configuration and maintenance use the same envelope as live runtime operations. Request IDs correlate responses, and workspace/runtime IDs appear when known. Integers remain JSON integers with their exact decimal value, including signed 64-bit clocks and identifiers above JavaScript's exact Number range. Consumers must use an exact-integer parser for such fields.

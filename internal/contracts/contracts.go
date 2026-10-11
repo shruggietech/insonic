@@ -65,6 +65,7 @@ func ValidLocalSpeakerID(s string) bool {
 
 type Error struct {
 	Code        string       `json:"code"`
+	Reason      string       `json:"reason,omitempty"`
 	Message     string       `json:"message"`
 	Diagnostics []Diagnostic `json:"diagnostics,omitempty"`
 }
@@ -97,7 +98,7 @@ func Fail(code string) *Error {
 		"invalid_embedding":        "The local engine returned invalid speaker embeddings.",
 		"invalid_request":          "The request is invalid.", "incompatible_version": "The contract version is unsupported.",
 		"workspace_mismatch": "The request belongs to another workspace.", "not_found": "The item is unavailable in this workspace.",
-		"conflict": "Another owner or attempt already controls this operation.", "unavailable": "The selected dependency is unavailable.",
+		"conflict": "The operation conflicts with current state. Inspect the selected item and its current revision before retrying.", "unavailable": "The selected dependency is unavailable.",
 		"cancelled": "The operation was cancelled.", "output_limit": "The child output limit was exceeded.", "operation_failed": "The operation failed.",
 	}[code]
 	if message == "" {

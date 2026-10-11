@@ -114,7 +114,7 @@ func hashStream(ctx context.Context, w io.Writer, r io.Reader, size int64, expec
 		if n > 0 {
 			total += int64(n)
 			if total > size {
-				return contracts.Fail("conflict")
+				return contracts.Condition("conflict", "backup_size")
 			}
 			if _, we := io.MultiWriter(w, h).Write(buffer[:n]); we != nil {
 				return fail(we)
@@ -127,8 +127,11 @@ func hashStream(ctx context.Context, w io.Writer, r io.Reader, size int64, expec
 			return fail(e)
 		}
 	}
-	if total != size || hex.EncodeToString(h.Sum(nil)) != expected {
-		return contracts.Fail("conflict")
+	if total != size {
+		return contracts.Condition("conflict", "backup_size")
+	}
+	if hex.EncodeToString(h.Sum(nil)) != expected {
+		return contracts.Condition("checksum_mismatch", "backup_checksum")
 	}
 	return nil
 }
@@ -506,8 +509,11 @@ func readBundle(ctx context.Context, directory string) (Manifest, catalog.Snapsh
 	if e != nil {
 		return m, snap, e
 	}
-	if hex.EncodeToString(h.Sum(nil)) != m.CatalogSHA256 || snap.Digest != m.CatalogDigest || snap.WorkspaceID != m.WorkspaceID || snap.Revision != m.Revision {
-		return m, snap, contracts.Fail("conflict")
+	if hex.EncodeToString(h.Sum(nil)) != m.CatalogSHA256 || snap.Digest != m.CatalogDigest {
+		return m, snap, contracts.Condition("checksum_mismatch", "backup_checksum")
+	}
+	if snap.WorkspaceID != m.WorkspaceID || snap.Revision != m.Revision {
+		return m, snap, contracts.Condition("conflict", "backup_identity")
 	}
 	if m.SourceCatalogRevision < 0 || m.SourceCatalogRevision > m.Revision || len(m.SourceCatalogDigest) != 64 {
 		return m, snap, contracts.Fail("invalid_request")
