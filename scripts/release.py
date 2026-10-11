@@ -591,6 +591,28 @@ def current_release_suite(api, revision, context=None):
     return run['check_suite_id'] if run['head_sha'] == revision else None
 
 
+def source_checks(api, revision):
+    runs = []; seen = set(); total = None; page = 1
+    while True:
+        response = api.call('GET', f'repos/{REPOSITORY}/commits/{revision}/check-runs?per_page=100&page={page}')
+        count = response.get('total_count') if isinstance(response, dict) else None
+        checks = response.get('check_runs') if isinstance(response, dict) else None
+        if (type(count) is not int or count < 0 or not isinstance(checks, list) or len(checks) > 100
+                or (total is not None and count != total)):
+            raise ValueError('exact-source check inventory is invalid or changed')
+        total = count
+        for check in checks:
+            identifier = check.get('id') if isinstance(check, dict) else None
+            if type(identifier) is not int or identifier <= 0 or identifier in seen:
+                raise ValueError('exact-source check inventory contains invalid or duplicate entries')
+            seen.add(identifier); runs.append(check)
+        if len(runs) == total:
+            return runs
+        if len(runs) > total or len(checks) != 100:
+            raise ValueError('exact-source check inventory is incomplete')
+        page += 1
+
+
 def publish(directory, highlights, api, root=ROOT, runner=child, verifier=verify_package, trusted_root=None):
     trusted_history(read_json(directory / 'release-manifest.json').get('revision'), api, trusted_root or root, runner)
     value, expected = load_candidate(directory, verifier, root)
@@ -599,12 +621,11 @@ def publish(directory, highlights, api, root=ROOT, runner=child, verifier=verify
         verify_documentation(directory / name, value['version'], value['revision'], require_release=True)
     exact_source(value['revision'], root, runner, value['tag'])
     verify_tag(api, value['tag'], value['revision'])
-    checks = api.call('GET', f'repos/{REPOSITORY}/commits/{value["revision"]}/check-runs?per_page=100')
+    runs = source_checks(api, value['revision'])
     required = read_json(root / '.github/bootstrap.json')['required_checks']
-    runs = checks.get('check_runs', [])
     suite = current_release_suite(api, value['revision'])
     external_runs = [check for check in runs if suite is None or check.get('check_suite', {}).get('id') != suite]
-    if checks.get('total_count', len(runs)) > len(runs) or not all(any(c['name'] == name and c.get('conclusion') == 'success' and c.get('status') == 'completed' for c in external_runs) for name in required) or any(c.get('status') != 'completed' or c.get('conclusion') not in ('success', 'neutral', 'skipped') for c in external_runs):
+    if not all(any(c['name'] == name and c.get('conclusion') == 'success' and c.get('status') == 'completed' for c in external_runs) for name in required) or any(c.get('status') != 'completed' or c.get('conclusion') not in ('success', 'neutral', 'skipped') for c in external_runs):
         raise ValueError('exact-source automated checks are not green')
     if not highlights.strip() or len(highlights.split()) > 180: raise ValueError('release highlights must be concise')
     suffix = f'[Full changelog](https://github.com/{REPOSITORY}/blob/{value["tag"]}/CHANGELOG.md)'

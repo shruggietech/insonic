@@ -4,6 +4,14 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+### Fixed
+
+- Read every page of exact-source GitHub checks before publication, retaining required checks, external failure/pending rejection and verified current-workflow suite exclusion. Reject incomplete, duplicate or changing inventories before release writes.
+
+### Decisions
+
+- 2026-10-11: Correct the publication verifier's first-page limit after complete qualification and launch together exceeded 100 checks. Keep the qualified immutable v1.0.0 source/tag unchanged and execute the corrected verifier from reviewed protected-main tooling against that ancestor.
+
 ## [1.0.0] - 2026-10-11
 
 ### Compatibility

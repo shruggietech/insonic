@@ -21,3 +21,7 @@
 - [x] T008 Assess prepared source against `spec.md`, `plan.md` and `tasks.md`; preserve concise planning and external temporary-file cleanup instructions in `quickstart.md` (FR-007, FR-008, SC-004).
 
 Execute phases in order; T006 can be assessed alongside T003, but site exports sharing an output directory run sequentially. Existing interfaces and tests are reused; no implementation-mirroring tests are added for prose edits. Source preparation does not establish actual publication: execute the PR/qualification/tag/publication/deployment procedure and close issue #46 only after both live outcomes are verified. The issue holds launch results rather than another repository evidence archive.
+
+## Phase 5: Convergence
+
+- [x] T009 Paginate the exact-source check inventory in `scripts/release.py` and exercise later-page required/red/pending checks plus incomplete/changing/duplicate inventories in `tests/release_test.py` per FR-003 (partial). Preserve verified current-suite exclusion and every external check gate.
