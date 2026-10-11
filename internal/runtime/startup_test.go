@@ -29,7 +29,7 @@ func TestStartupReportValidationAndImmediateFailure(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, mode := range []string{"failed", "wrong-workspace", "wrong-id", "wrong-version", "wrong-stage", "unknown", "trailing", "duplicate"} {
-		start := func(_ context.Context, _ string, args []string, input []byte) ([]byte, error) {
+		start := func(_ context.Context, _ string, args []string, input []byte, validate func([]byte) error) ([]byte, error) {
 			report := contracts.StartupReport{Kind: "runtime-startup", Version: contracts.Version, StartupID: startupID(args), WorkspaceID: w.Config.WorkspaceID, State: "failed", Stage: "startup", Code: "unavailable", Reason: "runtime_catalog"}
 			switch mode {
 			case "wrong-workspace":
@@ -50,7 +50,7 @@ func TestStartupReportValidationAndImmediateFailure(t *testing.T) {
 			case "duplicate":
 				raw = append(raw[:len(raw)-1], []byte(",\"state\":\"ready\"}")...)
 			}
-			return raw, nil
+			return raw, validate(raw)
 		}
 		begin := time.Now()
 		err = ensureInput(context.Background(), w, "fixture", nil, start)
@@ -75,7 +75,7 @@ func TestConcurrentColdStartupLoadsProtectedInputIntoOneOwner(t *testing.T) {
 	ownerCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	var owners sync.WaitGroup
-	launch := func(ctx context.Context, _ string, args []string, raw []byte) ([]byte, error) {
+	launch := func(ctx context.Context, _ string, args []string, raw []byte, validate func([]byte) error) ([]byte, error) {
 		for _, arg := range args {
 			if strings.Contains(arg, "session-secret") {
 				t.Fatal("secret in child arguments")
@@ -101,7 +101,7 @@ func TestConcurrentColdStartupLoadsProtectedInputIntoOneOwner(t *testing.T) {
 		select {
 		case report = <-reports:
 			raw, _ := json.Marshal(report)
-			return raw, nil
+			return raw, validate(raw)
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		}
@@ -133,7 +133,7 @@ func TestConcurrentColdStartupLoadsProtectedInputIntoOneOwner(t *testing.T) {
 	if err != nil || first.Error != nil {
 		t.Fatal(first, err)
 	}
-	if err = ensureInput(context.Background(), w, "fixture", nil, func(context.Context, string, []string, []byte) ([]byte, error) {
+	if err = ensureInput(context.Background(), w, "fixture", nil, func(context.Context, string, []string, []byte, func([]byte) error) ([]byte, error) {
 		t.Fatal("live owner started again")
 		return nil, nil
 	}); err != nil {
@@ -150,7 +150,7 @@ func TestStartupInputDeadlineIsBounded(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
 	defer cancel()
 	begin := time.Now()
-	err = ensureInput(ctx, w, "fixture", nil, func(ctx context.Context, _ string, _ []string, _ []byte) ([]byte, error) {
+	err = ensureInput(ctx, w, "fixture", nil, func(ctx context.Context, _ string, _ []string, _ []byte, validate func([]byte) error) ([]byte, error) {
 		<-ctx.Done()
 		return nil, contracts.Condition("unavailable", "startup_timeout")
 	})
@@ -159,5 +159,53 @@ func TestStartupInputDeadlineIsBounded(t *testing.T) {
 	}
 	if err = ensureInput(context.Background(), w, "fixture", make([]byte, credentialcmd.MaxInputBytes+1), nil); err == nil || err.(*contracts.Error).Reason != "input_invalid" {
 		t.Fatal("unbounded protected input admitted", err)
+	}
+}
+
+func TestStartupRetriesAfterCompetingOwnerFinishesShutdown(t *testing.T) {
+	w, err := workspace.Init(t.TempDir(), "Closing owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	lock, err := w.Lock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lock.Unlock()
+	ownerCtx, stop := context.WithCancel(context.Background())
+	defer stop()
+	done := make(chan error, 1)
+	launches := 0
+	start := func(ctx context.Context, _ string, args []string, _ []byte, validate func([]byte) error) ([]byte, error) {
+		launches++
+		report := contracts.StartupReport{Kind: "runtime-startup", Version: contracts.Version, StartupID: startupID(args), WorkspaceID: w.Config.WorkspaceID, State: "failed", Stage: "startup", Code: "conflict", Reason: "runtime_owner"}
+		if launches == 1 {
+			go func() { time.Sleep(50 * time.Millisecond); lock.Unlock() }()
+		} else {
+			report.State, report.Stage, report.Code, report.Reason = "ready", "ready", "", ""
+			ready := make(chan struct{})
+			go func() { done <- Serve(ownerCtx, w, Options{Ready: ready}) }()
+			select {
+			case <-ready:
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}
+		raw, _ := json.Marshal(report)
+		return raw, validate(raw)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	err = ensureInput(ctx, w, "fixture", nil, start)
+	stop()
+	if launches > 1 {
+		select {
+		case <-done:
+		case <-time.After(time.Second):
+			t.Fatal("replacement owner did not stop")
+		}
+	}
+	if err != nil || launches != 2 {
+		t.Fatalf("closing owner prevented restart: launches=%d error=%v", launches, err)
 	}
 }

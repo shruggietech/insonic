@@ -12,20 +12,20 @@ import (
 	"time"
 )
 
-// StartDetachedReported owns only startup transport. Wait reaps the child when
-// it eventually exits; the detached owner is never tied to caller cancellation.
-func StartDetachedReported(ctx context.Context, executable string, args []string, input []byte) ([]byte, error) {
-	return startupReported(ctx, executable, args, input, true)
+// StartDetachedReported owns the child until its ready report is validated.
+// Failed startup kills and reaps that child; a ready owner outlives its caller.
+func StartDetachedReported(ctx context.Context, executable string, args []string, input []byte, validate func([]byte) error) ([]byte, error) {
+	return startupReported(ctx, executable, args, input, true, validate)
 }
 
-func startupReported(ctx context.Context, executable string, args []string, input []byte, detached bool) ([]byte, error) {
+func startupReported(ctx context.Context, executable string, args []string, input []byte, detached bool, validate func([]byte) error) ([]byte, error) {
 	if ctx.Err() != nil {
 		if ctx.Err() == context.DeadlineExceeded {
 			return nil, contracts.Condition("unavailable", "startup_timeout")
 		}
 		return nil, contracts.Fail("cancelled")
 	}
-	if !filepath.IsAbs(executable) {
+	if validate == nil || !filepath.IsAbs(executable) {
 		return nil, contracts.Fail("invalid_request")
 	}
 	command := exec.Command(executable, args...)
@@ -54,6 +54,18 @@ func startupReported(ctx context.Context, executable string, args []string, inpu
 	writer.Close()
 	exited := make(chan struct{})
 	go func() { _ = command.Wait(); close(exited) }()
+	accepted := false
+	defer func() {
+		if accepted {
+			return
+		}
+		_ = command.Process.Kill()
+		// Kill only this launched child, then allow its sole Wait owner to reap it.
+		select {
+		case <-exited:
+		case <-time.After(time.Second):
+		}
+	}()
 	if stdin != nil {
 		defer stdin.Close()
 		copyInput := append([]byte(nil), input...)
@@ -77,9 +89,25 @@ func startupReported(ctx context.Context, executable string, args []string, inpu
 		}
 		ready <- report{raw: append([]byte(nil), raw...)}
 	}()
+	accept := func(got report) ([]byte, error) {
+		if got.err != nil {
+			return nil, got.err
+		}
+		if err := validate(got.raw); err != nil {
+			return nil, err
+		}
+		if ctx.Err() != nil {
+			if ctx.Err() == context.Canceled {
+				return nil, contracts.Fail("cancelled")
+			}
+			return nil, contracts.Condition("unavailable", "startup_timeout")
+		}
+		accepted = true
+		return got.raw, nil
+	}
 	select {
 	case got := <-ready:
-		return got.raw, got.err
+		return accept(got)
 	case <-exited:
 		// Give the bounded reader time to consume an already-written report.
 		// Descendants retaining stdout cannot hide termination of this child.
@@ -87,7 +115,7 @@ func startupReported(ctx context.Context, executable string, args []string, inpu
 		defer grace.Stop()
 		select {
 		case got := <-ready:
-			return got.raw, got.err
+			return accept(got)
 		case <-grace.C:
 			return nil, contracts.Condition("unavailable", "startup_exit")
 		case <-ctx.Done():

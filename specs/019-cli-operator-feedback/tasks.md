@@ -58,3 +58,8 @@ Parallel opportunities: independent read-only research and test suites; file edi
 
 - [x] T023 Classify proven model publication/manifest mismatch as damaged readiness in internal/models/service.go and internal/app/model_readiness.go, with metadata-mismatch regressions per FR-011 (partial).
 - [x] T024 Retain bounded warning omission/paging guidance in quiet human output and offer cancellation only for active or unobserved work in cmd/insonic/human.go, with operator result regressions per FR-008 (partial).
+
+## Phase 9: Review and packaged startup convergence
+
+- [x] T025 Stop and reap unready children on deadline, cancellation and rejected reports in internal/process/startup.go, preserving owner lifetime only after validated readiness; add lifecycle regressions per FR-005 and US2/AC4 (partial, final-round P1 review).
+- [ ] T026 Retry startup when a competing owner finishes shutdown within the shared deadline in internal/runtime/runtime.go; add a closing-owner regression and repeat installed qualification per FR-005 and SC-002 (partial, recurring package readiness timeout).

@@ -232,7 +232,7 @@ func EnsureInput(ctx context.Context, w *workspace.Workspace, executable string,
 	return ensureInput(ctx, w, executable, input, process.StartDetachedReported)
 }
 
-type startupLauncher func(context.Context, string, []string, []byte) ([]byte, error)
+type startupLauncher func(context.Context, string, []string, []byte, func([]byte) error) ([]byte, error)
 
 func ensureInput(ctx context.Context, w *workspace.Workspace, executable string, input []byte, start startupLauncher) error {
 	if len(input) > credentialcmd.MaxInputBytes {
@@ -259,52 +259,84 @@ func ensureInput(ctx context.Context, w *workspace.Workspace, executable string,
 		}
 		return nil
 	}
-	if out, e := Call(ctx, w, probe); e == nil && out.Error == nil {
+	probeReady := func() bool {
+		attempt, stop := context.WithTimeout(ctx, 500*time.Millisecond)
+		defer stop()
+		out, e := Call(attempt, w, probe)
+		return e == nil && out.Error == nil
+	}
+	if probeReady() {
 		return load()
 	}
 	if executable == "" {
 		executable, _ = os.Executable()
 	}
-	startupID := contracts.ID()
-	args := []string{"--workspace", w.Root, "runtime", "serve", "--startup-id", startupID}
-	if len(input) > 0 {
-		args = append(args, "--secret-input")
-	}
-	raw, e := start(ctx, executable, args, input)
-	var report contracts.StartupReport
-	if e == nil {
-		if decode(raw, &report) != nil || report.Kind != "runtime-startup" || report.Version != contracts.Version || report.StartupID != startupID || report.WorkspaceID != w.Config.WorkspaceID && !(report.State == "failed" && report.WorkspaceID == "") || report.State != "ready" && report.State != "failed" || report.Stage != "ready" && report.Stage != "startup" || report.State == "ready" && report.Stage != "ready" || report.State == "failed" && report.Stage != "startup" {
-			e = contracts.Condition("unavailable", "startup_report")
-		} else if report.State == "failed" {
-			if !contracts.ValidOperatorReason(report.Reason) || contracts.Fail(report.Code).Code != report.Code {
+	ticker := time.NewTicker(30 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		if ctx.Err() != nil {
+			if ctx.Err() == context.Canceled {
+				return contracts.Fail("cancelled")
+			}
+			return contracts.Condition("unavailable", "startup_timeout")
+		}
+		startupID := contracts.ID()
+		args := []string{"--workspace", w.Root, "runtime", "serve", "--startup-id", startupID}
+		if len(input) > 0 {
+			args = append(args, "--secret-input")
+		}
+		validate := func(raw []byte) error {
+			var report contracts.StartupReport
+			var e error
+			if decode(raw, &report) != nil || report.Kind != "runtime-startup" || report.Version != contracts.Version || report.StartupID != startupID || report.WorkspaceID != w.Config.WorkspaceID && !(report.State == "failed" && report.WorkspaceID == "") || report.State != "ready" && report.State != "failed" || report.Stage != "ready" && report.Stage != "startup" || report.State == "ready" && report.Stage != "ready" || report.State == "failed" && report.Stage != "startup" {
 				e = contracts.Condition("unavailable", "startup_report")
-			} else {
-				e = contracts.Condition(report.Code, report.Reason)
+			} else if report.State == "failed" {
+				if !contracts.ValidOperatorReason(report.Reason) || contracts.Fail(report.Code).Code != report.Code {
+					e = contracts.Condition("unavailable", "startup_report")
+				} else {
+					e = contracts.Condition(report.Code, report.Reason)
+				}
+			} else if report.Code != "" || report.Reason != "" {
+				e = contracts.Condition("unavailable", "startup_report")
 			}
-		} else if report.Code != "" || report.Reason != "" {
-			e = contracts.Condition("unavailable", "startup_report")
+			if e != nil {
+				return e
+			}
+			if !probeReady() {
+				return contracts.Condition("unavailable", "runtime_endpoint")
+			}
+			return nil
 		}
-	}
-	if e != nil {
+		_, e := start(ctx, executable, args, input, validate)
+		if e == nil {
+			return nil
+		}
 		var condition *contracts.Error
-		if errors.As(e, &condition) && condition.Reason == "runtime_owner" {
-			ticker := time.NewTicker(30 * time.Millisecond)
-			defer ticker.Stop()
-			for {
-				if out, callErr := Call(ctx, w, probe); callErr == nil && out.Error == nil {
-					return load()
+		if !errors.As(e, &condition) || condition.Reason != "runtime_owner" {
+			return e
+		}
+		for {
+			if probeReady() {
+				return load()
+			}
+			// A competing owner may be shutting down rather than starting. Probe the
+			// authority lock without spawning repeatedly; retry only once it is free.
+			lock, lockErr := w.Lock()
+			if lockErr == nil {
+				lock.Unlock()
+				break
+			}
+			if !errors.As(lockErr, &condition) || condition.Reason != "runtime_owner" {
+				return lockErr
+			}
+			select {
+			case <-ctx.Done():
+				if ctx.Err() == context.Canceled {
+					return contracts.Fail("cancelled")
 				}
-				select {
-				case <-ctx.Done():
-					return contracts.Condition("unavailable", "startup_timeout")
-				case <-ticker.C:
-				}
+				return contracts.Condition("unavailable", "startup_timeout")
+			case <-ticker.C:
 			}
 		}
-		return e
 	}
-	if out, e := Call(ctx, w, probe); e != nil || out.Error != nil {
-		return contracts.Condition("unavailable", "runtime_endpoint")
-	}
-	return nil
 }

@@ -18,6 +18,15 @@ func TestStartupHelper(t *testing.T) {
 	}
 	mode := os.Args[len(os.Args)-1]
 	switch mode {
+	case "lifetime-hang", "lifetime-invalid", "lifetime-ready":
+		if mode == "lifetime-ready" {
+			fmt.Println(`{"state":"ready"}`)
+		}
+		if mode == "lifetime-invalid" {
+			fmt.Println(`{"state":"invalid"}`)
+		}
+		time.Sleep(350 * time.Millisecond)
+		_ = os.WriteFile(os.Getenv("INSONIC_STARTUP_MARKER"), []byte("survived"), 0600)
 	case "ready":
 		fmt.Println("{\"state\":\"ready\"}")
 	case "large":
@@ -48,7 +57,7 @@ func TestReportedStartupEarlyExitAndBounds(t *testing.T) {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), limit)
 		start := time.Now()
-		raw, e := startupReported(ctx, exe, []string{"-test.run=TestStartupHelper", "--", mode}, []byte(strings.Repeat("private-input", 8192)), false)
+		raw, e := startupReported(ctx, exe, []string{"-test.run=TestStartupHelper", "--", mode}, []byte(strings.Repeat("private-input", 8192)), false, validateFixtureReady)
 		cancel()
 		if time.Since(start) > 2*time.Second {
 			t.Fatal("unbounded startup", mode)
@@ -75,9 +84,61 @@ func TestChildExitIsObservedWhenDescendantRetainsReportPipe(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
 	begin := time.Now()
-	_, err := startupReported(ctx, exe, []string{"-test.run=TestStartupHelper", "--", "exit-with-holder"}, nil, false)
+	_, err := startupReported(ctx, exe, []string{"-test.run=TestStartupHelper", "--", "exit-with-holder"}, nil, false, validateFixtureReady)
 	typed, ok := err.(*contracts.Error)
 	if !ok || typed.Reason != "startup_exit" || time.Since(begin) > 400*time.Millisecond {
 		t.Fatal("child exit waited on inherited report handle", err)
+	}
+}
+
+func TestUnreadyStartupChildDoesNotSurviveDeadline(t *testing.T) {
+	t.Setenv("INSONIC_STARTUP_HELPER", "1")
+	marker := t.TempDir() + "/marker"
+	t.Setenv("INSONIC_STARTUP_MARKER", marker)
+	exe, _ := os.Executable()
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+	_, err := startupReported(ctx, exe, []string{"-test.run=TestStartupHelper", "--", "lifetime-hang"}, nil, false, validateFixtureReady)
+	if err == nil {
+		t.Fatal("unready child admitted")
+	}
+	time.Sleep(450 * time.Millisecond)
+	if _, err := os.Stat(marker); !os.IsNotExist(err) {
+		t.Fatal("unready child survived startup failure")
+	}
+}
+
+func validateFixtureReady(raw []byte) error {
+	if strings.TrimSpace(string(raw)) != "{\"state\":\"ready\"}" {
+		return contracts.Condition("unavailable", "startup_report")
+	}
+	return nil
+}
+
+func TestStartupChildLifetimeFollowsValidatedReadiness(t *testing.T) {
+	t.Setenv("INSONIC_STARTUP_HELPER", "1")
+	exe, _ := os.Executable()
+	for _, mode := range []string{"lifetime-invalid", "lifetime-ready", "lifetime-hang"} {
+		t.Run(mode, func(t *testing.T) {
+			marker := t.TempDir() + "/marker"
+			t.Setenv("INSONIC_STARTUP_MARKER", marker)
+			ctx, cancel := context.WithCancel(context.Background())
+			if mode == "lifetime-hang" {
+				go func() { time.Sleep(100 * time.Millisecond); cancel() }()
+			}
+			_, err := startupReported(ctx, exe, []string{"-test.run=TestStartupHelper", "--", mode}, nil, false, validateFixtureReady)
+			cancel()
+			if (err == nil) != (mode == "lifetime-ready") {
+				t.Fatal(mode, err)
+			}
+			time.Sleep(450 * time.Millisecond)
+			_, statErr := os.Stat(marker)
+			if mode == "lifetime-ready" && statErr != nil {
+				t.Fatal("ready owner did not survive caller cancellation", statErr)
+			}
+			if mode != "lifetime-ready" && !os.IsNotExist(statErr) {
+				t.Fatal("unready child survived", mode)
+			}
+		})
 	}
 }
