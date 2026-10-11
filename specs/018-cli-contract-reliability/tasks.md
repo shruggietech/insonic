@@ -61,3 +61,4 @@ Complete all four stories and package qualification before publication. Preserve
 - [x] T022 Retain immutable historical model manifest hashes during current request admission with explicit packaged historical schema references and CLI/shared-schema regression (FR-011, adjacent review boundary).
 - [x] T023 Use the shared schema catalog in frontend request validation and pass type checking/all 73 frontend tests after CI exposed missing historical dependencies (FR-012).
 - [x] T024 Start idle-exit timing at runtime readiness, retain the one-second idle shutdown bound, and verify owner-lock release after Windows CI exposed startup timing contamination (FR-012).
+- [x] T025 Admit strictly validated historical base/speaker model manifests in current portable snapshots, prove original bytes/hashes/publication identities survive restore, and qualify current master/backend/package contracts (FR-011/012).

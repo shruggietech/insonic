@@ -29,3 +29,9 @@ The first post-review CI run exposed a frontend-test schema loader that register
 ## Windows idle-exit check correction
 
 All final-head platform native/package checks passed. Windows core alone reported TestIdleExit at 1.22 seconds because its one-second measurement included catalog startup and recovery. The test now waits for readiness before applying the unchanged one-second idle shutdown bound, checks owner-lock release, and bounds cancellation cleanup. Runtime production behavior is unchanged. The corrected test passed 30 repetitions, and the full Go suite/vet passed before the final push; final exact-head hosted evidence is recorded on PR #71.
+
+## Historical model snapshot convergence
+
+Current snapshot references originally required current-version base and speaker manifests despite preserving immutable historical records. New failing Go catalog exports and a release-master schema regression reproduced the version mismatch. Current snapshots now explicitly admit the supported immutable 1.0.0 model contracts alongside current contracts, retaining strict fields/credentials/version checks. Both base and speaker snapshots validate and restore with original metadata bytes, base manifest digest/revision and publication identities unchanged. The speaker fixture supplies genuine preparation-publication context.
+
+All Go packages/vet, npm checks and 84 tests, 141 Python tests, 73 frontend tests and the site/offline build pass after correction. CI run 38172263035 is green for its prior head, including all six packages and the corrected Windows idle check; final source qualification is rerun on the new head before handoff. No additional external review round is requested.

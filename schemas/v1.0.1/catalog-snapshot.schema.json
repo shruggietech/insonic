@@ -1464,8 +1464,15 @@
                 "type": "string"
               },
               "manifest": {
-                "$ref": "base-model-manifest.schema.json",
-                "description": "Exact selected downloaded-model manifest, separate from speaker-trained model lineage."
+                "description": "Exact selected downloaded-model manifest, separate from speaker-trained model lineage. Supported immutable historical documents retain their declared version and original digest.",
+                "anyOf": [
+                  {
+                    "$ref": "base-model-manifest.schema.json"
+                  },
+                  {
+                    "$ref": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/base-model-manifest.schema.json"
+                  }
+                ]
               },
               "publication_ids": {
                 "type": "array",
@@ -1961,8 +1968,15 @@
                 "description": "Speaker model name."
               },
               "metadata": {
-                "$ref": "speaker-model.schema.json",
-                "description": "Immutable noncontent output identity, compatibility and origin manifest."
+                "description": "Immutable noncontent output identity, compatibility and origin manifest. Supported immutable historical documents retain their declared version and original digest.",
+                "anyOf": [
+                  {
+                    "$ref": "speaker-model.schema.json"
+                  },
+                  {
+                    "$ref": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/speaker-model.schema.json"
+                  }
+                ]
               },
               "publication_ids": {
                 "type": "array",

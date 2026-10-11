@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { cp, mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -389,4 +390,25 @@ test('media and standalone transcript manifest shapes agree with runtime', () =>
  const base=example('import-manifest');const record='11111111-1111-4111-8111-111111111111';
  for(const item of [{source:'audio.flac'},{source:'audio.flac',transcript:'cue.json'},{source:'audio.flac',subtitle:'cue.srt'},{record,transcript:'cue.json'},{record,subtitle:'cue.srt'},{record,source:'cue.json'},{record,transcript:'cue.json',expected_revision:1,expected_recording_revision:0}]) assert.equal(master({...base,items:[item]}),true,JSON.stringify(item));
  for(const item of [{record},{transcript:'cue.json'},{source:'audio.flac',record,transcript:'cue.json'},{source:'audio.flac',record,subtitle:'cue.srt'},{record,transcript:'cue.json',subtitle:'cue.srt'},{source:'audio.flac',transcript:'cue.json',subtitle:'cue.srt'},{source:'audio.flac',expected_revision:1}]) assert.equal(master({...base,items:[item]}),false,JSON.stringify(item));
+});
+
+test('current portable snapshots retain strict immutable historical model documents', () => {
+  const historical = name => JSON.parse(readFileSync(new URL('../schemas/v1.0.0/' + name + '.schema.json', import.meta.url), 'utf8')).examples[0];
+  const base = historical('base-model-manifest');
+  const speaker = historical('speaker-model');
+  const snapshot = example('catalog-snapshot');
+  snapshot.catalog_schema = 9;
+  snapshot.records.base_models = [{id:'33333333-3333-4333-8333-333333333333',name:base.name,version:base.model_version,digest:'a'.repeat(64),manifest:base,publication_ids:[],state:'registered',revision:1}];
+  const sourceBytes = JSON.stringify(base);
+  assert.equal(master(snapshot), true, JSON.stringify(master.errors));
+  snapshot.records.speaker_outputs = [{id:speaker.model_version_id,model_id:speaker.model_family_id,speaker_id:speaker.originating_speaker_id,dataset_id:speaker.training.dataset.dataset_snapshot_id,work_id:speaker.training.job_id,kind:speaker.compatibility.model_kind,name:speaker.display_name,metadata:speaker,publication_ids:[speaker.model_version_id]}];
+  assert.equal(master(snapshot), true, JSON.stringify(master.errors));
+  assert.equal(JSON.stringify(base), sourceBytes);
+  assert.equal(base.schema_version, '1.0.0');
+  assert.equal(speaker.schema_version, '1.0.0');
+  base.schema_version = '9.9.9';
+  assert.equal(master(snapshot), false, 'unsupported historical versions remain rejected');
+  base.schema_version = '1.0.0';
+  speaker.token = 'fixture-secret';
+  assert.equal(master(snapshot), false, 'historical manifests retain strict credential and field constraints');
 });
