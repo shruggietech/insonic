@@ -16,3 +16,8 @@ Three read-only Spec Kit research agents examined current code and live configur
 | D10 | Keep actual Windows CPU processing elected and stage product launch separately. | Existing model pins and fixture journey are available; acoustic counts/matches are not accuracy ground truth. Squash merge changes source identity. | CI inference/downloads, attended user gate, immediate product publication (reject). |
 
 Primary Pages behavior sources: [publishing source](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) and [Pages REST builds](https://docs.github.com/en/rest/pages/pages#request-a-github-pages-build). Actual API deployment remains unexecuted until separately elected; isolated tests do not prove hosted publication.
+
+
+## Implementation observation (2026-10-10)
+
+The initial Windows FFmpeg make -j4 attempt timed out at 360 seconds; this was a real cold-build limit, not an acceptance failure. A bounded -j8 experiment on that runner preserves the complete decoder configuration and compile timeout. The modified owned recipe forces fresh source/cache identities on every platform. Its effectiveness remains subject to actual full builds.

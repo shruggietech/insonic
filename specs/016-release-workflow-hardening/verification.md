@@ -14,3 +14,6 @@
 Two complete warm PR runs, one complete publication-disabled release dispatch, six exact inventory/source receipts, controlled and real extracted Windows CPU journeys, final convergence and review dispositions are required before handoff. No task is complete through an unrelated check. No official product release/tag/live documentation mutation has occurred.
 
 Publisher signing is not configured in the observed repository variables/secrets. Actual package receipts must establish each disposition. Local Windows inference will qualify owned fixtures with explicitly selected already installed offline models; no independent biometric truth is inferred from editorial labels.
+
+
+The first PR attempt 38107213628 failed at Windows FFmpeg make -j4 after its existing 360-second compile bound (8m45s job). Linux/macOS acceptance passed. The initial concurrent release run is obsolete after a recipe correction. An accidental invalid-revision dispatch 38107221600 failed its identity/checkout checks before qualification and performed no publication. These attempts do not count as warm acceptance.

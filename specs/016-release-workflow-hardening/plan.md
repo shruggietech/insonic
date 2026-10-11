@@ -61,3 +61,8 @@ Contracts and validation entities are described in [data-model.md](data-model.md
 ## Complexity Tracking
 
 No constitution exceptions. A built-in Pages transport avoids unnecessary credential provisioning; independent lane families remove measured serialization rather than altering product architecture.
+
+
+## Measured implementation adjustment
+
+The first Windows cold source build hit its unchanged 360-second FFmpeg compile bound (job 8m45s). Test-first bounded Windows make parallelism now overlaps process-launch/filesystem work with at most twice the compiler-slot count, capped at 16. Decoder/configuration/optimization/source pins, recipe binding and all deadlines remain unchanged. Actual subsequent source builds must validate the improvement; warm cache receipts cannot replace a successful cold compile.

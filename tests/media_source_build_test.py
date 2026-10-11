@@ -16,6 +16,16 @@ import media_source_build as source
 
 
 class OwnedSourceIntegrity(unittest.TestCase):
+    def test_windows_ffmpeg_overlaps_process_launch_without_extending_compile_bound(self):
+        calls = []
+        def run(args, directory, timeout, shell=False): calls.append((args, directory, timeout, shell))
+        source.compile_ffmpeg(Path('owned source'), 'windows_amd64', 4, run)
+        self.assertEqual(calls, [(['make', '-j8', 'ffmpeg.exe', 'ffprobe.exe'], Path('owned source'), 360, True)])
+        calls.clear()
+        source.compile_ffmpeg(Path('owned source'), 'linux_amd64', 4, run)
+        self.assertEqual(calls, [(['make', '-j4', 'ffmpeg', 'ffprobe'], Path('owned source'), 360, False)])
+        self.assertFalse(any(value.startswith('--disable-decoder') for value in source.CONFIGURE))
+
     def test_complete_source_cache_binds_each_imported_group_receipt(self):
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)

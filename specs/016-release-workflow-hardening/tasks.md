@@ -67,3 +67,8 @@ Read-only research for the three independent design boundaries ran concurrently.
 ## Implementation strategy
 
 Deliver shared helper and runtime lanes first, release-path reuse next, then Pages transport and extracted-package journey. Validate each boundary independently and run full native/package CI before the final owner handoff. No partial story or unrelated passing check satisfies completion.
+
+
+## Phase 7: Measured source-build correction
+
+- [x] T023 Preserve the full decoder/source/deadline contract while testing bounded Windows FFmpeg launch parallelism in scripts/media_source_build.py and tests/media_source_build_test.py; validate the actual cold result with T008 (FR-001, FR-003).

@@ -435,6 +435,15 @@ def xml2_options(prefix):
             '-DIconv_LIBRARY=' + archive.as_posix()]
 
 
+def compile_ffmpeg(directory, platform_id, parallel_jobs, run):
+    # MSYS process launch and filesystem work leave compiler slots idle. A
+    # bounded two-to-one Windows launch budget overlaps that latency without
+    # changing codec configuration, optimization or the existing compile bound.
+    jobs = min(16, max(1, parallel_jobs) * 2) if platform_id.startswith('windows') else max(1, parallel_jobs)
+    suffix = '.exe' if platform_id.startswith('windows') else ''
+    run(['make', '-j' + str(jobs), 'ffmpeg' + suffix, 'ffprobe' + suffix], directory, 360, shell=platform_id.startswith('windows'))
+
+
 def prepare(stage='complete'):
     if stage not in ['dependencies', 'complete', *DEPENDENCY_GROUPS]:
         raise ValueError('unknown source build stage')
@@ -582,7 +591,7 @@ def prepare(stage='complete'):
                            '--pkg-config-flags=--static', '--extra-cflags=-I' + prefix.as_posix() + '/include',
                            '--extra-ldflags=-L' + prefix.as_posix() + '/lib']
     run(['./configure', *effective_configure], ffmpeg, shell=True)
-    run(['make', '-j' + jobs, 'ffmpeg' + suffix, 'ffprobe' + suffix], ffmpeg, 360, shell=platform_id.startswith('windows'))
+    compile_ffmpeg(ffmpeg, platform_id, parallel_jobs, run)
     configurations, capabilities, versions = {}, {}, {}
     for name in names:
         shutil.copyfile(ffmpeg / name, directory / name)

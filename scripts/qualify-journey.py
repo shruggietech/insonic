@@ -131,6 +131,8 @@ def compare_authority(before, after):
 class Journey:
     def __init__(self, args, base):
         self.args, self.base = args, base
+        self.started = time.monotonic()
+        self.deadline = self.started + args.timeout
         self.workspace = base / 'source-workspace'
         packaged = bool(getattr(args, 'package', None))
         package_identity = None
@@ -143,8 +145,6 @@ class Journey:
             self.worker = ROOT / 'scripts/processing-worker.py'
         if args.mode == 'controlled':
             self.worker = ROOT / 'tests/fixtures/qualification-worker.py'
-        self.started = time.monotonic()
-        self.deadline = self.started + args.timeout
         self.sequence = 0
         self.runtime = None
         self.environment = packaged_environment() if packaged else engine.local_environment()
@@ -289,6 +289,9 @@ class Journey:
         cueson, worker = self.cueson, self.worker
         pythons = {'transcribe': Path(self.args.recognition_python).resolve(strict=True),
                    'diarize': Path(self.args.diarization_python).resolve(strict=True)}
+        self.receipt['python_executable_sha256'] = {operation: engine.sha(path) for operation, path in pythons.items()}
+        self.receipt['companion_sha256'] = {**{name: tools[name]['sha256'] for name in ('ffmpeg', 'ffprobe', 'exiftool')},
+                                           'cueson': engine.sha(cueson)}
         processing = {'threads': 2, 'timeout_ms': 120000, 'max_duration_us': 60000000, 'max_input_bytes': 67108864,
                       'worker': {'path': str(worker), 'sha256': engine.sha(worker)}}
         for operation, field in (('transcribe', 'recognition_python'), ('diarize', 'diarization_python')):
@@ -310,6 +313,10 @@ class Journey:
                     files[role] = (path.stat().st_size, engine.sha(path))
             pins[operation] = {**pin, 'files': files}
             served.update({f'/{operation}/{role}': root / role for role in files})
+        self.receipt['model_inputs'] = {operation: {'id': pin['id'], 'revision': pin['revision'],
+                                       'files': {role: {'size_bytes': size, 'sha256': digest}
+                                                 for role, (size, digest) in pin['files'].items()}}
+                                       for operation, pin in pins.items()}
 
         class Handler(http.server.BaseHTTPRequestHandler):
             def do_GET(self):
