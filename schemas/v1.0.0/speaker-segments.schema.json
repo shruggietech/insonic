@@ -1,0 +1,286 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/speaker-segments.schema.json",
+  "title": "Speaker audio segment catalog",
+  "description": "Portable current speaker-evidence references across the workspace library. Embedded Cueson owns cue timing and local attribution; current catalog mappings own optional known-person identity.",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0",
+      "description": "Version of this portable document contract."
+    },
+    "kind": {
+      "const": "speaker-segments",
+      "description": "Discriminator identifying this document contract."
+    },
+    "workspace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Workspace owning every segment and referenced catalog identity."
+    },
+    "catalog_revision": {
+      "$ref": "common.schema.json#/$defs/revision",
+      "description": "Catalog revision observed by this result."
+    },
+    "generated_at": {
+      "$ref": "common.schema.json#/$defs/utcInstant",
+      "description": "UTC instant when this result was generated."
+    },
+    "speaker_filter": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Catalog speaker requested by this query."
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Requested speaker identity, or null for an unfiltered segment result."
+    },
+    "segments": {
+      "type": "array",
+      "description": "Ordered source-linked segment records; an empty query result is valid.",
+      "items": {
+        "$ref": "#/$defs/segment"
+      }
+    },
+    "next_cursor": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "description": "Opaque continuation cursor without secrets."
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Pagination continuation token, or null when complete."
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions",
+      "description": "Namespaced result metadata for custom segment adapters."
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "workspace_id",
+    "catalog_revision",
+    "generated_at",
+    "speaker_filter",
+    "segments"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "diagnostic": {
+      "type": "object",
+      "description": "A nonsecret method-qualified processing or selection finding.",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable diagnostic code."
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "description": "Severity of the technical diagnostic."
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable explanation without credentials or storage paths."
+        },
+        "method": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Method or adapter that produced this finding."
+        },
+        "method_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version of the producing method."
+        },
+        "details": {
+          "type": "object",
+          "description": "Adapter-specific structured diagnostic measurements; must not contain secrets or local storage locations.",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "preparedAudio": {
+      "type": "object",
+      "description": "Materialized audio and its reproducible mapping back to the original source.",
+      "properties": {
+        "audio_artifact": {
+          "allOf": [
+            {
+              "$ref": "common.schema.json#/$defs/artifactReference",
+              "description": "Immutable extracted/prepared audio bytes."
+            },
+            {
+              "required": [
+                "sha256",
+                "byte_length"
+              ],
+              "type": "object"
+            }
+          ],
+          "description": "Immutable extracted/prepared audio bytes."
+        },
+        "time_map_artifact": {
+          "allOf": [
+            {
+              "$ref": "common.schema.json#/$defs/artifactReference",
+              "description": "Immutable mapping from prepared audio intervals to original-source intervals."
+            },
+            {
+              "required": [
+                "sha256",
+                "byte_length"
+              ],
+              "type": "object"
+            }
+          ],
+          "description": "Immutable mapping from prepared audio intervals to original-source intervals."
+        },
+        "transform_artifact": {
+          "allOf": [
+            {
+              "$ref": "common.schema.json#/$defs/artifactReference",
+              "description": "Immutable receipt naming exact transforms, effective options and tool versions."
+            },
+            {
+              "required": [
+                "sha256",
+                "byte_length"
+              ],
+              "type": "object"
+            }
+          ],
+          "description": "Immutable receipt naming exact transforms, effective options and tool versions."
+        },
+        "format": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Declared audio container/sample format."
+        },
+        "sample_rate_hz": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Prepared audio sample rate in hertz."
+        },
+        "channel_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of channels in the prepared audio."
+        },
+        "duration_us": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Prepared audio duration in integer microseconds."
+        }
+      },
+      "required": [
+        "audio_artifact",
+        "time_map_artifact",
+        "transform_artifact",
+        "format",
+        "sample_rate_hz",
+        "channel_count",
+        "duration_us"
+      ],
+      "additionalProperties": false
+    },
+    "segment": {
+      "type": "object",
+      "description": "Reference to current embedded subtitle/speaker evidence. Timings, attribution payloads and known-person assignments are resolved from the current recording and mapping; they are not copied here.",
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Stable segment reference identity."
+        },
+        "revision": {
+          "$ref": "common.schema.json#/$defs/revision",
+          "description": "Immutable reference revision."
+        },
+        "recording_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Current recording owning the embedded Cueson evidence."
+        },
+        "document_digest": {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Exact current embedded document digest; stale references fail resolution."
+        },
+        "cue_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Cue identity inside the current embedded document."
+        },
+        "local_speaker_id": {
+          "$ref": "common.schema.json#/$defs/localSpeakerID",
+          "description": "Recording-scoped local speaker token occurring in this cue attribution."
+        },
+        "clip_artifact_id": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/uuid",
+              "description": "Optional managed prepared clip identity."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Optional derived clip identity, or null. A clip does not become assignment authority."
+        }
+      },
+      "required": [
+        "id",
+        "revision",
+        "recording_id",
+        "document_digest",
+        "cue_id",
+        "local_speaker_id",
+        "clip_artifact_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "examples": [
+    {
+      "schema_version": "1.0.0",
+      "kind": "speaker-segments",
+      "workspace_id": "00000000-0000-4000-8000-00000000000a",
+      "catalog_revision": 1,
+      "generated_at": {
+        "iso": "2026-10-04T20:00:00Z",
+        "unix_ns": 1791144000000000000
+      },
+      "speaker_filter": "00000000-0000-4000-8000-000000000006",
+      "segments": [
+        {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "revision": 1,
+          "recording_id": "00000000-0000-4000-8000-000000000002",
+          "document_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "cue_id": "cue-000000",
+          "local_speaker_id": "00000000-0000-4000-8000-000000000003",
+          "clip_artifact_id": null
+        }
+      ],
+      "next_cursor": null
+    }
+  ]
+}

@@ -377,6 +377,10 @@
     "extensions": {
       "$ref": "common.schema.json#/$defs/extensions",
       "description": "Optional namespaced nonsecret extension data."
+    },
+    "credential_namespace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Optional nonsecret local credential-store namespace, defaulting to workspace_id. Restore preserves the independently configured destination namespace when adopting source catalog identity; it never copies credential values."
     }
   },
   "required": [

@@ -12,9 +12,9 @@ d:I[9986,["/_next/static/chunks/3r0pkompf71h8.js"],"default",1]
 :HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","image"]
 :HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","image"]
 8:X
-0:{"P":null,"c":["","docs","v0.0.0","glossary",""],"q":"","i":false,"f":[[["",{"children":["docs",{"children":[["version","v0.0.0","d",[]],{"children":[["slug","glossary","d",["references"]],{"children":["__PAGE__",{},"$undefined","$undefined",4608]},"$undefined","$undefined",4608]},"$undefined","$undefined",4608]},"$undefined","$undefined",4608]},"$undefined","$undefined",4624],[["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2f820ds2jcjl9.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}],["$","script","script-0",{"src":"/_next/static/chunks/3r0pkompf71h8.js","async":true,"nonce":"$undefined"}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","meta",null,{"name":"color-scheme","content":"light dark"}],["$","script",null,{"src":"/theme-init.js"}],["$","link",null,{"rel":"stylesheet","href":"/brand/theme.css"}],["$","link",null,{"rel":"stylesheet","href":"/brand/fonts/fonts.css"}],["$","link",null,{"rel":"icon","href":"/brand/icons/web/favicon.ico"}],["$","link",null,{"rel":"apple-touch-icon","href":"/brand/icons/web/favicon-180x180.png"}]]}],["$","body",null,{"children":[["$","a",null,{"className":"skip-link","href":"#main","children":"Skip to content"}],["$","header",null,{"className":"site-header","children":[["$","a",null,{"className":"brand-link","href":"/","aria-label":"insonic home","children":[["$","img",null,{"className":"theme-logo-light","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","alt":"insonic","width":"240","height":"64"}],["$","img",null,{"className":"theme-logo-dark","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","alt":"insonic","width":"240","height":"64"}]]}],["$","nav",null,{"aria-label":"Main navigation","children":[["$","a",null,{"href":"/docs/","children":"Documentation"}],["$","a",null,{"href":"https://github.com/shruggietech/insonic","children":"Repository"}],["$","button",null,{"id":"theme-toggle","className":"theme-toggle","type":"button","role":"switch","aria-label":"Dark mode","aria-checked":"false","title":"Switch to dark theme","children":[["$","svg",null,{"className":"theme-icon-moon","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","aria-hidden":"true","children":["$","path",null,{"d":"M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"}]}],["$","svg",null,{"className":"theme-icon-sun","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","aria-hidden":"true","children":[["$","circle",null,{"cx":"12","cy":"12","r":"4"}],["$","path",null,{"d":"M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"}]]}]]}]]}]]}],["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","main",null,{"id":"main","className":"landing","children":[["$","h1",null,{"children":"Page not found"}],["$","p",null,{"children":"This documentation page is unavailable."}],["$","a",null,{"href":"/docs/","children":"Browse documentation versions"}]]}],[]],"forbidden":"$undefined","unauthorized":"$undefined"}],["$","footer",null,{"className":"site-footer","children":[["$","p",null,{"children":["A ",["$","a",null,{"href":"https://shruggie.tech/","children":"ShruggieTech"}]," project."]}],["$","p",null,{"children":"Apache 2.0. Documentation versions are published with their corresponding releases."}]]}],["$","script",null,{"src":"/site-runtime.js","defer":true}]]}]]}]]}],{"children":[["$","$1","c",{"children":[null,[["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}],["$","script",null,{"src":"/docs-runtime.js","defer":true}]]]}],{"children":[["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":[["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":[["$","$1","c",{"children":["$L4",null,["$","$L5",null,{"children":["$","$6",null,{"name":"Next.MetadataOutlet","children":"$@7"}]}]]}],{},null,false,null]},null,false,"$8"]},null,false,"$8"]},null,false,null]},null,false,null],["$","$1","h",{"children":[null,["$","$L9",null,{"children":"$La"}],["$","div",null,{"hidden":true,"children":["$","$Lb",null,{"children":["$","$6",null,{"name":"Next.Metadata","children":"$Lc"}]}]}],null]}],false]],"m":"$undefined","G":["$d",[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2f820ds2jcjl9.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]]],"S":true,"h":null,"r":"$undefined","s":"$undefined","a":"$undefined","l":"$undefined","p":"$undefined","d":"$undefined","b":"UP2DAMZFZGDq8wVxrOQfA"}
+0:{"P":null,"c":["","docs","v0.0.0","glossary",""],"q":"","i":false,"f":[[["",{"children":["docs",{"children":[["version","v0.0.0","d",[]],{"children":[["slug","glossary","d",["references"]],{"children":["__PAGE__",{},"$undefined","$undefined",4608]},"$undefined","$undefined",4608]},"$undefined","$undefined",4608]},"$undefined","$undefined",4608]},"$undefined","$undefined",4624],[["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2f820ds2jcjl9.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}],["$","script","script-0",{"src":"/_next/static/chunks/3r0pkompf71h8.js","async":true,"nonce":"$undefined"}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","meta",null,{"name":"color-scheme","content":"light dark"}],["$","script",null,{"src":"/theme-init.js"}],["$","link",null,{"rel":"stylesheet","href":"/brand/theme.css"}],["$","link",null,{"rel":"stylesheet","href":"/brand/fonts/fonts.css"}],["$","link",null,{"rel":"icon","href":"/brand/icons/web/favicon.ico"}],["$","link",null,{"rel":"apple-touch-icon","href":"/brand/icons/web/favicon-180x180.png"}]]}],["$","body",null,{"children":[["$","a",null,{"className":"skip-link","href":"#main","children":"Skip to content"}],["$","header",null,{"className":"site-header","children":[["$","a",null,{"className":"brand-link","href":"/","aria-label":"insonic home","children":[["$","img",null,{"className":"theme-logo-light","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","alt":"insonic","width":"240","height":"64"}],["$","img",null,{"className":"theme-logo-dark","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","alt":"insonic","width":"240","height":"64"}]]}],["$","nav",null,{"aria-label":"Main navigation","children":[["$","a",null,{"href":"/docs/","children":"Documentation"}],["$","a",null,{"href":"https://github.com/shruggietech/insonic","children":"Repository"}],["$","button",null,{"id":"theme-toggle","className":"theme-toggle","type":"button","role":"switch","aria-label":"Dark mode","aria-checked":"false","title":"Switch to dark theme","children":[["$","svg",null,{"className":"theme-icon-moon","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","aria-hidden":"true","children":["$","path",null,{"d":"M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"}]}],["$","svg",null,{"className":"theme-icon-sun","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","aria-hidden":"true","children":[["$","circle",null,{"cx":"12","cy":"12","r":"4"}],["$","path",null,{"d":"M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"}]]}]]}]]}]]}],["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","main",null,{"id":"main","className":"landing","children":[["$","h1",null,{"children":"Page not found"}],["$","p",null,{"children":"This documentation page is unavailable."}],["$","a",null,{"href":"/docs/","children":"Browse documentation versions"}]]}],[]],"forbidden":"$undefined","unauthorized":"$undefined"}],["$","footer",null,{"className":"site-footer","children":[["$","p",null,{"children":["A ",["$","a",null,{"href":"https://shruggie.tech/","children":"ShruggieTech"}]," project."]}],["$","p",null,{"children":"Apache 2.0. Documentation versions are published with their corresponding releases."}]]}],["$","script",null,{"src":"/site-runtime.js","defer":true}]]}]]}]]}],{"children":[["$","$1","c",{"children":[null,[["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}],["$","script",null,{"src":"/docs-runtime.js","defer":true}]]]}],{"children":[["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":[["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":[["$","$1","c",{"children":["$L4",null,["$","$L5",null,{"children":["$","$6",null,{"name":"Next.MetadataOutlet","children":"$@7"}]}]]}],{},null,false,null]},null,false,"$8"]},null,false,"$8"]},null,false,null]},null,false,null],["$","$1","h",{"children":[null,["$","$L9",null,{"children":"$La"}],["$","div",null,{"hidden":true,"children":["$","$Lb",null,{"children":["$","$6",null,{"name":"Next.Metadata","children":"$Lc"}]}]}],null]}],false]],"m":"$undefined","G":["$d",[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2f820ds2jcjl9.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]]],"S":true,"h":null,"r":"$undefined","s":"$undefined","a":"$undefined","l":"$undefined","p":"$undefined","d":"$undefined","b":"rv3yG5SYwFyMB7bFKOAv4"}
 8:C
-e:T94c7,<h1 id="glossary">Glossary</h1>
+e:Tabfb,<h1 id="glossary">Glossary</h1>
 <p>This glossary defines the technical vocabulary used in the system contracts. Each entry links to a primary learning resource and the local pages where the term is used most heavily. External references explain the underlying technology; the linked insonic contracts define its application here.</p>
 <table>
 <thead>
@@ -31,9 +31,34 @@ e:T94c7,<h1 id="glossary">Glossary</h1>
 <td><a href="https://go.dev/tour/methods/9">Go interfaces</a>; <a href="/docs/v0.0.0/pipelines/">Pipelines</a>, <a href="/docs/v0.0.0/architecture/">architecture</a></td>
 </tr>
 <tr>
+<td>Corresponding source</td>
+<td>The exact source, build configuration and required dependency material accompanying a distributed native binary, with its applicable notices.</td>
+<td><a href="https://ffmpeg.org/legal.html">FFmpeg distribution guidance</a>; <a href="/docs/v0.0.0/releases/">Releases</a>, <a href="/docs/v0.0.0/technology/">technology</a></td>
+</tr>
+<tr>
+<td>Reference-only backup</td>
+<td>A catalog and immutable object inventory that deliberately depends on the original artifact store; persistent backup references block normal cleanup until release.</td>
+<td><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html">S3 versioning</a>; <a href="/docs/v0.0.0/storage/">Storage</a>, <a href="/docs/v0.0.0/contracts/">contracts</a></td>
+</tr>
+<tr>
+<td>Self-contained backup</td>
+<td>A verified catalog snapshot and complete retained byte inventory that can restore current authority without the original store.</td>
+<td><a href="https://www.sqlite.org/backup.html">SQLite backup concepts</a>; <a href="/docs/v0.0.0/storage/">Storage</a>, <a href="/docs/v0.0.0/contracts/">contracts</a></td>
+</tr>
+<tr>
 <td>Alias</td>
 <td>A revisioned name for a catalog speaker, with scope and provenance; identical text does not automatically merge identities.</td>
 <td><a href="https://www.w3.org/TR/prov-dm/">W3C provenance model</a>; <a href="/docs/v0.0.0/speakers/">Speakers</a>, <a href="/docs/v0.0.0/schema/">schema</a></td>
+</tr>
+<tr>
+<td>Model alias</td>
+<td>A revisioned workspace convenience reference to one exact model target; retargeting affects future elections while historical jobs keep their selected identities.</td>
+<td><a href="https://huggingface.co/docs/huggingface_hub/main/guides/download">Revision-pinned downloads</a>; <a href="/docs/v0.0.0/models/">Models</a>, <a href="/docs/v0.0.0/pipelines/">pipelines</a></td>
+</tr>
+<tr>
+<td>Model acquisition dependency</td>
+<td>Durable verified bundle acquisition that must succeed before a dependent processing stage runs; multiple consumers can share it without occupying waiting worker slots.</td>
+<td><a href="https://csrc.nist.gov/pubs/fips/180-4/upd1/final">Content identity</a>; <a href="/docs/v0.0.0/models/">Models</a>, <a href="/docs/v0.0.0/pipelines/">pipelines</a></td>
 </tr>
 <tr>
 <td>Alignment</td>
@@ -52,7 +77,7 @@ e:T94c7,<h1 id="glossary">Glossary</h1>
 </tr>
 <tr>
 <td>Artifact</td>
-<td>An immutable byte object, such as original media, a metadata report, a subtitle document or model weights, with digest and location records.</td>
+<td>An immutable byte object, such as original media, a metadata report, mapped audio or model weights, with digest and location records.</td>
 <td><a href="https://www.w3.org/TR/prov-dm/">W3C provenance model</a>; <a href="/docs/v0.0.0/storage/">Storage</a>, <a href="/docs/v0.0.0/schema/">schema</a></td>
 </tr>
 <tr>
@@ -74,6 +99,31 @@ e:T94c7,<h1 id="glossary">Glossary</h1>
 <td>Authenticated encryption</td>
 <td>Encryption that also detects ciphertext modification, used by an encrypted credential vault through maintained libraries.</td>
 <td><a href="https://www.rfc-editor.org/rfc/rfc5116">Authenticated encryption standard</a>; <a href="/docs/v0.0.0/security/">security</a></td>
+</tr>
+<tr>
+<td>Canonical audio</td>
+<td>The durable standardized recording audio, with source provenance and independent track clocks; model preparation is disposable.</td>
+<td><a href="https://ffmpeg.org/ffmpeg-formats.html">FFmpeg formats</a>; <a href="/docs/v0.0.0/media/">Media</a>, <a href="/docs/v0.0.0/ingestion/">ingestion</a></td>
+</tr>
+<tr>
+<td>FLAC</td>
+<td>Lossless integer audio encoding used for stereo, larger channel layouts and grouped tracks.</td>
+<td><a href="https://xiph.org/flac/format.html">FLAC format</a>; <a href="/docs/v0.0.0/media/">Media</a></td>
+</tr>
+<tr>
+<td>Matroska audio (.mka)</td>
+<td>An audio-only container grouping independent tracks with language and timestamp metadata.</td>
+<td><a href="https://www.matroska.org/technical/elements.html">Matroska specification</a>; <a href="/docs/v0.0.0/media/">Media</a>, <a href="/docs/v0.0.0/desktop/">desktop</a></td>
+</tr>
+<tr>
+<td>MP3 V0</td>
+<td>High-quality variable-bitrate MP3 encoding for eligible lossy mono sources, subject to the FLAC override.</td>
+<td><a href="https://lame.sourceforge.io/using.php">LAME documentation</a>; <a href="/docs/v0.0.0/media/">Media</a></td>
+</tr>
+<tr>
+<td>Recording-local speaker token</td>
+<td>An exact upstream-valid identifier scoped to one recording/document, distinct from a known-person UUID.</td>
+<td><a href="https://github.com/shruggietech/cueson/blob/v1.2.0/docs/consumer-speakers.md">Cueson consumer contract</a>; <a href="/docs/v0.0.0/subtitles/">Subtitles</a>, <a href="/docs/v0.0.0/speakers/">speakers</a></td>
 </tr>
 <tr>
 <td>Catalog</td>
@@ -143,16 +193,16 @@ e:T94c7,<h1 id="glossary">Glossary</h1>
 <tr>
 <td>Cue JSON</td>
 <td>Cueson's schema-governed subtitle document, including source bytes, common cues and native-format fields.</td>
-<td><a href="https://github.com/shruggietech/cueson/blob/v1.1.0/docs/schema.md">Cueson schema</a>; <a href="/docs/v0.0.0/subtitles/">Subtitles</a>, <a href="/docs/v0.0.0/contracts/">contracts</a></td>
+<td><a href="https://github.com/shruggietech/cueson/blob/v1.2.0/docs/schema.md">Cueson schema</a>; <a href="/docs/v0.0.0/subtitles/">Subtitles</a>, <a href="/docs/v0.0.0/contracts/">contracts</a></td>
 </tr>
 <tr>
 <td>Cueson</td>
 <td>The required upstream executable and schema that govern subtitle admission, normalization, validation and rendering.</td>
-<td><a href="https://github.com/shruggietech/cueson/blob/v1.1.0/docs/schema.md">Cueson schema</a>; <a href="/docs/v0.0.0/subtitles/">Subtitles</a>, <a href="/docs/v0.0.0/technology/">technology</a></td>
+<td><a href="https://github.com/shruggietech/cueson/blob/v1.2.0/docs/schema.md">Cueson schema</a>; <a href="/docs/v0.0.0/subtitles/">Subtitles</a>, <a href="/docs/v0.0.0/technology/">technology</a></td>
 </tr>
 <tr>
 <td>Dataset snapshot</td>
-<td>Immutable selected corpus membership and exact source, segment, attribution and transcript revisions for a training job.</td>
+<td>A bounded selection of current recording/document/cue references and source digests for training; replacement invalidates obsolete preparation instead of retaining copied assignments.</td>
 <td><a href="https://openlineage.io/docs/spec/object-model/">OpenLineage model</a>; <a href="/docs/v0.0.0/voice-models/">Voice models</a>, <a href="/docs/v0.0.0/schema/">schema</a></td>
 </tr>
 <tr>
@@ -447,7 +497,7 @@ e:T94c7,<h1 id="glossary">Glossary</h1>
 </tr>
 <tr>
 <td>Revision</td>
-<td>An immutable version of evidence or a recorded change to a selection/association; identifiers retain what a job or result used.</td>
+<td>An accepted change identity or current association revision; source/model provenance can persist without retaining superseded transcript or assignment copies.</td>
 <td><a href="https://www.w3.org/TR/prov-dm/">W3C provenance model</a>; <a href="/docs/v0.0.0/schema/">Schema</a>, <a href="/docs/v0.0.0/speakers/">speakers</a></td>
 </tr>
 <tr>
@@ -476,14 +526,39 @@ e:T94c7,<h1 id="glossary">Glossary</h1>
 <td><a href="https://github.com/pyannote/pyannote-audio">pyannote audio</a>; <a href="/docs/v0.0.0/speakers/">Speakers</a>, <a href="/docs/v0.0.0/schema/">schema</a></td>
 </tr>
 <tr>
+<td>Speaker roster</td>
+<td>Revisioned declared membership from a stable recording to centralized speaker identities, independent of transcript assignments and acoustic evidence.</td>
+<td><a href="https://www.sqlite.org/foreignkeys.html">SQLite foreign keys</a>; <a href="/docs/v0.0.0/speakers/#declared-recording-rosters">Speakers</a>, <a href="/docs/v0.0.0/schema/">schema</a></td>
+</tr>
+<tr>
 <td>Speaker audio segment</td>
 <td>A source-timed audio interval with stream/channel and acoustic evidence, linked separately to revisioned speaker attribution.</td>
 <td><a href="https://github.com/pyannote/pyannote-audio">pyannote audio</a>; <a href="/docs/v0.0.0/speakers/">Speakers</a>, <a href="/docs/v0.0.0/voice-models/">voice models</a></td>
 </tr>
 <tr>
 <td>Speaker model</td>
-<td>A trained, versioned artifact retaining its originating speaker, immutable dataset snapshot and processing receipt.</td>
+<td>A trained, versioned artifact retaining its originating speaker, source-reference digests, dataset/run identity and processing receipt.</td>
 <td><a href="https://docs.pytorch.org/tutorials/beginner/saving_loading_models.html">PyTorch model persistence</a>; <a href="/docs/v0.0.0/voice-models/">Voice models</a>, <a href="/docs/v0.0.0/schema/">schema</a></td>
+</tr>
+<tr>
+<td>Speaker profile</td>
+<td>A revisioned current association from a known speaker identity to an exact compatible model version. Clearing it leaves the immutable originating model output intact.</td>
+<td><a href="https://github.com/pyannote/pyannote-audio/blob/4.0.7/src/pyannote/audio/pipelines/speaker_verification.py">pyannote speaker verification</a>; <a href="/docs/v0.0.0/voice-models/">Voice models</a>, <a href="/docs/v0.0.0/models/">models</a></td>
+</tr>
+<tr>
+<td>Embedding enrollment</td>
+<td>Constructing a speaker profile from normalized embeddings of independently confirmed current audio. It reuses an elected encoder and does not claim to train that encoder's weights.</td>
+<td><a href="https://github.com/pyannote/pyannote-audio/blob/4.0.7/src/pyannote/audio/pipelines/speaker_verification.py">pyannote speaker verification</a>; <a href="/docs/v0.0.0/voice-models/">Voice models</a></td>
+</tr>
+<tr>
+<td>Cosine similarity</td>
+<td>The normalized vector dot product used to compare compatible voice embeddings. Matching also requires enough evidence, an elected score threshold and separation from the runner-up.</td>
+<td><a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.functional.cosine_similarity.html">PyTorch cosine similarity</a>; <a href="/docs/v0.0.0/voice-models/#roster-constrained-matching">Voice models</a></td>
+</tr>
+<tr>
+<td>Unknown / ambiguous match</td>
+<td>Unknown means no eligible candidate meets the configured evidence and score rules. Ambiguous means eligible leading candidates cannot be separated by the elected margin; no named mapping is published.</td>
+<td><a href="https://github.com/pyannote/pyannote-audio/blob/4.0.7/src/pyannote/audio/pipelines/speaker_verification.py">pyannote speaker verification</a>; <a href="/docs/v0.0.0/voice-models/#roster-constrained-matching">Voice models</a></td>
 </tr>
 <tr>
 <td>Spec Kit / work slice</td>
@@ -508,7 +583,7 @@ e:T94c7,<h1 id="glossary">Glossary</h1>
 <tr>
 <td>Subtitle formats (SRT, WebVTT, ASS, SSA)</td>
 <td>Native timed-text formats admitted/rendered by Cueson as subrip, webvtt, ass and ssa, with format-specific fields and limitations.</td>
-<td><a href="https://github.com/shruggietech/cueson/blob/v1.1.0/docs/schema.md">Cueson schema</a>; <a href="/docs/v0.0.0/subtitles/">Subtitles</a></td>
+<td><a href="https://github.com/shruggietech/cueson/blob/v1.2.0/docs/schema.md">Cueson schema</a>; <a href="/docs/v0.0.0/subtitles/">Subtitles</a></td>
 </tr>
 <tr>
 <td>Term</td>
@@ -537,8 +612,8 @@ e:T94c7,<h1 id="glossary">Glossary</h1>
 </tr>
 <tr>
 <td>Transcript revision</td>
-<td>An immutable normalized subtitle document and its provenance, with an explicit current selection.</td>
-<td><a href="https://github.com/shruggietech/cueson/blob/v1.1.0/docs/schema.md">Cueson schema</a>; <a href="/docs/v0.0.0/subtitles/">Subtitles</a>, <a href="/docs/v0.0.0/schema/">schema</a></td>
+<td>The current embedded Cue JSON and accepted change identity; superseded transcripts/assignments are physically removed, with noncontent receipts preserving provenance.</td>
+<td><a href="https://github.com/shruggietech/cueson/blob/v1.2.0/docs/schema.md">Cueson schema</a>; <a href="/docs/v0.0.0/subtitles/">Subtitles</a>, <a href="/docs/v0.0.0/schema/">schema</a></td>
 </tr>
 <tr>
 <td>TypeScript</td>
@@ -582,7 +657,7 @@ e:T94c7,<h1 id="glossary">Glossary</h1>
 </tr>
 </tbody>
 </table>
-4:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"className":"docs-sidebar","children":["$","nav",null,{"aria-label":"Documentation v0.0.0","children":[["$","a",null,{"className":"version-label","href":"/docs/","children":["v","0.0.0"," · ","specification"]}],["$","ul",null,{"children":[["$","li","index",{"children":["$","a",null,{"href":"/docs/v0.0.0/index/","aria-current":"$undefined","children":"Start here"}]}],["$","li","product",{"children":["$","a",null,{"href":"/docs/v0.0.0/product/","aria-current":"$undefined","children":"Product and requirements"}]}],["$","li","architecture",{"children":["$","a",null,{"href":"/docs/v0.0.0/architecture/","aria-current":"$undefined","children":"System architecture"}]}],["$","li","technology",{"children":["$","a",null,{"href":"/docs/v0.0.0/technology/","aria-current":"$undefined","children":"Technology decisions"}]}],["$","li","ingestion",{"children":["$","a",null,{"href":"/docs/v0.0.0/ingestion/","aria-current":"$undefined","children":"Import, metadata and dates"}]}],["$","li","media",{"children":["$","a",null,{"href":"/docs/v0.0.0/media/","aria-current":"$undefined","children":"Media and provenance"}]}],["$","li","pipelines",{"children":["$","a",null,{"href":"/docs/v0.0.0/pipelines/","aria-current":"$undefined","children":"Pipelines and adapters"}]}],["$","li","subtitles",{"children":["$","a",null,{"href":"/docs/v0.0.0/subtitles/","aria-current":"$undefined","children":"Cueson and subtitles"}]}],["$","li","speakers",{"children":["$","a",null,{"href":"/docs/v0.0.0/speakers/","aria-current":"$undefined","children":"Speakers and terminology"}]}],["$","li","voice-models",{"children":["$","a",null,{"href":"/docs/v0.0.0/voice-models/","aria-current":"$undefined","children":"Speaker audio and voice models"}]}],["$","li","graph",{"children":["$","a",null,{"href":"/docs/v0.0.0/graph/","aria-current":"$undefined","children":"Queries, timeline and graph"}]}],["$","li","storage",{"children":["$","a",null,{"href":"/docs/v0.0.0/storage/","aria-current":"$undefined","children":"Installation and storage"}]}],["$","li","schema",{"children":["$","a",null,{"href":"/docs/v0.0.0/schema/","aria-current":"$undefined","children":"Storage and catalog schema"}]}],["$","li","contracts",{"children":["$","a",null,{"href":"/docs/v0.0.0/contracts/","aria-current":"$undefined","children":"JSON contracts"}]}],["$","li","security",{"children":["$","a",null,{"href":"/docs/v0.0.0/security/","aria-current":"$undefined","children":"Credentials and data access"}]}],["$","li","desktop",{"children":["$","a",null,{"href":"/docs/v0.0.0/desktop/","aria-current":"$undefined","children":"CLI and desktop experience"}]}],["$","li","development",{"children":["$","a",null,{"href":"/docs/v0.0.0/development/","aria-current":"$undefined","children":"Development workflow"}]}],["$","li","releases",{"children":["$","a",null,{"href":"/docs/v0.0.0/releases/","aria-current":"$undefined","children":"Brand, docs and releases"}]}],["$","li","roadmap",{"children":["$","a",null,{"href":"/docs/v0.0.0/roadmap/","aria-current":"$undefined","children":"Delivery outcomes"}]}],["$","li","glossary",{"children":["$","a",null,{"href":"/docs/v0.0.0/glossary/","aria-current":"page","children":"Glossary"}]}],["$","li","changelog",{"children":["$","a",null,{"href":"/docs/v0.0.0/changelog/","aria-current":"$undefined","children":"Changelog"}]}]]}]]}]}],["$","main",null,{"id":"main","className":"docs-main","children":[["$","p",null,{"className":"eyebrow","children":["insonic · v","0.0.0"]}],["$","article",null,{"className":"prose","dangerouslySetInnerHTML":{"__html":"$e"}}],"$Lf"]}],"$L10"]}]
+4:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"className":"docs-sidebar","children":["$","nav",null,{"aria-label":"Documentation v0.0.0","children":[["$","a",null,{"className":"version-label","href":"/docs/","children":["v","0.0.0"," · ","specification"]}],["$","ul",null,{"children":[["$","li","index",{"children":["$","a",null,{"href":"/docs/v0.0.0/index/","aria-current":"$undefined","children":"Start here"}]}],["$","li","product",{"children":["$","a",null,{"href":"/docs/v0.0.0/product/","aria-current":"$undefined","children":"Product and requirements"}]}],["$","li","architecture",{"children":["$","a",null,{"href":"/docs/v0.0.0/architecture/","aria-current":"$undefined","children":"System architecture"}]}],["$","li","technology",{"children":["$","a",null,{"href":"/docs/v0.0.0/technology/","aria-current":"$undefined","children":"Technology decisions"}]}],["$","li","ingestion",{"children":["$","a",null,{"href":"/docs/v0.0.0/ingestion/","aria-current":"$undefined","children":"Import, metadata and dates"}]}],["$","li","media",{"children":["$","a",null,{"href":"/docs/v0.0.0/media/","aria-current":"$undefined","children":"Media and provenance"}]}],["$","li","pipelines",{"children":["$","a",null,{"href":"/docs/v0.0.0/pipelines/","aria-current":"$undefined","children":"Pipelines and adapters"}]}],["$","li","subtitles",{"children":["$","a",null,{"href":"/docs/v0.0.0/subtitles/","aria-current":"$undefined","children":"Cueson and subtitles"}]}],["$","li","speakers",{"children":["$","a",null,{"href":"/docs/v0.0.0/speakers/","aria-current":"$undefined","children":"Speakers and terminology"}]}],["$","li","voice-models",{"children":["$","a",null,{"href":"/docs/v0.0.0/voice-models/","aria-current":"$undefined","children":"Speaker audio and voice models"}]}],["$","li","graph",{"children":["$","a",null,{"href":"/docs/v0.0.0/graph/","aria-current":"$undefined","children":"Queries, timeline and graph"}]}],["$","li","storage",{"children":["$","a",null,{"href":"/docs/v0.0.0/storage/","aria-current":"$undefined","children":"Installation and storage"}]}],["$","li","schema",{"children":["$","a",null,{"href":"/docs/v0.0.0/schema/","aria-current":"$undefined","children":"Storage and catalog schema"}]}],["$","li","contracts",{"children":["$","a",null,{"href":"/docs/v0.0.0/contracts/","aria-current":"$undefined","children":"JSON contracts"}]}],["$","li","security",{"children":["$","a",null,{"href":"/docs/v0.0.0/security/","aria-current":"$undefined","children":"Credentials and data access"}]}],["$","li","secrets",{"children":["$","a",null,{"href":"/docs/v0.0.0/secrets/","aria-current":"$undefined","children":"Credential commands"}]}],["$","li","models",{"children":["$","a",null,{"href":"/docs/v0.0.0/models/","aria-current":"$undefined","children":"Downloaded models"}]}],["$","li","desktop",{"children":["$","a",null,{"href":"/docs/v0.0.0/desktop/","aria-current":"$undefined","children":"CLI and desktop experience"}]}],["$","li","development",{"children":["$","a",null,{"href":"/docs/v0.0.0/development/","aria-current":"$undefined","children":"Development workflow"}]}],["$","li","releases",{"children":["$","a",null,{"href":"/docs/v0.0.0/releases/","aria-current":"$undefined","children":"Brand, docs and releases"}]}],["$","li","roadmap",{"children":["$","a",null,{"href":"/docs/v0.0.0/roadmap/","aria-current":"$undefined","children":"Delivery outcomes"}]}],["$","li","glossary",{"children":["$","a",null,{"href":"/docs/v0.0.0/glossary/","aria-current":"page","children":"Glossary"}]}],["$","li","changelog",{"children":["$","a",null,{"href":"/docs/v0.0.0/changelog/","aria-current":"$undefined","children":"Changelog"}]}]]}]]}]}],["$","main",null,{"id":"main","className":"docs-main","children":[["$","p",null,{"className":"eyebrow","children":["insonic · v","0.0.0"]}],["$","article",null,{"className":"prose","dangerouslySetInnerHTML":{"__html":"$e"}}],"$Lf"]}],"$L10"]}]
 f:["$","nav",null,{"className":"page-navigation","aria-label":"Previous and next page","children":[["$","a",null,{"href":"/docs/v0.0.0/roadmap/","children":["← ","Delivery outcomes"]}],["$","a",null,{"href":"/docs/v0.0.0/changelog/","children":["Changelog"," →"]}]]}]
 10:["$","aside",null,{"className":"table-of-contents","children":["$","nav",null,{"aria-label":"On this page","children":[["$","h2",null,{"children":"On this page"}],["$","ul",null,{"children":[]}]]}]}]
 a:[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]

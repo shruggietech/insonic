@@ -15,7 +15,7 @@
     },
     "snapshot_id": {
       "$ref": "common.schema.json#/$defs/uuid",
-      "description": "Stable identity of the immutable capture snapshot."
+      "description": "Stable identity of the current capture report; refresh replaces it and retires superseded computed output."
     },
     "workspace_id": {
       "$ref": "common.schema.json#/$defs/uuid",
@@ -641,7 +641,7 @@
           },
           "timezone": {
             "$ref": "common.schema.json#/$defs/timezone",
-            "description": "Captured effective IANA zone or offset; the unresolved selector local is not valid in an immutable interpreted snapshot.",
+            "description": "Captured effective IANA zone or offset; the unresolved selector local is not valid in a persisted interpreted capture.",
             "allOf": [
               {
                 "not": {

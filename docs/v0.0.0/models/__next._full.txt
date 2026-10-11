@@ -1,0 +1,191 @@
+1:"$Sreact.fragment"
+2:I[36064,["/_next/static/chunks/3r0pkompf71h8.js"],"default"]
+3:I[81497,["/_next/static/chunks/3r0pkompf71h8.js"],"default"]
+5:I[75049,["/_next/static/chunks/3r0pkompf71h8.js"],"OutletBoundary"]
+6:"$Sreact.suspense"
+9:I[75049,["/_next/static/chunks/3r0pkompf71h8.js"],"ViewportBoundary"]
+b:I[75049,["/_next/static/chunks/3r0pkompf71h8.js"],"MetadataBoundary"]
+d:I[9986,["/_next/static/chunks/3r0pkompf71h8.js"],"default",1]
+:HL["/_next/static/chunks/2f820ds2jcjl9.css","style"]
+:HL["/brand/theme.css","style"]
+:HL["/brand/fonts/fonts.css","style"]
+:HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","image"]
+:HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","image"]
+8:X
+0:{"P":null,"c":["","docs","v0.0.0","models",""],"q":"","i":false,"f":[[["",{"children":["docs",{"children":[["version","v0.0.0","d",[]],{"children":[["slug","models","d",["references"]],{"children":["__PAGE__",{},"$undefined","$undefined",4608]},"$undefined","$undefined",4608]},"$undefined","$undefined",4608]},"$undefined","$undefined",4608]},"$undefined","$undefined",4624],[["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2f820ds2jcjl9.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}],["$","script","script-0",{"src":"/_next/static/chunks/3r0pkompf71h8.js","async":true,"nonce":"$undefined"}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","meta",null,{"name":"color-scheme","content":"light dark"}],["$","script",null,{"src":"/theme-init.js"}],["$","link",null,{"rel":"stylesheet","href":"/brand/theme.css"}],["$","link",null,{"rel":"stylesheet","href":"/brand/fonts/fonts.css"}],["$","link",null,{"rel":"icon","href":"/brand/icons/web/favicon.ico"}],["$","link",null,{"rel":"apple-touch-icon","href":"/brand/icons/web/favicon-180x180.png"}]]}],["$","body",null,{"children":[["$","a",null,{"className":"skip-link","href":"#main","children":"Skip to content"}],["$","header",null,{"className":"site-header","children":[["$","a",null,{"className":"brand-link","href":"/","aria-label":"insonic home","children":[["$","img",null,{"className":"theme-logo-light","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","alt":"insonic","width":"240","height":"64"}],["$","img",null,{"className":"theme-logo-dark","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","alt":"insonic","width":"240","height":"64"}]]}],["$","nav",null,{"aria-label":"Main navigation","children":[["$","a",null,{"href":"/docs/","children":"Documentation"}],["$","a",null,{"href":"https://github.com/shruggietech/insonic","children":"Repository"}],["$","button",null,{"id":"theme-toggle","className":"theme-toggle","type":"button","role":"switch","aria-label":"Dark mode","aria-checked":"false","title":"Switch to dark theme","children":[["$","svg",null,{"className":"theme-icon-moon","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","aria-hidden":"true","children":["$","path",null,{"d":"M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"}]}],["$","svg",null,{"className":"theme-icon-sun","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","aria-hidden":"true","children":[["$","circle",null,{"cx":"12","cy":"12","r":"4"}],["$","path",null,{"d":"M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"}]]}]]}]]}]]}],["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","main",null,{"id":"main","className":"landing","children":[["$","h1",null,{"children":"Page not found"}],["$","p",null,{"children":"This documentation page is unavailable."}],["$","a",null,{"href":"/docs/","children":"Browse documentation versions"}]]}],[]],"forbidden":"$undefined","unauthorized":"$undefined"}],["$","footer",null,{"className":"site-footer","children":[["$","p",null,{"children":["A ",["$","a",null,{"href":"https://shruggie.tech/","children":"ShruggieTech"}]," project."]}],["$","p",null,{"children":"Apache 2.0. Documentation versions are published with their corresponding releases."}]]}],["$","script",null,{"src":"/site-runtime.js","defer":true}]]}]]}]]}],{"children":[["$","$1","c",{"children":[null,[["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}],["$","script",null,{"src":"/docs-runtime.js","defer":true}]]]}],{"children":[["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":[["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L3",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],{"children":[["$","$1","c",{"children":["$L4",null,["$","$L5",null,{"children":["$","$6",null,{"name":"Next.MetadataOutlet","children":"$@7"}]}]]}],{},null,false,null]},null,false,"$8"]},null,false,"$8"]},null,false,null]},null,false,null],["$","$1","h",{"children":[null,["$","$L9",null,{"children":"$La"}],["$","div",null,{"hidden":true,"children":["$","$Lb",null,{"children":["$","$6",null,{"name":"Next.Metadata","children":"$Lc"}]}]}],null]}],false]],"m":"$undefined","G":["$d",[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2f820ds2jcjl9.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]]],"S":true,"h":null,"r":"$undefined","s":"$undefined","a":"$undefined","l":"$undefined","p":"$undefined","d":"$undefined","b":"rv3yG5SYwFyMB7bFKOAv4"}
+8:C
+e:T3e18,<h1 id="model-references-and-acquisition">Model references and acquisition</h1>
+<h2 id="exact-identities-and-short-references">Exact identities and short references</h2>
+<p>Downloaded base models declare exact names, model versions, upstream revisions,
+capabilities, license metadata and every required file's role, URL, SHA-256 and
+size. Name and version identify one immutable installation. A conflicting
+manifest for that pair is rejected; changed files require another version.
+Registration does not imply its bytes are available.</p>
+<p>Model references accept an installation UUID, <code>base:UUID</code>, <code>speaker:VERSION_UUID</code>,
+a workspace alias, or <code>source:NAME/SELECTOR</code>. Aliases use lowercase ASCII names
+of 1-64 characters, beginning with a letter and containing letters, digits,
+periods, underscores or hyphens. They cannot collide with UUID syntax. Alias
+targets declare one operation and exact base, speaker-version or hosted target.
+Names are unique within their workspace. Ambiguous or unknown references never
+select the first returned version or guess a download URL.</p>
+<p>Alias records have stable UUIDs and optimistic revisions. Retarget and remove
+require the current expected revision. Removal preserves a tombstone so an old
+edit cannot change a recreated alias; recreation uses the existing ID/revision.
+Changing an alias affects future submissions, never accepted job elections.</p>
+<p>Direct bundle acquisition reports an exact base target with an empty operation;
+accepting the bundle does not establish inference compatibility for a task.
+Pipeline inspection retains an unavailable reference as a <code>missing</code> selection
+with an <code>unresolved</code> target and the intended operation. It reports no model ID,
+manifest digest or upstream revision until resolution succeeds.
+An alias declared for another operation retains its exact target and reports
+the operation mismatch as incompatible.</p>
+<pre><code class="language-sh"><span class="hljs-title">insonic</span> models resolve speech-main <span class="hljs-attr">--operation</span> transcription <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> models resolve base:<span class="hljs-variable">MODEL_ID</span> <span class="hljs-attr">--operation</span> transcription <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> models <span class="hljs-built_in">alias</span> list <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> models <span class="hljs-built_in">alias</span> show <span class="hljs-variable">ALIAS_ID</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> models <span class="hljs-built_in">alias</span> <span class="hljs-built_in">set</span> <span class="hljs-variable">ALIAS_ID</span> <span class="hljs-attr">--input</span> alias-update.json <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> models <span class="hljs-built_in">alias</span> remove <span class="hljs-variable">ALIAS_ID</span> <span class="hljs-attr">--expected-revision</span> <span class="hljs-variable">REVISION</span> <span class="hljs-attr">--json</span>
+</code></pre>
+<p>For example, <code>alias-update.json</code> creates a transcription alias to a registered
+installation. Replace the example UUIDs with the selected stable IDs; retargeting
+uses the returned positive revision in <code>expected_revision</code>.</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;expected_revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;alias&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;10000000-0000-4000-8000-000000000051&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;speech-main&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;state&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;active&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;target&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;kind&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;base&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;10000000-0000-4000-8000-000000000052&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;operation&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;transcription&quot;</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<h2 id="configured-discovery">Configured discovery</h2>
+<p>Sources are explicit revisioned workspace records with a unique short name,
+catalog URL, optional opaque credential UUID and an explicit loopback HTTP
+exception. Discovery reads bounded metadata and reports declared entries,
+complete manifests, compatibility and availability separately. A discovered
+entry is not presented as a verified installed model. Custom manifests remain
+supported; no mandatory curated-model list is imposed.</p>
+<pre><code class="language-sh"><span class="hljs-title">insonic</span> models <span class="hljs-built_in">source</span> list <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> models <span class="hljs-built_in">source</span> <span class="hljs-built_in">set</span> <span class="hljs-variable">SOURCE_ID</span> <span class="hljs-attr">--input</span> source-update.json <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> models <span class="hljs-built_in">source</span> show <span class="hljs-variable">SOURCE_ID</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> models discover <span class="hljs-variable">SOURCE_ID</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> models resolve <span class="hljs-built_in">source</span>:custom/speech:v1 <span class="hljs-attr">--operation</span> transcription <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> models <span class="hljs-built_in">source</span> remove <span class="hljs-variable">SOURCE_ID</span> <span class="hljs-attr">--expected-revision</span> <span class="hljs-variable">REVISION</span> <span class="hljs-attr">--json</span>
+</code></pre>
+<p>A source update has <code>expected_revision</code> and a <code>source</code> object containing <code>id</code>,
+<code>name</code>, <code>state</code>, <code>url</code>, optional <code>credential_id</code> and <code>local_http</code>. New records use
+expected revision zero; updates/removal use the returned revision. Source URLs
+and file URLs must follow the configured transport policy: HTTPS by default,
+explicit loopback HTTP where permitted, no password/user information or query
+credentials, and same-origin redirects only. Saved credential values are not
+included in source records, manifests, durable work or status.
+Catalog content cannot authorize loopback file downloads. Such files require
+an owner-configured loopback source with its local opt-in enabled. An explicit
+owner-supplied manifest retains its own local transport option.</p>
+<p>The implemented source protocol is a <code>model-catalog</code> document with
+<code>schema_version</code>, and up to 128 <code>entries</code>, each containing <code>selector</code> and a
+complete <code>manifest</code>. Responses are bounded to 4 MiB. Selectors may represent
+tags or branches, but resolution freezes the returned exact bundle and its
+declared upstream revision. Catalog providers should supply immutable upstream
+revisions wherever available; unknown declarations remain explicit. Every file,
+including tokenizer/configuration auxiliaries, still requires SHA-256 and size.
+Updating the catalog later cannot change an existing election.</p>
+<p>Direct Hugging Face APIs/CDN downloads are not an implemented source adapter.
+An explicitly configured catalog can describe supported URLs; unsupported
+provider redirects or formats are diagnosed instead of silently changing the
+transport policy. <a href="https://huggingface.co/docs/huggingface_hub/main/guides/download">Revision-pinned acquisition guidance</a>
+explains why mutable branches are convenience selectors rather than job identity.</p>
+<h2 id="compatibility-before-execution">Compatibility before execution</h2>
+<p>Optional manifest <code>compatibility</code> declares <code>adapter</code>, <code>contract_version</code>,
+<code>architecture</code>, <code>runtime_format</code>, and optional <code>sample_rates</code> and <code>channels</code>.
+Inspection validates task, required file roles, adapter contract and audio
+requirements without loading a model. Available and compatible are different
+properties: custom bundles may be registered/acquired while lacking a supported
+execution adapter.</p>
+<p>Installed inventory includes declared capabilities and compatibility with the
+default adapter for each operation. Shared selectors use these summaries to
+label incompatible bundles while retaining exact identity and availability.
+Reference inspection checks the requested operation; a saved pipeline's
+inspection also checks its explicitly selected stage adapter.</p>
+<p>The current local adapters require contract version <code>1</code>. <code>faster-whisper</code>
+consumes Whisper/CTranslate2 files named <code>config.json</code>, <code>model.bin</code>,
+<code>tokenizer.json</code> and <code>vocabulary.txt</code>. <code>pyannote</code> consumes Pyannote/Torch files
+named <code>config.yaml</code>, <code>embedding/pytorch_model.bin</code>,
+<code>segmentation/pytorch_model.bin</code>, <code>plda/plda.npz</code> and
+<code>plda/xvec_transform.npz</code>. Matching is case-sensitive and role paths are confined.
+Their mapped engine input is 16000 Hz mono. Older accepted manifests without
+explicit compatibility retain their original digests and are checked against
+these established role contracts; they are not silently rewritten.</p>
+<p>Unsupported task/runtime/architecture/version, missing roles and incompatible
+audio requirements are diagnosed before inference. Downloading arbitrary
+weights does not make them executable. A failed local selection does not choose
+another model, device or hosted provider.</p>
+<h2 id="acquisition-and-dependent-work">Acquisition and dependent work</h2>
+<pre><code class="language-sh"><span class="hljs-title">insonic</span> models register model.json <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> models acquire model.json <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> work show <span class="hljs-variable">WORK_ID</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> work <span class="hljs-built_in">wait</span> <span class="hljs-variable">WORK_ID</span> <span class="hljs-attr">--timeout-ms</span> 30000 <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> models list <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> models show <span class="hljs-variable">MODEL_ID</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> models verify <span class="hljs-variable">MODEL_ID</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> models materialize <span class="hljs-variable">MODEL_ID</span> <span class="hljs-attr">--json</span>
+</code></pre>
+<p>Processing/import elections resolve references once, validate compatibility and
+freeze exact IDs, complete manifest digests, upstream/adapter identities and
+effective settings. Missing selected bundles acquire automatically before
+dependent processing. Saved pipeline inspection remains free of acquisition
+and inference. Direct processing fields and import's <code>--diarization-model-id</code>
+use the same reference grammar; see <a href="/docs/v0.0.0/pipelines/">pipelines</a> and
+<a href="/docs/v0.0.0/ingestion/">import</a>.</p>
+<p>Acquisition returns durable work immediately. Underlying acquisition is shared
+by exact workspace/bundle identity; explicit requests and processing consumers
+retain independently cancellable parent work. Waiting consumers leave worker
+slots free for acquisition. Work inspection identifies frozen selections,
+acquisition IDs and phase. A failed/cancelled dependency produces a diagnosed
+acquisition failure, not a completed pipeline. Retrying the parent repairs its
+original dependency without following a later alias or source change.</p>
+<p>Downloads resume bounded partial transfers, verify all hashes/sizes and publish
+files before accepting availability. Already available bytes are verified,
+not trusted by cache filename. Missing/corrupt bytes require exact recovery.
+Cancelled/stale work cannot publish a late processing result. Cancelling one
+consumer does not cancel shared acquisition still used by another consumer.</p>
+<p>Materialization returns verified local paths with renewable artifact leases.
+Release leases after the consumer finishes. Temporary/base caches are separate
+from durable speaker profiles and trained artifacts; their cleanup cannot purge
+trained output or active readers.</p>
+<h2 id="portability-and-speaker-versions">Portability and speaker versions</h2>
+<p>Artifacts use configured filesystem or generic S3 storage. Exact manifests,
+aliases, sources and model relationships use portable SQLite/PostgreSQL catalog
+records with schema migration and snapshot proof validation. Exports contain
+opaque credential references, not secret values or transient materialization
+paths. Graph relationships remain projections of catalog authority.</p>
+<p><code>speaker:VERSION_UUID</code> inspection preserves the existing family, producing
+speaker, training run, dataset and artifact lineage. Hosted-only targets retain
+their explicitly configured provider/remote handle and report that local
+downloadable weights are unavailable. Neither an alias nor a retained artifact
+fabricates a valid trained output or a runnable unsupported adapter.
+Local processing/import model selections require compatible base bundles.
+Hosted aliases support identity inspection; executing a hosted route uses the
+existing saved pipeline's explicit endpoint, remote model and adapter settings.
+Trained speaker references expose immutable output lineage. Compatible embedding
+profiles can be elected for roster-constrained identity matching; arbitrary
+trained weights require their declared consumer and are not substituted for a
+recognition or diarization base model. <a href="/docs/v0.0.0/voice-models/">Speaker-associated training</a>
+supports exact version discovery/fetch and revisioned current profile selection.
+The Models screen exposes these operations, while Speakers starts dataset creation
+and elected training and Library starts matching-only work.</p>
+<p>CLI/runtime and desktop share these operations. Models settings support
+reference configuration/discovery; shared selectors and Jobs distinguish exact
+identity, availability, compatibility and acquisition. See <a href="/docs/v0.0.0/desktop/">desktop</a>,
+the rendered <a href="/docs/v0.0.0/contracts/">JSON contracts</a> and <a href="/docs/v0.0.0/secrets/">credentials</a>.</p>
+4:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"className":"docs-sidebar","children":["$","nav",null,{"aria-label":"Documentation v0.0.0","children":[["$","a",null,{"className":"version-label","href":"/docs/","children":["v","0.0.0"," · ","specification"]}],["$","ul",null,{"children":[["$","li","index",{"children":["$","a",null,{"href":"/docs/v0.0.0/index/","aria-current":"$undefined","children":"Start here"}]}],["$","li","product",{"children":["$","a",null,{"href":"/docs/v0.0.0/product/","aria-current":"$undefined","children":"Product and requirements"}]}],["$","li","architecture",{"children":["$","a",null,{"href":"/docs/v0.0.0/architecture/","aria-current":"$undefined","children":"System architecture"}]}],["$","li","technology",{"children":["$","a",null,{"href":"/docs/v0.0.0/technology/","aria-current":"$undefined","children":"Technology decisions"}]}],["$","li","ingestion",{"children":["$","a",null,{"href":"/docs/v0.0.0/ingestion/","aria-current":"$undefined","children":"Import, metadata and dates"}]}],["$","li","media",{"children":["$","a",null,{"href":"/docs/v0.0.0/media/","aria-current":"$undefined","children":"Media and provenance"}]}],["$","li","pipelines",{"children":["$","a",null,{"href":"/docs/v0.0.0/pipelines/","aria-current":"$undefined","children":"Pipelines and adapters"}]}],["$","li","subtitles",{"children":["$","a",null,{"href":"/docs/v0.0.0/subtitles/","aria-current":"$undefined","children":"Cueson and subtitles"}]}],["$","li","speakers",{"children":["$","a",null,{"href":"/docs/v0.0.0/speakers/","aria-current":"$undefined","children":"Speakers and terminology"}]}],["$","li","voice-models",{"children":["$","a",null,{"href":"/docs/v0.0.0/voice-models/","aria-current":"$undefined","children":"Speaker audio and voice models"}]}],["$","li","graph",{"children":["$","a",null,{"href":"/docs/v0.0.0/graph/","aria-current":"$undefined","children":"Queries, timeline and graph"}]}],["$","li","storage",{"children":["$","a",null,{"href":"/docs/v0.0.0/storage/","aria-current":"$undefined","children":"Installation and storage"}]}],["$","li","schema",{"children":["$","a",null,{"href":"/docs/v0.0.0/schema/","aria-current":"$undefined","children":"Storage and catalog schema"}]}],["$","li","contracts",{"children":["$","a",null,{"href":"/docs/v0.0.0/contracts/","aria-current":"$undefined","children":"JSON contracts"}]}],["$","li","security",{"children":["$","a",null,{"href":"/docs/v0.0.0/security/","aria-current":"$undefined","children":"Credentials and data access"}]}],["$","li","secrets",{"children":["$","a",null,{"href":"/docs/v0.0.0/secrets/","aria-current":"$undefined","children":"Credential commands"}]}],["$","li","models",{"children":["$","a",null,{"href":"/docs/v0.0.0/models/","aria-current":"page","children":"Downloaded models"}]}],["$","li","desktop",{"children":["$","a",null,{"href":"/docs/v0.0.0/desktop/","aria-current":"$undefined","children":"CLI and desktop experience"}]}],["$","li","development",{"children":["$","a",null,{"href":"/docs/v0.0.0/development/","aria-current":"$undefined","children":"Development workflow"}]}],["$","li","releases",{"children":["$","a",null,{"href":"/docs/v0.0.0/releases/","aria-current":"$undefined","children":"Brand, docs and releases"}]}],["$","li","roadmap",{"children":["$","a",null,{"href":"/docs/v0.0.0/roadmap/","aria-current":"$undefined","children":"Delivery outcomes"}]}],["$","li","glossary",{"children":["$","a",null,{"href":"/docs/v0.0.0/glossary/","aria-current":"$undefined","children":"Glossary"}]}],["$","li","changelog",{"children":["$","a",null,{"href":"/docs/v0.0.0/changelog/","aria-current":"$undefined","children":"Changelog"}]}]]}]]}]}],["$","main",null,{"id":"main","className":"docs-main","children":[["$","p",null,{"className":"eyebrow","children":["insonic · v","0.0.0"]}],["$","article",null,{"className":"prose","dangerouslySetInnerHTML":{"__html":"$e"}}],"$Lf"]}],"$L10"]}]
+f:["$","nav",null,{"className":"page-navigation","aria-label":"Previous and next page","children":[["$","a",null,{"href":"/docs/v0.0.0/secrets/","children":["← ","Credential commands"]}],["$","a",null,{"href":"/docs/v0.0.0/desktop/","children":["CLI and desktop experience"," →"]}]]}]
+10:["$","aside",null,{"className":"table-of-contents","children":["$","nav",null,{"aria-label":"On this page","children":[["$","h2",null,{"children":"On this page"}],["$","ul",null,{"children":[["$","li","exact-identities-and-short-references",{"children":["$","a",null,{"href":"#exact-identities-and-short-references","children":"Exact identities and short references"}]}],["$","li","configured-discovery",{"children":["$","a",null,{"href":"#configured-discovery","children":"Configured discovery"}]}],["$","li","compatibility-before-execution",{"children":["$","a",null,{"href":"#compatibility-before-execution","children":"Compatibility before execution"}]}],["$","li","acquisition-and-dependent-work",{"children":["$","a",null,{"href":"#acquisition-and-dependent-work","children":"Acquisition and dependent work"}]}],["$","li","portability-and-speaker-versions",{"children":["$","a",null,{"href":"#portability-and-speaker-versions","children":"Portability and speaker versions"}]}]]}]]}]}]
+a:[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]
+7:null
+c:[["$","title","0",{"children":"Downloaded models (v0.0.0) | insonic"}],["$","meta","1",{"name":"description","content":"Voice archives, speaker models, and connected knowledge."}]]

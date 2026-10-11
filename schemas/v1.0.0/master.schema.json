@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/master.schema.json",
+  "title": "insonic system contract",
+  "description": "The versioned root of all insonic-owned interchange contracts. Each document identifies its kind and system schema version. Software, documentation and this registry share the same release version. Stable required fields define each operation while documented extension containers support adapter-specific values. Cueson documents retain their separate immutable upstream schema rather than being rewritten as an insonic format.",
+  "$defs": {
+    "common": {
+      "$ref": "common.schema.json",
+      "description": "Shared identities, digests, revisions, artifact references and extensible values used by the system contracts."
+    },
+    "import-manifest": {
+      "$ref": "import-manifest.schema.json",
+      "description": "Batch source admission with per-item origination dates, timezone interpretation, subtitle attachments and processing defaults."
+    },
+    "artifact-manifest": {
+      "$ref": "artifact-manifest.schema.json",
+      "description": "Immutable content identity, verified storage locations and producer provenance independent of local paths or object providers."
+    },
+    "metadata-snapshot": {
+      "$ref": "metadata-snapshot.schema.json",
+      "description": "Early raw metadata capture, qualified observations and explicit coverage/interpretation outcomes bound to original bytes."
+    },
+    "workspace-config": {
+      "$ref": "workspace-config.schema.json",
+      "description": "Workspace identity and independently selected artifact, catalog and graph profiles with secret references."
+    },
+    "pipeline-config": {
+      "$ref": "pipeline-config.schema.json",
+      "description": "Revisioned task routing, adapter capabilities, model options and configured automation without credential values."
+    },
+    "job-event": {
+      "$ref": "job-event.schema.json",
+      "description": "Machine-readable durable job progress with attempt identity, structured outcomes and provenance."
+    },
+    "graph-query": {
+      "$ref": "graph-query.schema.json",
+      "description": "Normalized or explicitly backend-tagged native graph queries, typed parameters and saved-view compatibility."
+    },
+    "speaker-segments": {
+      "$ref": "speaker-segments.schema.json",
+      "description": "Current source-linked speaker evidence across the library, resolved from sole current embedded documents and external identity mappings."
+    },
+    "speaker-dataset": {
+      "$ref": "speaker-dataset.schema.json",
+      "description": "Frozen speaker training membership, input revisions, preparation and diagnostics."
+    },
+    "speaker-model": {
+      "$ref": "speaker-model.schema.json",
+      "description": "Immutable model versions, originating speaker, dataset/run lineage, compatibility and artifact retrieval."
+    },
+    "catalog-snapshot": {
+      "$ref": "catalog-snapshot.schema.json",
+      "description": "Consistent portable catalog export including current pipelines, names, aliases, terms and evidence references, with latest accepted state proof and expired imported authority."
+    },
+    "runtime-request": {
+      "$ref": "runtime-request.schema.json",
+      "description": "Versioned shared-runtime operation envelope."
+    },
+    "runtime-response": {
+      "$ref": "runtime-response.schema.json",
+      "description": "Versioned shared-runtime operation envelope."
+    },
+    "base-model-manifest": {
+      "$ref": "base-model-manifest.schema.json",
+      "description": "Exact downloaded model manifests, upstream version/revision, capabilities/license and independently verified files."
+    },
+    "media-tools": {
+      "$ref": "media-tools.schema.json",
+      "description": "Exact hash/version-qualified metadata extractor configuration with hidden noninteractive execution."
+    },
+    "recording": {
+      "$ref": "recording.schema.json",
+      "description": "Sole current embedded Cueson assignments and external known-speaker mappings."
+    },
+    "processing-tools": {
+      "$ref": "processing-tools.schema.json",
+      "description": "Exact selected local subtitle and offline inference configuration."
+    },
+    "query-assistance": {
+      "$ref": "query-assistance.schema.json",
+      "description": "Optional elected query assistance settings."
+    },
+    "model-catalog": {
+      "$ref": "model-catalog.schema.json",
+      "description": "Configured metadata-only model discovery catalog."
+    },
+    "workspace-backup": {
+      "$ref": "workspace-backup.schema.json",
+      "description": "Portable current authority and immutable artifact byte bundle, or explicit pinned reference-only dependency."
+    },
+    "release-candidate": {
+      "$ref": "release-candidate.schema.json",
+      "description": "Exact-source six-variant native and documentation candidate inventory with source/signing disposition."
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/catalog-snapshot"
+    },
+    {
+      "$ref": "#/$defs/import-manifest"
+    },
+    {
+      "$ref": "#/$defs/artifact-manifest"
+    },
+    {
+      "$ref": "#/$defs/metadata-snapshot"
+    },
+    {
+      "$ref": "#/$defs/workspace-config"
+    },
+    {
+      "$ref": "#/$defs/pipeline-config"
+    },
+    {
+      "$ref": "#/$defs/job-event"
+    },
+    {
+      "$ref": "#/$defs/graph-query"
+    },
+    {
+      "$ref": "#/$defs/speaker-segments"
+    },
+    {
+      "$ref": "#/$defs/speaker-dataset"
+    },
+    {
+      "$ref": "#/$defs/speaker-model"
+    },
+    {
+      "$ref": "#/$defs/runtime-request"
+    },
+    {
+      "$ref": "#/$defs/runtime-response"
+    },
+    {
+      "$ref": "#/$defs/base-model-manifest"
+    },
+    {
+      "$ref": "#/$defs/media-tools"
+    },
+    {
+      "$ref": "#/$defs/recording"
+    },
+    {
+      "$ref": "#/$defs/processing-tools"
+    },
+    {
+      "$ref": "#/$defs/query-assistance"
+    },
+    {
+      "$ref": "#/$defs/model-catalog"
+    },
+    {
+      "$ref": "#/$defs/workspace-backup"
+    },
+    {
+      "$ref": "#/$defs/release-candidate"
+    }
+  ]
+}

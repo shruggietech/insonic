@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/query-assistance.schema.json",
+  "title": "Query assistance configuration",
+  "description": "Optional elected query assistance and its strict request contract. Secret values and result snapshots are excluded.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "configuration"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0",
+      "description": "Shared release version."
+    },
+    "kind": {
+      "const": "query-assistance",
+      "description": "Master registry discriminator."
+    },
+    "configuration": {
+      "$ref": "#/$defs/configuration",
+      "description": "Elected nonsecret provider configuration."
+    }
+  },
+  "$defs": {
+    "configuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Explicit provider election."
+        },
+        "adapter": {
+          "enum": [
+            "insonic-http"
+          ],
+          "description": "Versioned adapter contract."
+        },
+        "contract_version": {
+          "const": "1",
+          "description": "Provider contract version."
+        },
+        "route": {
+          "enum": [
+            "local",
+            "hosted"
+          ],
+          "description": "Explicit destination class; local requires loopback."
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "Absolute elected HTTP(S) destination.",
+          "maxLength": 2048
+        },
+        "model": {
+          "type": "string",
+          "description": "Provider model identifier.",
+          "maxLength": 512
+        },
+        "credential_id": {
+          "type": "string",
+          "description": "Opaque credential reference; no secret values.",
+          "maxLength": 36
+        },
+        "mode": {
+          "enum": [
+            "suggest",
+            "auto-run"
+          ],
+          "description": "Suggest by default, elected validated execution."
+        },
+        "limits": {
+          "$ref": "#/$defs/limits",
+          "description": "Finite resource ceilings; omitted values receive defaults."
+        }
+      },
+      "required": [],
+      "description": "Nonsecret optional provider settings."
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "description": "User request sent only to elected route.",
+          "minLength": 1,
+          "maxLength": 16384
+        },
+        "configuration": {
+          "$ref": "#/$defs/configuration",
+          "description": "Elected nonsecret provider configuration."
+        },
+        "settings_revision": {
+          "type": "integer",
+          "description": "Optional saved-setting revision fence.",
+          "minimum": 0
+        },
+        "mode": {
+          "enum": [
+            "suggest",
+            "auto-run"
+          ],
+          "description": "Explicit request execution election."
+        },
+        "context_query": {
+          "$ref": "runtime-request.schema.json#/$defs/exploreQuery",
+          "description": "Explicit bounded normalized excerpt query."
+        }
+      },
+      "required": [
+        "prompt"
+      ]
+    },
+    "setting": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expected_revision": {
+          "type": "integer",
+          "description": "Compare-and-swap revision.",
+          "minimum": 0
+        },
+        "configuration": {
+          "$ref": "#/$defs/configuration",
+          "description": "Elected nonsecret provider configuration."
+        }
+      },
+      "required": [
+        "expected_revision",
+        "configuration"
+      ]
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "timeout_ms": {
+          "type": "integer",
+          "description": "Finite timeout ms bound.",
+          "minimum": 1,
+          "maximum": 60000
+        },
+        "query_timeout_ms": {
+          "type": "integer",
+          "description": "Finite query timeout ms bound.",
+          "minimum": 1,
+          "maximum": 20000
+        },
+        "max_prompt_bytes": {
+          "type": "integer",
+          "description": "Finite max prompt bytes bound.",
+          "minimum": 1,
+          "maximum": 16384
+        },
+        "max_response_bytes": {
+          "type": "integer",
+          "description": "Finite max response bytes bound.",
+          "minimum": 1,
+          "maximum": 524288
+        },
+        "max_rows": {
+          "type": "integer",
+          "description": "Finite max rows bound.",
+          "minimum": 1,
+          "maximum": 500
+        },
+        "max_result_bytes": {
+          "type": "integer",
+          "description": "Finite max result bytes bound.",
+          "minimum": 1,
+          "maximum": 524288
+        },
+        "max_context_rows": {
+          "type": "integer",
+          "description": "Finite max context rows bound.",
+          "minimum": 1,
+          "maximum": 25
+        },
+        "max_context_bytes": {
+          "type": "integer",
+          "description": "Finite max context bytes bound.",
+          "minimum": 1,
+          "maximum": 32768
+        }
+      },
+      "required": [],
+      "description": "Optional limits configuration."
+    }
+  },
+  "examples": [
+    {
+      "schema_version": "1.0.0",
+      "kind": "query-assistance",
+      "configuration": {
+        "enabled": false,
+        "adapter": "insonic-http",
+        "contract_version": "1",
+        "route": "local",
+        "endpoint": "",
+        "model": "",
+        "mode": "suggest"
+      }
+    }
+  ]
+}

@@ -1,0 +1,6752 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/runtime-request.schema.json",
+  "title": "Runtime request",
+  "description": "A bounded local runtime operation correlated to a workspace and request. Job operations use durable catalog attempts and idempotent acceptance.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "kind",
+    "workspace_id",
+    "request_id",
+    "operation"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0",
+      "description": "Shared software and contract version."
+    },
+    "kind": {
+      "const": "runtime-request",
+      "description": "Master-registry document discriminator."
+    },
+    "workspace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Workspace authority receiving the operation."
+    },
+    "request_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Client-generated correlation identifier."
+    },
+    "operation": {
+      "enum": [
+        "workspace.show",
+        "doctor",
+        "catalog.show",
+        "jobs.start",
+        "jobs.show",
+        "jobs.cancel",
+        "jobs.retry",
+        "jobs.history",
+        "artifacts.publish",
+        "artifacts.show",
+        "artifacts.verify",
+        "artifacts.materialize",
+        "artifacts.reconcile",
+        "artifacts.abort",
+        "artifacts.retire",
+        "artifacts.lease-renew",
+        "artifacts.lease-release",
+        "artifacts.retain",
+        "artifacts.release-reference",
+        "artifacts.cache-prune",
+        "media.import",
+        "media.list",
+        "media.show",
+        "media.metadata",
+        "media.raw",
+        "media.refresh",
+        "media.set-origin",
+        "media.relocate",
+        "models.register",
+        "models.acquire",
+        "models.list",
+        "models.show",
+        "models.verify",
+        "models.materialize",
+        "work.list",
+        "work.show",
+        "work.cancel",
+        "work.retry",
+        "credentials.select",
+        "credentials.add",
+        "credentials.replace",
+        "credentials.delete",
+        "credentials.status",
+        "credentials.unlock",
+        "credentials.load",
+        "work.results",
+        "recordings.process",
+        "recordings.assemble",
+        "recordings.show",
+        "recordings.document",
+        "recordings.mappings",
+        "recordings.map-speaker",
+        "recordings.export",
+        "recordings.resolve-segment",
+        "pipelines.list",
+        "pipelines.show",
+        "pipelines.set",
+        "pipelines.inspect",
+        "speakers.list",
+        "speakers.show",
+        "speakers.set",
+        "speakers.aliases",
+        "speakers.select",
+        "speakers.diagnostics",
+        "terms.list",
+        "terms.show",
+        "terms.set",
+        "terms.compile",
+        "settings.show",
+        "settings.set",
+        "recordings.cues",
+        "media.playback",
+        "media.playback-check",
+        "media.playback-close",
+        "media.capture",
+        "graph.capabilities",
+        "graph.status",
+        "graph.publish",
+        "graph.rebuild",
+        "evidence.extract",
+        "evidence.show",
+        "query.run",
+        "query.explain",
+        "query.list",
+        "query.show",
+        "query.save",
+        "query.validate",
+        "timeline.calendar",
+        "timeline.recording",
+        "views.show",
+        "views.save",
+        "query.assist",
+        "query.assistance-show",
+        "query.assistance-set",
+        "recordings.roster.show",
+        "recordings.roster.add",
+        "recordings.roster.remove",
+        "recordings.roster.replace",
+        "recordings.roster.clear",
+        "models.resolve",
+        "models.discover",
+        "models.alias.list",
+        "models.alias.show",
+        "models.alias.set",
+        "models.alias.remove",
+        "models.source.list",
+        "models.source.show",
+        "models.source.set",
+        "models.source.remove",
+        "models.dataset.create",
+        "models.dataset.list",
+        "models.dataset.show",
+        "models.train",
+        "models.speaker.list",
+        "models.speaker.show",
+        "models.speaker.fetch",
+        "models.profile.set",
+        "recordings.match"
+      ],
+      "description": "Shared operation selected by either client."
+    },
+    "job_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Durable job identity to inspect, view history, cancel or retry."
+    },
+    "after_generation": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9223372036854776000,
+      "description": "Exclusive attempt generation cursor for bounded job history pages."
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 60000,
+      "description": "Bounded qualification attempt duration in integer milliseconds."
+    },
+    "publication_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Artifact publication identity scoped to this workspace."
+    },
+    "lease_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Renewable materialization lease identity."
+    },
+    "reference_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Durable retention reference identity."
+    },
+    "source_path": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Explicit local source file streamed privately by the shared runtime."
+    },
+    "artifact_kind": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Nonsecret artifact role recorded with its immutable content identity."
+    },
+    "max_bytes": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9223372036854776000,
+      "description": "Explicit materialization byte ceiling overriding the default 10 GiB cache admission bound."
+    },
+    "item_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Workspace-scoped media, model, work, pipeline, speaker or term identity."
+    },
+    "data": {
+      "type": "object",
+      "description": "Operation-specific input; credential input is transient current-user IPC and is never journaled."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "not": {
+          "properties": {
+            "operation": {
+              "const": "jobs.history",
+              "description": "History operation accepting a generation cursor."
+            }
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "after_generation"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "jobs.start",
+            "description": "Start operation discriminator."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "duration_ms"
+        ],
+        "not": {
+          "required": [
+            "job_id"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "jobs.show",
+              "jobs.cancel",
+              "jobs.retry",
+              "jobs.history"
+            ],
+            "description": "Existing attempt operation discriminator."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "job_id"
+        ],
+        "not": {
+          "required": [
+            "duration_ms"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "workspace.show",
+              "doctor",
+              "catalog.show"
+            ],
+            "description": "Workspace inspection operation discriminator."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "workspace.show",
+              "doctor",
+              "catalog.show",
+              "jobs.start",
+              "jobs.show",
+              "jobs.cancel",
+              "jobs.retry",
+              "jobs.history"
+            ],
+            "description": "Operation family selecting its exact artifact argument layout."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "artifacts.publish"
+            ],
+            "description": "Operation family selecting its exact artifact argument layout."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "source_path",
+          "artifact_kind"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "artifacts.lease-renew",
+              "artifacts.lease-release"
+            ],
+            "description": "Operation family selecting its exact artifact argument layout."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "publication_id",
+          "lease_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "artifacts.retain",
+              "artifacts.release-reference"
+            ],
+            "description": "Operation family selecting its exact artifact argument layout."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "publication_id",
+          "reference_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "artifacts.show",
+              "artifacts.verify",
+              "artifacts.materialize",
+              "artifacts.reconcile",
+              "artifacts.abort",
+              "artifacts.retire",
+              "artifacts.cache-prune"
+            ],
+            "description": "Operation family selecting its exact artifact argument layout."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "publication_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "not": {
+              "const": "artifacts.materialize"
+            },
+            "description": "Only materialization accepts a cache size override."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "max_bytes"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "workspace.show",
+              "doctor",
+              "catalog.show",
+              "jobs.start",
+              "jobs.show",
+              "jobs.cancel",
+              "jobs.retry",
+              "jobs.history",
+              "artifacts.publish",
+              "artifacts.show",
+              "artifacts.verify",
+              "artifacts.materialize",
+              "artifacts.reconcile",
+              "artifacts.abort",
+              "artifacts.retire",
+              "artifacts.lease-renew",
+              "artifacts.lease-release",
+              "artifacts.retain",
+              "artifacts.release-reference",
+              "artifacts.cache-prune"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            },
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "media.import",
+              "media.list",
+              "media.show",
+              "media.metadata",
+              "media.raw",
+              "media.refresh",
+              "media.set-origin",
+              "media.relocate",
+              "models.register",
+              "models.acquire",
+              "models.list",
+              "models.show",
+              "models.verify",
+              "models.materialize",
+              "work.list",
+              "work.show",
+              "work.cancel",
+              "work.retry",
+              "credentials.select",
+              "credentials.add",
+              "credentials.replace",
+              "credentials.delete",
+              "credentials.status",
+              "credentials.unlock",
+              "credentials.load",
+              "pipelines.list",
+              "pipelines.show",
+              "pipelines.set",
+              "pipelines.inspect",
+              "speakers.list",
+              "speakers.show",
+              "speakers.set",
+              "speakers.aliases",
+              "speakers.select",
+              "speakers.diagnostics",
+              "terms.list",
+              "terms.show",
+              "terms.set",
+              "terms.compile",
+              "models.resolve",
+              "models.discover",
+              "models.alias.list",
+              "models.alias.show",
+              "models.alias.set",
+              "models.alias.remove",
+              "models.source.list",
+              "models.source.show",
+              "models.source.set",
+              "models.source.remove",
+              "models.dataset.create",
+              "models.dataset.list",
+              "models.dataset.show",
+              "models.train",
+              "models.speaker.list",
+              "models.speaker.show",
+              "models.speaker.fetch",
+              "models.profile.set",
+              "recordings.match"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "media.list",
+              "models.list",
+              "work.list"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "item_id"
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Bounded current-state list page.",
+            "additionalProperties": false,
+            "properties": {
+              "after_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exclusive lexically ordered UUID cursor."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Maximum entries, default100."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "media.show",
+              "media.metadata",
+              "media.raw",
+              "models.show",
+              "models.verify",
+              "models.materialize",
+              "work.show",
+              "work.cancel",
+              "work.retry"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "media.import"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "$ref": "import-manifest.schema.json",
+            "description": "Batch media admission with inherited local_http, acquisition_max_bytes and acquisition_timeout_ms options. Credential transport is validated before durable work admission."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.register",
+              "models.acquire"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "manifest"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "manifest": {
+                "$ref": "base-model-manifest.schema.json",
+                "description": "Exact downloaded base-model identity and file contract."
+              }
+            },
+            "description": "Typed input for the selected operation."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "media.refresh"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "import-manifest.schema.json#/properties/defaults",
+            "description": "Typed input for the selected operation."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "media.set-origin"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "revision",
+              "options"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Current catalog revision for compare-and-swap."
+              },
+              "options": {
+                "$ref": "import-manifest.schema.json#/properties/defaults",
+                "description": "Owner date and timezone selection."
+              }
+            },
+            "description": "Typed input for the selected operation."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "media.relocate"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "revision",
+              "path"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Current catalog revision for compare-and-swap."
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "description": "New local reference path with unchanged digest and size."
+              }
+            },
+            "description": "Typed input for the selected operation."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "credentials.select",
+              "credentials.add",
+              "credentials.replace",
+              "credentials.delete",
+              "credentials.status",
+              "credentials.unlock",
+              "credentials.load"
+            ],
+            "description": "Operation family with an exact argument shape."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "arguments"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "arguments": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 2,
+                "items": {
+                  "type": "string"
+                },
+                "description": "Credential operation and optional nonsecret identifier or backend."
+              },
+              "input": {
+                "type": "object",
+                "description": "Bounded transient value/passphrase/session envelope from protected stdin.",
+                "additionalProperties": false,
+                "properties": {
+                  "value": {
+                    "description": "Credential value kept outside public contracts and journals.",
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object"
+                      }
+                    ]
+                  },
+                  "passphrase": {
+                    "type": "string",
+                    "maxLength": 2048,
+                    "description": "Vault passphrase kept in current runtime memory."
+                  },
+                  "session": {
+                    "type": "object",
+                    "description": "Explicit transient UUID-keyed credential mapping.",
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "object"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Typed input for the selected operation."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "work.results",
+            "description": "Paged import result references."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Bounded per-item result page.",
+            "additionalProperties": false,
+            "properties": {
+              "after_ordinal": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 10000,
+                "description": "Inclusive first result ordinal, default0."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Maximum entries, default100."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "recordings.process",
+              "recordings.assemble",
+              "recordings.show",
+              "recordings.document",
+              "recordings.mappings",
+              "recordings.map-speaker",
+              "recordings.export",
+              "recordings.resolve-segment",
+              "recordings.roster.show",
+              "recordings.roster.add",
+              "recordings.roster.remove",
+              "recordings.roster.replace",
+              "recordings.roster.clear"
+            ],
+            "description": "Current recording operation."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.process",
+            "description": "Selected recording operation."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "transcription": {
+                "enum": [
+                  "supplied",
+                  "generate",
+                  "reuse"
+                ],
+                "description": "Use supplied native subtitles, generate with a managed recognition model, or reuse the current native document."
+              },
+              "diarization": {
+                "enum": [
+                  "run",
+                  "reuse"
+                ],
+                "description": "Run managed local diarization or reuse current assignment evidence."
+              },
+              "recognition_model_id": {
+                "$ref": "common.schema.json#/$defs/modelReference",
+                "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
+              },
+              "diarization_model_id": {
+                "$ref": "common.schema.json#/$defs/modelReference",
+                "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
+              },
+              "subtitle_format": {
+                "enum": [
+                  "srt",
+                  "vtt"
+                ],
+                "description": "Native supplied subtitle format."
+              },
+              "audio": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "stream_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 65535,
+                    "description": "Absolute source stream index."
+                  },
+                  "channel": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 65535,
+                    "description": "Zero-based source channel; omission downmixes to mono."
+                  }
+                },
+                "description": "Selected original audio stream and channel before mono 16 kHz mapping."
+              },
+              "recognition": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "device": {
+                    "enum": [
+                      "cpu",
+                      "cuda"
+                    ],
+                    "description": "Explicit device; default CPU and no provider fallback."
+                  },
+                  "language": {
+                    "type": "string",
+                    "pattern": "^(?:[a-z]{2,3}|auto)$",
+                    "description": "Language code or automatic detection; default en."
+                  }
+                },
+                "description": "Local recognition execution parameters."
+              },
+              "attribution": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "device": {
+                    "enum": [
+                      "cpu",
+                      "cuda"
+                    ],
+                    "description": "Explicit device; default CPU with no fallback from selected CUDA."
+                  },
+                  "min_speakers": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 64,
+                    "description": "Optional lower acoustic speaker-count constraint."
+                  },
+                  "max_speakers": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 64,
+                    "description": "Optional upper acoustic speaker-count constraint."
+                  },
+                  "quality": {
+                    "$ref": "pipeline-config.schema.json#/$defs/quality",
+                    "description": "Optional direct diarization quality policy."
+                  }
+                },
+                "description": "Local diarization execution parameters."
+              },
+              "pipeline_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Id."
+              },
+              "pipeline_revision": {
+                "$ref": "common.schema.json#/$defs/revision",
+                "description": "Revision."
+              },
+              "overrides": {
+                "$ref": "pipeline-config.schema.json#/$defs/overrides",
+                "description": "Overrides."
+              },
+              "context": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "speaker_ids": {
+                    "type": "array",
+                    "maxItems": 1000,
+                    "uniqueItems": true,
+                    "items": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Id."
+                    },
+                    "description": "Speaker ids."
+                  },
+                  "language": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 64,
+                    "description": "Language."
+                  },
+                  "context": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 256,
+                    "description": "Context."
+                  }
+                },
+                "required": [],
+                "description": "Explicit speaker, language and context filters for deterministic recognition hints."
+              },
+              "quality": {
+                "$ref": "pipeline-config.schema.json#/$defs/quality",
+                "description": "Direct managed-worker quality policy; saved pipeline runs use explicit quality overrides instead."
+              }
+            },
+            "description": "Explicit direct or saved-pipeline processing elections, with source and current-recording compatibility checked by the runtime.",
+            "allOf": [
+              {
+                "if": {
+                  "allOf": [
+                    {
+                      "properties": {
+                        "transcription": {
+                          "const": "generate",
+                          "description": "Explicit generated transcription selection."
+                        }
+                      },
+                      "required": [
+                        "transcription"
+                      ]
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "pipeline_id"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "recognition_model_id"
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "allOf": [
+                    {
+                      "not": {
+                        "properties": {
+                          "diarization": {
+                            "const": "reuse",
+                            "description": "Current result reuse selection."
+                          }
+                        },
+                        "required": [
+                          "diarization"
+                        ]
+                      }
+                    },
+                    {
+                      "not": {
+                        "required": [
+                          "pipeline_id"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "diarization_model_id"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "properties": {
+                    "transcription": {
+                      "const": "reuse",
+                      "description": "Current result reuse selection."
+                    },
+                    "diarization": {
+                      "const": "reuse",
+                      "description": "Current result reuse selection."
+                    }
+                  },
+                  "required": [
+                    "transcription",
+                    "diarization"
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "overrides": {
+                      "type": "object",
+                      "minProperties": 1,
+                      "description": "A nonempty complete stage or quality override."
+                    }
+                  },
+                  "required": [
+                    "overrides"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "pipeline_id"
+                  ]
+                }
+              }
+            ],
+            "dependentRequired": {
+              "pipeline_revision": [
+                "pipeline_id"
+              ]
+            }
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.assemble",
+            "description": "Selected recording operation."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "subtitle_format": {
+                "enum": [
+                  "srt",
+                  "vtt"
+                ],
+                "description": "Imported native subtitle format."
+              },
+              "turns": {
+                "type": "array",
+                "maxItems": 20000,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "description": "Operation-local acoustic voice label."
+                    },
+                    "start_us": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9223372036854776000,
+                      "description": "Inclusive source-clock microsecond start."
+                    },
+                    "end_us": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 9223372036854776000,
+                      "description": "Exclusive source-clock microsecond end."
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "start_us",
+                    "end_us"
+                  ],
+                  "description": "Ephemeral source-clock acoustic interval."
+                },
+                "description": "Source-clock acoustic evidence."
+              },
+              "participation": {
+                "type": "array",
+                "maxItems": 20000,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "cue_id": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "description": "Native cue identity."
+                    },
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 256,
+                      "description": "Operation-local acoustic voice label."
+                    }
+                  },
+                  "required": [
+                    "cue_id",
+                    "label"
+                  ],
+                  "description": "Explicit cue-to-voice association supplied by the caller."
+                },
+                "description": "Explicit associations for unresolved cues."
+              }
+            },
+            "required": [
+              "turns"
+            ],
+            "description": "Transient native-subtitle assembly input; never an alternate stored transcript."
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.show",
+            "description": "Selected recording operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "data"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.document",
+            "description": "Selected recording operation."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "offset": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 16777216,
+                "description": "Zero-based byte offset."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536,
+                "description": "Maximum returned bytes, default 65536."
+              },
+              "document_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "Optional expected current document digest."
+              }
+            },
+            "description": "Digest-bound bounded page of the current native document."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.mappings",
+            "description": "Selected recording operation."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "after_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exclusive local speaker identity cursor."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Maximum mapping rows, default 100."
+              }
+            },
+            "description": "Bounded current speaker-mapping page."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.map-speaker",
+            "description": "Selected recording operation."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854776000,
+                "description": "Expected current mapping revision; zero creates the mapping."
+              },
+              "local_speaker_id": {
+                "$ref": "common.schema.json#/$defs/localSpeakerID",
+                "description": "Current Cueson-local speaker identity."
+              },
+              "mapping_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854776000,
+                "description": "Expected existing mapping revision for correction; omitted or zero creates a new mapping."
+              },
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Known catalog speaker identity."
+              },
+              "document_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "Expected current native document digest."
+              }
+            },
+            "required": [
+              "revision",
+              "local_speaker_id",
+              "speaker_id",
+              "document_digest"
+            ],
+            "description": "Compare-and-set external known-speaker mapping."
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.export",
+            "description": "Selected recording operation."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "format": {
+                "enum": [
+                  "cueson",
+                  "srt",
+                  "vtt"
+                ],
+                "description": "Native Cueson or flattened subtitle export."
+              },
+              "strict": {
+                "type": "boolean",
+                "description": "Reject conversion that loses timing or attribution."
+              },
+              "destination": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096,
+                "description": "Absolute selected output path; existing-file replacement follows runtime authorization."
+              },
+              "document_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "Optional expected current native document digest."
+              }
+            },
+            "required": [
+              "format",
+              "destination"
+            ],
+            "description": "Explicit current-document export."
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.resolve-segment",
+            "description": "Selected recording operation."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "segment_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Existing source-segment identity."
+              },
+              "segment_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854776000,
+                "description": "Expected source-segment revision."
+              }
+            },
+            "required": [
+              "segment_id",
+              "segment_revision"
+            ],
+            "description": "Resolve an existing source segment against the current recording revision."
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "pipelines.list",
+              "speakers.list",
+              "terms.list"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "item_id"
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Limit."
+              },
+              "after_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exclusive last entity ID from the prior page."
+              }
+            },
+            "required": [],
+            "description": "Bounded stable entity list page, using an exclusive after_id cursor."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "pipelines.show",
+              "speakers.show",
+              "terms.show"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "required": [
+            "data"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "pipelines.set"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854776000,
+                "description": "Expected revision."
+              },
+              "pipeline": {
+                "$ref": "pipeline-config.schema.json#/$defs/entity",
+                "description": "Pipeline."
+              }
+            },
+            "required": [
+              "expected_revision",
+              "pipeline"
+            ],
+            "description": "Operation-specific bounded configuration."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "speakers.set"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854776000,
+                "description": "Expected revision."
+              },
+              "speaker": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Id."
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "description": "Name."
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9223372036854776000,
+                    "description": "Revision."
+                  },
+                  "state": {
+                    "enum": [
+                      "active",
+                      "inactive"
+                    ],
+                    "description": "State."
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "description": "Canonical stable speaker identity; shared names never imply identity equivalence."
+              },
+              "aliases": {
+                "type": "array",
+                "maxItems": 1000,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Id."
+                    },
+                    "speaker_id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Id."
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "description": "Text."
+                    },
+                    "language": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 80,
+                      "description": "Language."
+                    },
+                    "scope": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 256,
+                      "description": "Scope."
+                    },
+                    "state": {
+                      "enum": [
+                        "active",
+                        "inactive"
+                      ],
+                      "description": "State."
+                    },
+                    "provenance": {
+                      "type": "object",
+                      "description": "Provenance."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "speaker_id",
+                    "text"
+                  ],
+                  "description": "Alternate speaker spelling scoped to its stable speaker. Aggregate speaker revision controls replacement."
+                },
+                "description": "Aliases."
+              }
+            },
+            "required": [
+              "expected_revision",
+              "speaker",
+              "aliases"
+            ],
+            "description": "Operation-specific bounded configuration."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "terms.set"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854776000,
+                "description": "Expected revision."
+              },
+              "term": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Id."
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9223372036854776000,
+                    "description": "Revision."
+                  },
+                  "canonical": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 512,
+                    "description": "Canonical."
+                  },
+                  "variants": {
+                    "type": "array",
+                    "maxItems": 128,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512
+                    },
+                    "description": "Variants."
+                  },
+                  "language": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 80,
+                    "description": "Language."
+                  },
+                  "context": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 256,
+                    "description": "Context."
+                  },
+                  "state": {
+                    "enum": [
+                      "active",
+                      "inactive"
+                    ],
+                    "description": "State."
+                  },
+                  "speaker_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "common.schema.json#/$defs/uuid",
+                        "description": "Id."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Speaker id."
+                  },
+                  "alias_id": {
+                    "anyOf": [
+                      {
+                        "$ref": "common.schema.json#/$defs/uuid",
+                        "description": "Id."
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Alias id."
+                  },
+                  "provenance": {
+                    "type": "object",
+                    "description": "Provenance."
+                  }
+                },
+                "required": [
+                  "id",
+                  "canonical"
+                ],
+                "description": "Stable revisioned terminology entry with optional speaker or alias linkage."
+              }
+            },
+            "required": [
+              "expected_revision",
+              "term"
+            ],
+            "description": "Operation-specific bounded configuration."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "pipelines.inspect"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "revision": {
+                "$ref": "common.schema.json#/$defs/revision",
+                "description": "Revision."
+              },
+              "overrides": {
+                "$ref": "pipeline-config.schema.json#/$defs/overrides",
+                "description": "Overrides."
+              },
+              "context": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "speaker_ids": {
+                    "type": "array",
+                    "maxItems": 1000,
+                    "uniqueItems": true,
+                    "items": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Id."
+                    },
+                    "description": "Speaker ids."
+                  },
+                  "language": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 80,
+                    "description": "Language."
+                  },
+                  "context": {
+                    "type": "string",
+                    "minLength": 0,
+                    "maxLength": 256,
+                    "description": "Context."
+                  }
+                },
+                "required": [],
+                "description": "Explicit speaker, language and context filters for deterministic recognition hints."
+              }
+            },
+            "required": [],
+            "description": "Inspect a saved or explicitly overridden pipeline without probing or running workers."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "speakers.aliases"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854776000,
+                "description": "Expected revision."
+              },
+              "aliases": {
+                "type": "array",
+                "maxItems": 1000,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Id."
+                    },
+                    "speaker_id": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "Id."
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 512,
+                      "description": "Text."
+                    },
+                    "language": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 80,
+                      "description": "Language."
+                    },
+                    "scope": {
+                      "type": "string",
+                      "minLength": 0,
+                      "maxLength": 256,
+                      "description": "Scope."
+                    },
+                    "state": {
+                      "enum": [
+                        "active",
+                        "inactive"
+                      ],
+                      "description": "State."
+                    },
+                    "provenance": {
+                      "type": "object",
+                      "description": "Provenance."
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "speaker_id",
+                    "text"
+                  ],
+                  "description": "Alternate speaker spelling scoped to its stable speaker. Aggregate speaker revision controls replacement."
+                },
+                "description": "Aliases."
+              }
+            },
+            "required": [
+              "expected_revision",
+              "aliases"
+            ],
+            "description": "Operation-specific bounded configuration."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "speakers.select"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "cursor": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 4096,
+                "description": "Cursor."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Limit."
+              },
+              "recording_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Id."
+              },
+              "quality": {
+                "$ref": "#/$defs/correlationQuality",
+                "description": "Optional diagnostic setting returned explicitly as the effective quality policy."
+              }
+            },
+            "required": [],
+            "description": "Bounded current speaker evidence selection, optionally limited to one recording."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "speakers.diagnostics"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "cursor": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 4096,
+                "description": "Cursor."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Limit."
+              },
+              "recording_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Id."
+              },
+              "quality": {
+                "$ref": "#/$defs/correlationQuality",
+                "description": "Optional diagnostic setting returned explicitly as the effective quality policy."
+              }
+            },
+            "required": [],
+            "description": "Bounded current speaker evidence selection, optionally limited to one recording."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "terms.compile"
+            ],
+            "description": "Operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "item_id"
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "pipeline_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Id."
+              },
+              "pipeline_revision": {
+                "$ref": "common.schema.json#/$defs/revision",
+                "description": "Revision."
+              },
+              "speaker_ids": {
+                "type": "array",
+                "maxItems": 1000,
+                "uniqueItems": true,
+                "items": {
+                  "$ref": "common.schema.json#/$defs/uuid",
+                  "description": "Id."
+                },
+                "description": "Speaker ids."
+              },
+              "language": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 80,
+                "description": "Language."
+              },
+              "context": {
+                "type": "string",
+                "minLength": 0,
+                "maxLength": 256,
+                "description": "Context."
+              },
+              "max_hint_bytes": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 8192,
+                "description": "Max hint bytes."
+              }
+            },
+            "required": [],
+            "description": "Compile scoped recognition hints without inference. Omitted standalone budget is 200 UTF-8 bytes; a selected pipeline contributes its declared capability budget.",
+            "dependentRequired": {
+              "pipeline_revision": [
+                "pipeline_id"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "settings.show",
+              "settings.set",
+              "recordings.cues",
+              "media.playback",
+              "media.playback-check",
+              "media.playback-close"
+            ],
+            "description": "Shared desktop operation discriminator."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "settings.show"
+            ],
+            "description": "Shared desktop operation discriminator."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            },
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "settings.set"
+            ],
+            "description": "Shared desktop operation discriminator."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "required": [
+            "item_id"
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "One validated configuration section changed with independent compare-and-swap revision.",
+            "additionalProperties": false,
+            "required": [
+              "section",
+              "revision",
+              "value"
+            ],
+            "properties": {
+              "section": {
+                "type": "string",
+                "description": "Selected runtime configuration section.",
+                "enum": [
+                  "media_tools",
+                  "processing_tools",
+                  "appearance"
+                ]
+              },
+              "revision": {
+                "type": "string",
+                "description": "Exact lowercase SHA-256 digest or opaque current section revision.",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "value": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "description": "Validated explicit section value, or null to remove the workspace override with compare-and-swap and elect current defaults."
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "section": {
+                      "const": "media_tools",
+                      "description": "Section selecting its value contract."
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "anyOf": [
+                        {
+                          "$ref": "media-tools.schema.json"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Validated pinned metadata extraction tool configuration, or null to reset the override without persisting installation paths."
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "section": {
+                      "const": "processing_tools",
+                      "description": "Section selecting its value contract."
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "anyOf": [
+                        {
+                          "$ref": "processing-tools.schema.json"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Validated pinned subtitle and processing tool configuration, or null to reset the override and use current installed companions."
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "section": {
+                      "const": "appearance",
+                      "description": "Section selecting its value contract."
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "Persisted accessible display preferences, or null to remove the override and use system appearance defaults.",
+                      "additionalProperties": false,
+                      "required": [
+                        "theme",
+                        "reduced_motion"
+                      ],
+                      "properties": {
+                        "theme": {
+                          "type": "string",
+                          "description": "Preferred display palette.",
+                          "enum": [
+                            "system",
+                            "light",
+                            "dark"
+                          ]
+                        },
+                        "reduced_motion": {
+                          "type": "boolean",
+                          "description": "Request reduced interface motion."
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "recordings.cues"
+            ],
+            "description": "Shared desktop operation discriminator."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Bounded semantic current cue page with optional expected authority.",
+            "additionalProperties": false,
+            "properties": {
+              "revision": {
+                "type": "integer",
+                "description": "Expected current recording revision.",
+                "minimum": 1
+              },
+              "document_digest": {
+                "type": "string",
+                "description": "Exact lowercase SHA-256 digest or opaque current section revision.",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "after_ordinal": {
+                "type": "integer",
+                "description": "Inclusive zero-based first cue ordinal.",
+                "minimum": 0
+              },
+              "limit": {
+                "type": "integer",
+                "description": "Maximum projected cues in one bounded response.",
+                "minimum": 1,
+                "maximum": 100
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "media.playback"
+            ],
+            "description": "Shared desktop operation discriminator."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Authorize verified current source bytes and optional current recording evidence.",
+            "additionalProperties": false,
+            "required": [
+              "revision"
+            ],
+            "properties": {
+              "revision": {
+                "type": "integer",
+                "description": "Expected current media revision.",
+                "minimum": 1
+              },
+              "recording_revision": {
+                "type": "integer",
+                "description": "Expected current recording revision when selecting evidence.",
+                "minimum": 1
+              },
+              "document_digest": {
+                "type": "string",
+                "description": "Exact lowercase SHA-256 digest or opaque current section revision.",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "max_bytes": {
+                "type": "integer",
+                "description": "Maximum source snapshot bytes.",
+                "minimum": 1,
+                "maximum": 10737418240
+              },
+              "stream_index": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Absolute canonical audio stream index for selected-track playback."
+              }
+            },
+            "dependentRequired": {
+              "document_digest": [
+                "recording_revision"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "media.playback-check",
+              "media.playback-close"
+            ],
+            "description": "Shared desktop operation discriminator."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Touch or close one runtime-owned playback handle.",
+            "additionalProperties": false,
+            "required": [
+              "playback_id"
+            ],
+            "properties": {
+              "playback_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Workspace-scoped current handle identity."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "media.capture",
+            "description": "Exact current metadata capture byte-page operation."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Exact current stored metadata, facts or date JSON bytes for lossless text display.",
+            "additionalProperties": false,
+            "required": [
+              "section"
+            ],
+            "properties": {
+              "section": {
+                "type": "string",
+                "enum": [
+                  "metadata",
+                  "facts",
+                  "dates"
+                ],
+                "description": "Current stored capture section."
+              },
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Expected current media revision."
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$",
+                "description": "Expected exact capture byte digest for subsequent pages."
+              },
+              "offset": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Inclusive first byte offset."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65536,
+                "description": "Maximum bytes in one response."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "graph.capabilities",
+            "description": "Shared exploration operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            },
+            {
+              "required": [
+                "item_id"
+              ]
+            },
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "graph.status",
+            "description": "Shared exploration operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            },
+            {
+              "required": [
+                "item_id"
+              ]
+            },
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "graph.publish",
+            "description": "Shared exploration operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            },
+            {
+              "required": [
+                "item_id"
+              ]
+            },
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "graph.rebuild",
+            "description": "Shared exploration operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            },
+            {
+              "required": [
+                "item_id"
+              ]
+            },
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "evidence.extract",
+            "description": "Shared exploration operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Validated shared exploration input.",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Expected current revision, or zero when creating."
+              },
+              "document_digest": {
+                "$ref": "common.schema.json#/$defs/sha256",
+                "description": "Exact current Cue JSON digest."
+              },
+              "configuration": {
+                "type": "object",
+                "description": "Maintainer-elected extraction route and bounded context. No inference is elected by required CI.",
+                "additionalProperties": false,
+                "properties": {
+                  "adapter": {
+                    "enum": [
+                      "cue-statement",
+                      "http"
+                    ],
+                    "description": "Literal source-reference extraction, or elected HTTP assertion adapter."
+                  },
+                  "contract_version": {
+                    "const": "1",
+                    "description": "Assertion adapter protocol version."
+                  },
+                  "endpoint": {
+                    "type": "string",
+                    "description": "Elected HTTP endpoint without URL credentials."
+                  },
+                  "credential_id": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Stable catalog identity."
+                  },
+                  "model": {
+                    "type": "string",
+                    "description": "Elected adapter model.",
+                    "maxLength": 256
+                  },
+                  "window_cues": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum complete cues per context window.",
+                    "maximum": 128
+                  },
+                  "overlap_cues": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Complete cue overlap between context windows.",
+                    "maximum": 127
+                  },
+                  "max_chunk_bytes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Bounded serialized context size.",
+                    "maximum": 1048576
+                  },
+                  "timeout_ms": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum time per HTTP context.",
+                    "maximum": 600000
+                  },
+                  "max_response_bytes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Bounded HTTP result size.",
+                    "maximum": 1048576
+                  }
+                },
+                "required": []
+              }
+            },
+            "required": [
+              "expected_revision",
+              "document_digest",
+              "configuration"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "evidence.show",
+            "description": "Shared exploration operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            },
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "query.run",
+            "description": "Shared exploration operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            },
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/exploreQuery",
+                "description": "Execute a supplied current query definition."
+              },
+              {
+                "type": "object",
+                "description": "Execute an immutable saved definition against current sources.",
+                "additionalProperties": false,
+                "properties": {
+                  "saved_id": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Stable catalog identity."
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Expected current revision, or zero when creating."
+                  }
+                },
+                "required": [
+                  "saved_id"
+                ]
+              }
+            ],
+            "description": "Definition or saved-query selection."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "query.explain",
+            "description": "Shared exploration operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            },
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/exploreQuery",
+                "description": "Execute a supplied current query definition."
+              },
+              {
+                "type": "object",
+                "description": "Execute an immutable saved definition against current sources.",
+                "additionalProperties": false,
+                "properties": {
+                  "saved_id": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Stable catalog identity."
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Expected current revision, or zero when creating."
+                  }
+                },
+                "required": [
+                  "saved_id"
+                ]
+              }
+            ],
+            "description": "Definition or saved-query selection."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "query.list",
+            "description": "Shared exploration operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            },
+            {
+              "required": [
+                "item_id"
+              ]
+            },
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "query.show",
+            "description": "Shared exploration operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Optional immutable version selection.",
+            "additionalProperties": false,
+            "properties": {
+              "revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Expected current revision, or zero when creating."
+              }
+            },
+            "required": []
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "query.save",
+            "description": "Shared exploration operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Validated shared exploration input.",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Expected current revision, or zero when creating."
+              },
+              "query": {
+                "$ref": "#/$defs/exploreQuery",
+                "description": "New immutable definition."
+              }
+            },
+            "required": [
+              "expected_revision",
+              "query"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "query.validate",
+            "description": "Shared exploration operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            },
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/exploreQuery",
+                "description": "Execute a supplied current query definition."
+              },
+              {
+                "type": "object",
+                "description": "Execute an immutable saved definition against current sources.",
+                "additionalProperties": false,
+                "properties": {
+                  "saved_id": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Stable catalog identity."
+                  },
+                  "revision": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Expected current revision, or zero when creating."
+                  }
+                },
+                "required": [
+                  "saved_id"
+                ]
+              }
+            ],
+            "description": "Definition or saved-query selection."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "timeline.calendar",
+            "description": "Shared exploration operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            },
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Calendar viewport over the whole library.",
+            "additionalProperties": false,
+            "properties": {
+              "filter": {
+                "type": "object",
+                "description": "Origination calendar filter preserving timezone and undated handling.",
+                "properties": {
+                  "from": {
+                    "$ref": "common.schema.json#/$defs/calendarDate",
+                    "description": "Inclusive first recording date."
+                  },
+                  "through": {
+                    "$ref": "common.schema.json#/$defs/calendarDate",
+                    "description": "Inclusive last recording date."
+                  },
+                  "timezone": {
+                    "$ref": "common.schema.json#/$defs/timezone",
+                    "description": "Calendar timezone for this filter."
+                  },
+                  "include_undated": {
+                    "type": "boolean",
+                    "description": "Explicitly include entries with unknown recording dates."
+                  }
+                },
+                "additionalProperties": false
+              },
+              "pagination": {
+                "type": "object",
+                "description": "Bounded current-result pagination.",
+                "additionalProperties": false,
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum number of returned rows.",
+                    "maximum": 500
+                  },
+                  "cursor": {
+                    "type": "string",
+                    "description": "Opaque current-result continuation cursor.",
+                    "maxLength": 2048
+                  }
+                },
+                "required": [
+                  "limit"
+                ]
+              }
+            },
+            "required": [
+              "filter"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "timeline.recording",
+            "description": "Shared exploration operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Current source-clock cues, assertions and mapped segments.",
+            "additionalProperties": false,
+            "properties": {
+              "pagination": {
+                "type": "object",
+                "description": "Bounded current-result pagination.",
+                "additionalProperties": false,
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum number of returned rows.",
+                    "maximum": 500
+                  },
+                  "cursor": {
+                    "type": "string",
+                    "description": "Opaque current-result continuation cursor.",
+                    "maxLength": 2048
+                  }
+                },
+                "required": [
+                  "limit"
+                ]
+              }
+            },
+            "required": []
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "views.show",
+            "description": "Shared exploration operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            },
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "views.save",
+            "description": "Shared exploration operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Validated shared exploration input.",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Expected current revision, or zero when creating."
+              },
+              "query_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Stable catalog identity."
+              },
+              "layout": {
+                "type": "object",
+                "description": "Presentation state stored separately from graph facts.",
+                "additionalProperties": false,
+                "properties": {
+                  "positions": {
+                    "type": "object",
+                    "description": "Stable graph node IDs mapped to positions.",
+                    "maxProperties": 1000,
+                    "additionalProperties": {
+                      "type": "object",
+                      "description": "One stable graph-node position.",
+                      "additionalProperties": false,
+                      "properties": {
+                        "x": {
+                          "type": "number",
+                          "description": "Horizontal display position."
+                        },
+                        "y": {
+                          "type": "number",
+                          "description": "Vertical display position."
+                        }
+                      },
+                      "required": [
+                        "x",
+                        "y"
+                      ]
+                    }
+                  },
+                  "paused": {
+                    "type": "boolean",
+                    "description": "Pause force simulation."
+                  },
+                  "filter": {
+                    "type": "string",
+                    "description": "Presentation label filter.",
+                    "maxLength": 512
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Visible node bound.",
+                    "maximum": 500
+                  }
+                },
+                "required": []
+              }
+            },
+            "required": [
+              "expected_revision",
+              "query_id",
+              "layout"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "query.assist",
+            "description": "Optional elected query assistance operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            },
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "query-assistance.schema.json#/$defs/request",
+            "description": "Strict assistance input."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "query.assistance-show",
+            "description": "Optional elected query assistance operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            },
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            },
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "query.assistance-set",
+            "description": "Optional elected query assistance operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            },
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "query-assistance.schema.json#/$defs/setting",
+            "description": "Strict assistance input."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "recordings.roster.show",
+            "description": "Selected declared-roster operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "required": [
+            "data"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "recordings.roster.add",
+              "recordings.roster.remove",
+              "recordings.roster.replace",
+              "recordings.roster.clear"
+            ],
+            "description": "Selected declared-roster operation."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "expected_revision",
+              "speakers"
+            ],
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Observed independent roster revision, zero only when no header exists."
+              },
+              "speakers": {
+                "type": "array",
+                "maxItems": 1000,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                "description": "Speaker references by UUID, exact canonical name or unique active alias."
+              }
+            },
+            "description": "Revision-fenced declared roster mutation; membership is independent of acoustic assignments."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "recordings.roster.add",
+              "recordings.roster.remove"
+            ],
+            "description": "Membership edits require one or more speaker references."
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Nonempty membership edit input.",
+            "properties": {
+              "speakers": {
+                "type": "array",
+                "minItems": 1,
+                "description": "One or more speaker references for add or remove."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.resolve"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "reference": {
+                "$ref": "common.schema.json#/$defs/modelReference",
+                "description": "Reference to resolve without acquiring files."
+              },
+              "operation": {
+                "$ref": "common.schema.json#/$defs/modelOperation",
+                "description": "Intended consumer operation."
+              }
+            },
+            "required": [
+              "reference",
+              "operation"
+            ],
+            "description": "Reference inspection input."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.discover"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "source_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Explicit configured source identity."
+              }
+            },
+            "required": [
+              "source_id"
+            ],
+            "description": "Bounded source metadata discovery."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.alias.list"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "after_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exclusive stable identity page cursor."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Maximum records in this page."
+              }
+            },
+            "required": [],
+            "description": "Bounded reference inventory page."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.alias.show"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.alias.set"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Zero creates; a positive exact revision fences retargeting."
+              },
+              "alias": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Stable workspace-scoped alias identity."
+                  },
+                  "name": {
+                    "$ref": "common.schema.json#/$defs/modelAliasName",
+                    "description": "Short workspace name."
+                  },
+                  "revision": {
+                    "const": 0,
+                    "description": "Optional zero-valued typed input; accepted revisions are returned by the catalog, never supplied as a new record revision."
+                  },
+                  "state": {
+                    "enum": [
+                      "active",
+                      "deleted"
+                    ],
+                    "description": "Active reference or retained revision tombstone."
+                  },
+                  "target": {
+                    "$ref": "common.schema.json#/$defs/modelTarget",
+                    "description": "Exact target; retargeting never changes prior elections."
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "state",
+                  "target"
+                ],
+                "description": "Portable revisioned alias retaining exact target kind and identity."
+              }
+            },
+            "required": [
+              "expected_revision",
+              "alias"
+            ],
+            "description": "Revision-fenced explicit reference mutation."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.alias.remove"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Exact revision to remove while preserving the tombstone."
+              }
+            },
+            "required": [
+              "expected_revision"
+            ],
+            "description": "Revision-fenced reference removal."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.source.list"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "after_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exclusive stable identity page cursor."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Maximum records in this page."
+              }
+            },
+            "required": [],
+            "description": "Bounded reference inventory page."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.source.show"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        },
+        "required": [
+          "item_id"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.source.set"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Zero creates; a positive exact revision fences retargeting."
+              },
+              "source": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Stable configured source identity."
+                  },
+                  "name": {
+                    "$ref": "common.schema.json#/$defs/modelAliasName",
+                    "description": "Configured source name used by source:NAME/SELECTOR."
+                  },
+                  "revision": {
+                    "const": 0,
+                    "description": "Optional zero-valued typed input; accepted revisions are returned by the catalog, never supplied as a new record revision."
+                  },
+                  "state": {
+                    "enum": [
+                      "active",
+                      "deleted"
+                    ],
+                    "description": "Active configuration or retained revision tombstone."
+                  },
+                  "url": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2048,
+                    "description": "Configured catalog URL using HTTPS or explicitly elected loopback HTTP.",
+                    "format": "uri"
+                  },
+                  "credential_id": {
+                    "$ref": "common.schema.json#/$defs/uuid",
+                    "description": "Opaque source credential reference."
+                  },
+                  "local_http": {
+                    "type": "boolean",
+                    "description": "Permit HTTP only for an explicitly selected loopback catalog."
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "state",
+                  "url"
+                ],
+                "description": "Portable source configuration without credential values."
+              }
+            },
+            "required": [
+              "expected_revision",
+              "source"
+            ],
+            "description": "Revision-fenced explicit reference mutation."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.source.remove"
+            ],
+            "description": "Discriminator or constraint for operation."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Exact revision to remove while preserving the tombstone."
+              }
+            },
+            "required": [
+              "expected_revision"
+            ],
+            "description": "Revision-fenced reference removal."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.dataset.create"
+            ],
+            "description": "Speaker operation with exact argument layout."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Originating centralized speaker."
+              },
+              "recipe": {
+                "$ref": "#/$defs/speakerRecipe",
+                "description": "Optional effective corpus selection."
+              }
+            },
+            "required": [
+              "speaker_id"
+            ],
+            "description": "Create complete current speaker dataset."
+          }
+        },
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.dataset.list",
+              "models.speaker.list"
+            ],
+            "description": "Speaker operation with exact argument layout."
+          }
+        }
+      },
+      "then": {
+        "required": [],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "speaker_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Optional speaker lineage filter."
+              },
+              "after_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exclusive stable record cursor."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Maximum rows returned.",
+                "maximum": 100
+              }
+            },
+            "required": [],
+            "description": "Bounded speaker dataset/model inventory."
+          }
+        },
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.dataset.show",
+              "models.speaker.show"
+            ],
+            "description": "Speaker operation with exact argument layout."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.train"
+            ],
+            "description": "Speaker operation with exact argument layout."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/speakerTrain",
+            "description": "Durable elected training request."
+          }
+        },
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.speaker.fetch"
+            ],
+            "description": "Speaker operation with exact argument layout."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "destination": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096,
+                "description": "Explicit output destination directory."
+              }
+            },
+            "required": [
+              "destination"
+            ],
+            "description": "Exact version retrieval."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "models.profile.set"
+            ],
+            "description": "Speaker operation with exact argument layout."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Zero creates; positive exact revision updates or clears."
+              },
+              "version_id": {
+                "type": "string",
+                "pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|)$",
+                "description": "Exact output version; empty clears current profile."
+              }
+            },
+            "required": [
+              "expected_revision",
+              "version_id"
+            ],
+            "description": "Revisioned current speaker profile selection."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "recordings.match"
+            ],
+            "description": "Speaker operation with exact argument layout."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "item_id",
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/speakerMatch",
+            "description": "Elected current voice identity matching."
+          }
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "schema_version": "1.0.0",
+      "kind": "runtime-request",
+      "workspace_id": "10000000-0000-4000-8000-000000000001",
+      "request_id": "10000000-0000-4000-8000-000000000002",
+      "operation": "workspace.show"
+    },
+    {
+      "schema_version": "1.0.0",
+      "kind": "runtime-request",
+      "workspace_id": "11111111-1111-4111-8111-111111111111",
+      "request_id": "22222222-2222-4222-8222-222222222222",
+      "operation": "pipelines.inspect",
+      "item_id": "66666666-6666-4666-8666-666666666666"
+    },
+    {
+      "schema_version": "1.0.0",
+      "kind": "runtime-request",
+      "workspace_id": "11111111-1111-4111-8111-111111111111",
+      "request_id": "22222222-2222-4222-8222-222222222222",
+      "operation": "terms.compile",
+      "data": {
+        "speaker_ids": [
+          "33333333-3333-4333-8333-333333333333"
+        ],
+        "language": "en",
+        "max_hint_bytes": 200
+      }
+    },
+    {
+      "schema_version": "1.0.0",
+      "kind": "runtime-request",
+      "workspace_id": "11111111-1111-4111-8111-111111111111",
+      "request_id": "22222222-2222-4222-8222-222222222222",
+      "operation": "recordings.process",
+      "item_id": "44444444-4444-4444-8444-444444444444",
+      "data": {
+        "pipeline_id": "66666666-6666-4666-8666-666666666666",
+        "pipeline_revision": 1,
+        "transcription": "generate",
+        "diarization": "run"
+      }
+    },
+    {
+      "schema_version": "1.0.0",
+      "kind": "runtime-request",
+      "workspace_id": "11111111-1111-4111-8111-111111111111",
+      "request_id": "33333333-3333-4333-8333-333333333333",
+      "operation": "recordings.roster.replace",
+      "item_id": "44444444-4444-4444-8444-444444444444",
+      "data": {
+        "expected_revision": 0,
+        "speakers": [
+          "22222222-2222-4222-8222-222222222222"
+        ]
+      }
+    },
+    {
+      "schema_version": "1.0.0",
+      "kind": "runtime-request",
+      "workspace_id": "11111111-1111-4111-8111-111111111111",
+      "request_id": "33333333-3333-4333-8333-333333333333",
+      "operation": "recordings.roster.clear",
+      "item_id": "44444444-4444-4444-8444-444444444444",
+      "data": {
+        "expected_revision": 0,
+        "speakers": []
+      }
+    }
+  ],
+  "$defs": {
+    "correlationQuality": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional current-speaker correlation diagnostics policy. Evidence validation, source timing resolution and deduplication remain mandatory.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Emit optional correlation diagnostics; omission defaults to true."
+        }
+      }
+    },
+    "exploreQuery": {
+      "type": "object",
+      "description": "Typed normalized or declared-native query definition.",
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Human-readable query title.",
+          "maxLength": 512
+        },
+        "definition": {
+          "oneOf": [
+            {
+              "type": "object",
+              "description": "Portable application QuerySpec compiled separately by each official graph adapter.",
+              "properties": {
+                "mode": {
+                  "const": "normalized",
+                  "description": "Selects backend-neutral application operations."
+                },
+                "operation": {
+                  "type": "string",
+                  "enum": [
+                    "media-list",
+                    "speaker-search",
+                    "model-list",
+                    "text-search",
+                    "time-range",
+                    "evidence-traverse",
+                    "graph-view"
+                  ],
+                  "description": "Supported normalized operation with identical intended results on LadybugDB and ArcadeDB."
+                },
+                "filters": {
+                  "type": "object",
+                  "description": "Portable application filters. Unknown filters are rejected instead of ignored.",
+                  "properties": {
+                    "media_ids": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "items": {
+                        "$ref": "common.schema.json#/$defs/uuid",
+                        "description": "Selected library media entry ID."
+                      },
+                      "description": "Restrict to explicit media entries."
+                    },
+                    "speaker_ids": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "items": {
+                        "$ref": "common.schema.json#/$defs/uuid",
+                        "description": "Selected catalog speaker ID."
+                      },
+                      "description": "Current speaker/lineage filter."
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Text/term search phrase, interpreted by the selected normalized operation."
+                    },
+                    "model_kind": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Declared trained-model kind filter."
+                    },
+                    "recording_dates": {
+                      "type": "object",
+                      "description": "Origination calendar filter preserving timezone and undated handling.",
+                      "properties": {
+                        "from": {
+                          "$ref": "common.schema.json#/$defs/calendarDate",
+                          "description": "Inclusive first recording date."
+                        },
+                        "through": {
+                          "$ref": "common.schema.json#/$defs/calendarDate",
+                          "description": "Inclusive last recording date."
+                        },
+                        "timezone": {
+                          "$ref": "common.schema.json#/$defs/timezone",
+                          "description": "Calendar timezone for this filter."
+                        },
+                        "include_undated": {
+                          "type": "boolean",
+                          "description": "Explicitly include entries with unknown recording dates."
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    "source_interval": {
+                      "$ref": "common.schema.json#/$defs/mediaInterval",
+                      "description": "Original-clock interval filter; application checks source ownership and bounds."
+                    },
+                    "concept_ids": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "items": {
+                        "$ref": "common.schema.json#/$defs/uuid",
+                        "description": "Normalized concept ID."
+                      },
+                      "description": "Concept filter for evidence/graph traversal."
+                    },
+                    "entity_ids": {
+                      "type": "array",
+                      "description": "Stable projected graph node references used as bounded traversal seeds.",
+                      "maxItems": 500,
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1024,
+                        "description": "Current projected graph node ID."
+                      }
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "traversal": {
+                  "type": "object",
+                  "description": "Explicit bounded graph expansion, without an engine-specific query string.",
+                  "properties": {
+                    "relationship_types": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Logical relationship type from the versioned projection schema."
+                      },
+                      "description": "Relationship types included in expansion."
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "out",
+                        "in",
+                        "both"
+                      ],
+                      "description": "Direction of selected relationships."
+                    },
+                    "max_depth": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Positive explicit traversal depth; application capacity policies remain visible.",
+                      "maximum": 32
+                    }
+                  },
+                  "required": [
+                    "direction",
+                    "max_depth"
+                  ],
+                  "additionalProperties": false
+                },
+                "order_by": {
+                  "type": "array",
+                  "minItems": 1,
+                  "description": "Deterministic ordering, with a stable entity-ID tie breaker added by the application if needed.",
+                  "items": {
+                    "type": "object",
+                    "description": "One ordered result field.",
+                    "properties": {
+                      "field": {
+                        "type": "string",
+                        "enum": [
+                          "id",
+                          "title",
+                          "recording_date",
+                          "source_start_us",
+                          "speaker_name",
+                          "relevance",
+                          "media.originated_at",
+                          "media.id",
+                          "speaker.id",
+                          "model.id",
+                          "cue.start_us",
+                          "score"
+                        ],
+                        "description": "Normalized field available to the selected operation."
+                      },
+                      "direction": {
+                        "type": "string",
+                        "enum": [
+                          "asc",
+                          "desc"
+                        ],
+                        "description": "Sort direction."
+                      }
+                    },
+                    "required": [
+                      "field",
+                      "direction"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "pagination": {
+                  "type": "object",
+                  "description": "Bounded current-result pagination.",
+                  "additionalProperties": false,
+                  "properties": {
+                    "limit": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "description": "Maximum number of returned rows.",
+                      "maximum": 500
+                    },
+                    "cursor": {
+                      "type": "string",
+                      "description": "Opaque current-result continuation cursor.",
+                      "maxLength": 2048
+                    }
+                  },
+                  "required": [
+                    "limit"
+                  ]
+                }
+              },
+              "required": [
+                "mode",
+                "operation"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "description": "Advanced query text with a declared dialect; arbitrary native text is not automatically portable.",
+              "properties": {
+                "mode": {
+                  "const": "native",
+                  "description": "Selects a declared native query dialect."
+                },
+                "dialect": {
+                  "type": "string",
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "ladybug-cypher",
+                        "arcade-opencypher",
+                        "arcade-sql"
+                      ]
+                    },
+                    {
+                      "pattern": "^community[./:][A-Za-z0-9_.:/-]+$",
+                      "type": "string"
+                    }
+                  ],
+                  "description": "Official native dialect or explicitly namespaced unofficial community dialect."
+                },
+                "text": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Native query text. Read-only or maintenance operation mode is enforced by the adapter and configured privileges."
+                }
+              },
+              "required": [
+                "mode",
+                "dialect",
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          ],
+          "description": "Exactly one normalized application specification or native dialect/text definition."
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "description": "Typed native-query parameter normalized by the selected adapter.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "string",
+                  "integer",
+                  "number",
+                  "boolean",
+                  "uuid",
+                  "date-time",
+                  "date",
+                  "array",
+                  "object",
+                  "null"
+                ],
+                "description": "Logical parameter type, independent of backend value wrappers."
+              },
+              "value": {
+                "description": "Parameter value matching its declared logical type; native adapters validate any narrower backend constraints.",
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "array"
+                  },
+                  {
+                    "type": "object"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "type",
+              "value"
+            ],
+            "additionalProperties": false,
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "string",
+                      "description": "Logical parameter type, independent of backend value wrappers."
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "string",
+                      "description": "Value with the declared string JSON type."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "integer",
+                      "description": "Logical parameter type, independent of backend value wrappers."
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "oneOf": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "string",
+                          "pattern": "^(0|-?[1-9][0-9]*)$",
+                          "maxLength": 20
+                        }
+                      ],
+                      "description": "Exact signed 64-bit integer as a JSON integer or canonical decimal string; the runtime enforces range."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "number",
+                      "description": "Logical parameter type, independent of backend value wrappers."
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "number",
+                      "description": "Value with the declared number JSON type."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "boolean",
+                      "description": "Logical parameter type, independent of backend value wrappers."
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "boolean",
+                      "description": "Value with the declared boolean JSON type."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "uuid",
+                      "description": "Logical parameter type, independent of backend value wrappers."
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "$ref": "common.schema.json#/$defs/uuid",
+                      "description": "UUID parameter value."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "date-time",
+                      "description": "Logical parameter type, independent of backend value wrappers."
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "$ref": "common.schema.json#/$defs/utcInstant",
+                      "description": "UTC instant parameter value."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "date",
+                      "description": "Logical parameter type, independent of backend value wrappers."
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "$ref": "common.schema.json#/$defs/calendarDate",
+                      "description": "Date-only parameter value."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "array",
+                      "description": "Logical parameter type, independent of backend value wrappers."
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "array",
+                      "description": "Value with the declared array JSON type."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "object",
+                      "description": "Logical parameter type, independent of backend value wrappers."
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "object",
+                      "description": "Value with the declared object JSON type."
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "null",
+                      "description": "Logical parameter type, independent of backend value wrappers."
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "type": "object"
+                },
+                "then": {
+                  "properties": {
+                    "value": {
+                      "type": "null",
+                      "description": "Value with the declared null JSON type."
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            ]
+          },
+          "description": "Named typed parameters, passed as values rather than interpolated query text."
+        }
+      },
+      "required": [
+        "definition"
+      ]
+    },
+    "explorePage": {
+      "type": "object",
+      "description": "Bounded current-result pagination.",
+      "additionalProperties": false,
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of returned rows.",
+          "maximum": 500
+        },
+        "cursor": {
+          "type": "string",
+          "description": "Opaque current-result continuation cursor.",
+          "maxLength": 2048
+        }
+      },
+      "required": [
+        "limit"
+      ]
+    },
+    "speakerPinnedFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "description": "Exact absolute selected executable or support file path."
+        },
+        "sha256": {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Expected selected file content digest."
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "description": "Hash-pinned local adapter file."
+    },
+    "speakerLimits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_input_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum prepared input bytes.",
+          "maximum": 68719476736
+        },
+        "max_output_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum adapter output bytes.",
+          "maximum": 68719476736
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Adapter execution deadline in milliseconds.",
+          "maximum": 86400000
+        }
+      },
+      "required": [],
+      "description": "Explicit bounded speaker adapter budgets."
+    },
+    "speakerAdapter": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "enum": [
+            "insonic-speaker",
+            "pyannote-profile"
+          ],
+          "description": "Implemented elected generic training or pinned offline profile adapter."
+        },
+        "contract_version": {
+          "enum": [
+            "1"
+          ],
+          "description": "Implemented speaker adapter wire version."
+        },
+        "mode": {
+          "enum": [
+            "local",
+            "hosted"
+          ],
+          "description": "Explicit local or hosted route."
+        },
+        "architecture": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Declared output architecture."
+        },
+        "output_kinds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Declared supported output kind."
+          },
+          "maxItems": 32,
+          "description": "Output kinds emitted by this adapter."
+        },
+        "consumers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Declared compatible consumer."
+          },
+          "maxItems": 32,
+          "description": "Compatible consumer adapter identities."
+        },
+        "needs_text": {
+          "type": "boolean",
+          "description": "Whether selected current transcript text is required transient input."
+        },
+        "supports_resume": {
+          "type": "boolean",
+          "description": "Whether this exact adapter supports declared checkpoint resume."
+        },
+        "executable": {
+          "$ref": "#/$defs/speakerPinnedFile",
+          "description": "Pinned local training executable."
+        },
+        "arguments": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2048,
+            "description": "Literal selected noninteractive argument."
+          },
+          "maxItems": 32,
+          "description": "Explicit local arguments."
+        },
+        "support_files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/speakerPinnedFile",
+            "description": "Pinned local dependency file."
+          },
+          "maxItems": 64,
+          "description": "Required pinned support files."
+        },
+        "endpoint": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096,
+          "description": "Explicit hosted HTTPS or loopback HTTP route."
+        },
+        "remote_model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Exact hosted model identity."
+        },
+        "upstream_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Immutable upstream identity."
+        },
+        "credential_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Encrypted credential reference, never credential bytes."
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "description": "Adapter or output license declaration."
+        },
+        "limits": {
+          "$ref": "#/$defs/speakerLimits",
+          "description": "Input/output/time limits."
+        },
+        "supported_operations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "description": "Operations the elected training adapter can declare for its output."
+        },
+        "supports_cancel": {
+          "type": "boolean",
+          "description": "Whether the selected hosted contract implements cancellation of this exact work attempt."
+        }
+      },
+      "required": [
+        "id",
+        "contract_version",
+        "mode",
+        "architecture",
+        "output_kinds",
+        "consumers"
+      ],
+      "description": "Elected local, hosted or offline embedding speaker adapter.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "enum": [
+                  "hosted"
+                ],
+                "description": "Hosted adapter transport."
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "required": [
+              "endpoint",
+              "remote_model",
+              "upstream_revision"
+            ],
+            "properties": {
+              "limits": {
+                "type": "object",
+                "properties": {
+                  "max_input_bytes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum hosted media bytes buffered by this JSON transport.",
+                    "maximum": 134217728
+                  },
+                  "max_output_bytes": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Maximum hosted JSON response bytes.",
+                    "maximum": 16777216
+                  }
+                },
+                "description": "Hosted JSON transport memory limits."
+              }
+            },
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "executable"
+                  ]
+                },
+                {
+                  "required": [
+                    "arguments"
+                  ]
+                },
+                {
+                  "required": [
+                    "support_files"
+                  ]
+                }
+              ]
+            }
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "endpoint"
+                  ]
+                },
+                {
+                  "required": [
+                    "credential_id"
+                  ]
+                },
+                {
+                  "required": [
+                    "remote_model"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "speakerRecipe": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "recording_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Optional exact recording corpus filter."
+        },
+        "min_duration_us": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Minimum included source interval duration."
+        },
+        "max_duration_us": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum included source interval duration."
+        },
+        "exclude_overlap": {
+          "type": "boolean",
+          "description": "Exclude overlapping current voice evidence."
+        },
+        "recording_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Selected exact recording identity."
+          },
+          "maxItems": 1000,
+          "description": "Optional recording allowlist."
+        },
+        "languages": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "Current cue language selector."
+          },
+          "maxItems": 64,
+          "description": "Optional language allowlist."
+        },
+        "channel": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Zero-based selected source audio channel.",
+          "maximum": 63
+        },
+        "excluded_references": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "description": "Exact recording/cue/local-speaker reference key."
+          },
+          "maxItems": 10000,
+          "description": "Explicit current-reference exclusions."
+        },
+        "min_rms": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Minimum normalized decoded root mean square amplitude."
+        },
+        "max_clipping_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Maximum fraction of decoded full-scale samples."
+        }
+      },
+      "required": [],
+      "description": "Current independently attributed corpus selection recipe."
+    },
+    "speakerTrain": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dataset_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Exact valid current dataset."
+        },
+        "family_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Optional existing output family."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "description": "Speaker model display name."
+        },
+        "output_kind": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Declared desired output kind."
+        },
+        "adapter": {
+          "$ref": "#/$defs/speakerAdapter",
+          "description": "Exact elected training adapter."
+        },
+        "base_model_id": {
+          "$ref": "common.schema.json#/$defs/modelReference",
+          "description": "Explicit immutable or alias base-model election."
+        },
+        "pipeline_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Optional exact saved training configuration identity."
+        },
+        "pipeline_revision": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Exact elected pipeline revision."
+        },
+        "parameters": {
+          "$ref": "common.schema.json#/$defs/nonsecretOptions",
+          "description": "Effective training hyperparameters without credentials."
+        },
+        "checkpoint_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Exact compatible checkpoint to resume."
+        }
+      },
+      "required": [
+        "dataset_id",
+        "name"
+      ],
+      "description": "Elected durable speaker training input.",
+      "anyOf": [
+        {
+          "required": [
+            "adapter",
+            "output_kind"
+          ]
+        },
+        {
+          "required": [
+            "pipeline_id",
+            "pipeline_revision"
+          ]
+        }
+      ],
+      "dependentRequired": {
+        "pipeline_id": [
+          "pipeline_revision"
+        ],
+        "pipeline_revision": [
+          "pipeline_id"
+        ]
+      }
+    },
+    "speakerMatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "model_id": {
+          "$ref": "common.schema.json#/$defs/modelReference",
+          "description": "Explicit embedding or matching model election."
+        },
+        "adapter": {
+          "$ref": "#/$defs/speakerAdapter",
+          "description": "Exact elected matching adapter."
+        },
+        "threshold": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1,
+          "description": "Minimum accepted score with declared cosine similarity semantics."
+        },
+        "ambiguity_margin": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Minimum score separation from the next eligible candidate."
+        },
+        "min_evidence_us": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Minimum current voice evidence duration."
+        }
+      },
+      "required": [
+        "model_id",
+        "adapter",
+        "threshold",
+        "ambiguity_margin",
+        "min_evidence_us"
+      ],
+      "description": "Matching-only election over frozen current roster profiles."
+    }
+  }
+}

@@ -1,0 +1,1291 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/shruggietech/insonic/v1.0.0/schemas/v1.0.0/speaker-model.schema.json",
+  "title": "Speaker model version manifest",
+  "description": "Exact model artifact identity and noncontent training lineage. Source authority corrections invalidate and retire assignment-bearing manifests/preparations; retained weights do not authorize obsolete subtitle or person assignments.",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0",
+      "description": "Version of this portable model-version document contract."
+    },
+    "kind": {
+      "const": "speaker-model",
+      "description": "Discriminator identifying a speaker-associated model-version manifest."
+    },
+    "workspace_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Workspace owning this model family and version."
+    },
+    "model_family_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Stable speaker_model family identity."
+    },
+    "model_version_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Exact immutable speaker_model_version identity fetched by the CLI."
+    },
+    "originating_speaker_id": {
+      "$ref": "common.schema.json#/$defs/uuid",
+      "description": "Original speaker identity retained through later merges or splits."
+    },
+    "originating_speaker_identity_revision": {
+      "$ref": "common.schema.json#/$defs/revision",
+      "description": "Speaker identity revision used when this version was trained."
+    },
+    "created_at": {
+      "$ref": "common.schema.json#/$defs/utcInstant",
+      "description": "UTC instant when this immutable model version was published."
+    },
+    "manifest_sha256": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Current model manifest digest."
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Current assignment-bearing manifest digest, or null after invalidation."
+    },
+    "manifest_artifact": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/artifactReference",
+          "description": "Current model manifest artifact."
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Current manifest artifact, or null after invalidation."
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "User-facing name captured when the version was published; current family names live in revisioned catalog state."
+    },
+    "training": {
+      "$ref": "#/$defs/training",
+      "description": "Exact training run, dataset, preparation and provider lineage."
+    },
+    "outputs": {
+      "$ref": "#/$defs/outputs",
+      "description": "Verified downloadable artifacts or a declared hosted-model handle."
+    },
+    "compatibility": {
+      "$ref": "#/$defs/compatibility",
+      "description": "Model-kind and consumer/runtime compatibility declarations."
+    },
+    "checkpoints": {
+      "type": "array",
+      "description": "Optional immutable checkpoints retained with the producing training run.",
+      "items": {
+        "$ref": "#/$defs/checkpoint",
+        "description": "One training checkpoint and resume declaration."
+      }
+    },
+    "license_declarations": {
+      "type": "array",
+      "description": "Declared upstream/output licenses and explicit unknown declarations.",
+      "items": {
+        "$ref": "#/$defs/licenseDeclaration",
+        "description": "One source-qualified license/attribution statement."
+      }
+    },
+    "evaluations": {
+      "type": "array",
+      "description": "Optional method-qualified metrics produced before publication.",
+      "items": {
+        "$ref": "#/$defs/evaluation",
+        "description": "One measured evaluation report."
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "description": "Technical findings recorded at publication; later lineage/availability findings are separate revisioned catalog observations.",
+      "items": {
+        "$ref": "speaker-segments.schema.json#/$defs/diagnostic",
+        "description": "One method-qualified model diagnostic."
+      }
+    },
+    "extensions": {
+      "$ref": "common.schema.json#/$defs/extensions",
+      "description": "Namespaced custom model metadata without redefining frozen provenance."
+    },
+    "state": {
+      "enum": [
+        "current",
+        "invalidated"
+      ],
+      "description": "Whether the input corpus remains current; invalidated lineage retains model outputs without executable assignment-bearing input manifests."
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "workspace_id",
+    "model_family_id",
+    "model_version_id",
+    "originating_speaker_id",
+    "originating_speaker_identity_revision",
+    "created_at",
+    "manifest_sha256",
+    "training",
+    "outputs",
+    "compatibility",
+    "checkpoints",
+    "license_declarations",
+    "evaluations",
+    "diagnostics",
+    "state"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "baseModel": {
+      "type": "object",
+      "description": "Exact upstream/base-model identity when training depends on an existing model; no installed path or secret-bearing URL is retained.",
+      "properties": {
+        "model_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable upstream or configured base-model identity."
+        },
+        "revision": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Declared immutable upstream revision."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Upstream revision, or null when the provider supplies none."
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/sha256",
+              "description": "Verified base-model content digest."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Known immutable content digest, or null for a provider-managed model without downloadable bytes."
+        },
+        "artifact": {
+          "$ref": "common.schema.json#/$defs/artifactReference",
+          "description": "Optional locally managed base-model artifact reference."
+        },
+        "format": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Declared base-model serialization format."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Known model format, or null when the provider does not declare it."
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions",
+          "description": "Namespaced upstream identity facts without credentials or local paths."
+        }
+      },
+      "required": [
+        "model_id",
+        "revision",
+        "sha256",
+        "format"
+      ],
+      "additionalProperties": false
+    },
+    "provider": {
+      "type": "object",
+      "description": "Execution identity sufficient to distinguish local and hosted training provenance.",
+      "properties": {
+        "execution": {
+          "type": "string",
+          "enum": [
+            "local",
+            "hosted"
+          ],
+          "description": "Whether training ran locally or at the selected hosted provider."
+        },
+        "provider_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable configured provider identity, independent of transient access credentials."
+        },
+        "adapter_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Training adapter identity."
+        },
+        "contract_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version of the training request/result contract."
+        },
+        "adapter_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Exact implementation version of the producing adapter."
+        },
+        "endpoint": {
+          "$ref": "common.schema.json#/$defs/endpoint",
+          "description": "Optional configured service endpoint without user information, tokens or fragments."
+        },
+        "credential_id": {
+          "$ref": "common.schema.json#/$defs/credentialId",
+          "description": "Optional opaque credential reference; never a credential value."
+        },
+        "implementation_sha256": {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Optional verified local worker/executable distribution digest."
+        },
+        "provider_request_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional nonsecret provider request/operation identity."
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions",
+          "description": "Namespaced provider-specific execution facts."
+        }
+      },
+      "required": [
+        "execution",
+        "provider_id",
+        "adapter_id",
+        "contract_version",
+        "adapter_version"
+      ],
+      "additionalProperties": false
+    },
+    "datasetReference": {
+      "type": "object",
+      "description": "Noncontent dataset identity and current-state lineage; copied speaker assignments are forbidden.",
+      "properties": {
+        "dataset_snapshot_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "training_dataset_snapshot identity used by the run."
+        },
+        "manifest_sha256": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/sha256",
+              "description": "Current corpus manifest digest."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Corpus manifest digest, or null after evidence invalidation."
+        },
+        "originating_speaker_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Speaker for which the dataset was selected."
+        },
+        "speaker_identity_revision": {
+          "$ref": "common.schema.json#/$defs/revision",
+          "description": "Frozen speaker identity revision used by dataset selection."
+        },
+        "artifact": {
+          "$ref": "common.schema.json#/$defs/artifactReference",
+          "description": "Optional immutable dataset manifest artifact reference."
+        },
+        "state": {
+          "enum": [
+            "current",
+            "invalidated"
+          ],
+          "description": "Current or invalidated corpus lineage."
+        }
+      },
+      "required": [
+        "dataset_snapshot_id",
+        "manifest_sha256",
+        "originating_speaker_id",
+        "speaker_identity_revision",
+        "state"
+      ],
+      "additionalProperties": false
+    },
+    "preparationReference": {
+      "type": "object",
+      "description": "Immutable receipt binding every final training input back to the frozen dataset members.",
+      "properties": {
+        "preparation_manifest_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Stable identity of the training_preparation_manifest."
+        },
+        "manifest_sha256": {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Expected canonical preparation manifest digest."
+        },
+        "artifact": {
+          "allOf": [
+            {
+              "$ref": "common.schema.json#/$defs/artifactReference",
+              "description": "Published preparation manifest bytes, including exact member/input-artifact maps."
+            },
+            {
+              "required": [
+                "sha256",
+                "byte_length"
+              ],
+              "type": "object",
+              "properties": {
+                "byte_length": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "A preparation JSON receipt has nonempty verified bytes."
+                }
+              }
+            }
+          ],
+          "description": "Published noncontent preparation receipt with exact current member/input hashes and source-clock provenance; transient audio and text need not be retained."
+        },
+        "input_artifact_ids": {
+          "type": "array",
+          "description": "Durable prepared media artifact identities when retained; empty when verified prepared clips are transient and their hashes/current-source references are recorded in the preparation manifest.",
+          "items": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "One final immutable training input artifact."
+          },
+          "minItems": 0
+        },
+        "adapter_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Adapter that prepared the final training inputs."
+        },
+        "adapter_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Implementation version of the preparation adapter."
+        },
+        "options": {
+          "$ref": "common.schema.json#/$defs/nonsecretOptions",
+          "description": "Exact effective preparation options recorded in the manifest."
+        }
+      },
+      "required": [
+        "preparation_manifest_id",
+        "manifest_sha256",
+        "artifact",
+        "input_artifact_ids",
+        "adapter_id",
+        "adapter_version",
+        "options"
+      ],
+      "additionalProperties": false
+    },
+    "training": {
+      "type": "object",
+      "description": "Durable training execution and all immutable input identities for this published model version.",
+      "properties": {
+        "training_run_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Stable training_run identity."
+        },
+        "job_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Durable scheduler job identity."
+        },
+        "producing_attempt_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Job attempt that produced the published output."
+        },
+        "pipeline_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Saved training pipeline identity."
+        },
+        "pipeline_revision": {
+          "$ref": "common.schema.json#/$defs/revision",
+          "description": "Frozen pipeline revision used by the run."
+        },
+        "dataset": {
+          "$ref": "#/$defs/datasetReference",
+          "description": "Frozen dataset lineage and exact attribution revisions."
+        },
+        "preparation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/preparationReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Current final-input preparation, or null when the corpus is invalidated."
+        },
+        "provider": {
+          "$ref": "#/$defs/provider",
+          "description": "Producing adapter and local/hosted execution identity."
+        },
+        "base_model": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/baseModel",
+              "description": "Exact upstream/base-model identity."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Base-model dependency, or null when training did not use one."
+        },
+        "parameters": {
+          "$ref": "common.schema.json#/$defs/nonsecretOptions",
+          "description": "Exact effective training hyperparameters and options; adapter-specific values remain extensible."
+        },
+        "started_at": {
+          "$ref": "common.schema.json#/$defs/utcInstant",
+          "description": "UTC instant when this training run started."
+        },
+        "completed_at": {
+          "$ref": "common.schema.json#/$defs/utcInstant",
+          "description": "UTC instant when the producing attempt completed."
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions",
+          "description": "Namespaced run provenance with no secret values."
+        }
+      },
+      "required": [
+        "training_run_id",
+        "job_id",
+        "producing_attempt_id",
+        "pipeline_id",
+        "pipeline_revision",
+        "dataset",
+        "preparation",
+        "provider",
+        "base_model",
+        "parameters",
+        "started_at",
+        "completed_at"
+      ],
+      "additionalProperties": false
+    },
+    "modelArtifact": {
+      "type": "object",
+      "description": "One immutable output file belonging to this model version.",
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Declared artifact role, such as weights, config, tokenizer, reference-audio or custom adapter role."
+        },
+        "artifact": {
+          "allOf": [
+            {
+              "$ref": "common.schema.json#/$defs/artifactReference",
+              "description": "Verified durable output artifact identity and complete byte digest/length."
+            },
+            {
+              "required": [
+                "sha256",
+                "byte_length"
+              ],
+              "type": "object"
+            }
+          ],
+          "description": "Verified durable output artifact identity and complete byte digest/length."
+        },
+        "format": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Declared serialization/container format."
+        },
+        "required_for": {
+          "type": "array",
+          "description": "Operations that require this artifact, using declared operation identifiers.",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One supported operation identifier."
+          },
+          "uniqueItems": true
+        },
+        "dependencies": {
+          "type": "array",
+          "description": "Other immutable artifact IDs required to interpret this output.",
+          "items": {
+            "$ref": "common.schema.json#/$defs/uuid",
+            "description": "Required companion artifact identity."
+          },
+          "uniqueItems": true
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions",
+          "description": "Namespaced format-specific output metadata."
+        }
+      },
+      "required": [
+        "role",
+        "artifact",
+        "format",
+        "required_for",
+        "dependencies"
+      ],
+      "additionalProperties": false
+    },
+    "hostedModel": {
+      "type": "object",
+      "description": "Provider-managed model output; the handle is a stable nonsecret identifier rather than downloadable weights.",
+      "properties": {
+        "provider_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Configured provider identity owning this model handle."
+        },
+        "provider_model_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable provider model identifier without credentials or transient signed URLs."
+        },
+        "downloadable": {
+          "type": "boolean",
+          "description": "Whether the declared provider adapter supports retrieving model bytes."
+        },
+        "supported_operations": {
+          "type": "array",
+          "description": "Operations supported by this hosted model according to its adapter declaration.",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One supported operation."
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "retrieval_adapter_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Adapter capable of retrieving weights."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Declared download adapter, or null when weights are not retrievable."
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions",
+          "description": "Namespaced provider output metadata without access secrets."
+        }
+      },
+      "required": [
+        "provider_id",
+        "provider_model_id",
+        "downloadable",
+        "supported_operations",
+        "retrieval_adapter_id"
+      ],
+      "additionalProperties": false
+    },
+    "outputs": {
+      "type": "object",
+      "description": "Validated output manifest; at least one durable artifact or hosted model handle must exist.",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "description": "Durable files available for exact-version retrieval.",
+          "items": {
+            "$ref": "#/$defs/modelArtifact",
+            "description": "One verified output file."
+          }
+        },
+        "hosted_model": {
+          "$ref": "#/$defs/hostedModel",
+          "description": "Optional hosted-only or additional provider model handle."
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions",
+          "description": "Namespaced output formats declared by a custom training adapter."
+        }
+      },
+      "required": [
+        "artifacts"
+      ],
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "properties": {
+            "artifacts": {
+              "minItems": 1,
+              "description": "A downloadable artifact output contains at least one file.",
+              "type": "array"
+            }
+          },
+          "required": [
+            "artifacts"
+          ],
+          "type": "object"
+        },
+        {
+          "required": [
+            "hosted_model"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "compatibility": {
+      "type": "object",
+      "description": "Declared compatibility of this version; declarations are recorded without claiming unperformed runtime verification.",
+      "properties": {
+        "model_kind": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Declared type, such as voice-embedding, speech-synthesis or a custom adapter-defined model kind."
+        },
+        "architecture": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Declared model architecture."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Model architecture, or null when undeclared by the producing provider."
+        },
+        "supported_operations": {
+          "type": "array",
+          "description": "Operations this model version declares it can support.",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One operation identifier."
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "consumers": {
+          "type": "array",
+          "description": "Consumer adapter requirements for local or hosted use.",
+          "items": {
+            "type": "object",
+            "description": "Compatibility declaration for one consuming adapter.",
+            "properties": {
+              "adapter_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Consumer adapter identity."
+              },
+              "contract_version": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Consumer contract version."
+              },
+              "implementation_version_range": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Declared compatible implementation version or range."
+              },
+              "accepted_formats": {
+                "type": "array",
+                "description": "Formats accepted by this consuming adapter.",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "One model format."
+                },
+                "minItems": 1,
+                "uniqueItems": true
+              }
+            },
+            "required": [
+              "adapter_id",
+              "contract_version",
+              "implementation_version_range",
+              "accepted_formats"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "runtime_dependencies": {
+          "type": "array",
+          "description": "Declared software/runtime dependencies; no local install paths are carried.",
+          "items": {
+            "type": "object",
+            "description": "One dependency compatibility declaration.",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Dependency distribution or runtime identity."
+              },
+              "version_requirement": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Declared compatible version or range."
+              },
+              "purpose": {
+                "type": "string",
+                "minLength": 1,
+                "description": "How this dependency is used by the model consumer."
+              }
+            },
+            "required": [
+              "name",
+              "version_requirement",
+              "purpose"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "sample_rate_hz": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Declared input/output sample rate where relevant, or null when not applicable or undeclared."
+        },
+        "channel_count": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Declared audio channel count where relevant, or null when not applicable or undeclared."
+        },
+        "languages": {
+          "type": "array",
+          "description": "Declared supported language identifiers; an empty array makes no language-support claim.",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "description": "One declared language identifier."
+          },
+          "uniqueItems": true
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions",
+          "description": "Custom architecture/capability declarations interpreted by the relevant adapter."
+        }
+      },
+      "required": [
+        "model_kind",
+        "architecture",
+        "supported_operations",
+        "consumers",
+        "runtime_dependencies",
+        "sample_rate_hz",
+        "channel_count",
+        "languages"
+      ],
+      "additionalProperties": false
+    },
+    "checkpoint": {
+      "type": "object",
+      "description": "Immutable training checkpoint and its resume-compatibility declaration; a checkpoint does not itself assert a completed model.",
+      "properties": {
+        "checkpoint_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Stable training_checkpoint identity."
+        },
+        "producing_attempt_id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Attempt that emitted this checkpoint."
+        },
+        "training_step": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Training step reported by the adapter."
+        },
+        "format": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Declared checkpoint serialization or provider format."
+        },
+        "artifact": {
+          "allOf": [
+            {
+              "$ref": "common.schema.json#/$defs/artifactReference",
+              "description": "Optional verified checkpoint bytes."
+            },
+            {
+              "required": [
+                "sha256",
+                "byte_length"
+              ],
+              "type": "object"
+            }
+          ],
+          "description": "Optional verified checkpoint bytes."
+        },
+        "hosted_handle": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional stable nonsecret provider checkpoint identifier."
+        },
+        "resume_supported": {
+          "type": "boolean",
+          "description": "Whether the producing adapter declares this checkpoint resumable."
+        },
+        "compatible_adapter_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Adapter identity declaring resume compatibility."
+        },
+        "compatible_adapter_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Compatible implementation version or range."
+        },
+        "base_model": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/baseModel",
+              "description": "Exact base-model requirement for resume."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Required base-model identity for resume, or null when none is required."
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions",
+          "description": "Namespaced checkpoint compatibility facts."
+        }
+      },
+      "required": [
+        "checkpoint_id",
+        "producing_attempt_id",
+        "training_step",
+        "format",
+        "resume_supported",
+        "compatible_adapter_id",
+        "compatible_adapter_version",
+        "base_model"
+      ],
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "required": [
+            "artifact"
+          ],
+          "type": "object"
+        },
+        {
+          "required": [
+            "hosted_handle"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "licenseDeclaration": {
+      "type": "object",
+      "description": "License/attribution statement preserved as metadata, with explicit unknown values rather than an invented eligibility policy.",
+      "properties": {
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Material covered by the declaration, such as base-model, output or training-data."
+        },
+        "declared_license": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Declared license expression or upstream name."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Declared license, or null when no declaration was supplied."
+        },
+        "attribution": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "description": "Required or supplied attribution text."
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Supplied attribution text, or null when absent."
+        },
+        "source_basis": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Origin of the declaration, such as upstream-manifest, provider-report or user-entry."
+        },
+        "source_artifact": {
+          "$ref": "common.schema.json#/$defs/artifactReference",
+          "description": "Optional report/manifest artifact containing the declaration."
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions",
+          "description": "Namespaced rights metadata as supplied by the upstream source."
+        }
+      },
+      "required": [
+        "scope",
+        "declared_license",
+        "attribution",
+        "source_basis"
+      ],
+      "additionalProperties": false
+    },
+    "evaluation": {
+      "type": "object",
+      "description": "Method-qualified training/evaluation metrics; no unmeasured quality claim is implied.",
+      "properties": {
+        "method": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Evaluation method identity."
+        },
+        "method_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Version of the evaluation method."
+        },
+        "metrics": {
+          "type": "object",
+          "description": "Named measurements reported by this method; absent measurements are not fabricated.",
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "report_artifact": {
+          "$ref": "common.schema.json#/$defs/artifactReference",
+          "description": "Optional immutable evaluation report."
+        },
+        "extensions": {
+          "$ref": "common.schema.json#/$defs/extensions",
+          "description": "Namespaced evaluation context without library content or credentials by default."
+        }
+      },
+      "required": [
+        "method",
+        "method_version",
+        "metrics"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "examples": [
+    {
+      "schema_version": "1.0.0",
+      "kind": "speaker-model",
+      "workspace_id": "00000000-0000-4000-8000-00000000000a",
+      "model_family_id": "00000000-0000-4000-8000-000000000014",
+      "model_version_id": "00000000-0000-4000-8000-000000000015",
+      "originating_speaker_id": "00000000-0000-4000-8000-000000000006",
+      "originating_speaker_identity_revision": 1,
+      "created_at": {
+        "iso": "2026-10-04T20:05:00Z",
+        "unix_ns": 1791144300000000000
+      },
+      "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "display_name": "Example speaker model",
+      "training": {
+        "training_run_id": "00000000-0000-4000-8000-00000000000d",
+        "job_id": "00000000-0000-4000-8000-00000000000e",
+        "producing_attempt_id": "00000000-0000-4000-8000-00000000000f",
+        "pipeline_id": "00000000-0000-4000-8000-000000000010",
+        "pipeline_revision": 1,
+        "dataset": {
+          "dataset_snapshot_id": "00000000-0000-4000-8000-00000000000b",
+          "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "originating_speaker_id": "00000000-0000-4000-8000-000000000006",
+          "speaker_identity_revision": 1,
+          "state": "current"
+        },
+        "preparation": {
+          "preparation_manifest_id": "00000000-0000-4000-8000-000000000011",
+          "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "artifact": {
+            "artifact_id": "00000000-0000-4000-8000-000000000012",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_length": 1024
+          },
+          "input_artifact_ids": [
+            "00000000-0000-4000-8000-000000000013"
+          ],
+          "adapter_id": "example.audio-preparation",
+          "adapter_version": "1.0.0",
+          "options": {
+            "normalize": false
+          }
+        },
+        "provider": {
+          "execution": "local",
+          "provider_id": "local",
+          "adapter_id": "example.voice-training",
+          "contract_version": "1",
+          "adapter_version": "1.0.0"
+        },
+        "base_model": null,
+        "parameters": {
+          "epochs": 2
+        },
+        "started_at": {
+          "iso": "2026-10-04T20:02:00Z",
+          "unix_ns": 1791144120000000000
+        },
+        "completed_at": {
+          "iso": "2026-10-04T20:04:00Z",
+          "unix_ns": 1791144240000000000
+        }
+      },
+      "outputs": {
+        "artifacts": [
+          {
+            "role": "weights",
+            "artifact": {
+              "artifact_id": "00000000-0000-4000-8000-000000000016",
+              "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "byte_length": 4096
+            },
+            "format": "example-voice-format",
+            "required_for": [
+              "voice-comparison"
+            ],
+            "dependencies": []
+          }
+        ]
+      },
+      "compatibility": {
+        "model_kind": "voice-embedding",
+        "architecture": "example-encoder",
+        "supported_operations": [
+          "voice-comparison"
+        ],
+        "consumers": [
+          {
+            "adapter_id": "example.voice-matcher",
+            "contract_version": "1",
+            "implementation_version_range": "1.x",
+            "accepted_formats": [
+              "example-voice-format"
+            ]
+          }
+        ],
+        "runtime_dependencies": [],
+        "sample_rate_hz": 16000,
+        "channel_count": 1,
+        "languages": []
+      },
+      "checkpoints": [],
+      "license_declarations": [
+        {
+          "scope": "output",
+          "declared_license": null,
+          "attribution": null,
+          "source_basis": "provider-report"
+        }
+      ],
+      "evaluations": [],
+      "diagnostics": [],
+      "state": "current"
+    },
+    {
+      "schema_version": "1.0.0",
+      "kind": "speaker-model",
+      "workspace_id": "00000000-0000-4000-8000-00000000000a",
+      "model_family_id": "00000000-0000-4000-8000-000000000014",
+      "model_version_id": "00000000-0000-4000-8000-000000000017",
+      "originating_speaker_id": "00000000-0000-4000-8000-000000000006",
+      "originating_speaker_identity_revision": 1,
+      "created_at": {
+        "iso": "2026-10-04T20:05:00Z",
+        "unix_ns": 1791144300000000000
+      },
+      "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "display_name": "Example speaker model",
+      "training": {
+        "training_run_id": "00000000-0000-4000-8000-00000000000d",
+        "job_id": "00000000-0000-4000-8000-00000000000e",
+        "producing_attempt_id": "00000000-0000-4000-8000-00000000000f",
+        "pipeline_id": "00000000-0000-4000-8000-000000000010",
+        "pipeline_revision": 1,
+        "dataset": {
+          "dataset_snapshot_id": "00000000-0000-4000-8000-00000000000b",
+          "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "originating_speaker_id": "00000000-0000-4000-8000-000000000006",
+          "speaker_identity_revision": 1,
+          "state": "current"
+        },
+        "preparation": {
+          "preparation_manifest_id": "00000000-0000-4000-8000-000000000011",
+          "manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "artifact": {
+            "artifact_id": "00000000-0000-4000-8000-000000000012",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "byte_length": 1024
+          },
+          "input_artifact_ids": [
+            "00000000-0000-4000-8000-000000000013"
+          ],
+          "adapter_id": "example.audio-preparation",
+          "adapter_version": "1.0.0",
+          "options": {
+            "normalize": false
+          }
+        },
+        "provider": {
+          "execution": "hosted",
+          "provider_id": "example.hosted-training",
+          "adapter_id": "example.hosted-voice-training",
+          "contract_version": "1",
+          "adapter_version": "1.0.0",
+          "endpoint": "https://training.example.com",
+          "credential_id": "00000000-0000-4000-8000-000000000018"
+        },
+        "base_model": null,
+        "parameters": {
+          "epochs": 2
+        },
+        "started_at": {
+          "iso": "2026-10-04T20:02:00Z",
+          "unix_ns": 1791144120000000000
+        },
+        "completed_at": {
+          "iso": "2026-10-04T20:04:00Z",
+          "unix_ns": 1791144240000000000
+        }
+      },
+      "outputs": {
+        "artifacts": [],
+        "hosted_model": {
+          "provider_id": "example.hosted-training",
+          "provider_model_id": "model-example-001",
+          "downloadable": false,
+          "supported_operations": [
+            "voice-comparison"
+          ],
+          "retrieval_adapter_id": null
+        }
+      },
+      "compatibility": {
+        "model_kind": "voice-embedding",
+        "architecture": null,
+        "supported_operations": [
+          "voice-comparison"
+        ],
+        "consumers": [
+          {
+            "adapter_id": "example.hosted-voice-matcher",
+            "contract_version": "1",
+            "implementation_version_range": "1.x",
+            "accepted_formats": [
+              "provider-handle"
+            ]
+          }
+        ],
+        "runtime_dependencies": [],
+        "sample_rate_hz": null,
+        "channel_count": null,
+        "languages": []
+      },
+      "checkpoints": [],
+      "license_declarations": [
+        {
+          "scope": "output",
+          "declared_license": null,
+          "attribution": null,
+          "source_basis": "provider-report"
+        }
+      ],
+      "evaluations": [],
+      "diagnostics": [],
+      "state": "current"
+    }
+  ],
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "const": "invalidated",
+            "description": "Evidence-state condition selecting current or invalidated lineage."
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "manifest_sha256": {
+            "type": "null",
+            "description": "Assignment-bearing digest is cleared after invalidation."
+          },
+          "manifest_artifact": {
+            "type": "null",
+            "description": "Assignment-bearing artifact is cleared after invalidation."
+          },
+          "training": {
+            "type": "object",
+            "properties": {
+              "preparation": {
+                "type": "null",
+                "description": "Assignment-bearing preparation is cleared after invalidation."
+              },
+              "dataset": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "const": "invalidated",
+                    "description": "Evidence-state condition selecting current or invalidated lineage."
+                  },
+                  "manifest_sha256": {
+                    "type": "null",
+                    "description": "Assignment-bearing digest is cleared after invalidation."
+                  }
+                },
+                "description": "Dataset lineage carries its current evidence state."
+              }
+            },
+            "description": "Training lineage carries current or invalidated input references."
+          }
+        }
+      }
+    }
+  ]
+}
