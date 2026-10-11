@@ -81,5 +81,24 @@
       "inference": "not-run"
     }
   ],
-  "external_ci_and_reviews": "pending"
+  "external_ci_and_reviews": "initial CI passed; correction head and final review pending",
+  "initial_ci": {
+    "id": 38183587412,
+    "head": "d33ad1dba1c642787a321465724f6d642328c3c2",
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/shruggietech/insonic/actions/runs/38183587412",
+    "started": "2026-10-11T23:15:18Z",
+    "updated": "2026-10-11T23:23:16Z",
+    "active_jobs_passed": 25,
+    "longest_job_seconds": 346
+  },
+  "review_corrections_cli": {
+    "archive_sha256": "d4fa7ca247a1bde2689143aeed4fa194c4194557498b93e15fdfd922342b0e99",
+    "revision": "d33ad1dba1c642787a321465724f6d642328c3c2",
+    "source_dirty": true,
+    "elapsed_seconds": 130.766,
+    "operator_feedback": "passed",
+    "diagnostic_redaction": "passed"
+  }
 }

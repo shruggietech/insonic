@@ -97,3 +97,61 @@ func TestQuietWarningLineLimitIdentifiesTruncation(t *testing.T) {
 		t.Fatal("quiet warning truncation not identified", out.String())
 	}
 }
+
+func TestPublicHumanFieldsRetainContractAndQueryColumnNames(t *testing.T) {
+	previous := operatorContext
+	defer func() { operatorContext = previous }()
+	cases := []struct {
+		path     []string
+		result   any
+		expected []string
+	}{
+		{[]string{"settings", "show"}, map[string]any{"sections": []any{map[string]any{"name": "processing", "value": map[string]any{"parallelism": 2}}}}, []string{"Parallelism: 2"}},
+		{[]string{"doctor"}, map[string]any{"data": "public data directory"}, []string{"Data: public data directory"}},
+		{[]string{"query", "native"}, map[string]any{"rows": []any{map[string]any{"value": "public value", "data": "public data", "owner": "public owner", "payload": "public payload", "token": "public token", "encoding": "base64"}}}, []string{"Value: public value", "Data: public data", "Owner: public owner", "Payload: public payload", "Token: public token"}},
+	}
+	for _, item := range cases {
+		operatorContext = invocation{Path: item.path}
+		var out, errOut bytes.Buffer
+		outputTo(item.result, nil, false, contracts.Response{}, &out, &errOut)
+		for _, expected := range item.expected {
+			if !strings.Contains(out.String(), expected) {
+				t.Errorf("%v omitted %q: %s", item.path, expected, out.String())
+			}
+		}
+	}
+}
+func TestKnownCredentialAndWorkPayloadsStayOmitted(t *testing.T) {
+	previous := operatorContext
+	defer func() { operatorContext = previous }()
+	for _, item := range []struct {
+		path   []string
+		result any
+	}{
+		{[]string{"credentials", "status"}, map[string]any{"value": "synthetic private credential", "backend": "vault", "stored": true}},
+		{[]string{"work", "show"}, map[string]any{"id": contracts.ID(), "kind": "media.import", "generation": 0, "state": "running", "payload": map[string]any{"data": "synthetic private credential"}}},
+	} {
+		operatorContext = invocation{Path: item.path}
+		var out, errOut bytes.Buffer
+		outputTo(item.result, nil, false, contracts.Response{}, &out, &errOut)
+		if strings.Contains(out.String(), "synthetic private credential") {
+			t.Fatal(out.String())
+		}
+	}
+}
+func TestMissingLockedVaultDoesNotClaimSelectedValueStored(t *testing.T) {
+	previous := operatorContext
+	defer func() { operatorContext = previous }()
+	operatorContext = invocation{Path: []string{"credentials", "status"}}
+	for _, stored := range []bool{false, true} {
+		var out, errOut bytes.Buffer
+		state := "missing"
+		if stored {
+			state = "locked"
+		}
+		outputTo(map[string]any{"credential_id": contracts.ID(), "backend": "vault", "state": state, "stored": stored, "locked": true}, nil, false, contracts.Response{}, &out, &errOut)
+		if strings.Contains(out.String(), "remain stored") != stored || !strings.Contains(out.String(), "manager is locked") {
+			t.Fatal(stored, out.String())
+		}
+	}
+}

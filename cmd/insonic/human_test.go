@@ -17,6 +17,9 @@ func TestHumanOutputIsReadableAndExact(t *testing.T) {
 	}
 }
 func TestHumanDocumentDoesNotDumpBase64(t *testing.T) {
+	previous := operatorContext
+	defer func() { operatorContext = previous }()
+	operatorContext = invocation{Path: []string{"recordings", "document"}}
 	var out, err bytes.Buffer
 	content := "Readable document fixture"
 	raw := base64.StdEncoding.EncodeToString([]byte(content))

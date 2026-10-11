@@ -86,6 +86,11 @@ def qualify(executable, workspace, *, env=None, cwd=None):
         raise ValueError('Log preflight failure performed initialization')
     invoke(['settings', 'set', '--input', workspace / 'absent-input.json'], expected=4)
     shown = invoke(['settings', 'show'])['result']
+    query_file = workspace / 'public-column-names.cypher'
+    query_file.write_text("RETURN 'public value' AS value, 'public data' AS data, 'public owner' AS owner", encoding='utf-8', newline='\n')
+    human_query = invoke(['query', 'native', '--dialect', 'ladybug-cypher', '--file', query_file], machine=False)
+    if any(value not in human_query for value in ['public value', 'public data', 'public owner']):
+        raise ValueError('Native query public column values omitted')
     input_file = workspace / 'cli-contract-input.json'
     def supplied(args, data, expected=0):
         input_file.write_text(json.dumps(data) + '\n', encoding='utf-8', newline='\n')
@@ -94,6 +99,10 @@ def qualify(executable, workspace, *, env=None, cwd=None):
     supplied(['settings', 'set'], {'section': 'appearance', 'revision': original['revision'],
                        'value': {'theme': 'dark', 'reduced_motion': True}})['result']
     supplied(['settings', 'set'], {'section': 'appearance', 'revision': original['revision'], 'value': None}, expected=1)
+    human_settings = invoke(['settings', 'show'], machine=False)
+    human_doctor = invoke(['doctor'], machine=False)
+    if 'Theme: dark' not in human_settings or 'Data:' not in human_doctor:
+        raise ValueError('Public settings values or doctor data path omitted')
     current = invoke(['settings', 'show'])['result']['sections']['appearance']
     if current['revision'] == original['revision'] or current['value']['theme'] != 'dark':
         raise ValueError('Settings mutation did not reach the shared runtime')
@@ -113,6 +122,9 @@ def qualify(executable, workspace, *, env=None, cwd=None):
     status = invoke(['credentials', 'status', credential])['result']
     if status.get('state') != 'locked' or not status.get('stored') or status.get('authentication') != 'not-checked':
         raise ValueError('Saved locked vault was misrepresented')
+    missing_human = invoke(['credentials', 'status', str(uuid.uuid4())], machine=False)
+    if 'Stored: no' not in missing_human or 'remain stored' in missing_human:
+        raise ValueError('Missing locked credential falsely reported stored')
     duplicate = invoke(['credentials', 'add', credential], input=json.dumps(secret).encode(), expected=1)
     if duplicate['error'].get('reason') != 'credential_duplicate':
         raise ValueError('Duplicate credential lost its actual cause')

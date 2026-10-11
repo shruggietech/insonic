@@ -94,7 +94,8 @@ func humanFields(b *humanBuffer, v any, depth int) {
 		}
 		sort.Strings(keys)
 		for _, k := range keys {
-			if hiddenHumanField(k) {
+			if hiddenHumanField(x, k) {
+				b.line("%s%s: omitted from human output.", strings.Repeat("  ", depth), humanLabel(k))
 				continue
 			}
 			value := x[k]
@@ -127,10 +128,28 @@ func humanFields(b *humanBuffer, v any, depth int) {
 		b.line("%s%s", strings.Repeat("  ", depth), humanValue(x))
 	}
 }
-func hiddenHumanField(k string) bool {
-	switch k {
-	case "payload", "owner", "owner_token", "token", "password", "passphrase", "secret", "secrets", "value", "input", "data", "encoding", "journal_receipt_id", "manifest_bytes", "raw_bytes", "environment":
+func hiddenHumanField(fields map[string]any, key string) bool {
+	op := strings.Join(operatorContext.Path, " ")
+	// Query fields are user-selected public result columns, not credential input.
+	if strings.HasPrefix(op, "query ") {
+		return false
+	}
+	if op == "recordings document" && fields["encoding"] == "base64" && key == "data" {
 		return true
+	}
+	// Durable work is a known runtime structure; omit its internal input/owner
+	// details without treating an unrelated public field name as a secret.
+	if strings.HasPrefix(op, "work ") && fields["generation"] != nil && fields["kind"] != nil && fields["payload"] != nil {
+		switch key {
+		case "payload", "owner", "owner_token", "journal_receipt_id":
+			return true
+		}
+	}
+	if strings.HasPrefix(op, "credentials ") {
+		switch key {
+		case "value", "password", "passphrase", "token", "secret", "secrets", "input", "environment":
+			return true
+		}
 	}
 	return false
 }
@@ -181,7 +200,10 @@ func humanActions(b *humanBuffer, root map[string]any) {
 			b.line("Session values last only for the current runtime owner.")
 		}
 		if root["locked"] == true {
-			b.line("Saved vault values remain stored; this manager is locked. Use credentials unlock with protected stdin.")
+			b.line("The vault manager is locked. Use credentials unlock with protected stdin.")
+			if root["stored"] == true {
+				b.line("The selected credential values remain stored in the vault.")
+			}
 		}
 		b.line("Credential registration does not prove provider authentication.")
 	}
@@ -273,7 +295,7 @@ func humanDocuments(b *humanBuffer, v any) {
 	if !ok {
 		return
 	}
-	if root["encoding"] == "base64" {
+	if strings.Join(operatorContext.Path, " ") == "recordings document" && root["encoding"] == "base64" {
 		data, ok := root["data"].(string)
 		if !ok {
 			return
