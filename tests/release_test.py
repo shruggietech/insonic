@@ -97,6 +97,22 @@ class GitHubFixture:
 
 
 class ReleaseDeliveryTests(unittest.TestCase):
+    def test_unpublished_candidate_cannot_reach_any_pages_transport_write(self):
+        target = self.candidate()
+        api = GitHubFixture()
+        with patch.object(release, 'pages_module', side_effect=AssertionError('Pages transport must not be reached')):
+            with self.assertRaisesRegex(ValueError, 'published'):
+                release.pages_promote(target, api, verify_fixture, self.root, runner, self.root)
+        self.assertTrue(all(call[0] == 'GET' for call in api.calls))
+
+    def test_corrupt_published_candidate_cannot_reach_pages_transport(self):
+        target = self.candidate()
+        api = GitHubFixture()
+        release.publish(target, 'Exact candidate.', api, self.root, runner, verify_fixture)
+        (target / 'documentation.tar.gz').write_bytes(b'corrupt documentation')
+        with patch.object(release, 'pages_module', side_effect=AssertionError('Pages transport must not be reached')):
+            with self.assertRaises(ValueError): release.pages_promote(target, api, verify_fixture, self.root, runner, self.root)
+
     def setUp(self):
         workflow_environment = patch.dict(os.environ, {'GITHUB_RUN_ID': '', 'GITHUB_REPOSITORY': '', 'GITHUB_SHA': ''})
         workflow_environment.start(); self.addCleanup(workflow_environment.stop)

@@ -4,6 +4,18 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+### Changed
+
+- Share independent engine, desktop/credential and package lanes between PR and release qualification, with separate runtime caches and standalone native CLI preparation for desktop checks. Keep all acceptance, source and inventory checks.
+- Add verified original-release promotion to the existing `insonic.io` GitHub Pages source, with read-only preflight, nonforced parented ref updates and exact-commit build completion. Retain separately configured generic hosting.
+- Include the processing worker in both native package inventories and qualify connected Windows CPU journeys from an elected extracted archive with package-only companion resolution.
+
+### Decisions
+
+- 2026-10-10: Implement S016 release workflow hardening and launch preparation. Measure complete warm PR and publication-disabled release runs, separate product package identity from harness identity, and preserve explicit signing/deployment/acoustic limitations. Product tagging, official publication and live documentation promotion remain a subsequent owner-authorized launch.
+- 2026-10-11: Stage complete Windows codec compilation before final FFmpeg linking after an independent release cold build exceeded its compile bound. Preserve all decoders and unchanged timeouts; verify configured source/dependency identities, integer timestamps and reuse of compiled objects.
+- 2026-10-11: Preserve older nested Next.js segment URLs as aliases to their exact verified flat-file replacements during Pages preparation. Continue rejecting missing historical pages/schemas, unmatched segments, case collisions and excessive payloads before writes.
+
 ## [1.0.0] - 2026-10-10
 
 ### Compatibility

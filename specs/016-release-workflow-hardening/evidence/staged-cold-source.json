@@ -1,0 +1,151 @@
+{
+  "source_revision": "a7f5a357e58b5f7bc934386b8a9dcc48ac4b375f",
+  "recipe_sha256": "170f729f70cc75be21973000bc514e07f4f3e271b7c2cbfb938e50253153977a",
+  "configuration_deadline_seconds": 180,
+  "compile_deadline_seconds": 360,
+  "staged_object_count": 973,
+  "runs": [
+    {
+      "kind": "pr",
+      "run_id": 38111782311,
+      "url": "https://github.com/shruggietech/insonic/actions/runs/38111782311",
+      "codec_job_id": 114390673047,
+      "final_job_id": 114391978688,
+      "unchanged_staged_objects_and_archive": true,
+      "events": [
+        {
+          "stage": "codec",
+          "arguments": [
+            "./configure",
+            "--disable-autodetect",
+            "--disable-network",
+            "--disable-doc",
+            "--disable-debug",
+            "--disable-shared",
+            "--enable-static",
+            "--disable-ffplay",
+            "--disable-avdevice",
+            "--disable-postproc",
+            "--disable-encoders",
+            "--enable-encoder=aac,flac,pcm_s16le,pcm_s32le,libmp3lame,subrip,ass,webvtt",
+            "--enable-libmp3lame",
+            "--enable-zlib",
+            "--enable-bzlib",
+            "--enable-lzma",
+            "--enable-iconv",
+            "--enable-libxml2",
+            "--enable-libdav1d",
+            "--enable-libgme",
+            "--enable-libopenmpt",
+            "--target-os=mingw32",
+            "--arch=x86_64",
+            "--extra-ldflags=-static",
+            "--pkg-config-flags=--static",
+            "--extra-cflags=-ID:/a/insonic/insonic/build/native/source-media/b37b446c3a73b7ec1144bb5daae671e79b345e61d2cf791a5c2e81a43bf15ac8/install/include",
+            "--extra-ldflags=-LD:/a/insonic/insonic/build/native/source-media/b37b446c3a73b7ec1144bb5daae671e79b345e61d2cf791a5c2e81a43bf15ac8/install/lib"
+          ],
+          "elapsed_seconds": 82.14
+        },
+        {
+          "stage": "codec",
+          "arguments": [
+            "make",
+            "-j8",
+            "libavcodec/libavcodec.a"
+          ],
+          "elapsed_seconds": 297.844
+        },
+        {
+          "stage": "ffmpeg",
+          "arguments": [
+            "make",
+            "-q",
+            "libavcodec/libavcodec.a"
+          ],
+          "elapsed_seconds": 1.047
+        },
+        {
+          "stage": "ffmpeg",
+          "arguments": [
+            "make",
+            "-j8",
+            "ffmpeg.exe",
+            "ffprobe.exe"
+          ],
+          "elapsed_seconds": 140.171
+        }
+      ]
+    },
+    {
+      "kind": "release",
+      "run_id": 38111790848,
+      "url": "https://github.com/shruggietech/insonic/actions/runs/38111790848",
+      "codec_job_id": 114390781075,
+      "final_job_id": 114391986757,
+      "unchanged_staged_objects_and_archive": true,
+      "events": [
+        {
+          "stage": "codec",
+          "arguments": [
+            "./configure",
+            "--disable-autodetect",
+            "--disable-network",
+            "--disable-doc",
+            "--disable-debug",
+            "--disable-shared",
+            "--enable-static",
+            "--disable-ffplay",
+            "--disable-avdevice",
+            "--disable-postproc",
+            "--disable-encoders",
+            "--enable-encoder=aac,flac,pcm_s16le,pcm_s32le,libmp3lame,subrip,ass,webvtt",
+            "--enable-libmp3lame",
+            "--enable-zlib",
+            "--enable-bzlib",
+            "--enable-lzma",
+            "--enable-iconv",
+            "--enable-libxml2",
+            "--enable-libdav1d",
+            "--enable-libgme",
+            "--enable-libopenmpt",
+            "--target-os=mingw32",
+            "--arch=x86_64",
+            "--extra-ldflags=-static",
+            "--pkg-config-flags=--static",
+            "--extra-cflags=-ID:/a/insonic/insonic/build/native/source-media/b37b446c3a73b7ec1144bb5daae671e79b345e61d2cf791a5c2e81a43bf15ac8/install/include",
+            "--extra-ldflags=-LD:/a/insonic/insonic/build/native/source-media/b37b446c3a73b7ec1144bb5daae671e79b345e61d2cf791a5c2e81a43bf15ac8/install/lib"
+          ],
+          "elapsed_seconds": 85.344
+        },
+        {
+          "stage": "codec",
+          "arguments": [
+            "make",
+            "-j8",
+            "libavcodec/libavcodec.a"
+          ],
+          "elapsed_seconds": 264.484
+        },
+        {
+          "stage": "ffmpeg",
+          "arguments": [
+            "make",
+            "-q",
+            "libavcodec/libavcodec.a"
+          ],
+          "elapsed_seconds": 1.39
+        },
+        {
+          "stage": "ffmpeg",
+          "arguments": [
+            "make",
+            "-j8",
+            "ffmpeg.exe",
+            "ffprobe.exe"
+          ],
+          "elapsed_seconds": 191.922
+        }
+      ]
+    }
+  ]
+}

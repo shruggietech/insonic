@@ -1,0 +1,19 @@
+# S016 convergence
+
+## Final implementation audit (2026-10-11)
+
+Intent authority was solely `spec.md`, `plan.md` and `tasks.md`, governed by constitution 2.2.1. The prerequisite helper resolved this feature once; no extension hooks exist. Current code and actual evidence were assessed, without treating a diff or history as intent. The convergence operation left tasks.md byte-for-byte unchanged. This record and completion checkboxes were persisted afterward by implementation, outside the read-only convergence operation.
+
+Checked: 12 functional requirements, 12 acceptance scenarios, five success criteria (29 total); ten original design decisions and three measured adjustments; five constitution principles. Findings: zero missing, partial, contradictory or unrequested implementation gaps; zero findings at any severity. No additional tasks were appended. The final evidence-only PR commit still requires its own green CI and thread audit before owner handoff; that operational gate is recorded against its exact SHA in the PR closure comment.
+
+| Intent | Current implementation and actual proof |
+| --- | --- |
+| AC-001-004, FR-001-004, SC-001-002 | Independent native engine/desktop and package lanes in native-qualification.yml; exact attempt/source collection in release.yml; actual native graph requirement in qualify.py. Six packages and both exports validated; complete warm runs 451s/438s/417s. |
+| AC-005-008, FR-005-008, SC-003 | pages.py and release.py validate published authority/destination before writes, preserve domain/history, reconcile uncertain nonforced updates and require exact build identity. Meaningful isolated regressions pass; actual archive preparation preserves 127 historical files/23 aliases with zero mutations. Generic election and configured signing remain tested; actual publisher signing is unconfigured. |
+| AC-009-011, FR-009-010, SC-004 | package-desktop.py inventories the matching worker; qualify-journey.py rejects incompatible elections/overrides and uses extracted runtime bytes. Controlled and actual CPU journeys pass in 99.328s/158.25s with clean matching product/harness identities, exact disconnected-source authority and query recovery. Unknown matching and unmeasured accuracy/platform limits remain explicit. |
+| AC-012, FR-011-012, SC-005 | Synchronized 1.0.0, 620 unchanged baseline/upstream inputs, concise highlights and fresh-main launch instructions. Official PR45, two completed reviews without findings, no third request, complete functional CI and final-head handoff gate. No product publication or live deployment claimed. |
+| Measured source adjustments, T023-T025 | Verified configured codec transfer/resume in media_source_build.py/media-transfer.py/media-source.yml. Integer timestamps and hashes preserve 973 objects; independent actual cold chains pass without changed pins/configuration/deadlines. Combined final-code warm measurements repeat successfully. |
+| Historical compatibility, T026 | Only exact same-page verified flat segment counterparts restore historical nested URLs; absent HTML/schema/unmatched segments, ambiguous aliases and excess payload reject in meaningful regressions. Actual prepared archive succeeds. |
+| Constitution I-V and repository constraints | Owner scope retained; shared CLI/native packages; immutable source inputs and exact date/authority comparisons; alternative adapters/credentials/explicit routing retained; meaningful checks, bounded hidden children and truthful candidate versus deployed state. Public docs exclude slice evidence; baseline/kit identity and UTF-8/LF checks pass. |
+
+Implementation is converged. See [verification.md](verification.md) for receipts and limitations; owner review follows exact final-head CI, with squash merge and product publication remaining owner-controlled.

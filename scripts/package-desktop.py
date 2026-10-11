@@ -389,7 +389,8 @@ def verify_inventory(root, value):
         raise ValueError('package has unrecorded bytes')
     executables, resources = package_directories(root, value['platform'], value.get('variant', 'desktop'))
     required = [(resources / name).relative_to(root).as_posix()
-                for name in ['insonic-companions.json', 'LICENSE', 'NOTICE', 'help/index.html', 'INSTALL.txt']]
+                for name in ['insonic-companions.json', 'LICENSE', 'NOTICE', 'help/index.html', 'INSTALL.txt',
+                             'companions/processing/processing-worker.py']]
     executable = '.exe' if value['platform'].startswith('windows') else ''
     required += [(executables / ('insonic' + executable)).relative_to(root).as_posix(),
                  (resources / ('companions/cueson/cueson' + executable)).relative_to(root).as_posix(),
@@ -439,7 +440,13 @@ def collect_corresponding_sources(root, source_media, receipt, directory):
         'macOS ARM64 uses Xcode command-line tools with macOS 13.3+; Linux uses GCC.\n'
         'Arrange the included .py files in scripts/, media-tools.json in\n'
         'internal/qualification/, and exact source archives in build/media-source-pins/.\n'
-        'Run python scripts/build-media-source.py from that root. The receipt records\n'
+        'On Windows, run these commands in order from that same root:\n'
+        'python scripts/build-media-source.py --stage dependencies\n'
+        'python scripts/build-media-source.py --stage codec\n'
+        'python scripts/build-media-source.py --stage complete\n'
+        'Keep the configured tree and dependency prefix unchanged between stages.\n'
+        'Other platforms run python scripts/build-media-source.py from that root.\n'
+        'The receipt records\n'
         'every configure/build/install invocation, compiler identity and all source hashes.\n'
         'FFmpeg VERSION is pinned to its RELEASE; no other source patches are applied.\n'
         'To modify/relink a library, edit its extracted source and rerun the recorded\n'
@@ -627,6 +634,9 @@ def build(variant='desktop'):
     copy_tree(ROOT / 'build/native/media', root / 'companions/media')
     cueson_root = next((ROOT / 'build/native/cueson').rglob('cueson' + exe)).parent
     copy_tree(cueson_root, root / 'companions/cueson')
+    processing = root / 'companions/processing'
+    processing.mkdir()
+    shutil.copyfile(ROOT / 'scripts/processing-worker.py', processing / 'processing-worker.py')
     copy_tree(ROOT / 'site/offline', root / 'help')
     for name in ['LICENSE', 'NOTICE']:
         shutil.copyfile(ROOT / name, root / name)
@@ -739,7 +749,8 @@ def package_environment():
     env = {'CUESON_EXECUTABLE': '', 'INSONIC_NATIVE_LIBRARY': '', 'INSONIC_LIBRARY_TOOLS_FILE': '',
            'INSONIC_FIXTURE_POSTGRES': '', 'INSONIC_FIXTURE_S3': '', 'INSONIC_FIXTURE_ARCADE': '',
            'PYTHONPATH': '', 'PERL5OPT': '', 'PERL5LIB': '', 'PERLLIB': '', 'EXIFTOOL_HOME': '',
-           'LD_LIBRARY_PATH': '', 'DYLD_LIBRARY_PATH': '', 'LD_PRELOAD': '', 'DYLD_INSERT_LIBRARIES': ''}
+           'LD_LIBRARY_PATH': '', 'DYLD_LIBRARY_PATH': '', 'DYLD_FALLBACK_LIBRARY_PATH': '',
+           'LD_PRELOAD': '', 'DYLD_INSERT_LIBRARIES': ''}
     if os.name == 'nt':
         system = os.environ.get('SystemRoot', 'C:/Windows')
         env['PATH'] = str(Path(system) / 'System32') + os.pathsep + system
@@ -775,6 +786,8 @@ def verify_archive_receipt(archive, receipt, expected_source_root=ROOT):
         if {path.relative_to(location).as_posix() for path in location.rglob('*') if path.is_file()} != expected:
             raise ValueError('package archive contains bytes outside its complete inventory')
         _, resources = package_directories(root, receipt['platform'], receipt['variant'])
+        if sha(resources / 'companions/processing/processing-worker.py') != sha(expected_source_root / 'scripts/processing-worker.py'):
+            raise ValueError('package processing worker differs from selected source')
         manifest = verify_corresponding_sources(resources, expected_source_root=expected_source_root)
         if sha(resources / 'sources/source-manifest.json') != receipt['distribution']['source_manifest_sha256']:
             raise ValueError('package source manifest differs from receipt identity')

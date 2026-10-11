@@ -4,6 +4,7 @@ This glossary defines the technical vocabulary used in the system contracts. Eac
 
 | Term | Meaning in insonic | Learn and local usage |
 | --- | --- | --- |
+| GitHub Pages | The existing static documentation host. Release promotion preserves its selected source/domain and accepts deployment only when the build reports the exact staged commit. | [GitHub Pages builds](https://docs.github.com/en/rest/pages/pages#request-a-github-pages-build); [Releases](releases.md), [development](development.md) |
 | ABI (application binary interface) | Native calling, symbol and data-layout rules that compiled libraries and their loaders must agree on. | [Go cgo](https://pkg.go.dev/cmd/cgo); [Technology](technology.md), [releases](releases.md) |
 | AES-GCM | Authenticated encryption used by the explicit encrypted credential vault; authentication failure rejects altered ciphertext. | [NIST GCM specification](https://csrc.nist.gov/pubs/sp/800/38/d/final); [Security](security.md), [credential commands](secrets.md) |
 | Argon2id / KDF | A memory-hard password-based key derivation function used to derive the vault encryption key from its elected passphrase. | [Argon2 specification](https://www.rfc-editor.org/rfc/rfc9106); [Security](security.md), [credential commands](secrets.md) |

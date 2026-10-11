@@ -1,0 +1,331 @@
+{
+  "kind": "release-candidate",
+  "schema_version": "1.0.0",
+  "version": "1.0.0",
+  "revision": "c617ae83311619d940d69cb27538bf4bdbe1585a",
+  "tag": "v1.0.0",
+  "repository": "shruggietech/insonic",
+  "packages": [
+    {
+      "archive": "insonic_1.0.0_linux_amd64_desktop.tar.gz",
+      "archive_sha256": "e5ab30ed229d5b423ce26221af6786da8b04815f67a4ec59a97f61292f7a9f25",
+      "archive_size_bytes": 140612753,
+      "cli_real_audio_video_import": "passed",
+      "cueson_assembly": "passed",
+      "declared_roster": "passed",
+      "development_native_libraries": "isolated-and-restored",
+      "development_paths": "not-required",
+      "dirname": "insonic_1.0.0_linux_amd64_desktop",
+      "distribution": {
+        "binary_publication": "eligible",
+        "corresponding_source": "included",
+        "source_complete": true,
+        "source_manifest_sha256": "53fefe8300a17d7630e7e963c8f9445c9689b54d9c6b8f0e8b20ade6a7fab136"
+      },
+      "documentation_version": "1.0.0",
+      "elapsed_seconds": 68.89,
+      "extracted_inventory": "passed",
+      "file_count": 1431,
+      "gui_bridge": "passed",
+      "inference": "not-run",
+      "inventory_path": "insonic_1.0.0_linux_amd64_desktop/package-inventory.json",
+      "inventory_root": "insonic_1.0.0_linux_amd64_desktop",
+      "inventory_sha256": "e79ebf23bb8de8f3ab5980a19e133c1dadaa0783543c059d6a7c9d768cb74506",
+      "kind": "native-package-receipt",
+      "native_subtitle_export": "passed",
+      "native_webview": "passed",
+      "platform": "linux_amd64",
+      "product_version": "1.0.0",
+      "recording_replacement": "passed",
+      "relocation_path_spaces": "passed",
+      "revision": "c617ae83311619d940d69cb27538bf4bdbe1585a",
+      "schema_version": "1.0.0",
+      "signing": {
+        "configured": false,
+        "identity": null,
+        "mechanism": "none",
+        "status": "unconfigured",
+        "verified": false
+      },
+      "source_dirty": false,
+      "variant": "desktop"
+    },
+    {
+      "archive": "insonic_1.0.0_darwin_arm64_cli.zip",
+      "archive_sha256": "2b5ca8df51077f0f2ecfff9f88f88a663fa88bd75a5111cfbce9c42fff024963",
+      "archive_size_bytes": 105271763,
+      "cli_real_audio_video_import": "passed",
+      "cueson_assembly": "passed",
+      "declared_roster": "passed",
+      "development_native_libraries": "isolated-and-restored",
+      "development_paths": "not-required",
+      "dirname": "insonic_1.0.0_darwin_arm64_cli",
+      "distribution": {
+        "binary_publication": "eligible",
+        "corresponding_source": "included",
+        "source_complete": true,
+        "source_manifest_sha256": "8958bd3b57943a61e7f15f6f403abaa1c9b5fc5d77ead5dce2b7cd61cbc01add"
+      },
+      "documentation_version": "1.0.0",
+      "elapsed_seconds": 38.246,
+      "extracted_inventory": "passed",
+      "file_count": 1440,
+      "gui_bridge": "not-included",
+      "inference": "not-run",
+      "inventory_path": "insonic_1.0.0_darwin_arm64_cli/package-inventory.json",
+      "inventory_root": "insonic_1.0.0_darwin_arm64_cli",
+      "inventory_sha256": "8440294e71246e2f8488340875fc7efc892e73d2b0aad4f31701f0ff1f77cab0",
+      "kind": "native-package-receipt",
+      "native_subtitle_export": "passed",
+      "native_webview": "not-included",
+      "platform": "darwin_arm64",
+      "product_version": "1.0.0",
+      "recording_replacement": "passed",
+      "relocation_path_spaces": "passed",
+      "revision": "c617ae83311619d940d69cb27538bf4bdbe1585a",
+      "schema_version": "1.0.0",
+      "signing": {
+        "configured": false,
+        "identity": null,
+        "mechanism": "none",
+        "status": "unconfigured",
+        "verified": false
+      },
+      "source_dirty": false,
+      "variant": "cli"
+    },
+    {
+      "archive": "insonic_1.0.0_darwin_arm64_desktop.zip",
+      "archive_sha256": "46384ee233cd7c5ac0268e985a07967fe66a13d2ee40bcaa36b095541fda9694",
+      "archive_size_bytes": 128445270,
+      "cli_real_audio_video_import": "passed",
+      "cueson_assembly": "passed",
+      "declared_roster": "passed",
+      "development_native_libraries": "isolated-and-restored",
+      "development_paths": "not-required",
+      "dirname": "insonic_1.0.0_darwin_arm64_desktop",
+      "distribution": {
+        "binary_publication": "eligible",
+        "corresponding_source": "included",
+        "source_complete": true,
+        "source_manifest_sha256": "8958bd3b57943a61e7f15f6f403abaa1c9b5fc5d77ead5dce2b7cd61cbc01add"
+      },
+      "documentation_version": "1.0.0",
+      "elapsed_seconds": 53.143,
+      "extracted_inventory": "passed",
+      "file_count": 1433,
+      "gui_bridge": "passed",
+      "inference": "not-run",
+      "inventory_path": "insonic_1.0.0_darwin_arm64_desktop/package-inventory.json",
+      "inventory_root": "insonic_1.0.0_darwin_arm64_desktop/insonic.app/Contents",
+      "inventory_sha256": "63952a6d64f71734860f43d104b0c416c8ddaa1677cc25e391022bce5dd451ee",
+      "kind": "native-package-receipt",
+      "native_subtitle_export": "passed",
+      "native_webview": "passed",
+      "platform": "darwin_arm64",
+      "product_version": "1.0.0",
+      "recording_replacement": "passed",
+      "relocation_path_spaces": "passed",
+      "revision": "c617ae83311619d940d69cb27538bf4bdbe1585a",
+      "schema_version": "1.0.0",
+      "signing": {
+        "configured": false,
+        "identity": null,
+        "mechanism": "none",
+        "status": "unconfigured",
+        "verified": false
+      },
+      "source_dirty": false,
+      "variant": "desktop"
+    },
+    {
+      "archive": "insonic_1.0.0_windows_amd64_desktop.zip",
+      "archive_sha256": "218e0e13fa262ce51edb86b7f94b23452f6f3bab42fdf646fd39d048e1a36bef",
+      "archive_size_bytes": 128586481,
+      "cli_real_audio_video_import": "passed",
+      "cueson_assembly": "passed",
+      "declared_roster": "passed",
+      "development_native_libraries": "isolated-and-restored",
+      "development_paths": "not-required",
+      "dirname": "insonic_1.0.0_windows_amd64_desktop",
+      "distribution": {
+        "binary_publication": "eligible",
+        "corresponding_source": "included",
+        "source_complete": true,
+        "source_manifest_sha256": "2fc271ae1beafa9f37d574da713179c04f6241daf05c6d0b8aa2d026d655c0fe"
+      },
+      "documentation_version": "1.0.0",
+      "elapsed_seconds": 91.922,
+      "extracted_inventory": "passed",
+      "file_count": 1656,
+      "gui_bridge": "passed",
+      "inference": "not-run",
+      "inventory_path": "insonic_1.0.0_windows_amd64_desktop/package-inventory.json",
+      "inventory_root": "insonic_1.0.0_windows_amd64_desktop",
+      "inventory_sha256": "0b250b81e4ef3a9e96b1d84124b0f608fd02d09fa1dfc3e5d22dfe7e24dd6316",
+      "kind": "native-package-receipt",
+      "native_subtitle_export": "passed",
+      "native_webview": "passed",
+      "platform": "windows_amd64",
+      "product_version": "1.0.0",
+      "recording_replacement": "passed",
+      "relocation_path_spaces": "passed",
+      "revision": "c617ae83311619d940d69cb27538bf4bdbe1585a",
+      "schema_version": "1.0.0",
+      "signing": {
+        "configured": false,
+        "identity": null,
+        "mechanism": "none",
+        "status": "unconfigured",
+        "verified": false
+      },
+      "source_dirty": false,
+      "variant": "desktop"
+    },
+    {
+      "archive": "insonic_1.0.0_linux_amd64_cli.tar.gz",
+      "archive_sha256": "5c8a5839b83ee6e9f861643c1f9bc9c21d37b63512ebbb2a9a1081af9f350b00",
+      "archive_size_bytes": 118237800,
+      "cli_real_audio_video_import": "passed",
+      "cueson_assembly": "passed",
+      "declared_roster": "passed",
+      "development_native_libraries": "isolated-and-restored",
+      "development_paths": "not-required",
+      "dirname": "insonic_1.0.0_linux_amd64_cli",
+      "distribution": {
+        "binary_publication": "eligible",
+        "corresponding_source": "included",
+        "source_complete": true,
+        "source_manifest_sha256": "53fefe8300a17d7630e7e963c8f9445c9689b54d9c6b8f0e8b20ade6a7fab136"
+      },
+      "documentation_version": "1.0.0",
+      "elapsed_seconds": 37.412,
+      "extracted_inventory": "passed",
+      "file_count": 1440,
+      "gui_bridge": "not-included",
+      "inference": "not-run",
+      "inventory_path": "insonic_1.0.0_linux_amd64_cli/package-inventory.json",
+      "inventory_root": "insonic_1.0.0_linux_amd64_cli",
+      "inventory_sha256": "f496106274dc2a4ba195cdccb97a835841a0aa97f01f3ecee0355f6ffbb43437",
+      "kind": "native-package-receipt",
+      "native_subtitle_export": "passed",
+      "native_webview": "not-included",
+      "platform": "linux_amd64",
+      "product_version": "1.0.0",
+      "recording_replacement": "passed",
+      "relocation_path_spaces": "passed",
+      "revision": "c617ae83311619d940d69cb27538bf4bdbe1585a",
+      "schema_version": "1.0.0",
+      "signing": {
+        "configured": false,
+        "identity": null,
+        "mechanism": "none",
+        "status": "unconfigured",
+        "verified": false
+      },
+      "source_dirty": false,
+      "variant": "cli"
+    },
+    {
+      "archive": "insonic_1.0.0_windows_amd64_cli.zip",
+      "archive_sha256": "11b699a48308bac72ad11809ead83f73827f128d998d989221ecf411b0ec0a12",
+      "archive_size_bytes": 105347968,
+      "cli_real_audio_video_import": "passed",
+      "cueson_assembly": "passed",
+      "declared_roster": "passed",
+      "development_native_libraries": "isolated-and-restored",
+      "development_paths": "not-required",
+      "dirname": "insonic_1.0.0_windows_amd64_cli",
+      "distribution": {
+        "binary_publication": "eligible",
+        "corresponding_source": "included",
+        "source_complete": true,
+        "source_manifest_sha256": "2fc271ae1beafa9f37d574da713179c04f6241daf05c6d0b8aa2d026d655c0fe"
+      },
+      "documentation_version": "1.0.0",
+      "elapsed_seconds": 49.734,
+      "extracted_inventory": "passed",
+      "file_count": 1669,
+      "gui_bridge": "not-included",
+      "inference": "not-run",
+      "inventory_path": "insonic_1.0.0_windows_amd64_cli/package-inventory.json",
+      "inventory_root": "insonic_1.0.0_windows_amd64_cli",
+      "inventory_sha256": "767542d03ddd30e3e761bdf0455d6fcb59236d40d6d2d77530185078945b736b",
+      "kind": "native-package-receipt",
+      "native_subtitle_export": "passed",
+      "native_webview": "not-included",
+      "platform": "windows_amd64",
+      "product_version": "1.0.0",
+      "recording_replacement": "passed",
+      "relocation_path_spaces": "passed",
+      "revision": "c617ae83311619d940d69cb27538bf4bdbe1585a",
+      "schema_version": "1.0.0",
+      "signing": {
+        "configured": false,
+        "identity": null,
+        "mechanism": "none",
+        "status": "unconfigured",
+        "verified": false
+      },
+      "source_dirty": false,
+      "variant": "cli"
+    }
+  ],
+  "assets": [
+    {
+      "name": "insonic_1.0.0_linux_amd64_desktop.tar.gz",
+      "size_bytes": 140612753,
+      "sha256": "e5ab30ed229d5b423ce26221af6786da8b04815f67a4ec59a97f61292f7a9f25"
+    },
+    {
+      "name": "insonic_1.0.0_darwin_arm64_cli.zip",
+      "size_bytes": 105271763,
+      "sha256": "2b5ca8df51077f0f2ecfff9f88f88a663fa88bd75a5111cfbce9c42fff024963"
+    },
+    {
+      "name": "insonic_1.0.0_darwin_arm64_desktop.zip",
+      "size_bytes": 128445270,
+      "sha256": "46384ee233cd7c5ac0268e985a07967fe66a13d2ee40bcaa36b095541fda9694"
+    },
+    {
+      "name": "insonic_1.0.0_windows_amd64_desktop.zip",
+      "size_bytes": 128586481,
+      "sha256": "218e0e13fa262ce51edb86b7f94b23452f6f3bab42fdf646fd39d048e1a36bef"
+    },
+    {
+      "name": "insonic_1.0.0_linux_amd64_cli.tar.gz",
+      "size_bytes": 118237800,
+      "sha256": "5c8a5839b83ee6e9f861643c1f9bc9c21d37b63512ebbb2a9a1081af9f350b00"
+    },
+    {
+      "name": "insonic_1.0.0_windows_amd64_cli.zip",
+      "size_bytes": 105347968,
+      "sha256": "11b699a48308bac72ad11809ead83f73827f128d998d989221ecf411b0ec0a12"
+    },
+    {
+      "name": "documentation.tar.gz",
+      "size_bytes": 5312410,
+      "sha256": "314bccbbb6538fd1cb7c85837ac55e0e7d6ea94f652c2b3ef079da22479276be"
+    },
+    {
+      "name": "offline-help.tar.gz",
+      "size_bytes": 4020029,
+      "sha256": "91351c1f96b41ae1edee4a9b1cc91b4b3c6d5d85dfb65cf34598155ed1d20803"
+    }
+  ],
+  "capabilities": {
+    "variants": [
+      "cli",
+      "desktop"
+    ],
+    "platforms": [
+      "windows_amd64",
+      "linux_amd64",
+      "darwin_arm64"
+    ],
+    "advanced_cli": [
+      "backup"
+    ],
+    "inference_qualification": "not-executed"
+  }
+}

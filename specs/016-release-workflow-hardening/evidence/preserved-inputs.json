@@ -1,0 +1,8 @@
+{
+  "kind": "preserved-input-verification",
+  "files_unchanged": 620,
+  "baseline_files_unchanged": 46,
+  "ledger_sha256": "2610cdd2c36daf6642f09539074c257d401ccf92c7eb1cd50f0ec998825b1e81",
+  "governed_brand_bytes_changed": false,
+  "baseline_bytes_changed": false
+}

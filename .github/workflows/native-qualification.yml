@@ -21,17 +21,40 @@ on:
         required: false
         default: both
         type: string
+      documentation-target:
+        type: string
+        default: snapshot
+      windows-sign-cert-sha1:
+        type: string
+        default: ''
+      signtool-executable:
+        type: string
+        default: ''
+      windows-sign-timestamp-url:
+        type: string
+        default: ''
+      macos-sign-identity:
+        type: string
+        default: ''
+      macos-notary-profile:
+        type: string
+        default: ''
 permissions:
   contents: read
 jobs:
-  runtime:
+  runtime_checks:
     if: inputs.core && inputs.lane != 'packages'
-    name: native (${{ inputs.os }})
+    name: native-${{ matrix.runtime_lane }} (${{ inputs.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runtime_lane: ${{ inputs.native && fromJSON('["engine","desktop"]') || fromJSON('["engine"]') }}
     runs-on: ${{ inputs.os }}
     timeout-minutes: 10
     env:
       NEXT_TELEMETRY_DISABLED: 1
       SOURCE_REVISION: ${{ inputs.revision }}
+      INSONIC_DOCUMENTATION_TARGET: ${{ inputs.documentation-target }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -45,15 +68,15 @@ jobs:
           cache-dependency-path: |
             go.sum
             internal/qualification/dependencies.json
-            desktop/frontend/package-lock.json
-      - if: inputs.native
+            .github/workflows/cache-keys/native-${{ matrix.runtime_lane }}
+      - if: inputs.native && matrix.runtime_lane == 'desktop'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: site/package-lock.json
       - name: Linux webview dependencies
-        if: runner.os == 'Linux' && inputs.native
+        if: runner.os == 'Linux' && inputs.native && matrix.runtime_lane == 'desktop'
         run: |
           # The runner's Azure HTTP mirror can consume the complete job budget.
           # Preserve suites/components/signatures while using Ubuntu HTTPS.
@@ -91,19 +114,22 @@ jobs:
         shell: bash
         run: python scripts/media-transfer.py restore --stage complete --revision "$SOURCE_REVISION" build/transfer/media-source.tar.gz
       - name: Pinned metadata extractors and real media operations
-        if: inputs.core
+        if: inputs.core && matrix.runtime_lane == 'engine'
         run: python scripts/media-tools.py
+      - name: Prepare pinned metadata extractors for desktop qualification
+        if: inputs.core && matrix.runtime_lane == 'desktop'
+        run: python scripts/media-tools.py --prepare-only
       - name: Real native dependency operations
-        if: inputs.native
+        if: inputs.native && matrix.runtime_lane == 'engine'
         run: python scripts/qualify.py native
       - name: Cross-process CLI acceptance
-        if: inputs.cli
+        if: inputs.cli && matrix.runtime_lane == 'engine'
         run: python scripts/qualify.py cli ${{ inputs.native && '--native' || '' }}
       - name: Native credential lifecycle on Windows and macOS
-        if: inputs.native && runner.os != 'Linux'
+        if: inputs.native && matrix.runtime_lane == 'desktop' && runner.os != 'Linux'
         run: python scripts/qualify.py secrets
       - name: Native credential lifecycle in private Linux Secret Service
-        if: inputs.native && runner.os == 'Linux'
+        if: inputs.native && matrix.runtime_lane == 'desktop' && runner.os == 'Linux'
         shell: bash
         run: |
           dbus-run-session -- bash -euo pipefail -c '
@@ -117,29 +143,40 @@ jobs:
             python scripts/qualify.py secrets
           '
       - name: Install package notice inputs and build local help
-        if: inputs.native
+        if: inputs.native && matrix.runtime_lane == 'desktop'
         run: |
           npm --prefix desktop/frontend ci --ignore-scripts
           npm --prefix site ci --ignore-scripts
           npm --prefix site run build
           python scripts/qualify.py assets
       - name: Check and build desktop frontend
-        if: inputs.native
+        if: inputs.native && matrix.runtime_lane == 'desktop'
         run: |
           npm --prefix desktop/frontend run check
           npm --prefix desktop/frontend test
           npm --prefix desktop/frontend run build
       - name: Desktop shared bridge qualification
-        if: inputs.native
+        if: inputs.native && matrix.runtime_lane == 'desktop'
         run: python scripts/qualify.py desktop
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always() && inputs.core
         with:
-          name: native-receipts-${{ inputs.os }}-${{ inputs.revision }}-${{ github.run_attempt }}
+          name: native-receipts-${{ matrix.runtime_lane }}-${{ inputs.os }}-${{ inputs.revision }}-${{ github.run_attempt }}
           path: |
             build/native/*receipt.json
             build/native/package-inventory.json
           if-no-files-found: error
+  runtime:
+    if: always() && inputs.core && inputs.lane != 'packages'
+    needs: [runtime_checks]
+    name: native (${{ inputs.os }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Require every elected runtime lane
+        env:
+          QUALIFICATION_RESULT: ${{ needs.runtime_checks.result }}
+        run: python -c "import os; assert os.environ['QUALIFICATION_RESULT'] == 'success', 'native qualification lane failed or was skipped'"
   packages:
     if: inputs.native && inputs.lane != 'runtime'
     name: package (${{ inputs.os }}, ${{ matrix.variant }})
@@ -152,6 +189,12 @@ jobs:
     env:
       NEXT_TELEMETRY_DISABLED: 1
       SOURCE_REVISION: ${{ inputs.revision }}
+      INSONIC_DOCUMENTATION_TARGET: ${{ inputs.documentation-target }}
+      INSONIC_WINDOWS_SIGN_CERT_SHA1: ${{ inputs.windows-sign-cert-sha1 }}
+      INSONIC_SIGNTOOL_EXECUTABLE: ${{ inputs.signtool-executable }}
+      INSONIC_WINDOWS_SIGN_TIMESTAMP_URL: ${{ inputs.windows-sign-timestamp-url }}
+      INSONIC_MACOS_SIGN_IDENTITY: ${{ inputs.macos-sign-identity }}
+      INSONIC_MACOS_NOTARY_PROFILE: ${{ inputs.macos-notary-profile }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:

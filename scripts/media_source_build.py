@@ -35,6 +35,10 @@ DEPENDENCY_PART_REQUIRED = {
     'audio': ['lib/libmp3lame.a', 'lib/libogg.a', 'lib/libmpg123.a', 'include/ogg/ogg.h'],
     'av1': ['lib/libdav1d.a', 'include/dav1d/dav1d.h']}
 PROGRESS_LOCK = threading.Lock()
+CODEC_TARGET = 'libavcodec/libavcodec.a'
+CODEC_REQUIRED = ['config.h', 'config_components.h', 'config.asm', 'ffbuild/config.mak',
+                  'ffbuild/config.sh', 'ffbuild/.config', 'libavutil/avconfig.h',
+                  'libavutil/ffversion.h', '.version', 'VERSION', CODEC_TARGET]
 
 
 def sha(path):
@@ -435,14 +439,113 @@ def xml2_options(prefix):
             '-DIconv_LIBRARY=' + archive.as_posix()]
 
 
+def compile_ffmpeg(directory, platform_id, parallel_jobs, run):
+    # MSYS process launch and filesystem work leave compiler slots idle. A
+    # bounded two-to-one Windows launch budget overlaps that latency without
+    # changing codec configuration, optimization or the existing compile bound.
+    jobs = min(16, max(1, parallel_jobs) * 2) if platform_id.startswith('windows') else max(1, parallel_jobs)
+    suffix = '.exe' if platform_id.startswith('windows') else ''
+    run(['make', '-j' + str(jobs), 'ffmpeg' + suffix, 'ffprobe' + suffix], directory, 360, shell=platform_id.startswith('windows'))
+
+
+def ffmpeg_configuration(prefix, platform_id):
+    return [*CONFIGURE, *PIN['platform_configure'][platform_id], '--pkg-config-flags=--static',
+            '--extra-cflags=-I' + prefix.as_posix() + '/include',
+            '--extra-ldflags=-L' + prefix.as_posix() + '/lib']
+
+
+def codec_identity(key, platform_id, compiler, recipe):
+    directory = BUILD / key
+    return {'kind': 'media-codec-build', 'target': CODEC_TARGET, 'key': key,
+            'platform': platform_id, 'compiler': compiler, 'recipe_sha256': recipe,
+            'launcher_sha256': sha(ROOT / 'scripts/process_tree.py'), 'sources': source_pins(),
+            'source_prefix': str(directory / 'ffmpeg-source'), 'install_prefix': str(directory / 'install'),
+            'configure': ffmpeg_configuration(directory / 'install', platform_id),
+            'version_override': {'file': 'VERSION', 'value': VERSION, 'policy': VERSION_POLICY}}
+
+
+def codec_inventory(directory):
+    """Bind the configured tree and every external header prerequisite exactly."""
+    files, folded = {}, set()
+    for root in ['ffmpeg-source', 'install']:
+        base = directory / root
+        if not base.is_dir() or base.is_symlink():
+            raise ValueError('codec build tree is missing or linked')
+        for path in sorted(base.rglob('*')):
+            if path.is_symlink():
+                raise ValueError('codec build tree contains a symbolic link')
+            if path.is_dir():
+                continue
+            if not path.is_file():
+                raise ValueError('codec build tree contains a nonregular input')
+            name = path.relative_to(directory).as_posix()
+            if ':' in name or '\\' in name or name.casefold() in folded:
+                raise ValueError('codec build tree has ambiguous member names')
+            folded.add(name.casefold())
+            info = path.stat()
+            files[name] = {'sha256': sha(path), 'size_bytes': info.st_size,
+                           'mode': info.st_mode & 0o777, 'mtime_ns': info.st_mtime_ns}
+    return files
+
+
+def make_codec_receipt(directory, key, platform_id, compiler, recipe, commands, elapsed):
+    dependency = json.loads((directory / 'dependency-receipt.json').read_text(encoding='utf-8'))
+    return dict(codec_identity(key, platform_id, compiler, recipe), commands=list(commands),
+                dependency_receipt_sha256=sha(directory / 'dependency-receipt.json'),
+                dependency_parts=dependency.get('dependency_parts', []),
+                files=codec_inventory(directory), elapsed_seconds=elapsed)
+
+
+def codec_cache_valid(directory, receipt, key, platform_id, compiler, recipe, temporary=False):
+    try:
+        expected = codec_identity(key, platform_id, compiler, recipe)
+        if any(receipt.get(field) != value for field, value in expected.items()):
+            return False
+        dependency_path = directory / 'dependency-receipt.json'
+        if sha(dependency_path) != receipt['dependency_receipt_sha256']:
+            return False
+        dependency = json.loads(dependency_path.read_text(encoding='utf-8'))
+        if (dependency.get('install_prefix') != expected['install_prefix']
+                or any(dependency.get(field) != expected[field] for field in
+                       ['key', 'platform', 'compiler', 'recipe_sha256', 'launcher_sha256', 'sources'])
+                or receipt.get('dependency_parts') != dependency.get('dependency_parts', [])):
+            return False
+        adjusted = dict(dependency, install_prefix=str(directory / 'install')) if temporary else dependency
+        if not dependency_cache_valid(directory, adjusted, key) or not dependency_part_receipts_valid(directory, dependency):
+            return False
+        if receipt.get('files') != codec_inventory(directory):
+            return False
+        required = {'ffmpeg-source/' + name for name in CODEC_REQUIRED}
+        if not required.issubset(receipt['files']) or not any(name.endswith('.o') for name in receipt['files']):
+            return False
+        return any(command.get('status') == 'succeeded' and isinstance(command.get('arguments'), list)
+                   and command['arguments'] and command['arguments'][0] == 'make'
+                   and CODEC_TARGET in command['arguments'] for command in receipt.get('commands', []))
+    except (ValueError, KeyError, TypeError, AttributeError, OSError):
+        return False
+
+
+def resume_codec(directory, receipt, platform_id, parallel_jobs, run):
+    """Require Make's dependency graph to reuse the verified codec archive."""
+    objects = {name: item for name, item in receipt['files'].items()
+               if name.startswith('ffmpeg-source/') and (name.endswith('.o') or name == 'ffmpeg-source/' + CODEC_TARGET)}
+    run(['make', '-q', CODEC_TARGET], directory / 'ffmpeg-source', 60, shell=platform_id.startswith('windows'))
+    compile_ffmpeg(directory / 'ffmpeg-source', platform_id, parallel_jobs, run)
+    for name, expected in objects.items():
+        path = directory / name
+        if sha(path) != expected['sha256'] or path.stat().st_mtime_ns != expected['mtime_ns']:
+            raise ValueError('final FFmpeg build recompiled a staged codec object: ' + name)
+
+
 def prepare(stage='complete'):
-    if stage not in ['dependencies', 'complete', *DEPENDENCY_GROUPS]:
+    if stage not in ['dependencies', 'codec', 'complete', *DEPENDENCY_GROUPS]:
         raise ValueError('unknown source build stage')
     platform_id, names, key, compiler, recipe_sha = cache_identity()
     suffix = '.exe' if platform_id.startswith('windows') else ''
     directory = BUILD / key
     receipt_path = directory / 'build-receipt.json'
     dependency_path = directory / 'dependency-receipt.json'
+    codec_path = directory / 'codec-receipt.json'
     source = fetch_source()
     if stage in DEPENDENCY_GROUPS:
         part_path = directory / ('dependency-' + stage + '-receipt.json')
@@ -454,6 +557,13 @@ def prepare(stage='complete'):
         receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
         if cache_valid(directory, receipt, key, names):
             return directory, receipt, source
+    codec = (json.loads(codec_path.read_text(encoding='utf-8'))
+             if stage in ['codec', 'complete'] and codec_path.is_file() else None)
+    if codec is not None and stage in ['codec', 'complete']:
+        if not codec_cache_valid(directory, codec, key, platform_id, compiler, recipe_sha):
+            raise ValueError('configured codec continuation differs from the current source toolchain')
+        if stage == 'codec':
+            return directory, codec, source
     directory.mkdir(parents=True, exist_ok=True)
     started = time.monotonic()
     pins, commands = source_pins(), []
@@ -463,6 +573,8 @@ def prepare(stage='complete'):
         return directory, dependency_receipt, source
     if dependencies_ready:
         commands.extend(dependency_receipt['commands'])
+    if codec is not None and stage == 'complete':
+        commands = list(codec['commands'])
     prefix = directory / 'install'
     env = build_environment(platform_id, prefix)
     validate_build_tools(platform_id, env)
@@ -470,7 +582,8 @@ def prepare(stage='complete'):
     for name, pin in pins.items():
         target = directory / (name + '-source')
         target.mkdir(exist_ok=True)
-        extract_source(fetch_pin(pin), target, pin['root'])
+        if codec is None or name != 'ffmpeg':
+            extract_source(fetch_pin(pin), target, pin['root'])
         source_directories[name] = target
     validate_source_notices(directory, pins)
     prefix.mkdir(exist_ok=True)
@@ -577,12 +690,23 @@ def prepare(stage='complete'):
         return directory, dependency_receipt, source
     ffmpeg_started = time.monotonic()
     ffmpeg = source_directories['ffmpeg']
-    pin_release_version(ffmpeg)
-    effective_configure = [*CONFIGURE, *PIN['platform_configure'][platform_id],
-                           '--pkg-config-flags=--static', '--extra-cflags=-I' + prefix.as_posix() + '/include',
-                           '--extra-ldflags=-L' + prefix.as_posix() + '/lib']
-    run(['./configure', *effective_configure], ffmpeg, shell=True)
-    run(['make', '-j' + jobs, 'ffmpeg' + suffix, 'ffprobe' + suffix], ffmpeg, 360, shell=platform_id.startswith('windows'))
+    effective_configure = ffmpeg_configuration(prefix, platform_id)
+    if codec is None:
+        pin_release_version(ffmpeg)
+        run(['./configure', *effective_configure], ffmpeg, shell=True)
+    if stage == 'codec':
+        count = min(16, max(1, parallel_jobs) * 2) if platform_id.startswith('windows') else max(1, parallel_jobs)
+        run(['make', '-j' + str(count), CODEC_TARGET], ffmpeg, 360, shell=platform_id.startswith('windows'))
+        codec = make_codec_receipt(directory, key, platform_id, compiler, recipe_sha, commands,
+                                   round(time.monotonic() - started, 3))
+        if not codec_cache_valid(directory, codec, key, platform_id, compiler, recipe_sha):
+            raise ValueError('compiled codec continuation is incomplete')
+        write_json(codec_path, codec)
+        return directory, codec, source
+    if codec is not None:
+        resume_codec(directory, codec, platform_id, parallel_jobs, run)
+    else:
+        compile_ffmpeg(ffmpeg, platform_id, parallel_jobs, run)
     configurations, capabilities, versions = {}, {}, {}
     for name in names:
         shutil.copyfile(ffmpeg / name, directory / name)
@@ -627,6 +751,10 @@ def prepare(stage='complete'):
                'normalized_aliases': dependency_receipt.get('normalized_aliases', []),
                'dependency_elapsed_seconds': dependency_receipt['elapsed_seconds'],
                'dependency_parts': dependency_receipt.get('dependency_parts', []),
+               'codec_elapsed_seconds': codec['elapsed_seconds'] if codec else None,
+               'codec_reuse_verified': codec is not None,
+               'codec_object_count': sum(name.startswith('ffmpeg-source/') and name.endswith('.o')
+                                         for name in codec['files']) if codec else 0,
                'ffmpeg_elapsed_seconds': round(time.monotonic() - ffmpeg_started, 3),
                'version_override': {'file': 'VERSION', 'value': VERSION, 'policy': VERSION_POLICY},
                'elapsed_seconds': round(time.monotonic() - started, 3), 'license': 'LGPL-2.1-or-later',

@@ -15,6 +15,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import re
 import subprocess
 import sys
 import tempfile
@@ -40,6 +41,75 @@ def write_json(path, value):
     path.write_text(json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False) + '\n', encoding='utf-8', newline='\n')
 
 
+def package_module():
+    spec = importlib.util.spec_from_file_location('journey_package', ROOT / 'scripts/package-desktop.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def validate_selection(args):
+    if args.package:
+        if any((args.cli, args.tools, args.cueson)):
+            raise ValueError('Package selection forbids development CLI or companion overrides')
+        if not args.package_receipt or not args.revision:
+            raise ValueError('Package selection requires its receipt and exact elected revision')
+    elif not all((args.cli, args.tools, args.cueson)) or args.package_receipt or args.revision:
+        raise ValueError('Source selection requires CLI, media tools and Cueson only')
+
+
+def validate_package_election(receipt, revision, version, platform_key):
+    if not re.fullmatch('[0-9a-f]{40}', revision or '') or receipt.get('revision') != revision:
+        raise ValueError('Package revision differs from exact election')
+    if any(receipt.get(name) != version for name in ('schema_version', 'product_version', 'documentation_version')):
+        raise ValueError('Package versions differ from current product contract')
+    if receipt.get('source_dirty') is not False or receipt.get('platform') != platform_key or receipt.get('variant') not in ('cli', 'desktop'):
+        raise ValueError('Package requires clean source and the current supported platform and variant')
+
+
+def packaged_environment():
+    environment = engine.local_environment()
+    environment.update(package_module().package_environment())
+    return environment
+
+
+def select_package(args, base):
+    package = package_module()
+    archive = Path(args.package).resolve(strict=True)
+    receipt = json.loads(Path(args.package_receipt).read_text(encoding='utf-8'))
+    validate_package_election(receipt, args.revision, (ROOT / 'VERSION').read_text().strip(), package.platform_key())
+    package.verify_archive_receipt(archive, receipt, expected_source_root=ROOT)
+    location = base / 'relocated installed package with spaces'
+    location.mkdir()
+    package.extract_package(archive, location)
+    root = package.path_inside(location, receipt['inventory_root'])
+    inventory_path = package.path_inside(location, receipt['inventory_path'])
+    if package.sha(archive) != receipt['archive_sha256'] or package.sha(inventory_path) != receipt['inventory_sha256']:
+        raise ValueError('Selected archive or inventory changed during extraction')
+    package.verify_inventory(root, json.loads(inventory_path.read_text(encoding='utf-8')))
+    executables, resources = package.package_directories(root, receipt['platform'], receipt['variant'])
+    manifest = json.loads((resources / 'insonic-companions.json').read_text(encoding='utf-8'))
+    if manifest.get('kind') != 'installed-companions' or manifest.get('schema_version') != receipt['schema_version'] or manifest.get('platform') != receipt['platform']:
+        raise ValueError('Installed companion manifest differs from package election')
+    tools = manifest['media']
+    for name in ('ffmpeg', 'ffprobe', 'exiftool'):
+        for item in [tools[name], *tools[name].get('support_files', [])]:
+            path = package.path_inside(resources, item['path'])
+            if not path.is_file() or package.sha(path) != item['sha256']:
+                raise ValueError('Installed media companion differs from manifest')
+            item['path'] = str(path)
+    cueson = package.path_inside(resources, manifest['cueson']['executable'])
+    if package.sha(cueson) != manifest['cueson']['executable_sha256']:
+        raise ValueError('Installed Cueson differs from manifest')
+    worker = resources / 'companions/processing/processing-worker.py'
+    if package.sha(worker) != package.sha(ROOT / 'scripts/processing-worker.py'):
+        raise ValueError('Installed processing worker differs from selected source')
+    executable = executables / ('insonic.exe' if receipt['platform'].startswith('windows') else 'insonic')
+    identity = {name: receipt[name] for name in ('revision', 'platform', 'variant', 'schema_version', 'product_version',
+                'documentation_version', 'archive_sha256', 'inventory_sha256', 'source_dirty')}
+    return executable, tools, cueson, worker, identity
+
+
 def withdraw_source(source, base):
     if source.is_symlink():
         raise ValueError('Source withdrawal is restricted to the owned scratch workspace')
@@ -61,14 +131,24 @@ def compare_authority(before, after):
 class Journey:
     def __init__(self, args, base):
         self.args, self.base = args, base
-        self.workspace = base / 'source-workspace'
-        self.cli = Path(args.cli).resolve(strict=True)
         self.started = time.monotonic()
         self.deadline = self.started + args.timeout
+        self.workspace = base / 'source-workspace'
+        packaged = bool(getattr(args, 'package', None))
+        package_identity = None
+        if packaged:
+            self.cli, self.tools, self.cueson, self.worker, package_identity = select_package(args, base)
+        else:
+            self.cli = Path(args.cli).resolve(strict=True)
+            self.tools = json.loads(Path(args.tools).read_text(encoding='utf-8'))
+            self.cueson = Path(args.cueson).resolve(strict=True)
+            self.worker = ROOT / 'scripts/processing-worker.py'
+        if args.mode == 'controlled':
+            self.worker = ROOT / 'tests/fixtures/qualification-worker.py'
         self.sequence = 0
         self.runtime = None
-        self.environment = engine.local_environment()
-        if os.environ.get('INSONIC_NATIVE_LIBRARY'):
+        self.environment = packaged_environment() if packaged else engine.local_environment()
+        if not packaged and os.environ.get('INSONIC_NATIVE_LIBRARY'):
             self.environment['INSONIC_NATIVE_LIBRARY'] = os.environ['INSONIC_NATIVE_LIBRARY']
         home = base / 'private-user'
         home.mkdir()
@@ -79,8 +159,9 @@ class Journey:
                                 LOCALAPPDATA=str(home / 'local'), XDG_CACHE_HOME=str(home / 'cache'),
                                 XDG_CONFIG_HOME=str(home / 'config'), PYTHONIOENCODING='utf-8',
                                 GH_PROMPT_DISABLED='1', GIT_TERMINAL_PROMPT='0')
-        revision = engine._child(['git', 'rev-parse', 'HEAD'], self.environment, timeout=10).decode().strip()
-        dirty = bool(engine._child(['git', 'status', '--porcelain'], self.environment, timeout=10).strip())
+        harness_environment = engine.local_environment()
+        revision = engine._child(['git', 'rev-parse', 'HEAD'], harness_environment, timeout=10).decode().strip()
+        dirty = bool(engine._child(['git', 'status', '--porcelain'], harness_environment, timeout=10).strip())
         identity = hashlib.sha256()
         inputs = [ROOT / name for name in ('VERSION', 'go.mod', 'go.sum')]
         for prefix in ('internal', 'cmd', 'scripts', 'schemas/v' + (ROOT / 'VERSION').read_text().strip()):
@@ -90,11 +171,16 @@ class Journey:
             identity.update(path.relative_to(ROOT).as_posix().encode() + b'\0' + bytes.fromhex(engine.sha(path)))
         self.receipt = {'kind': 'connected-product-qualification', 'mode': args.mode, 'required_check': False,
                         'platform': platform.system(), 'device': 'cpu', 'cli_sha256': engine.sha(self.cli),
-                        'worker_sha256': engine.sha(ROOT / ('scripts/processing-worker.py' if args.mode == 'real' else 'tests/fixtures/qualification-worker.py')),
+                        'worker_sha256': engine.sha(self.worker),
                         'product_version': (ROOT / 'VERSION').read_text().strip(),
                         'source_revision': revision, 'source_dirty': dirty, 'source_inputs_sha256': identity.hexdigest(),
                         'operation_bound_seconds': 180, 'overall_bound_seconds': args.timeout,
                         'hard_rss_limit_bytes': None, 'operations': [], 'records': []}
+        if packaged:
+            self.receipt.update(package=package_identity, source_revision=package_identity['revision'], source_dirty=False,
+                                harness_revision=revision, harness_dirty=dirty, harness_inputs_sha256=identity.hexdigest(),
+                                worker_origin='installed-package' if args.mode == 'real' else 'controlled-fixture')
+            self.receipt.pop('source_inputs_sha256')
 
     def remaining(self, maximum=180):
         remaining = self.deadline - time.monotonic()
@@ -197,13 +283,15 @@ class Journey:
             raise ValueError('Journey requires the actual native LadybugDB graph')
         self.receipt['graph'] = capabilities
         version = self.receipt['product_version']
-        tools = json.loads(Path(self.args.tools).read_text(encoding='utf-8'))
+        tools = self.tools
         tools['schema_version'] = version
         self.command('media', 'tools', self.payload(tools))
-        cueson = Path(self.args.cueson).resolve(strict=True)
-        worker = ROOT / ('scripts/processing-worker.py' if self.args.mode == 'real' else 'tests/fixtures/qualification-worker.py')
+        cueson, worker = self.cueson, self.worker
         pythons = {'transcribe': Path(self.args.recognition_python).resolve(strict=True),
                    'diarize': Path(self.args.diarization_python).resolve(strict=True)}
+        self.receipt['python_executable_sha256'] = {operation: engine.sha(path) for operation, path in pythons.items()}
+        self.receipt['companion_sha256'] = {**{name: tools[name]['sha256'] for name in ('ffmpeg', 'ffprobe', 'exiftool')},
+                                           'cueson': engine.sha(cueson)}
         processing = {'threads': 2, 'timeout_ms': 120000, 'max_duration_us': 60000000, 'max_input_bytes': 67108864,
                       'worker': {'path': str(worker), 'sha256': engine.sha(worker)}}
         for operation, field in (('transcribe', 'recognition_python'), ('diarize', 'diarization_python')):
@@ -225,6 +313,10 @@ class Journey:
                     files[role] = (path.stat().st_size, engine.sha(path))
             pins[operation] = {**pin, 'files': files}
             served.update({f'/{operation}/{role}': root / role for role in files})
+        self.receipt['model_inputs'] = {operation: {'id': pin['id'], 'revision': pin['revision'],
+                                       'files': {role: {'size_bytes': size, 'sha256': digest}
+                                                 for role, (size, digest) in pin['files'].items()}}
+                                       for operation, pin in pins.items()}
 
         class Handler(http.server.BaseHTTPRequestHandler):
             def do_GET(self):
@@ -340,9 +432,13 @@ class Journey:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=('real', 'controlled'), required=True)
-    parser.add_argument('--cli', required=True)
-    parser.add_argument('--tools', required=True)
-    parser.add_argument('--cueson', required=True)
+    selection = parser.add_mutually_exclusive_group(required=True)
+    selection.add_argument('--cli')
+    selection.add_argument('--package')
+    parser.add_argument('--tools')
+    parser.add_argument('--cueson')
+    parser.add_argument('--package-receipt')
+    parser.add_argument('--revision')
     parser.add_argument('--recognition-python', required=True)
     parser.add_argument('--diarization-python', required=True)
     parser.add_argument('--recognition-model')
@@ -351,19 +447,23 @@ def main():
     parser.add_argument('--output', required=True)
     args = parser.parse_args()
     require_mode(args.mode)
+    validate_selection(args)
     if not 60 <= args.timeout <= 3600: raise ValueError('Invalid journey bound')
     if args.mode == 'real' and (not args.recognition_model or not args.diarization_model): raise ValueError('Real mode requires exact installed models')
     with tempfile.TemporaryDirectory(prefix='insonic-connected-journey-') as temporary:
-        journey = Journey(args, Path(temporary))
+        journey = None
+        started = time.monotonic()
         try:
+            journey = Journey(args, Path(temporary))
             receipt = journey.run()
         except Exception as error:
-            failed = {**journey.receipt, 'state': 'failed', 'failure_type': type(error).__name__,
-                      'wall_seconds': time.monotonic() - journey.started}
+            failed = {**(journey.receipt if journey else {'kind': 'connected-product-qualification', 'mode': args.mode}),
+                      'state': 'failed', 'failure_type': type(error).__name__,
+                      'wall_seconds': time.monotonic() - (journey.started if journey else started)}
             write_json(Path(args.output).resolve(), failed)
             raise
         finally:
-            if journey.runtime is not None:
+            if journey is not None and journey.runtime is not None:
                 try: journey.runtime.wait(timeout=40)
                 except subprocess.TimeoutExpired:
                     journey.runtime.terminate(); journey.runtime.wait(timeout=10)

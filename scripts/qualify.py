@@ -261,6 +261,7 @@ def write_receipt(path, output, expected):
 
 def desktop():
     env = native_env()
+    sibling = build_cli(True, env)
     tags = 'desktop,production,system_ladybug'
     if platform.system() == 'Linux':
         tags += ',webkit2_41'
@@ -272,9 +273,9 @@ def desktop():
         executable.parent.mkdir(parents=True, exist_ok=True)
         with (executable.parent.parent / 'Info.plist').open('wb') as output:
             plistlib.dump(desktop_application_info(), output)
-        # The previous cross-process CLI acceptance stage builds this sibling.
+        # Standalone desktop qualification prepares its own selected native CLI.
         # Launching the app executable directly retains its bundle ATS policy.
-        shutil.copy2(ROOT / 'build/insonic', executable.parent / 'insonic')
+        shutil.copy2(sibling, executable.parent / 'insonic')
     child(['go', 'build', '-tags', tags, '-o', executable, './cmd/insonic-desktop'], env=env)
     output = child([executable, '--qualification'], env=env)
     write_receipt(BUILD / 'desktop-receipt.json', output,
@@ -404,9 +405,14 @@ def require_native_cli_graph(value):
     if result.get('state') != 'available' or result.get('adapter_id') != 'ladybugdb':
         raise ValueError('native CLI qualification requires the actual LadybugDB graph')
 
-def qualify_cli(native):
+def build_cli(native, env=None):
     executable = ROOT / ('build/insonic.exe' if os.name == 'nt' else 'build/insonic')
-    child(['go', 'build', *(['-tags', 'system_ladybug'] if native else []), '-o', executable, './cmd/insonic'])
+    child(['go', 'build', *(['-tags', 'system_ladybug'] if native else []), '-o', executable, './cmd/insonic'], env=env)
+    return executable
+
+
+def qualify_cli(native):
+    executable = build_cli(native)
     with cli_workspace() as directory:
         child([executable, 'workspace', 'init', directory, '--json'])
         # General CLI fixtures elect transient credentials explicitly. Native

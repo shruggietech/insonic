@@ -17,6 +17,20 @@ qualify = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(qualify)
 
 class QualificationArchiveTests(unittest.TestCase):
+    def test_native_cli_builder_passes_the_selected_environment(self):
+        selected = {'CC': 'selected', 'INSONIC_NATIVE_LIBRARY': 'isolated'}
+        with patch.object(qualify, 'child') as build:
+            path = qualify.build_cli(True, selected)
+        self.assertEqual(build.call_args.kwargs['env'], selected)
+        self.assertIn('system_ladybug', build.call_args.args[0])
+        self.assertEqual(path.name, 'insonic.exe' if os.name == 'nt' else 'insonic')
+
+    def test_standalone_desktop_prepares_its_native_sibling_before_acceptance(self):
+        with patch.object(qualify, 'native_env', return_value={'CC': 'selected'}), patch.object(qualify, 'build_cli', side_effect=RuntimeError('stop after native sibling')) as build:
+            with self.assertRaisesRegex(RuntimeError, 'native sibling'):
+                qualify.desktop()
+        build.assert_called_once_with(True, {'CC': 'selected'})
+
     def test_generic_cli_lane_does_not_require_native_assets(self):
         with patch.object(qualify, 'native_env', side_effect=AssertionError('generic lane must not require native assets')), patch.object(qualify, 'qualify_cli') as run:
             qualify.cli()
