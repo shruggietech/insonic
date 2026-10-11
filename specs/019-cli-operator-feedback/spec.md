@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-11
 
-**Status**: Implemented; external CI and reviews pending
+**Status**: Implemented; owner final review and merge pending
 
 **Input**: Deliver issues #56, #57, #58 and #61 under Spec Kit autopilot, publish an official PR, resolve all review findings within the two-round limit, and stop for owner final review.
 

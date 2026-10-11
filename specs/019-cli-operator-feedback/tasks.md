@@ -41,7 +41,7 @@
 - [x] T017 Update current docs/v1.0.1/, CHANGELOG.md and internal verification evidence (FR-013).
 - [x] T018 Run required local checks and affected extracted-package qualification from specs/019-cli-operator-feedback/quickstart.md (FR-014).
 - [x] T019 Execute consistency/convergence review and resolve findings in specs/019-cli-operator-feedback/verification.md (FR-014).
-- [ ] T020 Commit/push official PR, resolve all reported findings within two rounds, verify final-head CI and hand off for owner merge (FR-014).
+- [x] T020 Commit/push official PR, resolve all reported findings within two rounds, verify final-head CI and hand off for owner merge (FR-014).
 
 ## Dependencies and implementation strategy
 
@@ -62,4 +62,4 @@ Parallel opportunities: independent read-only research and test suites; file edi
 ## Phase 9: Review and packaged startup convergence
 
 - [x] T025 Stop and reap unready children on deadline, cancellation and rejected reports in internal/process/startup.go, preserving owner lifetime only after validated readiness; add lifecycle regressions per FR-005 and US2/AC4 (partial, final-round P1 review).
-- [ ] T026 Retry startup when a competing owner finishes shutdown within the shared deadline in internal/runtime/runtime.go; add a closing-owner regression and repeat installed qualification per FR-005 and SC-002 (partial, recurring package readiness timeout).
+- [x] T026 Retry startup when a competing owner finishes shutdown within the shared deadline in internal/runtime/runtime.go; add a closing-owner regression and repeat installed qualification per FR-005 and SC-002 (partial, recurring package readiness timeout).
