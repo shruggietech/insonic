@@ -124,7 +124,7 @@ func (r *Resolver) sourceCatalog(ctx context.Context, ref string) (catalog.Model
 	}
 	d := json.NewDecoder(bytes.NewReader(raw))
 	d.DisallowUnknownFields()
-	if catalog.ValidateJSON(raw) != nil || d.Decode(&out) != nil || d.Decode(new(any)) != io.EOF || out.Kind != "model-catalog" || out.Version != contracts.Version || len(out.Entries) > 128 {
+	if catalog.ValidateJSON(raw) != nil || d.Decode(&out) != nil || d.Decode(new(any)) != io.EOF || out.Kind != "model-catalog" || !contracts.SupportedDocumentVersion(out.Version) || len(out.Entries) > 128 {
 		return source, out, contracts.Fail("invalid_request")
 	}
 	seen := map[string]bool{}

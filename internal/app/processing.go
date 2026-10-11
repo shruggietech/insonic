@@ -103,7 +103,7 @@ func readBoundedConfiguration(path string, out any) error {
 	return strictPayload(raw, out)
 }
 func ValidateProcessingTools(c ProcessingTools) error {
-	if c.Kind != "processing-tools" || c.Version != contracts.Version {
+	if c.Kind != "processing-tools" || !contracts.SupportedDocumentVersion(c.Version) {
 		return contracts.Fail("incompatible_version")
 	}
 	if len(c.PortableFiles) > 128 {
@@ -296,7 +296,7 @@ func (a *App) processRecording(ctx context.Context, claim catalog.Work) (any, er
 		return nil, e
 	} else if accepted {
 		var value any
-		json.Unmarshal(result, &value)
+		strictPayload(result, &value)
 		return value, nil
 	}
 	if e := a.verifyElectedModels(ctx, input.ModelSelections); e != nil {
@@ -571,7 +571,7 @@ func (a *App) assembleRecording(req contracts.Request) (any, error) {
 		return nil, e
 	} else if accepted {
 		var value any
-		json.Unmarshal(result, &value)
+		strictPayload(result, &value)
 		return value, nil
 	}
 	work, e := a.Catalog.EnqueueWork(a.ctx, req.RequestID, "recordings.assemble", payload)
@@ -592,7 +592,7 @@ func (a *App) assembleRecording(req contracts.Request) (any, error) {
 	defer stop()
 	result, e := a.assembleClaim(ctx, claim, entry, expected, input)
 	if e != nil {
-		_, _ = a.Catalog.CheckpointWork(context.WithoutCancel(a.ctx), claim, "assembly-failed", "failed", json.RawMessage(`{"state":"failed","error":"operation_failed","retry":"resubmit-ephemeral-input"}`), leaseTTL)
+		_, _ = a.Catalog.CheckpointWorkFailure(context.WithoutCancel(a.ctx), claim, "assembly-failed", json.RawMessage(`{"state":"failed","retry":"resubmit-ephemeral-input"}`), leaseTTL, contracts.WithDiagnostics(e, nil).Code)
 		return nil, e
 	}
 	raw, _ := json.Marshal(result)

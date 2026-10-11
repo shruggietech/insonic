@@ -194,7 +194,7 @@ func Open(root string) (*Workspace, error) {
 	if err := decoder.Decode(&config); err != nil {
 		return nil, contracts.Fail("invalid_request")
 	}
-	if config.Version != contracts.Version {
+	if !contracts.SupportedDocumentVersion(config.Version) {
 		return nil, contracts.Fail("incompatible_version")
 	}
 	if err := schemas.ValidateWorkspace(data); err != nil {

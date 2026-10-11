@@ -78,6 +78,7 @@ type Catalog interface {
 	ClaimWork(context.Context, string, string, time.Duration) (Work, error)
 	RenewWork(context.Context, Work, time.Duration) (Work, error)
 	CheckpointWork(context.Context, Work, string, string, json.RawMessage, time.Duration) (Work, error)
+	CheckpointWorkFailure(context.Context, Work, string, json.RawMessage, time.Duration, string) (Work, error)
 	CancelWork(context.Context, string, string) (Work, error)
 	RetryWork(context.Context, string, string) (Work, error)
 	Library(context.Context, string) (LibraryEntry, error)

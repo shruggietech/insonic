@@ -33,7 +33,7 @@ const validate = ajv.getSchema(requestID);
 export function validateNativeRequest(request) {
   const envelope = {
     kind: 'runtime-request',
-    schema_version: '1.0.0',
+    schema_version: '1.0.1',
     request_id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
     ...request,
   };

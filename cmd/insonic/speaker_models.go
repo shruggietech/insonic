@@ -79,7 +79,11 @@ func parseSpeakerModels(args []string) (string, string, json.RawMessage, error) 
 		if speaker == "" {
 			return fail()
 		}
-		raw, err := json.Marshal(map[string]any{"speaker_id": speaker, "after_id": after, "limit": limit})
+		page := map[string]any{"speaker_id": speaker, "limit": limit}
+		if after != "" {
+			page["after_id"] = after
+		}
+		raw, err := json.Marshal(page)
 		return "models.speaker.list", "", raw, err
 	}
 	if len(args) < 3 {

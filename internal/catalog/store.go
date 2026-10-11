@@ -222,7 +222,7 @@ func referencedPostgresAuthentication(provider contracts.SecretProvider, id stri
 }
 func OpenWorkspace(ctx context.Context, w *workspace.Workspace, secrets contracts.SecretProvider, migrate bool) (*Store, error) {
 	p := w.Config.Profiles.Catalog
-	if p.Version != contracts.Version {
+	if !contracts.SupportedDocumentVersion(p.Version) {
 		return nil, contracts.Fail("incompatible_version")
 	}
 	raw, e := json.Marshal(p.Configuration)

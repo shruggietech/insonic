@@ -155,7 +155,10 @@ func TestPostgreSQLSelectedRoutingAndTLS(t *testing.T) {
 	}
 }
 
-func TestPostgreSQLWorkAuthority(t *testing.T)  { workSuite(t, postgresStore(t, contracts.ID())) }
+func TestPostgreSQLWorkAuthority(t *testing.T) { workSuite(t, postgresStore(t, contracts.ID())) }
+func TestPostgreSQLTypedFailurePersistence(t *testing.T) {
+	typedFailureSuite(t, postgresStore(t, contracts.ID()))
+}
 func TestPostgreSQLCurrentLibrary(t *testing.T) { librarySuite(t, postgresStore(t, contracts.ID())) }
 
 func TestPostgreSQLBaseModelInstall(t *testing.T) { modelSuite(t, postgresStore(t, contracts.ID())) }

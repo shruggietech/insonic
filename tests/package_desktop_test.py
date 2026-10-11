@@ -279,7 +279,7 @@ class NativePackageIntegrityTests(unittest.TestCase):
                 package.verify_inventory(root, value)
 
     def test_package_tool_defaults_are_relative_and_drop_development_interpreter(self):
-        fake = {'kind': 'media-tools', 'schema_version': '1.0.0', 'exiftool': {
+        fake = {'kind': 'media-tools', 'schema_version': '1.0.1', 'exiftool': {
             'path': str(ROOT / 'build/native/media/exiftool/exiftool'), 'sha256': 'a' * 64, 'version': '13.59',
             'interpreter': {'path': '/usr/bin/perl', 'sha256': 'b' * 64}, 'support_files': [
                 {'path': str(ROOT / 'build/native/media/exiftool/lib/support.pm'), 'sha256': 'c' * 64}]},

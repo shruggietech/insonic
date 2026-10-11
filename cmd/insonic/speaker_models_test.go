@@ -4,6 +4,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/schemas"
 	"os"
 	"path/filepath"
 	"testing"
@@ -46,6 +47,20 @@ func TestSpeakerModelCommandsRetainExactIdentity(t *testing.T) {
 	}
 	if err != nil || op != "models.speaker.list" || json.Unmarshal(raw, &list) != nil || list.Speaker != id || list.Limit != 25 {
 		t.Fatal(op, string(raw), err)
+	}
+}
+
+func TestInitialSpeakerListIsValidSharedRequest(t *testing.T) {
+	id := contracts.ID()
+	for _, args := range [][]string{{"models", "list", "--speaker", id}, {"models", "list", "--speaker", id, "--limit", "1"}, {"models", "list", "--speaker", id, "--after", contracts.ID()}} {
+		op, item, data, err := parseDomain(args)
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, _ := json.Marshal(contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: contracts.ID(), RequestID: contracts.ID(), Operation: op, ItemID: item, Data: data})
+		if err := schemas.ValidateRequest(raw); err != nil {
+			t.Fatalf("%v: %s: %v", args, raw, err)
+		}
 	}
 }
 

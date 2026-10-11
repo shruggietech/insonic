@@ -26,6 +26,64 @@ var pipelineConfigurationSchema *jsonschema.Schema
 var mediaToolsSchema *jsonschema.Schema
 var graphQuerySchema *jsonschema.Schema
 var compileErr error
+var historicalMu sync.Mutex
+var historicalSchemas = map[string]*jsonschema.Schema{}
+
+// validateDocument selects the declared, packaged immutable release contract.
+// Transport envelopes deliberately continue to use the current-only validators.
+func validateDocument(current *jsonschema.Schema, filename string, data []byte) error {
+	var header struct {
+		Version string `json:"schema_version"`
+	}
+	if json.Unmarshal(data, &header) != nil {
+		return errors.New("invalid document")
+	}
+	if header.Version == "" || header.Version == contracts.Version {
+		return validate(current, data)
+	}
+	if !contracts.SupportedDocumentVersion(header.Version) {
+		return errors.New("unsupported document version")
+	}
+	key := header.Version + "/" + filename
+	historicalMu.Lock()
+	defer historicalMu.Unlock()
+	schema := historicalSchemas[key]
+	if schema == nil {
+		compiler := jsonschema.NewCompiler()
+		compiler.AssertFormat()
+		compiler.UseLoader(offlineLoader{})
+		upstream, err := jsonschema.UnmarshalJSON(bytes.NewReader(subtitles.SchemaBytes()))
+		if err != nil {
+			return err
+		}
+		if err := compiler.AddResource(subtitles.SchemaID, upstream); err != nil {
+			return err
+		}
+		files, err := registry.ReadDir("v" + header.Version)
+		if err != nil {
+			return err
+		}
+		for _, file := range files {
+			raw, err := registry.ReadFile("v" + header.Version + "/" + file.Name())
+			if err != nil {
+				return err
+			}
+			doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(raw))
+			if err != nil {
+				return err
+			}
+			if err := compiler.AddResource(doc.(map[string]any)["$id"].(string), doc); err != nil {
+				return err
+			}
+		}
+		schema, err = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + header.Version + "/schemas/v" + header.Version + "/" + filename)
+		if err != nil {
+			return err
+		}
+		historicalSchemas[key] = schema
+	}
+	return validate(schema, data)
+}
 
 type offlineLoader struct{}
 
@@ -108,9 +166,9 @@ func ValidateSpeakerDocument(data []byte) error {
 	}
 	switch envelope.Kind {
 	case "speaker-model":
-		return validate(speakerModelSchema, data)
+		return validateDocument(speakerModelSchema, "speaker-model.schema.json", data)
 	case "speaker-dataset":
-		return validate(speakerDatasetSchema, data)
+		return validateDocument(speakerDatasetSchema, "speaker-dataset.schema.json", data)
 	default:
 		return errors.New("unsupported speaker document")
 	}
@@ -119,7 +177,7 @@ func ValidateSpeakerDocument(data []byte) error {
 func ValidateGraphQuery(data []byte) error { initialize(); return validate(graphQuerySchema, data) }
 func ValidateWorkspace(data []byte) error {
 	initialize()
-	return validate(compiled, data)
+	return validateDocument(compiled, "workspace-config.schema.json", data)
 }
 
 func ValidateRequest(data []byte) error {
@@ -136,14 +194,14 @@ func ValidateResponse(data []byte) error {
 
 func ValidateMediaTools(data []byte) error {
 	initialize()
-	return validate(mediaToolsSchema, data)
+	return validateDocument(mediaToolsSchema, "media-tools.schema.json", data)
 }
 
 // ValidateDocument validates processing configuration against its master-registered
 // release contract without compiling unrelated contracts or using network access.
 func ValidateDocument(data []byte) error {
 	initialize()
-	return validate(processingToolsSchema, data)
+	return validateDocument(processingToolsSchema, "processing-tools.schema.json", data)
 }
 
 // ValidatePipelineConfiguration validates a saved bare worker definition offline.

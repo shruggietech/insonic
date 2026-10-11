@@ -344,7 +344,17 @@ func ownerDate(options Options) Date {
 		literal = options.OriginatedOn
 		precision = "day"
 	}
-	return ResolveDate(literal, precision, options.Timezone, options.DSTFold, options.DSTGap, "owner")
+	zone := options.Timezone
+	if options.TimezoneImplicit {
+		if _, e := time.Parse(time.RFC3339Nano, literal); e == nil {
+			zone = ""
+		}
+	}
+	d := ResolveDate(literal, precision, zone, options.DSTFold, options.DSTGap, "owner")
+	if options.TimezoneImplicit && d.ZoneSource == "import-policy" {
+		d.ZoneSource = "captured-local"
+	}
+	return d
 }
 func decodeDates(data json.RawMessage) Dates {
 	var state Dates

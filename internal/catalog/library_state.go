@@ -298,7 +298,7 @@ func (s *Store) modelPublicationIdentity(ctx context.Context, tx *sql.Tx, m Base
 			Size   int64  `json:"size"`
 		} `json:"files"`
 	}
-	if json.Unmarshal(m.Manifest, &manifest) != nil || manifest.Kind != "base-model-manifest" || manifest.Version != contracts.Version || manifest.Name != m.Name || manifest.ModelVersion != m.Version || len(manifest.Files) == 0 {
+	if json.Unmarshal(m.Manifest, &manifest) != nil || manifest.Kind != "base-model-manifest" || !contracts.SupportedDocumentVersion(manifest.Version) || manifest.Name != m.Name || manifest.ModelVersion != m.Version || len(manifest.Files) == 0 {
 		return contracts.Fail("invalid_request")
 	}
 	ids, e := PublicationIDs(m.PublicationIDs)

@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
@@ -169,4 +170,92 @@ func TestWorkMutationsReturnCurrentJournalProof(t *testing.T) {
 		t.Fatal(e)
 	}
 	assertCurrent(w)
+}
+
+func typedFailureSuite(t *testing.T, s *Store) {
+	ctx := context.Background()
+	for _, reason := range []string{"conflict", "checksum_mismatch", "input_limit", "acquisition_timeout", "unavailable", "cancelled", "mixed_item_failure", "operation_failed"} {
+		w, e := s.EnqueueWork(ctx, contracts.ID(), "fixture.work", json.RawMessage("{}"))
+		if e != nil {
+			t.Fatal(e)
+		}
+		claim, e := s.ClaimWork(ctx, w.ID, contracts.ID(), time.Minute)
+		if e != nil {
+			t.Fatal(e)
+		}
+		w, e = s.CheckpointWorkFailure(ctx, claim, "generated-stage", json.RawMessage("{}"), time.Minute, reason)
+		if e != nil || w.Error != reason {
+			t.Fatal(reason, w, e)
+		}
+		got, e := s.Work(ctx, w.ID)
+		if e != nil || got.Error != reason {
+			t.Fatal("reload", got, e)
+		}
+		snapshot, e := s.Export(ctx)
+		if e != nil {
+			t.Fatal(e)
+		}
+		dest := localStore(t, s.workspace)
+		if e = dest.Restore(ctx, snapshot); e != nil {
+			t.Fatal("restore", e)
+		}
+		got, e = dest.Work(ctx, w.ID)
+		if e != nil || got.Error != reason || got.State != "failed" {
+			t.Fatal("restored cause", got, e)
+		}
+		dest.Close()
+		retry, e := s.RetryWork(ctx, contracts.ID(), w.ID)
+		if e != nil || retry.Error != "" {
+			t.Fatal("retry", retry, e)
+		}
+		next, e := s.ClaimWork(ctx, w.ID, contracts.ID(), time.Minute)
+		if e != nil || next.Generation <= claim.Generation {
+			t.Fatal(e)
+		}
+		if _, e = s.CheckpointWorkFailure(ctx, claim, "stale", json.RawMessage("{}"), time.Minute, reason); e == nil {
+			t.Fatal("stale failure replaced retry")
+		}
+	}
+}
+func TestSQLiteTypedFailurePersistence(t *testing.T) {
+	typedFailureSuite(t, localStore(t, contracts.ID()))
+}
+
+func TestHistoricalSnapshotRetainsGenericFailureAndReceipt(t *testing.T) {
+	ctx := context.Background()
+	s := localStore(t, contracts.ID())
+	w, e := s.EnqueueWork(ctx, contracts.ID(), "fixture.work", json.RawMessage("{}"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	w, e = s.ClaimWork(ctx, w.ID, contracts.ID(), time.Minute)
+	if e != nil {
+		t.Fatal(e)
+	}
+	w, e = s.CheckpointWork(ctx, w, "historical-failure", "failed", json.RawMessage(`{"error":"conflict"}`), time.Minute)
+	if e != nil {
+		t.Fatal(e)
+	}
+	snapshot, e := s.Export(ctx)
+	if e != nil {
+		t.Fatal(e)
+	}
+	snapshot.Version = "1.0.0"
+	snapshot.Digest, e = snapshot.digest()
+	if e != nil {
+		t.Fatal(e)
+	}
+	raw, _ := json.Marshal(snapshot)
+	next, e := ReadSnapshotReader(bytes.NewReader(raw))
+	if e != nil {
+		t.Fatal(e)
+	}
+	dest := localStore(t, s.workspace)
+	if e = dest.Restore(ctx, next); e != nil {
+		t.Fatal(e)
+	}
+	got, e := dest.Work(ctx, w.ID)
+	if e != nil || got.Error != "operation_failed" || got.JournalReceiptID != w.JournalReceiptID || string(got.Result) != string(w.Result) {
+		t.Fatal("historical proof changed", got, e)
+	}
 }

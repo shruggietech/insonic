@@ -48,6 +48,7 @@ func decode(data []byte, target any) error {
 		return contracts.Fail("invalid_request")
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber()
 	decoder.DisallowUnknownFields()
 	if decoder.Decode(target) != nil {
 		return contracts.Fail("invalid_request")

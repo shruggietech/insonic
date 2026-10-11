@@ -40,6 +40,30 @@ func libraryFixture(t *testing.T) (*Service, catalog.Catalog) {
 	s.legacyFixture = true
 	return s, db
 }
+
+func TestSetOriginOffsetKeepsExactValueAndProvenance(t *testing.T) {
+	s, db := libraryFixture(t)
+	ctx := context.Background()
+	work := claimLibraryWork(t, db, "media.import", ImportRequest{Items: []Item{{Source: wavFixture(t)}}})
+	value, e := s.Execute(ctx, work)
+	if e != nil {
+		t.Fatal(e)
+	}
+	entry, e := db.Library(ctx, value.(ImportResult).Items[0].MediaID)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, zone := range []string{"", "local"} {
+		entry, e = s.SetOrigin(ctx, contracts.ID(), entry.ID, entry.Revision, Options{Timezone: zone, OriginatedAt: "2020-01-01T00:00:00.123456789Z"})
+		if e != nil {
+			t.Fatal(e)
+		}
+		d := decodeDates(entry.Dates).Selected
+		if d == nil || d.Resolved == nil || d.Resolved.UnixNS != 1577836800123456789 || d.ZoneSource != "entered-offset" {
+			t.Fatal("correction", d)
+		}
+	}
+}
 func claimLibraryWork(t *testing.T, db catalog.Catalog, kind string, payload any) catalog.Work {
 	t.Helper()
 	ctx := context.Background()

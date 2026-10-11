@@ -72,6 +72,17 @@ func configureToolsCommand(w *workspace.Workspace, path, section string, machine
 	if e = app.ValidateSetting(section, raw); e != nil {
 		return output(nil, e, machine)
 	}
+	// Importing a supported historical tools file creates a current setting;
+	// its source file and exact executable/support-file pins remain unchanged.
+	var fields map[string]json.RawMessage
+	if e = json.Unmarshal(raw, &fields); e != nil {
+		return output(nil, contracts.Fail("invalid_request"), machine)
+	}
+	fields["schema_version"], _ = json.Marshal(contracts.Version)
+	raw, e = json.Marshal(fields)
+	if e != nil || app.ValidateSetting(section, raw) != nil {
+		return output(nil, contracts.Fail("invalid_request"), machine)
+	}
 	ctx, stop := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer stop()
 	if e = local.Ensure(ctx, w, ""); e != nil {
@@ -95,7 +106,10 @@ func configureToolsCommand(w *workspace.Workspace, path, section string, machine
 		return output(nil, contracts.Fail("invalid_request"), machine)
 	}
 	req.Operation = "settings.set"
-	req.RequestID = contracts.ID()
+	req.RequestID = responseContext.RequestID
+	if !contracts.ValidID(req.RequestID) {
+		req.RequestID = contracts.ID()
+	}
 	req.Data, _ = json.Marshal(map[string]any{"section": section, "revision": result.Sections[section].Revision, "value": json.RawMessage(raw)})
 	saved, e := local.Call(ctx, w, req)
 	if e == nil && saved.Error != nil {

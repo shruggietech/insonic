@@ -295,6 +295,7 @@ func Create(ctx context.Context, w *workspace.Workspace, store *catalog.Store, p
 	}
 	m = Manifest{Kind: "workspace-backup", Version: contracts.Version, ID: o.ID, Mode: o.Mode, WorkspaceID: snap.WorkspaceID, Revision: snap.Revision, CatalogDigest: snap.Digest, Config: w.Config, Artifacts: []Object{}, SourceProfiles: []workspace.Profile{}, GraphDisposition: "accepted-evidence-rebuild", Dependency: "none"}
 	m.SourceCatalogDigest = originalDigest
+	m.Config.Version = contracts.Version
 	m.SourceCatalogRevision = originalRevision
 	m.Config.ControlDirectory = ".insonic"
 	m.Config.CredentialNamespaceID = ""
@@ -488,7 +489,7 @@ func readBundle(ctx context.Context, directory string) (Manifest, catalog.Snapsh
 		return m, snap, contracts.Fail("invalid_request")
 	}
 	d, e := manifestDigest(m)
-	if e != nil || d != m.Digest || m.Kind != "workspace-backup" || m.Version != contracts.Version || !contracts.ValidID(m.ID) || !contracts.ValidID(m.WorkspaceID) || m.Config.WorkspaceID != m.WorkspaceID || m.Config.Version != m.Version || m.GraphDisposition != "accepted-evidence-rebuild" || m.Mode != "self-contained" && m.Mode != "reference-only" {
+	if e != nil || d != m.Digest || m.Kind != "workspace-backup" || !contracts.SupportedDocumentVersion(m.Version) || !contracts.ValidID(m.ID) || !contracts.ValidID(m.WorkspaceID) || m.Config.WorkspaceID != m.WorkspaceID || m.Config.Version != m.Version || m.GraphDisposition != "accepted-evidence-rebuild" || m.Mode != "self-contained" && m.Mode != "reference-only" {
 		return m, snap, contracts.Fail("invalid_request")
 	}
 	configJSON, e := json.Marshal(m.Config)
@@ -561,7 +562,7 @@ func readBundle(ctx context.Context, directory string) (Manifest, catalog.Snapsh
 	}
 	for _, p := range m.SourceProfiles {
 		key := p.ID + ":" + strconv.FormatInt(p.Revision, 10)
-		if _, ok := profiles[key]; ok || !contracts.ValidID(p.ID) || p.Revision < 1 || p.Version != contracts.Version {
+		if _, ok := profiles[key]; ok || !contracts.ValidID(p.ID) || p.Revision < 1 || !contracts.SupportedDocumentVersion(p.Version) {
 			return m, snap, contracts.Fail("invalid_request")
 		}
 		original, ok := sourceProfiles[key]

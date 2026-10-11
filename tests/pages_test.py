@@ -60,9 +60,9 @@ class PagesTransportTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.archive = self.root / 'documentation.tar.gz'
         self.api = PagesFixture()
-        self.files = {'index.html': b'landing', 'docs/v0.0.0/index.html': b'baseline', 'docs/v1.0.0/index.html': b'released',
-                      'release-documentation.json': json.dumps({'version': '1.0.0', 'revision': REVISION, 'kind': 'documentation'}).encode(),
-                      'documentation-build.json': json.dumps({'version': '1.0.0', 'revision': REVISION, 'source_dirty': False, 'documentation_target': 'release'}).encode()}
+        self.files = {'index.html': b'landing', 'docs/v0.0.0/index.html': b'baseline', 'docs/v1.0.1/index.html': b'released',
+                      'release-documentation.json': json.dumps({'version': '1.0.1', 'revision': REVISION, 'kind': 'documentation'}).encode(),
+                      'documentation-build.json': json.dumps({'version': '1.0.1', 'revision': REVISION, 'source_dirty': False, 'documentation_target': 'release'}).encode()}
 
     def tearDown(self): self.temp.cleanup()
 
@@ -75,7 +75,7 @@ class PagesTransportTests(unittest.TestCase):
     def prepared(self):
         self.archive_files()
         destination = pages.preflight(self.api, REPO)
-        return destination, pages.prepare_tree(self.archive, destination, '1.0.0', REVISION)
+        return destination, pages.prepare_tree(self.archive, destination, '1.0.1', REVISION)
 
     def test_read_only_preflight_preserves_existing_legacy_destination(self):
         self.api.entries.append({'path': 'docs', 'mode': '040000', 'type': 'tree', 'sha': '4' * 40})
@@ -89,7 +89,7 @@ class PagesTransportTests(unittest.TestCase):
         destination, files = self.prepared()
         self.api.results = [{'status': 'built', 'commit': OLD}, {'status': 'queued', 'commit': NEW}, {'status': 'built', 'commit': NEW}]
         slept = []
-        value = pages.promote_tree(self.api, REPO, destination, files, '1.0.0', REVISION, sleep=slept.append)
+        value = pages.promote_tree(self.api, REPO, destination, files, '1.0.1', REVISION, sleep=slept.append)
         self.assertEqual(value['pages_commit'], NEW)
         self.assertEqual(slept, [5, 5])
 
@@ -138,7 +138,7 @@ class PagesTransportTests(unittest.TestCase):
                 destination = pages.preflight(api, REPO)
                 self.archive_files()
                 with self.assertRaisesRegex(ValueError, 'historical'):
-                    pages.prepare_tree(self.archive, destination, '1.0.0', REVISION)
+                    pages.prepare_tree(self.archive, destination, '1.0.1', REVISION)
                 self.assertTrue(all(c[0] == 'GET' for c in api.calls))
 
     def test_historical_aliases_reject_case_collisions_and_bounded_payload_amplification(self):
@@ -148,7 +148,7 @@ class PagesTransportTests(unittest.TestCase):
         self.files[old.upper()] = b'ambiguous alias'
         self.archive_files()
         with self.assertRaisesRegex(ValueError, 'ambiguous'):
-            pages.prepare_tree(self.archive, pages.preflight(self.api, REPO), '1.0.0', REVISION)
+            pages.prepare_tree(self.archive, pages.preflight(self.api, REPO), '1.0.1', REVISION)
         self.api = PagesFixture()
         self.files = {name: data for name, data in self.files.items() if '__next.' not in name.lower()}
         self.files['docs/v0.0.0/__next.docs.a.b.c.__PAGE__.txt'] = b'x' * (13 << 20)
@@ -158,29 +158,29 @@ class PagesTransportTests(unittest.TestCase):
                                      'mode': '100644', 'type': 'blob', 'sha': '6' * 40})
         self.archive_files()
         with self.assertRaisesRegex(ValueError, 'bounded'):
-            pages.prepare_tree(self.archive, pages.preflight(self.api, REPO), '1.0.0', REVISION)
+            pages.prepare_tree(self.archive, pages.preflight(self.api, REPO), '1.0.1', REVISION)
 
     def test_archive_alias_git_link_and_traversal_fail_before_writes(self):
         destination = pages.preflight(self.api, REPO)
         for name in ('../escape', 'x/../escape', '.git/config', 'assets/.GIT/hooks/x', '/absolute', 'a//b', 'A:/outside', 'a\\b', 'INDEX.html'):
             self.archive_files({**self.files, name: b'x'})
-            with self.assertRaises(ValueError): pages.prepare_tree(self.archive, destination, '1.0.0', REVISION)
+            with self.assertRaises(ValueError): pages.prepare_tree(self.archive, destination, '1.0.1', REVISION)
         link = tarfile.TarInfo('alias'); link.type = tarfile.SYMTYPE; link.linkname = 'index.html'
         self.archive_files(extra=link)
-        with self.assertRaises(ValueError): pages.prepare_tree(self.archive, destination, '1.0.0', REVISION)
+        with self.assertRaises(ValueError): pages.prepare_tree(self.archive, destination, '1.0.1', REVISION)
         self.assertTrue(all(c[0] == 'GET' for c in self.api.calls))
 
     def test_conflicting_domain_lost_history_or_candidate_target_is_rejected(self):
         destination = pages.preflight(self.api, REPO)
         cases = [{**self.files, 'CNAME': b'other.example\n'}, {k:v for k,v in self.files.items() if not k.startswith('docs/v0')},
-                 {**self.files, 'documentation-build.json': json.dumps({'version': '1.0.0', 'revision': REVISION, 'source_dirty': False, 'documentation_target': 'snapshot'}).encode()}]
+                 {**self.files, 'documentation-build.json': json.dumps({'version': '1.0.1', 'revision': REVISION, 'source_dirty': False, 'documentation_target': 'snapshot'}).encode()}]
         for files in cases:
             self.archive_files(files)
-            with self.assertRaises(ValueError): pages.prepare_tree(self.archive, destination, '1.0.0', REVISION)
+            with self.assertRaises(ValueError): pages.prepare_tree(self.archive, destination, '1.0.1', REVISION)
 
     def test_promotion_advances_without_force_and_requires_exact_build_commit(self):
         destination, files = self.prepared()
-        result = pages.promote_tree(self.api, REPO, destination, files, '1.0.0', REVISION, sleep=lambda _: None)
+        result = pages.promote_tree(self.api, REPO, destination, files, '1.0.1', REVISION, sleep=lambda _: None)
         self.assertEqual(result['pages_commit'], NEW)
         mutation = next(c for c in self.api.calls if c[0] == 'PATCH')
         self.assertEqual(mutation[2], {'sha': NEW, 'force': False})
@@ -190,24 +190,24 @@ class PagesTransportTests(unittest.TestCase):
 
     def test_concurrent_update_does_not_request_a_build(self):
         destination, files = self.prepared(); self.api.race = True
-        with self.assertRaisesRegex(ValueError, 'concurrent'): pages.promote_tree(self.api, REPO, destination, files, '1.0.0', REVISION)
+        with self.assertRaisesRegex(ValueError, 'concurrent'): pages.promote_tree(self.api, REPO, destination, files, '1.0.1', REVISION)
         self.assertFalse(any(c[0] == 'POST' and c[1].endswith('/pages/builds') for c in self.api.calls))
 
     def test_uncertain_successful_update_is_reconciled_by_exact_remote_head(self):
         destination, files = self.prepared(); self.api.uncertain = True
-        result = pages.promote_tree(self.api, REPO, destination, files, '1.0.0', REVISION, sleep=lambda _: None)
+        result = pages.promote_tree(self.api, REPO, destination, files, '1.0.1', REVISION, sleep=lambda _: None)
         self.assertEqual(result['pages_commit'], NEW)
 
     def test_wrong_commit_or_failed_build_never_reports_success(self):
         for result in ({'status': 'built', 'commit': '9' * 40}, {'status': 'errored', 'commit': NEW}):
             destination, files = self.prepared(); self.api.results = [result]
-            with self.assertRaises(ValueError): pages.promote_tree(self.api, REPO, destination, files, '1.0.0', REVISION, sleep=lambda _: None)
+            with self.assertRaises(ValueError): pages.promote_tree(self.api, REPO, destination, files, '1.0.1', REVISION, sleep=lambda _: None)
 
     def test_queued_build_has_a_bounded_deadline(self):
         destination, files = self.prepared(); self.api.results = [{'status': 'queued', 'commit': NEW}]
         times = iter((0, 0, 301))
         with self.assertRaisesRegex(ValueError, 'deadline'):
-            pages.promote_tree(self.api, REPO, destination, files, '1.0.0', REVISION, sleep=lambda _: None, clock=lambda: next(times))
+            pages.promote_tree(self.api, REPO, destination, files, '1.0.1', REVISION, sleep=lambda _: None, clock=lambda: next(times))
 
 
 if __name__ == '__main__': unittest.main()

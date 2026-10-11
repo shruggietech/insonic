@@ -424,6 +424,8 @@ def qualify_cli(native):
             raise ValueError('CLI clients reached different owners')
         if native:
             require_native_cli_graph(json.loads(child([executable, '--workspace', directory, 'graph', 'capabilities', '--json'])))
+        from cli_contract_qualification import qualify as qualify_contract
+        contract_receipt = qualify_contract(executable, directory)
         # Saved configuration and context run through the actual shared owner.
         # Synthetic managed IDs are inspected, never downloaded or executed.
         pipeline_id = '10000000-0000-4000-8000-000000000010'
@@ -504,11 +506,15 @@ def qualify_cli(native):
         if Path(materialized['path']).exists() or artifact_call('cache-prune') != []:
             raise ValueError('artifact cache release')
         child([executable, '--workspace', directory, 'media', 'tools', BUILD / 'media-tools.json', '--json'])
-        imported = json.loads(child([executable, '--workspace', directory, 'media', 'import', ROOT / 'tests/fixtures/media/speech.flac', '--known-speaker', speaker_id, '--json']))['result']
+        imported = json.loads(child([executable, '--workspace', directory, 'media', 'import', ROOT / 'tests/fixtures/media/speech.flac', '--known-speaker', speaker_id, '--originated-at', '2020-01-01T00:00:00.123456789Z', '--json']))['result']
         accepted_media = json.loads(child([executable, '--workspace', directory, 'work', 'wait', imported['work_id'], '--timeout-ms', '30000', '--json']))['result']
         if accepted_media['state'] != 'succeeded':
             raise ValueError('CLI roster media admission failed')
         recording_id = accepted_media['result']['items'][0]['media_id']
+        dated = json.loads(child([executable, '--workspace', directory, 'media', 'show', recording_id, '--json']))['result']
+        instant = dated['dates']['selected']['resolved']
+        if instant != {'iso': '2020-01-01T00:00:00.123456789Z', 'unix_ns': 1577836800123456789}:
+            raise ValueError('CLI entered offset or exact nanoseconds changed')
         roster_args = [executable, '--workspace', directory, 'recordings', 'roster', 'show', recording_id, '--json']
         roster = json.loads(child(roster_args))['result']
         if len(roster['members']) != 1 or roster['members'][0]['id'] != speaker_id:
@@ -536,6 +542,11 @@ def qualify_cli(native):
             raise ValueError('durable cancellation/retry history')
         import time
         time.sleep(31)
+        for failed_id, cause in contract_receipt['typed_failures']:
+            result = json.loads(child([executable, '--workspace', directory, 'work', 'show', failed_id, '--json'], allow_detached=True))['result']
+            if result['error'] != cause:
+                raise ValueError('Durable typed failure did not survive owner restart')
+        time.sleep(31)
         snapshot = Path(directory) / 'catalog-export.json'
         child([executable, '--workspace', directory, 'catalog', 'export', snapshot, '--json'])
         exported = json.loads(snapshot.read_text(encoding='utf-8'))
@@ -554,7 +565,7 @@ def qualify_cli(native):
         restored_attempts = next(table['rows'] for table in restored['state'] if table['name'] == 'job_attempt')
         if restored_attempts != attempts or restored['revision'] != exported['revision'] + 1:
             raise ValueError('CLI restore did not preserve durable history and restoration receipt')
-    (BUILD / 'cli-receipt.json').write_text(json.dumps({'owner_reuse': 'passed', 'cancel_retry': 'passed', 'durable_history': 'passed', 'catalog_transfer': 'passed', 'artifact_journey': 'passed', 'saved_configuration': 'passed', 'scoped_hints': 'passed', 'recording_replacement': 'passed', 'declared_roster': 'passed', 'model_references': 'passed', 'inference': 'not-run'}) + '\n', encoding='utf-8')
+    (BUILD / 'cli-receipt.json').write_text(json.dumps({'cli_contract': contract_receipt, 'owner_reuse': 'passed', 'cancel_retry': 'passed', 'durable_history': 'passed', 'catalog_transfer': 'passed', 'artifact_journey': 'passed', 'saved_configuration': 'passed', 'scoped_hints': 'passed', 'recording_replacement': 'passed', 'declared_roster': 'passed', 'model_references': 'passed', 'inference': 'not-run'}) + '\n', encoding='utf-8')
 
 if __name__ == '__main__':
     validate_pins()

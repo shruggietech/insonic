@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/shruggietech/insonic/internal/artifact"
 	"github.com/shruggietech/insonic/internal/catalog"
@@ -91,6 +92,9 @@ func (s *Service) Execute(ctx context.Context, work catalog.Work) (any, error) {
 		}
 		for i, f := range m.Files {
 			if ctx.Err() != nil {
+				if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+					return nil, contracts.Fail("acquisition_timeout")
+				}
 				return nil, contracts.Fail("cancelled")
 			}
 			pubID := StableID("model-file:" + id + ":" + f.Role + ":" + f.SHA256)
@@ -250,8 +254,12 @@ func (s *Service) download(ctx context.Context, workID string, f File) (string, 
 	}
 	response, e := s.Client.Do(req)
 	if e != nil {
-		if ctx.Err() != nil {
+		if errors.Is(ctx.Err(), context.Canceled) {
 			return "", contracts.Fail("cancelled")
+		}
+		var timeout interface{ Timeout() bool }
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.As(e, &timeout) && timeout.Timeout() {
+			return "", contracts.Fail("acquisition_timeout")
 		}
 		return "", contracts.Fail("unavailable")
 	}
@@ -279,11 +287,14 @@ func (s *Service) download(ctx context.Context, workID string, f File) (string, 
 	remaining := f.Size - offset
 	for {
 		if ctx.Err() != nil {
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				return "", contracts.Fail("acquisition_timeout")
+			}
 			return "", contracts.Fail("cancelled")
 		}
 		n, err := response.Body.Read(buffer)
 		if int64(n) > remaining {
-			return "", contracts.Fail("conflict")
+			return "", contracts.Fail("input_limit")
 		}
 		if n > 0 {
 			if _, e = file.Write(buffer[:n]); e != nil {
@@ -296,25 +307,35 @@ func (s *Service) download(ctx context.Context, workID string, f File) (string, 
 		}
 		if err != nil {
 			file.Sync()
+			var timeout interface{ Timeout() bool }
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.As(err, &timeout) && timeout.Timeout() {
+				return "", contracts.Fail("acquisition_timeout")
+			}
+			if errors.Is(ctx.Err(), context.Canceled) {
+				return "", contracts.Fail("cancelled")
+			}
 			return "", contracts.Fail("unavailable")
 		}
 	}
 	if remaining != 0 || file.Sync() != nil {
 		return "", contracts.Fail("unavailable")
 	}
-	if verifyFile(file, f) != nil {
-		return "", contracts.Fail("conflict")
+	if e = verifyFile(file, f); e != nil {
+		return "", e
 	}
 	return filepath.Join(dir, name), nil
 }
 func verifyFile(file *os.File, f File) error {
 	if _, e := file.Seek(0, io.SeekStart); e != nil {
-		return e
+		return contracts.Fail("unavailable")
 	}
 	h := sha256.New()
 	n, e := io.Copy(h, file)
-	if e != nil || n != f.Size || hex.EncodeToString(h.Sum(nil)) != f.SHA256 {
-		return contracts.Fail("conflict")
+	if e != nil {
+		return contracts.Fail("unavailable")
+	}
+	if n != f.Size || hex.EncodeToString(h.Sum(nil)) != f.SHA256 {
+		return contracts.Fail("checksum_mismatch")
 	}
 	return nil
 }

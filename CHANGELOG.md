@@ -4,6 +4,15 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-11
+
+- Resolve contextual CLI help before effects and preserve literal arguments, atomic option values, scalar/Boolean arity, repeatable speaker selectors and early invalid-command diagnostics. Include operation-specific JSON-file templates and contracts.
+- Repair shared settings dispatch, initial speaker-model listing and protected vault deletion against live or stopped runtimes.
+- Preserve exact signed integer values and distinguish captured local timezone policy from explicit timezone selections across prepared/replayed date inputs.
+- Preserve classified durable failures through show/results/wait, reload and portable proofs, including acquisition checksum, limit and timeout causes.
+- Normalize all machine output to runtime-response envelopes with success on stdout and failure on stderr; failed waits retain both result and error. Consumers of formerly bare local/maintenance output must unwrap result. Output delivery failures return a nonzero status.
+- Retain read compatibility for persisted 1.0.0 workspace/tool/document contracts without rewriting historical bytes, profile identities or generic failure receipts. Current transport/package versions remain exact.
+
 ### Fixed
 
 - Read every page of exact-source GitHub checks before publication, retaining required checks, external failure/pending rejection and verified current-workflow suite exclusion. Reject incomplete, duplicate or changing inventories before release writes.
@@ -169,7 +178,7 @@ All notable changes to this project will be documented here. The format follows 
 - Preserve closed GitHub Projects when rerunning repository setup.
 - Cover root schema-validation dependencies in grouped Dependabot updates and correct contributor installation guidance.
 
-[Unreleased]: https://github.com/shruggietech/insonic/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/shruggietech/insonic/compare/v1.0.1...HEAD
 
 ## Decisions (2026-10-08)
 
@@ -184,3 +193,5 @@ All notable changes to this project will be documented here. The format follows 
 - Amend constitution to 2.2.0 for canonical managed audio and one current embedded document. New reference admission is unsupported; existing legacy references remain readable. Imported local speaker tokens retain exact upstream-valid values. Original owner inputs stay untouched, while accepted work and captured metadata omit original local locators.
 
 [1.0.0]: https://github.com/shruggietech/insonic/compare/v0.0.0...v1.0.0
+
+[1.0.1]: https://github.com/shruggietech/insonic/compare/v1.0.0...v1.0.1

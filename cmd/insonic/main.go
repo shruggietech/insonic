@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
@@ -12,6 +13,7 @@ import (
 	local "github.com/shruggietech/insonic/internal/runtime"
 	"github.com/shruggietech/insonic/internal/secrets"
 	"github.com/shruggietech/insonic/internal/workspace"
+	"github.com/shruggietech/insonic/schemas"
 	"io"
 	"os"
 	"os/signal"
@@ -21,55 +23,27 @@ import (
 )
 
 func execute(args []string) int {
-	root := ""
-	machine := false
-	requestID := contracts.ID()
-	positional := []string{}
-	for i := 0; i < len(args); i++ {
-		switch args[i] {
-		case "--json":
-			machine = true
-		case "--request-id":
-			i++
-			if i >= len(args) || !contracts.ValidID(args[i]) {
-				return output(nil, contracts.Fail("invalid_request"), machine)
-			}
-			requestID = args[i]
-		case "--workspace":
-			i++
-			if i >= len(args) {
-				return output(nil, contracts.Fail("invalid_request"), machine)
-			}
-			root = args[i]
-		default:
-			positional = append(positional, args[i])
+	parsed, parseErr := parseInvocation(args)
+	root, machine, requestID := parsed.Root, parsed.Machine, parsed.RequestID
+	responseContext = contracts.Response{Kind: "runtime-response", Version: contracts.Version}
+	if contracts.ValidID(requestID) {
+		responseContext.RequestID = requestID
+	}
+	if parseErr != nil {
+		return output(nil, parseErr, machine)
+	}
+	if parsed.Help {
+		if machine {
+			return output(map[string]any{"command": strings.Join(parsed.Path, " "), "help": commandHelp(parsed.Path)}, nil, true)
 		}
+		return writeHuman(commandHelp(parsed.Path), os.Stdout)
 	}
-	if len(positional) == 1 && (positional[0] == "version" || positional[0] == "--version") {
-		fmt.Println(contracts.Version)
-		return 0
-	}
-	if len(positional) == 0 || (len(positional) == 1 && positional[0] == "--help") {
-		fmt.Println("insonic workspace init <directory> | workspace show | doctor | jobs start <milliseconds> | jobs show/cancel/retry <job-id> | jobs history <job-id> [after-generation] | catalog show/migrate | catalog export/restore <file> [--workspace <directory>] [--request-id <UUID>] [--json]")
-		fmt.Println("insonic artifacts publish <file> <kind> | artifacts show/verify/reconcile/abort/retire/cache-prune <publication-id> | artifacts materialize <publication-id> [max-bytes] | artifacts lease-renew/lease-release <publication-id> <lease-id> | artifacts retain/release-reference <publication-id> <reference-id>")
-		fmt.Println("insonic credentials select native/vault/session | credentials add/replace/delete/status <UUID> | credentials unlock/load (protected stdin JSON, saved values never returned)")
-		fmt.Println("insonic pipelines/speakers/terms list [--input JSON] | pipelines/speakers/terms show <UUID> | pipelines/speakers/terms set <UUID> --input JSON | pipelines inspect <UUID> [--input JSON] | speakers aliases <UUID> [--input JSON] | speakers select/diagnostics <UUID> [--input JSON] | terms compile [--input JSON]")
-		fmt.Println("insonic recordings roster show/add/remove/replace/clear <media-id> --speaker <reference> --expected-revision <n>")
-		fmt.Println("insonic processing tools <configuration.json> | recordings show/document/mappings <media-id> | recordings process/assemble/map-speaker/export <media-id> --input <JSON>")
-		fmt.Println("insonic media tools <configuration.json> | media import <files...> or --manifest <CSV/JSON> [--transcript PATH/URL] [--attribution auto/native/off/diarize] [--originated-at/on VALUE] [--timezone ZONE] | media list/show/metadata/raw/refresh/set-origin/relocate | models register/acquire <manifest> | models list/show/verify/materialize | work list/show/wait/cancel/retry")
-		fmt.Println("insonic transcript import <PATH/URL> --record <UUID/title> [--replace-transcript] [--attribution auto/native/off/diarize] [--diarization-model-id REFERENCE] | transcript import --record <UUID/title> --legacy-sidecar")
-		fmt.Println("insonic media import <PATH/URL> --record <UUID/title> [--replace-audio --existing-transcript keep/clear/replace --transcript-applies --existing-roster retain/clear] | media import <PATH/URL> [--known-speaker <UUID/name/alias> (repeatable)]")
-		fmt.Println("insonic settings show | settings set --input JSON | recordings cues <media-id> [--input JSON] | media playback/playback-check/playback-close <media-id> --input JSON")
-		fmt.Println("insonic media capture <media-id> --input JSON (exact current metadata/facts/date byte pages)")
-		fmt.Println("insonic graph capabilities/status/publish/rebuild | evidence extract/show <media-id> [--input JSON] | query assist/assistance-set --input JSON | query assistance-show | query run/explain/validate --input JSON | query run --saved <query-id> [--revision N] | query list/show/save | timeline calendar/recording | views show/save (mutation definitions use --input JSON)")
-		fmt.Println("insonic work wait <work-id> [--timeout-ms 30000] (one-process bounded wait; terminal failures preserve state and exit nonzero)")
-		fmt.Println("insonic models resolve <UUID/base:UUID/speaker:UUID/alias/source:NAME/SELECTOR> --operation transcription/diarization/voice-matching/speaker-model-training | models discover <source-id>")
-		fmt.Println("insonic models alias/source list [--input page.json] | models alias/source show <UUID> | models alias/source set <UUID> --input update.json | models alias/source remove <UUID> --expected-revision N")
-		fmt.Println("insonic models dataset create --input JSON | models dataset list [--input JSON] | models dataset show <UUID> | models train --input JSON")
-		fmt.Println("insonic models speaker list [--input JSON] | models list --speaker <UUID> [--limit N] | models speaker show <VERSION_UUID> | models speaker fetch <VERSION_UUID> --destination <directory> | models profile set <SPEAKER_UUID> --input JSON")
-		fmt.Println("insonic recordings match <media-id> --input JSON (matches current voices against frozen roster profiles without rerunning transcription or diarization)")
-		fmt.Println("insonic backup create <directory> [--mode self-contained/reference-only] | backup show/verify/restore <directory> | backup release <directory/backup-UUID> (offline maintenance; complete portable artifact bundles)")
-		return 0
+	positional := parsed.Args
+	if len(positional) == 1 && positional[0] == "version" {
+		if machine {
+			return output(map[string]string{"version": contracts.Version}, nil, true)
+		}
+		return writeHuman(contracts.Version+"\n", os.Stdout)
 	}
 	if len(positional) == 3 && positional[0] == "workspace" && positional[1] == "init" {
 		w, err := workspace.Init(positional[2], "Workspace")
@@ -89,6 +63,7 @@ func execute(args []string) int {
 	if err != nil {
 		return output(nil, err, machine)
 	}
+	responseContext.WorkspaceID = w.Config.WorkspaceID
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 	if (len(positional) == 2 || len(positional) == 3 && positional[2] == "--secret-input") && positional[0] == "runtime" && positional[1] == "serve" {
@@ -201,7 +176,8 @@ func execute(args []string) int {
 	} else {
 		return output(nil, contracts.Fail("invalid_request"), machine)
 	}
-	if !contracts.ExploreOperation(req.Operation) && !contracts.ConfigurationOperation(req.Operation) && !strings.HasPrefix(req.Operation, "recordings.") && !strings.HasPrefix(req.Operation, "media.") && !strings.HasPrefix(req.Operation, "models.") && !strings.HasPrefix(req.Operation, "work.") && !strings.Contains("|workspace.show|doctor|catalog.show|jobs.start|jobs.show|jobs.history|jobs.cancel|jobs.retry|artifacts.publish|artifacts.show|artifacts.verify|artifacts.materialize|artifacts.reconcile|artifacts.abort|artifacts.retire|artifacts.lease-renew|artifacts.lease-release|artifacts.cache-prune|artifacts.retain|artifacts.release-reference|", "|"+req.Operation+"|") {
+	encoded, encodeErr := json.Marshal(req)
+	if encodeErr != nil || schemas.ValidateRequest(encoded) != nil {
 		return output(nil, contracts.Fail("invalid_request"), machine)
 	}
 	if err := local.Ensure(ctx, w, ""); err != nil {
@@ -286,38 +262,84 @@ func catalogCommand(ctx context.Context, w *workspace.Workspace, args []string, 
 	return output(map[string]any{"exported": true, "workspace_id": snap.WorkspaceID, "revision": snap.Revision, "digest": snap.Digest}, nil, machine)
 }
 
-func output(result any, err error, machine bool) int {
-	if err != nil {
-		typed, ok := err.(*contracts.Error)
-		if !ok {
-			typed = contracts.Fail("operation_failed")
-		}
-		if machine {
-			json.NewEncoder(os.Stderr).Encode(contracts.Response{Kind: "runtime-response", Version: contracts.Version, Error: typed})
-		} else {
-			fmt.Fprintln(os.Stderr, typed.Error())
-		}
-		if typed.Code == "invalid_request" {
-			return 2
-		}
-		if typed.Code == "incompatible_version" {
-			return 3
-		}
-		if typed.Code == "unavailable" {
-			return 4
-		}
-		return 1
+var responseContext contracts.Response
+
+func exitCode(err *contracts.Error) int {
+	if err == nil {
+		return 0
 	}
-	if result != nil {
-		if machine {
-			json.NewEncoder(os.Stdout).Encode(result)
-		} else {
-			data, _ := json.MarshalIndent(result, "", "  ")
-			fmt.Println(string(data))
-		}
+	switch err.Code {
+	case "invalid_request":
+		return 2
+	case "incompatible_version":
+		return 3
+	case "unavailable":
+		return 4
+	}
+	return 1
+}
+func writeHuman(text string, writer io.Writer) int {
+	if _, err := io.WriteString(writer, text); err != nil {
+		fmt.Fprintln(os.Stderr, "unavailable: Could not write command output.")
+		return 4
 	}
 	return 0
 }
+func output(result any, err error, machine bool) int {
+	return outputTo(result, err, machine, responseContext, os.Stdout, os.Stderr)
+}
+func outputTo(result any, err error, machine bool, context contracts.Response, stdout, stderr io.Writer) int {
+	var typed *contracts.Error
+	if err != nil {
+		if !errors.As(err, &typed) {
+			typed = contracts.Fail("operation_failed")
+		}
+	}
+	response, ok := result.(contracts.Response)
+	if !ok {
+		response = context
+		response.Result = result
+	}
+	response.Kind = "runtime-response"
+	response.Version = contracts.Version
+	if response.RequestID == "" {
+		response.RequestID = context.RequestID
+	}
+	if response.WorkspaceID == "" {
+		response.WorkspaceID = context.WorkspaceID
+	}
+	if typed != nil {
+		response.Error = typed
+	}
+	if response.Error != nil {
+		typed = response.Error
+	}
+	writer := stdout
+	if typed != nil {
+		writer = stderr
+	}
+	if result == nil && typed == nil {
+		return 0
+	}
+	var writeErr error
+	if machine {
+		writeErr = json.NewEncoder(writer).Encode(response)
+	} else if typed != nil {
+		_, writeErr = fmt.Fprintln(writer, typed.Error())
+	} else {
+		var raw []byte
+		raw, writeErr = json.MarshalIndent(response, "", "  ")
+		if writeErr == nil {
+			_, writeErr = fmt.Fprintln(writer, string(raw))
+		}
+	}
+	if writeErr != nil {
+		fmt.Fprintln(stderr, "unavailable: Could not encode or write command output.")
+		return 4
+	}
+	return exitCode(typed)
+}
+
 func main() { os.Exit(execute(os.Args[1:])) }
 
 func credentialCommand(ctx context.Context, w *workspace.Workspace, args []string, machine bool) int {
@@ -336,7 +358,7 @@ func credentialCommand(ctx context.Context, w *workspace.Workspace, args []strin
 		return output(nil, e, machine)
 	}
 	raw := []byte(`{}`)
-	if action == "add" || action == "replace" || action == "unlock" || action == "load" {
+	if action == "add" || action == "replace" || action == "unlock" || action == "load" || action == "delete" && mode == "vault" {
 		raw, e = io.ReadAll(io.LimitReader(os.Stdin, credentialcmd.MaxInputBytes+1))
 		if e != nil || len(raw) > credentialcmd.MaxInputBytes {
 			return output(nil, contracts.Fail("invalid_request"), machine)
@@ -348,7 +370,7 @@ func credentialCommand(ctx context.Context, w *workspace.Workspace, args []strin
 		return output(nil, e, machine)
 	}
 	defer input.Close()
-	if (action == "unlock" && (mode != "vault" || len(input.Passphrase) == 0)) || (action == "load" && (mode == "native" || mode == "vault" && len(input.Passphrase) == 0 || mode == "session" && input.Session == nil)) {
+	if (action == "delete" && mode == "vault" && len(input.Passphrase) == 0) || (action == "unlock" && (mode != "vault" || len(input.Passphrase) == 0)) || (action == "load" && (mode == "native" || mode == "vault" && len(input.Passphrase) == 0 || mode == "session" && input.Session == nil)) {
 		return output(nil, contracts.Fail("invalid_request"), machine)
 	}
 	input.Close()
@@ -358,7 +380,10 @@ func credentialCommand(ctx context.Context, w *workspace.Workspace, args []strin
 	}
 	data, _ := json.Marshal(map[string]any{"arguments": args, "input": json.RawMessage(raw)})
 	defer clear(data)
-	req := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, RequestID: contracts.ID(), Operation: "credentials." + action, Data: data}
+	req := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, RequestID: responseContext.RequestID, Operation: "credentials." + action, Data: data}
+	if !contracts.ValidID(req.RequestID) {
+		req.RequestID = contracts.ID()
+	}
 	if out, e := local.Call(ctx, w, req); e == nil {
 		var err error
 		if out.Error != nil {
@@ -374,10 +399,6 @@ func credentialCommand(ctx context.Context, w *workspace.Workspace, args []strin
 		if e == nil && out.Error != nil {
 			e = out.Error
 		}
-		return output(out, e, machine)
-	}
-	if action == "delete" && mode == "vault" {
-		out, e := credentialcmd.Execute(ctx, w, args, os.Stdin)
 		return output(out, e, machine)
 	}
 	out, e := credentialcmd.Execute(ctx, w, args, bytes.NewReader(raw))

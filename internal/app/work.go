@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"strings"
 
@@ -27,6 +28,7 @@ func strictPayload(raw []byte, out any) error {
 		return contracts.Fail("invalid_request")
 	}
 	d := json.NewDecoder(bytes.NewReader(raw))
+	d.UseNumber()
 	d.DisallowUnknownFields()
 	if d.Decode(out) != nil {
 		return contracts.Fail("invalid_request")
@@ -185,7 +187,7 @@ func (a *App) recoverWork() {
 			}
 			_, dependencies, _ := frozenModelDependencies(item)
 			raw, _ := json.Marshal(map[string]any{"state": "failed", "error": code, "acquisition_ids": dependencies})
-			_, _ = a.Catalog.CheckpointWork(a.ctx, claim, "model-acquisition-failed", "failed", raw, leaseTTL)
+			_, _ = a.Catalog.CheckpointWorkFailure(a.ctx, claim, "model-acquisition-failed", raw, leaseTTL, code)
 			continue
 		}
 		ctx, cancel := context.WithCancel(a.ctx)
@@ -267,11 +269,16 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 	}
 	state := "succeeded"
 	phase := "complete"
+	cause := ""
 	if imported, ok := result.(library.ImportResult); ok && e == nil {
 		for _, item := range imported.Items {
 			if item.State == "failed" {
 				state, phase = "failed", "completed-with-failures"
-				break
+				if cause == "" {
+					cause = contracts.Fail(item.Error).Code
+				} else if cause != contracts.Fail(item.Error).Code {
+					cause = "mixed_item_failure"
+				}
 			}
 		}
 	}
@@ -279,13 +286,19 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 		state = "failed"
 		phase = "operation-failed"
 		code := "operation_failed"
-		if typed, ok := e.(*contracts.Error); ok {
+		var typed *contracts.Error
+		if errors.As(e, &typed) {
 			code = typed.Code
 		}
+		cause = code
 		result = map[string]any{"state": "failed", "error": code}
 	}
 	raw, _ := json.Marshal(result)
-	_, _ = a.Catalog.CheckpointWork(ctx, worker.claim, phase, state, raw, leaseTTL)
+	if state == "failed" {
+		_, _ = a.Catalog.CheckpointWorkFailure(ctx, worker.claim, phase, raw, leaseTTL, cause)
+	} else {
+		_, _ = a.Catalog.CheckpointWork(ctx, worker.claim, phase, state, raw, leaseTTL)
+	}
 }
 
 func domainRequestValid(req contracts.Request) bool {
@@ -500,6 +513,9 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 		var input library.Options
 		if strictPayload(req.Data, &input) != nil {
 			return nil, contracts.Fail("invalid_request")
+		}
+		if input.Timezone != "" || input.OriginatedAt != "" || input.OriginatedOn != "" || input.OriginatedEarliest != nil || input.OriginatedLatest != nil {
+			input = library.CaptureDateOptions(input)
 		}
 		raw, _ := json.Marshal(library.RefreshRequest{MediaID: req.ItemID, Options: input})
 		out, e := a.Catalog.EnqueueWork(a.ctx, req.RequestID, req.Operation, raw)

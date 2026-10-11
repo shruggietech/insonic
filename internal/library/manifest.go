@@ -45,7 +45,7 @@ func ReadManifest(path string) (ImportRequest, error) {
 		r, e = readCSV(data)
 	} else {
 		e = strict(data, &r)
-		if e == nil && (r.Kind != "import-manifest" || r.Version != contracts.Version) {
+		if e == nil && (r.Kind != "import-manifest" || !contracts.SupportedDocumentVersion(r.Version)) {
 			e = contracts.Fail("invalid_request")
 		}
 	}

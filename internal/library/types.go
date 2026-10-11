@@ -54,6 +54,7 @@ type Options struct {
 	OriginatedOn         string           `json:"originated_on,omitempty"`
 	OriginatedEarliest   *catalog.Instant `json:"originated_earliest,omitempty"`
 	OriginatedLatest     *catalog.Instant `json:"originated_latest,omitempty"`
+	TimezoneImplicit     bool             `json:"timezone_implicit,omitempty"`
 	Timezone             string           `json:"timezone,omitempty"`
 	DSTFold              string           `json:"dst_fold,omitempty"`
 	DSTGap               string           `json:"dst_gap,omitempty"`
@@ -199,6 +200,7 @@ func merged(base, item Options) Options {
 	}
 	if item.Timezone != "" {
 		base.Timezone = item.Timezone
+		base.TimezoneImplicit = item.TimezoneImplicit
 	}
 	if item.DSTFold != "" {
 		base.DSTFold = item.DSTFold
@@ -256,15 +258,23 @@ func hasOrigin(o Options) bool {
 	return o.OriginatedAt != "" || o.OriginatedOn != "" || o.OriginatedEarliest != nil || o.OriginatedLatest != nil
 }
 func PrepareImport(r ImportRequest) (ImportRequest, error) {
-	if len(r.Items) == 0 || len(r.Items) > 10000 || !validOptions(r.Defaults) || (r.Kind != "" && r.Kind != "import-manifest") || (r.Version != "" && r.Version != contracts.Version) {
+	if len(r.Items) == 0 || len(r.Items) > 10000 || !validOptions(r.Defaults) || (r.Kind != "" && r.Kind != "import-manifest") || (r.Version != "" && !contracts.SupportedDocumentVersion(r.Version)) {
 		return r, contracts.Fail("invalid_request")
 	}
-	if r.Defaults.Timezone == "" || r.Defaults.Timezone == "local" {
-		if zone, e := LocalZone(); e == nil {
-			r.Defaults.Timezone = zone
-		} else {
-			r.Defaults.Timezone = "unresolved-local"
+	captured := ""
+	capture := func() string {
+		if captured == "" {
+			var e error
+			captured, e = LocalZone()
+			if e != nil {
+				captured = "unresolved-local"
+			}
 		}
+		return captured
+	}
+	if r.Defaults.Timezone == "" || r.Defaults.Timezone == "local" {
+		r.Defaults.Timezone = capture()
+		r.Defaults.TimezoneImplicit = true
 	}
 	if r.Kind == "" {
 		r.Kind = "import-manifest"
@@ -329,7 +339,9 @@ func PrepareImport(r ImportRequest) (ImportRequest, error) {
 		}
 
 		if r.Items[i].Timezone == "local" {
-			r.Items[i].Timezone = r.Defaults.Timezone
+			// A per-item local policy captures the host, independently of explicit batch policy.
+			r.Items[i].TimezoneImplicit = true
+			r.Items[i].Timezone = capture()
 		}
 	}
 	if raw := marshal(r); len(raw) > contracts.MaxWorkPayload {
@@ -371,3 +383,16 @@ func transcriptOptions(options Options) Options {
 
 // MergeOptions applies the same explicit per-field precedence for every client.
 func MergeOptions(base, item Options) Options { return merged(base, item) }
+
+// CaptureDateOptions freezes omitted/local policy for durable date edits.
+func CaptureDateOptions(o Options) Options {
+	if o.Timezone == "" || o.Timezone == "local" {
+		o.TimezoneImplicit = true
+		var e error
+		o.Timezone, e = LocalZone()
+		if e != nil {
+			o.Timezone = "unresolved-local"
+		}
+	}
+	return o
+}
