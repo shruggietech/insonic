@@ -75,5 +75,5 @@ Deliver shared helper and runtime lanes first, release-path reuse next, then Pag
 
 ## Phase 8: Convergence
 
-- [ ] T024 Stage the complete Windows codec archive before final FFmpeg linking in scripts/media_source_build.py, scripts/media-transfer.py and .github/workflows/media-source.yml; bind unchanged configuration, compiler, source/recipe/launcher, dependency prefix, exact files and integer timestamps, reject tampering and resume without re-extraction or reconfiguration per FR-001/FR-002 (partial, HIGH).
+- [x] T024 Stage the complete Windows codec archive before final FFmpeg linking in scripts/media_source_build.py, scripts/media-transfer.py and .github/workflows/media-source.yml; bind unchanged configuration, compiler, source/recipe/launcher, dependency prefix, exact files and integer timestamps, reject tampering and resume without re-extraction or reconfiguration per FR-001/FR-002 (partial, HIGH).
 - [ ] T025 Validate the staged actual cold build and repeat full warm PR/release qualification with current source and exact receipts in specs/016-release-workflow-hardening/evidence/ per AC-001/AC-002 and SC-001/SC-002 (partial, HIGH).
