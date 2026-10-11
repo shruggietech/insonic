@@ -39,7 +39,7 @@ Input: [plan](plan.md), [spec](spec.md), [research](research.md), [contracts](co
 
 - [x] T016 Extend scripts/qualify.py/package consumer coverage for all nine issue matrices and historical populated workspace/backup/restore (FR-012, SC-001/002/003/004).
 - [x] T017 Update docs/current, schemas/current and CHANGELOG.md with exact command/stream/compatibility/date/failure behavior and inspect rendered/offline output (FR-011).
-- [ ] T018 Run focused and full configured npm/Go/Python/site/frontend/native/backend checks, encoding and diff integrity (FR-012, SC-002).
+- [x] T018 Run focused and full configured npm/Go/Python/site/frontend/native/backend checks, encoding and diff integrity (FR-012, SC-002).
 - [x] T019 Run speckit-converge, fix any gaps and record exact verification in this slice (all FR/SC).
 - [ ] T020 Commit/push/open official PR closing nine issues; track project status, satisfy every review thread with at most two rounds and green exact-head CI; stop for owner merge (SC-005).
 
@@ -60,3 +60,4 @@ Complete all four stories and package qualification before publication. Preserve
 - [x] T021 Normalize historical import request copies before current IPC validation, preserve source bytes, add a CLI-to-shared-schema regression, and qualify the final source (FR-011, initial Codex review).
 - [x] T022 Retain immutable historical model manifest hashes during current request admission with explicit packaged historical schema references and CLI/shared-schema regression (FR-011, adjacent review boundary).
 - [x] T023 Use the shared schema catalog in frontend request validation and pass type checking/all 73 frontend tests after CI exposed missing historical dependencies (FR-012).
+- [x] T024 Start idle-exit timing at runtime readiness, retain the one-second idle shutdown bound, and verify owner-lock release after Windows CI exposed startup timing contamination (FR-012).

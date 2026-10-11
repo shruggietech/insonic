@@ -88,13 +88,40 @@ func TestIdleExit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	start := time.Now()
-	if err := Serve(context.Background(), w, Options{Idle: 60 * time.Millisecond}); err != nil {
-		t.Fatal(err)
+	ctx, cancel := context.WithCancel(context.Background())
+	ready := make(chan struct{})
+	done := make(chan error, 1)
+	go func() {
+		done <- Serve(ctx, w, Options{Idle: 60 * time.Millisecond, Ready: ready})
+		close(done)
+	}()
+	defer func() {
+		cancel()
+		select {
+		case <-done:
+		case <-time.After(3 * time.Second):
+			t.Error("owner did not stop after cancellation")
+		}
+	}()
+	select {
+	case <-ready:
+	case <-time.After(3 * time.Second):
+		t.Fatal("owner did not become ready")
 	}
-	if time.Since(start) > time.Second {
-		t.Fatal("idle owner stayed alive")
+	// Startup opens and recovers the catalog; the idle interval starts at readiness.
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("idle owner stayed alive after readiness")
 	}
+	lock, err := w.Lock()
+	if err != nil {
+		t.Fatal("idle owner lock unreleased", err)
+	}
+	lock.Unlock()
 }
 
 func TestWireRejectsUnknownFieldsAndTrailingDocuments(t *testing.T) {

@@ -25,3 +25,7 @@ All Go packages, npm checks and 83 tests, the 141-test Python suite (plus the 35
 ## CI frontend correction
 
 The first post-review CI run exposed a frontend-test schema loader that registered only current resources. Its request compilation failed on the explicit historical model reference. The helper now uses the shared schema catalog and its packaged historical dependencies, removing its duplicate file inventory. CI captured this failure before correction; frontend type checking and all 73 frontend tests pass locally after the fix. This follow-up does not request another external review round.
+
+## Windows idle-exit check correction
+
+All final-head platform native/package checks passed. Windows core alone reported TestIdleExit at 1.22 seconds because its one-second measurement included catalog startup and recovery. The test now waits for readiness before applying the unchanged one-second idle shutdown bound, checks owner-lock release, and bounds cancellation cleanup. Runtime production behavior is unchanged. The corrected test passed 30 repetitions, and the full Go suite/vet passed before the final push; final exact-head hosted evidence is recorded on PR #71.
