@@ -44,7 +44,7 @@
 
 - [x] T018 Run security/scope, alternative-backend, runtime/schema/frontend/site and extracted-package checks; record evidence in specs/020-import-presets-executable-docs/verification.md (FR-001..012, SC-001..005).
 - [x] T019 Update CHANGELOG.md with features and dated decisions, complete convergence and file integrity checks.
-- [ ] T020 Commit/push official PR, attach it and set review tracking; resolve every finding in at most two rounds and record exact-head CI in specs/020-import-presets-executable-docs/verification.md.
+- [x] T020 Commit/push official PR, attach it and set review tracking; resolve every finding in at most two rounds and record exact-head CI in specs/020-import-presets-executable-docs/verification.md.
 
 ## Dependencies and execution
 
