@@ -128,7 +128,7 @@ func (s *Service) Import(ctx context.Context, work catalog.Work, req ImportReque
 			visible.Processing = nil
 			visible.Options.Extensions = nil
 			out.Selection = &visible
-			if s.AfterAdmission != nil {
+			if s.AfterAdmission != nil && (out.State == "admitted" || out.State == "replaced") {
 				out.QueuedJobIDs, e = s.AfterAdmission(ctx, work, ordinal, out.MediaID, selected)
 			}
 		}
