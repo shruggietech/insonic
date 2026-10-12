@@ -89,7 +89,11 @@ func (a *App) credentialDispatch(req contracts.Request) (any, error) {
 		}
 		l.manager.Close()
 		l.manager = m
-		return map[string]any{"backend": mode, "state": "unlocked"}, nil
+		state := "unlocked"
+		if mode == "session" {
+			state = "loaded"
+		}
+		return map[string]any{"backend": mode, "state": state, "lifetime": "runtime-owner"}, nil
 	}
 	if len(input.Passphrase) > 0 {
 		m, e := credentialcmd.Provider(a.Workspace, input)

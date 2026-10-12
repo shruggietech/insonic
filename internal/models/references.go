@@ -88,7 +88,7 @@ func ResolveManifest(m Manifest, operation string) (Resolution, error) {
 	}
 	out.Target.Adapter, out.Target.ContractVersion = DefaultAdapter(operation)
 	if e := CheckCompatibility(m, operation, out.Target.Adapter, out.Target.ContractVersion); e != nil {
-		out.Diagnostics = append(out.Diagnostics, fmt.Sprintf("Selected %s bundle is incompatible with %s contract %s: %v. Supply a compatible bundle or adapter.", operation, out.Target.Adapter, out.Target.ContractVersion, e))
+		out.Diagnostics = append(out.Diagnostics, fmt.Sprintf("Selected %s bundle is incompatible with %s contract %s: %v. Supply a compatible bundle or adapter.", operation, out.Target.Adapter, out.Target.ContractVersion, strings.TrimSuffix(e.Error(), ".")))
 		return out, nil
 	}
 	out.Compatible = true
@@ -134,7 +134,7 @@ func (r *Resolver) Resolve(ctx context.Context, ref, operation string) (Resoluti
 			got.Reference, got.AliasID, got.AliasRevision = ref, alias.ID, alias.Revision
 			got.Compatible = false
 			got.Diagnostics = []string{fmt.Sprintf("The selected alias declares %s, but this stage requires %s. Select an alias for the intended operation.", target.Operation, operation)}
-			return got, contracts.Fail("unsupported_capability")
+			return got, nil
 		}
 	}
 	got, e := r.ResolveTarget(ctx, target, operation)

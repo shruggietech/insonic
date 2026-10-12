@@ -41,7 +41,7 @@ func parseDesktopOperation(args []string) (string, string, json.RawMessage, erro
 		}
 		file, e := os.Open(args[index+1])
 		if e != nil {
-			return "", "", nil, contracts.Fail("unavailable")
+			return "", "", nil, contracts.Condition("unavailable", "input_missing")
 		}
 		defer file.Close()
 		raw, e = io.ReadAll(io.LimitReader(file, (1<<20)+1))
@@ -62,7 +62,7 @@ func parseDesktopOperation(args []string) (string, string, json.RawMessage, erro
 func configureToolsCommand(w *workspace.Workspace, path, section string, machine bool) int {
 	file, e := os.Open(path)
 	if e != nil {
-		return output(nil, contracts.Fail("unavailable"), machine)
+		return output(nil, contracts.Condition("unavailable", "input_missing"), machine)
 	}
 	raw, e := io.ReadAll(io.LimitReader(file, (1<<20)+1))
 	file.Close()

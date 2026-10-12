@@ -345,23 +345,30 @@ func (s *Service) Verify(ctx context.Context, id string) error {
 		return e
 	}
 	if m.State != "available" {
-		return contracts.Fail("unavailable")
+		return contracts.Condition("unavailable", "model_not_acquired")
 	}
 	var req Manifest
 	if DecodeManifest(m.Manifest, &req) != nil {
-		return contracts.Fail("invalid_request")
+		return contracts.Condition("conflict", "model_damaged")
 	}
 	var ids []string
 	if json.Unmarshal(m.PublicationIDs, &ids) != nil || len(ids) != len(req.Files) {
-		return contracts.Fail("conflict")
+		return contracts.Condition("conflict", "model_damaged")
 	}
 	for i, p := range ids {
 		pub, e := s.Catalog.Publication(ctx, p)
-		if e != nil || pub.Digest != req.Files[i].SHA256 || pub.Size != req.Files[i].Size {
-			return contracts.Fail("conflict")
+		if e != nil {
+			return contracts.Condition("unavailable", "model_storage_unavailable")
+		}
+		if pub.Digest != req.Files[i].SHA256 || pub.Size != req.Files[i].Size {
+			return contracts.Condition("conflict", "model_damaged")
 		}
 		if e = s.Artifacts.Verify(ctx, p); e != nil {
-			return e
+			var typed *contracts.Error
+			if errors.As(e, &typed) && (typed.Code == "checksum_mismatch" || typed.Code == "conflict") {
+				return contracts.Condition(typed.Code, "model_damaged")
+			}
+			return contracts.Condition("unavailable", "model_storage_unavailable")
 		}
 	}
 	return nil

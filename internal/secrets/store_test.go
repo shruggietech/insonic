@@ -125,7 +125,7 @@ func TestVaultRestartTamperAndIsolation(t *testing.T) {
 		t.Fatal(e)
 	}
 	defer locked.Close()
-	if state, _ := locked.Status(ctx, id); state != "rejected" {
+	if state, _ := locked.Status(ctx, id); state != "locked" {
 		t.Fatal(state)
 	}
 	data, _ = os.ReadFile(file)

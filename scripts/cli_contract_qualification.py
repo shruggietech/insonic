@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import threading
+import time
 import uuid
 
 from process_tree import ProcessTree
@@ -20,11 +21,13 @@ def qualify(executable, workspace, *, env=None, cwd=None):
     environment.update(env or {})
     version = (Path(__file__).resolve().parents[1] / 'VERSION').read_text().strip()
 
-    def invoke(args, *, expected=0, input=None, scoped=True):
+    def invoke(args, *, expected=0, input=None, scoped=True, machine=True, workspace_path=None):
         correlation_id = str(uuid.uuid4())
-        argv = [str(executable), '--json', '--request-id', correlation_id]
+        argv = [str(executable), '--request-id', correlation_id]
+        if machine:
+            argv.append('--json')
         if scoped:
-            argv += ['--workspace', str(workspace)]
+            argv += ['--workspace', str(workspace_path or workspace)]
         argv += [str(a) for a in args]
         with ProcessTree(argv, cwd=cwd or workspace, env=environment,
                          allow_detached=scoped, input_pipe=input is not None) as tree:
@@ -33,6 +36,11 @@ def qualify(executable, workspace, *, env=None, cwd=None):
         if code != expected or (stderr if expected == 0 else stdout):
             raise ValueError('CLI stream/exit contract differs: ' + ' '.join(map(str, args[:3]))
                              + ' (exit ' + str(code) + ', response ' + (stderr if code else stdout).decode('utf-8')[:2000] + ')')
+        if not machine:
+            text = (stderr if expected else stdout).decode("utf-8")
+            if "\x1b" in text or len(text.encode("utf-8")) > 65536:
+                raise ValueError("Human display control/size contract differs")
+            return text
         result = json.loads(stderr if expected else stdout)
         if result.get('kind') != 'runtime-response' or result.get('schema_version') != version or (result.get('request_id') != correlation_id and '--request-id' not in args):
             raise ValueError('CLI envelope/correlation differs')
@@ -62,7 +70,27 @@ def qualify(executable, workspace, *, env=None, cwd=None):
                  ['work', 'list', '--limit=0'], ['media', 'import', '--copy', '--reference', 'fixture.wav']]:
         invoke(args, expected=2, scoped=False)
 
+    # Human display, clean redirected waits and elected log preflight are part
+    # of the same installed CLI contract, rather than source-only rendering.
+    human = invoke(['workspace', 'show'], machine=False)
+    if human.lstrip().startswith('{') or version not in human or 'Next import:' not in human:
+        raise ValueError('Human workspace result is not actionable')
+    logfile = workspace / 'operator diagnostic.jsonl'
+    invoke(['--debug', '--log-file', logfile, 'doctor'])
+    if not logfile.is_file() or not logfile.read_text(encoding='utf-8').strip():
+        raise ValueError('Elected diagnostic log missing')
+    forbidden_target = workspace / 'invalid log must not initialize'
+    invoke(['--log-file', workspace / 'missing-log-parent' / 'operator.jsonl',
+            'workspace', 'init', forbidden_target], expected=4, scoped=False)
+    if forbidden_target.exists():
+        raise ValueError('Log preflight failure performed initialization')
+    invoke(['settings', 'set', '--input', workspace / 'absent-input.json'], expected=4)
     shown = invoke(['settings', 'show'])['result']
+    query_file = workspace / 'public-column-names.cypher'
+    query_file.write_text("RETURN 'public value' AS value, 'public data' AS data, 'public owner' AS owner", encoding='utf-8', newline='\n')
+    human_query = invoke(['query', 'native', '--dialect', 'ladybug-cypher', '--file', query_file], machine=False)
+    if any(value not in human_query for value in ['public value', 'public data', 'public owner']):
+        raise ValueError('Native query public column values omitted')
     input_file = workspace / 'cli-contract-input.json'
     def supplied(args, data, expected=0):
         input_file.write_text(json.dumps(data) + '\n', encoding='utf-8', newline='\n')
@@ -71,6 +99,10 @@ def qualify(executable, workspace, *, env=None, cwd=None):
     supplied(['settings', 'set'], {'section': 'appearance', 'revision': original['revision'],
                        'value': {'theme': 'dark', 'reduced_motion': True}})['result']
     supplied(['settings', 'set'], {'section': 'appearance', 'revision': original['revision'], 'value': None}, expected=1)
+    human_settings = invoke(['settings', 'show'], machine=False)
+    human_doctor = invoke(['doctor'], machine=False)
+    if 'Theme: dark' not in human_settings or 'Data:' not in human_doctor:
+        raise ValueError('Public settings values or doctor data path omitted')
     current = invoke(['settings', 'show'])['result']['sections']['appearance']
     if current['revision'] == original['revision'] or current['value']['theme'] != 'dark':
         raise ValueError('Settings mutation did not reach the shared runtime')
@@ -87,11 +119,38 @@ def qualify(executable, workspace, *, env=None, cwd=None):
     invoke(['credentials', 'select', 'vault'])
     invoke(['credentials', 'add', credential], input=json.dumps(secret).encode())
     invoke(['credentials', 'select', 'vault'])
+    status = invoke(['credentials', 'status', credential])['result']
+    if status.get('state') != 'locked' or not status.get('stored') or status.get('authentication') != 'not-checked':
+        raise ValueError('Saved locked vault was misrepresented')
+    missing_human = invoke(['credentials', 'status', str(uuid.uuid4())], machine=False)
+    if 'Stored: no' not in missing_human or 'remain stored' in missing_human:
+        raise ValueError('Missing locked credential falsely reported stored')
+    duplicate = invoke(['credentials', 'add', credential], input=json.dumps(secret).encode(), expected=1)
+    if duplicate['error'].get('reason') != 'credential_duplicate':
+        raise ValueError('Duplicate credential lost its actual cause')
     invoke(['credentials', 'delete', credential], input=b'{}', expected=2)
     invoke(['credentials', 'delete', credential], input=json.dumps({'passphrase': 'wrong-fixture-passphrase'}).encode(), expected=4)
     invoke(['credentials', 'delete', credential], input=json.dumps({'passphrase': secret['passphrase']}).encode())
     invoke(['credentials', 'select', 'session'])
 
+    # A separate stopped workspace proves the real detached report path. The
+    # enclosing journey already waits for all elected owners' idle exit.
+    cold = workspace / 'cold operator workspace'
+    invoke(['workspace', 'init', cold], scoped=False)
+    invoke(['--workspace', cold, 'credentials', 'select', 'vault'], scoped=False)
+    cold_id = str(uuid.uuid4())
+    invoke(['--workspace', cold, 'credentials', 'add', cold_id], scoped=False, input=json.dumps(secret).encode())
+    started = time.monotonic()
+    rejected = invoke(['credentials', 'unlock'], workspace_path=cold,
+                      expected=4, input=json.dumps({'passphrase': 'wrong-fixture-passphrase'}).encode())
+    if rejected['error'].get('reason') != 'credential_bootstrap' or time.monotonic() - started > 2:
+        raise ValueError('Cold bootstrap failure was not promptly classified')
+    # scoped=True elects the existing detached job lifetime for the cold owner.
+    invoke(['credentials', 'unlock'], workspace_path=cold, input=json.dumps({'passphrase': secret['passphrase']}).encode())
+    first = invoke(['workspace', 'show'], workspace_path=cold)
+    second = invoke(['workspace', 'show'], workspace_path=cold)
+    if not first.get('runtime_session_id') or first['runtime_session_id'] != second['runtime_session_id']:
+        raise ValueError('Detached runtime did not survive launching-client exit')
     body = b'synthetic CLI model bytes'
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
@@ -116,7 +175,20 @@ def qualify(executable, workspace, *, env=None, cwd=None):
             model_file.write_text(json.dumps(value) + '\n', encoding='utf-8', newline='\n')
             return invoke(['models', action, model_file])['result']
         registered = submit('register', manifest)
-        invoke(['work', 'wait', registered['work_id']])
+        completed = invoke(['work', 'wait', registered['work_id']])
+        model_id = completed['result']['result']['model_id']
+        absent = invoke(['models', 'verify', model_id], expected=4)
+        if absent['error'].get('reason') != 'model_not_acquired' or absent['result'].get('readiness') != 'not_acquired':
+            raise ValueError('Model readiness context was discarded')
+        acquired_good = submit('acquire', manifest)
+        waited = invoke(['work', 'wait', acquired_good['work_id']], machine=False)
+        if 'State: Succeeded' not in waited or f"Work {acquired_good['work_id']}:" in waited:
+            raise ValueError('Redirected wait result contains transient progress')
+        named = invoke(['models', 'materialize', model_id])['result']
+        file = named['files'][0]
+        if named.get('verification') != 'verified' or file['role'] != 'weights' or file['sha256'] != manifest['files'][0]['sha256'] or Path(file['path']).read_bytes() != body:
+            raise ValueError('Named model materialization differs from immutable manifest')
+        invoke(['artifacts', 'lease-release', file['publication_id'], file['lease_id']])
         changed = copy.deepcopy(manifest)
         changed['license'] = 'different-fixture'
         conflict = submit('register', changed)
@@ -145,5 +217,12 @@ def qualify(executable, workspace, *, env=None, cwd=None):
         server.server_close()
         thread.join(timeout=5)
     input_file.unlink(missing_ok=True)
+    for path in [logfile, Path(str(logfile) + '.1'), Path(str(logfile) + '.2')]:
+        if path.exists():
+            logged = path.read_text(encoding='utf-8')
+            if len(logged.encode('utf-8')) > 1 << 20 or any(value in logged for value in [secret['passphrase'], secret['value'], 'wrong-fixture-passphrase', str(workspace)]):
+                raise ValueError('Diagnostic log retained protected or arbitrary input')
     return {'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
-            'protected_vault_delete': 'passed', 'typed_failures': failures}
+            'protected_vault_delete': 'passed', 'typed_failures': failures,
+            'operator_feedback': 'passed', 'cold_startup_failure': 'passed', 'detached_owner': 'passed',
+            'model_roles_leases': 'passed', 'diagnostic_redaction': 'passed'}

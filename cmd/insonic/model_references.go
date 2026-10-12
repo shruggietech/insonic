@@ -14,12 +14,12 @@ import (
 func modelInput(path string) (json.RawMessage, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, contracts.Fail("unavailable")
+		return nil, contracts.Condition("unavailable", "input_missing")
 	}
 	defer f.Close()
 	raw, err := io.ReadAll(io.LimitReader(f, contracts.MaxWorkPayload+1))
 	if err != nil || len(raw) > contracts.MaxWorkPayload || catalog.ValidateJSON(raw) != nil {
-		return nil, contracts.Fail("invalid_request")
+		return nil, contracts.Condition("invalid_request", "input_invalid")
 	}
 	return raw, nil
 }

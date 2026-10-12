@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/shruggietech/insonic/internal/app"
 	"github.com/shruggietech/insonic/internal/assistance"
 	"github.com/shruggietech/insonic/internal/catalog"
@@ -30,6 +31,7 @@ type Options struct {
 	Idle              time.Duration
 	Ready             chan<- struct{}
 	Input             *credentialcmd.Input
+	ReportReady       func()
 }
 
 func frame(reader io.Reader) ([]byte, error) {
@@ -63,29 +65,29 @@ func decode(data []byte, target any) error {
 func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
 	lock, err := w.Lock()
 	if err != nil {
-		return err
+		return contracts.SafeError(err)
 	}
 	defer lock.Unlock()
 	if err := app.RecoverPlaybackScratch(w); err != nil {
-		return err
+		return contracts.Condition("unavailable", "runtime_directory")
 	}
 	listener, cleanup, err := listen(w)
 	if err != nil {
-		return err
+		return contracts.Condition("unavailable", "runtime_endpoint")
 	}
 	defer cleanup()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	provider, err := app.Bootstrap(w, options.Input)
 	if err != nil {
-		return err
+		return contracts.Condition("unavailable", "credential_bootstrap")
 	}
 	application, err := app.NewContextWithSecrets(ctx, w, provider)
 	if err != nil {
 		if closer, ok := provider.(interface{ Close() }); ok {
 			closer.Close()
 		}
-		return err
+		return contracts.Condition("unavailable", "runtime_catalog")
 	}
 	application.AssistanceFixture = options.AssistanceFixture
 	defer application.Close()
@@ -126,6 +128,9 @@ func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
 			}
 		}
 	}()
+	if options.ReportReady != nil {
+		options.ReportReady()
+	}
 	if options.Ready != nil {
 		close(options.Ready)
 	}
@@ -224,46 +229,113 @@ func Ensure(ctx context.Context, w *workspace.Workspace, executable string) erro
 	return EnsureInput(ctx, w, executable, nil)
 }
 func EnsureInput(ctx context.Context, w *workspace.Workspace, executable string, input []byte) error {
+	return ensureInput(ctx, w, executable, input, process.StartDetachedReported)
+}
+
+type startupLauncher func(context.Context, string, []string, []byte, func([]byte) error) ([]byte, error)
+
+func ensureInput(ctx context.Context, w *workspace.Workspace, executable string, input []byte, start startupLauncher) error {
+	if len(input) > credentialcmd.MaxInputBytes {
+		return contracts.Condition("invalid_request", "input_invalid")
+	}
+	ctx, finish := context.WithTimeout(ctx, 10*time.Second)
+	defer finish()
 	probe := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, RequestID: contracts.ID(), Operation: "workspace.show"}
-	if _, err := Call(ctx, w, probe); err == nil {
-		if len(input) > 0 {
-			data, _ := json.Marshal(map[string]any{"arguments": []string{"load"}, "input": json.RawMessage(input)})
-			probe.Operation = "credentials.load"
-			probe.Data = data
-			out, e := Call(ctx, w, probe)
-			clear(data)
-			if e != nil {
-				return e
-			}
-			if out.Error != nil {
-				return out.Error
-			}
+	load := func() error {
+		if len(input) == 0 {
+			return nil
+		}
+		data, _ := json.Marshal(map[string]any{"arguments": []string{"load"}, "input": json.RawMessage(input)})
+		defer clear(data)
+		req := probe
+		req.Operation = "credentials.load"
+		req.Data = data
+		out, e := Call(ctx, w, req)
+		if e != nil {
+			return e
+		}
+		if out.Error != nil {
+			return out.Error
 		}
 		return nil
+	}
+	probeReady := func() bool {
+		attempt, stop := context.WithTimeout(ctx, 500*time.Millisecond)
+		defer stop()
+		out, e := Call(attempt, w, probe)
+		return e == nil && out.Error == nil
+	}
+	if probeReady() {
+		return load()
 	}
 	if executable == "" {
 		executable, _ = os.Executable()
 	}
-	args := []string{"--workspace", w.Root, "runtime", "serve"}
-	if len(input) > 0 {
-		args = append(args, "--secret-input")
-	}
-	if err := process.StartDetachedInput(executable, args, input); err != nil {
-		return err
-	}
-	timer := time.NewTimer(10 * time.Second)
-	defer timer.Stop()
 	ticker := time.NewTicker(30 * time.Millisecond)
 	defer ticker.Stop()
 	for {
-		select {
-		case <-ctx.Done():
-			return contracts.Fail("cancelled")
-		case <-timer.C:
-			return contracts.Fail("unavailable")
-		case <-ticker.C:
-			if _, err := Call(ctx, w, probe); err == nil {
-				return nil
+		if ctx.Err() != nil {
+			if ctx.Err() == context.Canceled {
+				return contracts.Fail("cancelled")
+			}
+			return contracts.Condition("unavailable", "startup_timeout")
+		}
+		startupID := contracts.ID()
+		args := []string{"--workspace", w.Root, "runtime", "serve", "--startup-id", startupID}
+		if len(input) > 0 {
+			args = append(args, "--secret-input")
+		}
+		validate := func(raw []byte) error {
+			var report contracts.StartupReport
+			var e error
+			if decode(raw, &report) != nil || report.Kind != "runtime-startup" || report.Version != contracts.Version || report.StartupID != startupID || report.WorkspaceID != w.Config.WorkspaceID && !(report.State == "failed" && report.WorkspaceID == "") || report.State != "ready" && report.State != "failed" || report.Stage != "ready" && report.Stage != "startup" || report.State == "ready" && report.Stage != "ready" || report.State == "failed" && report.Stage != "startup" {
+				e = contracts.Condition("unavailable", "startup_report")
+			} else if report.State == "failed" {
+				if !contracts.ValidOperatorReason(report.Reason) || contracts.Fail(report.Code).Code != report.Code {
+					e = contracts.Condition("unavailable", "startup_report")
+				} else {
+					e = contracts.Condition(report.Code, report.Reason)
+				}
+			} else if report.Code != "" || report.Reason != "" {
+				e = contracts.Condition("unavailable", "startup_report")
+			}
+			if e != nil {
+				return e
+			}
+			if !probeReady() {
+				return contracts.Condition("unavailable", "runtime_endpoint")
+			}
+			return nil
+		}
+		_, e := start(ctx, executable, args, input, validate)
+		if e == nil {
+			return nil
+		}
+		var condition *contracts.Error
+		if !errors.As(e, &condition) || condition.Reason != "runtime_owner" {
+			return e
+		}
+		for {
+			if probeReady() {
+				return load()
+			}
+			// A competing owner may be shutting down rather than starting. Probe the
+			// authority lock without spawning repeatedly; retry only once it is free.
+			lock, lockErr := w.Lock()
+			if lockErr == nil {
+				lock.Unlock()
+				break
+			}
+			if !errors.As(lockErr, &condition) || condition.Reason != "runtime_owner" {
+				return lockErr
+			}
+			select {
+			case <-ctx.Done():
+				if ctx.Err() == context.Canceled {
+					return contracts.Fail("cancelled")
+				}
+				return contracts.Condition("unavailable", "startup_timeout")
+			case <-ticker.C:
 			}
 		}
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/credentialcmd"
+	"github.com/shruggietech/insonic/internal/diagnostics"
 	local "github.com/shruggietech/insonic/internal/runtime"
 	"github.com/shruggietech/insonic/internal/secrets"
 	"github.com/shruggietech/insonic/internal/workspace"
@@ -20,16 +21,20 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func execute(args []string) int {
 	parsed, parseErr := parseInvocation(args)
 	root, machine, requestID := parsed.Root, parsed.Machine, parsed.RequestID
+	operatorContext = parsed
+	startupReported = false
 	responseContext = contracts.Response{Kind: "runtime-response", Version: contracts.Version}
 	if contracts.ValidID(requestID) {
 		responseContext.RequestID = requestID
 	}
 	if parseErr != nil {
+		operatorContext.StartupID = ""
 		return output(nil, parseErr, machine)
 	}
 	if parsed.Help {
@@ -45,11 +50,28 @@ func execute(args []string) int {
 		}
 		return writeHuman(contracts.Version+"\n", os.Stdout)
 	}
+	operatorLog, errLog := diagnostics.Open(parsed.LogFile, parsed.LogLevel)
+	if errLog != nil {
+		return output(nil, errLog, machine)
+	}
+	activeLog = operatorLog
+	defer func() {
+		if activeLog != nil {
+			activeLog.Close()
+			activeLog = nil
+		}
+	}()
+	commandStarted = time.Now()
+	if e := activeLog.Write("debug", diagnosticEvent("")); e != nil {
+		return output(nil, e, machine)
+	}
 	if len(positional) == 3 && positional[0] == "workspace" && positional[1] == "init" {
 		w, err := workspace.Init(positional[2], "Workspace")
 		if err != nil {
 			return output(nil, err, machine)
 		}
+		operatorContext.Root = w.Root
+		responseContext.WorkspaceID = w.Config.WorkspaceID
 		return output(contracts.Response{Kind: "runtime-response", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, Result: w.Config}, nil, machine)
 	}
 	var w *workspace.Workspace
@@ -63,6 +85,7 @@ func execute(args []string) int {
 	if err != nil {
 		return output(nil, err, machine)
 	}
+	operatorContext.Root = w.Root
 	responseContext.WorkspaceID = w.Config.WorkspaceID
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
@@ -75,7 +98,11 @@ func execute(args []string) int {
 			}
 			defer input.Close()
 		}
-		return output(nil, local.Serve(ctx, w, local.Options{Input: input}), machine)
+		return output(nil, local.Serve(ctx, w, local.Options{Input: input, ReportReady: func() {
+			if parsed.StartupID != "" {
+				emitStartup(nil)
+			}
+		}}), machine)
 	}
 	if len(positional) >= 2 && positional[0] == "credentials" {
 		return credentialCommand(ctx, w, positional[1:], machine)
@@ -230,7 +257,7 @@ func catalogCommand(ctx context.Context, w *workspace.Workspace, args []string, 
 	if args[0] == "restore" {
 		file, err := os.Open(args[1])
 		if err != nil {
-			return output(nil, contracts.Fail("unavailable"), machine)
+			return output(nil, contracts.Condition("unavailable", "input_missing"), machine)
 		}
 		defer file.Close()
 		snap, err := catalog.ReadSnapshotReader(file)
@@ -263,6 +290,12 @@ func catalogCommand(ctx context.Context, w *workspace.Workspace, args []string, 
 }
 
 var responseContext contracts.Response
+var activeLog *diagnostics.Logger
+var commandStarted time.Time
+
+func diagnosticEvent(state string) diagnostics.Event {
+	return diagnostics.Event{Operation: strings.Join(operatorContext.Path, "."), RequestID: responseContext.RequestID, WorkspaceID: responseContext.WorkspaceID, State: state, DurationMS: time.Since(commandStarted).Milliseconds()}
+}
 
 func exitCode(err *contracts.Error) int {
 	if err == nil {
@@ -286,6 +319,31 @@ func writeHuman(text string, writer io.Writer) int {
 	return 0
 }
 func output(result any, err error, machine bool) int {
+	if operatorContext.StartupID != "" {
+		if err != nil && !startupReported {
+			emitStartup(err)
+		}
+		if err != nil {
+			return exitCode(contracts.SafeError(err))
+		}
+		return 0
+	}
+	if activeLog != nil {
+		event := diagnosticEvent("")
+		level := "info"
+		if err != nil {
+			safe := contracts.SafeError(err)
+			event.Code, event.Reason = safe.Code, safe.Reason
+			level = "error"
+		}
+		if logErr := activeLog.Write(level, event); logErr != nil {
+			err = logErr
+		}
+		if logErr := activeLog.Close(); logErr != nil && err == nil {
+			err = logErr
+		}
+		activeLog = nil
+	}
 	return outputTo(result, err, machine, responseContext, os.Stdout, os.Stderr)
 }
 func outputTo(result any, err error, machine bool, context contracts.Response, stdout, stderr io.Writer) int {
@@ -324,13 +382,11 @@ func outputTo(result any, err error, machine bool, context contracts.Response, s
 	var writeErr error
 	if machine {
 		writeErr = json.NewEncoder(writer).Encode(response)
-	} else if typed != nil {
-		_, writeErr = fmt.Fprintln(writer, typed.Error())
 	} else {
-		var raw []byte
-		raw, writeErr = json.MarshalIndent(response, "", "  ")
+		var text string
+		text, writeErr = renderHuman(response)
 		if writeErr == nil {
-			_, writeErr = fmt.Fprintln(writer, string(raw))
+			_, writeErr = io.WriteString(writer, text)
 		}
 	}
 	if writeErr != nil {
@@ -376,7 +432,11 @@ func credentialCommand(ctx context.Context, w *workspace.Workspace, args []strin
 	input.Close()
 	if action == "unlock" || action == "load" {
 		e = local.EnsureInput(ctx, w, "", raw)
-		return output(map[string]any{"backend": mode, "state": "unlocked"}, e, machine)
+		state := "unlocked"
+		if mode == "session" {
+			state = "loaded"
+		}
+		return output(map[string]any{"backend": mode, "state": state, "lifetime": "runtime-owner"}, e, machine)
 	}
 	data, _ := json.Marshal(map[string]any{"arguments": args, "input": json.RawMessage(raw)})
 	defer clear(data)

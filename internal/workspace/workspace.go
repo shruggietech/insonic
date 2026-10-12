@@ -61,15 +61,15 @@ type Paths struct {
 func PlatformPaths() (Paths, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return Paths{}, contracts.Fail("unavailable")
+		return Paths{}, contracts.Condition("unavailable", "profile_prerequisite")
 	}
 	config, err := os.UserConfigDir()
 	if err != nil {
-		return Paths{}, contracts.Fail("unavailable")
+		return Paths{}, contracts.Condition("unavailable", "profile_prerequisite")
 	}
 	cache, err := os.UserCacheDir()
 	if err != nil {
-		return Paths{}, contracts.Fail("unavailable")
+		return Paths{}, contracts.Condition("unavailable", "profile_prerequisite")
 	}
 	data := filepath.Join(home, ".local", "share", "insonic")
 	if runtime.GOOS == "windows" {
@@ -176,6 +176,9 @@ func Open(root string) (*Workspace, error) {
 		return nil, err
 	}
 	control := filepath.Join(root, ".insonic")
+	if _, err := os.Lstat(filepath.Join(control, "workspace.json")); os.IsNotExist(err) {
+		return nil, contracts.Condition("not_found", "workspace_missing")
+	}
 	if err := PrivateDirectory(control); err != nil {
 		return nil, err
 	}
@@ -226,7 +229,7 @@ func Discover(start string) (*Workspace, error) {
 		}
 		parent := filepath.Dir(root)
 		if parent == root {
-			return nil, contracts.Fail("not_found")
+			return nil, contracts.Condition("not_found", "workspace_missing")
 		}
 		root = parent
 	}
@@ -238,16 +241,16 @@ func RuntimeDirectory() (string, error) {
 		return "", err
 	}
 	if err := os.MkdirAll(paths.Cache, 0700); err != nil {
-		return "", contracts.Fail("unavailable")
+		return "", contracts.Condition("unavailable", "runtime_directory")
 	}
 	created := false
 	if err := os.Mkdir(paths.Runtime, 0700); err == nil {
 		created = true
 	} else if !os.IsExist(err) {
-		return "", contracts.Fail("unavailable")
+		return "", contracts.Condition("unavailable", "runtime_directory")
 	}
 	if err := SecureDirectory(paths.Runtime, created); err != nil {
-		return "", err
+		return "", contracts.Condition("unavailable", "runtime_directory")
 	}
 	return paths.Runtime, nil
 }
@@ -266,11 +269,11 @@ func (w *Workspace) Lock() (*flock.Flock, error) {
 	lock := flock.New(filepath.Join(directory, fmt.Sprintf("%x.lock", hash[:16])))
 	ok, err := lock.TryLock()
 	if err != nil {
-		return nil, contracts.Fail("unavailable")
+		return nil, contracts.Condition("unavailable", "runtime_directory")
 	}
 	if !ok {
 		lock.Close()
-		return nil, contracts.Fail("conflict")
+		return nil, contracts.Condition("conflict", "runtime_owner")
 	}
 	return lock, nil
 }

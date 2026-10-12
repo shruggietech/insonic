@@ -41,7 +41,7 @@ The protected input object contains `value`. A string stores its UTF-8 bytes; an
 
 `add` rejects an existing registration or a native credential left by an interrupted registration write. `replace` requires an existing registration or native credential and changes it only through the explicit replacement operation. Explicit replacement or deletion can reconcile that interrupted native registration. A credential value is limited to 2,048 bytes, within the Windows native-storage limit; each selected store accepts at most 256 registrations. Unknown fields, duplicate JSON keys, malformed input and oversized values fail with fixed errors that do not repeat the supplied input.
 
-Status returns the credential ID, selected backend and `configured`, `missing` or `rejected`. It checks the managed nonsecret registration information without retrieving a saved value. `configured` is registration status; resolving the credential and using the selected adapter establishes whether the saved value exists and whether the provider accepts it. An external deletion from the operating system's credential store may therefore become visible only during adapter use.
+Status returns the credential ID, selected backend and `configured`, `locked`, `missing` or `rejected`, with `stored`, `locked` and `authentication: "not-checked"` facts. It checks the managed nonsecret registration information without retrieving a saved value. `configured` is registration status; resolving the credential and using the selected adapter establishes whether the saved value exists and whether the provider accepts it. An external deletion from the operating system's credential store may therefore become visible only during adapter use.
 
 Deleting a credential leaves its references in profiles and other configuration.
 Subsequent credential resolution and new authenticated connections report
@@ -68,7 +68,7 @@ The private control directory stores ciphertext and nonsecret selection/registra
 INPUT_PRODUCER | insonic --workspace WORKSPACE credentials unlock --json
 ```
 
-For `unlock`, send `{"passphrase":"NEWLY_ENTERED_VAULT_PASSPHRASE"}` through standard input. The runtime accepts the passphrase through its protected bootstrap channel and retains the unlocked manager for that owner's lifetime. After the runtime exits, unlock again before an operation requiring vault credentials. Status without an unlocked manager reports rejected. A wrong passphrase, tampered ciphertext or unsupported envelope returns unavailable without exposing its contents.
+For `unlock`, send `{"passphrase":"NEWLY_ENTERED_VAULT_PASSPHRASE"}` through standard input. The runtime accepts the passphrase through its protected bootstrap channel and retains the unlocked manager for that owner's lifetime. After the runtime exits, unlock again before an operation requiring vault credentials. Status of an existing saved registration without an unlocked manager reports `locked` with `stored: true`; its value remains persisted. A missing registration remains missing. Unlock/load success identifies the current runtime-owner lifetime and does not prove provider authentication. A wrong passphrase, tampered ciphertext or unsupported envelope returns unavailable without exposing its contents.
 
 ## Explicit session credentials
 

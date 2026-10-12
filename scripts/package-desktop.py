@@ -843,13 +843,20 @@ def _smoke(archive=None, dirname=None, receipt=None):
             import_input = Path(temporary) / 'import fixtures.json'
             write_json(import_input, {'kind': 'import-manifest', 'schema_version': VERSION, 'items': [
                 {'source': str(media / 'speech.flac'), 'subtitle': str(media / 'speech.srt'), 'originated_at': '2020-01-01T00:00:00.123456789Z'},
-                {'source': str(media / 'sintel-dialogue.mkv'), 'subtitle': str(media / 'sintel.srt')}]})
+                {'source': str(media / 'sintel-dialogue.mkv'), 'subtitle': str(media / 'sintel.srt'),
+                 'originated_at': '2024-11-03T01:30:00', 'timezone': 'America/New_York'}]})
             accepted = call('media', 'import', '--manifest', import_input, allow_detached=True)
             job_id = accepted['work_id']
             current = call('work', 'wait', job_id, '--timeout-ms', '30000')
             if current['state'] != 'succeeded':
                 raise ValueError('packaged real media import did not succeed')
             items = current['result']['items']
+            if not current['result']['partial'] or not items[1].get('date_unresolved'):
+                raise ValueError('Ambiguous date incorrectly failed work or lost uncertainty')
+            human_wait = child([cli, '--workspace', workspace, 'work', 'wait', job_id], directory=root, env=env).decode('utf-8')
+            quiet_wait = child([cli, '--workspace', workspace, '--quiet', 'work', 'wait', job_id], directory=root, env=env).decode('utf-8')
+            if any('Warning:' not in text or items[1]['media_id'] not in text or '--originated-on' not in text or '\x1b' in text for text in [human_wait, quiet_wait]):
+                raise ValueError('Accepted partial date did not reach readable operator output')
             if len(items) != 2 or any(item.get('state') != 'admitted' or item.get('capture_state') not in ['captured', 'no-embedded-metadata'] for item in items):
                 raise ValueError('packaged import did not complete both licensed fixtures')
             from cli_contract_qualification import qualify as qualify_contract
@@ -874,9 +881,9 @@ def _smoke(archive=None, dirname=None, receipt=None):
             call('recordings', 'export', items[0]['media_id'], '--input', input_path)
             if not export_path.is_file() or b'-->' not in export_path.read_bytes():
                 raise ValueError('packaged native subtitle export missing')
-            calendar = call('timeline', 'calendar')
-            if calendar.get('total') != 2:
-                raise ValueError('packaged whole-library calendar missing media')
+            write_json(input_path, {'filter': {'include_undated': True}})
+            if call('timeline', 'calendar', '--input', input_path).get('total') != 2:
+                raise ValueError('packaged whole-library calendar missing retained undated media')
             write_json(input_path, {'definition': {'mode': 'normalized', 'operation': 'text-search', 'pagination': {'limit': 100}}})
             queried = call('query', 'run', '--input', input_path)
             if not queried.get('items') or queried.get('graph_error'):
@@ -910,7 +917,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
                     'cli_real_audio_video_import': 'passed', 'recording_replacement': 'passed', 'declared_roster': 'passed', 'cueson_assembly': 'passed', 'native_subtitle_export': 'passed',
                     'gui_bridge': 'passed' if receipt['variant'] == 'desktop' else 'not-included',
                     'native_webview': 'passed' if receipt['variant'] == 'desktop' else 'not-included', 'development_paths': 'not-required',
-                    'inference': 'not-run', 'elapsed_seconds': round(time.monotonic() - started, 3)})
+                    'partial_date_feedback': 'passed', 'inference': 'not-run', 'elapsed_seconds': round(time.monotonic() - started, 3)})
     return receipt
 
 

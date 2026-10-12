@@ -212,7 +212,14 @@ func speakerDatasetView(dataset catalog.SpeakerDataset) any {
 }
 func speakerDatasetSummary(dataset catalog.SpeakerDataset) any {
 	d := dataset.Dataset
-	return map[string]any{"dataset": map[string]any{"id": d.ID, "speaker_id": d.SpeakerID, "state": d.State, "manifest_artifact_id": d.ManifestArtifactID, "invalidated_revision": d.InvalidatedRevision, "invalidated_by": d.InvalidatedBy}, "speaker_revision": dataset.SpeakerRevision, "epoch": dataset.Epoch, "summary": dataset.Summary, "reference_count": len(dataset.References)}
+	readiness := "invalidated"
+	if d.State == "current" {
+		readiness = "empty"
+		if len(dataset.References) > 0 {
+			readiness = "ready_for_preparation"
+		}
+	}
+	return map[string]any{"readiness": readiness, "dataset": map[string]any{"id": d.ID, "speaker_id": d.SpeakerID, "state": d.State, "manifest_artifact_id": d.ManifestArtifactID, "invalidated_revision": d.InvalidatedRevision, "invalidated_by": d.InvalidatedBy}, "speaker_revision": dataset.SpeakerRevision, "epoch": dataset.Epoch, "summary": dataset.Summary, "reference_count": len(dataset.References)}
 }
 func speakerOutputSummary(output catalog.SpeakerOutput) any {
 	return map[string]any{"id": output.ID, "model_id": output.ModelID, "speaker_id": output.SpeakerID, "dataset_id": output.DatasetID, "work_id": output.WorkID, "kind": output.Kind, "name": output.Name, "publication_ids": output.PublicationIDs}

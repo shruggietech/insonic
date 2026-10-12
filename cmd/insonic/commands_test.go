@@ -84,7 +84,7 @@ func TestEverySourceOptionUsesTheSharedArityInventory(t *testing.T) {
 			continue
 		}
 		var command []string
-		global := key == "--json" || key == "--workspace" || key == "--request-id"
+		global := containsOption([]string{"--json", "--workspace", "--request-id", "--verbose", "--debug", "--quiet", "--log-level", "--log-file"}, key)
 		if global {
 			command = []string{"doctor"}
 		} else {

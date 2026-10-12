@@ -113,3 +113,7 @@ Acceptance preserves explicit manual mappings and supersedes applicable prior au
 SQLite/PostgreSQL retain the same authority relationships and snapshot checks. Filesystem/S3 store durable outputs; LadybugDB/ArcadeDB project dataset/run/version/current-profile relationships from the catalog. The graph is never the sole model-provenance store.
 
 Required checks use deterministic adapters, scores and supplied evidence, plus bounded real media/Cueson qualification. They do not initialize, download or run acoustic models. Actual enrollment and matching accuracy require separate maintainer qualification of the selected engine, model and corpus; fixture success does not establish that accuracy.
+
+## Dataset preparation readiness
+
+Dataset list/show/create responses expose `readiness`: `empty` for a current dataset without current references, `ready_for_preparation` for a current nonempty dataset, and `invalidated` after its evidence changes. Preparation readiness does not prove usable clips, required text, training completion or acoustic quality. Empty-dataset training remains rejected. Inspect independent current speaker mappings and elected recipe/context filters, then create a dataset from the intended evidence; invalidated datasets require a new current selection.

@@ -37,7 +37,7 @@ func parseConfiguration(args []string) (string, string, json.RawMessage, error) 
 		}
 		file, err := os.Open(args[index+1])
 		if err != nil {
-			return "", "", nil, contracts.Fail("unavailable")
+			return "", "", nil, contracts.Condition("unavailable", "input_missing")
 		}
 		defer file.Close()
 		raw, err = io.ReadAll(io.LimitReader(file, contracts.MaxWorkPayload+1))
