@@ -141,10 +141,15 @@ func (s *Service) document(ctx context.Context, data []byte, format, recording, 
 	return subtitles.Attribute(result, recording, mode)
 }
 func (s *Service) target(ctx context.Context, selector string) (catalog.LibraryEntry, error) {
+	return ResolveTarget(ctx, s.Catalog, selector)
+}
+
+// ResolveTarget applies the shared UUID or unique exact-title recording selector.
+func ResolveTarget(ctx context.Context, db catalog.Catalog, selector string) (catalog.LibraryEntry, error) {
 	if contracts.ValidID(selector) {
-		return s.Catalog.Library(ctx, selector)
+		return db.Library(ctx, selector)
 	}
-	entries, err := s.Catalog.Libraries(ctx)
+	entries, err := db.Libraries(ctx)
 	if err != nil {
 		return catalog.LibraryEntry{}, err
 	}
@@ -392,7 +397,7 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 		return out, err
 	}
 	candidates = append(candidates, publicationID)
-	publication, err := s.Artifacts.Publish(ctx, publicationID, canonical, "canonical-audio")
+	publication, err := s.publish(ctx, publicationID, canonical, "canonical-audio")
 	if err != nil {
 		return out, err
 	}

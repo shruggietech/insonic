@@ -15,7 +15,7 @@ import (
 )
 
 func configuredOperation(op string) bool {
-	return strings.HasPrefix(op, "pipelines.") || strings.HasPrefix(op, "speakers.") || strings.HasPrefix(op, "terms.")
+	return strings.HasPrefix(op, "import-presets.") || strings.HasPrefix(op, "pipelines.") || strings.HasPrefix(op, "speakers.") || strings.HasPrefix(op, "terms.")
 }
 func configuredRequestValid(req contracts.Request) bool {
 	return contracts.ConfigurationRequestValid(req)
@@ -100,6 +100,9 @@ func (a *App) compileRecognitionContext(input compileInput) (speakers.CompiledCo
 	return a.recognitionContext(catalog.ContextFilter{Language: input.Language, Context: input.Context, SpeakerIDs: input.SpeakerIDs}, stage, budget, supported)
 }
 func (a *App) configuredDispatch(req contracts.Request) (any, error) {
+	if strings.HasPrefix(req.Operation, "import-presets.") {
+		return a.importPresetDispatch(req)
+	}
 	switch req.Operation {
 	case "pipelines.list", "speakers.list", "terms.list":
 		p, e := pageInput(req.Data)

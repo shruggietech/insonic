@@ -16,6 +16,21 @@ export async function checkExport({ out = path.join(root, 'site/out'), offline =
   for (const filename of files.filter((file) => file.endsWith('.html'))) {
     const html = await fs.readFile(filename, 'utf8');
     const relativePage = path.relative(out, filename).split(path.sep).join('/');
+    const currentPrefix = `docs/v${manifest.latest}/`;
+    if (relativePage.startsWith(currentPrefix) && relativePage.endsWith('/index.html')) {
+      const slug = relativePage.slice(currentPrefix.length, -'/index.html'.length);
+      if (!slug.includes('/')) {
+        let source = '';
+        try { source = await fs.readFile(path.join(root, 'docs', `v${manifest.latest}`, `${slug}.md`), 'utf8'); } catch {}
+        const decode = code => code.replace(/<[^>]*>/g, '').replace(/&(amp|lt|gt|quot|#39|#x27);/g,
+          (_, name) => ({amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", '#x27': "'"}[name]));
+        const blocks = [...html.matchAll(/<pre\b[^>]*>\s*<code\b[^>]*>([\s\S]*?)<\/code>\s*<\/pre>/g)]
+          .map(([, code]) => decode(code).trim());
+        for (const [, name, input] of source.matchAll(/<!-- executable-example: ([^ ]+) -->\s*```json\s*([\s\S]*?)\s*```/g)) {
+          if (!blocks.includes(input.trim())) failures.push(`Executable input differs in rendered ${relativePage}: ${name}`);
+        }
+      }
+    }
     const scripts = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map(([, source]) => path.posix.basename(source));
     if (!offline && relativePage === 'index.html' && scripts.includes('docs-runtime.js')) failures.push('The public landing page must not load the Mermaid runtime.');
     if (relativePage.startsWith('docs/') && (!scripts.includes('docs-runtime.js') || !scripts.includes('site-runtime.js'))) failures.push(`Documentation controls or Mermaid runtime missing: ${relativePage}`);

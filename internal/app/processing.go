@@ -22,6 +22,7 @@ import (
 	"github.com/shruggietech/insonic/internal/pipeline"
 	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/internal/subtitles"
+	"github.com/shruggietech/insonic/internal/workspace"
 	"github.com/shruggietech/insonic/schemas"
 )
 
@@ -48,6 +49,7 @@ type RecordingOptions struct {
 	Attribution        processing.DiarizationOptions `json:"attribution,omitempty"`
 }
 type recordingPayload struct {
+	Destination       *workspace.Profile  `json:"destination,omitempty"`
 	ModelSelections   []models.Resolution `json:"model_selections,omitempty"`
 	ModelDependencies []string            `json:"model_dependencies,omitempty"`
 	RequestDigest     string              `json:"request_digest,omitempty"`
@@ -466,7 +468,12 @@ func (a *App) processRecording(ctx context.Context, claim catalog.Work) (any, er
 		return nil, e
 	}
 	publicationID := library.DerivedID(claim.ID, "mapped-audio")
-	pub, e := artifacts.Publish(ctx, publicationID, session.Path, "mapped-audio")
+	var pub catalog.Publication
+	if input.Destination != nil {
+		pub, e = artifacts.PublishTo(ctx, *input.Destination, publicationID, session.Path, "mapped-audio")
+	} else {
+		pub, e = artifacts.Publish(ctx, publicationID, session.Path, "mapped-audio")
+	}
 	if e != nil {
 		return nil, e
 	}

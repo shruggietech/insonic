@@ -101,7 +101,7 @@ func (s *Store) Commit(ctx context.Context, m Mutation) (Receipt, error) {
 			sp.State = "active"
 		}
 		for _, setting := range m.Settings {
-			if setting.Name == "" || len(setting.Name) > 256 || !nonsecret(setting.Value) {
+			if setting.Name == importPresetSetting || setting.Name == "" || len(setting.Name) > 256 || !nonsecret(setting.Value) {
 				return contracts.Fail("invalid_request")
 			}
 			value, e := canonical(setting.Value)

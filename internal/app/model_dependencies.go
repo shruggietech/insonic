@@ -324,6 +324,32 @@ func localModelSelectionError(selection models.Resolution) error {
 
 func (a *App) modelWorkView(work catalog.Work) any {
 	view := workView(work).(map[string]any)
+	if work.Kind == "media.import" {
+		var input library.ImportRequest
+		if strictPayload(work.Payload, &input) == nil {
+			choices := []any{}
+			for i := range input.Items {
+				if len(choices) >= 25 {
+					break
+				}
+				selected := input.Elections[input.Selections[i]]
+				selected.Processing = nil
+				selected.Options.Extensions = nil
+				choices = append(choices, map[string]any{"ordinal": i, "selection": selected})
+			}
+			view["import_selections"] = choices
+			view["import_selection_count"] = len(input.Items)
+		}
+	}
+	if work.Kind == "media.refresh" {
+		var input library.RefreshRequest
+		if strictPayload(work.Payload, &input) == nil && input.Selection != nil {
+			selected := *input.Selection
+			selected.Processing = nil
+			selected.Options.Extensions = nil
+			view["selection"] = selected
+		}
+	}
 	selections, dependencies, err := frozenModelDependencies(work)
 	if err != nil {
 		return view

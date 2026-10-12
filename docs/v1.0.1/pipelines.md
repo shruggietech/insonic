@@ -4,7 +4,7 @@
 
 A pipeline declares elected models, adapters, device/resource settings and routing. Saved definitions advance revisions and accepted work retains its elected configuration; processing does not retain alternative transcripts or assignment stores. Changing defaults affects future work. Rerunning a stage replaces the current result after validation and fenced acceptance. Once routing is configured, normal work proceeds without per-item approval or silent provider fallback.
 
-Saved Local, Connected and Custom pipelines use stable IDs and expected-revision updates. Local selects both local workers, Connected selects both hosted workers, and Custom supports an explicit mix. The stored values are `local`, `connected` and `custom`. Each stage declares its adapter contract, exact managed local model or remote model, options and resource limits. Inspection reports effective settings and capabilities without contacting endpoints or running models. Dedicated GUI controls follow the desktop delivery contract; the shared runtime and bridge expose every operation.
+Saved Local, Connected and Custom pipelines use stable IDs and expected-revision updates. Local selects both local workers, Connected selects both hosted workers, and Custom supports an explicit mix. The stored values are `local`, `connected` and `custom`. Each stage declares its adapter contract, exact managed local model or remote model, options and resource limits. Inspection reports effective settings and capabilities without contacting endpoints or running models. The desktop Pipelines screen saves and inspects the same definitions; Library processing selects their IDs.
 
 ```mermaid
 flowchart TB
@@ -40,8 +40,9 @@ insonic recordings process MEDIA_ID --input processing.json --json
 
 A pipeline mutation carries `expected_revision` and `pipeline`, whose fields are `id`, `name`, `preset` and `configuration`. Zero expected revision creates a new ID; a positive expected revision must match the saved record. The returned revision is authoritative. Configuration contains `recognition`, `diarization` and optional `quality`. Each supplied per-run override replaces that complete stage or quality policy; it does not merge arbitrary option keys. Inspection input is optional and accepts `revision`, `overrides` and `context`.
 
-For example, a new local definition uses explicit managed model IDs:
+Save this as `pipeline-update.json`, replacing the local model UUIDs with compatible registrations from `models list`. The pipeline UUID is a valid creation example:
 
+<!-- executable-example: pipeline-update.json -->
 ```json
 {
   "expected_revision": 0,
@@ -137,3 +138,80 @@ No CI suite, native/backend qualification or required status check invokes trans
 ## Current evidence extraction
 
 Evidence extraction operates on accepted current Cue JSON through the shared durable-work runtime. The builtin cue-statement adapter preserves literal source ownership; an explicitly configured HTTP adapter can supply propositions with cue citations, polarity, modality and conditions. Acceptance validates current recording revision, document digest and cited local voices. Replacement invalidates that extraction. [Graph operations](graph.md) document executable inputs, bounds and provenance. Required CI exercises deterministic supplied replies and never initializes models.
+
+## Complete per-run inputs
+
+Save this as `processing.json` after creating the example pipeline above. Replace its ID/revision with the values from `pipelines show`; `pipeline_revision` fences the definition observed by this invocation. Replace `MEDIA_ID` with `result.items[].media_id` from completed import.
+
+<!-- executable-example: processing.json -->
+```json
+{
+  "pipeline_id": "66666666-6666-4666-8666-666666666666",
+  "pipeline_revision": 1,
+  "transcription": "generate",
+  "diarization": "run"
+}
+```
+
+```sh
+insonic recordings process MEDIA_ID --input processing.json --json
+insonic work wait WORK_ID --json
+insonic recordings show MEDIA_ID --json
+```
+
+Submission returns a `work_id`; success returns the current recording revision and document digest. Actual processing requires configured compatible tools, model bundles and elected workers. Saving a pipeline alone supplies no inference environment. For an existing supplied transcript, change `transcription` to `supplied` to bypass recognition; `reuse` reuses the current document.
+
+Save `inspection.json` below for a configuration-only inspection. It requires no model execution. Read readiness and capability diagnostics before electing the pipeline.
+
+<!-- executable-example: inspection.json -->
+```json
+{}
+```
+
+## Connected definition example
+
+Save `pipeline-connected.json` for a worker that implements the contract below. Replace the endpoint and remote model with the selected service; the loopback address is an example, not a bundled server. Both stages must be available. Use a fresh pipeline UUID if this example ID already exists.
+
+<!-- executable-example: pipeline-connected.json -->
+```json
+{
+  "expected_revision": 0,
+  "pipeline": {
+    "id": "66666666-6666-4666-8666-666666666666",
+    "name": "Connected speech",
+    "preset": "connected",
+    "configuration": {
+      "recognition": {
+        "adapter": "insonic-http",
+        "contract_version": "1",
+        "mode": "hosted",
+        "endpoint": "http://127.0.0.1:8001/process",
+        "remote_model": "configured-model",
+        "capabilities": [
+          "transcription",
+          "diarization"
+        ],
+        "supports_hints": true,
+        "max_hint_bytes": 200
+      },
+      "diarization": {
+        "adapter": "insonic-http",
+        "contract_version": "1",
+        "mode": "hosted",
+        "endpoint": "http://127.0.0.1:8001/process",
+        "remote_model": "configured-model",
+        "capabilities": [
+          "transcription",
+          "diarization"
+        ],
+        "supports_hints": true,
+        "max_hint_bytes": 200
+      }
+    }
+  }
+}
+```
+
+```sh
+insonic pipelines set 66666666-6666-4666-8666-666666666666 --input pipeline-connected.json --json
+```

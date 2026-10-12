@@ -34,10 +34,10 @@ type cliOption struct {
 
 var optionDefinitions = func() map[string]cliOption {
 	out := map[string]cliOption{}
-	for _, key := range strings.Fields("--workspace --request-id --startup-id --log-level --log-file --input --manifest --title --record --transcript --subtitle --credential-id --acquisition-adapter --acquisition-max-bytes --acquisition-timeout-ms --originated-at --originated-on --originated-earliest --originated-latest --timezone --dst-fold --dst-gap --date-precedence --preset --attribution --transcript-format --transcript-credential-id --transcript-adapter --transcript-max-bytes --transcript-timeout-ms --subtitle-stream-index --subtitle-language --diarization-model-id --known-speaker --existing-transcript --existing-roster --revision --after --after-ordinal --limit --speaker --media --dialect --file --parameters --saved --operation --expected-revision --destination --mode --timeout-ms") {
+	for _, key := range strings.Fields("--workspace --request-id --startup-id --log-level --log-file --input --manifest --title --record --transcript --subtitle --credential-id --acquisition-adapter --acquisition-max-bytes --acquisition-timeout-ms --originated-at --originated-on --originated-earliest --originated-latest --timezone --dst-fold --dst-gap --date-precedence --preset --pipeline-id --destination-profile --attribution --transcript-format --transcript-credential-id --transcript-adapter --transcript-max-bytes --transcript-timeout-ms --subtitle-stream-index --subtitle-language --diarization-model-id --known-speaker --existing-transcript --existing-roster --revision --after --after-ordinal --limit --speaker --media --dialect --file --parameters --saved --operation --expected-revision --destination --mode --timeout-ms") {
 		out[key] = cliOption{Value: true}
 	}
-	for _, key := range strings.Fields("--json --verbose --debug --quiet --copy --reference --local-http --new-entry --replace-audio --transcript-applies --replace-transcript --legacy-sidecar --secret-input --help -h --version") {
+	for _, key := range strings.Fields("--no-pipeline --json --verbose --debug --quiet --copy --reference --local-http --new-entry --replace-audio --transcript-applies --replace-transcript --legacy-sidecar --secret-input --help -h --version") {
 		out[key] = cliOption{}
 	}
 	enums := map[string]string{"--dst-fold": "earlier|later", "--dst-gap": "shift-forward", "--date-precedence": "owner-first|embedded-first|filesystem-fallback", "--attribution": "auto|native|off|diarize", "--transcript-format": "cueson|srt|vtt|ass|ssa", "--existing-transcript": "keep|clear|replace", "--existing-roster": "retain|clear", "--mode": "self-contained|reference-only", "--operation": "transcription|diarization|voice-matching|speaker-model-training", "--dialect": "ladybug-cypher|arcade-opencypher|arcade-sql"}
@@ -142,13 +142,31 @@ var commandDefinitions = func() []commandDefinition {
 			add(g+" "+a, operand, n, n, opts, required)
 		}
 	}
+	for _, a := range strings.Fields("create list show update delete") {
+		n, operand, opts, required := 0, "", "", ""
+		if a == "show" || a == "update" || a == "delete" {
+			n = 1
+			operand = "UUID_OR_EXACT_NAME"
+		}
+		if a == "list" {
+			opts = "--input"
+		}
+		if a == "update" || a == "delete" {
+			operand = "UUID"
+		}
+		if a == "create" || a == "update" || a == "delete" {
+			opts = "--input"
+			required = "--input"
+		}
+		add("import-presets "+a, operand, n, n, opts, required)
+	}
 	add("settings show", "", 0, 0, "", "")
 	add("settings set", "", 0, 0, "--input", "--input")
 	add("media tools", "FILE", 1, 1, "", "")
 	add("processing tools", "FILE", 1, 1, "", "")
 	dates := "--originated-at --originated-on --originated-earliest --originated-latest --timezone --dst-fold --dst-gap --date-precedence"
 	transcript := "--record --legacy-sidecar --replace-transcript --attribution --transcript-format --transcript-credential-id --transcript-adapter --transcript-max-bytes --transcript-timeout-ms --subtitle-stream-index --subtitle-language --diarization-model-id --local-http --manifest"
-	add("media import", "[FILES...] or --manifest FILE", 0, 10000, dates+" "+transcript+" --copy --reference --transcript --subtitle --title --credential-id --acquisition-adapter --acquisition-max-bytes --acquisition-timeout-ms --new-entry --preset --known-speaker --replace-audio --existing-transcript --transcript-applies --existing-roster", "")
+	add("media import", "[FILES...] or --manifest FILE", 0, 10000, dates+" "+transcript+" --copy --reference --transcript --subtitle --title --credential-id --acquisition-adapter --acquisition-max-bytes --acquisition-timeout-ms --new-entry --preset --pipeline-id --no-pipeline --destination-profile --known-speaker --replace-audio --existing-transcript --transcript-applies --existing-roster", "")
 	add("transcript import", "[PATH_OR_URL] --record UUID_OR_TITLE", 0, 1, transcript, "--record")
 	for _, a := range strings.Fields("list show metadata raw refresh set-origin relocate capture playback playback-check playback-close") {
 		n, max, operand, opts, required := 1, 1, "MEDIA_UUID", "", ""
@@ -156,7 +174,7 @@ var commandDefinitions = func() []commandDefinition {
 		case "list":
 			n, max, operand, opts = 0, 0, "", "--after --limit"
 		case "refresh":
-			opts = dates + " --preset"
+			opts = dates + " --preset --pipeline-id --no-pipeline --destination-profile"
 		case "set-origin":
 			opts = dates + " --revision"
 			required = "--revision"

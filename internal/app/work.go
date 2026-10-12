@@ -50,6 +50,7 @@ func (a *App) libraryService() (*library.Service, error) {
 		return nil, e
 	}
 	service := library.NewService(artifacts, a.Catalog, a.secrets, tools)
+	service.AfterAdmission = a.queueImportProcessing
 	service.NativeIngest = func(ctx context.Context, data []byte, format string) (json.RawMessage, error) {
 		config, err := ReadProcessingTools(a.Workspace)
 		if err != nil {
@@ -463,58 +464,85 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 				return nil, contracts.Fail("invalid_request")
 			}
 		}
-		prepared, e := library.PrepareImport(input)
-		if e != nil {
-			return nil, e
+		if len(input.Selections) > 0 || len(input.Elections) > 0 || input.RequestDigest != "" || input.Overrides.DiarizationModelDigest != "" {
+			return nil, contracts.Fail("invalid_request")
 		}
-		prepared.RequestDigest = ""
-		for i := range prepared.Items {
-			if prepared.Items[i].AcceptedReceipt != "" {
-				return nil, contracts.Fail("invalid_request")
-			}
-			prepared.Items[i].TargetError = ""
-			prepared.Items[i].ResolvedSpeakerIDs = nil
-		}
-		original, _ := json.Marshal(prepared)
-		requestDigest := documentHash(original)
+		requestDigest := documentHash(configurationBytes(input))
 		if prior, err := a.Catalog.Work(a.ctx, req.RequestID); err == nil {
 			var frozen library.ImportRequest
-			if prior.Kind != req.Operation || json.Unmarshal(prior.Payload, &frozen) != nil || frozen.RequestDigest != requestDigest {
+			if prior.Kind != req.Operation || strictPayload(prior.Payload, &frozen) != nil || frozen.RequestDigest != requestDigest {
 				return nil, contracts.Fail("conflict")
 			}
 			return a.modelWorkView(prior), nil
-		} else {
-			typed, ok := err.(*contracts.Error)
-			if !ok || typed.Code != "not_found" {
-				return nil, err
+		} else if contracts.SafeError(err).Code != "not_found" {
+			return nil, err
+		}
+		for _, item := range input.Items {
+			if item.AcceptedReceipt != "" || item.TargetError != "" || len(item.ResolvedSpeakerIDs) > 0 {
+				return nil, contracts.Fail("invalid_request")
 			}
+		}
+		prepared, e := a.resolveImportChoices(input)
+		if e != nil {
+			return nil, e
 		}
 		prepared = library.FreezeTargets(a.ctx, a.Catalog, prepared)
 		prepared, e = a.freezeImportModels(prepared)
 		if e != nil {
 			return nil, e
 		}
+		// Keep post-resolution model IDs/digests in immutable ordinal options.
+		elections := map[string]library.ImportSelection{}
+		for i := range prepared.Items {
+			key := prepared.Selections[i]
+			selection := prepared.Elections[key]
+			selection.Options = library.MergeOptions(prepared.Defaults, prepared.Items[i].Options)
+			next := documentHash(configurationBytes(selection))
+			prepared.Selections[i] = next
+			elections[next] = selection
+		}
+		prepared.Elections = elections
 		prepared.RequestDigest = requestDigest
 		raw, _ := json.Marshal(prepared)
 		out, e := a.Catalog.EnqueueWork(a.ctx, req.RequestID, req.Operation, raw)
 		if e == nil {
 			a.recoverWork()
 		}
-		return out, e
+		if e != nil {
+			return nil, e
+		}
+		return a.modelWorkView(out), nil
 	case "media.refresh":
 		var input library.Options
-		if strictPayload(req.Data, &input) != nil {
+		if strictPayload(req.Data, &input) != nil || input.DiarizationModelDigest != "" {
 			return nil, contracts.Fail("invalid_request")
 		}
-		if input.Timezone != "" || input.OriginatedAt != "" || input.OriginatedOn != "" || input.OriginatedEarliest != nil || input.OriginatedLatest != nil {
-			input = library.CaptureDateOptions(input)
+		digest := documentHash(configurationBytes([]any{req.ItemID, input}))
+		if old, err := a.Catalog.Work(a.ctx, req.RequestID); err == nil {
+			var frozen library.RefreshRequest
+			if old.Kind != req.Operation || strictPayload(old.Payload, &frozen) != nil || frozen.RequestDigest != digest {
+				return nil, contracts.Fail("conflict")
+			}
+			return a.modelWorkView(old), nil
+		} else if contracts.SafeError(err).Code != "not_found" {
+			return nil, err
 		}
-		raw, _ := json.Marshal(library.RefreshRequest{MediaID: req.ItemID, Options: input})
+		selection, e := a.freezeImportSelection(library.Options{}, input, library.Options{}, a.importHasTranscript(req.ItemID))
+		if e != nil {
+			return nil, e
+		}
+		if selection.Options.Timezone != "" || selection.Options.OriginatedAt != "" || selection.Options.OriginatedOn != "" || selection.Options.OriginatedEarliest != nil || selection.Options.OriginatedLatest != nil {
+			selection.Options = library.CaptureDateOptions(selection.Options)
+		}
+		raw, _ := json.Marshal(library.RefreshRequest{MediaID: req.ItemID, Options: selection.Options, Selection: &selection, RequestDigest: digest})
 		out, e := a.Catalog.EnqueueWork(a.ctx, req.RequestID, req.Operation, raw)
 		if e == nil {
 			a.recoverWork()
 		}
-		return out, e
+		if e != nil {
+			return nil, e
+		}
+		return a.modelWorkView(out), nil
 	case "media.list", "media.show", "media.metadata", "media.raw", "media.set-origin", "media.relocate":
 		s, e := a.libraryService()
 		if e != nil {

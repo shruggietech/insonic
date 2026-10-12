@@ -11,6 +11,10 @@ import (
 // Catalog is the shared backend-neutral authority used by runtime operations.
 // Both official adapters implement it; callers never receive SQL connections.
 type Catalog interface {
+	EnqueueChildWork(context.Context, Work, string, string, json.RawMessage) (Work, error)
+	ImportPresets(context.Context) ([]ImportPreset, error)
+	MutateImportPreset(context.Context, string, string, int64, ImportPreset) (ImportPreset, error)
+	Profile(context.Context, string, int64) (Profile, error)
 	PortableWorkInput(context.Context, Work) (bool, string, error)
 	CreateSpeakerDataset(context.Context, string, string, []CurrentReference, string, json.RawMessage, json.RawMessage, string) (SpeakerDataset, error)
 	ReplaySpeakerDataset(context.Context, string, string, json.RawMessage) (SpeakerDataset, bool, error)

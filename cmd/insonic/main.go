@@ -143,7 +143,7 @@ func execute(args []string) int {
 		if err != nil {
 			return output(nil, err, machine)
 		}
-	} else if positional[0] == "pipelines" || positional[0] == "speakers" || positional[0] == "terms" {
+	} else if positional[0] == "import-presets" || positional[0] == "pipelines" || positional[0] == "speakers" || positional[0] == "terms" {
 		req.Operation, req.ItemID, req.Data, err = parseConfiguration(positional)
 		if err != nil {
 			return output(nil, err, machine)

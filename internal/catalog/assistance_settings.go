@@ -19,7 +19,7 @@ func (s *Store) NamedSetting(ctx context.Context, name string) (json.RawMessage,
 	return json.RawMessage(raw), revision, sanitize(e)
 }
 func (s *Store) PutNamedSetting(ctx context.Context, op, name string, expected int64, value json.RawMessage) (Receipt, error) {
-	if !contracts.ValidID(op) || name == "" || len(name) > 256 || expected < 0 || expected == math.MaxInt64 || !nonsecret(value) {
+	if !contracts.ValidID(op) || name == importPresetSetting || name == "" || len(name) > 256 || expected < 0 || expected == math.MaxInt64 || !nonsecret(value) {
 		return Receipt{}, contracts.Fail("invalid_request")
 	}
 	canonicalValue, e := canonical(value)

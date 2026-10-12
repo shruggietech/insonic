@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/workspace"
 	"strconv"
 	"strings"
 )
@@ -456,15 +457,53 @@ func (s *Store) validateRestoredState(ctx context.Context, tx *sql.Tx, revision 
 	if e != nil {
 		return e
 	}
-	rows, e = tx.QueryContext(ctx, s.query("SELECT value FROM setting_revision WHERE workspace_id=?"), s.workspace)
+	rows, e = tx.QueryContext(ctx, s.query("SELECT name,value,revision FROM setting_revision WHERE workspace_id=?"), s.workspace)
 	if e != nil {
 		return e
 	}
+	presetProfiles := []Profile{}
 	for rows.Next() {
-		var value string
-		if e = rows.Scan(&value); e != nil {
+		var name, value string
+		var settingRevision int64
+		if e = rows.Scan(&name, &value, &settingRevision); e != nil {
 			rows.Close()
 			return e
+		}
+		if name == importPresetSetting {
+			registry, err := decodeImportPresets([]byte(value), settingRevision)
+			if err != nil {
+				rows.Close()
+				return err
+			}
+			for _, preset := range registry.Items {
+				var options struct {
+					Destination *workspace.Profile `json:"destination"`
+				}
+				json.Unmarshal(preset.Options, &options)
+				if options.Destination != nil {
+					p, err := profileRecord("storage", *options.Destination)
+					if err != nil {
+						rows.Close()
+						return err
+					}
+					presetProfiles = append(presetProfiles, p)
+				}
+			}
+			attested := false
+			for _, receipt := range receipts {
+				if receipt.revision == settingRevision {
+					var proof struct {
+						Digest string `json:"registry_digest"`
+					}
+					if json.Unmarshal([]byte(receipt.result), &proof) == nil && proof.Digest == hash([]byte(value)) {
+						attested = true
+					}
+				}
+			}
+			if !attested {
+				rows.Close()
+				return contracts.Fail("invalid_request")
+			}
 		}
 		if !nonsecret(json.RawMessage(value)) {
 			rows.Close()
@@ -473,7 +512,21 @@ func (s *Store) validateRestoredState(ctx context.Context, tx *sql.Tx, revision 
 	}
 	e = rows.Err()
 	rows.Close()
-	return e
+	if e != nil {
+		return e
+	}
+	for _, p := range presetProfiles {
+		actual, err := s.profileTx(ctx, tx, p.ID, p.Revision)
+		if err != nil {
+			return err
+		}
+		want, _ := intent(p)
+		got, _ := intent(actual)
+		if want != got {
+			return contracts.Fail("invalid_request")
+		}
+	}
+	return nil
 }
 func ReadSnapshot(data []byte) (Snapshot, error) {
 	var envelope snapshotEnvelope

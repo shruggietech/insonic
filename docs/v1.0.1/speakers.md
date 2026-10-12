@@ -81,7 +81,7 @@ Use the returned revision as `expected_revision` for the next edit. Alias arrays
 
 Speaker selection and diagnostics accept optional `cursor`, `limit` (1 through 100), `recording_id` and `quality`. A `quality` object accepts `enabled`, defaulting to true; `{"quality":{"enabled":false}}` suppresses optional correlation diagnostics. The response reports the effective setting. Current-reference validation, timing resolution, deduplication and explicit untimed participation remain mandatory with diagnostics disabled. Current evidence binds recording, document, mapping, source and source-map revisions/digests. Intervals are computed from current embedded assignments when requested, with overlap and untimed participation disclosed. Repeated source evidence is deduplicated across cursor pages; changing page size preserves unique spans and aggregate diagnostic counts. Missing timing does not yield an invented clip. Changing the current recording or mapping invalidates an old selection cursor rather than silently returning mismatched evidence. Selection prepares references and measurements; it does not train a model or publish audio clips.
 
-Term compilation accepts optional `pipeline_id`, `pipeline_revision`, `speaker_ids`, `language`, `context` and `max_hint_bytes`. It can run without input, using active general terms and a default 200-byte budget. A selected pipeline supplies the recognizer's capability, budget and configured hints. When no language filter is supplied, compilation uses that recognizer's language. Pipeline inspection applies the same rules to its effective saved or overridden stage, so its hint preview matches a generated recognition election. Compilation runs no model and proves no speaking identity. Dedicated pipeline/speaker/terms GUI controls follow the desktop delivery contract. Corrections use the same IDs, expected revisions and current-reference validation in every client.
+Term compilation accepts optional `pipeline_id`, `pipeline_revision`, `speaker_ids`, `language`, `context` and `max_hint_bytes`. It can run without input, using active general terms and a default 200-byte budget. A selected pipeline supplies the recognizer's capability, budget and configured hints. When no language filter is supplied, compilation uses that recognizer's language. Pipeline inspection applies the same rules to its effective saved or overridden stage, so its hint preview matches a generated recognition election. Compilation runs no model and proves no speaking identity. Desktop Pipelines, Speakers and Terms controls use these operations. Corrections use the same IDs, expected revisions and current-reference validation in every client.
 
 ## Declared recording rosters
 
@@ -103,3 +103,58 @@ Mutations compare the independent roster revision and reconcile repeated request
 Initial known-speaker references resolve once when work is queued; later alias edits cannot retarget the frozen IDs. Audio and membership publish in one current transaction, leaving no orphan roster on failure. Transcript or mapping edits preserve membership. Audio replacement explicitly retains or clears an existing roster. Portable snapshots validate parent identities, unique membership, revisions and accepted current proofs on SQLite/PostgreSQL. Graph projection exposes separate `declared-speaker` context edges.
 
 The desktop Library exposes initial roster input, a current roster table and add/remove/replace/clear controls using the displayed revision. A conflict refreshes current roster authority and reports the failed election. Declaring membership alone does not assign a transcript voice, create training evidence or infer how many speakers actually spoke. An explicit [matching election](voice-models.md#roster-constrained-matching) compares existing voices against compatible exact profiles for active roster members. Matching preserves manual corrections and can leave a voice unknown or ambiguous. Automatic results never enter independently confirmed training evidence.
+
+## Complete identity and mapping inputs
+
+Save this as `speaker-create.json`, using fresh UUIDs when these example IDs already exist. The returned speaker revision fences the next identity/alias edit.
+
+<!-- executable-example: speaker-create.json -->
+```json
+{
+  "expected_revision": 0,
+  "speaker": {
+    "id": "11111111-1111-4111-8111-111111111111",
+    "name": "Example speaker",
+    "state": "active"
+  },
+  "aliases": [
+    {
+      "id": "12121212-1212-4212-8212-121212121212",
+      "speaker_id": "11111111-1111-4111-8111-111111111111",
+      "text": "Example alias",
+      "language": "en",
+      "state": "active"
+    }
+  ]
+}
+```
+
+```sh
+insonic speakers set 11111111-1111-4111-8111-111111111111 --input speaker-create.json --json
+insonic speakers show 11111111-1111-4111-8111-111111111111 --json
+insonic recordings show MEDIA_ID --json
+insonic recordings document MEDIA_ID --json
+insonic recordings mappings MEDIA_ID --json
+```
+
+A mapping uses two independent revisions. `revision` is the positive current recording revision from `recordings show`, and `document_digest` is its current document digest. `recordings document` returns a base64 byte page (`result.data`, `encoding`, `complete`, `next_offset`), preserving exact JSON integers. Decode the page to read `cues[].speaker_attributions[].speaker_id`, or inspect the current local voices in desktop Library. For a larger document, read subsequent offsets with the same document digest before decoding the concatenated bytes. Use that actual token as `local_speaker_id`, preserving it exactly. `mapping_revision` is zero for an absent mapping; for a correction use the positive mapping revision from `recordings mappings`. Zero never substitutes for the recording revision.
+
+Save `mapping.json` below, replacing the illustrative recording revision, digest and token with observed values. Its speaker ID is the identity just created.
+
+<!-- executable-example: mapping.json -->
+```json
+{
+  "revision": 1,
+  "mapping_revision": 0,
+  "local_speaker_id": "voice-1",
+  "speaker_id": "11111111-1111-4111-8111-111111111111",
+  "document_digest": "0000000000000000000000000000000000000000000000000000000000000000"
+}
+```
+
+```sh
+insonic recordings map-speaker MEDIA_ID --input mapping.json --json
+insonic recordings mappings MEDIA_ID --json
+```
+
+Success returns the accepted mapping revision. A stale recording/document or mapping revision returns a conflict; read current values and submit a new request. Correcting an external mapping does not change subtitle bytes.

@@ -58,7 +58,7 @@ func TestSharedFilesystemWorkspaceIsolation(t *testing.T) {
 
 func TestPublicationRequiresFinalMetadataFlush(t *testing.T) {
 	s := testService(t)
-	fs := s.Store.(*Filesystem)
+	fs := s.Store.(*routedStore).defaultStore.(*Filesystem)
 	fs.persist = func(*os.Root, string) error { return errors.New("injected metadata flush failure") }
 	id := contracts.ID()
 	if _, e := s.Publish(context.Background(), id, bytesFile(t, []byte("durability")).Name(), "other"); e == nil {

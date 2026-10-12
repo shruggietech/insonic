@@ -2,7 +2,7 @@
 
 ## A definite import workflow
 
-Import accepts local audio/video, a batch manifest or an acquisition adapter's output. New admission stores canonical audio in the configured artifact store. Existing copied/reference media remains readable; new reference admission reports an explicit unsupported request. A `--preset` label is retained with import options. Saved import-preset resolution and automatic pipeline election remain unimplemented. A configured batch runs without approving every file or stage.
+Import accepts local audio/video, a batch manifest or an acquisition adapter's output. New admission stores canonical audio in the configured artifact store. Existing copied/reference media remains readable; new reference admission reports an explicit unsupported request. `--preset` selects a saved import preset by UUID or exact name, applying its destination, date options and optional saved pipeline before queueing. Missing, deleted, ambiguous or incompatible selections fail with a diagnostic; they never silently fall back. A configured batch runs without approving every file or stage.
 
 Capture metadata from the original bytes as soon as a stable readable source is available, before transcoding, resampling, remuxing, stripping tags or producing a proxy. For remote sources, retain available acquisition metadata before download and extract embedded metadata from the downloaded original before transformation. A source that has already lost metadata cannot have those missing fields reconstructed as facts.
 
@@ -12,9 +12,85 @@ Capture metadata from the original bytes as soon as a stable readable source is 
 4. Select and validate an explicit or embedded transcript, then prepare canonical audio.
 5. Publish verified candidates and atomically commit the media, optional current document, observations and selected-date state.
 6. Make the accepted library entry available and reconcile unused managed candidates.
-7. Return durable work and per-item admission results. Processing presets remain recorded inputs until downstream processing is implemented; no unexecuted processing job is reported as complete.
+7. Return durable work and per-item admission results, including the effective preset revision and queued processing job IDs. An elected pipeline creates one durable processing child after each accepted item; admission and processing retain separate completion states.
 
 The admission receipt binds original and canonical digests, byte sizes, track-clock maps, acquisition/import times, metadata report digests, extractor versions/options, probe results, effective date policy and selected artifact locations. Detect a source changing during copy or extraction and retry from stable bytes instead of joining a report to the wrong asset. Derived processing starts only after canonical admission and the capture attempt are recorded.
+
+## Saved import presets
+
+Import presets are workspace records, separate from pipeline kinds (`local`, `connected`, `custom`). Create one before using `--preset`; there is no builtin import preset named `local`. The desktop Import presets screen creates IDs and uses the displayed revision for edits/deletion. CLI inputs use ordinary UUIDs; the example below supplies valid fresh IDs for a disposable workspace. Use your own UUIDs when those IDs already exist.
+
+Save this as `preset-create.json`. The explicit filesystem destination is relative to the workspace control directory. Omitting `destination` uses the workspace storage profile; an S3 destination uses the same [storage profile contract](storage.md) and opaque credential references.
+
+<!-- executable-example: preset-create.json -->
+```json
+{
+  "preset": {
+    "kind": "import-preset",
+    "schema_version": "1.0.1",
+    "id": "88888888-8888-4888-8888-888888888888",
+    "name": "Daily recordings",
+    "options": {
+      "timezone": "UTC",
+      "date_precedence": "owner-first",
+      "pipeline_id": "",
+      "destination": {
+        "profile_id": "99999999-9999-4999-8999-999999999999",
+        "profile_revision": 1,
+        "adapter_id": "filesystem",
+        "contract_version": "1.0.1",
+        "configuration": { "root": "daily-artifacts" }
+      }
+    }
+  }
+}
+```
+
+```sh
+insonic import-presets create --input preset-create.json --json
+insonic import-presets list --json
+insonic import-presets show "Daily recordings" --json
+insonic media import FILE --preset "Daily recordings" --originated-on 2026-10-04 --json
+insonic work wait WORK_ID --json
+insonic media refresh MEDIA_ID --preset "Daily recordings" --json
+```
+
+Read the returned `id` and `revision` from creation/show, `work_id` from submission and `result.items[].media_id` from the completed import. `work wait` waits for that operation; inspect and wait each `queued_job_ids` separately for elected processing. Admission success does not imply its processing child has finished. The queue response shows up to 25 effective selections, and per-item work results include the preset ID/revision and effective options.
+
+To edit, save `preset-update.json` below, replacing `expected_revision` with the observed preset revision. The example revision `2` is illustrative. An edit replaces the options object; include every choice to retain. Profile identity/revision is immutable: use a new profile ID or advance its revision when changing its configuration.
+
+<!-- executable-example: preset-update.json -->
+```json
+{
+  "expected_revision": 2,
+  "preset": {
+    "kind": "import-preset",
+    "schema_version": "1.0.1",
+    "id": "88888888-8888-4888-8888-888888888888",
+    "name": "Daily recordings",
+    "options": { "timezone": "Europe/London", "date_precedence": "embedded-first", "pipeline_id": "" }
+  }
+}
+```
+
+```sh
+insonic import-presets update 88888888-8888-4888-8888-888888888888 --input preset-update.json --json
+```
+
+For deletion, save `preset-delete.json` with the newly returned revision in `expected_revision`, then run the following command. Deletion retains identity/revision authority and prevents new selection. Already queued work keeps its frozen choices even after an edit or deletion.
+
+<!-- executable-example: preset-delete.json -->
+```json
+{ "expected_revision": 3 }
+```
+
+```sh
+insonic import-presets delete 88888888-8888-4888-8888-888888888888 --input preset-delete.json --json
+```
+
+Options merge in this order: saved preset, manifest defaults, per-item options, explicit CLI flags. Explicit `false`, zero-valued stream indexes and empty pipeline IDs remain explicit choices. `--no-pipeline` clears an inherited processing election. Omitted options keep established runtime defaults; local timezone capture occurs after this merge. CSV uses the same option names, with `pipeline_id` value `none` to clear processing and a quoted JSON `destination` cell for an explicit profile. `--destination-profile storage-profile.json` accepts the same complete profile object as `destination`.
+
+To elect processing, save a usable [pipeline](pipelines.md), then set its returned UUID as `options.pipeline_id`. Submission freezes the pipeline revision, effective stages, tools and model manifests. Missing compatible model bytes acquire through existing durable dependencies; missing pipelines, unavailable tools or credentials fail with readiness diagnostics before admission is queued. Supplied/current text bypasses recognition. Each accepted item queues one deterministic child, and retries reconcile that child instead of creating duplicates. Omit/clear the pipeline for intentional admission-only work. Snapshots retain presets and profile references; after transfer, inspect destination configuration and tool bindings before new work. Retained publications continue to resolve by their own profile revision. A refresh destination applies to newly published extractor reports and elected processing outputs; it does not move existing canonical audio.
 
 ## Metadata preservation
 
@@ -36,11 +112,11 @@ The platform timezone bridge resolves Windows/system zone identifiers to maintai
 
 Timestamp literals accept up to nine fractional-second digits. Preserve the entered literal and resolved integer nanoseconds exactly, including through backup and restore; do not round-trip the integer through floating-point JSON values.
 
-The default `owner-first` recording-date precedence is an explicit per-item owner value, a valid embedded recording timestamp with its own timezone, an embedded recording timestamp interpreted under the import timezone policy, then unknown. `--date-precedence RULE` selects another saved, versioned rule; the receipt records the effective rule revision. Per-item manifest values override batch defaults. Preserve every competing observation and the reason for selection. The configurable candidate mapping uses recording/creation tags with their documented meanings, never every tag containing a date. Filesystem modification time is available as a separately labelled observation and becomes a recording date only through an explicit policy or owner choice.
+The default `owner-first` recording-date precedence is an explicit per-item owner value, a valid embedded recording timestamp with its own timezone, an embedded recording timestamp interpreted under the import timezone policy, then unknown. `--date-precedence` accepts `owner-first`, `embedded-first` or `filesystem-fallback`. Saved preset values are overridden by manifest defaults, then item fields, then explicit CLI flags. The receipt records the effective date policy and preset revision. Preserve every competing observation and the reason for selection. The configurable candidate mapping uses recording/creation tags with their documented meanings, never every tag containing a date. Filesystem modification time is available as a separately labelled observation and becomes a recording date only through an explicit policy or owner choice.
 
 The [IANA timezone database](https://www.iana.org/time-zones) supplies historical offset/daylight-saving rules. Store the entered wall-time literal, zone source, resolved offset, UTC instant when resolvable, precision, selection basis and assumption flags. A date-only input retains day precision rather than inventing a recording time. Approximate dates retain bounds; unknown dates stay in the undated timeline group. QuickTime integer date tags are particularly uncertain: [ExifTool's upstream notes](https://github.com/exiftool/exiftool/blob/master/html/TagNames/QuickTime.html) describe cameras storing local values despite the format's UTC convention. Preserve the raw value and recorded interpretation policy rather than silently converting every such tag as UTC.
 
-An unambiguous valid time resolves automatically. An explicit IANA zone and numeric offset must agree if both are supplied. For a repeated daylight-saving wall time, provide an offset or `--dst-fold earlier|later`. A nonexistent daylight-saving wall time needs a corrected value or explicit `--dst-gap shift-forward` policy. No silent DST adjustment is the default. Only the affected date observation remains unresolved; media admission and other batch items continue. Noninteractive mode reports partial completion and the required disambiguation in JSON. Missing metadata or an unknown date never triggers a compulsory review queue.
+An unambiguous valid time resolves automatically. An explicit IANA zone and numeric offset must agree if both are supplied. For a repeated daylight-saving wall time, provide an offset or `--dst-fold earlier|later`. A nonexistent daylight-saving wall time needs a corrected value or explicit `--dst-gap shift-forward` policy. No silent DST adjustment is the default. Only the affected date observation remains unresolved; media admission and other batch items continue. Noninteractive results report `partial: true` and the required disambiguation in JSON; an unresolved date alone does not fail admission or make `work wait` return a failure exit. Missing metadata or an unknown date never triggers a compulsory review queue.
 
 ## CLI and batch contract
 
@@ -51,7 +127,7 @@ insonic media import FILE --copy --originated-at 2026-10-04T14:30:00
 insonic media import FILE --copy --originated-at 2026-10-04T18:30:00Z
 insonic media import FILE --copy --originated-at 2026-10-04T14:30:00 --timezone America/New_York
 insonic media import FILE --copy --originated-on 2026-10-04
-insonic media import --manifest inputs.json --preset local --json
+insonic media import --manifest inputs.json --preset "Daily recordings" --json
 insonic media raw MEDIA_ID --json
 insonic media set-origin MEDIA_ID --revision CURRENT_REVISION --originated-at 2026-10-04T14:30:00 --timezone UTC
 ```
@@ -70,7 +146,7 @@ Example:
 {
   "kind": "import-manifest",
   "schema_version": "1.0.1",
-  "defaults": { "copy": true, "timezone": "America/New_York", "preset": "local" },
+  "defaults": { "copy": true, "timezone": "America/New_York", "preset": "Daily recordings" },
   "items": [
     { "source": "audio/session.wav", "originated_at": "2026-10-04T14:30:00" },
     { "source": "video/session.mp4", "originated_on": "2026-10-03", "subtitle": "video/session.srt" }
@@ -78,7 +154,7 @@ Example:
 }
 ```
 
-Per-item output reports media ID, byte identity, metadata capture state, date selection/assumptions and queued job IDs. Repeated admission reuses matching immutable bytes/reports while retaining explicit entry creation and metadata revisions. A date correction creates a new owner observation and selection revision and preserves the current raw report. Calendar controls will consume this selected state when implemented. It does not change original tags, rewrite a transcript or rerun recognition.
+Per-item output reports media ID, byte identity, metadata capture state, date selection/assumptions and queued job IDs. Repeated admission reuses matching immutable bytes/reports while retaining explicit entry creation and metadata revisions. A date correction creates a new owner observation and selection revision and preserves the current raw report. Calendar controls consume this selected state. It does not change original tags, rewrite a transcript or rerun recognition.
 
 Import and refresh return a durable `work_id`. A batch with failed admissions
 has failed work state and retains
@@ -128,7 +204,7 @@ Either flag may be omitted for an open bound. For example:
 insonic media set-origin MEDIA_ID --revision CURRENT_REVISION --originated-earliest 2026-10-01T00:00:00Z --originated-latest 2026-10-07T23:59:59Z
 ```
 
-Configure exact extractor files before import using
+Installed bundles discover their pinned extractors automatically. An explicit workspace override can configure exact extractor files using
 `insonic media tools media-tools.json`. The rendered tools contract declares
 absolute executable paths, SHA-256 values, emitted versions, delegated support
 files and an explicit pinned interpreter when needed. Configure while the runtime

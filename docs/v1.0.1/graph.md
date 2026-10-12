@@ -144,3 +144,105 @@ Default provider timeout is 30 seconds (maximum 60); one aggregate query budget 
 Required checks refuse production assistance under CI environment markers before HTTP or credential access. Deterministic fixture construction exercises the same proposal validation, ordinary backend execution and mounted native UI without model loading, inference or weight downloads. Maintainers may elect a compatible provider outside CI.
 
 Typed integer parameters accept JSON integers or canonical signed decimal strings in the 64-bit range. Assistance emits browser-unsafe integers as decimal strings so desktop inspection, editing, saving and execution preserve every digit; the selected native engine receives an integer value.
+
+## Complete exploration inputs
+
+Save the following named files. For `extraction.json`, read the positive current recording revision and document digest from `recordings show MEDIA_ID`; replace the illustrative values. The builtin adapter records literal cue statements and runs no model. Wait the returned work ID before inspecting evidence.
+
+<!-- executable-example: extraction.json -->
+```json
+{
+  "expected_revision": 1,
+  "document_digest": "0000000000000000000000000000000000000000000000000000000000000000",
+  "configuration": {
+    "adapter": "cue-statement",
+    "contract_version": "1",
+    "window_cues": 16,
+    "overlap_cues": 2
+  }
+}
+```
+
+`query.json` performs a current normalized read. It requires no invented native query syntax or saved ID.
+
+<!-- executable-example: query.json -->
+```json
+{
+  "definition": {
+    "mode": "normalized",
+    "operation": "media-list",
+    "pagination": {
+      "limit": 25
+    }
+  }
+}
+```
+
+`saved-update.json` creates a versioned graph definition. Supply a fresh `QUERY_ID` when the example UUID below is already used; the returned `revision` fences the next save.
+
+<!-- executable-example: saved-update.json -->
+```json
+{
+  "expected_revision": 0,
+  "query": {
+    "title": "Current library graph",
+    "definition": {
+      "mode": "normalized",
+      "operation": "graph-view",
+      "pagination": {
+        "limit": 100
+      }
+    }
+  }
+}
+```
+
+`layout-update.json` references that saved query ID. A layout has its own revision; use its returned revision for the next edit.
+
+<!-- executable-example: layout-update.json -->
+```json
+{
+  "expected_revision": 0,
+  "query_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  "layout": {
+    "positions": {},
+    "paused": true,
+    "filter": "",
+    "limit": 200
+  }
+}
+```
+
+`calendar.json` selects a viewport and the zone used for instant grouping; date-only entries retain their original day.
+
+<!-- executable-example: calendar.json -->
+```json
+{
+  "filter": {
+    "from": "2020-01-01",
+    "through": "2026-12-31",
+    "timezone": "UTC",
+    "include_undated": true
+  },
+  "pagination": {
+    "limit": 25
+  }
+}
+```
+
+```sh
+insonic evidence extract MEDIA_ID --input extraction.json --json
+insonic work wait WORK_ID --json
+insonic evidence show MEDIA_ID --json
+insonic query run --input query.json --json
+insonic query explain --input query.json --json
+insonic query validate --input query.json --json
+insonic query save aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa --input saved-update.json --json
+insonic query show aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa --json
+insonic views save bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb --input layout-update.json --json
+insonic views show bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb --json
+insonic timeline calendar --input calendar.json --json
+insonic timeline recording MEDIA_ID --json
+```
+
+Reads return bounded current pages and publication status. Follow returned cursors for further results. Saving a definition/layout stores configuration rather than a snapshot of results.

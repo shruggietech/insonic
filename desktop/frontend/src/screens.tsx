@@ -130,6 +130,8 @@ export function Library({ client, run }: Props) {
     [existingTranscript,setExistingTranscript]=useState(''),[transcriptApplies,setTranscriptApplies]=useState(false),
     [existingRoster,setExistingRoster]=useState(''),[declareRoster,setDeclareRoster]=useState(false),[knownSpeakers,setKnownSpeakers]=useState('');
   const [roster,setRoster]=useState<Obj>(),[rosterMode,setRosterMode]=useState<'add'|'remove'|'replace'>('add'),[rosterRefs,setRosterRefs]=useState('');
+  const [importPreset,setImportPreset]=useState('');
+  const [importFeedback,setImportFeedback]=useState<Obj>();
   const [source, setSource] = useState(''),
     [subtitle, setSubtitle] = useState(''),
     [title, setTitle] = useState(''),
@@ -137,14 +139,14 @@ export function Library({ client, run }: Props) {
     [newEntry, setNewEntry] = useState(false);
   const [recordTarget, setRecordTarget] = useState(''),
  [replaceTranscript,setReplaceTranscript]=useState(false),
- [admissionAttribution,setAdmissionAttribution]=useState('auto'),
+ [admissionAttribution,setAdmissionAttribution]=useState(''),
  [transcriptHint,setTranscriptHint]=useState(''),
  [embeddedIndex,setEmbeddedIndex]=useState(''),
  [embeddedLanguage,setEmbeddedLanguage]=useState(''),
  [mediaCredential,setMediaCredential]=useState(''),
  [transcriptCredential,setTranscriptCredential]=useState(''),
- [transcriptMax,setTranscriptMax]=useState('16777216'),
- [transcriptTimeout,setTranscriptTimeout]=useState('120000'),
+ [transcriptMax,setTranscriptMax]=useState(''),
+ [transcriptTimeout,setTranscriptTimeout]=useState(''),
  [playbackTrack,setPlaybackTrack]=useState('');
  const [date, setDate] = useState(''),
     [precision, setPrecision] = useState('date'),
@@ -342,22 +344,24 @@ export function Library({ client, run }: Props) {
   return (
     <>
       <Card heading="Add audio or video">
+ <CatalogChoice label="Saved import preset" operation="import-presets.list" value={importPreset} onChange={setImportPreset} client={client} run={run} empty="Explicit import choices"/>
+ {importFeedback&&<Facts value={importFeedback}/>}
         <form
           onSubmit={(e) => {
             e.preventDefault();
             run(async () => {
-              if (!/^\d+$/.test(transcriptMax) || Number(transcriptMax)<1 || Number(transcriptMax)>16777216 || !/^\d+$/.test(transcriptTimeout) || Number(transcriptTimeout)<1 || Number(transcriptTimeout)>600000 || (embeddedIndex!=='' && (!/^\d+$/.test(embeddedIndex) || !Number.isSafeInteger(Number(embeddedIndex))))) throw new Error('Enter valid transcript limits and a nonnegative stream index.');
-              await client.call('media.import', '', {
+              if ((transcriptMax!==''&&(!/^\d+$/.test(transcriptMax)||Number(transcriptMax)<1||Number(transcriptMax)>16777216)) || (transcriptTimeout!==''&&(!/^\d+$/.test(transcriptTimeout)||Number(transcriptTimeout)<1||Number(transcriptTimeout)>600000)) || (embeddedIndex!=='' && (!/^\d+$/.test(embeddedIndex) || !Number.isSafeInteger(Number(embeddedIndex))))) throw new Error('Enter valid transcript limits and a nonnegative stream index.');
+              const admitted=await client.call('media.import', '', {
                 kind: 'import-manifest',
                 schema_version: '1.0.1',
-                defaults: { ...dateOptions(),attribution:admissionAttribution,
- replace_transcript:replaceTranscript,
+                defaults: { ...(importPreset?{preset:importPreset}:{}), ...dateOptions(),...(admissionAttribution?{attribution:admissionAttribution}:{}),
+ ...(replaceTranscript?{replace_transcript:true}:{}),
  ...(targetAudio?{replace_audio:replaceAudio,...(existingTranscript?{existing_transcript:existingTranscript}:{}),...(existingTranscript==='keep'?{transcript_applies:transcriptApplies}:{}),...(existingRoster?{existing_roster:existingRoster}:{})}:{}),
  ...(!targetAudio&&!transcriptOnly&&declareRoster?{known_speakers:lines(knownSpeakers)}:{}),
  ...(transcriptHint?{transcript_format:transcriptHint}:{}),
  ...(embeddedIndex!==''?{subtitle_stream_index:Number(embeddedIndex)}:{}),
  ...(embeddedLanguage?{subtitle_language:embeddedLanguage}:{}),
- transcript_max_bytes:Number(transcriptMax),transcript_timeout_ms:Number(transcriptTimeout),
+ ...(transcriptMax?{transcript_max_bytes:Number(transcriptMax)}:{}),...(transcriptTimeout?{transcript_timeout_ms:Number(transcriptTimeout)}:{}),
  ...(admissionAttribution==='diarize'?{diarization_model_id:diarizationModel}:{}),
  },
                 items: [
@@ -369,6 +373,7 @@ export function Library({ client, run }: Props) {
                   },
                 ],
               });
+              setImportFeedback(admitted);
               setSource('');
               await load();
             });
@@ -428,7 +433,7 @@ export function Library({ client, run }: Props) {
           <p>New recordings retain canonical audio and captured source facts. Owner-owned inputs remain untouched.</p>
           <Check label="Replace an existing current transcript" value={replaceTranscript} onChange={setReplaceTranscript}/>
           <Select label="Import speaker attribution" value={admissionAttribution} onChange={setAdmissionAttribution} options={[
-            {value:'auto',label:'Auto (preserve assignments, then native or heuristic observations)'},{value:'native',label:'Native observations only'},{value:'off',label:'Preserve without deriving assignments'},{value:'diarize',label:'Run configured diarization without recognition'}
+            {value:'',label:'Use preset or default attribution'},{value:'auto',label:'Auto (preserve assignments, then native or heuristic observations)'},{value:'native',label:'Native observations only'},{value:'off',label:'Preserve without deriving assignments'},{value:'diarize',label:'Run configured diarization without recognition'}
           ]}/>
           {admissionAttribution==='diarize' && <ModelChoice label="Import diarization model" value={diarizationModel} onChange={setDiarizationModel} operation="diarization" client={client} run={run}/>}
           <Select label="Transcript format" value={transcriptHint} onChange={setTranscriptHint} options={[
@@ -512,7 +517,7 @@ export function Library({ client, run }: Props) {
                 variant="secondary"
                 onClick={() =>
                   run(async () => {
-                    await client.call('media.refresh', entryID, {});
+                    setImportFeedback(await client.call('media.refresh', entryID, importPreset?{preset:importPreset}:{}));
                     await refresh();
                   })
                 }

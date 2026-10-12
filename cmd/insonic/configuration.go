@@ -17,6 +17,9 @@ func parseConfiguration(args []string) (string, string, json.RawMessage, error) 
 	if len(args) < 2 {
 		return fail()
 	}
+	if args[0] == "import-presets" {
+		return parseImportPresets(args)
+	}
 	operation := args[0] + "." + args[1]
 	if !contracts.ConfigurationOperation(operation) {
 		return fail()

@@ -14,215 +14,8 @@
       "description": "Document discriminator used by the master registry."
     },
     "defaults": {
-      "type": "object",
-      "description": "Recording-date defaults and policies. Exact timestamp, calendar date and approximate UTC range are mutually exclusive.",
-      "properties": {
-        "originated_at": {
-          "$ref": "common.schema.json#/$defs/wallTimestamp",
-          "description": "Entered recording timestamp, distinct from import, publication and file modification times."
-        },
-        "originated_on": {
-          "$ref": "common.schema.json#/$defs/calendarDate",
-          "description": "Entered recording date when the recording time is unknown."
-        },
-        "timezone": {
-          "$ref": "common.schema.json#/$defs/timezone",
-          "description": "Timezone for unzoned recording timestamps; local is resolved once for the batch."
-        },
-        "dst_fold": {
-          "type": "string",
-          "enum": [
-            "earlier",
-            "later"
-          ],
-          "description": "Explicit choice of offset for an ambiguous repeated daylight-saving wall time."
-        },
-        "dst_gap": {
-          "type": "string",
-          "const": "shift-forward",
-          "description": "Explicit policy to resolve a nonexistent wall time by shifting forward; absent means no silent correction."
-        },
-        "copy": {
-          "type": "boolean",
-          "default": true,
-          "description": "True admits a managed copy into the selected artifact store; false keeps an explicitly tracked local reference."
-        },
-        "preset": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Configured processing/import preset name or ID; does not embed provider configuration.",
-          "examples": [
-            "local"
-          ]
-        },
-        "extensions": {
-          "$ref": "common.schema.json#/$defs/extensions",
-          "description": "Optional nonsecret input annotations."
-        },
-        "date_precedence": {
-          "type": "string",
-          "enum": [
-            "owner-first",
-            "embedded-first",
-            "filesystem-fallback"
-          ],
-          "description": "Versioned recording-date precedence rule. Filesystem modification becomes a recording-date candidate only under the explicit filesystem-fallback rule."
-        },
-        "originated_earliest": {
-          "$ref": "common.schema.json#/$defs/utcInstant",
-          "description": "Inclusive earliest recording instant for an owner-supplied approximate date range. Preserve the exact UTC timestamp and integer clock."
-        },
-        "originated_latest": {
-          "$ref": "common.schema.json#/$defs/utcInstant",
-          "description": "Inclusive latest recording instant for an owner-supplied approximate date range. Application validation checks bound ordering."
-        },
-        "local_http": {
-          "type": "boolean",
-          "default": false,
-          "description": "Explicitly elect HTTP credential transport for a loopback endpoint only. Credentials otherwise require HTTPS; unauthenticated HTTP sources remain supported."
-        },
-        "acquisition_max_bytes": {
-          "type": "integer",
-          "minimum": 1,
-          "default": 68719476736,
-          "description": "Maximum acquired original bytes, default 64 GiB. Declared and streamed lengths are bounded before publication."
-        },
-        "acquisition_timeout_ms": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 9223372036854,
-          "default": 600000,
-          "description": "Positive total acquisition deadline in milliseconds, default ten minutes. Per-item values override batch defaults."
-        },
-        "transcript_max_bytes": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 16777216,
-          "default": 16777216,
-          "description": "Independent transcript acquisition and document byte ceiling (maximum 16 MiB)."
-        },
-        "transcript_timeout_ms": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 600000,
-          "default": 120000,
-          "description": "Independent transcript acquisition timeout in milliseconds."
-        },
-        "attribution": {
-          "type": "string",
-          "enum": [
-            "auto",
-            "native",
-            "off",
-            "diarize"
-          ],
-          "default": "auto",
-          "description": "Preserve existing assignments; derive structured participation only when none exist. Diarize explicitly elects configured acoustic processing without recognition."
-        },
-        "transcript_format": {
-          "type": "string",
-          "enum": [
-            "cueson",
-            "srt",
-            "vtt",
-            "ass",
-            "ssa"
-          ],
-          "description": "Explicit native or Cue JSON format hint validated against input bytes."
-        },
-        "replace_transcript": {
-          "type": "boolean",
-          "default": false,
-          "description": "Elect replacement when the target already has a current transcript."
-        },
-        "subtitle_stream_index": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Absolute embedded subtitle stream index to select."
-        },
-        "subtitle_language": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Case-insensitive embedded subtitle language filter."
-        },
-        "diarization_model_id": {
-          "$ref": "common.schema.json#/$defs/modelReference",
-          "description": "Shared model reference; submission freezes an exact compatible target before acquisition and processing."
-        },
-        "replace_audio": {
-          "type": "boolean",
-          "description": "Explicit election to replace canonical audio at an existing stable recording."
-        },
-        "existing_transcript": {
-          "enum": [
-            "keep",
-            "clear",
-            "replace"
-          ],
-          "description": "Required document election when replacement has a current transcript."
-        },
-        "transcript_applies": {
-          "type": "boolean",
-          "description": "Affirm that the current transcript applies to elected replacement audio."
-        },
-        "existing_roster": {
-          "enum": [
-            "retain",
-            "clear"
-          ],
-          "description": "Explicit declared-roster election during audio replacement."
-        },
-        "known_speakers": {
-          "type": "array",
-          "maxItems": 1000,
-          "items": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 512
-          },
-          "description": "Initial declared identities by UUID or unique exact canonical name/active alias. Empty declares an empty roster."
-        },
-        "timezone_implicit": {
-          "type": "boolean",
-          "description": "Persisted true when omitted/local timezone policy was captured. An entered offset remains authoritative; absence preserves historical explicit policy."
-        }
-      },
-      "not": {
-        "type": "object",
-        "anyOf": [
-          {
-            "required": [
-              "originated_at",
-              "originated_on"
-            ]
-          },
-          {
-            "required": [
-              "originated_at",
-              "originated_earliest"
-            ]
-          },
-          {
-            "required": [
-              "originated_at",
-              "originated_latest"
-            ]
-          },
-          {
-            "required": [
-              "originated_on",
-              "originated_earliest"
-            ]
-          },
-          {
-            "required": [
-              "originated_on",
-              "originated_latest"
-            ]
-          }
-        ]
-      },
-      "additionalProperties": false
+      "$ref": "#/$defs/options",
+      "description": "Manifest defaults inherited after a selected saved preset and before each item."
     },
     "items": {
       "type": "array",
@@ -281,9 +74,9 @@
           "preset": {
             "type": "string",
             "minLength": 1,
-            "description": "Configured processing/import preset name or ID; does not embed provider configuration.",
+            "description": "Saved import preset exact name or UUID. A missing/deleted selection fails before work admission.",
             "examples": [
-              "local"
+              "Daily recordings"
             ]
           },
           "extensions": {
@@ -476,6 +269,22 @@
           "timezone_implicit": {
             "type": "boolean",
             "description": "Persisted true when omitted/local timezone policy was captured. An entered offset remains authoritative; absence preserves historical explicit policy."
+          },
+          "destination": {
+            "$ref": "workspace-config.schema.json#/properties/profiles/properties/storage",
+            "description": "Explicit immutable filesystem or S3 destination profile. Credential references contain no secret values."
+          },
+          "pipeline_id": {
+            "type": "string",
+            "description": "Configured pipeline UUID. Empty explicitly selects admission only.",
+            "anyOf": [
+              {
+                "const": ""
+              },
+              {
+                "$ref": "common.schema.json#/$defs/uuid"
+              }
+            ]
           }
         },
         "required": [],
@@ -658,6 +467,10 @@
     "extensions": {
       "$ref": "common.schema.json#/$defs/extensions",
       "description": "Optional namespaced additions preserved without changing the core contract."
+    },
+    "overrides": {
+      "$ref": "#/$defs/options",
+      "description": "Explicit invocation options overriding defaults and every item; absent fields inherit."
     }
   },
   "required": [
@@ -673,7 +486,7 @@
       "defaults": {
         "copy": true,
         "timezone": "America/New_York",
-        "preset": "local"
+        "preset": "Daily recordings"
       },
       "items": [
         {
@@ -745,9 +558,9 @@
         "preset": {
           "type": "string",
           "minLength": 1,
-          "description": "Configured processing/import preset name or ID; does not embed provider configuration.",
+          "description": "Saved import preset exact name or UUID. A missing/deleted selection fails before work admission.",
           "examples": [
-            "local"
+            "Daily recordings"
           ]
         },
         "extensions": {
@@ -880,6 +693,22 @@
         "timezone_implicit": {
           "type": "boolean",
           "description": "Persisted true when omitted/local timezone policy was captured. An entered offset remains authoritative; absence preserves historical explicit policy."
+        },
+        "destination": {
+          "$ref": "workspace-config.schema.json#/properties/profiles/properties/storage",
+          "description": "Explicit immutable filesystem or S3 destination profile. Credential references contain no secret values."
+        },
+        "pipeline_id": {
+          "type": "string",
+          "description": "Configured pipeline UUID. Empty explicitly selects admission only.",
+          "anyOf": [
+            {
+              "const": ""
+            },
+            {
+              "$ref": "common.schema.json#/$defs/uuid"
+            }
+          ]
         }
       },
       "not": {

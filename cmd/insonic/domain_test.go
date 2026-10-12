@@ -80,7 +80,7 @@ func TestDomainImportFlagsAndManifestPrecedence(t *testing.T) {
 		t.Fatal(operation, id, e)
 	}
 	var req library.ImportRequest
-	if json.Unmarshal(data, &req) != nil || len(req.Items) != 2 || req.Defaults.Copy == nil || *req.Defaults.Copy || req.Defaults.OriginatedOn != "2026-10-07" {
+	if json.Unmarshal(data, &req) != nil || len(req.Items) != 2 || req.Overrides.Copy == nil || *req.Overrides.Copy || req.Overrides.OriginatedOn != "2026-10-07" {
 		t.Fatal(string(data))
 	}
 	if !filepath.IsAbs(req.Items[0].Source) {
@@ -96,7 +96,7 @@ func TestDomainImportFlagsAndManifestPrecedence(t *testing.T) {
 		t.Fatal(e)
 	}
 	json.Unmarshal(data, &req)
-	if req.Items[0].OriginatedOn != "2025-01-02" || req.Defaults.OriginatedOn != "2026-10-07" || req.Items[0].Source != filepath.Join(dir, "fixture.wav") {
+	if req.Items[0].OriginatedOn != "2025-01-02" || req.Overrides.OriginatedOn != "2026-10-07" || req.Items[0].Source != filepath.Join(dir, "fixture.wav") {
 		t.Fatal(string(data))
 	}
 }

@@ -202,3 +202,25 @@ CLI/runtime and desktop share these operations. Models settings support
 reference configuration/discovery; shared selectors and Jobs distinguish exact
 identity, availability, compatibility and acquisition. See [desktop](desktop.md),
 the rendered [JSON contracts](contracts.md) and [credentials](secrets.md).
+
+## Complete source input
+
+Save this as `source-update.json` with a fresh source UUID and your elected compatible catalog URL. The example URL identifies the expected resource shape; it supplies no public service or credentials. The catalog must implement the source contract above. Creation returns a revision; edits/removal use that observed value.
+
+<!-- executable-example: source-update.json -->
+```json
+{
+  "expected_revision": 0,
+  "source": {
+    "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    "name": "custom",
+    "state": "active",
+    "url": "https://models.example.org/catalog.json"
+  }
+}
+```
+
+```sh
+insonic models source set cccccccc-cccc-4ccc-8ccc-cccccccccccc --input source-update.json --json
+insonic models source show cccccccc-cccc-4ccc-8ccc-cccccccccccc --json
+```

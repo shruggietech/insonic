@@ -882,7 +882,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
             if not export_path.is_file() or b'-->' not in export_path.read_bytes():
                 raise ValueError('packaged native subtitle export missing')
             write_json(input_path, {'filter': {'include_undated': True}})
-            if call('timeline', 'calendar', '--input', input_path).get('total') != 2:
+            if call('timeline', 'calendar', '--input', input_path).get('total') != len(call('media', 'list')['items']):
                 raise ValueError('packaged whole-library calendar missing retained undated media')
             write_json(input_path, {'definition': {'mode': 'normalized', 'operation': 'text-search', 'pagination': {'limit': 100}}})
             queried = call('query', 'run', '--input', input_path)

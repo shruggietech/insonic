@@ -26,7 +26,7 @@ func TestRosterAndReplacementGrammar(t *testing.T) {
 		t.Fatalf("media %s %v", op, e)
 	}
 	var request library.ImportRequest
-	if json.Unmarshal(raw, &request) != nil || request.Items[0].Kind != "media" || request.Items[0].Record != id || request.Defaults.ReplaceAudio == nil {
+	if json.Unmarshal(raw, &request) != nil || request.Items[0].Kind != "media" || request.Items[0].Record != id || request.Overrides.ReplaceAudio == nil {
 		t.Fatal("replacement contract")
 	}
 	_, _, raw, e = parseDomain([]string{"media", "import", "source.wav", "--known-speaker", "one", "--known-speaker", "two"})
@@ -34,7 +34,7 @@ func TestRosterAndReplacementGrammar(t *testing.T) {
 		t.Fatal(e)
 	}
 	json.Unmarshal(raw, &request)
-	if len(request.Defaults.KnownSpeakers) != 2 {
+	if len(request.Overrides.KnownSpeakers) != 2 {
 		t.Fatal("repeat known speakers")
 	}
 }

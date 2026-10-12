@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"github.com/gofrs/flock"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
@@ -43,37 +42,11 @@ type Materialization struct {
 
 func NewService(ctx context.Context, w *workspace.Workspace, db catalog.Catalog, secrets contracts.SecretProvider, owner string) (*Service, error) {
 	profile := w.Config.Profiles.Storage
-	var store Store
-	var e error
-	raw, e := json.Marshal(profile.Configuration)
-	if e != nil {
-		return nil, contracts.Fail("invalid_request")
-	}
-	switch profile.Adapter {
-	case "filesystem":
-		var c struct {
-			Root string `json:"root"`
-		}
-		if json.Unmarshal(raw, &c) != nil || c.Root == "" {
-			return nil, contracts.Fail("invalid_request")
-		}
-		location := c.Root
-		if !filepath.IsAbs(location) {
-			location = filepath.Join(w.Control, location)
-		}
-		store, e = NewFilesystem(location)
-	case "s3":
-		var c S3Config
-		if json.Unmarshal(raw, &c) != nil {
-			return nil, contracts.Fail("invalid_request")
-		}
-		store, e = NewS3(ctx, c, secrets, nil)
-	default:
-		return nil, contracts.Fail("unavailable")
-	}
+	store, e := OpenStore(ctx, profile, w.Control, secrets)
 	if e != nil {
 		return nil, e
 	}
+	store = &routedStore{catalog: db, control: w.Control, secrets: secrets, defaultStore: store, stores: map[string]Store{profileKey(profile.ID, profile.Revision): store}}
 	dir := filepath.Join(w.Control, "artifact-scratch")
 	created := false
 	if e = os.Mkdir(dir, 0700); e == nil {
@@ -95,8 +68,14 @@ func NewService(ctx context.Context, w *workspace.Workspace, db catalog.Catalog,
 }
 func (s *Service) Close() error { s.scratch.Close(); return s.Store.Close() }
 func (s *Service) checkProfile(p catalog.Publication) error {
-	profile := s.Workspace.Config.Profiles.Storage
-	if p.ProfileID != profile.ID || p.ProfileRevision != int64(profile.Revision) {
+	if p.ProfileID == s.Workspace.Config.Profiles.Storage.ID && p.ProfileRevision == s.Workspace.Config.Profiles.Storage.Revision {
+		return nil
+	}
+	record, e := s.Catalog.Profile(context.Background(), p.ProfileID, p.ProfileRevision)
+	if e != nil {
+		return e
+	}
+	if record.Role != "storage" {
 		return contracts.Fail("conflict")
 	}
 	return nil
@@ -157,6 +136,10 @@ func openSource(source string) (*os.File, error) {
 	return f, nil
 }
 func (s *Service) Publish(ctx context.Context, id, source, kind string) (catalog.Publication, error) {
+	return s.PublishTo(ctx, s.Workspace.Config.Profiles.Storage, id, source, kind)
+}
+
+func (s *Service) PublishTo(ctx context.Context, profile workspace.Profile, id, source, kind string) (catalog.Publication, error) {
 	if !contracts.ValidID(id) || kind == "" || len(kind) > 128 {
 		return catalog.Publication{}, contracts.Fail("invalid_request")
 	}
@@ -174,7 +157,6 @@ func (s *Service) Publish(ctx context.Context, id, source, kind string) (catalog
 	}
 	defer lock.Unlock()
 	defer lock.Close()
-	profile := s.Workspace.Config.Profiles.Storage
 	p := catalog.Publication{ID: id, ArtifactID: id, LocationID: id, ProfileID: profile.ID, ProfileRevision: profile.Revision, Digest: digest, Size: size, Kind: kind, Key: "objects/" + s.Workspace.Config.WorkspaceID + "/" + profile.ID + "/" + strconv.FormatInt(profile.Revision, 10) + "/sha256/" + digest[:2] + "/" + digest + "/" + id, Owner: s.Owner}
 	p, e = s.Catalog.BeginPublication(ctx, p, s.TTL)
 	if e != nil {

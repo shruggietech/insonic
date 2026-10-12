@@ -148,7 +148,12 @@
         "models.speaker.show",
         "models.speaker.fetch",
         "models.profile.set",
-        "recordings.match"
+        "recordings.match",
+        "import-presets.create",
+        "import-presets.list",
+        "import-presets.show",
+        "import-presets.update",
+        "import-presets.delete"
       ],
       "description": "Shared operation selected by either client."
     },
@@ -719,7 +724,12 @@
               "models.speaker.show",
               "models.speaker.fetch",
               "models.profile.set",
-              "recordings.match"
+              "recordings.match",
+              "import-presets.create",
+              "import-presets.list",
+              "import-presets.show",
+              "import-presets.update",
+              "import-presets.delete"
             ],
             "description": "Operation family with an exact argument shape."
           }
@@ -1767,9 +1777,9 @@
             "properties": {
               "revision": {
                 "type": "integer",
-                "minimum": 0,
+                "minimum": 1,
                 "maximum": 9223372036854776000,
-                "description": "Expected current mapping revision; zero creates the mapping."
+                "description": "Observed current recording revision, at least one. mapping_revision independently controls creation or correction."
               },
               "local_speaker_id": {
                 "$ref": "common.schema.json#/$defs/localSpeakerID",
@@ -3475,7 +3485,7 @@
               "expected_revision": {
                 "type": "integer",
                 "minimum": 1,
-                "description": "Expected current revision, or zero when creating."
+                "description": "Positive observed current recording revision; zero is invalid."
               },
               "document_digest": {
                 "$ref": "common.schema.json#/$defs/sha256",
@@ -5634,6 +5644,206 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "import-presets.create"
+            ],
+            "description": "Saved import preset operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "item_id"
+          ]
+        },
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Create a saved preset with an unused UUID.",
+            "additionalProperties": false,
+            "required": [
+              "preset"
+            ],
+            "properties": {
+              "preset": {
+                "$ref": "#/$defs/importPreset",
+                "description": "Definition to persist."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "import-presets.update"
+            ],
+            "description": "Saved import preset operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Replace choices using the observed preset revision.",
+            "additionalProperties": false,
+            "required": [
+              "expected_revision",
+              "preset"
+            ],
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Observed preset revision."
+              },
+              "preset": {
+                "$ref": "#/$defs/importPreset",
+                "description": "Complete replacement definition."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "import-presets.delete"
+            ],
+            "description": "Saved import preset operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "object",
+            "description": "Delete a saved preset without affecting frozen work.",
+            "additionalProperties": false,
+            "required": [
+              "expected_revision"
+            ],
+            "properties": {
+              "expected_revision": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Observed preset revision."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "import-presets.show",
+            "description": "Show saved selection."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "not": {
+          "required": [
+            "item_id"
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Resolve an exact name or UUID without precedence guessing.",
+            "required": [
+              "selection"
+            ],
+            "properties": {
+              "selection": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512,
+                "description": "Exact preset name or UUID."
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "import-presets.list",
+            "description": "List active saved presets."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "item_id"
+          ]
+        },
+        "properties": {
+          "data": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Stable page cursor.",
+            "properties": {
+              "after_id": {
+                "$ref": "common.schema.json#/$defs/uuid",
+                "description": "Exclusive UUID cursor."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 100,
+                "description": "Page size."
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "examples": [
@@ -6791,6 +7001,54 @@
         "min_evidence_us"
       ],
       "description": "Matching-only election over frozen current roster profiles."
+    },
+    "importPreset": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Versioned saved nonsecret import choices.",
+      "required": [
+        "kind",
+        "schema_version",
+        "id",
+        "name",
+        "options"
+      ],
+      "properties": {
+        "kind": {
+          "const": "import-preset",
+          "description": "Saved import preset discriminator."
+        },
+        "schema_version": {
+          "const": "1.0.1",
+          "description": "Saved preset format version."
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/uuid",
+          "description": "Stable saved identity."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "description": "Unique exact trimmed display name."
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Observed persisted revision; expected_revision fences edits."
+        },
+        "state": {
+          "enum": [
+            "active",
+            "deleted"
+          ],
+          "description": "Persisted lifecycle state."
+        },
+        "options": {
+          "$ref": "import-manifest.schema.json#/$defs/options",
+          "description": "Reusable choices; preset recursion and secret values are prohibited."
+        }
+      }
     }
   }
 }
