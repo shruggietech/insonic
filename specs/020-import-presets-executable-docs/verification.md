@@ -31,10 +31,14 @@ Documentation qualification reads marked JSON directly from current authoritativ
 
 ## Convergence
 
-Analyze mapped all 12 functional requirements to implementation tasks with no unresolved findings. Converge assessed 12 functional requirements, 5 success criteria, 10 acceptance scenarios, 5 design decisions and 5 constitution principles. Three partial gaps (two high, one medium) produced T021..T023; their regressions failed before repair and pass afterward. Follow-up source assessment finds no remaining buildable gap. No unrelated product-use gates, release publication, guided setup or managed-worker feature was added.
+Analyze mapped all 12 functional requirements to implementation tasks with no unresolved findings. Converge assessed 12 functional requirements, 5 success criteria, 10 acceptance scenarios, 5 design decisions and 5 constitution principles. Three partial gaps (two high, one medium) produced T021..T023; the incompatible-version and exact-title regressions failed before repair and pass afterward, and the batch resolution regression passes. Follow-up source assessment finds no remaining buildable gap. No unrelated product-use gates, release publication, guided setup or managed-worker feature was added.
 
 ## Remote delivery
 
 Official PR, external review rounds and final-head CI are pending publication. Maximum two review rounds are authorized. The owner retains final review and squash merge authority.
 
 2026-10-12: Initial CI exposed Unix fixture roots created with public temporary-directory permissions. The three app preset fixtures now elect absent child roots, allowing the existing artifact store to create private directories. No production permission check was relaxed. Windows affected regressions pass; all-platform CI is rerun after the correction.
+
+2026-10-12: Package CI correctly refused production hosted processing while CI markers were set. Documentation adapters now run only owned loopback fixtures in a separate disposable post-install workspace whose subprocess environment omits those markers; the main runtime and full CI-refusal tests retain them. A Windows check then exposed the package call helper assuming its original runtime remained alive after the long independent fixture journey. Normal package runtime calls now permit the established detached owner to restart after idle exit. No production engine guard or integrity test was weakened.
+
+2026-10-12: Round 1 on ed989dc reported one P2 source-as-transcript election defect. Shared SourceTranscriptAlias now drives both normalization and frozen processing choice after effective options merge. TestImportPresetSourceAliasElectsSuppliedText fails with generate when alias detection is omitted and passes with supplied after repair. Full Go tests/vet, 141 Python tests, 84 Node tests and integrity checks pass. Extracted Windows CLI qualification with CI markers passes all journeys in 205.25 seconds after fixture isolation and detached-owner correction.

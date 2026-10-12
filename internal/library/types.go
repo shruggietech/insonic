@@ -328,7 +328,7 @@ func prepareImport(r ImportRequest, resolved bool) (ImportRequest, error) {
 		if !pendingPreset && effective.Attribution == "diarize" && !models.ValidateReference(effective.DiarizationModelID) {
 			return r, contracts.Fail("invalid_request")
 		}
-		if !pendingPreset && item.Record != "" && item.Source != "" && item.Source != "<accepted>" && item.Kind != "media" && !(effective.ReplaceAudio != nil && *effective.ReplaceAudio) {
+		if !pendingPreset && SourceTranscriptAlias(*item, effective) {
 			if item.Transcript != "" || item.Subtitle != "" {
 				return r, contracts.Fail("invalid_request")
 			}
@@ -429,4 +429,9 @@ func CaptureDateOptions(o Options) Options {
 		}
 	}
 	return o
+}
+
+// SourceTranscriptAlias identifies the existing-record source-as-transcript form.
+func SourceTranscriptAlias(item Item, options Options) bool {
+	return item.Record != "" && item.Source != "" && item.Source != "<accepted>" && item.Kind != "media" && !(options.ReplaceAudio != nil && *options.ReplaceAudio)
 }

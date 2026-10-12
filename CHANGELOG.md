@@ -4,17 +4,18 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
-- Add revisioned workspace import presets shared by the CLI and desktop, with applied filesystem/S3 destinations, date policy and optional frozen pipeline elections. Reject unresolved selections before enqueue and retain effective choices and deterministic processing children across retries.
-- Replace unsupported current documentation commands with executable input files, observed ID/revision steps and extracted-package qualification. Clarify mapping concurrency, admitted partial-date results and current manual setup capabilities; preserve immutable historical documentation.
-
 - Add readable bounded CLI results, exact document/page and lease actions, interactive work progress, partial-date warnings, truthful credential state and generated operation-specific corrections.
 - Report hidden runtime startup failures promptly and support verbose/debug/quiet controls with explicitly elected private bounded diagnostic logs.
 - Retain incompatible model inspection identity, acquisition/verification readiness, manifest file roles and dataset preparation readiness. Model materialization now returns an object containing named `files` and readiness instead of a bare positional array; consumers must read `result.files`. Execution eligibility and frozen identities remain unchanged.
 
+- Add revisioned workspace import presets shared by the CLI and desktop, with applied filesystem/S3 destinations, date policy and optional frozen pipeline elections. Reject unresolved selections before enqueue and retain effective choices and deterministic processing children across retries.
+- Replace unsupported current documentation commands with executable input files, observed ID/revision steps and extracted-package qualification. Clarify mapping concurrency, admitted partial-date results and current manual setup capabilities; preserve immutable historical documentation.
+
 ### Decisions
 
-- 2026-10-11: Save import choices in a bounded typed catalog registry; publish/read by immutable storage profile revision. Preset values precede manifest defaults/items and explicit CLI overrides; capture local timezone only after resolution. Elect existing processing contracts and reconcile child identity after admission. Current documentation examples qualify extracted binaries using deterministic adapter fixtures without inference.
 - 2026-10-11: Keep startup transport separate from detached lifetime: one bounded report, one child wait owner and one ten-second deadline cover the client handshake. Log only generated context, using three bounded data files and a private empty coordination lock; diagnostic input/tool/provider payloads are excluded. Model readiness remains response-only and named file roles come from immutable manifests.
+- 2026-10-11: Save import choices in a bounded typed catalog registry; publish/read by immutable storage profile revision. Preset values precede manifest defaults/items and explicit CLI overrides; capture local timezone only after resolution. Elect existing processing contracts and reconcile child identity after admission. Current documentation examples qualify extracted binaries using deterministic adapter fixtures without inference.
+- 2026-10-12: Execute documented post-install processing/training against owned loopback fixtures in a separate disposable workspace. Retain CI refusal in the main runtime and all guard tests; permit the established detached runtime owner to restart between package qualification journeys.
 
 ## [1.0.1] - 2026-10-11
 

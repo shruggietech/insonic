@@ -245,3 +245,23 @@ func TestImportIdenticalElectionsResolveOnce(t *testing.T) {
 		t.Fatal("incompatible selection queued or lacks next action", response.Error)
 	}
 }
+
+func TestImportPresetSourceAliasElectsSuppliedText(t *testing.T) {
+	a := configuredApp(t)
+	a.recordingFactory = func() (*recordingExecution, error) { t.Fatal("election executed processing"); return nil, nil }
+	pipeline := contracts.ID()
+	configuredResult(t, realRequest(a, "pipelines.set", pipeline, map[string]any{"expected_revision": 0, "pipeline": map[string]any{"id": pipeline, "name": "Source alias", "preset": "local", "configuration": localDefinition()}}))
+	p := savedImportPreset(t, a, map[string]any{"pipeline_id": pipeline})
+	input := library.ImportRequest{Items: []library.Item{{Record: contracts.ID(), Source: "fixture.srt", Options: library.Options{Preset: p.ID}}}}
+	resolved, err := a.resolveImportChoices(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var processing recordingPayload
+	if err = strictPayload(resolved.Elections[resolved.Selections[0]].Processing, &processing); err != nil {
+		t.Fatal(err)
+	}
+	if processing.Options.Transcription != "supplied" || resolved.Items[0].Transcript != "fixture.srt" {
+		t.Fatal("source alias incorrectly elected recognition", processing.Options.Transcription)
+	}
+}

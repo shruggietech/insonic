@@ -833,7 +833,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
         workspace = Path(temporary) / 'workspace with spaces'
         child([cli, 'workspace', 'init', workspace, '--json'], directory=root, env=env)
         child([cli, '--workspace', workspace, 'credentials', 'select', 'session', '--json'], directory=root, env=env)
-        def call(*args, allow_detached=False):
+        def call(*args, allow_detached=True):
             response = json.loads(child([cli, '--workspace', workspace, *args, '--json'], directory=root, env=env, allow_detached=allow_detached))
             if response.get('error'):
                 raise ValueError('packaged shared operation failed: ' + response['error']['code'])

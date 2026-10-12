@@ -77,7 +77,10 @@ func (a *App) importPresetDispatch(req contracts.Request) (any, error) {
 	}
 }
 func (a *App) freezeImportSelection(defaults, item, overrides library.Options, supplied bool) (library.ImportSelection, error) {
-	explicit := library.MergeOptions(library.MergeOptions(defaults, item), overrides)
+	return a.freezeImportItemSelection(defaults, library.Item{Options: item}, overrides, supplied)
+}
+func (a *App) freezeImportItemSelection(defaults library.Options, item library.Item, overrides library.Options, supplied bool) (library.ImportSelection, error) {
+	explicit := library.MergeOptions(library.MergeOptions(defaults, item.Options), overrides)
 	selection := library.ImportSelection{}
 	if explicit.Preset != "" {
 		p, e := a.resolveImportPreset(explicit.Preset)
@@ -90,7 +93,8 @@ func (a *App) freezeImportSelection(defaults, item, overrides library.Options, s
 		selection.PresetID = p.ID
 		selection.PresetRevision = p.Revision
 	}
-	selection.Options = library.MergeOptions(library.MergeOptions(library.MergeOptions(selection.Options, defaults), item), overrides)
+	selection.Options = library.MergeOptions(library.MergeOptions(library.MergeOptions(selection.Options, defaults), item.Options), overrides)
+	supplied = supplied || library.SourceTranscriptAlias(item, selection.Options)
 	if selection.Options.Destination == nil {
 		p := a.Workspace.Config.Profiles.Storage
 		selection.Options.Destination = &p
@@ -179,12 +183,12 @@ func (a *App) resolveImportChoices(input library.ImportRequest) (library.ImportR
 		supplied := item.Transcript != "" || item.Subtitle != "" || hasText
 		requestKey := documentHash(configurationBytes(struct {
 			Defaults, Item, Overrides library.Options
-			Supplied                  bool
-		}{input.Defaults, item.Options, input.Overrides, supplied}))
+			Supplied, SourceAlias     bool
+		}{input.Defaults, item.Options, input.Overrides, supplied, library.SourceTranscriptAlias(item, library.Options{})}))
 		selection, found := resolved[requestKey]
 		if !found {
 			var e error
-			selection, e = a.freezeImportSelection(input.Defaults, item.Options, input.Overrides, supplied)
+			selection, e = a.freezeImportItemSelection(input.Defaults, item, input.Overrides, supplied)
 			if e != nil {
 				return input, e
 			}
