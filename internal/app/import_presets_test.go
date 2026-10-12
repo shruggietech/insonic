@@ -265,3 +265,30 @@ func TestImportPresetSourceAliasElectsSuppliedText(t *testing.T) {
 		t.Fatal("source alias incorrectly elected recognition", processing.Options.Transcription)
 	}
 }
+
+func TestImportPresetAudioReplacementHonorsTranscriptPolicy(t *testing.T) {
+	a := configuredApp(t)
+	a.recordingFactory = func() (*recordingExecution, error) { t.Fatal("election executed processing"); return nil, nil }
+	id := importRecordingFixture(t, a)
+	if !a.importHasTranscript(id) {
+		t.Fatal("fixture lacks current text")
+	}
+	pipeline := contracts.ID()
+	configuredResult(t, realRequest(a, "pipelines.set", pipeline, map[string]any{"expected_revision": 0, "pipeline": map[string]any{"id": pipeline, "name": "Replacement", "preset": "local", "configuration": localDefinition()}}))
+	p := savedImportPreset(t, a, map[string]any{"pipeline_id": pipeline})
+	replace := true
+	for _, test := range []struct{ policy, want string }{{"clear", "generate"}, {"", "generate"}, {"keep", "supplied"}} {
+		item := library.Item{Record: id, Kind: "media", Source: "replacement.wav", Options: library.Options{Preset: p.ID}}
+		selected, err := a.freezeImportItemSelection(library.Options{}, item, library.Options{ReplaceAudio: &replace, ExistingTranscript: test.policy}, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var plan recordingPayload
+		if err = strictPayload(selected.Processing, &plan); err != nil {
+			t.Fatal(err)
+		}
+		if plan.Options.Transcription != test.want {
+			t.Fatalf("policy %q: got %s want %s", test.policy, plan.Options.Transcription, test.want)
+		}
+	}
+}
