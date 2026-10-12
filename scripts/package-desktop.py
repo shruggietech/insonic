@@ -860,7 +860,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
             if len(items) != 2 or any(item.get('state') != 'admitted' or item.get('capture_state') not in ['captured', 'no-embedded-metadata'] for item in items):
                 raise ValueError('packaged import did not complete both licensed fixtures')
             from cli_contract_qualification import qualify as qualify_contract
-            contract_receipt = qualify_contract(cli, workspace, env=env, cwd=root)
+            contract_receipt = qualify_contract(cli, workspace, env=env, cwd=root, documentation=True)
             entry = call('media', 'show', items[0]['media_id'])
             if entry['dates']['selected']['resolved'] != {'iso': '2020-01-01T00:00:00.123456789Z', 'unix_ns': 1577836800123456789}:
                 raise ValueError('Packaged timestamp or numeric fidelity differs')

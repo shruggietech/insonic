@@ -15,7 +15,7 @@ import uuid
 from process_tree import ProcessTree
 
 
-def qualify(executable, workspace, *, env=None, cwd=None):
+def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
     executable, workspace = Path(executable), Path(workspace)
     environment = os.environ.copy()
     environment.update(env or {})
@@ -216,27 +216,26 @@ def qualify(executable, workspace, *, env=None, cwd=None):
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
-    from documented_workflows import qualify as qualify_documentation
-    # Exercise a post-install workspace against owned loopback adapter fixtures.
-    # The main qualification runtime keeps CI markers and all production refusal
-    # gates; no inference engine is selected or initialized in this workspace.
-    documented_workspace = workspace / 'isolated documented workflows'
-    fixture_environment = dict(environment)
-    for marker in ['CI', 'GITHUB_ACTIONS', 'TF_BUILD', 'BUILD_BUILDID', 'JENKINS_URL']:
-        fixture_environment.pop(marker, None)
-    invoke(['workspace', 'init', documented_workspace], scoped=False)
-
-    def documented_invoke(args, **kwargs):
-        return invoke(args, workspace_path=documented_workspace,
-                      execution_environment=fixture_environment, **kwargs)
-
-    def documented_supplied(args, value):
-        path = documented_workspace / 'documented request.json'
-        path.write_text(json.dumps(value) + '\n', encoding='utf-8', newline='\n')
-        return documented_invoke([*args, '--input', path])
-
-    documented = qualify_documentation(documented_invoke, documented_supplied, documented_workspace, version)
-    # Package smoke's existing bounded idle-owner cleanup covers this workspace too.
+    documented = {'state': 'not-included', 'reason': 'source CLI lane; required in extracted packages'}
+    if documentation:
+        from documented_workflows import qualify as qualify_documentation
+        # Exercise a post-install workspace against owned loopback adapter fixtures.
+        # The main qualification runtime keeps CI markers and all production refusal
+        # gates; no inference engine is selected or initialized in this workspace.
+        documented_workspace = workspace / 'isolated documented workflows'
+        fixture_environment = dict(environment)
+        for marker in ['CI', 'GITHUB_ACTIONS', 'TF_BUILD', 'BUILD_BUILDID', 'JENKINS_URL']:
+            fixture_environment.pop(marker, None)
+        invoke(['workspace', 'init', documented_workspace], scoped=False)
+        def documented_invoke(args, **kwargs):
+            return invoke(args, workspace_path=documented_workspace,
+                          execution_environment=fixture_environment, **kwargs)
+        def documented_supplied(args, value):
+            path = documented_workspace / 'documented request.json'
+            path.write_text(json.dumps(value) + '\n', encoding='utf-8', newline='\n')
+            return documented_invoke([*args, '--input', path])
+        documented = qualify_documentation(documented_invoke, documented_supplied, documented_workspace, version)
+        # Package smoke's existing bounded idle-owner cleanup covers this workspace too.
     input_file.unlink(missing_ok=True)
     for path in [logfile, Path(str(logfile) + '.1'), Path(str(logfile) + '.2')]:
         if path.exists():
