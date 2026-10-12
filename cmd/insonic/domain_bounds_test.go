@@ -28,7 +28,7 @@ func TestCLIBoundedDateCorrectionAndRefresh(t *testing.T) {
 		case "media.import":
 			var req library.ImportRequest
 			json.Unmarshal(raw, &req)
-			options = req.Defaults
+			options = req.Overrides
 		case "media.set-origin":
 			var req struct {
 				Options library.Options `json:"options"`

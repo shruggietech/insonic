@@ -403,3 +403,40 @@ func (s *Store) CancelWork(ctx context.Context, op, id string) (Work, error) {
 func (s *Store) RetryWork(ctx context.Context, op, id string) (Work, error) {
 	return s.transitionWork(ctx, op, id, true)
 }
+
+func (s *Store) EnqueueChildWork(ctx context.Context, parent Work, op, kind string, payload json.RawMessage) (Work, error) {
+	w := Work{JournalReceiptID: op, ID: op, Kind: kind, Payload: payload, State: "pending", Result: json.RawMessage(`null`)}
+	if !validWork(w) {
+		return w, contracts.Fail("invalid_request")
+	}
+	digest, e := intent([]any{"work", kind, payload})
+	if e != nil {
+		return w, e
+	}
+	e = s.write(ctx, func(tx *sql.Tx, rev int64) error {
+		if _, e := s.workAuthority(ctx, tx, parent); e != nil {
+			return e
+		}
+		_, ok, e := s.replay(ctx, tx, op, digest)
+		if e != nil {
+			return e
+		}
+		if ok {
+			return s.domainTx(ctx, tx, "Works", op, &w)
+		}
+		if e = s.putDomain(ctx, tx, "Works", w); e != nil {
+			return e
+		}
+		result := map[string]any{"work_id": op, "state": "pending", "work_digest": workJournalDigest(w)}
+		if kind == "media.import" || kind == "library.import" {
+			if base, items, err := importInputProof(payload); err == nil {
+				result["input_intent_digest"] = digest
+				result["input_envelope_digest"] = base
+				result["item_intent_digests"] = items
+			}
+		}
+		_, e = s.accept(ctx, tx, op, digest, rev, result)
+		return e
+	})
+	return w, e
+}

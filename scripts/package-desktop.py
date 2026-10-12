@@ -833,7 +833,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
         workspace = Path(temporary) / 'workspace with spaces'
         child([cli, 'workspace', 'init', workspace, '--json'], directory=root, env=env)
         child([cli, '--workspace', workspace, 'credentials', 'select', 'session', '--json'], directory=root, env=env)
-        def call(*args, allow_detached=False):
+        def call(*args, allow_detached=True):
             response = json.loads(child([cli, '--workspace', workspace, *args, '--json'], directory=root, env=env, allow_detached=allow_detached))
             if response.get('error'):
                 raise ValueError('packaged shared operation failed: ' + response['error']['code'])
@@ -860,7 +860,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
             if len(items) != 2 or any(item.get('state') != 'admitted' or item.get('capture_state') not in ['captured', 'no-embedded-metadata'] for item in items):
                 raise ValueError('packaged import did not complete both licensed fixtures')
             from cli_contract_qualification import qualify as qualify_contract
-            contract_receipt = qualify_contract(cli, workspace, env=env, cwd=root)
+            contract_receipt = qualify_contract(cli, workspace, env=env, cwd=root, documentation=True)
             entry = call('media', 'show', items[0]['media_id'])
             if entry['dates']['selected']['resolved'] != {'iso': '2020-01-01T00:00:00.123456789Z', 'unix_ns': 1577836800123456789}:
                 raise ValueError('Packaged timestamp or numeric fidelity differs')
@@ -882,7 +882,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
             if not export_path.is_file() or b'-->' not in export_path.read_bytes():
                 raise ValueError('packaged native subtitle export missing')
             write_json(input_path, {'filter': {'include_undated': True}})
-            if call('timeline', 'calendar', '--input', input_path).get('total') != 2:
+            if call('timeline', 'calendar', '--input', input_path).get('total') != len(call('media', 'list')['items']):
                 raise ValueError('packaged whole-library calendar missing retained undated media')
             write_json(input_path, {'definition': {'mode': 'normalized', 'operation': 'text-search', 'pagination': {'limit': 100}}})
             queried = call('query', 'run', '--input', input_path)

@@ -153,8 +153,9 @@ test('recording read, mapping and export requests enforce typed argument bounds'
   assert.equal(master({...base,operation:'recordings.resolve-segment',data:segment}),true);
   assert.equal(master({...base,operation:'recordings.resolve-segment',data:{...segment,segment_revision:0}}),false);
   assert.equal(master({...base,operation:'recordings.resolve-segment',data:{...segment,segment_id:'cue-0'}}),false);
-  const mapping={revision:0,local_speaker_id:'33333333-3333-4333-8333-333333333333',speaker_id:'44444444-4444-4444-8444-444444444444',document_digest:'a'.repeat(64)};
+  const mapping={revision:1,local_speaker_id:'33333333-3333-4333-8333-333333333333',speaker_id:'44444444-4444-4444-8444-444444444444',document_digest:'a'.repeat(64)};
   assert.equal(master({...base,operation:'recordings.map-speaker',data:mapping}),true);
+  assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,revision:0}}),false);
   assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,mapping_revision:0}}),true);
   assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,mapping_revision:9}}),true);
   assert.equal(master({...base,operation:'recordings.map-speaker',data:{...mapping,mapping_revision:-1}}),false);

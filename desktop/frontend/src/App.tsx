@@ -12,6 +12,7 @@ import {
 } from './client';
 import { Jobs, Library, Pipelines, Speakers, Terms, type Run } from './screens';
 import { Settings } from './settings';
+import { ImportPresets } from './import-presets';
 import { Explore } from './explore';
 import { SpeakerModels } from './speaker-models';
 export function App({ bridge }: { bridge: NativeBridge }) {
@@ -113,6 +114,7 @@ export function App({ bridge }: { bridge: NativeBridge }) {
     'Explore',
     'Jobs',
     'Pipelines',
+    'Import presets',
     'Speakers',
     'Terms',
     'Models',
@@ -220,7 +222,7 @@ export function App({ bridge }: { bridge: NativeBridge }) {
               <Library client={client} run={run} />
             ) : screen === 'Explore' ? (<Explore client={client} run={run}/>) : screen === 'Jobs' ? (
               <Jobs client={client} run={run} />
-            ) : screen === 'Pipelines' ? (
+            ) : screen === 'Import presets' ? (<ImportPresets client={client} run={run}/>) : screen === 'Pipelines' ? (
               <Pipelines client={client} run={run} />
             ) : screen === 'Speakers' ? (
               <Speakers client={client} run={run} />

@@ -18,12 +18,15 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/subtitles"
+	"github.com/shruggietech/insonic/internal/workspace"
 )
 
 type Service struct {
-	NativeIngest  func(context.Context, []byte, string) (json.RawMessage, error)
-	Diarize       func(context.Context, catalog.LibraryEntry, json.RawMessage, string) (subtitles.Admission, json.RawMessage, error)
-	DiarizePinned func(context.Context, catalog.LibraryEntry, json.RawMessage, string, string) (subtitles.Admission, json.RawMessage, error)
+	Destination    *workspace.Profile
+	AfterAdmission func(context.Context, catalog.Work, int, string, ImportSelection) ([]string, error)
+	NativeIngest   func(context.Context, []byte, string) (json.RawMessage, error)
+	Diarize        func(context.Context, catalog.LibraryEntry, json.RawMessage, string) (subtitles.Admission, json.RawMessage, error)
+	DiarizePinned  func(context.Context, catalog.LibraryEntry, json.RawMessage, string, string) (subtitles.Admission, json.RawMessage, error)
 	// Used only by historical fixture builders, never enabled by application construction.
 	legacyFixture bool
 
@@ -65,7 +68,23 @@ func (s *Service) Execute(ctx context.Context, work catalog.Work) (any, error) {
 		if strict(work.Payload, &req) != nil || !contracts.ValidID(req.MediaID) || !validOptions(req.Options) {
 			return nil, contracts.Fail("invalid_request")
 		}
-		return s.Refresh(ctx, work, req)
+		local := *s
+		local.Destination = req.Options.Destination
+		entry, e := local.Refresh(ctx, work, req)
+		if e != nil {
+			return nil, e
+		}
+		if req.Selection != nil {
+			jobs := []string{}
+			if s.AfterAdmission != nil {
+				jobs, e = s.AfterAdmission(ctx, work, 0, entry.ID, *req.Selection)
+			}
+			visible := *req.Selection
+			visible.Processing = nil
+			visible.Options.Extensions = nil
+			return map[string]any{"media_id": entry.ID, "revision": entry.Revision, "state": "admitted", "selection": visible, "queued_job_ids": jobs}, e
+		}
+		return entry, nil
 	}
 	return nil, contracts.Fail("invalid_request")
 }
@@ -96,12 +115,33 @@ func (s *Service) Import(ctx context.Context, work catalog.Work, req ImportReque
 		if ctx.Err() != nil {
 			return result, contracts.Fail("cancelled")
 		}
-		out, e := s.admit(ctx, work, ordinal, item, merged(req.Defaults, item.Options), known)
+		selected := req.Elections[req.Selections[ordinal]]
+		options := merged(req.Defaults, item.Options)
+		if req.Selections[ordinal] != "" {
+			options = selected.Options
+		}
+		local := *s
+		local.Destination = options.Destination
+		out, e := local.admit(ctx, work, ordinal, item, options, known)
+		if e == nil && req.Selections[ordinal] != "" {
+			visible := selected
+			visible.Processing = nil
+			visible.Options.Extensions = nil
+			out.Selection = &visible
+			if s.AfterAdmission != nil && (out.State == "admitted" || out.State == "replaced") {
+				out.QueuedJobIDs, e = s.AfterAdmission(ctx, work, ordinal, out.MediaID, selected)
+			}
+		}
 		if e != nil {
 			if ctx.Err() != nil {
 				return result, contracts.Fail("cancelled")
 			}
-			out = ItemResult{Ordinal: ordinal, State: "failed", Error: code(e), QueuedJobIDs: []string{}, Notices: out.Notices}
+			out.State = "failed"
+			out.Error = code(e)
+			out.Ordinal = ordinal
+			if out.QueuedJobIDs == nil {
+				out.QueuedJobIDs = []string{}
+			}
 			if out.Error == "incompatible_version" {
 				out.Notices = append(out.Notices, "supported_cueson_versions:1.0.0,1.1.0,1.2.0")
 			}
@@ -256,7 +296,7 @@ func (s *Service) admitLegacy(ctx context.Context, work catalog.Work, ordinal in
 			return ItemResult{}, e
 		}
 		candidates = append(candidates, id)
-		pub, e := s.Artifacts.Publish(ctx, id, stagePath, "original-media")
+		pub, e := s.publish(ctx, id, stagePath, "original-media")
 		if e != nil {
 			return ItemResult{}, e
 		}
@@ -277,7 +317,7 @@ func (s *Service) admitLegacy(ctx context.Context, work catalog.Work, ordinal in
 				return ItemResult{}, e
 			}
 			candidates = append(candidates, id)
-			pub, e := s.Artifacts.Publish(ctx, id, subtitle, "supplied-subtitle")
+			pub, e := s.publish(ctx, id, subtitle, "supplied-subtitle")
 			if e != nil {
 				return ItemResult{}, e
 			}
@@ -423,7 +463,7 @@ func (s *Service) publishBundle(ctx context.Context, id string, bundle captureBu
 	if e := os.WriteFile(path, marshal(bundle), 0600); e != nil {
 		return contracts.Fail("unavailable")
 	}
-	_, e := s.Artifacts.Publish(ctx, id, path, "media-metadata-report")
+	_, e := s.publish(ctx, id, path, "media-metadata-report")
 	return e
 }
 func (s *Service) dates(bundle captureBundle, options Options, owners []Date) Dates {
@@ -765,4 +805,11 @@ func applyOrigin(entry catalog.LibraryEntry, op string, options Options) catalog
 	}
 	entry.Dates = marshal(SelectDates(observations, policy))
 	return entry
+}
+
+func (s *Service) publish(ctx context.Context, id, source, kind string) (catalog.Publication, error) {
+	if s.Destination != nil {
+		return s.Artifacts.PublishTo(ctx, *s.Destination, id, source, kind)
+	}
+	return s.Artifacts.Publish(ctx, id, source, kind)
 }

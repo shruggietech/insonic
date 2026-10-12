@@ -10,6 +10,7 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/models"
+	"github.com/shruggietech/insonic/internal/workspace"
 )
 
 type PinnedFile struct {
@@ -31,20 +32,22 @@ type Tools struct {
 	FFprobe  Tool   `json:"ffprobe"`
 }
 type Options struct {
-	ReplaceAudio           *bool    `json:"replace_audio,omitempty"`
-	ExistingTranscript     string   `json:"existing_transcript,omitempty"`
-	TranscriptApplies      *bool    `json:"transcript_applies,omitempty"`
-	ExistingRoster         string   `json:"existing_roster,omitempty"`
-	KnownSpeakers          []string `json:"known_speakers,omitzero"`
-	TranscriptMaxBytes     *int64   `json:"transcript_max_bytes,omitempty"`
-	TranscriptTimeoutMS    *int64   `json:"transcript_timeout_ms,omitempty"`
-	Attribution            string   `json:"attribution,omitempty"`
-	TranscriptFormat       string   `json:"transcript_format,omitempty"`
-	ReplaceTranscript      *bool    `json:"replace_transcript,omitempty"`
-	SubtitleStreamIndex    *int     `json:"subtitle_stream_index,omitempty"`
-	SubtitleLanguage       string   `json:"subtitle_language,omitempty"`
-	DiarizationModelID     string   `json:"diarization_model_id,omitempty"`
-	DiarizationModelDigest string   `json:"diarization_model_digest,omitempty"`
+	Destination            *workspace.Profile `json:"destination,omitempty"`
+	PipelineID             *string            `json:"pipeline_id,omitempty"`
+	ReplaceAudio           *bool              `json:"replace_audio,omitempty"`
+	ExistingTranscript     string             `json:"existing_transcript,omitempty"`
+	TranscriptApplies      *bool              `json:"transcript_applies,omitempty"`
+	ExistingRoster         string             `json:"existing_roster,omitempty"`
+	KnownSpeakers          []string           `json:"known_speakers,omitzero"`
+	TranscriptMaxBytes     *int64             `json:"transcript_max_bytes,omitempty"`
+	TranscriptTimeoutMS    *int64             `json:"transcript_timeout_ms,omitempty"`
+	Attribution            string             `json:"attribution,omitempty"`
+	TranscriptFormat       string             `json:"transcript_format,omitempty"`
+	ReplaceTranscript      *bool              `json:"replace_transcript,omitempty"`
+	SubtitleStreamIndex    *int               `json:"subtitle_stream_index,omitempty"`
+	SubtitleLanguage       string             `json:"subtitle_language,omitempty"`
+	DiarizationModelID     string             `json:"diarization_model_id,omitempty"`
+	DiarizationModelDigest string             `json:"diarization_model_digest,omitempty"`
 
 	LocalHTTP            *bool            `json:"local_http,omitempty"`
 	AcquisitionMaxBytes  *int64           `json:"acquisition_max_bytes,omitempty"`
@@ -83,34 +86,47 @@ type Item struct {
 	NewEntry           bool   `json:"new_entry,omitempty"`
 	Options
 }
+type ImportSelection struct {
+	PresetID         string          `json:"preset_id,omitempty"`
+	PresetRevision   int64           `json:"preset_revision,omitempty"`
+	Options          Options         `json:"options"`
+	Processing       json.RawMessage `json:"processing,omitempty"`
+	ProcessingDigest string          `json:"processing_digest,omitempty"`
+}
 type ImportRequest struct {
-	ModelSelections   []json.RawMessage `json:"model_selections,omitempty"`
-	ModelDependencies []string          `json:"model_dependencies,omitempty"`
-	RequestDigest     string            `json:"request_digest,omitempty"`
-	Kind              string            `json:"kind,omitempty"`
-	Version           string            `json:"schema_version,omitempty"`
-	Defaults          Options           `json:"defaults,omitempty"`
-	Items             []Item            `json:"items"`
-	Extensions        json.RawMessage   `json:"extensions,omitempty"`
+	Overrides         Options                    `json:"overrides,omitempty"`
+	Selections        map[int]string             `json:"selections,omitempty"`
+	Elections         map[string]ImportSelection `json:"elections,omitempty"`
+	ModelSelections   []json.RawMessage          `json:"model_selections,omitempty"`
+	ModelDependencies []string                   `json:"model_dependencies,omitempty"`
+	RequestDigest     string                     `json:"request_digest,omitempty"`
+	Kind              string                     `json:"kind,omitempty"`
+	Version           string                     `json:"schema_version,omitempty"`
+	Defaults          Options                    `json:"defaults,omitempty"`
+	Items             []Item                     `json:"items"`
+	Extensions        json.RawMessage            `json:"extensions,omitempty"`
 }
 type RefreshRequest struct {
-	MediaID string  `json:"media_id"`
-	Options Options `json:"options,omitempty"`
+	MediaID       string           `json:"media_id"`
+	Options       Options          `json:"options,omitempty"`
+	Selection     *ImportSelection `json:"selection,omitempty"`
+	RequestDigest string           `json:"request_digest,omitempty"`
 }
 type ItemResult struct {
-	Notices           []string `json:"notices,omitempty"`
-	RecordingRevision int64    `json:"recording_revision,omitempty"`
-	DocumentDigest    string   `json:"document_digest,omitempty"`
-	Ordinal           int      `json:"ordinal"`
-	MediaID           string   `json:"media_id,omitempty"`
-	Digest            string   `json:"digest,omitempty"`
-	State             string   `json:"state"`
-	CaptureState      string   `json:"capture_state,omitempty"`
-	DateState         string   `json:"date_state,omitempty"`
-	DateUnresolved    bool     `json:"date_unresolved,omitempty"`
-	SubtitleState     string   `json:"subtitle_state,omitempty"`
-	Error             string   `json:"error,omitempty"`
-	QueuedJobIDs      []string `json:"queued_job_ids"`
+	Selection         *ImportSelection `json:"selection,omitempty"`
+	Notices           []string         `json:"notices,omitempty"`
+	RecordingRevision int64            `json:"recording_revision,omitempty"`
+	DocumentDigest    string           `json:"document_digest,omitempty"`
+	Ordinal           int              `json:"ordinal"`
+	MediaID           string           `json:"media_id,omitempty"`
+	Digest            string           `json:"digest,omitempty"`
+	State             string           `json:"state"`
+	CaptureState      string           `json:"capture_state,omitempty"`
+	DateState         string           `json:"date_state,omitempty"`
+	DateUnresolved    bool             `json:"date_unresolved,omitempty"`
+	SubtitleState     string           `json:"subtitle_state,omitempty"`
+	Error             string           `json:"error,omitempty"`
+	QueuedJobIDs      []string         `json:"queued_job_ids"`
 }
 type ImportResult struct {
 	Items            []ItemResult `json:"items"`
@@ -127,6 +143,12 @@ func DerivedID(op, label string) string {
 	return s[:8] + "-" + s[8:12] + "-" + s[12:16] + "-" + s[16:20] + "-" + s[20:]
 }
 func merged(base, item Options) Options {
+	if item.Destination != nil {
+		base.Destination = item.Destination
+	}
+	if item.PipelineID != nil {
+		base.PipelineID = item.PipelineID
+	}
 	if item.ReplaceAudio != nil {
 		base.ReplaceAudio = item.ReplaceAudio
 	}
@@ -220,6 +242,9 @@ func merged(base, item Options) Options {
 	return base
 }
 func validOptions(o Options) bool {
+	if o.PipelineID != nil && *o.PipelineID != "" && !contracts.ValidID(*o.PipelineID) {
+		return false
+	}
 	if o.ExistingTranscript != "" && o.ExistingTranscript != "keep" && o.ExistingTranscript != "clear" && o.ExistingTranscript != "replace" || o.ExistingRoster != "" && o.ExistingRoster != "retain" && o.ExistingRoster != "clear" || len(o.KnownSpeakers) > 1000 {
 		return false
 	}
@@ -257,8 +282,16 @@ func validOptions(o Options) bool {
 func hasOrigin(o Options) bool {
 	return o.OriginatedAt != "" || o.OriginatedOn != "" || o.OriginatedEarliest != nil || o.OriginatedLatest != nil
 }
-func PrepareImport(r ImportRequest) (ImportRequest, error) {
-	if len(r.Items) == 0 || len(r.Items) > 10000 || !validOptions(r.Defaults) || (r.Kind != "" && r.Kind != "import-manifest") || (r.Version != "" && !contracts.SupportedDocumentVersion(r.Version)) {
+func PrepareImport(r ImportRequest) (ImportRequest, error) { return prepareImport(r, true) }
+
+// ValidateImportInput checks client syntax without resolving saved choices or capturing host policy.
+func ValidateImportInput(r ImportRequest) error {
+	r.Items = append([]Item(nil), r.Items...)
+	_, err := prepareImport(r, false)
+	return err
+}
+func prepareImport(r ImportRequest, resolved bool) (ImportRequest, error) {
+	if len(r.Items) == 0 || len(r.Items) > 10000 || !validOptions(r.Defaults) || !validOptions(r.Overrides) || (r.Kind != "" && r.Kind != "import-manifest") || (r.Version != "" && !contracts.SupportedDocumentVersion(r.Version)) {
 		return r, contracts.Fail("invalid_request")
 	}
 	captured := ""
@@ -272,7 +305,7 @@ func PrepareImport(r ImportRequest) (ImportRequest, error) {
 		}
 		return captured
 	}
-	if r.Defaults.Timezone == "" || r.Defaults.Timezone == "local" {
+	if resolved && (r.Defaults.Timezone == "" || r.Defaults.Timezone == "local") {
 		r.Defaults.Timezone = capture()
 		r.Defaults.TimezoneImplicit = true
 	}
@@ -290,25 +323,26 @@ func PrepareImport(r ImportRequest) (ImportRequest, error) {
 		if item.ExpectedRevision != nil && (*item.ExpectedRevision < 1 || item.Record == "") || item.ExpectedRecordingRevision != nil && (*item.ExpectedRecordingRevision < 0 || item.Record == "") {
 			return r, contracts.Fail("invalid_request")
 		}
-		effective := merged(r.Defaults, item.Options)
-		if effective.Attribution == "diarize" && !models.ValidateReference(effective.DiarizationModelID) {
+		effective := MergeOptions(merged(r.Defaults, item.Options), r.Overrides)
+		pendingPreset := !resolved && effective.Preset != ""
+		if !pendingPreset && effective.Attribution == "diarize" && !models.ValidateReference(effective.DiarizationModelID) {
 			return r, contracts.Fail("invalid_request")
 		}
-		if item.Record != "" && item.Source != "" && item.Source != "<accepted>" && item.Kind != "media" && !(effective.ReplaceAudio != nil && *effective.ReplaceAudio) {
+		if !pendingPreset && SourceTranscriptAlias(*item, effective) {
 			if item.Transcript != "" || item.Subtitle != "" {
 				return r, contracts.Fail("invalid_request")
 			}
 			item.Transcript = item.Source
 			item.Source = ""
 		}
-		if err := validateReplacementItem(*item, effective); err != nil {
+		if err := validateReplacementItem(*item, effective); !pendingPreset && err != nil {
 			return r, err
 		}
 
 		if (r.Items[i].Source == "" && (r.Items[i].Record == "" || r.Items[i].Transcript == "" && r.Items[i].Subtitle == "")) || !validOptions(r.Items[i].Options) || (r.Items[i].CredentialID != "" && !contracts.ValidID(r.Items[i].CredentialID)) {
 			return r, contracts.Fail("invalid_request")
 		}
-		if hasRemoteScheme(r.Items[i].Source) {
+		if !pendingPreset && hasRemoteScheme(r.Items[i].Source) {
 			if _, e := contracts.SourceURL(r.Items[i].Source); e != nil {
 				return r, e
 			}
@@ -329,7 +363,7 @@ func PrepareImport(r ImportRequest) (ImportRequest, error) {
 		if item.AcceptedReceipt != "" && (!contracts.ValidID(item.AcceptedReceipt) || item.Source != "<accepted>") {
 			return r, contracts.Fail("invalid_request")
 		}
-		if hasRemoteScheme(item.Transcript) {
+		if !pendingPreset && hasRemoteScheme(item.Transcript) {
 			if _, e := contracts.SourceURL(item.Transcript); e != nil {
 				return r, e
 			}
@@ -338,7 +372,7 @@ func PrepareImport(r ImportRequest) (ImportRequest, error) {
 			}
 		}
 
-		if r.Items[i].Timezone == "local" {
+		if resolved && r.Items[i].Timezone == "local" {
 			// A per-item local policy captures the host, independently of explicit batch policy.
 			r.Items[i].TimezoneImplicit = true
 			r.Items[i].Timezone = capture()
@@ -395,4 +429,9 @@ func CaptureDateOptions(o Options) Options {
 		}
 	}
 	return o
+}
+
+// SourceTranscriptAlias identifies the existing-record source-as-transcript form.
+func SourceTranscriptAlias(item Item, options Options) bool {
+	return item.Record != "" && item.Source != "" && item.Source != "<accepted>" && item.Kind != "media" && !(options.ReplaceAudio != nil && *options.ReplaceAudio)
 }

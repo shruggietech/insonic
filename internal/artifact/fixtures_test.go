@@ -6,9 +6,12 @@ package artifact
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/workspace"
 	"os"
 	"testing"
 )
@@ -69,4 +72,31 @@ func TestGenericS3ArtifactContract(t *testing.T) {
 			t.Fatalf("S3 retirement %+v %v", p, e)
 		}
 	}
+	// A saved destination must route through its own immutable S3 profile while
+	// the workspace default remains a filesystem store.
+	route := testService(t)
+	profile := workspace.Profile{ID: contracts.ID(), Revision: 1, Adapter: "s3", Version: contracts.Version, Configuration: map[string]any{"endpoint": "http://" + endpoint, "bucket": bucket, "region": "us-east-1", "addressing_style": "path", "authentication": "anonymous"}}
+	options, _ := json.Marshal(map[string]any{"destination": profile})
+	if _, e = route.Catalog.MutateImportPreset(context.Background(), contracts.ID(), "create", 0, catalog.ImportPreset{Kind: "import-preset", Version: contracts.Version, ID: contracts.ID(), Name: "S3 election", Options: options}); e != nil {
+		t.Fatal(e)
+	}
+	p, e := route.PublishTo(context.Background(), profile, contracts.ID(), bytesFile(t, []byte("routed S3 bytes")).Name(), "other")
+	if e != nil {
+		t.Fatal(e)
+	}
+	materialized, e := route.Materialize(context.Background(), p.ID)
+	if e != nil {
+		t.Fatal(e)
+	}
+	got, e := os.ReadFile(materialized.Path)
+	if e != nil || string(got) != "routed S3 bytes" || p.ProfileID != profile.ID {
+		t.Fatal("preset S3 route", p, e)
+	}
+	if e = route.Release(context.Background(), p.ID, materialized.Lease.ID); e != nil {
+		t.Fatal(e)
+	}
+	if _, e = route.Retire(context.Background(), p.ID); e != nil {
+		t.Fatal(e)
+	}
+
 }

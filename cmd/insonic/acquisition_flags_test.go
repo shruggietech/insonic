@@ -16,7 +16,7 @@ func TestAcquisitionCLITransportAndResourceOptions(t *testing.T) {
 		t.Fatal(e)
 	}
 	var req library.ImportRequest
-	if json.Unmarshal(raw, &req) != nil || req.Defaults.LocalHTTP == nil || !*req.Defaults.LocalHTTP || req.Defaults.AcquisitionMaxBytes == nil || *req.Defaults.AcquisitionMaxBytes != 1024 || req.Defaults.AcquisitionTimeoutMS == nil || *req.Defaults.AcquisitionTimeoutMS != 5000 {
+	if json.Unmarshal(raw, &req) != nil || req.Overrides.LocalHTTP == nil || !*req.Overrides.LocalHTTP || req.Overrides.AcquisitionMaxBytes == nil || *req.Overrides.AcquisitionMaxBytes != 1024 || req.Overrides.AcquisitionTimeoutMS == nil || *req.Overrides.AcquisitionTimeoutMS != 5000 {
 		t.Fatal(string(raw))
 	}
 	for _, args := range [][]string{

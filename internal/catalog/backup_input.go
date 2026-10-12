@@ -28,7 +28,7 @@ func PortableFileDigest(value string) (string, bool) {
 
 func portableProcessingPayload(w Work) (json.RawMessage, bool, error) {
 	switch w.Kind {
-	case "recordings.process", "models.ensure", "models.train", "recordings.match", "portable.configuration":
+	case "media.import", "media.refresh", "recordings.process", "models.ensure", "models.train", "recordings.match", "portable.configuration":
 	default:
 		return w.Payload, false, nil
 	}
@@ -98,7 +98,7 @@ func portableProcessingPayload(w Work) (json.RawMessage, bool, error) {
 					delete(x, key)
 					continue
 				}
-				if key == "context" && location == "/election" && w.Kind != "portable.configuration" {
+				if key == "context" && strings.HasSuffix(location, "/election") && w.Kind != "portable.configuration" {
 					if c, ok := item.(map[string]any); ok {
 						if _, compiled := c["joined"]; compiled {
 							x[key] = map[string]any{}

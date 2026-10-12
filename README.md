@@ -15,7 +15,7 @@ Organize audio and video, correlate subtitles and speakers, and explore what was
 
 ## Documentation
 
-Read the [v1.0.0 system contracts](docs/v1.0.0/index.md), [technology decisions](docs/v1.0.0/technology.md) and [delivery outcomes](docs/v1.0.0/roadmap.md). The documentation index identifies candidate and publication status.
+Read the [v1.0.1 system contracts](docs/v1.0.1/index.md), [technology decisions](docs/v1.0.1/technology.md) and [delivery outcomes](docs/v1.0.1/roadmap.md). The documentation index identifies candidate and publication status.
 
 ## Capabilities
 

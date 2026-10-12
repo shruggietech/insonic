@@ -135,8 +135,18 @@ async function qualifyJourney(
     await new Promise((resolve) => setTimeout(resolve, 20));
   };
   const flags: Obj = {};
+  const initialJobs=await call('work.list','',{limit:100});const initialImportIDs=new Set(initialJobs.items.filter((j:Obj)=>j.kind==='media.import').map((j:Obj)=>j.work_id??j.id));
   stage('Wait for mounted Library initialization');
   await idle();
+  await bridge.QualificationStep?.('import-presets');
+  await click('Import presets');await fill('Preset name','Qualification import');await fill('Preset timezone','UTC');await click('Create preset');
+  const savedPresets=await call('import-presets.list','',{limit:100});const savedPreset=savedPresets.items.find((p:Obj)=>p.name==='Qualification import');
+  if(!savedPreset?.id)throw new Error('Mounted preset did not persist.');
+  await fill('Preset timezone','Europe/London');await click('Save preset');
+  const editedPreset=await call('import-presets.show','',{selection:savedPreset.id});
+  if(editedPreset.revision<=savedPreset.revision||editedPreset.options.timezone!=='Europe/London')throw new Error('Mounted preset update did not persist.');
+  flags.ui_import_presets='passed';
+  await click('Library');await fill('Saved import preset',savedPreset.id);
   const distinctLabel = [...document.querySelectorAll('label')].find(
     (l) => l.textContent === 'Create a distinct library entry for this source',
   );
@@ -265,6 +275,9 @@ async function qualifyJourney(
     }
   }
   flags.ui_library_import = 'passed';
+  const importJobs=await call('work.list','',{limit:100});for(const j of importJobs.items.filter((j:Obj)=>j.kind==='media.import'&&!initialImportIDs.has(j.work_id??j.id))){const shown=await call('work.show',j.id??j.work_id);if(!shown.result?.items?.every((i:Obj)=>i.selection?.preset_id===savedPreset.id&&i.selection.options.timezone==='Europe/London'))throw new Error('Mounted import preset selection missing: '+JSON.stringify({work:j.work_id??j.id,keys:Object.keys(shown),result:shown.result,expected:savedPreset.id}));}
+  await click('Import presets');await click('Edit Qualification import');await click('Delete preset');const remaining=await call('import-presets.list','',{limit:100});if(remaining.items.some((p:Obj)=>p.id===savedPreset.id))throw new Error('Mounted preset deletion failed.');
+  await click('Library');
   await bridge.QualificationStep?.('terms');
   await click('Terms');
   await fill('Canonical term', 'Qualification terminology');

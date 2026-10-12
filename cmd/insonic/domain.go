@@ -16,6 +16,7 @@ import (
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/library"
 	"github.com/shruggietech/insonic/internal/models"
+	"github.com/shruggietech/insonic/internal/workspace"
 )
 
 type domainFlags struct {
@@ -57,6 +58,10 @@ func parseFlags(args []string) ([]string, domainFlags, error) {
 		}
 		f.seen[key] = true
 		switch arg {
+		case "--no-pipeline":
+			value := ""
+			f.options.PipelineID = &value
+			continue
 		case "--replace-audio":
 			yes := true
 			f.options.ReplaceAudio = &yes
@@ -93,6 +98,21 @@ func parseFlags(args []string) ([]string, domainFlags, error) {
 			return nil, f, contracts.Fail("invalid_request")
 		}
 		switch arg {
+		case "--pipeline-id":
+			if !contracts.ValidID(value) {
+				return nil, f, contracts.Fail("invalid_request")
+			}
+			f.options.PipelineID = &value
+		case "--destination-profile":
+			raw, e := readStructuredInput(value)
+			if e != nil {
+				return nil, f, e
+			}
+			var p workspace.Profile
+			if json.Unmarshal(raw, &p) != nil {
+				return nil, f, contracts.Fail("invalid_request")
+			}
+			f.options.Destination = &p
 		case "--known-speaker":
 			f.options.KnownSpeakers = append(f.options.KnownSpeakers, value)
 		case "--existing-transcript":
@@ -205,6 +225,9 @@ func parseFlags(args []string) ([]string, domainFlags, error) {
 		default:
 			return nil, f, contracts.Fail("invalid_request")
 		}
+	}
+	if f.seen["--no-pipeline"] && f.seen["--pipeline-id"] {
+		return nil, f, contracts.Fail("invalid_request")
 	}
 	if f.options.OriginatedAt != "" && f.options.OriginatedOn != "" {
 		return nil, f, contracts.Fail("invalid_request")
@@ -399,7 +422,7 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 		return operation, positional[0], nil, nil
 	}
 	if command == "import" {
-		allowed := append(append([]string{}, dateFlags...), "copy-choice", "--manifest", "transcript-choice", "--title", "--credential-id", "--acquisition-adapter", "--local-http", "--acquisition-max-bytes", "--acquisition-timeout-ms", "--new-entry", "--preset")
+		allowed := append(append([]string{}, dateFlags...), "copy-choice", "--manifest", "transcript-choice", "--title", "--credential-id", "--acquisition-adapter", "--local-http", "--acquisition-max-bytes", "--acquisition-timeout-ms", "--new-entry", "--preset", "--pipeline-id", "--no-pipeline", "--destination-profile")
 		allowed = append(allowed, transcriptFlags...)
 		allowed = append(allowed, "--known-speaker", "--replace-audio", "--existing-transcript", "--transcript-applies", "--existing-roster")
 		if !flagsAllowed(f, allowed...) || f.manifest != "" && len(positional) > 0 || f.manifest == "" && len(positional) == 0 {
@@ -420,7 +443,7 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 				req.Items = append(req.Items, library.Item{Source: absolute})
 			}
 		}
-		overrideOptions(&req.Defaults, f.options)
+		req.Overrides = library.MergeOptions(req.Overrides, f.options)
 		subtitle := f.subtitle
 		if subtitle != "" {
 			subtitle, e = absoluteSource(subtitle)
@@ -464,7 +487,13 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 				item.NewEntry = true
 			}
 		}
-		req, e = library.PrepareImport(req)
+		validation := req
+		validation.Items = append([]library.Item(nil), req.Items...)
+		validation.Defaults = library.MergeOptions(req.Defaults, req.Overrides)
+		for i := range validation.Items {
+			validation.Items[i].Options = library.MergeOptions(validation.Items[i].Options, req.Overrides)
+		}
+		e = library.ValidateImportInput(validation)
 		if e != nil {
 			return "", "", nil, e
 		}
@@ -475,16 +504,16 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 		return fail()
 	}
 	id := positional[0]
-	if command == "refresh" && len(positional) == 1 && flagsAllowed(f, append(append([]string{}, dateFlags...), "--preset")...) {
+	if command == "refresh" && len(positional) == 1 && flagsAllowed(f, append(append([]string{}, dateFlags...), "--preset", "--pipeline-id", "--no-pipeline", "--destination-profile")...) {
 		// Validate effective option enums using the same shared import contract.
-		if _, e = library.PrepareImport(library.ImportRequest{Defaults: f.options, Items: []library.Item{{Source: "validation"}}}); e != nil {
+		if e = library.ValidateImportInput(library.ImportRequest{Defaults: f.options, Items: []library.Item{{Source: "validation"}}}); e != nil {
 			return "", "", nil, e
 		}
 		data, e := payload(f.options)
 		return operation, id, data, e
 	}
 	if command == "set-origin" && len(positional) == 1 && f.revision > 0 && flagsAllowed(f, append(append([]string{}, dateFlags...), "--revision")...) && (f.options.OriginatedAt != "" || f.options.OriginatedOn != "" || f.options.OriginatedEarliest != nil || f.options.OriginatedLatest != nil) {
-		if _, e = library.PrepareImport(library.ImportRequest{Defaults: f.options, Items: []library.Item{{Source: "validation"}}}); e != nil {
+		if e = library.ValidateImportInput(library.ImportRequest{Defaults: f.options, Items: []library.Item{{Source: "validation"}}}); e != nil {
 			return "", "", nil, e
 		}
 		data, e := payload(struct {

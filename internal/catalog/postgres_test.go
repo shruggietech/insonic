@@ -192,3 +192,5 @@ func TestPostgreSQLCompositeAdmission(t *testing.T) {
 }
 
 func TestPostgreSQLDeclaredRosters(t *testing.T) { rosterSuite(t, postgresStore(t, contracts.ID())) }
+
+func TestPostgreSQLImportPresets(t *testing.T) { importPresetSuite(t, postgresStore) }

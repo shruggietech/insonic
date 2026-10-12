@@ -15,13 +15,13 @@ import uuid
 from process_tree import ProcessTree
 
 
-def qualify(executable, workspace, *, env=None, cwd=None):
+def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
     executable, workspace = Path(executable), Path(workspace)
     environment = os.environ.copy()
     environment.update(env or {})
     version = (Path(__file__).resolve().parents[1] / 'VERSION').read_text().strip()
 
-    def invoke(args, *, expected=0, input=None, scoped=True, machine=True, workspace_path=None):
+    def invoke(args, *, expected=0, input=None, scoped=True, machine=True, workspace_path=None, execution_environment=None):
         correlation_id = str(uuid.uuid4())
         argv = [str(executable), '--request-id', correlation_id]
         if machine:
@@ -29,7 +29,7 @@ def qualify(executable, workspace, *, env=None, cwd=None):
         if scoped:
             argv += ['--workspace', str(workspace_path or workspace)]
         argv += [str(a) for a in args]
-        with ProcessTree(argv, cwd=cwd or workspace, env=environment,
+        with ProcessTree(argv, cwd=cwd or workspace, env=execution_environment if execution_environment is not None else environment,
                          allow_detached=scoped, input_pipe=input is not None) as tree:
             stdout, stderr = tree.process.communicate(input=input, timeout=35)
             code = tree.process.returncode
@@ -216,13 +216,33 @@ def qualify(executable, workspace, *, env=None, cwd=None):
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
+    documented = {'state': 'not-included', 'reason': 'source CLI lane; required in extracted packages'}
+    if documentation:
+        from documented_workflows import qualify as qualify_documentation
+        # Exercise a post-install workspace against owned loopback adapter fixtures.
+        # The main qualification runtime keeps CI markers and all production refusal
+        # gates; no inference engine is selected or initialized in this workspace.
+        documented_workspace = workspace / 'isolated documented workflows'
+        fixture_environment = dict(environment)
+        for marker in ['CI', 'GITHUB_ACTIONS', 'TF_BUILD', 'BUILD_BUILDID', 'JENKINS_URL']:
+            fixture_environment.pop(marker, None)
+        invoke(['workspace', 'init', documented_workspace], scoped=False)
+        def documented_invoke(args, **kwargs):
+            return invoke(args, workspace_path=documented_workspace,
+                          execution_environment=fixture_environment, **kwargs)
+        def documented_supplied(args, value):
+            path = documented_workspace / 'documented request.json'
+            path.write_text(json.dumps(value) + '\n', encoding='utf-8', newline='\n')
+            return documented_invoke([*args, '--input', path])
+        documented = qualify_documentation(documented_invoke, documented_supplied, documented_workspace, version)
+        # Package smoke's existing bounded idle-owner cleanup covers this workspace too.
     input_file.unlink(missing_ok=True)
     for path in [logfile, Path(str(logfile) + '.1'), Path(str(logfile) + '.2')]:
         if path.exists():
             logged = path.read_text(encoding='utf-8')
             if len(logged.encode('utf-8')) > 1 << 20 or any(value in logged for value in [secret['passphrase'], secret['value'], 'wrong-fixture-passphrase', str(workspace)]):
                 raise ValueError('Diagnostic log retained protected or arbitrary input')
-    return {'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
+    return {'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
             'protected_vault_delete': 'passed', 'typed_failures': failures,
             'operator_feedback': 'passed', 'cold_startup_failure': 'passed', 'detached_owner': 'passed',
             'model_roles_leases': 'passed', 'diagnostic_redaction': 'passed'}

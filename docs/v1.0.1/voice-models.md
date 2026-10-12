@@ -47,8 +47,9 @@ insonic work cancel WORK_ID --json
 
 For example, `dataset.json` supplies `speaker_id` and an optional `recipe`. A saved-profile training election supplies `dataset_id`, `name`, `pipeline_id` and `pipeline_revision`. An inline election instead supplies `adapter` and `output_kind`, with optional `base_model_id`, `parameters`, existing `family_id` and an exact `checkpoint_id`. The rendered [JSON contracts](contracts.md) define each strict payload.
 
-An executable dataset input shape is:
+Save the following as `dataset.json`, replacing the speaker UUID with the existing identity from `speakers list`:
 
+<!-- executable-example: dataset.json -->
 ```json
 {
   "speaker_id": "11111111-1111-4111-8111-111111111111",
@@ -56,8 +57,9 @@ An executable dataset input shape is:
 }
 ```
 
-For local embedding enrollment, replace the illustrative UUIDs with a current dataset and registered compatible base bundle. The configured processing worker must be pinned and available:
+For local embedding enrollment, replace the illustrative UUIDs with a current dataset and registered compatible base bundle. The configured processing worker must be pinned and available. Save this as `training.json`:
 
+<!-- executable-example: training.json -->
 ```json
 {
   "dataset_id": "22222222-2222-4222-8222-222222222222",
@@ -117,3 +119,67 @@ Required checks use deterministic adapters, scores and supplied evidence, plus b
 ## Dataset preparation readiness
 
 Dataset list/show/create responses expose `readiness`: `empty` for a current dataset without current references, `ready_for_preparation` for a current nonempty dataset, and `invalidated` after its evidence changes. Preparation readiness does not prove usable clips, required text, training completion or acoustic quality. Empty-dataset training remains rejected. Inspect independent current speaker mappings and elected recipe/context filters, then create a dataset from the intended evidence; invalidated datasets require a new current selection.
+
+## Complete filters and profile inputs
+
+Save `speaker-filter.json` with the existing speaker ID from `speakers list`. It is shared by dataset and trained-version lists.
+
+<!-- executable-example: speaker-filter.json -->
+```json
+{
+  "speaker_id": "11111111-1111-4111-8111-111111111111",
+  "limit": 25
+}
+```
+
+After training finishes, `work show` returns the exact model version ID. `models list --speaker SPEAKER_ID` reports the current profile revision. Save `profile.json` with that revision and exact version. Zero is valid only when no profile has previously been selected. An empty `version_id` clears the current profile.
+
+<!-- executable-example: profile.json -->
+```json
+{
+  "expected_revision": 0,
+  "version_id": "44444444-4444-4444-8444-444444444444"
+}
+```
+
+```sh
+insonic models profile set SPEAKER_ID --input profile.json --json
+insonic models speaker fetch VERSION_ID --destination MODEL_DIRECTORY --json
+```
+
+Fetch returns the verified output manifest and destination files, or an explicit unavailable-weights result for a hosted-only version. Dataset creation prepares references; it does not perform training. The training example requires a current valid dataset and an available compatible worker/base bundle. Required qualification uses deterministic worker replies and makes no model accuracy claim.
+## Hosted training input example
+
+Save `training-hosted.json`, replacing the dataset UUID returned by `models dataset create`, endpoint and immutable remote model revision. The endpoint must implement `insonic-speaker`, and the declared output kind/architecture must match its response. This example elects training explicitly and uploads prepared current evidence; it creates no local inference environment.
+
+<!-- executable-example: training-hosted.json -->
+```json
+{
+  "dataset_id": "22222222-2222-4222-8222-222222222222",
+  "name": "Current speaker weights",
+  "output_kind": "weights",
+  "adapter": {
+    "id": "insonic-speaker",
+    "contract_version": "1",
+    "mode": "hosted",
+    "architecture": "custom",
+    "output_kinds": [
+      "weights"
+    ],
+    "consumers": [
+      "custom"
+    ],
+    "supported_operations": [
+      "custom-inference"
+    ],
+    "endpoint": "http://127.0.0.1:8001/train",
+    "remote_model": "configured-trainer",
+    "upstream_revision": "immutable-revision"
+  }
+}
+```
+
+```sh
+insonic models train --input training-hosted.json --json
+insonic work wait WORK_ID --json
+```

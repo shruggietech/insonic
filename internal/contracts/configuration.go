@@ -4,7 +4,8 @@ package contracts
 // ConfigurationOperation identifies shared pipeline, speaker and term operations.
 func ConfigurationOperation(operation string) bool {
 	switch operation {
-	case "pipelines.list", "pipelines.show", "pipelines.set", "pipelines.inspect",
+	case "import-presets.create","import-presets.list","import-presets.show","import-presets.update","import-presets.delete",
+ "pipelines.list", "pipelines.show", "pipelines.set", "pipelines.inspect",
 		"speakers.list", "speakers.show", "speakers.set", "speakers.aliases", "speakers.select", "speakers.diagnostics",
 		"terms.list", "terms.show", "terms.set", "terms.compile":
 		return true
@@ -19,7 +20,10 @@ func ConfigurationRequestValid(req Request) bool {
 		return false
 	}
 	switch req.Operation {
-	case "pipelines.list", "speakers.list", "terms.list":
+	case "import-presets.list", "import-presets.create", "import-presets.show":
+ return req.ItemID==""&&(req.Operation=="import-presets.list"||len(req.Data)>0)
+ case "import-presets.update","import-presets.delete":return ValidID(req.ItemID)&&len(req.Data)>0
+ case "pipelines.list", "speakers.list", "terms.list":
 		return req.ItemID == ""
 	case "terms.compile":
 		return req.ItemID == ""

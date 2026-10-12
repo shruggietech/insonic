@@ -6,9 +6,9 @@ The application is CLI-first. Every core capability has an automation-ready CLI 
 
 Advanced or experimental CLI capabilities may ship before their GUI controls. Each release documents that lag in its capability matrix, including the CLI command, current GUI availability and its follow-up outcome. This exception does not turn mature core operations into permanent CLI-only features. Speaker-model dataset, training, discovery, retrieval, profile selection and matching controls use the same shared operations as the CLI.
 
-CLI groups are `workspace`, `media`, `pipelines`, `jobs`, `speakers`, `terms`, `search`, `query`, `export`, `models`, `settings` and `doctor`. Human output is concise; `--json` provides versioned machine-readable records, diagnostics go to stderr, and exit statuses distinguish failure and partial completion. Noninteractive invocations never prompt. Secret entry uses a protected input channel, not command-line values.
+CLI groups include `workspace`, `media`, `import-presets`, `transcript`, `recordings`, `pipelines`, `work`, `jobs`, `speakers`, `terms`, `search`, `query`, `export`, `models`, `settings` and `doctor`. Human output is concise; `--json` provides versioned machine-readable records, diagnostics go to stderr, and exit statuses distinguish failure and partial completion. Noninteractive invocations never prompt. Secret entry uses a protected input channel, not command-line values.
 
-The source-buildable desktop exposes Library, Jobs, Pipelines, Speakers, Terms, Models, Explore and Settings screens. The native bridge uses the same workspace/runtime requests and protected credential channel as the CLI. Library details support captured metadata, date corrections, reference relocation, explicit audio replacement and transcript policies, initial/current declared rosters, current recording assembly/processing, inspection, rerun, native export and known-speaker mappings. See [subtitles](subtitles.md), [pipelines](pipelines.md), [credential commands](secrets.md), [downloaded models](models.md) and [import](ingestion.md) for shared validation and executable operations.
+The desktop exposes Library, Import presets, Jobs, Pipelines, Speakers, Terms, Models, Explore and Settings screens. The native bridge uses the same workspace/runtime requests and protected credential channel as the CLI. Library details support captured metadata, date corrections, reference relocation, explicit audio replacement and transcript policies, initial/current declared rosters, current recording assembly/processing, inspection, rerun, native export and known-speaker mappings. See [subtitles](subtitles.md), [pipelines](pipelines.md), [credential commands](secrets.md), [downloaded models](models.md) and [import](ingestion.md) for shared validation and executable operations.
 
 | Capability | CLI | Desktop |
 | --- | --- | --- |
@@ -26,54 +26,51 @@ The source-buildable desktop exposes Library, Jobs, Pipelines, Speakers, Terms, 
 | Roster-constrained matching of current voices | Matching-only command | Library controls and bounded outcome pages |
 | Complete portable backups, reference-only retention and verified empty-target restore | Advanced offline `backup` commands | CLI maintenance availability; dedicated backup controls follow |
 
-The matrix describes implemented interfaces, not an official product release. Dedicated profile migration controls follow catalog migration/backup delivery; saving an appearance or tool setting does not replace storage/catalog configuration.
+The matrix describes the interfaces in this documentation version. Dedicated profile migration controls follow catalog migration/backup delivery; saving an appearance or tool setting does not replace storage/catalog configuration.
 
 Model selectors distinguish registered declarations from verified availability, and show aliases, exact versions and compatibility. Missing compatible selections acquire before elected processing; Jobs exposes acquisition dependencies and failure rather than claiming inference has completed. Models discovers trained outputs by speaker, fetches an exact version and selects or clears its current profile with a displayed revision. Speakers accepts explicit adapter configuration or a saved training profile at an exact revision. Source configuration remains an advanced structured input; it never silently guesses download URLs.
 
 The following examples illustrate the product contracts; consult each capability page for complete input files and current executable command syntax:
 
 ```sh
-insonic workspace create --path PATH
+insonic workspace init PATH
 insonic media import FILE --copy
 insonic media import FILE --copy --originated-at "2024-06-08T14:30:00" --timezone America/New_York
 insonic media import FILE --copy --originated-on 2024-06-08
 insonic media import --manifest imports.json
-insonic media attach-subtitle MEDIA_ID SUBTITLE_FILE
-insonic jobs list --json
+insonic transcript import SUBTITLE_FILE --record MEDIA_ID
+insonic work list --json
 insonic search "sample phrase" --json
 insonic models dataset create --input dataset.json
 insonic models train --input training.json
-insonic models speaker list --speaker SPEAKER_ID
+insonic models list --speaker SPEAKER_ID
 insonic models speaker show MODEL_VERSION_ID
-insonic models fetch MODEL_VERSION_ID --output MODEL_DIRECTORY
+insonic models speaker fetch MODEL_VERSION_ID --destination MODEL_DIRECTORY
 ```
 
-`--originated-at` accepts a date and time; `--timezone` accepts an IANA zone, UTC or a numeric UTC offset. An unzoned supplied time uses the captured local IANA zone for that import. `--originated-on` records date-only precision and does not invent midnight or an exact instant. CSV and JSON batch manifests carry per-item source paths, date precision, zone and metadata overrides; command-level values are defaults and item values take precedence. The default date precedence is owner-supplied value, valid zoned embedded value, explicitly timezone-interpreted embedded value with its assumption recorded, then unknown. File modification time is never silently treated as origination time. `--date-precedence` selects a saved rule when another ordering is useful.
+`--originated-at` accepts a date and time; `--timezone` accepts an IANA zone, UTC or a numeric UTC offset. An unzoned supplied time uses the captured local IANA zone for that import. `--originated-on` records date-only precision and does not invent midnight or an exact instant. CSV and JSON batch manifests carry per-item source paths, date precision, zone and metadata overrides; saved preset values are overridden by manifest defaults, then per-item fields, then explicit CLI flags. The default date precedence is owner-supplied value, valid zoned embedded value, explicitly timezone-interpreted embedded value with its assumption recorded, then unknown. File modification time is never silently treated as origination time. `--date-precedence` accepts `owner-first`, `embedded-first` or `filesystem-fallback`.
 
-Repeated daylight-saving wall times accept an explicit offset or `--dst-fold earlier|later`. Nonexistent wall times require a corrected date or explicit `--dst-gap shift-forward` policy. The media is still admitted with that date observation marked unresolved until disambiguated. Batch jobs continue with unaffected items; noninteractive commands return a partial-completion status and actionable JSON without prompting. Missing or unusable embedded dates never block admission. Media inspection exposes the chosen recording time, precision, zone, source and competing metadata observations so corrections are understandable and reversible. See [import, metadata and dates](ingestion.md).
+Repeated daylight-saving wall times accept an explicit offset or `--dst-fold earlier|later`. Nonexistent wall times require a corrected date or explicit `--dst-gap shift-forward` policy. The media is still admitted with that date observation marked unresolved until disambiguated. Batch jobs continue with unaffected items; work succeeds when every admission succeeds, while `result.partial: true` and per-item date states disclose unresolved observations. Failed admissions make `work wait` return exit 1. Missing or unusable embedded dates never block admission. Media inspection exposes the chosen recording time, precision, zone, source and competing metadata observations so corrections are understandable and reversible. See [import, metadata and dates](ingestion.md).
 
 ## First-run experience
 
-1. Choose the workspace location.
-2. Add audio or video.
-3. Capture metadata and any supplied origination dates.
-4. Attach subtitles if available.
-5. Choose local or connected processing.
-6. Explain the required model downloads and storage.
-7. Process with progress, pause and cancellation controls.
-8. Explore transcripts, speakers, the timeline and queries.
+1. Initialize or open a workspace, then add audio/video and any supplied transcript.
+2. Inspect captured metadata and enter known recording dates; resolve ambiguous wall times only when a concrete interpretation is needed.
+3. Save reusable destination/date choices in Import presets. Leave processing empty for admission-only work.
+4. For processing, configure a Local, Connected or Custom pipeline with the actual installed local tools/models or a compatible HTTP worker. [Pipelines](pipelines.md) supplies complete input files and readiness requirements.
+5. Select that pipeline in the import preset, or process an existing recording from Library. Watch admission and processing separately in Jobs, then explore current text and evidence.
 
-Default screens use task names such as Transcription, Speakers and Query assistance. Explain models and servers only when the user needs to choose one. Recommend a hardware-appropriate local preset, show download size, and allow an override. Provider setup tests configuration with a small appropriate request and reports whether it succeeded; it never uploads library contents just to test a key.
+Hardware recommendations, managed local worker installation and a guided provider setup wizard are not implemented in this version. Current pipeline inspection validates declared configuration and reports endpoints as not probed. Use the existing explicit configuration operations; local inference environments and weights remain operator-configured.
 
 Selecting a preset and its routing preferences authorizes its routine operations. Imports, derivative generation, configured speaker attribution and jobs proceed without per-item approval dialogs. Electing a speaker-training workflow authorizes its saved selection and destination rules; corpus qualification and model validation are automated checks. Users can inspect or override results, and an error pauses only the affected work. New external destinations, unresolved dates and previously unauthorized destructive effects explain the concrete decision that needs input.
 
 ## Desktop surfaces
 
-The Library accepts audio and video inputs and retains canonical audio with import/indexing state. Media details contain playback, captured metadata, date provenance, transcript tracks, speaker intervals, related derivatives and processing history. Raw metadata remains inspectable beside normalized facts. Jobs show current stage, elapsed time and the next useful action on failure. Speakers and Terms expose the catalogs without requiring schema knowledge; speaker details include source-linked audio corpora and revisions. Explore contains text search, the calendar/media timeline and saved graph queries. Settings contains workspaces, storage/catalog/graph adapters, model storage, providers and pipeline presets.
+The Library accepts audio and video inputs and retains canonical audio with import/indexing state. Media details contain playback, captured metadata, date provenance, transcript tracks, speaker intervals, related derivatives and processing history. Raw metadata remains inspectable beside normalized facts. Jobs show current stage, elapsed time and the next useful action on failure. Speakers and Terms expose the catalogs without requiring schema knowledge; speaker details include source-linked audio corpora and revisions. Explore contains text search, the calendar/media timeline and saved graph queries. Settings shows current workspace profiles and edits appearance, tool overrides and model references. Import presets and Pipelines have separate management screens. Profile migration remains an advanced CLI operation.
 
 AI query assistance shows proposed read-only queries by default. An explicit `mode: "auto-run"` request or saved auto-run preference can execute suggestions after parsing, read-only validation and configured limits. This preference avoids repeated confirmation while retaining direct queries when assistance is disabled. Invalid or unsupported suggestions report their error without execution.
 
-Progress distinguishes decoding, model download, inference, subtitle publication and graph indexing. Closing the window does not silently cancel durable jobs. Users can keep work running, pause future work or cancel selected jobs. Runtime restarts show interrupted attempts explicitly and offer resumable work.
+Progress distinguishes decoding, model download, inference, subtitle publication and graph indexing. Closing the window does not silently cancel durable jobs. Users can keep work running, cancel selected jobs and retry interrupted durable operations. Runtime restarts show interrupted attempts explicitly and offer resumable work.
 
 Failed or interrupted supplied-turn assembly requires resubmitting its transient inputs through the Library assembly controls. Jobs explains this action; generic retry does not reconstruct unsaved turn inputs. Durable import, processing and model-acquisition work retains its shared retry behavior.
 
@@ -91,7 +88,7 @@ Settings displays effective packaged tools read-only. Selecting “Edit explicit
 
 Windows requires the Microsoft Visual C++ runtime; the desktop variant also requires WebView2. Linux requires Perl; its desktop variant also requires GTK 3, WebKitGTK 4.1 and GStreamer base/good/bad/libav decoder packages for webview playback (`gstreamer1.0-plugins-base`, `gstreamer1.0-plugins-good`, `gstreamer1.0-plugins-bad` and `gstreamer1.0-libav` on Ubuntu). Its installation helper installs the application launcher. The macOS application targets macOS 13.3 or newer. Other architecture combinations have no executed package claim. Local inference Python environments and model weights remain separately configured downloads.
 
-Qualification extracts packages into relocated paths containing spaces and exercises CLI, media import, Cueson and offline help, plus the actual native webview for desktop variants. Configured publisher signing/notarization runs before final hashes; an unconfigured identity is recorded explicitly without a signed claim. Packages include the exact owned media-companion source closure and build material. Package construction is separate from official release publication; the development baseline is not promoted as an official download.
+Qualification extracts packages into relocated paths containing spaces and exercises CLI, media import, Cueson and offline help, plus the actual native webview for desktop variants. Configured publisher signing/notarization runs before final hashes; an unconfigured identity is recorded explicitly without a signed claim. Packages include the exact owned media-companion source closure and build material. Package construction and qualification precede publication of each release.
 
 ## Accessibility and offline help
 
