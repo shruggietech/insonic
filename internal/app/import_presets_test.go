@@ -29,7 +29,7 @@ func savedImportPreset(t *testing.T, a *App, options any) catalog.ImportPreset {
 }
 func TestImportPresetSharedPrecedenceAndReadiness(t *testing.T) {
 	a := configuredApp(t)
-	profile := workspace.Profile{ID: contracts.ID(), Revision: 1, Adapter: "filesystem", Version: contracts.Version, Configuration: map[string]any{"root": t.TempDir()}}
+	profile := workspace.Profile{ID: contracts.ID(), Revision: 1, Adapter: "filesystem", Version: contracts.Version, Configuration: map[string]any{"root": filepath.Join(t.TempDir(), "private-artifacts")}}
 	p := savedImportPreset(t, a, map[string]any{"timezone": "America/New_York", "date_precedence": "owner-first", "copy": true, "destination": profile})
 	configuredResult(t, realRequest(a, "import-presets.show", "", map[string]any{"selection": "Daily"}))
 	configuredResult(t, realRequest(a, "import-presets.list", "", nil))
@@ -64,7 +64,7 @@ func TestImportPresetSharedPrecedenceAndReadiness(t *testing.T) {
 	if len(after) != len(before) {
 		t.Fatal("failed readiness queued work")
 	}
-	newProfile := workspace.Profile{ID: contracts.ID(), Revision: 1, Adapter: "filesystem", Version: contracts.Version, Configuration: map[string]any{"root": t.TempDir()}}
+	newProfile := workspace.Profile{ID: contracts.ID(), Revision: 1, Adapter: "filesystem", Version: contracts.Version, Configuration: map[string]any{"root": filepath.Join(t.TempDir(), "private-artifacts")}}
 	if _, e = a.freezeImportSelection(library.Options{}, library.Options{Destination: &newProfile}, library.Options{}, false); e != nil {
 		t.Fatal("explicit standalone destination", e)
 	}
@@ -135,7 +135,7 @@ func TestImportPresetFrozenChildKeepsSuppliedTextAndDestination(t *testing.T) {
 	media := importRecordingFixture(t, a)
 	pipeline := contracts.ID()
 	configuredResult(t, realRequest(a, "pipelines.set", pipeline, map[string]any{"expected_revision": 0, "pipeline": map[string]any{"id": pipeline, "name": "Frozen", "preset": "local", "configuration": localDefinition()}}))
-	profile := workspace.Profile{ID: contracts.ID(), Revision: 1, Adapter: "filesystem", Version: contracts.Version, Configuration: map[string]any{"root": t.TempDir()}}
+	profile := workspace.Profile{ID: contracts.ID(), Revision: 1, Adapter: "filesystem", Version: contracts.Version, Configuration: map[string]any{"root": filepath.Join(t.TempDir(), "private-artifacts")}}
 	p := savedImportPreset(t, a, map[string]any{"pipeline_id": pipeline, "destination": profile})
 	selected, e := a.freezeImportSelection(library.Options{}, library.Options{Preset: p.ID}, library.Options{}, true)
 	if e != nil {

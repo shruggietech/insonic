@@ -36,3 +36,5 @@ Analyze mapped all 12 functional requirements to implementation tasks with no un
 ## Remote delivery
 
 Official PR, external review rounds and final-head CI are pending publication. Maximum two review rounds are authorized. The owner retains final review and squash merge authority.
+
+2026-10-12: Initial CI exposed Unix fixture roots created with public temporary-directory permissions. The three app preset fixtures now elect absent child roots, allowing the existing artifact store to create private directories. No production permission check was relaxed. Windows affected regressions pass; all-platform CI is rerun after the correction.
