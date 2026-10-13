@@ -49,9 +49,25 @@ func ReadProcessingTools(w *workspace.Workspace) (ProcessingTools, error) {
 			return tools, contracts.Fail("unavailable")
 		}
 		tools = ProcessingTools{Kind: "processing-tools", Version: contracts.Version, Cueson: defaults.Cueson,
-			Processing: processing.Config{FFmpeg: defaults.Media.FFmpeg}}
+			Processing: processing.Config{FFmpeg: defaults.Media.FFmpeg, Worker: defaults.Worker}}
 	} else if err := readBoundedConfiguration(path, &tools); err != nil {
 		return tools, err
+	}
+	if tools.PackageCompanions {
+		defaults, found, err := packageenv.Defaults()
+		if err != nil {
+			return tools, err
+		}
+		if !found {
+			return tools, contracts.Fail("unavailable")
+		}
+		media, err := ReadMediaTools(w)
+		if err != nil {
+			return tools, err
+		}
+		tools.Cueson = defaults.Cueson
+		tools.Processing.FFmpeg = media.FFmpeg
+		tools.Processing.Worker = defaults.Worker
 	}
 	if err := ValidateProcessingTools(tools); err != nil {
 		return ProcessingTools{}, err

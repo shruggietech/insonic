@@ -13,15 +13,17 @@ import (
 )
 
 type Config struct {
-	FFmpeg            library.Tool       `json:"ffmpeg,omitzero"`
-	RecognitionPython library.PinnedFile `json:"recognition_python,omitzero"`
-	DiarizationPython library.PinnedFile `json:"diarization_python,omitzero"`
-	Worker            library.PinnedFile `json:"worker,omitzero"`
-	MaxInputBytes     int64              `json:"max_input_bytes,omitempty"`
-	MaxDurationUS     int64              `json:"max_duration_us,omitempty"`
-	MaxOutputBytes    int                `json:"max_output_bytes,omitempty"`
-	TimeoutMS         int64              `json:"timeout_ms,omitempty"`
-	Threads           int                `json:"threads,omitempty"`
+	FFmpeg                 library.Tool       `json:"ffmpeg,omitzero"`
+	RecognitionPython      library.PinnedFile `json:"recognition_python,omitzero"`
+	DiarizationPython      library.PinnedFile `json:"diarization_python,omitzero"`
+	RecognitionEnvironment library.PinnedFile `json:"recognition_environment,omitzero"`
+	DiarizationEnvironment library.PinnedFile `json:"diarization_environment,omitzero"`
+	Worker                 library.PinnedFile `json:"worker,omitzero"`
+	MaxInputBytes          int64              `json:"max_input_bytes,omitempty"`
+	MaxDurationUS          int64              `json:"max_duration_us,omitempty"`
+	MaxOutputBytes         int                `json:"max_output_bytes,omitempty"`
+	TimeoutMS              int64              `json:"timeout_ms,omitempty"`
+	Threads                int                `json:"threads,omitempty"`
 }
 
 type AudioOptions struct {

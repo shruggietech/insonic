@@ -24,18 +24,21 @@ const ManifestName = "insonic-companions.json"
 type Environment struct {
 	Media  library.Tools
 	Cueson subtitles.Tool
+	Worker library.PinnedFile
 }
 
 // Manifest paths are installation-relative, except the declared OS Perl
 // prerequisite. Each actual runtime tool receives an absolute, pinned path.
 type Manifest struct {
-	Services []ServiceResource `json:"services,omitempty"`
-	Kind     string            `json:"kind"`
-	Version  string            `json:"schema_version"`
-	Platform string            `json:"platform"`
-	Media    library.Tools     `json:"media"`
-	Cueson   subtitles.Tool    `json:"cueson"`
-	Perl     bool              `json:"system_perl,omitempty"`
+	Worker          *library.PinnedFile  `json:"worker,omitempty"`
+	WorkerResources []library.PinnedFile `json:"worker_resources,omitempty"`
+	Services        []ServiceResource    `json:"services,omitempty"`
+	Kind            string               `json:"kind"`
+	Version         string               `json:"schema_version"`
+	Platform        string               `json:"platform"`
+	Media           library.Tools        `json:"media"`
+	Cueson          subtitles.Tool       `json:"cueson"`
+	Perl            bool                 `json:"system_perl,omitempty"`
 }
 
 var digestPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
@@ -143,6 +146,21 @@ func Read(directory string) (Environment, bool, error) {
 		return Environment{}, true, err
 	}
 	manifest.Cueson.Executable = pin.Path
+	var worker library.PinnedFile
+	if manifest.Worker != nil {
+		worker = *manifest.Worker
+		if err := resolve(&worker); err != nil {
+			return Environment{}, true, err
+		}
+	}
+	if len(manifest.WorkerResources) > 16 {
+		return Environment{}, true, contracts.Fail("invalid_request")
+	}
+	for i := range manifest.WorkerResources {
+		if err := resolve(&manifest.WorkerResources[i]); err != nil {
+			return Environment{}, true, err
+		}
+	}
 	if manifest.Perl {
 		if runtime.GOOS == "windows" {
 			return Environment{}, true, contracts.Fail("invalid_request")
@@ -167,7 +185,7 @@ func Read(directory string) (Environment, bool, error) {
 	} else if runtime.GOOS != "windows" {
 		return Environment{}, true, contracts.Fail("invalid_request")
 	}
-	return Environment{Media: manifest.Media, Cueson: manifest.Cueson}, true, nil
+	return Environment{Media: manifest.Media, Cueson: manifest.Cueson, Worker: worker}, true, nil
 }
 
 func verifyFile(path, digest string) error {

@@ -382,6 +382,11 @@ func (a *App) DispatchContext(ctx context.Context, req contracts.Request) contra
 			cleanupState["pending"] = pending
 		}
 		result = map[string]any{"paths": paths, "attempt_persistence": "durable", "storage": details, "derived_cleanup": cleanupState, "adapters": []contracts.Capability{storage, {AdapterID: a.Catalog.Backend(), ContractVersion: contracts.Version, State: "available", Operations: []string{"revisions", "jobs", "outbox", "snapshot"}}, {AdapterID: a.Workspace.Config.Profiles.Graph.Adapter, ContractVersion: contracts.Version, State: "configured", Operations: []string{}}}}
+		if ready, e := a.processingReadiness(ctx, ReadinessInput{}); e == nil {
+			result.(map[string]any)["processing_readiness"] = ready
+		} else {
+			result.(map[string]any)["processing_readiness_error"] = contracts.SafeError(e)
+		}
 	case "jobs.start":
 		result, err = a.startRequest(req.RequestID, req.DurationMS)
 	case "jobs.show", "jobs.cancel", "jobs.retry", "jobs.history":
@@ -400,7 +405,9 @@ func (a *App) DispatchContext(ctx context.Context, req contracts.Request) contra
 			result, err = a.Catalog.HistoryPage(a.ctx, req.JobID, req.AfterGeneration)
 		}
 	default:
-		if req.Operation == "query.services" || req.Operation == "query.assistance-test" {
+		if workerOperation(req.Operation) {
+			result, err = a.workerDispatch(ctx, req)
+		} else if req.Operation == "query.services" || req.Operation == "query.assistance-test" {
 			result, err = a.serviceReadiness(ctx, req)
 		} else if req.Operation == "query.assist" {
 			result, err = a.assist(ctx, req)

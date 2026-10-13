@@ -1,5 +1,7 @@
 # Brand, documentation and releases
 
+Current packages include verified optional worker catalogs, model manifests, probe code and hash locks alongside the processing worker. Python, uv, recognition/diarization libraries and model weights are separately elected downloads with declared identities and licenses; package qualification verifies this metadata without acquiring weights.
+
 ## Upstream brand authority
 
 The [insonic brand](https://brand.shruggie.tech/insonic/guidelines/brand-essentials/) belongs to upstream `shruggietech/shruggie-brand`. The integrated formal kit is insonic 1.0.0 built with BrandBuilder 3.0.1. Governed bytes live under `brand/kit/`, with the consuming repository's receipt in `brand/lock.json`.

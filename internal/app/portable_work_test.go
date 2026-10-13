@@ -18,8 +18,68 @@ import (
 	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/internal/subtitles"
 	"github.com/shruggietech/insonic/internal/voicemodels"
+	"github.com/shruggietech/insonic/internal/workers"
 	"github.com/shruggietech/insonic/internal/workspace"
 )
+
+func TestPortableEnvironmentReceiptBindsVerifiedDestinationRole(t *testing.T) {
+	source := portableWorkFixture(t)
+	old := ProcessingTools{Kind: "processing-tools", Version: contracts.Version, Processing: processing.Config{RecognitionPython: library.PinnedFile{Path: "C:/source-private/python.exe", SHA256: strings.Repeat("1", 64)}, RecognitionEnvironment: library.PinnedFile{Path: "C:/source-private/environment.json", SHA256: strings.Repeat("2", 64)}}}
+	raw, _ := json.Marshal(recordingPayload{Tools: &old})
+	w, e := source.Catalog.EnqueueWork(source.ctx, contracts.ID(), "recordings.process", raw)
+	if e != nil {
+		t.Fatal(e)
+	}
+	target := portableWorkTarget(t, source)
+	c := portableDestinationConfig(t, target)
+	c.Processing.RecognitionPython = library.PinnedFile{Path: c.Cueson.Executable, SHA256: c.Cueson.ExecutableSHA256}
+	receipt := workers.Receipt{Kind: "worker-environment", Version: contracts.Version, Inspection: workers.Inspection{Role: "recognition", Python: c.Processing.RecognitionPython, Compatible: true, EngineAvailable: true, Files: []library.PinnedFile{c.Processing.RecognitionPython}}}
+	b, _ := json.Marshal(receipt)
+	path := filepath.Join(t.TempDir(), "destination-environment.json")
+	os.WriteFile(path, b, 0600)
+	c.Processing.RecognitionEnvironment = library.PinnedFile{Path: path, SHA256: documentHash(b)}
+	savePortableConfig(t, target, c)
+	stored, _ := target.Catalog.Work(target.ctx, w.ID)
+	invocation, e := target.portableInvocation(stored)
+	if e != nil {
+		t.Fatal(e)
+	}
+	var bound recordingPayload
+	if strictPayload(invocation, &bound) != nil || bound.Tools.Processing.RecognitionEnvironment != c.Processing.RecognitionEnvironment {
+		t.Fatal("source receipt could not bind destination", string(invocation))
+	}
+	if strings.Contains(string(stored.Payload), "source-private") {
+		t.Fatal("host paths retained")
+	}
+}
+
+func TestPortableLocalAcquisitionHasStableExplicitSuccessor(t *testing.T) {
+	source := portableWorkFixture(t)
+	c, _ := models.Default("whisper-tiny", "")
+	selection, _ := models.ResolveManifest(c.Manifest, "transcription")
+	id := models.AcquisitionID(source.Workspace.Config.WorkspaceID, c.Manifest)
+	raw, _ := json.Marshal(models.Request{Manifest: c.Manifest, LocalDirectory: "C:/source-private/models"})
+	if _, e := source.Catalog.EnqueueWork(source.ctx, id, "models.acquire", raw); e != nil {
+		t.Fatal(e)
+	}
+	target := portableWorkTarget(t, source)
+	destination := target.Workspace.Config.Profiles.Storage
+	first, e := target.enqueueModelAcquisitionTo(target.ctx, selection, false, &destination, "")
+	if e != nil || first.ID == id {
+		t.Fatal("could not explicitly recover excluded local route", first, e)
+	}
+	second, e := target.enqueueModelAcquisitionTo(target.ctx, selection, false, &destination, "")
+	if e != nil || first.ID != second.ID {
+		t.Fatal("duplicate recovery", first, second, e)
+	}
+	if _, e = target.acquisitionWorkID(target.ctx, c.Manifest, first.ID); e != nil {
+		t.Fatal("consumer could not validate successor identity", e)
+	}
+	prior, _ := target.Catalog.Work(target.ctx, id)
+	if prior.Phase != "portable-source-required" || strings.Contains(string(first.Payload), "source-private") {
+		t.Fatal("origin history or route changed", prior)
+	}
+}
 
 func portableFixtureApp(t *testing.T, w *workspace.Workspace, store catalog.Catalog) *App {
 	t.Helper()

@@ -20,6 +20,7 @@ import (
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/models"
 	"github.com/shruggietech/insonic/internal/process"
+	"github.com/shruggietech/insonic/internal/workers"
 	"github.com/shruggietech/insonic/internal/workspace"
 )
 
@@ -168,15 +169,20 @@ func (s *Session) workerSelected(ctx context.Context, operation string, id strin
 		return nil, nil, err
 	}
 	python := config.RecognitionPython
+	environment := config.RecognitionEnvironment
 	capability := "transcription"
 	if operation == "diarize" || operation == "embed" || operation == "embed-batch" {
 		python = config.DiarizationPython
+		environment = config.DiarizationEnvironment
 		capability = "diarization"
 	}
 	if err = verifyPinned(ctx, python); err != nil {
 		return nil, nil, err
 	}
 	if err = verifyPinned(ctx, config.Worker); err != nil {
+		return nil, nil, err
+	}
+	if err = workers.VerifyReceipt(ctx, environment, python); err != nil {
 		return nil, nil, err
 	}
 	directory, provenance, err := s.modelWithDigest(ctx, id, capability, expectedDigest)

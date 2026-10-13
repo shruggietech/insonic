@@ -12,17 +12,34 @@ import (
 	"github.com/shruggietech/insonic/internal/models"
 	"github.com/shruggietech/insonic/internal/pipeline"
 	"github.com/shruggietech/insonic/internal/voicemodels"
+	"github.com/shruggietech/insonic/internal/workspace"
 )
 
 // A shared acquisition is independent durable work. Waiting consumers never
 // hold scheduler slots and cancelling one consumer never cancels another's bytes.
 func (a *App) enqueueModelAcquisition(ctx context.Context, selected models.Resolution, repair bool) (catalog.Work, error) {
+	destination := a.Workspace.Config.Profiles.Storage
+	return a.enqueueModelAcquisitionTo(ctx, selected, repair, &destination, "")
+}
+func (a *App) enqueueModelAcquisitionTo(ctx context.Context, selected models.Resolution, repair bool, destination *workspace.Profile, localDirectory string) (catalog.Work, error) {
 	if selected.Target.Kind != "base" || selected.Manifest == nil || selected.Manifest.Digest() != selected.Digest || models.InstallationID(*selected.Manifest) != selected.Target.ID {
 		return catalog.Work{}, contracts.Fail("invalid_request")
 	}
-	id := models.AcquisitionID(a.Workspace.Config.WorkspaceID, *selected.Manifest)
-	raw, _ := json.Marshal(models.Request{Manifest: *selected.Manifest})
-	work, err := a.Catalog.EnqueueWork(ctx, id, "models.acquire", raw)
+	id, err := a.acquisitionWorkID(ctx, *selected.Manifest, "")
+	if err != nil {
+		return catalog.Work{}, err
+	}
+	raw, _ := json.Marshal(models.Request{Manifest: *selected.Manifest, Destination: destination, LocalDirectory: localDirectory})
+	// Shared work retains its first elected destination/reuse route.
+	work, err := a.Catalog.Work(ctx, id)
+	if err == nil {
+		var prior models.Request
+		if work.Kind != "models.acquire" || strictPayload(work.Payload, &prior) != nil || prior.Manifest.Digest() != selected.Digest {
+			return work, contracts.Fail("conflict")
+		}
+	} else if typed, ok := err.(*contracts.Error); ok && typed.Code == "not_found" {
+		work, err = a.Catalog.EnqueueWork(ctx, id, "models.acquire", raw)
+	}
 	if err != nil {
 		return work, err
 	}
@@ -37,6 +54,44 @@ func (a *App) enqueueModelAcquisition(ctx context.Context, selected models.Resol
 		}
 	}
 	return work, err
+}
+
+// Portable capture keeps history and its proof, while excluding local sources.
+// An explicit destination election gets one stable successor shared by future
+// consumers. It never replaces the originating work or its frozen route.
+func sourceRequiredWork(w catalog.Work) (string, bool) {
+	var marker map[string]string
+	if w.Kind != "models.acquire" || w.Phase != "portable-source-required" || strictPayload(w.Payload, &marker) != nil || len(marker) != 3 || marker["portable_input"] != "source-required" || !contracts.ValidID(marker["proof_receipt_id"]) {
+		return "", false
+	}
+	return marker["proof_receipt_id"], true
+}
+func (a *App) acquisitionWorkID(ctx context.Context, manifest models.Manifest, match string) (string, error) {
+	id := models.AcquisitionID(a.Workspace.Config.WorkspaceID, manifest)
+	for range 32 {
+		if id == match {
+			return id, nil
+		}
+		w, e := a.Catalog.Work(ctx, id)
+		if typed, ok := e.(*contracts.Error); ok && typed.Code == "not_found" {
+			if match != "" {
+				return "", contracts.Fail("invalid_request")
+			}
+			return id, nil
+		}
+		if e != nil {
+			return "", e
+		}
+		proof, portable := sourceRequiredWork(w)
+		if !portable {
+			if match != "" {
+				return "", contracts.Fail("invalid_request")
+			}
+			return id, nil
+		}
+		id = models.StableID("model-acquisition-recovery:" + id + ":" + proof)
+	}
+	return "", contracts.Fail("input_limit")
 }
 
 func (a *App) queueModelSelections(ctx context.Context, selections []models.Resolution) ([]string, error) {
@@ -113,9 +168,14 @@ func (a *App) dependenciesReady(work catalog.Work) (bool, error) {
 	}
 	for _, id := range ids {
 		found := false
+		var elected *models.Resolution
 		for _, selection := range selections {
-			if selection.Manifest != nil && selection.Target.Kind == "base" && models.AcquisitionID(a.Workspace.Config.WorkspaceID, *selection.Manifest) == id {
+			if selection.Manifest != nil && selection.Target.Kind == "base" {
+				if _, e := a.acquisitionWorkID(a.ctx, *selection.Manifest, id); e != nil {
+					continue
+				}
 				found = true
+				elected = &selection
 				break
 			}
 		}
@@ -128,6 +188,16 @@ func (a *App) dependenciesReady(work catalog.Work) (bool, error) {
 		}
 		if dependency.Kind != "models.acquire" {
 			return false, contracts.Fail("invalid_request")
+		}
+		if _, portable := sourceRequiredWork(dependency); portable {
+			// A separately elected recovery can satisfy the original exact bundle.
+			// Missing local inputs never trigger a silent network route change.
+			install, err := a.Catalog.BaseModel(a.ctx, elected.Target.ID)
+			service, serviceErr := a.modelService()
+			if err == nil && serviceErr == nil && install.Digest == elected.Digest && service.Verify(a.ctx, elected.Target.ID) == nil {
+				continue
+			}
+			return false, contracts.Fail("model_acquisition_failed")
 		}
 		if dependency.State == "failed" || dependency.State == "cancelled" {
 			return false, contracts.Fail("model_acquisition_failed")

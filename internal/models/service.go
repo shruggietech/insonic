@@ -23,7 +23,9 @@ import (
 )
 
 type Request struct {
-	Manifest Manifest `json:"manifest"`
+	Manifest       Manifest           `json:"manifest"`
+	LocalDirectory string             `json:"local_directory,omitempty"`
+	Destination    *workspace.Profile `json:"destination,omitempty"`
 }
 type Service struct {
 	Artifacts *artifact.Service
@@ -33,13 +35,7 @@ type Service struct {
 }
 
 func NewService(a *artifact.Service, c catalog.Catalog, p contracts.SecretProvider) *Service {
-	return &Service{a, c, p, &http.Client{Timeout: 10 * time.Minute, CheckRedirect: func(req *http.Request, via []*http.Request) error {
-		_, invalid := contracts.SourceURL(req.URL.String())
-		if len(via) > 4 || req.URL.Scheme != via[0].URL.Scheme || req.URL.Host != via[0].URL.Host || invalid != nil {
-			return contracts.Fail("unavailable")
-		}
-		return nil
-	}}}
+	return &Service{a, c, p, &http.Client{Timeout: 10 * time.Minute, CheckRedirect: boundedRedirect}}
 }
 func (s *Service) Execute(ctx context.Context, work catalog.Work) (any, error) {
 	if work.Kind != "models.register" && work.Kind != "models.acquire" {
@@ -51,7 +47,7 @@ func (s *Service) Execute(ctx context.Context, work catalog.Work) (any, error) {
 	}
 	d := json.NewDecoder(bytes.NewReader(work.Payload))
 	d.DisallowUnknownFields()
-	if d.Decode(&req) != nil || d.Decode(new(any)) != io.EOF || req.Manifest.Validate() != nil {
+	if d.Decode(&req) != nil || d.Decode(new(any)) != io.EOF || req.Manifest.Validate() != nil || req.LocalDirectory != "" && !filepath.IsAbs(req.LocalDirectory) {
 		return nil, contracts.Fail("invalid_request")
 	}
 	m := req.Manifest
@@ -85,6 +81,10 @@ func (s *Service) Execute(ctx context.Context, work catalog.Work) (any, error) {
 		}
 	}
 	if work.Kind == "models.acquire" {
+		var total, complete int64
+		for _, f := range m.Files {
+			total += f.Size
+		}
 		ids := []string{}
 		var currentIDs []string
 		if old, e := s.Catalog.BaseModel(ctx, id); e == nil {
@@ -116,11 +116,39 @@ func (s *Service) Execute(ctx context.Context, work catalog.Work) (any, error) {
 					p, e = s.Artifacts.Reconcile(ctx, pubID)
 				}
 				if e != nil || p.State != "available" {
-					source, e := s.download(ctx, work.ID, f)
+					var source string
+					if req.LocalDirectory != "" {
+						if !ValidRole(f.Role) {
+							return nil, contracts.Fail("invalid_request")
+						}
+						source = filepath.Join(req.LocalDirectory, filepath.FromSlash(f.Role))
+						var local *os.File
+						// Cache snapshots commonly use links into a content-addressed
+						// blob directory. Elect the resolved regular file for this read;
+						// publication still verifies its complete manifest identity.
+						source, e = filepath.EvalSymlinks(source)
+						if e == nil {
+							local, e = os.Open(source)
+						}
+						if e == nil {
+							e = verifyFile(local, f)
+							local.Close()
+						}
+					} else {
+						source, e = s.downloadProgress(ctx, work.ID, f, func(n int64) error {
+							raw, _ := json.Marshal(map[string]any{"model_id": id, "files_verified": i, "current_role": f.Role, "downloaded_bytes": complete + n, "total_bytes": total})
+							_, e := s.Catalog.CheckpointWork(ctx, work, "downloading", "running", raw, 5*time.Second)
+							return e
+						})
+					}
 					if e != nil {
 						return nil, e
 					}
-					p, e = s.Artifacts.Publish(ctx, pubID, source, "base-model")
+					if req.Destination != nil {
+						p, e = s.Artifacts.PublishTo(ctx, *req.Destination, pubID, source, "base-model")
+					} else {
+						p, e = s.Artifacts.Publish(ctx, pubID, source, "base-model")
+					}
 					if e != nil {
 						return nil, e
 					}
@@ -136,7 +164,8 @@ func (s *Service) Execute(ctx context.Context, work catalog.Work) (any, error) {
 				return nil, e
 			}
 			ids = append(ids, pubID)
-			progress, _ := json.Marshal(map[string]any{"model_id": id, "files_verified": i + 1})
+			complete += f.Size
+			progress, _ := json.Marshal(map[string]any{"model_id": id, "files_verified": i + 1, "downloaded_bytes": complete, "total_bytes": total, "current_role": f.Role})
 			if _, e = s.Catalog.CheckpointWork(ctx, work, "verified-files", "running", progress, 5*time.Second); e != nil {
 				return nil, e
 			}
@@ -172,6 +201,16 @@ func (s *Service) removeDownload(workID string, f File) error {
 }
 
 func (s *Service) download(ctx context.Context, workID string, f File) (string, error) {
+	return s.downloadProgress(ctx, workID, f, nil)
+}
+
+// DownloadAsset shares bounded resumable transfer with model acquisition.
+// The caller's durable work owns progress and election; no model is registered.
+func (s *Service) DownloadAsset(ctx context.Context, workID string, f File, progress func(int64) error) (string, error) {
+	return s.downloadProgress(ctx, workID, f, progress)
+}
+
+func (s *Service) downloadProgress(ctx context.Context, workID string, f File, progress func(int64) error) (string, error) {
 	if !contracts.ValidID(workID) || !digestPattern.MatchString(f.SHA256) {
 		return "", contracts.Fail("invalid_request")
 	}
@@ -209,6 +248,11 @@ func (s *Service) download(ctx context.Context, workID string, f File) (string, 
 	}
 	offset := st.Size()
 	if offset == f.Size && verifyFile(file, f) == nil {
+		if progress != nil {
+			if e = progress(f.Size); e != nil {
+				return "", e
+			}
+		}
 		return filepath.Join(dir, name), nil
 	}
 	if offset == f.Size {
@@ -285,6 +329,7 @@ func (s *Service) download(ctx context.Context, workID string, f File) (string, 
 	}
 	buffer := make([]byte, 128<<10)
 	remaining := f.Size - offset
+	lastProgress := time.Time{}
 	for {
 		if ctx.Err() != nil {
 			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
@@ -301,6 +346,12 @@ func (s *Service) download(ctx context.Context, workID string, f File) (string, 
 				return "", contracts.Fail("unavailable")
 			}
 			remaining -= int64(n)
+			if progress != nil && time.Since(lastProgress) >= 250*time.Millisecond {
+				if e = progress(f.Size - remaining); e != nil {
+					return "", e
+				}
+				lastProgress = time.Now()
+			}
 		}
 		if err == io.EOF {
 			break
@@ -323,6 +374,11 @@ func (s *Service) download(ctx context.Context, workID string, f File) (string, 
 	if e = verifyFile(file, f); e != nil {
 		return "", e
 	}
+	if progress != nil {
+		if e = progress(f.Size); e != nil {
+			return "", e
+		}
+	}
 	return filepath.Join(dir, name), nil
 }
 func verifyFile(file *os.File, f File) error {
@@ -336,6 +392,36 @@ func verifyFile(file *os.File, f File) error {
 	}
 	if n != f.Size || hex.EncodeToString(h.Sum(nil)) != f.SHA256 {
 		return contracts.Fail("checksum_mismatch")
+	}
+	return nil
+}
+
+// VerifyLocal checks every declared role without modifying the selected tree.
+func VerifyLocal(ctx context.Context, directory string, m Manifest) error {
+	if !filepath.IsAbs(directory) || m.Validate() != nil {
+		return contracts.Fail("invalid_request")
+	}
+	for _, expected := range m.Files {
+		if ctx.Err() != nil {
+			return contracts.Fail("cancelled")
+		}
+		if !ValidRole(expected.Role) {
+			return contracts.Fail("invalid_request")
+		}
+		file, e := os.Open(filepath.Join(directory, filepath.FromSlash(expected.Role)))
+		if e != nil {
+			return contracts.Fail("unavailable")
+		}
+		st, e := file.Stat()
+		if e == nil && st.Mode().IsRegular() {
+			e = verifyFile(file, expected)
+		} else {
+			e = contracts.Fail("invalid_request")
+		}
+		file.Close()
+		if e != nil {
+			return e
+		}
 	}
 	return nil
 }

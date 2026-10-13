@@ -16,6 +16,7 @@ import { uuid } from './forms';
 import { Pager, type Run } from './screens';
 import { ModelSettings } from './model-settings';
 import {BackendSetup} from './backend-setup';
+import {Workers} from './workers';
 type Props = { client: Client; run: Run; appearance: (value: Obj) => void; onWorkspace?:(value:Obj)=>void };
 function ToolFields({
   label,
@@ -258,6 +259,8 @@ export function Settings({ client, run, appearance,onWorkspace }: Props) {
           Reset media tools to installed defaults
         </Button>
       </Card>
+      <Workers client={client} run={run} onApplied={load}/>
+      <details><summary>Advanced explicit processing tools</summary>
       <Card heading="Processing tools">
         <p>
           Configure local processing workers for this workspace. Weights are
@@ -392,6 +395,7 @@ export function Settings({ client, run, appearance,onWorkspace }: Props) {
           </fieldset>
         </details>
       </Card>
+      </details>
       <Card heading="Credentials">
         <p>
           Only newly entered values travel through protected native input. Saved

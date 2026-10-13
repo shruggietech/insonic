@@ -158,7 +158,8 @@ func (a *App) configuredDispatch(req contracts.Request) (any, error) {
 			if input.Overrides.Recognition != nil || input.Overrides.Diarization != nil || input.Overrides.Quality != nil {
 				return nil, contracts.Fail("unsupported_capability")
 			}
-			return map[string]any{"pipeline_id": p.ID, "revision": p.Revision, "preset": p.Preset, "configuration": d, "capabilities": []string{"speaker-model-training"}, "reachability": "not-probed"}, nil
+			ready, e := a.readinessDefinition(a.ctx, ReadinessInput{PipelineID: p.ID, PipelineRevision: p.Revision}, &d)
+			return map[string]any{"pipeline_id": p.ID, "revision": p.Revision, "preset": p.Preset, "configuration": d, "capabilities": []string{"speaker-model-training"}, "reachability": "not-probed", "readiness": ready}, e
 		}
 		d, e = pipeline.Elect(p.Preset, d, input.Overrides)
 		if e != nil {
@@ -216,7 +217,8 @@ func (a *App) configuredDispatch(req contracts.Request) (any, error) {
 			selected.Lineage = nil
 			selections = append(selections, selected)
 		}
-		return map[string]any{"pipeline_id": p.ID, "revision": p.Revision, "preset": p.Preset, "configuration": d, "capabilities": []pipeline.Capability{recognition, diarization}, "model_selections": selections, "context": context, "reachability": "not-probed"}, nil
+		ready, e := a.readinessDefinition(a.ctx, ReadinessInput{PipelineID: p.ID, PipelineRevision: p.Revision}, &d)
+		return map[string]any{"pipeline_id": p.ID, "revision": p.Revision, "preset": p.Preset, "configuration": d, "capabilities": []pipeline.Capability{recognition, diarization}, "model_selections": selections, "context": context, "reachability": "not-probed", "readiness": ready}, e
 	case "speakers.show":
 		return a.Catalog.Speaker(a.ctx, req.ItemID)
 	case "speakers.set":

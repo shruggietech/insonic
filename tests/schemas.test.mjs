@@ -14,7 +14,7 @@ const example = kind => structuredClone(catalog.contracts.find(item => item.sche
 
 test('all documented contracts and local references validate through the release master', () => {
   assert.equal(catalog.contracts.length, 22);
-  assert.equal(examples, 29);
+  assert.equal(examples, 30);
   for (const item of catalog.contracts) for (const value of item.schema.examples) assert.equal(master(value), true);
 });
 
@@ -412,4 +412,15 @@ test('current portable snapshots retain strict immutable historical model docume
   base.schema_version = '1.0.0';
   speaker.token = 'fixture-secret';
   assert.equal(master(snapshot), false, 'historical manifests retain strict credential and field constraints');
+});
+
+test('managed worker closure validates and publishes both document alternatives',()=>{
+ const closure=JSON.parse(readFileSync(new URL('../internal/workers/assets/catalog.json',import.meta.url),'utf8'));
+ assert.equal(master(closure),true,JSON.stringify(master.errors));
+ const reference=renderSchemaReference(catalog);
+ assert.match(reference,/Local worker resources/);
+ assert.match(reference,/worker-environment/);
+ assert.match(reference,/profile_digest/);
+ const damaged=structuredClone(closure);damaged.profiles[0].runtime.sha256='not-a-digest';
+ assert.equal(master(damaged),false);
 });

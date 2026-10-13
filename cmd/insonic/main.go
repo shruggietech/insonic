@@ -154,6 +154,11 @@ func execute(args []string) int {
 		if err != nil {
 			return output(nil, err, machine)
 		}
+	} else if positional[0] == "workers" || len(positional) > 1 && (positional[0] == "processing" && positional[1] == "readiness" || positional[0] == "models" && (positional[1] == "defaults" || positional[1] == "prepare")) {
+		req.Operation, req.ItemID, req.Data, err = parseWorkers(positional)
+		if err != nil {
+			return output(nil, err, machine)
+		}
 	} else if positional[0] == "media" || positional[0] == "models" || positional[0] == "work" || positional[0] == "transcript" {
 		req.Operation, req.ItemID, req.Data, err = parseDomain(positional)
 		if err != nil {

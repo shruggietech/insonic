@@ -29,27 +29,13 @@ class CLIResponseError(ValueError):
         self.response = response
 
 
-PINS = {
-    "transcribe": {
-        "id": "Systran/faster-whisper-tiny", "revision": "d90ca5fe260221311c53c58e660288d3deb8d356", "license": "MIT",
-        "files": {
-            "config.json": (2249, "a73a28cdfe1c43ccc7202fa333d1f89c202477271407ae9a7f19afa52039cac8"),
-            "model.bin": (75538270, "dcb76c6586fc06cbdac6dd21f14cfd129cc4cdd9dce19bf4ffa62e59cbe6e6d1"),
-            "tokenizer.json": (2203239, "fb7b63191e9bb045082c79fd742a3106a12c99513ab30df4a0d47fa6cb6fd0ab"),
-            "vocabulary.txt": (459861, "34ce3fe1c5041027b3f8d42912270993f986dbc4bb34cf27f951e34a1e453913"),
-        },
-    },
-    "diarize": {
-        "id": "pyannote/speaker-diarization-community-1", "revision": "3533c8cf8e369892e6b79ff1bf80f7b0286a54ee", "license": "CC-BY-4.0",
-        "files": {
-            "config.yaml": (444, "5ce2bfa9a938dc132cec1172592d65173cbb8f444ea1e4133f10f9391de155be"),
-            "embedding/pytorch_model.bin": (26646242, "6f10ff60898a1d185fa22e1d11e0bfa8a92efec811f11bca48cb8cafebefd929"),
-            "segmentation/pytorch_model.bin": (5906507, "7ad24338d844fb95985486eb1a464e32d229f6d7a03c9abe60f978bacf3f816e"),
-            "plda/plda.npz": (133852, "9b77bcd840692710dd3496f62ecfeed8d8e5f002fd991b785079b244eab7d255"),
-            "plda/xvec_transform.npz": (134376, "325f1ce8e48f7e55e9c8aa47e05d2766b7c48c4b25b8de8dd751e7a4cc5fbe8f"),
-        },
-    },
-}
+PINS = {}
+for _choice in json.loads((ROOT / 'internal/models/defaults.json').read_text(encoding='utf-8')):
+    _manifest = _choice['manifest']
+    PINS['transcribe' if _choice['role'] == 'recognition' else 'diarize'] = {
+        'id': _manifest['name'], 'revision': _manifest['upstream_revision'], 'license': _manifest['license'],
+        'files': {item['role']: (item['size'], item['sha256']) for item in _manifest['files']},
+    }
 
 
 def require_election(elected):

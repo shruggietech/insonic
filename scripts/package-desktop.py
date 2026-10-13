@@ -173,6 +173,11 @@ def installed_manifest(root):
     name = 'cueson.exe' if platform.system() == 'Windows' else 'cueson'
     cueson = next((ROOT / 'build/native/cueson').rglob(name))
     return {'kind': 'installed-companions', 'schema_version': VERSION, 'platform': platform_key(),
+            'worker': {'path': 'companions/processing/processing-worker.py',
+                       'sha256': sha(root / 'companions/processing/processing-worker.py')},
+            'worker_resources': [{'path': path.relative_to(root).as_posix(), 'sha256': sha(path)}
+                                 for path in sorted((root / 'companions/processing').glob('*'))
+                                 if path.is_file() and path.name != 'processing-worker.py'],
             'media': portable, 'cueson': {'executable': 'companions/cueson/' + name,
                                          'executable_sha256': sha(root / ('companions/cueson/' + name)) if (root / ('companions/cueson/' + name)).is_file() else sha(cueson)},
             'system_perl': platform.system() != 'Windows'}
@@ -365,6 +370,24 @@ def verify_inventory(root, value):
                  (resources / 'companions/cueson/cueson.schema.json').relative_to(root).as_posix()]
     if value.get('variant', 'desktop') == 'desktop':
         required.append((executables / ('insonic-desktop' + executable)).relative_to(root).as_posix())
+    metadata = value.get('dependencies', {}).get('processing_workers')
+    if metadata:
+        processing = resources / 'companions/processing'
+        for name in ['catalog.json', 'models.json', 'probe.py']:
+            required.append((processing / name).relative_to(root).as_posix())
+        catalog = json.loads((processing / 'catalog.json').read_text(encoding='utf-8'))
+        if sha(processing / 'catalog.json') != metadata['catalog_sha256'] or sha(processing / 'models.json') != metadata['model_catalog_sha256']:
+            raise ValueError('processing acquisition metadata differs')
+        declared = [{'id': item['id'], 'platform': item['platform'], 'python': item['python'],
+                     'engines': item['engines'], 'lock_sha256': item['lock_sha256']}
+                    for item in catalog['profiles']]
+        if declared != metadata['profiles']:
+            raise ValueError('processing profile closure differs')
+        for profile in catalog['profiles']:
+            lock = path_inside(processing, profile['lock'])
+            required.append(lock.relative_to(root).as_posix())
+            if sha(lock) != profile['lock_sha256']:
+                raise ValueError('processing hash lock differs')
     if any(name not in expected for name in required):
         raise ValueError('package lacks required product/help/companion bytes')
 
@@ -560,6 +583,10 @@ def build(variant='desktop'):
     processing = root / 'companions/processing'
     processing.mkdir()
     shutil.copyfile(ROOT / 'scripts/processing-worker.py', processing / 'processing-worker.py')
+    for source in sorted((ROOT / 'internal/workers/assets').glob('*')):
+        shutil.copyfile(source, processing / source.name)
+    shutil.copyfile(ROOT / 'internal/workers/probe.py', processing / 'probe.py')
+    shutil.copyfile(ROOT / 'internal/models/defaults.json', processing / 'models.json')
     copy_tree(ROOT / 'site/offline', root / 'help')
     for name in ['LICENSE', 'NOTICE']:
         shutil.copyfile(ROOT / name, root / name)
@@ -592,7 +619,14 @@ def build(variant='desktop'):
                     'ladybug': qualify.LOCK['ladybug']['version'], 'ladybug_binding': qualify.LOCK['ladybug']['binding'],
                     'cueson': qualify.LOCK['cueson']['version'], 'cueson_schema_sha256': qualify.LOCK['cueson']['schema_sha256'],
                     'media': json.loads((ROOT / 'build/native/media-tool-receipt.json').read_text()),
-                    'modules': module_notices, 'javascript': frontend_notices}
+                    'modules': module_notices, 'javascript': frontend_notices,
+                    'processing_workers': {'disposition': 'optional_acquisition_metadata',
+                                           'catalog_sha256': sha(processing / 'catalog.json'),
+                                           'model_catalog_sha256': sha(processing / 'models.json'),
+                                           'profiles': [{'id': item['id'], 'platform': item['platform'],
+                                                         'python': item['python'], 'engines': item['engines'],
+                                                         'lock_sha256': item['lock_sha256']}
+                                                        for item in json.loads((processing / 'catalog.json').read_text(encoding='utf-8'))['profiles']]}}
     if key.startswith('windows'):
         dependencies['openssl'] = json.loads((ROOT / 'build/native/openssl-receipt.json').read_text())
     value = inventory(root, revision, dependencies, distribution, variant, signing)
@@ -717,6 +751,14 @@ def verify_archive_receipt(archive, receipt, expected_source_root=ROOT):
                 product_binaries(binaries, receipt['platform'], receipt['variant']), child, qualify.LOCK['go'])
         if sha(resources / 'companions/processing/processing-worker.py') != sha(expected_source_root / 'scripts/processing-worker.py'):
             raise ValueError('package processing worker differs from selected source')
+        worker_assets = expected_source_root / 'internal/workers/assets'
+        if worker_assets.is_dir():
+            sources = [(source, source.name) for source in worker_assets.glob('*')]
+            sources += [(expected_source_root / 'internal/workers/probe.py', 'probe.py'),
+                        (expected_source_root / 'internal/models/defaults.json', 'models.json')]
+            for source, name in sources:
+                if sha(resources / 'companions/processing' / name) != sha(source):
+                    raise ValueError('packaged worker metadata differs from elected source')
         manifest = verify_corresponding_sources(resources, expected_source_root=expected_source_root)
         if sha(resources / 'sources/source-manifest.json') != receipt['distribution']['source_manifest_sha256']:
             raise ValueError('package source manifest differs from receipt identity')

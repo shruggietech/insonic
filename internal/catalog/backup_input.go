@@ -229,6 +229,11 @@ func (s *Store) PortableWorkInput(ctx context.Context, w Work) (bool, string, er
 }
 
 func nonportableAcquisition(w Work) bool {
+	// Preparing host runtimes is deliberately separate from portable media and
+	// model authority. A restored host must make its own platform setup election.
+	if w.Kind == "workers.setup" {
+		return true
+	}
 	switch w.Kind {
 	case "media.import", "library.import", "transcript.import", "models.register", "models.acquire":
 	default:
@@ -243,7 +248,7 @@ func nonportableAcquisition(w Work) bool {
 		switch x := v.(type) {
 		case map[string]any:
 			for key, item := range x {
-				if key == "source" || key == "transcript" || key == "subtitle" || key == "source_path" || key == "manifest_path" {
+				if key == "source" || key == "transcript" || key == "subtitle" || key == "source_path" || key == "manifest_path" || key == "local_directory" || w.Kind == "models.acquire" && key == "root" {
 					if text, ok := item.(string); ok && text != "" && text != "<accepted>" && !strings.HasPrefix(text, "https://") && !strings.HasPrefix(text, "http://") {
 						return true
 					}
@@ -369,6 +374,9 @@ func PortableSnapshot(ctx context.Context, snap Snapshot) (Snapshot, error) {
 			proofID := operationID("portable-input", snap.Digest, w.ID)
 			if acquisition {
 				w.Payload, _ = json.Marshal(map[string]string{"portable_input": "source-required", "input_digest": initial, "proof_receipt_id": proofID})
+				if w.Kind == "workers.setup" {
+					w.Result = json.RawMessage(`{"verification":"source_host_setup; destination_setup_required"}`)
+				}
 				if w.State == "pending" || w.State == "running" || w.State == "interrupted" {
 					w.State = "failed"
 					w.Error = "operation_failed"

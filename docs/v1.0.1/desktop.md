@@ -1,12 +1,14 @@
 # CLI and desktop experience
 
+Settings provides shared managed CPU setup, existing-environment inspection, exact builtin model preparation, protected token registration and task readiness. A preview precedes durable preparation; Jobs exposes its progress, cancel and retry actions. Manual tools remain under Advanced. See [local processing setup](processing-setup.md) for CLI parity and installation prerequisites.
+
 ## Shared operations
 
 The application is CLI-first. Every core capability has an automation-ready CLI contract, and the GUI installs the CLI and wraps equivalent shared-runtime operations. Both use the same workspace IDs, job states, pipeline definitions, query parameters and errors. No core behavior lives only in GUI code. Shared capability and release matrices record which client exposes each operation.
 
 Advanced or experimental CLI capabilities may ship before their GUI controls. Each release documents that lag in its capability matrix, including the CLI command, current GUI availability and its follow-up outcome. This exception does not turn mature core operations into permanent CLI-only features. Speaker-model dataset, training, discovery, retrieval, profile selection and matching controls use the same shared operations as the CLI.
 
-CLI groups include `workspace`, `media`, `import-presets`, `transcript`, `recordings`, `pipelines`, `work`, `jobs`, `speakers`, `terms`, `search`, `query`, `export`, `models`, `settings` and `doctor`. Human output is concise; `--json` provides versioned machine-readable records, diagnostics go to stderr, and exit statuses distinguish failure and partial completion. Noninteractive invocations never prompt. Secret entry uses a protected input channel, not command-line values.
+CLI groups include `workspace`, `media`, `import-presets`, `transcript`, `recordings`, `pipelines`, `work`, `jobs`, `speakers`, `terms`, `search`, `query`, `export`, `models`, `workers`, `processing`, `settings` and `doctor`. Human output is concise; `--json` provides versioned machine-readable records, diagnostics go to stderr, and exit statuses distinguish failure and partial completion. Noninteractive invocations never prompt. Secret entry uses a protected input channel, not command-line values.
 
 The desktop exposes Library, Import presets, Jobs, Pipelines, Speakers, Terms, Models, Explore and Settings screens. The native bridge uses the same workspace/runtime requests and protected credential channel as the CLI. Library details support captured metadata, date corrections, reference relocation, explicit audio replacement and transcript policies, initial/current declared rosters, current recording assembly/processing, inspection, rerun, native export and known-speaker mappings. See [subtitles](subtitles.md), [pipelines](pipelines.md), [credential commands](secrets.md), [downloaded models](models.md) and [import](ingestion.md) for shared validation and executable operations.
 
@@ -17,6 +19,7 @@ The desktop exposes Library, Import presets, Jobs, Pipelines, Speakers, Terms, M
 | Saved pipelines and context, speaker identities/aliases/current evidence, terminology | Implemented | Pipelines, Speakers and Terms controls |
 | Durable work inspection, cancellation, retry and recovery | Implemented | Jobs controls; window closure preserves work |
 | Model register/acquire/list/show/verify/materialize, aliases, discovery and resolution | Shared versioned commands | Models controls, shared reference selectors and advanced source/alias configuration |
+| Managed local worker setup/reuse, builtin model preparation and task readiness | Shared workers/models/processing operations | Settings previews, protected model access and durable work controls |
 | Media/processing tool configuration and appearance | Shared settings operations | Revision-checked Settings forms |
 | Original/preview playback and current cue/span seeking | Shared playback contracts | Native audio/video controls |
 | Low-level artifact retention/leases, catalog snapshots, profile migration and detailed raw bundles | Advanced commands | Readable profiles; advanced operations remain in the CLI |

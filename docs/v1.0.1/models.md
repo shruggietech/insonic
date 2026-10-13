@@ -1,5 +1,7 @@
 # Model references and acquisition
 
+[Local processing setup](processing-setup.md) exposes the complete pinned Whisper Tiny and Community-1 choices, verified local snapshot reuse and elected filesystem/S3 destinations. Model acquisition remains durable shared work with byte and file progress.
+
 ## Exact identities and short references
 
 Downloaded base models declare exact names, model versions, upstream revisions,
@@ -81,7 +83,7 @@ A source update has `expected_revision` and a `source` object containing `id`,
 expected revision zero; updates/removal use the returned revision. Source URLs
 and file URLs must follow the configured transport policy: HTTPS by default,
 explicit loopback HTTP where permitted, no password/user information or query
-credentials, and same-origin redirects only. Saved credential values are not
+credentials, and bounded declared-origin redirects. Saved credential values are not
 included in source records, manifests, durable work or status.
 Catalog content cannot authorize loopback file downloads. Such files require
 an owner-configured loopback source with its local opt-in enabled. An explicit

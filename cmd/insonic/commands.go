@@ -169,6 +169,13 @@ var commandDefinitions = func() []commandDefinition {
 	add("settings set", "", 0, 0, "--input", "--input")
 	add("media tools", "FILE", 1, 1, "", "")
 	add("processing tools", "FILE", 1, 1, "", "")
+	add("workers catalog", "", 0, 0, "", "")
+	add("workers inspect", "", 0, 0, "--input", "--input")
+	add("workers plan", "", 0, 0, "--input", "--input")
+	add("workers setup", "", 0, 0, "--input", "--input")
+	add("processing readiness", "", 0, 0, "--input", "")
+	add("models defaults", "", 0, 0, "", "")
+	add("models prepare", "", 0, 0, "--input", "--input")
 	dates := "--originated-at --originated-on --originated-earliest --originated-latest --timezone --dst-fold --dst-gap --date-precedence"
 	transcript := "--record --legacy-sidecar --replace-transcript --attribution --transcript-format --transcript-credential-id --transcript-adapter --transcript-max-bytes --transcript-timeout-ms --subtitle-stream-index --subtitle-language --diarization-model-id --local-http --manifest"
 	add("media import", "[FILES...] or --manifest FILE", 0, 10000, dates+" "+transcript+" --copy --reference --transcript --subtitle --title --credential-id --acquisition-adapter --acquisition-max-bytes --acquisition-timeout-ms --new-entry --preset --pipeline-id --no-pipeline --destination-profile --known-speaker --replace-audio --existing-transcript --transcript-applies --existing-roster", "")

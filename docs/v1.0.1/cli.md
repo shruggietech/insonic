@@ -27,6 +27,10 @@ insonic --workspace LIBRARY work wait WORK_UUID --timeout-ms 30000 --json
 
 Catalog migration/export/restore and portable backup operations are advanced maintenance commands. Mutating maintenance requires exclusive workspace ownership. `runtime serve` is the internal noninteractive owner normally launched by clients; contextual help keeps its syntax available.
 
+## Local worker and model setup
+
+The shared `workers catalog|inspect|plan|setup`, `models defaults|prepare` and `processing readiness` operations accept the contextual JSON templates. Setup and acquisition use normal durable work. See [local processing setup](processing-setup.md) for the complete preview, election, wait, model and pipeline procedure.
+
 ## Human results and work progress
 
 Commands without `--json` print readable named fields, empty states, warnings and supported next commands. Human results preserve exact numeric tokens but are a display, rather than an automation contract: at most 128 lines, 64 items per collection, six levels of detail and 512 UTF-8 bytes per displayed value. Use JSON and the applicable paging operation for complete detail. Terminal controls in values are replaced with spaces.
