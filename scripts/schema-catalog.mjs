@@ -47,7 +47,9 @@ export function loadSchemaCatalog(version = readFileSync(resolve(root, 'VERSION'
     }
   };
   schemas.forEach(item => visit(item.schema, item.schema.$id));
-  return { version, directory, schemas, dependencies, contracts, master };
+  const documentFiles = new Set([...branches].map(ref => definitions[ref?.replace('#/$defs/', '')]?.$ref));
+  const documents = schemas.filter(item => documentFiles.has(item.filename));
+  return { version, directory, schemas, dependencies, contracts, documents, master };
 }
 
 const clean = value => String(value ?? '').replaceAll('|', '\\|').replace(/\r?\n/g, ' ');
@@ -104,7 +106,7 @@ function referenceTables(lines, schema) {
 }
 export function renderSchemaReference(catalog) {
   const lines = ['## Contract reference', '', catalog.master.schema.description, '', `[Download the master schema](/schemas/v${catalog.version}/master.schema.json) · [Download shared definitions](/schemas/v${catalog.version}/common.schema.json)`, '', 'The following definitions, descriptions and examples are generated from the versioned JSON Schema files during the documentation build.', ''];
-  for (const item of catalog.contracts) {
+  for (const item of catalog.documents ?? catalog.contracts) {
     const schema = item.schema;
     lines.push(`## ${schema.title}`, '', schema.description, '', `[Download ${item.filename}](/schemas/v${catalog.version}/${item.filename})`, '');
     referenceTables(lines, schema);

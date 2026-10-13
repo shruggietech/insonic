@@ -1379,7 +1379,7 @@ export function Pipelines({ client, run }: Props) {
                     label={`${kind} device`}
                     value={values[`${kind}_device`]}
                     onChange={(v) => update(`${kind}_device`, v)}
-                    options={['cpu', 'cuda', 'auto']}
+                    options={['cpu', 'cuda']}
                   />
                 </>
               ) : (

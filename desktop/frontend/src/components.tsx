@@ -16,6 +16,7 @@ export function Input({
   type = 'text',
   description,
   required = false,
+  disabled = false,
 }: {
   label: string;
   value: string | number;
@@ -23,6 +24,7 @@ export function Input({
   type?: string;
   description?: string;
   required?: boolean;
+  disabled?: boolean;
 }) {
   const id = useId();
   return (
@@ -36,6 +38,7 @@ export function Input({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           required={required}
+          disabled={disabled}
           autoComplete={type === 'password' ? 'new-password' : 'off'}
         />
       }
@@ -47,10 +50,12 @@ export function Select({
   value,
   onChange,
   options,
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
   options: (string | { value: string; label: string; disabled?: boolean })[];
 }) {
   const id = useId();
@@ -60,6 +65,7 @@ export function Select({
       label={label}
       control={
         <FormControls.Select
+          disabled={disabled}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         >

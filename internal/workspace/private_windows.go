@@ -82,7 +82,15 @@ func SecureDirectory(dir string, newlyCreated ...bool) error {
 	}
 	// Elevated tokens can default new directories to Administrators ownership.
 	// Only the successful creator may normalize that owner to the current user.
-	if err := windows.SetNamedSecurityInfo(dir, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION|windows.DACL_SECURITY_INFORMATION|windows.PROTECTED_DACL_SECURITY_INFORMATION, user.User.Sid, nil, dacl, nil); err != nil {
+	flags := windows.SECURITY_INFORMATION(windows.DACL_SECURITY_INFORMATION | windows.PROTECTED_DACL_SECURITY_INFORMATION)
+	var replacementOwner *windows.SID
+	// Already-owned writable directories need only DACL normalization. An
+	// unnecessary owner write requires WRITE_OWNER even when ownership is right.
+	if owner.String() != user.User.Sid.String() {
+		flags |= windows.OWNER_SECURITY_INFORMATION
+		replacementOwner = user.User.Sid
+	}
+	if err := windows.SetNamedSecurityInfo(dir, windows.SE_FILE_OBJECT, flags, replacementOwner, nil, dacl, nil); err != nil {
 		return contracts.Fail("unavailable")
 	}
 	return PrivateDirectory(dir)

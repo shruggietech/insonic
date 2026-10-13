@@ -14,6 +14,7 @@ import (
 	"github.com/shruggietech/insonic/internal/pipeline"
 	"github.com/shruggietech/insonic/internal/processing"
 	"github.com/shruggietech/insonic/internal/voicemodels"
+	"github.com/shruggietech/insonic/internal/workers"
 )
 
 // portableInvocation is ephemeral. The catalog continues to journal the proven
@@ -95,12 +96,21 @@ func (a *App) bindPortableConfiguration(input json.RawMessage) (json.RawMessage,
 					elected["cueson"] = target
 				}
 				if source, ok := elected["processing"].(map[string]any); ok {
-					for role, target := range map[string]any{"ffmpeg": c.Processing.FFmpeg, "recognition_python": c.Processing.RecognitionPython, "diarization_python": c.Processing.DiarizationPython, "worker": c.Processing.Worker} {
+					for role, target := range map[string]any{"ffmpeg": c.Processing.FFmpeg, "recognition_python": c.Processing.RecognitionPython, "diarization_python": c.Processing.DiarizationPython, "recognition_environment": c.Processing.RecognitionEnvironment, "diarization_environment": c.Processing.DiarizationEnvironment, "worker": c.Processing.Worker} {
 						if pin, ok := source[role]; ok && contains(pin) {
 							switch chosen := target.(type) {
 							case library.PinnedFile:
 								if e := verifyPortablePin(chosen); e != nil {
 									return nil, e
+								}
+								if role == "recognition_environment" || role == "diarization_environment" {
+									python := c.Processing.RecognitionPython
+									if role == "diarization_environment" {
+										python = c.Processing.DiarizationPython
+									}
+									if e := workers.VerifyReceipt(a.ctx, chosen, python); e != nil {
+										return nil, e
+									}
 								}
 							case library.Tool:
 								if e := verifyPortablePin(library.PinnedFile{Path: chosen.Path, SHA256: chosen.SHA256}); e != nil {

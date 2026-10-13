@@ -230,6 +230,10 @@
           "title": "Media and provenance"
         },
         {
+          "slug": "processing-setup",
+          "title": "Local processing setup"
+        },
+        {
           "slug": "pipelines",
           "title": "Pipelines and adapters"
         },

@@ -45,7 +45,7 @@ func ValidateConfig(c Config) error {
 	validPin := func(file library.PinnedFile) bool {
 		return filepath.IsAbs(file.Path) && pinnedDigest.MatchString(file.SHA256)
 	}
-	for _, file := range []library.PinnedFile{c.RecognitionPython, c.DiarizationPython, c.Worker} {
+	for _, file := range []library.PinnedFile{c.RecognitionPython, c.DiarizationPython, c.Worker, c.RecognitionEnvironment, c.DiarizationEnvironment} {
 		if file.Path == "" && file.SHA256 == "" {
 			continue
 		}

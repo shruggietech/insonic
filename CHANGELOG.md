@@ -22,6 +22,8 @@ All notable changes to this project will be documented here. The format follows 
 - Derive Go package notices from the modules linked into each shipped executable, reject missing or mismatched upstream source/license evidence, and independently check candidate inventory membership. Exclude unused tooling modules without downloading their graph.
 - Update x/net to 0.61.0 and the docs renderer to Mermaid 12.2.0 with KaTeX 0.18.2, covering inherited trust-option handling and actual public/offline SVG theme rendering.
 
+- Add shared managed CPU worker setup, exact builtin model acquisition/local reuse, protected token registration and five-task readiness across CLI and desktop Settings. Preserve frozen environments, devices, destinations and settings revisions; package complete optional acquisition metadata and hash locks.
+
 ### Decisions
 
 - 2026-10-11: Keep startup transport separate from detached lifetime: one bounded report, one child wait owner and one ten-second deadline cover the client handshake. Log only generated context, using three bounded data files and a private empty coordination lock; diagnostic input/tool/provider payloads are excluded. Model readiness remains response-only and named file roles come from immutable manifests.
@@ -38,6 +40,8 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-13: Resolve shipped Go membership from executable build metadata, check selective source identities against the canonical module cache, and record effective versioned replacement sources without changing inventory fields. Pin Mermaid's KaTeX resolution to the elected patched 0.18.2 rather than silently taking a later range match. Render exported diagram sources with a bounded hidden browser and private temporary profile; final qualification retains all native/backend/source and publication boundaries.
 
 - 2026-10-13: Authenticate selected cached module files against the executable's Go h1 sum and copy the notice bytes captured by that verification. Recorded cache metadata and copy equality alone cannot establish upstream evidence; do not reread mutable source notices afterward.
+
+- 2026-10-13: Prepare local engines through private isolated CPython/uv environments and complete platform wheel hashes. Record and revalidate runtime/dependency bytes before frozen work; reuse unchanged accepted environments. Model preparation retains immutable builtin roles and first-elected storage/credentials, strips cross-origin tokens on official CDN redirects and reports prerequisite readiness separately from inference. Request Windows ownership transfer only when the directory owner changes; retain private protected ACL verification.
 
 ## [1.0.1] - 2026-10-11
 

@@ -11,6 +11,8 @@ v1.0.1 documents the prepared release candidate. Official product downloads have
 3. [Technology decisions](technology.md) compares implementation choices and dependency qualification.
 4. [Delivery outcomes](roadmap.md) explains capability dependencies.
 
+[Local processing setup](processing-setup.md) covers managed CPU environments, verified model reuse, offline acquisition and task-specific readiness.
+
 [CLI invocation and results](cli.md) covers contextual help, argument parsing, JSON files, output streams and durable failure inspection.
 
 Focused contracts cover [import dates and metadata](ingestion.md), [media](media.md), [pipelines](pipelines.md), [subtitles](subtitles.md), [speakers](speakers.md), [speaker audio and models](voice-models.md), [queries](graph.md), [storage](storage.md), [catalog structure](schema.md), [JSON contracts](contracts.md), [credentials](security.md), [credential commands](secrets.md) and [downloaded models](models.md), [desktop behavior](desktop.md) and [development](development.md). The [glossary](glossary.md) defines technical vocabulary with learning and local usage links. The [changelog](changelog.md) records changes.

@@ -165,17 +165,25 @@ func mergeHelp(base, extra map[string]any) map[string]any {
 	}
 	return out
 }
-func helpExample(original map[string]any) any {
+
+// flattenHelp preserves required fields through nested allOf compositions.
+// Conditional branches remain excluded because the illustrative election may
+// choose a different mode than their discriminator.
+func flattenHelp(original map[string]any) map[string]any {
 	n := mergeHelp(nil, original)
 	if branches, ok := n["allOf"].([]any); ok {
 		delete(n, "allOf")
 		for _, b := range branches {
 			branch := b.(map[string]any)
 			if _, conditional := branch["if"]; !conditional {
-				n = mergeHelp(n, branch)
+				n = mergeHelp(n, flattenHelp(branch))
 			}
 		}
 	}
+	return n
+}
+func helpExample(original map[string]any) any {
+	n := flattenHelp(original)
 	if v, ok := n["const"]; ok {
 		return v
 	}

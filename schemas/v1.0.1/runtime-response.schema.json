@@ -106,7 +106,8 @@
             "unavailable",
             "cancelled",
             "output_limit",
-            "operation_failed"
+            "operation_failed",
+            "insufficient_space"
           ],
           "description": "Stable machine-readable failure category."
         },

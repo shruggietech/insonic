@@ -62,6 +62,36 @@ class NativePackageIntegrityTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'required'): package.verify_inventory(root, value)
 
 
+    def test_processing_metadata_and_hash_locks_are_verified_as_a_closure(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            names = ['insonic-companions.json', 'LICENSE', 'NOTICE', 'help/index.html', 'INSTALL.txt',
+                     'insonic', 'companions/cueson/cueson', 'companions/cueson/cueson.schema.json',
+                     'companions/processing/processing-worker.py', 'companions/processing/probe.py',
+                     'companions/processing/models.json', 'companions/processing/requirements.txt']
+            for name in names:
+                path = root / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b'fixture')
+            processing = root / 'companions/processing'
+            profile = {'id': 'recognition', 'platform': 'linux_amd64', 'python': '3.12.15',
+                       'engines': {}, 'lock': 'requirements.txt', 'lock_sha256': package.sha(processing / 'requirements.txt')}
+            package.write_json(processing / 'catalog.json', {'profiles': [profile]})
+            names.append('companions/processing/catalog.json')
+            value = {'platform': 'linux_amd64', 'variant': 'cli', 'dependencies': {'processing_workers': {
+                'catalog_sha256': package.sha(processing / 'catalog.json'),
+                'model_catalog_sha256': package.sha(processing / 'models.json'),
+                'profiles': [{key: profile[key] for key in ['id', 'platform', 'python', 'engines', 'lock_sha256']}]}},
+                'files': [{'path': name, 'size_bytes': (root / name).stat().st_size, 'sha256': package.sha(root / name)} for name in names]}
+            package.verify_inventory(root, value)
+            # Rewriting the ordinary file inventory cannot authorize another lock.
+            lock = processing / 'requirements.txt'
+            lock.write_bytes(b'other dependency selection')
+            entry = next(item for item in value['files'] if item['path'].endswith('requirements.txt'))
+            entry.update(size_bytes=lock.stat().st_size, sha256=package.sha(lock))
+            with self.assertRaisesRegex(ValueError, 'hash lock'):
+                package.verify_inventory(root, value)
+
     def source_fixture(self, root):
         target = root / 'sources'
         target.mkdir()

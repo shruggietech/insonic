@@ -27,11 +27,12 @@ import (
 )
 
 type ProcessingTools struct {
-	Kind          string               `json:"kind"`
-	Version       string               `json:"schema_version"`
-	Cueson        subtitles.Tool       `json:"cueson"`
-	Processing    processing.Config    `json:"processing"`
-	PortableFiles []library.PinnedFile `json:"portable_files,omitempty"`
+	PackageCompanions bool                 `json:"package_companions,omitempty"`
+	Kind              string               `json:"kind"`
+	Version           string               `json:"schema_version"`
+	Cueson            subtitles.Tool       `json:"cueson"`
+	Processing        processing.Config    `json:"processing"`
+	PortableFiles     []library.PinnedFile `json:"portable_files,omitempty"`
 }
 type RecordingOptions struct {
 	PipelineID         string                        `json:"pipeline_id,omitempty"`
@@ -147,7 +148,8 @@ func (a *App) electedProcessingTools() (*ProcessingTools, error) {
 		}
 		c.Processing.FFmpeg = lib.Tools.FFmpeg
 	}
-	c.PortableFiles = nil // Destination-local bindings are not part of an election.
+	c.PortableFiles = nil       // Destination-local bindings are not part of an election.
+	c.PackageCompanions = false // The accepted job keeps these exact installed bytes.
 	return &c, nil
 }
 func (a *App) recordingExecutorWithTools(elected *ProcessingTools) (*recordingExecution, error) {

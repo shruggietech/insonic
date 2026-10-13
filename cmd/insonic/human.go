@@ -172,7 +172,7 @@ func humanActions(b *humanBuffer, root map[string]any) {
 	if id == "not set" {
 		id = humanValue(root["work_id"])
 	}
-	if root["kind"] != nil && strings.HasSuffix(humanValue(root["kind"]), "import") || strings.HasPrefix(op, "work ") {
+	if root["kind"] != nil && strings.HasSuffix(humanValue(root["kind"]), "import") || strings.HasPrefix(op, "work ") || op == "workers setup" {
 		if contracts.ValidID(id) {
 			b.line("Next: %s", commandFor("work show "+id))
 			b.line("Wait: %s", commandFor("work wait "+id))
@@ -206,6 +206,12 @@ func humanActions(b *humanBuffer, root map[string]any) {
 			}
 		}
 		b.line("Credential registration does not prove provider authentication.")
+	}
+	if strings.HasPrefix(op, "workers ") || op == "processing readiness" {
+		b.line("Inspect task prerequisites: %s", commandFor("processing readiness"))
+		b.line("Prepare or verify environments: %s", commandFor("workers plan --input SETUP_INPUT.json"))
+		b.line("Model choices: %s", commandFor("models defaults"))
+		b.line("Prerequisite verification is separate from measured model execution. Device/provider corrections apply only to new elections.")
 	}
 	if strings.HasPrefix(op, "models ") {
 		if model, ok := root["model_id"].(string); ok && contracts.ValidID(model) {

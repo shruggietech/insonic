@@ -95,6 +95,10 @@
     "backend-plan": {
       "$ref": "backend-plan.schema.json",
       "description": "Nonsecret initial backend selection with generated workspace/profile identities."
+    },
+    "worker-resources": {
+      "$ref": "worker-resources.schema.json",
+      "description": "Optional managed CPU profiles and verified environment identity receipts."
     }
   },
   "oneOf": [
@@ -164,6 +168,9 @@
     {
       "$ref": "#/$defs/backend-plan",
       "description": "Shared CLI/desktop backend plan."
+    },
+    {
+      "$ref": "#/$defs/worker-resources"
     }
   ]
 }

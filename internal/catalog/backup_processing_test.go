@@ -12,6 +12,33 @@ import (
 	"github.com/shruggietech/insonic/internal/contracts"
 )
 
+func TestPortableManagedSetupAndLocalModelInputsRequireNewSourceElection(t *testing.T) {
+	ctx := context.Background()
+	source := localStore(t, contracts.ID())
+	for _, kind := range []string{"workers.setup", "models.acquire"} {
+		raw := json.RawMessage(`{"election":{"role":"recognition","mode":"reuse","python_path":"C:/source-private/python.exe"},"local_directory":"C:/source-private/models"}`)
+		if _, e := source.EnqueueWork(ctx, contracts.ID(), kind, raw); e != nil {
+			t.Fatal(e)
+		}
+	}
+	snap, e := source.Export(ctx)
+	if e != nil {
+		t.Fatal(e)
+	}
+	portable, e := PortableSnapshot(ctx, snap)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, w := range portable.Records.Works {
+		if strings.Contains(string(w.Payload), "source-private") || w.State != "failed" || w.Phase != "portable-source-required" {
+			t.Fatal("host input retained or resumable", w)
+		}
+	}
+	if ValidateSnapshot(ctx, portable) != nil {
+		t.Fatal("portable receipt invalid")
+	}
+}
+
 func TestPortableRejectsUndeclaredAbsoluteArgumentsAndDeterministicallyBindsOverlaps(t *testing.T) {
 	for _, argument := range []string{"--config=/source/private.json", `--config=C:\source\private.json`, `\\server\private\input.json`} {
 		payload, _ := json.Marshal(map[string]any{"options": map[string]any{"adapter": map[string]any{"arguments": []string{argument}}}})

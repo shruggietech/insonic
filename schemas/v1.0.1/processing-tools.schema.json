@@ -159,9 +159,55 @@
           "minimum": 1,
           "maximum": 64,
           "description": "Maximum selected inference CPU thread count; default two."
+        },
+        "recognition_environment": {
+          "description": "Optional frozen dependency receipt pin; execution revalidates its selected files.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "description": "Exact absolute local file path.",
+              "type": "string",
+              "maxLength": 4096
+            },
+            "sha256": {
+              "description": "Calculated lowercase content SHA-256.",
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "path",
+            "sha256"
+          ]
+        },
+        "diarization_environment": {
+          "description": "Optional frozen dependency receipt pin; execution revalidates its selected files.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "description": "Exact absolute local file path.",
+              "type": "string",
+              "maxLength": 4096
+            },
+            "sha256": {
+              "description": "Calculated lowercase content SHA-256.",
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "path",
+            "sha256"
+          ]
         }
       },
       "description": "Lazy selected processing tools and bounded execution budgets. Engines are required only by explicitly elected inference operations."
+    },
+    "package_companions": {
+      "type": "boolean",
+      "description": "Managed configuration re-elects verified installed Cueson/media/worker companions for future operations; accepted jobs retain exact original pins."
     }
   },
   "required": [

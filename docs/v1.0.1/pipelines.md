@@ -1,5 +1,7 @@
 # Pipelines and adapters
 
+[Local processing setup](processing-setup.md) prepares optional engines and models and reports prerequisites for a selected pipeline. Settings can save an exact builtin Local CPU pipeline; saving it does not begin inference. CPU and CUDA are explicit elections without automatic fallback.
+
 ## Configured work and current results
 
 A pipeline declares elected models, adapters, device/resource settings and routing. Saved definitions advance revisions and accepted work retains its elected configuration; processing does not retain alternative transcripts or assignment stores. Changing defaults affects future work. Rerunning a stage replaces the current result after validation and fenced acceptance. Once routing is configured, normal work proceeds without per-item approval or silent provider fallback.

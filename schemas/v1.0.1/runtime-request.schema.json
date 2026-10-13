@@ -155,7 +155,14 @@
         "import-presets.update",
         "import-presets.delete",
         "query.services",
-        "query.assistance-test"
+        "query.assistance-test",
+        "workers.catalog",
+        "workers.inspect",
+        "workers.plan",
+        "workers.setup",
+        "processing.readiness",
+        "models.defaults",
+        "models.prepare"
       ],
       "description": "Shared operation selected by either client."
     },
@@ -731,7 +738,14 @@
               "import-presets.list",
               "import-presets.show",
               "import-presets.update",
-              "import-presets.delete"
+              "import-presets.delete",
+              "workers.catalog",
+              "workers.inspect",
+              "workers.plan",
+              "workers.setup",
+              "processing.readiness",
+              "models.defaults",
+              "models.prepare"
             ],
             "description": "Operation family with an exact argument shape."
           }
@@ -5889,6 +5903,336 @@
           "data": {
             "$ref": "query-assistance.schema.json#/$defs/test",
             "description": "Shared bounded service operation input."
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "description": "Managed processing operation discriminator.",
+            "const": "workers.catalog"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            },
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "description": "Managed processing operation discriminator.",
+            "const": "workers.inspect"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "description": "Nonsecret shared operation-specific worker/model input.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "role": {
+                "description": "Selected installed engine role.",
+                "enum": [
+                  "recognition",
+                  "diarization"
+                ]
+              },
+              "python_path": {
+                "description": "Optional absolute existing interpreter path; omitted inspects current role tools.",
+                "type": "string",
+                "maxLength": 4096
+              }
+            },
+            "required": [
+              "role"
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "description": "Managed processing operation discriminator.",
+            "const": "workers.plan"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "description": "Nonsecret shared operation-specific worker/model input.",
+            "$ref": "worker-resources.schema.json#/$defs/election"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "description": "Managed processing operation discriminator.",
+            "const": "workers.setup"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "description": "Nonsecret shared operation-specific worker/model input.",
+            "allOf": [
+              {
+                "$ref": "worker-resources.schema.json#/$defs/election"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "expected_revision"
+                ],
+                "properties": {
+                  "expected_revision": {
+                    "description": "Observed current processing-tools revision for compare-and-swap publication.",
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "required": [
+          "data"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "description": "Managed processing operation discriminator.",
+            "const": "processing.readiness"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "description": "Nonsecret shared operation-specific worker/model input.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "pipeline_id": {
+                "description": "Optional elected saved pipeline UUID.",
+                "type": "string",
+                "format": "uuid"
+              },
+              "pipeline_revision": {
+                "description": "Optional positive expected saved pipeline revision.",
+                "type": "integer",
+                "minimum": 1
+              },
+              "recognition_model_id": {
+                "description": "Exact managed recognition model reference.",
+                "type": "string",
+                "maxLength": 512
+              },
+              "diarization_model_id": {
+                "description": "Exact managed diarization model reference.",
+                "type": "string",
+                "maxLength": 512
+              },
+              "recognition_device": {
+                "description": "Explicit recognition device.",
+                "enum": [
+                  "cpu",
+                  "cuda"
+                ]
+              },
+              "diarization_device": {
+                "description": "Explicit diarization device.",
+                "enum": [
+                  "cpu",
+                  "cuda"
+                ]
+              },
+              "dataset_id": {
+                "description": "Optional current training dataset UUID.",
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "required": []
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "description": "Managed processing operation discriminator.",
+            "const": "models.defaults"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            },
+            {
+              "required": [
+                "data"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "description": "Managed processing operation discriminator.",
+            "const": "models.prepare"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        },
+        "properties": {
+          "data": {
+            "description": "Nonsecret shared operation-specific worker/model input.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "choice": {
+                "description": "Builtin exact model bundle selection.",
+                "enum": [
+                  "whisper-tiny",
+                  "community-1"
+                ]
+              },
+              "credential_id": {
+                "description": "Optional protected upstream credential UUID.",
+                "type": "string",
+                "format": "uuid"
+              },
+              "local_directory": {
+                "description": "Absolute verified local model snapshot directory for immutable reuse.",
+                "type": "string",
+                "maxLength": 4096
+              },
+              "destination_profile_id": {
+                "description": "Optional elected storage profile UUID.",
+                "type": "string",
+                "format": "uuid"
+              },
+              "acquire": {
+                "description": "Explicitly elect shared durable acquisition; false or omitted only previews.",
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "choice"
+            ]
           }
         },
         "required": [

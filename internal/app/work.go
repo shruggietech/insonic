@@ -202,7 +202,9 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 	defer a.wg.Done()
 	var result any
 	var e error
-	if claim.Kind == "evidence.extract" {
+	if claim.Kind == "workers.setup" {
+		result, e = a.executeWorkerSetup(ctx, claim)
+	} else if claim.Kind == "evidence.extract" {
 		result, e = a.processEvidence(ctx, claim)
 	} else if claim.Kind == "models.ensure" {
 		selected, _, err := frozenModelDependencies(claim)
@@ -303,6 +305,9 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 }
 
 func domainRequestValid(req contracts.Request) bool {
+	if workerOperation(req.Operation) {
+		return workerRequestValid(req)
+	}
 	if speakerWorkOperation(req.Operation) {
 		return speakerWorkRequestValid(req)
 	}
@@ -380,12 +385,12 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 	case "work.show":
 		return a.Catalog.Work(a.ctx, req.ItemID)
 	case "work.cancel":
-		out, e := a.Catalog.CancelWork(a.ctx, req.RequestID, req.ItemID)
 		a.workMu.Lock()
+		defer a.workMu.Unlock()
+		out, e := a.Catalog.CancelWork(a.ctx, req.RequestID, req.ItemID)
 		if w := a.workers[req.ItemID]; w != nil && e == nil {
 			w.cancel()
 		}
-		a.workMu.Unlock()
 		return out, e
 	case "work.retry":
 		current, e := a.Catalog.Work(a.ctx, req.ItemID)

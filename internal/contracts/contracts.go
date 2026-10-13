@@ -95,6 +95,7 @@ func Fail(code string) *Error {
 		"invalid_timing":           "The local engine returned invalid source-clock timing.",
 		"engine_ci_forbidden":      "Model execution is disabled in CI.",
 		"engine_unavailable":       "The configured local engine is unavailable.",
+		"insufficient_space":       "The elected local destination has insufficient free space. Free space or select another workspace/storage location, then retry.",
 		"unsupported_device":       "The selected processing device is unsupported.",
 		"invalid_embedding":        "The local engine returned invalid speaker embeddings.",
 		"invalid_request":          "The request is invalid.", "incompatible_version": "The contract version is unsupported.",
