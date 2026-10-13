@@ -26,6 +26,7 @@ import zipfile
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from process_tree import ProcessTree
 import qualify
+import go_module_notices
 
 ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / 'build/packages'
@@ -177,30 +178,14 @@ def installed_manifest(root):
             'system_perl': platform.system() != 'Windows'}
 
 
-def collect_module_notices(target):
-    raw = child(['go', 'list', '-m', '-json', 'all']).decode()
-    decoder = json.JSONDecoder()
-    modules = []
-    while raw.strip():
-        value, end = decoder.raw_decode(raw.lstrip())
-        raw = raw.lstrip()[end:]
-        if value.get('Main'):
-            continue
-        directory = Path(value.get('Dir', ''))
-        notices = []
-        if directory.is_dir():
-            for path in sorted(directory.iterdir()):
-                if path.is_file() and path.name.upper().startswith(('LICENSE', 'LICENCE', 'COPYING', 'NOTICE')):
-                    relative = Path('go') / value['Path'].replace('/', '_') / path.name
-                    (target / relative).parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copyfile(path, target / relative)
-                    notices.append(relative.as_posix())
-        if not notices:
-            raise ValueError('module license missing: ' + value['Path'])
-        modules.append({'module': value['Path'], 'version': value.get('Version'), 'notices': notices})
-    goroot = Path(child(['go', 'env', 'GOROOT']).decode().strip())
-    shutil.copyfile(goroot / 'LICENSE', target / 'Go-LICENSE')
-    return modules
+def product_binaries(root, key, variant):
+    suffix = '.exe' if key.startswith('windows') else ''
+    names = ['insonic'] + (['insonic-desktop'] if variant == 'desktop' else [])
+    return [(root / (name + suffix), 'github.com/shruggietech/insonic/cmd/' + name) for name in names]
+
+
+def collect_module_notices(target, binaries):
+    return go_module_notices.collect_notices(target, binaries, child, qualify.LOCK['go'])
 
 
 def collect_frontend_notices(target):
@@ -586,7 +571,7 @@ def build(variant='desktop'):
         shutil.copyfile(ROOT / 'brand/kit' / name, notices / ('brand-' + name))
     copy_tree(ROOT / 'brand/kit/fonts/licenses', notices / 'fonts')
     shutil.copyfile(fetch_license(), notices / 'LadybugDB-LICENSE')
-    module_notices = collect_module_notices(notices)
+    module_notices = collect_module_notices(notices, product_binaries(root, key, variant))
     frontend_notices = collect_frontend_notices(notices)
     source_media = source_module()
     source_directory, source_receipt, _ = source_media.prepare()
@@ -721,7 +706,15 @@ def verify_archive_receipt(archive, receipt, expected_source_root=ROOT):
             expected.add(receipt['dirname'] + '/' + item['path'])
         if {path.relative_to(location).as_posix() for path in location.rglob('*') if path.is_file()} != expected:
             raise ValueError('package archive contains bytes outside its complete inventory')
-        _, resources = package_directories(root, receipt['platform'], receipt['variant'])
+        binaries, resources = package_directories(root, receipt['platform'], receipt['variant'])
+        # Historical published inventories retain their original semantics.
+        # Current candidate evidence must independently match its own binaries.
+        if value.get('schema_version') == VERSION:
+            if value.get('dependencies', {}).get('go') != qualify.LOCK['go']:
+                raise ValueError('package compiler inventory differs from elected toolchain')
+            go_module_notices.verify_notices(
+                resources / 'notices', value.get('dependencies', {}).get('modules'),
+                product_binaries(binaries, receipt['platform'], receipt['variant']), child, qualify.LOCK['go'])
         if sha(resources / 'companions/processing/processing-worker.py') != sha(expected_source_root / 'scripts/processing-worker.py'):
             raise ValueError('package processing worker differs from selected source')
         manifest = verify_corresponding_sources(resources, expected_source_root=expected_source_root)
