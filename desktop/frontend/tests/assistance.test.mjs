@@ -56,3 +56,18 @@ test('native integer parameter survives proposal adoption and direct execution a
 test('native Ollama discovery requires explicit model election and reports cloud routing',async()=>{
  const b=mock(),original=b.Operate;b.Operate=async request=>{const check=validateNativeRequest(request);assert.equal(check.valid,true,check.errors);if(request.operation==='query.assistance-show')return {workspace_id:wid,result:{configuration:{enabled:true,adapter:'ollama',contract_version:'1',route:'local',endpoint:'http://127.0.0.1:11434',model:'local-fixture',mode:'suggest',limits:{}},revision:3}};if(request.operation==='query.services'){b.calls.push(request);return {workspace_id:wid,result:{checked_at:'2026-10-13T00:00:00Z',candidates:[{endpoint:'http://127.0.0.1:11434',sources:['loopback-default'],installed:true,running:true,reachable:true,configured:false,tested:false,metadata:{models:[{name:'cloud-fixture',inference_route:'hosted',task_compatible:true,detail_state:'observed'}]}}]}}};if(request.operation==='query.assistance-set'){b.calls.push(request);return {workspace_id:wid,result:{configuration:request.data.configuration,revision:4}}};return original(request)};await mount(b);await click('Query');await click('Discover Ollama services and models');assert.equal(b.calls.some(x=>x.operation==='query.assistance-set'),false);await click('Use cloud-fixture with hosted/unknown inference');await click('Save assistance configuration');const save=b.calls.find(x=>x.operation==='query.assistance-set');assert.equal(save.data.configuration.adapter,'ollama');assert.equal(save.data.configuration.model,'cloud-fixture');assert.equal(save.data.configuration.route,'hosted');assert.equal(save.data.expected_revision,3);await unmount();
 });
+
+
+test('native discovery displays per-model metadata correction without adopting it',async()=>{
+ const b=mock(),original=b.Operate;
+ b.Operate=async request=>{
+  if(request.operation==='query.assistance-show')return {workspace_id:wid,result:{configuration:{enabled:true,adapter:'ollama',contract_version:'1',route:'local',endpoint:'http://127.0.0.1:11434',model:'selected',mode:'suggest',limits:{}},revision:3}};
+  if(request.operation==='query.services'){b.calls.push(request);return {workspace_id:wid,result:{checked_at:'2026-10-13T00:00:00Z',candidates:[{endpoint:'http://127.0.0.1:11434',sources:['configured'],running:true,reachable:true,configured:true,probe_state:'metadata-failed',correction:'Selected metadata failed.',metadata:{models:[{name:'selected',inference_route:'unknown',task_compatible:false,detail_state:'failed',correction:'Ollama rejected authentication. Check the elected credential or server account.'}]}}]}}}
+  return original(request);
+ };
+ await mount(b);await click('Query');await click('Discover Ollama services and models');
+ assert.match(document.body.textContent,/running: true; reachable: true/);
+ assert.match(document.body.textContent,/Selected metadata failed/);
+ assert.match(document.body.textContent,/Ollama rejected authentication/);
+ assert.equal(b.calls.some(r=>r.operation==='query.assistance-set'),false);await unmount();
+});

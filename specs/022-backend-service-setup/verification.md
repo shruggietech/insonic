@@ -24,3 +24,11 @@ Initial head 888c541 received three code review findings. Regression tests repro
 Initial Linux desktop CI caught the omitted cancellation ref initializer. Fixed the ref and added the configured frontend TypeScript check to local verification; type checking and rendered tests pass.
 
 Post-remediation full Go tests/vet, repository checks/tests, configured frontend type check/rendered tests and site build pass. Tagged native qualification now includes backendsetup so the real selected Ladybug graph bootstrap test runs in CI. Initial run 38371824332 passed live adapter fixtures, including credential-before-PostgreSQL and non-mutating catalog preflight. Final-head qualification follows the correction push.
+
+## 2026-10-13: Second external review remediation
+
+Head c1ad24b passed the complete Windows/Linux CI run 38374317969, including live adapters, native desktop/engine, CLI/desktop packages and candidate integrity. The second and final requested Codex review completed on that head with three findings. Regression tests reproduced omitted S3 access checks, incorrect completed-retry credential mode admission and suppressed selected-model metadata errors before implementation corrections.
+
+Provisioning now requires non-mutating selected S3 bucket access before publishing configuration, while leaving object writes untested. Completed retries hold canonical workspace ownership, reread configuration and verify both retained plan/mode identity and persisted credential selection. Failed model details expose redacted per-model corrections; a selected-model failure returns partial metadata error so discovery retains observed running/reachable evidence and reports metadata-failed. Rendered discovery exposes both candidate and per-model corrections without adoption.
+
+Targeted shared Go bootstrap/assistance/app/CLI/desktop tests and full go test ./... / go vet ./... pass after remediation. npm run check and all 84 repository tests pass; frontend TypeScript check and all 76 rendered tests pass; production/offline site build and 78-page link checks pass. New-head CI qualification follows. No third review request is permitted or will be posted.

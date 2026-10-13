@@ -66,3 +66,9 @@ Parallel examples: independent backend unit fixtures and Ollama protocol fixture
 - [x] T022 Persist and enforce a private pending plan/credential-backend identity before backend mutation in internal/backendsetup/intent.go per FR-005 and review discussion_r4256618082.
 - [x] T023 Preserve successful version/reachability evidence when later model metadata fails in internal/assistance/discovery.go per FR-009/013 and review discussion_r4256618087.
 - [x] T024 Correct cancellation ref initialization in desktop/frontend/src/assistance.tsx and run the configured frontend type check per FR-015/016 and initial CI failure.
+
+## Phase 10: Second review remediation
+
+- [x] T025 Observe S3 HeadBucket access before successful workspace publication in internal/backendsetup/provision.go, with inaccessible/missing/denied/cancelled regression fixtures per FR-003/005/013/015 and review discussion_r4256827921.
+- [x] T026 Verify retained intent and persisted credential mode under workspace ownership for completed retries, with all three mode/conflict/receipt regression cases in internal/backendsetup/second_review_test.go per FR-005/013/015 and review discussion_r4256827933.
+- [x] T027 Preserve typed selected-model metadata failures and per-model redacted corrections in internal/assistance/ollama.go and desktop/frontend/src/assistance.tsx, with protocol and rendered fixtures per FR-009/013/015 and review discussion_r4256827939.

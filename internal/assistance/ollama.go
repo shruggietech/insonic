@@ -29,6 +29,7 @@ type OllamaModel struct {
 	RemoteModel    string   `json:"remote_model,omitempty"`
 	RemoteHost     string   `json:"remote_host,omitempty"`
 	DetailState    string   `json:"detail_state"`
+	Correction     string   `json:"correction,omitempty"`
 }
 type OllamaInfo struct {
 	Endpoint      string        `json:"endpoint"`
@@ -194,6 +195,7 @@ func (a Ollama) Inspect(ctx context.Context, endpoint, id, selected string) (Oll
 		out.Truncated = true
 	}
 	details := 0
+	var selectedError error
 	for _, tag := range tags.Models {
 		if tag.Name == "" || len(tag.Name) > 512 || len(tag.Digest) > 512 || tag.Size < 0 {
 			return out, contracts.Condition("operation_failed", "ollama_protocol")
@@ -206,7 +208,10 @@ func (a Ollama) Inspect(ctx context.Context, endpoint, id, selected string) (Oll
 				if ctx.Err() != nil {
 					return out, e
 				}
-				m.DetailState = "failed"
+				m = OllamaModel{Name: tag.Name, InferenceRoute: "unknown", DetailState: "failed", Correction: contracts.SafeError(e).Message}
+				if tag.Name == selected {
+					selectedError = e
+				}
 			}
 			m.Digest = tag.Digest
 			m.Size = tag.Size
@@ -219,7 +224,7 @@ func (a Ollama) Inspect(ctx context.Context, endpoint, id, selected string) (Oll
 	if ctx.Err() != nil {
 		return out, contracts.Fail("cancelled")
 	}
-	return out, nil
+	return out, selectedError
 }
 func (a Ollama) Propose(ctx context.Context, input Request, c Config) (Proposal, error) {
 	var empty Proposal

@@ -125,6 +125,29 @@ func TestExternalHintsAreNotContactedOrEchoed(t *testing.T) {
 	}
 }
 
-func TestDiscoveryRetainsVersionEvidenceOnMetadataFailure(t *testing.T){
- server:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){if r.URL.Path=="/api/version"{w.Write([]byte("{\"version\":\"fixture\"}"));return};w.Write([]byte("malformed"))}));defer server.Close();c:=DefaultConfig();c.Adapter="ollama";c.Endpoint=server.URL;out,e:=(Ollama{Client:server.Client()}).Discover(context.Background(),DiscoveryInput{},c);if e!=nil{t.Fatal(e)};for _,candidate:=range out.Candidates{if candidate.Endpoint==server.URL{if !candidate.Reachable||!candidate.Running||candidate.ProbeState!="metadata-failed"{t.Fatal(candidate)};return}};t.Fatal("missing candidate")
+func TestDiscoveryRetainsVersionEvidenceOnMetadataFailure(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/version" {
+			w.Write([]byte("{\"version\":\"fixture\"}"))
+			return
+		}
+		w.Write([]byte("malformed"))
+	}))
+	defer server.Close()
+	c := DefaultConfig()
+	c.Adapter = "ollama"
+	c.Endpoint = server.URL
+	out, e := (Ollama{Client: server.Client()}).Discover(context.Background(), DiscoveryInput{}, c)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, candidate := range out.Candidates {
+		if candidate.Endpoint == server.URL {
+			if !candidate.Reachable || !candidate.Running || candidate.ProbeState != "metadata-failed" {
+				t.Fatal(candidate)
+			}
+			return
+		}
+	}
+	t.Fatal("missing candidate")
 }

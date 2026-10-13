@@ -11,31 +11,49 @@ import (
 	"path/filepath"
 )
 
-// retainIntent runs under canonical workspace ownership, before secret or backend mutation.
-// It intentionally survives failure and success as the exact owned bootstrap receipt.
-func retainIntent(w *workspace.Workspace, mode string) error {
-	file := filepath.Join(w.Control, "provision-intent.json")
+func intentBytes(w *workspace.Workspace, mode string) []byte {
 	expected, _ := json.Marshal(struct {
 		Version string           `json:"schema_version"`
 		Mode    string           `json:"credential_backend"`
 		Config  workspace.Config `json:"configuration"`
 	}{contracts.Version, mode, w.Config})
-	if st, e := os.Lstat(file); e == nil {
-		if !st.Mode().IsRegular() || st.Size() > 2<<20 {
-			return contracts.Fail("conflict")
-		}
-		f, e := os.Open(file)
-		if e != nil {
-			return contracts.Fail("unavailable")
-		}
-		raw, e := io.ReadAll(io.LimitReader(f, (2<<20)+1))
-		f.Close()
-		if e != nil || !bytes.Equal(bytes.TrimSpace(raw), expected) {
-			return contracts.Condition("conflict", "backend_pending_plan")
-		}
+	return expected
+}
+
+// verifyIntent reads the retained identity without creating or changing it.
+func verifyIntent(w *workspace.Workspace, mode string) error {
+	file := filepath.Join(w.Control, "provision-intent.json")
+	st, e := os.Lstat(file)
+	if e != nil {
+		return e
+	}
+	if !st.Mode().IsRegular() || st.Size() > 2<<20 {
+		return contracts.Condition("conflict", "backend_pending_plan")
+	}
+	f, e := os.Open(file)
+	if e != nil {
+		return contracts.Fail("unavailable")
+	}
+	defer f.Close()
+	raw, e := io.ReadAll(io.LimitReader(f, (2<<20)+1))
+	if e != nil {
+		return contracts.Fail("unavailable")
+	}
+	if !bytes.Equal(bytes.TrimSpace(raw), intentBytes(w, mode)) {
+		return contracts.Condition("conflict", "backend_pending_plan")
+	}
+	return nil
+}
+
+// retainIntent runs under canonical workspace ownership, before secret or backend mutation.
+// It intentionally survives failure and success as the exact owned bootstrap receipt.
+func retainIntent(w *workspace.Workspace, mode string) error {
+	file := filepath.Join(w.Control, "provision-intent.json")
+	expected := intentBytes(w, mode)
+	if e := verifyIntent(w, mode); e == nil {
 		return nil
 	} else if !os.IsNotExist(e) {
-		return contracts.Fail("unavailable")
+		return e
 	}
 	tmp, e := os.CreateTemp(w.Control, ".provision-intent-*")
 	if e != nil {

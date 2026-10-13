@@ -45,6 +45,33 @@ func (svc Provisioner) ProvisionMode(ctx context.Context, root string, c workspa
 		a, _ := json.Marshal(existing.Config)
 		b, _ := json.Marshal(c)
 		if bytes.Equal(a, b) {
+			lock, err := existing.Lock()
+			if err != nil {
+				return nil, err
+			}
+			defer lock.Close()
+			defer lock.Unlock()
+			existing, err = workspace.Open(existing.Root)
+			if err != nil {
+				return nil, err
+			}
+			current, _ := json.Marshal(existing.Config)
+			if !bytes.Equal(current, b) {
+				return nil, contracts.Fail("conflict")
+			}
+			if err = verifyIntent(existing, mode); err != nil {
+				if os.IsNotExist(err) {
+					return nil, contracts.Condition("conflict", "backend_pending_plan")
+				}
+				return nil, err
+			}
+			selected, err := secrets.ReadSelection(existing)
+			if err != nil {
+				return nil, err
+			}
+			if selected != mode {
+				return nil, contracts.Condition("conflict", "backend_pending_plan")
+			}
 			return existing, nil
 		}
 		return nil, contracts.Fail("conflict")
@@ -139,6 +166,18 @@ func (svc Provisioner) ProvisionMode(ctx context.Context, root string, c workspa
 		return nil, e
 	}
 	defer artifacts.Close()
+	if s3, ok := artifacts.(*artifact.S3); ok {
+		exists, err := s3.ProbeBucket(ctx)
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil, contracts.Fail("cancelled")
+			}
+			return nil, contracts.Condition("unavailable", "backend_s3_bucket")
+		}
+		if !exists {
+			return nil, contracts.Condition("unavailable", "backend_s3_bucket")
+		}
+	}
 	g, e := graph.Initialize(ctx, w, provider, svc.GraphFactory)
 	if e != nil {
 		return nil, e
@@ -147,10 +186,8 @@ func (svc Provisioner) ProvisionMode(ctx context.Context, root string, c workspa
 	if ctx.Err() != nil {
 		return nil, contracts.Fail("cancelled")
 	}
-	if mode != "native" {
-		if e = secrets.Select(w, mode); e != nil {
-			return nil, e
-		}
+	if e = secrets.Select(w, mode); e != nil {
+		return nil, e
 	}
 	return workspace.InitConfig(w.Root, c)
 }

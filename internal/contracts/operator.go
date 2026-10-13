@@ -4,7 +4,8 @@ package contracts
 import "errors"
 
 var operatorReasons = map[string]string{
-	"backend_pending_plan":      "This directory has a pending provisioning attempt. Reuse its exact provision-intent configuration and credential backend; different plans cannot replace it.",
+	"backend_pending_plan":      "This directory cannot reconcile this provisioning input. Reuse its retained provision-intent configuration and credential backend; changed input, a missing receipt or a changed credential selection conflicts.",
+	"backend_s3_bucket":         "The selected S3 bucket access could not be established. Verify the endpoint, existing bucket, credentials and TLS; provisioning does not create S3 buckets.",
 	"backend_plan":              "The backend plan is invalid. Correct the reported fields and use workspace plan --help for complete supported shapes.",
 	"backend_local_transport":   "PostgreSQL local requires a literal loopback address, pinned localhost or Unix socket. Use verify-full or explicitly named insecure for a remote host.",
 	"backend_endpoint_tls":      "Credential-bearing connected ArcadeDB endpoints require HTTPS; verify the endpoint and certificate.",
