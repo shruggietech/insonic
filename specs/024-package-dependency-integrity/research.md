@@ -35,3 +35,9 @@ References: [KaTeX advisory](https://github.com/advisories/GHSA-238p-pmpm-9mq7),
 ## Quality review
 
 Notice research passes CHK001-004, CHK006, CHK008-010. Renderer behavior and portability research resolve CHK005 and CHK007; parent review confirms all ten written requirements specify measurable scope, preserved boundaries and meaningful validation. These are requirements-writing assessments only.
+
+## Second-review cache integrity correction (2026-10-13)
+
+The P1 finding demonstrates that recorded Go sums and directory identity do not authenticate currently cached bytes. Decision: hash only each selected effective source directory using the Go h1 format and compare directly with its binary Sum, then write the notice bytes captured during that verified hash. This avoids dependence on a potentially altered cached ziphash, unrelated tooling graph traversal/downloads and a later source reread. A real isolated file-proxy/Go-build fixture proves the recorded metadata stays unchanged after license tampering; the original collector accepted it and the corrected collector rejects it. A post-verification mutation fixture proves copied notice bytes stay at the verified snapshot.
+
+Alternatives considered: go mod verify is trusted but verifies the whole selected graph rather than only linked sources; copied-file equality alone verifies no upstream identity. The format preserves logical module/version paths inside the hash, even though cache directory names are escaped. [Go directory hash implementation](https://raw.githubusercontent.com/golang/mod/v0.40.0/sumdb/dirhash/hash.go), [Go cache verification](https://raw.githubusercontent.com/golang/go/go1.27.1/src/cmd/go/internal/modcmd/verify.go).

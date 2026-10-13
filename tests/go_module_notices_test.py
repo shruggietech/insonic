@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import importlib.util
+import base64
+import hashlib
 import json
 from pathlib import Path
 import tempfile
@@ -31,7 +33,10 @@ class GoModuleNoticesTests(unittest.TestCase):
         directory = self.cache / (notices.escaped(name)+'@'+notices.escaped(version))
         directory.mkdir(parents=True, exist_ok=True)
         (directory / 'LICENSE').write_text('upstream license '+name, encoding='utf-8')
-        return {'Path':name,'Version':version,'Sum':'h1:'+'a'*43+'=','Dir':str(directory)}
+        content=(directory/'LICENSE').read_bytes()
+        summary=hashlib.sha256(content).hexdigest()+'  '+name+'@'+version+'/LICENSE\n'
+        checksum='h1:'+base64.b64encode(hashlib.sha256(summary.encode('utf-8')).digest()).decode('ascii')
+        return {'Path':name,'Version':version,'Sum':checksum,'Dir':str(directory)}
 
     def info(self, command, deps):
         return {'GoVersion':'go1.27.1','Path':command,'Deps':deps}
@@ -129,5 +134,62 @@ class GoModuleNoticesTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,'notice'): notices.verify_notices(self.target,bad,self.binary,self.fake_run,'1.27.1')
         (self.target/rows[0]['notices'][0]).write_bytes(b'')
         with self.assertRaisesRegex(ValueError,'notice'): notices.verify_notices(self.target,rows,self.binary,self.fake_run,'1.27.1')
+
+    def test_notice_copy_uses_verified_snapshot_after_source_changes(self):
+        from unittest.mock import patch
+        license=Path(self.a['Dir'])/'LICENSE'
+        original=license.read_bytes()
+        verify=notices.verified_source_notices
+        def mutate_after_verification(*args):
+            snapshot=verify(*args)
+            license.write_bytes(b'changed after verified snapshot')
+            return snapshot
+        with patch.object(notices,'verified_source_notices',side_effect=mutate_after_verification):
+            rows=self.collect()
+        self.assertEqual((self.target/rows[0]['notices'][0]).read_bytes(),original)
+        self.assertNotEqual(license.read_bytes(),original)
+
+    def test_real_go_cache_tampered_license_is_rejected_despite_unchanged_metadata(self):
+        import os
+        import sys
+        import zipfile
+        sys.path.insert(0,str(ROOT/'scripts'))
+        from process_tree import ProcessTree
+        go_version=json.loads((ROOT/'internal/qualification/dependencies.json').read_text(encoding='utf-8'))['go']
+        with ProcessTree(['go','env','GOROOT'],cwd=ROOT,env=os.environ.copy()) as tree:
+            compiler_root,error=tree.process.communicate(timeout=60)
+            if tree.process.returncode: raise RuntimeError(error.decode('utf-8'))
+        go=Path(compiler_root.decode('utf-8').strip())/'bin'/('go.exe' if os.name=='nt' else 'go')
+        application=self.root/'application'; application.mkdir()
+        proxy=self.root/'proxy'; version=proxy/'example.test/library/@v'; version.mkdir(parents=True)
+        (application/'go.mod').write_text('module example.test/application\n\ngo '+go_version+'\n\nrequire example.test/library v1.0.0\n',encoding='utf-8',newline='\n')
+        (application/'main.go').write_text('package main\nimport "example.test/library"\nfunc main() { _ = library.Value }\n',encoding='utf-8',newline='\n')
+        module_files={'go.mod':b'module example.test/library\n\ngo 1.27.1\n',
+                      'library.go':b'package library\nconst Value = "controlled fixture"\n',
+                      'LICENSE':b'controlled upstream license\n'}
+        (version/'v1.0.0.mod').write_bytes(module_files['go.mod'])
+        (version/'v1.0.0.info').write_text('{"Version":"v1.0.0","Time":"2026-10-13T00:00:00Z"}',encoding='utf-8')
+        with zipfile.ZipFile(version/'v1.0.0.zip','w') as archive:
+            for name,data in module_files.items(): archive.writestr('example.test/library@v1.0.0/'+name,data)
+        environment={**os.environ,'GOPROXY':proxy.as_uri(),'GOSUMDB':'off','GONOPROXY':'none','GOPRIVATE':'',
+                     'GOWORK':'off','GOTOOLCHAIN':'local','GOMODCACHE':str(self.cache),'GOFLAGS':'-modcacherw'}
+        def run(args):
+            with ProcessTree([str(go),*args[1:]],cwd=application,env=environment) as tree:
+                output,error=tree.process.communicate(timeout=60)
+                if tree.process.returncode: raise RuntimeError(error.decode('utf-8'))
+                return output
+        run(['go','mod','download','example.test/library'])
+        binary=application/'fixture.exe'
+        run(['go','build','-o',str(binary),'.'])
+        selected=[(binary,'example.test/application')]
+        rows=notices.collect_notices(self.target,selected,run,go_version)
+        self.assertEqual(rows[0]['module'],'example.test/library')
+        before=run(['go','list','-mod=readonly','-m','-json','example.test/library'])
+        cached_license=self.cache/'example.test/library@v1.0.0/LICENSE'
+        cached_license.chmod(0o600)
+        cached_license.write_bytes(b'tampered cached license')
+        self.assertEqual(before,run(['go','list','-mod=readonly','-m','-json','example.test/library']))
+        with self.assertRaisesRegex(ValueError,'checksum|source bytes'):
+            notices.collect_notices(self.target,selected,run,'1.27.1')
 
 if __name__=='__main__': unittest.main()

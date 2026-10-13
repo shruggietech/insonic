@@ -35,7 +35,7 @@ Goal: real SVG/theme compatibility, retained URLs/resources and completed bounde
 - [x] T011 [US3] Update current notice/qualification contracts in docs/v1.0.1/releases.md and docs/v1.0.1/development.md; append chronological dependency/notice changes in CHANGELOG.md while preserving frozen1.0.0/version/native pins.
 - [x] T012 [US3] Run root/Go/Python/frontend/site checks and public/offline browser qualification; record results and advisory/notice evidence in specs/024-package-dependency-integrity/verification.md.
 - [x] T013 [US3] Commit clean source and qualify release-target documentation plus read-only historical Pages preparation, recording preserved paths in specs/024-package-dependency-integrity/verification.md; do not deploy or infer model accuracy.
-- [ ] T014 [US3] Push branch and publish/attach official PR with #86/#88 closing links, #87 captured mapping and milestone/Project7 In review; preserve source PR87 until owner merge. Record URL/round ledger in specs/024-package-dependency-integrity/verification.md.
+- [x] T014 [US3] Push branch and publish/attach official PR with #86/#88 closing links, #87 captured mapping and milestone/Project7 In review; preserve source PR87 until owner merge. Record URL/round ledger in specs/024-package-dependency-integrity/verification.md.
 - [ ] T015 [US3] Resolve every comment/thread in at most initial plus one requested second round, recording concrete fixes and final review state in specs/024-package-dependency-integrity/verification.md.
 - [ ] T016 [US3] Verify full final-head green Windows/Linux native/backend four-package and candidate CI from one revision/attempt; record exact CI identity in specs/024-package-dependency-integrity/verification.md and stop for owner final review/merge.
 
@@ -50,3 +50,7 @@ T001 -> T002 -> US1(T003 -> T004 -> T005 -> T006), US2(T007 -> T008 -> T009) -> 
 Parallel examples: US1 membership and source negative fixtures can be grouped in one isolated test run; US2 KaTeX regression and Go election checks are independent; US3 frontend/root/Go checks can run concurrently with dedicated output logs. Mutations and dependencies remain sequential.
 
 Implementation strategy: validate notice MVP first, validate patched dependency behavior next, then portable docs/combined qualification and authorized publication. Do not stop at the MVP or partial CI. All17 tasks use IDs and exact artifact paths; US1 has4 tasks, US2 has3, US3 has7, setup/foundation/polish have3.
+
+## Phase 7: Convergence
+
+- [x] T018 Verify selected cached module contents against binary h1 sums and copy the verified notice snapshot in scripts/go_module_notices.py; add a real isolated Go cache/license tampering regression in tests/go_module_notices_test.py per FR-001/FR-002/SC-001 (partial, second-review P1).

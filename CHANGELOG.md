@@ -37,6 +37,8 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-10-13: Resolve shipped Go membership from executable build metadata, check selective source identities against the canonical module cache, and record effective versioned replacement sources without changing inventory fields. Pin Mermaid's KaTeX resolution to the elected patched 0.18.2 rather than silently taking a later range match. Render exported diagram sources with a bounded hidden browser and private temporary profile; final qualification retains all native/backend/source and publication boundaries.
 
+- 2026-10-13: Authenticate selected cached module files against the executable's Go h1 sum and copy the notice bytes captured by that verification. Recorded cache metadata and copy equality alone cannot establish upstream evidence; do not reread mutable source notices afterward.
+
 ## [1.0.1] - 2026-10-11
 
 - Resolve contextual CLI help before effects and preserve literal arguments, atomic option values, scalar/Boolean arity, repeatable speaker selectors and early invalid-command diagnostics. Include operation-specific JSON-file templates and contracts.

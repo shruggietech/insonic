@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Notice evidence for the module union linked into selected product binaries."""
+import base64
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -95,6 +97,43 @@ def source_notices(directory):
     return paths
 
 
+def verified_source_notices(directory, identity, notice_paths):
+    # Implement Go's documented h1 directory format for this selected source
+    # only. Compare with the binary's Sum, never a potentially altered ziphash.
+    # https://go.dev/ref/mod#go-mod-verify
+    pending, files = [directory], []
+    while pending:
+        current = pending.pop()
+        for path in current.iterdir():
+            if path.is_symlink() or path.is_junction():
+                raise ValueError('module source bytes contain a linked entry')
+            if path.is_dir():
+                pending.append(path)
+            elif path.is_file():
+                relative = path.relative_to(directory).as_posix()
+                name = identity[0] + '@' + identity[1] + '/' + relative
+                if '\n' in name:
+                    raise ValueError('module source bytes contain an invalid filename')
+                files.append((name, path))
+            else:
+                raise ValueError('module source bytes contain an unsupported entry')
+    snapshot, summary = {}, hashlib.sha256()
+    selected = set(notice_paths)
+    for name, path in sorted(files):
+        if path in selected:
+            data = path.read_bytes()
+            snapshot[path.name] = data
+            digest = hashlib.sha256(data).hexdigest()
+        else:
+            with path.open('rb') as source:
+                digest = hashlib.file_digest(source, 'sha256').hexdigest()
+        summary.update((digest + '  ' + name + '\n').encode('utf-8'))
+    actual = 'h1:' + base64.b64encode(summary.digest()).decode('ascii')
+    if actual != identity[2]:
+        raise ValueError('module source bytes differ from linked checksum: ' + identity[0])
+    return snapshot
+
+
 def collect_notices(target, binaries, run, go_version):
     logical, sources = linked_modules(binaries, run, go_version)
     selected = json_stream(run(['go', 'list', '-mod=readonly', '-m', '-json', *sorted(logical)]))
@@ -119,20 +158,21 @@ def collect_notices(target, binaries, run, go_version):
         if not directory.is_dir() or directory.resolve() != expected:
             raise ValueError('module source directory does not match cache identity: ' + identity[0])
         paths = source_notices(directory)
-        if effective[0] in resolved and resolved[effective[0]] != (directory, paths):
+        snapshot = verified_source_notices(directory, effective, paths)
+        if effective[0] in resolved and resolved[effective[0]] != (directory, snapshot):
             raise ValueError('conflicting resolved source directory: ' + effective[0])
-        resolved[effective[0]] = directory, paths
+        resolved[effective[0]] = directory, snapshot
     if seen != set(logical) or set(resolved) != set(sources):
         raise ValueError('resolved module membership differs from linked binary')
     modules = []
     for path, version, _ in sorted(sources.values()):
         references = []
-        for original in resolved[path][1]:
-            relative = notice_prefix(path, version) / original.name
+        for name, data in sorted(resolved[path][1].items()):
+            relative = notice_prefix(path, version) / name
             destination = target / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(original, destination)
-            if destination.read_bytes() != original.read_bytes():
+            destination.write_bytes(data)
+            if destination.read_bytes() != data:
                 raise ValueError('copied module notice bytes differ')
             references.append(relative.as_posix())
         modules.append({'module': path, 'version': version, 'notices': references})

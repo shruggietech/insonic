@@ -16,6 +16,14 @@ Clean source31cf92ea1461c2875731b8865719e5a9a3b6d58e built release-target public
 
 ## Delivery and review ledger
 
-Tracking #88/#86 are linked to Project7 SliceS024/In progress and milestone Post-release usability. Official PR publication is authorized, pending completed local acceptance. Initial automatic review counts as round1; at most one explicit round2 request may be issued. Every comment/thread requires an appropriate response and resolution. Source #87 remains open until owner consolidation merge. Final review/squash merge remains with owner.
+Official [PR #89](https://github.com/shruggietech/insonic/pull/89) was published at391568a under existing authorization. PR #89 and issues #88/#86 are linked to Project7 SliceS024/In review and milestone Post-release usability. Initial Code Review started automatically at391568a on PR open (2026-10-13T13:17:49Z); it is round1. Initial automatic review counts as round1; at most one explicit round2 request may be issued. Every comment/thread requires an appropriate response and resolution. Source #87 remains open until owner consolidation merge. Final review/squash merge remains with owner.
 
 Final-head CI and clean checkout are checked after the last pushed evidence/fix commit. No earlier run or local result substitutes for that gate.
+
+## Hosted implementation check and review correction (2026-10-13)
+
+CI run [38403807146](https://github.com/shruggietech/insonic/actions/runs/38403807146) passed at391568a:18 successful checks and14 intentional staged/lane skips. It includes both Windows/Linux native engine/desktop, core platforms, live alternative-backend fixtures, all four CLI/desktop packages and same-revision/attempt candidate collection. Initial elapsed10m05s, longest job8m11s; retained caching and ten-minute job bounds remain unchanged. This pre-correction run is not proof of the new h1 correction.
+
+Round1 completed2026-10-13T13:22:28Z with no findings/one thumbs-up. The sole authorized second request was posted2026-10-13T13:24:12Z; it asked for security review, but the service labels the result Code Review. It completed2026-10-13T13:28:18Z with one P1: stale recorded cache checksums did not authenticate current source/license bytes. No independent security-service pass is asserted. No third review will be requested.
+
+T018 adds selected-directory Go h1 verification directly against the executable Sum, plus verified notice snapshots. A real isolated file-proxy module/binary regression reproduces the unchanged metadata and previously accepted modified LICENSE; it fails before correction and passes after. A later source-change fixture proves copied bytes stay at the authenticated snapshot. Existing real Windows37/51 module closures and exact renderer notices still pass. Affected root check/85 tests, all169 Python tests and public/offline78-page exports pass after the fix. The finding will be answered/resolved with its pushed fix commit; post-correction full CI remains required.

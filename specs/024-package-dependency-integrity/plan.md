@@ -6,7 +6,7 @@
 
 ## Summary
 
-Qualify notices against the exact dependency versions linked into packaged executables, reject missing or inconsistent upstream evidence, and exclude unused tooling modules. Consolidate x/net 0.61.0 and elect Mermaid 12.2.0 with KaTeX 0.18.2 while retaining offline documentation and diagram behavior. The design uses a focused scripts/go_module_notices.py helper for assembly and archive membership checks, plus a hidden headless export renderer qualifier. See [research.md](research.md), [data-model.md](data-model.md) and [quickstart.md](quickstart.md).
+Qualify notices against the exact dependency versions linked into packaged executables, reject missing or inconsistent upstream evidence, and exclude unused tooling modules. Consolidate x/net 0.61.0 and elect Mermaid 12.2.0 with KaTeX 0.18.2 while retaining offline documentation and diagram behavior. The design uses a focused scripts/go_module_notices.py helper for assembly, selected-source h1 authentication with verified notice snapshots, and archive membership checks, plus a hidden headless export renderer qualifier. See [research.md](research.md), [data-model.md](data-model.md) and [quickstart.md](quickstart.md).
 
 ## Technical Context
 

@@ -6,7 +6,7 @@ Each selected product binary supplies GoVersion, its command Path, Main module a
 
 ## Resolved source evidence (internal)
 
-A selective Go module record must match the binary logical and effective identity exactly. Dir must be a nonempty absolute existing directory, resolving to the Go-escaped effective module path and version under GOMODCACHE. Reject symlinked directories/files outside that identity, project-root substitution and missing/empty notices. Require at least one license/copying file; preserve any additional NOTICE files. Modules without source go.mod remain supported. No unrelated tooling lookup or download is performed.
+A selective Go module record must match the binary logical and effective identity exactly. Dir must be a nonempty absolute existing directory, resolving to the Go-escaped effective module path and version under GOMODCACHE. Reject symlinked directories/files outside that identity, project-root substitution and missing/empty notices. Require at least one license/copying file; preserve any additional NOTICE files. Modules without source go.mod remain supported. Hash the effective selected source files in Go h1 format against the linked binary Sum. Capture notice bytes while computing that hash and copy that verified snapshot, so altered cache contents or later source changes cannot substitute notice bytes. No unrelated tooling lookup or download is performed.
 
 ## Existing package inventory (unchanged external shape)
 
