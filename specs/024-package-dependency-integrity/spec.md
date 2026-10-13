@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-13
 
-**Status**: Specified
+**Status**: Implemented; awaiting hosted qualification and review
 
 **Tracking**: [#88](https://github.com/shruggietech/insonic/issues/88), milestone Post-release usability, Project 7.
 

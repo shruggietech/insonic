@@ -12,7 +12,7 @@ Fresh Windows CLI and desktop binaries compiled from this checkout qualify indep
 
 ## Release-target and history
 
-Pending clean-source documentation archive and read-only historical Pages preparation (T013). No deployment, tag, official product release or model inference is authorized/performed.
+Clean source31cf92ea1461c2875731b8865719e5a9a3b6d58e built release-target public/offline documentation and packaged its matching archive. Hidden Chrome again passed all15 diagram sources in both exports. Read-only preparation against freshly fetched gh-pages preserves all319 historical docs/schema paths within689 prepared files, with zero remote writes (T013 passed). No deployment, tag, official product release or model inference is authorized/performed.
 
 ## Delivery and review ledger
 
