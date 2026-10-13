@@ -9,6 +9,15 @@ import { buildOffline } from './offline.mjs';
 
 const command = process.argv[2];
 if (!['build', 'dev'].includes(command)) throw new Error('Usage: node scripts/run.mjs build|dev');
+if (command === 'build') {
+  await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, ['--test', path.join(root, 'site/scripts/katex.test.mjs')], {
+      cwd: root, windowsHide: true, shell: false, stdio: ['ignore', 'inherit', 'inherit'],
+    });
+    child.once('error', reject);
+    child.once('exit', code => code === 0 ? resolve() : reject(new Error('KaTeX behavior regression failed.')));
+  });
+}
 await prepare();
 await new Promise((resolve, reject) => {
   const child = spawn(process.execPath, [path.join(root, 'site/node_modules/next/dist/bin/next'), command], {

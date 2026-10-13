@@ -16,12 +16,17 @@
     "highlight.js": "11.12.0",
     "markdown-it": "15.0.2",
     "markdown-it-task-lists": "2.1.1",
-    "mermaid": "12.1.0",
+    "mermaid": "12.2.0",
     "next": "16.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
     "esbuild": "0.28.2"
+  },
+  "overrides": {
+    "mermaid": {
+      "katex": "0.18.2"
+    }
   }
 }

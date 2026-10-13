@@ -163,6 +163,11 @@ jobs:
           skip-decompress: false
           name: candidate-documentation-${{ inputs.revision }}-${{ github.run_attempt }}
           path: build/release/downloads/documentation
+      - name: Read shipped Go binary metadata
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: false
       - name: Verify complete four-variant matrix, sources and documentation
         run: python scripts/release.py collect --revision "$SOURCE_REVISION" --input build/release/downloads --output build/release/candidate
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
