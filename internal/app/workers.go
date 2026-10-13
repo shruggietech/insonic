@@ -358,13 +358,13 @@ func (a *App) defaultModelPrepare(ctx context.Context, req contracts.Request) (a
 		}
 	}
 	view := map[string]any{"choice": c, "model_id": models.InstallationID(c.Manifest), "manifest_digest": c.Manifest.Digest(), "total_bytes": c.Bytes(), "download_bytes": download, "verified_reuse_bytes": reuse, "state": state, "scratch_required_bytes": scratch, "destination": destination, "destination_frozen": frozen, "storage_capacity": "unknown", "local_reuse": input.LocalDirectory != "", "local_directory": input.LocalDirectory}
-	storageRequired := int64(0)
+	storageRequired := c.Bytes()
+	if state == "verified_available" {
+		storageRequired = 0
+	}
 	storagePath := ""
 	shared := false
 	if destination.Adapter == "filesystem" {
-		if state != "verified_available" {
-			storageRequired = c.Bytes()
-		}
 		storagePath, _ = destination.Configuration["root"].(string)
 		if !filepath.IsAbs(storagePath) {
 			storagePath = filepath.Join(a.Workspace.Control, storagePath)
