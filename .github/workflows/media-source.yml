@@ -242,7 +242,7 @@ jobs:
         shell: bash
         run: python scripts/media-transfer.py ready --stage dependencies --revision "$SOURCE_REVISION"
       - if: steps.formats_ready.outputs.ready != 'true'
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           pattern: media-dependencies-${{ inputs.os }}-*-${{ github.run_attempt }}
           path: build/transfer
@@ -307,7 +307,7 @@ jobs:
           restore-keys: media-original-sources-Linux-${{ steps.identity.outputs.source_pins_key }}
       - name: Rehash and materialize every exact original source archive
         run: python scripts/media-transfer.py sources
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: media-formats-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer
@@ -390,7 +390,7 @@ jobs:
         shell: bash
         run: python scripts/media-transfer.py ready --stage complete --revision "$SOURCE_REVISION"
       - if: steps.complete_ready.outputs.ready != 'true' && runner.os != 'Windows'
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: media-formats-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer
@@ -399,7 +399,7 @@ jobs:
         shell: bash
         run: python scripts/media-transfer.py restore --stage dependencies --revision "$SOURCE_REVISION" build/transfer/dependency-formats.tar.gz
       - if: steps.complete_ready.outputs.ready != 'true' && runner.os == 'Windows'
-        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: media-codec-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer
