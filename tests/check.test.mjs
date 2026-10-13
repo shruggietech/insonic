@@ -100,3 +100,41 @@ test('YAML validation catches workflow colon scalars and duplicate keys before p
   assert.match(validateYAML('ci.yml', 'name: first\nname: second\n').join('\n'), /Invalid YAML/);
   assert.deepEqual(validateYAML('ci.yml', 'on: [push, pull_request]\njobs:\n  check:\n    if: needs.foundation.outputs.native == \'true\'\n'), []);
 });
+
+test('artifact workflows require immutable pins and explicit archive, digest and attempt boundaries', () => {
+  const pin = 'a'.repeat(40);
+  const attempt = '${{ github.run_attempt }}';
+  const upload = { uses: `actions/upload-artifact@${pin}`, with: { archive: true, name: `source-${attempt}`, path: 'build/source' } };
+  const download = { uses: `actions/download-artifact@${pin}`, with: { 'digest-mismatch': 'error', 'skip-decompress': false, pattern: `source-*-${attempt}`, path: 'build/download' } };
+  const validate = steps => validateYAML('.github/workflows/fixture.yml', JSON.stringify({ jobs: { fixture: { steps } } }));
+  assert.deepEqual(validate([upload, download]), []);
+  const mixedUpload = { ...upload, uses: upload.uses.replace('actions/upload-artifact', 'Actions/UPLOAD-ARTIFACT') };
+  const mixedDownload = { ...download, uses: download.uses.replace('actions/download-artifact', 'ACTIONS/Download-Artifact') };
+  assert.deepEqual(validate([mixedUpload, mixedDownload]), []);
+  for (const action of [upload, download, mixedUpload, mixedDownload]) {
+    assert.match(validate([{ ...action, uses: action.uses.replace(pin, 'v8') }]).join('\n'), /immutable/);
+    const missingAttempt = structuredClone(action);
+    for (const key of ['name', 'pattern']) if (key in missingAttempt.with) missingAttempt.with[key] = 'source';
+    assert.match(validate([missingAttempt]).join('\n'), /run_attempt/);
+  }
+  assert.match(validate([{ ...mixedUpload, with: { ...upload.with, archive: false } }]).join('\n'), /archive/);
+  assert.match(validate([{ ...mixedDownload, with: { ...download.with, 'digest-mismatch': 'warn' } }]).join('\n'), /digest-mismatch/);
+  assert.match(validate([{ ...mixedDownload, with: { ...download.with, 'skip-decompress': true } }]).join('\n'), /skip-decompress/);
+  for (const value of [false, undefined, '${{ inputs.archive }}']) {
+    const step = structuredClone(upload);
+    step.with.archive = value;
+    assert.match(validate([step]).join('\n'), /archive/);
+  }
+  for (const value of ['warn', undefined]) {
+    const step = structuredClone(download);
+    step.with['digest-mismatch'] = value;
+    assert.match(validate([step]).join('\n'), /digest-mismatch/);
+  }
+  for (const value of [true, undefined]) {
+    const step = structuredClone(download);
+    step.with['skip-decompress'] = value;
+    assert.match(validate([step]).join('\n'), /skip-decompress/);
+  }
+  assert.deepEqual(validate([{ ...upload, with: { ...upload.with, archive: 'true' } }, { ...download, with: { ...download.with, 'skip-decompress': 'false' } }]), []);
+  assert.deepEqual(validateYAML('configuration.yml', JSON.stringify({ jobs: { fixture: { steps: [{ uses: 'actions/upload-artifact@v8' }] } } })), []);
+});

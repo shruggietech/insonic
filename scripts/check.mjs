@@ -34,7 +34,29 @@ export function validateText(file, bytes) {
 
 export function validateYAML(file, text) {
   const document = parseDocument(text, { version: '1.2', prettyErrors: false, uniqueKeys: true });
-  return document.errors.map(error => location(file, 0, `Invalid YAML (${error.message})`));
+  const problems = document.errors.map(error => location(file, 0, `Invalid YAML (${error.message})`));
+  if (problems.length || !file.startsWith('.github/workflows/')) return problems;
+  const workflow = document.toJS();
+  for (const [jobName, job] of Object.entries(workflow?.jobs ?? {})) {
+    if (!Array.isArray(job?.steps)) continue;
+    for (const [index, step] of job.steps.entries()) {
+      const action = typeof step?.uses === 'string' ? step.uses.match(/^actions\/(upload-artifact|download-artifact)@(.+)$/i) : null;
+      if (!action) continue;
+      const actionName = action[1].toLowerCase();
+      const report = message => problems.push(location(file, 0, `${jobName} step ${index + 1}: ${message}`));
+      if (!/^[a-f0-9]{40}$/.test(action[2])) report('Artifact actions require an immutable 40-character commit');
+      const inputs = step.with ?? {};
+      if (actionName === 'upload-artifact') {
+        if (inputs.archive !== true && inputs.archive !== 'true') report('Artifact uploads require explicit archive: true');
+      } else {
+        if (inputs['digest-mismatch'] !== 'error') report('Artifact downloads require explicit digest-mismatch: error');
+        if (inputs['skip-decompress'] !== false && inputs['skip-decompress'] !== 'false') report('Artifact downloads require explicit skip-decompress: false');
+      }
+      const selector = actionName === 'upload-artifact' ? inputs.name : (inputs.name ?? inputs.pattern);
+      if (typeof selector !== 'string' || !/\$\{\{\s*github\.run_attempt\s*\}\}/.test(selector)) report('Artifact names/patterns must include github.run_attempt');
+    }
+  }
+  return problems;
 }
 
 function markdownBlocks(text) {

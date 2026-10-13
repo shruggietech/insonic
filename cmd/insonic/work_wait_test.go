@@ -5,14 +5,35 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/mattn/go-isatty"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	local "github.com/shruggietech/insonic/internal/runtime"
 	"github.com/shruggietech/insonic/internal/workspace"
 )
+
+func TestWorkProgressRejectsRealPipeAndFileTerminals(t *testing.T) {
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+	defer writer.Close()
+	file, err := os.CreateTemp(t.TempDir(), "redirected-stderr")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	for _, descriptor := range []*os.File{reader, writer, file} {
+		if isatty.IsTerminal(descriptor.Fd()) {
+			t.Fatalf("redirected descriptor %s classified as a terminal", descriptor.Name())
+		}
+	}
+}
 
 func TestWorkWaitUsesExistingReadContractAndPreservesTerminalFailures(t *testing.T) {
 	id := contracts.ID()

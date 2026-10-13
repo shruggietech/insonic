@@ -1,6 +1,6 @@
 # insonic documentation site
 
-Markdown in `docs/v<version>/` is the documentation source. `docs/versions.json` defines the version status, page order and latest version. v1.0.0 is an unpublished release candidate; v0.0.0 remains the preserved system specification baseline.
+Markdown in `docs/v<version>/` is the documentation source. `docs/versions.json` defines the version status, page order and latest version. The working source describes the v1.0.1 candidate; v0.0.0 remains the preserved system specification baseline. Source status and the elected release-target export are distinct, as described below.
 
 Use Node.js 22.12 or newer. From the repository root:
 
