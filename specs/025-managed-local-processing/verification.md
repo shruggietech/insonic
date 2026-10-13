@@ -32,3 +32,7 @@ The opt-in qualify-processing.py harness then executed both licensed speech/dial
 Actual Linux model execution, CUDA execution, new-model upstream gated authentication and a locally attended native GUI journey were not performed. Deterministic fixtures cover credential transport/redaction, official CDN bounds, local linked snapshot reuse, frozen storage, portable recovery, cancellation/revision authority, changed bytes and package closure. Alternative-backend/native/package CI and every external review thread must pass on the final PR head before owner handoff. No separate security-bot verdict is inferred from a code-review result.
 
 Publication and final-head CI/review evidence will be added to the PR and this record after it arrives.
+
+## Initial external review
+
+Official PR #90 opened at 1ef0cdb27d7408f718099e48fa389ee451ebfef5. The automatic initial review returned two P2 findings: colocated filesystem peak capacity (r4262506536) and missing upstream credential references before gated enqueue (r4262506548). Both are fixed with regressions; affected Go tests/vet, frontend typecheck/80 tests and root integrity checks pass. Physical Windows volume identity/Linux device identity include mount/link resolution, previews do not create a missing destination, and unknown relationships use a conservative combined budget. Preview/local/available models remain usable without new authentication; only the corresponding elected gated download requires its protected reference.

@@ -95,6 +95,42 @@ func TestDefaultModelPreviewIsReadOnlyAndNamesStorage(t *testing.T) {
 	}
 }
 
+func TestModelCapacityCombinesSharedVolumePeak(t *testing.T) {
+	for _, v := range []struct {
+		scratch, download, storage int64
+		shared                     bool
+		control, destination       int64
+	}{
+		{100, 100, 100, true, 300, 300},
+		{100, 100, 100, false, 200, 100},
+		{80, 0, 100, true, 180, 180},
+		{0, 0, 0, true, 0, 0},
+	} {
+		control, destination := modelCapacityBudget(v.scratch, v.download, v.storage, v.shared)
+		if control != v.control || destination != v.destination {
+			t.Fatal(v, control, destination)
+		}
+	}
+}
+
+func TestGatedModelWithoutReferenceRejectsBeforeEnqueueButAllowsPreview(t *testing.T) {
+	a := configuredApp(t)
+	preview, _ := json.Marshal(defaultModelInput{Choice: "community-1"})
+	view, e := a.defaultModelPrepare(a.ctx, contracts.Request{Data: preview})
+	if e != nil || view.(map[string]any)["access_ready"] != false {
+		t.Fatal(view, e)
+	}
+	input, _ := json.Marshal(defaultModelInput{Choice: "community-1", Acquire: true})
+	_, e = a.defaultModelPrepare(a.ctx, contracts.Request{Data: input})
+	if typed, ok := e.(*contracts.Error); !ok || typed.Reason != "model_access_required" {
+		t.Fatal("missing reference was enqueued", e)
+	}
+	all, e := a.Catalog.Works(a.ctx)
+	if e != nil || len(all) != 0 {
+		t.Fatal("failed prerequisite created work", all, e)
+	}
+}
+
 func TestManagedSetupReusesVerifiedEnvironmentAndReplaysAfterPublication(t *testing.T) {
 	a := configuredApp(t)
 	tools := workerToolsFixture(t, a)

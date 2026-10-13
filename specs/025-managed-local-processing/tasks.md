@@ -59,3 +59,8 @@ Setup -> shared identities -> US1. US2 retains existing acquisition and can be d
 ## Implementation evidence notes
 
 T010 is satisfied by the shared processing adapter receipt check, which also covers the existing app speaker-profile embedding/training bridge; no duplicate check was added to the custom adapter. T019 lives in desktop/frontend/tests/workers.test.mjs and workers-ui.test.mjs under the existing frontend build harness. T027 uses internal/workers/platform.go with a runtime platform selector rather than duplicated platform files. T023/T024 evidence is recorded in verification.md; T026 remains open until final-head CI and external reviews complete.
+
+## Phase 8: Initial external review
+
+- [x] T030 Combine peak capacity on physical filesystem volumes and conservatively handle unknown relationships, with runtime/volume regressions in internal/app/workers_test.go and internal/workers/workers_test.go per FR-009 and review r4262506536.
+- [x] T031 Reject a new gated builtin download without its protected credential reference before enqueue, preserving previews/verified local reuse and prior references, per FR-015/017 and review r4262506548.

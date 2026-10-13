@@ -55,6 +55,21 @@ func TestGLibcPrerequisitesRejectOldUnknownAndMalformedVersions(t *testing.T) {
 		}
 	}
 }
+
+func TestCapacityResolvesSameVolumeAndMissingDestinationWithoutCreatingIt(t *testing.T) {
+	dir := t.TempDir()
+	destination := filepath.Join(dir, "not-created", "models")
+	shared, e := SameVolume(dir, destination)
+	if e != nil || !shared {
+		t.Fatal("same volume not detected", shared, e)
+	}
+	if _, e := FreeSpace(destination); e != nil {
+		t.Fatal(e)
+	}
+	if _, e := os.Stat(filepath.Join(dir, "not-created")); !os.IsNotExist(e) {
+		t.Fatal("preview created destination")
+	}
+}
 func TestArchiveConfinement(t *testing.T) {
 	for _, name := range []string{"../escape", "/absolute", "C:/escape", "dir/../../escape"} {
 		t.Run(name, func(t *testing.T) {

@@ -358,32 +358,60 @@ func (a *App) defaultModelPrepare(ctx context.Context, req contracts.Request) (a
 		}
 	}
 	view := map[string]any{"choice": c, "model_id": models.InstallationID(c.Manifest), "manifest_digest": c.Manifest.Digest(), "total_bytes": c.Bytes(), "download_bytes": download, "verified_reuse_bytes": reuse, "state": state, "scratch_required_bytes": scratch, "destination": destination, "destination_frozen": frozen, "storage_capacity": "unknown", "local_reuse": input.LocalDirectory != "", "local_directory": input.LocalDirectory}
+	storageRequired := int64(0)
+	storagePath := ""
+	shared := false
+	if destination.Adapter == "filesystem" {
+		if state != "verified_available" {
+			storageRequired = c.Bytes()
+		}
+		storagePath, _ = destination.Configuration["root"].(string)
+		if !filepath.IsAbs(storagePath) {
+			storagePath = filepath.Join(a.Workspace.Control, storagePath)
+		}
+		var relationErr error
+		shared, relationErr = workers.SameVolume(a.Workspace.Control, storagePath)
+		view["capacity_relation"] = "different_volumes"
+		if shared {
+			view["capacity_relation"] = "same_volume"
+		}
+		if relationErr != nil {
+			shared = true
+			view["capacity_relation"] = "unknown_assume_shared"
+		}
+	}
+	controlRequired, destinationRequired := modelCapacityBudget(scratch, download, storageRequired, shared)
+	view["scratch_required_bytes"] = controlRequired
+	view["storage_required_bytes"] = destinationRequired
 	if free, e := workers.FreeSpace(a.Workspace.Control); e == nil {
-		// A downloaded source and its publication stage can coexist.
-		required := scratch + download
-		view["scratch_required_bytes"] = required
 		view["scratch_available_bytes"] = free
-		view["scratch_space_sufficient"] = free >= uint64(required)
-		if input.Acquire && free < uint64(required) {
+		view["scratch_space_sufficient"] = free >= uint64(controlRequired)
+		if input.Acquire && free < uint64(controlRequired) {
 			return view, contracts.Fail("insufficient_space")
 		}
 	}
-	if destination.Adapter == "filesystem" {
-		required := c.Bytes()
-		if state == "verified_available" {
-			required = 0
-		}
-		path, _ := destination.Configuration["root"].(string)
-		if !filepath.IsAbs(path) {
-			path = filepath.Join(a.Workspace.Control, path)
-		}
-		if free, e := workers.FreeSpace(path); e == nil {
+	if storagePath != "" {
+		if free, e := workers.FreeSpace(storagePath); e == nil {
 			view["storage_capacity"] = "observed_filesystem_free_space"
 			view["storage_available_bytes"] = free
-			view["storage_space_sufficient"] = free >= uint64(required)
-			if input.Acquire && free < uint64(required) {
+			view["storage_space_sufficient"] = free >= uint64(destinationRequired)
+			if input.Acquire && free < uint64(destinationRequired) {
 				return view, contracts.Fail("insufficient_space")
 			}
+		}
+	}
+	accessReady := c.ID != "community-1" || download == 0
+	if !accessReady {
+		accessReady = true
+		for _, file := range c.Manifest.Files {
+			accessReady = accessReady && file.CredentialID != ""
+		}
+	}
+	view["access_ready"] = accessReady
+	if !accessReady {
+		view["access_correction"] = "Accept this upstream model's access terms and register a protected Hugging Face read-token reference, or reuse a complete verified local snapshot."
+		if input.Acquire {
+			return view, &contracts.Error{Code: "unavailable", Reason: "model_access_required", Message: "This gated model download needs a protected Hugging Face credential reference. Preview and verified local reuse remain available."}
 		}
 	}
 	if !input.Acquire {
@@ -438,4 +466,12 @@ func sameDefaultBundle(a, b models.Manifest) bool {
 		b.Files[i].CredentialID = ""
 	}
 	return a.Digest() == b.Digest()
+}
+
+func modelCapacityBudget(scratch, download, storage int64, shared bool) (int64, int64) {
+	control := scratch + download
+	if shared {
+		return control + storage, control + storage
+	}
+	return control, storage
 }
