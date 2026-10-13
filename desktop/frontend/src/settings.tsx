@@ -15,7 +15,8 @@ import { Client, result, type Obj } from './client';
 import { uuid } from './forms';
 import { Pager, type Run } from './screens';
 import { ModelSettings } from './model-settings';
-type Props = { client: Client; run: Run; appearance: (value: Obj) => void };
+import {BackendSetup} from './backend-setup';
+type Props = { client: Client; run: Run; appearance: (value: Obj) => void; onWorkspace?:(value:Obj)=>void };
 function ToolFields({
   label,
   tool,
@@ -58,7 +59,7 @@ function ToolFields({
     </fieldset>
   );
 }
-export function Settings({ client, run, appearance }: Props) {
+export function Settings({ client, run, appearance,onWorkspace }: Props) {
   const [settings, setSettings] = useState<Obj>(),
     [mediaTools, setMediaTools] = useState<Obj>({}),
     [processingTools, setProcessingTools] = useState<Obj>({}),
@@ -451,6 +452,7 @@ export function Settings({ client, run, appearance }: Props) {
         </Actions>
         {credentialState && <Facts value={credentialState} />}
       </Card>
+      <BackendSetup bridge={client.bridge} run={run} onConfigured={value=>{if(onWorkspace)onWorkspace(value)}}/>
       <ModelSettings client={client} run={run}/>
       <Card heading="Downloaded models">
         <Table

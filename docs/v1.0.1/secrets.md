@@ -85,3 +85,9 @@ INPUT_PRODUCER | insonic --workspace WORKSPACE credentials load --json
 Once loaded, `add`, `replace`, `delete` and `status` operate on that live manager. A standalone short-lived manager does not claim that an ephemeral change was persisted. The explicitly selected `INSONIC_SESSION_CREDENTIALS` environment mapping remains available for automation, using UUID keys and string/object values. It is consulted only for a workspace that selected session mode; a native/vault failure never falls back to that mapping. Loading a new explicit mapping replaces the current session input rather than persisting it.
 
 The runtime's normal idle shutdown ends vault unlocks and session credentials. Long-running configured work keeps the owner alive for its active operations. CLI and desktop responses contain status information; neither provides a command to display a saved value.
+
+## Initial backend credentials
+
+Backend provisioning is available before a catalog owner exists, so PostgreSQL credentials can be supplied before its first connection. Backend plans contain only opaque references. Newly entered values use protected stdin or the native desktop bootstrap channel, with a purpose-specific form and automatically generated IDs. Preflight uses these transient values without registration. Explicit provisioning registers native/vault values or loads the session manager, then opens the selected catalog. Credential registration and successful provider authentication remain distinct.
+
+Choose native, vault or session explicitly for provisioning. Vault requires its protected passphrase; session values last in the owner and must be reloaded after restart. Plan/status/diagnostic responses never return saved values. Local Ollama requires no invented key; optional bearer credentials use the same protected service.

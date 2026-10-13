@@ -34,7 +34,7 @@ type cliOption struct {
 
 var optionDefinitions = func() map[string]cliOption {
 	out := map[string]cliOption{}
-	for _, key := range strings.Fields("--workspace --request-id --startup-id --log-level --log-file --input --manifest --title --record --transcript --subtitle --credential-id --acquisition-adapter --acquisition-max-bytes --acquisition-timeout-ms --originated-at --originated-on --originated-earliest --originated-latest --timezone --dst-fold --dst-gap --date-precedence --preset --pipeline-id --destination-profile --attribution --transcript-format --transcript-credential-id --transcript-adapter --transcript-max-bytes --transcript-timeout-ms --subtitle-stream-index --subtitle-language --diarization-model-id --known-speaker --existing-transcript --existing-roster --revision --after --after-ordinal --limit --speaker --media --dialect --file --parameters --saved --operation --expected-revision --destination --mode --timeout-ms") {
+	for _, key := range strings.Fields("--workspace --request-id --startup-id --log-level --log-file --input --manifest --title --record --transcript --subtitle --credential-id --acquisition-adapter --acquisition-max-bytes --acquisition-timeout-ms --originated-at --originated-on --originated-earliest --originated-latest --timezone --dst-fold --dst-gap --date-precedence --preset --pipeline-id --destination-profile --attribution --transcript-format --transcript-credential-id --transcript-adapter --transcript-max-bytes --transcript-timeout-ms --subtitle-stream-index --subtitle-language --diarization-model-id --known-speaker --existing-transcript --existing-roster --revision --after --after-ordinal --limit --speaker --media --dialect --file --parameters --saved --operation --expected-revision --destination --mode --credential-backend --timeout-ms") {
 		out[key] = cliOption{Value: true}
 	}
 	for _, key := range strings.Fields("--no-pipeline --json --verbose --debug --quiet --copy --reference --local-http --new-entry --replace-audio --transcript-applies --replace-transcript --legacy-sidecar --secret-input --help -h --version") {
@@ -64,6 +64,11 @@ var commandDefinitions = func() []commandDefinition {
 	add("version", "", 0, 0, "", "")
 	add("doctor", "", 0, 0, "", "")
 	add("workspace init", "DIRECTORY", 1, 1, "", "")
+	add("workspace plan", "", 0, 0, "--input", "--input")
+	add("workspace preflight", "DIRECTORY", 1, 1, "--input --secret-input", "--input")
+	add("workspace provision", "DIRECTORY", 1, 1, "--input --secret-input --credential-backend", "--input")
+	add("query services", "", 0, 0, "--input", "")
+	add("query assistance-test", "", 0, 0, "--input", "--input")
 	add("workspace show", "", 0, 0, "", "")
 	add("runtime serve", "", 0, 0, "--secret-input --startup-id", "")
 	for _, a := range strings.Fields("select add replace delete status unlock load") {

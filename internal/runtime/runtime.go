@@ -171,7 +171,7 @@ func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
 			} else {
 				conn.SetDeadline(time.Now().Add(OperationTimeout(request.Operation, 5*time.Second)))
 				operationCtx, finish := context.WithTimeout(ctx, OperationTimeout(request.Operation, 5*time.Second))
-				if request.Operation == "query.assist" {
+				if request.Operation == "query.assist" || request.Operation == "query.services" || request.Operation == "query.assistance-test" {
 					// One request per connection. Any further input or disconnect cancels this ephemeral operation.
 					go func() { var extra [1]byte; conn.Read(extra[:]); finish() }()
 				}

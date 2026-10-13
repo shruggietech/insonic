@@ -13,8 +13,8 @@ const { master, examples } = validateCatalog(catalog);
 const example = kind => structuredClone(catalog.contracts.find(item => item.schema.properties.kind.const === kind).schema.examples[0]);
 
 test('all documented contracts and local references validate through the release master', () => {
-  assert.equal(catalog.contracts.length, 21);
-  assert.equal(examples, 28);
+  assert.equal(catalog.contracts.length, 22);
+  assert.equal(examples, 29);
   for (const item of catalog.contracts) for (const value of item.schema.examples) assert.equal(master(value), true);
 });
 

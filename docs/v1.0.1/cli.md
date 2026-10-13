@@ -74,3 +74,9 @@ The current reader supports persisted insonic 1.0.0 documents alongside the curr
 Importing a supported historical tools file with `media tools FILE` or `processing tools FILE` creates a current-version setting while preserving the source file and executable integrity pins. Direct `settings set` payloads use the current input contract.
 
 A supported historical media-import manifest is normalized in the request copy after admission; the source file remains unchanged. Model register/acquire retains an immutable historical manifest's declared version and content digest, using its packaged historical schema inside the current request envelope.
+
+## Backend and service setup commands
+
+`workspace plan --input FILE` constructs a complete nonsecret plan without a workspace. `workspace preflight DIRECTORY --input FILE [--secret-input]` reports bounded readiness without provisioning. `workspace provision DIRECTORY --input FILE [--credential-backend native|vault|session] [--secret-input]` explicitly initializes a fresh target. Contextual help includes the complete backend-plan schema. Protected input comes from stdin, never command-line values. Save the generated configuration and reuse it with the same credential backend for retry reconciliation. Completed retries verify the retained receipt and persisted credential selection.
+
+`query services [--input FILE]` inventories and probes candidate Ollama metadata without adopting routes or loading models. `query assistance-test --input FILE` elects a synthetic task for the exact saved settings_revision and may load the model. Existing `query assistance-show`, `query assistance-set` and `query assist` support both insonic-http and native ollama adapters. `--json` returns the shared versioned envelopes.

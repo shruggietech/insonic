@@ -153,7 +153,9 @@
         "import-presets.list",
         "import-presets.show",
         "import-presets.update",
-        "import-presets.delete"
+        "import-presets.delete",
+        "query.services",
+        "query.assistance-test"
       ],
       "description": "Shared operation selected by either client."
     },
@@ -5843,6 +5845,55 @@
             }
           }
         }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "const": "query.services",
+            "description": "Selected bounded service operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "query-assistance.schema.json#/$defs/discovery",
+            "description": "Shared bounded service operation input."
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "const": "query.assistance-test",
+            "description": "Selected bounded service operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "query-assistance.schema.json#/$defs/test",
+            "description": "Shared bounded service operation input."
+          }
+        },
+        "required": [
+          "data"
+        ]
       }
     }
   ],

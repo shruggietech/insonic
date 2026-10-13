@@ -35,7 +35,8 @@
         },
         "adapter": {
           "enum": [
-            "insonic-http"
+            "insonic-http",
+            "ollama"
           ],
           "description": "Versioned adapter contract."
         },
@@ -48,7 +49,7 @@
             "local",
             "hosted"
           ],
-          "description": "Explicit destination class; local requires loopback."
+          "description": "Explicit election. insonic-http local requires loopback. Native Ollama local requires observed local inference, including configured LAN hosts; hosted permits explicitly elected cloud/connected models. Endpoint scope is separately reported."
         },
         "endpoint": {
           "type": "string",
@@ -189,6 +190,44 @@
       },
       "required": [],
       "description": "Optional limits configuration."
+    },
+    "discovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Metadata-only candidate probe input. Discovery never adopts routes or loads inference.",
+      "properties": {
+        "endpoints": {
+          "type": "array",
+          "maxItems": 16,
+          "description": "Explicitly elected service roots without URL credentials.",
+          "items": {
+            "type": "string",
+            "maxLength": 2048,
+            "description": "Elected HTTP(S) endpoint."
+          }
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30000,
+          "description": "Aggregate probe deadline; default 5000 ms."
+        }
+      }
+    },
+    "test": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Synthetic proposal test of the exact saved selection; may load the model, sends no library context.",
+      "properties": {
+        "settings_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Exact saved configuration revision."
+        }
+      },
+      "required": [
+        "settings_revision"
+      ]
     }
   },
   "examples": [

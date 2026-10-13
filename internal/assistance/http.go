@@ -26,6 +26,9 @@ func InCI() bool {
 	return false
 }
 func (a HTTPAdapter) Propose(ctx context.Context, input Request, c Config) (Proposal, error) {
+	if c.Adapter == "ollama" {
+		return (Ollama{Secrets: a.Secrets, Client: a.Client}).Propose(ctx, input, c)
+	}
 	var empty Proposal
 	if a.Client == nil && InCI() {
 		return empty, contracts.Fail("engine_ci_forbidden")

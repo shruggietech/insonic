@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
+import {uuid} from './forms';
 export type Obj = Record<string, any>;
 export interface Response {
   workspace_id?: string;
@@ -8,6 +9,8 @@ export interface Response {
 }
 export interface NativeBridge {
   Show(): Promise<Response>;
+  BackendSetup?(action:string,path:string,plan:string,protectedInput:string,mode:string,requestID:string):Promise<Response>;
+  CancelOperation?(requestID:string):Promise<boolean>;
   Operate(request: Obj): Promise<Response>;
   SelectWorkspace(
     path: string,
@@ -51,7 +54,7 @@ export class StaleResponse extends Error {
 }
 export function result(response: Response) {
   if (response.error)
-    throw new RuntimeError(response.error.code, response.error.message);
+    throw new RuntimeError(response.error.code, response.error.message+(response.result?.field_errors?" "+response.result.field_errors.map((f:Obj)=>f.field+": "+f.correction).join(" "):""));
   return response.result;
 }
 // The catalog is authoritative; this tracks only ephemeral request ownership.
@@ -70,15 +73,22 @@ export class Client {
   updateRoster(recordingID:string,revision:number,mode:'add'|'remove'|'replace'|'clear',speakers:string[]) {
     return this.call('recordings.roster.'+mode,recordingID,{expected_revision:revision,speakers});
   }
-  async call(operation: string, itemID = '', data?: Obj): Promise<any> {
+  async call(operation: string, itemID = '', data?: Obj, signal?:AbortSignal): Promise<any> {
     const workspace = this.workspace,
       generation = this.generation;
-    const response = await this.bridge.Operate({
+    const requestID=uuid();
+    const cancel=()=>{void this.bridge.CancelOperation?.(requestID)};
+    if(signal?.aborted) throw new RuntimeError("cancelled","Operation cancelled.");
+    signal?.addEventListener("abort",cancel,{once:true});
+    let response:Response;
+    try {response = await this.bridge.Operate({
+      request_id:requestID,
       operation,
       workspace_id: workspace,
       ...(itemID ? { item_id: itemID } : {}),
       ...(data === undefined ? {} : { data }),
-    });
+    });}finally{signal?.removeEventListener("abort",cancel)}
+    if(signal?.aborted)throw new RuntimeError("cancelled","Operation cancelled.");
     if (
       generation !== this.generation ||
       workspace !== this.workspace ||

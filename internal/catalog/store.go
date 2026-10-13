@@ -3,8 +3,6 @@ package catalog
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -14,7 +12,6 @@ import (
 	"github.com/mattn/go-sqlite3"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/workspace"
-	"net"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -132,49 +129,16 @@ func OpenPostgreSQL(ctx context.Context, c PostgreSQLConfig, id string, secrets 
 	if !contracts.ValidID(id) || !identifier.MatchString(c.Schema) || c.Host == "" || c.Database == "" || c.Port == 0 {
 		return nil, contracts.Fail("invalid_request")
 	}
-	// ParseConfig is required by pgx. Explicit assignments remove ambient routing/auth.
-	cfg, e := pgx.ParseConfig("postgres://localhost/placeholder?sslmode=disable")
+	cfg, e := PostgreSQLBaseConfig(c)
 	if e != nil {
-		return nil, contracts.Fail("unavailable")
+		return nil, e
 	}
-	cfg.Host = c.Host
-	cfg.Port = c.Port
-	cfg.Database = c.Database
-	cfg.User = ""
-	cfg.Password = ""
-	cfg.Fallbacks = nil
-	cfg.RuntimeParams = map[string]string{"search_path": "\"" + c.Schema + "\",pg_catalog"}
-	cfg.ConnectTimeout = 5 * time.Second
-	cfg.TLSConfig = nil
-	cfg.LookupFunc = net.DefaultResolver.LookupHost
 	var beforeConnect func(context.Context, *pgx.ConnConfig) error
 	if c.CredentialID != "" {
 		if secrets == nil {
 			return nil, contracts.Fail("unavailable")
 		}
 		beforeConnect = referencedPostgresAuthentication(secrets, c.CredentialID)
-	}
-	if cfg.User == "" {
-		cfg.User = "insonic"
-	}
-	switch c.TLSMode {
-	case "", "verify-full":
-		tc := &tls.Config{MinVersion: tls.VersionTLS12, ServerName: c.Host}
-		if c.CAFile != "" {
-			raw, e := os.ReadFile(c.CAFile)
-			if e != nil {
-				return nil, contracts.Fail("unavailable")
-			}
-			pool := x509.NewCertPool()
-			if !pool.AppendCertsFromPEM(raw) {
-				return nil, contracts.Fail("invalid_request")
-			}
-			tc.RootCAs = pool
-		}
-		cfg.TLSConfig = tc
-	case "local":
-	default:
-		return nil, contracts.Fail("invalid_request")
 	}
 	var options []stdlib.OptionOpenDB
 	if beforeConnect != nil {

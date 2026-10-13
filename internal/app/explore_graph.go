@@ -8,7 +8,6 @@ import (
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/explore"
 	"github.com/shruggietech/insonic/internal/graph"
-	"path/filepath"
 	"time"
 )
 
@@ -16,41 +15,8 @@ func (a *App) openGraph(ctx context.Context) (graph.Adapter, error) {
 	if a.Graph != nil {
 		return a.Graph, nil
 	}
-	p := a.Workspace.Config.Profiles.Graph
-	var g graph.Adapter
-	var e error
-	switch p.Adapter {
-	case "ladybugdb":
-		path, _ := p.Configuration["path"].(string)
-		if path == "" {
-			return nil, contracts.Fail("invalid_request")
-		}
-		if !filepath.IsAbs(path) {
-			path = filepath.Join(a.Workspace.Root, path)
-		}
-		g, e = graph.OpenLadybug(path)
-	case "arcadedb":
-		raw, _ := json.Marshal(p.Configuration)
-		var config graph.ArcadeConfig
-		if strictPayload(raw, &config) != nil {
-			return nil, contracts.Fail("invalid_request")
-		}
-		g, e = graph.OpenArcade(config, a.secrets)
-	default:
-		return nil, contracts.Fail("unsupported_capability")
-	}
+	g, e := graph.Initialize(ctx, a.Workspace, a.secrets, nil)
 	if e != nil {
-		return nil, e
-	}
-	if p.ExpectedBackendVersion != "" && g.Capabilities()["backend_version"] != p.ExpectedBackendVersion {
-		g.Close()
-		return nil, contracts.Fail("unsupported_capability")
-	}
-	if e = g.EnsureSchema(ctx); e == nil {
-		e = g.BindWorkspace(ctx, a.Workspace.Config.WorkspaceID)
-	}
-	if e != nil {
-		g.Close()
 		return nil, e
 	}
 	a.Graph = g

@@ -1,0 +1,25 @@
+{
+  "schema_version": "1.0.1",
+  "kind": "backend-plan",
+  "display_name": "Example library",
+  "profiles": {
+    "storage": {
+      "adapter_id": "filesystem",
+      "configuration": {
+        "root": "artifacts"
+      }
+    },
+    "catalog": {
+      "adapter_id": "sqlite",
+      "configuration": {
+        "path": "catalog.sqlite"
+      }
+    },
+    "graph": {
+      "adapter_id": "ladybugdb",
+      "configuration": {
+        "path": "graph/library.lbug"
+      }
+    }
+  }
+}

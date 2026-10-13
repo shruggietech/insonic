@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/credentialcmd"
+	"github.com/shruggietech/insonic/internal/graph"
 	local "github.com/shruggietech/insonic/internal/runtime"
 	"github.com/shruggietech/insonic/internal/secrets"
 	"github.com/shruggietech/insonic/internal/workspace"
@@ -23,15 +24,17 @@ import (
 var Assets embed.FS
 
 type Bridge struct {
-	mu             sync.RWMutex
-	tickets        map[string]playbackTicket
-	playbackOrigin string
-	pick           func(string) (string, error)
-	playbackCall   func(*workspace.Workspace, contracts.Request) contracts.Response
-	qualification  map[string]any
-	Workspace      *workspace.Workspace
-	CLIExecutable  string
-	SmokeResult    func(contracts.Response)
+	backendGraphFactory graph.Factory // explicit deterministic bootstrap fixtures only
+	operations          map[string]context.CancelFunc
+	mu                  sync.RWMutex
+	tickets             map[string]playbackTicket
+	playbackOrigin      string
+	pick                func(string) (string, error)
+	playbackCall        func(*workspace.Workspace, contracts.Request) contracts.Response
+	qualification       map[string]any
+	Workspace           *workspace.Workspace
+	CLIExecutable       string
+	SmokeResult         func(contracts.Response)
 }
 
 func (b *Bridge) CompleteSmoke(response contracts.Response) {
@@ -53,10 +56,23 @@ func (b *Bridge) Operate(request contracts.Request) contracts.Response {
 	b.mu.RLock()
 	selected := &Bridge{Workspace: b.Workspace, CLIExecutable: b.CLIExecutable}
 	b.mu.RUnlock()
-	return selected.operate(request)
+	if request.RequestID == "" {
+		request.RequestID = contracts.ID()
+	}
+	ctx, finish, e := b.beginOperation(request.RequestID, local.OperationTimeout(request.Operation, 10*time.Second))
+	if e != nil {
+		return b.failed(e)
+	}
+	defer finish()
+	return selected.operateContext(ctx, request)
 }
 
 func (b *Bridge) operate(request contracts.Request) contracts.Response {
+	ctx, cancel := operationContext(request.Operation)
+	defer cancel()
+	return b.operateContext(ctx, request)
+}
+func (b *Bridge) operateContext(ctx context.Context, request contracts.Request) contracts.Response {
 	if b.Workspace == nil {
 		return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Error: contracts.Fail("not_found")}
 	}
@@ -78,8 +94,6 @@ func (b *Bridge) operate(request contracts.Request) contracts.Response {
 	if e != nil || schemas.ValidateRequest(data) != nil {
 		return b.failed(contracts.Fail("invalid_request"))
 	}
-	ctx, cancel := operationContext(request.Operation)
-	defer cancel()
 	if err := local.Ensure(ctx, b.Workspace, b.CLIExecutable); err != nil {
 		return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Error: contracts.SafeError(err)}
 	}

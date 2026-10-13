@@ -29,12 +29,13 @@ type Environment struct {
 // Manifest paths are installation-relative, except the declared OS Perl
 // prerequisite. Each actual runtime tool receives an absolute, pinned path.
 type Manifest struct {
-	Kind     string         `json:"kind"`
-	Version  string         `json:"schema_version"`
-	Platform string         `json:"platform"`
-	Media    library.Tools  `json:"media"`
-	Cueson   subtitles.Tool `json:"cueson"`
-	Perl     bool           `json:"system_perl,omitempty"`
+	Services []ServiceResource `json:"services,omitempty"`
+	Kind     string            `json:"kind"`
+	Version  string            `json:"schema_version"`
+	Platform string            `json:"platform"`
+	Media    library.Tools     `json:"media"`
+	Cueson   subtitles.Tool    `json:"cueson"`
+	Perl     bool              `json:"system_perl,omitempty"`
 }
 
 var digestPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)

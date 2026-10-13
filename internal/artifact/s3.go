@@ -359,3 +359,12 @@ func (s *S3) DeleteUnreferenced(ctx context.Context, p catalog.Publication) erro
 	}
 	return contracts.Fail("unavailable")
 }
+
+// ProbeBucket performs HeadBucket only; it establishes no object write capability.
+func (s *S3) ProbeBucket(ctx context.Context) (bool, error) {
+	ok, e := s.core.BucketExists(ctx, s.bucket)
+	if e != nil {
+		return false, redact(ctx, e)
+	}
+	return ok, nil
+}

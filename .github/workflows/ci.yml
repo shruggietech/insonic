@@ -294,4 +294,4 @@ jobs:
         run: |
           python scripts/media-transfer.py restore --stage complete --revision '${{ github.sha }}' build/transfer/media-source.tar.gz
           python scripts/media-tools.py --prepare-only
-          go test -v -p 1 -tags integration ./internal/qualification ./internal/catalog ./internal/artifact ./internal/models ./internal/library ./internal/graph ./internal/app ./internal/backup
+          go test -v -p 1 -tags integration ./internal/qualification ./internal/backendsetup ./internal/catalog ./internal/artifact ./internal/models ./internal/library ./internal/graph ./internal/app ./internal/backup
