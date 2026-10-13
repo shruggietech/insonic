@@ -46,17 +46,8 @@ func TestQualificationProgressIsExplicitAndBounded(t *testing.T) {
 	}
 }
 
-func TestQualificationWindowVisibilityIsHostedMacOnly(t *testing.T) {
-	for _, test := range []struct {
-		smoke           bool
-		system, actions string
-		hidden          bool
-	}{
-		{true, "windows", "", true}, {true, "windows", "true", true}, {true, "linux", "true", true},
-		{true, "darwin", "", true}, {true, "darwin", "true", false}, {false, "darwin", "true", false},
-	} {
-		if got := qualificationStartsHidden(test.smoke, test.system, test.actions); got != test.hidden {
-			t.Fatalf("%+v: hidden=%v", test, got)
-		}
+func TestQualificationSmokeStartsHidden(t *testing.T) {
+	if !QualificationStartsHidden(true) || QualificationStartsHidden(false) {
+		t.Fatal("smoke visibility changed ordinary desktop behavior")
 	}
 }

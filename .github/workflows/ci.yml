@@ -1,7 +1,7 @@
 name: CI
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -79,7 +79,9 @@ jobs:
       revision: ${{ github.sha }}
       os: ubuntu-24.04
   qualify-linux:
-    needs: [foundation, media-linux]
+    needs:
+      - foundation
+      - media-linux
     if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.core == 'true' && needs.media-linux.result == 'success'
     uses: ./.github/workflows/native-qualification.yml
     with:
@@ -90,7 +92,9 @@ jobs:
       native: ${{ needs.foundation.outputs.native == 'true' }}
       lane: runtime
   package-linux:
-    needs: [foundation, media-linux]
+    needs:
+      - foundation
+      - media-linux
     if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.native == 'true' && needs.media-linux.result == 'success'
     uses: ./.github/workflows/native-qualification.yml
     with:
@@ -108,7 +112,9 @@ jobs:
       revision: ${{ github.sha }}
       os: windows-2022
   qualify-windows:
-    needs: [foundation, media-windows]
+    needs:
+      - foundation
+      - media-windows
     if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.core == 'true' && needs.media-windows.result == 'success'
     uses: ./.github/workflows/native-qualification.yml
     with:
@@ -119,7 +125,9 @@ jobs:
       native: ${{ needs.foundation.outputs.native == 'true' }}
       lane: runtime
   package-windows:
-    needs: [foundation, media-windows]
+    needs:
+      - foundation
+      - media-windows
     if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.native == 'true' && needs.media-windows.result == 'success'
     uses: ./.github/workflows/native-qualification.yml
     with:
@@ -129,38 +137,12 @@ jobs:
       cli: true
       native: true
       lane: packages
-  media-macos:
-    needs: foundation
-    if: needs.foundation.outputs.native == 'true' || needs.foundation.outputs.adapters == 'true'
-    uses: ./.github/workflows/media-source.yml
-    with:
-      revision: ${{ github.sha }}
-      os: macos-15
-  qualify-macos:
-    needs: [foundation, media-macos]
-    if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.core == 'true' && needs.media-macos.result == 'success'
-    uses: ./.github/workflows/native-qualification.yml
-    with:
-      revision: ${{ github.sha }}
-      os: macos-15
-      core: ${{ needs.foundation.outputs.core == 'true' }}
-      cli: ${{ needs.foundation.outputs.cli == 'true' }}
-      native: ${{ needs.foundation.outputs.native == 'true' }}
-      lane: runtime
-  package-macos:
-    needs: [foundation, media-macos]
-    if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.native == 'true' && needs.media-macos.result == 'success'
-    uses: ./.github/workflows/native-qualification.yml
-    with:
-      revision: ${{ github.sha }}
-      os: macos-15
-      core: true
-      cli: true
-      native: true
-      lane: packages
   candidate:
-    needs: [docs, package-linux, package-windows, package-macos]
-    if: always() && needs.docs.result == 'success' && needs.package-linux.result == 'success' && needs.package-windows.result == 'success' && needs.package-macos.result == 'success'
+    needs:
+      - docs
+      - package-linux
+      - package-windows
+    if: always() && needs.docs.result == 'success' && needs.package-linux.result == 'success' && needs.package-windows.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -195,7 +177,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-15]
+        os:
+          - ubuntu-24.04
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
@@ -252,7 +235,9 @@ jobs:
           go vet ./...
           python -m unittest discover -s tests -p '*_test.py'
   adapters:
-    needs: [foundation, media-linux]
+    needs:
+      - foundation
+      - media-linux
     if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.adapters == 'true' && needs.media-linux.result == 'success'
     name: adapter fixtures
     runs-on: ubuntu-24.04
@@ -264,17 +249,17 @@ jobs:
           POSTGRES_USER: fixture
           POSTGRES_PASSWORD: fixture-only-password
           POSTGRES_DB: fixture
-        ports: ['5432:5432']
+        ports: [ '5432:5432' ]
         options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 12
       s3:
         image: adobe/s3mock:5.2.3@sha256:ab01a6946750f451ca215a47e91030695b260e4003b8a5a6201d25029b8fca92
-        ports: ['9090:9090']
+        ports: [ '9090:9090' ]
       arcade:
         image: arcadedata/arcadedb:26.9.1@sha256:02a1a74fcef3c9d91e680262ddb7fde05ff9cfb356b366e7faf8e41d80995a70
         env:
           ARCADEDB_SETTINGS: -Darcadedb.server.rootPassword=fixture-only-password -Darcadedb.dumpConfigAtStartup=false
           ARCADEDB_OPTS_MEMORY: -Xms128M -Xmx512M
-        ports: ['2480:2480']
+        ports: [ '2480:2480' ]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e

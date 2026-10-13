@@ -103,8 +103,7 @@ class OwnedSourceIntegrity(unittest.TestCase):
 
     def test_openmpt_keeps_module_decoders_and_static_build_with_bounded_runner_budget(self):
         for platform_id, host, shell in [('windows_amd64', 'x86_64-w64-mingw32', True),
-                                        ('linux_amd64', 'x86_64-pc-linux-gnu', False),
-                                        ('darwin_arm64', 'aarch64-apple-darwin', False)]:
+                                        ('linux_amd64', 'x86_64-pc-linux-gnu', False)]:
             with self.subTest(platform=platform_id):
                 target = Path('private-source-build/openmpt-source'); prefix = target.parent / 'install'; run = Mock()
                 source.compile_openmpt(target, prefix, platform_id, 4, run)

@@ -59,6 +59,9 @@ func New(w *workspace.Workspace) (*App, error) {
 	return NewContext(context.Background(), w)
 }
 func NewContext(ownerContext context.Context, w *workspace.Workspace) (*App, error) {
+	if err := workspace.RequireSupportedHost(); err != nil {
+		return nil, err
+	}
 	provider, err := credentialcmd.Provider(w, nil)
 	if err != nil {
 		return nil, err
@@ -79,6 +82,9 @@ func NewWithSecrets(w *workspace.Workspace, secrets contracts.SecretProvider) (*
 	return newOwnerContext(context.Background(), w, secrets)
 }
 func newOwnerContext(ownerContext context.Context, w *workspace.Workspace, secrets contracts.SecretProvider) (*App, error) {
+	if err := workspace.RequireSupportedHost(); err != nil {
+		return nil, err
+	}
 	ctx, cancel := context.WithCancel(ownerContext)
 	openCtx, stop := context.WithTimeout(ctx, 10*time.Second)
 	store, err := catalog.OpenWorkspace(openCtx, w, secrets, false)

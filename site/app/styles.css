@@ -163,7 +163,7 @@ body:has(.product-landing) { background: radial-gradient(ellipse at 72% 0%, var(
 .backend-list dt { font-size: var(--in-body-xs); color: var(--bb-text-muted); }
 .backend-list dd { margin: var(--in-space-2) 0 0; font-family: var(--bb-typography-mono-family); font-size: var(--in-body-sm); }
 .product-cta .text-action { margin-left: var(--in-space-5); }
-.download-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--in-space-5); margin-top: var(--in-space-6); }
+.download-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--in-space-5); margin-top: var(--in-space-6); }
 .download-grid article { border: var(--bb-border-default) solid var(--in-border); border-radius: var(--in-radius-xl); padding: var(--in-space-5); background: var(--bb-surface-card); }
 .download-grid h3 { margin-top: 0; }
 .download-grid p { color: var(--in-fg-muted); font-size: var(--in-body-sm); }

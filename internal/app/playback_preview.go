@@ -11,7 +11,6 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -35,7 +34,7 @@ func previewRequired(facts library.Facts, class string) bool {
 			if stream.Kind != "audio" {
 				continue
 			}
-			// WKWebView rejects the qualified six-channel FLAC master.
+			// Native webviews require a stereo preview of multichannel audio.
 			// Present multichannel audio through the disposable stereo preview.
 			if stream.Channels != nil && *stream.Channels > 2 {
 				return true
@@ -118,8 +117,7 @@ func previewArguments(source, output, class string, facts library.Facts) []strin
 		args = append(args, "-map", "0:v:0", "-map", audioMap+"?")
 		if codec == "h264" {
 			args = append(args, "-c:v", "copy")
-		} else if runtime.GOOS == "darwin" {
-			args = append(args, "-c:v", "h264_videotoolbox", "-b:v", "2M", "-pix_fmt", "yuv420p")
+
 		} else {
 			args = append(args, "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p")
 		}

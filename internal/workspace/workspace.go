@@ -59,6 +59,9 @@ type Paths struct {
 }
 
 func PlatformPaths() (Paths, error) {
+	if err := RequireSupportedHost(); err != nil {
+		return Paths{}, err
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return Paths{}, contracts.Condition("unavailable", "profile_prerequisite")
@@ -74,9 +77,6 @@ func PlatformPaths() (Paths, error) {
 	data := filepath.Join(home, ".local", "share", "insonic")
 	if runtime.GOOS == "windows" {
 		data = filepath.Join(os.Getenv("LOCALAPPDATA"), "insonic")
-	}
-	if runtime.GOOS == "darwin" {
-		data = filepath.Join(home, "Library", "Application Support", "insonic")
 	}
 	if runtime.GOOS == "linux" && filepath.IsAbs(os.Getenv("XDG_DATA_HOME")) {
 		data = filepath.Join(os.Getenv("XDG_DATA_HOME"), "insonic")

@@ -8,7 +8,6 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import platform
-import plistlib
 import re
 import shutil
 import subprocess
@@ -26,18 +25,6 @@ LOCK = json.loads((ROOT / 'internal/qualification/dependencies.json').read_text(
 VERSION = json.loads((ROOT / 'package.json').read_text(encoding='utf-8'))['version']
 BUILD = ROOT / 'build/native'
 
-def desktop_application_info():
-    # Native AVFoundation media uses the app's scoped IPv4 loopback server.
-    # macOS 14+ requires an IP-specific ATS exception; external HTTP remains
-    # subject to the normal policy. This metadata is shared by source and
-    # extracted-package qualification so both exercise the installed policy.
-    return {'CFBundleName': 'insonic', 'CFBundleDisplayName': 'insonic',
-            'CFBundleExecutable': 'insonic-desktop', 'CFBundleIdentifier': 'tech.shruggie.insonic',
-            'CFBundleVersion': VERSION, 'CFBundleShortVersionString': VERSION,
-            'CFBundlePackageType': 'APPL', 'LSMinimumSystemVersion': '13.3',
-            'NSHighResolutionCapable': True,
-            'NSAppTransportSecurity': {'NSExceptionDomains': {
-                '127.0.0.1': {'NSExceptionAllowsInsecureHTTPLoads': True}}}}
 
 def validate_pins(go_mod=None, lock=None):
     source = (ROOT / 'go.mod').read_text(encoding='utf-8') if go_mod is None else go_mod
@@ -123,9 +110,13 @@ def extract(archive, destination):
                     shutil.copyfile(original, target)
 
 def prepare():
-    os_name = {'Windows': 'windows', 'Linux': 'linux', 'Darwin': 'darwin'}[platform.system()]
+    os_name = {'Windows': 'windows', 'Linux': 'linux'}.get(platform.system())
+    if os_name is None:
+        raise ValueError('unsupported host platform; choose Windows or Linux x86-64')
     arch = {'AMD64': 'amd64', 'x86_64': 'amd64', 'arm64': 'arm64', 'aarch64': 'arm64'}[platform.machine()]
     key = os_name + '_' + arch
+    if key not in ('windows_amd64', 'linux_amd64'):
+        raise ValueError('unsupported package architecture')
     BUILD.mkdir(parents=True, exist_ok=True)
     receipt = {'platform': key, 'go': LOCK['go'], 'wails': LOCK['wails'], 'assets': []}
     for name, repo in [('ladybug', 'LadybugDB/ladybug'), ('cueson', 'shruggietech/cueson')]:
@@ -153,8 +144,6 @@ def prepare():
         flags += f' -Wl,-rpath,{library_flags}'
     values = {'CGO_ENABLED': '1', 'CGO_CFLAGS': f'-I{library_flags}', 'CGO_LDFLAGS': flags,
               'CUESON_EXECUTABLE': str(cueson), 'INSONIC_NATIVE_LIBRARY': str(library)}
-    if os_name == 'darwin':
-        values['MACOSX_DEPLOYMENT_TARGET'] = '13.3'
     (BUILD / 'environment.json').write_text(json.dumps(values, indent=2) + '\n', encoding='utf-8')
     (BUILD / 'asset-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(receipt))
@@ -268,14 +257,6 @@ def desktop():
     output = child(['go', 'test', '-v', '-tags', tags, './desktop', './cmd/insonic-desktop'], env=env)
     sys.stdout.buffer.write(output)
     executable = ROOT / ('build/insonic-desktop.exe' if os.name == 'nt' else 'build/insonic-desktop')
-    if platform.system() == 'Darwin':
-        executable = ROOT / 'build/qualification-insonic.app/Contents/MacOS/insonic-desktop'
-        executable.parent.mkdir(parents=True, exist_ok=True)
-        with (executable.parent.parent / 'Info.plist').open('wb') as output:
-            plistlib.dump(desktop_application_info(), output)
-        # Standalone desktop qualification prepares its own selected native CLI.
-        # Launching the app executable directly retains its bundle ATS policy.
-        shutil.copy2(sibling, executable.parent / 'insonic')
     child(['go', 'build', '-tags', tags, '-o', executable, './cmd/insonic-desktop'], env=env)
     output = child([executable, '--qualification'], env=env)
     write_receipt(BUILD / 'desktop-receipt.json', output,

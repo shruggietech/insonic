@@ -17,9 +17,13 @@ Organize audio and video, correlate subtitles and speakers, and explore what was
 
 Read the [v1.0.1 system contracts](docs/v1.0.1/index.md), [technology decisions](docs/v1.0.1/technology.md) and [delivery outcomes](docs/v1.0.1/roadmap.md). The documentation index identifies candidate and publication status.
 
+## Installation
+
+Choose a Windows/Linux x86-64 package from the [official releases](https://github.com/shruggietech/insonic/releases). Desktop + CLI includes application windows and the command-line tool; CLI-only includes terminal commands without the desktop application. Windows ZIP packages require Microsoft Visual C++ x64; desktop additionally requires WebView2. Read [package choices, prerequisites and Windows ZIP installation/update/removal](docs/v1.0.1/desktop.md#native-package-layouts) for the selected version. The current 1.0.1 index identifies candidate status; historical packages retain their own version-specific guidance.
+
 ## Capabilities
 
-- CLI-first shared operations with a desktop wrapper on Windows, macOS and Linux.
+- CLI-first shared operations with a desktop wrapper on Windows and Linux.
 - Tracked originals, captured metadata/recording dates, optimized audio derivatives and optional supplied subtitles, unified through Cueson.
 - Configurable local and hosted transcription, diarization and reasoning pipelines.
 - Speaker/alias and specialized-term catalogs, source-linked audio corpora and optional speaker-model training/retrieval.

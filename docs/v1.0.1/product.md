@@ -14,7 +14,7 @@ Stable requirement IDs identify observable product behavior. The named contracts
 
 | ID | Required behavior | Contract |
 | --- | --- | --- |
-| R01 | Installable CLI on Windows, macOS and Linux | [Technology](technology.md), [storage](storage.md) |
+| R01 | Installable CLI on Windows and Linux | [Technology](technology.md), [storage](storage.md) |
 | R02 | CLI-first shared core; GUI installs CLI and maintains core parity, with documented advanced/experimental lag permitted | [Desktop](desktop.md) |
 | R03 | Track audio and video originals, provenance and duplicates | [Media](media.md) |
 | R04 | Acquire user-targeted sources through adapters | [Pipelines](pipelines.md) |
@@ -58,4 +58,4 @@ Configured routines run without repeated approvals. Only the affected operation 
 
 ## Delivery dependencies
 
-Runtime, storage and media contracts establish the import-to-subtitle workflow on all three operating systems, with full S3-compatible storage and PostgreSQL support. Provider flexibility and speaker continuity support graph extraction, desktop exploration and optional elected speaker training. Model discovery, exact retrieval, current profile selection and roster-constrained matching share CLI/runtime/desktop contracts. See [delivery outcomes](roadmap.md) for dependencies. Multi-user collaboration and an insonic-hosted library service are outside these application contracts.
+Runtime, storage and media contracts establish the import-to-subtitle workflow on Windows and Linux, with full S3-compatible storage and PostgreSQL support. Provider flexibility and speaker continuity support graph extraction, desktop exploration and optional elected speaker training. Model discovery, exact retrieval, current profile selection and roster-constrained matching share CLI/runtime/desktop contracts. See [delivery outcomes](roadmap.md) for dependencies. Multi-user collaboration and an insonic-hosted library service are outside these application contracts.

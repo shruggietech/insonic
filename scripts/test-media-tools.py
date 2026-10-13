@@ -19,7 +19,7 @@ class DecoderPins(unittest.TestCase):
     def test_all_native_platforms_have_matching_decoder_distribution(self):
         lock = json.loads((ROOT / 'internal/qualification/media-tools.json').read_text())
         source = lock['source_build']
-        self.assertEqual(set(source['platforms']), {'windows_amd64', 'linux_amd64', 'darwin_arm64'})
+        self.assertEqual(set(source['platforms']), {'windows_amd64', 'linux_amd64'})
         self.assertEqual(set(source['platform_configure']), set(source['platforms']))
         self.assertNotIn('ffmpeg', lock)
         self.assertNotIn('ffprobe', lock)
@@ -41,16 +41,15 @@ class DecoderPins(unittest.TestCase):
         self.assertEqual(identity['sha256'], tools.sha(Path(__file__)))
         self.assertEqual(identity['path'], str(Path(__file__).resolve()))
 
-    def test_macos_companions_build_from_pinned_redistributable_source(self):
+    def test_supported_companions_build_from_pinned_redistributable_source(self):
         lock = json.loads((ROOT / 'internal/qualification/media-tools.json').read_text())
         source = lock['source_build']
-        self.assertIn('darwin_arm64', source['platforms'])
+        self.assertEqual(set(source['platforms']), {'windows_amd64', 'linux_amd64'})
         self.assertRegex(source['commit'], r'^[0-9a-f]{40}$')
         self.assertRegex(source['sha256'], r'^[0-9a-f]{64}$')
         self.assertNotIn('--enable-nonfree', source['configure'])
         self.assertNotIn('--enable-gpl', source['configure'])
         self.assertIn('--disable-autodetect', source['configure'])
-        self.assertIn('--enable-videotoolbox', source['platform_configure']['darwin_arm64'])
         self.assertNotIn('--disable-decoders', source['configure'])
         self.assertNotIn('--disable-demuxers', source['configure'])
         for flag in ['--enable-zlib', '--enable-bzlib', '--enable-lzma', '--enable-iconv', '--enable-libxml2', '--enable-libdav1d', '--enable-libgme', '--enable-libopenmpt']:

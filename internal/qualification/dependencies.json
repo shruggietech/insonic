@@ -20,14 +20,6 @@
       "linux_arm64": [
         "liblbug-linux-aarch64.tar.gz",
         "0dad6e03cf644491f7d50b9c218b9e85c983ceaed77a14338c33fb75f2ae39ee"
-      ],
-      "darwin_amd64": [
-        "liblbug-osx-x86_64.tar.gz",
-        "9ec18274694ed3cc312a6d6840b9261d94dcd0c34ca87ad024dc3c553acd3e6e"
-      ],
-      "darwin_arm64": [
-        "liblbug-osx-arm64.tar.gz",
-        "573a54126e2e1d4609680c8becee4399038ad82d3515f4d464bc481e4515c4b1"
       ]
     }
   },
@@ -50,14 +42,6 @@
       "linux_arm64": [
         "cueson_1.2.0_linux_arm64.tar.gz",
         "a6a875f256231851efcdbee8e26f2526b818bb2d7ceb97361e78b198e43670a5"
-      ],
-      "darwin_amd64": [
-        "cueson_1.2.0_darwin_amd64.tar.gz",
-        "c7da2b39927e3bed9de794e350719644032b191d1a754dbffb94c2315a312b17"
-      ],
-      "darwin_arm64": [
-        "cueson_1.2.0_darwin_arm64.tar.gz",
-        "853a35704afd32279b2fad94e5da36fb41780592c14016b0754b354a8e00cc28"
       ]
     }
   },
@@ -67,8 +51,7 @@
     "ffprobe_distribution": "eugeneware/ffmpeg-static:b6.1.1",
     "platforms": [
       "windows_amd64",
-      "linux_amd64",
-      "darwin_arm64"
+      "linux_amd64"
     ]
   },
   "fixtures": {

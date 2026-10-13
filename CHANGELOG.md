@@ -11,11 +11,17 @@ All notable changes to this project will be documented here. The format follows 
 - Add revisioned workspace import presets shared by the CLI and desktop, with applied filesystem/S3 destinations, date policy and optional frozen pipeline elections. Reject unresolved selections before enqueue and retain effective choices and deterministic processing children across retries.
 - Replace unsupported current documentation commands with executable input files, observed ID/revision steps and extracted-package qualification. Clarify mapping concurrency, admitted partial-date results and current manual setup capabilities; preserve immutable historical documentation.
 
+- Withdraw macOS support effective with the unreleased 1.0.1 candidate. Windows/Linux x86-64 retain CLI-only and Desktop + CLI packages; current candidates require four variants. Historical 1.0.0 packages, documentation and six-variant record validation remain unchanged.
+- Explain package inclusion, prerequisites and complete Windows ZIP installation/update/removal; copy through alias-aware owned attempts with atomic promotion, and preserve existing/substituted directories on failure.
+
 ### Decisions
 
 - 2026-10-11: Keep startup transport separate from detached lifetime: one bounded report, one child wait owner and one ten-second deadline cover the client handshake. Log only generated context, using three bounded data files and a private empty coordination lock; diagnostic input/tool/provider payloads are excluded. Model readiness remains response-only and named file roles come from immutable manifests.
 - 2026-10-11: Save import choices in a bounded typed catalog registry; publish/read by immutable storage profile revision. Preset values precede manifest defaults/items and explicit CLI overrides; capture local timezone only after resolution. Elect existing processing contracts and reconcile child identity after admission. Current documentation examples qualify extracted binaries using deterministic adapter fixtures without inference.
 - 2026-10-12: Execute documented post-install processing/training against owned loopback fixtures in a separate disposable workspace. Retain CI refusal in the main runtime and all guard tests; permit the established detached runtime owner to restart between package qualification journeys.
+
+- 2026-10-13: Constitution 3.0.0 implements the owner-directed removal of the macOS platform obligation. Remove owned Darwin runtime/build/signing paths and macOS CI/release dependencies while retaining every Windows/Linux/backend integrity lane. Read historical version schemas as data under trusted current validation rather than changing published records.
+- 2026-10-13: Windows copy attempts are created and held through native directory handles. Resolve source/parent aliases, create a unique absent attempt atomically, preserve locks through no-replace promotion and delete failed owned objects by handle without following reparse points. Program files and persistent user data remain separate; current runtime shutdown uses existing idle exit.
 
 ## [1.0.1] - 2026-10-11
 

@@ -82,13 +82,103 @@ Unsupported media and nonzero source clocks receive a bounded temporary WAV or M
 
 ## Native package layouts
 
-The package builder creates Windows x86-64 ZIP, Linux x86-64 tar.gz and macOS ARM64 ZIP layouts in CLI-only and GUI-with-CLI variants. Both include the CLI, pinned Cueson and schema, metadata/media companions, native libraries, offline help, corresponding sources/build inputs, dependency notices and a SHA-256 inventory. The desktop variant also includes the GUI, using an application bundle on macOS. Companions are discovered relative to the installed executable and verified before use. An explicit workspace tool configuration takes precedence; malformed configuration reports an error rather than silently falling back. Installation paths are not written into portable workspace settings.
+insonic supports Windows x86-64 ZIP packages and Linux x86-64 tar.gz packages. Each platform has two choices, giving four package variants. A CLI is a command-line tool: type commands in a terminal and read their results there. The desktop application provides windows and controls and includes the same CLI.
+
+| Package | Included clients | Windows prerequisites | Linux prerequisites |
+| --- | --- | --- | --- |
+| Desktop + CLI | Application windows and the command-line tool | Microsoft Visual C++ x64 runtime and WebView2 Runtime | Perl, GTK 3, WebKitGTK 4.1 and GStreamer decoders |
+| CLI only | Command-line tool; no desktop application | Microsoft Visual C++ x64 runtime | Perl and the platform C/C++ runtime |
+
+Both variants include required native libraries, metadata/media companions, Cueson and schemas, offline help, dependency notices and corresponding build sources. Keep the entire extracted tree together. Companions are verified and discovered relative to the installed executable. Explicit workspace tool configuration takes precedence; invalid configuration reports an error. Installation paths are not written into portable workspace settings.
+
+Choose the exact official version and variant. Windows assets end in _windows_amd64_desktop.zip or _windows_amd64_cli.zip; Linux assets end in _linux_amd64_desktop.tar.gz or _linux_amd64_cli.tar.gz. amd64 means x86-64, including compatible Intel and AMD processors. Other architectures have no qualified package claim. The version's index states candidate or publication status.
+
+Windows ZIP installation only copies files. It creates no MSI registration, PATH entry, shortcut, Installed Apps entry or uninstaller. The generated INSTALL.txt states whether a publisher signature was configured and verified; an unsigned package has no verified publisher identity. Checksums identify bytes and do not establish Windows reputation. Local recognition/diarization environments and model weights, or an explicitly selected compatible connected pipeline, remain separate from application installation. Installing media companions alone does not prepare inference.
+
+### Windows prerequisites
+
+Both Windows variants require the Microsoft Visual C++ v14 x64 runtime. Microsoft provides [runtime guidance](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170) and the [official x64 installer](https://aka.ms/vc14/vc_redist.x64.exe). Download the complete installer while online for transfer to an offline computer.
+
+Desktop + CLI additionally requires the WebView2 Runtime. Use [Microsoft's downloads](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) and [distribution guidance](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution). The Evergreen Bootstrapper downloads the matching runtime online; the x64 Evergreen Standalone Installer contains the runtime for offline installation. Microsoft Edge itself does not replace this prerequisite. Prerequisite installers can request administrative approval according to their selected mode. Detailed unsigned Windows dialog guidance and screenshots remain a separate follow-up; device policy can block unsigned installation.
+
+### Install a Windows ZIP
+
+1. Download the Windows x86-64 Desktop + CLI or CLI-only ZIP for your chosen official release. Install its applicable prerequisites.
+2. Extract the entire ZIP. Open the package folder containing install.ps1 and insonic.exe. Do not run an executable inside the ZIP or copy only an EXE.
+3. Choose a new stable program directory outside your library, with an existing parent. For example, create the parent %LOCALAPPDATA%\Programs\insonic once and choose a new VERSION child. Replace VERSION with the downloaded version and leave that child absent until copying.
+4. Optionally open PowerShell in the extracted directory and run the following, with VERSION replaced. The helper rejects existing destinations and source-contained aliases. If script policy prevents it, copy the complete extracted tree manually.
+
+   ~~~powershell
+   .\install.ps1 -Destination "$env:LOCALAPPDATA\Programs\insonic\VERSION"
+   ~~~
+
+5. Open PowerShell or Windows Terminal in the final program directory. Keep it open while using the CLI; double-clicking insonic.exe does not provide a usable command session.
+6. Check the installed version and help:
+
+   ~~~powershell
+   .\insonic.exe version
+   .\insonic.exe --help
+   ~~~
+
+7. Choose a separate library and initialize it once. Replace YOUR_NAME and the example folder with your actual chosen path, retaining quotes around spaced paths:
+
+   ~~~powershell
+   .\insonic.exe workspace init "C:\Users\YOUR_NAME\Documents\insonic library"
+   ~~~
+
+   For an existing library, select its current directory rather than initializing it again.
+
+8. Inspect that library and select it explicitly for subsequent commands:
+
+   ~~~powershell
+   .\insonic.exe --workspace "C:\Users\YOUR_NAME\Documents\insonic library" doctor
+   .\insonic.exe --workspace "C:\Users\YOUR_NAME\Documents\insonic library" workspace show
+   ~~~
+
+9. With Desktop + CLI, launch insonic-desktop.exe from the same final program directory and open the library. [First-run experience](#first-run-experience) describes current explicit configuration. CLI-only users continue in the terminal with [CLI invocation and results](cli.md). Optional guided first-run setup and MSI delivery are not implemented in this version.
+
+### Close the old installation before maintenance
+
+1. Use Jobs or CLI work commands to finish or cancel outstanding work. Closing the desktop alone does not cancel durable jobs.
+2. Close desktop and CLI clients using the old installation. Its hidden runtime exits after 30 seconds without active requests or work. Allow at least 31 seconds after the last client closes, without running more commands; requests reset activity.
+3. Check processes belonging to the old program directory before changing its files. From PowerShell at that directory, display matching process identities without command lines:
+
+   ~~~powershell
+   $oldProgramDirectory = (Get-Location).Path
+   $oldExecutables = @(
+     (Join-Path $oldProgramDirectory "insonic.exe")
+     (Join-Path $oldProgramDirectory "insonic-desktop.exe")
+   )
+   Get-CimInstance Win32_Process |
+     Where-Object { $_.ExecutablePath -in $oldExecutables } |
+     Select-Object ProcessId, Name, ExecutablePath
+   ~~~
+
+   If one remains, finish/cancel its work, close its clients and allow idle exit. If process paths cannot be inspected, identify the old installation in Task Manager's Details view before changing files. There is no runtime stop command.
+
+### Update a Windows ZIP installation
+
+1. Locate the existing library and inspect its selected profiles with workspace show. Back up configuration, catalog and managed artifacts using [storage and backup guidance](storage.md); remote profiles can hold data elsewhere.
+2. Download/extract the replacement into a separate complete program directory. Preserve the old installation for rollback.
+3. Follow the closure procedure above before changing old program files.
+4. From the replacement, run version, --help and --workspace "YOUR_EXISTING_LIBRARY" doctor. Select the existing library; do not initialize a replacement.
+5. Launch the replacement desktop if included. Update only shortcuts/PATH entries you previously created. Retain the old installation and backup until the update is accepted. Changed stored contracts can require restoring the matching backup as well as old program files during rollback.
+
+### Remove a Windows ZIP installation
+
+1. Identify the exact program directory and follow the closure procedure above.
+2. Remove only that directory and shortcuts/PATH entries you created manually. ZIP installation has no Installed Apps entry or supplied uninstaller.
+3. Preserve library, source media, managed artifacts, model data and credentials. Deleting them is a separate explicit choice.
+
+A local library's chosen .insonic control directory contains workspace.json, catalog.sqlite, managed artifacts/ and graph/library.lbug by default. Configured storage/catalog/graph profiles can point elsewhere. Credential configuration and vault files use the workspace's private secret area; native credential values remain in Windows Credential Manager. Program removal does not remove these stores.
+
+Windows per-user configuration uses %APPDATA%\insonic; local data/cache/runtime coordination use %LOCALAPPDATA%\insonic. Models follow configured managed storage. Keep these locations during ordinary program removal. See [storage](storage.md), [credentials](secrets.md) and [models](models.md) to inspect actual locations and ownership.
+
+### Linux prerequisites and installation
+
+Both Linux variants require Perl. Desktop + CLI also requires GTK 3, WebKitGTK 4.1 and GStreamer base/good/bad/libav decoders for webview playback. Ubuntu names include gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad and gstreamer1.0-libav. Extract the complete tar.gz tree and retain companions beside the executables. The desktop helper writes an application launcher; CLI-only installation does not. Consult platform-specific INSTALL.txt.
 
 Settings displays effective packaged tools read-only. Selecting “Edit explicit workspace media tools” or “Edit explicit workspace processing tools” opens separate override inputs without copying installation paths. Save remains disabled while editing is off; turning editing off leaves an existing override in place. The matching “Reset … to installed defaults” action removes the override with a revision check and resumes installation-relative discovery. The shared CLI supports the same reset through `settings set --input reset.json`, with a section, its current revision and `"value": null`.
-
-Windows requires the Microsoft Visual C++ runtime; the desktop variant also requires WebView2. Linux requires Perl; its desktop variant also requires GTK 3, WebKitGTK 4.1 and GStreamer base/good/bad/libav decoder packages for webview playback (`gstreamer1.0-plugins-base`, `gstreamer1.0-plugins-good`, `gstreamer1.0-plugins-bad` and `gstreamer1.0-libav` on Ubuntu). Its installation helper installs the application launcher. The macOS application targets macOS 13.3 or newer. Other architecture combinations have no executed package claim. Local inference Python environments and model weights remain separately configured downloads.
-
-Qualification extracts packages into relocated paths containing spaces and exercises CLI, media import, Cueson and offline help, plus the actual native webview for desktop variants. Configured publisher signing/notarization runs before final hashes; an unconfigured identity is recorded explicitly without a signed claim. Packages include the exact owned media-companion source closure and build material. Package construction and qualification precede publication of each release.
 
 ## Accessibility and offline help
 

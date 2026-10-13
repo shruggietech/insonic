@@ -26,6 +26,15 @@ def load(name, filename):
 
 
 class WorkerTests(unittest.TestCase):
+    def test_retired_host_is_rejected_before_input_or_engine_election(self):
+        worker = load("processing_unsupported", "processing-worker.py")
+        qualification = load("qualification_unsupported", "qualify-processing.py")
+        with patch.object(worker.sys, "platform", "darwin"), patch.object(worker, "read_request", side_effect=AssertionError("input read")):
+            with self.assertRaisesRegex(worker.WorkerError, "unsupported_platform"):
+                worker.main()
+            with self.assertRaisesRegex(SystemExit, "Unsupported host platform"):
+                qualification.main()
+
     def test_context_is_exact_bounded_and_applied_each_window(self):
         worker = load("processing_hints", "processing-worker.py")
         hints = ["Exact Name", "R&D"]

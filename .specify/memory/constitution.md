@@ -8,7 +8,7 @@ Agents MUST preserve approved scope and explain deviations. Potential misuse alo
 
 ### II. CLI-first foundation and shared application behavior
 
-The application MUST be CLI-first. Core operations MUST have versioned machine-readable and human CLI interfaces. The GUI MUST install the CLI and wrap the shared application/runtime contracts, maintaining core feature parity as the goal without GUI-only core logic. Advanced or experimental CLI operations MAY precede GUI controls when the matching release documents that lag and follow-up. Windows, macOS and Linux installable packages remain required. Platform implementation choices MUST be validated in bounded slices before shipping claims.
+The application MUST be CLI-first. Core operations MUST have versioned machine-readable and human CLI interfaces. The GUI MUST install the CLI and wrap the shared application/runtime contracts, maintaining core feature parity as the goal without GUI-only core logic. Advanced or experimental CLI operations MAY precede GUI controls when the matching release documents that lag and follow-up. Windows and Linux x86-64 installable CLI and GUI-with-CLI packages remain required. macOS is not a supported host or package target. Historical published releases retain their version-specific platform records. Platform implementation choices MUST be validated in bounded slices before shipping claims.
 
 ### III. Preserve source identity and uncertainty
 
@@ -42,4 +42,4 @@ Specify, clarify where necessary, plan, tasks, analyze, implement and converge a
 
 Owner instructions take precedence. Amendments MUST record their changed product or process effect in the changelog and update the constitution version using semantic versioning. Reviewers compare changes against this constitution, the current system specification and the slice acceptance criteria. Exceptions MUST be concrete, justified and reported; passing unrelated checks does not resolve unmet requirements.
 
-**Version**: 2.2.1 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-09
+**Version**: 3.0.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-13

@@ -24,9 +24,12 @@ test('release artifact index removes the candidate assertion while ordinary snap
   assert.doesNotMatch(output, /candidate|unpublished|not been published/);
 });
 
-test('released downloads identify all six exact platform/variant assets', () => {
+test('released downloads identify all four current platform/variant assets', () => {
   const assets = releaseDownloads('1.0.1');
-  assert.equal(assets.length, 3);
+  assert.equal(assets.length, 2);
+  assert.deepEqual(assets.map(item => item.platform), ["windows_amd64", "linux_amd64"]);
+  assert.equal(releaseDownloads("1.0.0", { historical: true }).length, 3);
+  assert.equal(releaseDownloads("1.0.1", { historical: true }).length, 2);
   for (const item of assets) for (const variant of ['desktop', 'cli'])
     assert.equal(item[variant], `https://github.com/shruggietech/insonic/releases/download/v1.0.1/insonic_1.0.1_${item.platform}_${variant}${item.extension}`);
 });

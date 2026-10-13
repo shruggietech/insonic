@@ -25,7 +25,7 @@ jobs:
         shell: bash
         env:
           SOURCE_RUNNER: ${{ inputs.os }}
-        run: python -c "import os,re; assert re.fullmatch('[0-9a-f]{40}',os.environ['SOURCE_REVISION']), 'exact 40-character revision required'; assert os.environ['SOURCE_RUNNER'] in ['ubuntu-24.04','windows-2022','macos-15'], 'unqualified source runner'"
+        run: python -c "import os,re; assert re.fullmatch('[0-9a-f]{40}',os.environ['SOURCE_REVISION']), 'exact 40-character revision required'; assert os.environ['SOURCE_RUNNER'] in ['ubuntu-24.04','windows-2022'], 'unqualified source runner'"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.revision }}
@@ -123,7 +123,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [compression, audio, av1]
+        group: [ compression, audio, av1 ]
     env:
       SOURCE_REVISION: ${{ inputs.revision }}
     steps:
@@ -131,7 +131,7 @@ jobs:
         shell: bash
         env:
           SOURCE_RUNNER: ${{ inputs.os }}
-        run: python -c "import os,re; assert re.fullmatch('[0-9a-f]{40}',os.environ['SOURCE_REVISION']), 'exact 40-character revision required'; assert os.environ['SOURCE_RUNNER'] in ['ubuntu-24.04','windows-2022','macos-15'], 'unqualified source runner'"
+        run: python -c "import os,re; assert re.fullmatch('[0-9a-f]{40}',os.environ['SOURCE_REVISION']), 'exact 40-character revision required'; assert os.environ['SOURCE_RUNNER'] in ['ubuntu-24.04','windows-2022'], 'unqualified source runner'"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.revision }}
@@ -186,7 +186,9 @@ jobs:
           if-no-files-found: error
           retention-days: 3
   formats:
-    needs: [probe, groups]
+    needs:
+      - probe
+      - groups
     if: needs.probe.outputs.complete != 'true'
     runs-on: ${{ inputs.os }}
     timeout-minutes: 10
@@ -261,7 +263,9 @@ jobs:
           if-no-files-found: error
           retention-days: 3
   codec:
-    needs: [probe, formats]
+    needs:
+      - probe
+      - formats
     if: needs.probe.outputs.complete != 'true' && inputs.os == 'windows-2022'
     runs-on: ${{ inputs.os }}
     timeout-minutes: 10
@@ -322,7 +326,10 @@ jobs:
           if-no-files-found: error
           retention-days: 3
   ffmpeg:
-    needs: [probe, formats, codec]
+    needs:
+      - probe
+      - formats
+      - codec
     if: always() && !cancelled() && needs.probe.result == 'success' && needs.probe.outputs.complete != 'true' && needs.formats.result == 'success' && (inputs.os != 'windows-2022' || needs.codec.result == 'success')
     runs-on: ${{ inputs.os }}
     timeout-minutes: 10

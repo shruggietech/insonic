@@ -18,6 +18,36 @@ spec.loader.exec_module(package)
 
 
 class NativePackageIntegrityTests(unittest.TestCase):
+    def test_install_text_is_platform_and_variant_specific(self):
+        for key in ('windows_amd64','linux_amd64'):
+            for variant in ('cli','desktop'):
+                with tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary); package.installers(root,key,variant)
+                    text = (root / 'INSTALL.txt').read_text(encoding='utf-8')
+                    self.assertNotIn('qualification package',text)
+                    self.assertNotIn('macOS',text)
+                    self.assertNotIn('notarization',text)
+                    self.assertIn('workspace init',text)
+                    self.assertIn('doctor',text)
+                    if key.startswith('windows'):
+                        self.assertIn('Microsoft Visual C++ x64',text)
+                        self.assertIn('no PATH',text)
+                        self.assertEqual('WebView2' in text,variant=='desktop')
+                        self.assertIn('unsigned',text)
+                    else:
+                        self.assertEqual('GTK 3' in text,variant=='desktop')
+                        self.assertEqual('insonic.desktop' in (root/'install.sh').read_text(),variant=='desktop')
+
+    def test_historical_macos_archive_layout_remains_validation_data(self):
+        root = Path('/historical/package/Contents')
+        self.assertEqual(package.package_directories(root,'darwin_arm64','desktop'),(root/'MacOS',root/'Resources'))
+
+    def test_owned_builder_rejects_retired_macos_before_side_effects(self):
+        with patch.object(package.platform, "system", return_value="Darwin"), patch.object(package.platform, "machine", return_value="arm64"):
+            with self.assertRaisesRegex(ValueError, "unsupported.*platform|platform.*unsupported"):
+                package.platform_key()
+
+
     def test_both_variants_require_an_inventoried_processing_worker(self):
         for variant in ('cli', 'desktop'):
             with tempfile.TemporaryDirectory() as temporary:
@@ -31,27 +61,6 @@ class NativePackageIntegrityTests(unittest.TestCase):
                     {'path': name, 'size_bytes': 7, 'sha256': package.sha(root / name)} for name in names]}
                 with self.assertRaisesRegex(ValueError, 'required'): package.verify_inventory(root, value)
 
-    def test_macos_bundle_resources_leave_only_native_code_in_macos(self):
-        with tempfile.TemporaryDirectory(prefix='insonic relocated app ') as temporary:
-            root = Path(temporary) / 'insonic.app/Contents/MacOS'
-            root.mkdir(parents=True)
-            names = ['insonic', 'insonic-desktop', 'native/liblbug.dylib', 'LICENSE', 'NOTICE',
-                     'INSTALL.txt', 'help/index.html', 'sources/source-manifest.json',
-                     'companions/cueson/cueson', 'companions/cueson/cueson.schema.json',
-                     'companions/processing/processing-worker.py']
-            for name in names:
-                path = root / name; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(name.encode())
-            contents, resources = package.arrange_macos_bundle(root)
-            self.assertEqual({path.name for path in root.iterdir()}, {'insonic', 'insonic-desktop', 'native'})
-            self.assertEqual((resources / 'INSTALL.txt').read_bytes(), b'INSTALL.txt')
-            self.assertEqual((resources / 'companions/cueson/cueson').read_bytes(), b'companions/cueson/cueson')
-            (resources / 'insonic-companions.json').write_bytes(b'pinned companion manifest')
-            with patch.object(package, 'platform_key', return_value='darwin_arm64'):
-                value = package.inventory(contents, 'a' * 40, {}, {}, 'desktop')
-            package.verify_inventory(contents, value)
-            (resources / 'INSTALL.txt').replace(root / 'INSTALL.txt')
-            with self.assertRaisesRegex(ValueError, 'missing file'):
-                package.verify_inventory(contents, value)
 
     def source_fixture(self, root):
         target = root / 'sources'
@@ -176,12 +185,6 @@ class NativePackageIntegrityTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'required'):
                 package.verify_inventory(root, value)
 
-    def test_macos_app_transport_exception_is_only_its_loopback_media_host(self):
-        info = package.qualify.desktop_application_info()
-        self.assertEqual(info['CFBundleExecutable'], 'insonic-desktop')
-        self.assertEqual(info['LSMinimumSystemVersion'], '13.3')
-        self.assertEqual(info['NSAppTransportSecurity'], {'NSExceptionDomains': {
-            '127.0.0.1': {'NSExceptionAllowsInsecureHTTPLoads': True}}})
 
     def test_windows_startup_graph_library_is_beside_executables(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -196,7 +199,7 @@ class NativePackageIntegrityTests(unittest.TestCase):
     def test_packaged_loader_flags_replace_development_rpaths(self):
         original = {'CGO_LDFLAGS': '-L/checkout/native -Wl,-rpath,/checkout/native',
                     'CGO_CFLAGS': '-I/checkout/native', 'CGO_ENABLED': '1'}
-        for platform, loader in [('linux_amd64', '$ORIGIN/native'), ('darwin_arm64', '@loader_path/native')]:
+        for platform, loader in [('linux_amd64', '$ORIGIN/native')]:
             flags = package.package_build_environment(original, platform, Path('/installation with spaces/native'))
             self.assertIn('-rpath,' + loader, flags['CGO_LDFLAGS'])
             self.assertNotIn('/checkout', flags['CGO_LDFLAGS'])
@@ -305,7 +308,7 @@ class NativePackageIntegrityTests(unittest.TestCase):
 
     def test_qualified_architectures_and_system_source_configuration(self):
         lock = json.loads((ROOT / 'internal/qualification/media-tools.json').read_text())
-        self.assertEqual(set(lock['source_build']['platforms']), {'windows_amd64', 'linux_amd64', 'darwin_arm64'})
+        self.assertEqual(set(lock['source_build']['platforms']), {'windows_amd64', 'linux_amd64'})
         self.assertNotIn('--enable-nonfree', lock['source_build']['configure'])
         self.assertIn('--disable-autodetect', lock['source_build']['configure'])
         environment = package.package_environment()

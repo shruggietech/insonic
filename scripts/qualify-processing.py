@@ -82,8 +82,6 @@ def local_environment():
         allowed.update(("SYSTEMROOT", "CUDA_PATH", "CUDA_VISIBLE_DEVICES"))
     elif sys.platform == "linux":
         allowed.update(("LD_LIBRARY_PATH", "CUDA_VISIBLE_DEVICES"))
-    elif sys.platform == "darwin":
-        allowed.update(("DYLD_LIBRARY_PATH", "DYLD_FALLBACK_LIBRARY_PATH"))
     return {key: value for key, value in os.environ.items()
             if (key.upper() if os.name == "nt" else key) in allowed}
 
@@ -293,6 +291,8 @@ def qualify(args):
 
 
 def main():
+    if sys.platform not in ("win32", "linux"):
+        raise SystemExit("Unsupported host platform; choose Windows or Linux x86-64.")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-real-engines", action="store_true")
     parser.add_argument("--tools", default=str(ROOT / "build/native/media-tools.json"))

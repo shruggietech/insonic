@@ -18,7 +18,7 @@ on:
         description: Explicit documentation destination (existing Pages or configured generic host)
         default: pages
         type: choice
-        options: [pages, generic]
+        options: [ pages, generic ]
       highlights:
         description: Brief release highlights (publication only, at most 180 words)
         default: ''
@@ -101,8 +101,6 @@ jobs:
       windows-sign-cert-sha1: ${{ vars.INSONIC_WINDOWS_SIGN_CERT_SHA1 }}
       signtool-executable: ${{ vars.INSONIC_SIGNTOOL_EXECUTABLE }}
       windows-sign-timestamp-url: ${{ vars.INSONIC_WINDOWS_SIGN_TIMESTAMP_URL }}
-      macos-sign-identity: ${{ vars.INSONIC_MACOS_SIGN_IDENTITY }}
-      macos-notary-profile: ${{ vars.INSONIC_MACOS_NOTARY_PROFILE }}
   media-windows:
     if: inputs.publish || !inputs.promote_docs
     uses: ./.github/workflows/media-source.yml
@@ -136,45 +134,13 @@ jobs:
       windows-sign-cert-sha1: ${{ vars.INSONIC_WINDOWS_SIGN_CERT_SHA1 }}
       signtool-executable: ${{ vars.INSONIC_SIGNTOOL_EXECUTABLE }}
       windows-sign-timestamp-url: ${{ vars.INSONIC_WINDOWS_SIGN_TIMESTAMP_URL }}
-      macos-sign-identity: ${{ vars.INSONIC_MACOS_SIGN_IDENTITY }}
-      macos-notary-profile: ${{ vars.INSONIC_MACOS_NOTARY_PROFILE }}
-  media-macos:
-    if: inputs.publish || !inputs.promote_docs
-    uses: ./.github/workflows/media-source.yml
-    with:
-      revision: ${{ inputs.revision }}
-      os: macos-15
-  qualify-macos:
-    needs: media-macos
-    if: always() && needs.media-macos.result == 'success' && (inputs.publish || !inputs.promote_docs)
-    uses: ./.github/workflows/native-qualification.yml
-    with:
-      revision: ${{ inputs.revision }}
-      os: macos-15
-      core: true
-      cli: true
-      native: true
-      lane: runtime
-      documentation-target: release
-  package-macos:
-    needs: media-macos
-    if: always() && needs.media-macos.result == 'success' && (inputs.publish || !inputs.promote_docs)
-    uses: ./.github/workflows/native-qualification.yml
-    with:
-      revision: ${{ inputs.revision }}
-      os: macos-15
-      core: true
-      cli: true
-      native: true
-      lane: packages
-      documentation-target: release
-      windows-sign-cert-sha1: ${{ vars.INSONIC_WINDOWS_SIGN_CERT_SHA1 }}
-      signtool-executable: ${{ vars.INSONIC_SIGNTOOL_EXECUTABLE }}
-      windows-sign-timestamp-url: ${{ vars.INSONIC_WINDOWS_SIGN_TIMESTAMP_URL }}
-      macos-sign-identity: ${{ vars.INSONIC_MACOS_SIGN_IDENTITY }}
-      macos-notary-profile: ${{ vars.INSONIC_MACOS_NOTARY_PROFILE }}
   candidate:
-    needs: [docs, qualify-linux, package-linux, qualify-windows, package-windows, qualify-macos, package-macos]
+    needs:
+      - docs
+      - qualify-linux
+      - package-linux
+      - qualify-windows
+      - package-windows
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
@@ -226,7 +192,10 @@ jobs:
         run: python scripts/release.py deployment --configuration build/release/documentation-deployment.json
   publish:
     if: always() && github.ref == 'refs/heads/main' && inputs.publish && needs.candidate.result == 'success' && (!inputs.promote_docs || (inputs.documentation-transport == 'generic' && needs.deployment-preflight.result == 'success') || (inputs.documentation-transport == 'pages' && needs.pages-preflight.result == 'success'))
-    needs: [candidate, deployment-preflight, pages-preflight]
+    needs:
+      - candidate
+      - deployment-preflight
+      - pages-preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -262,7 +231,9 @@ jobs:
         run: python scripts/release.py publish --source-root build/release/source --candidate build/release/candidate --highlights build/release/highlights.md
   promote:
     if: always() && github.ref == 'refs/heads/main' && inputs.promote_docs && inputs.documentation-transport == 'generic' && needs.deployment-preflight.result == 'success' && (!inputs.publish || needs.publish.result == 'success')
-    needs: [publish, deployment-preflight]
+    needs:
+      - publish
+      - deployment-preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     environment: documentation-deployment
@@ -318,7 +289,9 @@ jobs:
         run: python scripts/release.py pages-preflight
   promote-pages:
     if: always() && github.ref == 'refs/heads/main' && inputs.promote_docs && inputs.documentation-transport == 'pages' && needs.pages-preflight.result == 'success' && (!inputs.publish || needs.publish.result == 'success')
-    needs: [publish, pages-preflight]
+    needs:
+      - publish
+      - pages-preflight
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:

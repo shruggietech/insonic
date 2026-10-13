@@ -37,6 +37,9 @@ func execute(args []string) int {
 		operatorContext.StartupID = ""
 		return output(nil, parseErr, machine)
 	}
+	if err := workspace.RequireSupportedHost(); err != nil {
+		return output(nil, err, machine)
+	}
 	if parsed.Help {
 		if machine {
 			return output(map[string]any{"command": strings.Join(parsed.Path, " "), "help": commandHelp(parsed.Path)}, nil, true)

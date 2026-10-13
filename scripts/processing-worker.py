@@ -372,7 +372,7 @@ def _peak_memory():
         return None
     import resource
     peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    return peak if sys.platform == "darwin" else peak * 1024
+    return peak * 1024
 
 
 def run(request):
@@ -469,6 +469,8 @@ def run(request):
 
 
 def main():
+    if sys.platform not in ("win32", "linux"):
+        raise WorkerError("unsupported_platform")
     forbid_ci()
     result = run(read_request(sys.stdin))
     encoded = json.dumps(result, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
