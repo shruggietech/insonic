@@ -32,8 +32,8 @@
     },
     "packages": {
       "type": "array",
-      "minItems": 6,
-      "maxItems": 6,
+      "minItems": 4,
+      "maxItems": 4,
       "items": {
         "type": "object",
         "properties": {
@@ -56,8 +56,7 @@
           "platform": {
             "enum": [
               "windows_amd64",
-              "linux_amd64",
-              "darwin_arm64"
+              "linux_amd64"
             ],
             "description": "Qualified native operating system and architecture."
           },
@@ -133,10 +132,9 @@
               "status": {
                 "enum": [
                   "unconfigured",
-                  "signed",
-                  "notarized"
+                  "signed"
                 ],
-                "description": "Truthful publisher signing status; ad-hoc signatures do not imply publisher signing."
+                "description": "Truthful configured publisher signing status."
               }
             },
             "required": [
@@ -144,7 +142,7 @@
               "verified",
               "status"
             ],
-            "description": "Publisher signing evidence, distinct from operating-system ad-hoc sealing.",
+            "description": "Configured publisher signing evidence; unsigned disposition is explicit.",
             "allOf": [
               {
                 "if": {
@@ -166,10 +164,9 @@
                     },
                     "status": {
                       "enum": [
-                        "signed",
-                        "notarized"
+                        "signed"
                       ],
-                      "description": "Configured signing requires a signed or notarized disposition."
+                      "description": "Configured signing requires a verified signed disposition."
                     }
                   }
                 },
@@ -206,12 +203,12 @@
           "signing"
         ]
       },
-      "description": "All three native platforms and both variants. Runtime verifies unique matrix identities, inventory and corresponding-source proof."
+      "description": "Both Windows/Linux platforms and both variants. Runtime verifies unique matrix identities, inventory and corresponding-source proof."
     },
     "assets": {
       "type": "array",
-      "minItems": 8,
-      "maxItems": 8,
+      "minItems": 6,
+      "maxItems": 6,
       "items": {
         "type": "object",
         "properties": {
@@ -238,7 +235,7 @@
         ],
         "additionalProperties": false
       },
-      "description": "Six native packages plus exact public documentation and offline-help archives; checksums and this manifest are companion assets."
+      "description": "Four native packages plus exact public documentation and offline-help archives; checksums and this manifest are companion assets."
     },
     "capabilities": {
       "type": "object",
@@ -261,12 +258,11 @@
           "items": {
             "enum": [
               "windows_amd64",
-              "linux_amd64",
-              "darwin_arm64"
+              "linux_amd64"
             ]
           },
-          "minItems": 3,
-          "maxItems": 3,
+          "minItems": 2,
+          "maxItems": 2,
           "uniqueItems": true,
           "description": "Qualified operating systems and architectures."
         },
@@ -409,54 +405,6 @@
             "verified": false,
             "status": "unconfigured"
           }
-        },
-        {
-          "kind": "native-package-receipt",
-          "schema_version": "1.0.1",
-          "product_version": "1.0.1",
-          "documentation_version": "1.0.1",
-          "platform": "darwin_arm64",
-          "variant": "cli",
-          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "source_dirty": false,
-          "archive": "insonic_1.0.1_darwin_arm64_cli.zip",
-          "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "archive_size_bytes": 1,
-          "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-          "distribution": {
-            "source_complete": true,
-            "binary_publication": "eligible",
-            "corresponding_source": "included"
-          },
-          "signing": {
-            "configured": false,
-            "verified": false,
-            "status": "unconfigured"
-          }
-        },
-        {
-          "kind": "native-package-receipt",
-          "schema_version": "1.0.1",
-          "product_version": "1.0.1",
-          "documentation_version": "1.0.1",
-          "platform": "darwin_arm64",
-          "variant": "desktop",
-          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "source_dirty": false,
-          "archive": "insonic_1.0.1_darwin_arm64_desktop.zip",
-          "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-          "archive_size_bytes": 1,
-          "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-          "distribution": {
-            "source_complete": true,
-            "binary_publication": "eligible",
-            "corresponding_source": "included"
-          },
-          "signing": {
-            "configured": false,
-            "verified": false,
-            "status": "unconfigured"
-          }
         }
       ],
       "assets": [
@@ -481,16 +429,6 @@
           "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         },
         {
-          "name": "insonic_1.0.1_darwin_arm64_cli.zip",
-          "size_bytes": 1,
-          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-        },
-        {
-          "name": "insonic_1.0.1_darwin_arm64_desktop.zip",
-          "size_bytes": 1,
-          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-        },
-        {
           "name": "documentation.tar.gz",
           "size_bytes": 1,
           "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
@@ -508,8 +446,7 @@
         ],
         "platforms": [
           "windows_amd64",
-          "linux_amd64",
-          "darwin_arm64"
+          "linux_amd64"
         ],
         "advanced_cli": [
           "backup"

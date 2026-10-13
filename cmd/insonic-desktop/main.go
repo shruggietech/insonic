@@ -26,6 +26,10 @@ func main() {
 }
 
 func run() int {
+	if err := workspace.RequireSupportedHost(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
 	if len(os.Args) == 2 && os.Args[1] == "--qualification" {
 		result, err := desktop.Qualify()
 		if err != nil {

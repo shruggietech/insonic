@@ -21,9 +21,6 @@ func LocalEnvironment() []string {
 	case "linux":
 		allowed["LD_LIBRARY_PATH"] = true
 		allowed["CUDA_VISIBLE_DEVICES"] = true
-	case "darwin":
-		allowed["DYLD_LIBRARY_PATH"] = true
-		allowed["DYLD_FALLBACK_LIBRARY_PATH"] = true
 	}
 	selected := []string{}
 	for _, entry := range os.Environ() {

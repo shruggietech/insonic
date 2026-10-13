@@ -10,7 +10,7 @@ insonic --workspace WORKSPACE credentials select vault --json
 insonic --workspace WORKSPACE credentials select session --json
 ```
 
-Choose one backend for the workspace. The selection persists in the private control directory, without credential values. Native storage uses Windows Credential Manager, macOS Keychain or Linux Secret Service. A locked or unavailable service returns a fixed rejected/unavailable result; it does not display an unlock prompt, start a session bus or switch to another backend. Unlock the operating system's service through its own controls, or explicitly select the vault/session alternative.
+Choose one backend for the workspace. The selection persists in the private control directory, without credential values. Native storage uses Windows Credential Manager or Linux Secret Service. A locked or unavailable service returns a fixed rejected/unavailable result; it does not display an unlock prompt, start a session bus or switch to another backend. Unlock the operating system's service through its own controls, or explicitly select the vault/session alternative.
 
 Credential IDs are UUIDs scoped to the workspace identity. Configuration, catalog snapshots, import/model manifests and jobs retain only those references. Copying encrypted vault bytes into a different workspace does not grant access because the workspace identity is authenticated with the ciphertext.
 

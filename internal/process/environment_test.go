@@ -111,8 +111,6 @@ func TestLocalEnvironmentKeepsOnlySelectedExecutionKeys(t *testing.T) {
 		loader = "CUDA_PATH"
 	case "linux":
 		loader = "LD_LIBRARY_PATH"
-	case "darwin":
-		loader = "DYLD_LIBRARY_PATH"
 	}
 	if loader != "" {
 		t.Setenv(loader, t.TempDir())

@@ -128,7 +128,9 @@ def prepare_avtool(name, key, os_name):
 
 
 def prepare():
-    os_name = {'Windows': 'windows', 'Linux': 'linux', 'Darwin': 'darwin'}[platform.system()]
+    os_name = {'Windows': 'windows', 'Linux': 'linux'}.get(platform.system())
+    if os_name is None:
+        raise ValueError('unsupported host platform; choose Windows or Linux x86-64')
     arch = {'AMD64': 'amd64', 'x86_64': 'amd64', 'arm64': 'arm64', 'aarch64': 'arm64'}[platform.machine()]
     key = os_name + '_' + arch
     BUILD.mkdir(parents=True, exist_ok=True)

@@ -42,19 +42,19 @@ def fixture(root):
     release.prepare(VERSION, '2026-10-09', 'Portable packages and current-authority recovery.', root)
 
 
-def candidates(root):
+def candidates(root, platforms=None, version=VERSION):
     assets = root / 'assets'; assets.mkdir(); receipts = []
-    for platform in release.PLATFORMS:
+    for platform in platforms or release.PLATFORMS:
         for variant in release.VARIANTS:
-            archive = assets / f'insonic_{VERSION}_{platform}_{variant}.zip'; archive.write_bytes((platform + variant).encode())
+            archive = assets / f'insonic_{version}_{platform}_{variant}.zip'; archive.write_bytes((platform + variant).encode())
             entry = release.file_entry(archive)
-            receipt = {'kind': 'native-package-receipt', 'schema_version': VERSION, 'product_version': VERSION, 'documentation_version': VERSION, 'platform': platform, 'variant': variant, 'revision': REVISION, 'source_dirty': False, 'archive': archive.name, 'archive_sha256': entry['sha256'], 'archive_size_bytes': entry['size_bytes'], 'distribution': {'binary_publication': 'eligible', 'source_complete': True, 'corresponding_source': 'included'}, 'signing': {'configured': False, 'verified': False, 'status': 'unconfigured'}}
+            receipt = {'kind': 'native-package-receipt', 'schema_version': version, 'product_version': version, 'documentation_version': version, 'platform': platform, 'variant': variant, 'revision': REVISION, 'source_dirty': False, 'archive': archive.name, 'archive_sha256': entry['sha256'], 'archive_size_bytes': entry['size_bytes'], 'distribution': {'binary_publication': 'eligible', 'source_complete': True, 'corresponding_source': 'included'}, 'signing': {'configured': False, 'verified': False, 'status': 'unconfigured'}}
             receipt['inventory_sha256'] = 'c' * 64
-            receipt.update(extracted_inventory='passed', relocation_path_spaces='passed', cli_real_audio_video_import='passed', development_native_libraries='isolated-and-restored', gui_bridge='passed' if variant == 'desktop' else 'not-included', native_webview='passed' if variant == 'desktop' else 'not-included')
+            receipt.update(windows_copy_install='passed', windows_first_use='passed', extracted_inventory='passed', relocation_path_spaces='passed', cli_real_audio_video_import='passed', development_native_libraries='isolated-and-restored', gui_bridge='passed' if variant == 'desktop' else 'not-included', native_webview='passed' if variant == 'desktop' else 'not-included')
             path = root / f'{platform}-{variant}-receipt.json'; release.write_json(path, receipt); receipts.append(path)
     for name in ('documentation', 'offline-help'):
         with tarfile.open(assets / (name + '.tar.gz'), 'w:gz') as archive:
-            for filename, value in [('release-documentation.json', {'version': VERSION, 'revision': REVISION, 'kind': name}), ('documentation-build.json', {'version': VERSION, 'revision': REVISION, 'source_dirty': False, 'documentation_target': 'release'})]:
+            for filename, value in [('release-documentation.json', {'version': version, 'revision': REVISION, 'kind': name}), ('documentation-build.json', {'version': version, 'revision': REVISION, 'source_dirty': False, 'documentation_target': 'release'})]:
                 raw = json.dumps(value).encode(); info = tarfile.TarInfo(filename); info.size = len(raw); archive.addfile(info, io.BytesIO(raw))
     return assets, receipts
 
@@ -100,6 +100,64 @@ class GitHubFixture:
 
 
 class ReleaseDeliveryTests(unittest.TestCase):
+    def test_notarization_is_historical_validation_only(self):
+        signing = {'configured': True, 'verified': True, 'status': 'notarized'}
+        with self.assertRaisesRegex(ValueError, 'signing'):
+            release.verify_signing(signing)
+        release.verify_signing(signing, historical=True)
+
+    def test_complete_historical_six_package_record_still_validates(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); schema = root / 'schemas/v1.0.0/release-candidate.schema.json'
+            schema.parent.mkdir(parents=True); shutil.copyfile(ROOT / 'schemas/v1.0.0/release-candidate.schema.json', schema)
+            assets, receipts = candidates(root, release.HISTORICAL_PLATFORMS, '1.0.0')
+            target = root / 'historical'; target.mkdir()
+            packages = [release.read_json(path) for path in receipts]
+            entries = [release.file_entry(assets / p['archive']) for p in packages]
+            entries += [release.file_entry(assets / name) for name in ('documentation.tar.gz','offline-help.tar.gz')]
+            for entry in entries: shutil.copyfile(assets / entry['name'], target / entry['name'])
+            value = {'kind':'release-candidate','schema_version':'1.0.0','repository':release.REPOSITORY,'version':'1.0.0','tag':'v1.0.0','revision':REVISION,'packages':packages,'assets':entries,
+                     'capabilities':{'platforms':list(release.HISTORICAL_PLATFORMS),'variants':list(release.VARIANTS),'advanced_cli':['backup'],'inference_qualification':'not-executed'}}
+            release.write_json(target / 'release-manifest.json', value)
+            entries += [release.file_entry(target / 'release-manifest.json')]
+            (target / 'SHA256SUMS').write_text(''.join(f"{e['sha256']}  {e['name']}\n" for e in sorted(entries,key=lambda e:e['name'])))
+            loaded, expected = release.load_candidate(target, verify_fixture, root)
+            self.assertEqual(len(loaded['packages']),6); self.assertEqual(len(expected),10)
+
+    def test_false_advertised_platform_cannot_reach_release_validation(self):
+        target = self.candidate(); value = release.read_json(target / 'release-manifest.json')
+        value['capabilities']['platforms'].append('darwin_arm64')
+        release.write_json(target / 'release-manifest.json',value)
+        with self.assertRaisesRegex(ValueError,'capability matrix'):
+            release.load_candidate(target,verify_fixture,self.root)
+
+    def test_historical_matrix_remains_bound_to_immutable_version_schema(self):
+        self.assertEqual(set(release.selected_release_platforms(ROOT, "1.0.0")), {"windows_amd64", "linux_amd64", "darwin_arm64"})
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            schema = json.loads((ROOT / "schemas/v1.0.1/release-candidate.schema.json").read_text())
+            schema["properties"]["packages"]["items"]["properties"]["platform"]["enum"].append("darwin_arm64")
+            path = root / "schemas/v1.0.1/release-candidate.schema.json"
+            path.parent.mkdir(parents=True); path.write_text(json.dumps(schema))
+            with self.assertRaisesRegex(ValueError, "platform contract"):
+                release.selected_release_platforms(root, "1.0.1")
+
+    def test_release_highlights_state_package_choices_and_real_signature_disposition(self):
+        target = self.candidate(); api = GitHubFixture()
+        release.publish(target, "Package delivery", api, self.root, runner, verify_fixture)
+        self.assertIn("Desktop + CLI includes", api.release["body"])
+        self.assertIn("CLI-only contains no desktop", api.release["body"])
+        self.assertIn("unsigned, no verified publisher signature", api.release["body"])
+        self.assertTrue(api.release["body"].endswith(f"[Full changelog](https://github.com/{release.REPOSITORY}/blob/v{VERSION}/CHANGELOG.md)"))
+
+    def test_current_distribution_requires_exactly_four_windows_linux_variants(self):
+        self.assertEqual(set(release.PLATFORMS), {"windows_amd64", "linux_amd64"})
+        target = self.candidate()
+        value = json.loads((target / "release-manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(len(value["packages"]), 4)
+        self.assertEqual(len(value["assets"]), 6)
+
+
     def test_unpublished_candidate_cannot_reach_any_pages_transport_write(self):
         target = self.candidate()
         api = GitHubFixture()
@@ -215,7 +273,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
         self.assertFalse(any(call[0] in ('POST', 'PATCH') for call in api.calls))
         with self.assertRaisesRegex(ValueError, 'release-target documentation'):
             release.promote(target, {'argv': [str(Path(sys.executable).resolve()), '{archive}']}, api,
-                            lambda args: self.fail('deployment ran'), verify_fixture, self.root, runner)
+                            lambda args: self.fail('deployment ran'), verify_fixture, self.root, runner, source_root=self.root)
 
     def test_generated_complete_unsigned_candidate_passes_prepared_release_master(self):
         target = self.candidate(); node = shutil.which('node') or 'C:/nvm4w/nodejs/node.exe'
@@ -237,9 +295,9 @@ class ReleaseDeliveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'tag'): release.exact_source(REVISION, self.root, other_tag, 'v' + VERSION)
 
     def test_missing_variant_dirty_sources_signing_and_hashes_fail_before_output(self):
-        with self.assertRaisesRegex(ValueError, 'all six'): self.candidate(receipts=self.receipts[:-1])
+        with self.assertRaisesRegex(ValueError, 'all four'): self.candidate(receipts=self.receipts[:-1])
         receipt = release.read_json(self.receipts[0]); original = copy.deepcopy(receipt)
-        for field, value, reason in [('source_dirty', True, 'source'), ('product_version', '9.0.0', 'versions'), ('extracted_inventory', 'not-run', 'qualification'), ('distribution', {'source_complete': False}, 'sources'), ('signing', {'configured': True, 'verified': False}, 'signing'), ('signing', {'configured': False, 'verified': True, 'status': 'signed'}, 'signing'), ('archive_sha256', 'f' * 64, 'archive')]:
+        for field, value, reason in [('source_dirty', True, 'source'), ('product_version', '9.0.0', 'versions'), ('extracted_inventory', 'not-run', 'qualification'), ('windows_copy_install', 'not-run', 'qualification'), ('windows_first_use', 'not-run', 'qualification'), ('distribution', {'source_complete': False}, 'sources'), ('signing', {'configured': True, 'verified': False}, 'signing'), ('signing', {'configured': False, 'verified': True, 'status': 'signed'}, 'signing'), ('archive_sha256', 'f' * 64, 'archive')]:
             receipt = copy.deepcopy(original); receipt[field] = value; release.write_json(self.receipts[0], receipt)
             with self.assertRaisesRegex(ValueError, reason): self.candidate()
             self.assertFalse((self.root / 'candidate').exists())
@@ -314,7 +372,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
         secret_name = 'INSONIC_DOCUMENTATION_DEPLOYMENT_CREDENTIAL'
         with patch.dict(os.environ, {'GH_TOKEN': 'write-token', 'GITHUB_TOKEN': 'automation-token', secret_name: 'dedicated deployment credential'}), patch.object(release, 'child', deployment_child):
             release.promote(target, {'argv': [executable, '{archive}'], 'environment_names': [secret_name]}, api,
-                            deployment_child, verify_fixture, self.root, runner)
+                            deployment_child, verify_fixture, self.root, runner, source_root=self.root)
         self.assertEqual(invoked[0][1][secret_name], 'dedicated deployment credential')
         self.assertNotIn('GH_TOKEN', invoked[0][1]); self.assertNotIn('GITHUB_TOKEN', invoked[0][1])
 
@@ -331,10 +389,10 @@ class ReleaseDeliveryTests(unittest.TestCase):
     def test_publication_uploads_complete_draft_then_publishes_and_reads_back(self):
         target = self.candidate(); api = GitHubFixture()
         outcome = release.publish(target, 'Portable recovery and complete package sources.', api, self.root, runner, verify_fixture)
-        self.assertTrue(outcome['published']); self.assertFalse(api.release['draft']); self.assertEqual(len(api.assets), 10)
+        self.assertTrue(outcome['published']); self.assertFalse(api.release['draft']); self.assertEqual(len(api.assets), 8)
         self.assertTrue(api.release['body'].endswith(f'/blob/v{VERSION}/CHANGELOG.md)'))
         publishing = next(i for i, call in enumerate(api.calls) if call[0] == 'PATCH')
-        self.assertEqual(sum(1 for call in api.calls[:publishing] if call[0] == 'POST' and 'uploads.github.com' in call[1]), 10)
+        self.assertEqual(sum(1 for call in api.calls[:publishing] if call[0] == 'POST' and 'uploads.github.com' in call[1]), 8)
         old_calls = len(api.calls)
         repeated = release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
         self.assertTrue(repeated['reconciled'])
@@ -347,7 +405,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
         value['assets'][0] = entry; release.write_json(target / 'release-manifest.json', value)
         entries = [*value['assets'], release.file_entry(target / 'release-manifest.json')]
         (target / 'SHA256SUMS').write_text(''.join(f"{e['sha256']}  {e['name']}\n" for e in sorted(entries, key=lambda e: e['name'])), encoding='utf-8')
-        with self.assertRaisesRegex(ValueError, 'inventory'): release.load_candidate(target, verify_fixture)
+        with self.assertRaisesRegex(ValueError, 'inventory'): release.load_candidate(target, verify_fixture, source_root=self.root)
 
     def test_github_transport_rejects_unselected_hosts_ports_and_userinfo_before_io(self):
         api = release.GitHub('synthetic-not-a-real-token')
@@ -359,11 +417,11 @@ class ReleaseDeliveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'interruption'): release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
         self.assertTrue(api.release['draft']); self.assertFalse(any(call[0] == 'PATCH' for call in api.calls))
         invoked = []
-        with self.assertRaisesRegex(ValueError, 'published'): release.promote(target, {'argv': ['/usr/bin/deploy', '{archive}']}, api, lambda args: invoked.append(args), verify_fixture, self.root, runner)
+        with self.assertRaisesRegex(ValueError, 'published'): release.promote(target, {'argv': ['/usr/bin/deploy', '{archive}']}, api, lambda args: invoked.append(args), verify_fixture, self.root, runner, source_root=self.root)
         self.assertEqual(invoked, [])
         api.fail_upload = False; release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
-        self.assertEqual(len(api.assets), 10)
-        release.promote(target, {'argv': [str(Path(sys.executable).resolve()), '{archive}', '{version}', '{revision}']}, api, lambda args: invoked.append(args), verify_fixture, self.root, runner)
+        self.assertEqual(len(api.assets), 8)
+        release.promote(target, {'argv': [str(Path(sys.executable).resolve()), '{archive}', '{version}', '{revision}']}, api, lambda args: invoked.append(args), verify_fixture, self.root, runner, source_root=self.root)
         self.assertEqual(invoked[0][2:], [VERSION, REVISION])
 
     def test_deployment_configuration_is_materialized_before_publication_without_invocation(self):
@@ -483,12 +541,12 @@ class ReleaseDeliveryTests(unittest.TestCase):
         retrieved = self.root / 'retrieved'
         result = release.published_candidate(retrieved, REVISION, api, self.root, runner, verify_fixture)
         self.assertEqual(result, {'candidate': 'retrieved-and-verified', 'version': VERSION, 'revision': REVISION})
-        self.assertEqual(len(api.downloads), 10)
+        self.assertEqual(len(api.downloads), 8)
         for path in original.iterdir():
             self.assertEqual((retrieved / path.name).read_bytes(), path.read_bytes())
         invoked = []
         release.promote(retrieved, {'argv': [str(Path(sys.executable).resolve()), '{archive}']}, api,
-                        lambda args: invoked.append(args), verify_fixture, self.root, runner)
+                        lambda args: invoked.append(args), verify_fixture, self.root, runner, source_root=self.root)
         self.assertEqual(invoked[0][1], str((retrieved / 'documentation.tar.gz').resolve()))
         self.assertTrue(all(call[0] == 'GET' for call in api.calls))
 
@@ -541,9 +599,9 @@ class ReleaseDeliveryTests(unittest.TestCase):
     def test_remote_tag_digest_or_candidate_tampering_prevents_promotion(self):
         target = self.candidate(); api = GitHubFixture(); release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
         api.assets[0]['digest'] = 'sha256:' + 'f' * 64
-        with self.assertRaisesRegex(ValueError, 'digest'): release.promote(target, {'argv': [str(self.root / 'deploy')]}, api, lambda args: self.fail('deployment ran'), verify_fixture, self.root, runner)
+        with self.assertRaisesRegex(ValueError, 'digest'): release.promote(target, {'argv': [str(self.root / 'deploy')]}, api, lambda args: self.fail('deployment ran'), verify_fixture, self.root, runner, source_root=self.root)
         (target / 'offline-help.tar.gz').write_bytes(b'tampered')
-        with self.assertRaisesRegex(ValueError, 'changed'): release.load_candidate(target, verify_fixture)
+        with self.assertRaisesRegex(ValueError, 'changed'): release.load_candidate(target, verify_fixture, source_root=self.root)
 
 
 if __name__ == '__main__': unittest.main()

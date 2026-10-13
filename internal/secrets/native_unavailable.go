@@ -1,4 +1,4 @@
-//go:build (darwin && !cgo) || (!windows && !linux && !darwin)
+//go:build !windows && !linux
 
 // SPDX-License-Identifier: Apache-2.0
 package secrets

@@ -22,11 +22,13 @@ export function publicationDocument(source, entry, slug, target) {
     `v${entry.version} documents this release. Package availability and qualification are recorded in its release manifest.`);
 }
 
-export function releaseDownloads(version) {
+export function releaseDownloads(version, { historical = false } = {}) {
   const base = `https://github.com/shruggietech/insonic/releases/download/v${version}/insonic_${version}_`;
-  return [{ label: 'macOS', platform: 'darwin_arm64', extension: '.zip' },
-    { label: 'Windows', platform: 'windows_amd64', extension: '.zip' },
-    { label: 'Linux', platform: 'linux_amd64', extension: '.tar.gz' }].map(item => ({ ...item,
+  const platforms = [{ label: 'Windows', platform: 'windows_amd64', extension: '.zip' },
+    { label: 'Linux', platform: 'linux_amd64', extension: '.tar.gz' }];
+  // Explicit archive views may show the immutable 1.0.0 platform inventory.
+  if (historical && version === '1.0.0') platforms.push({ label: 'macOS', platform: 'darwin_arm64', extension: '.zip' });
+  return platforms.map(item => ({ ...item,
       desktop: base + item.platform + '_desktop' + item.extension,
       cli: base + item.platform + '_cli' + item.extension }));
 }

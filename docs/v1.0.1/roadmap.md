@@ -4,7 +4,7 @@ Delivery follows the dependencies between usable capabilities. GitHub Issues, mi
 
 | Outcome | Result | Depends on |
 | --- | --- | --- |
-| Platform and dependency contracts | Native CLI/runtime and desktop communication, pinned Cueson and graph libraries, hidden process launch, encrypted secrets and offline help on Windows, macOS and Linux | Shared application contracts |
+| Platform and dependency contracts | Native CLI/runtime and desktop communication, pinned Cueson and graph libraries, hidden process launch, encrypted secrets and offline help on Windows and Linux | Shared application contracts |
 | Runtime and configurable storage | Workspace ownership, durable jobs, migrations, model registry and complete filesystem/S3 and SQLite/PostgreSQL behavior | Platform contracts |
 | Unified media library | Audio/video import, original identity, raw metadata capture, recording dates, per-item batch inputs and relocation | Runtime and storage |
 | Correlated local subtitles | Supplied subtitle tracks, mapped audio derivatives, local recognition, source-timed speaker intervals and Cueson artifacts | Media library |

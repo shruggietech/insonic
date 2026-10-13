@@ -26,7 +26,8 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = 'shruggietech/insonic'
-PLATFORMS = ('windows_amd64', 'linux_amd64', 'darwin_arm64')
+PLATFORMS = ('windows_amd64', 'linux_amd64')
+HISTORICAL_PLATFORMS = ('windows_amd64', 'linux_amd64', 'darwin_arm64')
 VARIANTS = ('cli', 'desktop')
 VERSION_PATTERN = r'(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)'
 SHA_PATTERN = r'[a-f0-9]{64}'
@@ -260,15 +261,18 @@ def asset_name(name):
     return name
 
 
-def verify_signing(signing):
+def verify_signing(signing, *, historical=False):
     if not isinstance(signing.get('configured'), bool) or not isinstance(signing.get('verified'), bool): raise ValueError('package signing disposition is incomplete')
     if signing['configured']:
-        if signing['verified'] is not True or signing.get('status') not in ('signed', 'notarized'): raise ValueError('configured package signing was not verified')
+        statuses = ('signed', 'notarized') if historical else ('signed',)
+        if signing['verified'] is not True or signing.get('status') not in statuses: raise ValueError('configured package signing was not verified')
     elif signing['verified'] is not False or signing.get('status') != 'unconfigured': raise ValueError('unconfigured package signing cannot claim publisher verification')
 
 
 def verify_qualification(receipt):
     required = {'extracted_inventory': 'passed', 'relocation_path_spaces': 'passed', 'cli_real_audio_video_import': 'passed', 'development_native_libraries': 'isolated-and-restored'}
+    if receipt.get('schema_version') != '1.0.0' and receipt.get('platform') == 'windows_amd64':
+        required.update(windows_copy_install='passed', windows_first_use='passed')
     expected_gui = 'passed' if receipt.get('variant') == 'desktop' else 'not-included'
     required.update(gui_bridge=expected_gui, native_webview=expected_gui)
     if any(receipt.get(field) != expected for field, expected in required.items()): raise ValueError('package relocation and native qualification are incomplete')
@@ -339,7 +343,7 @@ def candidate(receipts, assets, output, revision, root=ROOT, verifier=verify_pac
         path = assets / name; entry = file_entry(path)
         if entry['sha256'] != receipt.get('archive_sha256') or entry['size_bytes'] != receipt.get('archive_size_bytes'): raise ValueError('package archive differs from receipt')
         verify_selected_package(path, receipt, verifier, root); files.append(entry); packages.append(receipt)
-    if selected != {(p, v) for p in PLATFORMS for v in VARIANTS}: raise ValueError('candidate requires all six native package variants')
+    if selected != {(p, v) for p in PLATFORMS for v in VARIANTS}: raise ValueError('candidate requires all four Windows/Linux package variants')
     for filename in ('documentation.tar.gz', 'offline-help.tar.gz'):
         files.append(file_entry(assets / filename))
     for filename in ('documentation.tar.gz', 'offline-help.tar.gz'):
@@ -495,21 +499,47 @@ def remote_assets(api, release, expected):
             raise ValueError('remote release asset digest or size differs')
 
 
+def selected_release_platforms(source_root, version):
+    # Selected historical checkouts are data; never execute their validation code.
+    schema = read_json(source_root / f'schemas/v{version}/release-candidate.schema.json')
+    packages = schema['properties']['packages']
+    platforms = packages['items']['properties']['platform']['enum']
+    allowed = HISTORICAL_PLATFORMS if version == '1.0.0' else PLATFORMS
+    count = len(allowed) * len(VARIANTS)
+    if (not isinstance(platforms, list) or len(platforms) != len(set(platforms))
+            or set(platforms) != set(allowed)
+            or packages.get('minItems') != count or packages.get('maxItems') != count
+            or schema['properties']['assets'].get('minItems') != count + 2
+            or schema['properties']['assets'].get('maxItems') != count + 2):
+        raise ValueError('selected release platform contract differs')
+    return tuple(platforms)
+
+
 def load_candidate(directory, verifier=verify_package, source_root=ROOT):
     value = read_json(directory / 'release-manifest.json')
     if value.get('kind') != 'release-candidate' or value.get('repository') != REPOSITORY or not re.fullmatch(VERSION_PATTERN, value.get('version', '')) or value.get('tag') != 'v' + value['version'] or not re.fullmatch(r'[a-f0-9]{40}', value.get('revision', '')):
         raise ValueError('invalid release candidate identity')
+    platforms = selected_release_platforms(source_root, value['version'])
+    package_count = len(platforms) * len(VARIANTS)
+    capabilities = value.get('capabilities', {})
+    if (value.get('schema_version') != value['version']
+            or not isinstance(capabilities.get('platforms'), list) or len(capabilities['platforms']) != len(platforms)
+            or set(capabilities['platforms']) != set(platforms)
+            or not isinstance(capabilities.get('variants'), list) or len(capabilities['variants']) != len(VARIANTS)
+            or set(capabilities['variants']) != set(VARIANTS)
+            or capabilities.get('inference_qualification') != 'not-executed'):
+        raise ValueError('candidate advertised capability matrix differs')
     packages = value.get('packages', [])
-    if len(packages) != 6 or {(p.get('platform'), p.get('variant')) for p in packages} != {(p, v) for p in PLATFORMS for v in VARIANTS}: raise ValueError('candidate package matrix is incomplete')
+    if len(packages) != package_count or {(p.get('platform'), p.get('variant')) for p in packages} != {(p, v) for p in platforms for v in VARIANTS}: raise ValueError('candidate package matrix is incomplete')
     for receipt in packages:
         if receipt.get('revision') != value['revision'] or receipt.get('source_dirty') is not False or any(receipt.get(field) != value['version'] for field in ('schema_version', 'product_version', 'documentation_version')): raise ValueError('candidate package authority differs')
         verify_qualification(receipt)
         distribution = receipt.get('distribution', {})
         if distribution.get('source_complete') is not True or distribution.get('binary_publication') != 'eligible' or distribution.get('corresponding_source') != 'included': raise ValueError('candidate corresponding sources are incomplete')
         signing = receipt.get('signing', {})
-        verify_signing(signing)
+        verify_signing(signing, historical=value['version'] == '1.0.0')
     asset_names = {p['archive'] for p in packages} | {'documentation.tar.gz', 'offline-help.tar.gz'}
-    if len(value.get('assets', [])) != 8 or {a['name'] for a in value['assets']} != asset_names: raise ValueError('candidate asset matrix differs')
+    if len(value.get('assets', [])) != package_count + 2 or {a['name'] for a in value['assets']} != asset_names: raise ValueError('candidate asset matrix differs')
     expected = value['assets'] + [file_entry(directory / 'release-manifest.json'), file_entry(directory / 'SHA256SUMS')]
     if len({entry['name'] for entry in expected}) != len(expected): raise ValueError('duplicate candidate assets')
     for entry in expected:
@@ -538,7 +568,8 @@ def published_candidate(output, revision, api, root=ROOT, runner=child, verifier
             or release.get('target_commitish') != revision):
         raise ValueError('published candidate requires the exact existing published release')
     assets = api.call('GET', f'repos/{REPOSITORY}/releases/{release["id"]}/assets?per_page=100')
-    if (not isinstance(assets, list) or len(assets) != 10 or len({a.get('name') for a in assets}) != 10
+    asset_count = len(selected_release_platforms(root, version)) * len(VARIANTS) + 4
+    if (not isinstance(assets, list) or len(assets) != asset_count or len({a.get('name') for a in assets}) != asset_count
             or not {'release-manifest.json', 'SHA256SUMS', 'documentation.tar.gz', 'offline-help.tar.gz'}.issubset({a.get('name') for a in assets})):
         raise ValueError('published candidate asset set is incomplete or unexpected')
     for asset in assets:
@@ -630,6 +661,15 @@ def publish(directory, highlights, api, root=ROOT, runner=child, verifier=verify
     if not highlights.strip() or len(highlights.split()) > 180: raise ValueError('release highlights must be concise')
     suffix = f'[Full changelog](https://github.com/{REPOSITORY}/blob/{value["tag"]}/CHANGELOG.md)'
     body = highlights.strip()
+    if value['version'] != '1.0.0':
+        if body.endswith(suffix): body = body[:-len(suffix)].rstrip()
+        body += '\n\nWindows/Linux x86-64 packages: Desktop + CLI includes application windows and terminal commands; CLI-only contains no desktop application.'
+        windows = {p['variant']: p['signing'] for p in value['packages'] if p['platform'] == 'windows_amd64'}
+        states = [label + ': ' + ('publisher signature verified' if windows[variant].get('configured') and windows[variant].get('verified') else 'unsigned, no verified publisher signature')
+                  for variant, label in [('cli', 'CLI-only'), ('desktop', 'Desktop + CLI')]]
+        body += '\nWindows signing: ' + '; '.join(states) + '.'
+        body += f'\n[Installation, updates and removal](https://github.com/{REPOSITORY}/blob/{value["tag"]}/docs/v{value["version"]}/desktop.md).'
+        if value['version'] == '1.0.1': body += '\nmacOS support is withdrawn starting with 1.0.1; historical 1.0.0 records remain available.'
     if not body.endswith(suffix): body += '\n\n' + suffix
     release = api.call('GET', f'repos/{REPOSITORY}/releases/tags/{value["tag"]}')
     if release and not release.get('draft'):

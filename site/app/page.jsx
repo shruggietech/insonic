@@ -21,8 +21,8 @@ export default function Home() {
             <a className="button" href="#downloads">Download insonic <span aria-hidden="true">↓</span></a>
             <a className="button button-secondary" href={versionPath(latest.version, latest.pages[0].slug)}>Read the docs <span aria-hidden="true">→</span></a>
           </div>
-          <p className="product-stage">v{latest.version} {released ? 'released. Official packages are available below.' : latest.status === 'candidate' ? 'prepared release candidate. Official product downloads have not been published.' : 'system specification. Official product downloads have not been published.'}</p>
-          <p className="product-platforms">Windows · macOS · Linux <span>CLI + desktop</span></p>
+          <p className="product-stage">v{latest.version} {released ? 'released. Official packages are available below.' : latest.status === 'candidate' ? 'prepared release candidate. Official product downloads have not been published for this version.' : 'system specification. Official product downloads have not been published for this version.'}</p>
+          <p className="product-platforms">Windows · Linux <span>CLI + desktop</span></p>
         </div>
         <ArchivePreview />
       </section>
@@ -45,9 +45,9 @@ export default function Home() {
       </section>
       <section id="downloads" className="product-section download-section" aria-labelledby="download-heading">
         <p className="eyebrow">CLI + desktop</p><h2 id="download-heading">Download insonic.</h2>
-        <p>{released ? `Download v${latest.version} for macOS, Windows or Linux. Choose the desktop application with its CLI or the CLI-only package.` : `v${latest.version} ${latest.status === 'candidate' ? 'is a prepared release candidate' : 'is the system specification baseline'}; official product downloads have not been published.`}</p>
+        <p>{released ? `Download v${latest.version} for Windows or Linux. Choose the desktop application with its CLI or the CLI-only package.` : `v${latest.version} ${latest.status === 'candidate' ? 'is a prepared release candidate' : 'is the system specification baseline'}; official product downloads have not been published for this version.`}</p>
         <div className="download-grid">
-          {releaseDownloads(latest.version).map(platform => <article key={platform.label}><h3>{platform.label}</h3><p>Desktop + CLI</p>{released ? <><a className="button" href={platform.desktop}>Download desktop + CLI</a><a className="text-action" href={platform.cli}>Download CLI only</a></> : <button type="button" disabled>{platform.label} download pending</button>}</article>)}
+          {releaseDownloads(latest.version).map(platform => <article key={platform.label}><h3>{platform.label}</h3><p>Desktop + CLI includes application windows and terminal commands. CLI only provides terminal commands without the desktop application.</p><p>{platform.label} x86-64. {platform.label === "Windows" ? "Both variants require Microsoft Visual C++ x64; desktop also requires WebView2." : "Both variants require Perl; desktop also requires GTK 3, WebKitGTK 4.1 and GStreamer decoders."}</p><a className="text-action" href={versionPath(latest.version, "desktop")}>Installation, updates and removal</a>{released ? <><a className="button" href={platform.desktop}>Download desktop + CLI</a><a className="text-action" href={platform.cli}>Download CLI only</a></> : <button type="button" disabled>{platform.label} download pending</button>}</article>)}
         </div>
         <a className="text-action" href={versionPath(latest.version, 'desktop')}>Installation and packaging requirements <span aria-hidden="true">→</span></a>
       </section>

@@ -273,7 +273,7 @@
   "milestones": [
     {
       "title": "M1 - Local media to subtitles",
-      "description": "S001-S007: three-OS CLI, runtime ownership, supported catalog/storage adapters, encrypted credentials and model registry, early metadata/date capture, library and correlated local subtitles."
+      "description": "S001-S007: Windows/Linux CLI, runtime ownership, supported catalog/storage adapters, encrypted credentials and model registry, early metadata/date capture, library and correlated local subtitles."
     },
     {
       "title": "M2 - Pipelines, speakers and desktop",
@@ -299,7 +299,7 @@
       "milestone": "M1 - Local media to subtitles",
       "area": "platform",
       "requirements": "R01 R02 R08 R15 R22 R30 R31 R32",
-      "acceptance": "Prove CLI/runtime/GUI IPC, Cueson, a pinned Ladybug/SQLite combination, PostgreSQL/S3/ArcadeDB adapter contract feasibility, hidden launch, secret-store availability and offline docs on Windows, macOS and Linux. Record exact dependency pins and architecture support.",
+      "acceptance": "Prove CLI/runtime/GUI IPC, Cueson, a pinned Ladybug/SQLite combination, PostgreSQL/S3/ArcadeDB adapter contract feasibility, hidden launch, secret-store availability and offline docs on Windows and Linux. Record exact dependency pins and architecture support.",
       "type": "epic",
       "priority": "medium",
       "effort": "xl",
@@ -444,7 +444,7 @@
       "milestone": "M2 - Pipelines, speakers and desktop",
       "area": "platform",
       "requirements": "R02 R16 R22 R29",
-      "acceptance": "Package GUI plus CLI on all three OSes, wrap one shared core with no GUI-only logic, expose library/jobs/pipelines/speakers/terms, metadata/date controls, correlated playback and release-matched offline help. Record a capability matrix and any advanced/experimental CLI-first lag. Depends on S009.",
+      "acceptance": "Package GUI plus CLI on Windows and Linux, wrap one shared core with no GUI-only logic, expose library/jobs/pipelines/speakers/terms, metadata/date controls, correlated playback and release-matched offline help. Record a capability matrix and any advanced/experimental CLI-first lag. Depends on S009.",
       "type": "epic",
       "priority": "medium",
       "effort": "xl",

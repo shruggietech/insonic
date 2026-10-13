@@ -155,6 +155,10 @@ func readBack(directory, id string, replaced bool) error {
 	return nil
 }
 func main() {
+	if workspace.RequireSupportedHost() != nil {
+		json.NewEncoder(os.Stdout).Encode(map[string]any{"error_code": "unsupported_platform", "native_credential_lifecycle": "failed"})
+		os.Exit(1)
+	}
 	result := map[string]any{"schema_version": contracts.Version, "platform": runtime.GOOS, "native_credential_lifecycle": "passed", "credential_values": "not-returned", "cross_process_restart": "passed"}
 	var e error
 	if len(os.Args) == 4 && (os.Args[1] == "--read-back" || os.Args[1] == "--read-back-replaced") {

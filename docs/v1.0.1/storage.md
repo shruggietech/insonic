@@ -6,17 +6,16 @@ Install executable code in ordinary platform application locations. Never store 
 
 | Platform | GUI and CLI package location | Default user configuration and state | Cache and model downloads |
 | --- | --- | --- | --- |
-| Windows | Per-user `%LOCALAPPDATA%/Programs/insonic/`; CLI-only can use the same package root | `%APPDATA%/insonic/` for settings, `%LOCALAPPDATA%/insonic/` for workspace registry and local state | `%LOCALAPPDATA%/insonic/Cache/` and `Models/` |
-| macOS | `~/Applications/insonic.app` or `/Applications/insonic.app`; CLI installed from the same package with an explicit PATH option | `~/Library/Application Support/insonic/` | `~/Library/Caches/insonic/` for disposable data; durable models under Application Support |
+| Windows | Per-user `%LOCALAPPDATA%/Programs/insonic/`; CLI-only can use the same package root | `%APPDATA%/insonic/` for per-user coordination; workspace configuration/catalog live in the chosen library control directory | `%LOCALAPPDATA%/insonic/` for local cache/runtime coordination; models use configured managed storage |
 | Linux | Appropriate distro/portable GUI package; user CLI under `~/.local/bin/` with runtime assets under `~/.local/lib/insonic/` | XDG config/data/state directories with `insonic/` children | XDG cache for disposable data; XDG data for durable models |
 
-Installers use these user-space locations. Windows PATH changes and macOS CLI links are installer options with clear effects. The GUI always installs a usable CLI even when the user declines a global PATH entry. System-wide installation is optional; normal local use does not require elevated privileges.
+These locations describe user-space choices, not promised installer registration. Windows ZIP installation changes no PATH entry; the Linux desktop helper writes a launcher. Desktop + CLI includes a usable CLI beside the application; the ZIP helper changes no global PATH entry. System-wide installation is optional; normal local use does not require elevated privileges.
 
 ## Three independently selected profiles
 
 A workspace selects an artifact storage profile, catalog profile and graph profile. The default is local filesystem, SQLite and LadybugDB. Generic S3-compliant providers, including user-run filesystem-backed S3 endpoints, PostgreSQL and ArcadeDB are supported alternatives. A local S3 endpoint still uses the S3 adapter; its underlying filesystem is not exposed as a second source of truth.
 
-Profiles contain adapter ID/version, nonsecret options and credential references. Guided configuration asks for filesystem location or S3 endpoint/bucket/prefix/region/addressing style, PostgreSQL host/database/TLS settings, and graph location or ArcadeDB endpoint/database. Credentials use the [secrets service](security.md). A preflight describes reachability, permissions and capabilities without uploading library content or modifying an existing database. Initial schema creation and its target are part of the explicit workspace-create command. Selecting a backend once does not require repeated human approval for every normal write.
+Profiles contain adapter ID/version, nonsecret options and credential references. Current explicit workspace contracts support the declared backend choices; workspace show and doctor expose configuration and diagnostics. Optional guided configuration and bounded initial backend preflight are not implemented in this version. Credentials use the [secrets service](security.md). Preserve the selected workspace/profile identity across configuration and the established migration/backup workflow for existing data. Selecting a backend does not require repeated human approval for normal writes.
 
 | Role | Default | Fully supported alternative | Required behavior |
 | --- | --- | --- | --- |

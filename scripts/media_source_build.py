@@ -141,7 +141,7 @@ def pin_release_version(directory):
 
 
 def platform_key():
-    systems = {'Windows': 'windows', 'Linux': 'linux', 'Darwin': 'darwin'}
+    systems = {'Windows': 'windows', 'Linux': 'linux'}
     arches = {'AMD64': 'amd64', 'x86_64': 'amd64', 'arm64': 'arm64', 'aarch64': 'arm64'}
     key = systems.get(platform.system(), '') + '_' + arches.get(platform.machine(), '')
     if key not in PIN['platforms']:
@@ -159,8 +159,6 @@ def build_environment(key, prefix):
         env['INSONIC_SOURCE_SHELL'] = str(msys / 'usr/bin/bash.exe')
         env.update({'MSYSTEM': 'UCRT64', 'MSYS2_PATH_TYPE': 'inherit', 'CHERE_INVOKING': '1',
                     'CC': 'gcc', 'CXX': 'g++', 'AR': 'ar', 'RANLIB': 'ranlib'})
-    elif key.startswith('darwin'):
-        env.update({'MACOSX_DEPLOYMENT_TARGET': '13.3', 'CC': 'clang', 'CXX': 'clang++'})
     else:
         env.update({'CC': 'gcc', 'CXX': 'g++'})
     env.update({'PKG_CONFIG_PATH': str(prefix / 'lib/pkgconfig'),
@@ -415,7 +413,7 @@ def compile_dav1d(target, build, prefix, parallel_jobs, run):
 
 
 def compile_openmpt(target, prefix, platform_id, parallel_jobs, run):
-    host = 'x86_64-w64-mingw32' if platform_id.startswith('windows') else ('aarch64-apple-darwin' if platform_id.startswith('darwin') else 'x86_64-pc-linux-gnu')
+    host = 'x86_64-w64-mingw32' if platform_id.startswith('windows') else 'x86_64-pc-linux-gnu'
     run(['./configure', '--prefix=' + prefix.as_posix(), '--host=' + host, '--disable-shared', '--enable-static',
          '--disable-openmpt123', '--disable-examples', '--disable-tests', '--without-portaudio',
          '--without-portaudiocpp', '--without-pulseaudio', '--without-sdl2', '--without-sndfile', '--without-flac'],
@@ -593,7 +591,7 @@ def prepare(stage='complete'):
         return child(args, cwd, timeout, env=env, commands=commands, shell=shell)
     def autotools(name, flags):
         target = source_directories[name]
-        host = 'x86_64-w64-mingw32' if platform_id.startswith('windows') else ('aarch64-apple-darwin' if platform_id.startswith('darwin') else 'x86_64-pc-linux-gnu')
+        host = 'x86_64-w64-mingw32' if platform_id.startswith('windows') else 'x86_64-pc-linux-gnu'
         run(['./configure', '--prefix=' + prefix.as_posix(), '--host=' + host, '--disable-shared', '--enable-static', *flags], target, shell=True)
         run(['make', '-j' + jobs], target, 240, shell=platform_id.startswith('windows'))
         run(['make', 'install'], target, 60, shell=platform_id.startswith('windows'))
@@ -721,10 +719,6 @@ def prepare(stage='complete'):
     for category, required in PIN['required_capabilities'].items():
         output = child([directory / names[0], '-hide_banner', '-' + category], directory, 10, env=env).decode()
         capabilities[category] = validate_capabilities(output, required, category)
-    if platform_id.startswith('darwin'):
-        for name in names:
-            if 'libmp3lame' in child(['/usr/bin/otool', '-L', directory / name], directory, 10, env=env).decode():
-                raise ValueError('media companion retained external LAME dylib')
     libraries = [{'path': path.relative_to(directory).as_posix(), 'sha256': sha(path)} for path in sorted((prefix / 'lib').glob('*.a'))]
     if len(libraries) < len(PIN['libraries']) + 1:
         raise ValueError('media companion static library closure is incomplete')
@@ -758,7 +752,7 @@ def prepare(stage='complete'):
                'ffmpeg_elapsed_seconds': round(time.monotonic() - ffmpeg_started, 3),
                'version_override': {'file': 'VERSION', 'value': VERSION, 'policy': VERSION_POLICY},
                'elapsed_seconds': round(time.monotonic() - started, 3), 'license': 'LGPL-2.1-or-later',
-               'system_framework': 'VideoToolbox' if platform_id.startswith('darwin') else None}
+               'system_framework': None}
     write_json(receipt_path, receipt)
     return directory, receipt, source
 

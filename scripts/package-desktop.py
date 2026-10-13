@@ -10,7 +10,6 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import platform
-import plistlib
 import re
 import shutil
 import shlex
@@ -46,10 +45,12 @@ def write_json(path, value):
 
 
 def platform_key():
-    os_name = {'Windows': 'windows', 'Linux': 'linux', 'Darwin': 'darwin'}[platform.system()]
+    os_name = {'Windows': 'windows', 'Linux': 'linux'}.get(platform.system())
+    if os_name is None:
+        raise ValueError('unsupported host platform; choose Windows or Linux x86-64')
     arch = {'AMD64': 'amd64', 'x86_64': 'amd64', 'arm64': 'arm64', 'aarch64': 'arm64'}[platform.machine()]
     key = os_name + '_' + arch
-    if key not in ['windows_amd64', 'linux_amd64', 'darwin_arm64']:
+    if key not in ['windows_amd64', 'linux_amd64']:
         raise ValueError('native package architecture is not qualified')
     return key
 
@@ -93,27 +94,10 @@ def package_build_environment(values, key, native):
     flags = ['-L' + native.as_posix()]
     if key.startswith('linux'):
         flags.append('-Wl,-rpath,$ORIGIN/native')
-    elif key.startswith('darwin'):
-        flags.append('-Wl,-rpath,@loader_path/native')
     selected['CGO_LDFLAGS'] = shlex.join(flags)
     return selected
 
 
-def normalize_macos_libraries(native):
-    libraries = list(native.glob('*.dylib'))
-    names = {path.name for path in libraries}
-    for library in libraries:
-        child(['/usr/bin/install_name_tool', '-id', '@rpath/' + library.name, library])
-        dependencies = child(['/usr/bin/otool', '-L', library]).decode().splitlines()[1:]
-        for line in dependencies:
-            dependency = line.strip().split(' (compatibility version')[0]
-            name = Path(dependency).name
-            if name in names and dependency != '@rpath/' + name:
-                child(['/usr/bin/install_name_tool', '-change', dependency, '@rpath/' + name, library])
-        # Install-name edits invalidate existing signatures. Restore local
-        # Mach-O integrity with an ad-hoc signature, without a release identity.
-        child(['/usr/bin/codesign', '--force', '--sign', '-', library])
-        child(['/usr/bin/codesign', '--verify', '--strict', library])
 
 
 def verify_loader_paths(root, key, variant='desktop'):
@@ -121,23 +105,14 @@ def verify_loader_paths(root, key, variant='desktop'):
         if not (root / 'lbug_shared.dll').is_file():
             raise ValueError('Windows startup graph DLL must be beside both executables')
         return
+    if not key.startswith('linux'):
+        raise ValueError('unsupported package platform')
     for name in ['insonic', *(['insonic-desktop'] if variant == 'desktop' else [])]:
-        executable = root / name
-        if key.startswith('linux'):
-            output = child(['/usr/bin/readelf', '-d', executable]).decode()
-            paths = [line.split('[', 1)[1].split(']', 1)[0]
-                     for line in output.splitlines() if '(RPATH)' in line or '(RUNPATH)' in line]
-            if paths != ['$ORIGIN/native']:
-                raise ValueError('packaged executable lacks its sole installation-relative ELF loader path')
-        else:
-            output = child(['/usr/bin/otool', '-l', executable]).decode().splitlines()
-            paths = [output[index + 2].strip().split(' ', 2)[1]
-                     for index, line in enumerate(output) if line.strip() == 'cmd LC_RPATH']
-            if paths != ['@loader_path/native']:
-                raise ValueError('packaged executable lacks its sole installation-relative Mach-O loader path')
-            dependencies = child(['/usr/bin/otool', '-L', executable]).decode().splitlines()[1:]
-            if any(str(ROOT) in line or '/build/native/' in line for line in dependencies):
-                raise ValueError('packaged executable retains a development library install name')
+        output = child(['/usr/bin/readelf', '-d', root / name]).decode()
+        paths = [line.split('[', 1)[1].split(']', 1)[0]
+                 for line in output.splitlines() if '(RPATH)' in line or '(RUNPATH)' in line]
+        if paths != ['$ORIGIN/native']:
+            raise ValueError('packaged executable lacks its sole installation-relative ELF loader path')
 
 
 @contextmanager
@@ -285,64 +260,79 @@ def collect_frontend_notices(target):
     return sorted(modules, key=lambda item: (item['component'], item['package'], item['version']))
 
 
-def installers(root, key, variant='desktop'):
+def installers(root, key, variant='desktop', signing=None):
+    if key not in ('windows_amd64', 'linux_amd64') or variant not in ('cli', 'desktop'):
+        raise ValueError('unsupported installation platform or variant')
+    desktop = variant == 'desktop'
+    label = 'Desktop + CLI' if desktop else 'CLI only'
     if key.startswith('windows'):
-        (root / 'install.ps1').write_text('''# SPDX-License-Identifier: Apache-2.0
-param([Parameter(Mandatory=$true)][string]$Destination)
-$ErrorActionPreference = 'Stop'
-$selected = [IO.Path]::GetFullPath($Destination)
-if (Test-Path -LiteralPath $selected) { throw 'Choose a new installation directory.' }
-$null = New-Item -ItemType Directory -Path $selected
-Get-ChildItem -LiteralPath $PSScriptRoot | Copy-Item -Destination $selected -Recurse
-Write-Output "Installed insonic in $selected. Launch insonic-desktop.exe or use insonic.exe from this directory. WebView2 Runtime is required."
-''', encoding='utf-8', newline='\n')
-    elif key.startswith('linux'):
+        helper = (ROOT / 'scripts/install-windows.ps1').read_text(encoding='utf-8')
+        helper = helper.replace('InsonicInstall', 'InsonicInstall_' + hashlib.sha256(helper.encode()).hexdigest()[:16])
+        instructions = ('Launch insonic-desktop.exe or run insonic.exe in an open terminal. Microsoft Visual C++ x64 and WebView2 runtimes are required.' if desktop
+                        else 'Run insonic.exe in an open terminal. Microsoft Visual C++ x64 runtime is required.')
+        (root / 'install.ps1').write_text(helper.replace('CLIENT_INSTRUCTIONS', instructions), encoding='utf-8', newline='\n')
+        signing = signing or {'configured': False, 'verified': False}
+        signature = ('Publisher signature was configured and verified for this package.' if signing.get('configured') and signing.get('verified')
+                     else 'This package has no verified publisher signature (unsigned). A checksum checks bytes, not publisher identity or Windows reputation.')
+        text = f'insonic {VERSION}: Windows x86-64 {label} ZIP\n\n'
+        text += ('Includes application windows (insonic-desktop.exe) and terminal commands (insonic.exe).\n' if desktop
+                 else 'Includes terminal commands (insonic.exe); no desktop application.\n')
+        text += 'Both choices include native libraries, media companions, Cueson/schema, help, notices and corresponding sources.\n'
+        text += 'Prerequisite: Microsoft Visual C++ x64 runtime. Official guidance/download:\nhttps://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170\nhttps://aka.ms/vc14/vc_redist.x64.exe\n'
+        if desktop:
+            text += 'Also install WebView2 Runtime. Use the online Evergreen Bootstrapper or the x64 offline Standalone Installer:\nhttps://developer.microsoft.com/en-us/microsoft-edge/webview2/\nhttps://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution\n'
+        text += signature + '\n\n'
+        text += r'''1. Download the exact official release/variant ZIP and install its prerequisites. Complete prerequisite installers can be transferred for offline use.
+2. Extract the entire tree. Do not run inside the ZIP or copy only an EXE.
+3. Choose a new stable program directory outside your library. Its parent must already exist. Keep all files and companions together.
+4. Optionally open PowerShell in the extracted directory and run:
+   .\install.ps1 -Destination "C:\YOUR_EXISTING_PROGRAM_PARENT\insonic VERSION"
+   Replace the example path/version, retaining quotes. If script policy prevents the helper, copy the complete tree manually. The helper only copies: no PATH, shortcuts, MSI registration, Installed Apps entry or uninstaller.
+5. Open PowerShell/Windows Terminal in the installed directory and keep it open:
+   .\insonic.exe version
+   .\insonic.exe --help
+6. Choose a separate library folder and initialize it once:
+   .\insonic.exe workspace init "C:\YOUR_LIBRARY_PARENT\insonic library"
+7. Select that library explicitly on subsequent commands:
+   .\insonic.exe --workspace "C:\YOUR_LIBRARY_PARENT\insonic library" doctor
+   .\insonic.exe --workspace "C:\YOUR_LIBRARY_PARENT\insonic library" workspace show
+'''
+        if desktop:
+            text += '8. Launch insonic-desktop.exe from this program directory and open the library.\n'
+        text += '\nRecognition/diarization requires separately configured local environments/models or an explicitly selected compatible connected pipeline. Media companions alone do not make inference ready.\n'
+        text += '\nUpdate: back up library configuration/catalog/artifacts, install the new complete version in a separate directory and retain the old version for rollback. Finish/cancel jobs, close GUI/CLI clients and allow at least 31 seconds without requests for the idle runtime to exit. Check processes belonging to the old program directory before changing its files; there is no runtime stop command. Validate version/help and --workspace "YOUR_EXISTING_LIBRARY" doctor from the replacement. Stored-contract changes can require restoring a matching backup for rollback.\n'
+        text += '\nRemove: close work/clients and the idle runtime, then remove only the chosen program directory and integrations you created manually. Preserve library/media/models/credentials. A local library uses its chosen .insonic control directory; alternate profiles can store data elsewhere. Per-user configuration/data/cache/credentials are not program files.\n'
+        text += '\nRead help/docs/v' + VERSION + '/desktop/index.html for the complete installation, update and removal procedure, and the storage/secrets pages for actual configured data locations.\n'
+    else:
         script = root / 'install.sh'
-        script.write_text('''#!/bin/sh
+        text_script = r'''#!/bin/sh
 # SPDX-License-Identifier: Apache-2.0
 set -eu
 if [ "$#" -ne 1 ]; then echo 'Usage: ./install.sh NEW_INSTALL_DIRECTORY' >&2; exit 2; fi
-source_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-case "$1" in /*) destination=$1 ;; *) destination=$(pwd)/$1 ;; esac
+source_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+parent=$(CDPATH= cd -- "$(dirname -- "$1")" && pwd -P)
+destination=$parent/$(basename -- "$1")
+case "$destination/" in "$source_dir/"*) echo 'Choose a directory outside the source tree.' >&2; exit 2 ;; esac
 if [ -e "$destination" ]; then echo 'Choose a new installation directory.' >&2; exit 2; fi
-mkdir -p -- "$destination"
+mkdir -- "$destination"
 cp -R -- "$source_dir/." "$destination/"
-launcher_path=$(printf '%s' "$destination/insonic-desktop" | sed 's/\\\\/\\\\\\\\/g; s/"/\\\\"/g')
-printf '[Desktop Entry]\\nType=Application\\nName=insonic\\nExec="%s"\\nTerminal=false\\nCategories=AudioVideo;\\n' "$launcher_path" > "$destination/insonic.desktop"
-printf 'Installed insonic in %s. GTK3, WebKit2GTK 4.1, GStreamer base/good/bad/libav plugins and Perl are required.\\n' "$destination"
-''', encoding='utf-8', newline='\n')
-        script.chmod(0o755)
-    (root / 'INSTALL.txt').write_text(
-        'insonic ' + VERSION + ' native qualification package\n'
-        'Extract the entire tree. Keep the GUI, CLI and companion files together.\n'
-        'Windows: WebView2 Runtime and the Microsoft Visual C++ runtime are OS prerequisites.\n'
-        'Linux: GTK3, WebKit2GTK 4.1, /usr/bin/perl and GStreamer decoders are OS prerequisites.\n'
-        'Debian/Ubuntu decoder packages: gstreamer1.0-plugins-base, gstreamer1.0-plugins-good,\n'
-        'gstreamer1.0-plugins-bad (AAC/faad) and gstreamer1.0-libav (H.264).\n'
-        'macOS ARM64: macOS 13.3+ and /usr/bin/perl; use the app bundle or its sibling CLI.\n'
-        'Local recognition/diarization Python environments and model weights are optional separately configured inputs.\n'
-        'Publisher signing/notarization outcomes are recorded in package-inventory.json.\n'
-        'Package assembly does not publish or promote a release.\n'
-        'See package-inventory.json for exact included bytes, notices and distribution status.\n',
-        encoding='utf-8', newline='\n')
-    if variant == 'cli':
-        for name in ['INSTALL.txt', 'install.ps1', 'install.sh']:
-            path = root / name
-            if path.is_file():
-                text = path.read_text(encoding='utf-8')
-                text = text.replace('Launch insonic-desktop.exe or use insonic.exe from this directory. WebView2 Runtime is required.', 'Use insonic.exe from this directory.')
-                text = text.replace('Keep the GUI, CLI and companion files together.', 'Keep the CLI and companion files together.')
-                text = text.replace('Windows: WebView2 Runtime and the Microsoft Visual C++ runtime are OS prerequisites.', 'Windows: the Microsoft Visual C++ runtime is an OS prerequisite.')
-                text = text.replace('Linux: GTK3, WebKit2GTK 4.1, /usr/bin/perl and GStreamer decoders are OS prerequisites.', 'Linux: /usr/bin/perl and the platform C/C++ runtime are OS prerequisites.')
-                text = text.replace('use the app bundle or its sibling CLI.', 'use the included CLI.')
-                text = text.replace('Debian/Ubuntu decoder packages: gstreamer1.0-plugins-base, gstreamer1.0-plugins-good,\n'
-                                    'gstreamer1.0-plugins-bad (AAC/faad) and gstreamer1.0-libav (H.264).\n', '')
-                if name == 'install.sh':
-                    first = text.index('launcher_path=')
-                    last = text.index("printf 'Installed", first)
-                    text = text[:first] + text[last:]
-                    text = text.replace('GTK3, WebKit2GTK 4.1, GStreamer base/good/bad/libav plugins and Perl are required.', 'Perl and the platform C/C++ runtime are required.')
-                path.write_text(text, encoding='utf-8', newline='\n')
+'''
+        if desktop:
+            text_script += r'''launcher_path=$(printf '%s' "$destination/insonic-desktop" | sed 's/\\/\\\\/g; s/"/\\"/g')
+printf '[Desktop Entry]\nType=Application\nName=insonic\nExec="%s"\nTerminal=false\nCategories=AudioVideo;\n' "$launcher_path" > "$destination/insonic.desktop"
+'''
+        requirement = ('GTK 3, WebKitGTK 4.1, GStreamer decoders and Perl' if desktop else 'Perl and the platform C/C++ runtime')
+        text_script += "printf 'Installed insonic in %s. " + requirement + " are required.\\n' \"$destination\"\n"
+        script.write_text(text_script, encoding='utf-8', newline='\n'); script.chmod(0o755)
+        text = f'insonic {VERSION}: Linux x86-64 {label} tar.gz\n\n'
+        text += ('Includes insonic-desktop application windows and insonic terminal commands.\n' if desktop else 'Includes insonic terminal commands; no desktop application or launcher.\n')
+        text += 'Prerequisites: ' + requirement + '.\n'
+        if desktop:
+            text += 'Ubuntu decoder packages: gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad and gstreamer1.0-libav.\n'
+        text += 'Extract the complete tree and keep native libraries, companions, help and sources together. Choose a new destination outside the source tree whose parent exists; optionally run ./install.sh NEW_DIRECTORY. The desktop helper writes an application launcher.\n'
+        text += './insonic version\n./insonic --help\n./insonic workspace init "YOUR_SEPARATE_LIBRARY"\n./insonic --workspace "YOUR_SEPARATE_LIBRARY" doctor\n'
+        text += 'Local inference environments/models remain separately configured. For updates keep a separate complete version directory and rollback copy; finish/cancel work and close clients before program removal. Preserve workspace/media/models/credentials. See bundled help/docs/v' + VERSION + '/desktop/index.html and storage guidance.\n'
+    (root / 'INSTALL.txt').write_text(text, encoding='utf-8', newline='\n')
 
 
 def inventory(root, revision, dependencies, distribution, variant='desktop', signing=None):
@@ -360,19 +350,12 @@ def inventory(root, revision, dependencies, distribution, variant='desktop', sig
 
 
 def package_directories(root, key, variant):
+    # Retained macOS layout handling is historical archive validation only.
     if key.startswith('darwin') and variant == 'desktop':
         return root / 'MacOS', root / 'Resources'
     return root, root
 
 
-def arrange_macos_bundle(executable_root):
-    """Keep code in MacOS and ordinary payloads in the sealed Resources tree."""
-    resources = executable_root.parent / 'Resources'
-    resources.mkdir()
-    for path in sorted(executable_root.iterdir()):
-        if path.name not in ['insonic', 'insonic-desktop', 'native']:
-            path.replace(resources / path.name)
-    return executable_root.parent, resources
 
 
 def verify_inventory(root, value):
@@ -437,7 +420,7 @@ def collect_corresponding_sources(root, source_media, receipt, directory):
         'Exact media companion corresponding sources and owned build recipe.\n'
         'Use Python 3.12+, a C/C++ compiler, make, CMake, Ninja, pkg-config, NASM\n'
         'and Meson 1.8.3. Windows uses MSYS2 UCRT64 (INSONIC_MSYS2_ROOT selects it);\n'
-        'macOS ARM64 uses Xcode command-line tools with macOS 13.3+; Linux uses GCC.\n'
+        'Linux uses GCC.\n'
         'Arrange the included .py files in scripts/, media-tools.json in\n'
         'internal/qualification/, and exact source archives in build/media-source-pins/.\n'
         'On Windows, run these commands in order from that same root:\n'
@@ -542,46 +525,9 @@ def sign_native(root, key):
                 child([tool, 'sign', '/sha1', identity, '/fd', 'SHA256', *(['/tr', timestamp, '/td', 'SHA256'] if timestamp else []), path])
                 child([tool, 'verify', '/pa', path])
         return {'configured': True, 'verified': True, 'status': 'signed', 'mechanism': 'windows-authenticode', 'identity': identity}
-    if key.startswith('darwin'):
-        identity = os.environ.get('INSONIC_MACOS_SIGN_IDENTITY', '').strip()
-        if not identity:
-            return state
-        for path in sorted(root.rglob('*')):
-            if not path.is_file():
-                continue
-            with path.open('rb') as source:
-                magic = source.read(4)
-            if magic in [b'\xcf\xfa\xed\xfe', b'\xfe\xed\xfa\xcf', b'\xca\xfe\xba\xbe', b'\xbe\xba\xfe\xca']:
-                child(['/usr/bin/codesign', '--force', '--options', 'runtime', '--timestamp', '--sign', identity, path])
-                child(['/usr/bin/codesign', '--verify', '--strict', path])
-        return {'configured': True, 'verified': True, 'status': 'signed', 'mechanism': 'macos-codesign', 'identity': identity}
     return state
 
 
-def seal_application(target, key, variant, signing):
-    if not key.startswith('darwin'):
-        return signing
-    application = target / 'insonic.app' if variant == 'desktop' else target
-    if variant == 'desktop':
-        identity = signing['identity'] if signing['configured'] else '-'
-        args = ['/usr/bin/codesign', '--force', '--sign', identity]
-        if signing['configured']:
-            args += ['--options', 'runtime', '--timestamp']
-        child([*args, application])
-        child(['/usr/bin/codesign', '--verify', '--strict', application])
-    profile = os.environ.get('INSONIC_MACOS_NOTARY_PROFILE', '').strip()
-    if profile:
-        if not signing['configured']:
-            raise ValueError('notarization profile requires configured publisher signing')
-        with tempfile.TemporaryDirectory(prefix='insonic notarization ') as temporary:
-            archive = Path(temporary) / 'insonic.zip'
-            child(['/usr/bin/ditto', '-c', '-k', '--keepParent', application, archive])
-            child(['/usr/bin/xcrun', 'notarytool', 'submit', archive, '--keychain-profile', profile, '--wait'], timeout=600)
-            if variant == 'desktop':
-                child(['/usr/bin/xcrun', 'stapler', 'staple', application])
-                child(['/usr/bin/xcrun', 'stapler', 'validate', application])
-        signing = {**signing, 'status': 'notarized', 'stapled': variant == 'desktop'}
-    return signing
 
 
 def build(variant='desktop'):
@@ -595,19 +541,11 @@ def build(variant='desktop'):
             raise ValueError('package target escapes build directory')
         shutil.rmtree(target)
     root = target
-    if key.startswith('darwin') and variant == 'desktop':
-        root = target / 'insonic.app/Contents/MacOS'
-        root.mkdir(parents=True)
-        with (root.parent / 'Info.plist').open('wb') as output:
-            plistlib.dump(qualify.desktop_application_info(), output)
-    else:
-        root.mkdir(parents=True)
+    root.mkdir(parents=True)
     (root / 'native').mkdir()
     for path in (ROOT / 'build/native/ladybug').rglob('*'):
         if path.is_file() and (path.suffix.lower() in ['.dll', '.so', '.dylib'] or '.so.' in path.name):
             shutil.copyfile(path, root / 'native' / path.name)
-    if key.startswith('darwin'):
-        normalize_macos_libraries(root / 'native')
     tags = 'desktop,production,system_ladybug' + (',webkit2_41' if key.startswith('linux') else '')
     env = package_build_environment(qualify.native_env(), key, root / 'native')
     exe = '.exe' if key.startswith('windows') else ''
@@ -656,14 +594,11 @@ def build(variant='desktop'):
         if sha(root / 'companions/media' / binary) != digest:
             raise ValueError('packaged media binary differs from its owned source build')
     collect_corresponding_sources(root, source_media, source_receipt, source_directory)
-    installers(root, key, variant)
-    resource_root = root
-    if key.startswith('darwin') and variant == 'desktop':
-        root, resource_root = arrange_macos_bundle(root)
     signing = sign_native(root, key)
+    installers(root, key, variant, signing)
+    resource_root = root
     manifest = installed_manifest(resource_root)
     write_json(resource_root / 'insonic-companions.json', manifest)
-    signing = seal_application(target, key, variant, signing)
     distribution = {'binary_publication': 'eligible', 'corresponding_source': 'included',
                     'source_complete': True, 'source_manifest_sha256': sha(resource_root / 'sources/source-manifest.json')}
     revision = child(['git', 'rev-parse', 'HEAD']).decode().strip()
@@ -684,10 +619,10 @@ def build(variant='desktop'):
     inventory_path = target / 'package-inventory.json'
     write_json(inventory_path, value)
     verify_inventory(root, value)
-    archive = Path(str(target) + ('.zip' if key.startswith(('windows', 'darwin')) else '.tar.gz'))
+    archive = Path(str(target) + ('.zip' if key.startswith('windows') else '.tar.gz'))
     if zipfile.is_zipfile(archive) or archive.exists():
         archive.unlink()
-    if key.startswith(('windows', 'darwin')):
+    if key.startswith('windows'):
         with zipfile.ZipFile(archive, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as output:
             for path in sorted(target.rglob('*')):
                 if path.is_file():
@@ -754,6 +689,7 @@ def package_environment():
     if os.name == 'nt':
         system = os.environ.get('SystemRoot', 'C:/Windows')
         env['PATH'] = str(Path(system) / 'System32') + os.pathsep + system
+        env['PATHEXT'] = '.COM;.EXE;.BAT;.CMD'
     else:
         env['PATH'] = '/usr/bin:/bin:/usr/sbin:/sbin'
     return env
@@ -799,6 +735,37 @@ def verify_archive_receipt(archive, receipt, expected_source_root=ROOT):
         return {'inventory': value, 'sources': manifest}
 
 
+def qualify_windows_install(extracted, temporary, env):
+    """Execute the documented copy and first-use commands in Windows PowerShell."""
+    installed = Path(temporary) / 'installed program with spaces'
+    library = Path(temporary) / 'first-use library with spaces'
+    def literal(value):
+        return "'" + str(value).replace("'", "''") + "'"
+    powershell = Path(os.environ.get('SystemRoot', 'C:/Windows')) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
+    script = (
+        "$ErrorActionPreference = 'Stop'; [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false); "
+        "& " + literal(extracted / 'install.ps1') + " -Destination " + literal(installed) + " | Out-Null; "
+        "$cli = " + literal(installed / 'insonic.exe') + "; $library = " + literal(library) + "; "
+        "$version = (& $cli version) -join [Environment]::NewLine; if ($LASTEXITCODE) { throw 'version failed' }; "
+        "$help = (& $cli --help) -join [Environment]::NewLine; if ($LASTEXITCODE) { throw 'help failed' }; "
+        "$init = (& $cli workspace init $library) -join [Environment]::NewLine; if ($LASTEXITCODE) { throw 'init failed' }; "
+        "$doctor = (& $cli --workspace $library doctor) -join [Environment]::NewLine; if ($LASTEXITCODE) { throw 'doctor failed' }; "
+        "$show = (& $cli --workspace $library workspace show) -join [Environment]::NewLine; if ($LASTEXITCODE) { throw 'show failed' }; "
+        "@{version=$version; help=$help; init=$init; doctor=$doctor; show=$show} | ConvertTo-Json -Compress"
+    )
+    output = child([powershell, '-NoProfile', '-NonInteractive', '-Command', script],
+                   directory=extracted, env=env, timeout=60, allow_detached=True)
+    # The helper emits one operator status line before the final JSON object.
+    first_use = json.loads(output.decode('utf-8-sig').splitlines()[-1])
+    if first_use.get('version') != VERSION or any(not first_use.get(key) for key in ['help', 'init', 'doctor', 'show']):
+        raise ValueError('installed Windows first-use command output differs: ' + str({'version': first_use.get('version'), 'lengths': {key: len(str(first_use.get(key, ''))) for key in ['help', 'init', 'doctor', 'show']}}))
+    inventory = json.loads((installed / 'package-inventory.json').read_text(encoding='utf-8'))
+    verify_inventory(installed, inventory)
+    if not (library / '.insonic/workspace.json').is_file():
+        raise ValueError('installed Windows library initialization did not persist')
+    return installed
+
+
 def _smoke(archive=None, dirname=None, receipt=None):
     if archive is None:
         receipt = json.loads((ROOT / 'build/native/package-receipt.json').read_text())
@@ -821,6 +788,10 @@ def _smoke(archive=None, dirname=None, receipt=None):
                 raise ValueError('macOS app bundle inventory mismatch')
         if sha(inventory_file) != receipt['inventory_sha256']:
             raise ValueError('extracted inventory identity differs')
+        installation = 'not-applicable'
+        if receipt['platform'] == 'windows_amd64':
+            root = qualify_windows_install(root, temporary, package_environment())
+            installation = 'passed'
         executables, _ = package_directories(root, receipt['platform'], receipt['variant'])
         verify_loader_paths(executables, receipt['platform'], receipt['variant'])
         env = package_environment()
@@ -913,7 +884,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
             # The detached runtime owns its jobs and releases its own scratch
             # catalog handles at the existing bounded idle exit.
             time.sleep(31)
-    receipt.update({'cli_contract': contract_receipt, 'extracted_inventory': 'passed', 'relocation_path_spaces': 'passed',
+    receipt.update({'windows_copy_install': installation, 'windows_first_use': installation, 'cli_contract': contract_receipt, 'extracted_inventory': 'passed', 'relocation_path_spaces': 'passed',
                     'cli_real_audio_video_import': 'passed', 'recording_replacement': 'passed', 'declared_roster': 'passed', 'cueson_assembly': 'passed', 'native_subtitle_export': 'passed',
                     'gui_bridge': 'passed' if receipt['variant'] == 'desktop' else 'not-included',
                     'native_webview': 'passed' if receipt['variant'] == 'desktop' else 'not-included', 'development_paths': 'not-required',

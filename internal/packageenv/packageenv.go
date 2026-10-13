@@ -49,14 +49,7 @@ func Defaults() (Environment, bool, error) {
 	return Read(resourceDirectory(executable))
 }
 
-func resourceDirectory(executable string) string {
-	directory := filepath.Dir(executable)
-	contents := filepath.Dir(directory)
-	if filepath.Base(directory) == "MacOS" && filepath.Base(contents) == "Contents" && strings.HasSuffix(filepath.Base(filepath.Dir(contents)), ".app") {
-		return filepath.Join(contents, "Resources")
-	}
-	return directory
-}
+func resourceDirectory(executable string) string { return filepath.Dir(executable) }
 
 func Read(directory string) (Environment, bool, error) {
 	f, err := os.Open(filepath.Join(directory, ManifestName))

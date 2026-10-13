@@ -73,6 +73,7 @@ type Error struct {
 func (e *Error) Error() string { return e.Code + ": " + e.Message }
 func Fail(code string) *Error {
 	message := map[string]string{
+		"unsupported_platform":     "This host platform is unsupported. Use a Windows or Linux x86-64 package.",
 		"checksum_mismatch":        "The acquired bytes do not match the elected checksum. Replace damaged bytes or correct the manifest before retrying.",
 		"acquisition_timeout":      "Acquisition exceeded its configured deadline. Retry after checking the source or timeout.",
 		"mixed_item_failure":       "Some work items failed. Inspect work results for each item before retrying.",

@@ -24,7 +24,7 @@ test('platform qualification waits only for its own exact same-run source build'
  const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
  const qualification = parse(readFileSync(new URL('../.github/workflows/native-qualification.yml', import.meta.url), 'utf8'));
  assert.equal(ci.jobs.media, undefined);
- for (const [label, os] of [['linux', 'ubuntu-24.04'], ['windows', 'windows-2022'], ['macos', 'macos-15']]) {
+ for (const [label, os] of [['linux', 'ubuntu-24.04'], ['windows', 'windows-2022']]) {
   const media = ci.jobs[`media-${label}`], native = ci.jobs[`qualify-${label}`];
   assert.equal(media.needs, 'foundation');
   assert.equal(media.uses, './.github/workflows/media-source.yml');
@@ -38,7 +38,7 @@ test('platform qualification waits only for its own exact same-run source build'
   for (const field of ['core', 'cli', 'native']) assert.equal(native.with[field], '${{ needs.foundation.outputs.' + field + " == 'true' }}");
  }
  assert.equal(ci.jobs.core.needs, 'foundation');
- assert.deepEqual(ci.jobs.core.strategy.matrix.os, ['ubuntu-24.04', 'macos-15']);
+ assert.deepEqual(ci.jobs.core.strategy.matrix.os, ['ubuntu-24.04']);
  assert.equal(ci.jobs['core-windows'].needs, 'foundation');
  for (const job of [ci.jobs.core, ci.jobs['core-windows']]) {
   const commands = job.steps.map(step => step.run ?? '').join('\n');

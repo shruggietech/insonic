@@ -33,12 +33,6 @@ on:
       windows-sign-timestamp-url:
         type: string
         default: ''
-      macos-sign-identity:
-        type: string
-        default: ''
-      macos-notary-profile:
-        type: string
-        default: ''
 permissions:
   contents: read
 jobs:
@@ -125,7 +119,7 @@ jobs:
       - name: Cross-process CLI acceptance
         if: inputs.cli && matrix.runtime_lane == 'engine'
         run: python scripts/qualify.py cli ${{ inputs.native && '--native' || '' }}
-      - name: Native credential lifecycle on Windows and macOS
+      - name: Native credential lifecycle on Windows
         if: inputs.native && matrix.runtime_lane == 'desktop' && runner.os != 'Linux'
         run: python scripts/qualify.py secrets
       - name: Native credential lifecycle in private Linux Secret Service
@@ -168,7 +162,8 @@ jobs:
           if-no-files-found: error
   runtime:
     if: always() && inputs.core && inputs.lane != 'packages'
-    needs: [runtime_checks]
+    needs:
+      - runtime_checks
     name: native (${{ inputs.os }})
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -183,7 +178,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: [cli, desktop]
+        variant: [ cli, desktop ]
     runs-on: ${{ inputs.os }}
     timeout-minutes: 10
     env:
@@ -193,8 +188,6 @@ jobs:
       INSONIC_WINDOWS_SIGN_CERT_SHA1: ${{ inputs.windows-sign-cert-sha1 }}
       INSONIC_SIGNTOOL_EXECUTABLE: ${{ inputs.signtool-executable }}
       INSONIC_WINDOWS_SIGN_TIMESTAMP_URL: ${{ inputs.windows-sign-timestamp-url }}
-      INSONIC_MACOS_SIGN_IDENTITY: ${{ inputs.macos-sign-identity }}
-      INSONIC_MACOS_NOTARY_PROFILE: ${{ inputs.macos-notary-profile }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:

@@ -15,7 +15,7 @@ test('PR candidate collection uses complete independent package lanes with no pu
   assert.equal(candidate.permissions.contents, 'read');
   assert.equal(candidate.environment, undefined);
   assert.equal(candidate.env.SOURCE_REVISION, '${{ github.sha }}');
-  assert.deepEqual(candidate.needs, ['docs', 'package-linux', 'package-windows', 'package-macos']);
+  assert.deepEqual(candidate.needs, ['docs', 'package-linux', 'package-windows']);
   assert.ok(!JSON.stringify(candidate).includes('secrets.'));
   assert.ok(!JSON.stringify(candidate).includes('scripts/release.py publish'));
   assert.equal(candidate.steps[0].with['persist-credentials'], false);
@@ -23,7 +23,7 @@ test('PR candidate collection uses complete independent package lanes with no pu
   assert.equal(native.on.workflow_call.inputs.lane.default, 'both');
   assert.ok(native.jobs.runtime.if.includes("inputs.lane != 'packages'"));
   assert.ok(native.jobs.packages.if.includes("inputs.lane != 'runtime'"));
-  for (const platform of ['linux', 'windows', 'macos']) {
+  for (const platform of ['linux', 'windows']) {
     const runtime = workflow.jobs[`qualify-${platform}`], packages = workflow.jobs[`package-${platform}`];
     assert.equal(runtime.with.lane, 'runtime');
     assert.equal(packages.with.lane, 'packages');
@@ -58,7 +58,7 @@ test('publication and promotion execute trusted tools and isolate deployment cre
   const job = workflow.jobs.publish;
   assert.ok(job.if.includes('inputs.publish && needs.candidate.result'));
   assert.ok(job.if.includes("needs.deployment-preflight.result == 'success'"));
-  for (const os of ['linux', 'windows', 'macos']) assert.equal(workflow.jobs[`media-${os}`].if, 'inputs.publish || !inputs.promote_docs');
+  for (const os of ['linux', 'windows']) assert.equal(workflow.jobs[`media-${os}`].if, 'inputs.publish || !inputs.promote_docs');
   assert.equal(job.permissions.checks, 'read');
   assert.equal(job.permissions.actions, 'read');
   const publication = job.steps.find(step => step.run?.startsWith('python scripts/release.py publish '));
@@ -114,7 +114,7 @@ test('media jobs select the toolkit installed by the pinned MSYS2 action', () =>
 test('release qualification reuses parallel native/package lanes and matching release-target docs', () => {
   const workflow = parse(readFileSync(new URL('.github/workflows/release.yml', source), 'utf8'));
   const native = parse(readFileSync(new URL('.github/workflows/native-qualification.yml', source), 'utf8'));
-  const calls = ['linux', 'windows', 'macos'].flatMap(os => [`qualify-${os}`, `package-${os}`]);
+  const calls = ['linux', 'windows'].flatMap(os => [`qualify-${os}`, `package-${os}`]);
   for (const name of calls) {
     const job = workflow.jobs[name];
     assert.equal(job.uses, './.github/workflows/native-qualification.yml');

@@ -65,8 +65,7 @@
     },
     "platforms": [
       "windows_amd64",
-      "linux_amd64",
-      "darwin_arm64"
+      "linux_amd64"
     ],
     "platform_configure": {
       "windows_amd64": [
@@ -76,10 +75,6 @@
       ],
       "linux_amd64": [
         "--extra-libs=-lm"
-      ],
-      "darwin_arm64": [
-        "--enable-videotoolbox",
-        "--enable-encoder=h264_videotoolbox"
       ]
     },
     "libraries": {

@@ -12,7 +12,6 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sync"
 	"time"
 
@@ -70,14 +69,8 @@ func qualificationModelManifest() models.Manifest {
 	return manifest
 }
 
-// QualificationStartsHidden keeps local smoke tests out of the foreground.
-// Hosted macOS needs an onscreen WKWebView to run media and its JS timers.
-func QualificationStartsHidden(smoke bool) bool {
-	return qualificationStartsHidden(smoke, runtime.GOOS, os.Getenv("GITHUB_ACTIONS"))
-}
-func qualificationStartsHidden(smoke bool, system, actions string) bool {
-	return smoke && !(system == "darwin" && actions == "true")
-}
+// QualificationStartsHidden keeps native smoke tests out of the foreground.
+func QualificationStartsHidden(smoke bool) bool { return smoke }
 
 // QualificationData contains controlled fixture inputs only in the explicit
 // native-webview qualification process. Ordinary desktop sessions return none.
