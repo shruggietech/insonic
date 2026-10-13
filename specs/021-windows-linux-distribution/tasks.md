@@ -40,7 +40,7 @@
 - [x] T018 Record owned/historical/transitive/time-zone residual dispositions and preserve frozen 1.0.0 hashes in specs/021-windows-linux-distribution/platform-audit.md (FR-005/FR-006, SC-002/FR-005).
 - [x] T019 Run full local runtime/schema/Python/frontend/site and affected extracted-package checks; record evidence in specs/021-windows-linux-distribution/verification.md (FR-007/FR-014, SC-001..005).
 - [x] T020 Converge against every requirement/acceptance/decision/principle, fix gaps and update CHANGELOG.md with support withdrawal and dated policy decisions.
-- [ ] T021 Commit/push and publish/attach official PR for #73/#63; update Project 7 review tracking and resolve every finding within two rounds; record exact-head green CI in specs/021-windows-linux-distribution/verification.md.
+- [x] T021 Commit/push and publish/attach official PR for #73/#63; update Project 7 review tracking and resolve every finding within two rounds; record exact-head green CI in specs/021-windows-linux-distribution/verification.md.
 
 ## Dependencies and execution
 
