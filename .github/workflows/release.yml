@@ -61,7 +61,7 @@ jobs:
           npm --prefix site ci --ignore-scripts
           npm --prefix site run build
           python scripts/release.py docs --revision "$SOURCE_REVISION" --output build/release/docs
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: candidate-documentation-${{ inputs.revision }}-${{ github.run_attempt }}
           path: build/release/docs
@@ -160,7 +160,7 @@ jobs:
           path: build/release/downloads/documentation
       - name: Verify complete six-variant matrix, sources and documentation
         run: python scripts/release.py collect --revision "$SOURCE_REVISION" --input build/release/downloads --output build/release/candidate
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: release-candidate-${{ github.run_attempt }}
           path: build/release/candidate
