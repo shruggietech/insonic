@@ -14,3 +14,5 @@
 Known verification limits remain explicit in verification.md. Automated UI behavior does not claim attended screen-reader/scaling verification. Full local package assembly is blocked by missing configured MSYS2; exact-head CI retains its complete native/source gates. The ordinary import form retains its own preset election; saved setup pipelines inspect readiness and do not silently activate import processing.
 
 Converged application implementation; proceed with authorized publication and the bounded review workflow.
+
+2026-10-13: Delivery convergence is complete. T001-T022 are checked. The external directory-durability finding is fixed and its thread resolved; complete implementation-head CI passed on 9e1dc5a (run 38475828252). Owner review and squash merge are the remaining authorized handoff boundary. Final records-head CI and direct thread inventory are verified before that handoff and summarized on PR #91. No requirement or implementation scope changed during delivery.

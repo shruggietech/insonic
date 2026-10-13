@@ -46,7 +46,7 @@ Independent test: elected optional controls and readiness preserve ready import 
 - [x] T019 Update current contracts, changelog and version navigation in schemas/v1.0.1 and CHANGELOG.md.
 - [x] T020 Run meaningful domain/CLI/UI checks and complete npm/product/site parity in specs/026-first-run-setup/verification.md.
 - [x] T021 Converge implementation against all FR/SC requirements in specs/026-first-run-setup/convergence.md.
-- [ ] T022 Commit/push/publish official PR, address at most two review rounds and verify green exact-head CI in specs/026-first-run-setup/verification.md.
+- [x] T022 Commit/push/publish official PR, address at most two review rounds and verify green exact-head CI in specs/026-first-run-setup/verification.md.
 
 ## Dependencies and parallel examples
 
