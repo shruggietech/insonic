@@ -38,7 +38,7 @@ Independent test: locked clean installation exports complete public/offline docu
 ## Phase 6: Verification and publication
 
 - [x] T013 Append dependency/process decisions to CHANGELOG.md and inspect all owned requested-version references; run full local repository/product/frontend/site/Python checks and converge requirements in specs/023-dependency-qualification/verification.md (FR-007/008/010).
-- [ ] T014 Commit/push and open the official consolidation PR, linking #84 and originals #77-#83; update GitHub tracking, respond/resolve every finding in at most two rounds, verify exact final-head full CI and stop for owner merge (FR-009/010).
+- [x] T014 Commit/push and open the official consolidation PR, linking #84 and originals #77-#83; update GitHub tracking, respond/resolve every finding in at most two rounds, verify exact final-head full CI and stop for owner merge (FR-009/010).
 
 ## Dependencies and implementation strategy
 

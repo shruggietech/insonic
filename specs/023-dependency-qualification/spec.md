@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-13
 
-**Status**: Specified
+**Status**: Implemented and qualified, awaiting owner merge
 
 **Tracking**: [#84](https://github.com/shruggietech/insonic/issues/84)
 
