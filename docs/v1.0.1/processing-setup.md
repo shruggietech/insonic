@@ -13,7 +13,7 @@ The managed CPU profiles use CPython 3.12.15 and uv 0.13.0, with complete platfo
 | Recognition | 122,501,331 bytes | 179,432,818 bytes | 2 GiB |
 | Diarization | 290,320,124 bytes | 392,060,735 bytes | 4 GiB |
 
-The catalog contains exact runtime archives, wheels, source URLs and hashes. All required wheel bytes are verified before an offline, hash-locked installation. An unchanged accepted managed environment is verified and reused.
+The catalog contains exact runtime archives, wheels, source URLs and hashes. Runtime and installer archives are copied into the private owned attempt while hashing, and extraction uses only those verified snapshots. All required wheel bytes are verified before an offline, hash-locked installation. An unchanged accepted managed environment is verified and reused.
 
 For the CLI:
 
@@ -33,7 +33,7 @@ Environments and their receipts live in the chosen library control directory. Ca
 
 ## Reuse or prepare offline
 
-Select an existing absolute interpreter path with `mode: "reuse"` and `python_path`. Inspection imports only the selected libraries, reports their versions and devices, and loads no model. Setup records and verifies their byte identities without installing into that environment. Changes to these dependencies require a new explicit setup election.
+Select an existing absolute interpreter path with `mode: "reuse"` and `python_path`. Inspection imports only the selected libraries, reports their versions and devices, and loads no model. Setup records and verifies their byte identities without installing into that environment. Its receipt/probe space budget is 32 MiB, rather than the managed profile installation minimum. Changes to these dependencies require a new explicit setup election.
 
 For fully offline managed setup, add `offline_assets` with an absolute directory containing every declared archive and wheel under its exact catalog filename. Missing or damaged files fail locally. The installer uses only these files; it does not resolve alternate versions or fetch missing dependencies. Offline model reuse is separate.
 

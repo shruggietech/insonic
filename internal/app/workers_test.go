@@ -41,6 +41,20 @@ func TestWorkerReadinessDoesNotPromoteMediaToolsToInference(t *testing.T) {
 		t.Fatal(got)
 	}
 }
+
+func TestReusePlanUsesReceiptBudgetInsteadOfManagedInstallationMinimum(t *testing.T) {
+	a := configuredApp(t)
+	tools := workerToolsFixture(t, a)
+	raw, _ := json.Marshal(workers.Election{Role: "recognition", Mode: "reuse", PythonPath: tools.Processing.Worker.Path})
+	out, e := a.workerDispatch(a.ctx, contracts.Request{Operation: "workers.plan", Data: raw})
+	if e != nil {
+		t.Fatal(e)
+	}
+	plan := out.(map[string]any)
+	if plan["required_space_bytes"] != workers.ReuseSpaceBytes || plan["download_bytes"] != 0 {
+		t.Fatal("managed capacity applied to reuse", plan)
+	}
+}
 func TestWorkerSetupRevisionConflictAndCancellationPreserveSettings(t *testing.T) {
 	a := configuredApp(t)
 	tools := workerToolsFixture(t, a)

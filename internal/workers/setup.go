@@ -6,6 +6,8 @@ import (
 	"archive/zip"
 	"compress/gzip"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"os"
@@ -25,6 +27,67 @@ type Prepared struct {
 	Python     library.PinnedFile `json:"python"`
 	Receipt    library.PinnedFile `json:"environment_receipt"`
 	Inspection Inspection         `json:"inspection"`
+}
+
+// Reuse writes only a bounded receipt, private probe home and settings bytes.
+const ReuseSpaceBytes int64 = 32 << 20
+
+func RequiredSpace(p Profile, mode string) int64 {
+	if mode == "reuse" {
+		return ReuseSpaceBytes
+	}
+	return p.MinSpaceBytes
+}
+
+// Hash the bytes copied into this attempt, rather than trusting an external
+// path that can be replaced between verification and extraction.
+func snapshotAsset(ctx context.Context, source, destination string, asset Asset) error {
+	in, e := os.Open(source)
+	if e != nil {
+		return contracts.Fail("unavailable")
+	}
+	defer in.Close()
+	st, e := in.Stat()
+	if e != nil || !st.Mode().IsRegular() || st.Size() != asset.Size {
+		return contracts.Fail("checksum_mismatch")
+	}
+	out, e := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if e != nil {
+		return contracts.Fail("unavailable")
+	}
+	defer out.Close()
+	h := sha256.New()
+	buffer := make([]byte, 128<<10)
+	var total int64
+	for {
+		if ctx.Err() != nil {
+			return contracts.Fail("cancelled")
+		}
+		n, readErr := in.Read(buffer)
+		if total+int64(n) > asset.Size {
+			return contracts.Fail("checksum_mismatch")
+		}
+		if n > 0 {
+			if _, e = out.Write(buffer[:n]); e != nil {
+				return contracts.Fail("unavailable")
+			}
+			h.Write(buffer[:n])
+			total += int64(n)
+		}
+		if readErr == io.EOF {
+			break
+		}
+		if readErr != nil {
+			return contracts.Fail("unavailable")
+		}
+	}
+	if total != asset.Size || hex.EncodeToString(h.Sum(nil)) != asset.SHA256 {
+		return contracts.Fail("checksum_mismatch")
+	}
+	if out.Sync() != nil {
+		return contracts.Fail("unavailable")
+	}
+	return nil
 }
 
 func (s Service) checkpoint(phase string, data map[string]any) error {
@@ -140,14 +203,14 @@ func (s Service) Prepare(ctx context.Context, election Election) (Prepared, erro
 		}
 	}()
 	python := election.PythonPath
+	free, e := FreeSpace(attempt)
+	if e != nil {
+		return out, contracts.Fail("unavailable")
+	}
+	if free < uint64(RequiredSpace(p, election.Mode)) {
+		return out, contracts.Fail("insufficient_space")
+	}
 	if election.Mode == "managed" {
-		free, e := FreeSpace(attempt)
-		if e != nil {
-			return out, contracts.Fail("unavailable")
-		}
-		if free < uint64(p.MinSpaceBytes) {
-			return out, contracts.Fail("insufficient_space")
-		}
 		if e = s.checkpoint("runtime-acquisition", map[string]any{"role": election.Role, "total_bytes": p.DownloadBytes}); e != nil {
 			return out, e
 		}
@@ -155,8 +218,16 @@ func (s Service) Prepare(ctx context.Context, election Election) (Prepared, erro
 		if e != nil {
 			return out, e
 		}
+		runtimeSnapshot := filepath.Join(attempt, "runtime-archive")
+		if e = snapshotAsset(ctx, runtimeSource, runtimeSnapshot, p.Runtime); e != nil {
+			return out, e
+		}
 		installerSource, e := s.asset(ctx, p.Installer, election.OfflineAssets)
 		if e != nil {
+			return out, e
+		}
+		installerSnapshot := filepath.Join(attempt, "installer-archive")
+		if e = snapshotAsset(ctx, installerSource, installerSnapshot, p.Installer); e != nil {
 			return out, e
 		}
 		installDir := filepath.Join(attempt, "installer")
@@ -167,10 +238,10 @@ func (s Service) Prepare(ctx context.Context, election Election) (Prepared, erro
 		if runtime.GOOS == "windows" {
 			format = "zip"
 		}
-		if e = extractArchive(ctx, installerSource, installDir, format); e != nil {
+		if e = extractArchive(ctx, installerSnapshot, installDir, format); e != nil {
 			return out, e
 		}
-		if e = extractArchive(ctx, runtimeSource, runtimeDir, "tar.gz"); e != nil {
+		if e = extractArchive(ctx, runtimeSnapshot, runtimeDir, "tar.gz"); e != nil {
 			return out, e
 		}
 		uv, e := findExecutable(installDir, "uv")

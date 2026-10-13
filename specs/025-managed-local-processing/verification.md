@@ -36,3 +36,7 @@ Publication and final-head CI/review evidence will be added to the PR and this r
 ## Initial external review
 
 Official PR #90 opened at 1ef0cdb27d7408f718099e48fa389ee451ebfef5. The automatic initial review returned two P2 findings: colocated filesystem peak capacity (r4262506536) and missing upstream credential references before gated enqueue (r4262506548). Both are fixed with regressions; affected Go tests/vet, frontend typecheck/80 tests and root integrity checks pass. Physical Windows volume identity/Linux device identity include mount/link resolution, previews do not create a missing destination, and unknown relationships use a conservative combined budget. Preview/local/available models remain usable without new authentication; only the corresponding elected gated download requires its protected reference.
+
+## Final external review
+
+The one authorized second-round request used @codex security review on 81ea8ad256f251b5ec3075a5519972d813b171ac. The service reported it as Code Review, completed at 2026-10-13 18:47 UTC; no separate security-service verdict is asserted. It returned two P2 findings: archive substitution between path verification/extraction (r4262667308) and managed-space requirements incorrectly applied to reuse (r4262667323). Both are fixed and regression-tested. Archives now copy/hash into an owned attempt before extraction, and reuse uses a 32 MiB receipt/probe budget in plan and execution. No third review will be requested.

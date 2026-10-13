@@ -91,6 +91,36 @@ func TestArchiveConfinement(t *testing.T) {
 		})
 	}
 }
+
+func TestOwnedArchiveSnapshotSurvivesReplacementAndRejectsUncheckedBytes(t *testing.T) {
+	dir := t.TempDir()
+	source := filepath.Join(dir, "source.zip")
+	f, _ := os.Create(source)
+	z := zip.NewWriter(f)
+	file, _ := z.Create("uv.exe")
+	file.Write([]byte("verified"))
+	z.Close()
+	f.Close()
+	pin, _ := Hash(context.Background(), source)
+	st, _ := os.Stat(source)
+	asset := Asset{Name: "source.zip", SHA256: pin.SHA256, Size: st.Size()}
+	owned := filepath.Join(t.TempDir(), "owned.zip")
+	if e := snapshotAsset(context.Background(), source, owned, asset); e != nil {
+		t.Fatal(e)
+	}
+	os.WriteFile(source, []byte("replacement after verification"), 0600)
+	out := t.TempDir()
+	if e := extractArchive(context.Background(), owned, out, "zip"); e != nil {
+		t.Fatal(e)
+	}
+	body, _ := os.ReadFile(filepath.Join(out, "uv.exe"))
+	if string(body) != "verified" {
+		t.Fatal("reopened unchecked source", string(body))
+	}
+	if e := snapshotAsset(context.Background(), source, filepath.Join(t.TempDir(), "bad.zip"), asset); e == nil {
+		t.Fatal("unchecked replacement copied")
+	}
+}
 func TestArchiveEscapingLink(t *testing.T) {
 	d := t.TempDir()
 	f, _ := os.Create(filepath.Join(d, "a.tgz"))

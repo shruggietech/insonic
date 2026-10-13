@@ -64,3 +64,8 @@ T010 is satisfied by the shared processing adapter receipt check, which also cov
 
 - [x] T030 Combine peak capacity on physical filesystem volumes and conservatively handle unknown relationships, with runtime/volume regressions in internal/app/workers_test.go and internal/workers/workers_test.go per FR-009 and review r4262506536.
 - [x] T031 Reject a new gated builtin download without its protected credential reference before enqueue, preserving previews/verified local reuse and prior references, per FR-015/017 and review r4262506548.
+
+## Phase 9: Final external review
+
+- [x] T032 Bind runtime/uv extraction to privately owned byte snapshots hashed during copy, with source-replacement/tampering regressions in internal/workers/workers_test.go per FR-003/005/015 and review r4262667308.
+- [x] T033 Apply the actual bounded receipt/probe space budget to reuse plans and execution, with shared-plan regression coverage per FR-004/009 and review r4262667323.

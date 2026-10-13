@@ -120,7 +120,7 @@ func (a *App) workerDispatch(ctx context.Context, req contracts.Request) (any, e
 		c, e := ReadProcessingTools(a.Workspace)
 		if req.Operation == "workers.plan" {
 			input.ExpectedRevision = revision
-			plan := map[string]any{"election": input, "profile": p, "destination": filepath.Join(a.Workspace.Control, "workers"), "required_space_bytes": p.MinSpaceBytes, "download_bytes": p.DownloadBytes, "recommended_threads": min(4, max(1, runtime.NumCPU())), "recommended_device": "cpu", "effects": "Only successful verified work publishes the elected role; accepted environments are not updated in place."}
+			plan := map[string]any{"election": input, "profile": p, "destination": filepath.Join(a.Workspace.Control, "workers"), "required_space_bytes": workers.RequiredSpace(p, input.Mode), "download_bytes": p.DownloadBytes, "recommended_threads": min(4, max(1, runtime.NumCPU())), "recommended_device": "cpu", "effects": "Only successful verified work publishes the elected role; accepted environments are not updated in place."}
 			if input.Mode == "managed" {
 				version, err := s.PlatformPrerequisite(ctx, p)
 				if version != "" {
@@ -132,7 +132,7 @@ func (a *App) workerDispatch(ctx context.Context, req contracts.Request) (any, e
 			}
 			if free, err := workers.FreeSpace(a.Workspace.Control); err == nil {
 				plan["available_space_bytes"] = free
-				plan["space_sufficient"] = free >= uint64(p.MinSpaceBytes)
+				plan["space_sufficient"] = free >= uint64(workers.RequiredSpace(p, input.Mode))
 			}
 			if input.Mode == "reuse" {
 				plan["download_bytes"] = 0
