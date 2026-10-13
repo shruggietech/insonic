@@ -80,9 +80,14 @@ class QualificationArchiveTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             marker = Path(directory) / 'heartbeat'
             worker = "import pathlib,sys,time; p=pathlib.Path(sys.argv[1]); n=0\nwhile True:\n p.write_text(str(n)); n+=1; time.sleep(.02)"
-            parent = "import subprocess,sys,time; subprocess.Popen([sys.executable,'-c',sys.argv[1],sys.argv[2]]); time.sleep(60)"
-            with self.assertRaises(subprocess.TimeoutExpired):
-                qualify.child([sys.executable, '-c', parent, worker, marker], timeout=2)
+            parent = "import os,subprocess,sys,time; print('controlled checkpoint',flush=True); print('controlled diagnostic',file=sys.stderr,flush=True); subprocess.Popen([sys.executable,'-c',sys.argv[1],sys.argv[2]],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0); time.sleep(60)"
+            stdout, stderr = io.BytesIO(), io.BytesIO()
+            with patch.object(sys, 'stdout', io.TextIOWrapper(stdout, encoding='utf-8')), patch.object(sys, 'stderr', io.TextIOWrapper(stderr, encoding='utf-8')):
+                with self.assertRaises(subprocess.TimeoutExpired):
+                    qualify.child([sys.executable, '-c', parent, worker, marker], timeout=2)
+                captured_stdout, captured_stderr = stdout.getvalue(), stderr.getvalue()
+            self.assertIn(b'controlled checkpoint', captured_stdout)
+            self.assertIn(b'controlled diagnostic', captured_stderr)
             before = marker.read_bytes()
             time.sleep(.12)
             self.assertEqual(marker.read_bytes(), before, 'descendant survived timeout')

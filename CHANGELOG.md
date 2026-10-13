@@ -17,7 +17,7 @@ All notable changes to this project will be documented here. The format follows 
 - Add complete shared CLI/desktop backend plans, non-mutating readiness preflight and explicit fresh provisioning with protected credentials before catalog connection.
 - Add native Ollama query assistance, metadata-only service/model discovery, explicit inference-route election, synthetic task receipts and cancellation of underlying desktop operations.
 - Reject remote PostgreSQL profiles mislabeled local; retain verified TLS by default and provide explicitly named insecure remote transport.
-- Qualify cache/restore 6.1.0, artifact upload 7.0.2/download 8.0.2, setup-node 7.1.0, Next.js 16.4.0 and the Go runtime dependency group. Require explicit archived artifact uploads, extracted downloads and digest failure, with repository checks rejecting mutable artifact pins and missing attempt fences.
+- Qualify cache/restore 6.1.0, artifact upload 7.0.2/download 8.0.2, setup-node 7.1.0, Next.js 16.4.0 and the Go runtime dependency group. Require explicit archived artifact uploads, extracted downloads and digest failure, with repository checks rejecting mutable artifact pins and missing attempt fences regardless of action-name case. Retain controlled qualification output on timeout after terminating its process tree.
 
 ### Decisions
 

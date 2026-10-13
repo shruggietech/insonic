@@ -45,7 +45,11 @@ def child(args, *, env=None, timeout=180, allow_detached=False):
             stdout, stderr = tree.process.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
             tree.kill()
-            tree.process.communicate(timeout=5)
+            stdout, stderr = tree.process.communicate(timeout=5)
+            # Keep controlled compiler/test checkpoints when a bounded child
+            # times out, so the failed stage remains diagnosable.
+            sys.stdout.buffer.write(stdout)
+            sys.stderr.buffer.write(stderr)
             raise
         result = tree.process.returncode
     if result:

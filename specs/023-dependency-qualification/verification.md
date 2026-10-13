@@ -27,3 +27,11 @@ Official consolidation publication is authorized. Automatic initial review is ro
 ## Pre-publication convergence
 
 2026-10-13: Checked 10 requirements, four success criteria, seven story acceptance scenarios, scoped plan decisions and all five constitution principles against the implemented dependency/interfaces/tests. The sole buildable gap was the live historical flat-segment mapping (T015), now implemented and verified. No remaining buildable gap or unrequested feature; T014 remains the explicit publication/review/exact-head CI gate. Full affected checks pass, and go mod verify confirms downloaded modules.
+
+## Reviews and qualification corrections
+
+2026-10-13: Official PR #85 published; issue #84 moved to In review. First automatic Code Review completed at 5376d69 with no findings and a thumbs-up. The single second/final request asked for security assessment; the service reports it as Code Review. It completed with one P2 finding: case variants bypassed artifact policy matching. The mixed-case regression failed before correction and passes after case-normalized action identification. Repository check and all 85 tests pass. No third review will be requested.
+
+CI run 38390114248 attempt 1 at 5376d69 qualified all four packages, adapter fixtures, public/offline docs, both core platforms and native desktop checks. Windows native-engine Go tests exceeded the existing 180-second child deadline; the wrapper discarded partial output. Preserve the original deadline and process-tree termination while emitting controlled timeout diagnostics, with real-child regression coverage. Candidate construction alone is not full qualification. The next full-head run remains required.
+
+Notice inspection confirms exact versions/licenses for all five elected Go modules. Existing fallback for absent module directories can misattribute project notices to unrelated selected tooling modules; tracked separately as #86. This slice does not claim that existing accounting defect is fixed.

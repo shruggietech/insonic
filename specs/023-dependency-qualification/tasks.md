@@ -49,3 +49,8 @@ Parallel validation examples: repository checks/tests, runtime tests/vet, fronte
 ## Phase 7: Convergence
 
 - [x] T015 Retain historical flat Next segment URLs through exact nested counterparts beside the same verified page in scripts/pages.py, with positive and missing-page/segment negative fixtures in tests/pages_test.py (FR-006, US3/AC2; partial gap discovered against live Pages).
+
+## Phase 8: Review and qualification corrections
+
+- [x] T016 Normalize artifact action owner/repository case and cover mixed-case mutable refs, archive, digest, extraction and attempt checks in scripts/check.mjs and tests/check.test.mjs (FR-002/003; second-round finding).
+- [x] T017 Preserve controlled timed-out compiler/test output after process-tree termination in scripts/qualify.py, with real timeout/output/descendant-stop coverage and hidden noninteractive fixture children in tests/qualify_test.py (FR-008/010; incomplete timeout diagnostics discovered during CI).
