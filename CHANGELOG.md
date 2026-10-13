@@ -14,6 +14,10 @@ All notable changes to this project will be documented here. The format follows 
 - Withdraw macOS support effective with the unreleased 1.0.1 candidate. Windows/Linux x86-64 retain CLI-only and Desktop + CLI packages; current candidates require four variants. Historical 1.0.0 packages, documentation and six-variant record validation remain unchanged.
 - Explain package inclusion, prerequisites and complete Windows ZIP installation/update/removal; copy through alias-aware owned attempts with atomic promotion, and preserve existing/substituted directories on failure.
 
+- Add complete shared CLI/desktop backend plans, non-mutating readiness preflight and explicit fresh provisioning with protected credentials before catalog connection.
+- Add native Ollama query assistance, metadata-only service/model discovery, explicit inference-route election, synthetic task receipts and cancellation of underlying desktop operations.
+- Reject remote PostgreSQL profiles mislabeled local; retain verified TLS by default and provide explicitly named insecure remote transport.
+
 ### Decisions
 
 - 2026-10-11: Keep startup transport separate from detached lifetime: one bounded report, one child wait owner and one ten-second deadline cover the client handshake. Log only generated context, using three bounded data files and a private empty coordination lock; diagnostic input/tool/provider payloads are excluded. Model readiness remains response-only and named file roles come from immutable manifests.
@@ -22,6 +26,9 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-10-13: Constitution 3.0.0 implements the owner-directed removal of the macOS platform obligation. Remove owned Darwin runtime/build/signing paths and macOS CI/release dependencies while retaining every Windows/Linux/backend integrity lane. Read historical version schemas as data under trusted current validation rather than changing published records.
 - 2026-10-13: Windows copy attempts are created and held through native directory handles. Resolve source/parent aliases, create a unique absent attempt atomically, preserve locks through no-replace promotion and delete failed owned objects by handle without following reparse points. Program files and persistent user data remain separate; current runtime shutdown uses existing idle exit.
+
+- 2026-10-13: Keep backend preflight outside mutating owner startup; fresh provisioning publishes configuration after selected catalog/storage preparation and retains identical generated-plan retry identity. Native Ollama translates into the existing validated query contract and separates endpoint location from actual model routing. Preserve cloud support without assuming upstream structured-output support.
+- 2026-10-13: Add initial credential/bootstrap and read-only PostgreSQL qualification to the existing bounded adapter CI lane. Explicit insecure transport preserves elected remote plaintext while removing the misleading local label.
 
 ## [1.0.1] - 2026-10-11
 

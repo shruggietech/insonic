@@ -594,9 +594,10 @@
           "type": "string",
           "enum": [
             "verify-full",
-            "local"
+            "local",
+            "insecure"
           ],
-          "description": "verify-full verifies the remote server certificate and hostname; local is an explicit local transport configuration."
+          "description": "verify-full verifies certificate and hostname; local is pinned loopback or a Unix socket; insecure explicitly elects remote plaintext. Remote hosts cannot use local."
         },
         "ca_file": {
           "type": "string",

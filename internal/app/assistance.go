@@ -215,6 +215,7 @@ func (a *App) assist(ctx context.Context, req contracts.Request) (any, error) {
 		return nil, contracts.Fail("cancelled")
 	}
 	// Injected fixtures must satisfy exactly the same untrusted response contract.
+	observedRoute := p.ObservedRoute
 	raw, _ := json.Marshal(p)
 	if len(raw) > c.Limits.MaxResponseBytes {
 		return nil, contracts.Fail("output_limit")
@@ -238,6 +239,7 @@ func (a *App) assist(ctx context.Context, req contracts.Request) (any, error) {
 		return nil, e
 	}
 	out := assistanceResult{Proposal: p.Query, Explanation: p.Explanation, Validation: map[string]any{"status": state, "access_mode": "read-only"}, Provenance: map[string]any{"adapter": c.Adapter, "model": c.Model, "route": c.Route, "mode": mode, "settings_revision": rev, "profile_digest": profile, "capability_digest": digestJSON(caps), "context_included": len(input.Context) > 0, "context_digest": documentHash(input.Context)}}
+	out.Provenance["inference_route"] = observedRoute
 	if e := a.assistanceFence(ctx, rev, profile); e != nil {
 		return nil, e
 	}

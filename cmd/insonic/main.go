@@ -68,6 +68,9 @@ func execute(args []string) int {
 	if e := activeLog.Write("debug", diagnosticEvent("")); e != nil {
 		return output(nil, e, machine)
 	}
+	if len(positional) >= 2 && positional[0] == "workspace" && (positional[1] == "plan" || positional[1] == "preflight" || positional[1] == "provision") {
+		return backendCommand(positional, machine)
+	}
 	if len(positional) == 3 && positional[0] == "workspace" && positional[1] == "init" {
 		w, err := workspace.Init(positional[2], "Workspace")
 		if err != nil {

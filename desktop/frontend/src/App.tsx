@@ -12,6 +12,7 @@ import {
 } from './client';
 import { Jobs, Library, Pipelines, Speakers, Terms, type Run } from './screens';
 import { Settings } from './settings';
+import {BackendSetup} from './backend-setup';
 import { ImportPresets } from './import-presets';
 import { Explore } from './explore';
 import { SpeakerModels } from './speaker-models';
@@ -171,7 +172,7 @@ export function App({ bridge }: { bridge: NativeBridge }) {
               e.preventDefault();
               ++generation.current;
               client.invalidate();
-              run(selectWorkspace);
+              if(!create||!bridge.BackendSetup)run(selectWorkspace);
             }}
           >
             <Input label="Workspace path" value={path} onChange={setPath} />
@@ -196,9 +197,9 @@ export function App({ bridge }: { bridge: NativeBridge }) {
             {create && (
               <Input label="Workspace name" value={name} onChange={setName} />
             )}
-            <Button type="submit">
+            {create&&bridge.BackendSetup?<BackendSetup bridge={bridge} run={run} path={path} name={name} onConfigured={value=>{client.select(value.workspace_id);setWorkspace(value);setPath(value.path);setScreen("Library")}}/>:<Button type="submit">
               {create ? 'Create workspace' : 'Open workspace'}
-            </Button>
+            </Button>}
           </form>
         </Card>
         <div role="status" aria-live="polite">
@@ -235,6 +236,7 @@ export function App({ bridge }: { bridge: NativeBridge }) {
                 client={client}
                 run={run}
                 appearance={applyAppearance}
+                onWorkspace={value=>{client.select(value.workspace_id);setWorkspace(value);setPath(value.path);setScreen("Library")}}
               />
             )}
           </section>

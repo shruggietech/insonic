@@ -118,7 +118,7 @@ Required tests use supplied current cues and deterministic extraction replies, r
 
 ## Configured query assistance
 
-`insonic query assistance-show --json` reads workspace configuration without contacting a provider. `insonic query assistance-set --input assistance-setting.json --json` saves `expected_revision` and `configuration` with compare-and-swap. Settings travel with catalog snapshots; credentials remain opaque IDs resolved by the selected credential backend. Assistance is disabled until elected. The `insonic-http` contract version `1` works with a local loopback or hosted endpoint that implements this protocol. A generic model API requires a compatible adapter service.
+`insonic query assistance-show --json` reads workspace configuration without contacting a provider. `insonic query assistance-set --input assistance-setting.json --json` saves `expected_revision` and `configuration` with compare-and-swap. Settings travel with catalog snapshots; credentials remain opaque IDs resolved by the selected credential backend. Assistance is disabled until elected. The `insonic-http` contract version `1` works with a local loopback or hosted endpoint that implements this protocol. Ollama uses the native adapter described below; other generic model APIs require a compatible adapter service.
 
 ```json
 {
@@ -246,3 +246,16 @@ insonic timeline recording MEDIA_ID --json
 ```
 
 Reads return bounded current pages and publication status. Follow returned cursors for further results. Saving a definition/layout stores configuration rather than a snapshot of results.
+## Native Ollama query assistance
+
+Select `adapter: "ollama"`, `contract_version: "1"`, the service root endpoint, exact model, enabled state and elected route in the existing assistance configuration. Version 1 describes insonic's adapter contract, not an upstream API version. Native local route means observed local inference, including an explicitly configured LAN instance; endpoint scope is shown separately. Loopback does not prove local inference because Ollama can serve cloud models. A hosted selection explicitly permits the inspected connected/cloud model. Existing insonic-http routing stays compatible.
+
+1. Run `insonic query services --json`, or choose Discover Ollama services and models in Explore. Manual roots use `--input` with `{"endpoints":["http://127.0.0.1:11434"],"timeout_ms":5000}`.
+2. Inspect source/time, installation evidence, protocol responsiveness, model capability and actual local/hosted/unknown inference route. Package declarations, configured endpoints, loopback defaults, OLLAMA_HOST and known installation/PATH locations supply candidates. External hints are shown without automatic contact or adoption.
+3. Elect the endpoint/model/route and save with `query assistance-set` at the observed expected_revision. Local Ollama needs no fabricated API key. A custom authenticated endpoint can use an existing protected credential reference.
+4. Optionally run `insonic query assistance-test --input test.json --json`, where `test.json` contains the saved `settings_revision`. The synthetic test may load the model, sends fictional input without library context, and records the exact selection/revision tested.
+5. Use `query assist` or the matching Explore controls. Native requests recheck the elected model before inference and translate responses into the same strict proposal contract, query validation, aggregate query budget and read-only execution machinery.
+
+Metadata-only discovery uses a default five-second aggregate deadline, at most 16 endpoint candidates, 128 model summaries and eight detail probes per candidate (plus an explicitly selected model), with 1 MiB response caps. Unprobed details remain untested and truncated inventories are identified. Configured and synthetically tested states are independent from installed, running, reachable and advertised task compatibility. Cancellation stops the underlying operation.
+
+Local models receive a non-streaming native chat request with JSON output. Hosted models omit upstream's currently unsupported structured-output format; the returned proposal still undergoes identical strict parsing and validation. Redirects, oversized or malformed responses, missing models, authentication failures and busy providers return fixed redacted corrections without silent fallback. This adapter supports query assistance; discovery of text capability establishes no transcription, diarization or training readiness.

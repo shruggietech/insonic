@@ -4,6 +4,19 @@ package contracts
 import "errors"
 
 var operatorReasons = map[string]string{
+	"backend_plan":              "The backend plan is invalid. Correct the reported fields and use workspace plan --help for complete supported shapes.",
+	"backend_local_transport":   "PostgreSQL local requires a literal loopback address, pinned localhost or Unix socket. Use verify-full or explicitly named insecure for a remote host.",
+	"backend_endpoint_tls":      "Credential-bearing connected ArcadeDB endpoints require HTTPS; verify the endpoint and certificate.",
+	"ollama_endpoint":           "Choose an HTTP(S) Ollama service root without credentials, query strings or fragments.",
+	"ollama_unavailable":        "Ollama is unreachable. Start the elected service or verify its endpoint and TLS.",
+	"ollama_provider":           "The elected Ollama provider failed. Check its status and retry without changing routes.",
+	"ollama_auth":               "Ollama rejected authentication. Check the elected credential or server account.",
+	"ollama_missing":            "The selected model or native Ollama route is unavailable. Refresh model metadata and verify the service protocol.",
+	"ollama_busy":               "Ollama is busy or rate limited. Retry the same elected selection later.",
+	"ollama_redirect":           "Ollama returned a redirect. Select the intended service root explicitly.",
+	"ollama_protocol":           "Ollama returned an incompatible or malformed response. Check the service/model and native adapter support.",
+	"ollama_capability":         "The elected model does not advertise text completion. Select a task-compatible model.",
+	"ollama_route":              "This selection cannot prove local inference. Inspect its model route and explicitly elect hosted inference if intended.",
 	"workspace_missing":         "No workspace was found. Initialize a library or select its directory with --workspace.",
 	"input_missing":             "The selected input file is unavailable. Check its path and permissions.",
 	"input_invalid":             "The selected input does not match this command's contract. Use contextual --help for the required fields.",

@@ -400,7 +400,9 @@ func (a *App) DispatchContext(ctx context.Context, req contracts.Request) contra
 			result, err = a.Catalog.HistoryPage(a.ctx, req.JobID, req.AfterGeneration)
 		}
 	default:
-		if req.Operation == "query.assist" {
+		if req.Operation == "query.services" || req.Operation == "query.assistance-test" {
+			result, err = a.serviceReadiness(ctx, req)
+		} else if req.Operation == "query.assist" {
 			result, err = a.assist(ctx, req)
 		} else if req.Operation == "query.run" || req.Operation == "query.explain" {
 			var q contracts.QueryInput

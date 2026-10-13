@@ -31,3 +31,5 @@ The generated reference is read-only output. Edit descriptions, examples and fie
 <!-- schema-reference -->
 
 The current runtime-response contract permits a structured result alongside an error, so failed waits retain terminal work details. All CLI machine routes use this envelope, fixed stream/exit rules and exact integer serialization. Persisted 1.0.0 workspace/tool/document readers select their historical packaged contracts; runtime IPC and installed-package identities remain current-version contracts. Historical accepted bytes and hashes are retained. See [CLI invocation and results](cli.md).
+
+The registered backend-plan contract describes nonsecret initial selection for all six backends. Shared bootstrap generates workspace/profile identities and revisions; generated workspace configuration is accepted unchanged for idempotent retries. The query-assistance contract includes native Ollama configuration, metadata discovery and elected synthetic testing. Provider contract version 1 identifies insonic's translation contract. Secrets remain in separate protected input.

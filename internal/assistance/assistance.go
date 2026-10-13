@@ -63,7 +63,7 @@ func Normalize(c Config) (Config, error) {
 			return c, contracts.Fail("invalid_request")
 		}
 	}
-	if c.Adapter != "insonic-http" || c.ContractVersion != "1" || (c.Route != "local" && c.Route != "hosted") || (c.Mode != "suggest" && c.Mode != "auto-run") || len(c.Model) > 512 {
+	if (c.Adapter != "insonic-http" && c.Adapter != "ollama") || c.ContractVersion != "1" || (c.Route != "local" && c.Route != "hosted") || (c.Mode != "suggest" && c.Mode != "auto-run") || len(c.Model) > 512 {
 		return c, contracts.Fail("invalid_request")
 	}
 	if c.CredentialID != "" && !contracts.ValidID(c.CredentialID) {
@@ -78,11 +78,14 @@ func Normalize(c Config) (Config, error) {
 	}
 	ip := net.ParseIP(u.Hostname())
 	local := strings.EqualFold(u.Hostname(), "localhost") || (ip != nil && ip.IsLoopback())
-	if c.Route == "local" && !local {
+	if c.Adapter == "insonic-http" && c.Route == "local" && !local {
 		return c, contracts.Fail("invalid_request")
 	}
 	if c.CredentialID != "" && u.Scheme != "https" && !local {
 		return c, contracts.Fail("invalid_request")
+	}
+	if c.Adapter == "ollama" && !validEndpoint(c.Endpoint) {
+		return c, contracts.Condition("invalid_request", "ollama_endpoint")
 	}
 	return c, nil
 }
@@ -98,6 +101,8 @@ type Request struct {
 	Context         json.RawMessage `json:"context,omitempty"`
 }
 type Proposal struct {
+	ObservedRoute string `json:"-"`
+
 	ContractVersion string               `json:"contract_version"`
 	Query           contracts.QueryInput `json:"query"`
 	Explanation     string               `json:"explanation"`

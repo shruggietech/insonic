@@ -90,7 +90,11 @@
     },
     "release-candidate": {
       "$ref": "release-candidate.schema.json",
-      "description": "Exact-source six-variant native and documentation candidate inventory with source/signing disposition."
+      "description": "Exact-source four-variant native and documentation candidate inventory with source/signing disposition."
+    },
+    "backend-plan": {
+      "$ref": "backend-plan.schema.json",
+      "description": "Nonsecret initial backend selection with generated workspace/profile identities."
     }
   },
   "oneOf": [
@@ -156,6 +160,10 @@
     },
     {
       "$ref": "#/$defs/release-candidate"
+    },
+    {
+      "$ref": "#/$defs/backend-plan",
+      "description": "Shared CLI/desktop backend plan."
     }
   ]
 }

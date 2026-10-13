@@ -97,7 +97,19 @@ func canonical(root string) (string, error) {
 }
 
 func Init(root, name string) (*Workspace, error) {
-	if name == "" {
+	config := Config{Version: contracts.Version, Kind: "workspace-config", WorkspaceID: contracts.ID(), DisplayName: name, ControlDirectory: ".insonic"}
+	profile := func(adapter string, options map[string]any) Profile {
+		return Profile{ID: contracts.ID(), Revision: 1, Adapter: adapter, Version: contracts.Version, Configuration: options}
+	}
+	config.Profiles.Storage = profile("filesystem", map[string]any{"root": "artifacts"})
+	config.Profiles.Catalog = profile("sqlite", map[string]any{"path": "catalog.sqlite"})
+	config.Profiles.Graph = profile("ladybugdb", map[string]any{"path": "graph/library.lbug"})
+	return InitConfig(root, config)
+}
+
+// InitConfig publishes a prepared configuration atomically without replacing an existing one.
+func InitConfig(root string, config Config) (*Workspace, error) {
+	if config.DisplayName == "" {
 		return nil, contracts.Fail("invalid_request")
 	}
 	if err := os.MkdirAll(root, 0700); err != nil {
@@ -129,13 +141,6 @@ func Init(root, name string) (*Workspace, error) {
 	if _, err := os.Lstat(file); !os.IsNotExist(err) {
 		return nil, contracts.Fail("conflict")
 	}
-	config := Config{Version: contracts.Version, Kind: "workspace-config", WorkspaceID: contracts.ID(), DisplayName: name, ControlDirectory: ".insonic"}
-	profile := func(adapter string, options map[string]any) Profile {
-		return Profile{ID: contracts.ID(), Revision: 1, Adapter: adapter, Version: contracts.Version, Configuration: options}
-	}
-	config.Profiles.Storage = profile("filesystem", map[string]any{"root": "artifacts"})
-	config.Profiles.Catalog = profile("sqlite", map[string]any{"path": "catalog.sqlite"})
-	config.Profiles.Graph = profile("ladybugdb", map[string]any{"path": "graph/library.lbug"})
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return nil, contracts.Fail("invalid_request")
