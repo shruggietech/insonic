@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-13
 
-**Status**: Implemented; awaiting hosted qualification and review
+**Status**: Implemented and qualified; final completion-record CI checked before owner handoff
 
 **Tracking**: [#88](https://github.com/shruggietech/insonic/issues/88), milestone Post-release usability, Project 7.
 

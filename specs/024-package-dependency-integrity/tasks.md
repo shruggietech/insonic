@@ -36,12 +36,12 @@ Goal: real SVG/theme compatibility, retained URLs/resources and completed bounde
 - [x] T012 [US3] Run root/Go/Python/frontend/site checks and public/offline browser qualification; record results and advisory/notice evidence in specs/024-package-dependency-integrity/verification.md.
 - [x] T013 [US3] Commit clean source and qualify release-target documentation plus read-only historical Pages preparation, recording preserved paths in specs/024-package-dependency-integrity/verification.md; do not deploy or infer model accuracy.
 - [x] T014 [US3] Push branch and publish/attach official PR with #86/#88 closing links, #87 captured mapping and milestone/Project7 In review; preserve source PR87 until owner merge. Record URL/round ledger in specs/024-package-dependency-integrity/verification.md.
-- [ ] T015 [US3] Resolve every comment/thread in at most initial plus one requested second round, recording concrete fixes and final review state in specs/024-package-dependency-integrity/verification.md.
-- [ ] T016 [US3] Verify full final-head green Windows/Linux native/backend four-package and candidate CI from one revision/attempt; record exact CI identity in specs/024-package-dependency-integrity/verification.md and stop for owner final review/merge.
+- [x] T015 [US3] Resolve every comment/thread in at most initial plus one requested second round, recording concrete fixes and final review state in specs/024-package-dependency-integrity/verification.md.
+- [x] T016 [US3] Verify full final-head green Windows/Linux native/backend four-package and candidate CI from one revision/attempt; record exact CI identity in specs/024-package-dependency-integrity/verification.md and stop for owner final review/merge.
 
 ## Phase 6: Polish
 
-- [ ] T017 Converge all requirements/tasks and verify clean UTF8/LF/no-mojibake checkout and no frozen/version/pin changes in specs/024-package-dependency-integrity/convergence.md; publish any final evidence commit and wait its exact-head CI/review state before handoff.
+- [x] T017 Converge all requirements/tasks and verify clean UTF8/LF/no-mojibake checkout and no frozen/version/pin changes in specs/024-package-dependency-integrity/convergence.md; publish any final evidence commit and wait its exact-head CI/review state before handoff.
 
 ## Dependencies and execution order
 
