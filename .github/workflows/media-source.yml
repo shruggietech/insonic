@@ -53,7 +53,7 @@ jobs:
         id: identity
         run: python scripts/media-transfer.py identity
       - name: Cache original archives independently of compiler and recipe changes
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/media-source-pins
           key: media-original-sources-${{ steps.identity.outputs.source_pins_key }}
@@ -87,7 +87,7 @@ jobs:
                                 'http_status': getattr(error, 'code', None)}))
           PY
       - name: Restore exact complete source cache before scheduling cold stages
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             build/native/source-media/*/install
@@ -109,8 +109,9 @@ jobs:
         shell: bash
         run: python scripts/media-transfer.py pack --stage complete --revision "$SOURCE_REVISION" --output build/transfer/media-source.tar.gz
       - if: steps.ready.outputs.ready == 'true'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
+          archive: true
           name: media-source-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer/media-source.tar.gz
           if-no-files-found: error
@@ -159,7 +160,7 @@ jobs:
         id: identity
         run: python scripts/media-transfer.py identity
       - name: Cache original archives independently of compiler and recipe changes
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/media-source-pins
           key: media-original-sources-${{ steps.identity.outputs.source_pins_key }}
@@ -168,7 +169,7 @@ jobs:
       - name: Rehash and materialize every exact original source archive
         id: original_sources
         run: python scripts/media-transfer.py sources
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             build/native/source-media/*/install
@@ -179,8 +180,9 @@ jobs:
       - name: Transfer exact dependency headers, archives and original sources
         shell: bash
         run: python scripts/media-transfer.py pack --stage ${{ matrix.group }} --revision "$SOURCE_REVISION" --output build/transfer/dependencies-${{ matrix.group }}.tar.gz
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
+          archive: true
           name: media-dependencies-${{ inputs.os }}-${{ matrix.group }}-${{ github.run_attempt }}
           path: build/transfer/dependencies-${{ matrix.group }}.tar.gz
           if-no-files-found: error
@@ -222,7 +224,7 @@ jobs:
         id: identity
         run: python scripts/media-transfer.py identity
       - name: Cache original archives independently of compiler and recipe changes
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/media-source-pins
           key: media-original-sources-${{ steps.identity.outputs.source_pins_key }}
@@ -230,7 +232,7 @@ jobs:
           restore-keys: media-original-sources-Linux-${{ steps.identity.outputs.source_pins_key }}
       - name: Rehash and materialize every exact original source archive
         run: python scripts/media-transfer.py sources
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             build/native/source-media/*/install
@@ -242,8 +244,10 @@ jobs:
         shell: bash
         run: python scripts/media-transfer.py ready --stage dependencies --revision "$SOURCE_REVISION"
       - if: steps.formats_ready.outputs.ready != 'true'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
+          digest-mismatch: error
+          skip-decompress: false
           pattern: media-dependencies-${{ inputs.os }}-*-${{ github.run_attempt }}
           path: build/transfer
           merge-multiple: true
@@ -256,8 +260,9 @@ jobs:
       - name: Transfer exact full static dependencies and all group provenance
         shell: bash
         run: python scripts/media-transfer.py pack --stage dependencies --revision "$SOURCE_REVISION" --output build/transfer/dependency-formats.tar.gz
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
+          archive: true
           name: media-formats-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer/dependency-formats.tar.gz
           if-no-files-found: error
@@ -299,7 +304,7 @@ jobs:
         id: identity
         run: python scripts/media-transfer.py identity
       - name: Cache original archives independently of compiler and recipe changes
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/media-source-pins
           key: media-original-sources-${{ steps.identity.outputs.source_pins_key }}
@@ -307,8 +312,10 @@ jobs:
           restore-keys: media-original-sources-Linux-${{ steps.identity.outputs.source_pins_key }}
       - name: Rehash and materialize every exact original source archive
         run: python scripts/media-transfer.py sources
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
+          digest-mismatch: error
+          skip-decompress: false
           name: media-formats-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer
       - name: Restore the complete static dependency prefix before configuring
@@ -319,8 +326,9 @@ jobs:
       - name: Bind configured sources, objects and header timestamps to this exact build
         shell: bash
         run: python scripts/media-transfer.py pack --stage codec --revision "$SOURCE_REVISION" --output build/transfer/codec.tar.gz
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
+          archive: true
           name: media-codec-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer/codec.tar.gz
           if-no-files-found: error
@@ -363,7 +371,7 @@ jobs:
         id: identity
         run: python scripts/media-transfer.py identity
       - name: Cache original archives independently of compiler and recipe changes
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: build/media-source-pins
           key: media-original-sources-${{ steps.identity.outputs.source_pins_key }}
@@ -371,7 +379,7 @@ jobs:
           restore-keys: media-original-sources-Linux-${{ steps.identity.outputs.source_pins_key }}
       - name: Rehash and materialize every exact original source archive
         run: python scripts/media-transfer.py sources
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: cache
         with:
           path: |
@@ -390,8 +398,10 @@ jobs:
         shell: bash
         run: python scripts/media-transfer.py ready --stage complete --revision "$SOURCE_REVISION"
       - if: steps.complete_ready.outputs.ready != 'true' && runner.os != 'Windows'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
+          digest-mismatch: error
+          skip-decompress: false
           name: media-formats-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer
       - name: Verify and restore this run's exact full static dependency closure
@@ -399,8 +409,10 @@ jobs:
         shell: bash
         run: python scripts/media-transfer.py restore --stage dependencies --revision "$SOURCE_REVISION" build/transfer/dependency-formats.tar.gz
       - if: steps.complete_ready.outputs.ready != 'true' && runner.os == 'Windows'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
+          digest-mismatch: error
+          skip-decompress: false
           name: media-codec-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer
       - name: Restore the exact configured codec continuation without replacing headers
@@ -434,8 +446,9 @@ jobs:
       - name: Transfer qualified binaries, static closure, notices and original sources
         shell: bash
         run: python scripts/media-transfer.py pack --stage complete --revision "$SOURCE_REVISION" --output build/transfer/media-source.tar.gz
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
+          archive: true
           name: media-source-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer/media-source.tar.gz
           if-no-files-found: error

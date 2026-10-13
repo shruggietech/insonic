@@ -17,6 +17,7 @@ All notable changes to this project will be documented here. The format follows 
 - Add complete shared CLI/desktop backend plans, non-mutating readiness preflight and explicit fresh provisioning with protected credentials before catalog connection.
 - Add native Ollama query assistance, metadata-only service/model discovery, explicit inference-route election, synthetic task receipts and cancellation of underlying desktop operations.
 - Reject remote PostgreSQL profiles mislabeled local; retain verified TLS by default and provide explicitly named insecure remote transport.
+- Qualify cache/restore 6.1.0, artifact upload 7.0.2/download 8.0.2, setup-node 7.1.0, Next.js 16.4.0 and the Go runtime dependency group. Require explicit archived artifact uploads, extracted downloads and digest failure, with repository checks rejecting mutable artifact pins and missing attempt fences.
 
 ### Decisions
 
@@ -29,6 +30,7 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-10-13: Keep backend preflight outside mutating owner startup; fresh provisioning publishes configuration after selected catalog/storage preparation and retains identical generated-plan and credential-backend retry identity before mutations and on completed retries. Observe selected S3 bucket access and initialize graph schema/owner before success. Native Ollama translates into the existing validated query contract and separates endpoint location from actual model routing. Preserve cloud support without assuming upstream structured-output support.
 - 2026-10-13: Add initial credential/bootstrap and read-only PostgreSQL qualification to the existing bounded adapter CI lane. Explicit insecure transport preserves elected remote plaintext while removing the misleading local label.
+- 2026-10-13: Consolidate seven dependency updates into one complete Windows/Linux qualification boundary. Preserve verified cache keys, source/attempt identities, four-package candidate completeness and frozen historical documentation; retain the original bot PRs until consolidation merge. Runtime updates include the required text/sync closure without changing Go or native library pins.
 
 ## [1.0.1] - 2026-10-11
 

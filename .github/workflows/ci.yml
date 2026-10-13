@@ -50,12 +50,14 @@ jobs:
           NEXT_TELEMETRY_DISABLED: 1
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
+          archive: true
           name: documentation-${{ github.sha }}-${{ github.run_attempt }}
           path: site/out
           if-no-files-found: error
           retention-days: 14
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
+          archive: true
           name: offline-help-${{ github.sha }}-${{ github.run_attempt }}
           path: site/offline
           if-no-files-found: error
@@ -64,8 +66,9 @@ jobs:
         env:
           SOURCE_REVISION: ${{ github.sha }}
         run: python scripts/release.py docs --revision "$SOURCE_REVISION" --output build/release/docs
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
+          archive: true
           name: candidate-documentation-${{ github.sha }}-${{ github.run_attempt }}
           path: build/release/docs
           compression-level: 0
@@ -153,18 +156,23 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
+          digest-mismatch: error
+          skip-decompress: false
           pattern: candidate-package-*-${{ github.sha }}-${{ github.run_attempt }}
           path: build/release/downloads
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
+          digest-mismatch: error
+          skip-decompress: false
           name: candidate-documentation-${{ github.sha }}-${{ github.run_attempt }}
           path: build/release/downloads/documentation
       - name: Verify the complete exact-source candidate
         run: python scripts/release.py collect --revision "$SOURCE_REVISION" --input build/release/downloads --output build/release/candidate
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
+          archive: true
           name: release-candidate-${{ github.sha }}-${{ github.run_attempt }}
           path: build/release/candidate
           compression-level: 0
@@ -187,7 +195,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -211,7 +219,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -281,8 +289,10 @@ jobs:
                   raise SystemExit('fixture did not become ready')
           PY
       - name: Download exact Linux source build for backend qualification
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
+          digest-mismatch: error
+          skip-decompress: false
           name: media-source-ubuntu-24.04-${{ github.run_attempt }}
           path: build/transfer
       - name: Qualify alternative-backend operations
