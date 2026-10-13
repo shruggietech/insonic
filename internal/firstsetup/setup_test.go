@@ -13,13 +13,22 @@ import (
 	"testing"
 )
 
+func privateStoreDirectory(t *testing.T) string {
+	t.Helper()
+	dir := filepath.Join(t.TempDir(), "private-config")
+	if e := os.Mkdir(dir, 0700); e != nil {
+		t.Fatal(e)
+	}
+	return dir
+}
+
 func draftInput(t *testing.T, root string, revision int64) []byte {
 	t.Helper()
 	raw, _ := json.Marshal(BootstrapInput{ExpectedRevision: revision, Path: root, Plan: json.RawMessage(`{"kind":"backend-plan","display_name":"Fixture"}`), Stage: "workspace", Status: "active"})
 	return raw
 }
 func TestBootstrapRestartReplayAndStaleWrites(t *testing.T) {
-	dir := t.TempDir()
+	dir := privateStoreDirectory(t)
 	target := filepath.Join(t.TempDir(), "library with spaces")
 	s := Store{Directory: dir}
 	id := contracts.ID()
@@ -56,7 +65,7 @@ func TestBootstrapRestartReplayAndStaleWrites(t *testing.T) {
 	}
 }
 func TestBootstrapRejectsSecretsAndUnknownFields(t *testing.T) {
-	s := Store{Directory: t.TempDir()}
+	s := Store{Directory: privateStoreDirectory(t)}
 	target := filepath.Join(t.TempDir(), "library")
 	raw := draftInput(t, target, 0)
 	var value map[string]any
@@ -113,7 +122,7 @@ func TestTypedStateLimits(t *testing.T) {
 }
 
 func TestBootstrapMissingRevisionAndCorruptReadback(t *testing.T) {
-	s := Store{Directory: t.TempDir()}
+	s := Store{Directory: privateStoreDirectory(t)}
 	target := filepath.Join(t.TempDir(), "library")
 	var value map[string]any
 	json.Unmarshal(draftInput(t, target, 0), &value)
@@ -139,7 +148,7 @@ func TestBootstrapMissingRevisionAndCorruptReadback(t *testing.T) {
 	}
 }
 func TestBootstrapConcurrentWritersPreserveOneAcceptance(t *testing.T) {
-	s := Store{Directory: t.TempDir()}
+	s := Store{Directory: privateStoreDirectory(t)}
 	raw := draftInput(t, filepath.Join(t.TempDir(), "library"), 0)
 	results := make(chan error, 2)
 	for i := 0; i < 2; i++ {
@@ -184,7 +193,7 @@ func TestLocationOnDifferentWindowsVolume(t *testing.T) {
 func TestBootstrapReadRequiresNormalizedFrozenPlan(t *testing.T) {
 	for _, field := range []string{"workspace_id", "schema_version", "profiles"} {
 		t.Run(field, func(t *testing.T) {
-			s := Store{Directory: t.TempDir()}
+			s := Store{Directory: privateStoreDirectory(t)}
 			_, e := s.Save(context.Background(), contracts.ID(), draftInput(t, filepath.Join(t.TempDir(), "library"), 0))
 			if e != nil {
 				t.Fatal(e)
@@ -205,7 +214,7 @@ func TestBootstrapReadRequiresNormalizedFrozenPlan(t *testing.T) {
 }
 
 func TestBootstrapRetainsNonsecretCredentialStoreChoice(t *testing.T) {
-	s := Store{Directory: t.TempDir()}
+	s := Store{Directory: privateStoreDirectory(t)}
 	target := filepath.Join(t.TempDir(), "library")
 	var in BootstrapInput
 	json.Unmarshal(draftInput(t, target, 0), &in)
@@ -231,7 +240,7 @@ func TestBootstrapRetainsNonsecretCredentialStoreChoice(t *testing.T) {
 }
 
 func TestNewLocationDoesNotCloneProvisionedLibraryIdentity(t *testing.T) {
-	s := Store{Directory: t.TempDir()}
+	s := Store{Directory: privateStoreDirectory(t)}
 	old := filepath.Join(t.TempDir(), "old library")
 	first, e := s.Save(context.Background(), contracts.ID(), draftInput(t, old, 0))
 	if e != nil {
@@ -254,5 +263,22 @@ func TestNewLocationDoesNotCloneProvisionedLibraryIdentity(t *testing.T) {
 	unchanged, e := workspace.Open(old)
 	if e != nil || unchanged.Config.WorkspaceID != w.Config.WorkspaceID {
 		t.Fatal("source identity changed")
+	}
+}
+
+func TestBootstrapRejectsNonPrivateDirectory(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("POSIX mode fixture")
+	}
+	dir := filepath.Join(t.TempDir(), "public-config")
+	if e := os.Mkdir(dir, 0755); e != nil {
+		t.Fatal(e)
+	}
+	s := Store{Directory: dir}
+	if _, e := s.Save(context.Background(), contracts.ID(), draftInput(t, filepath.Join(t.TempDir(), "library"), 0)); e == nil {
+		t.Fatal("nonprivate bootstrap store accepted")
+	}
+	if _, e := os.Stat(filepath.Join(dir, "setup-draft.json")); !os.IsNotExist(e) {
+		t.Fatal("rejected store persisted data")
 	}
 }

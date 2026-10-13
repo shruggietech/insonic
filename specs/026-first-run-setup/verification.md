@@ -29,3 +29,5 @@ No attended native GUI, screen-reader or increased-scale Windows session was per
 ## External review accounting
 
 Initial automatic review: pending. Authorized second request: not yet used. No third review will be triggered. Every review comment/thread and final exact-head CI will be read directly before owner handoff.
+
+2026-10-13: Initial CI 38473384085 exposed Go 1.27.1 temporary-fixture directories with POSIX mode 0755. Production's private-directory guard correctly rejected them. Bootstrap tests now create their own 0700 configuration directory and add an explicit nonprivate-directory rejection case; the guard is unchanged. Offline Ubuntu 24.04 reproduction used the exact cached Go 1.27.1 toolchain and verified module cache. Affected bootstrap/runtime/CLI/native-bridge/schema tests then passed on Ubuntu and Windows. Native Linux packages remain a separate CI claim.
