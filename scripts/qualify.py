@@ -218,7 +218,7 @@ def native():
     sys.stdout.buffer.write(child([sys.executable, ROOT / "scripts/media-fixtures.py", "--native"]))
     env = native_env()
     cueson = cueson_probe(env)
-    output = child(['go', 'test', '-v', '-tags', 'native_ladybug,system_ladybug', './internal/qualification', './internal/subtitles', './internal/graph', './internal/app', './internal/backup'], env=env)
+    output = child(['go', 'test', '-v', '-tags', 'native_ladybug,system_ladybug', './internal/qualification', './internal/backendsetup', './internal/subtitles', './internal/graph', './internal/app', './internal/backup'], env=env)
     sys.stdout.buffer.write(output)
     (BUILD / 'native-receipt.json').write_text(json.dumps({'cueson': cueson, 'native_pair': 'passed'}, indent=2) + '\n', encoding='utf-8')
 

@@ -84,7 +84,7 @@ func (b *Bridge) BackendSetup(action, path, plan, protected, mode, id string) co
 		}
 		return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Result: out}
 	}
-	w, e := backendsetup.ProvisionMode(ctx, path, c, input, mode)
+	w, e := (backendsetup.Provisioner{GraphFactory: b.backendGraphFactory}).ProvisionMode(ctx, path, c, input, mode)
 	if e != nil {
 		return b.failed(e)
 	}

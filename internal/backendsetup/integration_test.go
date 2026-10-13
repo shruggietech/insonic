@@ -1,7 +1,6 @@
 //go:build integration
 
 // SPDX-License-Identifier: Apache-2.0
-//
 package backendsetup
 
 import (
@@ -59,7 +58,7 @@ func TestPostgresInitialCredentialBootstrapAndReadOnlyPreflight(t *testing.T) {
 	if e = conn.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname=$1)", schema).Scan(&exists); e != nil || exists {
 		t.Fatal("probe provisioned schema", e)
 	}
-	w, e := ProvisionMode(ctx, root, c, input, "session")
+	w, e := (Provisioner{GraphFactory: fixtureFactory}).ProvisionMode(ctx, root, c, input, "session")
 	if e != nil || w.Config.Profiles.Catalog.Configuration["credential_id"] != id {
 		t.Fatal(w, e)
 	}

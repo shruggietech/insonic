@@ -36,6 +36,9 @@ type arcadeSession struct {
 var databaseName = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]{0,63}$`)
 
 func OpenArcade(c ArcadeConfig, p contracts.SecretProvider) (Adapter, error) {
+	return OpenArcadeContext(context.Background(), c, p)
+}
+func OpenArcadeContext(ctx context.Context, c ArcadeConfig, p contracts.SecretProvider) (Adapter, error) {
 	u, e := url.Parse(c.Endpoint)
 	if e != nil || !u.IsAbs() || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || (u.Scheme != "https" && u.Scheme != "http") || !databaseName.MatchString(c.Database) {
 		return nil, contracts.Fail("invalid_request")
@@ -51,7 +54,7 @@ func OpenArcade(c ArcadeConfig, p contracts.SecretProvider) (Adapter, error) {
 	}
 	client := &http.Client{Timeout: 20 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	e2 := &arcadeEngine{config: c, provider: p, client: client}
-	return &adapter{engine: e2, backend: "arcadedb", version: e2.version(context.Background())}, nil
+	return &adapter{engine: e2, backend: "arcadedb", version: e2.version(ctx)}, nil
 }
 func (e *arcadeEngine) Close() { e.client.CloseIdleConnections() }
 func (e *arcadeEngine) call(ctx context.Context, route string, body any, sessionID string) (Rows, string, error) {

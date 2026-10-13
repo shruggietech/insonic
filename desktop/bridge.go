@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/credentialcmd"
+	"github.com/shruggietech/insonic/internal/graph"
 	local "github.com/shruggietech/insonic/internal/runtime"
 	"github.com/shruggietech/insonic/internal/secrets"
 	"github.com/shruggietech/insonic/internal/workspace"
@@ -23,16 +24,17 @@ import (
 var Assets embed.FS
 
 type Bridge struct {
-	operations     map[string]context.CancelFunc
-	mu             sync.RWMutex
-	tickets        map[string]playbackTicket
-	playbackOrigin string
-	pick           func(string) (string, error)
-	playbackCall   func(*workspace.Workspace, contracts.Request) contracts.Response
-	qualification  map[string]any
-	Workspace      *workspace.Workspace
-	CLIExecutable  string
-	SmokeResult    func(contracts.Response)
+	backendGraphFactory graph.Factory // explicit deterministic bootstrap fixtures only
+	operations          map[string]context.CancelFunc
+	mu                  sync.RWMutex
+	tickets             map[string]playbackTicket
+	playbackOrigin      string
+	pick                func(string) (string, error)
+	playbackCall        func(*workspace.Workspace, contracts.Request) contracts.Response
+	qualification       map[string]any
+	Workspace           *workspace.Workspace
+	CLIExecutable       string
+	SmokeResult         func(contracts.Response)
 }
 
 func (b *Bridge) CompleteSmoke(response contracts.Response) {

@@ -33,12 +33,12 @@ export function BackendSetup({bridge,run,path,name,onConfigured}:{bridge:NativeB
    {(p.configuration.authentication==='credential'||credential[role])&&<>
     <p>Enter new values for this role. An opaque reference is generated automatically; values are sent through the protected native channel and cleared after each attempt.</p>
     <Input label={role+' credential reference (optional existing ID)'} value={p.configuration.credential_id??''} onChange={v=>update(role,'credential_id',v)}/>
-    {(p.adapter_id==='s3'?['access_key','secret_key','session_token']:['username','password']).map(key=><Input key={key} label={role+' credential '+key.replaceAll('_',' ')} type={key==='username'?'text':'password'} value={secrets[role]?.[key]??''} onChange={v=>{invalidate();setSecrets(x=>({...x,[role]:{...x[role],[key]:v}}))}}/>)}</>}
+    {(p.adapter_id==='s3'?['access_key','secret_key','session_token']:['username','password']).map(key=><Input key={key} label={role+' credential '+key.replaceAll('_',' ')} type={key==='username'?'text':'password'} value={secrets[role]?.[key]??''} onChange={v=>{cancel();setReport(undefined);setSecrets(x=>({...x,[role]:{...x[role],[key]:v}}))}}/>)}</>}
    {p.adapter_id==='sqlite'&&<p>SQLite WAL requires same-host storage and shared memory. Remote media can use S3; PostgreSQL supports a connected catalog.</p>}
    {p.adapter_id==='postgresql'&&<p>verify-full checks certificate and hostname. local is a loopback address or Unix socket. insecure explicitly elects remote plaintext.</p>}
   </fieldset>)}
   <Select label="Bootstrap credential storage" value={mode} options={['native','vault','session']} onChange={v=>{invalidate();setMode(v);setPass('')}}/>
-  {mode==='vault'&&<Input label="Bootstrap vault passphrase" type="password" value={pass} onChange={v=>{invalidate();setPass(v)}}/>}
+  {mode==='vault'&&<Input label="Bootstrap vault passphrase" type="password" value={pass} onChange={v=>{cancel();setReport(undefined);setPass(v)}}/>}
   <p>Native/vault registration is separate from successful provider authentication. Session values last in the runtime owner; supply them again after restart.</p>
   <Actions><Button onClick={()=>perform('plan')}>Prepare backend plan</Button><Button onClick={()=>perform('preflight')}>Preflight selected backends</Button><Button onClick={()=>perform('provision')}>Create configured workspace</Button><Button variant="secondary" onClick={cancel}>Cancel backend operation</Button></Actions>
   {plan&&<details><summary>Prepared nonsecret backend plan</summary><Facts value={plan}/></details>}{report&&<><h3>Backend readiness</h3><Facts value={report}/></>}

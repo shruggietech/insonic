@@ -60,7 +60,11 @@ func Preflight(ctx context.Context, root string, c workspace.Config, p contracts
 			}
 			target, _ := entry.profile.Configuration[key].(string)
 			if !filepath.IsAbs(target) {
-				target = filepath.Join(w.Control, target)
+				base := w.Control
+				if entry.profile.Adapter == "ladybugdb" {
+					base = w.Root
+				}
+				target = filepath.Join(base, target)
 			}
 			st, err := os.Stat(target)
 			if err == nil {

@@ -6,6 +6,8 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/graph"
+	"github.com/shruggietech/insonic/internal/workspace"
 	"os"
 	"path/filepath"
 	"testing"
@@ -47,17 +49,17 @@ func TestPreflightDoesNotCreateAndCancellation(t *testing.T) {
 func TestProvisionRetryAndPreservation(t *testing.T) {
 	c, _ := Build([]byte("{\"display_name\":\"Test\"}"))
 	root := t.TempDir()
-	w, e := Provision(context.Background(), root, c, nil)
+	w, e := provisionFixture(context.Background(), root, c, nil)
 	if e != nil {
 		t.Fatal(e)
 	}
 	old, _ := os.ReadFile(filepath.Join(w.Control, "workspace.json"))
-	again, e := Provision(context.Background(), root, c, nil)
+	again, e := provisionFixture(context.Background(), root, c, nil)
 	if e != nil || again.Config.WorkspaceID != w.Config.WorkspaceID {
 		t.Fatal("retry", e)
 	}
 	c.DisplayName = "Changed"
-	if _, e = Provision(context.Background(), root, c, nil); e == nil {
+	if _, e = provisionFixture(context.Background(), root, c, nil); e == nil {
 		t.Fatal("replaced config")
 	}
 	now, _ := os.ReadFile(filepath.Join(w.Control, "workspace.json"))
@@ -84,5 +86,68 @@ func TestAllBackendPlanFieldsAndCorrections(t *testing.T) {
 	out, _ := json.Marshal(Failure(e))
 	if !bytes.Contains(out, []byte("field_errors")) || bytes.Contains(out, []byte("secret-value")) {
 		t.Fatal(string(out))
+	}
+}
+
+func TestPendingPlanConflictAfterBackendMutation(t *testing.T) {
+	c, _ := Build([]byte("{\"display_name\":\"Pending\"}"))
+	root := t.TempDir()
+	svc := Provisioner{GraphFactory: func(context.Context, *workspace.Workspace, contracts.SecretProvider) (graph.Adapter, error) {
+		return nil, contracts.Fail("unavailable")
+	}}
+	if _, e := svc.ProvisionMode(context.Background(), root, c, nil, "native"); e == nil {
+		t.Fatal("graph failure accepted")
+	}
+	if _, e := os.Stat(filepath.Join(root, ".insonic", "catalog.sqlite")); e != nil {
+		t.Fatal("did not exercise post-catalog failure", e)
+	}
+	different, _ := Build([]byte("{\"display_name\":\"Different\"}"))
+	if _, e := svc.ProvisionMode(context.Background(), root, different, nil, "native"); e == nil || contracts.SafeError(e).Code != "conflict" {
+		t.Fatal("changed pending identity admitted", e)
+	}
+	if _, e := os.Stat(filepath.Join(root, ".insonic", "workspace.json")); !os.IsNotExist(e) {
+		t.Fatal("failed graph published config")
+	}
+}
+
+func TestGraphSchemaOwnerAndVersionBeforePublication(t *testing.T) {
+	for _, phase := range []string{"open", "schema", "bind", "version"} {
+		t.Run(phase, func(t *testing.T) {
+			c, _ := Build([]byte("{\"display_name\":\"Graph fixture\"}"))
+			root := t.TempDir()
+			g := &fixtureGraph{version: "actual"}
+			svc := Provisioner{GraphFactory: func(context.Context, *workspace.Workspace, contracts.SecretProvider) (graph.Adapter, error) {
+				if phase == "open" {
+					return nil, contracts.Fail("unavailable")
+				}
+				return g, nil
+			}}
+			if phase == "schema" {
+				g.schemaErr = contracts.Fail("operation_failed")
+			}
+			if phase == "bind" {
+				g.bindErr = contracts.Fail("conflict")
+			}
+			if phase == "version" {
+				c.Profiles.Graph.ExpectedBackendVersion = "expected"
+			}
+			if _, e := svc.ProvisionMode(context.Background(), root, c, nil, "native"); e == nil {
+				t.Fatal("graph failure reported success")
+			}
+			if _, e := os.Stat(filepath.Join(root, ".insonic", "workspace.json")); !os.IsNotExist(e) {
+				t.Fatal("published before graph readiness")
+			}
+			if phase != "open" && !g.closed {
+				t.Fatal("graph handle leaked")
+			}
+		})
+	}
+	c, _ := Build([]byte("{\"display_name\":\"Graph success\"}"))
+	g := &fixtureGraph{version: "actual"}
+	svc := Provisioner{GraphFactory: func(context.Context, *workspace.Workspace, contracts.SecretProvider) (graph.Adapter, error) {
+		return g, nil
+	}}
+	if _, e := svc.ProvisionMode(context.Background(), t.TempDir(), c, nil, "native"); e != nil || !g.initialized || g.bound != c.WorkspaceID || !g.closed {
+		t.Fatal(g, e)
 	}
 }

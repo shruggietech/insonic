@@ -8,6 +8,8 @@ import (
 	"github.com/shruggietech/insonic/internal/credentialcmd"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -60,5 +62,25 @@ func TestArcadePreflightNoProvisioningOrSecretEcho(t *testing.T) {
 		if p != "GET /api/v1/exists/fixture" {
 			t.Fatal("unexpected request", p)
 		}
+	}
+}
+
+func TestArcadeAuthenticationFailureCannotPublishProvisionedConfig(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { http.Error(w, "private-provider-rejection", 401) }))
+	defer server.Close()
+	id := contracts.ID()
+	raw, _ := json.Marshal(map[string]any{"display_name": "Rejected graph", "profiles": map[string]any{"graph": map[string]any{"adapter_id": "arcadedb", "configuration": map[string]any{"endpoint": server.URL, "database": "fixture", "credential_id": id}}}})
+	c, e := Build(raw)
+	if e != nil {
+		t.Fatal(e)
+	}
+	input := &credentialcmd.Input{Session: map[string][]byte{id: []byte("{\"username\":\"fixture\",\"password\":\"wrong\"}")}}
+	defer input.Close()
+	root := t.TempDir()
+	if _, e = ProvisionMode(context.Background(), root, c, input, "session"); e == nil {
+		t.Fatal("bad graph authenticated")
+	}
+	if _, e = os.Stat(filepath.Join(root, ".insonic", "workspace.json")); !os.IsNotExist(e) {
+		t.Fatal("published rejected graph")
 	}
 }

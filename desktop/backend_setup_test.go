@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/graph"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"os"
 	"path/filepath"
@@ -17,7 +18,9 @@ func TestBackendBootstrapParityAndFailurePreservesSelection(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	b := &Bridge{Workspace: old}
+	b := &Bridge{Workspace: old, backendGraphFactory: func(context.Context, *workspace.Workspace, contracts.SecretProvider) (graph.Adapter, error) {
+		return &bootstrapGraph{}, nil
+	}}
 	planned := b.BackendSetup("plan", "", "{\"kind\":\"backend-plan\",\"display_name\":\"Configured\"}", "{}", "native", contracts.ID())
 	if planned.Error != nil {
 		t.Fatal(planned.Error)
@@ -68,3 +71,12 @@ func TestOperationCancellationOwnsUnderlyingContext(t *testing.T) {
 		t.Fatal("duplicate ownership")
 	}
 }
+
+type bootstrapGraph struct{ graph.Adapter }
+
+func (*bootstrapGraph) Capabilities() map[string]any {
+	return map[string]any{"backend_version": "fixture"}
+}
+func (*bootstrapGraph) EnsureSchema(context.Context) error          { return nil }
+func (*bootstrapGraph) BindWorkspace(context.Context, string) error { return nil }
+func (*bootstrapGraph) Close()                                      {}

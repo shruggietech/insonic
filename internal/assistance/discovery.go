@@ -172,8 +172,16 @@ func (a Ollama) Discover(ctx context.Context, in DiscoveryInput, c Config) (Disc
 			selected = c.Model
 		}
 		info, e := a.Inspect(ctx, candidate.Endpoint, id, selected)
+		if info.Version != "" {
+			candidate.Running = true
+			candidate.Reachable = true
+			candidate.Info = &info
+		}
 		if e != nil {
 			candidate.ProbeState = "unavailable"
+			if candidate.Reachable {
+				candidate.ProbeState = "metadata-failed"
+			}
 			candidate.Correction = contracts.SafeError(e).Message
 			if ctx.Err() != nil {
 				return out, contracts.Fail("cancelled")

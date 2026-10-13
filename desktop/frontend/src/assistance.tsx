@@ -9,7 +9,7 @@ const defaults:Obj={enabled:false,adapter:'insonic-http',contract_version:'1',ro
 export function Assistance({client,run,fence,currentQuery,adopt,executed}:{client:Client;run:Run;fence:RefObject<number>;currentQuery:()=>Obj;adopt:(q:Obj)=>void;executed:(out:Obj)=>void}){
  const [config,setConfig]=useState<Obj>(defaults),[revision,setRevision]=useState(0),[prompt,setPrompt]=useState(''),[limits,setLimits]=useState(JSON.stringify(defaults.limits,null,2)),[excerpt,setExcerpt]=useState(false),[proposal,setProposal]=useState<Obj>(),[pending,setPending]=useState(false);
  const [discovery,setDiscovery]=useState<Obj>(),[test,setTest]=useState<Obj>(),[token,setToken]=useState('');
- const abort=useRef<AbortController>();
+ const abort=useRef<AbortController|undefined>(undefined);
  const ownership=useRef(0),alive=useRef(true);
  useEffect(()=>{const request=ownership.current;run(async()=>{const out=await client.call('query.assistance-show');if(!alive.current||request!==ownership.current)return;setConfig(out.configuration??defaults);setRevision(out.revision??0);setLimits(JSON.stringify(out.configuration?.limits??defaults.limits,null,2))});return()=>{alive.current=false;ownership.current++;abort.current?.abort()}},[]);
  const invalidate=()=>{ownership.current++;abort.current?.abort();setPending(false);setTest(undefined)};

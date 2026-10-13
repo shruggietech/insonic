@@ -9,6 +9,7 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/credentialcmd"
+	"github.com/shruggietech/insonic/internal/graph"
 	"github.com/shruggietech/insonic/internal/secrets"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"os"
@@ -20,7 +21,13 @@ import (
 func Provision(ctx context.Context, root string, c workspace.Config, input *credentialcmd.Input) (*workspace.Workspace, error) {
 	return ProvisionMode(ctx, root, c, input, "native")
 }
+
+type Provisioner struct{ GraphFactory graph.Factory }
+
 func ProvisionMode(ctx context.Context, root string, c workspace.Config, input *credentialcmd.Input, mode string) (*workspace.Workspace, error) {
+	return (Provisioner{}).ProvisionMode(ctx, root, c, input, mode)
+}
+func (svc Provisioner) ProvisionMode(ctx context.Context, root string, c workspace.Config, input *credentialcmd.Input, mode string) (*workspace.Workspace, error) {
 	if mode != "native" && mode != "vault" && mode != "session" {
 		return nil, contracts.Fail("invalid_request")
 	}
@@ -73,11 +80,16 @@ func ProvisionMode(ctx context.Context, root string, c workspace.Config, input *
 	if _, e = os.Lstat(filepath.Join(w.Control, "workspace.json")); !os.IsNotExist(e) {
 		return nil, contracts.Fail("conflict")
 	}
+	if e = retainIntent(w, mode); e != nil {
+		return nil, e
+	}
 	var provider *secrets.Manager
 	needs := false
+	references := map[string]bool{}
 	for _, p := range []workspace.Profile{c.Profiles.Storage, c.Profiles.Catalog, c.Profiles.Graph} {
 		if id, _ := p.Configuration["credential_id"].(string); id != "" {
 			needs = true
+			references[id] = true
 		}
 	}
 	if needs || input != nil {
@@ -95,12 +107,20 @@ func ProvisionMode(ctx context.Context, root string, c workspace.Config, input *
 		defer provider.Close()
 		if input != nil {
 			for id, value := range input.Session {
+				if !references[id] {
+					return nil, contracts.Fail("invalid_request")
+				}
 				if e = provider.Add(ctx, id, value); e != nil {
 					old, err := provider.Resolve(ctx, id)
 					same := err == nil && bytes.Equal(old, value)
 					clear(old)
 					if !same {
-						return nil, e
+						if err != nil {
+							return nil, e
+						}
+						if e = provider.Replace(ctx, id, value); e != nil {
+							return nil, e
+						}
 					}
 				}
 			}
@@ -119,6 +139,11 @@ func ProvisionMode(ctx context.Context, root string, c workspace.Config, input *
 		return nil, e
 	}
 	defer artifacts.Close()
+	g, e := graph.Initialize(ctx, w, provider, svc.GraphFactory)
+	if e != nil {
+		return nil, e
+	}
+	defer g.Close()
 	if ctx.Err() != nil {
 		return nil, contracts.Fail("cancelled")
 	}

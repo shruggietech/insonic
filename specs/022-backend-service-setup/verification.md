@@ -16,3 +16,11 @@
 ## Remaining external acceptance
 
 Exact-head CI, live alternative-backend qualification and up to two review rounds follow PR publication. No merge/tag/release is authorized by this slice. Real-model inference and attended native GUI behavior are not claimed by deterministic protocol/rendered tests.
+
+## 2026-10-13: First external review and CI correction
+
+Initial head 888c541 received three code review findings. Regression tests reproduce premature graph publication, lost pending identity after backend mutation and lost version/reachability evidence after metadata failure. The selected graph now shares runtime initialization, with schema/owner/version checks before publication; pending intent binds the directory before mutations; partial metadata reports retain observed running/reachable state. Explicit test-only factories isolate untagged unit tests; the tagged native test exercises real Ladybug initialization.
+
+Initial Linux desktop CI caught the omitted cancellation ref initializer. Fixed the ref and added the configured frontend TypeScript check to local verification; type checking and rendered tests pass.
+
+Post-remediation full Go tests/vet, repository checks/tests, configured frontend type check/rendered tests and site build pass. Tagged native qualification now includes backendsetup so the real selected Ladybug graph bootstrap test runs in CI. Initial run 38371824332 passed live adapter fixtures, including credential-before-PostgreSQL and non-mutating catalog preflight. Final-head qualification follows the correction push.

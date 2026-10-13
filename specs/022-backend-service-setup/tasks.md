@@ -59,3 +59,10 @@ Parallel examples: independent backend unit fixtures and Ollama protocol fixture
 
 - [x] T019 Use the existing opaque-origin UUID helper for cancellable client request identity in desktop/frontend/src/client.ts per FR-002/016 (partial, HIGH).
 - [x] T020 Reuse shared backend definitions in schemas/v1.0.1/backend-plan.schema.json and update the explicit registered contract count in tests/schemas.test.mjs per FR-014/015 (partial, MEDIUM).
+
+## Phase 9: Review remediation
+
+- [x] T021 Initialize the selected graph/schema/owner/version before config publication and share runtime construction in internal/graph/initialize.go per FR-002/005 and review discussion_r4256618070.
+- [x] T022 Persist and enforce a private pending plan/credential-backend identity before backend mutation in internal/backendsetup/intent.go per FR-005 and review discussion_r4256618082.
+- [x] T023 Preserve successful version/reachability evidence when later model metadata fails in internal/assistance/discovery.go per FR-009/013 and review discussion_r4256618087.
+- [x] T024 Correct cancellation ref initialization in desktop/frontend/src/assistance.tsx and run the configured frontend type check per FR-015/016 and initial CI failure.
