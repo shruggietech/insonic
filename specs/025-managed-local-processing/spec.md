@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-13
 
-**Status**: Implemented, awaiting external CI/reviews
+**Status**: Ready for owner final review and squash merge
 
 **Input**: S025 completes GitHub issue #69 under authorized autopilot, including automatic PR publication and at most two external review rounds.
 

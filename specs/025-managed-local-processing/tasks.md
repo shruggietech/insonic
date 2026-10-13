@@ -44,7 +44,7 @@
 - [x] T023 Run root/frontend/Python/Go/schema/site/public/offline checks and record evidence in specs/025-managed-local-processing/verification.md per FR-018/019 and SC-001/006.
 - [x] T024 Run owned opt-in actual CPU engine/profile qualification, distinguish unexecuted combinations and record evidence in specs/025-managed-local-processing/verification.md per FR-018/019.
 - [x] T025 Converge against all scenarios/requirements and append any gaps to specs/025-managed-local-processing/tasks.md before publication.
-- [ ] T026 Commit/push, publish official PR, resolve all comments in at most two rounds and verify final-head green CI/review threads in specs/025-managed-local-processing/verification.md.
+- [x] T026 Commit/push, publish official PR, resolve all comments in at most two rounds and verify final-head green CI/review threads in specs/025-managed-local-processing/verification.md.
 
 ## Dependencies and implementation strategy
 
@@ -58,7 +58,7 @@ Setup -> shared identities -> US1. US2 retains existing acquisition and can be d
 
 ## Implementation evidence notes
 
-T010 is satisfied by the shared processing adapter receipt check, which also covers the existing app speaker-profile embedding/training bridge; no duplicate check was added to the custom adapter. T019 lives in desktop/frontend/tests/workers.test.mjs and workers-ui.test.mjs under the existing frontend build harness. T027 uses internal/workers/platform.go with a runtime platform selector rather than duplicated platform files. T023/T024 evidence is recorded in verification.md; T026 remains open until final-head CI and external reviews complete.
+T010 is satisfied by the shared processing adapter receipt check, which also covers the existing app speaker-profile embedding/training bridge; no duplicate check was added to the custom adapter. T019 lives in desktop/frontend/tests/workers.test.mjs and workers-ui.test.mjs under the existing frontend build harness. T027 uses internal/workers/platform.go with a runtime platform selector rather than duplicated platform files. T023/T024 evidence is recorded in verification.md; T026 is complete: both authorized reviews and all four findings are closed; the full implementation CI passes, with completion-record checks verified in the PR.
 
 ## Phase 8: Initial external review
 

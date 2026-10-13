@@ -31,7 +31,7 @@ The opt-in qualify-processing.py harness then executed both licensed speech/dial
 
 Actual Linux model execution, CUDA execution, new-model upstream gated authentication and a locally attended native GUI journey were not performed. Deterministic fixtures cover credential transport/redaction, official CDN bounds, local linked snapshot reuse, frozen storage, portable recovery, cancellation/revision authority, changed bytes and package closure. Alternative-backend/native/package CI and every external review thread must pass on the final PR head before owner handoff. No separate security-bot verdict is inferred from a code-review result.
 
-Publication and final-head CI/review evidence will be added to the PR and this record after it arrives.
+Publication and exact final completion-head checks are recorded in the official PR.
 
 ## Initial external review
 
@@ -40,3 +40,13 @@ Official PR #90 opened at 1ef0cdb27d7408f718099e48fa389ee451ebfef5. The automati
 ## Final external review
 
 The one authorized second-round request used @codex security review on 81ea8ad256f251b5ec3075a5519972d813b171ac. The service reported it as Code Review, completed at 2026-10-13 18:47 UTC; no separate security-service verdict is asserted. It returned two P2 findings: archive substitution between path verification/extraction (r4262667308) and managed-space requirements incorrectly applied to reuse (r4262667323). Both are fixed and regression-tested. Archives now copy/hash into an owned attempt before extraction, and reuse uses a 32 MiB receipt/probe budget in plan and execution. No third review will be requested.
+
+## Final implementation and owner handoff
+
+Final implementation head d1c174ca75942fa8401af693bd50a92bcc3b0dcd passes CI run [38450639383](https://github.com/shruggietech/insonic/actions/runs/38450639383): 18 successful checks and 14 intentional cached-stage/lane skips. Both platform core/native engine/desktop lanes, live PostgreSQL/S3/ArcadeDB fixtures, all four package variants and exact-source/attempt candidate integrity pass. Earlier complete runs also passed on 1ef0cdb and 81ea8ad. Completion records alone are committed subsequently; their exact-head checks and clean synchronization are verified in PR #90 before handoff.
+
+The corrected native Windows CLI then performed actual offline managed recognition setup from the declared local archive/wheel bundle in a second disposable library. The successful wait was 9.626 seconds, with no elected network acquisition. Its compatible existing-interpreter preview reports exactly 33,554,432 required bytes and zero download bytes. This directly exercises the owned archive snapshots and corrected reuse budget.
+
+Both authorized rounds are complete. All four findings are fixed, answered and resolved: initial capacity/access replies r4262612723/r4262613122 and final archive/reuse replies r4262755560/r4262756034. The complete review-thread query has no further pages and zero unresolved threads. No third review was requested. The security request was reported by the service as Code Review; no separate security-service verdict is asserted.
+
+All 33 tasks are complete. PR #90 remains open for owner final review and squash merge with branch deletion. No merge, tag, product release or deployment is performed. The software/docs/schema version remains candidate 1.0.1.
