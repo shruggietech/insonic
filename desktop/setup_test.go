@@ -10,7 +10,9 @@ import (
 )
 
 func TestNativeSetupDraftUsesSharedStore(t *testing.T) {
-	t.Setenv("APPDATA", t.TempDir())
+	profile := t.TempDir()
+	t.Setenv("APPDATA", profile)
+	t.Setenv("XDG_CONFIG_HOME", profile)
 	b := &Bridge{}
 	target := filepath.Join(t.TempDir(), "fresh library")
 	raw, _ := json.Marshal(firstsetup.BootstrapInput{Path: target, Plan: json.RawMessage(`{"display_name":"Fixture"}`), Stage: "workspace", Status: "active"})

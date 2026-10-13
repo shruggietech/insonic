@@ -282,3 +282,38 @@ func TestBootstrapRejectsNonPrivateDirectory(t *testing.T) {
 		t.Fatal("rejected store persisted data")
 	}
 }
+
+func TestBootstrapAcceptanceWaitsForPublicationBarrierAndReplaysFailure(t *testing.T) {
+	directory := privateStoreDirectory(t)
+	target := filepath.Join(t.TempDir(), "library")
+	id := contracts.ID()
+	raw := draftInput(t, target, 0)
+	calls := 0
+	fail := true
+	s := Store{Directory: directory, durability: func(path string) error {
+		calls++
+		stored, e := os.ReadFile(filepath.Join(path, "setup-draft.json"))
+		if e != nil {
+			t.Fatal("barrier ran before publication", e)
+		}
+		var record storedDraft
+		if json.Unmarshal(stored, &record) != nil || record.Draft.Revision != 1 || len(record.Receipts) != 1 {
+			t.Fatal("barrier missed accepted draft/receipt")
+		}
+		if fail {
+			return os.ErrPermission
+		}
+		return nil
+	}}
+	if _, e := s.Save(context.Background(), id, raw); e == nil {
+		t.Fatal("accepted before publication became durable")
+	}
+	if calls != 1 {
+		t.Fatal("missing publication barrier")
+	}
+	fail = false
+	replayed, e := s.Save(context.Background(), id, raw)
+	if e != nil || replayed.AcceptedRevision != 1 || replayed.Revision != 1 || calls != 2 {
+		t.Fatalf("barrier replay %+v %v calls=%d", replayed, e, calls)
+	}
+}

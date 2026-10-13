@@ -228,7 +228,10 @@ type storedDraft struct {
 	Draft    Draft              `json:"draft"`
 	Receipts []bootstrapReceipt `json:"receipts"`
 }
-type Store struct{ Directory string }
+type Store struct {
+	Directory  string
+	durability func(string) error
+}
 
 func (s Store) read() (storedDraft, error) {
 	out := storedDraft{Draft: Draft{Kind: "setup-bootstrap", Version: contracts.Version, Stage: "workspace", Status: "active"}}
@@ -347,6 +350,9 @@ func (s Store) Save(ctx context.Context, id string, raw []byte) (Draft, error) {
 			if r.Digest != digest {
 				return Draft{}, contracts.Fail("conflict")
 			}
+			if e = s.persistPublication(); e != nil {
+				return Draft{}, contracts.Fail("unavailable")
+			}
 			current.Draft.AcceptedRevision = r.Revision
 			current.Draft.Location, e = Preview(current.Draft.Path)
 			return current.Draft, e
@@ -426,11 +432,21 @@ func (s Store) Save(ctx context.Context, id string, raw []byte) (Draft, error) {
 		e = closeErr
 	}
 	if e == nil {
-		e = os.Rename(name, filepath.Join(s.Directory, "setup-draft.json"))
+		e = replaceDraft(name, filepath.Join(s.Directory, "setup-draft.json"))
 	}
 	if e != nil {
 		return Draft{}, contracts.Fail("unavailable")
 	}
+	if e = s.persistPublication(); e != nil {
+		return Draft{}, contracts.Fail("unavailable")
+	}
 	out.AcceptedRevision = revision
 	return out, nil
+}
+
+func (s Store) persistPublication() error {
+	if s.durability != nil {
+		return s.durability(s.Directory)
+	}
+	return syncPublication(s.Directory)
 }
