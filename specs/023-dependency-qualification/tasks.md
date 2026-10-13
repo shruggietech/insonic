@@ -32,12 +32,12 @@ Independent test: real pipe/file terminal detection, ordinary runtime/credential
 Independent test: locked clean installation exports complete public/offline documentation, historical resources and truthful elected candidate/release identity.
 
 - [x] T010 [US3] Import exact renderer election into site/package.json and site/package-lock.json and install with npm ci --ignore-scripts (FR-001/006/007).
-- [ ] T011 [US3] Qualify public/offline/release-target exports and read-only historical Pages retention using site build/check, tests/site-release.test.mjs and tests/pages_test.py without publishing (FR-006/007/008).
+- [x] T011 [US3] Qualify public/offline/release-target exports and read-only historical Pages retention using site build/check, tests/site-release.test.mjs and tests/pages_test.py without publishing (FR-006/007/008).
 - [x] T012 [US3] Clarify source/release-target status in site/README.md and current four-package dependency guidance in docs/v1.0.1/development.md; keep frozen 1.0.0 bytes intact (FR-006/007).
 
 ## Phase 6: Verification and publication
 
-- [ ] T013 Append dependency/process decisions to CHANGELOG.md and inspect all owned requested-version references; run full local repository/product/frontend/site/Python checks and converge requirements in specs/023-dependency-qualification/verification.md (FR-007/008/010).
+- [x] T013 Append dependency/process decisions to CHANGELOG.md and inspect all owned requested-version references; run full local repository/product/frontend/site/Python checks and converge requirements in specs/023-dependency-qualification/verification.md (FR-007/008/010).
 - [ ] T014 Commit/push and open the official consolidation PR, linking #84 and originals #77-#83; update GitHub tracking, respond/resolve every finding in at most two rounds, verify exact final-head full CI and stop for owner merge (FR-009/010).
 
 ## Dependencies and implementation strategy
@@ -45,3 +45,7 @@ Independent test: locked clean installation exports complete public/offline docu
 T001 -> T002 -> US1 -> US2 -> US3 -> T013/T014. Shared workflow changes occur sequentially. Each story has independent fixtures, but the authorized done-gate includes all seven updates and full qualification, not an isolated MVP. Tests precede their corresponding implementation. Original bot PRs remain open until consolidation merge.
 
 Parallel validation examples: repository checks/tests, runtime tests/vet, frontend tests and site export can run independently through verified hidden foreground child launches. Existing source/cache/candidate negative tests cover original-source identities, archive digests, compiler/recipe receipts and complete source/attempt matrices. Required CI includes actual Windows/Linux packages and backend fixtures; local test passes alone do not constitute qualification.
+
+## Phase 7: Convergence
+
+- [x] T015 Retain historical flat Next segment URLs through exact nested counterparts beside the same verified page in scripts/pages.py, with positive and missing-page/segment negative fixtures in tests/pages_test.py (FR-006, US3/AC2; partial gap discovered against live Pages).

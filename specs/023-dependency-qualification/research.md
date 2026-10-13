@@ -47,3 +47,7 @@ The installed checklist helper required plan.md, so plan template setup preceded
 ## Source review inspection
 
 2026-10-13: All seven captured source commits were inspected and imported preserving bot authorship. GitHub confirms all seven heads still match the elections above and all seven original PRs have zero review threads. Issue #84 is linked to Project 7, Slice S023, In progress.
+
+## Renderer export qualification discovery
+
+2026-10-13: The actual clean release-target 16.4 export returned nested segment paths. Current gh-pages contains 50 corresponding flat historical paths not covered by the prior one-direction mapping. Added the inverse exact-name mapping with the same adjacent-page, collision, count and byte limits. Regression failed on the prior implementation and passed after correction; read-only preparation retains all 319 historical docs/schema paths. No deployment was performed.

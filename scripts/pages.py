@@ -102,18 +102,21 @@ def prepare_tree(archive_path, destination, version, revision):
         raise ValueError('Pages archive static marker differs')
     historical = {name for name in destination['entries'] if name.startswith(('docs/v', 'schemas/v'))}
     for name in sorted(historical - files.keys()):
-        # Next's segment export changed from nested paths to flat filenames.
-        # Keep the old URL only when its exact replacement exists in the
-        # verified archive beside the same public page. No old remote bytes
-        # or guessed replacement content enter the deployment tree.
+        # Next's segment export uses both nested paths and flat filenames
+        # across renderer versions. Keep the old URL only when its exact
+        # counterpart exists beside the same verified public page.
         parts = PurePosixPath(name).parts
         segment = next((index for index, part in enumerate(parts) if part.startswith('__next.')), None)
         replacement = None
-        if (name.startswith('docs/v') and segment is not None and segment >= 2
-                and segment < len(parts) - 1 and parts[-1] == '__PAGE__.txt'):
+        if name.startswith('docs/v') and segment is not None and segment >= 2:
             directory = '/'.join(parts[:segment])
             if directory + '/index.html' in files:
-                replacement = directory + '/' + '.'.join(parts[segment:])
+                if segment < len(parts) - 1 and parts[-1] == '__PAGE__.txt':
+                    replacement = directory + '/' + '.'.join(parts[segment:])
+                elif segment == len(parts) - 1 and parts[-1].endswith('.__PAGE__.txt'):
+                    tokens = parts[-1].removesuffix('.__PAGE__.txt').split('.')
+                    if len(tokens) >= 2 and all(tokens):
+                        replacement = directory + '/' + '.'.join(tokens[:2]) + '/' + '/'.join(tokens[2:] + ['__PAGE__.txt'])
         if replacement not in files:
             raise ValueError('Pages archive would remove historical version routes')
         if name.casefold() in aliases:

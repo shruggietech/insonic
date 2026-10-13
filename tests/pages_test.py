@@ -131,7 +131,8 @@ class PagesTransportTests(unittest.TestCase):
 
     def test_history_compatibility_does_not_ignore_missing_pages_schemas_or_segments(self):
         for name in ['docs/v0.0.0/removed/index.html', 'schemas/v0.0.0/removed.json',
-                     'docs/v0.0.0/__next.docs/$d$unknown/__PAGE__.txt']:
+                     'docs/v0.0.0/__next.docs/$d$unknown/__PAGE__.txt',
+                     'docs/v0.0.0/__next.docs.$d$unknown.__PAGE__.txt']:
             with self.subTest(name=name):
                 api = PagesFixture()
                 api.entries.append({'path': name, 'mode': '100644', 'type': 'blob', 'sha': '6' * 40})
@@ -140,6 +141,26 @@ class PagesTransportTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'historical'):
                     pages.prepare_tree(self.archive, destination, '1.0.1', REVISION)
                 self.assertTrue(all(c[0] == 'GET' for c in api.calls))
+
+    def test_historical_flat_next_segments_require_exact_nested_page_replacements(self):
+        for directory, suffix in [('docs/v0.0.0', '$d$version'),
+                                  ('docs/v1.0.0/architecture', '$d$version.$d$slug'),
+                                  ('docs/v1.0.0/references/contributing-md', '$d$version.references.$d$reference')]:
+            with self.subTest(directory=directory):
+                old = directory + '/__next.docs.' + suffix + '.__PAGE__.txt'
+                replacement = directory + '/__next.docs/' + suffix.replace('.', '/') + '/__PAGE__.txt'
+                self.api = PagesFixture()
+                self.api.entries.append({'path': old, 'mode': '100644', 'type': 'blob', 'sha': '6' * 40})
+                self.files[directory + '/index.html'] = b'checked page'
+                self.files[replacement] = b'verified nested segment'
+                destination, files = self.prepared()
+                self.assertEqual(files[old], self.files[replacement])
+                self.assertTrue(set(destination['entries']).issubset(files))
+                self.assertTrue(all(c[0] == 'GET' for c in self.api.calls))
+                without_page = {name: data for name, data in self.files.items() if name != directory + '/index.html'}
+                self.archive_files(without_page)
+                with self.assertRaisesRegex(ValueError, 'historical'):
+                    pages.prepare_tree(self.archive, destination, '1.0.1', REVISION)
 
     def test_historical_aliases_reject_case_collisions_and_bounded_payload_amplification(self):
         old = 'docs/v0.0.0/__next.docs/$d$version/__PAGE__.txt'
