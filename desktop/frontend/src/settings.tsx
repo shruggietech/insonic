@@ -17,7 +17,7 @@ import { Pager, type Run } from './screens';
 import { ModelSettings } from './model-settings';
 import {BackendSetup} from './backend-setup';
 import {Workers} from './workers';
-type Props = { client: Client; run: Run; appearance: (value: Obj) => void; onWorkspace?:(value:Obj)=>void };
+type Props = { client: Client; run: Run; appearance: (value: Obj) => void; onWorkspace?:(value:Obj)=>void; onSetup?:()=>void };
 function ToolFields({
   label,
   tool,
@@ -60,7 +60,7 @@ function ToolFields({
     </fieldset>
   );
 }
-export function Settings({ client, run, appearance,onWorkspace }: Props) {
+export function Settings({ client, run, appearance,onWorkspace,onSetup }: Props) {
   const [settings, setSettings] = useState<Obj>(),
     [mediaTools, setMediaTools] = useState<Obj>({}),
     [processingTools, setProcessingTools] = useState<Obj>({}),
@@ -181,6 +181,7 @@ export function Settings({ client, run, appearance,onWorkspace }: Props) {
   };
   return (
     <>
+      {onSetup&&<Card heading="Library setup"><p>Reopen the optional journey with accepted choices and current readiness. Existing configuration and work remain available.</p><Button onClick={onSetup}>Reopen setup</Button></Card>}
       <Card heading="Appearance">
         {settings?.sections.appearance.error && (
           <p role="alert">

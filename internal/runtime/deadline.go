@@ -10,7 +10,7 @@ import (
 // OperationTimeout gives bounded configuration, artifact, media and model work enough time for
 // selected storage and tools while retaining each caller's ordinary timeout.
 func OperationTimeout(operation string, ordinary time.Duration) time.Duration {
-	if strings.HasPrefix(operation, "workers.") || operation == "processing.readiness" || operation == "doctor" {
+	if strings.HasPrefix(operation, "workers.") || operation == "processing.readiness" || operation == "setup.readiness" || operation == "doctor" {
 		return 65 * time.Second
 	}
 	if operation == "query.services" {

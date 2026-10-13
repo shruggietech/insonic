@@ -210,6 +210,10 @@
           "title": "CLI invocation and results"
         },
         {
+          "slug": "setup",
+          "title": "Optional first-run setup"
+        },
+        {
           "slug": "product",
           "title": "Product and requirements"
         },

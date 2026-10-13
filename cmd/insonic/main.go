@@ -68,6 +68,9 @@ func execute(args []string) int {
 	if e := activeLog.Write("debug", diagnosticEvent("")); e != nil {
 		return output(nil, e, machine)
 	}
+	if len(positional) >= 2 && positional[0] == "setup" && (positional[1] == "location" || positional[1] == "draft" || positional[1] == "provision") {
+		return setupBootstrapCommand(positional, requestID, machine)
+	}
 	if len(positional) >= 2 && positional[0] == "workspace" && (positional[1] == "plan" || positional[1] == "preflight" || positional[1] == "provision") {
 		return backendCommand(positional, machine)
 	}
@@ -139,7 +142,7 @@ func execute(args []string) int {
 		if err != nil {
 			return output(nil, err, machine)
 		}
-	} else if len(positional) > 1 && contracts.DesktopOperation(positional[0]+"."+positional[1]) {
+	} else if len(positional) > 1 && (contracts.DesktopOperation(positional[0]+"."+positional[1]) || positional[0] == "settings" && positional[1] == "setup") {
 		req.Operation, req.ItemID, req.Data, err = parseDesktopOperation(positional)
 		if err != nil {
 			return output(nil, err, machine)

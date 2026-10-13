@@ -22,12 +22,15 @@ func parseDesktopOperation(args []string) (string, string, json.RawMessage, erro
 		return fail()
 	}
 	op := args[0] + "." + args[1]
+	if op == "settings.setup" {
+		op = "setup.show"
+	}
 	if !contracts.DesktopOperation(op) {
 		return fail()
 	}
 	index := 2
 	item := ""
-	if op != "settings.show" && op != "settings.set" {
+	if op != "settings.show" && op != "settings.set" && op != "setup.show" && op != "setup.save" && op != "setup.readiness" {
 		if len(args) < 3 || !contracts.ValidID(args[2]) {
 			return fail()
 		}

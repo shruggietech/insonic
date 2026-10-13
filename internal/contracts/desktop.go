@@ -3,7 +3,7 @@ package contracts
 
 func DesktopOperation(operation string) bool {
 	switch operation {
-	case "settings.show", "settings.set", "recordings.cues", "media.capture", "media.playback", "media.playback-check", "media.playback-close":
+	case "settings.show", "settings.set", "setup.show", "setup.save", "setup.readiness", "recordings.cues", "media.capture", "media.playback", "media.playback-check", "media.playback-close":
 		return true
 	}
 	return false
@@ -14,9 +14,9 @@ func DesktopRequestValid(req Request) bool {
 		return false
 	}
 	switch req.Operation {
-	case "settings.show":
+	case "settings.show", "setup.show", "setup.readiness":
 		return req.ItemID == "" && len(req.Data) == 0
-	case "settings.set":
+	case "settings.set", "setup.save":
 		return req.ItemID == "" && len(req.Data) > 0
 	case "recordings.cues":
 		return ValidID(req.ItemID)

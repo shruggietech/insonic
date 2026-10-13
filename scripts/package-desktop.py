@@ -856,6 +856,24 @@ def _smoke(archive=None, dirname=None, receipt=None):
             return response.get('result', response)
         media = ROOT / 'tests/fixtures/media'
         try:
+            setup = call('setup', 'show')
+            if setup['revision'] != 0 or setup['state']['choices']['processing_mode'] != 'none':
+                raise ValueError('packaged fresh setup defaults differ')
+            setup_input = Path(temporary) / 'optional setup.json'
+            setup_state = setup['state']
+            setup_state['status'] = 'deferred'
+            for stage in setup_state['stages']:
+                if stage['id'] in ['processing', 'services', 'import']:
+                    stage['state'] = 'skipped'
+                    stage.pop('proof', None)
+            write_json(setup_input, {'expected_revision': setup['revision'], 'state': setup_state})
+            setup_request = str(uuid.uuid4())
+            saved_setup = call('setup', 'save', '--input', setup_input, '--request-id', setup_request)
+            replayed_setup = call('setup', 'save', '--input', setup_input, '--request-id', setup_request)
+            if saved_setup['accepted_revision'] != replayed_setup['accepted_revision'] or call('settings', 'setup')['state']['status'] != 'deferred':
+                raise ValueError('packaged setup save/replay/reopen differs')
+            if len(call('setup', 'readiness')['tasks']) != 5:
+                raise ValueError('packaged independent task readiness missing')
             import_input = Path(temporary) / 'import fixtures.json'
             write_json(import_input, {'kind': 'import-manifest', 'schema_version': VERSION, 'items': [
                 {'source': str(media / 'speech.flac'), 'subtitle': str(media / 'speech.srt'), 'originated_at': '2020-01-01T00:00:00.123456789Z'},
@@ -933,6 +951,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
                     'cli_real_audio_video_import': 'passed', 'recording_replacement': 'passed', 'declared_roster': 'passed', 'cueson_assembly': 'passed', 'native_subtitle_export': 'passed',
                     'gui_bridge': 'passed' if receipt['variant'] == 'desktop' else 'not-included',
                     'native_webview': 'passed' if receipt['variant'] == 'desktop' else 'not-included', 'development_paths': 'not-required',
+                    'optional_setup': 'passed', 'setup_retry_readback': 'passed', 'setup_deferral_preserves_import': 'passed',
                     'partial_date_feedback': 'passed', 'inference': 'not-run', 'elapsed_seconds': round(time.monotonic() - started, 3)})
     return receipt
 

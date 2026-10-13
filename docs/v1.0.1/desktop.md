@@ -2,18 +2,21 @@
 
 Settings provides shared managed CPU setup, existing-environment inspection, exact builtin model preparation, protected token registration and task readiness. A preview precedes durable preparation; Jobs exposes its progress, cancel and retry actions. Manual tools remain under Advanced. See [local processing setup](processing-setup.md) for CLI parity and installation prerequisites.
 
+Optional [first-run setup](setup.md) guides workspace location, backend choice, processing, connected services and first import. Skip stages or choose Set up later without blocking normal commands; reopen from Settings with accepted configuration and work intact.
+
 ## Shared operations
 
 The application is CLI-first. Every core capability has an automation-ready CLI contract, and the GUI installs the CLI and wraps equivalent shared-runtime operations. Both use the same workspace IDs, job states, pipeline definitions, query parameters and errors. No core behavior lives only in GUI code. Shared capability and release matrices record which client exposes each operation.
 
 Advanced or experimental CLI capabilities may ship before their GUI controls. Each release documents that lag in its capability matrix, including the CLI command, current GUI availability and its follow-up outcome. This exception does not turn mature core operations into permanent CLI-only features. Speaker-model dataset, training, discovery, retrieval, profile selection and matching controls use the same shared operations as the CLI.
 
-CLI groups include `workspace`, `media`, `import-presets`, `transcript`, `recordings`, `pipelines`, `work`, `jobs`, `speakers`, `terms`, `search`, `query`, `export`, `models`, `workers`, `processing`, `settings` and `doctor`. Human output is concise; `--json` provides versioned machine-readable records, diagnostics go to stderr, and exit statuses distinguish failure and partial completion. Noninteractive invocations never prompt. Secret entry uses a protected input channel, not command-line values.
+CLI groups include `setup`, `workspace`, `media`, `import-presets`, `transcript`, `recordings`, `pipelines`, `work`, `jobs`, `speakers`, `terms`, `search`, `query`, `export`, `models`, `workers`, `processing`, `settings` and `doctor`. Human output is concise; `--json` provides versioned machine-readable records, diagnostics go to stderr, and exit statuses distinguish failure and partial completion. Noninteractive invocations never prompt. Secret entry uses a protected input channel, not command-line values.
 
 The desktop exposes Library, Import presets, Jobs, Pipelines, Speakers, Terms, Models, Explore and Settings screens. The native bridge uses the same workspace/runtime requests and protected credential channel as the CLI. Library details support captured metadata, date corrections, reference relocation, explicit audio replacement and transcript policies, initial/current declared rosters, current recording assembly/processing, inspection, rerun, native export and known-speaker mappings. See [subtitles](subtitles.md), [pipelines](pipelines.md), [credential commands](secrets.md), [downloaded models](models.md) and [import](ingestion.md) for shared validation and executable operations.
 
 | Capability | CLI | Desktop |
 | --- | --- | --- |
+| Optional first-run location/draft, saved setup progress and task readiness | Shared setup commands and versioned state | Five-stage Setup, skip/defer/resume and Settings reopening |
 | Create/open workspace, import/list/inspect media, metadata/date correction and relocation | Implemented | Dedicated Library controls and native dialogs |
 | Current Cueson assembly, configured processing, rerun, export and speaker mappings | Implemented | Library detail controls and current cues |
 | Saved pipelines and context, speaker identities/aliases/current evidence, terminology | Implemented | Pipelines, Speakers and Terms controls |
@@ -57,13 +60,15 @@ Repeated daylight-saving wall times accept an explicit offset or `--dst-fold ear
 
 ## First-run experience
 
-1. Initialize or open a workspace, then add audio/video and any supplied transcript.
-2. Inspect captured metadata and enter known recording dates; resolve ambiguous wall times only when a concrete interpretation is needed.
-3. Save reusable destination/date choices in Import presets. Leave processing empty for admission-only work.
-4. For processing, configure a Local, Connected or Custom pipeline with the actual installed local tools/models or a compatible HTTP worker. [Pipelines](pipelines.md) supplies complete input files and readiness requirements.
-5. Select that pipeline in the import preset, or process an existing recording from Library. Watch admission and processing separately in Jobs, then explore current text and evidence.
+1. Open optional Setup and preview the editable library location, or open an existing library. An existing identity and accepted routes are preserved.
+2. For a fresh library, choose local defaults or complete backend fields and preflight before provisioning. Filesystem/SQLite/LadybugDB need no account or API key.
+3. Elect processing only when wanted. Use shared managed CPU setup or inspect an existing environment, prepare exact selected models and save a pipeline. Preview requirements before accepting work; Jobs retains preparation progress.
+4. Discover connected-service metadata and explicitly elect a route when wanted. Protected credential entry generates opaque references; discovery alone changes no routing.
+5. Open normal Import controls, inspect captured metadata and known recording dates, then follow admission and elected processing separately in Jobs. Save reusable destination/date/pipeline choices in Import presets.
 
-Hardware recommendations, managed local worker installation and a guided provider setup wizard are not implemented in this version. Current pipeline inspection validates declared configuration and reports endpoints as not probed. Use the existing explicit configuration operations; local inference environments and weights remain operator-configured.
+Each optional stage has Skip, and Set up later leaves ordinary Library and commands available. Back and later reopening retain saved progress. Closing setup or skipping processing does not cancel accepted downloads or undo configuration; use the selected work's explicit cancellation/retry controls. Stage completion is checked against current observations, so changed settings can require attention without blocking unrelated work.
+
+[First-run setup](setup.md) documents shared CLI inputs, revision conflicts, replay reconciliation and offline paths. [Local processing setup](processing-setup.md) documents hardware observations, managed worker/model prerequisites and task-specific readiness. A configuration declaration or stored credential reference alone does not establish successful authentication or usable inference.
 
 Selecting a preset and its routing preferences authorizes its routine operations. Imports, derivative generation, configured speaker attribution and jobs proceed without per-item approval dialogs. Electing a speaker-training workflow authorizes its saved selection and destination rules; corpus qualification and model validation are automated checks. Users can inspect or override results, and an error pauses only the affected work. New external destinations, unresolved dates and previously unauthorized destructive effects explain the concrete decision that needs input.
 
@@ -138,7 +143,7 @@ Desktop + CLI additionally requires the WebView2 Runtime. Use [Microsoft's downl
    .\insonic.exe --workspace "C:\Users\YOUR_NAME\Documents\insonic library" workspace show
    ~~~
 
-9. With Desktop + CLI, launch insonic-desktop.exe from the same final program directory and open the library. [First-run experience](#first-run-experience) describes current explicit configuration. CLI-only users continue in the terminal with [CLI invocation and results](cli.md). Optional guided first-run setup and MSI delivery are not implemented in this version.
+9. With Desktop + CLI, launch insonic-desktop.exe from the same final program directory and open the library. [First-run experience](#first-run-experience) describes current explicit configuration. CLI-only users continue in the terminal with [CLI invocation and results](cli.md). Optional guided setup is available from fresh entry and Settings; MSI delivery remains separate.
 
 ### Close the old installation before maintenance
 

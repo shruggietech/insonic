@@ -27,6 +27,12 @@ insonic --workspace LIBRARY work wait WORK_UUID --timeout-ms 30000 --json
 
 Catalog migration/export/restore and portable backup operations are advanced maintenance commands. Mutating maintenance requires exclusive workspace ownership. `runtime serve` is the internal noninteractive owner normally launched by clients; contextual help keeps its syntax available.
 
+## Optional first-run setup
+
+`setup location [PATH]` previews an editable location without creating it. `setup draft show` and `setup draft save --input FILE` read/save the private pre-workspace draft, including its expected revision, chosen path and normalized backend plan. `setup provision` explicitly creates the saved fresh-library selection through the existing protected bootstrap channel; it accepts `--secret-input` and `--credential-backend native|vault|session`. Backend selection precedes provisioning; existing libraries retain their selected profiles.
+
+After selecting a workspace, `setup show`, `setup save --input FILE` and `setup readiness` read progress, save typed journey metadata and request current task checks. `settings setup` aliases the readback/reopening operation. Journey saves do not enqueue downloads, create pipelines or import media. Copy the returned state and current stage observation proofs, save with the observed revision and retain the same immutable input/request UUID to reconcile an unknown response. Changed input or a stale revision conflicts without overwriting newer choices. See [first-run setup](setup.md) for the complete five-stage journey and executable local-default procedure. All setup commands are noninteractive and support the normal result envelopes.
+
 ## Local worker and model setup
 
 The shared `workers catalog|inspect|plan|setup`, `models defaults|prepare` and `processing readiness` operations accept the contextual JSON templates. Setup and acquisition use normal durable work. See [local processing setup](processing-setup.md) for the complete preview, election, wait, model and pipeline procedure.

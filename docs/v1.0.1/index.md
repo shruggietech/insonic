@@ -11,6 +11,8 @@ v1.0.1 documents the prepared release candidate. Official product downloads have
 3. [Technology decisions](technology.md) compares implementation choices and dependency qualification.
 4. [Delivery outcomes](roadmap.md) explains capability dependencies.
 
+[Optional first-run setup](setup.md) covers editable library location, backend choice before provisioning, saved progress, processing/services and first import. Skip or defer any optional stage, then resume through either client.
+
 [Local processing setup](processing-setup.md) covers managed CPU environments, verified model reuse, offline acquisition and task-specific readiness.
 
 [CLI invocation and results](cli.md) covers contextual help, argument parsing, JSON files, output streams and durable failure inspection.
