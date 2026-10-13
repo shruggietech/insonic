@@ -109,7 +109,7 @@ jobs:
         shell: bash
         run: python scripts/media-transfer.py pack --stage complete --revision "$SOURCE_REVISION" --output build/transfer/media-source.tar.gz
       - if: steps.ready.outputs.ready == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: media-source-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer/media-source.tar.gz
@@ -179,7 +179,7 @@ jobs:
       - name: Transfer exact dependency headers, archives and original sources
         shell: bash
         run: python scripts/media-transfer.py pack --stage ${{ matrix.group }} --revision "$SOURCE_REVISION" --output build/transfer/dependencies-${{ matrix.group }}.tar.gz
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: media-dependencies-${{ inputs.os }}-${{ matrix.group }}-${{ github.run_attempt }}
           path: build/transfer/dependencies-${{ matrix.group }}.tar.gz
@@ -256,7 +256,7 @@ jobs:
       - name: Transfer exact full static dependencies and all group provenance
         shell: bash
         run: python scripts/media-transfer.py pack --stage dependencies --revision "$SOURCE_REVISION" --output build/transfer/dependency-formats.tar.gz
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: media-formats-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer/dependency-formats.tar.gz
@@ -319,7 +319,7 @@ jobs:
       - name: Bind configured sources, objects and header timestamps to this exact build
         shell: bash
         run: python scripts/media-transfer.py pack --stage codec --revision "$SOURCE_REVISION" --output build/transfer/codec.tar.gz
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: media-codec-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer/codec.tar.gz
@@ -434,7 +434,7 @@ jobs:
       - name: Transfer qualified binaries, static closure, notices and original sources
         shell: bash
         run: python scripts/media-transfer.py pack --stage complete --revision "$SOURCE_REVISION" --output build/transfer/media-source.tar.gz
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: media-source-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer/media-source.tar.gz
