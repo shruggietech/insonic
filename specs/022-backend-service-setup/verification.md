@@ -13,9 +13,9 @@
 - Convergence corrected native request UUID generation for opaque origins and shared backend schema references. No unresolved product-scope finding remains.
 - Frozen docs/schemas v1.0.0 remain byte-unchanged. Windows checks used verified hidden redirected launch paths.
 
-## Remaining external acceptance
+## Verification boundary
 
-Exact-head CI, live alternative-backend qualification and up to two review rounds follow PR publication. No merge/tag/release is authorized by this slice. Real-model inference and attended native GUI behavior are not claimed by deterministic protocol/rendered tests.
+Qualification includes exact-head CI, live alternative backends and two completed Codex review rounds. No merge/tag/release is authorized by this slice. Real-model inference and attended native GUI behavior are not claimed by deterministic protocol/rendered tests.
 
 ## 2026-10-13: First external review and CI correction
 
@@ -34,3 +34,13 @@ Provisioning now requires non-mutating selected S3 bucket access before publishi
 Targeted shared Go bootstrap/assistance/app/CLI/desktop tests and full go test ./... / go vet ./... pass after remediation. npm run check and all 84 repository tests pass; frontend TypeScript check and all 76 rendered tests pass; production/offline site build and 78-page link checks pass. New-head CI qualification follows. No third review request is permitted or will be posted.
 
 Corrected the new S3 cancellation fixture after Linux CI run 38376803237 showed its 100 ms timer could expire during catalog initialization. Cancellation is now signaled by receipt of the HEAD request, with an outer deadline as a hang bound. This verifies in-flight bucket cancellation without relying on initialization speed; production behavior is unchanged. Post-remediation Python qualification also passed all 155 tests, including native Windows credential lifecycle and cross-process restart.
+
+## 2026-10-13: Qualification and bounded-review closure
+
+Implementation/test head `22a8f16ae838e17a340426c1746d99d4115bb29d` passed [CI run 38377279095](https://github.com/shruggietech/insonic/actions/runs/38377279095): repository/docs, both platform core suites, live PostgreSQL/S3/ArcadeDB fixtures, native engine/desktop, all four Windows/Linux CLI/desktop packages and candidate integrity. Source-build cache lanes skipped only after verified cache reuse. The new event-driven cancellation regression passes on Linux as well as repeated local runs.
+
+[Official PR #76](https://github.com/shruggietech/insonic/pull/76) contains the final branch/check evidence. The automatic first review completed on `888c541`, and the single requested second/final review completed on `c1ad24b`. GitHub labels both as Code Review (the second request asked for security review). Three findings in each round were corrected with regression coverage, answered and resolved. Direct review-thread inspection confirmed all six resolved and no additional page. No third review request was posted.
+
+Final Spec Kit convergence inspected 16 functional requirements, 6 success criteria, 12 story acceptance scenarios, 7 plan design decisions and all 5 constitution principles against the named code scope. It found one MEDIUM documentation mismatch (default graph location), appended T029 and corrected it. Repository text checks and the production/offline 78-page export pass after that correction. No remaining buildable gap or product-scope deviation is identified. Tasks T001-T029 are complete.
+
+The final documentation/evidence reconciliation commit changes no product code; its exact PR head must also pass CI before owner handoff. Final-head check evidence is retained on PR #76 rather than creating another evidence-only commit after that qualification. Both linked issues remain In review until the owner squash-merges and deletes the branch. Software, docs and schemas remain the unreleased 1.0.1 candidate; frozen 1.0.0 artifacts are unchanged.

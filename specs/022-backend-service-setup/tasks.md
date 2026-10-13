@@ -46,8 +46,8 @@ Independent test: deterministic native protocol proposals pass unchanged validat
 ## Phase 7: Cross-cutting verification and publication
 
 - [x] T016 Update current schemas/examples/help and docs/v1.0.1/storage.md, graph.md, desktop.md, cli.md, contracts.md, secrets.md plus CHANGELOG.md; retain frozen 1.0.0 bytes (FR-014).
-- [ ] T017 Run npm check/test, affected Go/vet, frontend/site and backend integrations, record exact evidence and converge all acceptance in specs/022-backend-service-setup/verification.md (FR-015/016).
-- [ ] T018 Push official PR, handle every review in at most two rounds, verify final-head green CI and hand off for owner merge (FR-016).
+- [x] T017 Run npm check/test, affected Go/vet, frontend/site and backend integrations, record exact evidence and converge all acceptance in specs/022-backend-service-setup/verification.md (FR-015/016).
+- [x] T018 Push official PR, handle every review in at most two rounds, verify final-head green CI and hand off for owner merge (FR-016).
 
 ## Dependencies and implementation strategy
 
@@ -73,3 +73,7 @@ Parallel examples: independent backend unit fixtures and Ollama protocol fixture
 - [x] T026 Verify retained intent and persisted credential mode under workspace ownership for completed retries, with all three mode/conflict/receipt regression cases in internal/backendsetup/second_review_test.go per FR-005/013/015 and review discussion_r4256827933.
 - [x] T027 Preserve typed selected-model metadata failures and per-model redacted corrections in internal/assistance/ollama.go and desktop/frontend/src/assistance.tsx, with protocol and rendered fixtures per FR-009/013/015 and review discussion_r4256827939.
 - [x] T028 Make the S3 cancellation fixture wait for the real HEAD request before cancellation, avoiding a pre-network initialization timer race per FR-015/016 and CI run 38376803237.
+
+## Phase 11: Convergence
+
+- [x] T029 Correct the documented default graph location in docs/v1.0.1/desktop.md to match workspace-root relative Ladybug paths per FR-014 and plan: shared runtime configuration (partial, MEDIUM).

@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-13
 
-**Status**: Implemented; exact-head CI and bounded external review pending
+**Status**: Implemented and qualified; final owner review and merge pending
 
 **Input**: S022 under autopilot for [#67](https://github.com/shruggietech/insonic/issues/67) and [#68](https://github.com/shruggietech/insonic/issues/68). Push and official PR authorized; maximum two review rounds; hand off after green CI, without merging.
 

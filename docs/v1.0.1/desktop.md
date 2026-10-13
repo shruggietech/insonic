@@ -170,7 +170,7 @@ Desktop + CLI additionally requires the WebView2 Runtime. Use [Microsoft's downl
 2. Remove only that directory and shortcuts/PATH entries you created manually. ZIP installation has no Installed Apps entry or supplied uninstaller.
 3. Preserve library, source media, managed artifacts, model data and credentials. Deleting them is a separate explicit choice.
 
-A local library's chosen .insonic control directory contains workspace.json, catalog.sqlite, managed artifacts/ and graph/library.lbug by default. Configured storage/catalog/graph profiles can point elsewhere. Credential configuration and vault files use the workspace's private secret area; native credential values remain in Windows Credential Manager. Program removal does not remove these stores.
+A local library's chosen `.insonic` control directory contains `workspace.json`, `catalog.sqlite` and managed `artifacts/` by default. The default LadybugDB graph is `graph/library.lbug` relative to the workspace root. Configured storage/catalog/graph profiles can point elsewhere. Credential configuration and vault files use the workspace's private secret area; native credential values remain in Windows Credential Manager. Program removal does not remove these stores.
 
 Windows per-user configuration uses %APPDATA%\insonic; local data/cache/runtime coordination use %LOCALAPPDATA%\insonic. Models follow configured managed storage. Keep these locations during ordinary program removal. See [storage](storage.md), [credentials](secrets.md) and [models](models.md) to inspect actual locations and ownership.
 
