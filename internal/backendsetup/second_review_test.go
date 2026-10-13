@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -20,9 +21,11 @@ import (
 func TestProvisionRequiresS3BucketAccess(t *testing.T) {
 	for _, phase := range []string{"present", "absent", "denied", "unreachable", "cancelled"} {
 		t.Run(phase, func(t *testing.T) {
-			hits := 0
+			var hits atomic.Int32
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				hits++
+				hits.Add(1)
 				if r.Method != http.MethodHead || strings.TrimRight(r.URL.Path, "/") != "/fixture" {
 					t.Errorf("unexpected bucket operation: %s %s", r.Method, r.URL.Path)
 				}
@@ -36,6 +39,7 @@ func TestProvisionRequiresS3BucketAccess(t *testing.T) {
 					w.Header().Set("X-Amz-Error-Code", "AccessDenied")
 					w.WriteHeader(403)
 				case "cancelled":
+					cancel()
 					<-r.Context().Done()
 				default:
 					w.WriteHeader(200)
@@ -53,17 +57,11 @@ func TestProvisionRequiresS3BucketAccess(t *testing.T) {
 			}
 			input := &credentialcmd.Input{Session: map[string][]byte{id: []byte("{\"access_key\":\"fixture-key\",\"secret_key\":\"private-bucket-secret\"}")}}
 			defer input.Close()
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			defer cancel()
-			if phase == "cancelled" {
-				ctx, cancel = context.WithTimeout(context.Background(), 100*time.Millisecond)
-				defer cancel()
-			}
 			root := t.TempDir()
 			_, e = (Provisioner{GraphFactory: fixtureFactory}).ProvisionMode(ctx, root, c, input, "session")
 			if phase == "present" {
-				if e != nil || hits != 1 {
-					t.Fatal(e, hits)
+				if e != nil || hits.Load() != 1 {
+					t.Fatal(e, hits.Load())
 				}
 				return
 			}
@@ -73,7 +71,7 @@ func TestProvisionRequiresS3BucketAccess(t *testing.T) {
 			if strings.Contains(e.Error(), "private-bucket-secret") {
 				t.Fatal("credential in error")
 			}
-			if phase != "unreachable" && hits == 0 {
+			if phase != "unreachable" && hits.Load() == 0 {
 				t.Fatal("no bucket check")
 			}
 			if _, e = os.Stat(filepath.Join(root, ".insonic", "workspace.json")); !os.IsNotExist(e) {
