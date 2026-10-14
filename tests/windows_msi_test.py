@@ -100,6 +100,7 @@ class InstallerModelTests(unittest.TestCase):
             return bool(eval(expression,{'__builtins__':{}},{}))
         retained={'Core':3,'Desktop':3,'CLI':3};unchanged={'Core':-1,'Desktop':-1,'CLI':-1}
         self.assertTrue(evaluate(core,unchanged,retained));self.assertTrue(evaluate(clients,unchanged,retained))
+        self.assertTrue(evaluate(core,{**unchanged,'Core':5},retained));self.assertFalse(evaluate(core,{'Core':5},{}))
         self.assertFalse(evaluate(core,{**unchanged,'Core':2},retained));self.assertFalse(evaluate(clients,{**unchanged,'Desktop':2,'CLI':2},retained))
         self.assertTrue(evaluate(core,{'Core':3},{}));self.assertTrue(evaluate(clients,{'CLI':3},{}));self.assertFalse(evaluate(clients,unchanged,{}))
         self.assertFalse(evaluate(webview,unchanged,retained));self.assertTrue(evaluate(webview,unchanged,retained,WEBVIEW_USER='126.0.0.0'))
@@ -180,7 +181,7 @@ class InstallerModelTests(unittest.TestCase):
         kernel=SimpleNamespace(**{name:Function(name) for name in ('GetCurrentProcess','CloseHandle','WaitForSingleObject','GetExitCodeProcess','TerminateProcess')})
         security=SimpleNamespace(**{name:Function(name) for name in ('OpenProcessToken','LogonUserW','CreateProcessWithLogonW')})
         network=SimpleNamespace(NetUserAdd=Function('NetUserAdd',2224),NetUserDel=Function('NetUserDel'),NetLocalGroupAddMembers=Function('NetLocalGroupAddMembers'))
-        profiles=SimpleNamespace(CreateProfile=Function('CreateProfile'),DeleteProfileW=Function('DeleteProfileW'));dlls={'kernel32':kernel,'advapi32':security,'netapi32':network,'userenv':profiles}
+        profiles=SimpleNamespace(GetUserProfileDirectoryW=Function('GetUserProfileDirectoryW'),DeleteProfileW=Function('DeleteProfileW'));dlls={'kernel32':kernel,'advapi32':security,'netapi32':network,'userenv':profiles}
         output=self.path/'ordinary.json'
         with patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(secrets,'token_hex',return_value='private-password-material'):
             with self.assertRaisesRegex(RuntimeError,'no existing account'):module.ordinary_context(None,None,output,None)
@@ -200,16 +201,18 @@ class InstallerModelTests(unittest.TestCase):
         class Function:
             def __init__(self,call):self.call=call
             def __call__(self,*args):return self.call(*args)
-        def create_profile(sid,name,value,size):
-            self.assertEqual(sid,actor_sid);state['name']=name;state['profile']=users/name;state['profile'].mkdir();value.value=str(state['profile']);return 0
+        def profile_directory(token,value,size):value.value=str(state['profile']);return True
         def delete_profile(sid,path,remote):
             self.assertEqual(sid,actor_sid);target=Path(path);self.assertEqual(target.resolve().parent,users.resolve());self.assertEqual(target.name,state['name']);deletions.append(target)
             if len(deletions)<3:return False
             shutil.rmtree(target);events.append('profile-deleted');return True
         def create_process(name,domain,password,flags,exe,command,creation,environment,cwd,startup,process):
-            self.assertNotIn(password,command.value);self.assertEqual(name,state['name']);self.assertEqual(flags,1)
-            target=Path(re.search(r'--output ("[^"]+"|\S+)',command.value).group(1).strip('"'))
-            target.write_text(json.dumps({'token':{'user_sid_sha256':m.digest(actor_sid.encode())},'user_profile':str(state['profile']),'elected_launcher':{'actual_elected_launch':True}}),encoding='utf-8')
+            self.assertNotIn(password,command.value);self.assertEqual(flags,1)
+            if environment is None:
+                self.assertTrue(str(exe).endswith('whoami.exe'));state['name']=name;state['profile']=users/name;state['profile'].mkdir();events.append('profile-created-by-logon')
+            else:
+                self.assertEqual(name,state['name']);target=Path(re.search(r'--output ("[^"]+"|\S+)',command.value).group(1).strip('"'))
+                target.write_text(json.dumps({'token':{'user_sid_sha256':m.digest(actor_sid.encode())},'user_profile':str(state['profile']),'elected_launcher':{'actual_elected_launch':True}}),encoding='utf-8')
             process._obj.process=333;process._obj.thread=444;process._obj.pid=555;return True
         def set_token(process,access,out):out._obj.value=200;return True
         def logon(name,domain,password,kind,provider,out):out._obj.value=100;return True
@@ -217,11 +220,11 @@ class InstallerModelTests(unittest.TestCase):
         kernel=SimpleNamespace(GetCurrentProcess=Function(lambda:1),CloseHandle=Function(lambda handle:True),WaitForSingleObject=Function(lambda *args:0),GetExitCodeProcess=Function(exit_code),TerminateProcess=Function(lambda *args:True))
         security=SimpleNamespace(OpenProcessToken=Function(set_token),LogonUserW=Function(logon),CreateProcessWithLogonW=Function(create_process))
         network=SimpleNamespace(NetUserAdd=Function(lambda *args:events.append('account-created') or 0),NetUserDel=Function(lambda server,name:events.append('account-deleted') or 0),NetLocalGroupAddMembers=Function(lambda *args:0))
-        profiles=SimpleNamespace(CreateProfile=Function(create_profile),DeleteProfileW=Function(delete_profile));dlls={'kernel32':kernel,'advapi32':security,'netapi32':network,'userenv':profiles}
+        profiles=SimpleNamespace(GetUserProfileDirectoryW=Function(profile_directory),DeleteProfileW=Function(delete_profile));dlls={'kernel32':kernel,'advapi32':security,'netapi32':network,'userenv':profiles}
         env={'USERPROFILE':str(original),'ProgramData':str(programdata),'SystemRoot':r'C:\Windows','COMPUTERNAME':'CI-FIXTURE'}
         with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'private_context_desktop',return_value=nullcontext({'path':'owned\\Default'})),patch.object(module.time,'sleep'):
             proof=module.ordinary_context(installer,self.path/'installation',output,self.model)
-        self.assertEqual(events,['account-created','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3)
+        self.assertEqual(events,['account-created','profile-created-by-logon','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3)
         self.assertTrue(all(item['deleted'] for item in proof['cleanup']));self.assertEqual((original/'owner-data').read_bytes(),b'keep');self.assertEqual((programdata/'owner-data').read_bytes(),b'keep')
         self.assertEqual(list(programdata.iterdir()),[programdata/'owner-data']);self.assertEqual(installer.read_bytes(),b'qualified MSI fixture bytes')
     def test_native_capture_requires_verified_clean_nonempty_source(self):

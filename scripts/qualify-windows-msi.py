@@ -485,7 +485,7 @@ def ordinary_context(installer,directory,output,model=None):
     security.CreateProcessWithLogonW.argtypes=[W.LPCWSTR,W.LPCWSTR,W.LPCWSTR,W.DWORD,W.LPCWSTR,W.LPWSTR,W.DWORD,C.c_void_p,W.LPCWSTR,C.POINTER(Startup),C.POINTER(Process)];security.CreateProcessWithLogonW.restype=W.BOOL
     network.NetUserAdd.argtypes=[W.LPCWSTR,W.DWORD,C.c_void_p,C.POINTER(W.DWORD)];network.NetUserAdd.restype=W.DWORD;network.NetUserDel.argtypes=[W.LPCWSTR,W.LPCWSTR];network.NetUserDel.restype=W.DWORD
     network.NetLocalGroupAddMembers.argtypes=[W.LPCWSTR,W.LPCWSTR,W.DWORD,C.c_void_p,W.DWORD];network.NetLocalGroupAddMembers.restype=W.DWORD
-    profiles.CreateProfile.argtypes=[W.LPCWSTR,W.LPCWSTR,W.LPWSTR,W.DWORD];profiles.CreateProfile.restype=C.c_long;profiles.DeleteProfileW.argtypes=[W.LPCWSTR,W.LPCWSTR,W.LPCWSTR];profiles.DeleteProfileW.restype=W.BOOL
+    profiles.GetUserProfileDirectoryW.argtypes=[W.HANDLE,W.LPWSTR,C.POINTER(W.DWORD)];profiles.GetUserProfileDirectoryW.restype=W.BOOL;profiles.DeleteProfileW.argtypes=[W.LPCWSTR,W.LPCWSTR,W.LPCWSTR];profiles.DeleteProfileW.restype=W.BOOL
     name='inso_ci_'+uuid.uuid4().hex[:12];password='Aa1!'+secrets.token_hex(24);created=False;profile=None;stage=None;token=W.HANDLE();caller=W.HANDLE();process=Process();sid=None;evidence=None;failure=None;cleanup=[]
     diagnostics=Path(output).with_suffix('.startup.json')
     def record(phase,**extra):diagnostics.write_text(json.dumps({'phase':phase,'actor':'actual ordinary disposable CI account','separate_user_account':True,'password_published':False,**extra},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
@@ -500,11 +500,26 @@ def ordinary_context(installer,directory,output,model=None):
         if not security.OpenProcessToken(kernel.GetCurrentProcess(),8,C.byref(caller)):raise C.WinError(C.get_last_error())
         caller_sid=account_sid(caller)
         if sid==caller_sid:raise RuntimeError('ordinary account unexpectedly reused the elevated actor')
-        value=C.create_unicode_buffer(4096);rc=profiles.CreateProfile(sid,name,value,4096)
-        if rc!=0:raise RuntimeError('owned ordinary profile creation failed '+hex(rc&0xffffffff))
-        profile=validate_account_profile(name,value.value)
         stage=Path(os.environ['ProgramData'])/('insonic-ci-account-'+uuid.uuid4().hex);stage.mkdir(exist_ok=False);grant_owned_account_stage(stage,sid,caller_sid)
         (stage/'owned-ci-account.json').write_text(json.dumps({'account':name,'sid_sha256':m.digest(sid.encode())}),encoding='utf-8',newline='\n')
+        # LOGON_WITH_PROFILE lets Windows create/load the real ordinary profile.
+        # This bootstrap uses its native profile environment, before we rebuild
+        # the worker environment with the SDK-observed account directory.
+        with private_context_desktop(sid) as desktop:
+            startup=Startup();startup.cb=C.sizeof(startup);startup.flags=1;startup.show=0;startup.desktop=desktop['path']
+            whoami=Path(os.environ['SystemRoot'])/'System32/whoami.exe';command=C.create_unicode_buffer(subprocess.list2cmdline([str(whoami),'/user']))
+            record('before-native-profile-logon',desktop=desktop,same_user_sid_sha256=m.digest(sid.encode()))
+            if not security.CreateProcessWithLogonW(name,'.',password,1,str(whoami),command,0x08000400,None,str(stage),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
+            if kernel.WaitForSingleObject(process.process,15000)!=0:
+                kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000);raise RuntimeError('owned profile bootstrap exceeded its bound')
+            code=W.DWORD()
+            if not kernel.GetExitCodeProcess(process.process,C.byref(code)) or code.value!=0:raise RuntimeError('native ordinary profile bootstrap failed '+str(code.value))
+            value=C.create_unicode_buffer(4096);size=W.DWORD(4096)
+            if not profiles.GetUserProfileDirectoryW(token,value,C.byref(size)):raise C.WinError(C.get_last_error())
+            profile=validate_account_profile(name,value.value)
+            if not profile.is_dir():raise RuntimeError('native profile logon did not create the observed ordinary-user directory')
+            record('ordinary-profile-observed',profile=str(profile),method='CreateProcessWithLogonW LOGON_WITH_PROFILE, GetUserProfileDirectoryW')
+            kernel.CloseHandle(process.thread);kernel.CloseHandle(process.process);process=Process()
         scripts=stage/'scripts';scripts.mkdir();(stage/'temp').mkdir();native=stage/'native';native.mkdir()
         for filename in ('qualify-windows-msi.py','windows_msi.py'):
             shutil.copyfile(m.ROOT/'scripts'/filename,scripts/filename)
@@ -532,7 +547,7 @@ def ordinary_context(installer,directory,output,model=None):
             if code.value!=0:raise RuntimeError('ordinary MSI context worker failed '+str(code.value)+' ('+hex(code.value)+')')
             evidence=json.loads(worker_output.read_text(encoding='utf-8'))
             if evidence['token']['user_sid_sha256']!=m.digest(sid.encode()) or Path(evidence['user_profile']).resolve()!=profile.resolve():raise RuntimeError('ordinary worker changed account/profile identity')
-            evidence.update({'desktop':desktop,'fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode())})
+            evidence.update({'desktop':desktop,'profile_creation':'native LOGON_WITH_PROFILE bootstrap and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode())})
     except BaseException as error:failure=error
     finally:
         if stage is not None and (stage/'native').is_dir():

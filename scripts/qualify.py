@@ -254,6 +254,8 @@ def write_receipt(path, output, expected):
 
 def desktop():
     env = native_env()
+    if os.environ.get('GITHUB_ACTIONS') == 'true':
+        env['INSONIC_PROCESS_STARTUP_DIAGNOSTICS'] = '1'
     sibling = build_cli(True, env)
     tags = 'desktop,production,system_ladybug'
     if platform.system() == 'Linux':

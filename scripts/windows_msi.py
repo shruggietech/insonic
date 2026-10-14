@@ -79,7 +79,9 @@ SCHEMA={n:[tuple(c.split(':')) for c in v.split()] for n,v in _LAYOUT.items()}
 KEY_COUNTS={'FeatureComponents':2,'Upgrade':5,'Control':2,'ControlEvent':5,'ControlCondition':4,'EventMapping':3}
 
 def effective_feature_local(feature):
-    return '(&'+feature+'=3 OR (&'+feature+'=-1 AND !'+feature+'=3))'
+    # Native reinstallation reports DEFAULT (5) for an already-local feature.
+    # An explicit ABSENT (2) request never inherits its installed state.
+    return '(&'+feature+'=3 OR ((&'+feature+'=-1 OR &'+feature+'=5) AND !'+feature+'=3))'
 
 def installer_model(inv,inv_sha,license_text,upgrade=UPGRADE_CODE,version=None):
     version=msi_version(version or inv['schema_version'])

@@ -99,3 +99,8 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 
 - [x] T049 Disable appearance Save until actual settings readback supplies a valid revision and make automated clicks wait for enabled controls within the existing deadline.
 - [x] T050 Observe actual MSI action/installed feature states in a diagnostic-only clone and a temporary disposable CI lane with independently verified prior payload identity; exclude diagnostic results from publication eligibility.
+
+- [x] T051 Retain demonstrated MSI default action5 only with installed-local state3, while preserving explicit removal and absent-feature refusals.
+- [x] T052 Bootstrap the owned ordinary CI profile through native LOGON_WITH_PROFILE and validate the actual GetUserProfileDirectoryW result before isolated worker execution.
+
+- [x] T053 Preserve public startup errors while electing bounded CI-only stage/numeric-errno receipts for actual Windows child-launch failures.
