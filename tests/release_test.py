@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('release_tool', ROOT / 'scripts/release.py')
 release = importlib.util.module_from_spec(spec); spec.loader.exec_module(release)
 REVISION = 'a' * 40
+MSI_QUALIFICATION = {'client_selections':'passed','license_and_prerequisites':'passed','maintenance':'passed','upgrade_rollback':'passed','downgrade_rejection':'passed','active_work_preserved':'passed','user_data_preserved':'passed','launch_contract':'passed','native_ui_capture':'passed','cancellation_rollback':'passed','user_context':'passed'}
 CURRENT = (ROOT / 'VERSION').read_text(encoding='utf-8').strip()
 VERSION = f'{int(CURRENT.split(".")[0]) + 1}.0.0'
 NEXT_VERSION = f'{int(CURRENT.split(".")[0]) + 2}.0.0'
@@ -28,7 +29,10 @@ def runner(args, root=None):
     raise AssertionError(args)
 
 def verify_fixture(path, receipt):
-    if path.read_bytes() != (receipt['platform'] + receipt['variant']).encode(): raise ValueError('controlled package inventory mismatch')
+    if receipt.get('kind') == 'windows-installer-receipt':
+        if path.read_bytes() != b'controlled-msi' or receipt.get('qualification') != MSI_QUALIFICATION:
+            raise ValueError('controlled installer qualification or inventory mismatch')
+    elif path.read_bytes() != (receipt['platform'] + receipt['variant']).encode(): raise ValueError('controlled package inventory mismatch')
 
 
 def fixture(root):
@@ -52,6 +56,16 @@ def candidates(root, platforms=None, version=VERSION):
             receipt['inventory_sha256'] = 'c' * 64
             receipt.update(windows_copy_install='passed', windows_first_use='passed', extracted_inventory='passed', relocation_path_spaces='passed', cli_real_audio_video_import='passed', development_native_libraries='isolated-and-restored', gui_bridge='passed' if variant == 'desktop' else 'not-included', native_webview='passed' if variant == 'desktop' else 'not-included')
             path = root / f'{platform}-{variant}-receipt.json'; release.write_json(path, receipt); receipts.append(path)
+    if version != '1.0.0':
+        payload = next(release.read_json(path) for path in receipts if release.read_json(path)['platform'] == 'windows_amd64' and release.read_json(path)['variant'] == 'desktop')
+        artifact = assets / f'insonic_{version}_windows_amd64_installer.msi'; artifact.write_bytes(b'controlled-msi'); entry = release.file_entry(artifact)
+        receipt = {'kind':'windows-installer-receipt','schema_version':version,'product_version':version,'documentation_version':version,
+                   'platform':'windows_amd64','variant':'selectable','format':'msi','revision':REVISION,'source_dirty':False,
+                   'artifact':artifact.name,'artifact_sha256':entry['sha256'],'artifact_size_bytes':entry['size_bytes'],
+                   'payload_archive':payload['archive'],'payload_archive_sha256':payload['archive_sha256'],
+                   'payload_receipt':payload,'payload_inventory':{'kind':'native-package-inventory'},
+                   'qualification':copy.deepcopy(MSI_QUALIFICATION),'distribution':copy.deepcopy(payload['distribution']),'signing':copy.deepcopy(payload['signing'])}
+        path = root / 'windows-installer-receipt.json'; release.write_json(path, receipt); receipts.append(path)
     for name in ('documentation', 'offline-help'):
         with tarfile.open(assets / (name + '.tar.gz'), 'w:gz') as archive:
             for filename, value in [('release-documentation.json', {'version': version, 'revision': REVISION, 'kind': name}), ('documentation-build.json', {'version': version, 'revision': REVISION, 'source_dirty': False, 'documentation_target': 'release'})]:
@@ -155,7 +169,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
         target = self.candidate()
         value = json.loads((target / "release-manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(len(value["packages"]), 4)
-        self.assertEqual(len(value["assets"]), 6)
+        self.assertEqual(len(value["assets"]), 7)
 
 
     def test_unpublished_candidate_cannot_reach_any_pages_transport_write(self):
@@ -236,7 +250,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
                     for platform in release.PLATFORMS for variant in release.VARIANTS}
         for example in schema['examples']:
             self.assertEqual({item['archive'] for item in example['packages']}, expected)
-            self.assertEqual({item['name'] for item in example['assets'] if item['name'].startswith('insonic_')}, expected)
+            self.assertEqual({item['name'] for item in example['assets'] if item['name'].startswith('insonic_')}, expected | {f'insonic_{VERSION}_windows_amd64_installer.msi'})
         common = release.read_json(self.root / f'schemas/v{VERSION}/common.schema.json')
         self.assertTrue(common['description'].startswith(f'Shared logical types for the v{VERSION} contract.'))
         self.assertEqual((self.root / f'schemas/v{CURRENT}/common.schema.json').read_bytes(),
@@ -295,7 +309,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'tag'): release.exact_source(REVISION, self.root, other_tag, 'v' + VERSION)
 
     def test_missing_variant_dirty_sources_signing_and_hashes_fail_before_output(self):
-        with self.assertRaisesRegex(ValueError, 'all four'): self.candidate(receipts=self.receipts[:-1])
+        with self.assertRaisesRegex(ValueError, 'all four'): self.candidate(receipts=self.receipts[1:])
         receipt = release.read_json(self.receipts[0]); original = copy.deepcopy(receipt)
         for field, value, reason in [('source_dirty', True, 'source'), ('product_version', '9.0.0', 'versions'), ('extracted_inventory', 'not-run', 'qualification'), ('windows_copy_install', 'not-run', 'qualification'), ('windows_first_use', 'not-run', 'qualification'), ('distribution', {'source_complete': False}, 'sources'), ('signing', {'configured': True, 'verified': False}, 'signing'), ('signing', {'configured': False, 'verified': True, 'status': 'signed'}, 'signing'), ('archive_sha256', 'f' * 64, 'archive')]:
             receipt = copy.deepcopy(original); receipt[field] = value; release.write_json(self.receipts[0], receipt)
@@ -304,6 +318,44 @@ class ReleaseDeliveryTests(unittest.TestCase):
         release.write_json(self.receipts[0], original)
         self.candidate()
         with self.assertRaisesRegex(ValueError, 'new'): self.candidate()
+
+    def test_msi_missing_duplicate_format_source_payload_and_qualification_rejected(self):
+        msi_path = self.receipts[-1]; original = release.read_json(msi_path)
+        for receipts in (self.receipts[:-1], self.receipts + [msi_path]):
+            with self.assertRaisesRegex(ValueError, 'exactly one MSI'): self.candidate(receipts=receipts)
+        mutations = [('format','zip','format'),('platform','linux_amd64','format'),('source_dirty',True,'source'),
+                     ('artifact','insonic_wrong.exe','format'),('artifact_sha256','f'*64,'artifact'),
+                     ('payload_archive_sha256','f'*64,'payload'),('payload_receipt',{},'payload'),
+                     ('qualification',{},'qualification'),('qualification',{**MSI_QUALIFICATION,'cancellation_rollback':'not-executed'},'qualification'),('qualification',{**MSI_QUALIFICATION,'user_context':'not-executed'},'qualification'),('qualification',{**MSI_QUALIFICATION,'upgrade_rollback':'not-executed'},'qualification')]
+        for field, value, reason in mutations:
+            receipt = copy.deepcopy(original); receipt[field] = value; release.write_json(msi_path, receipt)
+            with self.assertRaisesRegex(ValueError, reason): self.candidate()
+            self.assertFalse((self.root / 'candidate').exists())
+        release.write_json(msi_path, original)
+        target = self.candidate(); value = release.read_json(target / 'release-manifest.json')
+        self.assertEqual(len(value['packages']),4); self.assertEqual(len(value['installers']),1)
+        self.assertEqual(len(value['assets']),7)
+
+    def test_msi_published_retrieval_keeps_artifact_and_rejects_missing_inventory(self):
+        target = self.candidate(); api = GitHubFixture()
+        release.publish(target, 'MSI installation.', api, self.root, runner, verify_fixture)
+        self.assertEqual(len(api.assets),9)
+        outcome = release.published_candidate(self.root / 'retrieved-msi',REVISION,api,self.root,runner,verify_fixture)
+        self.assertEqual(outcome['candidate'],'retrieved-and-verified')
+        self.assertTrue((self.root / 'retrieved-msi' / f'insonic_{VERSION}_windows_amd64_installer.msi').is_file())
+        api.assets = [item for item in api.assets if not item['name'].endswith('.msi')]
+        with self.assertRaisesRegex(ValueError,'asset set'): release.published_candidate(self.root / 'missing-msi',REVISION,api,self.root,runner,verify_fixture)
+
+    def test_retrieved_msi_revalidates_native_inventory_after_forged_hashes(self):
+        target = self.candidate(); value = release.read_json(target / 'release-manifest.json')
+        receipt = value['installers'][0]; artifact = target / receipt['artifact']; artifact.write_bytes(b'forged-msi')
+        entry = release.file_entry(artifact); receipt['artifact_sha256'] = entry['sha256']; receipt['artifact_size_bytes'] = entry['size_bytes']
+        value['assets'] = [entry if item['name'] == entry['name'] else item for item in value['assets']]
+        release.write_json(target / 'release-manifest.json', value)
+        entries = value['assets'] + [release.file_entry(target / 'release-manifest.json')]
+        (target / 'SHA256SUMS').write_text(''.join(f"{item['sha256']}  {item['name']}\n" for item in sorted(entries,key=lambda item:item['name'])),encoding='utf-8',newline='\n')
+        with self.assertRaisesRegex(ValueError,'installer qualification or inventory'):
+            release.load_candidate(target,verify_fixture,self.root)
 
     def test_source_validator_checks_desktop_lock_and_runtime(self):
         lock = self.root / 'desktop/frontend/package-lock.json'; value = release.read_json(lock); value['packages']['']['version'] = '999.999.999'; release.write_json(lock, value)
@@ -389,10 +441,10 @@ class ReleaseDeliveryTests(unittest.TestCase):
     def test_publication_uploads_complete_draft_then_publishes_and_reads_back(self):
         target = self.candidate(); api = GitHubFixture()
         outcome = release.publish(target, 'Portable recovery and complete package sources.', api, self.root, runner, verify_fixture)
-        self.assertTrue(outcome['published']); self.assertFalse(api.release['draft']); self.assertEqual(len(api.assets), 8)
+        self.assertTrue(outcome['published']); self.assertFalse(api.release['draft']); self.assertEqual(len(api.assets), 9)
         self.assertTrue(api.release['body'].endswith(f'/blob/v{VERSION}/CHANGELOG.md)'))
         publishing = next(i for i, call in enumerate(api.calls) if call[0] == 'PATCH')
-        self.assertEqual(sum(1 for call in api.calls[:publishing] if call[0] == 'POST' and 'uploads.github.com' in call[1]), 8)
+        self.assertEqual(sum(1 for call in api.calls[:publishing] if call[0] == 'POST' and 'uploads.github.com' in call[1]), 9)
         old_calls = len(api.calls)
         repeated = release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
         self.assertTrue(repeated['reconciled'])
@@ -420,7 +472,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'published'): release.promote(target, {'argv': ['/usr/bin/deploy', '{archive}']}, api, lambda args: invoked.append(args), verify_fixture, self.root, runner, source_root=self.root)
         self.assertEqual(invoked, [])
         api.fail_upload = False; release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
-        self.assertEqual(len(api.assets), 8)
+        self.assertEqual(len(api.assets), 9)
         release.promote(target, {'argv': [str(Path(sys.executable).resolve()), '{archive}', '{version}', '{revision}']}, api, lambda args: invoked.append(args), verify_fixture, self.root, runner, source_root=self.root)
         self.assertEqual(invoked[0][2:], [VERSION, REVISION])
 
@@ -541,7 +593,7 @@ class ReleaseDeliveryTests(unittest.TestCase):
         retrieved = self.root / 'retrieved'
         result = release.published_candidate(retrieved, REVISION, api, self.root, runner, verify_fixture)
         self.assertEqual(result, {'candidate': 'retrieved-and-verified', 'version': VERSION, 'revision': REVISION})
-        self.assertEqual(len(api.downloads), 8)
+        self.assertEqual(len(api.downloads), 9)
         for path in original.iterdir():
             self.assertEqual((retrieved / path.name).read_bytes(), path.read_bytes())
         invoked = []

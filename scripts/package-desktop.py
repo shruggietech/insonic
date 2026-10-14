@@ -186,6 +186,8 @@ def installed_manifest(root):
 def product_binaries(root, key, variant):
     suffix = '.exe' if key.startswith('windows') else ''
     names = ['insonic'] + (['insonic-desktop'] if variant == 'desktop' else [])
+    if key.startswith('windows'):
+        names.append('insonic-launcher')
     return [(root / (name + suffix), 'github.com/shruggietech/insonic/cmd/' + name) for name in names]
 
 
@@ -558,6 +560,9 @@ def build(variant='desktop'):
     env = package_build_environment(qualify.native_env(), key, root / 'native')
     exe = '.exe' if key.startswith('windows') else ''
     child(['go', 'build', '-tags', 'system_ladybug', '-o', root / ('insonic' + exe), './cmd/insonic'], env=env)
+    if key.startswith('windows'):
+        child(['go', 'build', '-ldflags', '-H windowsgui', '-o', root / 'insonic-launcher.exe', './cmd/insonic-launcher'], env=env)
+        shutil.copyfile(ROOT / 'scripts/insonic-session.cmd', root / 'insonic-session.cmd')
     args = ['go', 'build', '-tags', tags]
     if key.startswith('windows'):
         args.extend(['-ldflags', '-H windowsgui'])

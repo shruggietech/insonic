@@ -286,6 +286,10 @@
           "title": "CLI and desktop experience"
         },
         {
+          "slug": "windows-installation",
+          "title": "Windows installation, updates and removal"
+        },
+        {
           "slug": "development",
           "title": "Development workflow"
         },

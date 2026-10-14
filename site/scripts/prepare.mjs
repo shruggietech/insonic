@@ -5,6 +5,7 @@ import { build } from 'esbuild';
 import { spawnSync } from 'node:child_process';
 import { root, getManifest, getRepositoryReferences } from '../lib/docs.mjs';
 import { loadSchemaCatalog } from '../../scripts/schema-catalog.mjs';
+import { prepareScreenshots } from '../lib/screenshots.mjs';
 import { documentationTarget } from '../lib/release-status.mjs';
 
 export async function prepare() {
@@ -15,6 +16,7 @@ export async function prepare() {
   const packageVersion = JSON.parse(await fs.readFile(path.join(site, 'package.json'), 'utf8')).version;
   if (manifest.latest !== releaseVersion || packageVersion !== releaseVersion) throw new Error(`Documentation latest (${manifest.latest}), site package (${packageVersion}), and VERSION (${releaseVersion}) must match.`);
   await fs.mkdir(path.join(site, 'public'), { recursive: true });
+  await prepareScreenshots(root, path.join(site, 'public'));
   for (const directory of ['logos', 'fonts', 'tokens']) {
     await fs.cp(path.join(kit, directory), path.join(site, 'public', 'brand', directory), { recursive: true, force: true });
   }

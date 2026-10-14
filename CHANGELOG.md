@@ -26,7 +26,12 @@ All notable changes to this project will be documented here. The format follows 
 
 - Add optional, resumable first-run setup across CLI and desktop, with editable library location, backend selection before fresh provisioning, five saved stages and explicit task readiness. Preserve accepted settings and durable work on skip/defer, reconcile repeated saves and reject stale progress writes.
 
+- Add an unsigned per-user Windows MSI with selectable Desktop/CLI clients, optional branded integrations, transactional maintenance and a useful selected-client launcher. Preserve the four archive choices and add independent MSI payload/source qualification.
+- Keep desktop grid content aligned to the start of its viewport so tall windows do not stretch setup and form rows into blank gaps.
+- Add version-matched unsigned Windows installation guidance and repeatable headless application/native installer capture tooling with explicit renderer, fixture and exact-source receipts.
+
 ### Decisions
+
 
 - 2026-10-11: Keep startup transport separate from detached lifetime: one bounded report, one child wait owner and one ten-second deadline cover the client handshake. Log only generated context, using three bounded data files and a private empty coordination lock; diagnostic input/tool/provider payloads are excluded. Model readiness remains response-only and named file roles come from immutable manifests.
 - 2026-10-11: Save import choices in a bounded typed catalog registry; publish/read by immutable storage profile revision. Preset values precede manifest defaults/items and explicit CLI overrides; capture local timezone only after resolution. Elect existing processing contracts and reconcile child identity after admission. Current documentation examples qualify extracted binaries using deterministic adapter fixtures without inference.
@@ -44,6 +49,8 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-13: Authenticate selected cached module files against the executable's Go h1 sum and copy the notice bytes captured by that verification. Recorded cache metadata and copy equality alone cannot establish upstream evidence; do not reread mutable source notices afterward.
 
 - 2026-10-13: Prepare local engines through private isolated CPython/uv environments and complete platform wheel hashes. Record and revalidate runtime/dependency bytes before frozen work; reuse unchanged accepted environments. Model preparation retains immutable builtin roles and first-elected storage/credentials, strips cross-origin tokens on official CDN redirects and reports prerequisite readiness separately from inference. Request Windows ownership transfer only when the directory owner changes; retain private protected ACL verification.
+- 2026-10-13: Author Windows Installer tables/cabinets through native Windows APIs, retain shared runtime bytes for Desktop-only and omit global PATH/prerequisite acquisition. Model MSI separately from the four archive receipts; maintain strict payload/source/help/license identity and transactional ownership.
+- 2026-10-13: Retire native installer UI probing on the owner host after an isolation/cleanup failure affected unrelated windows. Local captures use verified headless Chromium and real shared runtime fixtures; native installer UI/lifecycle run only on disposable CI runners. Cleanup targets owned process trees and never desktop-wide windows. Launcher label proposals require explicit owner signoff before shipping.
 
 ## [1.0.1] - 2026-10-11
 

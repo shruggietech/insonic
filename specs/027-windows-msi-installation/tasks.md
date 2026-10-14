@@ -1,0 +1,71 @@
+# Tasks: Windows MSI and installation guide
+
+Input: [spec.md](spec.md), [plan.md](plan.md), research, data model and contracts. Tests are required by autopilot.
+
+## Phase 1: Setup
+
+- [x] T001 Confirm S027/#65/#64 branch, directory and authority in specs/027-windows-msi-installation/spec.md.
+- [x] T002 Complete research/design and record retired native owner-host probe in specs/027-windows-msi-installation/plan.md.
+
+## Phase 2: Foundation
+
+- [x] T003 [P] Write MSI identity/client/ownership/table tests in tests/windows_msi_test.py.
+- [x] T004 Implement deterministic native MSI model and exact verification in scripts/windows_msi.py.
+- [x] T005 [P] Write launcher quoting and noninteractive contract tests in internal/launcher/launcher_test.go.
+- [x] T006 [P] Write capture isolation/provenance/request-boundary tests in tests/capture-application-ui.test.mjs and cmd/insonic-capture-bridge/main_test.go.
+
+## Phase 3: US1 Selected-client installation
+
+Independent test: all three nonempty selections install and reach useful first-use; empty selection is rejected.
+
+- [x] T007 [US1] Author shared/desktop/CLI features, actual license/directory/choices/native pages in scripts/windows_msi.py and scripts/package-msi.py.
+- [x] T008 [P] [US1] Implement selected-client launcher and preflight/describe in cmd/insonic-launcher/ and internal/launcher/.
+- [x] T009 [US1] Include launcher/session assets and exact inventory identity in scripts/package-desktop.py.
+- [x] T010 [US1] Add per-user prerequisites, optional branded shortcuts, full-UI fresh-install launch suppression and Installed Apps metadata in scripts/windows_msi.py.
+
+## Phase 4: US2 Maintenance and release identity
+
+Independent test: lifecycle/rollback preserves fixture user data and unrelated integrations; tampered MSI/source identity is rejected.
+
+- [x] T011 [US2] Add transactional feature/repair/remove, upgrade/downgrade and active-work behavior in scripts/windows_msi.py.
+- [x] T012 [US2] Implement disposable-CI-only real install/maintenance/rollback qualification in scripts/qualify-windows-msi.py.
+- [x] T013 [P] [US2] Write release missing/duplicate/wrong-format/source/qualification regressions in tests/release_test.py.
+- [x] T014 [US2] Add exactly one typed MSI beside four archives in scripts/release.py and schemas/v1.0.1/release-candidate.schema.json.
+- [x] T015 [US2] Add MSI publish/retrieval identity, checksums and current download links in scripts/release.py and site/lib/release-status.mjs.
+
+## Phase 5: US3 Accurate guide
+
+Independent test: complete text is usable without images and online/offline images/controls match receipts.
+
+- [x] T016 [P] [US3] Publish verified conditional unsigned/prerequisite/MSI/ZIP guidance in docs/v1.0.1/windows-installation.md.
+- [x] T017 [US3] Carry versioned screenshots into public/offline output with hash/alt/caption parity in site/scripts/ and site rendering.
+- [x] T018 [US3] Integrate current guide/download navigation and exact proposed label set in docs/v1.0.1/desktop.md, docs/versions.json and specs/027-windows-msi-installation/verification.md.
+
+## Phase 6: US4 Autonomous capture
+
+Independent test: capture actual app/installer controls with source/renderer receipts and zero owner-host native UI.
+
+- [x] T019 [US4] Implement bounded headless compiled-frontend/current-CLI bridge capture in scripts/capture-application-ui.mjs and cmd/insonic-capture-bridge/.
+- [x] T020 [US4] Implement disposable-CI-only authored native page capture with exact owned-process cleanup in scripts/capture-installer-ui.py.
+- [ ] T021 [US4] Generate and inspect current fixture PNGs with exact source/renderer/privacy receipts in docs/screenshots/v1.0.1/.
+
+## Phase 7: Delivery
+
+- [x] T022 Integrate parallel/cache-scoped MSI and capture gates and candidate artifacts in .github/workflows/ci.yml and native-qualification.yml.
+- [x] T023 Record changed behavior and dated architecture/execution decisions in CHANGELOG.md.
+- [ ] T024 Run configured integrity/domain/product/site checks and native CI evidence in specs/027-windows-msi-installation/verification.md.
+- [ ] T025 Converge all FR/SC/journeys against implementation in specs/027-windows-msi-installation/convergence.md.
+- [ ] T026 Commit/push official PR, address every finding in at most two rounds and verify final exact-head green CI in specs/027-windows-msi-installation/verification.md.
+
+## Dependencies and parallel strategy
+
+Foundation contracts precede integration. MSI agent owns windows_msi/package-msi/native lifecycle/capture and associated tests. Capture agent owns compiled-application capture/fixture/boundary tests. Release/docs agent owns release/schema/site/doc changes. Parent owns launcher, package-desktop integration, CI, changelog and integration. Separate files allow parallel implementation after analysis; never edit another owner's path concurrently. Native install/UI is CI-only, while local probes are noninteractive model/receipt/describe tests or verified headless Chromium.
+
+## Implementation strategy
+
+Establish typed identity/tests, deliver selected clients, transactional lifecycle, release format and captures, then integrate guide and exact-source candidate verification. All four stories are required; no partial MVP is declared complete. Label proposal approval remains the owner final-review shipping boundary.
+
+## Convergence follow-up
+
+- [x] T027 [US2] Require actual cancellation rollback and restricted-token per-user context observations in scripts/qualify-windows-msi.py, verified in disposable CI through T024.
+- [x] T028 [US1] Launch selected clients with an unelevated same-user token when the installer is elevated in internal/launcher/windows.go and elevation_windows.go, verified in disposable CI through T024.

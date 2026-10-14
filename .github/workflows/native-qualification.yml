@@ -154,6 +154,19 @@ jobs:
       - name: Desktop shared bridge qualification
         if: inputs.native && matrix.runtime_lane == 'desktop'
         run: python scripts/qualify.py desktop
+      - name: Qualify unattended application screenshots
+        if: inputs.native && matrix.runtime_lane == 'desktop' && runner.os == 'Windows'
+        run: |
+          npm ci --ignore-scripts
+          python scripts/qualify-ui-capture.py --output build/ui-capture
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: success() && inputs.native && matrix.runtime_lane == 'desktop' && runner.os == 'Windows'
+        with:
+          archive: true
+          name: application-ui-capture-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/ui-capture
+          if-no-files-found: error
+          retention-days: 14
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && inputs.core
         with:
@@ -268,6 +281,13 @@ jobs:
       - name: Assemble and qualify this relocated native package variant
         if: inputs.native
         run: python scripts/package-desktop.py all --variant ${{ matrix.variant }}
+      - name: Assemble and qualify unsigned selectable-client MSI
+        if: inputs.native && matrix.variant == 'desktop' && runner.os == 'Windows'
+        env:
+          INSONIC_DISPOSABLE_INSTALLER_TEST: '1'
+        run: |
+          $installerPayload = Get-Content -LiteralPath build/native/package-desktop-receipt.json -Raw | ConvertFrom-Json
+          python scripts/package-msi.py all --payload (Join-Path build/packages $installerPayload.dirname) --receipt build/native/package-desktop-receipt.json
       - name: Retain qualified candidate package bytes
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: success() && inputs.native
@@ -277,7 +297,10 @@ jobs:
           path: |
             build/packages/*.zip
             build/packages/*.tar.gz
+            build/packages/*.msi
             build/native/package-${{ matrix.variant }}-receipt.json
+            build/native/windows-installer-receipt.json
+            build/native/installer-capture
           compression-level: 0
           if-no-files-found: error
           retention-days: 14
@@ -289,4 +312,7 @@ jobs:
           path: |
             build/native/*receipt.json
             build/native/package-inventory.json
+            build/native/msi-lifecycle.json
+            build/native/msi-logs
+            build/native/installer-capture
           if-no-files-found: error
