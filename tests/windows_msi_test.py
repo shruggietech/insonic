@@ -97,9 +97,37 @@ class InstallerModelTests(unittest.TestCase):
     def test_cancel_and_context_entrypoints_reject_owner_host_before_native_calls(self):
         spec=importlib.util.spec_from_file_location('qualify_msi_guard',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with patch.dict(os.environ,{},clear=True):
-            for function,args in [(module.token_info,()),(module.restricted_context,(None,None,None)),(module.restricted_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,()),(module.service_diagnostic,()),(module.native_installer_worker,(None,)),(module.native_installer_dll,(None,)),(module.run_installer,(['/i','unused'],None)),(module.create_removal_sentinels,()),(module.assert_removal_sentinels,(None,)),(module.clean_removal_sentinels,(None,))]:
+            for function,args in [(module.token_info,()),(module.restricted_context,(None,None,None)),(module.restricted_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,()),(module.service_diagnostic,()),(module.native_installer_worker,(None,)),(module.native_installer_dll,(None,)),(module.run_installer,(['/i','unused'],None)),(module.create_removal_sentinels,()),(module.assert_removal_sentinels,(None,)),(module.clean_removal_sentinels,(None,)),(module.private_context_desktop,('S-1-5-21-1-2-3-1001',))]:
                 with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
         self.assertIn('cancellation_rollback',m.QUALIFICATION_KEYS);self.assertIn('user_context',m.QUALIFICATION_KEYS)
+    def test_private_context_desktop_restores_caller_on_success_and_failure(self):
+        import ctypes as C
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_private_desktop',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        sid='S-1-5-21-1-2-3-1001';sddl=module.private_desktop_sddl(sid)
+        self.assertIn('(A;;GA;;;'+sid+')',sddl);self.assertIn('(A;;GA;;;SY)',sddl);self.assertIn('S:(ML;;NW;;;ME)',sddl);self.assertNotIn(';;;WD',sddl);self.assertNotIn(';;;BA',sddl)
+        with self.assertRaises(ValueError):module.private_desktop_sddl(sid+')(A;;GA;;;WD)')
+        class Function:
+            def __init__(self,call):self.call=call
+            def __call__(self,*args):return self.call(*args)
+        for failure in (False,True):
+            state={'station':100,'desktop':200};closed=[];descriptors=[]
+            def create_desktop(*args):state['desktop']=2000 if not failure else 200;return 0 if failure else 2000
+            def descriptor(text,revision,out,size):descriptors.append(text);out._obj.value=1234;return True
+            user=SimpleNamespace(GetProcessWindowStation=Function(lambda:state['station']),GetThreadDesktop=Function(lambda tid:state['desktop']),SetProcessWindowStation=Function(lambda value:state.update(station=value) or True),SetThreadDesktop=Function(lambda value:state.update(desktop=value) or True),CreateWindowStationW=Function(lambda name,flags,access,attrs:1000 if flags==1 else 0),CreateDesktopW=Function(create_desktop),CloseDesktop=Function(lambda value:closed.append(('desktop',value)) or True),CloseWindowStation=Function(lambda value:closed.append(('station',value)) or True))
+            kernel=SimpleNamespace(GetCurrentThreadId=Function(lambda:42),LocalFree=Function(lambda value:closed.append(('descriptor',value.value)) or None))
+            security=SimpleNamespace(ConvertStringSecurityDescriptorToSecurityDescriptorW=Function(descriptor))
+            dlls={'user32':user,'kernel32':kernel,'advapi32':security}
+            with patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(C,'WinError',side_effect=lambda code:OSError('fixture native failure'),create=True),patch.object(C,'get_last_error',return_value=5,create=True):
+                if failure:
+                    with self.assertRaises(OSError):
+                        with module.private_context_desktop(sid):self.fail('failed creation yielded a desktop')
+                else:
+                    with module.private_context_desktop(sid) as result:
+                        self.assertEqual(state,{'station':100,'desktop':200});self.assertTrue(result['path'].startswith('insonic-ci-'));self.assertTrue(result['path'].endswith('\\Default'));self.assertFalse(result['shared_desktop_acl_modified'])
+                        self.assertEqual(closed,[])
+            self.assertEqual(state,{'station':100,'desktop':200});self.assertIn(('station',1000),closed);self.assertIn(('descriptor',1234),closed)
+            self.assertEqual(('desktop',2000) in closed,not failure);self.assertEqual(descriptors,[sddl])
     def test_native_capture_requires_verified_clean_nonempty_source(self):
         from types import SimpleNamespace
         spec=importlib.util.spec_from_file_location('capture_installer_contract',ROOT/'scripts/capture-installer-ui.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
@@ -112,6 +140,35 @@ class InstallerModelTests(unittest.TestCase):
             replies=[SimpleNamespace(returncode=0,stdout=('b'*40+'\n').encode())]
             with patch.object(module.subprocess,'run',side_effect=replies):
                 with self.assertRaisesRegex(ValueError,'checkout differs'):module.source_identity({'source_dirty':False,'revision':'a'*40})
+    def test_restricted_capture_sets_and_verifies_real_session_elections(self):
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('capture_restricted_fixture',ROOT/'scripts/capture-installer-ui.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True):
+            for function,args in [(module.worker,(None,None,None)),(module.capture,(None,None)),(module.initialize_restricted_session,(None,None,None))]:
+                with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
+        calls=[];properties={}
+        def set_property(session,name,value):calls.append(('property',name));properties[name]=value;return 0
+        def feature(session,name,installed,planned):installed._obj.value=2;planned._obj.value=3;return 0
+        dll=SimpleNamespace(MsiSetPropertyW=set_property,MsiDoActionW=lambda session,action:calls.append(('action',action)) or 0,MsiSetInstallLevel=lambda session,level:calls.append(('level',level)) or 0,MsiSetFeatureStateW=lambda session,name,state:calls.append(('feature',name,state)) or 0,MsiGetFeatureStateW=feature)
+        with patch.object(m,'disposable_runner',return_value=None):
+            proof=module.initialize_restricted_session(dll,1,lambda name:properties.get(name,''))
+            self.assertFalse(proof['machine_state_changes_permitted']);self.assertFalse(proof['executable_custom_actions_permitted']);self.assertFalse(proof['license_accepted'])
+            self.assertEqual([call[1] for call in calls if call[0]=='action'],['CostInitialize','FileCost','CostFinalize'])
+            self.assertLess(calls.index(('level',1)),calls.index(('feature','Core',3)))
+            self.assertEqual({name:value['action'] for name,value in proof['features'].items()},{'Core':3,'Desktop':3,'CLI':3})
+            dll.MsiGetFeatureStateW=lambda session,name,installed,planned:0
+            with self.assertRaisesRegex(RuntimeError,'did not elect'):module.initialize_restricted_session(dll,1,lambda name:properties.get(name,''))
+    def test_all_native_gates_collect_both_failures_without_publication(self):
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('package_msi_gate_errors',ROOT/'scripts/package-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        called=[];receipt={'qualification':{key:'pending' for key in m.QUALIFICATION_KEYS}}
+        def capture(*args):called.append('capture');raise RuntimeError('actual renderer failed')
+        def qualify(*args):called.append('qualify');raise RuntimeError('actual context failed')
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'load',side_effect=[SimpleNamespace(capture=capture),SimpleNamespace(qualify=qualify)]),patch.object(module,'write'),patch.object(m,'verify_installer') as verify:
+            with self.assertRaisesRegex(RuntimeError,'gates failed'):module.run_gates(None,receipt,'all')
+            self.assertEqual(called,['capture','qualify']);verify.assert_not_called()
+            self.assertEqual(receipt['qualification']['native_ui_capture'],'failed');self.assertEqual(receipt['qualification']['user_context'],'pending')
+            self.assertEqual(set(receipt['qualification_errors']),{'native_ui_capture','native_lifecycle'})
     def test_native_installer_property_language_preserves_unicode_and_spaces(self):
         spec=importlib.util.spec_from_file_location('qualify_msi_properties',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         directory='C:\\fixture spaces é\\'

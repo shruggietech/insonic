@@ -317,21 +317,75 @@ def token_info():
     finally:kernel.CloseHandle(token)
 
 def restricted_worker(installer,directory,output):
-    m.disposable_runner();observed=token_info()
+    m.disposable_runner()
+    progress=output.with_suffix('.progress.json')
+    def record(phase):progress.write_text(json.dumps({'pid':os.getpid(),'phase':phase},sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+    record('python-started');observed=token_info();record('token-observed')
     if observed['administrator_enabled'] or observed['enabled_privileges']>1:raise RuntimeError('restricted worker retained administrator membership/privileges')
     product=dict(m.table_rows(m.CompoundFile(installer).streams,'Property'))['ProductCode']
     installed=False
     try:
         run_installer(['/i',installer,'INSTALLDIR='+str(directory),'LICENSE_ACCEPTED=1','ADDLOCAL=Core,CLI'],output.with_suffix('.install.log'));installed=True
+        record('installed')
         marker=directory/m.OWNERSHIP
         if not marker.is_file() or marker.read_bytes()!=m.OWNERSHIP_BYTES:raise RuntimeError('restricted per-user install missing ownership marker')
         launch_evidence=elected_launcher_context(directory.parent/'launcher-context-fixture')
+        record('elected-launch-observed')
         run_installer(['/x',product],output.with_suffix('.remove.log'));installed=False
         if marker.exists():raise RuntimeError('restricted per-user removal retained owned marker')
         evidence={'kind':'standard-equivalent-restricted-token','token':observed,'install_exit':0,'remove_exit':0,'separate_user_account':False,'os_policy_mutations':False,'elected_launcher':launch_evidence}
         output.write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+        record('completed')
     finally:
         if installed:run_installer(['/x',product],output.with_suffix('.cleanup.log'))
+
+def private_desktop_sddl(user_sid):
+    if not __import__('re').fullmatch(r'S-1-5-(?:\d+-)*\d+',user_sid):raise ValueError('invalid same-user desktop SID')
+    return 'D:P(A;;GA;;;SY)(A;;GA;;;'+user_sid+')S:(ML;;NW;;;ME)'
+
+def private_context_desktop(user_sid):
+    """Create only owned CI objects, restoring the caller before running a child.
+
+    CreateProcessAsUser requires access to both objects. An inherited runner
+    station can depend on the Administrators SID disabled in the test token.
+    Never alter shared WinSta0/default permissions or make this station visible.
+    """
+    m.disposable_runner();sddl=private_desktop_sddl(user_sid)
+    from contextlib import contextmanager
+    import ctypes as C
+    import ctypes.wintypes as W
+    @contextmanager
+    def owned():
+        user=C.WinDLL('user32',use_last_error=True);security=C.WinDLL('advapi32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True)
+        class Attributes(C.Structure):_fields_=[('size',W.DWORD),('descriptor',C.c_void_p),('inherit',W.BOOL)]
+        methods={'GetProcessWindowStation':([],W.HANDLE),'SetProcessWindowStation':([W.HANDLE],W.BOOL),'CreateWindowStationW':([W.LPCWSTR,W.DWORD,W.DWORD,C.POINTER(Attributes)],W.HANDLE),'CreateDesktopW':([W.LPCWSTR,W.LPCWSTR,C.c_void_p,W.DWORD,W.DWORD,C.POINTER(Attributes)],W.HANDLE),'CloseWindowStation':([W.HANDLE],W.BOOL),'CloseDesktop':([W.HANDLE],W.BOOL),'GetThreadDesktop':([W.DWORD],W.HANDLE),'SetThreadDesktop':([W.HANDLE],W.BOOL)}
+        for name,(args,result) in methods.items():function=getattr(user,name);function.argtypes=args;function.restype=result
+        kernel.GetCurrentThreadId.argtypes=[];kernel.GetCurrentThreadId.restype=W.DWORD
+        kernel.LocalFree.argtypes=[C.c_void_p];kernel.LocalFree.restype=C.c_void_p
+        security.ConvertStringSecurityDescriptorToSecurityDescriptorW.argtypes=[W.LPCWSTR,W.DWORD,C.POINTER(C.c_void_p),C.POINTER(W.DWORD)];security.ConvertStringSecurityDescriptorToSecurityDescriptorW.restype=W.BOOL
+        original=user.GetProcessWindowStation();thread_id=kernel.GetCurrentThreadId();original_desktop=user.GetThreadDesktop(thread_id)
+        if not original or not original_desktop:raise C.WinError(C.get_last_error())
+        descriptor=C.c_void_p();station=None;desktop=None;name='insonic-ci-'+uuid.uuid4().hex
+        try:
+            if not security.ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl,1,C.byref(descriptor),None):raise C.WinError(C.get_last_error())
+            attrs=Attributes(C.sizeof(Attributes),descriptor,False)
+            # CWF_CREATE_ONLY rejects an existing station instead of reusing it.
+            station=user.CreateWindowStationW(name,1,0x000f037f,C.byref(attrs))
+            if not station:raise C.WinError(C.get_last_error())
+            try:
+                if not user.SetProcessWindowStation(station):raise C.WinError(C.get_last_error())
+                desktop=user.CreateDesktopW('Default',None,None,0,0x000f01ff,C.byref(attrs))
+                if not desktop:raise C.WinError(C.get_last_error())
+            finally:
+                if not user.SetProcessWindowStation(original):raise C.WinError(C.get_last_error())
+                if user.GetThreadDesktop(thread_id)!=original_desktop and not user.SetThreadDesktop(original_desktop):raise C.WinError(C.get_last_error())
+            if user.GetProcessWindowStation()!=original or user.GetThreadDesktop(thread_id)!=original_desktop:raise RuntimeError('caller station/desktop restoration failed')
+            yield {'path':name+'\\Default','kind':'owned-noninteractive-same-user-desktop','shared_desktop_acl_modified':False,'caller_station_restored':True,'visible_switch':False,'acl_subjects':['SYSTEM','same user'],'same_user_sid_sha256':m.digest(user_sid.encode())}
+        finally:
+            if desktop:user.CloseDesktop(desktop)
+            if station:user.CloseWindowStation(station)
+            if descriptor:kernel.LocalFree(descriptor)
+    return owned()
 
 def restricted_context(installer,directory,output):
     """Run a real process with the same user, deny-only Administrators and no
@@ -351,6 +405,9 @@ def restricted_context(installer,directory,output):
     security.OpenProcessToken.argtypes=[W.HANDLE,W.DWORD,C.POINTER(W.HANDLE)];security.OpenProcessToken.restype=W.BOOL
     security.CreateWellKnownSid.argtypes=[C.c_int,C.c_void_p,C.c_void_p,C.POINTER(W.DWORD)];security.CreateWellKnownSid.restype=W.BOOL
     security.CreateRestrictedToken.argtypes=[W.HANDLE,W.DWORD,W.DWORD,C.POINTER(Sid),W.DWORD,C.c_void_p,W.DWORD,C.c_void_p,C.POINTER(W.HANDLE)];security.CreateRestrictedToken.restype=W.BOOL
+    security.GetTokenInformation.argtypes=[W.HANDLE,C.c_int,C.c_void_p,W.DWORD,C.POINTER(W.DWORD)];security.GetTokenInformation.restype=W.BOOL
+    security.ConvertSidToStringSidW.argtypes=[C.c_void_p,C.POINTER(C.c_void_p)];security.ConvertSidToStringSidW.restype=W.BOOL
+    kernel.LocalFree.argtypes=[C.c_void_p];kernel.LocalFree.restype=C.c_void_p
     security.CreateProcessAsUserW.argtypes=[W.HANDLE,W.LPCWSTR,W.LPWSTR,C.c_void_p,C.c_void_p,W.BOOL,W.DWORD,C.c_void_p,W.LPCWSTR,C.POINTER(Startup),C.POINTER(Process)];security.CreateProcessAsUserW.restype=W.BOOL
     token=W.HANDLE();restricted=W.HANDLE();process=Process()
     if not security.OpenProcessToken(kernel.GetCurrentProcess(),0x000b,C.byref(token)):raise C.WinError(C.get_last_error())
@@ -360,18 +417,36 @@ def restricted_context(installer,directory,output):
         disable=Sid(C.cast(admin,C.c_void_p),0)
         # DISABLE_MAX_PRIVILEGE + LUA_TOKEN; SANDBOX_INERT is deliberately absent.
         if not security.CreateRestrictedToken(token,5,1,C.byref(disable),0,None,0,None,C.byref(restricted)):raise C.WinError(C.get_last_error())
-        startup=Startup();startup.cb=C.sizeof(startup);startup.flags=1;startup.show=0
-        args=[sys.executable,__file__,'--context-worker',str(installer),'--context-dir',str(directory),'--output',str(output)]
-        command=C.create_unicode_buffer(subprocess.list2cmdline(args))
-        if not security.CreateProcessAsUserW(restricted,sys.executable,command,None,None,False,0x08000000,None,str(m.ROOT),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
-        status=kernel.WaitForSingleObject(process.process,90000)
-        if status!=0:
-            kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000);raise RuntimeError('restricted MSI context worker exceeded its bound')
-        code=W.DWORD()
-        if not kernel.GetExitCodeProcess(process.process,C.byref(code)) or code.value!=0:raise RuntimeError('restricted MSI context worker failed '+str(code.value))
-        evidence=json.loads(output.read_text(encoding='utf-8'))
-        if evidence['token']['user_sid_sha256']!=token_info()['user_sid_sha256']:raise RuntimeError('per-user install changed invoking user identity')
-        return evidence
+        size=W.DWORD();security.GetTokenInformation(restricted,1,None,0,C.byref(size))
+        if not size.value or size.value>65536:raise RuntimeError('invalid restricted-token user information bound')
+        user=C.create_string_buffer(size.value)
+        if not security.GetTokenInformation(restricted,1,user,size.value,C.byref(size)):raise C.WinError(C.get_last_error())
+        sid=C.cast(user,C.POINTER(C.c_void_p))[0];sid_text=C.c_void_p()
+        if not security.ConvertSidToStringSidW(sid,C.byref(sid_text)):raise C.WinError(C.get_last_error())
+        try:user_sid=C.wstring_at(sid_text)
+        finally:kernel.LocalFree(sid_text)
+        diagnostics=output.with_suffix('.startup.json')
+        def record(phase,**extra):diagnostics.write_text(json.dumps({'phase':phase,'python_executable':sys.executable,'python_executable_sha256':m.sha(Path(sys.executable)),'same_user_sid_sha256':m.digest(user_sid.encode()),'inherited_stdio':False,**extra},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+        record('before-private-desktop')
+        with private_context_desktop(user_sid) as desktop:
+            startup=Startup();startup.cb=C.sizeof(startup);startup.flags=1;startup.show=0;startup.desktop=desktop['path']
+            args=[sys.executable,__file__,'--context-worker',str(installer),'--context-dir',str(directory),'--output',str(output)]
+            command=C.create_unicode_buffer(subprocess.list2cmdline(args));record('before-process-create',desktop=desktop)
+            if not security.CreateProcessAsUserW(restricted,sys.executable,command,None,None,False,0x08000000,None,str(m.ROOT),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
+            record('process-created',pid=process.pid,desktop=desktop)
+            status=kernel.WaitForSingleObject(process.process,90000)
+            if status!=0:
+                record('wait-failed-or-timed-out',pid=process.pid,wait_status=status,desktop=desktop)
+                kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000);raise RuntimeError('restricted MSI context worker exceeded its bound')
+            code=W.DWORD()
+            if not kernel.GetExitCodeProcess(process.process,C.byref(code)):raise C.WinError(C.get_last_error())
+            record('process-exited',pid=process.pid,exit_code=code.value,exit_code_hex=hex(code.value),python_started=output.with_suffix('.progress.json').is_file(),desktop=desktop)
+            if code.value!=0:raise RuntimeError('restricted MSI context worker failed '+str(code.value)+' ('+hex(code.value)+'); see '+str(diagnostics))
+            evidence=json.loads(output.read_text(encoding='utf-8'))
+            if evidence['token']['user_sid_sha256']!=token_info()['user_sid_sha256']:raise RuntimeError('per-user install changed invoking user identity')
+            evidence['desktop']=desktop
+            output.write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+            return evidence
     finally:
         for h in (process.thread,process.process,restricted,token):
             if h:kernel.CloseHandle(h)
@@ -501,6 +576,10 @@ if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('installer',type=Path,nargs='?');p.add_argument('--receipt',type=Path);p.add_argument('--cancel-worker',type=Path);p.add_argument('--installer-worker',type=Path);p.add_argument('--context-worker',type=Path);p.add_argument('--context-dir',type=Path);p.add_argument('--output',type=Path);a=p.parse_args();m.disposable_runner()
     if a.installer_worker:native_installer_worker(a.installer_worker)
     elif a.cancel_worker:cancellation_worker(a.cancel_worker,a.context_dir,a.output)
-    elif a.context_worker:restricted_worker(a.context_worker,a.context_dir,a.output)
+    elif a.context_worker:
+        try:restricted_worker(a.context_worker,a.context_dir,a.output)
+        except BaseException as error:
+            a.output.with_suffix('.failure.json').write_text(json.dumps({'kind':'restricted-context-worker-failure','pid':os.getpid(),'error_type':type(error).__name__,'error':str(error)[-3000:]},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+            raise
     elif a.installer and a.receipt:r=json.loads(a.receipt.read_text(encoding='utf-8'));print(json.dumps(qualify(a.installer,r)))
     else:p.error('installer and --receipt are required')

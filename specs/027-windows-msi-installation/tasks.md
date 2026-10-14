@@ -86,3 +86,5 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 - [x] T039 [US2] Author and independently verify required empty AppSearch locator tables and require intended negative-case messages/actions in scripts/windows_msi.py and scripts/qualify-windows-msi.py.
 - [x] T040 [US2] Preserve explicit install-directory elections and check both incoming and registered installation roots during moving upgrades, with canonical-path and disposable active-process regressions.
 - [x] T041 [US2] Refuse elected exact-name shortcut collisions outside MSI ownership, and verify preservation of unrelated sibling shortcuts and registry values during actual CI lifecycle.
+- [x] T042 [US2] Give the restricted CI worker an owned noninteractive same-user desktop and startup diagnostics without changing shared desktop ACLs in scripts/qualify-windows-msi.py.
+- [x] T043 [US4] Render verified property-backed authored pages through a restricted MSI session and retain both capture/lifecycle failures independently in scripts/capture-installer-ui.py and scripts/package-msi.py.

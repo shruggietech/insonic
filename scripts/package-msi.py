@@ -47,6 +47,24 @@ def build(payload,receipt_path):
 def write(receipt):
     path=ROOT/'build/native/windows-installer-receipt.json';path.parent.mkdir(parents=True,exist_ok=True);path.write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
 
+def run_gates(output,receipt,stage):
+    m.disposable_runner();failures={}
+    if stage in ('capture','all'):
+        try:
+            load('capture_installer_ui','capture-installer-ui.py').capture(output,receipt)
+            receipt['qualification']['native_ui_capture']='passed'
+        except Exception as error:
+            receipt['qualification']['native_ui_capture']='failed';failures['native_ui_capture']=str(error)[-4000:]
+        write(receipt)
+    if stage in ('qualify','all'):
+        try:receipt['qualification'].update(load('qualify_windows_msi','qualify-windows-msi.py').qualify(output,receipt))
+        except Exception as error:failures['native_lifecycle']=str(error)[-4000:]
+        write(receipt)
+    if failures:
+        receipt['qualification_errors']=failures;write(receipt)
+        raise RuntimeError('native installer gates failed: '+json.dumps(failures,sort_keys=True))
+    if stage=='all':m.verify_installer(output,receipt)
+
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('stage',choices=['build','qualify','capture','all']);p.add_argument('--payload',type=Path);p.add_argument('--restore-payload',action='store_true');p.add_argument('--receipt',type=Path,default=ROOT/'build/native/package-desktop-receipt.json');args=p.parse_args()
     if args.stage in ('all','qualify','capture'):m.disposable_runner()
@@ -56,9 +74,5 @@ if __name__=='__main__':
         output,receipt=build(args.payload,args.receipt)
     else:
         receipt=json.loads((ROOT/'build/native/windows-installer-receipt.json').read_text(encoding='utf-8'));output=ROOT/'build/packages'/receipt['artifact']
-    if args.stage in ('capture','all'):
-        capture=load('capture_installer_ui','capture-installer-ui.py');capture.capture(output,receipt);receipt['qualification']['native_ui_capture']='passed';write(receipt)
-    if args.stage in ('qualify','all'):
-        qualify=load('qualify_windows_msi','qualify-windows-msi.py');receipt['qualification'].update(qualify.qualify(output,receipt));write(receipt)
-    if args.stage=='all':m.verify_installer(output,receipt)
+    if args.stage in ('capture','qualify','all'):run_gates(output,receipt,args.stage)
     print(json.dumps({'artifact':receipt['artifact'],'sha256':receipt['artifact_sha256'],'qualification':receipt['qualification']}))
