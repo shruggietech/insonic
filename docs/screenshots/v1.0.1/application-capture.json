@@ -2,9 +2,9 @@
   "kind": "application-ui-capture",
   "schema_version": "1.0.1",
   "source": {
-    "revision": "57b24d0e273ecc15dd7cca7cb36ad9e26404e338",
+    "revision": "d594e023c076123785e9fa18dfad1b0e1cd2d794",
     "dirty": false,
-    "tree_sha256": "514e10c25f185e59420f8f9d4a6c342585fdcd502d9bc01b01ae66ffca42704a",
+    "tree_sha256": "2be17fb9f0de8db1cc56340551eed3fba90f4e144c79d0df2ef3f6c45f677eb9",
     "files": [
       {
         "path": "brand/README.md",
@@ -4184,7 +4184,15 @@
       },
       {
         "path": "internal/process/startup.go",
-        "sha256": "29380d9d55dc3d5efcf6cbd14e54e56bda7bb39b9d0f9582ac7a7f1f11b495c8"
+        "sha256": "dbc29032d9288bc646a8ae8bc2996c7e27ea87ccc9cf092cf3f6dc0b7b5b0b81"
+      },
+      {
+        "path": "internal/process/startup_diagnostic.go",
+        "sha256": "da79f9144505b2bdccb057408b3aed39e8fce6e54531d96c79c618349d7cf77c"
+      },
+      {
+        "path": "internal/process/startup_diagnostic_test.go",
+        "sha256": "12ae9c044b981a45c03d429b12449b0135fe0e98f4ab03c4333ae0adf3bfb659"
       },
       {
         "path": "internal/process/startup_test.go",
@@ -5017,7 +5025,7 @@
     "windows_build": "10.0.26300"
   },
   "fixture": {
-    "id": "bc4ad58bb5881e7a04cd55846bc7fd93",
+    "id": "1d9b161e06b28cc94551f6c789f686f2",
     "isolated": true,
     "browser_profile_owned": true,
     "private_inputs": false
@@ -5030,8 +5038,8 @@
   "locale": "en-US",
   "signing": "unsigned",
   "binaries": {
-    "cli_sha256": "368935b175bbcd01701187483bce44e8c2d76786cf92e28947a40795460272de",
-    "bridge_sha256": "874bc8302d781eef950dc2e3b5ae0da4b7e219d331006db9f684c9d9d180b86c",
+    "cli_sha256": "e40bf1183dbff6a3e87661d500020d90d526703fedbdcc339f66a8ed27126351",
+    "bridge_sha256": "d061034c41879223578f7e8c402d4ea815cde271839039be8cfa26234e74c1dd",
     "cli_vcs_modified": false,
     "bridge_vcs_modified": false
   },
@@ -5100,7 +5108,7 @@
   "images": [
     {
       "path": "setup-location.png",
-      "sha256": "fa1ee88ee2ede72bb75c35ec53b20b1fcd6a61005c5b4fb2382e306bc2675d39",
+      "sha256": "de74f29b8a36774f318f869576536cdaad7109a3302c3d3da828a9d5db1c1000",
       "width": 1392,
       "height": 1766,
       "landmark": "Workspace and location (Step 1 of 5)",
