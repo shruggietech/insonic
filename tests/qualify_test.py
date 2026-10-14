@@ -26,10 +26,17 @@ class QualificationArchiveTests(unittest.TestCase):
         self.assertEqual(path.name, 'insonic.exe' if os.name == 'nt' else 'insonic')
 
     def test_standalone_desktop_prepares_its_native_sibling_before_acceptance(self):
-        with patch.object(qualify, 'native_env', return_value={'CC': 'selected'}), patch.object(qualify, 'build_cli', side_effect=RuntimeError('stop after native sibling')) as build:
-            with self.assertRaisesRegex(RuntimeError, 'native sibling'):
-                qualify.desktop()
-        build.assert_called_once_with(True, {'CC': 'selected'})
+        selected_native_env = {'CC': 'selected'}
+        for ci in ['false', 'true']:
+            with self.subTest(ci=ci), patch.dict(os.environ, {'GITHUB_ACTIONS': ci}), \
+                    patch.object(qualify, 'native_env', return_value=dict(selected_native_env)), \
+                    patch.object(qualify, 'build_cli', side_effect=RuntimeError('stop after native sibling')) as build, \
+                    patch.object(qualify, 'child') as acceptance:
+                with self.assertRaisesRegex(RuntimeError, 'native sibling'):
+                    qualify.desktop()
+                build.assert_called_once_with(True, selected_native_env)
+                acceptance.assert_not_called()
+        self.assertEqual(selected_native_env, {'CC': 'selected'})
 
     def test_generic_cli_lane_does_not_require_native_assets(self):
         with patch.object(qualify, 'native_env', side_effect=AssertionError('generic lane must not require native assets')), patch.object(qualify, 'qualify_cli') as run:

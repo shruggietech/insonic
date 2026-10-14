@@ -15,6 +15,45 @@ import uuid
 from process_tree import ProcessTree
 
 
+PARSER_REJECTIONS = [
+    ['doctor', '--unknown'], ['unknown'], ['doctor', '--workspace='],
+    ['doctor', '--request-id', 'invalid'], ['doctor', '--json'],
+    ['work', 'list', '--limit=0'],
+    ['media', 'import', '--copy', '--reference', 'fixture.wav'],
+]
+
+
+def qualify_read_only(invoke, paths, help_workspace, missing_workspace):
+    """Keep all help/parser assertions in one bounded, joined worker pool."""
+    before = sorted(str(p.relative_to(help_workspace)) for p in help_workspace.rglob('*'))
+    groups = sorted({tuple(path[:n]) for path in paths for n in range(1, len(path))})
+    checks = [('context', path) for path in paths]
+    checks += [('group', list(group)) for group in groups]
+    checks += [('rejection', args) for args in PARSER_REJECTIONS]
+
+    def check(item):
+        kind, args = item
+        if kind == 'context':
+            inside = invoke(['--workspace', help_workspace, *args, '--help'], scoped=False)['result']['help']
+            outside = invoke(['--workspace', missing_workspace, *args, '-h'], scoped=False)['result']['help']
+            prefixed = invoke(['help', *args], scoped=False)['result']['help']
+            if inside != outside or inside != prefixed or 'Usage:' not in inside:
+                raise ValueError('Contextual help differs: ' + ' '.join(args))
+        elif kind == 'group':
+            if 'Commands:' not in invoke(args, scoped=False)['result']['help']:
+                raise ValueError('No-argument group help differs')
+        else:
+            invoke(args, expected=2, scoped=False)
+
+    with ThreadPoolExecutor(max_workers=4) as workers:
+        # map observes failures in authored check order; exiting the context
+        # joins every submitted check, including its owned ProcessTree cleanup.
+        list(workers.map(check, checks))
+    after = sorted(str(p.relative_to(help_workspace)) for p in help_workspace.rglob('*'))
+    if before != after:
+        raise ValueError('Help created workspace files')
+
+
 def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
     executable, workspace = Path(executable), Path(workspace)
     environment = os.environ.copy()
@@ -50,25 +89,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
     paths = [line.strip().split() for line in root_help.splitlines() if line.startswith('  ')]
     help_workspace = workspace / 'isolated help workspace'
     invoke(['workspace', 'init', help_workspace], scoped=False)
-    before = sorted(str(p.relative_to(help_workspace)) for p in help_workspace.rglob('*'))
-    def check_help(path):
-        inside = invoke(['--workspace', help_workspace, *path, '--help'], scoped=False)['result']['help']
-        outside = invoke(['--workspace', workspace / 'absent-help-workspace', *path, '-h'], scoped=False)['result']['help']
-        prefixed = invoke(['help', *path], scoped=False)['result']['help']
-        if inside != outside or inside != prefixed or 'Usage:' not in inside:
-            raise ValueError('Contextual help differs: ' + ' '.join(path))
-    with ThreadPoolExecutor(max_workers=4) as workers:
-        list(workers.map(check_help, paths))
-    for group in {tuple(path[:n]) for path in paths for n in range(1, len(path))}:
-        if 'Commands:' not in invoke(list(group), scoped=False)['result']['help']:
-            raise ValueError('No-argument group help differs')
-    after = sorted(str(p.relative_to(help_workspace)) for p in help_workspace.rglob('*'))
-    if before != after:
-        raise ValueError('Help created workspace files')
-    for args in [['doctor', '--unknown'], ['unknown'], ['doctor', '--workspace='],
-                 ['doctor', '--request-id', 'invalid'], ['doctor', '--json'],
-                 ['work', 'list', '--limit=0'], ['media', 'import', '--copy', '--reference', 'fixture.wav']]:
-        invoke(args, expected=2, scoped=False)
+    qualify_read_only(invoke, paths, help_workspace, workspace / 'absent-help-workspace')
 
     # Human display, clean redirected waits and elected log preflight are part
     # of the same installed CLI contract, rather than source-only rendering.

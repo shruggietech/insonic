@@ -207,8 +207,8 @@
     },
     "assets": {
       "type": "array",
-      "minItems": 6,
-      "maxItems": 6,
+      "minItems": 7,
+      "maxItems": 7,
       "items": {
         "type": "object",
         "properties": {
@@ -235,7 +235,7 @@
         ],
         "additionalProperties": false
       },
-      "description": "Four native packages plus exact public documentation and offline-help archives; checksums and this manifest are companion assets."
+      "description": "Four archive packages, one selectable-client MSI and two documentation archives; checksums and manifest are companion assets."
     },
     "capabilities": {
       "type": "object",
@@ -287,6 +287,217 @@
       ],
       "additionalProperties": false,
       "description": "CLI/GUI and qualification disposition."
+    },
+    "installers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "schema_version": {
+            "const": "1.0.1",
+            "description": "Release contract version."
+          },
+          "product_version": {
+            "const": "1.0.1",
+            "description": "Owned software version."
+          },
+          "documentation_version": {
+            "const": "1.0.1",
+            "description": "Packaged documentation version."
+          },
+          "revision": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$",
+            "description": "Exact reviewed source commit."
+          },
+          "source_dirty": {
+            "const": false,
+            "description": "Candidate source must be clean."
+          },
+          "signing": {
+            "type": "object",
+            "properties": {
+              "configured": {
+                "const": false,
+                "description": "The newly authored MSI has no configured publisher signing."
+              },
+              "verified": {
+                "const": false,
+                "description": "A signed payload does not establish an MSI publisher signature."
+              },
+              "status": {
+                "const": "unconfigured",
+                "description": "This MSI remains independently unsigned."
+              }
+            },
+            "required": [
+              "configured",
+              "verified",
+              "status"
+            ],
+            "additionalProperties": false,
+            "description": "MSI signing is independent of contained executables and is explicitly unsigned."
+          },
+          "distribution": {
+            "type": "object",
+            "properties": {
+              "source_complete": {
+                "const": true,
+                "description": "Exact corresponding sources and build material verified."
+              },
+              "binary_publication": {
+                "const": "eligible",
+                "description": "Corresponding-source publication gate passed."
+              },
+              "corresponding_source": {
+                "const": "included",
+                "description": "Source material travels inside the package."
+              }
+            },
+            "required": [
+              "source_complete",
+              "binary_publication",
+              "corresponding_source"
+            ],
+            "description": "Verified distribution disposition; detailed source inventory is inside the package."
+          },
+          "kind": {
+            "const": "windows-installer-receipt",
+            "description": "Native MSI qualification and payload receipt."
+          },
+          "format": {
+            "const": "msi",
+            "description": "Windows Installer database, separate from portable archives."
+          },
+          "platform": {
+            "const": "windows_amd64",
+            "description": "Supported Windows x86-64 target."
+          },
+          "variant": {
+            "const": "selectable",
+            "description": "One MSI offers Desktop application, CLI or both."
+          },
+          "artifact": {
+            "type": "string",
+            "pattern": "^insonic_[0-9]+\\.[0-9]+\\.[0-9]+_windows_amd64_installer\\.msi$",
+            "description": "Exact installer asset basename for this release."
+          },
+          "artifact_sha256": {
+            "$ref": "common.schema.json#/$defs/sha256",
+            "description": "Complete final MSI digest."
+          },
+          "artifact_size_bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Complete final MSI length."
+          },
+          "payload_archive": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Qualified Windows desktop archive supplying complete payload."
+          },
+          "payload_archive_sha256": {
+            "$ref": "common.schema.json#/$defs/sha256",
+            "description": "Digest of the independently verified desktop payload archive."
+          },
+          "payload_receipt": {
+            "$ref": "#/properties/packages/items",
+            "description": "Exact independently qualified Windows desktop archive receipt."
+          },
+          "payload_inventory": {
+            "type": "object",
+            "description": "Exact embedded files and source inventory verified against MSI cabinets."
+          },
+          "qualification": {
+            "type": "object",
+            "properties": {
+              "client_selections": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "license_and_prerequisites": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "maintenance": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "upgrade_rollback": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "downgrade_rejection": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "active_work_preserved": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "user_data_preserved": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "launch_contract": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "native_ui_capture": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "cancellation_rollback": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              },
+              "user_context": {
+                "const": "passed",
+                "description": "Verified disposable Windows qualification result."
+              }
+            },
+            "required": [
+              "client_selections",
+              "license_and_prerequisites",
+              "maintenance",
+              "upgrade_rollback",
+              "downgrade_rejection",
+              "active_work_preserved",
+              "user_data_preserved",
+              "launch_contract",
+              "native_ui_capture",
+              "cancellation_rollback",
+              "user_context"
+            ],
+            "additionalProperties": true,
+            "description": "Real native Windows tests must pass each required lifecycle and capture result."
+          }
+        },
+        "required": [
+          "schema_version",
+          "product_version",
+          "documentation_version",
+          "revision",
+          "source_dirty",
+          "signing",
+          "distribution",
+          "kind",
+          "format",
+          "platform",
+          "variant",
+          "artifact",
+          "artifact_sha256",
+          "artifact_size_bytes",
+          "payload_archive",
+          "payload_archive_sha256",
+          "payload_receipt",
+          "payload_inventory",
+          "qualification"
+        ]
+      },
+      "description": "Exactly one selectable-client Windows x86-64 MSI; runtime verifies its format, source, payload, maintenance and signing evidence."
     }
   },
   "required": [
@@ -298,7 +509,8 @@
     "repository",
     "packages",
     "assets",
-    "capabilities"
+    "capabilities",
+    "installers"
   ],
   "additionalProperties": false,
   "examples": [
@@ -429,6 +641,11 @@
           "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
         },
         {
+          "name": "insonic_1.0.1_windows_amd64_installer.msi",
+          "size_bytes": 1,
+          "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        {
           "name": "documentation.tar.gz",
           "size_bytes": 1,
           "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
@@ -452,7 +669,75 @@
           "backup"
         ],
         "inference_qualification": "not-executed"
-      }
+      },
+      "installers": [
+        {
+          "kind": "windows-installer-receipt",
+          "schema_version": "1.0.1",
+          "product_version": "1.0.1",
+          "documentation_version": "1.0.1",
+          "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "source_dirty": false,
+          "format": "msi",
+          "platform": "windows_amd64",
+          "variant": "selectable",
+          "artifact": "insonic_1.0.1_windows_amd64_installer.msi",
+          "artifact_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "artifact_size_bytes": 1,
+          "payload_archive": "insonic_1.0.1_windows_amd64_desktop.zip",
+          "payload_archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "payload_receipt": {
+            "kind": "native-package-receipt",
+            "schema_version": "1.0.1",
+            "product_version": "1.0.1",
+            "documentation_version": "1.0.1",
+            "platform": "windows_amd64",
+            "variant": "desktop",
+            "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "source_dirty": false,
+            "archive": "insonic_1.0.1_windows_amd64_desktop.zip",
+            "archive_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "archive_size_bytes": 1,
+            "inventory_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "distribution": {
+              "source_complete": true,
+              "binary_publication": "eligible",
+              "corresponding_source": "included"
+            },
+            "signing": {
+              "configured": false,
+              "verified": false,
+              "status": "unconfigured"
+            }
+          },
+          "payload_inventory": {
+            "kind": "native-package-inventory"
+          },
+          "qualification": {
+            "client_selections": "passed",
+            "license_and_prerequisites": "passed",
+            "maintenance": "passed",
+            "upgrade_rollback": "passed",
+            "downgrade_rejection": "passed",
+            "active_work_preserved": "passed",
+            "user_data_preserved": "passed",
+            "launch_contract": "passed",
+            "native_ui_capture": "passed",
+            "cancellation_rollback": "passed",
+            "user_context": "passed"
+          },
+          "signing": {
+            "configured": false,
+            "verified": false,
+            "status": "unconfigured"
+          },
+          "distribution": {
+            "source_complete": true,
+            "binary_publication": "eligible",
+            "corresponding_source": "included"
+          }
+        }
+      ]
     }
   ]
 }

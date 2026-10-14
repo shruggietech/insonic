@@ -32,7 +32,7 @@ func startupReported(ctx context.Context, executable string, args []string, inpu
 	Hide(command, detached)
 	reader, writer, e := os.Pipe()
 	if e != nil {
-		return nil, contracts.Condition("unavailable", "startup_launch")
+		return nil, startupLaunchFailure("stdout_pipe", e)
 	}
 	defer reader.Close()
 	command.Stdout = writer
@@ -41,7 +41,7 @@ func startupReported(ctx context.Context, executable string, args []string, inpu
 		stdin, e = command.StdinPipe()
 		if e != nil {
 			writer.Close()
-			return nil, contracts.Condition("unavailable", "startup_launch")
+			return nil, startupLaunchFailure("stdin_pipe", e)
 		}
 	}
 	if e = command.Start(); e != nil {
@@ -49,7 +49,7 @@ func startupReported(ctx context.Context, executable string, args []string, inpu
 		if stdin != nil {
 			stdin.Close()
 		}
-		return nil, contracts.Condition("unavailable", "startup_launch")
+		return nil, startupLaunchFailure("command_start", e)
 	}
 	writer.Close()
 	exited := make(chan struct{})

@@ -33,3 +33,11 @@ test('released downloads identify all four current platform/variant assets', () 
   for (const item of assets) for (const variant of ['desktop', 'cli'])
     assert.equal(item[variant], `https://github.com/shruggietech/insonic/releases/download/v1.0.1/insonic_1.0.1_${item.platform}_${variant}${item.extension}`);
 });
+
+test('MSI is an additional current Windows choice while immutable 1.0.0 has no installer link', () => {
+  const current = releaseDownloads('1.0.1');
+  assert.equal(current[0].installer, 'https://github.com/shruggietech/insonic/releases/download/v1.0.1/insonic_1.0.1_windows_amd64_installer.msi');
+  assert.equal(current[1].installer, undefined);
+  assert.equal(releaseDownloads('1.0.0')[0].installer, undefined);
+  assert.equal(releaseDownloads('1.0.0', { historical: true })[0].installer, undefined);
+});

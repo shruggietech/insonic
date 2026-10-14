@@ -1134,6 +1134,37 @@ test('failed supplied assembly asks for current inputs rather than queuing an un
   assert.ok(button('Inspect job'));
   await unmount();
 });
+test('appearance save waits for deferred settings readback and uses its authoritative revision', async () => {
+  const bridge = mock();
+  await mount(bridge);
+  const original = bridge.Operate;
+  let complete, released = false;
+  bridge.Operate = async (request) => {
+    const response = await original(request);
+    if (request.operation === 'settings.show' && !released)
+      return new Promise((resolve) => {
+        complete = () => { released = true; resolve(response); };
+      });
+    return response;
+  };
+  await click('Settings');
+  assert.equal(typeof complete, 'function');
+  assert.equal(button('Save appearance').disabled, true);
+  await click('Save appearance');
+  assert.equal(bridge.calls.some((call) => call.operation === 'settings.set'), false);
+  await act(async () => complete());
+  await tick();
+  assert.equal(button('Save appearance').disabled, false);
+  await fill('Theme preference', 'light');
+  await click('Save appearance');
+  const saves = bridge.calls.filter((call) => call.operation === 'settings.set');
+  assert.equal(saves.length, 1);
+  assert.deepEqual(saves[0].data, {
+    section: 'appearance', revision: '3'.repeat(64),
+    value: { theme: 'light', reduced_motion: false },
+  });
+  await unmount();
+});
 test('settings appearance CAS and credential protected entry keep secrets out of Operate', async () => {
   const bridge = mock();
   await mount(bridge);

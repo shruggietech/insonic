@@ -110,6 +110,14 @@ export function renderDocument(source, entry, repositoryPath) {
         if (token.tag === 'h2') headings.push({ id, title });
       }
       for (const child of token.children || []) {
+        if (child.type === 'image') {
+          const src = child.attrGet('src');
+          const match = src?.match(/^\.\.\/screenshots\/(v[0-9]+\.[0-9]+\.[0-9]+)\/([a-z0-9-]+\.png)$/);
+          if (!match || match[1] !== `v${entry.version}`) throw new Error(`Documentation image must use its bounded versioned screenshot path: ${src}`);
+          if (!child.content.trim()) throw new Error('Documentation screenshot requires meaningful alternative text.');
+          child.attrSet('src', `/screenshots/${match[1]}/${match[2]}`);
+          continue;
+        }
         if (child.type !== 'link_open') continue;
         const href = child.attrGet('href');
         if (!href || /^(?:[a-z]+:|\/\/|#)/i.test(href)) continue;

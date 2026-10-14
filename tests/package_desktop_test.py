@@ -5,10 +5,12 @@ import json
 from copy import deepcopy
 from pathlib import Path
 import stat
+import subprocess
 import tarfile
 import tempfile
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +20,97 @@ spec.loader.exec_module(package)
 
 
 class NativePackageIntegrityTests(unittest.TestCase):
+    def test_native_timeout_retains_bounded_checkpoints_and_original_deadline(self):
+        for cleanup_timeout in (False, True):
+            with self.subTest(cleanup_timeout=cleanup_timeout), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                output = b'x' * 70000 + b'controlled stdout checkpoint\n'
+                error = b'y' * 70000 + b'Desktop qualification stage: audio-playback\n'
+                expired = subprocess.TimeoutExpired(['private/executable', '--webview-qualification'], 90,
+                                                    output=output, stderr=error)
+                class Tree:
+                    def __init__(self, *args, **kwargs):
+                        self.process = self; self.pid = 1234; self.calls = []; self.killed = False
+                        self.returncode = None
+                    def communicate(self, timeout):
+                        self.calls.append(timeout)
+                        if timeout == 90: raise expired
+                        if cleanup_timeout:
+                            raise subprocess.TimeoutExpired('cleanup', 5, output=output, stderr=error)
+                        self.returncode = 1
+                        return output, error
+                    def poll(self): return self.returncode
+                    def kill(self): self.killed = True
+                    def __enter__(self): return self
+                    def __exit__(self, *args): pass
+                tree = Tree()
+                stdout, stderr = io.BytesIO(), io.BytesIO()
+                with patch.object(package, 'ROOT', root), patch.object(package, 'ProcessTree', return_value=tree), \
+                        patch.object(package.sys, 'stdout', SimpleNamespace(buffer=stdout)), \
+                        patch.object(package.sys, 'stderr', SimpleNamespace(buffer=stderr)):
+                    with self.assertRaises(subprocess.TimeoutExpired) as failure:
+                        package.child(['private/executable', '--webview-qualification'], timeout=90)
+                self.assertIs(failure.exception, expired)
+                self.assertEqual(tree.calls, [90, 5]); self.assertTrue(tree.killed)
+                self.assertEqual(stdout.getvalue(), output[-65536:])
+                self.assertEqual(stderr.getvalue(), error[-65536:])
+                receipt = json.loads((root / 'build/native/package-child-timeout-1234-receipt.json').read_text())
+                self.assertEqual(receipt['stage'], 'native-webview')
+                self.assertEqual(receipt['timeout_seconds'], 90)
+                self.assertIsNone(receipt['poll_before_kill'])
+                self.assertEqual(receipt['poll_after_kill'], None if cleanup_timeout else 1)
+                self.assertEqual(receipt['cleanup_timeout'], cleanup_timeout)
+                self.assertEqual(receipt['stdout_bytes'], len(output))
+                self.assertNotIn('private', json.dumps(receipt))
+                self.assertNotIn('audio-playback', json.dumps(receipt))
+
+    def test_detached_idle_wait_keeps_deadline_and_unknown_failure_allowance(self):
+        with patch.object(package.time, 'monotonic', return_value=110), patch.object(package.time, 'sleep') as slept:
+            package.wait_for_detached_idle(100)
+            slept.assert_called_once_with(21)
+        with patch.object(package.time, 'monotonic', return_value=145), patch.object(package.time, 'sleep') as slept:
+            package.wait_for_detached_idle(100)
+            slept.assert_not_called()
+        with patch.object(package.time, 'sleep') as slept:
+            package.wait_for_detached_idle()
+            slept.assert_called_once_with(31)
+
+    def test_owned_gui_probe_joins_before_library_restoration_even_on_cli_failure(self):
+        import threading
+        for fail_cli in (False, True):
+            with self.subTest(fail_cli=fail_cli), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary); original = root / 'build/native/ladybug'
+                original.mkdir(parents=True); (original / 'retained.bin').write_bytes(b'native bytes')
+                sibling = root / 'unrelated'; sibling.write_bytes(b'preserved')
+                probe_started = threading.Event(); release_probe = threading.Event()
+                cli_finished = threading.Event(); scope_finished = threading.Event(); failures = []
+                def probe(*args):
+                    if original.exists(): raise AssertionError('native development tree exposed')
+                    probe_started.set()
+                    if not release_probe.wait(3): raise AssertionError('test probe release missing')
+                    if original.exists(): raise AssertionError('tree restored before owned probe finished')
+                def journey():
+                    try:
+                        with package.isolated_development_libraries(), package.background_gui_qualification('gui', root, {}) as future:
+                            if not probe_started.wait(2): raise AssertionError('probe did not start')
+                            cli_finished.set()
+                            if fail_cli: raise ValueError('actual CLI journey failure')
+                            future.result()
+                    except BaseException as error: failures.append(error)
+                    finally: scope_finished.set()
+                with patch.object(package, 'ROOT', root), patch.object(package, 'qualify_package_gui', side_effect=probe):
+                    thread = threading.Thread(target=journey); thread.start()
+                    try:
+                        self.assertTrue(cli_finished.wait(2))
+                        self.assertFalse(scope_finished.is_set()); self.assertFalse(original.exists())
+                        self.assertEqual(sibling.read_bytes(), b'preserved')
+                    finally:
+                        release_probe.set(); thread.join(3)
+                    self.assertFalse(thread.is_alive()); self.assertTrue(scope_finished.is_set())
+                self.assertEqual((original / 'retained.bin').read_bytes(), b'native bytes')
+                self.assertEqual(sibling.read_bytes(), b'preserved')
+                self.assertEqual([str(error) for error in failures], ['actual CLI journey failure'] if fail_cli else [])
+
     def test_install_text_is_platform_and_variant_specific(self):
         for key in ('windows_amd64','linux_amd64'):
             for variant in ('cli','desktop'):

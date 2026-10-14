@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Assemble and qualify relocated native packages without inference or release."""
 import argparse
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
+from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 import hashlib
 import importlib.util
@@ -73,9 +74,31 @@ def child(args, *, directory=ROOT, env=None, timeout=180, allow_detached=False):
     with ProcessTree([str(arg) for arg in args], cwd=directory, env=selected, allow_detached=allow_detached) as tree:
         try:
             output, error = tree.process.communicate(timeout=timeout)
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as expired:
+            before = tree.process.poll()
             tree.kill()
-            tree.process.communicate(timeout=5)
+            cleanup_timeout = False
+            try:
+                output, error = tree.process.communicate(timeout=5)
+            except subprocess.TimeoutExpired as cleanup:
+                cleanup_timeout = True
+                output, error = cleanup.output or expired.output or b'', cleanup.stderr or expired.stderr or b''
+            # Native qualification already emits fixed fixture checkpoints. Keep
+            # their bounded tail when a deadline expires, before fixture cleanup.
+            sys.stdout.buffer.write(output[-65536:])
+            sys.stderr.buffer.write(error[-65536:])
+            try:
+                write_json(ROOT / ('build/native/package-child-timeout-' + str(tree.process.pid) + '-receipt.json'), {
+                    'kind': 'package-child-timeout',
+                    'stage': 'native-webview' if '--webview-qualification' in args else 'package-tool',
+                    'pid': tree.process.pid, 'timeout_seconds': timeout,
+                    'poll_before_kill': before, 'poll_after_kill': tree.process.poll(),
+                    'cleanup_timeout': cleanup_timeout,
+                    'stdout_bytes': len(output), 'stderr_bytes': len(error),
+                    'retained_tail_bytes_per_stream': 65536,
+                })
+            except OSError:
+                pass  # Diagnostics cannot replace the actual child timeout.
             raise
         if tree.process.returncode:
             # Package fixtures carry controlled input and no user credentials.
@@ -186,6 +209,8 @@ def installed_manifest(root):
 def product_binaries(root, key, variant):
     suffix = '.exe' if key.startswith('windows') else ''
     names = ['insonic'] + (['insonic-desktop'] if variant == 'desktop' else [])
+    if key.startswith('windows'):
+        names.append('insonic-launcher')
     return [(root / (name + suffix), 'github.com/shruggietech/insonic/cmd/' + name) for name in names]
 
 
@@ -558,6 +583,9 @@ def build(variant='desktop'):
     env = package_build_environment(qualify.native_env(), key, root / 'native')
     exe = '.exe' if key.startswith('windows') else ''
     child(['go', 'build', '-tags', 'system_ladybug', '-o', root / ('insonic' + exe), './cmd/insonic'], env=env)
+    if key.startswith('windows'):
+        child(['go', 'build', '-ldflags', '-H windowsgui', '-o', root / 'insonic-launcher.exe', './cmd/insonic-launcher'], env=env)
+        shutil.copyfile(ROOT / 'scripts/insonic-session.cmd', root / 'insonic-session.cmd')
     args = ['go', 'build', '-tags', tags]
     if key.startswith('windows'):
         args.extend(['-ldflags', '-H windowsgui'])
@@ -811,6 +839,41 @@ def qualify_windows_install(extracted, temporary, env):
     return installed
 
 
+def qualify_package_gui(gui, directory, env):
+    runtime_env = dict(env)
+    if os.environ.get('GITHUB_ACTIONS') == 'true':
+        runtime_env['INSONIC_PROCESS_STARTUP_DIAGNOSTICS'] = '1'
+    # The shared runtime can legitimately restart as its own idle-exit owner.
+    # Permit its explicit Windows breakaway, retaining this GUI's owned job.
+    qualification_output = child([gui, '--qualification'], directory=directory, env=runtime_env, timeout=30, allow_detached=True)
+    qualify.write_receipt(ROOT / 'build/native/package-desktop-bridge-receipt.json', qualification_output,
+                          {'desktop_bridge': 'passed', 'offline_help': 'packaged', 'schema_version': VERSION})
+    args = [gui, '--webview-qualification']
+    if platform.system() == 'Linux':
+        args = ['/usr/bin/xvfb-run', '-a', *args]
+    qualification_output = child(args, directory=directory, env=runtime_env, timeout=90, allow_detached=True)
+    qualify.write_receipt(ROOT / 'build/native/package-webview-receipt.json', qualification_output,
+                          {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'schema_version': VERSION})
+
+
+@contextmanager
+def background_gui_qualification(gui, directory, env):
+    # Both probes create their own workspaces and in-process runtimes. Join every
+    # owned probe before restoring development libraries or removing fixtures.
+    with ThreadPoolExecutor(max_workers=1) as workers:
+        future = workers.submit(qualify_package_gui, gui, directory, dict(env))
+        yield future
+        future.result()
+
+
+def wait_for_detached_idle(last_completed_at=None):
+    # Preserve the entire existing allowance after the last CLI request. GUI
+    # probes use separate in-process runtimes and cannot extend this idle lease.
+    remaining = 31 if last_completed_at is None else max(0, 31 - (time.monotonic() - last_completed_at))
+    if remaining:
+        time.sleep(remaining)
+
+
 def _smoke(archive=None, dirname=None, receipt=None):
     if archive is None:
         receipt = json.loads((ROOT / 'build/native/package-receipt.json').read_text())
@@ -820,7 +883,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
         raise ValueError('package archive differs from qualified identity')
     verify_archive_receipt(archive, receipt)
     started = time.monotonic()
-    with tempfile.TemporaryDirectory(prefix='insonic package relocation ') as temporary:
+    with tempfile.TemporaryDirectory(prefix='insonic package relocation ') as temporary, ExitStack() as managed_checks:
         location = Path(temporary) / 'extracted with spaces'
         extract_package(archive, location)
         root = path_inside(location, receipt['inventory_root'])
@@ -855,7 +918,11 @@ def _smoke(archive=None, dirname=None, receipt=None):
                 raise ValueError('packaged shared operation failed: ' + response['error']['code'])
             return response.get('result', response)
         media = ROOT / 'tests/fixtures/media'
+        idle_started = None
+        gui_future = None
         try:
+            if receipt['variant'] == 'desktop':
+                gui_future = managed_checks.enter_context(background_gui_qualification(gui, root, env))
             setup = call('setup', 'show')
             if setup['revision'] != 0 or setup['state']['choices']['processing_mode'] != 'none':
                 raise ValueError('packaged fresh setup defaults differ')
@@ -931,22 +998,15 @@ def _smoke(archive=None, dirname=None, receipt=None):
             replacement = call('work', 'wait', replaced['work_id'], '--timeout-ms', '30000')
             retained = call('recordings', 'roster', 'show', items[0]['media_id'])
             recording = call('recordings', 'show', items[0]['media_id'])
+            idle_started = time.monotonic()
             if replacement['state'] != 'succeeded' or recording['recording']['state'] != 'untranscribed' or retained['revision'] != roster['revision'] or retained['members']:
                 raise ValueError('packaged replacement/declared-empty roster authority changed')
-            if receipt['variant'] == 'desktop':
-                qualification_output = child([gui, '--qualification'], directory=root, env=env, timeout=30)
-                qualify.write_receipt(ROOT / 'build/native/package-desktop-bridge-receipt.json', qualification_output,
-                                      {'desktop_bridge': 'passed', 'offline_help': 'packaged', 'schema_version': VERSION})
-                args = [gui, '--webview-qualification']
-                if platform.system() == 'Linux':
-                    args = ['/usr/bin/xvfb-run', '-a', *args]
-                qualification_output = child(args, directory=root, env=env, timeout=90)
-                qualify.write_receipt(ROOT / 'build/native/package-webview-receipt.json', qualification_output,
-                                      {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'schema_version': VERSION})
+            if gui_future is not None:
+                gui_future.result()
         finally:
             # The detached runtime owns its jobs and releases its own scratch
             # catalog handles at the existing bounded idle exit.
-            time.sleep(31)
+            wait_for_detached_idle(idle_started)
     receipt.update({'windows_copy_install': installation, 'windows_first_use': installation, 'cli_contract': contract_receipt, 'extracted_inventory': 'passed', 'relocation_path_spaces': 'passed',
                     'cli_real_audio_video_import': 'passed', 'recording_replacement': 'passed', 'declared_roster': 'passed', 'cueson_assembly': 'passed', 'native_subtitle_export': 'passed',
                     'gui_bridge': 'passed' if receipt['variant'] == 'desktop' else 'not-included',

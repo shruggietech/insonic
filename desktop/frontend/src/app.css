@@ -29,6 +29,7 @@ strong {
 }
 .desktop-content {
   display: grid;
+  align-content: start;
   gap: var(--bb-spacing-component);
   block-size: 100%;
   overflow: auto;

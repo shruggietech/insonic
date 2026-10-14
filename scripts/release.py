@@ -136,6 +136,8 @@ def rewrite_owned_schema(node, old, new, fields=None, context=None):
     if isinstance(node, str):
         if context in fields and node == old: return new
         if context == 'tag' and node == 'v' + old: return 'v' + new
+        if re.fullmatch(r'insonic_' + VERSION_PATTERN + r'_windows_amd64_installer\.msi', node):
+            return f'insonic_{new}_windows_amd64_installer.msi'
         package = re.fullmatch(r'insonic_' + VERSION_PATTERN + r'_(windows_amd64|linux_amd64|darwin_arm64)_(cli|desktop)\.(?:zip|tar\.gz)', node)
         if package:
             extension = '.tar.gz' if package[1] == 'linux_amd64' else '.zip'
@@ -223,7 +225,9 @@ def prepare(version, date, highlights, root=ROOT):
             if path.name == 'index.md':
                 text = re.sub(r'(?m)^v' + re.escape(version) + r' (?:is a specification baseline|documents (?:this release|the prepared release candidate))[^\n]*', f'v{version} documents the prepared release candidate. Official product downloads have not been published; package availability and executed qualification are recorded in its candidate manifest.', text)
             frozen[target] = text.encode('utf-8')
-            for relative in re.findall(r'\]\((\.\./[^)#? ]+)', text):
+            # Images have a separate versioned capture authority; they are not repository text references.
+            reference_text = re.sub(r'!\[[^\]]*\]\([^)]*\)', '', text)
+            for relative in re.findall(r'\]\((\.\./[^)#? ]+)', reference_text):
                 source = (source_docs / relative).resolve()
                 if not source.is_relative_to(root.resolve()) or not source.is_file(): raise ValueError('documentation reference cannot be frozen')
                 destination = docs / 'references' / source.relative_to(root.resolve())
@@ -289,10 +293,48 @@ def verify_package(path, receipt, source_root=ROOT):
     module.verify_archive_receipt(path, receipt, expected_source_root=source_root)
 
 
+def verify_installer(path, receipt, source_root=ROOT):
+    spec = importlib.util.spec_from_file_location('release_windows_msi', ROOT / 'scripts/windows_msi.py')
+    module = importlib.util.module_from_spec(spec); sys.modules[spec.name] = module; spec.loader.exec_module(module)
+    return module.verify_installer(path, receipt, source_root=source_root)
+
+
+def installer_identity(receipt, version, revision, packages):
+    if (receipt.get('kind') != 'windows-installer-receipt' or receipt.get('format') != 'msi'
+            or receipt.get('platform') != 'windows_amd64' or receipt.get('variant') != 'selectable'):
+        raise ValueError('installer format or platform identity differs')
+    if (receipt.get('revision') != revision or receipt.get('source_dirty') is not False
+            or any(receipt.get(field) != version for field in ('schema_version', 'product_version', 'documentation_version'))):
+        raise ValueError('installer source or version identity differs')
+    expected_name = f'insonic_{version}_windows_amd64_installer.msi'
+    if receipt.get('artifact') != expected_name:
+        raise ValueError('installer artifact format or version differs')
+    desktop = next((item for item in packages if item.get('platform') == 'windows_amd64' and item.get('variant') == 'desktop'), None)
+    if (desktop is None or receipt.get('payload_receipt') != desktop
+            or receipt.get('payload_archive') != desktop['archive']
+            or receipt.get('payload_archive_sha256') != desktop['archive_sha256']):
+        raise ValueError('installer payload source authority differs from qualified desktop archive')
+    required = ['client_selections','license_and_prerequisites','maintenance','upgrade_rollback','downgrade_rejection','active_work_preserved','user_data_preserved','launch_contract','native_ui_capture','cancellation_rollback','user_context']
+    if (not isinstance(receipt.get('qualification'), dict)
+            or any(receipt['qualification'].get(key) != 'passed' for key in required)):
+        raise ValueError('installer qualification is missing or incomplete')
+    distribution = receipt.get('distribution', {})
+    if (distribution.get('source_complete') is not True or distribution.get('binary_publication') != 'eligible'
+            or distribution.get('corresponding_source') != 'included'):
+        raise ValueError('installer corresponding sources are incomplete')
+    signing = receipt.get('signing', {})
+    verify_signing(signing)
+    if signing.get('configured') is not False or signing.get('verified') is not False or signing.get('status') != 'unconfigured':
+        raise ValueError('MSI is newly authored unsigned; payload signatures cannot establish installer signing')
+
+
 def verify_selected_package(path, receipt, verifier, source_root):
     # Execute the trusted verifier; candidate checkout inputs are data only.
     if verifier is verify_package:
-        verifier(path, receipt, source_root)
+        if receipt.get('kind') == 'windows-installer-receipt':
+            verify_installer(path, receipt, source_root)
+        else:
+            verifier(path, receipt, source_root)
     else:
         verifier(path, receipt)
 
@@ -326,9 +368,12 @@ def verify_documentation(path, version, revision, require_release=False):
 def candidate(receipts, assets, output, revision, root=ROOT, verifier=verify_package, runner=child):
     version = versions(root); exact_source(revision, root, runner)
     if output.exists(): raise ValueError('candidate output must be new')
-    selected = set(); packages = []; files = []
+    selected = set(); packages = []; installers = []; files = []
     for receipt_file in receipts:
-        receipt = read_json(receipt_file); key = (receipt.get('platform'), receipt.get('variant'))
+        receipt = read_json(receipt_file)
+        if receipt.get('kind') == 'windows-installer-receipt':
+            installers.append(receipt); continue
+        key = (receipt.get('platform'), receipt.get('variant'))
         if key not in {(p, v) for p in PLATFORMS for v in VARIANTS} or key in selected: raise ValueError('missing, duplicate or unqualified package variant')
         selected.add(key)
         if receipt.get('kind') != 'native-package-receipt' or receipt.get('revision') != revision or receipt.get('source_dirty') is not False:
@@ -344,6 +389,14 @@ def candidate(receipts, assets, output, revision, root=ROOT, verifier=verify_pac
         if entry['sha256'] != receipt.get('archive_sha256') or entry['size_bytes'] != receipt.get('archive_size_bytes'): raise ValueError('package archive differs from receipt')
         verify_selected_package(path, receipt, verifier, root); files.append(entry); packages.append(receipt)
     if selected != {(p, v) for p in PLATFORMS for v in VARIANTS}: raise ValueError('candidate requires all four Windows/Linux package variants')
+    if len(installers) != selected_installer_count(root, version):
+        raise ValueError('candidate requires exactly one MSI installer; missing or duplicate receipt')
+    for receipt in installers:
+        installer_identity(receipt, version, revision, packages)
+        path = assets / asset_name(receipt['artifact']); entry = file_entry(path)
+        if entry['sha256'] != receipt.get('artifact_sha256') or entry['size_bytes'] != receipt.get('artifact_size_bytes'):
+            raise ValueError('installer artifact differs from receipt')
+        verify_selected_package(path, receipt, verifier, root); files.append(entry)
     for filename in ('documentation.tar.gz', 'offline-help.tar.gz'):
         files.append(file_entry(assets / filename))
     for filename in ('documentation.tar.gz', 'offline-help.tar.gz'):
@@ -351,6 +404,7 @@ def candidate(receipts, assets, output, revision, root=ROOT, verifier=verify_pac
     value = {'kind': 'release-candidate', 'schema_version': version, 'version': version, 'revision': revision,
              'tag': 'v' + version, 'repository': REPOSITORY, 'packages': packages, 'assets': files,
              'capabilities': {'variants': list(VARIANTS), 'platforms': list(PLATFORMS), 'advanced_cli': ['backup'], 'inference_qualification': 'not-executed'}}
+    if installers: value['installers'] = installers
     output.mkdir(parents=True)
     for entry in files:
         shutil.copyfile(assets / entry['name'], output / entry['name'])
@@ -381,10 +435,12 @@ def document_archives(output, revision, root=ROOT, runner=child):
 
 def collect(input_directory, output, revision, root=ROOT, verifier=verify_package, runner=child):
     receipts = [path for path in input_directory.rglob('package-*-receipt.json') if path.name in ('package-cli-receipt.json', 'package-desktop-receipt.json') and read_json(path).get('kind') == 'native-package-receipt']
+    receipts += [path for path in input_directory.rglob('windows-installer-receipt.json') if read_json(path).get('kind') == 'windows-installer-receipt']
     with tempfile.TemporaryDirectory(prefix='insonic release aggregation ') as temporary:
         assets = Path(temporary)
         for receipt in receipts:
-            name = asset_name(read_json(receipt)['archive'])
+            value = read_json(receipt)
+            name = asset_name(value['artifact'] if value['kind'] == 'windows-installer-receipt' else value['archive'])
             matches = list(input_directory.rglob(name))
             if len(matches) != 1: raise ValueError('downloaded native asset is missing or ambiguous')
             shutil.copyfile(matches[0], assets / name)
@@ -499,6 +555,17 @@ def remote_assets(api, release, expected):
             raise ValueError('remote release asset digest or size differs')
 
 
+def selected_installer_count(source_root, version):
+    schema = read_json(source_root / f'schemas/v{version}/release-candidate.schema.json')
+    installers = schema.get('properties', {}).get('installers')
+    if installers is None: return 0
+    if (installers.get('minItems') != 1 or installers.get('maxItems') != 1
+            or installers.get('items', {}).get('properties', {}).get('format', {}).get('const') != 'msi'
+            or 'installers' not in schema.get('required', [])):
+        raise ValueError('selected release installer format contract differs')
+    return 1
+
+
 def selected_release_platforms(source_root, version):
     # Selected historical checkouts are data; never execute their validation code.
     schema = read_json(source_root / f'schemas/v{version}/release-candidate.schema.json')
@@ -506,11 +573,12 @@ def selected_release_platforms(source_root, version):
     platforms = packages['items']['properties']['platform']['enum']
     allowed = HISTORICAL_PLATFORMS if version == '1.0.0' else PLATFORMS
     count = len(allowed) * len(VARIANTS)
+    installer_count = selected_installer_count(source_root, version)
     if (not isinstance(platforms, list) or len(platforms) != len(set(platforms))
             or set(platforms) != set(allowed)
             or packages.get('minItems') != count or packages.get('maxItems') != count
-            or schema['properties']['assets'].get('minItems') != count + 2
-            or schema['properties']['assets'].get('maxItems') != count + 2):
+            or schema['properties']['assets'].get('minItems') != count + installer_count + 2
+            or schema['properties']['assets'].get('maxItems') != count + installer_count + 2):
         raise ValueError('selected release platform contract differs')
     return tuple(platforms)
 
@@ -538,8 +606,13 @@ def load_candidate(directory, verifier=verify_package, source_root=ROOT):
         if distribution.get('source_complete') is not True or distribution.get('binary_publication') != 'eligible' or distribution.get('corresponding_source') != 'included': raise ValueError('candidate corresponding sources are incomplete')
         signing = receipt.get('signing', {})
         verify_signing(signing, historical=value['version'] == '1.0.0')
-    asset_names = {p['archive'] for p in packages} | {'documentation.tar.gz', 'offline-help.tar.gz'}
-    if len(value.get('assets', [])) != package_count + 2 or {a['name'] for a in value['assets']} != asset_names: raise ValueError('candidate asset matrix differs')
+    installers = value.get('installers', [])
+    installer_count = selected_installer_count(source_root, value['version'])
+    if not isinstance(installers, list) or len(installers) != installer_count:
+        raise ValueError('candidate MSI installer inventory is missing or duplicate')
+    for receipt in installers: installer_identity(receipt, value['version'], value['revision'], packages)
+    asset_names = {p['archive'] for p in packages} | {i['artifact'] for i in installers} | {'documentation.tar.gz', 'offline-help.tar.gz'}
+    if len(value.get('assets', [])) != package_count + installer_count + 2 or {a['name'] for a in value['assets']} != asset_names: raise ValueError('candidate asset matrix differs')
     expected = value['assets'] + [file_entry(directory / 'release-manifest.json'), file_entry(directory / 'SHA256SUMS')]
     if len({entry['name'] for entry in expected}) != len(expected): raise ValueError('duplicate candidate assets')
     for entry in expected:
@@ -549,6 +622,11 @@ def load_candidate(directory, verifier=verify_package, source_root=ROOT):
         archive_entry = next(a for a in value['assets'] if a['name'] == receipt['archive'])
         if archive_entry['sha256'] != receipt.get('archive_sha256') or archive_entry['size_bytes'] != receipt.get('archive_size_bytes'): raise ValueError('candidate receipt differs from archive identity')
         verify_selected_package(directory / receipt['archive'], receipt, verifier, source_root)
+    for receipt in installers:
+        entry = next(a for a in value['assets'] if a['name'] == receipt['artifact'])
+        if entry['sha256'] != receipt.get('artifact_sha256') or entry['size_bytes'] != receipt.get('artifact_size_bytes'):
+            raise ValueError('candidate MSI receipt differs from artifact identity')
+        verify_selected_package(directory / receipt['artifact'], receipt, verifier, source_root)
     for name in ('documentation.tar.gz', 'offline-help.tar.gz'): verify_documentation(directory / name, value['version'], value['revision'])
     sums = ''.join(f"{entry['sha256']}  {entry['name']}\n" for entry in sorted(expected[:-1], key=lambda e: e['name']))
     if (directory / 'SHA256SUMS').read_text() != sums: raise ValueError('candidate checksums differ')
@@ -568,7 +646,7 @@ def published_candidate(output, revision, api, root=ROOT, runner=child, verifier
             or release.get('target_commitish') != revision):
         raise ValueError('published candidate requires the exact existing published release')
     assets = api.call('GET', f'repos/{REPOSITORY}/releases/{release["id"]}/assets?per_page=100')
-    asset_count = len(selected_release_platforms(root, version)) * len(VARIANTS) + 4
+    asset_count = len(selected_release_platforms(root, version)) * len(VARIANTS) + selected_installer_count(root, version) + 4
     if (not isinstance(assets, list) or len(assets) != asset_count or len({a.get('name') for a in assets}) != asset_count
             or not {'release-manifest.json', 'SHA256SUMS', 'documentation.tar.gz', 'offline-help.tar.gz'}.issubset({a.get('name') for a in assets})):
         raise ValueError('published candidate asset set is incomplete or unexpected')
@@ -668,7 +746,9 @@ def publish(directory, highlights, api, root=ROOT, runner=child, verifier=verify
         states = [label + ': ' + ('publisher signature verified' if windows[variant].get('configured') and windows[variant].get('verified') else 'unsigned, no verified publisher signature')
                   for variant, label in [('cli', 'CLI-only'), ('desktop', 'Desktop + CLI')]]
         body += '\nWindows signing: ' + '; '.join(states) + '.'
-        body += f'\n[Installation, updates and removal](https://github.com/{REPOSITORY}/blob/{value["tag"]}/docs/v{value["version"]}/desktop.md).'
+        if value.get('installers'): body += '\nWindows MSI: selectable Desktop application, CLI or both; unsigned, no verified publisher signature.'
+        guide = 'windows-installation' if value.get('installers') else 'desktop'
+        body += f'\n[Installation, updates and removal](https://github.com/{REPOSITORY}/blob/{value["tag"]}/docs/v{value["version"]}/{guide}.md).'
         if value['version'] == '1.0.1': body += '\nmacOS support is withdrawn starting with 1.0.1; historical 1.0.0 records remain available.'
     if not body.endswith(suffix): body += '\n\n' + suffix
     release = api.call('GET', f'repos/{REPOSITORY}/releases/tags/{value["tag"]}')

@@ -90,7 +90,7 @@ Unsupported media and nonzero source clocks receive a bounded temporary WAV or M
 
 ## Native package layouts
 
-insonic supports Windows x86-64 ZIP packages and Linux x86-64 tar.gz packages. Each platform has two choices, giving four package variants. A CLI is a command-line tool: type commands in a terminal and read their results there. The desktop application provides windows and controls and includes the same CLI.
+insonic supports an unsigned Windows x86-64 MSI with selectable clients, Windows x86-64 ZIP packages and Linux x86-64 tar.gz packages. [Windows installation, updates and removal](windows-installation.md) covers MSI controls, first launch, optional setup and conditional download/Windows warnings. Each platform has two choices, giving four package variants. A CLI is a command-line tool: type commands in a terminal and read their results there. The desktop application provides windows and controls and includes the same CLI.
 
 | Package | Included clients | Windows prerequisites | Linux prerequisites |
 | --- | --- | --- | --- |
@@ -107,7 +107,7 @@ Windows ZIP installation only copies files. It creates no MSI registration, PATH
 
 Both Windows variants require the Microsoft Visual C++ v14 x64 runtime. Microsoft provides [runtime guidance](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170) and the [official x64 installer](https://aka.ms/vc14/vc_redist.x64.exe). Download the complete installer while online for transfer to an offline computer.
 
-Desktop + CLI additionally requires the WebView2 Runtime. Use [Microsoft's downloads](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) and [distribution guidance](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution). The Evergreen Bootstrapper downloads the matching runtime online; the x64 Evergreen Standalone Installer contains the runtime for offline installation. Microsoft Edge itself does not replace this prerequisite. Prerequisite installers can request administrative approval according to their selected mode. Detailed unsigned Windows dialog guidance and screenshots remain a separate follow-up; device policy can block unsigned installation.
+Desktop + CLI additionally requires the WebView2 Runtime. Use [Microsoft's downloads](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) and [distribution guidance](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution). The Evergreen Bootstrapper downloads the matching runtime online; the x64 Evergreen Standalone Installer contains the runtime for offline installation. Microsoft Edge itself does not replace this prerequisite. Prerequisite installers can request administrative approval according to their selected mode. [Windows installation guidance](windows-installation.md) separates unsigned download/reputation prompts, permissions and policy blocks. Device policy can prevent unsigned installation.
 
 ### Install a Windows ZIP
 
@@ -143,7 +143,7 @@ Desktop + CLI additionally requires the WebView2 Runtime. Use [Microsoft's downl
    .\insonic.exe --workspace "C:\Users\YOUR_NAME\Documents\insonic library" workspace show
    ~~~
 
-9. With Desktop + CLI, launch insonic-desktop.exe from the same final program directory and open the library. [First-run experience](#first-run-experience) describes current explicit configuration. CLI-only users continue in the terminal with [CLI invocation and results](cli.md). Optional guided setup is available from fresh entry and Settings; MSI delivery remains separate.
+9. With Desktop + CLI, launch insonic-desktop.exe from the same final program directory and open the library. [First-run experience](#first-run-experience) describes current explicit configuration. CLI-only users continue in the terminal with [CLI invocation and results](cli.md). Optional guided setup is available from fresh entry and Settings. [MSI installation](windows-installation.md) additionally supplies selected shortcuts and Installed Apps maintenance.
 
 ### Close the old installation before maintenance
 

@@ -105,6 +105,15 @@ async function qualifyJourney(
   };
   const click = async (text: string) => {
     stage(`Click ${text}`);
+    await wait(() => {
+      const control = [...document.querySelectorAll('button')].find(
+        (candidate) => candidate.textContent === text,
+      );
+      if (!control || control.disabled || !control.getClientRects().length)
+        return false;
+      const style = window.getComputedStyle(control);
+      return style.visibility !== 'hidden' && style.visibility !== 'collapse';
+    }, `Control did not become visible and enabled: ${text}`);
     button(text).click();
     await idle();
   };

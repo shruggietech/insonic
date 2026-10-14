@@ -154,6 +154,19 @@ jobs:
       - name: Desktop shared bridge qualification
         if: inputs.native && matrix.runtime_lane == 'desktop'
         run: python scripts/qualify.py desktop
+      - name: Qualify unattended application screenshots
+        if: inputs.native && matrix.runtime_lane == 'desktop' && runner.os == 'Windows'
+        run: |
+          npm ci --ignore-scripts
+          python scripts/qualify-ui-capture.py --output build/ui-capture
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: success() && inputs.native && matrix.runtime_lane == 'desktop' && runner.os == 'Windows'
+        with:
+          archive: true
+          name: application-ui-capture-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/ui-capture
+          if-no-files-found: error
+          retention-days: 14
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && inputs.core
         with:
@@ -162,6 +175,7 @@ jobs:
           path: |
             build/native/*receipt.json
             build/native/package-inventory.json
+            build/ui-capture
           if-no-files-found: error
   runtime:
     if: always() && inputs.core && inputs.lane != 'packages'
@@ -266,8 +280,13 @@ jobs:
         run: |
           npm --prefix desktop/frontend run build
       - name: Assemble and qualify this relocated native package variant
-        if: inputs.native
+        if: inputs.native && (runner.os != 'Windows' || matrix.variant != 'desktop')
         run: python scripts/package-desktop.py all --variant ${{ matrix.variant }}
+      - name: Qualify the same Windows ZIP and MSI in parallel
+        if: inputs.native && runner.os == 'Windows' && matrix.variant == 'desktop'
+        env:
+          INSONIC_DISPOSABLE_INSTALLER_TEST: '1'
+        run: python scripts/qualify-windows-package.py
       - name: Retain qualified candidate package bytes
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: success() && inputs.native
@@ -289,4 +308,29 @@ jobs:
           path: |
             build/native/*receipt.json
             build/native/package-inventory.json
+          if-no-files-found: error
+      - name: Retain qualified candidate installer bytes
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: success() && inputs.native && runner.os == 'Windows' && matrix.variant == 'desktop'
+        with:
+          archive: true
+          name: candidate-package-${{ inputs.os }}-installer-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: |
+            build/packages/*.msi
+            build/native/windows-installer-receipt.json
+            build/native/installer-capture
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain installer qualification diagnostics
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always() && inputs.native && runner.os == 'Windows' && matrix.variant == 'desktop'
+        with:
+          archive: true
+          name: installer-receipts-${{ inputs.os }}-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: |
+            build/native/windows-installer-receipt.json
+            build/native/msi-lifecycle.json
+            build/native/msi-logs
+            build/native/installer-capture
           if-no-files-found: error
