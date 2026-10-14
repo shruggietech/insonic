@@ -69,7 +69,7 @@ def installer_properties(arguments):
     properties.update({'LAUNCH':'0','REBOOT':'ReallySuppress'})
     return ' '.join(key+'="'+value.replace('"','""')+'"' for key,value in properties.items())
 
-def service_diagnostic():
+def service_diagnostic(configuration=False):
     """Read-only Installer service status on disposable CI. Never stop services."""
     m.disposable_runner()
     import ctypes as C
@@ -85,7 +85,7 @@ def service_diagnostic():
     if not manager:return {'query_error':C.get_last_error(),'api':'OpenSCManagerW','requested_access':1}
     service=None
     try:
-        service=dll.OpenServiceW(manager,'msiserver',0x20004)
+        service=dll.OpenServiceW(manager,'msiserver',0x20005 if configuration else 0x20004)
         if not service:return {'query_error':C.get_last_error(),'api':'OpenServiceW','requested_access':0x20004}
         value=Status();needed=W.DWORD()
         if not dll.QueryServiceStatusEx(service,0,C.byref(value),C.sizeof(value),C.byref(needed)):return {'query_error':C.get_last_error()}
@@ -94,8 +94,65 @@ def service_diagnostic():
         try:security={'query_error':result} if result else descriptor_observation(descriptor,dll,kernel,information=0x7)
         finally:
             if descriptor:kernel.LocalFree(descriptor)
-        return {'pid':value.pid,'state':value.state,'checkpoint':value.checkpoint,'wait_hint_ms':value.wait_hint,'win32_exit':value.win32_exit,'actual_service_security':security}
+        observed={'pid':value.pid,'state':value.state,'accepted_controls':value.controls,'checkpoint':value.checkpoint,'wait_hint_ms':value.wait_hint,'win32_exit':value.win32_exit,'actual_service_security':security}
+        if configuration:
+            class Config(C.Structure):_fields_=[('type',W.DWORD),('start',W.DWORD),('error',W.DWORD),('binary',W.LPWSTR),('group',W.LPWSTR),('tag',W.DWORD),('dependencies',W.LPWSTR),('account',W.LPWSTR),('display',W.LPWSTR)]
+            dll.QueryServiceConfigW.argtypes=[W.HANDLE,C.c_void_p,W.DWORD,C.POINTER(W.DWORD)];dll.QueryServiceConfigW.restype=W.BOOL
+            needed=W.DWORD();dll.QueryServiceConfigW(service,None,0,C.byref(needed))
+            if not 0<needed.value<=65536:raise RuntimeError('Installer service configuration exceeds bound')
+            data=C.create_string_buffer(needed.value)
+            if not dll.QueryServiceConfigW(service,data,len(data),C.byref(needed)):raise C.WinError(C.get_last_error())
+            config=C.cast(data,C.POINTER(Config)).contents;raw=os.path.expandvars(config.binary or '').strip();expected=Path(os.environ['SystemRoot'])/'System32/msiexec.exe'
+            observed.update({'binary_command':raw,'canonical_binary':str(expected.resolve()),'binary_identity_valid':raw.casefold() in ((str(expected)+' /V').casefold(),('"'+str(expected)+'" /V').casefold()),'service_name':'msiserver','start_type':config.start})
+        return observed
     finally:
+        if service:dll.CloseServiceHandle(service)
+        dll.CloseServiceHandle(manager)
+
+def release_owned_installer_service(initial,install_receipt,remove_receipt,scheduler,sid,deadline):
+    """Gracefully restore a proven fixture-activated service, never kill a PID."""
+    m.disposable_runner()
+    if not initial or initial.get('state')!=1 or initial.get('pid')!=0 or not initial.get('binary_identity_valid'):raise RuntimeError('Installer service was not initially stopped and owned by this disposable fixture')
+    if scheduler.get('phase')!='completed' or scheduler.get('exit_code')!=0 or scheduler.get('deleted') is not True:raise RuntimeError('ordinary task did not fully complete before service release')
+    witnesses=[]
+    for path,action in ((install_receipt,'/i'),(remove_receipt,'/x')):
+        receipt=json.loads(Path(path).read_text(encoding='utf-8'))
+        if receipt.get('kind')!='native-installer-worker' or receipt.get('phase')!='completed' or receipt.get('exit_code')!=0 or receipt.get('action')!=action:raise RuntimeError('native transaction did not fully complete before service release')
+        witnesses.append(receipt['service'])
+    pid=witnesses[-1].get('pid')
+    if not pid or any(witness.get('state')!=4 or witness.get('pid')!=pid for witness in witnesses):raise RuntimeError('Installer service PID changed across owned ordinary transactions')
+    if owned_actor_processes(sid):raise RuntimeError('ordinary actor processes remain; no service release attempted')
+    current=service_diagnostic(configuration=True)
+    if current.get('state')!=4 or current.get('pid')!=pid or not current.get('accepted_controls',0)&1 or not current.get('binary_identity_valid') or current.get('canonical_binary')!=initial.get('canonical_binary'):raise RuntimeError('Installer service is unowned, changed, busy, or refuses graceful stop')
+    import ctypes as C
+    import ctypes.wintypes as W
+    dll=C.WinDLL('advapi32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True)
+    class Status(C.Structure):_fields_=[('type',W.DWORD),('state',W.DWORD),('controls',W.DWORD),('win32_exit',W.DWORD),('service_exit',W.DWORD),('checkpoint',W.DWORD),('wait_hint',W.DWORD),('pid',W.DWORD),('flags',W.DWORD)]
+    dll.OpenSCManagerW.argtypes=[W.LPCWSTR,W.LPCWSTR,W.DWORD];dll.OpenSCManagerW.restype=W.HANDLE;dll.OpenServiceW.argtypes=[W.HANDLE,W.LPCWSTR,W.DWORD];dll.OpenServiceW.restype=W.HANDLE
+    dll.QueryServiceStatusEx.argtypes=[W.HANDLE,C.c_int,C.c_void_p,W.DWORD,C.POINTER(W.DWORD)];dll.QueryServiceStatusEx.restype=W.BOOL;dll.ControlService.argtypes=[W.HANDLE,W.DWORD,C.c_void_p];dll.ControlService.restype=W.BOOL;dll.CloseServiceHandle.argtypes=[W.HANDLE]
+    kernel.OpenProcess.argtypes=[W.DWORD,W.BOOL,W.DWORD];kernel.OpenProcess.restype=W.HANDLE;kernel.QueryFullProcessImageNameW.argtypes=[W.HANDLE,W.DWORD,W.LPWSTR,C.POINTER(W.DWORD)];kernel.QueryFullProcessImageNameW.restype=W.BOOL;kernel.CloseHandle.argtypes=[W.HANDLE]
+    manager=dll.OpenSCManagerW(None,None,1);service=None;process=None
+    if not manager:raise C.WinError(C.get_last_error())
+    try:
+        service=dll.OpenServiceW(manager,'msiserver',0x24)
+        if not service:raise C.WinError(C.get_last_error())
+        value=Status();needed=W.DWORD()
+        def status():
+            if not dll.QueryServiceStatusEx(service,0,C.byref(value),C.sizeof(value),C.byref(needed)):raise C.WinError(C.get_last_error())
+            return value.state
+        if status()!=4 or value.pid!=pid or not value.controls&1:raise RuntimeError('Installer service changed before graceful release')
+        process=kernel.OpenProcess(0x1000,False,pid)
+        if not process:raise C.WinError(C.get_last_error())
+        image=C.create_unicode_buffer(32768);size=W.DWORD(len(image))
+        if not kernel.QueryFullProcessImageNameW(process,0,image,C.byref(size)) or Path(image.value).resolve()!=Path(initial['canonical_binary']).resolve():raise RuntimeError('SCM service PID is not the exact Windows Installer image')
+        if time.monotonic()>=deadline or status()!=4 or value.pid!=pid or not value.controls&1:raise RuntimeError('Installer service cleanup deadline or ownership changed')
+        if not dll.ControlService(service,1,C.byref(value)):raise C.WinError(C.get_last_error())
+        while status()!=1:
+            if value.state!=3 or time.monotonic()>=deadline:raise RuntimeError('owned Installer service did not stop within cleanup bound')
+            time.sleep(.05)
+        return {'method':'SCM SERVICE_CONTROL_STOP','initial_state':initial['state'],'activated_pid':pid,'final_state':value.state,'restored_initial_stopped_state':True,'process_terminated':False,'registry_hive_forced':False}
+    finally:
+        if process:kernel.CloseHandle(process)
         if service:dll.CloseServiceHandle(service)
         dll.CloseServiceHandle(manager)
 
@@ -886,6 +943,45 @@ def disposable_server_installer_policy(record=None):
             if record:record('CI-server-policy-restored',policy=evidence)
             if actual!=original or elevated_after!=elevated_before:raise RuntimeError('CI installer policy fixture did not exactly restore original policy')
 
+PROFILE_LEASE_OBSERVER=r'''
+$ErrorActionPreference='Stop'
+[Console]::InputEncoding=[Text.UTF8Encoding]::new($false);[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)
+$inputObject=([Console]::In.ReadToEnd()|ConvertFrom-Json)
+$sid=[string]$inputObject.sid
+if ($sid -notmatch '^S-1-5-21-(?:[0-9]+-){3}[0-9]+$') { throw 'invalid owned profile SID' }
+$result=@{profile=$null;events=@();machine_state_modified=$false}
+try {
+  $profiles=@(Get-CimInstance -ClassName Win32_UserProfile -Filter ("SID='"+$sid+"'"))
+  if ($profiles.Count -gt 1) { throw 'multiple exact profile registrations' }
+  if ($profiles.Count -eq 1) { $profile=$profiles[0];$result.profile=@{local_path=$profile.LocalPath;loaded=$profile.Loaded;ref_count=$profile.refCount;special=$profile.Special;status=$profile.Status} }
+} catch { $result.profile_query_hresult=$_.Exception.HResult }
+foreach ($channel in @('Application','Microsoft-Windows-User Profile Service/Operational')) {
+  try {
+    $filter=@{LogName=$channel;StartTime=[DateTime]::UtcNow.AddMinutes(-10)}
+    if ($channel -eq 'Application') { $filter.ProviderName='Microsoft-Windows-User Profiles Service' }
+    $events=@(Get-WinEvent -FilterHashtable $filter -MaxEvents 100 -ErrorAction Stop | Where-Object { $_.Message -and $_.Message.Contains($sid) } | Select-Object -First 12)
+    foreach ($event in $events) { $message=$event.Message;if ($message.Length -gt 6000) { $message=$message.Substring(0,6000) };$result.events+=@{channel=$channel;id=$event.Id;time=$event.TimeCreated.ToUniversalTime().ToString('o');message=$message} }
+  } catch { $result[('events_error_'+$channel)]=$_.Exception.HResult }
+}
+$result|ConvertTo-Json -Depth 5 -Compress
+'''
+
+def profile_lease_observation(sid,profile,deadline=None):
+    """Read exact owned profile leases and related events, without unloading."""
+    m.disposable_runner()
+    if not __import__('re').fullmatch(r'S-1-5-21-(?:[0-9]+-){3}[0-9]+',sid):raise ValueError('profile lease observation requires the exact owned SID')
+    import base64
+    executable=Path(os.environ['SystemRoot'])/'System32/WindowsPowerShell/v1.0/powershell.exe'
+    # Optional observations cannot consume the service-release/deletion budget.
+    bound=min(2,max(.1,deadline-time.monotonic())) if deadline is not None else 2
+    try:result=subprocess.run([str(executable),'-NoLogo','-NoProfile','-NonInteractive','-EncodedCommand',base64.b64encode(PROFILE_LEASE_OBSERVER.encode('utf-16le')).decode('ascii')],input=json.dumps({'sid':sid}).encode('utf-8'),stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=bound)
+    except subprocess.TimeoutExpired:return {'observer_timeout':True,'machine_state_modified':False}
+    if result.returncode:return {'observer_exit':result.returncode,'machine_state_modified':False}
+    observed=json.loads(result.stdout.decode('utf-8-sig'));owned=observed.get('profile')
+    if owned and (owned.get('special') or Path(owned['local_path']).resolve()!=Path(profile).resolve()):return {'provider_identity_mismatch':True,'machine_state_modified':False}
+    for event in observed.get('events',[]):event['message']=__import__('re').sub(r'S-1-(?:[0-9]+-)*[0-9]+',lambda match:'SID_SHA256_'+m.digest(match.group().encode()),event['message'])
+    observed['sid_sha256']=m.digest(sid.encode());return observed
+
 def owned_actor_processes(sid):
     """Observe exact account processes for profile cleanup, never stop any."""
     m.disposable_runner()
@@ -976,7 +1072,7 @@ def qualifier_profile_privileges():
                 if not security.AdjustTokenPrivileges(token,False,C.byref(previous),0,None,None) or C.get_last_error():raise C.WinError(C.get_last_error())
         finally:kernel.CloseHandle(token)
 
-def ordinary_context(installer,directory,output,model=None):
+def ordinary_context(installer,directory,output,model=None,service_ownership=None):
     """Qualify an actual ordinary account, exclusively on a disposable runner."""
     m.disposable_runner()
     import secrets
@@ -1073,13 +1169,26 @@ def ordinary_context(installer,directory,output,model=None):
                 cleanup.append({'object':'owned account batch logon right','restored':False,'error_type':type(error).__name__})
                 if failure is None:failure=error
         if profile is not None:
-            validate_account_profile(name,profile);deleted=False
+            validate_account_profile(name,profile);deleted=False;deadline=time.monotonic()+10;lease={}
             before_profile_delete=profile_cleanup_observation(sid,profile);delete_errors=[]
-            for _ in range(50):
+            if profiles.DeleteProfileW(sid,str(profile),None):deleted=True
+            else:delete_errors.append(C.get_last_error())
+            if not deleted and delete_errors[-1]==32 and service_ownership is not None and failure is None:
+                try:
+                    lease['before_service_release']=profile_lease_observation(sid,profile,deadline)
+                    released=release_owned_installer_service(service_ownership,worker_output.with_suffix('.install.worker.json'),worker_output.with_suffix('.remove.worker.json'),scheduler,sid,deadline)
+                    cleanup.append({'object':'owned Installer service activation','restored':released['restored_initial_stopped_state'],**released})
+                    lease['after_service_release']=profile_lease_observation(sid,profile,deadline)
+                except BaseException as error:
+                    cleanup.append({'object':'owned Installer service activation','restored':False,'error_type':type(error).__name__,'error':str(error)})
+                    if failure is None:failure=error
+            for _ in range(49):
+                if deleted or time.monotonic()>=deadline:break
                 if profiles.DeleteProfileW(sid,str(profile),None):deleted=True;break
-                delete_errors.append(C.get_last_error());time.sleep(.2)
-            cleanup.append({'object':'created profile','deleted':deleted,'sid_sha256':m.digest(sid.encode()),'delete_profile_winerrors':delete_errors,'before_delete':before_profile_delete,'after_delete':profile_cleanup_observation(sid,profile)})
-            if not deleted and failure is None:failure=RuntimeError('owned ordinary profile cleanup failed '+str(C.get_last_error()))
+                delete_errors.append(C.get_last_error());time.sleep(min(.2,max(0,deadline-time.monotonic())))
+            if not deleted and not lease:lease['remaining']=profile_lease_observation(sid,profile,deadline)
+            cleanup.append({'object':'created profile','deleted':deleted,'sid_sha256':m.digest(sid.encode()),'delete_profile_winerrors':delete_errors,'remaining_lease':lease,'before_delete':before_profile_delete,'after_delete':profile_cleanup_observation(sid,profile)})
+            if not deleted and failure is None:failure=RuntimeError('owned ordinary profile cleanup failed '+str(delete_errors[-1] if delete_errors else 0))
         if created:
             rc=network.NetUserDel(None,name);cleanup.append({'object':'created account','deleted':rc==0})
             if rc and failure is None:failure=RuntimeError('owned ordinary account cleanup failed '+str(rc))
@@ -1127,7 +1236,7 @@ def cancellation(installer,directory,output):
     return json.loads(output.read_text(encoding='utf-8'))
 
 def qualify(path,receipt):
-    m.disposable_runner();path=Path(path);started=time.monotonic()
+    m.disposable_runner();service_ownership=service_diagnostic(configuration=True);path=Path(path);started=time.monotonic()
     inventory=receipt['payload_inventory'];model=m.installer_model(inventory,receipt['payload_receipt']['inventory_sha256'],(m.ROOT/'LICENSE').read_text(encoding='utf-8'));m.verify_model_bytes(path,model)
     original_token=token_info()
     if not original_token['administrator_enabled'] or not original_token['elevated']:raise RuntimeError('elevated disposable runner token is required for dual-context qualification')
@@ -1213,8 +1322,8 @@ def qualify(path,receipt):
             assert_removal_sentinels(integration_sentinels)
             result['user_data_preserved']='passed'
             phase('ordinary-user-install-remove-and-elected-launch')
-            context_evidence=ordinary_context(old,tmp/'ordinary per-user installation',logs/'ordinary-context.json',model);result['user_context']='passed'
-            proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'windows_build':str(__import__('sys').getwindowsversion().build),'fixture_upgrade_code':upgrade,'checks':result,'elapsed_seconds':round(time.monotonic()-started,3),'active_work_fixture':{'process':'running owned ping image, no process shutdown','rejected_actions':['alternate-install-directory upgrade','uninstall'],'alternate_directory_absent':True,'old_payload_hashes_preserved':True},'exact_shortcut_collision':{'fresh_cli_exact_name':'rejected before installation changes','unrelated_bytes':'preserved','failed_action':'CheckCliMenu'},'unrelated_integrations':{'start_menu_sibling':'preserved','desktop_sibling':'preserved','product_key_sibling_value':'preserved','sentinel_content_sha256':m.digest(integration_sentinels['content'])},'shortcut_migration':{'fresh_unchecked_properties':'empty values normalized to zero','upgrade_overrides':False,'saved_elections':final_shortcut_elections},'policy_prompts':'not-observed','signing':'unsigned','cancellation':cancellation_evidence,'user_context':{'original_elevated_token':original_token,'ordinary_process':context_evidence},'elected_launcher':{'fixture':fixture_evidence,'elevated_caller':elevated_launch_evidence,'ordinary_caller':context_evidence['elected_launcher']}}
+            context_evidence=ordinary_context(old,tmp/'ordinary per-user installation',logs/'ordinary-context.json',model,service_ownership);result['user_context']='passed'
+            proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'windows_build':str(__import__('sys').getwindowsversion().build),'fixture_upgrade_code':upgrade,'checks':result,'elapsed_seconds':round(time.monotonic()-started,3),'active_work_fixture':{'process':'running owned ping image, no process shutdown','rejected_actions':['alternate-install-directory upgrade','uninstall'],'alternate_directory_absent':True,'old_payload_hashes_preserved':True},'exact_shortcut_collision':{'fresh_cli_exact_name':'rejected before installation changes','unrelated_bytes':'preserved','failed_action':'CheckCliMenu'},'unrelated_integrations':{'start_menu_sibling':'preserved','desktop_sibling':'preserved','product_key_sibling_value':'preserved','sentinel_content_sha256':m.digest(integration_sentinels['content'])},'shortcut_migration':{'fresh_unchecked_properties':'empty values normalized to zero','upgrade_overrides':False,'saved_elections':final_shortcut_elections},'policy_prompts':'not-observed','signing':'unsigned','cancellation':cancellation_evidence,'installer_service_initial':service_ownership,'user_context':{'original_elevated_token':original_token,'ordinary_process':context_evidence},'elected_launcher':{'fixture':fixture_evidence,'elevated_caller':elevated_launch_evidence,'ordinary_caller':context_evidence['elected_launcher']}}
             phase('completed')
         except BaseException as error:
             phase('failed',error_type=type(error).__name__,error=str(error)[-4000:]);raise

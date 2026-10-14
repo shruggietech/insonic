@@ -245,6 +245,49 @@ class InstallerModelTests(unittest.TestCase):
         with patch.dict(os.environ,env,clear=True),patch.object(m,'disposable_runner',return_value=None),patch.object(module,'token_info',return_value=token),patch.object(module,'open',return_value=io.BytesIO((json.dumps(credentials)+'\n').encode()),create=True),patch.object(C,'WinDLL',create=True) as native:
             with self.assertRaisesRegex(RuntimeError,'actor differs'):module.ordinary_interactive_bootstrap(pipe,self.path/'fixture.msi',self.path/'installed',output)
             native.assert_not_called()
+    def test_service_release_requires_ownership_completed_transactions_and_idle_identity(self):
+        import ctypes as C
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_owned_service_release',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.release_owned_installer_service(None,None,None,None,None,None)
+        sid='S-1-5-21-1-2-3-1001';binary=self.path/'Windows/System32/msiexec.exe';initial={'state':1,'pid':0,'binary_identity_valid':True,'canonical_binary':str(binary.resolve())};current={**initial,'state':4,'pid':4242,'accepted_controls':1};task={'phase':'completed','exit_code':0,'deleted':True};install=self.path/'owned-install.worker.json';remove=self.path/'owned-remove.worker.json'
+        for path,action in ((install,'/i'),(remove,'/x')):path.write_text(json.dumps({'kind':'native-installer-worker','phase':'completed','exit_code':0,'action':action,'service':{'state':4,'pid':4242}}),encoding='utf-8')
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'owned_actor_processes',return_value=[]),patch.object(module,'service_diagnostic',return_value=current),patch.object(C,'WinDLL',create=True) as native:
+            for owned in (None,{**initial,'state':4,'pid':4242},{**initial,'binary_identity_valid':False}):
+                with self.assertRaisesRegex(RuntimeError,'initially stopped'):module.release_owned_installer_service(owned,install,remove,task,sid,__import__('time').monotonic()+10)
+            for actual in ({**current,'pid':4243},{**current,'accepted_controls':0},{**current,'binary_identity_valid':False}):
+                with patch.object(module,'service_diagnostic',return_value=actual):
+                    with self.assertRaisesRegex(RuntimeError,'unowned, changed, busy'):module.release_owned_installer_service(initial,install,remove,task,sid,__import__('time').monotonic()+10)
+            with patch.object(module,'owned_actor_processes',return_value=[{'pid':91}]):
+                with self.assertRaisesRegex(RuntimeError,'processes remain'):module.release_owned_installer_service(initial,install,remove,task,sid,__import__('time').monotonic()+10)
+            native.assert_not_called()
+        calls=[];closed=[];state=[4];image=[str(binary)]
+        class Function:
+            def __init__(self,call):self.call=call
+            def __call__(self,*args):return self.call(*args)
+        def status(service,kind,out,size,needed):out._obj.state=state[0];out._obj.pid=4242 if state[0]==4 else 0;out._obj.controls=1;return True
+        def stop(service,control,out):self.assertEqual(control,1);calls.append(('graceful-SCM-stop',service));state[0]=1;return True
+        def query(process,flags,out,size):out.value=image[0];return True
+        service=SimpleNamespace(OpenSCManagerW=Function(lambda *args:11),OpenServiceW=Function(lambda manager,name,access:12),QueryServiceStatusEx=Function(status),ControlService=Function(stop),CloseServiceHandle=Function(lambda handle:closed.append(handle)))
+        kernel=SimpleNamespace(OpenProcess=Function(lambda access,inherit,pid:13),QueryFullProcessImageNameW=Function(query),CloseHandle=Function(lambda handle:closed.append(handle)));dlls={'advapi32':service,'kernel32':kernel}
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'owned_actor_processes',return_value=[]),patch.object(module,'service_diagnostic',return_value=current),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True):
+            image[0]=str(binary.with_name('foreign.exe'))
+            with self.assertRaisesRegex(RuntimeError,'exact Windows Installer image'):module.release_owned_installer_service(initial,install,remove,task,sid,__import__('time').monotonic()+10)
+            self.assertEqual(calls,[]);self.assertEqual(closed,[13,12,11]);closed.clear();image[0]=str(binary)
+            proof=module.release_owned_installer_service(initial,install,remove,task,sid,__import__('time').monotonic()+10)
+        self.assertEqual(calls,[('graceful-SCM-stop',12)]);self.assertEqual(closed,[13,12,11]);self.assertTrue(proof['restored_initial_stopped_state']);self.assertFalse(proof['process_terminated']);self.assertFalse(proof['registry_hive_forced'])
+    def test_profile_lease_observer_is_exact_sid_readonly_and_does_not_publish_sid_in_argv(self):
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_profile_lease',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.profile_lease_observation(None,None)
+        sid='S-1-5-21-1-2-3-1001';profile=self.path/'inso_ci_0123456789ab';observed={'profile':{'local_path':str(profile),'loaded':True,'ref_count':1,'special':False},'events':[{'message':'exact hive '+sid}],'machine_state_modified':False};calls=[]
+        def run(command,**options):calls.append((command,options));return SimpleNamespace(returncode=0,stdout=json.dumps(observed).encode(),stderr=b'')
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'SystemRoot':str(self.path/'Windows')}),patch.object(module.subprocess,'CREATE_NO_WINDOW',0x08000000,create=True),patch.object(module.subprocess,'run',side_effect=run):
+            with self.assertRaisesRegex(ValueError,'exact owned SID'):module.profile_lease_observation('foreign;script',profile)
+            proof=module.profile_lease_observation(sid,profile)
+        self.assertEqual(len(calls),1);self.assertNotIn(sid,repr(calls[0][0]));self.assertEqual(json.loads(calls[0][1]['input'])['sid'],sid);self.assertEqual(calls[0][1]['creationflags'],0x08000000);self.assertFalse(proof['machine_state_modified']);self.assertNotIn(sid,proof['events'][0]['message']);self.assertEqual(proof['profile']['ref_count'],1)
     def test_profile_process_observation_selects_exact_sid_and_never_stops_processes(self):
         import ctypes as C
         from types import SimpleNamespace
@@ -438,10 +481,15 @@ class InstallerModelTests(unittest.TestCase):
         def scheduled(stage,name,sid,password,args,record,profile):
             self.assertEqual(name,state['name']);self.assertEqual(sid,actor_sid);self.assertNotIn(password,repr(args));events.append('ordinary-task-completed')
             target=Path(args[args.index('--output')+1]);target.write_text(json.dumps({'token':{'user_sid_sha256':m.digest(actor_sid.encode())},'user_profile':str(state['profile']),'elected_launcher':{'actual_elected_launch':True},'os_policy_mutations':{}}),encoding='utf-8')
+            for action,suffix in (('/i','.install.worker.json'),('/x','.remove.worker.json')):target.with_suffix(suffix).write_text(json.dumps({'kind':'native-installer-worker','phase':'completed','exit_code':0,'action':action,'service':{'pid':42,'state':4}}),encoding='utf-8')
             return {'phase':'completed','exit_code':0,'deleted':True}
-        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'qualifier_profile_privileges',side_effect=lambda:nullcontext({'ordinary_actor_token_changed':False})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch.object(module,'disposable_server_installer_policy',return_value=nullcontext({'restored':True,'always_install_elevated_unchanged':True})),patch.object(module,'profile_cleanup_observation',return_value={'machine_state_modified':False}),patch.object(C,'get_last_error',return_value=32,create=True),patch.object(module.time,'sleep'):
-            proof=module.ordinary_context(installer,self.path/'installation',output,self.model)
-        self.assertEqual(events,['account-created','profile-created-by-native-load','owned-batch-added','ordinary-task-completed','profile-handle-unloaded','owned-batch-restored','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3);self.assertEqual(rights,[])
+        ownership={'state':1,'pid':0,'binary_identity_valid':True,'canonical_binary':'exact-CI-msiexec'}
+        def release(initial,install,remove,task,sid,deadline):
+            self.assertEqual(initial,ownership);self.assertEqual(sid,actor_sid);self.assertEqual(task['exit_code'],0);self.assertEqual(json.loads(install.read_text())['action'],'/i');self.assertEqual(json.loads(remove.read_text())['action'],'/x');events.append('owned-service-restored');return {'restored_initial_stopped_state':True,'process_terminated':False,'registry_hive_forced':False}
+        def lease(sid,profile,deadline):events.append('profile-lease-observed');return {'machine_state_modified':False}
+        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'qualifier_profile_privileges',side_effect=lambda:nullcontext({'ordinary_actor_token_changed':False})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch.object(module,'disposable_server_installer_policy',return_value=nullcontext({'restored':True,'always_install_elevated_unchanged':True})),patch.object(module,'profile_cleanup_observation',return_value={'machine_state_modified':False}),patch.object(module,'profile_lease_observation',side_effect=lease),patch.object(module,'release_owned_installer_service',side_effect=release),patch.object(C,'get_last_error',return_value=32,create=True),patch.object(module.time,'sleep'):
+            proof=module.ordinary_context(installer,self.path/'installation',output,self.model,ownership)
+        self.assertEqual(events,['account-created','profile-created-by-native-load','owned-batch-added','ordinary-task-completed','profile-handle-unloaded','owned-batch-restored','profile-lease-observed','owned-service-restored','profile-lease-observed','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3);self.assertEqual(rights,[])
         self.assertTrue(all(item.get('deleted',item.get('restored',item.get('unloaded'))) for item in proof['cleanup']));self.assertEqual((original/'owner-data').read_bytes(),b'keep');self.assertEqual((programdata/'owner-data').read_bytes(),b'keep')
         self.assertEqual(list(programdata.iterdir()),[programdata/'owner-data']);self.assertEqual(installer.read_bytes(),b'qualified MSI fixture bytes')
     def test_native_capture_requires_verified_clean_nonempty_source(self):
@@ -523,7 +571,7 @@ class InstallerModelTests(unittest.TestCase):
             if args[0]=='/x':calls.append('cleanup');return
             if 'REINSTALL=Core' in args:calls.append('feature-failed');raise RuntimeError('observed native 1603')
             calls.append('installed')
-        qualifier=SimpleNamespace(clone=lambda source,target,*args:shutil.copyfile(source,target),run_installer=install,installed_hashes=lambda *args:None,registered_feature_states=lambda *args:{'Core':3,'CLI':3,'Desktop':2},prepare_launcher_fixture=lambda *args:None,ordinary_context=lambda *args:calls.append('ordinary-first-observed' if Path(args[0]).name=='ordinary-first.msi' else 'ordinary-after-observed') or {'separate_user_account':True},token_info=lambda:{'session_id':1,'administrator_enabled':True},installer_mutex_diagnostic=lambda:{'machine_state_modified':False})
+        qualifier=SimpleNamespace(service_diagnostic=lambda **kwargs:{'state':1,'pid':0,'binary_identity_valid':True,'canonical_binary':'fixture-native-installer'},clone=lambda source,target,*args:shutil.copyfile(source,target),run_installer=install,installed_hashes=lambda *args:None,registered_feature_states=lambda *args:{'Core':3,'CLI':3,'Desktop':2},prepare_launcher_fixture=lambda *args:None,ordinary_context=lambda *args:calls.append('ordinary-first-observed' if Path(args[0]).name=='ordinary-first.msi' else 'ordinary-after-observed') or {'separate_user_account':True},token_info=lambda:{'session_id':1,'administrator_enabled':True},installer_mutex_diagnostic=lambda:{'machine_state_modified':False})
         package=SimpleNamespace(verify_archive_receipt=lambda *args,**kwargs:{'inventory':self.inv},extract_package=extract,verify_inventory=lambda *args:None)
         release=SimpleNamespace(verify_qualification=lambda *args:None,verify_signing=lambda *args:None)
         with patch.object(m,'disposable_runner',return_value=None),patch.object(m,'ROOT',self.path),patch.object(m,'author',side_effect=lambda path,*args:path.write_bytes(b'authored diagnostic fixture')),patch.object(module,'load',side_effect=[release,package,qualifier]),patch.object(module,'git_identity',side_effect=[{'revision':'a'*40,'dirty':False},{'revision':'b'*40,'dirty':False}]):
@@ -549,7 +597,7 @@ class InstallerModelTests(unittest.TestCase):
             if Path(args[1]).name=='upgraded.msi':upgraded=True;calls.append(('upgrade-api-success',None))
         def hashes(*args):
             if upgraded:raise ValueError('installed MSI bytes differ: missing versioned owned file')
-        qualifier=SimpleNamespace(clone=clone,run_installer=install,installed_hashes=hashes,registered_feature_states=lambda *args:{'Core':3,'CLI':3,'Desktop':2},prepare_launcher_fixture=lambda *args:None,ordinary_context=lambda *args:calls.append(('ordinary-observed',None)) or {'separate_user_account':True})
+        qualifier=SimpleNamespace(service_diagnostic=lambda **kwargs:{'state':1,'pid':0,'binary_identity_valid':True,'canonical_binary':'fixture-native-installer'},clone=clone,run_installer=install,installed_hashes=hashes,registered_feature_states=lambda *args:{'Core':3,'CLI':3,'Desktop':2},prepare_launcher_fixture=lambda *args:None,ordinary_context=lambda *args:calls.append(('ordinary-observed',None)) or {'separate_user_account':True})
         package=SimpleNamespace(verify_archive_receipt=lambda *args,**kwargs:{'inventory':self.inv},extract_package=lambda archive,destination:fixture(destination/name),verify_inventory=lambda *args:None)
         release=SimpleNamespace(verify_qualification=lambda *args:None,verify_signing=lambda *args:None)
         with patch.object(m,'disposable_runner',return_value=None),patch.object(m,'ROOT',self.path),patch.object(m,'author',side_effect=lambda path,*args:path.write_bytes(b'diagnostic fixture')),patch.object(module,'load',side_effect=[release,package,qualifier]),patch.object(module,'git_identity',side_effect=[{'revision':'a'*40,'dirty':False},{'revision':'b'*40,'dirty':False}]):

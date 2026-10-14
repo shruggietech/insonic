@@ -35,7 +35,8 @@ def run(archive,receipt_path,payload_source_root,ordinary=False,ordinary_first=F
     release=load('diagnostic_release','release.py');release.verify_qualification(receipt);release.verify_signing(receipt['signing'])
     package=load('diagnostic_package','package-desktop.py');verified=package.verify_archive_receipt(archive,receipt,expected_source_root=source)
     report['payload_source'].update({'archive':archive.name,'archive_sha256':m.sha(archive),'inventory_sha256':receipt['inventory_sha256'],'receipt_sha256':m.sha(Path(receipt_path))});save()
-    qualifier=load('diagnostic_qualifier','qualify-windows-msi.py')
+    qualifier=load('diagnostic_qualifier','qualify-windows-msi.py');service_ownership=qualifier.service_diagnostic(configuration=True)
+    report['observations']['initial_installer_service']=service_ownership;save()
     with tempfile.TemporaryDirectory(prefix='insonic-ci-diagnostic-') as temporary:
         temporary=Path(temporary);package.extract_package(archive,temporary/'payload');payload=temporary/'payload'/receipt['dirname'];inventory=verified['inventory']
         package.verify_inventory(payload,inventory)
@@ -51,7 +52,7 @@ def run(archive,receipt_path,payload_source_root,ordinary=False,ordinary_first=F
             ordinary_fixture=temporary/'ordinary-first.msi';ordinary_upgrade=m.guid('diagnostic-ordinary-first/'+str(uuid.uuid4()));qualifier.clone(authored,ordinary_fixture,model['version'],ordinary_upgrade)
             report['observations']['ordinary_first_fixture_identity']={'upgrade_code':ordinary_upgrade,'product_code':m.product_code(model['version'],ordinary_upgrade),'fixture_msi_sha256':m.sha(ordinary_fixture),'publication_eligible':False,'before_any_elevated_install_or_capture':True}
             qualifier.prepare_launcher_fixture(payload,temporary/'launcher-context-fixture');prepared=True;save()
-            try:report['observations']['ordinary_first_account']={'outcome':'observed-success','evidence':qualifier.ordinary_context(ordinary_fixture,temporary/'ordinary first installation',output/'ordinary-first-context.json',model)}
+            try:report['observations']['ordinary_first_account']={'outcome':'observed-success','evidence':qualifier.ordinary_context(ordinary_fixture,temporary/'ordinary first installation',output/'ordinary-first-context.json',model,service_ownership)}
             except Exception as error:report['observations']['ordinary_first_account']={'outcome':'observed-failure','error':str(error)}
             save()
         try:
@@ -82,7 +83,7 @@ def run(archive,receipt_path,payload_source_root,ordinary=False,ordinary_first=F
                 except Exception as error:report['observations']['cleanup']={'outcome':'observed-failure','error':str(error)}
             save()
         if ordinary and prepared:
-            try:report['observations']['ordinary_account']={'outcome':'observed-success','evidence':qualifier.ordinary_context(fixture,temporary/'ordinary installation',output/'ordinary-context.json',model)}
+            try:report['observations']['ordinary_account']={'outcome':'observed-success','evidence':qualifier.ordinary_context(fixture,temporary/'ordinary installation',output/'ordinary-context.json',model,service_ownership)}
             except Exception as error:report['observations']['ordinary_account']={'outcome':'observed-failure','error':str(error)}
             save()
     return report

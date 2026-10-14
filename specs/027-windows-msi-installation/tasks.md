@@ -123,3 +123,6 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 - [x] T065 [US2] Match explicit owned profile load/unload handles and retain bounded actual native child recorder diagnostics without weakening elected-launch qualification in scripts/qualify-windows-msi.py and tests/windows_msi_test.py.
 
 - [x] T066 [US2] Allocate native token integrity information with checked dynamic alignment and retain read-only exact actor process evidence for profile cleanup in scripts/qualify-windows-msi.py and tests/windows_msi_test.py.
+
+- [x] T067 [US2] Restore only a proven disposable-fixture Installer service activation through ownership-checked graceful SCM control within the existing profile cleanup deadline, retaining exact profile lease observations and refusal tests.
+- [x] T068 Seed the active-capacity test durable claims in one transaction while preserving real first acceptance, production attachment/TTL, full-capacity rejection and reconciliation in internal/app/capacity_test.go.
