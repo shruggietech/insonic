@@ -421,7 +421,7 @@ def ordinary_worker(installer,directory,output):
         record('elected-launch-observed')
         run_installer(['/x',product],output.with_suffix('.remove.log'));installed=False
         if marker.exists():raise RuntimeError('ordinary per-user removal retained owned marker')
-        evidence={'kind':'ordinary-disposable-ci-user','token':observed,'install_exit':0,'remove_exit':0,'payload_hashes_verified':True,'separate_user_account':True,'os_policy_mutations':False,'profile_loaded':True,'user_profile':os.environ['USERPROFILE'],'elected_launcher':launch_evidence}
+        evidence={'kind':'ordinary-disposable-ci-user','token':observed,'install_exit':0,'remove_exit':0,'payload_hashes_verified':True,'separate_user_account':True,'os_policy_mutations':{'global_policy_changed':False,'owned_account_batch_logon_right':os.environ.get('INSONIC_CI_ORDINARY_SCHEDULER')=='1'},'profile_loaded':True,'user_profile':os.environ['USERPROFILE'],'elected_launcher':launch_evidence}
         output.write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
         record('completed')
     finally:
@@ -506,6 +506,121 @@ def account_sid(token):
     try:return C.wstring_at(text)
     finally:kernel.LocalFree(text)
 
+def owned_batch_right(sid,change=None):
+    """Query or change only SeBatchLogonRight of the newly created CI actor."""
+    m.disposable_runner()
+    if not __import__('re').fullmatch(r'S-1-5-21-(?:\d+-){3}\d+',sid) or change not in (None,'add','remove'):raise ValueError('invalid owned account right operation')
+    import ctypes as C
+    import ctypes.wintypes as W
+    dll=C.WinDLL('advapi32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True)
+    class Attributes(C.Structure):_fields_=[('length',W.ULONG),('root',W.HANDLE),('name',C.c_void_p),('attributes',W.ULONG),('descriptor',C.c_void_p),('quality',C.c_void_p)]
+    class String(C.Structure):_fields_=[('length',W.USHORT),('maximum',W.USHORT),('buffer',C.c_void_p)]
+    dll.ConvertStringSidToSidW.argtypes=[W.LPCWSTR,C.POINTER(C.c_void_p)];dll.ConvertStringSidToSidW.restype=W.BOOL
+    dll.LsaOpenPolicy.argtypes=[C.c_void_p,C.POINTER(Attributes),W.ULONG,C.POINTER(C.c_void_p)];dll.LsaOpenPolicy.restype=W.ULONG
+    dll.LsaEnumerateAccountRights.argtypes=[C.c_void_p,C.c_void_p,C.POINTER(C.c_void_p),C.POINTER(W.ULONG)];dll.LsaEnumerateAccountRights.restype=W.ULONG
+    for name in ('LsaAddAccountRights','LsaRemoveAccountRights'):
+        getattr(dll,name).argtypes=[C.c_void_p,C.c_void_p,*([W.BOOL] if name=='LsaRemoveAccountRights' else []),C.POINTER(String),W.ULONG];getattr(dll,name).restype=W.ULONG
+    dll.LsaNtStatusToWinError.argtypes=[W.ULONG];dll.LsaNtStatusToWinError.restype=W.ULONG
+    dll.LsaClose.argtypes=[C.c_void_p];dll.LsaFreeMemory.argtypes=[C.c_void_p];kernel.LocalFree.argtypes=[C.c_void_p]
+    native_sid=C.c_void_p();policy=C.c_void_p();allocation=C.c_void_p()
+    def checked(result):
+        if result:raise C.WinError(dll.LsaNtStatusToWinError(result))
+    if not dll.ConvertStringSidToSidW(sid,C.byref(native_sid)):raise C.WinError(C.get_last_error())
+    try:
+        attributes=Attributes();attributes.length=C.sizeof(attributes);checked(dll.LsaOpenPolicy(None,C.byref(attributes),0x810 if change=='add' else 0x800,C.byref(policy)))
+        if change:
+            text=C.create_unicode_buffer('SeBatchLogonRight');value=String(len('SeBatchLogonRight')*2,C.sizeof(text),C.cast(text,C.c_void_p))
+            checked(dll.LsaAddAccountRights(policy,native_sid,C.byref(value),1) if change=='add' else dll.LsaRemoveAccountRights(policy,native_sid,False,C.byref(value),1))
+        count=W.ULONG();result=dll.LsaEnumerateAccountRights(policy,native_sid,C.byref(allocation),C.byref(count))
+        if result==0xc0000034:return []
+        checked(result)
+        if count.value>128:raise RuntimeError('account rights observation exceeds bound')
+        return sorted(C.wstring_at(item.buffer,item.length//2) for item in C.cast(allocation,C.POINTER(String))[:count.value])
+    finally:
+        if allocation:dll.LsaFreeMemory(allocation)
+        if policy:dll.LsaClose(policy)
+        kernel.LocalFree(native_sid)
+
+SCHEDULER_BRIDGE=r'''
+$ErrorActionPreference='Stop'
+[Console]::InputEncoding=[Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)
+$inputObject=[Console]::In.ReadToEnd() | ConvertFrom-Json
+$service=New-Object -ComObject Schedule.Service
+$service.Connect()
+$folder=$service.GetFolder('\')
+$created=$false; $running=$null; $result=@{phase='starting';task_name=$inputObject.task_name;deleted=$false}
+try {
+  if ($inputObject.task_name -notmatch '^insonic-ci-ordinary-[0-9a-f]{32}$') { throw 'invalid owned task name' }
+  if ($inputObject.mode -eq 'cleanup') {
+    try { $existing=$folder.GetTask($inputObject.task_name) } catch { if ($_.Exception.HResult -eq -2147024894) { $existing=$null } else { throw } }
+    if ($null -ne $existing) {
+      if ($existing.Definition.RegistrationInfo.Description -ne $inputObject.description) { throw 'task ownership mismatch' }
+      $principal=$existing.Definition.Principal.UserId
+      if ($principal -notmatch '^S-1-') { $principal=([Security.Principal.NTAccount]::new($principal)).Translate([Security.Principal.SecurityIdentifier]).Value }
+      if ($principal -ne $inputObject.sid) { throw 'task actor mismatch' }
+      if ($existing.State -eq 2 -or $existing.State -eq 4) { $existing.Stop(0) };$folder.DeleteTask($inputObject.task_name,0)
+    }
+    $result.deleted=$true;$result.phase='cleanup-completed'
+  } else {
+    $definition=$service.NewTask(0)
+    $definition.RegistrationInfo.Description=$inputObject.description
+    $definition.Principal.UserId=$inputObject.account;$definition.Principal.LogonType=1;$definition.Principal.RunLevel=0
+    $definition.Settings.Enabled=$true;$definition.Settings.Hidden=$true;$definition.Settings.ExecutionTimeLimit='PT90S'
+    $definition.Settings.DisallowStartIfOnBatteries=$false;$definition.Settings.StopIfGoingOnBatteries=$false
+    $action=$definition.Actions.Create(0);$action.Path=$inputObject.executable;$action.Arguments=$inputObject.arguments;$action.WorkingDirectory=$inputObject.directory
+    $registered=$folder.RegisterTaskDefinition($inputObject.task_name,$definition,2,$inputObject.account,$inputObject.password,1,$null)
+    $created=$true;$inputObject.password=$null;$result.phase='registered';$result.requested_run_level=0;$result.logon_type=1
+    $running=$registered.Run($null);$deadline=[DateTime]::UtcNow.AddSeconds(95)
+    do { Start-Sleep -Milliseconds 100;$running.Refresh();if ([DateTime]::UtcNow -gt $deadline) { throw 'owned ordinary task exceeded bound' } } while ($running.State -eq 2 -or $running.State -eq 4)
+    $result.exit_code=$registered.LastTaskResult;$result.phase='completed'
+  }
+} catch { $result.phase='failed';$result.hresult=$_.Exception.HResult }
+finally {
+  $inputObject.password=$null
+  if ($created) {
+    try { if ($null -ne $running) { $running.Refresh();if ($running.State -eq 2 -or $running.State -eq 4) { $running.Stop() } };$folder.DeleteTask($inputObject.task_name,0);$result.deleted=$true } catch { $result.cleanup_hresult=$_.Exception.HResult }
+  }
+}
+$result | ConvertTo-Json -Compress
+'''
+
+def scheduler_ordinary(stage,name,sid,password,args,record,profile):
+    """Run one least-privilege password task; credentials travel only via stdin."""
+    m.disposable_runner();stage=Path(stage)
+    marker=json.loads((stage/'owned-ci-account.json').read_text(encoding='utf-8'))
+    if marker!={'account':name,'sid_sha256':m.digest(sid.encode())} or stage.is_symlink() or stage.resolve().parent!=Path(os.environ['ProgramData']).resolve() or not __import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name):raise ValueError('ordinary scheduler target is not the exact owned account stage')
+    import base64
+    executable=Path(os.environ['SystemRoot'])/'System32/WindowsPowerShell/v1.0/powershell.exe'
+    command=[str(executable),'-NoLogo','-NoProfile','-NonInteractive','-EncodedCommand',base64.b64encode(SCHEDULER_BRIDGE.encode('utf-16le')).decode('ascii')]
+    task='insonic-ci-ordinary-'+uuid.uuid4().hex;description='insonic disposable ordinary actor '+m.digest(sid.encode())+' '+task
+    environment=dict(item.split('=',1) for item in ordinary_environment(profile,name,stage/'temp').split('\0') if item);environment['INSONIC_CI_ORDINARY_SCHEDULER']='1'
+    code='import os,runpy,sys;os.environ.clear();os.environ.update('+repr(environment)+');sys.argv='+repr(list(map(str,args)))+';sys.path.insert(0,os.path.dirname(sys.argv[0]));runpy.run_path(sys.argv[0],run_name="__main__")'
+    metadata={'task_name':task,'description':description,'sid':sid}
+    request={**metadata,'mode':'run','account':os.environ['COMPUTERNAME']+'\\'+name,'password':password,'executable':sys.executable,'arguments':subprocess.list2cmdline(['-c',code]),'directory':str(stage)}
+    outcome=None
+    def invoke(value):
+        completed=subprocess.run(command,input=json.dumps(value).encode('utf-8'),stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=110)
+        if completed.returncode:raise RuntimeError('hidden ordinary scheduler bridge failed '+str(completed.returncode))
+        return json.loads(completed.stdout.decode('utf-8-sig'))
+    record('TaskScheduler-ordinary-before-register',task_name=task,password_published=False,requested_run_level=0,logon_type=1)
+    try:
+        outcome=invoke(request);record('TaskScheduler-ordinary-result',scheduler=outcome)
+        if outcome.get('phase')!='completed' or outcome.get('exit_code')!=0 or outcome.get('deleted') is not True:raise RuntimeError('ordinary scheduled context did not complete: '+json.dumps(outcome,sort_keys=True))
+        return outcome
+    finally:
+        request['password']=None
+        if outcome is None or outcome.get('deleted') is not True:
+            cleanup=invoke({**metadata,'mode':'cleanup'});record('TaskScheduler-owned-cleanup',scheduler=cleanup)
+            if cleanup.get('deleted') is not True:raise RuntimeError('owned ordinary task cleanup failed')
+
+def retain_ordinary_diagnostics(native,output):
+    """Keep each actor's exact evidence distinct before deleting its stage."""
+    for item in Path(native).iterdir():
+        if item.is_file() and item.name.startswith('context.'):
+            if item.is_symlink():raise ValueError('ordinary diagnostic source is redirected')
+            shutil.copyfile(item,Path(output).with_name(Path(output).stem+item.name[len('context'):]))
+
 def grant_owned_account_stage(stage,user_sid,caller_sid,progress=None):
     m.disposable_runner()
     import ctypes as C
@@ -552,7 +667,7 @@ def ordinary_context(installer,directory,output,model=None):
     network.NetUserAdd.argtypes=[W.LPCWSTR,W.DWORD,C.c_void_p,C.POINTER(W.DWORD)];network.NetUserAdd.restype=W.DWORD;network.NetUserDel.argtypes=[W.LPCWSTR,W.LPCWSTR];network.NetUserDel.restype=W.DWORD
     network.NetLocalGroupAddMembers.argtypes=[W.LPCWSTR,W.LPCWSTR,W.DWORD,C.c_void_p,W.DWORD];network.NetLocalGroupAddMembers.restype=W.DWORD
     profiles.GetUserProfileDirectoryW.argtypes=[W.HANDLE,W.LPWSTR,C.POINTER(W.DWORD)];profiles.GetUserProfileDirectoryW.restype=W.BOOL;profiles.DeleteProfileW.argtypes=[W.LPCWSTR,W.LPCWSTR,W.LPCWSTR];profiles.DeleteProfileW.restype=W.BOOL
-    name='inso_ci_'+uuid.uuid4().hex[:12];password='Aa1!'+secrets.token_hex(24);created=False;profile=None;stage=None;token=W.HANDLE();caller=W.HANDLE();process=Process();sid=None;evidence=None;failure=None;cleanup=[]
+    name='inso_ci_'+uuid.uuid4().hex[:12];password='Aa1!'+secrets.token_hex(24);created=False;profile=None;stage=None;token=W.HANDLE();caller=W.HANDLE();process=Process();sid=None;evidence=None;failure=None;cleanup=[];batch_original=None
     diagnostics=Path(output).with_suffix('.startup.json');current_phase={'name':'starting'};history=[]
     def record(phase,**extra):
         current_phase['name']=phase;history.append({'phase':phase,**extra});diagnostics.write_text(json.dumps({'phase':phase,'actor':'actual ordinary disposable CI account','separate_user_account':True,'password_published':False,'boundaries':history,**extra},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
@@ -606,34 +721,32 @@ def ordinary_context(installer,directory,output,model=None):
         for original in fixture.iterdir():
             if original.is_file() and m.sha(original)!=m.sha(stage/'launcher-context-fixture'/original.name):raise RuntimeError('ordinary launcher fixture copy differs')
         (stage/'context-model.json').write_text(json.dumps(model),encoding='utf-8',newline='\n')
-        install=stage/'installed program é with spaces';worker_output=native/'context.json';env=C.create_unicode_buffer(ordinary_environment(profile,name,stage/'temp'))
-        record('Create-private-ordinary-worker-desktop')
-        with private_context_desktop(sid,caller_sid,record) as desktop:
-            startup=Startup();startup.cb=C.sizeof(startup);startup.flags=1;startup.show=0;startup.desktop=desktop['path']
-            args=[sys.executable,str(scripts/'qualify-windows-msi.py'),'--ordinary-worker',str(target),'--context-dir',str(install),'--output',str(worker_output)];command=C.create_unicode_buffer(subprocess.list2cmdline(args))
-            if len(command)>1024:raise RuntimeError('ordinary worker command exceeds native API bound')
-            record('before-process-create',desktop=desktop,same_user_sid_sha256=m.digest(sid.encode()),fixture_msi_sha256=m.sha(target))
-            record('CreateProcessWithLogonW-ordinary-worker')
-            if not security.CreateProcessWithLogonW(name,'.',password,1,sys.executable,command,0x08000400,env,str(stage),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
-            record('process-created',pid=process.pid,desktop=desktop)
-            status=kernel.WaitForSingleObject(process.process,90000)
-            if status!=0:
-                kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000);raise RuntimeError('ordinary owned worker exceeded its bound')
-            code=W.DWORD()
-            if not kernel.GetExitCodeProcess(process.process,C.byref(code)):raise C.WinError(C.get_last_error())
-            record('process-exited',pid=process.pid,exit_code=code.value,exit_code_hex=hex(code.value),python_started=worker_output.with_suffix('.progress.json').is_file(),desktop=desktop)
-            if code.value!=0:raise RuntimeError('ordinary MSI context worker failed '+str(code.value)+' ('+hex(code.value)+')')
-            evidence=json.loads(worker_output.read_text(encoding='utf-8'))
-            if evidence['token']['user_sid_sha256']!=m.digest(sid.encode()) or Path(evidence['user_profile']).resolve()!=profile.resolve():raise RuntimeError('ordinary worker changed account/profile identity')
-            evidence.update({'desktop':desktop,'profile_creation':'native LOGON_WITH_PROFILE bootstrap and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode())})
+        install=stage/'installed program é with spaces';worker_output=native/'context.json'
+        record('LsaEnumerateAccountRights-owned-before');batch_original=owned_batch_right(sid)
+        if 'SeBatchLogonRight' not in batch_original:
+            record('LsaAddAccountRights-owned-batch');owned_batch_right(sid,'add')
+        record('owned-batch-logon-right-observed',original_rights=batch_original,current_rights=owned_batch_right(sid),global_policy_changed=False)
+        args=[str(scripts/'qualify-windows-msi.py'),'--ordinary-worker',str(target),'--context-dir',str(install),'--output',str(worker_output)]
+        scheduler=scheduler_ordinary(stage,name,sid,password,args,record,profile)
+        evidence=json.loads(worker_output.read_text(encoding='utf-8'))
+        if evidence['token']['user_sid_sha256']!=m.digest(sid.encode()) or Path(evidence['user_profile']).resolve()!=profile.resolve():raise RuntimeError('ordinary worker changed account/profile identity')
+        evidence.update({'process_creation':'Task Scheduler password logon, least privilege, OS-created noninteractive session','scheduler':scheduler,'profile_creation':'native LOGON_WITH_PROFILE bootstrap and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode()),'owned_account_rights_before':batch_original})
     except BaseException as error:
         failure=error;record('failed',failed_api=getattr(error,'api',current_phase['name']),winerror=getattr(error,'winerror',None),errno=getattr(error,'errno',None),error_type=type(error).__name__,error=str(error))
     finally:
         if stage is not None and (stage/'native').is_dir():
-            for item in (stage/'native').iterdir():
-                if item.is_file():shutil.copyfile(item,Path(output).parent/('ordinary-'+item.name))
+            retain_ordinary_diagnostics(stage/'native',output)
         for handle in (process.thread,process.process,token,caller):
             if handle:kernel.CloseHandle(handle)
+        if batch_original is not None:
+            try:
+                restored=owned_batch_right(sid)
+                if 'SeBatchLogonRight' not in batch_original and 'SeBatchLogonRight' in restored:restored=owned_batch_right(sid,'remove')
+                cleanup.append({'object':'owned account batch logon right','restored':restored==batch_original,'original_rights':batch_original,'final_rights':restored})
+                if restored!=batch_original and failure is None:failure=RuntimeError('owned ordinary account rights were not restored')
+            except BaseException as error:
+                cleanup.append({'object':'owned account batch logon right','restored':False,'error_type':type(error).__name__})
+                if failure is None:failure=error
         if profile is not None:
             validate_account_profile(name,profile);deleted=False
             for _ in range(50):

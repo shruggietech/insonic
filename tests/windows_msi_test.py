@@ -188,6 +188,35 @@ class InstallerModelTests(unittest.TestCase):
             self.assertEqual(module.validate_account_profile(name,target),target)
             for account,path in [('original-ci-actor',target),(name,users/'original-ci-actor'),(name,self.path/name)]:
                 with self.assertRaises(ValueError):module.validate_account_profile(account,path)
+    def test_scheduler_password_stays_in_stdin_and_failure_cleans_exact_owned_task(self):
+        import base64
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_owned_scheduler',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.scheduler_ordinary(None,None,None,None,None,None,None)
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.owned_batch_right(None)
+        base=self.path/'programdata';base.mkdir();stage=base/('insonic-ci-account-'+'a'*32);stage.mkdir();sid='S-1-5-21-1-2-3-1001';name='inso_ci_0123456789ab';password='private-password-material'
+        (stage/'owned-ci-account.json').write_text(json.dumps({'account':name,'sid_sha256':m.digest(sid.encode())}),encoding='utf-8');calls=[];records=[]
+        def bridge(command,**options):
+            self.assertNotIn(password,repr(command));self.assertNotIn(password,repr(options.get('env')))
+            self.assertEqual(options['creationflags'],0x08000000);self.assertEqual(options['timeout'],110)
+            script=base64.b64decode(command[-1]).decode('utf-16le');self.assertIn("ExecutionTimeLimit='PT90S'",script);self.assertIn('RegisterTaskDefinition($inputObject.task_name,$definition,2,',script)
+            request=json.loads(options['input']);calls.append(request)
+            if request['mode']=='run':
+                self.assertEqual(request['password'],password);self.assertNotIn('provider-secret',request['arguments']);self.assertNotIn('owner-private',request['arguments']);self.assertIn('os.environ.clear()',request['arguments'])
+                return SimpleNamespace(returncode=0,stdout=b'{"phase":"failed","hresult":5,"deleted":false}')
+            self.assertNotIn('password',request);return SimpleNamespace(returncode=0,stdout=b'{"phase":"cleanup-completed","deleted":true}')
+        env={'ProgramData':str(base),'SystemRoot':r'C:\Windows','COMPUTERNAME':'CI-FIXTURE','GITHUB_ACTIONS':'true','RUNNER_ENVIRONMENT':'github-hosted','INSONIC_DISPOSABLE_INSTALLER_TEST':'1','GITHUB_TOKEN':'provider-secret','APPDATA':'owner-private','LOCALAPPDATA':'owner-private','HOME':'owner-private'}
+        with patch.dict(os.environ,env,clear=True),patch.object(m,'disposable_runner',return_value=None),patch.object(module.subprocess,'CREATE_NO_WINDOW',0x08000000,create=True),patch.object(module.subprocess,'run',side_effect=bridge):
+            with self.assertRaisesRegex(RuntimeError,'did not complete'):module.scheduler_ordinary(stage,name,sid,password,[str(stage/'scripts/qualify-windows-msi.py'),'--ordinary-worker',str(stage/'fixture.msi')],lambda phase,**extra:records.append((phase,extra)),self.path/name)
+        self.assertEqual(len(calls),2);self.assertEqual(calls[0]['task_name'],calls[1]['task_name']);self.assertEqual(calls[0]['description'],calls[1]['description']);self.assertEqual(calls[1]['sid'],sid);self.assertNotIn(password,repr(records));self.assertTrue(stage.exists())
+    def test_ordinary_first_and_later_diagnostic_bytes_remain_distinct(self):
+        spec=importlib.util.spec_from_file_location('qualify_actor_retention',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        native=self.path/'native';native.mkdir();item=native/'context.install.log';item.write_bytes(b'first actor actual log');progress=native/'context.progress.json';progress.write_bytes(b'first actor actual token')
+        module.retain_ordinary_diagnostics(native,self.path/'ordinary-first-context.json')
+        item.write_bytes(b'later actor actual log');progress.write_bytes(b'later actor actual token');module.retain_ordinary_diagnostics(native,self.path/'ordinary-context.json')
+        self.assertEqual((self.path/'ordinary-first-context.install.log').read_bytes(),b'first actor actual log');self.assertEqual((self.path/'ordinary-context.install.log').read_bytes(),b'later actor actual log')
+        self.assertEqual((self.path/'ordinary-first-context.progress.json').read_bytes(),b'first actor actual token');self.assertEqual((self.path/'ordinary-context.progress.json').read_bytes(),b'later actor actual token')
     def test_existing_ci_account_is_never_reused_or_deleted(self):
         import ctypes as C
         import secrets
@@ -216,7 +245,7 @@ class InstallerModelTests(unittest.TestCase):
         programdata=self.path/'programdata';programdata.mkdir();(programdata/'owner-data').write_bytes(b'keep')
         fixture=self.path/'launcher-context-fixture';fixture.mkdir();(fixture/'precompiled-reporter.exe').write_bytes(b'qualified fixture bytes')
         installer=self.path/'ordinary-source.msi';installer.write_bytes(b'qualified MSI fixture bytes');output=self.path/'ordinary.json'
-        actor_sid='S-1-5-21-1-2-3-1001';events=[];state={};deletions=[]
+        actor_sid='S-1-5-21-1-2-3-1001';events=[];state={};deletions=[];rights=[]
         class Function:
             def __init__(self,call):self.call=call
             def __call__(self,*args):return self.call(*args)
@@ -241,10 +270,19 @@ class InstallerModelTests(unittest.TestCase):
         network=SimpleNamespace(NetUserAdd=Function(lambda *args:events.append('account-created') or 0),NetUserDel=Function(lambda server,name:events.append('account-deleted') or 0),NetLocalGroupAddMembers=Function(lambda *args:0))
         profiles=SimpleNamespace(GetUserProfileDirectoryW=Function(profile_directory),DeleteProfileW=Function(delete_profile));dlls={'kernel32':kernel,'advapi32':security,'netapi32':network,'userenv':profiles}
         env={'USERPROFILE':str(original),'ProgramData':str(programdata),'SystemRoot':r'C:\Windows','COMPUTERNAME':'CI-FIXTURE'}
-        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'private_context_desktop',return_value=nullcontext({'path':'owned\\Default'})),patch.object(module.time,'sleep'):
+        def right(sid,change=None):
+            self.assertEqual(sid,actor_sid)
+            if change=='add':rights.append('SeBatchLogonRight');events.append('owned-batch-added')
+            if change=='remove':rights.remove('SeBatchLogonRight');events.append('owned-batch-restored')
+            return list(rights)
+        def scheduled(stage,name,sid,password,args,record,profile):
+            self.assertEqual(name,state['name']);self.assertEqual(sid,actor_sid);self.assertNotIn(password,repr(args));events.append('ordinary-task-completed')
+            target=Path(args[args.index('--output')+1]);target.write_text(json.dumps({'token':{'user_sid_sha256':m.digest(actor_sid.encode())},'user_profile':str(state['profile']),'elected_launcher':{'actual_elected_launch':True}}),encoding='utf-8')
+            return {'phase':'completed','exit_code':0,'deleted':True}
+        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'private_context_desktop',return_value=nullcontext({'path':'owned\\Default'})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch.object(module.time,'sleep'):
             proof=module.ordinary_context(installer,self.path/'installation',output,self.model)
-        self.assertEqual(events,['account-created','profile-created-by-logon','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3)
-        self.assertTrue(all(item['deleted'] for item in proof['cleanup']));self.assertEqual((original/'owner-data').read_bytes(),b'keep');self.assertEqual((programdata/'owner-data').read_bytes(),b'keep')
+        self.assertEqual(events,['account-created','profile-created-by-logon','owned-batch-added','ordinary-task-completed','owned-batch-restored','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3);self.assertEqual(rights,[])
+        self.assertTrue(all(item.get('deleted',item.get('restored')) for item in proof['cleanup']));self.assertEqual((original/'owner-data').read_bytes(),b'keep');self.assertEqual((programdata/'owner-data').read_bytes(),b'keep')
         self.assertEqual(list(programdata.iterdir()),[programdata/'owner-data']);self.assertEqual(installer.read_bytes(),b'qualified MSI fixture bytes')
     def test_native_capture_requires_verified_clean_nonempty_source(self):
         from types import SimpleNamespace

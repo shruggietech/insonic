@@ -47,7 +47,7 @@ Independent test: capture actual app/installer controls with source/renderer rec
 
 - [x] T019 [US4] Implement bounded headless compiled-frontend/current-CLI bridge capture in scripts/capture-application-ui.mjs and cmd/insonic-capture-bridge/.
 - [x] T020 [US4] Implement disposable-CI-only authored native page capture with exact owned-process cleanup in scripts/capture-installer-ui.py.
-- [ ] T021 [US4] Generate and inspect current fixture PNGs with exact source/renderer/privacy receipts in docs/screenshots/v1.0.1/.
+- [x] T021 [US4] Generate and inspect current fixture PNGs with exact source/renderer/privacy receipts in docs/screenshots/v1.0.1/.
 
 ## Phase 7: Delivery
 
@@ -113,3 +113,5 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 
 - [x] T058 Read exact MSI mutex access/security and token/session observations without acquiring or modifying shared objects, and compare ordinary-first diagnostic installation before elevated transactions.
 - [x] T059 Retain bounded fixed qualification output and sanitized owned-child timeout receipts without extending deadlines or replacing the original timeout failure.
+
+- [x] T060 Launch the exact owned ordinary CI actor through least-privilege password-logon Task Scheduler, retain strict environment/token checks, restore only its temporary batch-logon right and preserve first/later diagnostics separately.
