@@ -22,7 +22,7 @@ def git_identity(root):
         values.append(completed.stdout.decode('utf-8').strip())
     return {'revision':values[0],'dirty':bool(values[1])}
 
-def run(archive,receipt_path,payload_source_root,ordinary=False):
+def run(archive,receipt_path,payload_source_root,ordinary=False,ordinary_first=False):
     m.disposable_runner();archive=Path(archive);receipt=json.loads(Path(receipt_path).read_text(encoding='utf-8'));source=Path(payload_source_root)
     output=m.ROOT/'build/native/msi-diagnostic';output.mkdir(parents=True,exist_ok=True)
     report={'kind':'windows-msi-diagnostic-observations','diagnostic_only':True,'ineligible_for_publication':True,'qualification_pass':False,'payload_source':git_identity(source),'tool_source':git_identity(m.ROOT),'observations':{}}
@@ -46,11 +46,19 @@ def run(archive,receipt_path,payload_source_root,ordinary=False):
         upgraded=temporary/'upgraded.msi';qualifier.clone(authored,upgraded,new_version,upgrade)
         report['tool_source']['authored_msi_sha256']=m.sha(authored);report['observations']['fixture_identity']={'upgrade_code':upgrade,'product_code':m.product_code(model['version'],upgrade),'fixture_msi_sha256':m.sha(fixture),'publication_eligible':False};save()
         install=temporary/'installed program é with spaces';product=None;prepared=False
+        if ordinary_first:
+            report['observations']['elevated_actor_before_transactions']={'token':qualifier.token_info(),'mutex':qualifier.installer_mutex_diagnostic()}
+            ordinary_fixture=temporary/'ordinary-first.msi';ordinary_upgrade=m.guid('diagnostic-ordinary-first/'+str(uuid.uuid4()));qualifier.clone(authored,ordinary_fixture,model['version'],ordinary_upgrade)
+            report['observations']['ordinary_first_fixture_identity']={'upgrade_code':ordinary_upgrade,'product_code':m.product_code(model['version'],ordinary_upgrade),'fixture_msi_sha256':m.sha(ordinary_fixture),'publication_eligible':False,'before_any_elevated_install_or_capture':True}
+            qualifier.prepare_launcher_fixture(payload,temporary/'launcher-context-fixture');prepared=True;save()
+            try:report['observations']['ordinary_first_account']={'outcome':'observed-success','evidence':qualifier.ordinary_context(ordinary_fixture,temporary/'ordinary first installation',output/'ordinary-first-context.json',model)}
+            except Exception as error:report['observations']['ordinary_first_account']={'outcome':'observed-failure','error':str(error)}
+            save()
         try:
             qualifier.run_installer(['/i',fixture,'INSTALLDIR='+str(install),'LICENSE_ACCEPTED=1','ADDLOCAL=Core,CLI','START_MENU=0','DESKTOP_SHORTCUT=0'],output/'core-cli-install.log');product=m.product_code(model['version'],upgrade)
             qualifier.installed_hashes(install,model,False);report['observations']['core_cli_install']={'outcome':'observed-success','payload_hashes_verified':True}
             report['observations']['registered_states']=qualifier.registered_feature_states(product,output/'registered-states.json');save()
-            if ordinary:qualifier.prepare_launcher_fixture(install,temporary/'launcher-context-fixture');prepared=True
+            if ordinary and not prepared:qualifier.prepare_launcher_fixture(install,temporary/'launcher-context-fixture');prepared=True
             feature_added=False
             try:
                 qualifier.run_installer(['/i',fixture,'INSTALLDIR='+str(install),'LICENSE_ACCEPTED=1','ADDLOCAL=Core,Desktop,CLI','REINSTALL=Core','REINSTALLMODE=vomus'],output/'feature-add.log')
@@ -80,8 +88,8 @@ def run(archive,receipt_path,payload_source_root,ordinary=False):
     return report
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('--archive',type=Path,required=True);parser.add_argument('--receipt',type=Path,required=True);parser.add_argument('--payload-source-root',type=Path,required=True);parser.add_argument('--ordinary-context',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--archive',type=Path,required=True);parser.add_argument('--receipt',type=Path,required=True);parser.add_argument('--payload-source-root',type=Path,required=True);parser.add_argument('--ordinary-context',action='store_true');parser.add_argument('--ordinary-first',action='store_true');args=parser.parse_args()
     m.disposable_runner()
-    try:report=run(args.archive,args.receipt,args.payload_source_root,args.ordinary_context);print(json.dumps(report,sort_keys=True))
+    try:report=run(args.archive,args.receipt,args.payload_source_root,args.ordinary_context,args.ordinary_first);print(json.dumps(report,sort_keys=True))
     except Exception as error:
         output=m.ROOT/'build/native/msi-diagnostic';output.mkdir(parents=True,exist_ok=True);(output/'diagnostic-error.json').write_text(json.dumps({'diagnostic_only':True,'ineligible_for_publication':True,'qualification_pass':False,'error':str(error)},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n');raise

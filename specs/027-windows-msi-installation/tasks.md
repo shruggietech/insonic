@@ -110,3 +110,6 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 - [x] T056 Author actual embedded PE version/language metadata and verify it independently from cabinet bytes, retaining full upgrade payload hash checks.
 
 - [x] T057 Overlap unchanged ZIP/native MSI suites on separate owned child processes against one immutable current archive, then strictly join actual qualified payload evidence before publication.
+
+- [x] T058 Read exact MSI mutex access/security and token/session observations without acquiring or modifying shared objects, and compare ordinary-first diagnostic installation before elevated transactions.
+- [x] T059 Retain bounded fixed qualification output and sanitized owned-child timeout receipts without extending deadlines or replacing the original timeout failure.

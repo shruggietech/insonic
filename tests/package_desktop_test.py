@@ -5,10 +5,12 @@ import json
 from copy import deepcopy
 from pathlib import Path
 import stat
+import subprocess
 import tarfile
 import tempfile
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +20,50 @@ spec.loader.exec_module(package)
 
 
 class NativePackageIntegrityTests(unittest.TestCase):
+    def test_native_timeout_retains_bounded_checkpoints_and_original_deadline(self):
+        for cleanup_timeout in (False, True):
+            with self.subTest(cleanup_timeout=cleanup_timeout), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                output = b'x' * 70000 + b'controlled stdout checkpoint\n'
+                error = b'y' * 70000 + b'Desktop qualification stage: audio-playback\n'
+                expired = subprocess.TimeoutExpired(['private/executable', '--webview-qualification'], 90,
+                                                    output=output, stderr=error)
+                class Tree:
+                    def __init__(self, *args, **kwargs):
+                        self.process = self; self.pid = 1234; self.calls = []; self.killed = False
+                        self.returncode = None
+                    def communicate(self, timeout):
+                        self.calls.append(timeout)
+                        if timeout == 90: raise expired
+                        if cleanup_timeout:
+                            raise subprocess.TimeoutExpired('cleanup', 5, output=output, stderr=error)
+                        self.returncode = 1
+                        return output, error
+                    def poll(self): return self.returncode
+                    def kill(self): self.killed = True
+                    def __enter__(self): return self
+                    def __exit__(self, *args): pass
+                tree = Tree()
+                stdout, stderr = io.BytesIO(), io.BytesIO()
+                with patch.object(package, 'ROOT', root), patch.object(package, 'ProcessTree', return_value=tree), \
+                        patch.object(package.sys, 'stdout', SimpleNamespace(buffer=stdout)), \
+                        patch.object(package.sys, 'stderr', SimpleNamespace(buffer=stderr)):
+                    with self.assertRaises(subprocess.TimeoutExpired) as failure:
+                        package.child(['private/executable', '--webview-qualification'], timeout=90)
+                self.assertIs(failure.exception, expired)
+                self.assertEqual(tree.calls, [90, 5]); self.assertTrue(tree.killed)
+                self.assertEqual(stdout.getvalue(), output[-65536:])
+                self.assertEqual(stderr.getvalue(), error[-65536:])
+                receipt = json.loads((root / 'build/native/package-child-timeout-1234-receipt.json').read_text())
+                self.assertEqual(receipt['stage'], 'native-webview')
+                self.assertEqual(receipt['timeout_seconds'], 90)
+                self.assertIsNone(receipt['poll_before_kill'])
+                self.assertEqual(receipt['poll_after_kill'], None if cleanup_timeout else 1)
+                self.assertEqual(receipt['cleanup_timeout'], cleanup_timeout)
+                self.assertEqual(receipt['stdout_bytes'], len(output))
+                self.assertNotIn('private', json.dumps(receipt))
+                self.assertNotIn('audio-playback', json.dumps(receipt))
+
     def test_detached_idle_wait_keeps_deadline_and_unknown_failure_allowance(self):
         with patch.object(package.time, 'monotonic', return_value=110), patch.object(package.time, 'sleep') as slept:
             package.wait_for_detached_idle(100)

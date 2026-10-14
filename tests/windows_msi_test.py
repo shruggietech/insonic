@@ -136,7 +136,7 @@ class InstallerModelTests(unittest.TestCase):
     def test_cancel_and_context_entrypoints_reject_owner_host_before_native_calls(self):
         spec=importlib.util.spec_from_file_location('qualify_msi_guard',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with patch.dict(os.environ,{},clear=True):
-            for function,args in [(module.token_info,()),(module.ordinary_context,(None,None,None)),(module.ordinary_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,()),(module.service_diagnostic,()),(module.native_installer_worker,(None,)),(module.native_installer_dll,(None,)),(module.run_installer,(['/i','unused'],None)),(module.create_removal_sentinels,()),(module.assert_removal_sentinels,(None,)),(module.clean_removal_sentinels,(None,)),(module.private_context_desktop,('S-1-5-21-1-2-3-1001',)),(module.account_sid,(None,)),(module.grant_owned_account_stage,(None,None,None)),(module.registered_feature_states,(None,None))]:
+            for function,args in [(module.token_info,()),(module.installer_mutex_diagnostic,()),(module.owned_user_object_observation,(None,None,None,None)),(module.ordinary_context,(None,None,None)),(module.ordinary_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,()),(module.service_diagnostic,()),(module.native_installer_worker,(None,)),(module.native_installer_dll,(None,)),(module.run_installer,(['/i','unused'],None)),(module.create_removal_sentinels,()),(module.assert_removal_sentinels,(None,)),(module.clean_removal_sentinels,(None,)),(module.private_context_desktop,('S-1-5-21-1-2-3-1001',)),(module.account_sid,(None,)),(module.grant_owned_account_stage,(None,None,None)),(module.registered_feature_states,(None,None))]:
                 with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
         self.assertIn('cancellation_rollback',m.QUALIFICATION_KEYS);self.assertIn('user_context',m.QUALIFICATION_KEYS)
     def test_private_context_desktop_restores_caller_on_success_and_failure(self):
@@ -161,7 +161,7 @@ class InstallerModelTests(unittest.TestCase):
             kernel=SimpleNamespace(GetCurrentThreadId=Function(lambda:42),LocalFree=Function(lambda value:closed.append(('descriptor',value.value)) or None))
             security=SimpleNamespace(ConvertStringSecurityDescriptorToSecurityDescriptorW=Function(descriptor))
             dlls={'user32':user,'kernel32':kernel,'advapi32':security}
-            with patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(C,'WinError',side_effect=lambda code:OSError('fixture native failure'),create=True),patch.object(C,'get_last_error',return_value=5,create=True):
+            with patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(C,'WinError',side_effect=lambda code:OSError('fixture native failure'),create=True),patch.object(C,'get_last_error',return_value=5,create=True),patch.object(module,'owned_user_object_observation',return_value={'actual_native_descriptor':'mocked portable evidence'}):
                 if failure:
                     with self.assertRaises(OSError) as failure_result:
                         with module.private_context_desktop(sid,caller):self.fail('failed creation yielded a desktop')
@@ -325,14 +325,16 @@ class InstallerModelTests(unittest.TestCase):
             if args[0]=='/x':calls.append('cleanup');return
             if 'REINSTALL=Core' in args:calls.append('feature-failed');raise RuntimeError('observed native 1603')
             calls.append('installed')
-        qualifier=SimpleNamespace(clone=lambda source,target,*args:shutil.copyfile(source,target),run_installer=install,installed_hashes=lambda *args:None,registered_feature_states=lambda *args:{'Core':3,'CLI':3,'Desktop':2},prepare_launcher_fixture=lambda *args:None,ordinary_context=lambda *args:calls.append('ordinary-observed') or {'separate_user_account':True})
+        qualifier=SimpleNamespace(clone=lambda source,target,*args:shutil.copyfile(source,target),run_installer=install,installed_hashes=lambda *args:None,registered_feature_states=lambda *args:{'Core':3,'CLI':3,'Desktop':2},prepare_launcher_fixture=lambda *args:None,ordinary_context=lambda *args:calls.append('ordinary-first-observed' if Path(args[0]).name=='ordinary-first.msi' else 'ordinary-after-observed') or {'separate_user_account':True},token_info=lambda:{'session_id':1,'administrator_enabled':True},installer_mutex_diagnostic=lambda:{'machine_state_modified':False})
         package=SimpleNamespace(verify_archive_receipt=lambda *args,**kwargs:{'inventory':self.inv},extract_package=extract,verify_inventory=lambda *args:None)
         release=SimpleNamespace(verify_qualification=lambda *args:None,verify_signing=lambda *args:None)
         with patch.object(m,'disposable_runner',return_value=None),patch.object(m,'ROOT',self.path),patch.object(m,'author',side_effect=lambda path,*args:path.write_bytes(b'authored diagnostic fixture')),patch.object(module,'load',side_effect=[release,package,qualifier]),patch.object(module,'git_identity',side_effect=[{'revision':'a'*40,'dirty':False},{'revision':'b'*40,'dirty':False}]):
-            report=module.run(archive,receipt_path,self.path/'prior-source',True)
-        self.assertEqual(calls,['installed','feature-failed','cleanup','ordinary-observed'])
+            report=module.run(archive,receipt_path,self.path/'prior-source',True,True)
+        self.assertEqual(calls,['ordinary-first-observed','installed','feature-failed','cleanup','ordinary-after-observed'])
         self.assertTrue(report['diagnostic_only']);self.assertTrue(report['ineligible_for_publication']);self.assertFalse(report['qualification_pass']);self.assertEqual(report['observations']['feature_add']['outcome'],'observed-failure')
         self.assertNotEqual(report['payload_source']['revision'],report['tool_source']['revision']);self.assertFalse((self.path/'build/native/windows-installer-receipt.json').exists())
+        identity=report['observations']['ordinary_first_fixture_identity'];self.assertTrue(identity['before_any_elevated_install_or_capture']);self.assertFalse(identity['publication_eligible'])
+        self.assertNotEqual(identity['product_code'],report['observations']['fixture_identity']['product_code']);self.assertNotEqual(identity['upgrade_code'],report['observations']['fixture_identity']['upgrade_code'])
     def test_diagnostic_upgrade_hash_failure_cleans_new_product_and_observes_ordinary_actor(self):
         import shutil
         from types import SimpleNamespace
@@ -371,11 +373,33 @@ class InstallerModelTests(unittest.TestCase):
         fake=SimpleNamespace(MsiInstallProductW=lambda *args:calls.append(('install',args)) or 1603,MsiConfigureProductExW=lambda *args:calls.append(('configure',args)) or 0)
         for action,expected_code,state in [('/i',1603,None),('/x',0,2),('/fa',0,5)]:
             log=self.path/(action[1:]+'.log');request=self.path/'native-request.json';request.write_text(json.dumps({'action':action,'subject':'controlled-fixture','properties':['INSTALLDIR=C:\\space é'],'log':str(log)}),encoding='utf-8')
-            with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'native_installer_dll',return_value=fake),patch.object(module,'service_diagnostic',return_value={'pid':0,'state':1}):module.native_installer_worker(request)
+            with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'native_installer_dll',return_value=fake),patch.object(module,'service_diagnostic',return_value={'pid':0,'state':1}),patch.object(module,'installer_mutex_diagnostic',return_value={'objects':[],'machine_state_modified':False}):module.native_installer_worker(request)
             evidence=json.loads(log.with_suffix('.worker.json').read_text(encoding='utf-8'))
             self.assertEqual(evidence['phase'],'completed');self.assertEqual(evidence['exit_code'],expected_code);self.assertIs(evidence['captured_pipes'],False)
             if state is not None:self.assertEqual(calls[-1][1][2],state)
             if action=='/fa':self.assertIn('REINSTALLMODE="amus"',calls[-1][1][-1])
+    def test_exact_mutex_observation_preserves_access_denial_and_never_acquires_or_mutates(self):
+        import ctypes as C
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_readonly_mutex',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        calls=[];state={'error':0};closed=[]
+        class Function:
+            def __init__(self,call):self.call=call
+            def __call__(self,*args):return self.call(*args)
+        def open_mutex(access,inherit,name):
+            self.assertIs(inherit,False);calls.append((name,access))
+            if name!='Global\\_MSIExecute':state['error']=2;return 0
+            if access==0x1f0001:state['error']=5;return 0
+            return access
+        def descriptor(handle,kind,information,*args):
+            self.assertEqual(kind,6);self.assertEqual(information,0x17);args[-1]._obj.value=1234;return 0
+        kernel=SimpleNamespace(OpenMutexW=Function(open_mutex),CloseHandle=Function(lambda handle:closed.append(handle) or True),LocalFree=Function(lambda value:None))
+        security=SimpleNamespace(GetSecurityInfo=Function(descriptor));dlls={'kernel32':kernel,'advapi32':security}
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(C,'get_last_error',side_effect=lambda:state['error'],create=True),patch.object(module,'descriptor_observation',return_value={'owner_group_dacl_label_sddl':'O:SYS:(ML;;NW;;;HI)'}) as observed:
+            result=module.installer_mutex_diagnostic()
+        self.assertEqual(len(calls),9);self.assertEqual(closed,[0x100000,0x20000]);observed.assert_called_once()
+        denied=next(row for row in result['objects'] if row['name']=='Global\\_MSIExecute' and row['requested_access']==0x1f0001)
+        self.assertFalse(denied['opened']);self.assertEqual(denied['error'],5);self.assertFalse(result['mutex_acquired']);self.assertFalse(result['machine_state_modified'])
     def test_intentional_rejection_requires_message_and_correct_action(self):
         spec=importlib.util.spec_from_file_location('qualify_rejection_proof',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         log=self.path/'rejected.log'

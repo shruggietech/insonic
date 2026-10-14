@@ -93,6 +93,59 @@ def service_diagnostic():
         if service:dll.CloseServiceHandle(service)
         dll.CloseServiceHandle(manager)
 
+def descriptor_observation(descriptor,security,kernel):
+    """Describe an already-read native descriptor, without publishing user SIDs."""
+    import ctypes as C
+    import ctypes.wintypes as W
+    security.GetSecurityDescriptorLength.argtypes=[C.c_void_p];security.GetSecurityDescriptorLength.restype=W.DWORD
+    security.ConvertSecurityDescriptorToStringSecurityDescriptorW.argtypes=[C.c_void_p,W.DWORD,W.DWORD,C.POINTER(C.c_void_p),C.POINTER(W.DWORD)];security.ConvertSecurityDescriptorToStringSecurityDescriptorW.restype=W.BOOL
+    size=security.GetSecurityDescriptorLength(descriptor)
+    if not 0<size<=65536:raise RuntimeError('security descriptor exceeds observation bound')
+    value=C.c_void_p()
+    # The descriptor query requests only the mandatory label from SACL. Its
+    # already-retrieved ACE is serialized using SACL_SECURITY_INFORMATION.
+    if not security.ConvertSecurityDescriptorToStringSecurityDescriptorW(descriptor,1,0xf,C.byref(value),None):return {'descriptor_sha256':m.digest(C.string_at(descriptor,size)),'conversion_error':C.get_last_error()}
+    try:
+        raw=C.wstring_at(value);sanitized=__import__('re').sub(r'S-1-(?:\d+-)*\d+',lambda match:'SID_SHA256_'+m.digest(match.group().encode()),raw)
+        return {'descriptor_sha256':m.digest(C.string_at(descriptor,size)),'owner_group_dacl_label_sddl':sanitized,'security_information':0x17,'machine_state_modified':False}
+    finally:kernel.LocalFree(value)
+
+def installer_mutex_diagnostic():
+    """Read exact Installer mutex access, never create, acquire or modify one."""
+    m.disposable_runner()
+    import ctypes as C
+    import ctypes.wintypes as W
+    kernel=C.WinDLL('kernel32',use_last_error=True);security=C.WinDLL('advapi32',use_last_error=True)
+    kernel.OpenMutexW.argtypes=[W.DWORD,W.BOOL,W.LPCWSTR];kernel.OpenMutexW.restype=W.HANDLE
+    kernel.CloseHandle.argtypes=[W.HANDLE];kernel.CloseHandle.restype=W.BOOL;kernel.LocalFree.argtypes=[C.c_void_p];kernel.LocalFree.restype=C.c_void_p
+    security.GetSecurityInfo.argtypes=[W.HANDLE,C.c_int,W.DWORD,C.c_void_p,C.c_void_p,C.c_void_p,C.c_void_p,C.POINTER(C.c_void_p)];security.GetSecurityInfo.restype=W.DWORD
+    rows=[]
+    for name in ('_MSIExecute','Global\\_MSIExecute','Local\\_MSIExecute'):
+        for access in (0x100000,0x20000,0x1f0001):
+            handle=kernel.OpenMutexW(access,False,name);row={'name':name,'requested_access':access,'opened':bool(handle),'error':0 if handle else C.get_last_error()};rows.append(row)
+            if not handle:continue
+            descriptor=C.c_void_p()
+            try:
+                if access&0x20000:
+                    result=security.GetSecurityInfo(handle,6,0x17,None,None,None,None,C.byref(descriptor));row['descriptor_query_error']=result
+                    if result==0:row['security']=descriptor_observation(descriptor,security,kernel)
+            finally:
+                if descriptor:kernel.LocalFree(descriptor)
+                kernel.CloseHandle(handle)
+    return {'kind':'read-only-installer-mutex-access','objects':rows,'machine_state_modified':False,'mutex_acquired':False}
+
+def owned_user_object_observation(handle,user,security,kernel):
+    """Read actual security of an already-created owned station or desktop."""
+    m.disposable_runner()
+    import ctypes as C
+    import ctypes.wintypes as W
+    user.GetUserObjectSecurity.argtypes=[W.HANDLE,C.POINTER(W.DWORD),C.c_void_p,W.DWORD,C.POINTER(W.DWORD)];user.GetUserObjectSecurity.restype=W.BOOL
+    information=W.DWORD(0x17);size=W.DWORD();user.GetUserObjectSecurity(handle,C.byref(information),None,0,C.byref(size))
+    if not 0<size.value<=65536:return {'query_error':C.get_last_error(),'information':information.value}
+    descriptor=C.create_string_buffer(size.value)
+    if not user.GetUserObjectSecurity(handle,C.byref(information),descriptor,size.value,C.byref(size)):return {'query_error':C.get_last_error(),'information':information.value}
+    return descriptor_observation(descriptor,security,kernel)
+
 def native_installer_dll(log):
     m.disposable_runner()
     import ctypes as C
@@ -111,12 +164,12 @@ def native_installer_worker(request_path):
     m.disposable_runner();request=json.loads(request_path.read_text(encoding='utf-8'));log=Path(request['log']);phase=log.with_suffix('.worker.json');log.parent.mkdir(parents=True,exist_ok=True)
     def record(state,**extra):phase.write_text(json.dumps({'kind':'native-installer-worker','pid':os.getpid(),'phase':state,'action':request['action'],'captured_pipes':False,**extra},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     record('starting',service=service_diagnostic())
-    dll=native_installer_dll(log);properties=installer_properties(request['properties']);record('before-api',ui_level='NONE',log_mode='VERBOSE',service=service_diagnostic())
+    dll=native_installer_dll(log);properties=installer_properties(request['properties']);mutex=installer_mutex_diagnostic();record('before-api',ui_level='NONE',log_mode='VERBOSE',service=service_diagnostic(),mutex=mutex)
     if request['action']=='/i':rc=dll.MsiInstallProductW(request['subject'],properties)
     elif request['action']=='/x':rc=dll.MsiConfigureProductExW(request['subject'],0,2,properties)
     elif request['action']=='/fa':rc=dll.MsiConfigureProductExW(request['subject'],0,5,installer_properties([*request['properties'],'REINSTALL=ALL','REINSTALLMODE=amus']))
     else:raise ValueError('unsupported native Installer lifecycle operation')
-    record('completed',exit_code=rc,ui_level='NONE',log_mode='VERBOSE',service=service_diagnostic())
+    record('completed',exit_code=rc,ui_level='NONE',log_mode='VERBOSE',service=service_diagnostic(),mutex_before_api=mutex,mutex_after_api=installer_mutex_diagnostic())
 
 def assert_rejection(log,expected_reason,expected_action='LaunchConditions'):
     text=Path(log).read_text(encoding='utf-16',errors='replace')
@@ -345,14 +398,14 @@ def token_info():
         privileges=info(3);count=struct.unpack_from('<I',privileges.raw)[0]
         if count>100:raise RuntimeError('invalid token privilege count')
         enabled=sum(bool(struct.unpack_from('<I',privileges.raw,4+i*12+8)[0]&2) for i in range(count))
-        return {'administrator_enabled':bool(member.value),'elevated':elevated,'elevation_type':elevation_type,'enabled_privileges':enabled,'user_sid_sha256':user_hash,'integrity_sid':integrity_sid,'integrity_rid':integrity_rid}
+        return {'administrator_enabled':bool(member.value),'elevated':elevated,'elevation_type':elevation_type,'enabled_privileges':enabled,'user_sid_sha256':user_hash,'integrity_sid':integrity_sid,'integrity_rid':integrity_rid,'session_id':int(C.cast(info(12),C.POINTER(W.DWORD))[0])}
     finally:kernel.CloseHandle(token)
 
 def ordinary_worker(installer,directory,output):
     m.disposable_runner()
     progress=output.with_suffix('.progress.json')
-    def record(phase):progress.write_text(json.dumps({'pid':os.getpid(),'phase':phase},sort_keys=True)+'\n',encoding='utf-8',newline='\n')
-    record('python-started');observed=token_info();record('token-observed')
+    def record(phase,**extra):progress.write_text(json.dumps({'pid':os.getpid(),'phase':phase,**extra},sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+    record('python-started');observed=token_info();record('token-observed',token=observed,mutex_before_install=installer_mutex_diagnostic())
     if observed['administrator_enabled'] or observed['enabled_privileges']>1 or observed['elevated'] or observed['integrity_rid']!=8192:raise RuntimeError('ordinary worker retained administrator membership/privileges/elevation or did not run at medium integrity')
     product=dict(m.table_rows(m.CompoundFile(installer).streams,'Property'))['ProductCode']
     installed=False
@@ -423,7 +476,7 @@ def private_context_desktop(user_sid,caller_sid=None,progress=None):
                 if user.GetThreadDesktop(thread_id)!=original_desktop:checked('SetThreadDesktop-restore',user.SetThreadDesktop,original_desktop)
             if user.GetProcessWindowStation()!=original or user.GetThreadDesktop(thread_id)!=original_desktop:raise RuntimeError('caller station/desktop restoration failed')
             roles=['SYSTEM','ordinary target user']+(['calling CI user'] if caller_sid and caller_sid!=user_sid else [])
-            evidence={'path':name+'\\Default','kind':'owned-noninteractive-actor-desktop','shared_desktop_acl_modified':False,'caller_station_restored':True,'visible_switch':False,'acl_subjects':roles,'target_user_sid_sha256':m.digest(user_sid.encode()),'caller_sid_sha256':m.digest(caller_sid.encode()) if caller_sid else None}
+            evidence={'path':name+'\\Default','kind':'owned-noninteractive-actor-desktop','shared_desktop_acl_modified':False,'caller_station_restored':True,'visible_switch':False,'acl_subjects':roles,'target_user_sid_sha256':m.digest(user_sid.encode()),'caller_sid_sha256':m.digest(caller_sid.encode()) if caller_sid else None,'actual_station_security':owned_user_object_observation(station,user,security,kernel),'actual_desktop_security':owned_user_object_observation(desktop,user,security,kernel)}
             yield evidence
         finally:
             if desktop:user.CloseDesktop(desktop)

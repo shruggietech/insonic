@@ -74,9 +74,31 @@ def child(args, *, directory=ROOT, env=None, timeout=180, allow_detached=False):
     with ProcessTree([str(arg) for arg in args], cwd=directory, env=selected, allow_detached=allow_detached) as tree:
         try:
             output, error = tree.process.communicate(timeout=timeout)
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as expired:
+            before = tree.process.poll()
             tree.kill()
-            tree.process.communicate(timeout=5)
+            cleanup_timeout = False
+            try:
+                output, error = tree.process.communicate(timeout=5)
+            except subprocess.TimeoutExpired as cleanup:
+                cleanup_timeout = True
+                output, error = cleanup.output or expired.output or b'', cleanup.stderr or expired.stderr or b''
+            # Native qualification already emits fixed fixture checkpoints. Keep
+            # their bounded tail when a deadline expires, before fixture cleanup.
+            sys.stdout.buffer.write(output[-65536:])
+            sys.stderr.buffer.write(error[-65536:])
+            try:
+                write_json(ROOT / ('build/native/package-child-timeout-' + str(tree.process.pid) + '-receipt.json'), {
+                    'kind': 'package-child-timeout',
+                    'stage': 'native-webview' if '--webview-qualification' in args else 'package-tool',
+                    'pid': tree.process.pid, 'timeout_seconds': timeout,
+                    'poll_before_kill': before, 'poll_after_kill': tree.process.poll(),
+                    'cleanup_timeout': cleanup_timeout,
+                    'stdout_bytes': len(output), 'stderr_bytes': len(error),
+                    'retained_tail_bytes_per_stream': 65536,
+                })
+            except OSError:
+                pass  # Diagnostics cannot replace the actual child timeout.
             raise
         if tree.process.returncode:
             # Package fixtures carry controlled input and no user credentials.
