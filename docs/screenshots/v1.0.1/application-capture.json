@@ -2,9 +2,9 @@
   "kind": "application-ui-capture",
   "schema_version": "1.0.1",
   "source": {
-    "revision": "698e6caec4ba19fcb2d21dc3038be1c2bb1bd7cf",
+    "revision": "28b7c3958012efcca4b61191d54ec064b00a70d9",
     "dirty": false,
-    "tree_sha256": "e682747a5b89bd6aa55d23ced20aadc32b3c4d3958bd94fc19ad9d0a0adbe948",
+    "tree_sha256": "64c160e06a40d8d0e3a2ad7e8520b83fb9e74fa7c318f11f9f9cdbb352aa4fcb",
     "files": [
       {
         "path": "brand/README.md",
@@ -2740,7 +2740,7 @@
       },
       {
         "path": "internal/app/capacity_test.go",
-        "sha256": "11e6ad63e446098ef56e1bc07ba0b5bc3649f78cd21d42b6a4c9274b572464b5"
+        "sha256": "c45100a2221fc0d0b79b6c630b9cf0bcfaf86232581fb0f888ea441c76217fae"
       },
       {
         "path": "internal/app/configured.go",
@@ -5004,7 +5004,7 @@
       },
       {
         "path": "scripts/capture-application-ui.mjs",
-        "sha256": "ed221742a60510e6f30372556a51551502cb1b5360a5e323b022652a20482633"
+        "sha256": "cc8593d8fa19d5e77ac166012d8fdfdb7538c5f1263519aa87c6f1986d5e2e59"
       }
     ]
   },
@@ -5017,7 +5017,7 @@
     "windows_build": "10.0.26300"
   },
   "fixture": {
-    "id": "9d09ec7b6b0c697f18dd13d0e67f6e4a",
+    "id": "228766331e7ad8a41bb4ed93abaf8971",
     "isolated": true,
     "browser_profile_owned": true,
     "private_inputs": false
@@ -5030,8 +5030,10 @@
   "locale": "en-US",
   "signing": "unsigned",
   "binaries": {
-    "cli_sha256": "c17b00a15bae28fc7b8f656e6853aa5f6507402e84110a9bea7561e7f0c150e3",
-    "bridge_sha256": "ad973d73ec9abf360af6202a719a9b152e796f967bca7ba21b5ac64392e5f8b9"
+    "cli_sha256": "31caf8a0cc69b6ae871534f19c2a08c5ebab0aa91a58fb01a5f91f799f4a5d23",
+    "bridge_sha256": "4f158e4312b4e75c2e62dc63543419880051b7b2a5da326bca23ed93b6338e96",
+    "cli_vcs_modified": false,
+    "bridge_vcs_modified": false
   },
   "bundle": [
     {
@@ -5092,12 +5094,13 @@
     "deferred_setup_resumed": true,
     "external_requests": 0,
     "browser_errors": 0,
-    "native_webview": false
+    "native_webview": false,
+    "cleanup_complete": true
   },
   "images": [
     {
       "path": "setup-location.png",
-      "sha256": "134dd060026097fe532b6a6aa42fa067f4291e78eec05ce09a0698b8dc68419a",
+      "sha256": "0f15fc4a67d60acb60362985174db4a2429538506ad3041fb069fd3f1da3fa3c",
       "width": 1392,
       "height": 1766,
       "landmark": "Workspace and location (Step 1 of 5)",
