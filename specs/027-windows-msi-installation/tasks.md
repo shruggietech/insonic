@@ -130,3 +130,5 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 - [x] T069 [US2] Request supported deletion of only the authenticated disposable profile provider instance and independently verify all profile/registry/hive/folder absences within the existing deadline.
 
 - [x] T070 [US2] Register the disposable bootstrap as least-privilege S4U without stored task passwords and retain structured exact SID/path profile events, preserving real normal-user worker and cleanup gates.
+
+- [x] T071 [US2] Isolate target process creation in a SYSTEM service-account CI broker with an actual unchanged ordinary Interactive token and owned private desktop, leaving the parent as sole profile-load owner and preserving complete cleanup qualification.

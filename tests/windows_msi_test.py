@@ -200,7 +200,7 @@ class InstallerModelTests(unittest.TestCase):
         def bridge(command,**options):
             self.assertNotIn(password,repr(command));self.assertNotIn(password,repr(options.get('env')))
             self.assertEqual(options['creationflags'],0x08000000);self.assertEqual(options['timeout'],110)
-            script=base64.b64decode(command[-1]).decode('utf-16le');self.assertIn("ExecutionTimeLimit='PT90S'",script);self.assertIn('RegisterTaskDefinition($inputObject.task_name,$definition,2,',script);self.assertIn('$definition.Principal.LogonType=2;',script);self.assertIn('$inputObject.password,2,$null)',script);self.assertIn('$result.logon_type=2',script)
+            script=base64.b64decode(command[-1]).decode('utf-16le');self.assertIn("ExecutionTimeLimit='PT90S'",script);self.assertIn('RegisterTaskDefinition($inputObject.task_name,$definition,2,',script);self.assertIn("$definition.Principal.UserId='SYSTEM';$definition.Principal.LogonType=5;",script);self.assertIn("'SYSTEM',$null,5,$null)",script);self.assertIn('$result.logon_type=5',script)
             request=json.loads(options['input']);calls.append(request)
             if request['mode']=='run':
                 self.assertEqual(request['password'],password);self.assertNotIn('provider-secret',request['arguments']);self.assertNotIn('owner-private',request['arguments']);self.assertIn('os.environ.clear()',request['arguments'])
@@ -217,34 +217,57 @@ class InstallerModelTests(unittest.TestCase):
         item.write_bytes(b'later actor actual log');progress.write_bytes(b'later actor actual token');module.retain_ordinary_diagnostics(native,self.path/'ordinary-context.json')
         self.assertEqual((self.path/'ordinary-first-context.install.log').read_bytes(),b'first actor actual log');self.assertEqual((self.path/'ordinary-context.install.log').read_bytes(),b'later actor actual log')
         self.assertEqual((self.path/'ordinary-first-context.progress.json').read_bytes(),b'first actor actual token');self.assertEqual((self.path/'ordinary-context.progress.json').read_bytes(),b'later actor actual token')
-    def test_self_interactive_bootstrap_keeps_account_session_and_credentials_off_argv(self):
+    def test_borrowed_primary_token_membership_uses_temporary_impersonation_not_system(self):
+        import ctypes as C
+        import ctypes.wintypes as W
+        import struct
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_primary_token_query',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        primary=W.HANDLE(400);closed=[];membership_handles=[];strings=[];sid='S-1-5-21-1-2-3-1001'
+        class Function:
+            def __init__(self,call):self.call=call
+            def __call__(self,*args):return self.call(*args)
+        def raw(value):return C.string_at(C.byref(value),C.sizeof(value))
+        values={20:raw(W.DWORD(0)),18:raw(W.DWORD(1)),1:raw(C.c_void_p(123)),25:raw(C.c_void_p(124)),3:struct.pack('<I',1)+struct.pack('<QI',0,2),10:bytes(16),12:raw(W.DWORD(0))}
+        def info(token,kind,output,size,required):
+            self.assertEqual(token.value,400);required._obj.value=len(values[kind])
+            if output is None:return False
+            C.memmove(output,values[kind],len(values[kind]));return True
+        def duplicate(token,level,out):self.assertEqual(token.value,400);self.assertEqual(level,2);out._obj.value=600;return True
+        def convert(value,out):
+            address=value.value if hasattr(value,'value') else value;text=sid if address==123 else 'S-1-16-8192';strings.append(C.create_unicode_buffer(text));out._obj.value=C.cast(strings[-1],C.c_void_p).value;return True
+        def well_known(kind,domain,output,size):C.memmove(output,struct.pack('<I',kind),4);return True
+        def membership(token,group,out):
+            self.assertIsNotNone(token);self.assertEqual(token.value,600);membership_handles.append(token.value);out._obj.value=struct.unpack('<I',C.string_at(group,4))[0]==11;return True
+        kernel=SimpleNamespace(GetCurrentProcess=Function(lambda:self.fail('borrowed target must not query SYSTEM current process')),CloseHandle=Function(lambda handle:closed.append(handle.value)),LocalFree=Function(lambda handle:None))
+        security=SimpleNamespace(OpenProcessToken=Function(lambda *args:self.fail('borrowed target must not open SYSTEM token')),GetTokenInformation=Function(info),CreateWellKnownSid=Function(well_known),CheckTokenMembership=Function(membership),ConvertSidToStringSidW=Function(convert),DuplicateToken=Function(duplicate));dlls={'kernel32':kernel,'advapi32':security}
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True):proof=module.token_info(primary)
+        self.assertEqual(proof['user_sid_sha256'],m.digest(sid.encode()));self.assertFalse(proof['administrator_enabled']);self.assertTrue(proof['interactive_logon']);self.assertEqual(proof['integrity_rid'],8192);self.assertEqual(closed,[600]);self.assertEqual(membership_handles,[600,600,600])
+    def test_system_broker_creates_only_the_verified_normal_target_without_profile_load(self):
         import ctypes as C
         import io
         from contextlib import nullcontext
         from types import SimpleNamespace
-        spec=importlib.util.spec_from_file_location('qualify_self_interactive',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        spec=importlib.util.spec_from_file_location('qualify_system_broker',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with patch.dict(os.environ,{},clear=True):
-            with self.assertRaisesRegex(RuntimeError,'disposable'):module.ordinary_interactive_bootstrap(None,None,None,None)
-        sid='S-1-5-21-1-2-3-1001';password='private-self-logon-password';account='inso_ci_0123456789ab';calls=[];closed=[]
-        token={'administrator_enabled':False,'elevated':False,'integrity_rid':8192,'session_id':0,'user_sid_sha256':m.digest(sid.encode())}
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.ordinary_system_broker(None,None,None,None)
+        account='inso_ci_0123456789ab';sid='S-1-5-21-1-2-3-1001';password='private-memory-password';pipe='insonic-ci-credential-'+'a'*32;credentials={'account':'CIHOST\\'+account,'sid':sid,'password':password};calls=[];closed=[]
+        system={'user_sid_sha256':m.digest(b'S-1-5-18'),'session_id':0};target={'user_sid_sha256':m.digest(sid.encode()),'administrator_enabled':False,'elevated':False,'enabled_privileges':1,'integrity_rid':8192,'session_id':0,'interactive_logon':True}
         class Function:
             def __init__(self,call):self.call=call
             def __call__(self,*args):return self.call(*args)
-        def create(name,domain,secret,logon,exe,command,flags,environment,cwd,startup,process):
-            calls.append('self-logon');self.assertEqual(name,account);self.assertEqual(secret,password);self.assertEqual(logon,0);self.assertEqual(flags,0x08000400);self.assertNotIn(password,command.value);self.assertNotIn(password,environment.value);self.assertIsNone(startup._obj.desktop)
-            process._obj.process=111;process._obj.thread=222;process._obj.pid=333;return True
-        def exit_code(process,code):code._obj.value=0;return True
-        security=SimpleNamespace(CreateProcessWithLogonW=Function(create));kernel=SimpleNamespace(WaitForSingleObject=Function(lambda *args:0),GetExitCodeProcess=Function(exit_code),CloseHandle=Function(lambda handle:closed.append(handle) or True),TerminateProcess=Function(lambda *args:True));dlls={'kernel32':kernel,'advapi32':security}
-        credentials={'account':'CI-FIXTURE\\'+account,'sid':sid,'password':password};output=self.path/'context.json';pipe='insonic-ci-credential-'+'a'*32
-        env={'COMPUTERNAME':'CI-FIXTURE','USERNAME':account}
-        with patch.dict(os.environ,env,clear=True),patch.object(m,'disposable_runner',return_value=None),patch.object(module,'token_info',return_value=token),patch.object(module,'open',return_value=io.BytesIO((json.dumps(credentials)+'\n').encode()),create=True),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'inherited_ordinary_desktop',return_value={'visible':False,'station_or_desktop_modified':False}) as desktop,patch.object(module,'private_context_desktop') as create_desktop:
-            module.ordinary_interactive_bootstrap(pipe,self.path/'fixture.msi',self.path/'installed',output)
-            desktop.assert_called_once_with(token);create_desktop.assert_not_called()
-        self.assertEqual(calls,['self-logon']);self.assertEqual(closed,[222,111]);self.assertNotIn(password,output.with_suffix('.bootstrap.json').read_text(encoding='utf-8'))
-        credentials['sid']='S-1-5-21-1-2-3-9999'
-        with patch.dict(os.environ,env,clear=True),patch.object(m,'disposable_runner',return_value=None),patch.object(module,'token_info',return_value=token),patch.object(module,'open',return_value=io.BytesIO((json.dumps(credentials)+'\n').encode()),create=True),patch.object(C,'WinDLL',create=True) as native:
-            with self.assertRaisesRegex(RuntimeError,'actor differs'):module.ordinary_interactive_bootstrap(pipe,self.path/'fixture.msi',self.path/'installed',output)
-            native.assert_not_called()
+        def logon(name,domain,secret,kind,provider,out):self.assertEqual(secret,password);self.assertEqual(kind,2);out._obj.value=444;calls.append('target-interactive-logon');return True
+        def create(token,exe,command,process_acl,thread_acl,inherit,flags,environment,cwd,startup,out):
+            self.assertEqual(token.value,444);self.assertEqual(flags,0x08000400);self.assertFalse(inherit);self.assertNotIn(password,command.value);self.assertNotIn(password,environment.value);self.assertEqual(startup._obj.desktop,'owned-CI-station\\Default');out._obj.process=555;out._obj.thread=556;out._obj.pid=888;calls.append('normal-target-created');return True
+        def code(process,out):out._obj.value=0;return True
+        kernel=SimpleNamespace(WaitForSingleObject=Function(lambda *args:0),GetExitCodeProcess=Function(code),CloseHandle=Function(lambda handle:closed.append(handle.value if hasattr(handle,'value') else handle)),TerminateProcess=Function(lambda *args:self.fail('no successful child or SYSTEM process may be killed')))
+        security=SimpleNamespace(LogonUserW=Function(logon),CreateProcessAsUserW=Function(create));dlls={'kernel32':kernel,'advapi32':security};output=self.path/'context.json';env={'USERNAME':account,'COMPUTERNAME':'CIHOST','APPDATA':'owned-ordinary-profile'}
+        def privileges(names):self.assertEqual(names,('SeAssignPrimaryTokenPrivilege','SeIncreaseQuotaPrivilege'));calls.append('broker-only-privileges');return nullcontext({'ordinary_actor_token_changed':False})
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,env,clear=True),patch.object(module,'token_info',side_effect=[system,target]),patch.object(module,'open',return_value=io.BytesIO((json.dumps(credentials)+'\n').encode()),create=True),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'private_context_desktop',return_value=nullcontext({'path':'owned-CI-station\\Default'})) as desktop,patch.object(module,'qualifier_profile_privileges',side_effect=privileges):module.ordinary_system_broker(pipe,self.path/'fixture.msi',self.path/'owned-install',output)
+        self.assertEqual(calls,['target-interactive-logon','broker-only-privileges','normal-target-created']);self.assertEqual(closed,[556,555,444]);desktop.assert_called_once_with(sid,'S-1-5-18');proof=json.loads(output.with_suffix('.broker.json').read_text());self.assertEqual(proof['broker_token'],system);self.assertEqual(proof['target_token'],target);self.assertFalse(proof['target_profile_loaded_by_broker']);self.assertNotIn(password,output.with_suffix('.broker.json').read_text())
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,env,clear=True),patch.object(module,'token_info',return_value={**system,'user_sid_sha256':m.digest(sid.encode())}),patch.object(module,'open',create=True) as pipe_open:
+            with self.assertRaisesRegex(RuntimeError,'SYSTEM'):module.ordinary_system_broker(pipe,None,None,output)
+            pipe_open.assert_not_called()
     def test_service_release_requires_ownership_completed_transactions_and_idle_identity(self):
         import ctypes as C
         from types import SimpleNamespace
@@ -413,9 +436,9 @@ class InstallerModelTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('qualify_failure_paths',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         output=self.path/'context.json';module.worker_failure_path(output).write_bytes(b'actual quiet MSI exit1625');module.worker_failure_path(output,True).write_bytes(b'bootstrap observed child exit1')
         native=self.path/'native-failures';native.mkdir()
-        shutil.copyfile(module.worker_failure_path(output),native/'context.failure.json');shutil.copyfile(module.worker_failure_path(output,True),native/'context.bootstrap-failure.json')
+        shutil.copyfile(module.worker_failure_path(output),native/'context.failure.json');shutil.copyfile(module.worker_failure_path(output,True),native/'context.broker-failure.json')
         module.retain_ordinary_diagnostics(native,self.path/'ordinary-first-context.json')
-        self.assertEqual((self.path/'ordinary-first-context.failure.json').read_bytes(),b'actual quiet MSI exit1625');self.assertEqual((self.path/'ordinary-first-context.bootstrap-failure.json').read_bytes(),b'bootstrap observed child exit1')
+        self.assertEqual((self.path/'ordinary-first-context.failure.json').read_bytes(),b'actual quiet MSI exit1625');self.assertEqual((self.path/'ordinary-first-context.broker-failure.json').read_bytes(),b'bootstrap observed child exit1')
     def test_task_engine_cleanup_rejects_foreign_sid_and_closes_only_verified_owned_host(self):
         import ctypes as C
         from types import SimpleNamespace
@@ -510,7 +533,7 @@ class InstallerModelTests(unittest.TestCase):
         def lease(sid,profile,deadline):events.append('profile-lease-observed');return {'machine_state_modified':False}
         with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'qualifier_profile_privileges',side_effect=lambda:nullcontext({'ordinary_actor_token_changed':False})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch.object(module,'disposable_server_installer_policy',return_value=nullcontext({'restored':True,'always_install_elevated_unchanged':True})),patch.object(module,'profile_cleanup_observation',return_value={'machine_state_modified':False}),patch.object(module,'profile_lease_observation',side_effect=lease),patch.object(module,'release_owned_installer_service',side_effect=release),patch.object(module,'delete_owned_profile_provider',return_value={'complete_absence':False}),patch.object(C,'get_last_error',return_value=32,create=True),patch.object(module.time,'sleep'):
             proof=module.ordinary_context(installer,self.path/'installation',output,self.model,ownership)
-        self.assertEqual(events,['account-created','profile-created-by-native-load','owned-batch-added','ordinary-task-completed','profile-handle-unloaded','owned-batch-restored','profile-lease-observed','owned-service-restored','profile-lease-observed','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3);self.assertEqual(rights,[])
+        self.assertEqual(events,['account-created','profile-created-by-native-load','ordinary-task-completed','profile-handle-unloaded','profile-lease-observed','owned-service-restored','profile-lease-observed','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3);self.assertEqual(rights,[])
         self.assertTrue(all(item.get('deleted',item.get('restored',item.get('unloaded'))) for item in proof['cleanup']));self.assertEqual((original/'owner-data').read_bytes(),b'keep');self.assertEqual((programdata/'owner-data').read_bytes(),b'keep')
         self.assertEqual(list(programdata.iterdir()),[programdata/'owner-data']);self.assertEqual(installer.read_bytes(),b'qualified MSI fixture bytes')
     def test_native_capture_requires_verified_clean_nonempty_source(self):
