@@ -118,3 +118,4 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 - [x] T061 Preserve the ordinary actor isolated session while self-logging on interactively through protected memory-only credential transport; record actual service/token roles and independently delete completed owned tasks.
 - [x] T062 Match packaged/standalone GUI test-host jobs to legitimate runtime breakaway launches, retain runtime-only numeric startup diagnostics and stream native Go events without extending deadlines.
 - [x] T063 Inherit the same owned actor noninteractive task context for self-logon and stop only an exact reported, SID/image-verified owned task engine when releasing its profile.
+- [x] T064 Provision the ordinary-client installer policy only within acknowledged disposable Server2022 tests, restore exact prior registry state, retain distinct failure levels and diagnose exact owned-profile deletion errors.

@@ -245,6 +245,50 @@ class InstallerModelTests(unittest.TestCase):
         with patch.dict(os.environ,env,clear=True),patch.object(m,'disposable_runner',return_value=None),patch.object(module,'token_info',return_value=token),patch.object(module,'open',return_value=io.BytesIO((json.dumps(credentials)+'\n').encode()),create=True),patch.object(C,'WinDLL',create=True) as native:
             with self.assertRaisesRegex(RuntimeError,'actor differs'):module.ordinary_interactive_bootstrap(pipe,self.path/'fixture.msi',self.path/'installed',output)
             native.assert_not_called()
+    def test_disposable_server_policy_restores_raw_value_and_absence_on_failure(self):
+        from types import SimpleNamespace
+        import types
+        spec=importlib.util.spec_from_file_location('qualify_ci_policy',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):
+                with module.disposable_server_installer_policy():pass
+        path=r'Software\Policies\Microsoft\Windows\Installer'
+        for original in (None,(1,4),('original typed value',1)):
+            with self.subTest(original=original):
+                keys={(1,'Software'):{},(1,r'Software\Policies'):{},(1,r'Software\Policies\Microsoft'):{},(1,r'Software\Policies\Microsoft\Windows'):{},(2,path):{'AlwaysInstallElevated':(0,4)}}
+                if original is not None:keys[(1,path)]={'DisableMSI':original,'unrelated':('keep',1)}
+                before={key:dict(value) for key,value in keys.items()};writes=[]
+                class Key:
+                    def __init__(self,root,path):self.root=root;self.path=path
+                    def __enter__(self):return self
+                    def __exit__(self,*args):pass
+                def opened(root,path,*args):
+                    if (root,path) not in keys:raise FileNotFoundError()
+                    return Key(root,path)
+                def created(root,path,*args):keys.setdefault((root,path),{});return Key(root,path)
+                def query(key,name):
+                    if name not in keys[(key.root,key.path)]:raise FileNotFoundError()
+                    return keys[(key.root,key.path)][name]
+                def write(key,name,reserved,kind,value):writes.append(name);keys[(key.root,key.path)][name]=(value,kind)
+                def info(key):return (sum(root==key.root and child.startswith(key.path+'\\') for root,child in keys),len(keys[(key.root,key.path)]),0)
+                registry=SimpleNamespace(HKEY_LOCAL_MACHINE=1,HKEY_CURRENT_USER=2,KEY_WOW64_64KEY=256,KEY_READ=1,KEY_WRITE=2,REG_DWORD=4,OpenKey=opened,CreateKeyEx=created,QueryValueEx=query,SetValueEx=write,DeleteValue=lambda key,name:keys[(key.root,key.path)].pop(name),QueryInfoKey=info,DeleteKeyEx=lambda root,path,*args:keys.pop((root,path)))
+                evidence=None;events=[]
+                with patch.object(m,'disposable_runner',return_value=None),patch.object(module.sys,'getwindowsversion',return_value=SimpleNamespace(product_type=3,build=20348),create=True),patch.dict(sys.modules,{'winreg':registry}):
+                    with self.assertRaisesRegex(ValueError,'real native failure'):
+                        with module.disposable_server_installer_policy(lambda phase,**data:events.append(phase)) as evidence:
+                            self.assertEqual(keys[(1,path)]['DisableMSI'],(0,4));raise ValueError('real native failure')
+                self.assertEqual(keys,before);self.assertTrue(evidence['restored']);self.assertTrue(evidence['always_install_elevated_unchanged']);self.assertFalse(evidence['product_changes_endpoint_policy']);self.assertNotIn('AlwaysInstallElevated',writes);self.assertEqual(events[-1],'CI-server-policy-restored')
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module.sys,'getwindowsversion',return_value=SimpleNamespace(product_type=1,build=20348),create=True),patch.dict(sys.modules,{'winreg':registry}):
+            with self.assertRaisesRegex(RuntimeError,'Server2022'):
+                with module.disposable_server_installer_policy():pass
+    def test_bootstrap_failure_retention_does_not_overwrite_actual_worker_failure(self):
+        import shutil
+        spec=importlib.util.spec_from_file_location('qualify_failure_paths',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        output=self.path/'context.json';module.worker_failure_path(output).write_bytes(b'actual quiet MSI exit1625');module.worker_failure_path(output,True).write_bytes(b'bootstrap observed child exit1')
+        native=self.path/'native-failures';native.mkdir()
+        shutil.copyfile(module.worker_failure_path(output),native/'context.failure.json');shutil.copyfile(module.worker_failure_path(output,True),native/'context.bootstrap-failure.json')
+        module.retain_ordinary_diagnostics(native,self.path/'ordinary-first-context.json')
+        self.assertEqual((self.path/'ordinary-first-context.failure.json').read_bytes(),b'actual quiet MSI exit1625');self.assertEqual((self.path/'ordinary-first-context.bootstrap-failure.json').read_bytes(),b'bootstrap observed child exit1')
     def test_task_engine_cleanup_rejects_foreign_sid_and_closes_only_verified_owned_host(self):
         import ctypes as C
         from types import SimpleNamespace
@@ -309,7 +353,7 @@ class InstallerModelTests(unittest.TestCase):
                 self.assertTrue(str(exe).endswith('whoami.exe'));state['name']=name;state['profile']=users/name;state['profile'].mkdir();events.append('profile-created-by-logon')
             else:
                 self.assertEqual(name,state['name']);target=Path(re.search(r'--output ("[^"]+"|\S+)',command.value).group(1).strip('"'))
-                target.write_text(json.dumps({'token':{'user_sid_sha256':m.digest(actor_sid.encode())},'user_profile':str(state['profile']),'elected_launcher':{'actual_elected_launch':True}}),encoding='utf-8')
+                target.write_text(json.dumps({'token':{'user_sid_sha256':m.digest(actor_sid.encode())},'user_profile':str(state['profile']),'elected_launcher':{'actual_elected_launch':True},'os_policy_mutations':{}}),encoding='utf-8')
             process._obj.process=333;process._obj.thread=444;process._obj.pid=555;return True
         def set_token(process,access,out):out._obj.value=200;return True
         def logon(name,domain,password,kind,provider,out):out._obj.value=100;return True
@@ -326,9 +370,9 @@ class InstallerModelTests(unittest.TestCase):
             return list(rights)
         def scheduled(stage,name,sid,password,args,record,profile):
             self.assertEqual(name,state['name']);self.assertEqual(sid,actor_sid);self.assertNotIn(password,repr(args));events.append('ordinary-task-completed')
-            target=Path(args[args.index('--output')+1]);target.write_text(json.dumps({'token':{'user_sid_sha256':m.digest(actor_sid.encode())},'user_profile':str(state['profile']),'elected_launcher':{'actual_elected_launch':True}}),encoding='utf-8')
+            target=Path(args[args.index('--output')+1]);target.write_text(json.dumps({'token':{'user_sid_sha256':m.digest(actor_sid.encode())},'user_profile':str(state['profile']),'elected_launcher':{'actual_elected_launch':True},'os_policy_mutations':{}}),encoding='utf-8')
             return {'phase':'completed','exit_code':0,'deleted':True}
-        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'private_context_desktop',return_value=nullcontext({'path':'owned\\Default'})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch.object(module.time,'sleep'):
+        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'private_context_desktop',return_value=nullcontext({'path':'owned\\Default'})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch.object(module,'disposable_server_installer_policy',return_value=nullcontext({'restored':True,'always_install_elevated_unchanged':True})),patch.object(module,'profile_cleanup_observation',return_value={'machine_state_modified':False}),patch.object(C,'get_last_error',return_value=32,create=True),patch.object(module.time,'sleep'):
             proof=module.ordinary_context(installer,self.path/'installation',output,self.model)
         self.assertEqual(events,['account-created','profile-created-by-logon','owned-batch-added','ordinary-task-completed','owned-batch-restored','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3);self.assertEqual(rights,[])
         self.assertTrue(all(item.get('deleted',item.get('restored')) for item in proof['cleanup']));self.assertEqual((original/'owner-data').read_bytes(),b'keep');self.assertEqual((programdata/'owner-data').read_bytes(),b'keep')

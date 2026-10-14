@@ -434,7 +434,7 @@ def ordinary_worker(installer,directory,output):
         record('elected-launch-observed')
         run_installer(['/x',product],output.with_suffix('.remove.log'));installed=False
         if marker.exists():raise RuntimeError('ordinary per-user removal retained owned marker')
-        evidence={'kind':'ordinary-disposable-ci-user','token':observed,'install_exit':0,'remove_exit':0,'payload_hashes_verified':True,'separate_user_account':True,'os_policy_mutations':{'global_policy_changed':False,'owned_account_batch_logon_right':os.environ.get('INSONIC_CI_ORDINARY_SCHEDULER')=='1'},'profile_loaded':True,'user_profile':os.environ['USERPROFILE'],'elected_launcher':launch_evidence}
+        evidence={'kind':'ordinary-disposable-ci-user','token':observed,'install_exit':0,'remove_exit':0,'payload_hashes_verified':True,'separate_user_account':True,'os_policy_mutations':{'worker_changed_global_policy':False,'product_changes_endpoint_policy':False,'owned_account_batch_logon_right':os.environ.get('INSONIC_CI_ORDINARY_SCHEDULER')=='1'},'profile_loaded':True,'user_profile':os.environ['USERPROFILE'],'elected_launcher':launch_evidence}
         output.write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
         record('completed')
     finally:
@@ -648,7 +648,7 @@ def scheduler_ordinary(stage,name,sid,password,args,record,profile):
             cleanup=invoke({**metadata,'mode':'cleanup'});record('TaskScheduler-owned-cleanup',scheduler=cleanup)
             if cleanup.get('deleted') is not True:raise RuntimeError('owned ordinary task cleanup failed')
         if outcome is not None and outcome.get('engine_pid'):
-            outcome['engine_cleanup']=stop_owned_task_engine(outcome['engine_pid'],sid);record('TaskScheduler-owned-engine-cleanup',engine=outcome['engine_cleanup'])
+            outcome['engine_cleanup']=stop_owned_task_engine(outcome['engine_pid'],sid,stage);record('TaskScheduler-owned-engine-cleanup',engine=outcome['engine_cleanup'])
 
 def retain_ordinary_diagnostics(native,output):
     """Keep each actor's exact evidence distinct before deleting its stage."""
@@ -657,7 +657,7 @@ def retain_ordinary_diagnostics(native,output):
             if item.is_symlink():raise ValueError('ordinary diagnostic source is redirected')
             shutil.copyfile(item,Path(output).with_name(Path(output).stem+item.name[len('context'):]))
 
-def stop_owned_task_engine(pid,sid):
+def stop_owned_task_engine(pid,sid,stage=None):
     """Release only the reported task engine if it belongs to this new CI actor."""
     m.disposable_runner()
     import ctypes as C
@@ -680,9 +680,14 @@ def stop_owned_task_engine(pid,sid):
         image=C.create_unicode_buffer(32768);size=W.DWORD(len(image))
         if not kernel.QueryFullProcessImageNameW(process,0,image,C.byref(size)):raise C.WinError(C.get_last_error())
         path=Path(image.value);system=Path(os.environ['SystemRoot'])/'System32'
-        if path.parent.resolve()!=system.resolve() or path.name.casefold() not in ('taskeng.exe','taskhost.exe','taskhostw.exe'):raise RuntimeError('reported task engine is not an owned-account Windows task host; no process stopped')
+        windows_host=path.parent.resolve()==system.resolve() and path.name.casefold() in ('taskeng.exe','taskhost.exe','taskhostw.exe')
+        owned_python=False
+        if not windows_host and stage is not None and path.resolve()==Path(sys.executable).resolve():
+            stage=Path(stage);marker=json.loads((stage/'owned-ci-account.json').read_text(encoding='utf-8'));script=stage/'scripts/qualify-windows-msi.py'
+            owned_python=not stage.is_symlink() and stage.resolve().parent==Path(os.environ['ProgramData']).resolve() and bool(__import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name)) and marker.get('sid_sha256')==m.digest(sid.encode()) and bool(__import__('re').fullmatch('inso_ci_[0-9a-f]{12}',marker.get('account',''))) and script.is_file() and not script.is_symlink() and m.sha(script)==m.sha(m.ROOT/'scripts/qualify-windows-msi.py')
+        if not windows_host and not owned_python:raise RuntimeError('reported task engine is not an exact owned-account Windows task host or authenticated bootstrap action; no process stopped')
         if not kernel.TerminateProcess(process,0) or kernel.WaitForSingleObject(process,5000)!=0:raise RuntimeError('owned account task engine did not exit')
-        return {'pid':pid,'user_sid_sha256':m.digest(sid.encode()),'image':path.name,'terminated':True,'shared_system_process_stopped':False}
+        return {'pid':pid,'user_sid_sha256':m.digest(sid.encode()),'image':path.name,'authenticated_bootstrap_action':owned_python,'terminated':True,'shared_system_process_stopped':False}
     finally:
         if token:kernel.CloseHandle(token)
         kernel.CloseHandle(process)
@@ -773,6 +778,90 @@ def validate_account_profile(account,profile):
     if profile.is_symlink() or profile.resolve().parent!=base or profile.name.casefold()!=account.casefold():raise ValueError('profile cleanup target is not the exact created account directory')
     return profile
 
+@__import__('contextlib').contextmanager
+def disposable_server_installer_policy(record=None):
+    """Temporarily model client install policy on this disposable Server2022 host.
+
+    Product installers never call this CI qualification fixture or modify policy.
+    The original raw value, type and absence are restored even after failure.
+    """
+    m.disposable_runner()
+    version=sys.getwindowsversion()
+    if version.product_type!=3 or version.build!=20348:raise RuntimeError('installer policy fixture requires disposable Windows Server2022 build20348')
+    import winreg
+    path=r'Software\Policies\Microsoft\Windows\Installer';view=winreg.KEY_WOW64_64KEY
+    def read(root,name):
+        try:
+            with winreg.OpenKey(root,path,0,winreg.KEY_READ|view) as key:
+                try:value,kind=winreg.QueryValueEx(key,name);return {'key_present':True,'value_present':True,'type':kind,'value':value}
+                except FileNotFoundError:return {'key_present':True,'value_present':False}
+        except FileNotFoundError:return {'key_present':False,'value_present':False}
+    def public(raw):
+        return {key:({'bytes_hex':value.hex()} if isinstance(value,bytes) else value) for key,value in raw.items()}
+    original=read(winreg.HKEY_LOCAL_MACHINE,'DisableMSI')
+    elevated_before={'machine':read(winreg.HKEY_LOCAL_MACHINE,'AlwaysInstallElevated'),'calling_user':read(winreg.HKEY_CURRENT_USER,'AlwaysInstallElevated')}
+    absent=[];parts=path.split('\\')
+    for count in range(1,len(parts)+1):
+        ancestor='\\'.join(parts[:count])
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,ancestor,0,winreg.KEY_READ|view):pass
+        except FileNotFoundError:absent.append(ancestor)
+    evidence={'kind':'disposable-ci-server-policy-fixture','host':{'product_type':version.product_type,'build':version.build},'registry_path':'HKLM\\'+path,'value_name':'DisableMSI','original':public(original),'fixture':{'type':winreg.REG_DWORD,'value':0},'restored':False,'always_install_elevated_before':{key:public(value) for key,value in elevated_before.items()},'product_changes_endpoint_policy':False,'policy_reference':'https://learn.microsoft.com/en-us/windows/win32/msi/disablemsi'}
+    applied=False
+    try:
+        if record:record('CI-server-policy-before-fixture',policy=evidence)
+        with winreg.CreateKeyEx(winreg.HKEY_LOCAL_MACHINE,path,0,winreg.KEY_READ|winreg.KEY_WRITE|view) as key:
+            applied=True;winreg.SetValueEx(key,'DisableMSI',0,winreg.REG_DWORD,0)
+        if read(winreg.HKEY_LOCAL_MACHINE,'DisableMSI')!={'key_present':True,'value_present':True,'type':winreg.REG_DWORD,'value':0}:raise RuntimeError('CI installer policy fixture was not observed')
+        if record:record('CI-server-policy-fixture-observed',policy=evidence)
+        yield evidence
+    finally:
+        if applied:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,path,0,winreg.KEY_READ|winreg.KEY_WRITE|view) as key:
+                if original['value_present']:winreg.SetValueEx(key,'DisableMSI',0,original['type'],original['value'])
+                else:
+                    try:winreg.DeleteValue(key,'DisableMSI')
+                    except FileNotFoundError:pass
+            # Delete only newly created, still-empty keys, never preexisting keys.
+            removed=[]
+            for ancestor in reversed(absent):
+                try:
+                    with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,ancestor,0,winreg.KEY_READ|view) as key:
+                        subkeys,values,_=winreg.QueryInfoKey(key)
+                    if subkeys or values:continue
+                    winreg.DeleteKeyEx(winreg.HKEY_LOCAL_MACHINE,ancestor,view,0);removed.append(ancestor)
+                except FileNotFoundError:pass
+            actual=read(winreg.HKEY_LOCAL_MACHINE,'DisableMSI')
+            elevated_after={'machine':read(winreg.HKEY_LOCAL_MACHINE,'AlwaysInstallElevated'),'calling_user':read(winreg.HKEY_CURRENT_USER,'AlwaysInstallElevated')}
+            evidence.update({'restored':actual==original,'restored_value':public(actual),'removed_empty_owned_keys':removed,'always_install_elevated_unchanged':elevated_after==elevated_before})
+            if record:record('CI-server-policy-restored',policy=evidence)
+            if actual!=original or elevated_after!=elevated_before:raise RuntimeError('CI installer policy fixture did not exactly restore original policy')
+
+def profile_cleanup_observation(sid,profile):
+    """Read only this exact created actor's profile registration and hive state."""
+    m.disposable_runner()
+    import winreg
+    if not __import__('re').fullmatch(r'S-1-5-21-(?:[0-9]+-){3}[0-9]+',sid):raise ValueError('profile observation requires a created ordinary account SID')
+    result={'sid_sha256':m.digest(sid.encode()),'hives':{},'profile_registration':{},'machine_state_modified':False}
+    for suffix in ('','_Classes'):
+        try:
+            with winreg.OpenKey(winreg.HKEY_USERS,sid+suffix,0,winreg.KEY_READ):pass
+            result['hives'][suffix or 'user']={'present':True}
+        except OSError as error:result['hives'][suffix or 'user']={'present':False,'winerror':getattr(error,'winerror',None)}
+    try:
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,r'Software\Microsoft\Windows NT\CurrentVersion\ProfileList'+'\\'+sid,0,winreg.KEY_READ|winreg.KEY_WOW64_64KEY) as key:
+            for name in ('ProfileImagePath','State','RefCount'):
+                try:
+                    value,kind=winreg.QueryValueEx(key,name)
+                    if name=='ProfileImagePath':result['profile_registration'][name]={'matches_owned_path':Path(os.path.expandvars(value)).resolve()==Path(profile).resolve(),'type':kind}
+                    else:result['profile_registration'][name]={'value':value,'type':kind}
+                except OSError as error:result['profile_registration'][name]={'present':False,'winerror':getattr(error,'winerror',None)}
+    except OSError as error:result['profile_registration_error']=getattr(error,'winerror',None)
+    return result
+
+def worker_failure_path(output,bootstrap=False):
+    return Path(output).with_suffix('.bootstrap-failure.json' if bootstrap else '.failure.json')
+
 def ordinary_context(installer,directory,output,model=None):
     """Qualify an actual ordinary account, exclusively on a disposable runner."""
     m.disposable_runner()
@@ -852,10 +941,12 @@ def ordinary_context(installer,directory,output,model=None):
             record('LsaAddAccountRights-owned-batch');owned_batch_right(sid,'add')
         record('owned-batch-logon-right-observed',original_rights=batch_original,current_rights=owned_batch_right(sid),global_policy_changed=False)
         args=[str(scripts/'qualify-windows-msi.py'),'--ordinary-worker',str(target),'--context-dir',str(install),'--output',str(worker_output)]
-        scheduler=scheduler_ordinary(stage,name,sid,password,args,record,profile)
+        with disposable_server_installer_policy(record) as policy_fixture:
+            scheduler=scheduler_ordinary(stage,name,sid,password,args,record,profile)
         evidence=json.loads(worker_output.read_text(encoding='utf-8'))
         if evidence['token']['user_sid_sha256']!=m.digest(sid.encode()) or Path(evidence['user_profile']).resolve()!=profile.resolve():raise RuntimeError('ordinary worker changed account/profile identity')
-        evidence.update({'process_creation':'Task Scheduler least-privilege batch session, then same-account interactive logon inheriting its noninteractive task desktop','scheduler':scheduler,'profile_creation':'native LOGON_WITH_PROFILE bootstrap and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode()),'owned_account_rights_before':batch_original})
+        evidence.update({'process_creation':'Task Scheduler least-privilege batch session, then same-account interactive logon inheriting its noninteractive task desktop','scheduler':scheduler,'profile_creation':'native LOGON_WITH_PROFILE bootstrap and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode()),'owned_account_rights_before':batch_original,'ci_host_policy_fixture':policy_fixture})
+        evidence['os_policy_mutations'].update({'ci_server_disable_msi_fixture':True,'ci_server_disable_msi_restored':policy_fixture['restored'],'always_install_elevated_unchanged':policy_fixture['always_install_elevated_unchanged']})
     except BaseException as error:
         failure=error;record('failed',failed_api=getattr(error,'api',current_phase['name']),winerror=getattr(error,'winerror',None),errno=getattr(error,'errno',None),error_type=type(error).__name__,error=str(error))
     finally:
@@ -874,10 +965,11 @@ def ordinary_context(installer,directory,output,model=None):
                 if failure is None:failure=error
         if profile is not None:
             validate_account_profile(name,profile);deleted=False
+            before_profile_delete=profile_cleanup_observation(sid,profile);delete_errors=[]
             for _ in range(50):
                 if profiles.DeleteProfileW(sid,str(profile),None):deleted=True;break
-                time.sleep(.2)
-            cleanup.append({'object':'created profile','deleted':deleted,'sid_sha256':m.digest(sid.encode())})
+                delete_errors.append(C.get_last_error());time.sleep(.2)
+            cleanup.append({'object':'created profile','deleted':deleted,'sid_sha256':m.digest(sid.encode()),'delete_profile_winerrors':delete_errors,'before_delete':before_profile_delete,'after_delete':profile_cleanup_observation(sid,profile)})
             if not deleted and failure is None:failure=RuntimeError('owned ordinary profile cleanup failed '+str(C.get_last_error()))
         if created:
             rc=network.NetUserDel(None,name);cleanup.append({'object':'created account','deleted':rc==0})
@@ -1033,7 +1125,7 @@ if __name__=='__main__':
             if a.ordinary_bootstrap:ordinary_interactive_bootstrap(a.ordinary_bootstrap,a.installer,a.context_dir,a.output)
             else:ordinary_worker(a.ordinary_worker,a.context_dir,a.output)
         except BaseException as error:
-            a.output.with_suffix('.failure.json').write_text(json.dumps({'kind':'ordinary-context-worker-failure','pid':os.getpid(),'error_type':type(error).__name__,'error':str(error)[-3000:]},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+            worker_failure_path(a.output,bool(a.ordinary_bootstrap)).write_text(json.dumps({'kind':'ordinary-context-bootstrap-failure' if a.ordinary_bootstrap else 'ordinary-context-worker-failure','pid':os.getpid(),'error_type':type(error).__name__,'error':str(error)[-3000:]},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
             raise
     elif a.installer and a.receipt:r=json.loads(a.receipt.read_text(encoding='utf-8'));print(json.dumps(qualify(a.installer,r)))
     else:p.error('installer and --receipt are required')
