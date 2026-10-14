@@ -185,23 +185,47 @@ func (s blockedStore) Abort(ctx context.Context, p catalog.Publication) error {
 }
 func TestAbortWaitsForActivePublication(t *testing.T) {
 	s := testService(t)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	blocked := blockedStore{s.Store, make(chan struct{}), make(chan struct{})}
 	s.Store = blocked
 	source := bytesFile(t, []byte("active publication"))
 	id := contracts.ID()
 	done := make(chan error, 1)
-	go func() { _, e := s.Publish(ctx, id, source.Name(), "other"); done <- e }()
+	go func() {
+		_, e := s.Publish(ctx, id, source.Name(), "other")
+		done <- e
+		close(done)
+	}()
+	defer func() {
+		cancel()
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Error("owned publisher did not stop")
+		}
+	}()
+	// Staging and durable acceptance precede the cancellable transfer. Bound
+	// readiness separately so slow fixture I/O cannot spend Abort's own budget.
+	ready, stopReady := context.WithTimeout(context.Background(), 5*time.Second)
+	defer stopReady()
 	select {
 	case <-blocked.started:
-	case <-ctx.Done():
+	case <-ready.Done():
 		t.Fatal("publisher did not start")
 	}
-	if p, e := s.Abort(ctx, id); e != nil || p.State != "aborted" {
+	stopReady()
+	abort, stopAbort := context.WithTimeout(context.Background(), 5*time.Second)
+	defer stopAbort()
+	if p, e := s.Abort(abort, id); e != nil || p.State != "aborted" {
 		t.Fatalf("abort %+v %v", p, e)
 	}
-	if e := <-done; e == nil {
-		t.Fatal("cancelled publisher succeeded")
+	select {
+	case e := <-done:
+		if e == nil {
+			t.Fatal("cancelled publisher succeeded")
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("cancelled publisher did not return")
 	}
 }

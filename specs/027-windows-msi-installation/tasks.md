@@ -132,3 +132,6 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 - [x] T070 [US2] Register the disposable bootstrap as least-privilege S4U without stored task passwords and retain structured exact SID/path profile events, preserving real normal-user worker and cleanup gates.
 
 - [x] T071 [US2] Isolate target process creation in a SYSTEM service-account CI broker with an actual unchanged ordinary Interactive token and owned private desktop, leaving the parent as sole profile-load owner and preserving complete cleanup qualification.
+
+- [x] T072 Bound durable publication fixture readiness and Abort separately, retaining real ordering/state assertions and owned publisher cancellation/join in internal/artifact/failure_test.go.
+- [x] T073 Retain the explicit WebView qualification fixture runtime for the existing90second child bound, preserving ordinary30second idle behavior and the80second UI watchdog in cmd/insonic-desktop/main.go.

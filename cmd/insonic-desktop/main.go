@@ -71,7 +71,7 @@ func run() int {
 		ready := make(chan struct{})
 		done := make(chan error, 1)
 		go func() {
-			done <- local.Serve(ctx, w, local.Options{Ready: ready, AssistanceFixture: func(context.Context, assistance.Request, assistance.Config) (assistance.Proposal, error) {
+			done <- local.Serve(ctx, w, local.Options{Idle: 90 * time.Second, Ready: ready, AssistanceFixture: func(context.Context, assistance.Request, assistance.Config) (assistance.Proposal, error) {
 				return assistance.Proposal{ContractVersion: "1", Explanation: "Deterministic current media suggestion", Query: contracts.QueryInput{Title: "Qualification assistance", Definition: contracts.QueryDefinition{Mode: "normalized", Operation: "media-list", Pagination: &contracts.QueryPagination{Limit: 5}}}}, nil
 			}})
 		}()
