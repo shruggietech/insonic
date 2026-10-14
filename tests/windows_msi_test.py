@@ -231,7 +231,7 @@ class InstallerModelTests(unittest.TestCase):
             def __init__(self,call):self.call=call
             def __call__(self,*args):return self.call(*args)
         def create(name,domain,secret,logon,exe,command,flags,environment,cwd,startup,process):
-            calls.append('self-logon');self.assertEqual(name,account);self.assertEqual(secret,password);self.assertEqual(logon,1);self.assertEqual(flags,0x08000400);self.assertNotIn(password,command.value);self.assertNotIn(password,environment.value);self.assertIsNone(startup._obj.desktop)
+            calls.append('self-logon');self.assertEqual(name,account);self.assertEqual(secret,password);self.assertEqual(logon,0);self.assertEqual(flags,0x08000400);self.assertNotIn(password,command.value);self.assertNotIn(password,environment.value);self.assertIsNone(startup._obj.desktop)
             process._obj.process=111;process._obj.thread=222;process._obj.pid=333;return True
         def exit_code(process,code):code._obj.value=0;return True
         security=SimpleNamespace(CreateProcessWithLogonW=Function(create));kernel=SimpleNamespace(WaitForSingleObject=Function(lambda *args:0),GetExitCodeProcess=Function(exit_code),CloseHandle=Function(lambda handle:closed.append(handle) or True),TerminateProcess=Function(lambda *args:True));dlls={'kernel32':kernel,'advapi32':security}
@@ -245,6 +245,50 @@ class InstallerModelTests(unittest.TestCase):
         with patch.dict(os.environ,env,clear=True),patch.object(m,'disposable_runner',return_value=None),patch.object(module,'token_info',return_value=token),patch.object(module,'open',return_value=io.BytesIO((json.dumps(credentials)+'\n').encode()),create=True),patch.object(C,'WinDLL',create=True) as native:
             with self.assertRaisesRegex(RuntimeError,'actor differs'):module.ordinary_interactive_bootstrap(pipe,self.path/'fixture.msi',self.path/'installed',output)
             native.assert_not_called()
+    def test_qualifier_profile_privileges_restore_previous_state_on_failure(self):
+        import ctypes as C
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_profile_privileges',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):
+                with module.qualifier_profile_privileges():pass
+        events=[];last_error=[0]
+        class Function:
+            def __init__(self,call):self.call=call
+            def __call__(self,*args):return self.call(*args)
+        def token(process,access,out):self.assertEqual(access,0x28);out._obj.value=99;return True
+        def lookup(system,name,luid):events.append(name);return True
+        def adjust(handle,disable,requested,size,previous,needed):
+            self.assertEqual(handle.value,99)
+            if previous is not None:
+                self.assertEqual(requested._obj.count,2);previous._obj.count=2;previous._obj.entries[0].attributes=0;previous._obj.entries[1].attributes=2;events.append('enable-own-token')
+            else:
+                self.assertEqual(requested._obj.entries[0].attributes,0);self.assertEqual(requested._obj.entries[1].attributes,2);events.append('restore-exact-own-token')
+            return True
+        kernel=SimpleNamespace(GetCurrentProcess=Function(lambda:1),CloseHandle=Function(lambda handle:events.append('close-own-token')))
+        security=SimpleNamespace(OpenProcessToken=Function(token),LookupPrivilegeValueW=Function(lookup),AdjustTokenPrivileges=Function(adjust));dlls={'kernel32':kernel,'advapi32':security}
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(C,'set_last_error',side_effect=lambda value:last_error.__setitem__(0,value),create=True),patch.object(C,'get_last_error',side_effect=lambda:last_error[0],create=True):
+            with self.assertRaisesRegex(ValueError,'profile API failure'):
+                with module.qualifier_profile_privileges() as scope:
+                    self.assertFalse(scope['ordinary_actor_token_changed']);raise ValueError('profile API failure')
+        self.assertEqual(events,['SeBackupPrivilege','SeRestorePrivilege','enable-own-token','restore-exact-own-token','close-own-token'])
+    def test_native_recorder_probe_retains_exit_and_never_substitutes_elected_receipt(self):
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_native_probe',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.native_recorder_probe(None)
+        directory=self.path/'native-recorder-fixture';directory.mkdir();(directory/'insonic-desktop.exe').write_bytes(b'exact GUI native reporter bytes');calls=[]
+        class Process:
+            pid=734
+            def __init__(self,command,**options):calls.append((command,options))
+            def __enter__(self):return self
+            def __exit__(self,*args):pass
+            def wait(self,timeout):return 3221225794
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module.subprocess,'CREATE_NO_WINDOW',0x08000000,create=True),patch.object(module.subprocess,'Popen',side_effect=Process):proof=module.native_recorder_probe(directory)
+        self.assertEqual(proof['exit_code'],3221225794);self.assertEqual(proof['pid'],734);self.assertFalse(proof['elected_launch_proof']);self.assertEqual((directory/'owned-native-recorder-probe.exe').read_bytes(),(directory/'insonic-desktop.exe').read_bytes());self.assertEqual(calls[0][1]['creationflags'],0x08000000);self.assertNotEqual(calls[0][0][0],str(directory/'insonic-desktop.exe'));self.assertFalse((directory/'insonic-desktop.exe.token.json').exists())
+        (directory/'insonic-desktop.exe.diagnostic.json').write_bytes(b'{"stage":"actual native failure"}');temporary=self.path/'owned-temp';temporary.mkdir()
+        with patch.dict(os.environ,{'TEMP':str(temporary)}):module.retain_launcher_diagnostics(directory,self.path/'context.json')
+        self.assertEqual((self.path/'context.launcher-insonic-desktop.exe.diagnostic.json').read_bytes(),b'{"stage":"actual native failure"}');self.assertFalse((self.path/'context.launcher-insonic-desktop.exe').exists())
     def test_disposable_server_policy_restores_raw_value_and_absence_on_failure(self):
         from types import SimpleNamespace
         import types
@@ -322,7 +366,7 @@ class InstallerModelTests(unittest.TestCase):
         kernel=SimpleNamespace(**{name:Function(name) for name in ('GetCurrentProcess','CloseHandle','WaitForSingleObject','GetExitCodeProcess','TerminateProcess')})
         security=SimpleNamespace(**{name:Function(name) for name in ('OpenProcessToken','LogonUserW','CreateProcessWithLogonW')})
         network=SimpleNamespace(NetUserAdd=Function('NetUserAdd',2224),NetUserDel=Function('NetUserDel'),NetLocalGroupAddMembers=Function('NetLocalGroupAddMembers'))
-        profiles=SimpleNamespace(GetUserProfileDirectoryW=Function('GetUserProfileDirectoryW'),DeleteProfileW=Function('DeleteProfileW'));dlls={'kernel32':kernel,'advapi32':security,'netapi32':network,'userenv':profiles}
+        profiles=SimpleNamespace(GetUserProfileDirectoryW=Function('GetUserProfileDirectoryW'),DeleteProfileW=Function('DeleteProfileW'),LoadUserProfileW=Function('LoadUserProfileW'),UnloadUserProfile=Function('UnloadUserProfile'));dlls={'kernel32':kernel,'advapi32':security,'netapi32':network,'userenv':profiles}
         output=self.path/'ordinary.json'
         with patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(secrets,'token_hex',return_value='private-password-material'):
             with self.assertRaisesRegex(RuntimeError,'no existing account'):module.ordinary_context(None,None,output,None)
@@ -342,6 +386,10 @@ class InstallerModelTests(unittest.TestCase):
         class Function:
             def __init__(self,call):self.call=call
             def __call__(self,*args):return self.call(*args)
+        def load_profile(token,info):
+            state['name']=info._obj.name;state['profile']=users/state['name'];state['profile'].mkdir();info._obj.hive=666;events.append('profile-created-by-native-load');return True
+        def unload_profile(token,hive):
+            self.assertEqual(token.value,100);self.assertEqual(hive,666);events.append('profile-handle-unloaded');return True
         def profile_directory(token,value,size):value.value=str(state['profile']);return True
         def delete_profile(sid,path,remote):
             self.assertEqual(sid,actor_sid);target=Path(path);self.assertEqual(target.resolve().parent,users.resolve());self.assertEqual(target.name,state['name']);deletions.append(target)
@@ -361,7 +409,7 @@ class InstallerModelTests(unittest.TestCase):
         kernel=SimpleNamespace(GetCurrentProcess=Function(lambda:1),CloseHandle=Function(lambda handle:True),WaitForSingleObject=Function(lambda *args:0),GetExitCodeProcess=Function(exit_code),TerminateProcess=Function(lambda *args:True))
         security=SimpleNamespace(OpenProcessToken=Function(set_token),LogonUserW=Function(logon),CreateProcessWithLogonW=Function(create_process))
         network=SimpleNamespace(NetUserAdd=Function(lambda *args:events.append('account-created') or 0),NetUserDel=Function(lambda server,name:events.append('account-deleted') or 0),NetLocalGroupAddMembers=Function(lambda *args:0))
-        profiles=SimpleNamespace(GetUserProfileDirectoryW=Function(profile_directory),DeleteProfileW=Function(delete_profile));dlls={'kernel32':kernel,'advapi32':security,'netapi32':network,'userenv':profiles}
+        profiles=SimpleNamespace(GetUserProfileDirectoryW=Function(profile_directory),DeleteProfileW=Function(delete_profile),LoadUserProfileW=Function(load_profile),UnloadUserProfile=Function(unload_profile));dlls={'kernel32':kernel,'advapi32':security,'netapi32':network,'userenv':profiles}
         env={'USERPROFILE':str(original),'ProgramData':str(programdata),'SystemRoot':r'C:\Windows','COMPUTERNAME':'CI-FIXTURE'}
         def right(sid,change=None):
             self.assertEqual(sid,actor_sid)
@@ -372,10 +420,10 @@ class InstallerModelTests(unittest.TestCase):
             self.assertEqual(name,state['name']);self.assertEqual(sid,actor_sid);self.assertNotIn(password,repr(args));events.append('ordinary-task-completed')
             target=Path(args[args.index('--output')+1]);target.write_text(json.dumps({'token':{'user_sid_sha256':m.digest(actor_sid.encode())},'user_profile':str(state['profile']),'elected_launcher':{'actual_elected_launch':True},'os_policy_mutations':{}}),encoding='utf-8')
             return {'phase':'completed','exit_code':0,'deleted':True}
-        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'private_context_desktop',return_value=nullcontext({'path':'owned\\Default'})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch.object(module,'disposable_server_installer_policy',return_value=nullcontext({'restored':True,'always_install_elevated_unchanged':True})),patch.object(module,'profile_cleanup_observation',return_value={'machine_state_modified':False}),patch.object(C,'get_last_error',return_value=32,create=True),patch.object(module.time,'sleep'):
+        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'qualifier_profile_privileges',side_effect=lambda:nullcontext({'ordinary_actor_token_changed':False})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch.object(module,'disposable_server_installer_policy',return_value=nullcontext({'restored':True,'always_install_elevated_unchanged':True})),patch.object(module,'profile_cleanup_observation',return_value={'machine_state_modified':False}),patch.object(C,'get_last_error',return_value=32,create=True),patch.object(module.time,'sleep'):
             proof=module.ordinary_context(installer,self.path/'installation',output,self.model)
-        self.assertEqual(events,['account-created','profile-created-by-logon','owned-batch-added','ordinary-task-completed','owned-batch-restored','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3);self.assertEqual(rights,[])
-        self.assertTrue(all(item.get('deleted',item.get('restored')) for item in proof['cleanup']));self.assertEqual((original/'owner-data').read_bytes(),b'keep');self.assertEqual((programdata/'owner-data').read_bytes(),b'keep')
+        self.assertEqual(events,['account-created','profile-created-by-native-load','owned-batch-added','ordinary-task-completed','profile-handle-unloaded','owned-batch-restored','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3);self.assertEqual(rights,[])
+        self.assertTrue(all(item.get('deleted',item.get('restored',item.get('unloaded'))) for item in proof['cleanup']));self.assertEqual((original/'owner-data').read_bytes(),b'keep');self.assertEqual((programdata/'owner-data').read_bytes(),b'keep')
         self.assertEqual(list(programdata.iterdir()),[programdata/'owner-data']);self.assertEqual(installer.read_bytes(),b'qualified MSI fixture bytes')
     def test_native_capture_requires_verified_clean_nonempty_source(self):
         from types import SimpleNamespace

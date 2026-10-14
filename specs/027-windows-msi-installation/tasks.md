@@ -119,3 +119,5 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 - [x] T062 Match packaged/standalone GUI test-host jobs to legitimate runtime breakaway launches, retain runtime-only numeric startup diagnostics and stream native Go events without extending deadlines.
 - [x] T063 Inherit the same owned actor noninteractive task context for self-logon and stop only an exact reported, SID/image-verified owned task engine when releasing its profile.
 - [x] T064 Provision the ordinary-client installer policy only within acknowledged disposable Server2022 tests, restore exact prior registry state, retain distinct failure levels and diagnose exact owned-profile deletion errors.
+
+- [x] T065 [US2] Match explicit owned profile load/unload handles and retain bounded actual native child recorder diagnostics without weakening elected-launch qualification in scripts/qualify-windows-msi.py and tests/windows_msi_test.py.

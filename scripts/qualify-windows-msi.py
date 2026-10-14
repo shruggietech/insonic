@@ -282,6 +282,7 @@ import (
  "crypto/sha256"
  "encoding/hex"
  "encoding/json"
+ "fmt"
  "os"
  "path/filepath"
  "unsafe"
@@ -290,23 +291,34 @@ import (
 func main() {
  exe,e:=os.Executable();if e!=nil {os.Exit(1)}
  directory:=filepath.Dir(exe)
- if b,e:=os.ReadFile(filepath.Join(directory,"owned-ci-fixture.json"));e!=nil||string(b)!="insonic disposable launcher context fixture\n" {os.Exit(1)}
+ diagnostic:=func(stage string,err error) {
+  observed:=map[string]any{"stage":stage,"pid":os.Getpid(),"mode":filepath.Base(exe)}
+  if err!=nil {observed["error"]=err.Error()}
+  data,_:=json.Marshal(observed)
+  if os.WriteFile(filepath.Join(directory,filepath.Base(exe)+".diagnostic.json"),append(data,'\n'),0600)!=nil {
+   _=os.WriteFile(filepath.Join(os.TempDir(),fmt.Sprintf("owned-token-recorder-%d.diagnostic.json",os.Getpid())),append(data,'\n'),0600)
+  }
+ }
+ fatal:=func(stage string,err error){diagnostic(stage,err);os.Exit(1)}
+ diagnostic("process-started",nil)
+ if b,e:=os.ReadFile(filepath.Join(directory,"owned-ci-fixture.json"));e!=nil||string(b)!="insonic disposable launcher context fixture\n" {fatal("owned-marker-read",e)}
  var token windows.Token
- if windows.OpenProcessToken(windows.CurrentProcess(),windows.TOKEN_QUERY,&token)!=nil {os.Exit(1)}
+ if e:=windows.OpenProcessToken(windows.CurrentProcess(),windows.TOKEN_QUERY,&token);e!=nil {fatal("OpenProcessToken",e)}
  defer token.Close()
  var elevated,size uint32
- if windows.GetTokenInformation(token,windows.TokenElevation,(*byte)(unsafe.Pointer(&elevated)),uint32(unsafe.Sizeof(elevated)),&size)!=nil {os.Exit(1)}
- user,e:=token.GetTokenUser();if e!=nil {os.Exit(1)}
- admin,e:=windows.CreateWellKnownSid(windows.WinBuiltinAdministratorsSid);if e!=nil {os.Exit(1)}
- member,e:=windows.Token(0).IsMember(admin);if e!=nil {os.Exit(1)}
+ if e:=windows.GetTokenInformation(token,windows.TokenElevation,(*byte)(unsafe.Pointer(&elevated)),uint32(unsafe.Sizeof(elevated)),&size);e!=nil {fatal("TokenElevation",e)}
+ user,e:=token.GetTokenUser();if e!=nil {fatal("TokenUser",e)}
+ admin,e:=windows.CreateWellKnownSid(windows.WinBuiltinAdministratorsSid);if e!=nil {fatal("CreateWellKnownSid",e)}
+ member,e:=windows.Token(0).IsMember(admin);if e!=nil {fatal("CheckTokenMembership",e)}
  var integrity [256]byte
- if windows.GetTokenInformation(token,windows.TokenIntegrityLevel,&integrity[0],uint32(len(integrity)),&size)!=nil {os.Exit(1)}
- label:=(*windows.SIDAndAttributes)(unsafe.Pointer(&integrity[0]));count:=label.Sid.SubAuthorityCount();if count==0||count>15 {os.Exit(1)}
+ if e:=windows.GetTokenInformation(token,windows.TokenIntegrityLevel,&integrity[0],uint32(len(integrity)),&size);e!=nil {fatal("TokenIntegrityLevel",e)}
+ label:=(*windows.SIDAndAttributes)(unsafe.Pointer(&integrity[0]));count:=label.Sid.SubAuthorityCount();if count==0||count>15 {fatal("IntegritySidCount",fmt.Errorf("unexpected count %d",count))}
  integrityRID:=label.Sid.SubAuthority(uint32(count-1))
  sum:=sha256.Sum256([]byte(user.User.Sid.String()))
  observed:=map[string]any{"elevated":elevated!=0,"administrator_enabled":member,"user_sid_sha256":hex.EncodeToString(sum[:]),"integrity_rid":integrityRID,"integrity_sid":label.Sid.String(),"mode":filepath.Base(exe),"pid":os.Getpid(),"fixture":"owned native Go token reporter"}
- data,e:=json.Marshal(observed);if e!=nil {os.Exit(1)}
- if os.WriteFile(filepath.Join(directory,filepath.Base(exe)+".token.json"),append(data,'\n'),0600)!=nil {os.Exit(1)}
+ data,e:=json.Marshal(observed);if e!=nil {fatal("MarshalToken",e)}
+ if e:=os.WriteFile(filepath.Join(directory,filepath.Base(exe)+".token.json"),append(data,'\n'),0600);e!=nil {fatal("WriteTokenReceipt",e)}
+ diagnostic("token-recorded",nil)
 }
 '''
 
@@ -345,14 +357,27 @@ def linked_token_evidence():
         if linked:kernel.CloseHandle(linked)
         kernel.CloseHandle(token)
 
+def native_recorder_probe(directory):
+    """Observe the exact GUI fixture directly; never substitute elected proof."""
+    m.disposable_runner();source=Path(directory)/'insonic-desktop.exe';target=Path(directory)/'owned-native-recorder-probe.exe'
+    shutil.copyfile(source,target)
+    if m.sha(source)!=m.sha(target):raise ValueError('native diagnostic reporter bytes differ')
+    with subprocess.Popen([str(target)],cwd=directory,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,creationflags=subprocess.CREATE_NO_WINDOW) as process:
+        try:code=process.wait(timeout=15)
+        except subprocess.TimeoutExpired:process.terminate();process.wait(timeout=5);raise RuntimeError('exact owned native recorder probe exceeded bound')
+        observation={'pid':process.pid,'exit_code':code,'same_gui_bytes_sha256':m.sha(source),'elected_launch_proof':False,'native_child_image':target.name}
+    (Path(directory)/'native-recorder-probe.launch-attempt.json').write_text(json.dumps(observation,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+    return observation
+
 def elected_launcher_context(directory,allow_refusal=False):
-    m.disposable_runner();caller=token_info();modes={}
+    m.disposable_runner();caller=token_info();modes={};native_recorder_probe(directory)
     linked=linked_token_evidence() if caller['elevated'] else {'available':False,'lookup_error':None}
     refusal_permitted=allow_refusal and caller['elevated'] and not linked['available']
     for mode,exe in [('desktop','insonic-desktop.exe'),('cli','insonic.exe')]:
         output=directory/(exe+'.token.json')
         if output.exists():output.unlink()
         attempted=subprocess.run([str(directory/'insonic-launcher.exe'),'--'+mode],cwd=directory,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=15)
+        (directory/(mode+'.launch-attempt.json')).write_text(json.dumps({'mode':mode,'launcher_exit':attempted.returncode,'caller_token':caller,'stderr':attempted.stderr.decode(errors='replace')[-2000:]},sort_keys=True)+'\n',encoding='utf-8',newline='\n')
         if attempted.returncode:
             message=attempted.stderr.decode(errors='replace')
             if not refusal_permitted or attempted.returncode!=1 or 'cannot launch at normal user privilege' not in message or output.exists():raise RuntimeError('elected '+mode+' launcher failed: '+message[-2000:])
@@ -361,10 +386,24 @@ def elected_launcher_context(directory,allow_refusal=False):
         while time.monotonic()<deadline:
             try:observed=json.loads(output.read_text(encoding='utf-8'));break
             except (FileNotFoundError,json.JSONDecodeError):time.sleep(.05)
-        if observed is None:raise RuntimeError('elected '+mode+' child did not record its actual token')
+        if observed is None:
+            diagnostic=directory/(exe+'.diagnostic.json')
+            details=diagnostic.read_text(encoding='utf-8')[-2000:] if diagnostic.is_file() else 'native recorder did not start or could not write its diagnostic'
+            raise RuntimeError('elected '+mode+' child did not record its actual token: '+details)
         if observed['elevated'] or observed['administrator_enabled'] or observed['integrity_rid']>8192 or observed['user_sid_sha256']!=caller['user_sid_sha256']:raise RuntimeError('elected '+mode+' launch changed user or retained elevation/high integrity')
         modes[mode]={'outcome':'observed-same-user-non-elevated-child','observed_token':observed}
     return {'caller_token':caller,'linked_token':linked,'modes':modes,'actual_elected_launch':True,'describe_is_proof':False}
+
+def retain_launcher_diagnostics(directory,output):
+    """Retain bounded native actor receipts, never copy executable fixtures."""
+    for item in Path(directory).iterdir():
+        if item.is_file() and (item.name.endswith('.token.json') or item.name.endswith('.diagnostic.json') or item.name.endswith('.launch-attempt.json')):
+            if item.is_symlink() or item.stat().st_size>16384:raise ValueError('native launcher diagnostic is redirected or oversized')
+            shutil.copyfile(item,Path(output).with_name(Path(output).stem+'.launcher-'+item.name))
+    temporary=Path(os.environ['TEMP'])
+    for item in temporary.glob('owned-token-recorder-*.diagnostic.json'):
+        if item.is_symlink() or not item.is_file() or item.stat().st_size>16384:raise ValueError('native recorder fallback diagnostic is redirected or oversized')
+        shutil.copyfile(item,Path(output).with_name(Path(output).stem+'.launcher-'+item.name))
 
 def token_info():
     """Observe the actual calling process token, without changing policy."""
@@ -415,7 +454,7 @@ def token_info():
 
 def ordinary_worker(installer,directory,output):
     m.disposable_runner()
-    progress=output.with_suffix('.progress.json')
+    progress=output.with_suffix('.progress.json');launcher_fixture=directory.parent/'launcher-context-fixture'
     def record(phase,**extra):progress.write_text(json.dumps({'pid':os.getpid(),'phase':phase,**extra},sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     record('python-started');observed=token_info();record('token-observed',token=observed,mutex_before_install=installer_mutex_diagnostic())
     if observed['administrator_enabled'] or observed['enabled_privileges']>1 or observed['elevated'] or observed['integrity_rid']!=8192:raise RuntimeError('ordinary worker retained administrator membership/privileges/elevation or did not run at medium integrity')
@@ -430,7 +469,7 @@ def ordinary_worker(installer,directory,output):
         model=json.loads((directory.parent/'context-model.json').read_text(encoding='utf-8'));installed_hashes(directory,model,False)
         version=dict(m.table_rows(m.CompoundFile(installer).streams,'Property'))['ProductVersion']
         if child([directory/'insonic.exe','version'],dict(os.environ),directory).decode().strip()!=version:raise RuntimeError('ordinary-user installed CLI version differs')
-        launch_evidence=elected_launcher_context(directory.parent/'launcher-context-fixture')
+        launch_evidence=elected_launcher_context(launcher_fixture)
         record('elected-launch-observed')
         run_installer(['/x',product],output.with_suffix('.remove.log'));installed=False
         if marker.exists():raise RuntimeError('ordinary per-user removal retained owned marker')
@@ -438,6 +477,7 @@ def ordinary_worker(installer,directory,output):
         output.write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
         record('completed')
     finally:
+        retain_launcher_diagnostics(launcher_fixture,output)
         if installed:run_installer(['/x',product],output.with_suffix('.cleanup.log'))
 
 def private_desktop_sddl(user_sid,caller_sid=None):
@@ -738,7 +778,7 @@ def ordinary_interactive_bootstrap(pipe,installer,directory,output):
         startup=Startup();startup.cb=C.sizeof(startup);startup.flags=1;startup.show=0;startup.desktop=None
         args=[sys.executable,__file__,'--ordinary-worker',str(installer),'--context-dir',str(directory),'--output',str(output)];command=C.create_unicode_buffer(subprocess.list2cmdline(args));environment=C.create_unicode_buffer('\0'.join(key+'='+value for key,value in sorted(os.environ.items()))+'\0\0')
         record('before-self-interactive-logon',desktop=desktop)
-        if not security.CreateProcessWithLogonW(os.environ['USERNAME'],'.',credentials['password'],1,sys.executable,command,0x08000400,environment,str(directory.parent),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
+        if not security.CreateProcessWithLogonW(os.environ['USERNAME'],'.',credentials['password'],0,sys.executable,command,0x08000400,environment,str(directory.parent),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
         credentials['password']=None;record('self-interactive-process-created',pid=process.pid,desktop=desktop)
         if kernel.WaitForSingleObject(process.process,80000)!=0:
             kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000);raise RuntimeError('owned self-interactive worker exceeded existing task bound')
@@ -862,6 +902,38 @@ def profile_cleanup_observation(sid,profile):
 def worker_failure_path(output,bootstrap=False):
     return Path(output).with_suffix('.bootstrap-failure.json' if bootstrap else '.failure.json')
 
+@__import__('contextlib').contextmanager
+def qualifier_profile_privileges():
+    """Scope existing backup/restore rights to the elevated CI profile owner."""
+    m.disposable_runner()
+    import ctypes as C
+    import ctypes.wintypes as W
+    kernel=C.WinDLL('kernel32',use_last_error=True);security=C.WinDLL('advapi32',use_last_error=True)
+    class Luid(C.Structure):_fields_=[('low',W.DWORD),('high',W.LONG)]
+    class Entry(C.Structure):_fields_=[('luid',Luid),('attributes',W.DWORD)]
+    class Privileges(C.Structure):_fields_=[('count',W.DWORD),('entries',Entry*2)]
+    kernel.GetCurrentProcess.restype=W.HANDLE;kernel.CloseHandle.argtypes=[W.HANDLE]
+    security.OpenProcessToken.argtypes=[W.HANDLE,W.DWORD,C.POINTER(W.HANDLE)];security.OpenProcessToken.restype=W.BOOL
+    security.LookupPrivilegeValueW.argtypes=[W.LPCWSTR,W.LPCWSTR,C.POINTER(Luid)];security.LookupPrivilegeValueW.restype=W.BOOL
+    security.AdjustTokenPrivileges.argtypes=[W.HANDLE,W.BOOL,C.c_void_p,W.DWORD,C.c_void_p,C.POINTER(W.DWORD)];security.AdjustTokenPrivileges.restype=W.BOOL
+    token=W.HANDLE();requested=Privileges();previous=Privileges();size=W.DWORD();changed=False
+    if not security.OpenProcessToken(kernel.GetCurrentProcess(),0x28,C.byref(token)):raise C.WinError(C.get_last_error())
+    try:
+        requested.count=2
+        for index,name in enumerate(('SeBackupPrivilege','SeRestorePrivilege')):
+            if not security.LookupPrivilegeValueW(None,name,C.byref(requested.entries[index].luid)):raise C.WinError(C.get_last_error())
+            requested.entries[index].attributes=2
+        C.set_last_error(0)
+        ok=security.AdjustTokenPrivileges(token,False,C.byref(requested),C.sizeof(previous),C.byref(previous),C.byref(size));error=C.get_last_error();changed=bool(ok)
+        if not ok or error:raise C.WinError(error)
+        yield {'scope':'elevated qualifier process token only','ordinary_actor_token_changed':False}
+    finally:
+        try:
+            if changed:
+                C.set_last_error(0)
+                if not security.AdjustTokenPrivileges(token,False,C.byref(previous),0,None,None) or C.get_last_error():raise C.WinError(C.get_last_error())
+        finally:kernel.CloseHandle(token)
+
 def ordinary_context(installer,directory,output,model=None):
     """Qualify an actual ordinary account, exclusively on a disposable runner."""
     m.disposable_runner()
@@ -871,17 +943,16 @@ def ordinary_context(installer,directory,output,model=None):
     security=C.WinDLL('advapi32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True);network=C.WinDLL('netapi32',use_last_error=True);profiles=C.WinDLL('userenv',use_last_error=True)
     class User(C.Structure):_fields_=[('name',W.LPWSTR),('password',W.LPWSTR),('password_age',W.DWORD),('privilege',W.DWORD),('home',W.LPWSTR),('comment',W.LPWSTR),('flags',W.DWORD),('script',W.LPWSTR)]
     class Member(C.Structure):_fields_=[('name',W.LPWSTR)]
-    class Startup(C.Structure):_fields_=[('cb',W.DWORD),('reserved',W.LPWSTR),('desktop',W.LPWSTR),('title',W.LPWSTR),('x',W.DWORD),('y',W.DWORD),('width',W.DWORD),('height',W.DWORD),('chars_x',W.DWORD),('chars_y',W.DWORD),('fill',W.DWORD),('flags',W.DWORD),('show',W.WORD),('reserved_size',W.WORD),('reserved_bytes',C.c_void_p),('stdin',W.HANDLE),('stdout',W.HANDLE),('stderr',W.HANDLE)]
-    class Process(C.Structure):_fields_=[('process',W.HANDLE),('thread',W.HANDLE),('pid',W.DWORD),('tid',W.DWORD)]
+    class Profile(C.Structure):_fields_=[('size',W.DWORD),('flags',W.DWORD),('name',W.LPWSTR),('path',W.LPWSTR),('default_path',W.LPWSTR),('server',W.LPWSTR),('policy',W.LPWSTR),('hive',W.HANDLE)]
     kernel.GetCurrentProcess.restype=W.HANDLE;kernel.CloseHandle.argtypes=[W.HANDLE];kernel.CloseHandle.restype=W.BOOL
     kernel.WaitForSingleObject.argtypes=[W.HANDLE,W.DWORD];kernel.WaitForSingleObject.restype=W.DWORD;kernel.GetExitCodeProcess.argtypes=[W.HANDLE,C.POINTER(W.DWORD)];kernel.GetExitCodeProcess.restype=W.BOOL;kernel.TerminateProcess.argtypes=[W.HANDLE,W.UINT];kernel.TerminateProcess.restype=W.BOOL
     security.OpenProcessToken.argtypes=[W.HANDLE,W.DWORD,C.POINTER(W.HANDLE)];security.OpenProcessToken.restype=W.BOOL
     security.LogonUserW.argtypes=[W.LPCWSTR,W.LPCWSTR,W.LPCWSTR,W.DWORD,W.DWORD,C.POINTER(W.HANDLE)];security.LogonUserW.restype=W.BOOL
-    security.CreateProcessWithLogonW.argtypes=[W.LPCWSTR,W.LPCWSTR,W.LPCWSTR,W.DWORD,W.LPCWSTR,W.LPWSTR,W.DWORD,C.c_void_p,W.LPCWSTR,C.POINTER(Startup),C.POINTER(Process)];security.CreateProcessWithLogonW.restype=W.BOOL
+    profiles.LoadUserProfileW.argtypes=[W.HANDLE,C.POINTER(Profile)];profiles.LoadUserProfileW.restype=W.BOOL;profiles.UnloadUserProfile.argtypes=[W.HANDLE,W.HANDLE];profiles.UnloadUserProfile.restype=W.BOOL
     network.NetUserAdd.argtypes=[W.LPCWSTR,W.DWORD,C.c_void_p,C.POINTER(W.DWORD)];network.NetUserAdd.restype=W.DWORD;network.NetUserDel.argtypes=[W.LPCWSTR,W.LPCWSTR];network.NetUserDel.restype=W.DWORD
     network.NetLocalGroupAddMembers.argtypes=[W.LPCWSTR,W.LPCWSTR,W.DWORD,C.c_void_p,W.DWORD];network.NetLocalGroupAddMembers.restype=W.DWORD
     profiles.GetUserProfileDirectoryW.argtypes=[W.HANDLE,W.LPWSTR,C.POINTER(W.DWORD)];profiles.GetUserProfileDirectoryW.restype=W.BOOL;profiles.DeleteProfileW.argtypes=[W.LPCWSTR,W.LPCWSTR,W.LPCWSTR];profiles.DeleteProfileW.restype=W.BOOL
-    name='inso_ci_'+uuid.uuid4().hex[:12];password='Aa1!'+secrets.token_hex(24);created=False;profile=None;stage=None;token=W.HANDLE();caller=W.HANDLE();process=Process();sid=None;evidence=None;failure=None;cleanup=[];batch_original=None
+    name='inso_ci_'+uuid.uuid4().hex[:12];password='Aa1!'+secrets.token_hex(24);created=False;profile=None;stage=None;token=W.HANDLE();caller=W.HANDLE();profile_info=Profile();profile_loaded=False;sid=None;evidence=None;failure=None;cleanup=[];batch_original=None
     diagnostics=Path(output).with_suffix('.startup.json');current_phase={'name':'starting'};history=[]
     def record(phase,**extra):
         current_phase['name']=phase;history.append({'phase':phase,**extra});diagnostics.write_text(json.dumps({'phase':phase,'actor':'actual ordinary disposable CI account','separate_user_account':True,'password_published':False,'boundaries':history,**extra},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
@@ -902,29 +973,17 @@ def ordinary_context(installer,directory,output,model=None):
         if sid==caller_sid:raise RuntimeError('ordinary account unexpectedly reused the elevated actor')
         stage=Path(os.environ['ProgramData'])/('insonic-ci-account-'+uuid.uuid4().hex);record('Create-owned-account-stage');stage.mkdir(exist_ok=False);grant_owned_account_stage(stage,sid,caller_sid,record)
         (stage/'owned-ci-account.json').write_text(json.dumps({'account':name,'sid_sha256':m.digest(sid.encode())}),encoding='utf-8',newline='\n')
-        # LOGON_WITH_PROFILE lets Windows create/load the real ordinary profile.
-        # This bootstrap uses its native profile environment, before we rebuild
-        # the worker environment with the SDK-observed account directory.
-        record('Create-private-profile-bootstrap-desktop')
-        with private_context_desktop(sid,caller_sid,record) as desktop:
-            startup=Startup();startup.cb=C.sizeof(startup);startup.flags=1;startup.show=0;startup.desktop=desktop['path']
-            whoami=Path(os.environ['SystemRoot'])/'System32/whoami.exe';command=C.create_unicode_buffer(subprocess.list2cmdline([str(whoami),'/user']))
-            record('before-native-profile-logon',desktop=desktop,same_user_sid_sha256=m.digest(sid.encode()))
-            record('CreateProcessWithLogonW-profile-bootstrap')
-            if not security.CreateProcessWithLogonW(name,'.',password,1,str(whoami),command,0x08000400,None,str(stage),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
-            record('WaitForSingleObject-profile-bootstrap',pid=process.pid)
-            if kernel.WaitForSingleObject(process.process,15000)!=0:
-                kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000);raise RuntimeError('owned profile bootstrap exceeded its bound')
-            code=W.DWORD()
-            record('GetExitCodeProcess-profile-bootstrap',pid=process.pid)
-            if not kernel.GetExitCodeProcess(process.process,C.byref(code)) or code.value!=0:raise RuntimeError('native ordinary profile bootstrap failed '+str(code.value))
-            value=C.create_unicode_buffer(4096);size=W.DWORD(4096)
-            record('GetUserProfileDirectoryW-ordinary')
-            if not profiles.GetUserProfileDirectoryW(token,value,C.byref(size)):raise C.WinError(C.get_last_error())
-            profile=validate_account_profile(name,value.value)
-            if not profile.is_dir():raise RuntimeError('native profile logon did not create the observed ordinary-user directory')
-            record('ordinary-profile-observed',profile=str(profile),method='CreateProcessWithLogonW LOGON_WITH_PROFILE, GetUserProfileDirectoryW')
-            kernel.CloseHandle(process.thread);kernel.CloseHandle(process.process);process=Process()
+        profile_info.size=C.sizeof(profile_info);profile_info.flags=1;profile_info.name=name
+        record('LoadUserProfileW-owned')
+        with qualifier_profile_privileges() as privilege_scope:
+            if not profiles.LoadUserProfileW(token,C.byref(profile_info)):raise C.WinError(C.get_last_error())
+            profile_loaded=True
+        value=C.create_unicode_buffer(4096);size=W.DWORD(4096)
+        record('GetUserProfileDirectoryW-ordinary')
+        if not profiles.GetUserProfileDirectoryW(token,value,C.byref(size)):raise C.WinError(C.get_last_error())
+        profile=validate_account_profile(name,value.value)
+        if not profile.is_dir():raise RuntimeError('native profile load did not create the observed ordinary-user directory')
+        record('ordinary-profile-observed',profile=str(profile),method='owned LoadUserProfileW handle, GetUserProfileDirectoryW',privilege_scope=privilege_scope)
         record('Copy-exact-owned-worker-inputs');scripts=stage/'scripts';scripts.mkdir();(stage/'temp').mkdir();native=stage/'native';native.mkdir()
         for filename in ('qualify-windows-msi.py','windows_msi.py'):
             shutil.copyfile(m.ROOT/'scripts'/filename,scripts/filename)
@@ -945,14 +1004,22 @@ def ordinary_context(installer,directory,output,model=None):
             scheduler=scheduler_ordinary(stage,name,sid,password,args,record,profile)
         evidence=json.loads(worker_output.read_text(encoding='utf-8'))
         if evidence['token']['user_sid_sha256']!=m.digest(sid.encode()) or Path(evidence['user_profile']).resolve()!=profile.resolve():raise RuntimeError('ordinary worker changed account/profile identity')
-        evidence.update({'process_creation':'Task Scheduler least-privilege batch session, then same-account interactive logon inheriting its noninteractive task desktop','scheduler':scheduler,'profile_creation':'native LOGON_WITH_PROFILE bootstrap and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode()),'owned_account_rights_before':batch_original,'ci_host_policy_fixture':policy_fixture})
+        evidence.update({'process_creation':'Task Scheduler least-privilege batch session, then same-account interactive logon inheriting its noninteractive task desktop','scheduler':scheduler,'profile_creation':'explicit owned LoadUserProfileW handle and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode()),'owned_account_rights_before':batch_original,'ci_host_policy_fixture':policy_fixture})
         evidence['os_policy_mutations'].update({'ci_server_disable_msi_fixture':True,'ci_server_disable_msi_restored':policy_fixture['restored'],'always_install_elevated_unchanged':policy_fixture['always_install_elevated_unchanged']})
     except BaseException as error:
         failure=error;record('failed',failed_api=getattr(error,'api',current_phase['name']),winerror=getattr(error,'winerror',None),errno=getattr(error,'errno',None),error_type=type(error).__name__,error=str(error))
     finally:
         if stage is not None and (stage/'native').is_dir():
             retain_ordinary_diagnostics(stage/'native',output)
-        for handle in (process.thread,process.process,token,caller):
+        if profile_loaded:
+            try:
+                with qualifier_profile_privileges():unloaded=bool(profiles.UnloadUserProfile(token,profile_info.hive));unload_error=0 if unloaded else C.get_last_error()
+                cleanup.append({'object':'explicit owned profile handle','unloaded':unloaded,'winerror':unload_error,'sid_sha256':m.digest(sid.encode())})
+                if not unloaded and failure is None:failure=RuntimeError('owned profile handle did not unload '+str(unload_error))
+            except BaseException as error:
+                cleanup.append({'object':'explicit owned profile handle','unloaded':False,'error_type':type(error).__name__})
+                if failure is None:failure=error
+        for handle in (token,caller):
             if handle:kernel.CloseHandle(handle)
         if batch_original is not None:
             try:
