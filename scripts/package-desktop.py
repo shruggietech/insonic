@@ -840,13 +840,18 @@ def qualify_windows_install(extracted, temporary, env):
 
 
 def qualify_package_gui(gui, directory, env):
-    qualification_output = child([gui, '--qualification'], directory=directory, env=dict(env), timeout=30)
+    runtime_env = dict(env)
+    if os.environ.get('GITHUB_ACTIONS') == 'true':
+        runtime_env['INSONIC_PROCESS_STARTUP_DIAGNOSTICS'] = '1'
+    # The shared runtime can legitimately restart as its own idle-exit owner.
+    # Permit its explicit Windows breakaway, retaining this GUI's owned job.
+    qualification_output = child([gui, '--qualification'], directory=directory, env=runtime_env, timeout=30, allow_detached=True)
     qualify.write_receipt(ROOT / 'build/native/package-desktop-bridge-receipt.json', qualification_output,
                           {'desktop_bridge': 'passed', 'offline_help': 'packaged', 'schema_version': VERSION})
     args = [gui, '--webview-qualification']
     if platform.system() == 'Linux':
         args = ['/usr/bin/xvfb-run', '-a', *args]
-    qualification_output = child(args, directory=directory, env=dict(env), timeout=90)
+    qualification_output = child(args, directory=directory, env=runtime_env, timeout=90, allow_detached=True)
     qualify.write_receipt(ROOT / 'build/native/package-webview-receipt.json', qualification_output,
                           {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'schema_version': VERSION})
 

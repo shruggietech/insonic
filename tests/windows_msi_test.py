@@ -217,6 +217,34 @@ class InstallerModelTests(unittest.TestCase):
         item.write_bytes(b'later actor actual log');progress.write_bytes(b'later actor actual token');module.retain_ordinary_diagnostics(native,self.path/'ordinary-context.json')
         self.assertEqual((self.path/'ordinary-first-context.install.log').read_bytes(),b'first actor actual log');self.assertEqual((self.path/'ordinary-context.install.log').read_bytes(),b'later actor actual log')
         self.assertEqual((self.path/'ordinary-first-context.progress.json').read_bytes(),b'first actor actual token');self.assertEqual((self.path/'ordinary-context.progress.json').read_bytes(),b'later actor actual token')
+    def test_self_interactive_bootstrap_keeps_account_session_and_credentials_off_argv(self):
+        import ctypes as C
+        import io
+        from contextlib import nullcontext
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_self_interactive',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.ordinary_interactive_bootstrap(None,None,None,None)
+        sid='S-1-5-21-1-2-3-1001';password='private-self-logon-password';account='inso_ci_0123456789ab';calls=[];closed=[]
+        token={'administrator_enabled':False,'elevated':False,'integrity_rid':8192,'session_id':0,'user_sid_sha256':m.digest(sid.encode())}
+        class Function:
+            def __init__(self,call):self.call=call
+            def __call__(self,*args):return self.call(*args)
+        def create(name,domain,secret,logon,exe,command,flags,environment,cwd,startup,process):
+            calls.append('self-logon');self.assertEqual(name,account);self.assertEqual(secret,password);self.assertEqual(logon,1);self.assertEqual(flags,0x08000400);self.assertNotIn(password,command.value);self.assertNotIn(password,environment.value);self.assertEqual(startup._obj.desktop,'owned-private\\Default')
+            process._obj.process=111;process._obj.thread=222;process._obj.pid=333;return True
+        def exit_code(process,code):code._obj.value=0;return True
+        security=SimpleNamespace(CreateProcessWithLogonW=Function(create));kernel=SimpleNamespace(WaitForSingleObject=Function(lambda *args:0),GetExitCodeProcess=Function(exit_code),CloseHandle=Function(lambda handle:closed.append(handle) or True),TerminateProcess=Function(lambda *args:True));dlls={'kernel32':kernel,'advapi32':security}
+        credentials={'account':'CI-FIXTURE\\'+account,'sid':sid,'password':password};output=self.path/'context.json';pipe='insonic-ci-credential-'+'a'*32
+        env={'COMPUTERNAME':'CI-FIXTURE','USERNAME':account}
+        with patch.dict(os.environ,env,clear=True),patch.object(m,'disposable_runner',return_value=None),patch.object(module,'token_info',return_value=token),patch.object(module,'open',return_value=io.BytesIO((json.dumps(credentials)+'\n').encode()),create=True),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'private_context_desktop',return_value=nullcontext({'path':'owned-private\\Default'})) as desktop:
+            module.ordinary_interactive_bootstrap(pipe,self.path/'fixture.msi',self.path/'installed',output)
+            desktop.assert_called_once();self.assertEqual(desktop.call_args.args[:2],(sid,sid))
+        self.assertEqual(calls,['self-logon']);self.assertEqual(closed,[222,111]);self.assertNotIn(password,output.with_suffix('.bootstrap.json').read_text(encoding='utf-8'))
+        credentials['sid']='S-1-5-21-1-2-3-9999'
+        with patch.dict(os.environ,env,clear=True),patch.object(m,'disposable_runner',return_value=None),patch.object(module,'token_info',return_value=token),patch.object(module,'open',return_value=io.BytesIO((json.dumps(credentials)+'\n').encode()),create=True),patch.object(C,'WinDLL',create=True) as native:
+            with self.assertRaisesRegex(RuntimeError,'actor differs'):module.ordinary_interactive_bootstrap(pipe,self.path/'fixture.msi',self.path/'installed',output)
+            native.assert_not_called()
     def test_existing_ci_account_is_never_reused_or_deleted(self):
         import ctypes as C
         import secrets

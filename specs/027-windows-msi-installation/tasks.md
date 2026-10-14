@@ -115,3 +115,5 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 - [x] T059 Retain bounded fixed qualification output and sanitized owned-child timeout receipts without extending deadlines or replacing the original timeout failure.
 
 - [x] T060 Launch the exact owned ordinary CI actor through least-privilege password-logon Task Scheduler, retain strict environment/token checks, restore only its temporary batch-logon right and preserve first/later diagnostics separately.
+- [x] T061 Preserve the ordinary actor isolated session while self-logging on interactively through protected memory-only credential transport; record actual service/token roles and independently delete completed owned tasks.
+- [x] T062 Match packaged/standalone GUI test-host jobs to legitimate runtime breakaway launches, retain runtime-only numeric startup diagnostics and stream native Go events without extending deadlines.

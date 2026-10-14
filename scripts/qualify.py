@@ -222,7 +222,9 @@ def native():
     sys.stdout.buffer.write(child([sys.executable, ROOT / "scripts/media-fixtures.py", "--native"]))
     env = native_env()
     cueson = cueson_probe(env)
-    output = child(['go', 'test', '-v', '-tags', 'native_ladybug,system_ladybug', './internal/qualification', './internal/backendsetup', './internal/subtitles', './internal/graph', './internal/app', './internal/backup'], env=env)
+    # JSON emits package/test start events immediately; verbose text can buffer
+    # an entire unfinished package and hide its active test on an outer timeout.
+    output = child(['go', 'test', '-json', '-v', '-tags', 'native_ladybug,system_ladybug', './internal/qualification', './internal/backendsetup', './internal/subtitles', './internal/graph', './internal/app', './internal/backup'], env=env)
     sys.stdout.buffer.write(output)
     (BUILD / 'native-receipt.json').write_text(json.dumps({'cueson': cueson, 'native_pair': 'passed'}, indent=2) + '\n', encoding='utf-8')
 
@@ -265,13 +267,13 @@ def desktop():
     runtime_env = dict(env)
     if os.environ.get('GITHUB_ACTIONS') == 'true':
         runtime_env['INSONIC_PROCESS_STARTUP_DIAGNOSTICS'] = '1'
-    output = child([executable, '--qualification'], env=runtime_env)
+    output = child([executable, '--qualification'], env=runtime_env, allow_detached=True)
     write_receipt(BUILD / 'desktop-receipt.json', output,
                   {'desktop_bridge': 'passed', 'offline_help': 'packaged', 'schema_version': VERSION})
     args = [executable, '--webview-qualification']
     if platform.system() == 'Linux':
         args = ['xvfb-run', '-a', *args]
-    output = child(args, env=runtime_env, timeout=90)
+    output = child(args, env=runtime_env, timeout=90, allow_detached=True)
     write_receipt(BUILD / 'webview-receipt.json', output,
                   {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'schema_version': VERSION})
 
