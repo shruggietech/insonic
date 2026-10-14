@@ -104,3 +104,9 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 - [x] T052 Bootstrap the owned ordinary CI profile through native LOGON_WITH_PROFILE and validate the actual GetUserProfileDirectoryW result before isolated worker execution.
 
 - [x] T053 Preserve public startup errors while electing bounded CI-only stage/numeric-errno receipts for actual Windows child-launch failures.
+
+- [x] T054 Grant only exact creating/target CI SIDs and SYSTEM on new owned alternate-account station/desktop objects, preserving phase/API/error observations and all shared desktop ACLs.
+- [x] T055 Elect CI startup diagnostics only for actual runtime probes and preserve original builder/model environments.
+- [x] T056 Author actual embedded PE version/language metadata and verify it independently from cabinet bytes, retaining full upgrade payload hash checks.
+
+- [x] T057 Overlap unchanged ZIP/native MSI suites on separate owned child processes against one immutable current archive, then strictly join actual qualified payload evidence before publication.

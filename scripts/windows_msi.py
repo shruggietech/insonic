@@ -83,6 +83,56 @@ def effective_feature_local(feature):
     # An explicit ABSENT (2) request never inherits its installed state.
     return '(&'+feature+'=3 OR ((&'+feature+'=-1 OR &'+feature+'=5) AND !'+feature+'=3))'
 
+def pe_file_metadata(data):
+    """Read exact RT_VERSION fixed-file version and language from PE bytes.
+
+    Source: Microsoft's PE resource directory, VS_VERSIONINFO and File-table
+    contracts. No image loading, process execution or platform API is involved.
+    """
+    if data[:2]!=b'MZ':return None,None
+    def unpack(fmt,offset):
+        if offset<0 or offset+struct.calcsize(fmt)>len(data):raise ValueError('truncated PE file metadata')
+        return struct.unpack_from(fmt,data,offset)
+    header=unpack('<I',60)[0]
+    if data[header:header+4]!=b'PE\0\0':raise ValueError('invalid PE signature')
+    sections=unpack('<H',header+6)[0];optional_size=unpack('<H',header+20)[0];optional=header+24
+    magic=unpack('<H',optional)[0];directory_offset={0x10b:96,0x20b:112}.get(magic)
+    if directory_offset is None or optional_size<directory_offset+24 or not 0<sections<=96:raise ValueError('invalid PE optional header')
+    if unpack('<I',optional+directory_offset-4)[0]<3:return None,None
+    resource_rva,resource_size=unpack('<II',optional+directory_offset+16)
+    if not resource_rva or not resource_size:return None,None
+    section_rows=[unpack('<IIII',optional+optional_size+40*i+8) for i in range(sections)]
+    def rva_offset(rva,size):
+        matches=[raw+rva-start for virtual,start,length,raw in section_rows if start<=rva and rva+size<=start+length]
+        if len(matches)!=1 or matches[0]+size>len(data):raise ValueError('PE resource RVA escapes file')
+        return matches[0]
+    base=rva_offset(resource_rva,resource_size)
+    def resource_entries(offset):
+        if offset<0 or offset+16>resource_size:raise ValueError('PE resource directory escapes section')
+        named,ids=unpack('<HH',base+offset+12);count=named+ids
+        if count>4096 or offset+16+count*8>resource_size:raise ValueError('invalid PE resource entry count')
+        return [unpack('<II',base+offset+16+8*i) for i in range(count)]
+    versions=[];languages=set()
+    for resource_type,name_dir in resource_entries(0):
+        if resource_type!=16:continue
+        if not name_dir&0x80000000:raise ValueError('invalid PE version-name directory')
+        for _,language_dir in resource_entries(name_dir&0x7fffffff):
+            if not language_dir&0x80000000:raise ValueError('invalid PE version-language directory')
+            for language,leaf in resource_entries(language_dir&0x7fffffff):
+                if leaf&0x80000000 or leaf+16>resource_size or language&0x80000000:raise ValueError('invalid PE version leaf')
+                value_rva,value_size,_,_=unpack('<IIII',base+leaf);value_offset=rva_offset(value_rva,value_size)
+                value=data[value_offset:value_offset+value_size]
+                if len(value)<6:raise ValueError('truncated PE version resource')
+                length,value_length,value_type=struct.unpack_from('<HHH',value);key='VS_VERSION_INFO\0'.encode('utf-16le')
+                if length>len(value) or value[6:6+len(key)]!=key or value_type!=0:raise ValueError('invalid PE fixed version header')
+                fixed=(6+len(key)+3)&~3
+                if value_length!=52 or fixed+52>length or struct.unpack_from('<I',value,fixed)[0]!=0xfeef04bd:raise ValueError('invalid PE fixed version value')
+                major,minor=struct.unpack_from('<II',value,fixed+8)
+                versions.append('.'.join(map(str,(major>>16,major&65535,minor>>16,minor&65535))));languages.add(language)
+    if not versions:return None,None
+    if len(set(versions))!=1:raise ValueError('conflicting PE fixed file versions')
+    return versions[0],','.join(str(language) for language in sorted(languages))
+
 def installer_model(inv,inv_sha,license_text,upgrade=UPGRADE_CODE,version=None):
     version=msi_version(version or inv['schema_version'])
     core,desktop,cli=(effective_feature_local(feature) for feature in ('Core','Desktop','CLI'))
@@ -233,9 +283,11 @@ def author(path,payload_root,model,fixture_failure=False):
     with tempfile.TemporaryDirectory(prefix='insonic-msi-author-') as temp:
         temp=Path(temp);cab=temp/'payload.cab';marker=temp/OWNERSHIP;marker.write_bytes(OWNERSHIP_BYTES)
         directives=['.OPTION EXPLICIT','.Set Cabinet=ON','.Set Compress=ON','.Set CompressionType=MSZIP','.Set CabinetNameTemplate=payload.cab','.Set DiskDirectoryTemplate='+str(temp),'.Set MaxDiskSize=0','.Set MaxCabinetSize=0','.Set GenerateInf=ON','.Set InfFileName='+str(temp/'cabinet.inf'),'.Set RptFileName='+str(temp/'cabinet.rpt')]
+        metadata={}
         for entry in model['payload']:
             p=marker if entry['path']==OWNERSHIP else payload_root.joinpath(*relative(entry['path']).parts)
             if not p.is_file() or p.is_symlink() or p.stat().st_size!=entry['size_bytes'] or sha(p)!=entry['sha256']:raise ValueError('MSI input differs from exact payload inventory: '+entry['path'])
+            metadata[entry['file_id']]=pe_file_metadata(p.read_bytes())
             directives.append('"'+str(p)+'" '+entry['file_id'])
         ddf=temp/'payload.ddf';ddf.write_text('\n'.join(directives)+'\n',encoding='utf-8',newline='\n')
         makecab=Path(os.environ.get('SystemRoot','C:/Windows'))/'System32/makecab.exe'
@@ -249,7 +301,10 @@ def author(path,payload_root,model,fixture_failure=False):
                     nullable=name=='Upgrade' and i in (1,2,3)
                     decl.append(quote(col)+' '+('CHAR(72)' if typ=='s' and i<keys else 'CHAR(0)' if typ=='s' else 'SHORT' if typ=='i' else 'LONG')+(' NOT NULL' if i<keys and not nullable else ''))
                 db.execute('CREATE TABLE '+quote(name)+' ('+','.join(decl)+' PRIMARY KEY '+','.join(quote(c[0]) for c in columns[:keys])+')')
-                for values in model['tables'][name]:db.execute('INSERT INTO '+quote(name)+' ('+','.join(quote(c[0]) for c in columns)+') VALUES ('+','.join('?' for _ in columns)+')',values)
+                for original in model['tables'][name]:
+                    values=list(original)
+                    if name=='File':values[4:6]=metadata[values[0]]
+                    db.execute('INSERT INTO '+quote(name)+' ('+','.join(quote(c[0]) for c in columns)+') VALUES ('+','.join('?' for _ in columns)+')',values)
             for table,entry,p in [('Binary','Launcher',payload_root/'insonic-launcher.exe'),('Icon','InsonicIcon',ROOT/ICON)]:
                 db.execute('CREATE TABLE '+quote(table)+' ('+quote('Name')+' CHAR(72) NOT NULL, '+quote('Data')+' OBJECT NOT NULL PRIMARY KEY '+quote('Name')+')')
                 db.execute('INSERT INTO '+quote(table)+' ('+quote('Name')+','+quote('Data')+') VALUES (?,?)',[entry,p],streams=(2,))
@@ -257,7 +312,7 @@ def author(path,payload_root,model,fixture_failure=False):
             if fixture_failure:
                 disposable_runner();db.execute('INSERT INTO '+quote('CustomAction')+' ('+','.join(quote(c[0]) for c in SCHEMA['CustomAction'])+') VALUES (?,?,?,?)',['FixtureFailure',19,None,'Intentional transactional fixture failure'])
                 db.execute('INSERT INTO '+quote('InstallExecuteSequence')+' ('+','.join(quote(c[0]) for c in SCHEMA['InstallExecuteSequence'])+') VALUES (?,?,?)',['FixtureFailure','1',4100])
-            db.summary(guid('package/'+digest(canonical(model))));db.check(db.dll.MsiDatabaseCommit(db.handle))
+            db.summary(guid('package/'+digest(canonical({'model':model,'file_metadata':metadata}))));db.check(db.dll.MsiDatabaseCommit(db.handle))
         finally:db.close()
     verify_model_bytes(path,model,fixture_failure=fixture_failure)
     return path
@@ -341,7 +396,7 @@ def table_rows(streams,name):
             else:row[col]=None if not v else v-(1<<(size*8-1))
     return rows
 
-def cabinet_members(data):
+def cabinet_members(data,metadata=False):
     """Independently decompress single-cabinet MSZIP files and hash each member."""
     if data[:4]!=b'MSCF' or len(data)<36:raise ValueError('missing embedded cabinet')
     size=struct.unpack_from('<I',data,8)[0];file_offset=struct.unpack_from('<I',data,16)[0];folders,files,flags=struct.unpack_from('<HHH',data,26)
@@ -370,30 +425,40 @@ def cabinet_members(data):
         if end<0 or end-cursor>256:raise ValueError('invalid cabinet file name')
         name=data[cursor:end].decode('ascii');cursor=end+1
         if name in members or folder>=len(contents) or offset+length>len(contents[folder]):raise ValueError('cabinet file escapes payload')
-        members[name]={'size_bytes':length,'sha256':digest(contents[folder][offset:offset+length])}
+        value=contents[folder][offset:offset+length]
+        members[name]={'size_bytes':length,'sha256':digest(value)}
+        if metadata:members[name]['file_metadata']=pe_file_metadata(value)
     return members
 
 def verify_model_bytes(path,model,fixture_failure=False):
     streams=CompoundFile(path).streams
     catalog={row[0] for row in table_rows(streams,'_Tables')}
     if not (set(SCHEMA)|{'Binary','Icon'})<=catalog:raise ValueError('MSI is missing required table definitions')
+    details=cabinet_members(streams['payload.cab'],metadata=True)
+    actual_members={name:{key:value for key,value in entry.items() if key!='file_metadata'} for name,entry in details.items()}
+    expected={x['file_id']:{'size_bytes':x['size_bytes'],'sha256':x['sha256']} for x in model['payload']}
+    if actual_members!=expected:raise ValueError('embedded MSI cabinet differs from complete inventory')
     for name,expected in model['tables'].items():
+        if name=='File':
+            expected=[list(row) for row in expected]
+            for row in expected:row[4:6]=details[row[0]]['file_metadata']
         actual=table_rows(streams,name)
         if fixture_failure and name in ('CustomAction','InstallExecuteSequence'):actual=[r for r in actual if r[0]!='FixtureFailure']
         order=lambda rows:sorted(rows,key=lambda r:json.dumps(r,sort_keys=True))
         if order(actual)!=order(expected):raise ValueError('actual MSI table differs from source model: '+name)
-    actual=cabinet_members(streams['payload.cab']);expected={x['file_id']:{'size_bytes':x['size_bytes'],'sha256':x['sha256']} for x in model['payload']}
-    if actual!=expected:raise ValueError('embedded MSI cabinet differs from complete inventory')
-    return {'streams':streams,'members':actual}
+    return {'streams':streams,'members':actual_members}
 
 def verify_installer(path,receipt,source_root=None):
     source_root=Path(source_root or ROOT);path=Path(path);version=json.loads((source_root/'package.json').read_text(encoding='utf-8'))['version']
+    if receipt.get('publication_eligible') is False or ('payload_qualification' in receipt and receipt['payload_qualification']!='passed'):raise ValueError('provisional MSI lacks joined qualified ZIP evidence')
     if receipt.get('kind')!='windows-installer-receipt' or receipt.get('format')!='msi' or receipt.get('platform')!='windows_amd64' or receipt.get('variant')!='selectable':raise ValueError('wrong MSI kind/platform/format')
     if any(receipt.get(k)!=version for k in ('schema_version','product_version','documentation_version')):raise ValueError('MSI version differs')
     if receipt.get('artifact')!=path.name or sha(path)!=receipt.get('artifact_sha256') or path.stat().st_size!=receipt.get('artifact_size_bytes'):raise ValueError('MSI artifact differs from receipt')
     if receipt.get('source_dirty') is not False or not re.fullmatch('[0-9a-f]{40}',receipt.get('revision','')):raise ValueError('MSI source is dirty/missing')
     if any(receipt.get('qualification',{}).get(k)!='passed' for k in QUALIFICATION_KEYS):raise ValueError('MSI lacks actual lifecycle/native UI qualification')
     payload=receipt['payload_receipt'];inventory=receipt['payload_inventory']
+    from release import verify_qualification
+    verify_qualification(payload)
     for k in ('revision','source_dirty','platform','schema_version','distribution'):
         if receipt.get(k)!=payload.get(k) or payload.get(k)!=inventory.get(k):raise ValueError('MSI/payload authority differs: '+k)
     if payload.get('signing')!=inventory.get('signing'):raise ValueError('payload signing authority differs')

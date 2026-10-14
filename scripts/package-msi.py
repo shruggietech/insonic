@@ -31,7 +31,8 @@ def restore_payload(receipt_path):
     if package.sha(target/'package-inventory.json')!=receipt['inventory_sha256']:raise ValueError('restored inventory differs from qualified source')
     return target
 
-def build(payload,receipt_path):
+def build(payload,receipt_path,provisional=False):
+    if provisional:m.disposable_runner()
     payload=Path(payload).resolve();archive_receipt=json.loads(Path(receipt_path).read_text(encoding='utf-8'))
     package=load('package_desktop_msi','package-desktop.py');archive=ROOT/'build/packages'/archive_receipt['archive']
     verified=package.verify_archive_receipt(archive,archive_receipt)
@@ -42,6 +43,7 @@ def build(payload,receipt_path):
     m.author(output,payload,model)
     receipt={k:archive_receipt[k] for k in ('schema_version','product_version','documentation_version','revision','source_dirty','distribution')}
     receipt.update({'signing':dict(m.UNSIGNED_SIGNING),'kind':'windows-installer-receipt','platform':'windows_amd64','variant':'selectable','format':'msi','artifact':output.name,'artifact_sha256':m.sha(output),'artifact_size_bytes':output.stat().st_size,'payload_archive':archive_receipt['archive'],'payload_archive_sha256':archive_receipt['archive_sha256'],'payload_receipt':archive_receipt,'payload_inventory':inventory,'msi_product_version':model['version'],'product_code':model['product_code'],'upgrade_code':model['upgrade_code'],'scope':'per-user','license_sha256':m.sha(ROOT/'LICENSE'),'icon_sha256':m.sha(ROOT/m.ICON),'qualification':{k:'pending' for k in m.QUALIFICATION_KEYS},'authoring':{'kind':'native-windows-installer-database','cabinet':'windows-makecab-mszip','tables_independently_verified':True,'cabinet_files_independently_verified':True}})
+    if provisional:receipt.update({'publication_eligible':False,'payload_qualification':'pending'})
     write(receipt);return output,receipt
 
 def write(receipt):
@@ -49,14 +51,15 @@ def write(receipt):
 
 def run_gates(output,receipt,stage):
     m.disposable_runner();failures={}
-    if stage in ('capture','all'):
+    if stage=='provisional':receipt.update({'publication_eligible':False,'payload_qualification':'pending'});write(receipt)
+    if stage in ('capture','all','provisional'):
         try:
             load('capture_installer_ui','capture-installer-ui.py').capture(output,receipt)
             receipt['qualification']['native_ui_capture']='passed'
         except Exception as error:
             receipt['qualification']['native_ui_capture']='failed';failures['native_ui_capture']=str(error)[-4000:]
         write(receipt)
-    if stage in ('qualify','all'):
+    if stage in ('qualify','all','provisional'):
         try:receipt['qualification'].update(load('qualify_windows_msi','qualify-windows-msi.py').qualify(output,receipt))
         except Exception as error:failures['native_lifecycle']=str(error)[-4000:]
         write(receipt)
@@ -66,13 +69,13 @@ def run_gates(output,receipt,stage):
     if stage=='all':m.verify_installer(output,receipt)
 
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('stage',choices=['build','qualify','capture','all']);p.add_argument('--payload',type=Path);p.add_argument('--restore-payload',action='store_true');p.add_argument('--receipt',type=Path,default=ROOT/'build/native/package-desktop-receipt.json');args=p.parse_args()
-    if args.stage in ('all','qualify','capture'):m.disposable_runner()
-    if args.stage in ('build','all'):
+    p=argparse.ArgumentParser();p.add_argument('stage',choices=['build','qualify','capture','all','provisional']);p.add_argument('--payload',type=Path);p.add_argument('--restore-payload',action='store_true');p.add_argument('--receipt',type=Path,default=ROOT/'build/native/package-desktop-receipt.json');args=p.parse_args()
+    if args.stage in ('all','qualify','capture','provisional'):m.disposable_runner()
+    if args.stage in ('build','all','provisional'):
         if args.restore_payload:args.payload=restore_payload(args.receipt)
         if args.payload is None:p.error('--payload or --restore-payload is required for building')
-        output,receipt=build(args.payload,args.receipt)
+        output,receipt=build(args.payload,args.receipt,provisional=args.stage=='provisional')
     else:
         receipt=json.loads((ROOT/'build/native/windows-installer-receipt.json').read_text(encoding='utf-8'));output=ROOT/'build/packages'/receipt['artifact']
-    if args.stage in ('capture','qualify','all'):run_gates(output,receipt,args.stage)
+    if args.stage in ('capture','qualify','all','provisional'):run_gates(output,receipt,args.stage)
     print(json.dumps({'artifact':receipt['artifact'],'sha256':receipt['artifact_sha256'],'qualification':receipt['qualification']}))

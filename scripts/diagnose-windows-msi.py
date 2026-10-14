@@ -42,6 +42,8 @@ def run(archive,receipt_path,payload_source_root,ordinary=False):
         if m.sha(payload/'package-inventory.json')!=receipt['inventory_sha256']:raise ValueError('diagnostic extracted inventory differs')
         model=m.installer_model(inventory,receipt['inventory_sha256'],(m.ROOT/'LICENSE').read_text(encoding='utf-8'));authored=output/'diagnostic-authored.msi';m.author(authored,payload,model)
         fixture=temporary/'observed.msi';upgrade=m.guid('diagnostic-only/'+str(uuid.uuid4()));qualifier.clone(authored,fixture,model['version'],upgrade)
+        parts=list(map(int,model['version'].split('.')));parts[2]+=1;new_version=m.msi_version('.'.join(map(str,parts)))
+        upgraded=temporary/'upgraded.msi';qualifier.clone(authored,upgraded,new_version,upgrade)
         report['tool_source']['authored_msi_sha256']=m.sha(authored);report['observations']['fixture_identity']={'upgrade_code':upgrade,'product_code':m.product_code(model['version'],upgrade),'fixture_msi_sha256':m.sha(fixture),'publication_eligible':False};save()
         install=temporary/'installed program é with spaces';product=None;prepared=False
         try:
@@ -49,11 +51,22 @@ def run(archive,receipt_path,payload_source_root,ordinary=False):
             qualifier.installed_hashes(install,model,False);report['observations']['core_cli_install']={'outcome':'observed-success','payload_hashes_verified':True}
             report['observations']['registered_states']=qualifier.registered_feature_states(product,output/'registered-states.json');save()
             if ordinary:qualifier.prepare_launcher_fixture(install,temporary/'launcher-context-fixture');prepared=True
+            feature_added=False
             try:
                 qualifier.run_installer(['/i',fixture,'INSTALLDIR='+str(install),'LICENSE_ACCEPTED=1','ADDLOCAL=Core,Desktop,CLI','REINSTALL=Core','REINSTALLMODE=vomus'],output/'feature-add.log')
-                qualifier.installed_hashes(install,model,True);report['observations']['feature_add']={'outcome':'observed-success','payload_hashes_verified':True}
+                qualifier.installed_hashes(install,model,True);report['observations']['feature_add']={'outcome':'observed-success','payload_hashes_verified':True};feature_added=True
             except Exception as error:report['observations']['feature_add']={'outcome':'observed-failure','error':str(error)}
             save()
+            if feature_added:
+                try:
+                    qualifier.run_installer(['/i',upgraded,'INSTALLDIR='+str(install),'LICENSE_ACCEPTED=1'],output/'major-upgrade.log')
+                    # Cleanup follows the successful engine transaction even when a
+                    # subsequent exact payload assertion fails.
+                    product=m.product_code(new_version,upgrade)
+                    qualifier.installed_hashes(install,model,True)
+                    report['observations']['major_upgrade']={'outcome':'observed-success','payload_hashes_verified':True,'product_code':product,'fixture_msi_sha256':m.sha(upgraded)}
+                except Exception as error:report['observations']['major_upgrade']={'outcome':'observed-failure','error':str(error),'cleanup_product_code':product}
+                save()
         except Exception as error:report['observations']['install_sequence']={'outcome':'observed-failure','error':str(error)};save()
         finally:
             if product is not None:

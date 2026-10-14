@@ -15,14 +15,18 @@ class StartupDiagnosticQualificationTests(unittest.TestCase):
         for ci in ['true', 'false']:
             with self.subTest(ci=ci), patch.dict(os.environ, {'GITHUB_ACTIONS': ci}), \
                     patch.object(qualify, 'native_env', return_value={}), \
-                    patch.object(qualify, 'build_cli', return_value=Path('fixture-cli')), \
+                    patch.object(qualify, 'build_cli', return_value=Path('fixture-cli')) as build, \
                     patch.object(qualify, 'child', return_value=b'') as child, \
                     patch.object(qualify, 'write_receipt'):
                 qualify.desktop()
+                build.assert_called_once_with(True, {})
                 self.assertEqual(len(child.call_args_list), 4)
-                for call in child.call_args_list:
-                    self.assertEqual(call.kwargs['env'].get('INSONIC_PROCESS_STARTUP_DIAGNOSTICS'),
-                                     '1' if ci == 'true' else None)
+                for call in child.call_args_list[:2]:
+                    self.assertEqual(call.kwargs['env'], {})
+                for call in child.call_args_list[2:]:
+                    self.assertEqual(call.kwargs['env'],
+                                     {'INSONIC_PROCESS_STARTUP_DIAGNOSTICS': '1'} if ci == 'true' else {})
+                self.assertIsNot(child.call_args_list[0].kwargs['env'], child.call_args_list[2].kwargs['env'])
 
 
 if __name__ == '__main__':

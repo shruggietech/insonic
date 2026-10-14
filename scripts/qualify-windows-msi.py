@@ -213,7 +213,8 @@ def installed_hashes(directory,model,desktop):
         if f['feature']=='Desktop' and not desktop:
             if p.exists():raise ValueError('CLI-only installed GUI bytes')
             continue
-        if not p.is_file() or m.sha(p)!=f['sha256']:raise ValueError('installed MSI bytes differ: '+f['path'])
+        actual=m.sha(p) if p.is_file() else 'missing'
+        if actual!=f['sha256']:raise ValueError('installed MSI bytes differ: '+f['path']+'; expected_sha256='+f['sha256']+'; actual_sha256='+actual)
 
 LAUNCH_REPORTER_SOURCE=r'''// SPDX-License-Identifier: Apache-2.0
 // Temporary CI instrumentation, never included in product payload.
@@ -373,18 +374,22 @@ def ordinary_worker(installer,directory,output):
     finally:
         if installed:run_installer(['/x',product],output.with_suffix('.cleanup.log'))
 
-def private_desktop_sddl(user_sid):
-    if not __import__('re').fullmatch(r'S-1-5-(?:\d+-)*\d+',user_sid):raise ValueError('invalid same-user desktop SID')
-    return 'D:P(A;;GA;;;SY)(A;;GA;;;'+user_sid+')S:(ML;;NW;;;ME)'
+def private_desktop_sddl(user_sid,caller_sid=None):
+    values=[]
+    for sid in (user_sid,caller_sid):
+        if sid is None:continue
+        if not __import__('re').fullmatch(r'S-1-5-(?:\d+-)*\d+',sid):raise ValueError('invalid exact owned-desktop SID')
+        if sid not in values:values.append(sid)
+    return 'D:P(A;;GA;;;SY)'+''.join('(A;;GA;;;'+sid+')' for sid in values)+'S:(ML;;NW;;;ME)'
 
-def private_context_desktop(user_sid):
+def private_context_desktop(user_sid,caller_sid=None,progress=None):
     """Create only owned CI objects, restoring the caller before running a child.
 
     Alternate-user processes require access to both objects. The inherited
     runner station need not grant access to the separately created CI account.
     Never alter shared WinSta0/default permissions or make this station visible.
     """
-    m.disposable_runner();sddl=private_desktop_sddl(user_sid)
+    m.disposable_runner();sddl=private_desktop_sddl(user_sid,caller_sid)
     from contextlib import contextmanager
     import ctypes as C
     import ctypes.wintypes as W
@@ -397,24 +402,28 @@ def private_context_desktop(user_sid):
         kernel.GetCurrentThreadId.argtypes=[];kernel.GetCurrentThreadId.restype=W.DWORD
         kernel.LocalFree.argtypes=[C.c_void_p];kernel.LocalFree.restype=C.c_void_p
         security.ConvertStringSecurityDescriptorToSecurityDescriptorW.argtypes=[W.LPCWSTR,W.DWORD,C.POINTER(C.c_void_p),C.POINTER(W.DWORD)];security.ConvertStringSecurityDescriptorToSecurityDescriptorW.restype=W.BOOL
-        original=user.GetProcessWindowStation();thread_id=kernel.GetCurrentThreadId();original_desktop=user.GetThreadDesktop(thread_id)
-        if not original or not original_desktop:raise C.WinError(C.get_last_error())
+        def checked(name,function,*args):
+            if progress:progress(name)
+            value=function(*args)
+            if not value:
+                error=C.WinError(C.get_last_error());error.api=name;raise error
+            return value
+        original=checked('GetProcessWindowStation',user.GetProcessWindowStation);thread_id=kernel.GetCurrentThreadId();original_desktop=checked('GetThreadDesktop',user.GetThreadDesktop,thread_id)
         descriptor=C.c_void_p();station=None;desktop=None;name='insonic-ci-'+uuid.uuid4().hex
         try:
-            if not security.ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl,1,C.byref(descriptor),None):raise C.WinError(C.get_last_error())
+            checked('ConvertStringSecurityDescriptorToSecurityDescriptorW-owned-desktop',security.ConvertStringSecurityDescriptorToSecurityDescriptorW,sddl,1,C.byref(descriptor),None)
             attrs=Attributes(C.sizeof(Attributes),descriptor,False)
             # CWF_CREATE_ONLY rejects an existing station instead of reusing it.
-            station=user.CreateWindowStationW(name,1,0x000f037f,C.byref(attrs))
-            if not station:raise C.WinError(C.get_last_error())
+            station=checked('CreateWindowStationW-owned',user.CreateWindowStationW,name,1,0x000f037f,C.byref(attrs))
             try:
-                if not user.SetProcessWindowStation(station):raise C.WinError(C.get_last_error())
-                desktop=user.CreateDesktopW('Default',None,None,0,0x000f01ff,C.byref(attrs))
-                if not desktop:raise C.WinError(C.get_last_error())
+                checked('SetProcessWindowStation-owned',user.SetProcessWindowStation,station)
+                desktop=checked('CreateDesktopW-owned',user.CreateDesktopW,'Default',None,None,0,0x000f01ff,C.byref(attrs))
             finally:
-                if not user.SetProcessWindowStation(original):raise C.WinError(C.get_last_error())
-                if user.GetThreadDesktop(thread_id)!=original_desktop and not user.SetThreadDesktop(original_desktop):raise C.WinError(C.get_last_error())
+                checked('SetProcessWindowStation-restore',user.SetProcessWindowStation,original)
+                if user.GetThreadDesktop(thread_id)!=original_desktop:checked('SetThreadDesktop-restore',user.SetThreadDesktop,original_desktop)
             if user.GetProcessWindowStation()!=original or user.GetThreadDesktop(thread_id)!=original_desktop:raise RuntimeError('caller station/desktop restoration failed')
-            evidence={'path':name+'\\Default','kind':'owned-noninteractive-same-user-desktop','shared_desktop_acl_modified':False,'caller_station_restored':True,'visible_switch':False,'acl_subjects':['SYSTEM','same user'],'same_user_sid_sha256':m.digest(user_sid.encode())}
+            roles=['SYSTEM','ordinary target user']+(['calling CI user'] if caller_sid and caller_sid!=user_sid else [])
+            evidence={'path':name+'\\Default','kind':'owned-noninteractive-actor-desktop','shared_desktop_acl_modified':False,'caller_station_restored':True,'visible_switch':False,'acl_subjects':roles,'target_user_sid_sha256':m.digest(user_sid.encode()),'caller_sid_sha256':m.digest(caller_sid.encode()) if caller_sid else None}
             yield evidence
         finally:
             if desktop:user.CloseDesktop(desktop)
@@ -444,7 +453,7 @@ def account_sid(token):
     try:return C.wstring_at(text)
     finally:kernel.LocalFree(text)
 
-def grant_owned_account_stage(stage,user_sid,caller_sid):
+def grant_owned_account_stage(stage,user_sid,caller_sid,progress=None):
     m.disposable_runner()
     import ctypes as C
     import ctypes.wintypes as W
@@ -456,9 +465,13 @@ def grant_owned_account_stage(stage,user_sid,caller_sid):
     security.SetFileSecurityW.argtypes=[W.LPCWSTR,W.DWORD,C.c_void_p];security.SetFileSecurityW.restype=W.BOOL
     kernel.LocalFree.argtypes=[C.c_void_p];kernel.LocalFree.restype=C.c_void_p
     descriptor=C.c_void_p();sddl='D:P(A;OICI;GA;;;SY)(A;OICI;GA;;;'+user_sid+')(A;OICI;GA;;;'+caller_sid+')S:(ML;OICI;NW;;;ME)'
-    if not security.ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl,1,C.byref(descriptor),None):raise C.WinError(C.get_last_error())
+    if progress:progress('ConvertStringSecurityDescriptorToSecurityDescriptorW-owned-stage')
+    if not security.ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl,1,C.byref(descriptor),None):
+        error=C.WinError(C.get_last_error());error.api='ConvertStringSecurityDescriptorToSecurityDescriptorW-owned-stage';raise error
     try:
-        if not security.SetFileSecurityW(str(stage),0x80000014,descriptor):raise C.WinError(C.get_last_error())
+        if progress:progress('SetFileSecurityW-owned-stage-DACL-label')
+        if not security.SetFileSecurityW(str(stage),0x80000014,descriptor):
+            error=C.WinError(C.get_last_error());error.api='SetFileSecurityW-owned-stage-DACL-label';raise error
     finally:kernel.LocalFree(descriptor)
 
 def validate_account_profile(account,profile):
@@ -487,40 +500,50 @@ def ordinary_context(installer,directory,output,model=None):
     network.NetLocalGroupAddMembers.argtypes=[W.LPCWSTR,W.LPCWSTR,W.DWORD,C.c_void_p,W.DWORD];network.NetLocalGroupAddMembers.restype=W.DWORD
     profiles.GetUserProfileDirectoryW.argtypes=[W.HANDLE,W.LPWSTR,C.POINTER(W.DWORD)];profiles.GetUserProfileDirectoryW.restype=W.BOOL;profiles.DeleteProfileW.argtypes=[W.LPCWSTR,W.LPCWSTR,W.LPCWSTR];profiles.DeleteProfileW.restype=W.BOOL
     name='inso_ci_'+uuid.uuid4().hex[:12];password='Aa1!'+secrets.token_hex(24);created=False;profile=None;stage=None;token=W.HANDLE();caller=W.HANDLE();process=Process();sid=None;evidence=None;failure=None;cleanup=[]
-    diagnostics=Path(output).with_suffix('.startup.json')
-    def record(phase,**extra):diagnostics.write_text(json.dumps({'phase':phase,'actor':'actual ordinary disposable CI account','separate_user_account':True,'password_published':False,**extra},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+    diagnostics=Path(output).with_suffix('.startup.json');current_phase={'name':'starting'};history=[]
+    def record(phase,**extra):
+        current_phase['name']=phase;history.append({'phase':phase,**extra});diagnostics.write_text(json.dumps({'phase':phase,'actor':'actual ordinary disposable CI account','separate_user_account':True,'password_published':False,'boundaries':history,**extra},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     record('before-account-create')
     try:
-        info=User(name,password,0,1,None,'Disposable insonic MSI qualification',0x10201,None);parameter=W.DWORD();rc=network.NetUserAdd(None,1,C.byref(info),C.byref(parameter))
+        info=User(name,password,0,1,None,'Disposable insonic MSI qualification',0x10201,None);parameter=W.DWORD();record('NetUserAdd');rc=network.NetUserAdd(None,1,C.byref(info),C.byref(parameter));record('NetUserAdd-result',api_status=rc)
         if rc:raise RuntimeError('ordinary account creation failed '+str(rc)+'; no existing account is reused')
-        created=True;member=Member(os.environ['COMPUTERNAME']+'\\'+name);rc=network.NetLocalGroupAddMembers(None,'Users',3,C.byref(member),1)
+        created=True;member=Member(os.environ['COMPUTERNAME']+'\\'+name);record('NetLocalGroupAddMembers-Users');rc=network.NetLocalGroupAddMembers(None,'Users',3,C.byref(member),1);record('NetLocalGroupAddMembers-result',api_status=rc)
         if rc not in (0,1378):raise RuntimeError('ordinary Users membership failed '+str(rc))
+        record('LogonUserW-ordinary')
         if not security.LogonUserW(name,'.',password,2,0,C.byref(token)):raise C.WinError(C.get_last_error())
+        record('GetTokenUser-ordinary')
         sid=account_sid(token)
+        record('OpenProcessToken-calling-CI-user')
         if not security.OpenProcessToken(kernel.GetCurrentProcess(),8,C.byref(caller)):raise C.WinError(C.get_last_error())
+        record('GetTokenUser-calling-CI-user')
         caller_sid=account_sid(caller)
         if sid==caller_sid:raise RuntimeError('ordinary account unexpectedly reused the elevated actor')
-        stage=Path(os.environ['ProgramData'])/('insonic-ci-account-'+uuid.uuid4().hex);stage.mkdir(exist_ok=False);grant_owned_account_stage(stage,sid,caller_sid)
+        stage=Path(os.environ['ProgramData'])/('insonic-ci-account-'+uuid.uuid4().hex);record('Create-owned-account-stage');stage.mkdir(exist_ok=False);grant_owned_account_stage(stage,sid,caller_sid,record)
         (stage/'owned-ci-account.json').write_text(json.dumps({'account':name,'sid_sha256':m.digest(sid.encode())}),encoding='utf-8',newline='\n')
         # LOGON_WITH_PROFILE lets Windows create/load the real ordinary profile.
         # This bootstrap uses its native profile environment, before we rebuild
         # the worker environment with the SDK-observed account directory.
-        with private_context_desktop(sid) as desktop:
+        record('Create-private-profile-bootstrap-desktop')
+        with private_context_desktop(sid,caller_sid,record) as desktop:
             startup=Startup();startup.cb=C.sizeof(startup);startup.flags=1;startup.show=0;startup.desktop=desktop['path']
             whoami=Path(os.environ['SystemRoot'])/'System32/whoami.exe';command=C.create_unicode_buffer(subprocess.list2cmdline([str(whoami),'/user']))
             record('before-native-profile-logon',desktop=desktop,same_user_sid_sha256=m.digest(sid.encode()))
+            record('CreateProcessWithLogonW-profile-bootstrap')
             if not security.CreateProcessWithLogonW(name,'.',password,1,str(whoami),command,0x08000400,None,str(stage),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
+            record('WaitForSingleObject-profile-bootstrap',pid=process.pid)
             if kernel.WaitForSingleObject(process.process,15000)!=0:
                 kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000);raise RuntimeError('owned profile bootstrap exceeded its bound')
             code=W.DWORD()
+            record('GetExitCodeProcess-profile-bootstrap',pid=process.pid)
             if not kernel.GetExitCodeProcess(process.process,C.byref(code)) or code.value!=0:raise RuntimeError('native ordinary profile bootstrap failed '+str(code.value))
             value=C.create_unicode_buffer(4096);size=W.DWORD(4096)
+            record('GetUserProfileDirectoryW-ordinary')
             if not profiles.GetUserProfileDirectoryW(token,value,C.byref(size)):raise C.WinError(C.get_last_error())
             profile=validate_account_profile(name,value.value)
             if not profile.is_dir():raise RuntimeError('native profile logon did not create the observed ordinary-user directory')
             record('ordinary-profile-observed',profile=str(profile),method='CreateProcessWithLogonW LOGON_WITH_PROFILE, GetUserProfileDirectoryW')
             kernel.CloseHandle(process.thread);kernel.CloseHandle(process.process);process=Process()
-        scripts=stage/'scripts';scripts.mkdir();(stage/'temp').mkdir();native=stage/'native';native.mkdir()
+        record('Copy-exact-owned-worker-inputs');scripts=stage/'scripts';scripts.mkdir();(stage/'temp').mkdir();native=stage/'native';native.mkdir()
         for filename in ('qualify-windows-msi.py','windows_msi.py'):
             shutil.copyfile(m.ROOT/'scripts'/filename,scripts/filename)
             if m.sha(scripts/filename)!=m.sha(m.ROOT/'scripts'/filename):raise RuntimeError('ordinary staged script identity differs')
@@ -531,11 +554,13 @@ def ordinary_context(installer,directory,output,model=None):
             if original.is_file() and m.sha(original)!=m.sha(stage/'launcher-context-fixture'/original.name):raise RuntimeError('ordinary launcher fixture copy differs')
         (stage/'context-model.json').write_text(json.dumps(model),encoding='utf-8',newline='\n')
         install=stage/'installed program é with spaces';worker_output=native/'context.json';env=C.create_unicode_buffer(ordinary_environment(profile,name,stage/'temp'))
-        with private_context_desktop(sid) as desktop:
+        record('Create-private-ordinary-worker-desktop')
+        with private_context_desktop(sid,caller_sid,record) as desktop:
             startup=Startup();startup.cb=C.sizeof(startup);startup.flags=1;startup.show=0;startup.desktop=desktop['path']
             args=[sys.executable,str(scripts/'qualify-windows-msi.py'),'--ordinary-worker',str(target),'--context-dir',str(install),'--output',str(worker_output)];command=C.create_unicode_buffer(subprocess.list2cmdline(args))
             if len(command)>1024:raise RuntimeError('ordinary worker command exceeds native API bound')
             record('before-process-create',desktop=desktop,same_user_sid_sha256=m.digest(sid.encode()),fixture_msi_sha256=m.sha(target))
+            record('CreateProcessWithLogonW-ordinary-worker')
             if not security.CreateProcessWithLogonW(name,'.',password,1,sys.executable,command,0x08000400,env,str(stage),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
             record('process-created',pid=process.pid,desktop=desktop)
             status=kernel.WaitForSingleObject(process.process,90000)
@@ -548,7 +573,8 @@ def ordinary_context(installer,directory,output,model=None):
             evidence=json.loads(worker_output.read_text(encoding='utf-8'))
             if evidence['token']['user_sid_sha256']!=m.digest(sid.encode()) or Path(evidence['user_profile']).resolve()!=profile.resolve():raise RuntimeError('ordinary worker changed account/profile identity')
             evidence.update({'desktop':desktop,'profile_creation':'native LOGON_WITH_PROFILE bootstrap and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode())})
-    except BaseException as error:failure=error
+    except BaseException as error:
+        failure=error;record('failed',failed_api=getattr(error,'api',current_phase['name']),winerror=getattr(error,'winerror',None),errno=getattr(error,'errno',None),error_type=type(error).__name__,error=str(error))
     finally:
         if stage is not None and (stage/'native').is_dir():
             for item in (stage/'native').iterdir():

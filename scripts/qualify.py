@@ -254,8 +254,6 @@ def write_receipt(path, output, expected):
 
 def desktop():
     env = native_env()
-    if os.environ.get('GITHUB_ACTIONS') == 'true':
-        env['INSONIC_PROCESS_STARTUP_DIAGNOSTICS'] = '1'
     sibling = build_cli(True, env)
     tags = 'desktop,production,system_ladybug'
     if platform.system() == 'Linux':
@@ -264,13 +262,16 @@ def desktop():
     sys.stdout.buffer.write(output)
     executable = ROOT / ('build/insonic-desktop.exe' if os.name == 'nt' else 'build/insonic-desktop')
     child(['go', 'build', '-tags', tags, '-o', executable, './cmd/insonic-desktop'], env=env)
-    output = child([executable, '--qualification'], env=env)
+    runtime_env = dict(env)
+    if os.environ.get('GITHUB_ACTIONS') == 'true':
+        runtime_env['INSONIC_PROCESS_STARTUP_DIAGNOSTICS'] = '1'
+    output = child([executable, '--qualification'], env=runtime_env)
     write_receipt(BUILD / 'desktop-receipt.json', output,
                   {'desktop_bridge': 'passed', 'offline_help': 'packaged', 'schema_version': VERSION})
     args = [executable, '--webview-qualification']
     if platform.system() == 'Linux':
         args = ['xvfb-run', '-a', *args]
-    output = child(args, env=env, timeout=90)
+    output = child(args, env=runtime_env, timeout=90)
     write_receipt(BUILD / 'webview-receipt.json', output,
                   {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'schema_version': VERSION})
 
