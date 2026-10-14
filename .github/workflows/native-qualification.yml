@@ -281,13 +281,6 @@ jobs:
       - name: Assemble and qualify this relocated native package variant
         if: inputs.native
         run: python scripts/package-desktop.py all --variant ${{ matrix.variant }}
-      - name: Assemble and qualify unsigned selectable-client MSI
-        if: inputs.native && matrix.variant == 'desktop' && runner.os == 'Windows'
-        env:
-          INSONIC_DISPOSABLE_INSTALLER_TEST: '1'
-        run: |
-          $installerPayload = Get-Content -LiteralPath build/native/package-desktop-receipt.json -Raw | ConvertFrom-Json
-          python scripts/package-msi.py all --payload (Join-Path build/packages $installerPayload.dirname) --receipt build/native/package-desktop-receipt.json
       - name: Retain qualified candidate package bytes
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: success() && inputs.native
@@ -297,10 +290,7 @@ jobs:
           path: |
             build/packages/*.zip
             build/packages/*.tar.gz
-            build/packages/*.msi
             build/native/package-${{ matrix.variant }}-receipt.json
-            build/native/windows-installer-receipt.json
-            build/native/installer-capture
           compression-level: 0
           if-no-files-found: error
           retention-days: 14
@@ -312,6 +302,56 @@ jobs:
           path: |
             build/native/*receipt.json
             build/native/package-inventory.json
+          if-no-files-found: error
+  installer:
+    if: inputs.native && inputs.lane != 'runtime' && inputs.os == 'windows-2022'
+    needs: packages
+    name: installer (${{ inputs.os }})
+    runs-on: ${{ inputs.os }}
+    timeout-minutes: 10
+    env:
+      SOURCE_REVISION: ${{ inputs.revision }}
+      INSONIC_DISPOSABLE_INSTALLER_TEST: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.revision }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Download exact qualified desktop archive
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          digest-mismatch: error
+          skip-decompress: false
+          name: candidate-package-${{ inputs.os }}-desktop-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build
+      - name: Author and qualify selectable-client MSI
+        run: python scripts/package-msi.py all --restore-payload --receipt build/native/package-desktop-receipt.json
+      - name: Retain qualified candidate installer bytes
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: success()
+        with:
+          archive: true
+          name: candidate-package-${{ inputs.os }}-installer-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: |
+            build/packages/*.msi
+            build/native/windows-installer-receipt.json
+            build/native/installer-capture
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain installer qualification diagnostics
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          archive: true
+          name: installer-receipts-${{ inputs.os }}-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: |
+            build/native/windows-installer-receipt.json
             build/native/msi-lifecycle.json
             build/native/msi-logs
             build/native/installer-capture

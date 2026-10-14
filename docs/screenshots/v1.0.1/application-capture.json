@@ -2,8 +2,8 @@
   "kind": "application-ui-capture",
   "schema_version": "1.0.1",
   "source": {
-    "revision": "b29046210ee09aa2b9a827dcae64e87e066e66d3",
-    "dirty": true,
+    "revision": "ddda54bc541fa62e65be712118c93d9f25f56015",
+    "dirty": false,
     "tree_sha256": "d5737427ed64e9a6c4b83ac2b3acdef9344251afb59de2fc920399e9bd8fd388",
     "files": [
       {
@@ -5017,7 +5017,7 @@
     "windows_build": "10.0.26300"
   },
   "fixture": {
-    "id": "c5c259bf6612b74da953e5df3c6690ae",
+    "id": "d2909222706d9b5e7958a7688de02084",
     "isolated": true,
     "private_inputs": false
   },
@@ -5029,8 +5029,8 @@
   "locale": "en-US",
   "signing": "unsigned",
   "binaries": {
-    "cli_sha256": "cfa64b5b239febf9e1b524bc10e44252012ffecca6476abc399e06961a6352e0",
-    "bridge_sha256": "1c238f19571fdc06df0831e5c0fddf8b9067601d70efd1c670ecf30e5ced9a7f"
+    "cli_sha256": "5338001ca67cc4dece40613f0702f651575a2046e7d673e46ce042e5ff35977d",
+    "bridge_sha256": "22e63c8458aa8cb4852589dbc7dd4db50f896db2a72268236d5eca0435b9d703"
   },
   "bundle": [
     {
@@ -5096,7 +5096,7 @@
   "images": [
     {
       "path": "setup-location.png",
-      "sha256": "1f90d4c58f1fd0a412d7710599b80f777c2159410a2a0cfc390c0b002a980faf",
+      "sha256": "51088d1960fdfcbaa67909ad2ab696f3a10c903b6e9ef5b5f09c0a9b2418a219",
       "width": 1392,
       "height": 1766,
       "landmark": "Workspace and location (Step 1 of 5)",

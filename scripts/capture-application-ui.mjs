@@ -66,7 +66,7 @@ function embeddedRevision(bytes) {
 }
 
 export function assertReceipt(receipt) {
-  if(receipt.kind!=='application-ui-capture'||receipt.schema_version!==VERSION||receipt.renderer.kind!=='chromium-headless'||receipt.renderer.playwright_version!==PLAYWRIGHT_VERSION||!receipt.fixture.isolated||receipt.fixture.private_inputs!==false||!/^[a-f0-9]{40}$/.test(receipt.source.revision)||!/^[a-f0-9]{64}$/.test(receipt.source.tree_sha256)||receipt.images.length!==4)throw Error('Incomplete capture provenance.');
+  if(receipt.kind!=='application-ui-capture'||receipt.schema_version!==VERSION||receipt.renderer.kind!=='chromium-headless'||receipt.renderer.playwright_version!==PLAYWRIGHT_VERSION||!receipt.fixture.isolated||receipt.fixture.browser_profile_owned!==true||receipt.fixture.private_inputs!==false||!/^[a-f0-9]{40}$/.test(receipt.source.revision)||!/^[a-f0-9]{64}$/.test(receipt.source.tree_sha256)||receipt.images.length!==4)throw Error('Incomplete capture provenance.');
   const expected=['setup-location.png','setup-backends.png','setup-processing.png','library-ready.png'];
   for(const [index,image] of receipt.images.entries())if(image.path!==expected[index]||!/^[a-f0-9]{64}$/.test(image.sha256)||!Number.isInteger(image.width)||image.width<1||image.width>1440||!Number.isInteger(image.height)||image.height<1||image.height>6000||!image.landmark||!image.caption)throw Error('Incomplete image receipt.');
   return receipt;
@@ -119,9 +119,10 @@ export async function capture(options) {
     const {chromium}=await import('playwright-core');
     const actualVersion=JSON.parse(await readFile(path.join(ROOT,'node_modules/playwright-core/package.json'),'utf8')).version;
     if(actualVersion!==PLAYWRIGHT_VERSION)throw Error('Playwright toolchain version mismatch.');
-    browser=await chromium.launch({headless:true,env,...(options.browser?{executablePath:options.browser}:{}),args:['--disable-background-networking','--disable-extensions','--no-first-run','--no-default-browser-check']});
     const viewport={width:1440,height:1100,device_scale_factor:1};
-    const context=await browser.newContext({viewport:{width:viewport.width,height:viewport.height},deviceScaleFactor:1,locale:'en-US',colorScheme:'light',reducedMotion:'reduce',serviceWorkers:'block',extraHTTPHeaders:{'X-Capture-Token':token}});
+    const browserProfile=path.join(fixture,'browser-profile');await mkdir(browserProfile,{recursive:true});
+    const context=await chromium.launchPersistentContext(browserProfile,{headless:true,env,...(options.browser?{executablePath:options.browser}:{}),args:['--disable-background-networking','--disable-extensions','--no-first-run','--no-default-browser-check'],viewport:{width:viewport.width,height:viewport.height},deviceScaleFactor:1,locale:'en-US',colorScheme:'light',reducedMotion:'reduce',serviceWorkers:'block',extraHTTPHeaders:{'X-Capture-Token':token}});
+    browser=context.browser();if(!browser)throw Error('The owned Chromium profile has no browser process.');
     const page=await context.newPage();page.setDefaultTimeout(25000);
     const errors=[],blocked=[];page.on('pageerror',e=>errors.push(String(e)));
     page.on('response',response=>{if(response.status()>=400)errors.push('Resource '+new URL(response.url()).pathname+' failed ('+response.status()+').')});
@@ -171,7 +172,7 @@ export async function capture(options) {
     const transport=await backend('/receipt');
     const after=await sourceSnapshot();if(after.revision!==source.revision||after.tree_sha256!==source.tree_sha256)throw Error('Source changed during capture; no images published.');
     const bundle=[...assets].map(([name,bytes])=>({path:name.slice(1),sha256:sha(bytes)}));
-    const receipt=assertReceipt({kind:'application-ui-capture',schema_version:VERSION,source,renderer:{kind:'chromium-headless',browser_version:browser.version(),playwright_version:PLAYWRIGHT_VERSION,platform:os.platform(),architecture:os.arch(),windows_build:os.platform()==='win32'?os.release():null},fixture:{id:fixtureID,isolated:true,private_inputs:false},viewport,locale:'en-US',signing:'unsigned',binaries:{cli_sha256:sha(cliBytes),bridge_sha256:sha(bridgeBytes)},bundle,transport,verification:{production_frontend:true,shared_desktop_bridge:true,shared_runtime:true,deferred_setup_resumed:true,external_requests:0,browser_errors:0,native_webview:false},images});
+    const receipt=assertReceipt({kind:'application-ui-capture',schema_version:VERSION,source,renderer:{kind:'chromium-headless',browser_version:browser.version(),playwright_version:PLAYWRIGHT_VERSION,platform:os.platform(),architecture:os.arch(),windows_build:os.platform()==='win32'?os.release():null},fixture:{id:fixtureID,isolated:true,browser_profile_owned:true,private_inputs:false},viewport,locale:'en-US',signing:'unsigned',binaries:{cli_sha256:sha(cliBytes),bridge_sha256:sha(bridgeBytes)},bundle,transport,verification:{production_frontend:true,shared_desktop_bridge:true,shared_runtime:true,deferred_setup_resumed:true,external_requests:0,browser_errors:0,native_webview:false},images});
     await mkdir(options.output,{recursive:true});for(const image of images)await writeFile(path.join(options.output,image.path),await readFile(path.join(pending,image.path)));
     await writeFile(path.join(options.output,'application-capture.json'),JSON.stringify(receipt,null,2)+'\n','utf8');
     return receipt;

@@ -69,3 +69,10 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 
 - [x] T027 [US2] Require actual cancellation rollback and restricted-token per-user context observations in scripts/qualify-windows-msi.py, verified in disposable CI through T024.
 - [x] T028 [US1] Launch selected clients with an unelevated same-user token when the installer is elevated in internal/launcher/windows.go and elevation_windows.go, verified in disposable CI through T024.
+
+- [x] T029 [US2] Resolve directory aliases before library containment and active-client comparison in internal/launcher/ with an alias-to-library regression.
+- [x] T030 [US2] Record independent unsigned MSI signing and reject dirty or missing screenshot source inventories, including external review regressions.
+- [x] T031 [US4] Bind headless Chromium to an explicit owned non-default browser profile for disposable Windows CI.
+
+- [x] T032 [US2] Restore independently verified same-run desktop archives into an owned workspace path and separate MSI lifecycle checks into their own ten-minute job in .github/workflows/native-qualification.yml and scripts/package-msi.py.
+- [x] T033 [US2] Replace MSI composite Upgrade key mutation with complete verified row replacement and an actual native database-only clone regression in scripts/qualify-windows-msi.py and tests/windows_msi_test.py.

@@ -37,6 +37,10 @@ func Launch(p Plan) error {
 	return cmd.Start()
 }
 func NoActiveClients(directory string) error {
+	physical, e := canonicalPath(directory)
+	if e != nil {
+		return errors.New("cannot resolve the program directory; correct its aliases before maintenance")
+	}
 	snapshot, e := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
 	if e != nil {
 		return errors.New("cannot inspect active clients; close the application before maintenance")
@@ -55,8 +59,11 @@ func NoActiveClients(directory string) error {
 				windows.CloseHandle(h)
 				if er == nil {
 					image := windows.UTF16ToString(buf[:n])
-					relative, er := filepath.Rel(strings.ToLower(filepath.Clean(directory)), strings.ToLower(image))
-					if er == nil && relative != ".." && !strings.HasPrefix(relative, ".."+string(os.PathSeparator)) && !filepath.IsAbs(relative) {
+					resolved, er := canonicalProcessImage(image)
+					if er != nil && (containsPath(physical, image) || containsPath(directory, image)) {
+						return errors.New("cannot resolve an active process path; finish work, close clients and retry maintenance")
+					}
+					if er == nil && containsPath(physical, resolved) {
 						return errors.New("active clients or runtime use this installation; finish work, close them and retry maintenance")
 					}
 				}
@@ -78,5 +85,13 @@ func registeredInstallation(directory string) bool {
 	}
 	defer k.Close()
 	saved, _, e := k.GetStringValue("InstallDir")
-	return e == nil && filepath.IsAbs(saved) && strings.EqualFold(filepath.Clean(saved), filepath.Clean(directory))
+	if e != nil || !filepath.IsAbs(saved) {
+		return false
+	}
+	physical, e := canonicalPath(directory)
+	if e != nil {
+		return false
+	}
+	registered, e := canonicalPath(saved)
+	return e == nil && strings.EqualFold(physical, registered)
 }

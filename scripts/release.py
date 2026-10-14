@@ -322,7 +322,10 @@ def installer_identity(receipt, version, revision, packages):
     if (distribution.get('source_complete') is not True or distribution.get('binary_publication') != 'eligible'
             or distribution.get('corresponding_source') != 'included'):
         raise ValueError('installer corresponding sources are incomplete')
-    verify_signing(receipt.get('signing', {}))
+    signing = receipt.get('signing', {})
+    verify_signing(signing)
+    if signing.get('configured') is not False or signing.get('verified') is not False or signing.get('status') != 'unconfigured':
+        raise ValueError('MSI is newly authored unsigned; payload signatures cannot establish installer signing')
 
 
 def verify_selected_package(path, receipt, verifier, source_root):

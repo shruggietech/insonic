@@ -70,8 +70,21 @@ def worker(path,output):
     finally:dll.MsiPreviewDialogW(preview,None);dll.MsiCloseHandle(preview);db.close()
     print(json.dumps(images))
 
+def source_identity(receipt):
+    m.disposable_runner()
+    if receipt.get('source_dirty') is not False or not __import__('re').fullmatch('[0-9a-f]{40}',receipt.get('revision','')):raise ValueError('native capture requires exact clean source identity')
+    def git(*args):
+        completed=subprocess.run(['git',*args],cwd=m.ROOT,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=15)
+        if completed.returncode:raise RuntimeError('native capture source verification failed')
+        return completed.stdout.decode('utf-8').strip()
+    if git('rev-parse','HEAD')!=receipt['revision'] or git('status','--porcelain','--untracked-files=normal'):raise ValueError('native capture checkout differs from exact clean source')
+    files=['scripts/windows_msi.py','scripts/capture-installer-ui.py','LICENSE',m.ICON]
+    identities=[{'path':p,'sha256':m.sha(m.ROOT/p)} for p in files]
+    if not identities or any(not (m.ROOT/x['path']).is_file() or m.sha(m.ROOT/x['path'])!=x['sha256'] for x in identities):raise ValueError('native capture source files are missing or changed')
+    return {'revision':receipt['revision'],'dirty':False,'files':identities}
+
 def capture(path,receipt,output=None):
-    m.disposable_runner();path=Path(path);output=Path(output or m.ROOT/'build/native/installer-capture');output.mkdir(parents=True,exist_ok=True)
+    m.disposable_runner();source=source_identity(receipt);path=Path(path);output=Path(output or m.ROOT/'build/native/installer-capture');output.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='insonic-ci-msi-preview-') as tmp:
         preview=Path(tmp)/'preview.msi';shutil.copyfile(path,preview);db=m.NativeDatabase(preview,write=True)
         try:
@@ -85,8 +98,8 @@ def capture(path,receipt,output=None):
         result=subprocess.run([sys.executable,__file__,'--worker',str(preview),'--output',str(output)],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=45)
         if result.returncode:raise RuntimeError('native authored capture failed: '+result.stderr.decode(errors='replace')[-4000:])
         images=json.loads(result.stdout)
-    files=['scripts/windows_msi.py','scripts/capture-installer-ui.py','LICENSE',m.ICON]
-    evidence={'kind':'installer-ui-capture','schema_version':receipt['schema_version'],'source':{'revision':receipt['revision'],'files':[{'path':p,'sha256':m.sha(m.ROOT/p)} for p in files]},'artifact_sha256':receipt['artifact_sha256'],'renderer':{'kind':'windows-installer-preview','windows_build':str(sys.getwindowsversion().build),'msi':'native msi.dll Dialog/Control tables','native_webview':False},'fixture':{'isolated':True,'private_inputs':False,'kind':'authored MSI page preview','user':'InstallerExample','selection':'both','conditional_finish_binding':'authored Desktop Launch visible without feature costing'},'locale':'en-US','signing':'unsigned','images':images,'policy_prompts':'not-observed'}
+    if source_identity(receipt)!=source:raise ValueError('native capture source changed while rendering')
+    evidence={'kind':'installer-ui-capture','schema_version':receipt['schema_version'],'source':source,'artifact_sha256':receipt['artifact_sha256'],'renderer':{'kind':'windows-installer-preview','windows_build':str(sys.getwindowsversion().build),'msi':'native msi.dll Dialog/Control tables','native_webview':False},'fixture':{'isolated':True,'private_inputs':False,'kind':'authored MSI page preview','user':'InstallerExample','selection':'both','conditional_finish_binding':'authored Desktop Launch visible without feature costing'},'locale':'en-US','signing':'unsigned','images':images,'policy_prompts':'not-observed'}
     (output/'installer-capture.json').write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n');return evidence
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('installer',type=Path,nargs='?');p.add_argument('--receipt',type=Path);p.add_argument('--output',type=Path);p.add_argument('--worker',type=Path);args=p.parse_args();m.disposable_runner()

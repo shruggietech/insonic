@@ -320,19 +320,16 @@
             "type": "object",
             "properties": {
               "configured": {
-                "type": "boolean",
-                "description": "Explicit publisher signing configuration exists."
+                "const": false,
+                "description": "The newly authored MSI has no configured publisher signing."
               },
               "verified": {
-                "type": "boolean",
-                "description": "Configured signing was verified."
+                "const": false,
+                "description": "A signed payload does not establish an MSI publisher signature."
               },
               "status": {
-                "enum": [
-                  "unconfigured",
-                  "signed"
-                ],
-                "description": "Truthful configured publisher signing status."
+                "const": "unconfigured",
+                "description": "This MSI remains independently unsigned."
               }
             },
             "required": [
@@ -340,48 +337,8 @@
               "verified",
               "status"
             ],
-            "description": "Configured publisher signing evidence; unsigned disposition is explicit.",
-            "allOf": [
-              {
-                "if": {
-                  "properties": {
-                    "configured": {
-                      "const": true,
-                      "description": "Whether publisher signing is configured."
-                    }
-                  },
-                  "required": [
-                    "configured"
-                  ]
-                },
-                "then": {
-                  "properties": {
-                    "verified": {
-                      "const": true,
-                      "description": "Configured publisher signing must be verified before release."
-                    },
-                    "status": {
-                      "enum": [
-                        "signed"
-                      ],
-                      "description": "Configured signing requires a verified signed disposition."
-                    }
-                  }
-                },
-                "else": {
-                  "properties": {
-                    "verified": {
-                      "const": false,
-                      "description": "Unconfigured signing cannot assert publisher verification."
-                    },
-                    "status": {
-                      "const": "unconfigured",
-                      "description": "No publisher signing identity was configured."
-                    }
-                  }
-                }
-              }
-            ]
+            "additionalProperties": false,
+            "description": "MSI signing is independent of contained executables and is explicitly unsigned."
           },
           "distribution": {
             "type": "object",

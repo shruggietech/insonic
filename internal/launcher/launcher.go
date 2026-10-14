@@ -51,6 +51,81 @@ func ValidateSelection(selection string) error {
 	}
 	return errors.New("select Desktop, CLI or both")
 }
+
+// canonicalPath resolves the nearest existing ancestor and then appends only
+// the missing suffix. A fresh destination beneath an alias therefore retains
+// its physical ancestry without requiring creation of any directory.
+func canonicalPath(name string) (string, error) {
+	if !filepath.IsAbs(name) {
+		return "", errors.New("an absolute path is required")
+	}
+	current := filepath.Clean(name)
+	var missing []string
+	for {
+		_, e := os.Lstat(current)
+		if e == nil {
+			resolved, e := filepath.EvalSymlinks(current)
+			if e != nil {
+				return "", e
+			}
+			if len(missing) > 0 {
+				f, e := os.Stat(resolved)
+				if e != nil {
+					return "", e
+				}
+				if !f.IsDir() {
+					return "", errors.New("the existing parent is not a directory")
+				}
+			}
+			for i := len(missing) - 1; i >= 0; i-- {
+				resolved = filepath.Join(resolved, missing[i])
+			}
+			return filepath.Clean(resolved), nil
+		}
+		if !os.IsNotExist(e) {
+			return "", e
+		}
+		parent := filepath.Dir(current)
+		if parent == current {
+			return "", e
+		}
+		missing = append(missing, filepath.Base(current))
+		current = parent
+	}
+}
+
+func containsPath(directory, name string) bool {
+	relative, e := filepath.Rel(directory, name)
+	return e == nil && relative != ".." && !strings.HasPrefix(relative, ".."+string(os.PathSeparator)) && !filepath.IsAbs(relative)
+}
+
+func canonicalProcessImage(image string) (string, error) {
+	if resolved, e := canonicalPath(image); e == nil {
+		return resolved, nil
+	}
+	// Protected system images can deny file metadata even when their process
+	// reports its name. Resolve the directory without demanding file access.
+	directory, e := canonicalPath(filepath.Dir(image))
+	if e != nil {
+		return "", e
+	}
+	return filepath.Join(directory, filepath.Base(image)), nil
+}
+
+func outsideLibraries(directory string) error {
+	for p := directory; ; p = filepath.Dir(p) {
+		if _, e := os.Stat(filepath.Join(p, ".insonic", "workspace.json")); e == nil {
+			return errors.New("program files must be outside a library")
+		} else if !os.IsNotExist(e) {
+			return errors.New("cannot inspect library ancestry; choose an accessible program directory")
+		}
+		if filepath.Dir(p) == p {
+			break
+		}
+	}
+	return nil
+}
+
 func ValidateDestination(directory string) error {
 	if !filepath.IsAbs(directory) {
 		return errors.New("choose an absolute program directory")
@@ -59,17 +134,24 @@ func ValidateDestination(directory string) error {
 	if directory == filepath.VolumeName(directory)+string(os.PathSeparator) {
 		return errors.New("a volume root is not a program directory")
 	}
-	for p := directory; ; p = filepath.Dir(p) {
-		if _, e := os.Stat(filepath.Join(p, ".insonic", "workspace.json")); e == nil {
-			return errors.New("program files must be outside a library")
-		}
-		if filepath.Dir(p) == p {
-			break
+	physical, e := canonicalPath(directory)
+	if e != nil {
+		return errors.New("cannot resolve the program directory; choose an accessible directory with valid aliases")
+	}
+	if physical == filepath.VolumeName(physical)+string(os.PathSeparator) {
+		return errors.New("a volume root is not a program directory")
+	}
+	if e := outsideLibraries(directory); e != nil {
+		return e
+	}
+	if physical != directory {
+		if e := outsideLibraries(physical); e != nil {
+			return e
 		}
 	}
-	if f, e := os.Lstat(directory); e == nil {
-		if !f.IsDir() || f.Mode()&os.ModeSymlink != 0 {
-			return errors.New("program destination must be a real directory")
+	if f, e := os.Stat(directory); e == nil {
+		if !f.IsDir() {
+			return errors.New("program destination must resolve to a directory")
 		}
 		entries, e := os.ReadDir(directory)
 		if e != nil {

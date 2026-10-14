@@ -17,3 +17,11 @@ Application capture executes the compiled frontend with the real shared desktop 
 ## Delivery state
 
 Official PR publication is authorized. Exact-head native CI, native figure integration, external review resolution and final clean convergence remain pending. No merge, tag, release or deployment is performed. Proposed labels require owner final-review signoff before shipping.
+
+## External review and clean-runner follow-up
+
+Round 1 automatically reviewed aa5fff5 and reported two findings: PRRT_kwDOU8_K3s6sIdPD (P1 independent MSI signing) and PRRT_kwDOU8_K3s6sIdPI (P2 clean, nonempty screenshot provenance). Builder/release/schema and publication guard fixes are implemented with regressions; thread responses/resolution follow the pushed fix. Round 2 has not been requested.
+
+A clean runner exposed site rendering tests depending on site Markdown modules; those tests now run in the site lane after its dependency installation, with 91 root and two site tests passing. CI native application capture exposed Chrome requiring an explicit non-default profile under the isolated environment. That correction remains pending. All Linux runtime/package and alternative-backend lanes passed on ddda54b; Windows core/engine/CLI passed. Windows MSI and final native capture evidence remain pending.
+
+2026-10-13: MSI authoring succeeded for the real 1106-file, 133113703-byte qualified desktop archive in CI. Native fixture cloning then failed with MSI error 1627 because Upgrade composite-key fields cannot be updated. Clone now replaces complete independently decoded rows; a real database-only clone regression passes locally. MSI lifecycle receives a separate ten-minute job after strict same-run qualified archive transfer, preserving all archive/lifecycle checks and failure diagnostics. This avoids combining the observed 7m28 archive lane with subsequent lifecycle transactions in one budget. Final end-to-end duration is recorded separately from the per-job timeout.

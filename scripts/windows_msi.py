@@ -19,6 +19,7 @@ import zlib
 ROOT=Path(__file__).resolve().parent.parent
 NAMESPACE=uuid.UUID('7cb51873-d4e8-4b86-92de-69fb9a53dc78')
 ICON='brand/kit/icons/windows/classic/app.ico'
+UNSIGNED_SIGNING={'configured':False,'verified':False,'status':'unconfigured'}
 OWNERSHIP='insonic-msi-ownership.json'
 OWNERSHIP_BYTES=b'{"family":"insonic","kind":"windows-msi-installation"}\n'
 QUALIFICATION_KEYS=('client_selections','license_and_prerequisites','maintenance','upgrade_rollback','downgrade_rejection','active_work_preserved','user_data_preserved','launch_contract','native_ui_capture','cancellation_rollback','user_context')
@@ -377,8 +378,10 @@ def verify_installer(path,receipt,source_root=None):
     if receipt.get('source_dirty') is not False or not re.fullmatch('[0-9a-f]{40}',receipt.get('revision','')):raise ValueError('MSI source is dirty/missing')
     if any(receipt.get('qualification',{}).get(k)!='passed' for k in QUALIFICATION_KEYS):raise ValueError('MSI lacks actual lifecycle/native UI qualification')
     payload=receipt['payload_receipt'];inventory=receipt['payload_inventory']
-    for k in ('revision','source_dirty','platform','schema_version','distribution','signing'):
+    for k in ('revision','source_dirty','platform','schema_version','distribution'):
         if receipt.get(k)!=payload.get(k) or payload.get(k)!=inventory.get(k):raise ValueError('MSI/payload authority differs: '+k)
+    if payload.get('signing')!=inventory.get('signing'):raise ValueError('payload signing authority differs')
+    if receipt.get('signing')!=UNSIGNED_SIGNING:raise ValueError('MSI remains independently unsigned')
     if receipt.get('payload_archive')!=payload.get('archive') or receipt.get('payload_archive_sha256')!=payload.get('archive_sha256'):raise ValueError('MSI archive authority differs')
     inv_sha=digest(inventory_bytes(inventory))
     if inv_sha!=payload.get('inventory_sha256'):raise ValueError('MSI inventory identity differs')
@@ -387,6 +390,7 @@ def verify_installer(path,receipt,source_root=None):
     for k,value in [('msi_product_version',model['version']),('product_code',model['product_code']),('upgrade_code',model['upgrade_code']),('scope','per-user'),('license_sha256',sha(source_root/'LICENSE')),('icon_sha256',sha(source_root/ICON))]:
         if receipt.get(k)!=value:raise ValueError('MSI declared identity differs: '+k)
     streams=verify_model_bytes(path,model)['streams']
+    if any(name in streams for name in ('\x05DigitalSignature','\x05MsiDigitalSignatureEx')):raise ValueError('unexpected signature in unsigned MSI')
     launcher=next(x for x in inventory['files'] if x['path']=='insonic-launcher.exe')
     if digest(streams.get('Binary.Launcher',b''))!=launcher['sha256']:raise ValueError('MSI preflight differs from qualified launcher')
     if streams.get('Icon.InsonicIcon')!=(source_root/ICON).read_bytes():raise ValueError('MSI icon differs from governed source')

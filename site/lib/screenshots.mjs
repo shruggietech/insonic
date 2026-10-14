@@ -23,8 +23,9 @@ export async function prepareScreenshots(repositoryRoot, publicRoot) {
       const receipt = JSON.parse(await fs.readFile(path.join(directory, name), 'utf8'));
       if (receipt.schema_version !== version.name.slice(1) || !Array.isArray(receipt.images) || !receipt.images.length
           || !receipt.fixture?.isolated || receipt.fixture.private_inputs !== false || !receipt.source?.revision
+          || receipt.source.dirty !== false || !Array.isArray(receipt.source.files) || !receipt.source.files.length
           || !/^[a-f0-9]{40}$/.test(receipt.source.revision) || !receipt.renderer?.kind || !receipt.locale) throw new Error('Screenshot provenance is incomplete.');
-      for (const item of receipt.source.files || []) {
+      for (const item of receipt.source.files) {
         if (typeof item.path !== 'string' || path.isAbsolute(item.path) || item.path.includes('..') || item.path.includes('\\')) throw new Error('Invalid capture source path.');
         if (hash(await fs.readFile(path.join(repositoryRoot, item.path))) !== item.sha256) throw new Error('Screenshot source differs from current implementation.');
       }

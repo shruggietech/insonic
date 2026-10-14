@@ -64,7 +64,7 @@ def candidates(root, platforms=None, version=VERSION):
                    'artifact':artifact.name,'artifact_sha256':entry['sha256'],'artifact_size_bytes':entry['size_bytes'],
                    'payload_archive':payload['archive'],'payload_archive_sha256':payload['archive_sha256'],
                    'payload_receipt':payload,'payload_inventory':{'kind':'native-package-inventory'},
-                   'qualification':copy.deepcopy(MSI_QUALIFICATION),'distribution':copy.deepcopy(payload['distribution']),'signing':copy.deepcopy(payload['signing'])}
+                   'qualification':copy.deepcopy(MSI_QUALIFICATION),'distribution':copy.deepcopy(payload['distribution']),'signing':{'configured':False,'verified':False,'status':'unconfigured'}}
         path = root / 'windows-installer-receipt.json'; release.write_json(path, receipt); receipts.append(path)
     for name in ('documentation', 'offline-help'):
         with tarfile.open(assets / (name + '.tar.gz'), 'w:gz') as archive:
@@ -356,6 +356,19 @@ class ReleaseDeliveryTests(unittest.TestCase):
         (target / 'SHA256SUMS').write_text(''.join(f"{item['sha256']}  {item['name']}\n" for item in sorted(entries,key=lambda item:item['name'])),encoding='utf-8',newline='\n')
         with self.assertRaisesRegex(ValueError,'installer qualification or inventory'):
             release.load_candidate(target,verify_fixture,self.root)
+
+    def test_signed_payload_does_not_make_the_new_msi_signed(self):
+        desktop_path = next(path for path in self.receipts if release.read_json(path).get('platform') == 'windows_amd64' and release.read_json(path).get('variant') == 'desktop')
+        desktop = release.read_json(desktop_path); desktop['signing'] = {'configured':True,'verified':True,'status':'signed'}
+        release.write_json(desktop_path,desktop)
+        msi_path = self.receipts[-1]; msi = release.read_json(msi_path); msi['payload_receipt'] = copy.deepcopy(desktop)
+        self.assertEqual(msi['signing'],{'configured':False,'verified':False,'status':'unconfigured'})
+        release.write_json(msi_path,msi)
+        target = self.candidate(); loaded,_ = release.load_candidate(target,verify_fixture,self.root)
+        self.assertTrue(next(item for item in loaded['packages'] if item['platform'] == 'windows_amd64' and item['variant'] == 'desktop')['signing']['verified'])
+        self.assertFalse(loaded['installers'][0]['signing']['verified'])
+        msi['signing'] = copy.deepcopy(desktop['signing']); release.write_json(msi_path,msi)
+        with self.assertRaisesRegex(ValueError,'unsigned'): self.candidate(output=self.root / 'false-signature')
 
     def test_source_validator_checks_desktop_lock_and_runtime(self):
         lock = self.root / 'desktop/frontend/package-lock.json'; value = release.read_json(lock); value['packages']['']['version'] = '999.999.999'; release.write_json(lock, value)

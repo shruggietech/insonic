@@ -2,9 +2,12 @@
 package launcher
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -20,6 +23,102 @@ func fixture(t *testing.T) string {
 		}
 	}
 	return d
+}
+
+func directoryAlias(t *testing.T, target, name string) {
+	t.Helper()
+	if e := os.Symlink(target, name); e != nil {
+		if runtime.GOOS == "windows" && errors.Is(e, syscall.Errno(1314)) {
+			t.Skip("Windows symbolic-link privilege is unavailable")
+		}
+		t.Fatal(e)
+	}
+}
+
+func TestDestinationRejectsAliasIntoLibraryBeforeCreatingMissingSuffix(t *testing.T) {
+	library := t.TempDir()
+	control := filepath.Join(library, ".insonic")
+	nested := filepath.Join(library, "media", "existing")
+	if e := os.MkdirAll(control, 0700); e != nil {
+		t.Fatal(e)
+	}
+	if e := os.WriteFile(filepath.Join(control, "workspace.json"), []byte("{}"), 0600); e != nil {
+		t.Fatal(e)
+	}
+	if e := os.MkdirAll(nested, 0700); e != nil {
+		t.Fatal(e)
+	}
+	alias := filepath.Join(t.TempDir(), "alias outside lexical library")
+	directoryAlias(t, nested, alias)
+	destination := filepath.Join(alias, "missing parent", "program")
+	if e := ValidateDestination(destination); e == nil || !strings.Contains(e.Error(), "outside a library") {
+		t.Fatalf("accepted aliased library ancestry: %v", e)
+	}
+	if _, e := os.Stat(filepath.Join(nested, "missing parent")); !os.IsNotExist(e) {
+		t.Fatal("validation created a directory", e)
+	}
+}
+
+func TestDestinationPreservesNonLibraryAliasesAndRejectsAliasedVolumeRoot(t *testing.T) {
+	real := t.TempDir()
+	alias := filepath.Join(t.TempDir(), "valid alias é")
+	directoryAlias(t, real, alias)
+	for _, destination := range []string{alias, filepath.Join(alias, "missing", "program")} {
+		if e := ValidateDestination(destination); e != nil {
+			t.Fatal("rejected non-library alias", e)
+		}
+	}
+	resolved, e := canonicalPath(filepath.Join(alias, "missing", "program"))
+	realPhysical, physicalError := filepath.EvalSymlinks(real)
+	if e != nil || physicalError != nil || resolved != filepath.Join(realPhysical, "missing", "program") {
+		t.Fatal("missing suffix lost physical ancestry", resolved, e)
+	}
+	rootAlias := filepath.Join(t.TempDir(), "volume alias")
+	directoryAlias(t, filepath.VolumeName(real)+string(os.PathSeparator), rootAlias)
+	if e := ValidateDestination(rootAlias); e == nil || !strings.Contains(e.Error(), "volume root") {
+		t.Fatal("accepted aliased volume root", e)
+	}
+}
+
+func TestActiveImageComparisonUsesCanonicalDirectoriesAndRejectsSiblingPrefixes(t *testing.T) {
+	base := t.TempDir()
+	real := filepath.Join(base, "program")
+	other := filepath.Join(base, "program-other")
+	for _, d := range []string{real, other} {
+		if e := os.Mkdir(d, 0700); e != nil {
+			t.Fatal(e)
+		}
+		if e := os.WriteFile(filepath.Join(d, "insonic.exe"), []byte("never executed"), 0600); e != nil {
+			t.Fatal(e)
+		}
+	}
+	alias := filepath.Join(t.TempDir(), "program alias")
+	directoryAlias(t, real, alias)
+	physical, e := canonicalPath(alias)
+	if e != nil {
+		t.Fatal(e)
+	}
+	for _, image := range []string{filepath.Join(real, "insonic.exe"), filepath.Join(alias, "insonic.exe")} {
+		resolved, e := canonicalProcessImage(image)
+		if e != nil || !containsPath(physical, resolved) {
+			t.Fatal("missed active image under aliased installation", resolved, e)
+		}
+	}
+	resolved, e := canonicalProcessImage(filepath.Join(other, "insonic.exe"))
+	if e != nil || containsPath(physical, resolved) {
+		t.Fatal("matched unrelated sibling prefix", resolved, e)
+	}
+}
+
+func TestDanglingAliasCannotBecomeAnAssumedFreshDirectory(t *testing.T) {
+	alias := filepath.Join(t.TempDir(), "dangling")
+	directoryAlias(t, filepath.Join(t.TempDir(), "missing target"), alias)
+	if _, e := canonicalPath(filepath.Join(alias, "program")); e == nil {
+		t.Fatal("accepted dangling alias")
+	}
+	if e := ValidateDestination(filepath.Join(alias, "program")); e == nil {
+		t.Fatal("accepted unresolved installation path")
+	}
 }
 func TestCLIUsesOnlyFixedCommandAndPrivatePathEnvironment(t *testing.T) {
 	d := fixture(t)

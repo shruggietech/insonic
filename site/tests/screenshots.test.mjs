@@ -17,9 +17,16 @@ test('verified PNGs and receipts remain byte-identical offline; unrelated host f
   const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2uoAAAAASUVORK5CYII=', 'base64');
   const implementation = Buffer.from('fixture current implementation'); await fs.writeFile(path.join(root,'implementation.txt'),implementation);
   await fs.writeFile(path.join(source,'fixture.png'),png);
-  const receipt = {kind:'application-ui-capture',schema_version:'1.0.1',source:{revision:'a'.repeat(40),files:[{path:'implementation.txt',sha256:digest(implementation)}]},renderer:{kind:'chromium-headless'},fixture:{isolated:true,private_inputs:false},locale:'en-US',images:[{path:'fixture.png',sha256:digest(png),width:1,height:1,landmark:'Fixture',caption:'Figure 1. Fixture surface.'}]};
+  const receipt = {kind:'application-ui-capture',schema_version:'1.0.1',source:{revision:'a'.repeat(40),dirty:false,files:[{path:'implementation.txt',sha256:digest(implementation)}]},renderer:{kind:'chromium-headless'},fixture:{isolated:true,private_inputs:false},locale:'en-US',images:[{path:'fixture.png',sha256:digest(png),width:1,height:1,landmark:'Fixture',caption:'Figure 1. Fixture surface.'}]};
   await fs.writeFile(path.join(source,'application-capture.json'),JSON.stringify(receipt));
-  const out = path.join(root,'out'); await prepareScreenshots(root,out);
+  const out = path.join(root,'out');
+  for (const badSource of [{...receipt.source,dirty:true},{...receipt.source,dirty:undefined},{...receipt.source,files:[]},{...receipt.source,files:undefined}]) {
+    await fs.writeFile(path.join(source,'application-capture.json'),JSON.stringify({...receipt,source:badSource}));
+    await assert.rejects(prepareScreenshots(root,out), /provenance is incomplete/);
+    await assert.rejects(fs.access(path.join(out,'screenshots/v1.0.1/fixture.png')));
+  }
+  await fs.writeFile(path.join(source,'application-capture.json'),JSON.stringify(receipt));
+  await prepareScreenshots(root,out);
   await fs.writeFile(path.join(out,'owner-profile.txt'),'excluded private sentinel');
   const offline=path.join(root,'offline'); await copyOfflineFiles(out,offline);
   assert.deepEqual(await fs.readFile(path.join(offline,'screenshots/v1.0.1/fixture.png')),png);

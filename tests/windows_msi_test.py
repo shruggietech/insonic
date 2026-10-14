@@ -69,10 +69,62 @@ class InstallerModelTests(unittest.TestCase):
             for function,args in [(module.token_info,()),(module.restricted_context,(None,None,None)),(module.restricted_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,())]:
                 with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
         self.assertIn('cancellation_rollback',m.QUALIFICATION_KEYS);self.assertIn('user_context',m.QUALIFICATION_KEYS)
+    def test_native_capture_requires_verified_clean_nonempty_source(self):
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('capture_installer_contract',ROOT/'scripts/capture-installer-ui.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.object(m,'disposable_runner',return_value=None):
+            with self.assertRaisesRegex(ValueError,'clean source'):module.source_identity({'source_dirty':True,'revision':'a'*40})
+            replies=[SimpleNamespace(returncode=0,stdout=('a'*40+'\n').encode()),SimpleNamespace(returncode=0,stdout=b'')]
+            with patch.object(module.subprocess,'run',side_effect=replies):source=module.source_identity({'source_dirty':False,'revision':'a'*40})
+            self.assertIs(source['dirty'],False);self.assertEqual(len(source['files']),4)
+            self.assertTrue(all(item['sha256']==m.sha(ROOT/item['path']) for item in source['files']))
+            replies=[SimpleNamespace(returncode=0,stdout=('b'*40+'\n').encode())]
+            with patch.object(module.subprocess,'run',side_effect=replies):
+                with self.assertRaisesRegex(ValueError,'checkout differs'):module.source_identity({'source_dirty':False,'revision':'a'*40})
     def test_bad_compound_and_cabinet_rejected(self):
         p=self.path/'invalid.msi';p.write_bytes(b'not an MSI')
         with self.assertRaises(ValueError):m.CompoundFile(p)
         with self.assertRaises(ValueError):m.cabinet_members(b'not a cabinet')
+    def test_restore_verifies_before_replacing_owned_payload(self):
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('package_msi_restore_contract',ROOT/'scripts/package-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        name='insonic_1.0.1_windows_amd64_desktop';base=self.path/'build/packages';target=base/name;target.mkdir(parents=True);sentinel=target/'prior-owned-payload';sentinel.write_bytes(b'keep until verified')
+        receipt_path=self.path/'restore.json';receipt={'dirname':name,'archive':name+'.zip','platform':'windows_amd64','variant':'desktop'};receipt_path.write_text(json.dumps(receipt),encoding='utf-8')
+        def reject_archive(*args):raise ValueError('tampered archive')
+        package=SimpleNamespace(VERSION='1.0.1',verify_archive_receipt=reject_archive)
+        with patch.object(module,'ROOT',self.path),patch.object(module,'load',return_value=package):
+            with self.assertRaisesRegex(ValueError,'tampered'):module.restore_payload(receipt_path)
+        self.assertEqual(sentinel.read_bytes(),b'keep until verified')
+        receipt['dirname']='../unrelated';receipt_path.write_text(json.dumps(receipt),encoding='utf-8')
+        with patch.object(module,'ROOT',self.path),patch.object(module,'load',return_value=package):
+            with self.assertRaisesRegex(ValueError,'exact current'):module.restore_payload(receipt_path)
+    @unittest.skipUnless(os.name=='nt','native database authoring Windows only, no UI')
+    def test_native_clone_reinserts_composite_upgrade_keys(self):
+        spec=importlib.util.spec_from_file_location('qualify_clone_database',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        original=self.path/'original.msi';m.author(original,self.path,self.model)
+        target=self.path/'version-fixture.msi';upgrade=m.guid('native-qualification-clone-test');module.clone(original,target,'1.0.2',upgrade)
+        streams=m.CompoundFile(target).streams;properties=dict(m.table_rows(streams,'Property'))
+        self.assertEqual(properties['ProductCode'],m.product_code('1.0.2',upgrade));self.assertEqual(properties['ProductVersion'],'1.0.2');self.assertEqual(properties['UpgradeCode'],upgrade)
+        relations={row[6]:row for row in m.table_rows(streams,'Upgrade')}
+        self.assertEqual(relations['OLDPRODUCTS'],[upgrade,None,'1.0.2',None,1,None,'OLDPRODUCTS'])
+        self.assertEqual(relations['NEWPRODUCTS'],[upgrade,'1.0.2',None,None,2,None,'NEWPRODUCTS'])
+        self.assertEqual(m.cabinet_members(streams['payload.cab']),m.cabinet_members(m.CompoundFile(original).streams['payload.cab']))
+    @unittest.skipUnless(os.name=='nt','native database authoring Windows only, no UI')
+    def test_signed_payload_and_unsigned_msi_are_independent(self):
+        # Disposition regression fixture. Archive signing verification remains the
+        # archive verifier's responsibility; no certificate proof is fabricated.
+        self.inv['signing']={'configured':True,'verified':True,'status':'signed'}
+        (self.path/'package-inventory.json').write_bytes(m.inventory_bytes(self.inv))
+        inv_sha=m.sha(self.path/'package-inventory.json')
+        model=m.installer_model(self.inv,inv_sha,(ROOT/'LICENSE').read_text(encoding='utf-8'))
+        artifact=self.path/'insonic_1.0.1_windows_amd64_installer.msi';m.author(artifact,self.path,model)
+        payload={k:self.inv[k] for k in ('revision','source_dirty','platform','schema_version','distribution','signing')}
+        payload.update({'archive':'desktop.zip','archive_sha256':'b'*64,'inventory_sha256':inv_sha})
+        receipt={k:self.inv[k] for k in ('revision','source_dirty','platform','schema_version','distribution')}
+        receipt.update({'kind':'windows-installer-receipt','format':'msi','variant':'selectable','product_version':'1.0.1','documentation_version':'1.0.1','signing':dict(m.UNSIGNED_SIGNING),'artifact':artifact.name,'artifact_sha256':m.sha(artifact),'artifact_size_bytes':artifact.stat().st_size,'payload_receipt':payload,'payload_inventory':self.inv,'payload_archive':'desktop.zip','payload_archive_sha256':'b'*64,'qualification':{k:'passed' for k in m.QUALIFICATION_KEYS},'msi_product_version':'1.0.1','product_code':model['product_code'],'upgrade_code':model['upgrade_code'],'scope':'per-user','license_sha256':m.sha(ROOT/'LICENSE'),'icon_sha256':m.sha(ROOT/m.ICON)})
+        self.assertEqual(m.verify_installer(artifact,receipt)['inventory']['signing'],self.inv['signing'])
+        receipt['signing']=dict(self.inv['signing'])
+        with self.assertRaisesRegex(ValueError,'independently unsigned'):m.verify_installer(artifact,receipt)
     @unittest.skipUnless(os.name=='nt','native database authoring Windows only, no UI')
     def test_native_actual_tables_and_cabinet_independently_verified(self):
         path=self.path/'fixture.msi';m.author(path,self.path,self.model);result=m.verify_model_bytes(path,self.model);self.assertEqual(len(result['members']),len(self.model['payload']))

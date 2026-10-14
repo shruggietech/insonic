@@ -15,13 +15,20 @@ import uuid
 import windows_msi as m
 
 def clone(source,target,version,upgrade,failure=False,missing_prerequisites=False):
+    upgrade_rows=m.table_rows(m.CompoundFile(source).streams,'Upgrade')
     shutil.copyfile(source,target);db=m.NativeDatabase(target,write=True)
     try:
         q=m.quote
         for key,value in [('ProductCode',m.product_code(version,upgrade)),('ProductVersion',version),('UpgradeCode',upgrade)]:db.execute('UPDATE '+q('Property')+' SET '+q('Value')+'=? WHERE '+q('Property')+'=?',[value,key])
-        db.execute('UPDATE '+q('Upgrade')+' SET '+q('UpgradeCode')+'=?',[upgrade])
-        db.execute('UPDATE '+q('Upgrade')+' SET '+q('VersionMax')+'=? WHERE '+q('ActionProperty')+'=?',[version,'OLDPRODUCTS'])
-        db.execute('UPDATE '+q('Upgrade')+' SET '+q('VersionMin')+'=? WHERE '+q('ActionProperty')+'=?',[version,'NEWPRODUCTS'])
+        # UpgradeCode, version bounds and language are composite primary keys.
+        # Windows Installer does not permit UPDATE of those fields (1627).
+        db.execute('DELETE FROM '+q('Upgrade'))
+        for original in upgrade_rows:
+            row=list(original);row[0]=upgrade
+            if row[6]=='OLDPRODUCTS':row[2]=version
+            elif row[6]=='NEWPRODUCTS':row[1]=version
+            else:raise ValueError('unexpected qualification upgrade relation')
+            db.execute('INSERT INTO '+q('Upgrade')+' ('+','.join(q(c[0]) for c in m.SCHEMA['Upgrade'])+') VALUES (?,?,?,?,?,?,?)',row)
         if failure:
             db.execute('INSERT INTO '+q('CustomAction')+' ('+','.join(q(c[0]) for c in m.SCHEMA['CustomAction'])+') VALUES (?,?,?,?)',['FixtureFailure',19,None,'Intentional transactional fixture failure'])
             db.execute('INSERT INTO '+q('InstallExecuteSequence')+' ('+','.join(q(c[0]) for c in m.SCHEMA['InstallExecuteSequence'])+') VALUES (?,?,?)',['FixtureFailure','1',4100])
