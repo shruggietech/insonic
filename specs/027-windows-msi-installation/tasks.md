@@ -121,3 +121,5 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 - [x] T064 Provision the ordinary-client installer policy only within acknowledged disposable Server2022 tests, restore exact prior registry state, retain distinct failure levels and diagnose exact owned-profile deletion errors.
 
 - [x] T065 [US2] Match explicit owned profile load/unload handles and retain bounded actual native child recorder diagnostics without weakening elected-launch qualification in scripts/qualify-windows-msi.py and tests/windows_msi_test.py.
+
+- [x] T066 [US2] Allocate native token integrity information with checked dynamic alignment and retain read-only exact actor process evidence for profile cleanup in scripts/qualify-windows-msi.py and tests/windows_msi_test.py.

@@ -285,6 +285,7 @@ import (
  "fmt"
  "os"
  "path/filepath"
+ "runtime"
  "unsafe"
  "golang.org/x/sys/windows"
 )
@@ -310,12 +311,20 @@ func main() {
  user,e:=token.GetTokenUser();if e!=nil {fatal("TokenUser",e)}
  admin,e:=windows.CreateWellKnownSid(windows.WinBuiltinAdministratorsSid);if e!=nil {fatal("CreateWellKnownSid",e)}
  member,e:=windows.Token(0).IsMember(admin);if e!=nil {fatal("CheckTokenMembership",e)}
- var integrity [256]byte
- if e:=windows.GetTokenInformation(token,windows.TokenIntegrityLevel,&integrity[0],uint32(len(integrity)),&size);e!=nil {fatal("TokenIntegrityLevel",e)}
- label:=(*windows.SIDAndAttributes)(unsafe.Pointer(&integrity[0]));count:=label.Sid.SubAuthorityCount();if count==0||count>15 {fatal("IntegritySidCount",fmt.Errorf("unexpected count %d",count))}
- integrityRID:=label.Sid.SubAuthority(uint32(count-1))
+ var required uint32
+ e=windows.GetTokenInformation(token,windows.TokenIntegrityLevel,nil,0,&required)
+ if e!=windows.ERROR_INSUFFICIENT_BUFFER {fatal("TokenIntegrityLevelSize",e)}
+ if required<uint32(unsafe.Sizeof(windows.SIDAndAttributes{}))||required>65536 {fatal("TokenIntegrityLevelSize",fmt.Errorf("unexpected size %d",required))}
+ // Native token structures require alignment. A byte stack array has alignment1.
+ // Dynamic uint64 storage guarantees alignment and owns the embedded SID bytes.
+ integrity:=make([]uint64,(uint64(required)+7)/8)
+ if e:=windows.GetTokenInformation(token,windows.TokenIntegrityLevel,(*byte)(unsafe.Pointer(&integrity[0])),uint32(len(integrity)*8),&size);e!=nil {fatal("TokenIntegrityLevel",e)}
+ base:=uintptr(unsafe.Pointer(&integrity[0]));label:=(*windows.SIDAndAttributes)(unsafe.Pointer(&integrity[0]));sidAddress:=uintptr(unsafe.Pointer(label.Sid))
+ if sidAddress<base||sidAddress+8>base+uintptr(size) {fatal("IntegritySidBounds",fmt.Errorf("native SID outside returned token buffer"))}
+ count:=label.Sid.SubAuthorityCount();if count==0||count>15||sidAddress+8+uintptr(count)*4>base+uintptr(size) {fatal("IntegritySidCount",fmt.Errorf("unexpected count %d",count))}
+ integrityRID:=label.Sid.SubAuthority(uint32(count-1));integritySID:=label.Sid.String();runtime.KeepAlive(integrity)
  sum:=sha256.Sum256([]byte(user.User.Sid.String()))
- observed:=map[string]any{"elevated":elevated!=0,"administrator_enabled":member,"user_sid_sha256":hex.EncodeToString(sum[:]),"integrity_rid":integrityRID,"integrity_sid":label.Sid.String(),"mode":filepath.Base(exe),"pid":os.Getpid(),"fixture":"owned native Go token reporter"}
+ observed:=map[string]any{"elevated":elevated!=0,"administrator_enabled":member,"user_sid_sha256":hex.EncodeToString(sum[:]),"integrity_rid":integrityRID,"integrity_sid":integritySID,"mode":filepath.Base(exe),"pid":os.Getpid(),"fixture":"owned native Go token reporter"}
  data,e:=json.Marshal(observed);if e!=nil {fatal("MarshalToken",e)}
  if e:=os.WriteFile(filepath.Join(directory,filepath.Base(exe)+".token.json"),append(data,'\n'),0600);e!=nil {fatal("WriteTokenReceipt",e)}
  diagnostic("token-recorded",nil)
@@ -877,12 +886,45 @@ def disposable_server_installer_policy(record=None):
             if record:record('CI-server-policy-restored',policy=evidence)
             if actual!=original or elevated_after!=elevated_before:raise RuntimeError('CI installer policy fixture did not exactly restore original policy')
 
+def owned_actor_processes(sid):
+    """Observe exact account processes for profile cleanup, never stop any."""
+    m.disposable_runner()
+    import ctypes as C
+    import ctypes.wintypes as W
+    kernel=C.WinDLL('kernel32',use_last_error=True);security=C.WinDLL('advapi32',use_last_error=True)
+    class Entry(C.Structure):_fields_=[('size',W.DWORD),('usage',W.DWORD),('pid',W.DWORD),('heap',C.c_size_t),('module',W.DWORD),('threads',W.DWORD),('parent',W.DWORD),('priority',W.LONG),('flags',W.DWORD),('image',W.WCHAR*260)]
+    kernel.CreateToolhelp32Snapshot.argtypes=[W.DWORD,W.DWORD];kernel.CreateToolhelp32Snapshot.restype=W.HANDLE
+    kernel.Process32FirstW.argtypes=[W.HANDLE,C.POINTER(Entry)];kernel.Process32FirstW.restype=W.BOOL;kernel.Process32NextW.argtypes=[W.HANDLE,C.POINTER(Entry)];kernel.Process32NextW.restype=W.BOOL
+    kernel.OpenProcess.argtypes=[W.DWORD,W.BOOL,W.DWORD];kernel.OpenProcess.restype=W.HANDLE;kernel.CloseHandle.argtypes=[W.HANDLE]
+    kernel.QueryFullProcessImageNameW.argtypes=[W.HANDLE,W.DWORD,W.LPWSTR,C.POINTER(W.DWORD)];kernel.QueryFullProcessImageNameW.restype=W.BOOL
+    security.OpenProcessToken.argtypes=[W.HANDLE,W.DWORD,C.POINTER(W.HANDLE)];security.OpenProcessToken.restype=W.BOOL
+    snapshot=kernel.CreateToolhelp32Snapshot(2,0)
+    if snapshot==C.c_void_p(-1).value:raise C.WinError(C.get_last_error())
+    result=[];entry=Entry();entry.size=C.sizeof(entry)
+    try:
+        present=kernel.Process32FirstW(snapshot,C.byref(entry))
+        while present:
+            process=kernel.OpenProcess(0x1000,False,entry.pid);token=W.HANDLE()
+            if process:
+                try:
+                    if security.OpenProcessToken(process,8,C.byref(token)) and account_sid(token)==sid:
+                        image=C.create_unicode_buffer(32768);size=W.DWORD(len(image));observed={'pid':entry.pid,'parent_pid':entry.parent,'image':entry.image,'machine_state_modified':False}
+                        if kernel.QueryFullProcessImageNameW(process,0,image,C.byref(size)):observed['image_path']=image.value
+                        result.append(observed)
+                finally:
+                    if token:kernel.CloseHandle(token)
+                    kernel.CloseHandle(process)
+            present=kernel.Process32NextW(snapshot,C.byref(entry))
+        if C.get_last_error()!=18:raise C.WinError(C.get_last_error())
+    finally:kernel.CloseHandle(snapshot)
+    return result
+
 def profile_cleanup_observation(sid,profile):
     """Read only this exact created actor's profile registration and hive state."""
     m.disposable_runner()
     import winreg
     if not __import__('re').fullmatch(r'S-1-5-21-(?:[0-9]+-){3}[0-9]+',sid):raise ValueError('profile observation requires a created ordinary account SID')
-    result={'sid_sha256':m.digest(sid.encode()),'hives':{},'profile_registration':{},'machine_state_modified':False}
+    result={'sid_sha256':m.digest(sid.encode()),'hives':{},'profile_registration':{},'machine_state_modified':False,'owned_actor_processes':owned_actor_processes(sid)}
     for suffix in ('','_Classes'):
         try:
             with winreg.OpenKey(winreg.HKEY_USERS,sid+suffix,0,winreg.KEY_READ):pass

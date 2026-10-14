@@ -136,7 +136,7 @@ class InstallerModelTests(unittest.TestCase):
     def test_cancel_and_context_entrypoints_reject_owner_host_before_native_calls(self):
         spec=importlib.util.spec_from_file_location('qualify_msi_guard',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with patch.dict(os.environ,{},clear=True):
-            for function,args in [(module.token_info,()),(module.installer_mutex_diagnostic,()),(module.owned_user_object_observation,(None,None,None,None)),(module.ordinary_context,(None,None,None)),(module.ordinary_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,()),(module.service_diagnostic,()),(module.native_installer_worker,(None,)),(module.native_installer_dll,(None,)),(module.run_installer,(['/i','unused'],None)),(module.create_removal_sentinels,()),(module.assert_removal_sentinels,(None,)),(module.clean_removal_sentinels,(None,)),(module.private_context_desktop,('S-1-5-21-1-2-3-1001',)),(module.account_sid,(None,)),(module.grant_owned_account_stage,(None,None,None)),(module.registered_feature_states,(None,None))]:
+            for function,args in [(module.token_info,()),(module.owned_actor_processes,(None,)),(module.installer_mutex_diagnostic,()),(module.owned_user_object_observation,(None,None,None,None)),(module.ordinary_context,(None,None,None)),(module.ordinary_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,()),(module.service_diagnostic,()),(module.native_installer_worker,(None,)),(module.native_installer_dll,(None,)),(module.run_installer,(['/i','unused'],None)),(module.create_removal_sentinels,()),(module.assert_removal_sentinels,(None,)),(module.clean_removal_sentinels,(None,)),(module.private_context_desktop,('S-1-5-21-1-2-3-1001',)),(module.account_sid,(None,)),(module.grant_owned_account_stage,(None,None,None)),(module.registered_feature_states,(None,None))]:
                 with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
         self.assertIn('cancellation_rollback',m.QUALIFICATION_KEYS);self.assertIn('user_context',m.QUALIFICATION_KEYS)
     def test_private_context_desktop_restores_caller_on_success_and_failure(self):
@@ -245,6 +245,25 @@ class InstallerModelTests(unittest.TestCase):
         with patch.dict(os.environ,env,clear=True),patch.object(m,'disposable_runner',return_value=None),patch.object(module,'token_info',return_value=token),patch.object(module,'open',return_value=io.BytesIO((json.dumps(credentials)+'\n').encode()),create=True),patch.object(C,'WinDLL',create=True) as native:
             with self.assertRaisesRegex(RuntimeError,'actor differs'):module.ordinary_interactive_bootstrap(pipe,self.path/'fixture.msi',self.path/'installed',output)
             native.assert_not_called()
+    def test_profile_process_observation_selects_exact_sid_and_never_stops_processes(self):
+        import ctypes as C
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_owned_process_observation',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        closed=[];position=[0];opened=[];sid='S-1-5-21-1-2-3-1001'
+        class Function:
+            def __init__(self,call):self.call=call
+            def __call__(self,*args):return self.call(*args)
+        def entry(snapshot,out):
+            if position[0]>=2:return False
+            out._obj.pid=100+position[0];out._obj.parent=55;out._obj.image='owned-worker.exe' if position[0]==0 else 'foreign-system.exe';position[0]+=1;return True
+        def opened_process(rights,inherit,pid):self.assertEqual(rights,0x1000);opened.append(pid);return pid
+        def token(process,access,out):self.assertEqual(access,8);out._obj.value=process+100;return True
+        def image(process,flags,out,size):out.value=str(self.path/'owned-worker.exe');return True
+        kernel=SimpleNamespace(CreateToolhelp32Snapshot=Function(lambda flags,pid:99),Process32FirstW=Function(entry),Process32NextW=Function(entry),OpenProcess=Function(opened_process),CloseHandle=Function(lambda handle:closed.append(handle.value if hasattr(handle,'value') else handle)),QueryFullProcessImageNameW=Function(image))
+        security=SimpleNamespace(OpenProcessToken=Function(token));dlls={'kernel32':kernel,'advapi32':security}
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(C,'get_last_error',return_value=18,create=True),patch.object(module,'account_sid',side_effect=lambda token:sid if token.value==200 else 'S-1-5-18'):
+            proof=module.owned_actor_processes(sid)
+        self.assertEqual([item['pid'] for item in proof],[100]);self.assertFalse(proof[0]['machine_state_modified']);self.assertEqual(opened,[100,101]);self.assertEqual(closed,[200,100,201,101,99])
     def test_qualifier_profile_privileges_restore_previous_state_on_failure(self):
         import ctypes as C
         from types import SimpleNamespace
