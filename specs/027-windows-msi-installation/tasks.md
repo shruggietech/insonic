@@ -53,8 +53,8 @@ Independent test: capture actual app/installer controls with source/renderer rec
 
 - [x] T022 Integrate parallel/cache-scoped MSI and capture gates and candidate artifacts in .github/workflows/ci.yml and native-qualification.yml.
 - [x] T023 Record changed behavior and dated architecture/execution decisions in CHANGELOG.md.
-- [ ] T024 Run configured integrity/domain/product/site checks and native CI evidence in specs/027-windows-msi-installation/verification.md.
-- [ ] T025 Converge all FR/SC/journeys against implementation in specs/027-windows-msi-installation/convergence.md.
+- [x] T024 Run configured integrity/domain/product/site checks and native CI evidence in specs/027-windows-msi-installation/verification.md.
+- [x] T025 Converge all FR/SC/journeys against implementation in specs/027-windows-msi-installation/convergence.md.
 - [ ] T026 Commit/push official PR, address every finding in at most two rounds and verify final exact-head green CI in specs/027-windows-msi-installation/verification.md.
 
 ## Dependencies and parallel strategy
@@ -135,3 +135,5 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 
 - [x] T072 Bound durable publication fixture readiness and Abort separately, retaining real ordering/state assertions and owned publisher cancellation/join in internal/artifact/failure_test.go.
 - [x] T073 Retain the explicit WebView qualification fixture runtime for the existing90second child bound, preserving ordinary30second idle behavior and the80second UI watchdog in cmd/insonic-desktop/main.go.
+
+T026 is the post-commit delivery gate. Its final exact-head CI/run/timing and review completion record is maintained on [official PR92](https://github.com/shruggietech/insonic/pull/92), since this committed checklist precedes that execution. It remains unchecked in this snapshot until the live gate completes; the final handoff reports its actual result.
