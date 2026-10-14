@@ -51,6 +51,93 @@ def installed_hashes(directory,model,desktop):
             continue
         if not p.is_file() or m.sha(p)!=f['sha256']:raise ValueError('installed MSI bytes differ: '+f['path'])
 
+LAUNCH_REPORTER_SOURCE=r'''// SPDX-License-Identifier: Apache-2.0
+// Temporary CI instrumentation, never included in product payload.
+package main
+import (
+ "crypto/sha256"
+ "encoding/hex"
+ "encoding/json"
+ "os"
+ "path/filepath"
+ "unsafe"
+ "golang.org/x/sys/windows"
+)
+func main() {
+ exe,e:=os.Executable();if e!=nil {os.Exit(1)}
+ directory:=filepath.Dir(exe)
+ if b,e:=os.ReadFile(filepath.Join(directory,"owned-ci-fixture.json"));e!=nil||string(b)!="insonic disposable launcher context fixture\n" {os.Exit(1)}
+ var token windows.Token
+ if windows.OpenProcessToken(windows.CurrentProcess(),windows.TOKEN_QUERY,&token)!=nil {os.Exit(1)}
+ defer token.Close()
+ var elevated,size uint32
+ if windows.GetTokenInformation(token,windows.TokenElevation,(*byte)(unsafe.Pointer(&elevated)),uint32(unsafe.Sizeof(elevated)),&size)!=nil {os.Exit(1)}
+ user,e:=token.GetTokenUser();if e!=nil {os.Exit(1)}
+ admin,e:=windows.CreateWellKnownSid(windows.WinBuiltinAdministratorsSid);if e!=nil {os.Exit(1)}
+ member,e:=windows.Token(0).IsMember(admin);if e!=nil {os.Exit(1)}
+ sum:=sha256.Sum256([]byte(user.User.Sid.String()))
+ observed:=map[string]any{"elevated":elevated!=0,"administrator_enabled":member,"user_sid_sha256":hex.EncodeToString(sum[:]),"mode":filepath.Base(exe),"pid":os.Getpid(),"fixture":"owned native Go token reporter"}
+ data,e:=json.Marshal(observed);if e!=nil {os.Exit(1)}
+ if os.WriteFile(filepath.Join(directory,filepath.Base(exe)+".token.json"),append(data,'\n'),0600)!=nil {os.Exit(1)}
+}
+'''
+
+def prepare_launcher_fixture(installed,directory):
+    m.disposable_runner();directory.mkdir(parents=True,exist_ok=False)
+    shutil.copyfile(installed/'insonic-launcher.exe',directory/'insonic-launcher.exe')
+    session=(installed/'insonic-session.cmd').read_bytes()
+    # Run the production session prefix and close this owned CI console after the
+    # token recorder returns. Installed production bytes are never modified.
+    (directory/'insonic-session.cmd').write_bytes(session+b'exit\n')
+    (directory/'owned-ci-fixture.json').write_bytes(b'insonic disposable launcher context fixture\n')
+    source=directory/'token-recorder.go';source.write_text(LAUNCH_REPORTER_SOURCE,encoding='utf-8',newline='\n')
+    env=dict(os.environ);env['CGO_ENABLED']='0'
+    compiled=subprocess.run(['go','build','-ldflags','-H windowsgui','-o',str(directory/'insonic-desktop.exe'),str(source)],cwd=m.ROOT,env=env,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=60)
+    if compiled.returncode:raise RuntimeError('native launcher token recorder compilation failed: '+compiled.stderr.decode(errors='replace')[-3000:])
+    shutil.copyfile(directory/'insonic-desktop.exe',directory/'insonic.exe')
+    return {'kind':'temporary-owned-native-token-recorder','launcher_sha256':m.sha(directory/'insonic-launcher.exe'),'production_session_prefix_sha256':m.digest(session),'instrumented_session_suffix':'exit after production help/setup prefix','recorder_source_sha256':m.digest(LAUNCH_REPORTER_SOURCE.encode()),'product_payload_modified':False}
+
+def linked_token_evidence():
+    m.disposable_runner()
+    import ctypes as C
+    import ctypes.wintypes as W
+    kernel=C.WinDLL('kernel32',use_last_error=True);security=C.WinDLL('advapi32',use_last_error=True)
+    kernel.GetCurrentProcess.restype=W.HANDLE;kernel.CloseHandle.argtypes=[W.HANDLE];kernel.CloseHandle.restype=W.BOOL
+    security.OpenProcessToken.argtypes=[W.HANDLE,W.DWORD,C.POINTER(W.HANDLE)];security.OpenProcessToken.restype=W.BOOL
+    security.GetTokenInformation.argtypes=[W.HANDLE,C.c_int,C.c_void_p,W.DWORD,C.POINTER(W.DWORD)];security.GetTokenInformation.restype=W.BOOL
+    token=W.HANDLE();linked=W.HANDLE();size=W.DWORD()
+    if not security.OpenProcessToken(kernel.GetCurrentProcess(),8,C.byref(token)):raise C.WinError(C.get_last_error())
+    try:
+        found=security.GetTokenInformation(token,19,C.byref(linked),C.sizeof(linked),C.byref(size))
+        if found and linked.value:return {'available':True,'lookup_error':0}
+        error=C.get_last_error()
+        if error!=1312 and not (error==87 and token_info()['elevation_type']==1):raise C.WinError(error)
+        return {'available':False,'lookup_error':error}
+    finally:
+        if linked:kernel.CloseHandle(linked)
+        kernel.CloseHandle(token)
+
+def elected_launcher_context(directory,allow_refusal=False):
+    m.disposable_runner();caller=token_info();modes={}
+    linked=linked_token_evidence() if caller['elevated'] else {'available':False,'lookup_error':None}
+    refusal_permitted=allow_refusal and caller['elevated'] and not linked['available']
+    for mode,exe in [('desktop','insonic-desktop.exe'),('cli','insonic.exe')]:
+        output=directory/(exe+'.token.json')
+        if output.exists():output.unlink()
+        attempted=subprocess.run([str(directory/'insonic-launcher.exe'),'--'+mode],cwd=directory,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=15)
+        if attempted.returncode:
+            message=attempted.stderr.decode(errors='replace')
+            if not refusal_permitted or attempted.returncode!=1 or 'cannot launch at normal user privilege' not in message or output.exists():raise RuntimeError('elected '+mode+' launcher failed: '+message[-2000:])
+            modes[mode]={'outcome':'refused-normal-launch-action','child_record_absent':True,'elevated_fallback':False};continue
+        deadline=time.monotonic()+10;observed=None
+        while time.monotonic()<deadline:
+            try:observed=json.loads(output.read_text(encoding='utf-8'));break
+            except (FileNotFoundError,json.JSONDecodeError):time.sleep(.05)
+        if observed is None:raise RuntimeError('elected '+mode+' child did not record its actual token')
+        if observed['elevated'] or observed['administrator_enabled'] or observed['user_sid_sha256']!=caller['user_sid_sha256']:raise RuntimeError('elected '+mode+' launch changed user or retained elevation')
+        modes[mode]={'outcome':'observed-same-user-non-elevated-child','observed_token':observed}
+    return {'caller_token':caller,'linked_token':linked,'modes':modes,'actual_elected_launch':True,'describe_is_proof':False}
+
 def token_info():
     """Observe the actual calling process token, without changing policy."""
     m.disposable_runner()
@@ -97,9 +184,10 @@ def restricted_worker(installer,directory,output):
         run_installer(['/i',installer,'INSTALLDIR='+str(directory),'LICENSE_ACCEPTED=1','ADDLOCAL=Core,CLI'],output.with_suffix('.install.log'));installed=True
         marker=directory/m.OWNERSHIP
         if not marker.is_file() or marker.read_bytes()!=m.OWNERSHIP_BYTES:raise RuntimeError('restricted per-user install missing ownership marker')
+        launch_evidence=elected_launcher_context(directory.parent/'launcher-context-fixture')
         run_installer(['/x',product],output.with_suffix('.remove.log'));installed=False
         if marker.exists():raise RuntimeError('restricted per-user removal retained owned marker')
-        evidence={'kind':'standard-equivalent-restricted-token','token':observed,'install_exit':0,'remove_exit':0,'separate_user_account':False,'os_policy_mutations':False}
+        evidence={'kind':'standard-equivalent-restricted-token','token':observed,'install_exit':0,'remove_exit':0,'separate_user_account':False,'os_policy_mutations':False,'elected_launcher':launch_evidence}
         output.write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     finally:
         if installed:run_installer(['/x',product],output.with_suffix('.cleanup.log'))
@@ -212,6 +300,9 @@ def qualify(path,receipt):
                 if child([install/'insonic.exe','version'],env,install).decode().strip()!=version:raise ValueError('installed CLI version differs')
                 plan=json.loads(child([install/'insonic-launcher.exe','--describe','--desktop' if desktop else '--cli'],env,install))
                 if not plan:raise ValueError('installed launcher describe returned no plan')
+                if selection=='Core,Desktop,CLI':
+                    fixture_evidence=prepare_launcher_fixture(install,tmp/'launcher-context-fixture')
+                    elevated_launch_evidence=elected_launcher_context(tmp/'launcher-context-fixture',allow_refusal=True)
                 run_installer(['/x',installed],logs/'selection-remove.log');installed=None
                 if any((install/f['path']).exists() for f in model['payload']):raise ValueError('uninstall retained installer-owned bytes')
             result['client_selections']='passed';result['launch_contract']='passed'
@@ -238,7 +329,7 @@ def qualify(path,receipt):
             if sentinel.read_bytes()!=b'preserve library media settings models credentials':raise ValueError('MSI modified user data')
             if any((install/f['path']).exists() for f in model['payload']):raise ValueError('MSI removal retained owned files')
             result['user_data_preserved']='passed'
-            proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'windows_build':str(__import__('sys').getwindowsversion().build),'fixture_upgrade_code':upgrade,'checks':result,'elapsed_seconds':round(time.monotonic()-started,3),'active_work_fixture':'running owned ping image, no process shutdown','policy_prompts':'not-observed','signing':'unsigned','cancellation':cancellation_evidence,'user_context':{'original_elevated_token':original_token,'restricted_process':context_evidence}}
+            proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'windows_build':str(__import__('sys').getwindowsversion().build),'fixture_upgrade_code':upgrade,'checks':result,'elapsed_seconds':round(time.monotonic()-started,3),'active_work_fixture':'running owned ping image, no process shutdown','policy_prompts':'not-observed','signing':'unsigned','cancellation':cancellation_evidence,'user_context':{'original_elevated_token':original_token,'restricted_process':context_evidence},'elected_launcher':{'fixture':fixture_evidence,'elevated_caller':elevated_launch_evidence,'restricted_caller':context_evidence['elected_launcher']}}
         finally:
             if active is not None:active.terminate();active.wait(timeout=5)
             if installed is not None:run_installer(['/x',installed],logs/'fixture-cleanup.log')
