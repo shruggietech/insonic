@@ -165,6 +165,14 @@ var commandDefinitions = func() []commandDefinition {
 		}
 		add("import-presets "+a, operand, n, n, opts, required)
 	}
+	add("setup location", "[DIRECTORY]", 0, 1, "", "")
+	add("setup draft show", "", 0, 0, "", "")
+	add("setup draft save", "", 0, 0, "--input", "--input")
+	add("setup provision", "", 0, 0, "--secret-input --credential-backend", "")
+	add("setup show", "", 0, 0, "", "")
+	add("setup save", "", 0, 0, "--input", "--input")
+	add("setup readiness", "", 0, 0, "", "")
+	add("settings setup", "", 0, 0, "", "")
 	add("settings show", "", 0, 0, "", "")
 	add("settings set", "", 0, 0, "--input", "--input")
 	add("media tools", "FILE", 1, 1, "", "")
@@ -628,6 +636,9 @@ func commandHelp(path []string) string {
 			}
 			if p == "runtime serve" {
 				b.WriteString("Internal shared-runtime host. Noninteractive; normally started by clients.\n")
+			}
+			if strings.HasPrefix(p, "setup ") || p == "settings setup" {
+				b.WriteString("Optional setup metadata never gates ordinary commands. Save with the displayed revision; preserve the request UUID and immutable input when retrying an unknown outcome. Reopen with setup show or settings setup. Readiness is a separate current task probe.\n")
 			}
 			operation := strings.ReplaceAll(p, " ", ".")
 			if strings.HasPrefix(p, "models base ") {

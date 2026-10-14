@@ -12,6 +12,7 @@ import {
 } from './client';
 import { Jobs, Library, Pipelines, Speakers, Terms, type Run } from './screens';
 import { Settings } from './settings';
+import {Setup} from './setup';
 import {BackendSetup} from './backend-setup';
 import { ImportPresets } from './import-presets';
 import { Explore } from './explore';
@@ -65,7 +66,10 @@ export function App({ bridge }: { bridge: NativeBridge }) {
     run(async () => {
       const response = await bridge.Show();
       if (token !== generation.current) return;
-      if (response.error?.code === 'not_found') return;
+      if (response.error?.code === 'not_found') {
+        if(bridge.SetupDraft)setScreen('Setup');
+        return;
+      }
       const value = result(response);
       if (response.workspace_id) {
         client.select(response.workspace_id);
@@ -146,6 +150,7 @@ export function App({ bridge }: { bridge: NativeBridge }) {
           </Button>
         ))}
       </nav>
+      {bridge.SetupDraft&&<Button variant="secondary" onClick={()=>{++generation.current;client.invalidate();setScreen('Setup');setError('');setNotice('')}}>Set up library</Button>}
       <a
         className="help-link bb-control"
         href="/assets/help/index.html"
@@ -214,7 +219,7 @@ export function App({ bridge }: { bridge: NativeBridge }) {
             </p>
           </div>
         )}
-        {workspace ? (
+        {screen==='Setup'&&bridge.SetupDraft ? <Setup client={client} onWorkspace={value=>{++generation.current;client.select(value.workspace_id);setWorkspace(value);setPath(value.path??'')}} onNavigate={view=>{++generation.current;client.invalidate();setScreen(view);setError('');setNotice('')}} onClose={()=>{setScreen('Library');setError('');setNotice('Setup can be reopened through Settings.')}}/> : workspace ? (
           <section
             key={`${workspace.workspace_id}:${screen}`}
             aria-label={`${screen} controls`}
@@ -236,6 +241,7 @@ export function App({ bridge }: { bridge: NativeBridge }) {
                 client={client}
                 run={run}
                 appearance={applyAppearance}
+                onSetup={bridge.SetupDraft?()=>setScreen('Setup'):undefined}
                 onWorkspace={value=>{client.select(value.workspace_id);setWorkspace(value);setPath(value.path);setScreen("Library")}}
               />
             )}

@@ -4,6 +4,7 @@ package schemas
 import (
 	"bytes"
 	"encoding/json"
+	"strconv"
 	"strings"
 
 	"github.com/shruggietech/insonic/internal/contracts"
@@ -12,6 +13,19 @@ import (
 // InputHelp renders packaged contracts without opening a workspace or provider.
 // The template is illustrative: UUIDs and revisions must name current records.
 func InputHelp(operation string) (json.RawMessage, json.RawMessage) {
+	if operation == "setup.draft.save" {
+		_, backend := InputHelp("workspace.plan")
+		var plan map[string]any
+		json.Unmarshal(backend, &plan)
+		schema := map[string]any{"type": "object", "additionalProperties": false, "required": []string{"expected_revision", "path", "plan", "stage", "status"}, "properties": map[string]any{"expected_revision": map[string]any{"type": "integer", "minimum": 0}, "path": map[string]any{"type": "string", "description": "Editable absolute library directory outside installation bytes."}, "plan": plan, "stage": map[string]any{"enum": []string{"workspace", "backends"}}, "status": map[string]any{"enum": []string{"active", "deferred"}}, "credential_backend": map[string]any{"enum": []string{"native", "vault", "session"}, "default": "native"}}}
+		encoded, _ := json.MarshalIndent(schema, "", "  ")
+		decoded := map[string]any{}
+		d := json.NewDecoder(bytes.NewReader(encoded))
+		d.UseNumber()
+		d.Decode(&decoded)
+		template, _ := json.MarshalIndent(helpExample(decoded), "", "  ")
+		return template, encoded
+	}
 	if operation == "workspace.plan" || operation == "workspace.preflight" || operation == "workspace.provision" {
 		raw, _ := registry.ReadFile("v" + contracts.Version + "/backend-plan.schema.json")
 		var document map[string]any
@@ -220,7 +234,10 @@ func helpExample(original map[string]any) any {
 		out := []any{}
 		if v, ok := n["minItems"].(json.Number); ok && v != "0" {
 			if item, ok := n["items"].(map[string]any); ok {
-				out = append(out, helpExample(item))
+				count, _ := strconv.Atoi(v.String())
+				for i := 0; i < count; i++ {
+					out = append(out, helpExample(item))
+				}
 			}
 		}
 		return out

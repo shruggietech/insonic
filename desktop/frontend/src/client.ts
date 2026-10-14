@@ -9,6 +9,7 @@ export interface Response {
 }
 export interface NativeBridge {
   Show(): Promise<Response>;
+  SetupDraft?(action: string, input: string, requestID: string): Promise<Response>;
   BackendSetup?(action:string,path:string,plan:string,protectedInput:string,mode:string,requestID:string):Promise<Response>;
   CancelOperation?(requestID:string):Promise<boolean>;
   Operate(request: Obj): Promise<Response>;
@@ -73,10 +74,9 @@ export class Client {
   updateRoster(recordingID:string,revision:number,mode:'add'|'remove'|'replace'|'clear',speakers:string[]) {
     return this.call('recordings.roster.'+mode,recordingID,{expected_revision:revision,speakers});
   }
-  async call(operation: string, itemID = '', data?: Obj, signal?:AbortSignal): Promise<any> {
+  async call(operation: string, itemID = '', data?: Obj, signal?:AbortSignal, requestID = uuid()): Promise<any> {
     const workspace = this.workspace,
       generation = this.generation;
-    const requestID=uuid();
     const cancel=()=>{void this.bridge.CancelOperation?.(requestID)};
     if(signal?.aborted) throw new RuntimeError("cancelled","Operation cancelled.");
     signal?.addEventListener("abort",cancel,{once:true});

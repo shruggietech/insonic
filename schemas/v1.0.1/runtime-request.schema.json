@@ -162,7 +162,10 @@
         "workers.setup",
         "processing.readiness",
         "models.defaults",
-        "models.prepare"
+        "models.prepare",
+        "setup.show",
+        "setup.save",
+        "setup.readiness"
       ],
       "description": "Shared operation selected by either client."
     },
@@ -6239,6 +6242,126 @@
           "data"
         ]
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "setup.show",
+              "setup.save",
+              "setup.readiness"
+            ],
+            "description": "Shared optional first-run operation."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "job_id"
+              ]
+            },
+            {
+              "required": [
+                "duration_ms"
+              ]
+            },
+            {
+              "required": [
+                "after_generation"
+              ]
+            },
+            {
+              "required": [
+                "publication_id"
+              ]
+            },
+            {
+              "required": [
+                "source_path"
+              ]
+            },
+            {
+              "required": [
+                "artifact_kind"
+              ]
+            },
+            {
+              "required": [
+                "lease_id"
+              ]
+            },
+            {
+              "required": [
+                "reference_id"
+              ]
+            },
+            {
+              "required": [
+                "max_bytes"
+              ]
+            },
+            {
+              "required": [
+                "item_id"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "enum": [
+              "setup.show",
+              "setup.readiness"
+            ],
+            "description": "Read-only setup inspection."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "data"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "setup.save",
+            "description": "Persist optional journey progress."
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "$ref": "#/$defs/setupSave",
+            "description": "Bounded shared setup save input."
+          }
+        }
+      }
     }
   ],
   "examples": [
@@ -7442,6 +7565,340 @@
         "options": {
           "$ref": "import-manifest.schema.json#/$defs/options",
           "description": "Reusable choices; preset recursion and secret values are prohibited."
+        }
+      }
+    },
+    "setupStage": {
+      "type": "object",
+      "description": "One logical first-run stage with a current configuration observation.",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "state"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "workspace",
+            "backends",
+            "processing",
+            "services",
+            "import"
+          ],
+          "description": "Logical setup stage."
+        },
+        "state": {
+          "enum": [
+            "pending",
+            "completed",
+            "skipped"
+          ],
+          "description": "Saved journey progress; readiness is derived separately."
+        },
+        "proof": {
+          "$ref": "common.schema.json#/$defs/sha256",
+          "description": "Observed nonsecret configuration digest."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "enum": [
+                  "pending",
+                  "completed"
+                ],
+                "description": "Saved stage lifecycle selecting whether a proof is required."
+              }
+            },
+            "required": [
+              "state"
+            ]
+          },
+          "then": {
+            "required": [
+              "proof"
+            ]
+          }
+        }
+      ]
+    },
+    "setupState": {
+      "type": "object",
+      "description": "Bounded portable first-run progress with no secrets, host paths or arbitrary configuration.",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "current_stage",
+        "stages",
+        "choices"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "active",
+            "deferred",
+            "completed"
+          ],
+          "description": "Optional journey lifecycle."
+        },
+        "current_stage": {
+          "enum": [
+            "workspace",
+            "backends",
+            "processing",
+            "services",
+            "import"
+          ],
+          "description": "Stage to reopen."
+        },
+        "stages": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "description": "Exactly one saved record for each logical stage.",
+          "items": {
+            "$ref": "#/$defs/setupStage"
+          },
+          "allOf": [
+            {
+              "contains": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "const": "workspace",
+                    "description": "Exactly one occurrence of this stage identity."
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              },
+              "minContains": 1,
+              "maxContains": 1
+            },
+            {
+              "contains": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "const": "backends",
+                    "description": "Exactly one occurrence of this stage identity."
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              },
+              "minContains": 1,
+              "maxContains": 1
+            },
+            {
+              "contains": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "const": "processing",
+                    "description": "Exactly one occurrence of this stage identity."
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              },
+              "minContains": 1,
+              "maxContains": 1
+            },
+            {
+              "contains": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "const": "services",
+                    "description": "Exactly one occurrence of this stage identity."
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              },
+              "minContains": 1,
+              "maxContains": 1
+            },
+            {
+              "contains": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "const": "import",
+                    "description": "Exactly one occurrence of this stage identity."
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              },
+              "minContains": 1,
+              "maxContains": 1
+            }
+          ],
+          "examples": [
+            [
+              {
+                "id": "workspace",
+                "state": "completed",
+                "proof": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+              },
+              {
+                "id": "backends",
+                "state": "completed",
+                "proof": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+              },
+              {
+                "id": "processing",
+                "state": "pending",
+                "proof": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+              },
+              {
+                "id": "services",
+                "state": "pending",
+                "proof": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+              },
+              {
+                "id": "import",
+                "state": "pending",
+                "proof": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+              }
+            ]
+          ]
+        },
+        "choices": {
+          "type": "object",
+          "description": "Logical processing election only; authoritative settings and work remain separate.",
+          "additionalProperties": false,
+          "required": [
+            "processing_mode"
+          ],
+          "properties": {
+            "processing_mode": {
+              "enum": [
+                "none",
+                "local",
+                "connected",
+                "custom"
+              ],
+              "description": "Explicit optional processing choice."
+            },
+            "pipeline_id": {
+              "$ref": "common.schema.json#/$defs/uuid",
+              "description": "Selected existing pipeline identity."
+            },
+            "pipeline_revision": {
+              "$ref": "common.schema.json#/$defs/revision",
+              "description": "Exact elected pipeline revision."
+            }
+          },
+          "dependentRequired": {
+            "pipeline_id": [
+              "pipeline_revision"
+            ],
+            "pipeline_revision": [
+              "pipeline_id"
+            ]
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "completed",
+                "description": "Completed journey discriminator."
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "stages": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "enum": [
+                        "completed",
+                        "skipped"
+                      ],
+                      "description": "No pending stage remains when the journey is completed."
+                    }
+                  }
+                },
+                "description": "Completed journeys have completed or explicitly skipped stages."
+              }
+            }
+          }
+        }
+      ],
+      "examples": [
+        {
+          "status": "active",
+          "current_stage": "processing",
+          "stages": [
+            {
+              "id": "workspace",
+              "state": "completed",
+              "proof": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+            },
+            {
+              "id": "backends",
+              "state": "completed",
+              "proof": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+            },
+            {
+              "id": "processing",
+              "state": "pending",
+              "proof": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+            },
+            {
+              "id": "services",
+              "state": "pending",
+              "proof": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+            },
+            {
+              "id": "import",
+              "state": "pending",
+              "proof": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+            }
+          ],
+          "choices": {
+            "processing_mode": "none"
+          }
+        }
+      ]
+    },
+    "setupSave": {
+      "type": "object",
+      "description": "Revision-checked metadata save. Effects use their normal existing operations.",
+      "additionalProperties": false,
+      "required": [
+        "expected_revision",
+        "state"
+      ],
+      "properties": {
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Observed current journey setting revision; stable request identity reconciles unknown outcomes."
+        },
+        "state": {
+          "$ref": "#/$defs/setupState",
+          "description": "Accepted nonsecret journey metadata."
         }
       }
     }

@@ -24,6 +24,8 @@ All notable changes to this project will be documented here. The format follows 
 
 - Add shared managed CPU worker setup, exact builtin model acquisition/local reuse, protected token registration and five-task readiness across CLI and desktop Settings. Preserve frozen environments, devices, destinations and settings revisions; package complete optional acquisition metadata and hash locks.
 
+- Add optional, resumable first-run setup across CLI and desktop, with editable library location, backend selection before fresh provisioning, five saved stages and explicit task readiness. Preserve accepted settings and durable work on skip/defer, reconcile repeated saves and reject stale progress writes.
+
 ### Decisions
 
 - 2026-10-11: Keep startup transport separate from detached lifetime: one bounded report, one child wait owner and one ten-second deadline cover the client handshake. Log only generated context, using three bounded data files and a private empty coordination lock; diagnostic input/tool/provider payloads are excluded. Model readiness remains response-only and named file roles come from immutable manifests.
@@ -59,6 +61,8 @@ All notable changes to this project will be documented here. The format follows 
 ### Decisions
 
 - 2026-10-11: Correct the publication verifier's first-page limit after complete qualification and launch together exceeded 100 checks. Keep the qualified immutable v1.0.0 source/tag unchanged and execute the corrected verifier from reviewed protected-main tooling against that ancestor.
+
+- 2026-10-13: Keep first-run orchestration metadata separate from accepted configuration/work. Persist normalized bootstrap identities before provisioning and qualify setup retry/readback plus ordinary import after deferral in native package checks.
 
 ## [1.0.0] - 2026-10-11
 

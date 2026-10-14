@@ -405,7 +405,9 @@ func (a *App) DispatchContext(ctx context.Context, req contracts.Request) contra
 			result, err = a.Catalog.HistoryPage(a.ctx, req.JobID, req.AfterGeneration)
 		}
 	default:
-		if workerOperation(req.Operation) {
+		if req.Operation == "setup.show" || req.Operation == "setup.save" || req.Operation == "setup.readiness" {
+			result, err = a.setupDispatch(ctx, req)
+		} else if workerOperation(req.Operation) {
 			result, err = a.workerDispatch(ctx, req)
 		} else if req.Operation == "query.services" || req.Operation == "query.assistance-test" {
 			result, err = a.serviceReadiness(ctx, req)

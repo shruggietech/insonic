@@ -187,6 +187,14 @@ func humanActions(b *humanBuffer, root map[string]any) {
 			}
 		}
 	}
+	if strings.HasPrefix(op, "setup ") || op == "settings setup" {
+		b.line("Setup is optional; accepted settings and running work remain available.")
+		b.line("Reopen: %s", commandFor("setup show"))
+		b.line("Task prerequisites: %s", commandFor("setup readiness"))
+		if operatorContext.Root != "" {
+			b.line("First import: %s", commandFor("media import \"MEDIA_FILE\""))
+		}
+	}
 	if op == "workspace init" || op == "workspace show" || op == "doctor" {
 		b.line("Client version: %s", contracts.Version)
 		if operatorContext.Root != "" {

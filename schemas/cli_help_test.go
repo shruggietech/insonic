@@ -52,3 +52,10 @@ func TestInputTemplatesMatchPackagedOperations(t *testing.T) {
 		})
 	}
 }
+
+func TestInputHelpHonorsMinimumArrayCardinality(t *testing.T) {
+	value := helpExample(map[string]any{"type": "array", "minItems": json.Number("3"), "items": map[string]any{"type": "integer"}}).([]any)
+	if len(value) != 3 {
+		t.Fatalf("minimum items: %d", len(value))
+	}
+}
