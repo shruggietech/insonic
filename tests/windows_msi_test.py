@@ -277,6 +277,27 @@ class InstallerModelTests(unittest.TestCase):
             self.assertEqual(calls,[]);self.assertEqual(closed,[13,12,11]);closed.clear();image[0]=str(binary)
             proof=module.release_owned_installer_service(initial,install,remove,task,sid,__import__('time').monotonic()+10)
         self.assertEqual(calls,[('graceful-SCM-stop',12)]);self.assertEqual(closed,[13,12,11]);self.assertTrue(proof['restored_initial_stopped_state']);self.assertFalse(proof['process_terminated']);self.assertFalse(proof['registry_hive_forced'])
+    def test_owned_profile_provider_requires_every_absence_and_refuses_foreign_or_live_actors(self):
+        from types import SimpleNamespace
+        import shutil
+        spec=importlib.util.spec_from_file_location('qualify_owned_profile_provider',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.delete_owned_profile_provider(None,None,None)
+        users=self.path/'provider-users';users.mkdir();caller=users/'caller';caller.mkdir();profile=users/'inso_ci_0123456789ab';profile.mkdir();sid='S-1-5-21-1-2-3-1001';calls=[]
+        keys=('provider_absent','registration_absent','user_hive_absent','classes_hive_absent','folder_absent');receipt={'phase':'completed','complete_absence':True,**{key:True for key in keys}}
+        def run(command,**options):calls.append((command,options));return SimpleNamespace(returncode=0,stdout=json.dumps(receipt).encode(),stderr=b'')
+        absent={'hives':{'user':{'present':False,'winerror':2},'_Classes':{'present':False,'winerror':2}},'profile_registration_error':2,'machine_state_modified':False}
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'USERPROFILE':str(caller),'SystemRoot':str(self.path/'Windows')}),patch.object(module,'owned_actor_processes',return_value=[]),patch.object(module,'profile_cleanup_observation',return_value=absent),patch.object(module.subprocess,'CREATE_NO_WINDOW',0x08000000,create=True),patch.object(module.subprocess,'run',side_effect=run):
+            with self.assertRaisesRegex(ValueError,'exact CI-owned account'):module.delete_owned_profile_provider(sid,caller,__import__('time').monotonic()+10)
+            with patch.object(module,'owned_actor_processes',return_value=[{'pid':66}]):
+                with self.assertRaisesRegex(RuntimeError,'processes'):module.delete_owned_profile_provider(sid,profile,__import__('time').monotonic()+10)
+            self.assertEqual(calls,[])
+            receipt['classes_hive_absent']=False
+            with self.assertRaisesRegex(RuntimeError,'every required absence'):module.delete_owned_profile_provider(sid,profile,__import__('time').monotonic()+10)
+            receipt['classes_hive_absent']=True
+            with self.assertRaisesRegex(RuntimeError,'actual owned folder'):module.delete_owned_profile_provider(sid,profile,__import__('time').monotonic()+10)
+            shutil.rmtree(profile);proof=module.delete_owned_profile_provider(sid,profile,__import__('time').monotonic()+10)
+        self.assertTrue(proof['complete_absence']);self.assertEqual(proof['independent_absence'],absent);self.assertNotIn(sid,repr(calls[-1][0]));self.assertEqual(json.loads(calls[-1][1]['input']),{'sid':sid,'profile':str(profile)});self.assertEqual(calls[-1][1]['creationflags'],0x08000000)
     def test_profile_lease_observer_is_exact_sid_readonly_and_does_not_publish_sid_in_argv(self):
         from types import SimpleNamespace
         spec=importlib.util.spec_from_file_location('qualify_profile_lease',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
@@ -487,7 +508,7 @@ class InstallerModelTests(unittest.TestCase):
         def release(initial,install,remove,task,sid,deadline):
             self.assertEqual(initial,ownership);self.assertEqual(sid,actor_sid);self.assertEqual(task['exit_code'],0);self.assertEqual(json.loads(install.read_text())['action'],'/i');self.assertEqual(json.loads(remove.read_text())['action'],'/x');events.append('owned-service-restored');return {'restored_initial_stopped_state':True,'process_terminated':False,'registry_hive_forced':False}
         def lease(sid,profile,deadline):events.append('profile-lease-observed');return {'machine_state_modified':False}
-        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'qualifier_profile_privileges',side_effect=lambda:nullcontext({'ordinary_actor_token_changed':False})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch.object(module,'disposable_server_installer_policy',return_value=nullcontext({'restored':True,'always_install_elevated_unchanged':True})),patch.object(module,'profile_cleanup_observation',return_value={'machine_state_modified':False}),patch.object(module,'profile_lease_observation',side_effect=lease),patch.object(module,'release_owned_installer_service',side_effect=release),patch.object(C,'get_last_error',return_value=32,create=True),patch.object(module.time,'sleep'):
+        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'qualifier_profile_privileges',side_effect=lambda:nullcontext({'ordinary_actor_token_changed':False})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch.object(module,'disposable_server_installer_policy',return_value=nullcontext({'restored':True,'always_install_elevated_unchanged':True})),patch.object(module,'profile_cleanup_observation',return_value={'machine_state_modified':False}),patch.object(module,'profile_lease_observation',side_effect=lease),patch.object(module,'release_owned_installer_service',side_effect=release),patch.object(module,'delete_owned_profile_provider',return_value={'complete_absence':False}),patch.object(C,'get_last_error',return_value=32,create=True),patch.object(module.time,'sleep'):
             proof=module.ordinary_context(installer,self.path/'installation',output,self.model,ownership)
         self.assertEqual(events,['account-created','profile-created-by-native-load','owned-batch-added','ordinary-task-completed','profile-handle-unloaded','owned-batch-restored','profile-lease-observed','owned-service-restored','profile-lease-observed','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3);self.assertEqual(rights,[])
         self.assertTrue(all(item.get('deleted',item.get('restored',item.get('unloaded'))) for item in proof['cleanup']));self.assertEqual((original/'owner-data').read_bytes(),b'keep');self.assertEqual((programdata/'owner-data').read_bytes(),b'keep')

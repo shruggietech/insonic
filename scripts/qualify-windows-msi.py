@@ -982,6 +982,55 @@ def profile_lease_observation(sid,profile,deadline=None):
     for event in observed.get('events',[]):event['message']=__import__('re').sub(r'S-1-(?:[0-9]+-)*[0-9]+',lambda match:'SID_SHA256_'+m.digest(match.group().encode()),event['message'])
     observed['sid_sha256']=m.digest(sid.encode());return observed
 
+PROFILE_PROVIDER_DELETE=r'''
+$ErrorActionPreference='Stop'
+[Console]::InputEncoding=[Text.UTF8Encoding]::new($false);[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)
+$result=@{method='Remove-CimInstance exact owned Win32_UserProfile';complete_absence=$false;phase='starting';forced_hive_unload=$false;foreign_process_stopped=$false}
+try {
+  $request=([Console]::In.ReadToEnd()|ConvertFrom-Json);$sid=[string]$request.sid;$path=[IO.Path]::GetFullPath([string]$request.profile)
+  if ($sid -notmatch '^S-1-5-21-(?:[0-9]+-){3}[0-9]+$') { throw 'invalid owned SID' }
+  $result.phase='exact-provider-query'
+  $profiles=@(Get-CimInstance -ClassName Win32_UserProfile -Filter ("SID='"+$sid+"'"))
+  if ($profiles.Count -ne 1) { throw 'expected exactly one owned profile instance' }
+  $profile=$profiles[0]
+  if ($profile.SID -ne $sid -or $profile.Special -or -not [string]::Equals([IO.Path]::GetFullPath($profile.LocalPath),$path,[StringComparison]::OrdinalIgnoreCase)) { throw 'provider profile identity differs' }
+  $result.before=@{loaded=$profile.Loaded;ref_count=$profile.refCount;special=$profile.Special;status=$profile.Status}
+  $result.phase='exact-provider-delete'
+  Remove-CimInstance -InputObject $profile -Confirm:$false -OperationTimeoutSec 2 -ErrorAction Stop
+  $result.phase='verify-complete-absence'
+  $remaining=@(Get-CimInstance -ClassName Win32_UserProfile -Filter ("SID='"+$sid+"'"))
+  $result.provider_absent=($remaining.Count -eq 0)
+  $result.registration_absent=(-not (Test-Path -LiteralPath ('Registry::HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\'+$sid)))
+  $result.user_hive_absent=(-not (Test-Path -LiteralPath ('Registry::HKEY_USERS\'+$sid)))
+  $result.classes_hive_absent=(-not (Test-Path -LiteralPath ('Registry::HKEY_USERS\'+$sid+'_Classes')))
+  $result.folder_absent=(-not (Test-Path -LiteralPath $path))
+  $result.complete_absence=($result.provider_absent -and $result.registration_absent -and $result.user_hive_absent -and $result.classes_hive_absent -and $result.folder_absent)
+  $result.phase='completed'
+} catch { $result.failed_boundary=$result.phase;$result.phase='failed';$result.hresult=$_.Exception.HResult;$result.error=$_.Exception.Message }
+$result|ConvertTo-Json -Depth 5 -Compress
+'''
+
+def delete_owned_profile_provider(sid,profile,deadline):
+    """Ask the documented provider to delete one fully authenticated CI profile."""
+    m.disposable_runner();validate_account_profile(Path(profile).name,profile)
+    if not __import__('re').fullmatch(r'S-1-5-21-(?:[0-9]+-){3}[0-9]+',sid):raise ValueError('profile provider deletion requires the exact owned SID')
+    if owned_actor_processes(sid):raise RuntimeError('owned actor still has processes; provider deletion refused')
+    import base64
+    remaining=deadline-time.monotonic()
+    if remaining<=0:return {'complete_absence':False,'deadline_expired':True}
+    executable=Path(os.environ['SystemRoot'])/'System32/WindowsPowerShell/v1.0/powershell.exe'
+    try:result=subprocess.run([str(executable),'-NoLogo','-NoProfile','-NonInteractive','-EncodedCommand',base64.b64encode(PROFILE_PROVIDER_DELETE.encode('utf-16le')).decode('ascii')],input=json.dumps({'sid':sid,'profile':str(profile)}).encode('utf-8'),stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=min(4,remaining))
+    except subprocess.TimeoutExpired:return {'complete_absence':False,'provider_timeout':True}
+    if result.returncode:return {'complete_absence':False,'provider_exit':result.returncode}
+    proof=json.loads(result.stdout.decode('utf-8-sig'))
+    absent_keys=('provider_absent','registration_absent','user_hive_absent','classes_hive_absent','folder_absent')
+    if proof.get('complete_absence') is True and (proof.get('phase')!='completed' or not all(proof.get(key) is True for key in absent_keys)):raise RuntimeError('profile provider did not prove every required absence')
+    if proof.get('complete_absence') is True:
+        actual=profile_cleanup_observation(sid,profile)
+        if Path(profile).exists() or actual.get('profile_registration_error')!=2 or any(actual.get('hives',{}).get(key,{}).get('present') is not False or actual['hives'][key].get('winerror')!=2 for key in ('user','_Classes')):raise RuntimeError('profile provider success differs from actual owned folder/registration/hive absence')
+        proof['independent_absence']=actual
+    proof['sid_sha256']=m.digest(sid.encode());return proof
+
 def owned_actor_processes(sid):
     """Observe exact account processes for profile cleanup, never stop any."""
     m.disposable_runner()
@@ -1182,6 +1231,9 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
                 except BaseException as error:
                     cleanup.append({'object':'owned Installer service activation','restored':False,'error_type':type(error).__name__,'error':str(error)})
                     if failure is None:failure=error
+            if not deleted and delete_errors[-1]==32 and failure is None:
+                lease['provider_delete']=delete_owned_profile_provider(sid,profile,deadline)
+                deleted=lease['provider_delete'].get('complete_absence') is True
             for _ in range(49):
                 if deleted or time.monotonic()>=deadline:break
                 if profiles.DeleteProfileW(sid,str(profile),None):deleted=True;break

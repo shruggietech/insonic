@@ -126,3 +126,5 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 
 - [x] T067 [US2] Restore only a proven disposable-fixture Installer service activation through ownership-checked graceful SCM control within the existing profile cleanup deadline, retaining exact profile lease observations and refusal tests.
 - [x] T068 Seed the active-capacity test durable claims in one transaction while preserving real first acceptance, production attachment/TTL, full-capacity rejection and reconciliation in internal/app/capacity_test.go.
+
+- [x] T069 [US2] Request supported deletion of only the authenticated disposable profile provider instance and independently verify all profile/registry/hive/folder absences within the existing deadline.
