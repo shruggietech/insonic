@@ -181,3 +181,42 @@ func Preflight(directory, selection string) error {
 	}
 	return NoActiveClients(directory)
 }
+
+func maintenanceRoots(directory, registered string) ([]string, error) {
+	physical, e := canonicalPath(directory)
+	if e != nil {
+		return nil, errors.New("cannot resolve the program directory; correct its aliases before maintenance")
+	}
+	roots := []string{physical}
+	if registered == "" {
+		return roots, nil
+	}
+	if !filepath.IsAbs(registered) || filepath.Dir(filepath.Clean(registered)) == filepath.Clean(registered) {
+		return nil, errors.New("registered installation directory is invalid; correct it before maintenance")
+	}
+	previous, e := canonicalPath(registered)
+	if e != nil {
+		return nil, errors.New("cannot resolve the registered installation directory before maintenance")
+	}
+	if !strings.EqualFold(physical, previous) {
+		roots = append(roots, previous)
+	}
+	return roots, nil
+}
+
+func shortcutCollision(path string, owned bool) error {
+	if !filepath.IsAbs(path) || !strings.EqualFold(filepath.Ext(path), ".lnk") {
+		return errors.New("installer shortcut path is invalid")
+	}
+	info, e := os.Lstat(path)
+	if os.IsNotExist(e) {
+		return nil
+	}
+	if e != nil {
+		return errors.New("cannot inspect the selected shortcut before installation")
+	}
+	if !info.Mode().IsRegular() || !owned {
+		return errors.New("the selected shortcut already exists outside MSI ownership; deselect that integration or move the existing shortcut before retrying")
+	}
+	return nil
+}

@@ -27,7 +27,7 @@ func Launch(p Plan) error {
 		cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: windows.CREATE_NO_WINDOW}
 	} else {
 		// A visible persistent terminal is an explicitly elected human launcher action.
-		// Automated checks only use --describe/--preflight and never call this path.
+		// Actual automated launch checks run only on disposable CI runners.
 		cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: windows.CREATE_NEW_CONSOLE, CmdLine: p.CommandLine}
 		cmd.Env = os.Environ()
 		for k, v := range p.Environment {
@@ -37,9 +37,13 @@ func Launch(p Plan) error {
 	return cmd.Start()
 }
 func NoActiveClients(directory string) error {
-	physical, e := canonicalPath(directory)
+	registered, e := registeredDirectory()
 	if e != nil {
-		return errors.New("cannot resolve the program directory; correct its aliases before maintenance")
+		return errors.New("cannot read the registered installation directory before maintenance")
+	}
+	roots, e := maintenanceRoots(directory, registered)
+	if e != nil {
+		return e
 	}
 	snapshot, e := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
 	if e != nil {
@@ -60,11 +64,13 @@ func NoActiveClients(directory string) error {
 				if er == nil {
 					image := windows.UTF16ToString(buf[:n])
 					resolved, er := canonicalProcessImage(image)
-					if er != nil && (containsPath(physical, image) || containsPath(directory, image)) {
-						return errors.New("cannot resolve an active process path; finish work, close clients and retry maintenance")
-					}
-					if er == nil && containsPath(physical, resolved) {
-						return errors.New("active clients or runtime use this installation; finish work, close them and retry maintenance")
+					for _, root := range roots {
+						if er != nil && (containsPath(root, image) || containsPath(directory, image) || (registered != "" && containsPath(registered, image))) {
+							return errors.New("cannot resolve an active process path; finish work, close clients and retry maintenance")
+						}
+						if er == nil && containsPath(root, resolved) {
+							return errors.New("active clients or runtime use this installation; finish work, close them and retry maintenance")
+						}
 					}
 				}
 			}
@@ -78,14 +84,28 @@ func NoActiveClients(directory string) error {
 }
 
 // Installer registration is the repair authority if an owned marker is damaged.
-func registeredInstallation(directory string) bool {
+func registeredDirectory() (string, error) {
 	k, e := registry.OpenKey(registry.CURRENT_USER, `Software\ShruggieTech\insonic`, registry.QUERY_VALUE|registry.WOW64_64KEY)
+	if errors.Is(e, registry.ErrNotExist) {
+		return "", nil
+	}
 	if e != nil {
-		return false
+		return "", e
 	}
 	defer k.Close()
 	saved, _, e := k.GetStringValue("InstallDir")
+	if errors.Is(e, registry.ErrNotExist) {
+		return "", nil
+	}
 	if e != nil || !filepath.IsAbs(saved) {
+		return "", errors.New("registered installation directory is invalid")
+	}
+	return saved, nil
+}
+
+func registeredInstallation(directory string) bool {
+	saved, e := registeredDirectory()
+	if e != nil || saved == "" {
 		return false
 	}
 	physical, e := canonicalPath(directory)
@@ -94,4 +114,30 @@ func registeredInstallation(directory string) bool {
 	}
 	registered, e := canonicalPath(saved)
 	return e == nil && strings.EqualFold(physical, registered)
+}
+
+func CheckShortcut(path, component string) error {
+	switch component {
+	case "GuiMenu", "CliMenu", "GuiDesktop":
+	default:
+		return errors.New("installer shortcut component is invalid")
+	}
+	saved, e := registeredDirectory()
+	if e != nil {
+		return errors.New("cannot verify selected shortcut ownership before installation")
+	}
+	owned := false
+	if saved != "" {
+		k, e := registry.OpenKey(registry.CURRENT_USER, `Software\ShruggieTech\insonic`, registry.QUERY_VALUE|registry.WOW64_64KEY)
+		if e != nil {
+			return errors.New("cannot verify selected shortcut ownership before installation")
+		}
+		value, _, e := k.GetIntegerValue(component)
+		k.Close()
+		if e != nil && !errors.Is(e, registry.ErrNotExist) {
+			return errors.New("cannot verify selected shortcut ownership before installation")
+		}
+		owned = e == nil && value == 1
+	}
+	return shortcutCollision(path, owned)
 }

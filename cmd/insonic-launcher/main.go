@@ -22,6 +22,13 @@ func run(args []string) int {
 		json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "passed", "active_clients": "absent", "scope": "per-user"})
 		return 0
 	}
+	if len(args) == 3 && args[0] == "--check-shortcut" {
+		if e := launcher.CheckShortcut(args[1], args[2]); e != nil {
+			return fail(e)
+		}
+		json.NewEncoder(os.Stdout).Encode(map[string]any{"status": "passed", "shortcut_ownership": "verified", "scope": "per-user"})
+		return 0
+	}
 	describe := false
 	mode := ""
 	for _, a := range args {
@@ -39,7 +46,7 @@ func run(args []string) int {
 			}
 			mode = "cli"
 		default:
-			return fail(fmt.Errorf("use --desktop, --cli, --describe or --preflight DIRECTORY SELECTION"))
+			return fail(fmt.Errorf("use --desktop, --cli, --describe, --preflight DIRECTORY SELECTION or --check-shortcut FILE COMPONENT"))
 		}
 	}
 	exe, e := os.Executable()

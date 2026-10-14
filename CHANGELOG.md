@@ -27,6 +27,7 @@ All notable changes to this project will be documented here. The format follows 
 - Add optional, resumable first-run setup across CLI and desktop, with editable library location, backend selection before fresh provisioning, five saved stages and explicit task readiness. Preserve accepted settings and durable work on skip/defer, reconcile repeated saves and reject stale progress writes.
 
 - Add an unsigned per-user Windows MSI with selectable Desktop/CLI clients, optional branded integrations, transactional maintenance and a useful selected-client launcher. Preserve the four archive choices and add independent MSI payload/source qualification.
+- Preserve explicitly selected program locations during upgrades, check active work in both installation roots and refuse unrelated exact-name shortcut replacement.
 - Keep desktop grid content aligned to the start of its viewport so tall windows do not stretch setup and form rows into blank gaps.
 - Add version-matched unsigned Windows installation guidance and repeatable headless application/native installer capture tooling with explicit renderer, fixture and exact-source receipts.
 

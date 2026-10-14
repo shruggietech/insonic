@@ -184,3 +184,57 @@ func TestOwnedDirectoryAndSelection(t *testing.T) {
 		}
 	}
 }
+
+func TestMaintenanceIncludesRegisteredRootWhenUpgradeMovesProgramFiles(t *testing.T) {
+	previous := t.TempDir()
+	target := filepath.Join(t.TempDir(), "new program location")
+	roots, e := maintenanceRoots(target, previous)
+	if e != nil || len(roots) != 2 {
+		t.Fatal("moving upgrade lost an installation root", roots, e)
+	}
+	oldImage, e := canonicalProcessImage(filepath.Join(previous, "active-owned-fixture.exe"))
+	if e != nil {
+		t.Fatal(e)
+	}
+	if containsPath(roots[0], oldImage) || !containsPath(roots[1], oldImage) {
+		t.Fatal("previous active image was not covered", roots)
+	}
+	alias := filepath.Join(t.TempDir(), "previous alias")
+	directoryAlias(t, previous, alias)
+	roots, e = maintenanceRoots(alias, previous)
+	if e != nil || len(roots) != 1 {
+		t.Fatal("same physical root was not deduplicated", roots, e)
+	}
+	for _, invalid := range []string{"relative-registration", filepath.VolumeName(previous) + string(os.PathSeparator)} {
+		if _, e := maintenanceRoots(target, invalid); e == nil {
+			t.Fatal("invalid previous registration accepted", invalid)
+		}
+	}
+}
+
+func TestShortcutCollisionsRequireExistingMSIOwnership(t *testing.T) {
+	link := filepath.Join(t.TempDir(), "insonic CLI.lnk")
+	if e := shortcutCollision(link, false); e != nil {
+		t.Fatal("absent integration was blocked", e)
+	}
+	if e := os.WriteFile(link, []byte("unrelated shortcut fixture, never executed"), 0600); e != nil {
+		t.Fatal(e)
+	}
+	if e := shortcutCollision(link, false); e == nil {
+		t.Fatal("unrelated exact-name shortcut would be overwritten")
+	}
+	if e := shortcutCollision(link, true); e != nil {
+		t.Fatal("registered MSI integration cannot be maintained", e)
+	}
+	data, e := os.ReadFile(link)
+	if e != nil || string(data) != "unrelated shortcut fixture, never executed" {
+		t.Fatal("read-only shortcut check changed bytes", e)
+	}
+	directory := filepath.Join(t.TempDir(), "directory.lnk")
+	if e := os.Mkdir(directory, 0700); e != nil {
+		t.Fatal(e)
+	}
+	if e := shortcutCollision(directory, true); e == nil {
+		t.Fatal("non-file collision was accepted")
+	}
+}

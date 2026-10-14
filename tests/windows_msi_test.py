@@ -50,6 +50,24 @@ class InstallerModelTests(unittest.TestCase):
     def test_preflight_before_changes_and_no_restart_shutdown(self):
         sequence={r[0]:r[2] for r in self.model['tables']['InstallExecuteSequence']};self.assertLess(sequence['Preflight'],sequence['InstallInitialize']);self.assertEqual(dict(self.model['tables']['Property'])['MSIRESTARTMANAGERCONTROL'],'Disable')
         self.assertEqual(next(r[3] for r in self.model['tables']['CustomAction'] if r[0]=='Preflight'),'--preflight "[INSTALLDIR]." both')
+    def test_saved_directory_is_only_a_non_overriding_fallback(self):
+        tables=self.model['tables'];search=dict(tables['AppSearch'])
+        self.assertEqual(search['SAVED_INSTALLDIR'],'SavedInstall');self.assertNotIn('INSTALLDIR',search)
+        self.assertEqual(next(r[1:] for r in tables['CustomAction'] if r[0]=='RestoreInstallDir'),[51,'INSTALLDIR','[SAVED_INSTALLDIR]'])
+        for name in ('InstallUISequence','InstallExecuteSequence'):
+            sequence={r[0]:r for r in tables[name]}
+            self.assertEqual(sequence['RestoreInstallDir'][1],'SAVED_INSTALLDIR AND NOT INSTALLDIR')
+            self.assertLess(sequence['AppSearch'][2],sequence['RestoreInstallDir'][2]);self.assertLess(sequence['RestoreInstallDir'][2],sequence['CostInitialize'][2])
+        secure=set(dict(tables['Property'])['SecureCustomProperties'].split(';'))
+        self.assertTrue({'INSTALLDIR','SAVED_INSTALLDIR','LICENSE_ACCEPTED'}<=secure)
+    def test_exact_shortcut_names_checked_before_install_changes(self):
+        tables=self.model['tables'];actions={r[0]:r for r in tables['CustomAction']};sequence={r[0]:r for r in tables['InstallExecuteSequence']}
+        checks=[('CheckGuiMenu','[InsonicMenu]insonic.lnk','GuiMenu','START_MENU=1 AND &Desktop=3'),('CheckCliMenu','[InsonicMenu]insonic CLI.lnk','CliMenu','START_MENU=1 AND &CLI=3'),('CheckGuiDesktop','[DesktopFolder]insonic.lnk','GuiDesktop','DESKTOP_SHORTCUT=1 AND &Desktop=3')]
+        for action,path,component,condition in checks:
+            self.assertEqual(actions[action][1:],[2,'Launcher','--check-shortcut "'+path+'" '+component])
+            self.assertEqual(sequence[action][1],condition)
+            self.assertLess(sequence['Preflight'][2],sequence[action][2]);self.assertLess(sequence[action][2],sequence['InstallValidate'][2])
+        self.assertIn('deselect its Start menu or Desktop integration',dict(tables['Error'])[1722])
     def test_unchecked_shortcuts_normalize_before_transfer_and_costing(self):
         actions={r[0]:r for r in self.model['tables']['CustomAction']}
         self.assertEqual(actions['NormalizeStartMenu'][1:],[51,'START_MENU','0']);self.assertEqual(actions['NormalizeDesktopShortcut'][1:],[51,'DESKTOP_SHORTCUT','0'])
@@ -79,7 +97,7 @@ class InstallerModelTests(unittest.TestCase):
     def test_cancel_and_context_entrypoints_reject_owner_host_before_native_calls(self):
         spec=importlib.util.spec_from_file_location('qualify_msi_guard',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with patch.dict(os.environ,{},clear=True):
-            for function,args in [(module.token_info,()),(module.restricted_context,(None,None,None)),(module.restricted_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,()),(module.service_diagnostic,()),(module.native_installer_worker,(None,)),(module.native_installer_dll,(None,)),(module.run_installer,(['/i','unused'],None))]:
+            for function,args in [(module.token_info,()),(module.restricted_context,(None,None,None)),(module.restricted_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,()),(module.service_diagnostic,()),(module.native_installer_worker,(None,)),(module.native_installer_dll,(None,)),(module.run_installer,(['/i','unused'],None)),(module.create_removal_sentinels,()),(module.assert_removal_sentinels,(None,)),(module.clean_removal_sentinels,(None,))]:
                 with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
         self.assertIn('cancellation_rollback',m.QUALIFICATION_KEYS);self.assertIn('user_context',m.QUALIFICATION_KEYS)
     def test_native_capture_requires_verified_clean_nonempty_source(self):
@@ -113,6 +131,25 @@ class InstallerModelTests(unittest.TestCase):
             self.assertEqual(evidence['phase'],'completed');self.assertEqual(evidence['exit_code'],expected_code);self.assertIs(evidence['captured_pipes'],False)
             if state is not None:self.assertEqual(calls[-1][1][2],state)
             if action=='/fa':self.assertIn('REINSTALLMODE="amus"',calls[-1][1][-1])
+    def test_intentional_rejection_requires_message_and_correct_action(self):
+        spec=importlib.util.spec_from_file_location('qualify_rejection_proof',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        log=self.path/'rejected.log'
+        log.write_text('DEBUG: Error 2228: Unknown table Signature\nAction ended 3:12:57: AppSearch. Return value 3.\n',encoding='utf-16')
+        with self.assertRaisesRegex(RuntimeError,'intended'):module.assert_rejection(log,'Read and accept Apache License 2.0')
+        log.write_text('Read and accept Apache License 2.0\nAction ended 3:12:57: AppSearch. Return value 3.\n',encoding='utf-16')
+        with self.assertRaisesRegex(RuntimeError,'intended'):module.assert_rejection(log,'Read and accept Apache License 2.0')
+        log.write_text('Read and accept Apache License 2.0\nAction ended 3:12:57: LaunchConditions. Return value 3.\n',encoding='utf-16')
+        self.assertEqual(module.assert_rejection(log,'Read and accept Apache License 2.0'),'Read and accept Apache License 2.0')
+    def test_required_empty_search_table_definitions_are_authored(self):
+        for table in ('Signature','CompLocator','IniLocator','DrLocator','ActionText'):
+            self.assertIn(table,self.model['tables']);self.assertEqual(self.model['tables'][table],[])
+    def test_alternate_directory_proof_rejects_registry_override(self):
+        spec=importlib.util.spec_from_file_location('qualify_directory_proof',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        log=self.path/'alternate-directory.log';target=r'C:\fixture spaces é\alternate'
+        log.write_text("PROPERTY CHANGE: Adding INSTALLDIR property. Its value is '"+target+"'.\n",encoding='utf-16')
+        module.assert_effective_directory(log,target+'\\')
+        log.write_text("PROPERTY CHANGE: Adding INSTALLDIR property. Its value is '"+target+"'.\nPROPERTY CHANGE: Modifying INSTALLDIR property. Its new value is 'C:\\registered old directory'.\n",encoding='utf-16')
+        with self.assertRaisesRegex(ValueError,'did not retain'):module.assert_effective_directory(log,target)
     def test_bad_compound_and_cabinet_rejected(self):
         p=self.path/'invalid.msi';p.write_bytes(b'not an MSI')
         with self.assertRaises(ValueError):m.CompoundFile(p)
@@ -140,6 +177,11 @@ class InstallerModelTests(unittest.TestCase):
         relations={row[6]:row for row in m.table_rows(streams,'Upgrade')}
         self.assertEqual(relations['OLDPRODUCTS'],[upgrade,None,'1.0.2',None,1,None,'OLDPRODUCTS'])
         self.assertEqual(relations['NEWPRODUCTS'],[upgrade,'1.0.2',None,None,2,None,'NEWPRODUCTS'])
+        self.assertEqual(dict(m.table_rows(streams,'AppSearch'))['SAVED_INSTALLDIR'],'SavedInstall')
+        self.assertNotIn('INSTALLDIR',dict(m.table_rows(streams,'AppSearch')))
+        self.assertEqual(next(r[1:] for r in m.table_rows(streams,'CustomAction') if r[0]=='RestoreInstallDir'),[51,'INSTALLDIR','[SAVED_INSTALLDIR]'])
+        for table in ('InstallUISequence','InstallExecuteSequence'):
+            self.assertEqual(next(r[1] for r in m.table_rows(streams,table) if r[0]=='RestoreInstallDir'),'SAVED_INSTALLDIR AND NOT INSTALLDIR')
         self.assertEqual(m.cabinet_members(streams['payload.cab']),m.cabinet_members(m.CompoundFile(original).streams['payload.cab']))
     @unittest.skipUnless(os.name=='nt','native database authoring Windows only, no UI')
     def test_signed_payload_and_unsigned_msi_are_independent(self):
@@ -160,6 +202,8 @@ class InstallerModelTests(unittest.TestCase):
     @unittest.skipUnless(os.name=='nt','native database authoring Windows only, no UI')
     def test_native_actual_tables_and_cabinet_independently_verified(self):
         path=self.path/'fixture.msi';m.author(path,self.path,self.model);result=m.verify_model_bytes(path,self.model);self.assertEqual(len(result['members']),len(self.model['payload']))
+        catalog={row[0] for row in m.table_rows(result['streams'],'_Tables')}
+        self.assertTrue({'Signature','CompLocator','IniLocator','DrLocator','ActionText'}<=catalog)
         db=m.NativeDatabase(path,write=True)
         try:
             q=m.quote;db.execute('UPDATE '+q('CustomAction')+' SET '+q('Target')+'=? WHERE '+q('Action')+'=?',['--cli','LaunchDesktop']);db.check(db.dll.MsiDatabaseCommit(db.handle))

@@ -10,3 +10,6 @@ func Launch(Plan) error                { return errors.New("Windows launcher req
 func NoActiveClients(string) error     { return errors.New("Windows installer preflight requires Windows") }
 
 func registeredInstallation(string) bool { return false }
+func CheckShortcut(string, string) error {
+	return errors.New("Windows installer shortcut checks require Windows")
+}

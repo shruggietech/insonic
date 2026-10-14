@@ -82,3 +82,7 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 - [x] T036 Hold only synthetic completion timers while exercising real durable active-capacity attempts in internal/app/capacity_test.go; keep the portable capture-source test independent of Windows subprocess constants.
 - [x] T037 [US4] Bound capture phases and cleanup, create conventional isolated Windows profile directories, and retain failure diagnostics in scripts/capture-application-ui.mjs and native-qualification.yml.
 - [x] T038 [US4] Reject untracked capture inputs and modified embedded Go builds, with a temporary repository regression for final external review.
+
+- [x] T039 [US2] Author and independently verify required empty AppSearch locator tables and require intended negative-case messages/actions in scripts/windows_msi.py and scripts/qualify-windows-msi.py.
+- [x] T040 [US2] Preserve explicit install-directory elections and check both incoming and registered installation roots during moving upgrades, with canonical-path and disposable active-process regressions.
+- [x] T041 [US2] Refuse elected exact-name shortcut collisions outside MSI ownership, and verify preservation of unrelated sibling shortcuts and registry values during actual CI lifecycle.

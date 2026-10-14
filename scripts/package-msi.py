@@ -56,9 +56,9 @@ if __name__=='__main__':
         output,receipt=build(args.payload,args.receipt)
     else:
         receipt=json.loads((ROOT/'build/native/windows-installer-receipt.json').read_text(encoding='utf-8'));output=ROOT/'build/packages'/receipt['artifact']
-    if args.stage in ('qualify','all'):
-        qualify=load('qualify_windows_msi','qualify-windows-msi.py');receipt['qualification'].update(qualify.qualify(output,receipt));write(receipt)
     if args.stage in ('capture','all'):
         capture=load('capture_installer_ui','capture-installer-ui.py');capture.capture(output,receipt);receipt['qualification']['native_ui_capture']='passed';write(receipt)
+    if args.stage in ('qualify','all'):
+        qualify=load('qualify_windows_msi','qualify-windows-msi.py');receipt['qualification'].update(qualify.qualify(output,receipt));write(receipt)
     if args.stage=='all':m.verify_installer(output,receipt)
     print(json.dumps({'artifact':receipt['artifact'],'sha256':receipt['artifact_sha256'],'qualification':receipt['qualification']}))

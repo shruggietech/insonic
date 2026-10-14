@@ -95,7 +95,20 @@ def native_installer_worker(request_path):
     else:raise ValueError('unsupported native Installer lifecycle operation')
     record('completed',exit_code=rc,ui_level='NONE',log_mode='VERBOSE',service=service_diagnostic())
 
-def run_installer(args,log,expected=True):
+def assert_rejection(log,expected_reason,expected_action='LaunchConditions'):
+    text=Path(log).read_text(encoding='utf-16',errors='replace')
+    if expected_reason not in text or not __import__('re').search(r'Action ended[^\r\n]*'+__import__('re').escape(expected_action)+r'\. Return value 3\.',text):raise RuntimeError('MSI failed before the intended '+expected_action+' rejection: '+str(log))
+    return expected_reason
+
+def assert_effective_directory(log,expected):
+    """Require engine evidence that registry discovery did not override a target."""
+    text=Path(log).read_text(encoding='utf-16',errors='replace');re=__import__('re');paths=__import__('ntpath')
+    values=re.findall(r'PROPERTY CHANGE: (?:Adding|Modifying) INSTALLDIR property\. Its (?:value|new value) is \'([^\']*)\'\.',text)
+    final=re.findall(r'Property\(S\): INSTALLDIR = ([^\r\n]*)',text)
+    value=final[-1] if final else values[-1] if values else None
+    if value is None or paths.normcase(paths.normpath(value))!=paths.normcase(paths.normpath(str(expected))):raise ValueError('MSI engine did not retain the explicit alternate installation directory')
+
+def run_installer(args,log,expected=True,rejection_reason=None,rejection_action='LaunchConditions'):
     m.disposable_runner();args=list(map(str,args));log=Path(log);log.parent.mkdir(parents=True,exist_ok=True)
     if len(args)<2 or args[0] not in ('/i','/x','/fa'):raise ValueError('unsupported native Installer lifecycle operation')
     request={'action':args[0],'subject':args[1],'properties':args[2:],'log':str(log)};installer_properties(request['properties'])
@@ -116,6 +129,7 @@ def run_installer(args,log,expected=True):
     code=phase['exit_code']
     if expected and code!=0:raise RuntimeError('MSI lifecycle failed '+str(code)+': '+str(log))
     if not expected and code==0:raise RuntimeError('MSI accepted intentionally invalid fixture: '+str(log))
+    if not expected and rejection_reason is not None:assert_rejection(log,rejection_reason,rejection_action)
     return code
 
 def child(args,env,cwd):
@@ -138,6 +152,37 @@ def assert_unchecked_shortcuts():
     menu=Path(os.environ['APPDATA'])/'Microsoft/Windows/Start Menu/Programs/insonic'
     desktop=Path(os.environ['USERPROFILE'])/'Desktop'
     if any(path.exists() for path in (menu/'insonic.lnk',menu/'insonic CLI.lnk',desktop/'insonic.lnk')):raise ValueError('upgrade re-enabled an unchecked shortcut integration')
+
+def create_removal_sentinels():
+    """Fixture-owned siblings test exact integration removal, never blanket cleanup."""
+    m.disposable_runner()
+    import winreg
+    name='insonic-ci-unrelated-'+uuid.uuid4().hex
+    content=b'unrelated owner integration preserved by exact MSI removal'
+    menu=Path(os.environ['APPDATA'])/'Microsoft/Windows/Start Menu/Programs/insonic'
+    desktop=Path(os.environ['USERPROFILE'])/'Desktop'
+    files=[menu/(name+'.lnk'),desktop/(name+'.lnk')]
+    for path in files:
+        path.parent.mkdir(parents=True,exist_ok=True)
+        with path.open('xb') as stream:stream.write(content)
+    with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER,r'Software\ShruggieTech\insonic',0,winreg.KEY_SET_VALUE|winreg.KEY_WOW64_64KEY) as key:
+        winreg.SetValueEx(key,name,0,winreg.REG_SZ,content.decode('ascii'))
+    return {'files':files,'registry_value':name,'content':content}
+
+def assert_removal_sentinels(sentinels):
+    m.disposable_runner()
+    import winreg
+    if any(not path.is_file() or path.read_bytes()!=sentinels['content'] for path in sentinels['files']):raise ValueError('MSI modified an unrelated shortcut/file sibling')
+    with winreg.OpenKey(winreg.HKEY_CURRENT_USER,r'Software\ShruggieTech\insonic',0,winreg.KEY_READ|winreg.KEY_WOW64_64KEY) as key:
+        if winreg.QueryValueEx(key,sentinels['registry_value'])[0]!=sentinels['content'].decode('ascii'):raise ValueError('MSI modified an unrelated registry value')
+
+def clean_removal_sentinels(sentinels):
+    m.disposable_runner()
+    import winreg
+    for path in sentinels['files']:path.unlink(missing_ok=True)
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,r'Software\ShruggieTech\insonic',0,winreg.KEY_SET_VALUE|winreg.KEY_WOW64_64KEY) as key:winreg.DeleteValue(key,sentinels['registry_value'])
+    except FileNotFoundError:pass
 
 def installed_hashes(directory,model,desktop):
     for f in model['payload']:
@@ -378,19 +423,27 @@ def qualify(path,receipt):
         env=dict(os.environ);env.update({'APPDATA':str(profile/'Roaming'),'LOCALAPPDATA':str(profile/'Local')});env.pop('INSONIC_DESKTOP_FIXTURE_DIRECTORY',None)
         old=tmp/'old.msi';new=tmp/'new.msi';bad=tmp/'failed-upgrade.msi';missing=tmp/'missing-prerequisite.msi'
         clone(path,old,version,upgrade);clone(path,new,new_version,upgrade);clone(path,bad,new_version,upgrade,failure=True);clone(path,missing,version,upgrade,missing_prerequisites=True)
-        active=None;installed=None
+        active=None;installed=None;integration_sentinels=None;collision_shortcut=None
         def call(msi,selection=None,**properties):
             args=['/i',msi,'INSTALLDIR='+str(install),'LICENSE_ACCEPTED=1']
             if selection is not None:args+=['ADDLOCAL='+selection]
             args += [k+'='+v for k,v in properties.items()]
             return args
         try:
-            run_installer(['/i',old,'INSTALLDIR='+str(install),'ADDLOCAL=Core'],logs/'license-rejected.log',False)
-            run_installer(call(old,'Core'),logs/'empty-selection-rejected.log',False)
-            run_installer(call(old,'Desktop,CLI'),logs/'missing-core-rejected.log',False)
-            run_installer(call(missing,'Core,CLI'),logs/'prerequisite-rejected.log',False)
+            run_installer(['/i',old,'INSTALLDIR='+str(install),'ADDLOCAL=Core'],logs/'license-rejected.log',False,'Read and accept Apache License 2.0')
+            run_installer(call(old,'Core'),logs/'empty-selection-rejected.log',False,'Select Desktop, CLI integrations, or both.')
+            run_installer(call(old,'Desktop,CLI'),logs/'missing-core-rejected.log',False,'Shared runtime is mandatory.')
+            run_installer(call(missing,'Core,CLI'),logs/'prerequisite-rejected.log',False,'Install Microsoft Visual C++ v14 x64 Redistributable')
             if install.exists() and any(install.iterdir()):raise ValueError('invalid fixture left program files')
             result['license_and_prerequisites']='passed'
+            collision_shortcut=Path(os.environ['APPDATA'])/'Microsoft/Windows/Start Menu/Programs/insonic/insonic CLI.lnk'
+            collision_shortcut.parent.mkdir(parents=True,exist_ok=True)
+            collision_bytes=b'unrelated preexisting exact-name CLI shortcut fixture'
+            with collision_shortcut.open('xb') as stream:stream.write(collision_bytes)
+            run_installer(call(old,'Core,CLI',START_MENU='1',DESKTOP_SHORTCUT='0'),logs/'shortcut-collision-rejected.log',False,'If a shortcut already exists, deselect its Start menu or Desktop integration','CheckCliMenu')
+            if collision_shortcut.read_bytes()!=collision_bytes:raise ValueError('MSI overwrote an unrelated exact-name shortcut')
+            if install.exists() and any(install.iterdir()):raise ValueError('shortcut rejection left program files')
+            collision_shortcut.unlink();collision_shortcut=None
             for selection,desktop in [('Core,CLI',False),('Core,Desktop',True),('Core,Desktop,CLI',True)]:
                 run_installer(call(old,selection),logs/('selection-'+selection.replace(',','-')+'.log'));installed=m.product_code(version,upgrade);installed_hashes(install,model,desktop)
                 if child([install/'insonic.exe','version'],env,install).decode().strip()!=version:raise ValueError('installed CLI version differs')
@@ -406,11 +459,20 @@ def qualify(path,receipt):
             run_installer(call(old,'Core,CLI',START_MENU='',DESKTOP_SHORTCUT=''),logs/'maintenance-initial.log');installed=m.product_code(version,upgrade);assert_unchecked_shortcuts()
             run_installer(call(old,'Core,Desktop,CLI',REINSTALL='ALL',REINSTALLMODE='vomus'),logs/'feature-change.log');installed_hashes(install,model,True)
             (install/'insonic-session.cmd').unlink();(install/m.OWNERSHIP).unlink();run_installer(['/fa',installed],logs/'repair.log');installed_hashes(install,model,True);result['maintenance']='passed'
+            integration_sentinels=create_removal_sentinels()
             # A real running console image under the program tree represents an
             # active client/runtime. No application termination is delegated to MSI.
             active_path=install/'active-owned-ci-fixture.exe';shutil.copyfile(Path(os.environ['SystemRoot'])/'System32/ping.exe',active_path)
             active=subprocess.Popen([str(active_path),'127.0.0.1','-n','60'],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,creationflags=subprocess.CREATE_NO_WINDOW)
-            time.sleep(.15);run_installer(['/x',installed],logs/'active-work-rejected.log',False)
+            time.sleep(.15)
+            alternate_install=tmp/'alternate new program directory é'
+            run_installer(['/i',new,'INSTALLDIR='+str(alternate_install),'LICENSE_ACCEPTED=1'],logs/'active-old-root-upgrade-rejected.log',False,'Close insonic clients, finish/cancel jobs','Preflight')
+            assert_effective_directory(logs/'active-old-root-upgrade-rejected.log',alternate_install)
+            if active.poll() is not None:raise ValueError('alternate-target upgrade terminated active old-root work')
+            installed_hashes(install,model,True)
+            if alternate_install.exists():raise ValueError('rejected alternate-target upgrade created a new installation directory')
+            assert_removal_sentinels(integration_sentinels)
+            run_installer(['/x',installed],logs/'active-work-rejected.log',False,'Close insonic clients, finish/cancel jobs','Preflight')
             if active.poll() is not None:raise ValueError('MSI terminated active work')
             installed_hashes(install,model,True);active.terminate();active.wait(timeout=5);active=None;active_path.unlink();result['active_work_preserved']='passed'
             # Deliberately remove Desktop before upgrading to prove feature migration.
@@ -418,18 +480,21 @@ def qualify(path,receipt):
             cancellation_evidence=cancellation(new,install,logs/'cancelled-upgrade.json');installed_hashes(install,model,False)
             if sentinel.read_bytes()!=b'preserve library media settings models credentials':raise ValueError('cancelled MSI changed user data')
             result['cancellation_rollback']='passed'
-            run_installer(call(bad),logs/'upgrade-rollback.log',False);installed_hashes(install,model,False)
+            run_installer(call(bad),logs/'upgrade-rollback.log',False,'Intentional transactional fixture failure','FixtureFailure');installed_hashes(install,model,False)
             run_installer(call(new),logs/'upgrade-success.log');installed=m.product_code(new_version,upgrade);installed_hashes(install,model,False);assert_unchecked_shortcuts();result['upgrade_rollback']='passed'
-            run_installer(call(old),logs/'downgrade-rejected.log',False);installed_hashes(install,model,False);result['downgrade_rejection']='passed'
+            run_installer(call(old),logs/'downgrade-rejected.log',False,'A newer insonic version is installed.');installed_hashes(install,model,False);result['downgrade_rejection']='passed'
             final_shortcut_elections=saved_shortcut_elections()
             run_installer(['/x',installed],logs/'final-remove.log');installed=None
             if sentinel.read_bytes()!=b'preserve library media settings models credentials':raise ValueError('MSI modified user data')
             if any((install/f['path']).exists() for f in model['payload']):raise ValueError('MSI removal retained owned files')
+            assert_removal_sentinels(integration_sentinels)
             result['user_data_preserved']='passed'
-            proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'windows_build':str(__import__('sys').getwindowsversion().build),'fixture_upgrade_code':upgrade,'checks':result,'elapsed_seconds':round(time.monotonic()-started,3),'active_work_fixture':'running owned ping image, no process shutdown','shortcut_migration':{'fresh_unchecked_properties':'empty values normalized to zero','upgrade_overrides':False,'saved_elections':final_shortcut_elections},'policy_prompts':'not-observed','signing':'unsigned','cancellation':cancellation_evidence,'user_context':{'original_elevated_token':original_token,'restricted_process':context_evidence},'elected_launcher':{'fixture':fixture_evidence,'elevated_caller':elevated_launch_evidence,'restricted_caller':context_evidence['elected_launcher']}}
+            proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'windows_build':str(__import__('sys').getwindowsversion().build),'fixture_upgrade_code':upgrade,'checks':result,'elapsed_seconds':round(time.monotonic()-started,3),'active_work_fixture':{'process':'running owned ping image, no process shutdown','rejected_actions':['alternate-install-directory upgrade','uninstall'],'alternate_directory_absent':True,'old_payload_hashes_preserved':True},'exact_shortcut_collision':{'fresh_cli_exact_name':'rejected before installation changes','unrelated_bytes':'preserved','failed_action':'CheckCliMenu'},'unrelated_integrations':{'start_menu_sibling':'preserved','desktop_sibling':'preserved','product_key_sibling_value':'preserved','sentinel_content_sha256':m.digest(integration_sentinels['content'])},'shortcut_migration':{'fresh_unchecked_properties':'empty values normalized to zero','upgrade_overrides':False,'saved_elections':final_shortcut_elections},'policy_prompts':'not-observed','signing':'unsigned','cancellation':cancellation_evidence,'user_context':{'original_elevated_token':original_token,'restricted_process':context_evidence},'elected_launcher':{'fixture':fixture_evidence,'elevated_caller':elevated_launch_evidence,'restricted_caller':context_evidence['elected_launcher']}}
         finally:
             if active is not None:active.terminate();active.wait(timeout=5)
             if installed is not None:run_installer(['/x',installed],logs/'fixture-cleanup.log')
+            if integration_sentinels is not None:clean_removal_sentinels(integration_sentinels)
+            if collision_shortcut is not None and collision_shortcut.is_file() and collision_shortcut.read_bytes()==collision_bytes:collision_shortcut.unlink()
     (m.ROOT/'build/native/msi-lifecycle.json').write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     return result
 if __name__=='__main__':
