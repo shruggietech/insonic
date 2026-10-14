@@ -86,57 +86,25 @@ Per-user configuration uses `%APPDATA%\insonic`; local data/cache/runtime coordi
 3. Follow [Windows ZIP installation](desktop.md#install-a-windows-zip) to copy into a stable program directory and choose a separate library.
 4. Open `insonic-desktop.exe` when included, or use `insonic.exe` from an already open terminal. ZIP copying creates no MSI registration, Installed Apps entry, shortcut, PATH integration or supplied uninstaller.
 
-## Installer page walkthrough
-
-These are actual authored MSI pages rendered by native Windows Installer on a disposable Windows Server 2022 runner, build 20348, in English (United States). A restricted installer session elected the illustrated clients, integrations, program path and Launch option, then read back their actual native control values before capture. The images show those fixture choices; they do not prove fresh-install defaults or a completed installation transaction. The normal steps above describe default behavior. No browser reputation, SmartScreen, UAC or other Windows policy prompt was captured.
-
-![Native installer welcome page explains per-user installation and no prerequisite downloads](../screenshots/v1.0.1/installer-01-welcome.png)
-
-Figure 1. Welcome to per-user installation. Select Next to read the license before choosing clients and integrations.
-
-![Native license page shows Apache 2.0 text and an initially unchecked acceptance control](../screenshots/v1.0.1/installer-02-license.png)
-
-Figure 2. Read the Apache License 2.0. Select I accept the Apache License 2.0 to enable Next.
-
-![Native client page shows Desktop application and CLI integrations selected with optional shortcuts](../screenshots/v1.0.1/installer-03-choices.png)
-
-Figure 3. The fixture elects both clients and optional integrations. Choose the clients you want; Desktop-only retains shared runtime bytes, while CLI-only omits the GUI.
-
-![Native location page shows a generic writable program path and Browse control](../screenshots/v1.0.1/installer-04-location.png)
-
-Figure 4. The fixture shows a generic per-user program directory. Keep the default or enter your selected writable program directory; Browse opens directory selection. Keep library data outside this directory.
-
-![Native ready page explains prerequisite verification and offers Install](../screenshots/v1.0.1/installer-05-ready.png)
-
-Figure 5. Check your choices, install missing official prerequisites if requested, then select Install.
-
-![Native maintenance page offers change, repair and removal while preserving user data](../screenshots/v1.0.1/installer-06-maintenance.png)
-
-Figure 6. Close affected clients and finish/cancel work before changing features, repairing or removing this installation.
-
-![Native completion page shows the selected Launch insonic checkbox and Finish control](../screenshots/v1.0.1/installer-07-finish.png)
-
-Figure 7. This authored completion-page fixture elects Launch insonic. Successful interactive fresh installation offers desktop launch, or Open insonic CLI for CLI-only. Clear the option to defer first launch, then select Finish.
-
 ## Application walkthrough
 
 These application images are real rendered controls from the compiled frontend using an isolated library and current shared CLI contracts. Their renderer is headless Chromium rather than native WebView2. Browser/viewport/source and image identities are recorded beside the captures. They contain fixture data, not a user's library. Policy-dependent Edge, SmartScreen and UAC prompts are described above; no unobserved OS dialog is presented as a screenshot.
 
 ![Optional setup showing an editable library location and capacity preview](../screenshots/v1.0.1/setup-location.png)
 
-Figure 8. Optional setup previews an editable library location outside program files. Keep the default or enter your chosen separate library directory, preview capacity, then save the location and continue.
+Figure 1. Optional setup previews an editable library location outside program files. Keep the default or enter your chosen separate library directory, preview capacity, then save the location and continue.
 
 ![Backend choices for a fresh library with local defaults and protected credential inputs](../screenshots/v1.0.1/setup-backends.png)
 
-Figure 9. Keep local backend defaults or explicitly choose the three storage roles before creating a library. Choose local defaults or complete the elected backend fields. Preflight before provisioning; service credentials remain transient protected inputs.
+Figure 2. Keep local backend defaults or explicitly choose the three storage roles before creating a library. Choose local defaults or complete the elected backend fields. Preflight before provisioning; service credentials remain transient protected inputs.
 
 ![Optional processing stage with task readiness and existing pipeline choices](../screenshots/v1.0.1/setup-processing.png)
 
-Figure 10. Optional processing follows successful library creation; import and supplied subtitles need no model download. Elect processing when wanted, or skip it and continue. Application installation alone does not prepare model inference.
+Figure 3. Optional processing follows successful library creation; import and supplied subtitles need no model download. Elect processing when wanted, or skip it and continue. Application installation alone does not prepare model inference.
 
 ![Ordinary Library controls remain available after optional setup is deferred](../screenshots/v1.0.1/library-ready.png)
 
-Figure 11. Deferring setup leaves the ordinary Library controls available. Use ordinary Import controls without completing optional stages.
+Figure 4. Deferring setup leaves the ordinary Library controls available. Use ordinary Import controls without completing optional stages.
 
 ## Support checklist
 

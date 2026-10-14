@@ -620,7 +620,9 @@ def qualify(path,receipt):
             result['client_selections']='passed';result['launch_contract']='passed'
             phase('administrator-maintenance')
             run_installer(call(old,'Core,CLI',START_MENU='',DESKTOP_SHORTCUT=''),logs/'maintenance-initial.log');installed=m.product_code(version,upgrade);assert_unchecked_shortcuts()
-            run_installer(call(old,'Core,Desktop,CLI',REINSTALL='ALL',REINSTALLMODE='vomus'),logs/'feature-change.log');installed_hashes(install,model,True)
+            run_installer(call(old,'Core,Desktop,CLI',REINSTALL='Core',REINSTALLMODE='vomus'),logs/'feature-change.log');installed_hashes(install,model,True)
+            run_installer(call(old,REMOVE='Core'),logs/'maintenance-core-removal-rejected.log',False,'Shared runtime is mandatory.');installed_hashes(install,model,True)
+            run_installer(call(old,REMOVE='Desktop,CLI'),logs/'maintenance-all-clients-removal-rejected.log',False,'Select Desktop, CLI integrations, or both.');installed_hashes(install,model,True)
             (install/'insonic-session.cmd').unlink();(install/m.OWNERSHIP).unlink();run_installer(['/fa',installed],logs/'repair.log');installed_hashes(install,model,True);result['maintenance']='passed'
             integration_sentinels=create_removal_sentinels()
             # A real running console image under the program tree represents an

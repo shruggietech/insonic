@@ -30,9 +30,9 @@ class InstallerModelTests(unittest.TestCase):
     def test_license_initially_unchecked_and_exact(self):
         self.assertNotIn('LICENSE_ACCEPTED',dict(self.model['tables']['Property']));self.assertEqual(self.model['license_sha256'],m.sha(ROOT/'LICENSE'))
     def test_three_selection_contract(self):
-        cond=dict(self.model['tables']['LaunchCondition']);self.assertIn('REMOVE="ALL" OR (&Desktop=3 OR &CLI=3)',cond)
+        cond=dict(self.model['tables']['LaunchCondition']);self.assertIn('REMOVE="ALL" OR ('+m.effective_feature_local('Desktop')+' OR '+m.effective_feature_local('CLI')+')',cond)
         self.assertEqual({r[0] for r in self.model['tables']['Feature']},{'Core','Desktop','CLI'})
-        self.assertIn('REMOVE="ALL" OR &Core=3',cond)
+        self.assertIn('REMOVE="ALL" OR '+m.effective_feature_local('Core'),cond)
     def test_per_user_no_machine_integration(self):
         self.assertNotIn('ALLUSERS',dict(self.model['tables']['Property']));self.assertTrue(all(r[1]==1 for r in self.model['tables']['Registry']));self.assertNotIn('Environment',self.model['tables'])
     def test_upgrade_rollback_and_downgrade(self):
@@ -62,7 +62,7 @@ class InstallerModelTests(unittest.TestCase):
         self.assertTrue({'INSTALLDIR','SAVED_INSTALLDIR','LICENSE_ACCEPTED'}<=secure)
     def test_exact_shortcut_names_checked_before_install_changes(self):
         tables=self.model['tables'];actions={r[0]:r for r in tables['CustomAction']};sequence={r[0]:r for r in tables['InstallExecuteSequence']}
-        checks=[('CheckGuiMenu','[InsonicMenu]insonic.lnk','GuiMenu','START_MENU=1 AND &Desktop=3'),('CheckCliMenu','[InsonicMenu]insonic CLI.lnk','CliMenu','START_MENU=1 AND &CLI=3'),('CheckGuiDesktop','[DesktopFolder]insonic.lnk','GuiDesktop','DESKTOP_SHORTCUT=1 AND &Desktop=3')]
+        checks=[('CheckGuiMenu','[InsonicMenu]insonic.lnk','GuiMenu','START_MENU=1 AND '+m.effective_feature_local('Desktop')),('CheckCliMenu','[InsonicMenu]insonic CLI.lnk','CliMenu','START_MENU=1 AND '+m.effective_feature_local('CLI')),('CheckGuiDesktop','[DesktopFolder]insonic.lnk','GuiDesktop','DESKTOP_SHORTCUT=1 AND '+m.effective_feature_local('Desktop'))]
         for action,path,component,condition in checks:
             self.assertEqual(actions[action][1:],[2,'Launcher','--check-shortcut "'+path+'" '+component])
             self.assertEqual(sequence[action][1],condition)
@@ -82,7 +82,32 @@ class InstallerModelTests(unittest.TestCase):
         self.assertNotIn('START_MENU=',module.installer_properties([]));self.assertNotIn('DESKTOP_SHORTCUT=',module.installer_properties([]))
         self.assertIn('START_MENU=""',module.installer_properties(['START_MENU=']))
     def test_webview_only_when_desktop_selected(self):
-        c=[r for r in self.model['tables']['LaunchCondition'] if 'WEBVIEW_MACHINE' in r[0]][0];self.assertIn('NOT (&Desktop=3)',c[0])
+        c=[r for r in self.model['tables']['LaunchCondition'] if 'WEBVIEW_MACHINE' in r[0]][0];self.assertIn('NOT '+m.effective_feature_local('Desktop'),c[0])
+    def test_retained_local_features_count_but_explicit_removal_does_not(self):
+        import re
+        tables=self.model['tables'];conditions={message:condition for condition,message in tables['LaunchCondition']}
+        core=next(value for key,value in conditions.items() if key.startswith('Shared runtime'))
+        clients=next(value for key,value in conditions.items() if key.startswith('Select Desktop'))
+        webview=next(value for key,value in conditions.items() if key.startswith('Desktop requires WebView'))
+        sequence={row[0]:row[1] for row in tables['InstallUISequence']};checks={row[0]:row[1] for row in tables['InstallExecuteSequence']}
+        def evaluate(condition,actions,installed,**properties):
+            values={'REMOVE':'','Installed':1,'OLDPRODUCTS':'','START_MENU':1,'DESKTOP_SHORTCUT':1,'WEBVIEW_MACHINE':'','WEBVIEW_USER':''};values.update(properties)
+            expression=re.sub(r'&([A-Za-z]+)',lambda match:str(actions.get(match.group(1),-1)),condition)
+            expression=re.sub(r'!([A-Za-z]+)',lambda match:str(installed.get(match.group(1),2)),expression)
+            for name,value in values.items():expression=re.sub(r'\b'+name+r'\b',repr(value),expression)
+            expression=expression.replace('<>','!=');expression=re.sub(r'(?<![!<>=])=(?!=)','==',expression)
+            for old,new in [('AND','and'),('OR','or'),('NOT','not')]:expression=re.sub(r'\b'+old+r'\b',new,expression)
+            return bool(eval(expression,{'__builtins__':{}},{}))
+        retained={'Core':3,'Desktop':3,'CLI':3};unchanged={'Core':-1,'Desktop':-1,'CLI':-1}
+        self.assertTrue(evaluate(core,unchanged,retained));self.assertTrue(evaluate(clients,unchanged,retained))
+        self.assertFalse(evaluate(core,{**unchanged,'Core':2},retained));self.assertFalse(evaluate(clients,{**unchanged,'Desktop':2,'CLI':2},retained))
+        self.assertTrue(evaluate(core,{'Core':3},{}));self.assertTrue(evaluate(clients,{'CLI':3},{}));self.assertFalse(evaluate(clients,unchanged,{}))
+        self.assertFalse(evaluate(webview,unchanged,retained));self.assertTrue(evaluate(webview,unchanged,retained,WEBVIEW_USER='126.0.0.0'))
+        self.assertTrue(evaluate(webview,{**unchanged,'Desktop':2},retained))
+        self.assertTrue(evaluate(sequence['ApplySavedDesktop'],unchanged,retained));self.assertFalse(evaluate(sequence['ClearSavedDesktop'],unchanged,retained))
+        self.assertFalse(evaluate(sequence['ApplySavedDesktop'],{**unchanged,'Desktop':2},retained));self.assertTrue(evaluate(sequence['ClearSavedDesktop'],{**unchanged,'Desktop':2},retained))
+        for action,feature in [('CheckGuiMenu','Desktop'),('CheckGuiDesktop','Desktop'),('CheckCliMenu','CLI')]:
+            self.assertTrue(evaluate(checks[action],unchanged,retained));self.assertFalse(evaluate(checks[action],{**unchanged,feature:2},retained))
     def test_paths_and_version_reject_wrong_scope(self):
         for p in ['../owner','C:/owner','folder\\owner','/owner','bad\nname']:
             with self.assertRaises(ValueError):m.relative(p)
