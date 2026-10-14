@@ -13,6 +13,7 @@ import sys
 import time
 import uuid
 import windows_msi as m
+RESTRICTED_TOKEN_FLAGS=1 # DISABLE_MAX_PRIVILEGE, without implicit LUA/sandbox restrictions.
 
 def clone(source,target,version,upgrade,failure=False,missing_prerequisites=False):
     upgrade_rows=m.table_rows(m.CompoundFile(source).streams,'Upgrade')
@@ -216,8 +217,12 @@ func main() {
  user,e:=token.GetTokenUser();if e!=nil {os.Exit(1)}
  admin,e:=windows.CreateWellKnownSid(windows.WinBuiltinAdministratorsSid);if e!=nil {os.Exit(1)}
  member,e:=windows.Token(0).IsMember(admin);if e!=nil {os.Exit(1)}
+ var integrity [256]byte
+ if windows.GetTokenInformation(token,windows.TokenIntegrityLevel,&integrity[0],uint32(len(integrity)),&size)!=nil {os.Exit(1)}
+ label:=(*windows.SIDAndAttributes)(unsafe.Pointer(&integrity[0]));count:=label.Sid.SubAuthorityCount();if count==0||count>15 {os.Exit(1)}
+ integrityRID:=label.Sid.SubAuthority(uint32(count-1))
  sum:=sha256.Sum256([]byte(user.User.Sid.String()))
- observed:=map[string]any{"elevated":elevated!=0,"administrator_enabled":member,"user_sid_sha256":hex.EncodeToString(sum[:]),"mode":filepath.Base(exe),"pid":os.Getpid(),"fixture":"owned native Go token reporter"}
+ observed:=map[string]any{"elevated":elevated!=0,"administrator_enabled":member,"user_sid_sha256":hex.EncodeToString(sum[:]),"integrity_rid":integrityRID,"integrity_sid":label.Sid.String(),"mode":filepath.Base(exe),"pid":os.Getpid(),"fixture":"owned native Go token reporter"}
  data,e:=json.Marshal(observed);if e!=nil {os.Exit(1)}
  if os.WriteFile(filepath.Join(directory,filepath.Base(exe)+".token.json"),append(data,'\n'),0600)!=nil {os.Exit(1)}
 }
@@ -275,7 +280,7 @@ def elected_launcher_context(directory,allow_refusal=False):
             try:observed=json.loads(output.read_text(encoding='utf-8'));break
             except (FileNotFoundError,json.JSONDecodeError):time.sleep(.05)
         if observed is None:raise RuntimeError('elected '+mode+' child did not record its actual token')
-        if observed['elevated'] or observed['administrator_enabled'] or observed['user_sid_sha256']!=caller['user_sid_sha256']:raise RuntimeError('elected '+mode+' launch changed user or retained elevation')
+        if observed['elevated'] or observed['administrator_enabled'] or observed['integrity_rid']>8192 or observed['user_sid_sha256']!=caller['user_sid_sha256']:raise RuntimeError('elected '+mode+' launch changed user or retained elevation/high integrity')
         modes[mode]={'outcome':'observed-same-user-non-elevated-child','observed_token':observed}
     return {'caller_token':caller,'linked_token':linked,'modes':modes,'actual_elected_launch':True,'describe_is_proof':False}
 
@@ -306,6 +311,10 @@ def token_info():
         if not security.ConvertSidToStringSidW(sid,C.byref(value)):raise C.WinError(C.get_last_error())
         try:user_hash=m.digest(C.wstring_at(value).encode())
         finally:kernel.LocalFree(value)
+        integrity=info(25);integrity_value=C.c_void_p()
+        if not security.ConvertSidToStringSidW(C.cast(integrity,C.POINTER(C.c_void_p))[0],C.byref(integrity_value)):raise C.WinError(C.get_last_error())
+        try:integrity_sid=C.wstring_at(integrity_value);integrity_rid=int(integrity_sid.rsplit('-',1)[1])
+        finally:kernel.LocalFree(integrity_value)
         admin=C.create_string_buffer(68);size=W.DWORD(68)
         if not security.CreateWellKnownSid(26,None,admin,C.byref(size)):raise C.WinError(C.get_last_error())
         member=W.BOOL()
@@ -313,7 +322,7 @@ def token_info():
         privileges=info(3);count=struct.unpack_from('<I',privileges.raw)[0]
         if count>100:raise RuntimeError('invalid token privilege count')
         enabled=sum(bool(struct.unpack_from('<I',privileges.raw,4+i*12+8)[0]&2) for i in range(count))
-        return {'administrator_enabled':bool(member.value),'elevated':elevated,'elevation_type':elevation_type,'enabled_privileges':enabled,'user_sid_sha256':user_hash}
+        return {'administrator_enabled':bool(member.value),'elevated':elevated,'elevation_type':elevation_type,'enabled_privileges':enabled,'user_sid_sha256':user_hash,'integrity_sid':integrity_sid,'integrity_rid':integrity_rid}
     finally:kernel.CloseHandle(token)
 
 def restricted_worker(installer,directory,output):
@@ -321,7 +330,7 @@ def restricted_worker(installer,directory,output):
     progress=output.with_suffix('.progress.json')
     def record(phase):progress.write_text(json.dumps({'pid':os.getpid(),'phase':phase},sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     record('python-started');observed=token_info();record('token-observed')
-    if observed['administrator_enabled'] or observed['enabled_privileges']>1:raise RuntimeError('restricted worker retained administrator membership/privileges')
+    if observed['administrator_enabled'] or observed['enabled_privileges']>1 or observed['elevated'] or observed['integrity_rid']!=8192:raise RuntimeError('restricted worker retained administrator membership/privileges/elevation or did not run at medium integrity')
     product=dict(m.table_rows(m.CompoundFile(installer).streams,'Property'))['ProductCode']
     installed=False
     try:
@@ -343,7 +352,109 @@ def private_desktop_sddl(user_sid):
     if not __import__('re').fullmatch(r'S-1-5-(?:\d+-)*\d+',user_sid):raise ValueError('invalid same-user desktop SID')
     return 'D:P(A;;GA;;;SY)(A;;GA;;;'+user_sid+')S:(ML;;NW;;;ME)'
 
-def private_context_desktop(user_sid):
+def restricted_token_diagnostics(token):
+    m.disposable_runner()
+    import ctypes as C
+    import ctypes.wintypes as W
+    security=C.WinDLL('advapi32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True)
+    class Sid(C.Structure):_fields_=[('sid',C.c_void_p),('attributes',W.DWORD)]
+    class Groups(C.Structure):_fields_=[('count',W.DWORD),('entries',Sid*1)]
+    security.GetTokenInformation.argtypes=[W.HANDLE,C.c_int,C.c_void_p,W.DWORD,C.POINTER(W.DWORD)];security.GetTokenInformation.restype=W.BOOL
+    security.ConvertSidToStringSidW.argtypes=[C.c_void_p,C.POINTER(C.c_void_p)];security.ConvertSidToStringSidW.restype=W.BOOL
+    kernel.LocalFree.argtypes=[C.c_void_p];kernel.LocalFree.restype=C.c_void_p
+    def info(kind):
+        size=W.DWORD();security.GetTokenInformation(token,kind,None,0,C.byref(size))
+        if not size.value or size.value>65536:raise RuntimeError('invalid bounded restricted-token information')
+        data=C.create_string_buffer(size.value)
+        if not security.GetTokenInformation(token,kind,data,size.value,C.byref(size)):raise C.WinError(C.get_last_error())
+        return data
+    def sid_string(sid):
+        value=C.c_void_p()
+        if not security.ConvertSidToStringSidW(sid,C.byref(value)):raise C.WinError(C.get_last_error())
+        try:return C.wstring_at(value)
+        finally:kernel.LocalFree(value)
+    def groups(kind):
+        data=info(kind);count=struct.unpack_from('<I',data.raw)[0];offset=Groups.entries.offset
+        if count>512 or count and offset+count*C.sizeof(Sid)>len(data):raise RuntimeError('invalid bounded restricted-token SID count')
+        values=[]
+        for index in range(count):
+            entry=Sid.from_buffer(data,offset+index*C.sizeof(Sid));value=sid_string(entry.sid)
+            values.append({'sid_sha256':m.digest(value.encode()),'attributes':entry.attributes,'administrator_sid':value=='S-1-5-32-544','logon_sid':entry.attributes&0xc0000000==0xc0000000})
+        return values
+    enabled=groups(2);restricted=groups(11);privileges=info(3);count=struct.unpack_from('<I',privileges.raw)[0]
+    if count>100 or 4+count*12>len(privileges):raise RuntimeError('invalid bounded restricted-token privileges')
+    integrity=info(25);integrity_sid=sid_string(C.cast(integrity,C.POINTER(C.c_void_p))[0])
+    return {'creation_flags':RESTRICTED_TOKEN_FLAGS,'groups':enabled,'restricted_sids':restricted,'logon_sids':[entry for entry in enabled if entry['logon_sid']],'enabled_privileges':sum(bool(struct.unpack_from('<I',privileges.raw,4+index*12+8)[0]&2) for index in range(count)),'elevated':bool(C.cast(info(20),C.POINTER(W.DWORD))[0]),'elevation_type':int(C.cast(info(18),C.POINTER(W.DWORD))[0]),'integrity_sid':integrity_sid,'integrity_rid':int(integrity_sid.rsplit('-',1)[1]),'mandatory_policy':int(C.cast(info(27),C.POINTER(W.DWORD))[0]),'session_id':int(C.cast(info(12),C.POINTER(W.DWORD))[0])}
+
+def lower_restricted_integrity(token):
+    """Lower only the newly owned test token; no source/global token is modified."""
+    m.disposable_runner();before=restricted_token_diagnostics(token)
+    if before['integrity_rid']<8192:raise RuntimeError('test token integrity is below the requested medium context')
+    if before['integrity_rid']>8192:
+        import ctypes as C
+        import ctypes.wintypes as W
+        security=C.WinDLL('advapi32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True)
+        class Label(C.Structure):_fields_=[('sid',C.c_void_p),('attributes',W.DWORD)]
+        security.ConvertStringSidToSidW.argtypes=[W.LPCWSTR,C.POINTER(C.c_void_p)];security.ConvertStringSidToSidW.restype=W.BOOL
+        security.GetLengthSid.argtypes=[C.c_void_p];security.GetLengthSid.restype=W.DWORD
+        security.SetTokenInformation.argtypes=[W.HANDLE,C.c_int,C.c_void_p,W.DWORD];security.SetTokenInformation.restype=W.BOOL
+        kernel.LocalFree.argtypes=[C.c_void_p];kernel.LocalFree.restype=C.c_void_p
+        sid=C.c_void_p()
+        if not security.ConvertStringSidToSidW('S-1-16-8192',C.byref(sid)):raise C.WinError(C.get_last_error())
+        try:
+            label=Label(sid,0x20)
+            if not security.SetTokenInformation(token,25,C.byref(label),C.sizeof(label)+security.GetLengthSid(sid)):raise C.WinError(C.get_last_error())
+        finally:kernel.LocalFree(sid)
+    after=restricted_token_diagnostics(token)
+    if after['integrity_rid']!=8192 or after['enabled_privileges']>1 or any(entry['administrator_sid'] and (entry['attributes']&4 or not entry['attributes']&0x10) for entry in after['groups']):raise RuntimeError('new test token did not retain medium integrity and explicit privilege/administrator restrictions')
+    after['integrity_adjustment']={'before_rid':before['integrity_rid'],'after_rid':after['integrity_rid'],'only_new_test_token_modified':True}
+    return after
+
+def restricted_access_diagnostics(token,station,desktop):
+    """Read-only DACL checks for exact owned objects and required loader paths."""
+    m.disposable_runner()
+    import ctypes as C
+    import ctypes.wintypes as W
+    security=C.WinDLL('advapi32',use_last_error=True);user=C.WinDLL('user32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True)
+    class Mapping(C.Structure):_fields_=[('read',W.DWORD),('write',W.DWORD),('execute',W.DWORD),('all',W.DWORD)]
+    security.DuplicateTokenEx.argtypes=[W.HANDLE,W.DWORD,C.c_void_p,C.c_int,C.c_int,C.POINTER(W.HANDLE)];security.DuplicateTokenEx.restype=W.BOOL
+    security.AccessCheck.argtypes=[C.c_void_p,W.HANDLE,W.DWORD,C.POINTER(Mapping),C.c_void_p,C.POINTER(W.DWORD),C.POINTER(W.DWORD),C.POINTER(W.BOOL)];security.AccessCheck.restype=W.BOOL
+    security.GetNamedSecurityInfoW.argtypes=[W.LPWSTR,C.c_int,W.DWORD,C.c_void_p,C.c_void_p,C.c_void_p,C.c_void_p,C.POINTER(C.c_void_p)];security.GetNamedSecurityInfoW.restype=W.DWORD
+    security.GetSecurityDescriptorLength.argtypes=[C.c_void_p];security.GetSecurityDescriptorLength.restype=W.DWORD
+    user.GetUserObjectSecurity.argtypes=[W.HANDLE,C.POINTER(W.DWORD),C.c_void_p,W.DWORD,C.POINTER(W.DWORD)];user.GetUserObjectSecurity.restype=W.BOOL
+    kernel.LocalFree.argtypes=[C.c_void_p];kernel.LocalFree.restype=C.c_void_p;kernel.CloseHandle.argtypes=[W.HANDLE];kernel.CloseHandle.restype=W.BOOL
+    impersonation=W.HANDLE();checks=[]
+    if not security.DuplicateTokenEx(token,8,None,2,2,C.byref(impersonation)):raise C.WinError(C.get_last_error())
+    def check(descriptor,desired,mapping):
+        privileges=C.create_string_buffer(4096);size=W.DWORD(4096);granted=W.DWORD();allowed=W.BOOL()
+        success=bool(security.AccessCheck(descriptor,impersonation,desired,C.byref(mapping),privileges,C.byref(size),C.byref(granted),C.byref(allowed)))
+        error=0 if success else C.get_last_error();length=security.GetSecurityDescriptorLength(descriptor)
+        if not length or length>65536:raise RuntimeError('invalid access-check security descriptor bound')
+        return {'api_success':success,'allowed':bool(allowed.value) if success else None,'desired_access':hex(desired),'granted_access':hex(granted.value) if success else None,'api_error':error,'security_descriptor_sha256':m.digest(C.string_at(descriptor,length)),'mandatory_integrity_evaluated':False}
+    try:
+        for name,handle,access in [('private-window-station',station,0x000f037f),('private-desktop',desktop,0x000f01ff)]:
+            try:
+                requested=W.DWORD(7);size=W.DWORD();user.GetUserObjectSecurity(handle,C.byref(requested),None,0,C.byref(size))
+                if not size.value or size.value>65536:raise RuntimeError('invalid user-object descriptor bound')
+                descriptor=C.create_string_buffer(size.value)
+                if not user.GetUserObjectSecurity(handle,C.byref(requested),descriptor,size.value,C.byref(size)):raise C.WinError(C.get_last_error())
+                checks.append({'object':name,**check(descriptor,access,Mapping(access,access,access,access))})
+            except Exception as error:checks.append({'object':name,'diagnostic_error':str(error)})
+        python=Path(sys.executable);system=Path(os.environ['SystemRoot'])/'System32'
+        paths=[python,python.parent,python.parent/('python'+str(sys.version_info.major)+str(sys.version_info.minor)+'.dll'),Path(__file__),m.ROOT,system/'kernel32.dll',system/'user32.dll',system/'msi.dll']
+        for path in paths:
+            descriptor=C.c_void_p()
+            try:
+                rc=security.GetNamedSecurityInfoW(C.create_unicode_buffer(str(path)),1,7,None,None,None,None,C.byref(descriptor))
+                if rc:raise RuntimeError('GetNamedSecurityInfo failed '+str(rc))
+                checks.append({'object':str(path),**check(descriptor,0x001200a9,Mapping(0x00120089,0x00120116,0x001200a0,0x001f01ff))})
+            except Exception as error:checks.append({'object':str(path),'diagnostic_error':str(error)})
+            finally:
+                if descriptor:kernel.LocalFree(descriptor)
+    finally:kernel.CloseHandle(impersonation)
+    return checks
+
+def private_context_desktop(user_sid,access_token=None):
     """Create only owned CI objects, restoring the caller before running a child.
 
     CreateProcessAsUser requires access to both objects. An inherited runner
@@ -380,7 +491,9 @@ def private_context_desktop(user_sid):
                 if not user.SetProcessWindowStation(original):raise C.WinError(C.get_last_error())
                 if user.GetThreadDesktop(thread_id)!=original_desktop and not user.SetThreadDesktop(original_desktop):raise C.WinError(C.get_last_error())
             if user.GetProcessWindowStation()!=original or user.GetThreadDesktop(thread_id)!=original_desktop:raise RuntimeError('caller station/desktop restoration failed')
-            yield {'path':name+'\\Default','kind':'owned-noninteractive-same-user-desktop','shared_desktop_acl_modified':False,'caller_station_restored':True,'visible_switch':False,'acl_subjects':['SYSTEM','same user'],'same_user_sid_sha256':m.digest(user_sid.encode())}
+            evidence={'path':name+'\\Default','kind':'owned-noninteractive-same-user-desktop','shared_desktop_acl_modified':False,'caller_station_restored':True,'visible_switch':False,'acl_subjects':['SYSTEM','same user'],'same_user_sid_sha256':m.digest(user_sid.encode())}
+            if access_token is not None:evidence['restricted_access']=restricted_access_diagnostics(access_token,station,desktop)
+            yield evidence
         finally:
             if desktop:user.CloseDesktop(desktop)
             if station:user.CloseWindowStation(station)
@@ -410,13 +523,14 @@ def restricted_context(installer,directory,output):
     kernel.LocalFree.argtypes=[C.c_void_p];kernel.LocalFree.restype=C.c_void_p
     security.CreateProcessAsUserW.argtypes=[W.HANDLE,W.LPCWSTR,W.LPWSTR,C.c_void_p,C.c_void_p,W.BOOL,W.DWORD,C.c_void_p,W.LPCWSTR,C.POINTER(Startup),C.POINTER(Process)];security.CreateProcessAsUserW.restype=W.BOOL
     token=W.HANDLE();restricted=W.HANDLE();process=Process()
-    if not security.OpenProcessToken(kernel.GetCurrentProcess(),0x000b,C.byref(token)):raise C.WinError(C.get_last_error())
+    if not security.OpenProcessToken(kernel.GetCurrentProcess(),0x008b,C.byref(token)):raise C.WinError(C.get_last_error())
     try:
         admin=C.create_string_buffer(68);size=W.DWORD(68)
         if not security.CreateWellKnownSid(26,None,admin,C.byref(size)):raise C.WinError(C.get_last_error())
         disable=Sid(C.cast(admin,C.c_void_p),0)
-        # DISABLE_MAX_PRIVILEGE + LUA_TOKEN; SANDBOX_INERT is deliberately absent.
-        if not security.CreateRestrictedToken(token,5,1,C.byref(disable),0,None,0,None,C.byref(restricted)):raise C.WinError(C.get_last_error())
+        # Only explicit privilege removal and deny-only Administrators are needed.
+        # LUA_TOKEN can add implicit restricted SIDs that alter loader access.
+        if not security.CreateRestrictedToken(token,RESTRICTED_TOKEN_FLAGS,1,C.byref(disable),0,None,0,None,C.byref(restricted)):raise C.WinError(C.get_last_error())
         size=W.DWORD();security.GetTokenInformation(restricted,1,None,0,C.byref(size))
         if not size.value or size.value>65536:raise RuntimeError('invalid restricted-token user information bound')
         user=C.create_string_buffer(size.value)
@@ -426,9 +540,10 @@ def restricted_context(installer,directory,output):
         try:user_sid=C.wstring_at(sid_text)
         finally:kernel.LocalFree(sid_text)
         diagnostics=output.with_suffix('.startup.json')
-        def record(phase,**extra):diagnostics.write_text(json.dumps({'phase':phase,'python_executable':sys.executable,'python_executable_sha256':m.sha(Path(sys.executable)),'same_user_sid_sha256':m.digest(user_sid.encode()),'inherited_stdio':False,**extra},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+        token_diagnostics=lower_restricted_integrity(restricted)
+        def record(phase,**extra):diagnostics.write_text(json.dumps({'phase':phase,'python_executable':sys.executable,'python_executable_sha256':m.sha(Path(sys.executable)),'same_user_sid_sha256':m.digest(user_sid.encode()),'inherited_stdio':False,'restricted_token':token_diagnostics,**extra},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
         record('before-private-desktop')
-        with private_context_desktop(user_sid) as desktop:
+        with private_context_desktop(user_sid,restricted) as desktop:
             startup=Startup();startup.cb=C.sizeof(startup);startup.flags=1;startup.show=0;startup.desktop=desktop['path']
             args=[sys.executable,__file__,'--context-worker',str(installer),'--context-dir',str(directory),'--output',str(output)]
             command=C.create_unicode_buffer(subprocess.list2cmdline(args));record('before-process-create',desktop=desktop)

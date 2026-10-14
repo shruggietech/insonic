@@ -97,7 +97,7 @@ class InstallerModelTests(unittest.TestCase):
     def test_cancel_and_context_entrypoints_reject_owner_host_before_native_calls(self):
         spec=importlib.util.spec_from_file_location('qualify_msi_guard',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with patch.dict(os.environ,{},clear=True):
-            for function,args in [(module.token_info,()),(module.restricted_context,(None,None,None)),(module.restricted_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,()),(module.service_diagnostic,()),(module.native_installer_worker,(None,)),(module.native_installer_dll,(None,)),(module.run_installer,(['/i','unused'],None)),(module.create_removal_sentinels,()),(module.assert_removal_sentinels,(None,)),(module.clean_removal_sentinels,(None,)),(module.private_context_desktop,('S-1-5-21-1-2-3-1001',))]:
+            for function,args in [(module.token_info,()),(module.restricted_context,(None,None,None)),(module.restricted_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,()),(module.service_diagnostic,()),(module.native_installer_worker,(None,)),(module.native_installer_dll,(None,)),(module.run_installer,(['/i','unused'],None)),(module.create_removal_sentinels,()),(module.assert_removal_sentinels,(None,)),(module.clean_removal_sentinels,(None,)),(module.private_context_desktop,('S-1-5-21-1-2-3-1001',)),(module.restricted_token_diagnostics,(None,)),(module.restricted_access_diagnostics,(None,None,None)),(module.lower_restricted_integrity,(None,))]:
                 with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
         self.assertIn('cancellation_rollback',m.QUALIFICATION_KEYS);self.assertIn('user_context',m.QUALIFICATION_KEYS)
     def test_private_context_desktop_restores_caller_on_success_and_failure(self):
@@ -128,6 +128,24 @@ class InstallerModelTests(unittest.TestCase):
                         self.assertEqual(closed,[])
             self.assertEqual(state,{'station':100,'desktop':200});self.assertIn(('station',1000),closed);self.assertIn(('descriptor',1234),closed)
             self.assertEqual(('desktop',2000) in closed,not failure);self.assertEqual(descriptors,[sddl])
+    def test_only_owned_restricted_token_is_lowered_to_medium(self):
+        import ctypes as C
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_medium_context',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        self.assertEqual(module.RESTRICTED_TOKEN_FLAGS,1)
+        calls=[]
+        class Function:
+            def __init__(self,call):self.call=call
+            def __call__(self,*args):return self.call(*args)
+        def convert(value,out):self.assertEqual(value,'S-1-16-8192');out._obj.value=5678;return True
+        def set_integrity(token,kind,label,size):calls.append((token,kind,label._obj.attributes,size));return True
+        security=SimpleNamespace(ConvertStringSidToSidW=Function(convert),GetLengthSid=Function(lambda sid:16),SetTokenInformation=Function(set_integrity));kernel=SimpleNamespace(LocalFree=Function(lambda sid:None))
+        before={'integrity_rid':12288};after={'integrity_rid':8192,'enabled_privileges':1,'groups':[{'administrator_sid':True,'attributes':0x10}]}
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'restricted_token_diagnostics',side_effect=[before,after]),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:security if name=='advapi32' else kernel,create=True):
+            proof=module.lower_restricted_integrity(777)
+        self.assertEqual(len(calls),1);self.assertEqual(calls[0][:3],(777,25,0x20));self.assertEqual(proof['integrity_adjustment']['before_rid'],12288);self.assertEqual(proof['integrity_adjustment']['after_rid'],8192)
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'restricted_token_diagnostics',return_value={'integrity_rid':4096}):
+            with self.assertRaisesRegex(RuntimeError,'below'):module.lower_restricted_integrity(777)
     def test_native_capture_requires_verified_clean_nonempty_source(self):
         from types import SimpleNamespace
         spec=importlib.util.spec_from_file_location('capture_installer_contract',ROOT/'scripts/capture-installer-ui.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
@@ -158,6 +176,12 @@ class InstallerModelTests(unittest.TestCase):
             self.assertEqual({name:value['action'] for name,value in proof['features'].items()},{'Core':3,'Desktop':3,'CLI':3})
             dll.MsiGetFeatureStateW=lambda session,name,installed,planned:0
             with self.assertRaisesRegex(RuntimeError,'did not elect'):module.initialize_restricted_session(dll,1,lambda name:properties.get(name,''))
+    def test_native_directory_control_uses_verified_value_without_class_guess(self):
+        spec=importlib.util.spec_from_file_location('capture_directory_value',ROOT/'scripts/capture-installer-ui.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        values={10:'Choose program directory',20:module.FIXTURE_DIRECTORY+'\\',30:'Browse...'}
+        self.assertEqual(module.directory_control(values,values.__getitem__),20)
+        values[40]=module.FIXTURE_DIRECTORY
+        with self.assertRaisesRegex(RuntimeError,'expected one'):module.directory_control(values,values.__getitem__)
     def test_all_native_gates_collect_both_failures_without_publication(self):
         from types import SimpleNamespace
         spec=importlib.util.spec_from_file_location('package_msi_gate_errors',ROOT/'scripts/package-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)

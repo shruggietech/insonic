@@ -88,3 +88,6 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 - [x] T041 [US2] Refuse elected exact-name shortcut collisions outside MSI ownership, and verify preservation of unrelated sibling shortcuts and registry values during actual CI lifecycle.
 - [x] T042 [US2] Give the restricted CI worker an owned noninteractive same-user desktop and startup diagnostics without changing shared desktop ACLs in scripts/qualify-windows-msi.py.
 - [x] T043 [US4] Render verified property-backed authored pages through a restricted MSI session and retain both capture/lifecycle failures independently in scripts/capture-installer-ui.py and scripts/package-msi.py.
+
+- [x] T044 [US4] Locate the owned native directory control by its verified normalized property value rather than a guessed window class.
+- [x] T045 [US2] Explicitly lower only the owned restricted CI token to medium integrity, record actual token/loader access diagnostics, and assert same-user non-elevated worker and elected-child integrity.

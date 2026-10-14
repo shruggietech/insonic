@@ -23,6 +23,12 @@ PAGES=[('Welcome','installer-01-welcome.png','Install insonic'),('License','inst
 FIXTURE_DIRECTORY=r'C:\Users\InstallerExample\AppData\Local\Programs\insonic'
 FIXTURE_PROPERTIES={'INSTALLDIR':FIXTURE_DIRECTORY,'CLIENT_DESKTOP':'1','CLIENT_CLI':'1','START_MENU':'1','DESKTOP_SHORTCUT':'1','LAUNCH':'1'}
 
+def directory_control(controls,text):
+    paths=__import__('ntpath');target=paths.normcase(paths.normpath(FIXTURE_DIRECTORY))
+    matches=[control for control in controls if paths.normcase(paths.normpath(text(control)))==target]
+    if len(matches)!=1:raise RuntimeError('expected one native control displaying the verified program directory')
+    return matches[0]
+
 def initialize_restricted_session(dll,session,get_property):
     m.disposable_runner()
     def check(rc):
@@ -113,6 +119,7 @@ def worker(path,output,page):
             if pid.value==os.getpid():controls.append(control)
             return True
         u.EnumChildWindows(hwnd,CB(child),0)
+        state['owned_controls']=[{'class':class_name(control),'text':text(control)[:4096]} for control in controls]
         if not any(landmark in text(control) for control in controls):raise RuntimeError('native page landmark is absent: '+page)
         elections=[]
         labels={'Choices':['Desktop application','CLI integrations (persistent help/setup session)','Create Start menu shortcuts','Create Desktop shortcut for the desktop application'],'Finish':['Launch insonic'],'License':['I accept the Apache License 2.0']}.get(page,[])
@@ -123,9 +130,7 @@ def worker(path,output,page):
             if observed!=expected:raise RuntimeError('native property-backed checkbox state differs: '+label)
             elections.append({'control_label':label,'checked':observed,'method':'verified session property/BM_GETCHECK'})
         if page=='Location':
-            matches=[control for control in controls if class_name(control).casefold()=='edit']
-            if len(matches)!=1:raise RuntimeError('expected one native program-directory edit')
-            value=text(matches[0]);paths=__import__('ntpath')
+            control=directory_control(controls,text);value=text(control);paths=__import__('ntpath')
             if paths.normcase(paths.normpath(value))!=paths.normcase(paths.normpath(FIXTURE_DIRECTORY)):raise RuntimeError('native property-backed directory differs')
             elections.append({'control_label':'Program directory','value':value,'method':'verified session property/GetWindowText'})
         rect=W.RECT()
