@@ -186,6 +186,44 @@ jobs:
           compression-level: 0
           if-no-files-found: error
           retention-days: 14
+  installer-diagnostic:
+    name: installer diagnostics (disposable Windows)
+    if: github.event_name == 'pull_request' && github.event.pull_request.number == 92
+    needs: foundation
+    runs-on: windows-2022
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    env:
+      INSONIC_DISPOSABLE_INSTALLER_TEST: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: e53530eb7e03df6659c4f4007859fd7270b3d2e2
+          path: build/diagnostic-payload-source
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Retrieve the exact previously qualified diagnostic payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 38516047065 --repo shruggietech/insonic --name candidate-package-windows-2022-desktop-e53530eb7e03df6659c4f4007859fd7270b3d2e2-1 --dir build/diagnostic-payload
+      - name: Observe MSI state without creating an eligible candidate
+        run: python scripts/diagnose-windows-msi.py --archive build/diagnostic-payload/packages/insonic_1.0.1_windows_amd64_desktop.zip --receipt build/diagnostic-payload/native/package-desktop-receipt.json --payload-source-root build/diagnostic-payload-source --ordinary-context
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          archive: true
+          name: installer-diagnostics-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/native/msi-diagnostic
+          if-no-files-found: error
+          retention-days: 14
   core:
     needs: foundation
     if: needs.foundation.outputs.core == 'true'

@@ -122,7 +122,7 @@ class InstallerModelTests(unittest.TestCase):
     def test_cancel_and_context_entrypoints_reject_owner_host_before_native_calls(self):
         spec=importlib.util.spec_from_file_location('qualify_msi_guard',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with patch.dict(os.environ,{},clear=True):
-            for function,args in [(module.token_info,()),(module.ordinary_context,(None,None,None)),(module.ordinary_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,()),(module.service_diagnostic,()),(module.native_installer_worker,(None,)),(module.native_installer_dll,(None,)),(module.run_installer,(['/i','unused'],None)),(module.create_removal_sentinels,()),(module.assert_removal_sentinels,(None,)),(module.clean_removal_sentinels,(None,)),(module.private_context_desktop,('S-1-5-21-1-2-3-1001',)),(module.account_sid,(None,)),(module.grant_owned_account_stage,(None,None,None))]:
+            for function,args in [(module.token_info,()),(module.ordinary_context,(None,None,None)),(module.ordinary_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,()),(module.service_diagnostic,()),(module.native_installer_worker,(None,)),(module.native_installer_dll,(None,)),(module.run_installer,(['/i','unused'],None)),(module.create_removal_sentinels,()),(module.assert_removal_sentinels,(None,)),(module.clean_removal_sentinels,(None,)),(module.private_context_desktop,('S-1-5-21-1-2-3-1001',)),(module.account_sid,(None,)),(module.grant_owned_account_stage,(None,None,None)),(module.registered_feature_states,(None,None))]:
                 with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
         self.assertIn('cancellation_rollback',m.QUALIFICATION_KEYS);self.assertIn('user_context',m.QUALIFICATION_KEYS)
     def test_private_context_desktop_restores_caller_on_success_and_failure(self):
@@ -271,6 +271,30 @@ class InstallerModelTests(unittest.TestCase):
             self.assertEqual(called,['capture','qualify']);verify.assert_not_called()
             self.assertEqual(receipt['qualification']['native_ui_capture'],'failed');self.assertEqual(receipt['qualification']['user_context'],'pending')
             self.assertEqual(set(receipt['qualification_errors']),{'native_ui_capture','native_lifecycle'})
+    def test_diagnostic_reports_failed_feature_add_without_qualification(self):
+        import shutil
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('msi_diagnostic_observations',ROOT/'scripts/diagnose-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.run(None,None,None)
+        scripts=self.path/'scripts';scripts.mkdir()
+        for name in ('diagnose-windows-msi.py','qualify-windows-msi.py','windows_msi.py'):shutil.copyfile(ROOT/'scripts'/name,scripts/name)
+        name='insonic_1.0.1_windows_amd64_desktop';archive=self.path/(name+'.zip');archive.write_bytes(b'exact qualified archive fixture')
+        receipt={'kind':'native-package-receipt','platform':'windows_amd64','variant':'desktop','schema_version':'1.0.1','dirname':name,'archive':archive.name,'revision':'a'*40,'source_dirty':False,'inventory_sha256':m.digest(m.inventory_bytes(self.inv)),'signing':self.inv['signing']};receipt_path=self.path/'diagnostic-input.json';receipt_path.write_text(json.dumps(receipt),encoding='utf-8')
+        calls=[]
+        def extract(archive,destination):fixture(destination/name)
+        def install(args,log):
+            if args[0]=='/x':calls.append('cleanup');return
+            if 'REINSTALL=Core' in args:calls.append('feature-failed');raise RuntimeError('observed native 1603')
+            calls.append('installed')
+        qualifier=SimpleNamespace(clone=lambda source,target,*args:shutil.copyfile(source,target),run_installer=install,installed_hashes=lambda *args:None,registered_feature_states=lambda *args:{'Core':3,'CLI':3,'Desktop':2},prepare_launcher_fixture=lambda *args:None,ordinary_context=lambda *args:calls.append('ordinary-observed') or {'separate_user_account':True})
+        package=SimpleNamespace(verify_archive_receipt=lambda *args,**kwargs:{'inventory':self.inv},extract_package=extract,verify_inventory=lambda *args:None)
+        release=SimpleNamespace(verify_qualification=lambda *args:None,verify_signing=lambda *args:None)
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(m,'ROOT',self.path),patch.object(m,'author',side_effect=lambda path,*args:path.write_bytes(b'authored diagnostic fixture')),patch.object(module,'load',side_effect=[release,package,qualifier]),patch.object(module,'git_identity',side_effect=[{'revision':'a'*40,'dirty':False},{'revision':'b'*40,'dirty':False}]):
+            report=module.run(archive,receipt_path,self.path/'prior-source',True)
+        self.assertEqual(calls,['installed','feature-failed','cleanup','ordinary-observed'])
+        self.assertTrue(report['diagnostic_only']);self.assertTrue(report['ineligible_for_publication']);self.assertFalse(report['qualification_pass']);self.assertEqual(report['observations']['feature_add']['outcome'],'observed-failure')
+        self.assertNotEqual(report['payload_source']['revision'],report['tool_source']['revision']);self.assertFalse((self.path/'build/native/windows-installer-receipt.json').exists())
     def test_native_installer_property_language_preserves_unicode_and_spaces(self):
         spec=importlib.util.spec_from_file_location('qualify_msi_properties',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         directory='C:\\fixture spaces é\\'
@@ -341,7 +365,34 @@ class InstallerModelTests(unittest.TestCase):
         self.assertEqual(next(r[1:] for r in m.table_rows(streams,'CustomAction') if r[0]=='RestoreInstallDir'),[51,'INSTALLDIR','[SAVED_INSTALLDIR]'])
         for table in ('InstallUISequence','InstallExecuteSequence'):
             self.assertEqual(next(r[1] for r in m.table_rows(streams,table) if r[0]=='RestoreInstallDir'),'SAVED_INSTALLDIR AND NOT INSTALLDIR')
+        diagnostics=module.feature_diagnostic_rows();actual_actions=m.table_rows(streams,'CustomAction');actual_sequence=m.table_rows(streams,'InstallExecuteSequence')
+        self.assertEqual(len(diagnostics['CustomAction']),42)
+        for row in diagnostics['CustomAction']:self.assertIn(row,actual_actions);self.assertEqual(row[1],51)
+        for row in diagnostics['InstallExecuteSequence']:self.assertIn(row,actual_sequence);self.assertGreater(row[2],1000);self.assertLess(row[2],1100)
+        self.assertFalse(any(row[0].startswith('S027Diag_') for row in m.table_rows(m.CompoundFile(original).streams,'CustomAction')))
         self.assertEqual(m.cabinet_members(streams['payload.cab']),m.cabinet_members(m.CompoundFile(original).streams['payload.cab']))
+    @unittest.skipUnless(os.name=='nt','native summary database inspection only, no UI')
+    def test_clones_have_actual_distinct_package_codes(self):
+        import ctypes as C
+        import re
+        spec=importlib.util.spec_from_file_location('qualify_clone_package_identity',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        original=self.path/'package-original.msi';m.author(original,self.path,self.model)
+        first=self.path/'package-first.msi';second=self.path/'package-second.msi';upgrade=m.guid('summary-code-test')
+        module.clone(original,first,'1.0.2',upgrade);module.clone(original,second,'1.0.3',upgrade)
+        def package_code(path):
+            db=m.NativeDatabase(path);summary=C.c_uint()
+            db.dll.MsiSummaryInfoGetPropertyW.argtypes=[C.c_uint,C.c_uint,C.POINTER(C.c_uint),C.POINTER(C.c_int),C.c_void_p,C.c_wchar_p,C.POINTER(C.c_uint)];db.dll.MsiSummaryInfoGetPropertyW.restype=C.c_uint
+            try:
+                db.check(db.dll.MsiGetSummaryInformationW(db.handle,None,0,C.byref(summary)))
+                value=C.create_unicode_buffer(128);size=C.c_uint(128);kind=C.c_uint();integer=C.c_int()
+                db.check(db.dll.MsiSummaryInfoGetPropertyW(summary,9,C.byref(kind),C.byref(integer),None,value,C.byref(size)))
+                self.assertEqual(kind.value,30);return value.value
+            finally:
+                if summary.value:db.dll.MsiCloseHandle(summary)
+                db.close()
+        codes={package_code(path) for path in (original,first,second)}
+        self.assertEqual(len(codes),3)
+        for value in codes:self.assertRegex(value,r'^\{[0-9A-F]{8}(?:-[0-9A-F]{4}){3}-[0-9A-F]{12}\}$')
     @unittest.skipUnless(os.name=='nt','native database authoring Windows only, no UI')
     def test_signed_payload_and_unsigned_msi_are_independent(self):
         # Disposition regression fixture. Archive signing verification remains the

@@ -138,9 +138,12 @@ export function Settings({ client, run, appearance,onWorkspace,onSetup }: Props)
         (section === 'processing_tools' && !processingOverride))
     )
       return;
+    const revision = settings?.sections[section]?.revision;
+    if (typeof revision !== 'string' || !/^[a-f0-9]{64}$/.test(revision))
+      throw new Error('Wait for current settings to finish loading before saving.');
     await client.call('settings.set', '', {
       section,
-      revision: settings?.sections[section].revision,
+      revision,
       value,
     });
     await load();
@@ -197,6 +200,7 @@ export function Settings({ client, run, appearance,onWorkspace,onSetup }: Props)
         />
         <Check label="Reduce motion" value={motion} onChange={setMotion} />
         <Button
+          disabled={!/^[a-f0-9]{64}$/.test(settings?.sections.appearance?.revision ?? '')}
           onClick={() =>
             run(() => save('appearance', { theme, reduced_motion: motion }))
           }

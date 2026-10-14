@@ -96,3 +96,6 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 
 - [x] T047 [US2] Count retained local MSI features only when no action is scheduled, reject explicit removal of mandatory selections, and match GUI feature-add reinstall behavior.
 - [x] T048 Join isolated package GUI checks before restoring development libraries, overlap them with the CLI journey, preserve the entire detached-runtime idle deadline and bound all read-only CLI checks to the existing four workers.
+
+- [x] T049 Disable appearance Save until actual settings readback supplies a valid revision and make automated clicks wait for enabled controls within the existing deadline.
+- [x] T050 Observe actual MSI action/installed feature states in a diagnostic-only clone and a temporary disposable CI lane with independently verified prior payload identity; exclude diagnostic results from publication eligibility.

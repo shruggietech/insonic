@@ -14,6 +14,18 @@ import time
 import uuid
 import windows_msi as m
 
+def feature_diagnostic_rows():
+    """Property-only observations added exclusively to qualification clones."""
+    rows={'CustomAction':[],'InstallExecuteSequence':[]};sequence=1001
+    for feature in ('Core','CLI','Desktop'):
+        for kind,prefix in [('ACTION','&'),('INSTALLED','!')]:
+            prop='S027_'+feature.upper()+'_'+kind
+            for state in range(-1,6):
+                action='S027Diag_'+feature+'_'+kind+'_'+('m1' if state==-1 else str(state))
+                rows['CustomAction'].append([action,51,prop,str(state)])
+                rows['InstallExecuteSequence'].append([action,prefix+feature+'='+str(state),sequence]);sequence+=1
+    return rows
+
 def clone(source,target,version,upgrade,failure=False,missing_prerequisites=False):
     upgrade_rows=m.table_rows(m.CompoundFile(source).streams,'Upgrade')
     shutil.copyfile(source,target);db=m.NativeDatabase(target,write=True)
@@ -33,8 +45,19 @@ def clone(source,target,version,upgrade,failure=False,missing_prerequisites=Fals
             db.execute('INSERT INTO '+q('CustomAction')+' ('+','.join(q(c[0]) for c in m.SCHEMA['CustomAction'])+') VALUES (?,?,?,?)',['FixtureFailure',19,None,'Intentional transactional fixture failure'])
             db.execute('INSERT INTO '+q('InstallExecuteSequence')+' ('+','.join(q(c[0]) for c in m.SCHEMA['InstallExecuteSequence'])+') VALUES (?,?,?)',['FixtureFailure','1',4100])
         if missing_prerequisites:db.execute('UPDATE '+q('RegLocator')+' SET '+q('Key')+'=? WHERE '+q('Signature_')+'=?',['SOFTWARE\\insonic-ci-missing-prerequisite','VCRuntime'])
+        for table,rows in feature_diagnostic_rows().items():
+            for row in rows:db.execute('INSERT INTO '+q(table)+' ('+','.join(q(column[0]) for column in m.SCHEMA[table])+') VALUES ('+','.join('?' for _ in row)+')',row)
         db.summary(m.guid('ci-package/'+str(uuid.uuid4())));db.check(db.dll.MsiDatabaseCommit(db.handle))
     finally:db.close()
+
+def registered_feature_states(product,output):
+    m.disposable_runner()
+    import ctypes as C
+    import ctypes.wintypes as W
+    dll=C.WinDLL('msi',use_last_error=True);dll.MsiQueryFeatureStateW.argtypes=[W.LPCWSTR,W.LPCWSTR];dll.MsiQueryFeatureStateW.restype=C.c_int
+    values={feature:int(dll.MsiQueryFeatureStateW(product,feature)) for feature in ('Core','CLI','Desktop')}
+    output.write_text(json.dumps({'kind':'registered-feature-state-observation','product_code':product,'states':values,'api':'MsiQueryFeatureStateW','machine_state_modified':False},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+    return values
 
 def installer_properties(arguments):
     """Build the MSI API property language, independently of Windows argv quoting."""
@@ -620,6 +643,7 @@ def qualify(path,receipt):
             result['client_selections']='passed';result['launch_contract']='passed'
             phase('administrator-maintenance')
             run_installer(call(old,'Core,CLI',START_MENU='',DESKTOP_SHORTCUT=''),logs/'maintenance-initial.log');installed=m.product_code(version,upgrade);assert_unchecked_shortcuts()
+            registered_feature_states(installed,logs/'feature-change.registered.json')
             run_installer(call(old,'Core,Desktop,CLI',REINSTALL='Core',REINSTALLMODE='vomus'),logs/'feature-change.log');installed_hashes(install,model,True)
             run_installer(call(old,REMOVE='Core'),logs/'maintenance-core-removal-rejected.log',False,'Shared runtime is mandatory.');installed_hashes(install,model,True)
             run_installer(call(old,REMOVE='Desktop,CLI'),logs/'maintenance-all-clients-removal-rejected.log',False,'Select Desktop, CLI integrations, or both.');installed_hashes(install,model,True)

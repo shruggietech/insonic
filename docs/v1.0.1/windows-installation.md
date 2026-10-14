@@ -86,26 +86,6 @@ Per-user configuration uses `%APPDATA%\insonic`; local data/cache/runtime coordi
 3. Follow [Windows ZIP installation](desktop.md#install-a-windows-zip) to copy into a stable program directory and choose a separate library.
 4. Open `insonic-desktop.exe` when included, or use `insonic.exe` from an already open terminal. ZIP copying creates no MSI registration, Installed Apps entry, shortcut, PATH integration or supplied uninstaller.
 
-## Application walkthrough
-
-These application images are real rendered controls from the compiled frontend using an isolated library and current shared CLI contracts. Their renderer is headless Chromium rather than native WebView2. Browser/viewport/source and image identities are recorded beside the captures. They contain fixture data, not a user's library. Policy-dependent Edge, SmartScreen and UAC prompts are described above; no unobserved OS dialog is presented as a screenshot.
-
-![Optional setup showing an editable library location and capacity preview](../screenshots/v1.0.1/setup-location.png)
-
-Figure 1. Optional setup previews an editable library location outside program files. Keep the default or enter your chosen separate library directory, preview capacity, then save the location and continue.
-
-![Backend choices for a fresh library with local defaults and protected credential inputs](../screenshots/v1.0.1/setup-backends.png)
-
-Figure 2. Keep local backend defaults or explicitly choose the three storage roles before creating a library. Choose local defaults or complete the elected backend fields. Preflight before provisioning; service credentials remain transient protected inputs.
-
-![Optional processing stage with task readiness and existing pipeline choices](../screenshots/v1.0.1/setup-processing.png)
-
-Figure 3. Optional processing follows successful library creation; import and supplied subtitles need no model download. Elect processing when wanted, or skip it and continue. Application installation alone does not prepare model inference.
-
-![Ordinary Library controls remain available after optional setup is deferred](../screenshots/v1.0.1/library-ready.png)
-
-Figure 4. Deferring setup leaves the ordinary Library controls available. Use ordinary Import controls without completing optional stages.
-
 ## Support checklist
 
 Record Windows edition/build, browser/version, selected package/version, exact warning or error text and available controls. Include whether the failure occurred during download, MSI launch, prerequisite installation, maintenance or application first use. Omit private paths, account identifiers, keys and secrets. [Open a GitHub issue](https://github.com/shruggietech/insonic/issues) with those details and the relevant package identity.
