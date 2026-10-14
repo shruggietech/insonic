@@ -97,7 +97,7 @@ class InstallerModelTests(unittest.TestCase):
     def test_cancel_and_context_entrypoints_reject_owner_host_before_native_calls(self):
         spec=importlib.util.spec_from_file_location('qualify_msi_guard',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with patch.dict(os.environ,{},clear=True):
-            for function,args in [(module.token_info,()),(module.restricted_context,(None,None,None)),(module.restricted_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,()),(module.service_diagnostic,()),(module.native_installer_worker,(None,)),(module.native_installer_dll,(None,)),(module.run_installer,(['/i','unused'],None)),(module.create_removal_sentinels,()),(module.assert_removal_sentinels,(None,)),(module.clean_removal_sentinels,(None,)),(module.private_context_desktop,('S-1-5-21-1-2-3-1001',)),(module.restricted_token_diagnostics,(None,)),(module.restricted_access_diagnostics,(None,None,None)),(module.lower_restricted_integrity,(None,))]:
+            for function,args in [(module.token_info,()),(module.ordinary_context,(None,None,None)),(module.ordinary_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,()),(module.service_diagnostic,()),(module.native_installer_worker,(None,)),(module.native_installer_dll,(None,)),(module.run_installer,(['/i','unused'],None)),(module.create_removal_sentinels,()),(module.assert_removal_sentinels,(None,)),(module.clean_removal_sentinels,(None,)),(module.private_context_desktop,('S-1-5-21-1-2-3-1001',)),(module.account_sid,(None,)),(module.grant_owned_account_stage,(None,None,None))]:
                 with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
         self.assertIn('cancellation_rollback',m.QUALIFICATION_KEYS);self.assertIn('user_context',m.QUALIFICATION_KEYS)
     def test_private_context_desktop_restores_caller_on_success_and_failure(self):
@@ -128,24 +128,77 @@ class InstallerModelTests(unittest.TestCase):
                         self.assertEqual(closed,[])
             self.assertEqual(state,{'station':100,'desktop':200});self.assertIn(('station',1000),closed);self.assertIn(('descriptor',1234),closed)
             self.assertEqual(('desktop',2000) in closed,not failure);self.assertEqual(descriptors,[sddl])
-    def test_only_owned_restricted_token_is_lowered_to_medium(self):
+    def test_ordinary_environment_uses_new_profile_and_no_owner_secrets(self):
+        spec=importlib.util.spec_from_file_location('qualify_ordinary_environment',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        env={'SystemRoot':r'C:\Windows','COMPUTERNAME':'CI-FIXTURE','GITHUB_ACTIONS':'true','RUNNER_ENVIRONMENT':'github-hosted','INSONIC_DISPOSABLE_INSTALLER_TEST':'1','GITHUB_TOKEN':'owner-secret','APPDATA':'owner-private','LOCALAPPDATA':'owner-private','HOME':'owner-private','PATH':'owner-private'}
+        profile=self.path/'inso_ci_0123456789ab'
+        with patch.dict(os.environ,env,clear=True):text=module.ordinary_environment(profile,'inso_ci_0123456789ab',self.path/'temp')
+        self.assertTrue(text.endswith('\0\0'));values=dict(item.split('=',1) for item in text.split('\0') if item)
+        self.assertEqual(values['USERPROFILE'],str(profile));self.assertEqual(values['HOME'],str(profile));self.assertEqual(values['APPDATA'],str(profile/'AppData/Roaming'));self.assertEqual(values['LOCALAPPDATA'],str(profile/'AppData/Local'));self.assertEqual(values['GITHUB_ACTIONS'],'true')
+        self.assertNotIn('owner-secret',text);self.assertNotIn('owner-private',text);self.assertNotIn('GITHUB_TOKEN',values)
+    def test_profile_cleanup_requires_created_account_and_exact_owned_target(self):
+        spec=importlib.util.spec_from_file_location('qualify_ordinary_cleanup_bounds',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        users=self.path/'users';users.mkdir();name='inso_ci_0123456789ab';target=users/name;target.mkdir()
+        with patch.dict(os.environ,{'USERPROFILE':str(users/'original-ci-actor')}):
+            self.assertEqual(module.validate_account_profile(name,target),target)
+            for account,path in [('original-ci-actor',target),(name,users/'original-ci-actor'),(name,self.path/name)]:
+                with self.assertRaises(ValueError):module.validate_account_profile(account,path)
+    def test_existing_ci_account_is_never_reused_or_deleted(self):
         import ctypes as C
+        import secrets
         from types import SimpleNamespace
-        spec=importlib.util.spec_from_file_location('qualify_medium_context',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
-        self.assertEqual(module.RESTRICTED_TOKEN_FLAGS,1)
+        spec=importlib.util.spec_from_file_location('qualify_ordinary_collision',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         calls=[]
+        class Function:
+            def __init__(self,name,result=0):self.name=name;self.result=result
+            def __call__(self,*args):calls.append(self.name);return self.result
+        kernel=SimpleNamespace(**{name:Function(name) for name in ('GetCurrentProcess','CloseHandle','WaitForSingleObject','GetExitCodeProcess','TerminateProcess')})
+        security=SimpleNamespace(**{name:Function(name) for name in ('OpenProcessToken','LogonUserW','CreateProcessWithLogonW')})
+        network=SimpleNamespace(NetUserAdd=Function('NetUserAdd',2224),NetUserDel=Function('NetUserDel'),NetLocalGroupAddMembers=Function('NetLocalGroupAddMembers'))
+        profiles=SimpleNamespace(CreateProfile=Function('CreateProfile'),DeleteProfileW=Function('DeleteProfileW'));dlls={'kernel32':kernel,'advapi32':security,'netapi32':network,'userenv':profiles}
+        output=self.path/'ordinary.json'
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(secrets,'token_hex',return_value='private-password-material'):
+            with self.assertRaisesRegex(RuntimeError,'no existing account'):module.ordinary_context(None,None,output,None)
+        self.assertEqual(calls,['NetUserAdd']);self.assertNotIn('private-password-material',output.with_suffix('.startup.json').read_text(encoding='utf-8'));self.assertNotIn('private-password-material',output.with_suffix('.cleanup.json').read_text(encoding='utf-8'))
+    def test_ordinary_cleanup_removes_only_created_profile_account_and_stage(self):
+        import ctypes as C
+        import shutil
+        import re
+        from contextlib import nullcontext
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_ordinary_success_cleanup',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        users=self.path/'users';users.mkdir();original=users/'original';original.mkdir();(original/'owner-data').write_bytes(b'keep')
+        programdata=self.path/'programdata';programdata.mkdir();(programdata/'owner-data').write_bytes(b'keep')
+        fixture=self.path/'launcher-context-fixture';fixture.mkdir();(fixture/'precompiled-reporter.exe').write_bytes(b'qualified fixture bytes')
+        installer=self.path/'ordinary-source.msi';installer.write_bytes(b'qualified MSI fixture bytes');output=self.path/'ordinary.json'
+        actor_sid='S-1-5-21-1-2-3-1001';events=[];state={};deletions=[]
         class Function:
             def __init__(self,call):self.call=call
             def __call__(self,*args):return self.call(*args)
-        def convert(value,out):self.assertEqual(value,'S-1-16-8192');out._obj.value=5678;return True
-        def set_integrity(token,kind,label,size):calls.append((token,kind,label._obj.attributes,size));return True
-        security=SimpleNamespace(ConvertStringSidToSidW=Function(convert),GetLengthSid=Function(lambda sid:16),SetTokenInformation=Function(set_integrity));kernel=SimpleNamespace(LocalFree=Function(lambda sid:None))
-        before={'integrity_rid':12288};after={'integrity_rid':8192,'enabled_privileges':1,'groups':[{'administrator_sid':True,'attributes':0x10}]}
-        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'restricted_token_diagnostics',side_effect=[before,after]),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:security if name=='advapi32' else kernel,create=True):
-            proof=module.lower_restricted_integrity(777)
-        self.assertEqual(len(calls),1);self.assertEqual(calls[0][:3],(777,25,0x20));self.assertEqual(proof['integrity_adjustment']['before_rid'],12288);self.assertEqual(proof['integrity_adjustment']['after_rid'],8192)
-        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'restricted_token_diagnostics',return_value={'integrity_rid':4096}):
-            with self.assertRaisesRegex(RuntimeError,'below'):module.lower_restricted_integrity(777)
+        def create_profile(sid,name,value,size):
+            self.assertEqual(sid,actor_sid);state['name']=name;state['profile']=users/name;state['profile'].mkdir();value.value=str(state['profile']);return 0
+        def delete_profile(sid,path,remote):
+            self.assertEqual(sid,actor_sid);target=Path(path);self.assertEqual(target.resolve().parent,users.resolve());self.assertEqual(target.name,state['name']);deletions.append(target)
+            if len(deletions)<3:return False
+            shutil.rmtree(target);events.append('profile-deleted');return True
+        def create_process(name,domain,password,flags,exe,command,creation,environment,cwd,startup,process):
+            self.assertNotIn(password,command.value);self.assertEqual(name,state['name']);self.assertEqual(flags,1)
+            target=Path(re.search(r'--output ("[^"]+"|\S+)',command.value).group(1).strip('"'))
+            target.write_text(json.dumps({'token':{'user_sid_sha256':m.digest(actor_sid.encode())},'user_profile':str(state['profile']),'elected_launcher':{'actual_elected_launch':True}}),encoding='utf-8')
+            process._obj.process=333;process._obj.thread=444;process._obj.pid=555;return True
+        def set_token(process,access,out):out._obj.value=200;return True
+        def logon(name,domain,password,kind,provider,out):out._obj.value=100;return True
+        def exit_code(process,out):out._obj.value=0;return True
+        kernel=SimpleNamespace(GetCurrentProcess=Function(lambda:1),CloseHandle=Function(lambda handle:True),WaitForSingleObject=Function(lambda *args:0),GetExitCodeProcess=Function(exit_code),TerminateProcess=Function(lambda *args:True))
+        security=SimpleNamespace(OpenProcessToken=Function(set_token),LogonUserW=Function(logon),CreateProcessWithLogonW=Function(create_process))
+        network=SimpleNamespace(NetUserAdd=Function(lambda *args:events.append('account-created') or 0),NetUserDel=Function(lambda server,name:events.append('account-deleted') or 0),NetLocalGroupAddMembers=Function(lambda *args:0))
+        profiles=SimpleNamespace(CreateProfile=Function(create_profile),DeleteProfileW=Function(delete_profile));dlls={'kernel32':kernel,'advapi32':security,'netapi32':network,'userenv':profiles}
+        env={'USERPROFILE':str(original),'ProgramData':str(programdata),'SystemRoot':r'C:\Windows','COMPUTERNAME':'CI-FIXTURE'}
+        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'private_context_desktop',return_value=nullcontext({'path':'owned\\Default'})),patch.object(module.time,'sleep'):
+            proof=module.ordinary_context(installer,self.path/'installation',output,self.model)
+        self.assertEqual(events,['account-created','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3)
+        self.assertTrue(all(item['deleted'] for item in proof['cleanup']));self.assertEqual((original/'owner-data').read_bytes(),b'keep');self.assertEqual((programdata/'owner-data').read_bytes(),b'keep')
+        self.assertEqual(list(programdata.iterdir()),[programdata/'owner-data']);self.assertEqual(installer.read_bytes(),b'qualified MSI fixture bytes')
     def test_native_capture_requires_verified_clean_nonempty_source(self):
         from types import SimpleNamespace
         spec=importlib.util.spec_from_file_location('capture_installer_contract',ROOT/'scripts/capture-installer-ui.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)

@@ -47,7 +47,7 @@ Independent test: capture actual app/installer controls with source/renderer rec
 
 - [x] T019 [US4] Implement bounded headless compiled-frontend/current-CLI bridge capture in scripts/capture-application-ui.mjs and cmd/insonic-capture-bridge/.
 - [x] T020 [US4] Implement disposable-CI-only authored native page capture with exact owned-process cleanup in scripts/capture-installer-ui.py.
-- [ ] T021 [US4] Generate and inspect current fixture PNGs with exact source/renderer/privacy receipts in docs/screenshots/v1.0.1/.
+- [x] T021 [US4] Generate and inspect current fixture PNGs with exact source/renderer/privacy receipts in docs/screenshots/v1.0.1/.
 
 ## Phase 7: Delivery
 
@@ -67,7 +67,7 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 
 ## Convergence follow-up
 
-- [x] T027 [US2] Require actual cancellation rollback and restricted-token per-user context observations in scripts/qualify-windows-msi.py, verified in disposable CI through T024.
+- [x] T027 [US2] Require actual cancellation rollback and ordinary-account per-user context observations in scripts/qualify-windows-msi.py, verified in disposable CI through T024.
 - [x] T028 [US1] Launch selected clients with an unelevated same-user token when the installer is elevated in internal/launcher/windows.go and elevation_windows.go, verified in disposable CI through T024.
 
 - [x] T029 [US2] Resolve directory aliases before library containment and active-client comparison in internal/launcher/ with an alias-to-library regression.
@@ -86,8 +86,10 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 - [x] T039 [US2] Author and independently verify required empty AppSearch locator tables and require intended negative-case messages/actions in scripts/windows_msi.py and scripts/qualify-windows-msi.py.
 - [x] T040 [US2] Preserve explicit install-directory elections and check both incoming and registered installation roots during moving upgrades, with canonical-path and disposable active-process regressions.
 - [x] T041 [US2] Refuse elected exact-name shortcut collisions outside MSI ownership, and verify preservation of unrelated sibling shortcuts and registry values during actual CI lifecycle.
-- [x] T042 [US2] Give the restricted CI worker an owned noninteractive same-user desktop and startup diagnostics without changing shared desktop ACLs in scripts/qualify-windows-msi.py.
+- [x] T042 [US2] Give the CI worker an owned noninteractive desktop for its invoking account and startup diagnostics without changing shared desktop ACLs in scripts/qualify-windows-msi.py.
 - [x] T043 [US4] Render verified property-backed authored pages through a restricted MSI session and retain both capture/lifecycle failures independently in scripts/capture-installer-ui.py and scripts/package-msi.py.
 
 - [x] T044 [US4] Locate the owned native directory control by its verified normalized property value rather than a guessed window class.
-- [x] T045 [US2] Explicitly lower only the owned restricted CI token to medium integrity, record actual token/loader access diagnostics, and assert same-user non-elevated worker and elected-child integrity.
+- [x] T045 [US2] Diagnose the synthetic restricted-token startup and integrity failure; retire its unused construction after actual CI proved it unsuitable for ordinary-user qualification.
+
+- [x] T046 [US2] Qualify a genuine owned ordinary CI account/profile with exact staged source/payload identities, same-actor elected children, isolated environment and bounded account/profile/stage cleanup; retain independent administrator lifecycle progress.

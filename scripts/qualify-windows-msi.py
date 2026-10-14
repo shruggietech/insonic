@@ -13,7 +13,6 @@ import sys
 import time
 import uuid
 import windows_msi as m
-RESTRICTED_TOKEN_FLAGS=1 # DISABLE_MAX_PRIVILEGE, without implicit LUA/sandbox restrictions.
 
 def clone(source,target,version,upgrade,failure=False,missing_prerequisites=False):
     upgrade_rows=m.table_rows(m.CompoundFile(source).streams,'Upgrade')
@@ -325,24 +324,27 @@ def token_info():
         return {'administrator_enabled':bool(member.value),'elevated':elevated,'elevation_type':elevation_type,'enabled_privileges':enabled,'user_sid_sha256':user_hash,'integrity_sid':integrity_sid,'integrity_rid':integrity_rid}
     finally:kernel.CloseHandle(token)
 
-def restricted_worker(installer,directory,output):
+def ordinary_worker(installer,directory,output):
     m.disposable_runner()
     progress=output.with_suffix('.progress.json')
     def record(phase):progress.write_text(json.dumps({'pid':os.getpid(),'phase':phase},sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     record('python-started');observed=token_info();record('token-observed')
-    if observed['administrator_enabled'] or observed['enabled_privileges']>1 or observed['elevated'] or observed['integrity_rid']!=8192:raise RuntimeError('restricted worker retained administrator membership/privileges/elevation or did not run at medium integrity')
+    if observed['administrator_enabled'] or observed['enabled_privileges']>1 or observed['elevated'] or observed['integrity_rid']!=8192:raise RuntimeError('ordinary worker retained administrator membership/privileges/elevation or did not run at medium integrity')
     product=dict(m.table_rows(m.CompoundFile(installer).streams,'Property'))['ProductCode']
     installed=False
     try:
         run_installer(['/i',installer,'INSTALLDIR='+str(directory),'LICENSE_ACCEPTED=1','ADDLOCAL=Core,CLI'],output.with_suffix('.install.log'));installed=True
         record('installed')
         marker=directory/m.OWNERSHIP
-        if not marker.is_file() or marker.read_bytes()!=m.OWNERSHIP_BYTES:raise RuntimeError('restricted per-user install missing ownership marker')
+        if not marker.is_file() or marker.read_bytes()!=m.OWNERSHIP_BYTES:raise RuntimeError('ordinary per-user install missing ownership marker')
+        model=json.loads((directory.parent/'context-model.json').read_text(encoding='utf-8'));installed_hashes(directory,model,False)
+        version=dict(m.table_rows(m.CompoundFile(installer).streams,'Property'))['ProductVersion']
+        if child([directory/'insonic.exe','version'],dict(os.environ),directory).decode().strip()!=version:raise RuntimeError('ordinary-user installed CLI version differs')
         launch_evidence=elected_launcher_context(directory.parent/'launcher-context-fixture')
         record('elected-launch-observed')
         run_installer(['/x',product],output.with_suffix('.remove.log'));installed=False
-        if marker.exists():raise RuntimeError('restricted per-user removal retained owned marker')
-        evidence={'kind':'standard-equivalent-restricted-token','token':observed,'install_exit':0,'remove_exit':0,'separate_user_account':False,'os_policy_mutations':False,'elected_launcher':launch_evidence}
+        if marker.exists():raise RuntimeError('ordinary per-user removal retained owned marker')
+        evidence={'kind':'ordinary-disposable-ci-user','token':observed,'install_exit':0,'remove_exit':0,'payload_hashes_verified':True,'separate_user_account':True,'os_policy_mutations':False,'profile_loaded':True,'user_profile':os.environ['USERPROFILE'],'elected_launcher':launch_evidence}
         output.write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
         record('completed')
     finally:
@@ -352,113 +354,11 @@ def private_desktop_sddl(user_sid):
     if not __import__('re').fullmatch(r'S-1-5-(?:\d+-)*\d+',user_sid):raise ValueError('invalid same-user desktop SID')
     return 'D:P(A;;GA;;;SY)(A;;GA;;;'+user_sid+')S:(ML;;NW;;;ME)'
 
-def restricted_token_diagnostics(token):
-    m.disposable_runner()
-    import ctypes as C
-    import ctypes.wintypes as W
-    security=C.WinDLL('advapi32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True)
-    class Sid(C.Structure):_fields_=[('sid',C.c_void_p),('attributes',W.DWORD)]
-    class Groups(C.Structure):_fields_=[('count',W.DWORD),('entries',Sid*1)]
-    security.GetTokenInformation.argtypes=[W.HANDLE,C.c_int,C.c_void_p,W.DWORD,C.POINTER(W.DWORD)];security.GetTokenInformation.restype=W.BOOL
-    security.ConvertSidToStringSidW.argtypes=[C.c_void_p,C.POINTER(C.c_void_p)];security.ConvertSidToStringSidW.restype=W.BOOL
-    kernel.LocalFree.argtypes=[C.c_void_p];kernel.LocalFree.restype=C.c_void_p
-    def info(kind):
-        size=W.DWORD();security.GetTokenInformation(token,kind,None,0,C.byref(size))
-        if not size.value or size.value>65536:raise RuntimeError('invalid bounded restricted-token information')
-        data=C.create_string_buffer(size.value)
-        if not security.GetTokenInformation(token,kind,data,size.value,C.byref(size)):raise C.WinError(C.get_last_error())
-        return data
-    def sid_string(sid):
-        value=C.c_void_p()
-        if not security.ConvertSidToStringSidW(sid,C.byref(value)):raise C.WinError(C.get_last_error())
-        try:return C.wstring_at(value)
-        finally:kernel.LocalFree(value)
-    def groups(kind):
-        data=info(kind);count=struct.unpack_from('<I',data.raw)[0];offset=Groups.entries.offset
-        if count>512 or count and offset+count*C.sizeof(Sid)>len(data):raise RuntimeError('invalid bounded restricted-token SID count')
-        values=[]
-        for index in range(count):
-            entry=Sid.from_buffer(data,offset+index*C.sizeof(Sid));value=sid_string(entry.sid)
-            values.append({'sid_sha256':m.digest(value.encode()),'attributes':entry.attributes,'administrator_sid':value=='S-1-5-32-544','logon_sid':entry.attributes&0xc0000000==0xc0000000})
-        return values
-    enabled=groups(2);restricted=groups(11);privileges=info(3);count=struct.unpack_from('<I',privileges.raw)[0]
-    if count>100 or 4+count*12>len(privileges):raise RuntimeError('invalid bounded restricted-token privileges')
-    integrity=info(25);integrity_sid=sid_string(C.cast(integrity,C.POINTER(C.c_void_p))[0])
-    return {'creation_flags':RESTRICTED_TOKEN_FLAGS,'groups':enabled,'restricted_sids':restricted,'logon_sids':[entry for entry in enabled if entry['logon_sid']],'enabled_privileges':sum(bool(struct.unpack_from('<I',privileges.raw,4+index*12+8)[0]&2) for index in range(count)),'elevated':bool(C.cast(info(20),C.POINTER(W.DWORD))[0]),'elevation_type':int(C.cast(info(18),C.POINTER(W.DWORD))[0]),'integrity_sid':integrity_sid,'integrity_rid':int(integrity_sid.rsplit('-',1)[1]),'mandatory_policy':int(C.cast(info(27),C.POINTER(W.DWORD))[0]),'session_id':int(C.cast(info(12),C.POINTER(W.DWORD))[0])}
-
-def lower_restricted_integrity(token):
-    """Lower only the newly owned test token; no source/global token is modified."""
-    m.disposable_runner();before=restricted_token_diagnostics(token)
-    if before['integrity_rid']<8192:raise RuntimeError('test token integrity is below the requested medium context')
-    if before['integrity_rid']>8192:
-        import ctypes as C
-        import ctypes.wintypes as W
-        security=C.WinDLL('advapi32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True)
-        class Label(C.Structure):_fields_=[('sid',C.c_void_p),('attributes',W.DWORD)]
-        security.ConvertStringSidToSidW.argtypes=[W.LPCWSTR,C.POINTER(C.c_void_p)];security.ConvertStringSidToSidW.restype=W.BOOL
-        security.GetLengthSid.argtypes=[C.c_void_p];security.GetLengthSid.restype=W.DWORD
-        security.SetTokenInformation.argtypes=[W.HANDLE,C.c_int,C.c_void_p,W.DWORD];security.SetTokenInformation.restype=W.BOOL
-        kernel.LocalFree.argtypes=[C.c_void_p];kernel.LocalFree.restype=C.c_void_p
-        sid=C.c_void_p()
-        if not security.ConvertStringSidToSidW('S-1-16-8192',C.byref(sid)):raise C.WinError(C.get_last_error())
-        try:
-            label=Label(sid,0x20)
-            if not security.SetTokenInformation(token,25,C.byref(label),C.sizeof(label)+security.GetLengthSid(sid)):raise C.WinError(C.get_last_error())
-        finally:kernel.LocalFree(sid)
-    after=restricted_token_diagnostics(token)
-    if after['integrity_rid']!=8192 or after['enabled_privileges']>1 or any(entry['administrator_sid'] and (entry['attributes']&4 or not entry['attributes']&0x10) for entry in after['groups']):raise RuntimeError('new test token did not retain medium integrity and explicit privilege/administrator restrictions')
-    after['integrity_adjustment']={'before_rid':before['integrity_rid'],'after_rid':after['integrity_rid'],'only_new_test_token_modified':True}
-    return after
-
-def restricted_access_diagnostics(token,station,desktop):
-    """Read-only DACL checks for exact owned objects and required loader paths."""
-    m.disposable_runner()
-    import ctypes as C
-    import ctypes.wintypes as W
-    security=C.WinDLL('advapi32',use_last_error=True);user=C.WinDLL('user32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True)
-    class Mapping(C.Structure):_fields_=[('read',W.DWORD),('write',W.DWORD),('execute',W.DWORD),('all',W.DWORD)]
-    security.DuplicateTokenEx.argtypes=[W.HANDLE,W.DWORD,C.c_void_p,C.c_int,C.c_int,C.POINTER(W.HANDLE)];security.DuplicateTokenEx.restype=W.BOOL
-    security.AccessCheck.argtypes=[C.c_void_p,W.HANDLE,W.DWORD,C.POINTER(Mapping),C.c_void_p,C.POINTER(W.DWORD),C.POINTER(W.DWORD),C.POINTER(W.BOOL)];security.AccessCheck.restype=W.BOOL
-    security.GetNamedSecurityInfoW.argtypes=[W.LPWSTR,C.c_int,W.DWORD,C.c_void_p,C.c_void_p,C.c_void_p,C.c_void_p,C.POINTER(C.c_void_p)];security.GetNamedSecurityInfoW.restype=W.DWORD
-    security.GetSecurityDescriptorLength.argtypes=[C.c_void_p];security.GetSecurityDescriptorLength.restype=W.DWORD
-    user.GetUserObjectSecurity.argtypes=[W.HANDLE,C.POINTER(W.DWORD),C.c_void_p,W.DWORD,C.POINTER(W.DWORD)];user.GetUserObjectSecurity.restype=W.BOOL
-    kernel.LocalFree.argtypes=[C.c_void_p];kernel.LocalFree.restype=C.c_void_p;kernel.CloseHandle.argtypes=[W.HANDLE];kernel.CloseHandle.restype=W.BOOL
-    impersonation=W.HANDLE();checks=[]
-    if not security.DuplicateTokenEx(token,8,None,2,2,C.byref(impersonation)):raise C.WinError(C.get_last_error())
-    def check(descriptor,desired,mapping):
-        privileges=C.create_string_buffer(4096);size=W.DWORD(4096);granted=W.DWORD();allowed=W.BOOL()
-        success=bool(security.AccessCheck(descriptor,impersonation,desired,C.byref(mapping),privileges,C.byref(size),C.byref(granted),C.byref(allowed)))
-        error=0 if success else C.get_last_error();length=security.GetSecurityDescriptorLength(descriptor)
-        if not length or length>65536:raise RuntimeError('invalid access-check security descriptor bound')
-        return {'api_success':success,'allowed':bool(allowed.value) if success else None,'desired_access':hex(desired),'granted_access':hex(granted.value) if success else None,'api_error':error,'security_descriptor_sha256':m.digest(C.string_at(descriptor,length)),'mandatory_integrity_evaluated':False}
-    try:
-        for name,handle,access in [('private-window-station',station,0x000f037f),('private-desktop',desktop,0x000f01ff)]:
-            try:
-                requested=W.DWORD(7);size=W.DWORD();user.GetUserObjectSecurity(handle,C.byref(requested),None,0,C.byref(size))
-                if not size.value or size.value>65536:raise RuntimeError('invalid user-object descriptor bound')
-                descriptor=C.create_string_buffer(size.value)
-                if not user.GetUserObjectSecurity(handle,C.byref(requested),descriptor,size.value,C.byref(size)):raise C.WinError(C.get_last_error())
-                checks.append({'object':name,**check(descriptor,access,Mapping(access,access,access,access))})
-            except Exception as error:checks.append({'object':name,'diagnostic_error':str(error)})
-        python=Path(sys.executable);system=Path(os.environ['SystemRoot'])/'System32'
-        paths=[python,python.parent,python.parent/('python'+str(sys.version_info.major)+str(sys.version_info.minor)+'.dll'),Path(__file__),m.ROOT,system/'kernel32.dll',system/'user32.dll',system/'msi.dll']
-        for path in paths:
-            descriptor=C.c_void_p()
-            try:
-                rc=security.GetNamedSecurityInfoW(C.create_unicode_buffer(str(path)),1,7,None,None,None,None,C.byref(descriptor))
-                if rc:raise RuntimeError('GetNamedSecurityInfo failed '+str(rc))
-                checks.append({'object':str(path),**check(descriptor,0x001200a9,Mapping(0x00120089,0x00120116,0x001200a0,0x001f01ff))})
-            except Exception as error:checks.append({'object':str(path),'diagnostic_error':str(error)})
-            finally:
-                if descriptor:kernel.LocalFree(descriptor)
-    finally:kernel.CloseHandle(impersonation)
-    return checks
-
-def private_context_desktop(user_sid,access_token=None):
+def private_context_desktop(user_sid):
     """Create only owned CI objects, restoring the caller before running a child.
 
-    CreateProcessAsUser requires access to both objects. An inherited runner
-    station can depend on the Administrators SID disabled in the test token.
+    Alternate-user processes require access to both objects. The inherited
+    runner station need not grant access to the separately created CI account.
     Never alter shared WinSta0/default permissions or make this station visible.
     """
     m.disposable_runner();sddl=private_desktop_sddl(user_sid)
@@ -492,7 +392,6 @@ def private_context_desktop(user_sid,access_token=None):
                 if user.GetThreadDesktop(thread_id)!=original_desktop and not user.SetThreadDesktop(original_desktop):raise C.WinError(C.get_last_error())
             if user.GetProcessWindowStation()!=original or user.GetThreadDesktop(thread_id)!=original_desktop:raise RuntimeError('caller station/desktop restoration failed')
             evidence={'path':name+'\\Default','kind':'owned-noninteractive-same-user-desktop','shared_desktop_acl_modified':False,'caller_station_restored':True,'visible_switch':False,'acl_subjects':['SYSTEM','same user'],'same_user_sid_sha256':m.digest(user_sid.encode())}
-            if access_token is not None:evidence['restricted_access']=restricted_access_diagnostics(access_token,station,desktop)
             yield evidence
         finally:
             if desktop:user.CloseDesktop(desktop)
@@ -500,71 +399,142 @@ def private_context_desktop(user_sid,access_token=None):
             if descriptor:kernel.LocalFree(descriptor)
     return owned()
 
-def restricted_context(installer,directory,output):
-    """Run a real process with the same user, deny-only Administrators and no
-    elevated privileges. Exact token values distinguish this from another account.
-    """
+def ordinary_environment(profile,account,temporary):
+    values={key:os.environ[key] for key in ('SystemRoot','windir','COMPUTERNAME','SystemDrive','ProgramData','ProgramFiles','ProgramFiles(x86)','CommonProgramFiles','CommonProgramFiles(x86)','PROCESSOR_ARCHITECTURE','OS','NUMBER_OF_PROCESSORS','GITHUB_ACTIONS','RUNNER_ENVIRONMENT','INSONIC_DISPOSABLE_INSTALLER_TEST','GITHUB_RUN_ID') if key in os.environ}
+    profile=Path(profile);values.update({'USERPROFILE':str(profile),'HOME':str(profile),'APPDATA':str(profile/'AppData/Roaming'),'LOCALAPPDATA':str(profile/'AppData/Local'),'USERNAME':account,'USERDOMAIN':os.environ['COMPUTERNAME'],'TEMP':str(temporary),'TMP':str(temporary),'PATH':str(Path(os.environ['SystemRoot'])/'System32')+';'+os.environ['SystemRoot']})
+    return '\0'.join(key+'='+value for key,value in sorted(values.items(),key=lambda item:item[0].casefold()))+'\0\0'
+
+def account_sid(token):
     m.disposable_runner()
     import ctypes as C
     import ctypes.wintypes as W
-    kernel=C.WinDLL('kernel32',use_last_error=True);security=C.WinDLL('advapi32',use_last_error=True)
-    class Sid(C.Structure):_fields_=[('sid',C.c_void_p),('attributes',W.DWORD)]
-    class Startup(C.Structure):_fields_=[('cb',W.DWORD),('reserved',W.LPWSTR),('desktop',W.LPWSTR),('title',W.LPWSTR),('x',W.DWORD),('y',W.DWORD),('width',W.DWORD),('height',W.DWORD),('chars_x',W.DWORD),('chars_y',W.DWORD),('fill',W.DWORD),('flags',W.DWORD),('show',W.WORD),('reserved_size',W.WORD),('reserved_bytes',C.c_void_p),('stdin',W.HANDLE),('stdout',W.HANDLE),('stderr',W.HANDLE)]
-    class Process(C.Structure):_fields_=[('process',W.HANDLE),('thread',W.HANDLE),('pid',W.DWORD),('tid',W.DWORD)]
-    kernel.GetCurrentProcess.restype=W.HANDLE;kernel.CloseHandle.argtypes=[W.HANDLE];kernel.CloseHandle.restype=W.BOOL
-    kernel.WaitForSingleObject.argtypes=[W.HANDLE,W.DWORD];kernel.WaitForSingleObject.restype=W.DWORD
-    kernel.GetExitCodeProcess.argtypes=[W.HANDLE,C.POINTER(W.DWORD)];kernel.GetExitCodeProcess.restype=W.BOOL
-    kernel.TerminateProcess.argtypes=[W.HANDLE,W.UINT];kernel.TerminateProcess.restype=W.BOOL
-    security.OpenProcessToken.argtypes=[W.HANDLE,W.DWORD,C.POINTER(W.HANDLE)];security.OpenProcessToken.restype=W.BOOL
-    security.CreateWellKnownSid.argtypes=[C.c_int,C.c_void_p,C.c_void_p,C.POINTER(W.DWORD)];security.CreateWellKnownSid.restype=W.BOOL
-    security.CreateRestrictedToken.argtypes=[W.HANDLE,W.DWORD,W.DWORD,C.POINTER(Sid),W.DWORD,C.c_void_p,W.DWORD,C.c_void_p,C.POINTER(W.HANDLE)];security.CreateRestrictedToken.restype=W.BOOL
+    security=C.WinDLL('advapi32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True)
     security.GetTokenInformation.argtypes=[W.HANDLE,C.c_int,C.c_void_p,W.DWORD,C.POINTER(W.DWORD)];security.GetTokenInformation.restype=W.BOOL
     security.ConvertSidToStringSidW.argtypes=[C.c_void_p,C.POINTER(C.c_void_p)];security.ConvertSidToStringSidW.restype=W.BOOL
     kernel.LocalFree.argtypes=[C.c_void_p];kernel.LocalFree.restype=C.c_void_p
-    security.CreateProcessAsUserW.argtypes=[W.HANDLE,W.LPCWSTR,W.LPWSTR,C.c_void_p,C.c_void_p,W.BOOL,W.DWORD,C.c_void_p,W.LPCWSTR,C.POINTER(Startup),C.POINTER(Process)];security.CreateProcessAsUserW.restype=W.BOOL
-    token=W.HANDLE();restricted=W.HANDLE();process=Process()
-    if not security.OpenProcessToken(kernel.GetCurrentProcess(),0x008b,C.byref(token)):raise C.WinError(C.get_last_error())
+    size=W.DWORD();security.GetTokenInformation(token,1,None,0,C.byref(size))
+    if not size.value or size.value>65536:raise RuntimeError('invalid account-token SID bound')
+    data=C.create_string_buffer(size.value)
+    if not security.GetTokenInformation(token,1,data,size.value,C.byref(size)):raise C.WinError(C.get_last_error())
+    text=C.c_void_p()
+    if not security.ConvertSidToStringSidW(C.cast(data,C.POINTER(C.c_void_p))[0],C.byref(text)):raise C.WinError(C.get_last_error())
+    try:return C.wstring_at(text)
+    finally:kernel.LocalFree(text)
+
+def grant_owned_account_stage(stage,user_sid,caller_sid):
+    m.disposable_runner()
+    import ctypes as C
+    import ctypes.wintypes as W
+    base=Path(os.environ['ProgramData']).resolve();stage=Path(stage)
+    if stage.is_symlink() or stage.resolve().parent!=base or not __import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name):raise ValueError('account staging ACL target is not the exact owned directory')
+    for sid in (user_sid,caller_sid):private_desktop_sddl(sid)
+    security=C.WinDLL('advapi32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True)
+    security.ConvertStringSecurityDescriptorToSecurityDescriptorW.argtypes=[W.LPCWSTR,W.DWORD,C.POINTER(C.c_void_p),C.c_void_p];security.ConvertStringSecurityDescriptorToSecurityDescriptorW.restype=W.BOOL
+    security.SetFileSecurityW.argtypes=[W.LPCWSTR,W.DWORD,C.c_void_p];security.SetFileSecurityW.restype=W.BOOL
+    kernel.LocalFree.argtypes=[C.c_void_p];kernel.LocalFree.restype=C.c_void_p
+    descriptor=C.c_void_p();sddl='D:P(A;OICI;GA;;;SY)(A;OICI;GA;;;'+user_sid+')(A;OICI;GA;;;'+caller_sid+')S:(ML;OICI;NW;;;ME)'
+    if not security.ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl,1,C.byref(descriptor),None):raise C.WinError(C.get_last_error())
     try:
-        admin=C.create_string_buffer(68);size=W.DWORD(68)
-        if not security.CreateWellKnownSid(26,None,admin,C.byref(size)):raise C.WinError(C.get_last_error())
-        disable=Sid(C.cast(admin,C.c_void_p),0)
-        # Only explicit privilege removal and deny-only Administrators are needed.
-        # LUA_TOKEN can add implicit restricted SIDs that alter loader access.
-        if not security.CreateRestrictedToken(token,RESTRICTED_TOKEN_FLAGS,1,C.byref(disable),0,None,0,None,C.byref(restricted)):raise C.WinError(C.get_last_error())
-        size=W.DWORD();security.GetTokenInformation(restricted,1,None,0,C.byref(size))
-        if not size.value or size.value>65536:raise RuntimeError('invalid restricted-token user information bound')
-        user=C.create_string_buffer(size.value)
-        if not security.GetTokenInformation(restricted,1,user,size.value,C.byref(size)):raise C.WinError(C.get_last_error())
-        sid=C.cast(user,C.POINTER(C.c_void_p))[0];sid_text=C.c_void_p()
-        if not security.ConvertSidToStringSidW(sid,C.byref(sid_text)):raise C.WinError(C.get_last_error())
-        try:user_sid=C.wstring_at(sid_text)
-        finally:kernel.LocalFree(sid_text)
-        diagnostics=output.with_suffix('.startup.json')
-        token_diagnostics=lower_restricted_integrity(restricted)
-        def record(phase,**extra):diagnostics.write_text(json.dumps({'phase':phase,'python_executable':sys.executable,'python_executable_sha256':m.sha(Path(sys.executable)),'same_user_sid_sha256':m.digest(user_sid.encode()),'inherited_stdio':False,'restricted_token':token_diagnostics,**extra},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
-        record('before-private-desktop')
-        with private_context_desktop(user_sid,restricted) as desktop:
+        if not security.SetFileSecurityW(str(stage),0x80000014,descriptor):raise C.WinError(C.get_last_error())
+    finally:kernel.LocalFree(descriptor)
+
+def validate_account_profile(account,profile):
+    if not __import__('re').fullmatch('inso_ci_[0-9a-f]{12}',account):raise ValueError('invalid exact CI-owned account identity')
+    profile=Path(profile);base=Path(os.environ['USERPROFILE']).resolve().parent
+    if profile.is_symlink() or profile.resolve().parent!=base or profile.name.casefold()!=account.casefold():raise ValueError('profile cleanup target is not the exact created account directory')
+    return profile
+
+def ordinary_context(installer,directory,output,model=None):
+    """Qualify an actual ordinary account, exclusively on a disposable runner."""
+    m.disposable_runner()
+    import secrets
+    import ctypes as C
+    import ctypes.wintypes as W
+    security=C.WinDLL('advapi32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True);network=C.WinDLL('netapi32',use_last_error=True);profiles=C.WinDLL('userenv',use_last_error=True)
+    class User(C.Structure):_fields_=[('name',W.LPWSTR),('password',W.LPWSTR),('password_age',W.DWORD),('privilege',W.DWORD),('home',W.LPWSTR),('comment',W.LPWSTR),('flags',W.DWORD),('script',W.LPWSTR)]
+    class Member(C.Structure):_fields_=[('name',W.LPWSTR)]
+    class Startup(C.Structure):_fields_=[('cb',W.DWORD),('reserved',W.LPWSTR),('desktop',W.LPWSTR),('title',W.LPWSTR),('x',W.DWORD),('y',W.DWORD),('width',W.DWORD),('height',W.DWORD),('chars_x',W.DWORD),('chars_y',W.DWORD),('fill',W.DWORD),('flags',W.DWORD),('show',W.WORD),('reserved_size',W.WORD),('reserved_bytes',C.c_void_p),('stdin',W.HANDLE),('stdout',W.HANDLE),('stderr',W.HANDLE)]
+    class Process(C.Structure):_fields_=[('process',W.HANDLE),('thread',W.HANDLE),('pid',W.DWORD),('tid',W.DWORD)]
+    kernel.GetCurrentProcess.restype=W.HANDLE;kernel.CloseHandle.argtypes=[W.HANDLE];kernel.CloseHandle.restype=W.BOOL
+    kernel.WaitForSingleObject.argtypes=[W.HANDLE,W.DWORD];kernel.WaitForSingleObject.restype=W.DWORD;kernel.GetExitCodeProcess.argtypes=[W.HANDLE,C.POINTER(W.DWORD)];kernel.GetExitCodeProcess.restype=W.BOOL;kernel.TerminateProcess.argtypes=[W.HANDLE,W.UINT];kernel.TerminateProcess.restype=W.BOOL
+    security.OpenProcessToken.argtypes=[W.HANDLE,W.DWORD,C.POINTER(W.HANDLE)];security.OpenProcessToken.restype=W.BOOL
+    security.LogonUserW.argtypes=[W.LPCWSTR,W.LPCWSTR,W.LPCWSTR,W.DWORD,W.DWORD,C.POINTER(W.HANDLE)];security.LogonUserW.restype=W.BOOL
+    security.CreateProcessWithLogonW.argtypes=[W.LPCWSTR,W.LPCWSTR,W.LPCWSTR,W.DWORD,W.LPCWSTR,W.LPWSTR,W.DWORD,C.c_void_p,W.LPCWSTR,C.POINTER(Startup),C.POINTER(Process)];security.CreateProcessWithLogonW.restype=W.BOOL
+    network.NetUserAdd.argtypes=[W.LPCWSTR,W.DWORD,C.c_void_p,C.POINTER(W.DWORD)];network.NetUserAdd.restype=W.DWORD;network.NetUserDel.argtypes=[W.LPCWSTR,W.LPCWSTR];network.NetUserDel.restype=W.DWORD
+    network.NetLocalGroupAddMembers.argtypes=[W.LPCWSTR,W.LPCWSTR,W.DWORD,C.c_void_p,W.DWORD];network.NetLocalGroupAddMembers.restype=W.DWORD
+    profiles.CreateProfile.argtypes=[W.LPCWSTR,W.LPCWSTR,W.LPWSTR,W.DWORD];profiles.CreateProfile.restype=C.c_long;profiles.DeleteProfileW.argtypes=[W.LPCWSTR,W.LPCWSTR,W.LPCWSTR];profiles.DeleteProfileW.restype=W.BOOL
+    name='inso_ci_'+uuid.uuid4().hex[:12];password='Aa1!'+secrets.token_hex(24);created=False;profile=None;stage=None;token=W.HANDLE();caller=W.HANDLE();process=Process();sid=None;evidence=None;failure=None;cleanup=[]
+    diagnostics=Path(output).with_suffix('.startup.json')
+    def record(phase,**extra):diagnostics.write_text(json.dumps({'phase':phase,'actor':'actual ordinary disposable CI account','separate_user_account':True,'password_published':False,**extra},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+    record('before-account-create')
+    try:
+        info=User(name,password,0,1,None,'Disposable insonic MSI qualification',0x10201,None);parameter=W.DWORD();rc=network.NetUserAdd(None,1,C.byref(info),C.byref(parameter))
+        if rc:raise RuntimeError('ordinary account creation failed '+str(rc)+'; no existing account is reused')
+        created=True;member=Member(os.environ['COMPUTERNAME']+'\\'+name);rc=network.NetLocalGroupAddMembers(None,'Users',3,C.byref(member),1)
+        if rc not in (0,1378):raise RuntimeError('ordinary Users membership failed '+str(rc))
+        if not security.LogonUserW(name,'.',password,2,0,C.byref(token)):raise C.WinError(C.get_last_error())
+        sid=account_sid(token)
+        if not security.OpenProcessToken(kernel.GetCurrentProcess(),8,C.byref(caller)):raise C.WinError(C.get_last_error())
+        caller_sid=account_sid(caller)
+        if sid==caller_sid:raise RuntimeError('ordinary account unexpectedly reused the elevated actor')
+        value=C.create_unicode_buffer(4096);rc=profiles.CreateProfile(sid,name,value,4096)
+        if rc!=0:raise RuntimeError('owned ordinary profile creation failed '+hex(rc&0xffffffff))
+        profile=validate_account_profile(name,value.value)
+        stage=Path(os.environ['ProgramData'])/('insonic-ci-account-'+uuid.uuid4().hex);stage.mkdir(exist_ok=False);grant_owned_account_stage(stage,sid,caller_sid)
+        (stage/'owned-ci-account.json').write_text(json.dumps({'account':name,'sid_sha256':m.digest(sid.encode())}),encoding='utf-8',newline='\n')
+        scripts=stage/'scripts';scripts.mkdir();(stage/'temp').mkdir();native=stage/'native';native.mkdir()
+        for filename in ('qualify-windows-msi.py','windows_msi.py'):
+            shutil.copyfile(m.ROOT/'scripts'/filename,scripts/filename)
+            if m.sha(scripts/filename)!=m.sha(m.ROOT/'scripts'/filename):raise RuntimeError('ordinary staged script identity differs')
+        target=stage/'fixture.msi';shutil.copyfile(installer,target)
+        if m.sha(target)!=m.sha(Path(installer)):raise RuntimeError('ordinary MSI fixture copy differs')
+        fixture=Path(directory).parent/'launcher-context-fixture';shutil.copytree(fixture,stage/'launcher-context-fixture')
+        for original in fixture.iterdir():
+            if original.is_file() and m.sha(original)!=m.sha(stage/'launcher-context-fixture'/original.name):raise RuntimeError('ordinary launcher fixture copy differs')
+        (stage/'context-model.json').write_text(json.dumps(model),encoding='utf-8',newline='\n')
+        install=stage/'installed program é with spaces';worker_output=native/'context.json';env=C.create_unicode_buffer(ordinary_environment(profile,name,stage/'temp'))
+        with private_context_desktop(sid) as desktop:
             startup=Startup();startup.cb=C.sizeof(startup);startup.flags=1;startup.show=0;startup.desktop=desktop['path']
-            args=[sys.executable,__file__,'--context-worker',str(installer),'--context-dir',str(directory),'--output',str(output)]
-            command=C.create_unicode_buffer(subprocess.list2cmdline(args));record('before-process-create',desktop=desktop)
-            if not security.CreateProcessAsUserW(restricted,sys.executable,command,None,None,False,0x08000000,None,str(m.ROOT),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
+            args=[sys.executable,str(scripts/'qualify-windows-msi.py'),'--ordinary-worker',str(target),'--context-dir',str(install),'--output',str(worker_output)];command=C.create_unicode_buffer(subprocess.list2cmdline(args))
+            if len(command)>1024:raise RuntimeError('ordinary worker command exceeds native API bound')
+            record('before-process-create',desktop=desktop,same_user_sid_sha256=m.digest(sid.encode()),fixture_msi_sha256=m.sha(target))
+            if not security.CreateProcessWithLogonW(name,'.',password,1,sys.executable,command,0x08000400,env,str(stage),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
             record('process-created',pid=process.pid,desktop=desktop)
             status=kernel.WaitForSingleObject(process.process,90000)
             if status!=0:
-                record('wait-failed-or-timed-out',pid=process.pid,wait_status=status,desktop=desktop)
-                kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000);raise RuntimeError('restricted MSI context worker exceeded its bound')
+                kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000);raise RuntimeError('ordinary owned worker exceeded its bound')
             code=W.DWORD()
             if not kernel.GetExitCodeProcess(process.process,C.byref(code)):raise C.WinError(C.get_last_error())
-            record('process-exited',pid=process.pid,exit_code=code.value,exit_code_hex=hex(code.value),python_started=output.with_suffix('.progress.json').is_file(),desktop=desktop)
-            if code.value!=0:raise RuntimeError('restricted MSI context worker failed '+str(code.value)+' ('+hex(code.value)+'); see '+str(diagnostics))
-            evidence=json.loads(output.read_text(encoding='utf-8'))
-            if evidence['token']['user_sid_sha256']!=token_info()['user_sid_sha256']:raise RuntimeError('per-user install changed invoking user identity')
-            evidence['desktop']=desktop
-            output.write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
-            return evidence
+            record('process-exited',pid=process.pid,exit_code=code.value,exit_code_hex=hex(code.value),python_started=worker_output.with_suffix('.progress.json').is_file(),desktop=desktop)
+            if code.value!=0:raise RuntimeError('ordinary MSI context worker failed '+str(code.value)+' ('+hex(code.value)+')')
+            evidence=json.loads(worker_output.read_text(encoding='utf-8'))
+            if evidence['token']['user_sid_sha256']!=m.digest(sid.encode()) or Path(evidence['user_profile']).resolve()!=profile.resolve():raise RuntimeError('ordinary worker changed account/profile identity')
+            evidence.update({'desktop':desktop,'fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode())})
+    except BaseException as error:failure=error
     finally:
-        for h in (process.thread,process.process,restricted,token):
-            if h:kernel.CloseHandle(h)
+        if stage is not None and (stage/'native').is_dir():
+            for item in (stage/'native').iterdir():
+                if item.is_file():shutil.copyfile(item,Path(output).parent/('ordinary-'+item.name))
+        for handle in (process.thread,process.process,token,caller):
+            if handle:kernel.CloseHandle(handle)
+        if profile is not None:
+            validate_account_profile(name,profile);deleted=False
+            for _ in range(50):
+                if profiles.DeleteProfileW(sid,str(profile),None):deleted=True;break
+                time.sleep(.2)
+            cleanup.append({'object':'created profile','deleted':deleted,'sid_sha256':m.digest(sid.encode())})
+            if not deleted and failure is None:failure=RuntimeError('owned ordinary profile cleanup failed '+str(C.get_last_error()))
+        if created:
+            rc=network.NetUserDel(None,name);cleanup.append({'object':'created account','deleted':rc==0})
+            if rc and failure is None:failure=RuntimeError('owned ordinary account cleanup failed '+str(rc))
+        if stage is not None:
+            base=Path(os.environ['ProgramData']).resolve()
+            if stage.is_symlink() or stage.resolve().parent!=base or not __import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name):raise ValueError('owned stage cleanup target changed')
+            shutil.rmtree(stage);cleanup.append({'object':'owned staging directory','deleted':True})
+        password=None
+        Path(output).with_suffix('.cleanup.json').write_text(json.dumps({'cleanup':cleanup,'failure':str(failure) if failure else None},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+    if failure is not None:raise failure
+    evidence['cleanup']=cleanup;Path(output).write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n');return evidence
 
 def cancellation_worker(installer,directory,output):
     m.disposable_runner()
@@ -608,6 +578,8 @@ def qualify(path,receipt):
     result={};logs=m.ROOT/'build/native/msi-logs';logs.mkdir(parents=True,exist_ok=True);proof=[]
     upgrade=m.guid('disposable-ci/'+os.environ.get('GITHUB_RUN_ID','')+'/'+str(uuid.uuid4()))
     version=model['version'];major,minor,patch=map(int,version.split('.'));new_version=f'{major}.{minor}.{patch+1}'
+    def phase(name,**extra):
+        (logs/'lifecycle-progress.json').write_text(json.dumps({'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'fixture_upgrade_code':upgrade,'phase':name,'completed_checks':dict(result),**extra},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     with tempfile.TemporaryDirectory(prefix='insonic-ci-msi-') as tmp:
         tmp=Path(tmp);install=tmp/'installed program é with spaces';profile=tmp/'fixture profile';data=tmp/'library';data.mkdir();sentinel=data/'accepted-user-data';sentinel.write_bytes(b'preserve library media settings models credentials')
         env=dict(os.environ);env.update({'APPDATA':str(profile/'Roaming'),'LOCALAPPDATA':str(profile/'Local')});env.pop('INSONIC_DESKTOP_FIXTURE_DIRECTORY',None)
@@ -620,6 +592,7 @@ def qualify(path,receipt):
             args += [k+'='+v for k,v in properties.items()]
             return args
         try:
+            phase('administrator-prerequisite-rejections')
             run_installer(['/i',old,'INSTALLDIR='+str(install),'ADDLOCAL=Core'],logs/'license-rejected.log',False,'Read and accept Apache License 2.0')
             run_installer(call(old,'Core'),logs/'empty-selection-rejected.log',False,'Select Desktop, CLI integrations, or both.')
             run_installer(call(old,'Desktop,CLI'),logs/'missing-core-rejected.log',False,'Shared runtime is mandatory.')
@@ -645,7 +618,7 @@ def qualify(path,receipt):
                 run_installer(['/x',installed],logs/'selection-remove.log');installed=None
                 if any((install/f['path']).exists() for f in model['payload']):raise ValueError('uninstall retained installer-owned bytes')
             result['client_selections']='passed';result['launch_contract']='passed'
-            context_evidence=restricted_context(old,tmp/'restricted per-user installation',logs/'restricted-context.json');result['user_context']='passed'
+            phase('administrator-maintenance')
             run_installer(call(old,'Core,CLI',START_MENU='',DESKTOP_SHORTCUT=''),logs/'maintenance-initial.log');installed=m.product_code(version,upgrade);assert_unchecked_shortcuts()
             run_installer(call(old,'Core,Desktop,CLI',REINSTALL='ALL',REINSTALLMODE='vomus'),logs/'feature-change.log');installed_hashes(install,model,True)
             (install/'insonic-session.cmd').unlink();(install/m.OWNERSHIP).unlink();run_installer(['/fa',installed],logs/'repair.log');installed_hashes(install,model,True);result['maintenance']='passed'
@@ -665,6 +638,7 @@ def qualify(path,receipt):
             run_installer(['/x',installed],logs/'active-work-rejected.log',False,'Close insonic clients, finish/cancel jobs','Preflight')
             if active.poll() is not None:raise ValueError('MSI terminated active work')
             installed_hashes(install,model,True);active.terminate();active.wait(timeout=5);active=None;active_path.unlink();result['active_work_preserved']='passed'
+            phase('administrator-cancellation-and-rollback')
             # Deliberately remove Desktop before upgrading to prove feature migration.
             run_installer(call(old,'Core,CLI',REMOVE='Desktop',REINSTALLMODE='vomus'),logs/'cli-election.log');installed_hashes(install,model,False)
             cancellation_evidence=cancellation(new,install,logs/'cancelled-upgrade.json');installed_hashes(install,model,False)
@@ -679,7 +653,12 @@ def qualify(path,receipt):
             if any((install/f['path']).exists() for f in model['payload']):raise ValueError('MSI removal retained owned files')
             assert_removal_sentinels(integration_sentinels)
             result['user_data_preserved']='passed'
-            proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'windows_build':str(__import__('sys').getwindowsversion().build),'fixture_upgrade_code':upgrade,'checks':result,'elapsed_seconds':round(time.monotonic()-started,3),'active_work_fixture':{'process':'running owned ping image, no process shutdown','rejected_actions':['alternate-install-directory upgrade','uninstall'],'alternate_directory_absent':True,'old_payload_hashes_preserved':True},'exact_shortcut_collision':{'fresh_cli_exact_name':'rejected before installation changes','unrelated_bytes':'preserved','failed_action':'CheckCliMenu'},'unrelated_integrations':{'start_menu_sibling':'preserved','desktop_sibling':'preserved','product_key_sibling_value':'preserved','sentinel_content_sha256':m.digest(integration_sentinels['content'])},'shortcut_migration':{'fresh_unchecked_properties':'empty values normalized to zero','upgrade_overrides':False,'saved_elections':final_shortcut_elections},'policy_prompts':'not-observed','signing':'unsigned','cancellation':cancellation_evidence,'user_context':{'original_elevated_token':original_token,'restricted_process':context_evidence},'elected_launcher':{'fixture':fixture_evidence,'elevated_caller':elevated_launch_evidence,'restricted_caller':context_evidence['elected_launcher']}}
+            phase('ordinary-user-install-remove-and-elected-launch')
+            context_evidence=ordinary_context(old,tmp/'ordinary per-user installation',logs/'ordinary-context.json',model);result['user_context']='passed'
+            proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'windows_build':str(__import__('sys').getwindowsversion().build),'fixture_upgrade_code':upgrade,'checks':result,'elapsed_seconds':round(time.monotonic()-started,3),'active_work_fixture':{'process':'running owned ping image, no process shutdown','rejected_actions':['alternate-install-directory upgrade','uninstall'],'alternate_directory_absent':True,'old_payload_hashes_preserved':True},'exact_shortcut_collision':{'fresh_cli_exact_name':'rejected before installation changes','unrelated_bytes':'preserved','failed_action':'CheckCliMenu'},'unrelated_integrations':{'start_menu_sibling':'preserved','desktop_sibling':'preserved','product_key_sibling_value':'preserved','sentinel_content_sha256':m.digest(integration_sentinels['content'])},'shortcut_migration':{'fresh_unchecked_properties':'empty values normalized to zero','upgrade_overrides':False,'saved_elections':final_shortcut_elections},'policy_prompts':'not-observed','signing':'unsigned','cancellation':cancellation_evidence,'user_context':{'original_elevated_token':original_token,'ordinary_process':context_evidence},'elected_launcher':{'fixture':fixture_evidence,'elevated_caller':elevated_launch_evidence,'ordinary_caller':context_evidence['elected_launcher']}}
+            phase('completed')
+        except BaseException as error:
+            phase('failed',error_type=type(error).__name__,error=str(error)[-4000:]);raise
         finally:
             if active is not None:active.terminate();active.wait(timeout=5)
             if installed is not None:run_installer(['/x',installed],logs/'fixture-cleanup.log')
@@ -688,13 +667,13 @@ def qualify(path,receipt):
     (m.ROOT/'build/native/msi-lifecycle.json').write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     return result
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('installer',type=Path,nargs='?');p.add_argument('--receipt',type=Path);p.add_argument('--cancel-worker',type=Path);p.add_argument('--installer-worker',type=Path);p.add_argument('--context-worker',type=Path);p.add_argument('--context-dir',type=Path);p.add_argument('--output',type=Path);a=p.parse_args();m.disposable_runner()
+    p=argparse.ArgumentParser();p.add_argument('installer',type=Path,nargs='?');p.add_argument('--receipt',type=Path);p.add_argument('--cancel-worker',type=Path);p.add_argument('--installer-worker',type=Path);p.add_argument('--ordinary-worker',type=Path);p.add_argument('--context-dir',type=Path);p.add_argument('--output',type=Path);a=p.parse_args();m.disposable_runner()
     if a.installer_worker:native_installer_worker(a.installer_worker)
     elif a.cancel_worker:cancellation_worker(a.cancel_worker,a.context_dir,a.output)
-    elif a.context_worker:
-        try:restricted_worker(a.context_worker,a.context_dir,a.output)
+    elif a.ordinary_worker:
+        try:ordinary_worker(a.ordinary_worker,a.context_dir,a.output)
         except BaseException as error:
-            a.output.with_suffix('.failure.json').write_text(json.dumps({'kind':'restricted-context-worker-failure','pid':os.getpid(),'error_type':type(error).__name__,'error':str(error)[-3000:]},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+            a.output.with_suffix('.failure.json').write_text(json.dumps({'kind':'ordinary-context-worker-failure','pid':os.getpid(),'error_type':type(error).__name__,'error':str(error)[-3000:]},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
             raise
     elif a.installer and a.receipt:r=json.loads(a.receipt.read_text(encoding='utf-8'));print(json.dumps(qualify(a.installer,r)))
     else:p.error('installer and --receipt are required')
