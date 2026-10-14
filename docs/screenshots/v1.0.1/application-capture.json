@@ -2,9 +2,9 @@
   "kind": "application-ui-capture",
   "schema_version": "1.0.1",
   "source": {
-    "revision": "d594e023c076123785e9fa18dfad1b0e1cd2d794",
+    "revision": "75597fa16c4e78bfa8576704dc4445853d6fe58d",
     "dirty": false,
-    "tree_sha256": "2be17fb9f0de8db1cc56340551eed3fba90f4e144c79d0df2ef3f6c45f677eb9",
+    "tree_sha256": "4569edf77cfebf9ce1bbb10402ea93b21cecdeba607e7bf2ef92ad13626385a8",
     "files": [
       {
         "path": "brand/README.md",
@@ -2740,7 +2740,7 @@
       },
       {
         "path": "internal/app/capacity_test.go",
-        "sha256": "c45100a2221fc0d0b79b6c630b9cf0bcfaf86232581fb0f888ea441c76217fae"
+        "sha256": "5b9b824894c5fdc655dcf4dbea4e04180e04dd21cf75a7667f6763ee4597d4cf"
       },
       {
         "path": "internal/app/configured.go",
@@ -5018,14 +5018,14 @@
   },
   "renderer": {
     "kind": "chromium-headless",
-    "browser_version": "151.0.7922.34",
+    "browser_version": "155.0.8059.40",
     "playwright_version": "1.62.1",
     "platform": "win32",
     "architecture": "x64",
     "windows_build": "10.0.26300"
   },
   "fixture": {
-    "id": "1d9b161e06b28cc94551f6c789f686f2",
+    "id": "214a5fcdfc68de178edb78fb574d3838",
     "isolated": true,
     "browser_profile_owned": true,
     "private_inputs": false
@@ -5038,8 +5038,8 @@
   "locale": "en-US",
   "signing": "unsigned",
   "binaries": {
-    "cli_sha256": "e40bf1183dbff6a3e87661d500020d90d526703fedbdcc339f66a8ed27126351",
-    "bridge_sha256": "d061034c41879223578f7e8c402d4ea815cde271839039be8cfa26234e74c1dd",
+    "cli_sha256": "1a956a7f8c17ed874f18e793d1178e8d1998caecde7b505cfa78ec78880a36af",
+    "bridge_sha256": "f10003839402ab3e6c1684ea4d638929b1b7ebfdbb3d24d7ef22827b51259aad",
     "cli_vcs_modified": false,
     "bridge_vcs_modified": false
   },
@@ -5108,7 +5108,7 @@
   "images": [
     {
       "path": "setup-location.png",
-      "sha256": "de74f29b8a36774f318f869576536cdaad7109a3302c3d3da828a9d5db1c1000",
+      "sha256": "5ce916af4c7dd5626545e683af91ef4db64eb7cf11ff27cfe5c8fc3fa6c4f83a",
       "width": 1392,
       "height": 1766,
       "landmark": "Workspace and location (Step 1 of 5)",
@@ -5123,7 +5123,7 @@
     },
     {
       "path": "setup-backends.png",
-      "sha256": "5122ea13917ab88404525b8549dd87a75b8f174d717bac37be477a4f29a309ff",
+      "sha256": "708c47b0da7f04ee0fe3f7d07c084599dfcf6d273a6d307b2ae3c27fac8042e2",
       "width": 1392,
       "height": 2046,
       "landmark": "Backend profiles (Step 2 of 5)",
@@ -5138,7 +5138,7 @@
     },
     {
       "path": "setup-processing.png",
-      "sha256": "265576b76e2e70bc80f0448957bdf6e987d2eb18718de89cb2b3ff08c9d40cab",
+      "sha256": "a03e1d75d873321d62561c9385b39934ee404a4ec9ae5037d35368d2f5c9ebfe",
       "width": 1392,
       "height": 727,
       "landmark": "Optional local processing (Step 3 of 5)",
@@ -5153,7 +5153,7 @@
     },
     {
       "path": "library-ready.png",
-      "sha256": "0281a4a2025bade6583e47ce387b2fffa0fb4ce531402cdd6dee640bbbab5fdd",
+      "sha256": "a47bbdae5b14e151560892886b3928710ce53f28eff614c8131cd46443d88a01",
       "width": 1392,
       "height": 2134,
       "landmark": "Library",
