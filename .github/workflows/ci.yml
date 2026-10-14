@@ -45,6 +45,7 @@ jobs:
           cache: npm
           cache-dependency-path: site/package-lock.json
       - run: npm --prefix site ci --ignore-scripts
+      - run: npm --prefix site test
       - run: npm --prefix site run build
         env:
           NEXT_TELEMETRY_DISABLED: 1

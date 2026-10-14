@@ -5,9 +5,9 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { prepareScreenshots } from '../site/lib/screenshots.mjs';
-import { copyOfflineFiles } from '../site/scripts/offline.mjs';
-import { renderDocument } from '../site/lib/docs.mjs';
+import { prepareScreenshots } from '../lib/screenshots.mjs';
+import { copyOfflineFiles } from '../scripts/offline.mjs';
+import { renderDocument } from '../lib/docs.mjs';
 const digest = data => crypto.createHash('sha256').update(data).digest('hex');
 
 test('verified PNGs and receipts remain byte-identical offline; unrelated host files are excluded', async t => {

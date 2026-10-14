@@ -10,7 +10,8 @@
     "dev": "node scripts/run.mjs dev",
     "build": "node scripts/run.mjs build",
     "check": "node scripts/check.mjs",
-    "preview": "node scripts/preview.mjs"
+    "preview": "node scripts/preview.mjs",
+    "test": "node --test tests/*.test.mjs"
   },
   "dependencies": {
     "highlight.js": "11.12.0",
