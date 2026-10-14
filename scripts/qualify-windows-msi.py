@@ -696,12 +696,12 @@ try {
     $connection=$pipe.BeginWaitForConnection($null,$null)
     $definition=$service.NewTask(0)
     $definition.RegistrationInfo.Description=$inputObject.description
-    $definition.Principal.UserId=$inputObject.account;$definition.Principal.LogonType=1;$definition.Principal.RunLevel=0
+    $definition.Principal.UserId=$inputObject.account;$definition.Principal.LogonType=2;$definition.Principal.RunLevel=0
     $definition.Settings.Enabled=$true;$definition.Settings.Hidden=$true;$definition.Settings.ExecutionTimeLimit='PT90S'
     $definition.Settings.DisallowStartIfOnBatteries=$false;$definition.Settings.StopIfGoingOnBatteries=$false
     $action=$definition.Actions.Create(0);$action.Path=$inputObject.executable;$action.Arguments=$inputObject.arguments;$action.WorkingDirectory=$inputObject.directory
-    $registered=$folder.RegisterTaskDefinition($inputObject.task_name,$definition,2,$inputObject.account,$inputObject.password,1,$null)
-    $created=$true;$result.phase='registered';$result.requested_run_level=0;$result.logon_type=1
+    $registered=$folder.RegisterTaskDefinition($inputObject.task_name,$definition,2,$inputObject.account,$inputObject.password,2,$null)
+    $created=$true;$result.phase='registered';$result.requested_run_level=0;$result.logon_type=2
     $running=$registered.Run($null);$result.engine_pid=$running.EnginePID;$deadline=[DateTime]::UtcNow.AddSeconds(95)
     $result.phase='private-pipe-connect'
     if (-not $connection.AsyncWaitHandle.WaitOne(15000)) { throw 'owned credential pipe connection timed out' }
@@ -725,7 +725,7 @@ $result | ConvertTo-Json -Compress
 '''
 
 def scheduler_ordinary(stage,name,sid,password,args,record,profile):
-    """Run one least-privilege password task; credentials travel only via stdin."""
+    """Run one least-privilege S4U task; registration credentials use stdin only."""
     m.disposable_runner();stage=Path(stage)
     marker=json.loads((stage/'owned-ci-account.json').read_text(encoding='utf-8'))
     if marker!={'account':name,'sid_sha256':m.digest(sid.encode())} or stage.is_symlink() or stage.resolve().parent!=Path(os.environ['ProgramData']).resolve() or not __import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name):raise ValueError('ordinary scheduler target is not the exact owned account stage')
@@ -743,7 +743,7 @@ def scheduler_ordinary(stage,name,sid,password,args,record,profile):
         completed=subprocess.run(command,input=json.dumps(value).encode('utf-8'),stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=110)
         if completed.returncode:raise RuntimeError('hidden ordinary scheduler bridge failed '+str(completed.returncode))
         return json.loads(completed.stdout.decode('utf-8-sig'))
-    record('TaskScheduler-ordinary-before-register',task_name=task,password_published=False,requested_run_level=0,logon_type=1)
+    record('TaskScheduler-ordinary-before-register',task_name=task,password_published=False,requested_run_level=0,logon_type=2)
     try:
         outcome=invoke(request);record('TaskScheduler-ordinary-result',scheduler=outcome)
         if outcome.get('phase')!='completed' or outcome.get('exit_code')!=0 or outcome.get('deleted') is not True:raise RuntimeError('ordinary scheduled context did not complete: '+json.dumps(outcome,sort_keys=True))
@@ -947,7 +947,7 @@ PROFILE_LEASE_OBSERVER=r'''
 $ErrorActionPreference='Stop'
 [Console]::InputEncoding=[Text.UTF8Encoding]::new($false);[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)
 $inputObject=([Console]::In.ReadToEnd()|ConvertFrom-Json)
-$sid=[string]$inputObject.sid
+$sid=[string]$inputObject.sid;$ownedPath=[IO.Path]::GetFullPath([string]$inputObject.profile)
 if ($sid -notmatch '^S-1-5-21-(?:[0-9]+-){3}[0-9]+$') { throw 'invalid owned profile SID' }
 $result=@{profile=$null;events=@();machine_state_modified=$false}
 try {
@@ -959,7 +959,11 @@ foreach ($channel in @('Application','Microsoft-Windows-User Profile Service/Ope
   try {
     $filter=@{LogName=$channel;StartTime=[DateTime]::UtcNow.AddMinutes(-10)}
     if ($channel -eq 'Application') { $filter.ProviderName='Microsoft-Windows-User Profiles Service' }
-    $events=@(Get-WinEvent -FilterHashtable $filter -MaxEvents 100 -ErrorAction Stop | Where-Object { $_.Message -and $_.Message.Contains($sid) } | Select-Object -First 12)
+    $events=@(Get-WinEvent -FilterHashtable $filter -MaxEvents 100 -ErrorAction Stop | Where-Object {
+      $candidate=$_;$matchesOwned=$candidate.Message -and ($candidate.Message.Contains($sid) -or $candidate.Message.IndexOf($ownedPath,[StringComparison]::OrdinalIgnoreCase) -ge 0)
+      if (-not $matchesOwned) { foreach ($property in $candidate.Properties) { $value=[string]$property.Value;if ($value.Contains($sid) -or $value.IndexOf($ownedPath,[StringComparison]::OrdinalIgnoreCase) -ge 0) { $matchesOwned=$true;break } } }
+      $matchesOwned
+    } | Select-Object -First 12)
     foreach ($event in $events) { $message=$event.Message;if ($message.Length -gt 6000) { $message=$message.Substring(0,6000) };$result.events+=@{channel=$channel;id=$event.Id;time=$event.TimeCreated.ToUniversalTime().ToString('o');message=$message} }
   } catch { $result[('events_error_'+$channel)]=$_.Exception.HResult }
 }
@@ -974,7 +978,7 @@ def profile_lease_observation(sid,profile,deadline=None):
     executable=Path(os.environ['SystemRoot'])/'System32/WindowsPowerShell/v1.0/powershell.exe'
     # Optional observations cannot consume the service-release/deletion budget.
     bound=min(2,max(.1,deadline-time.monotonic())) if deadline is not None else 2
-    try:result=subprocess.run([str(executable),'-NoLogo','-NoProfile','-NonInteractive','-EncodedCommand',base64.b64encode(PROFILE_LEASE_OBSERVER.encode('utf-16le')).decode('ascii')],input=json.dumps({'sid':sid}).encode('utf-8'),stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=bound)
+    try:result=subprocess.run([str(executable),'-NoLogo','-NoProfile','-NonInteractive','-EncodedCommand',base64.b64encode(PROFILE_LEASE_OBSERVER.encode('utf-16le')).decode('ascii')],input=json.dumps({'sid':sid,'profile':str(profile)}).encode('utf-8'),stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=bound)
     except subprocess.TimeoutExpired:return {'observer_timeout':True,'machine_state_modified':False}
     if result.returncode:return {'observer_exit':result.returncode,'machine_state_modified':False}
     observed=json.loads(result.stdout.decode('utf-8-sig'));owned=observed.get('profile')
@@ -1191,7 +1195,7 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
             scheduler=scheduler_ordinary(stage,name,sid,password,args,record,profile)
         evidence=json.loads(worker_output.read_text(encoding='utf-8'))
         if evidence['token']['user_sid_sha256']!=m.digest(sid.encode()) or Path(evidence['user_profile']).resolve()!=profile.resolve():raise RuntimeError('ordinary worker changed account/profile identity')
-        evidence.update({'process_creation':'Task Scheduler least-privilege batch session, then same-account interactive logon inheriting its noninteractive task desktop','scheduler':scheduler,'profile_creation':'explicit owned LoadUserProfileW handle and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode()),'owned_account_rights_before':batch_original,'ci_host_policy_fixture':policy_fixture})
+        evidence.update({'process_creation':'Task Scheduler least-privilege S4U batch session, then same-account interactive logon inheriting its noninteractive task desktop','scheduler':scheduler,'profile_creation':'explicit owned LoadUserProfileW handle and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode()),'owned_account_rights_before':batch_original,'ci_host_policy_fixture':policy_fixture})
         evidence['os_policy_mutations'].update({'ci_server_disable_msi_fixture':True,'ci_server_disable_msi_restored':policy_fixture['restored'],'always_install_elevated_unchanged':policy_fixture['always_install_elevated_unchanged']})
     except BaseException as error:
         failure=error;record('failed',failed_api=getattr(error,'api',current_phase['name']),winerror=getattr(error,'winerror',None),errno=getattr(error,'errno',None),error_type=type(error).__name__,error=str(error))

@@ -128,3 +128,5 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 - [x] T068 Seed the active-capacity test durable claims in one transaction while preserving real first acceptance, production attachment/TTL, full-capacity rejection and reconciliation in internal/app/capacity_test.go.
 
 - [x] T069 [US2] Request supported deletion of only the authenticated disposable profile provider instance and independently verify all profile/registry/hive/folder absences within the existing deadline.
+
+- [x] T070 [US2] Register the disposable bootstrap as least-privilege S4U without stored task passwords and retain structured exact SID/path profile events, preserving real normal-user worker and cleanup gates.

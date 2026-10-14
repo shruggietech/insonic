@@ -200,7 +200,7 @@ class InstallerModelTests(unittest.TestCase):
         def bridge(command,**options):
             self.assertNotIn(password,repr(command));self.assertNotIn(password,repr(options.get('env')))
             self.assertEqual(options['creationflags'],0x08000000);self.assertEqual(options['timeout'],110)
-            script=base64.b64decode(command[-1]).decode('utf-16le');self.assertIn("ExecutionTimeLimit='PT90S'",script);self.assertIn('RegisterTaskDefinition($inputObject.task_name,$definition,2,',script)
+            script=base64.b64decode(command[-1]).decode('utf-16le');self.assertIn("ExecutionTimeLimit='PT90S'",script);self.assertIn('RegisterTaskDefinition($inputObject.task_name,$definition,2,',script);self.assertIn('$definition.Principal.LogonType=2;',script);self.assertIn('$inputObject.password,2,$null)',script);self.assertIn('$result.logon_type=2',script)
             request=json.loads(options['input']);calls.append(request)
             if request['mode']=='run':
                 self.assertEqual(request['password'],password);self.assertNotIn('provider-secret',request['arguments']);self.assertNotIn('owner-private',request['arguments']);self.assertIn('os.environ.clear()',request['arguments'])
@@ -308,7 +308,7 @@ class InstallerModelTests(unittest.TestCase):
         with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'SystemRoot':str(self.path/'Windows')}),patch.object(module.subprocess,'CREATE_NO_WINDOW',0x08000000,create=True),patch.object(module.subprocess,'run',side_effect=run):
             with self.assertRaisesRegex(ValueError,'exact owned SID'):module.profile_lease_observation('foreign;script',profile)
             proof=module.profile_lease_observation(sid,profile)
-        self.assertEqual(len(calls),1);self.assertNotIn(sid,repr(calls[0][0]));self.assertEqual(json.loads(calls[0][1]['input'])['sid'],sid);self.assertEqual(calls[0][1]['creationflags'],0x08000000);self.assertFalse(proof['machine_state_modified']);self.assertNotIn(sid,proof['events'][0]['message']);self.assertEqual(proof['profile']['ref_count'],1)
+        self.assertEqual(len(calls),1);self.assertNotIn(sid,repr(calls[0][0]));self.assertEqual(json.loads(calls[0][1]['input']),{'sid':sid,'profile':str(profile)});self.assertEqual(calls[0][1]['creationflags'],0x08000000);self.assertFalse(proof['machine_state_modified']);self.assertNotIn(sid,proof['events'][0]['message']);self.assertEqual(proof['profile']['ref_count'],1)
     def test_profile_process_observation_selects_exact_sid_and_never_stops_processes(self):
         import ctypes as C
         from types import SimpleNamespace
