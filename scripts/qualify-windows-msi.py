@@ -36,19 +36,108 @@ def clone(source,target,version,upgrade,failure=False,missing_prerequisites=Fals
         db.summary(m.guid('ci-package/'+str(uuid.uuid4())));db.check(db.dll.MsiDatabaseCommit(db.handle))
     finally:db.close()
 
-def run_installer(args,log,expected=True):
+def installer_properties(arguments):
+    """Build the MSI API property language, independently of Windows argv quoting."""
+    properties={}
+    for argument in arguments:
+        key,sep,value=str(argument).partition('=')
+        if not sep or not __import__('re').fullmatch('[A-Z_][A-Z0-9_]*',key) or any(c in value for c in '\0\r\n'):raise ValueError('invalid native installer property')
+        properties[key]=value
+    properties.update({'LAUNCH':'0','REBOOT':'ReallySuppress'})
+    return ' '.join(key+'="'+value.replace('"','""')+'"' for key,value in properties.items())
+
+def service_diagnostic():
+    """Read-only Installer service status on disposable CI. Never stop services."""
     m.disposable_runner()
-    exe=Path(os.environ['SystemRoot'])/'System32/msiexec.exe'
-    value=subprocess.run([str(exe),*map(str,args),'/qn','/norestart','/L*v',str(log),'LAUNCH=0','START_MENU=0','DESKTOP_SHORTCUT=0','REBOOT=ReallySuppress'],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=90)
-    if expected and value.returncode!=0:raise RuntimeError('MSI lifecycle failed '+str(value.returncode)+': '+str(log))
-    if not expected and value.returncode==0:raise RuntimeError('MSI accepted intentionally invalid fixture: '+str(log))
-    return value.returncode
+    import ctypes as C
+    import ctypes.wintypes as W
+    dll=C.WinDLL('advapi32',use_last_error=True)
+    class Status(C.Structure):_fields_=[('service_type',W.DWORD),('state',W.DWORD),('controls',W.DWORD),('win32_exit',W.DWORD),('service_exit',W.DWORD),('checkpoint',W.DWORD),('wait_hint',W.DWORD),('pid',W.DWORD),('flags',W.DWORD)]
+    dll.OpenSCManagerW.argtypes=[W.LPCWSTR,W.LPCWSTR,W.DWORD];dll.OpenSCManagerW.restype=W.HANDLE
+    dll.OpenServiceW.argtypes=[W.HANDLE,W.LPCWSTR,W.DWORD];dll.OpenServiceW.restype=W.HANDLE
+    dll.QueryServiceStatusEx.argtypes=[W.HANDLE,C.c_int,C.c_void_p,W.DWORD,C.POINTER(W.DWORD)];dll.QueryServiceStatusEx.restype=W.BOOL
+    dll.CloseServiceHandle.argtypes=[W.HANDLE];dll.CloseServiceHandle.restype=W.BOOL
+    manager=dll.OpenSCManagerW(None,None,1)
+    if not manager:return {'query_error':C.get_last_error()}
+    service=None
+    try:
+        service=dll.OpenServiceW(manager,'msiserver',4)
+        if not service:return {'query_error':C.get_last_error()}
+        value=Status();needed=W.DWORD()
+        if not dll.QueryServiceStatusEx(service,0,C.byref(value),C.sizeof(value),C.byref(needed)):return {'query_error':C.get_last_error()}
+        return {'pid':value.pid,'state':value.state,'checkpoint':value.checkpoint,'wait_hint_ms':value.wait_hint,'win32_exit':value.win32_exit}
+    finally:
+        if service:dll.CloseServiceHandle(service)
+        dll.CloseServiceHandle(manager)
+
+def native_installer_dll(log):
+    m.disposable_runner()
+    import ctypes as C
+    import ctypes.wintypes as W
+    dll=C.WinDLL('msi',use_last_error=True)
+    dll.MsiSetInternalUI.argtypes=[W.UINT,C.c_void_p];dll.MsiSetInternalUI.restype=W.UINT
+    dll.MsiEnableLogW.argtypes=[W.DWORD,W.LPCWSTR,W.DWORD];dll.MsiEnableLogW.restype=W.UINT
+    dll.MsiInstallProductW.argtypes=[W.LPCWSTR,W.LPCWSTR];dll.MsiInstallProductW.restype=W.UINT
+    dll.MsiConfigureProductExW.argtypes=[W.LPCWSTR,C.c_int,C.c_int,W.LPCWSTR];dll.MsiConfigureProductExW.restype=W.UINT
+    if dll.MsiSetInternalUI(2,None)==0:raise RuntimeError('cannot select native Installer UI level NONE')
+    rc=dll.MsiEnableLogW(0x1000,str(log),0) # INSTALLLOGMODE_VERBOSE, default buffered flush.
+    if rc:raise RuntimeError('cannot enable native Installer verbose log: '+str(rc))
+    return dll
+
+def native_installer_worker(request_path):
+    m.disposable_runner();request=json.loads(request_path.read_text(encoding='utf-8'));log=Path(request['log']);phase=log.with_suffix('.worker.json');log.parent.mkdir(parents=True,exist_ok=True)
+    def record(state,**extra):phase.write_text(json.dumps({'kind':'native-installer-worker','pid':os.getpid(),'phase':state,'action':request['action'],'captured_pipes':False,**extra},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+    record('starting',service=service_diagnostic())
+    dll=native_installer_dll(log);properties=installer_properties(request['properties']);record('before-api',ui_level='NONE',log_mode='VERBOSE',service=service_diagnostic())
+    if request['action']=='/i':rc=dll.MsiInstallProductW(request['subject'],properties)
+    elif request['action']=='/x':rc=dll.MsiConfigureProductExW(request['subject'],0,2,properties)
+    elif request['action']=='/fa':rc=dll.MsiConfigureProductExW(request['subject'],0,5,installer_properties([*request['properties'],'REINSTALL=ALL','REINSTALLMODE=amus']))
+    else:raise ValueError('unsupported native Installer lifecycle operation')
+    record('completed',exit_code=rc,ui_level='NONE',log_mode='VERBOSE',service=service_diagnostic())
+
+def run_installer(args,log,expected=True):
+    m.disposable_runner();args=list(map(str,args));log=Path(log);log.parent.mkdir(parents=True,exist_ok=True)
+    if len(args)<2 or args[0] not in ('/i','/x','/fa'):raise ValueError('unsupported native Installer lifecycle operation')
+    request={'action':args[0],'subject':args[1],'properties':args[2:],'log':str(log)};installer_properties(request['properties'])
+    request_path=log.with_suffix('.request.json');request_path.write_text(json.dumps(request,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+    # Wait on the owned process, never communicate()/PIPE EOF: Installer RPC
+    # services and children must not prolong this worker through inherited pipes.
+    with log.with_suffix('.stderr.log').open('wb') as error:
+        process=subprocess.Popen([sys.executable,__file__,'--installer-worker',str(request_path)],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=error,creationflags=subprocess.CREATE_NO_WINDOW)
+        try:process.wait(timeout=90)
+        except subprocess.TimeoutExpired:
+            phase=log.with_suffix('.worker.json');observed=json.loads(phase.read_text(encoding='utf-8')) if phase.exists() else {'phase':'worker-not-initialized'}
+            diagnostic={'pid':process.pid,'worker':observed,'service':service_diagnostic(),'captured_pipes':False,'log_exists':log.is_file(),'outcome':'unknown until engine rollback/completion'}
+            log.with_suffix('.timeout.json').write_text(json.dumps(diagnostic,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n');process.kill();process.wait(timeout=5)
+            raise RuntimeError('native Installer worker exceeded its bound; diagnostics: '+str(log.with_suffix('.timeout.json')))
+    if process.returncode:raise RuntimeError('native Installer worker failed: '+log.with_suffix('.stderr.log').read_text(encoding='utf-8',errors='replace')[-3000:])
+    phase=json.loads(log.with_suffix('.worker.json').read_text(encoding='utf-8'))
+    if phase.get('phase')!='completed':raise RuntimeError('native Installer worker did not complete')
+    code=phase['exit_code']
+    if expected and code!=0:raise RuntimeError('MSI lifecycle failed '+str(code)+': '+str(log))
+    if not expected and code==0:raise RuntimeError('MSI accepted intentionally invalid fixture: '+str(log))
+    return code
 
 def child(args,env,cwd):
     m.disposable_runner()
     result=subprocess.run(list(map(str,args)),cwd=cwd,env=env,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=30)
     if result.returncode:raise RuntimeError('installed noninteractive client failed: '+result.stderr.decode(errors='replace')[-2000:])
     return result.stdout
+
+def saved_shortcut_elections():
+    m.disposable_runner()
+    import winreg
+    with winreg.OpenKey(winreg.HKEY_CURRENT_USER,r'Software\ShruggieTech\insonic',0,winreg.KEY_READ|winreg.KEY_WOW64_64KEY) as key:
+        return {'start_menu':str(winreg.QueryValueEx(key,'StartMenu')[0]),'desktop_shortcut':str(winreg.QueryValueEx(key,'DesktopShortcut')[0])}
+
+def assert_unchecked_shortcuts():
+    m.disposable_runner()
+    if saved_shortcut_elections()!={'start_menu':'0','desktop_shortcut':'0'}:raise ValueError('unchecked shortcut elections were not durably stored as zero')
+    # GitHub-hosted disposable profiles have no redirected Start/Desktop folders;
+    # these are also the concrete per-user paths used in the lifecycle fixture.
+    menu=Path(os.environ['APPDATA'])/'Microsoft/Windows/Start Menu/Programs/insonic'
+    desktop=Path(os.environ['USERPROFILE'])/'Desktop'
+    if any(path.exists() for path in (menu/'insonic.lnk',menu/'insonic CLI.lnk',desktop/'insonic.lnk')):raise ValueError('upgrade re-enabled an unchecked shortcut integration')
 
 def installed_hashes(directory,model,desktop):
     for f in model['payload']:
@@ -246,7 +335,7 @@ def cancellation_worker(installer,directory,output):
     m.disposable_runner()
     import ctypes as C
     import ctypes.wintypes as W
-    dll=C.WinDLL('msi',use_last_error=True)
+    dll=native_installer_dll(output.with_suffix('.msi.log'))
     Callback=C.WINFUNCTYPE(C.c_int,C.c_void_p,W.UINT,W.LPCWSTR)
     state={'armed':False,'cancelled':False,'actions':[]}
     def handler(context,kind,message):
@@ -263,7 +352,7 @@ def cancellation_worker(installer,directory,output):
     dll.MsiSetExternalUIW.argtypes=[Callback,W.DWORD,C.c_void_p];dll.MsiSetExternalUIW.restype=C.c_void_p
     dll.MsiInstallProductW.argtypes=[W.LPCWSTR,W.LPCWSTR];dll.MsiInstallProductW.restype=W.UINT
     dll.MsiEnableLogW.argtypes=[W.DWORD,W.LPCWSTR,W.DWORD];dll.MsiEnableLogW.restype=W.UINT
-    dll.MsiSetInternalUI(2,None);dll.MsiEnableLogW(0xffff,str(output.with_suffix('.msi.log')),0);dll.MsiSetExternalUIW(callback,(1<<8)|(1<<10),None)
+    dll.MsiSetExternalUIW(callback,(1<<8)|(1<<10),None)
     properties='INSTALLDIR="'+str(directory)+'" LICENSE_ACCEPTED=1 START_MENU=0 DESKTOP_SHORTCUT=0 LAUNCH=0 REBOOT=ReallySuppress'
     code=dll.MsiInstallProductW(str(installer),properties)
     evidence={'exit_code':code,'callback_requested_cancel':state['cancelled'],'phase':'InstallFiles progress','actions':state['actions'],'policy_mutations':False}
@@ -314,7 +403,7 @@ def qualify(path,receipt):
                 if any((install/f['path']).exists() for f in model['payload']):raise ValueError('uninstall retained installer-owned bytes')
             result['client_selections']='passed';result['launch_contract']='passed'
             context_evidence=restricted_context(old,tmp/'restricted per-user installation',logs/'restricted-context.json');result['user_context']='passed'
-            run_installer(call(old,'Core,CLI'),logs/'maintenance-initial.log');installed=m.product_code(version,upgrade)
+            run_installer(call(old,'Core,CLI',START_MENU='',DESKTOP_SHORTCUT=''),logs/'maintenance-initial.log');installed=m.product_code(version,upgrade);assert_unchecked_shortcuts()
             run_installer(call(old,'Core,Desktop,CLI',REINSTALL='ALL',REINSTALLMODE='vomus'),logs/'feature-change.log');installed_hashes(install,model,True)
             (install/'insonic-session.cmd').unlink();(install/m.OWNERSHIP).unlink();run_installer(['/fa',installed],logs/'repair.log');installed_hashes(install,model,True);result['maintenance']='passed'
             # A real running console image under the program tree represents an
@@ -330,21 +419,23 @@ def qualify(path,receipt):
             if sentinel.read_bytes()!=b'preserve library media settings models credentials':raise ValueError('cancelled MSI changed user data')
             result['cancellation_rollback']='passed'
             run_installer(call(bad),logs/'upgrade-rollback.log',False);installed_hashes(install,model,False)
-            run_installer(call(new),logs/'upgrade-success.log');installed=m.product_code(new_version,upgrade);installed_hashes(install,model,False);result['upgrade_rollback']='passed'
+            run_installer(call(new),logs/'upgrade-success.log');installed=m.product_code(new_version,upgrade);installed_hashes(install,model,False);assert_unchecked_shortcuts();result['upgrade_rollback']='passed'
             run_installer(call(old),logs/'downgrade-rejected.log',False);installed_hashes(install,model,False);result['downgrade_rejection']='passed'
+            final_shortcut_elections=saved_shortcut_elections()
             run_installer(['/x',installed],logs/'final-remove.log');installed=None
             if sentinel.read_bytes()!=b'preserve library media settings models credentials':raise ValueError('MSI modified user data')
             if any((install/f['path']).exists() for f in model['payload']):raise ValueError('MSI removal retained owned files')
             result['user_data_preserved']='passed'
-            proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'windows_build':str(__import__('sys').getwindowsversion().build),'fixture_upgrade_code':upgrade,'checks':result,'elapsed_seconds':round(time.monotonic()-started,3),'active_work_fixture':'running owned ping image, no process shutdown','policy_prompts':'not-observed','signing':'unsigned','cancellation':cancellation_evidence,'user_context':{'original_elevated_token':original_token,'restricted_process':context_evidence},'elected_launcher':{'fixture':fixture_evidence,'elevated_caller':elevated_launch_evidence,'restricted_caller':context_evidence['elected_launcher']}}
+            proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'windows_build':str(__import__('sys').getwindowsversion().build),'fixture_upgrade_code':upgrade,'checks':result,'elapsed_seconds':round(time.monotonic()-started,3),'active_work_fixture':'running owned ping image, no process shutdown','shortcut_migration':{'fresh_unchecked_properties':'empty values normalized to zero','upgrade_overrides':False,'saved_elections':final_shortcut_elections},'policy_prompts':'not-observed','signing':'unsigned','cancellation':cancellation_evidence,'user_context':{'original_elevated_token':original_token,'restricted_process':context_evidence},'elected_launcher':{'fixture':fixture_evidence,'elevated_caller':elevated_launch_evidence,'restricted_caller':context_evidence['elected_launcher']}}
         finally:
             if active is not None:active.terminate();active.wait(timeout=5)
             if installed is not None:run_installer(['/x',installed],logs/'fixture-cleanup.log')
     (m.ROOT/'build/native/msi-lifecycle.json').write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     return result
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('installer',type=Path,nargs='?');p.add_argument('--receipt',type=Path);p.add_argument('--cancel-worker',type=Path);p.add_argument('--context-worker',type=Path);p.add_argument('--context-dir',type=Path);p.add_argument('--output',type=Path);a=p.parse_args();m.disposable_runner()
-    if a.cancel_worker:cancellation_worker(a.cancel_worker,a.context_dir,a.output)
+    p=argparse.ArgumentParser();p.add_argument('installer',type=Path,nargs='?');p.add_argument('--receipt',type=Path);p.add_argument('--cancel-worker',type=Path);p.add_argument('--installer-worker',type=Path);p.add_argument('--context-worker',type=Path);p.add_argument('--context-dir',type=Path);p.add_argument('--output',type=Path);a=p.parse_args();m.disposable_runner()
+    if a.installer_worker:native_installer_worker(a.installer_worker)
+    elif a.cancel_worker:cancellation_worker(a.cancel_worker,a.context_dir,a.output)
     elif a.context_worker:restricted_worker(a.context_worker,a.context_dir,a.output)
     elif a.installer and a.receipt:r=json.loads(a.receipt.read_text(encoding='utf-8'));print(json.dumps(qualify(a.installer,r)))
     else:p.error('installer and --receipt are required')

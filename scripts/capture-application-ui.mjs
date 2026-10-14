@@ -18,7 +18,9 @@ export function fixtureEnvironment(base,fixture,cli) {
   const out={};
   for(const name of ['SystemRoot','WINDIR','SystemDrive','COMSPEC'])if(base[name])out[name]=base[name];
   out.PATH=[path.dirname(cli),base.SystemRoot?path.join(base.SystemRoot,'System32'):'',...(base.INSONIC_CAPTURE_NATIVE_PATH??'').split(path.delimiter)].filter(Boolean).join(path.delimiter);
-  Object.assign(out,{TEMP:fixture,TMP:fixture,HOME:path.join(fixture,'profile'),USERPROFILE:path.join(fixture,'profile'),APPDATA:path.join(fixture,'profile','Roaming'),LOCALAPPDATA:path.join(fixture,'profile','Local'),XDG_CONFIG_HOME:path.join(fixture,'profile','Config')});
+  // Windows Known Folder registry entries commonly expand USERPROFILE rather
+  // than using APPDATA directly; preserve its conventional isolated hierarchy.
+  Object.assign(out,{TEMP:fixture,TMP:fixture,TMPDIR:fixture,HOME:path.join(fixture,'profile'),USERPROFILE:path.join(fixture,'profile'),APPDATA:path.join(fixture,'profile','AppData','Roaming'),LOCALAPPDATA:path.join(fixture,'profile','AppData','Local'),XDG_CONFIG_HOME:path.join(fixture,'profile','Config')});
   return out;
 }
 
@@ -37,46 +39,73 @@ export function allowedAsset(url,assets) {
   return typeof url==='string'&&!url.includes('?')&&assets.has(url);
 }
 
+export async function boundedOperation(phase,operation,timeout=20000) {
+  let timer;
+  try{return await Promise.race([Promise.resolve().then(operation),new Promise((_,reject)=>{timer=setTimeout(()=>{const error=Error('Capture phase timed out: '+phase);error.code='capture_timeout';error.phase=phase;reject(error)},timeout)})]);}
+  finally{clearTimeout(timer)}
+}
+
 async function run(executable,args,options={}) {
   return await new Promise((resolve,reject)=>{
     const child=spawn(executable,args,{cwd:ROOT,windowsHide:true,stdio:['pipe','pipe','pipe'],...options});
     let stdout='',stderr='';
     child.stdout.on('data',d=>{stdout+=d;if(stdout.length>8<<20)child.kill()});
     child.stderr.on('data',d=>{stderr+=d;if(stderr.length>8<<20)child.kill()});
-    const timer=setTimeout(()=>child.kill(),90000);
-    child.once('error',reject);child.once('exit',code=>{clearTimeout(timer);code===0?resolve(stdout):reject(Error(`Capture command failed (${code}): ${stderr.slice(-1000)}`))});child.stdin.end();
+    const timer=setTimeout(()=>child.kill(),30000);
+    child.once('error',error=>{clearTimeout(timer);reject(error)});child.once('exit',code=>{clearTimeout(timer);code===0?resolve(stdout):reject(Error(`Capture command failed (${code}): ${stderr.slice(-1000)}`))});child.stdin.end();
   });
 }
 
-async function sourceSnapshot() {
-  const revision=(await run('git',['rev-parse','HEAD'])).trim();
-  const files=(await run('git',['ls-files','--cached','--others','--exclude-standard','-z','desktop','cmd/insonic','cmd/insonic-capture-bridge','internal','schemas','brand','go.mod','go.sum','package.json','package-lock.json','scripts/capture-application-ui.mjs'])).split('\0').filter(Boolean).sort();
+const captureInputs=['desktop','cmd/insonic','cmd/insonic-capture-bridge','internal','schemas','brand','go.mod','go.sum','package.json','package-lock.json','scripts/capture-application-ui.mjs'];
+export async function sourceSnapshot(repository=ROOT) {
+  const revision=(await run('git',['rev-parse','HEAD'],{cwd:repository})).trim();
+  const files=[...new Set((await run('git',['ls-files','--cached','--others','--exclude-standard','-z',...captureInputs],{cwd:repository})).split('\0').filter(Boolean))].sort();
   const identities=[];
-  for(const name of files)identities.push({path:name.replaceAll('\\','/'),sha256:sha(await readFile(path.join(ROOT,name)))});
-  const dirty=!!(await run('git',['status','--porcelain','--untracked-files=no'])).trim();
+  for(const name of files)identities.push({path:name.replaceAll('\\','/'),sha256:sha(await readFile(path.join(repository,name)))});
+  const untracked=(await run('git',['ls-files','--others','--exclude-standard','-z',...captureInputs],{cwd:repository})).split('\0').filter(Boolean);
+  const dirty=untracked.length>0||!!(await run('git',['status','--porcelain','--untracked-files=no'],{cwd:repository})).trim();
   return {revision,dirty,tree_sha256:sha(JSON.stringify(identities)),files:identities};
 }
 
-function embeddedRevision(bytes) {
+export function embeddedSourceIdentity(bytes) {
   const marker=Buffer.from('build\tvcs.revision=');const at=bytes.indexOf(marker);
   if(at<0)throw Error('Capture binaries must include Go VCS build information.');
-  const value=bytes.subarray(at+marker.length,at+marker.length+40).toString('ascii');
-  if(!/^[a-f0-9]{40}$/.test(value))throw Error('Capture binary source revision is malformed.');
-  return value;
+  const revision=bytes.subarray(at+marker.length,at+marker.length+40).toString('ascii');
+  if(!/^[a-f0-9]{40}$/.test(revision))throw Error('Capture binary source revision is malformed.');
+  const modifiedMarker=Buffer.from('build\tvcs.modified=');const modifiedAt=bytes.indexOf(modifiedMarker);
+  const modified=modifiedAt<0?null:/^(true|false)(?:\r?\n|$)/.exec(bytes.subarray(modifiedAt+modifiedMarker.length,modifiedAt+modifiedMarker.length+8).toString('ascii'));
+  if(!modified)throw Error('Capture binary modified-source identity is missing or malformed.');
+  return {revision,modified:modified[1]==='true'};
+}
+
+export function assertBinarySource(bytes,revision) {
+  const identity=embeddedSourceIdentity(bytes);
+  if(identity.revision!==revision)throw Error('Capture binary source revision does not match the checkout. Rebuild both binaries.');
+  if(identity.modified)throw Error('Capture binaries must be built from clean source (vcs.modified=false).');
+  return identity;
 }
 
 export function assertReceipt(receipt) {
-  if(receipt.kind!=='application-ui-capture'||receipt.schema_version!==VERSION||receipt.renderer.kind!=='chromium-headless'||receipt.renderer.playwright_version!==PLAYWRIGHT_VERSION||!receipt.fixture.isolated||receipt.fixture.browser_profile_owned!==true||receipt.fixture.private_inputs!==false||!/^[a-f0-9]{40}$/.test(receipt.source.revision)||!/^[a-f0-9]{64}$/.test(receipt.source.tree_sha256)||receipt.images.length!==4)throw Error('Incomplete capture provenance.');
+  if(receipt.kind!=='application-ui-capture'||receipt.schema_version!==VERSION||receipt.renderer.kind!=='chromium-headless'||receipt.renderer.playwright_version!==PLAYWRIGHT_VERSION||!receipt.fixture.isolated||receipt.fixture.browser_profile_owned!==true||receipt.fixture.private_inputs!==false||receipt.source.dirty!==false||!/^[a-f0-9]{40}$/.test(receipt.source.revision)||!/^[a-f0-9]{64}$/.test(receipt.source.tree_sha256)||receipt.images.length!==4)throw Error('Incomplete capture provenance.');
   const expected=['setup-location.png','setup-backends.png','setup-processing.png','library-ready.png'];
   for(const [index,image] of receipt.images.entries())if(image.path!==expected[index]||!/^[a-f0-9]{64}$/.test(image.sha256)||!Number.isInteger(image.width)||image.width<1||image.width>1440||!Number.isInteger(image.height)||image.height<1||image.height>6000||!image.landmark||!image.caption)throw Error('Incomplete image receipt.');
   return receipt;
 }
 
 export async function capture(options) {
-  const source=await sourceSnapshot();
+  const started=Date.now(),events=[],partialImages=[],diagnosticRunID=randomBytes(16).toString('hex');
+  let diagnosticWrites=Promise.resolve(),diagnosticSource=null;
+  const relative=path.relative(path.join(ROOT,'build'),options.output);
+  const diagnosticsDirectory=!relative.startsWith('..')&&!path.isAbsolute(relative)?options.output:path.join(ROOT,'build','ui-capture');
+  await mkdir(diagnosticsDirectory,{recursive:true});
+  const progress=async(phase,event='started')=>{const entry={time:new Date().toISOString(),elapsed_ms:Date.now()-started,phase,event};events.push(entry);if(events.length>160)events.shift();process.stderr.write(JSON.stringify(entry)+'\n');const snapshot=JSON.stringify({kind:'application-ui-capture-diagnostics',schema_version:VERSION,run_id:diagnosticRunID,source_revision:diagnosticSource,partial_images:partialImages,events},null,2)+'\n';diagnosticWrites=diagnosticWrites.then(()=>writeFile(path.join(diagnosticsDirectory,'capture-diagnostics.json'),snapshot,'utf8'));await diagnosticWrites};
+  const checkpoint=async(phase,operation,timeout=20000)=>{await progress(phase);try{const value=await boundedOperation(phase,operation,timeout);await progress(phase,'completed');return value}catch(error){await progress(phase,error.code==='capture_timeout'?'timed_out':'failed');throw error}};
+  const source=await checkpoint('source.read',sourceSnapshot,30000);
+  diagnosticSource=source.revision;
+  if(source.dirty){await progress('source.identity','failed');throw Error('Capture requires clean tracked source and no untracked capture inputs.');}
   const cliBytes=await readFile(options.cli),bridgeBytes=await readFile(options.bridge);
-  if(embeddedRevision(cliBytes)!==source.revision||embeddedRevision(bridgeBytes)!==source.revision)throw Error('Capture binary source revision does not match the checkout. Rebuild both binaries.');
-  await run(process.execPath,[path.join(ROOT,'desktop/frontend/build.mjs')]);
+  const cliSource=assertBinarySource(cliBytes,source.revision),bridgeSource=assertBinarySource(bridgeBytes,source.revision);
+  await checkpoint('frontend.build',()=>run(process.execPath,[path.join(ROOT,'desktop/frontend/build.mjs')]),30000);
   const fixtureBase=os.platform()==='win32'?path.parse(os.tmpdir()).root:os.tmpdir();
   const fixture=await mkdtemp(path.join(fixtureBase,'insonic-capture-'));
   const library=path.join(fixture,'My voice archive');
@@ -84,14 +113,16 @@ export async function capture(options) {
   await writeFile(path.join(fixture,'capture-owner.json'),JSON.stringify({fixture_id:fixtureID,kind:'insonic-ui-capture'}));
   const env=fixtureEnvironment(process.env,fixture,options.cli);
   for(const dir of [env.APPDATA,env.LOCALAPPDATA,env.XDG_CONFIG_HOME])await mkdir(dir,{recursive:true});
-  let helper,browser,server,endpoint,helperToken,exitPromise,helperStderr='';
+  let helper,browser,server,endpoint,helperToken,exitPromise,helperStderr='',failure,capturedReceipt;
+  const capturedImages=new Map();
   try {
+    await progress('helper.start');
     helper=spawn(options.bridge,['--library',library,'--cli',options.cli],{cwd:fixture,env,windowsHide:true,stdio:['pipe','pipe','pipe']});helper.stdin.end();
     exitPromise=new Promise((resolve,reject)=>{helper.once('error',reject);helper.once('exit',code=>resolve(code))});
     helper.stderr.on('data',d=>helperStderr+=d);
-    const ready=await new Promise((resolve,reject)=>{let text='';const timeout=setTimeout(()=>reject(Error('Capture bridge startup timeout.')),25000);helper.stdout.on('data',d=>{text+=d;if(text.includes('\n')){clearTimeout(timeout);try{resolve(JSON.parse(text.split('\n')[0]))}catch(e){reject(e)}}});helper.once('exit',()=>{clearTimeout(timeout);reject(Error('Capture bridge failed before readiness.'))})});
+    const ready=await checkpoint('helper.readiness',()=>new Promise((resolve,reject)=>{let text='';helper.stdout.on('data',d=>{text+=d;if(text.length>8192){reject(Error('Capture bridge readiness exceeded its bound.'));return}if(text.includes('\n')){try{resolve(JSON.parse(text.split('\n')[0]))}catch(e){reject(e)}}});helper.once('exit',()=>reject(Error('Capture bridge failed before readiness.')))}),15000);
     ({endpoint,token:helperToken}=ready);if(ready.version!==VERSION||!/^http:\/\/127\.0\.0\.1:\d+$/.test(endpoint))throw Error('Capture bridge identity mismatch.');
-    const backend=async(route,body)=>{const response=await fetch(endpoint+route,{method:body===undefined?'GET':'POST',headers:{'X-Capture-Token':helperToken,Origin:endpoint,'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(70000)});if(!response.ok)throw Error(`Capture bridge rejected request (${response.status}).`);return response.status===204?null:response.json()};
+    const backend=async(route,body)=>{const method=['Show','SetupDraft','BackendSetup','Operate','SelectWorkspace','Choose'].includes(body?.method)?body.method:route==='/receipt'?'receipt':'unknown';await progress('bridge.'+method);const response=await fetch(endpoint+route,{method:body===undefined?'GET':'POST',headers:{'X-Capture-Token':helperToken,Origin:endpoint,'Content-Type':'application/json'},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(65000)});if(!response.ok)throw Error(`Capture bridge rejected request (${response.status}).`);const value=response.status===204?null:await response.json();await progress('bridge.'+method,'completed');return value};
     const assets=new Map();
     for(const name of ['app.js','app.css','product.css'])assets.set('/assets/bundle/'+name,await readFile(path.join(ROOT,'desktop/assets/bundle',name)));
     const fonts=await readdir(path.join(ROOT,'desktop/assets/bundle/fonts')).catch(error=>{if(error.code==='ENOENT')return [];throw error});
@@ -121,21 +152,21 @@ export async function capture(options) {
     if(actualVersion!==PLAYWRIGHT_VERSION)throw Error('Playwright toolchain version mismatch.');
     const viewport={width:1440,height:1100,device_scale_factor:1};
     const browserProfile=path.join(fixture,'browser-profile');await mkdir(browserProfile,{recursive:true});
-    const context=await chromium.launchPersistentContext(browserProfile,{headless:true,env,...(options.browser?{executablePath:options.browser}:{}),args:['--disable-background-networking','--disable-extensions','--no-first-run','--no-default-browser-check'],viewport:{width:viewport.width,height:viewport.height},deviceScaleFactor:1,locale:'en-US',colorScheme:'light',reducedMotion:'reduce',serviceWorkers:'block',extraHTTPHeaders:{'X-Capture-Token':token}});
+    const context=await checkpoint('browser.launch',()=>chromium.launchPersistentContext(browserProfile,{headless:true,timeout:25000,env,...(options.browser?{executablePath:options.browser}:{}),args:['--disable-background-networking','--disable-extensions','--no-first-run','--no-default-browser-check'],viewport:{width:viewport.width,height:viewport.height},deviceScaleFactor:1,locale:'en-US',colorScheme:'light',reducedMotion:'reduce',serviceWorkers:'block',extraHTTPHeaders:{'X-Capture-Token':token}}),30000);
     browser=context.browser();if(!browser)throw Error('The owned Chromium profile has no browser process.');
-    const page=await context.newPage();page.setDefaultTimeout(25000);
+    const page=await checkpoint('browser.page',()=>context.newPage());page.setDefaultTimeout(20000);page.setDefaultNavigationTimeout(20000);
     const errors=[],blocked=[];page.on('pageerror',e=>errors.push(String(e)));
     page.on('response',response=>{if(response.status()>=400)errors.push('Resource '+new URL(response.url()).pathname+' failed ('+response.status()+').')});
     page.on('requestfailed',request=>errors.push('Resource '+new URL(request.url()).pathname+' did not load.'));
     await context.route('**/*',route=>{if(new URL(route.request().url()).origin!==origin){blocked.push(route.request().url());return route.abort()}return route.continue()});
     const pending=path.join(fixture,'images');await mkdir(pending);
     const images=[];
-    const screenshot=async(name,landmark,caption)=>{
+    const screenshot=async(name,landmark,caption)=>checkpoint('screen.'+name,async()=>{
       try{await page.getByRole('heading',{name:landmark,exact:true,...(landmark==='Library'?{level:1}:{})}).waitFor();}
       catch{throw Error(`Expected UI landmark was absent: ${landmark}. ${await page.getByRole('alert').allTextContents()}. ${helperStderr.slice(-1000)}`)}
       await page.waitForFunction(()=>![...document.querySelectorAll('[role="status"]')].some(n=>n.textContent.includes('Working')));
       if(await page.getByRole('alert').count())throw Error('UI reports a runtime error.');
-      await page.evaluate(()=>document.fonts.ready);
+      await boundedOperation('screen.fonts',()=>page.evaluate(()=>document.fonts.ready),8000);
       if(!await page.evaluate(()=>document.fonts.check('16px Geist')&&document.fonts.check('16px "Space Grotesk"')&&document.fonts.check('16px "Geist Mono"')))throw Error('Production fonts did not load.');
       const text=await page.locator('body').innerText();
       const owner=os.homedir();if(text.includes(owner)||/password|secret_key|access_key|passphrase|bearer token/i.test(await page.locator('input').evaluateAll(nodes=>nodes.map(n=>n.value).join('\n'))))throw Error('Private input appeared in the capture.');
@@ -153,16 +184,19 @@ export async function capture(options) {
       const fullyVisible=await surface.evaluate(node=>{const r=node.getBoundingClientRect(),parent=document.querySelector('.desktop-content').getBoundingClientRect();return r.height<=parent.height&&r.bottom<=parent.bottom+1});
       if(!fullyVisible)throw Error('The screenshot surface remains clipped by the app scroll pane.');
       const file=path.join(pending,name);const bytes=await surface.screenshot({path:file,animations:'disabled',caret:'hide'});
+      capturedImages.set(name,bytes);
+      const partial=path.join(diagnosticsDirectory,'partial',diagnosticRunID);await mkdir(partial,{recursive:true});await writeFile(path.join(partial,name),bytes);
+      partialImages.push({path:'partial/'+diagnosticRunID+'/'+name,sha256:sha(bytes)});
       images.push({path:name,sha256:sha(bytes),width:bytes.readUInt32BE(16),height:bytes.readUInt32BE(20),landmark,caption,rendered_geometry:geometry,capture_viewport:captureViewport});
       await page.setViewportSize({width:viewport.width,height:viewport.height});
-    };
-    await page.goto(origin,{waitUntil:'networkidle'});
+    },25000);
+    await checkpoint('page.connect',()=>page.goto(origin,{waitUntil:'networkidle'}),25000);
     await page.getByLabel('Library location',{exact:true}).fill(library);
     await page.getByRole('button',{name:'Preview location and space',exact:true}).click();
     await screenshot('setup-location.png','Workspace and location (Step 1 of 5)','Figure 1. Optional setup previews an editable library location outside program files.');
     await page.getByRole('button',{name:'Save location and continue',exact:true}).click();
     await screenshot('setup-backends.png','Backend profiles (Step 2 of 5)','Figure 2. Keep local backend defaults or explicitly choose the three storage roles before creating a library.');
-    await page.getByRole('button',{name:'Create configured workspace',exact:true}).click();
+    await checkpoint('setup.provision',()=>page.getByRole('button',{name:'Create configured workspace',exact:true}).click());
     await screenshot('setup-processing.png','Optional local processing (Step 3 of 5)','Figure 3. Optional processing follows successful library creation; import and supplied subtitles need no model download.');
     await page.getByRole('button',{name:'Set up later',exact:true}).click();
     await screenshot('library-ready.png','Library','Figure 4. Deferring setup leaves the ordinary Library controls available.');
@@ -170,21 +204,33 @@ export async function capture(options) {
     await page.getByRole('heading',{name:'Optional local processing (Step 3 of 5)',exact:true}).waitFor();
     if(errors.length||blocked.length)throw Error('Capture had browser errors or attempted an external request: '+errors.slice(0,8).join('; ')+' '+transportErrors.join('; ')+' '+helperStderr.slice(-1000));
     const transport=await backend('/receipt');
-    const after=await sourceSnapshot();if(after.revision!==source.revision||after.tree_sha256!==source.tree_sha256)throw Error('Source changed during capture; no images published.');
+    const after=await checkpoint('source.verify',sourceSnapshot,30000);if(after.dirty||after.revision!==source.revision||after.tree_sha256!==source.tree_sha256)throw Error('Source changed during capture; no images published.');
     const bundle=[...assets].map(([name,bytes])=>({path:name.slice(1),sha256:sha(bytes)}));
-    const receipt=assertReceipt({kind:'application-ui-capture',schema_version:VERSION,source,renderer:{kind:'chromium-headless',browser_version:browser.version(),playwright_version:PLAYWRIGHT_VERSION,platform:os.platform(),architecture:os.arch(),windows_build:os.platform()==='win32'?os.release():null},fixture:{id:fixtureID,isolated:true,browser_profile_owned:true,private_inputs:false},viewport,locale:'en-US',signing:'unsigned',binaries:{cli_sha256:sha(cliBytes),bridge_sha256:sha(bridgeBytes)},bundle,transport,verification:{production_frontend:true,shared_desktop_bridge:true,shared_runtime:true,deferred_setup_resumed:true,external_requests:0,browser_errors:0,native_webview:false},images});
-    await mkdir(options.output,{recursive:true});for(const image of images)await writeFile(path.join(options.output,image.path),await readFile(path.join(pending,image.path)));
-    await writeFile(path.join(options.output,'application-capture.json'),JSON.stringify(receipt,null,2)+'\n','utf8');
-    return receipt;
+    capturedReceipt=assertReceipt({kind:'application-ui-capture',schema_version:VERSION,source,renderer:{kind:'chromium-headless',browser_version:browser.version(),playwright_version:PLAYWRIGHT_VERSION,platform:os.platform(),architecture:os.arch(),windows_build:os.platform()==='win32'?os.release():null},fixture:{id:fixtureID,isolated:true,browser_profile_owned:true,private_inputs:false},viewport,locale:'en-US',signing:'unsigned',binaries:{cli_sha256:sha(cliBytes),bridge_sha256:sha(bridgeBytes),cli_vcs_modified:cliSource.modified,bridge_vcs_modified:bridgeSource.modified},bundle,transport,verification:{production_frontend:true,shared_desktop_bridge:true,shared_runtime:true,deferred_setup_resumed:true,external_requests:0,browser_errors:0,native_webview:false},images});
+    await progress('capture','completed');
+  } catch(error) {
+    failure=error;await progress('capture','failed');throw error;
   } finally {
-    await browser?.close();if(server)await new Promise(resolve=>server.close(resolve));
-    if(endpoint&&helperToken)try{await fetch(endpoint+'/shutdown',{method:'POST',headers:{'X-Capture-Token':helperToken,Origin:endpoint},signal:AbortSignal.timeout(10000)})}catch{}
-    if(helper){let timer;const code=await Promise.race([exitPromise,new Promise(resolve=>{timer=setTimeout(()=>resolve(null),12000)})]);clearTimeout(timer);if(code===null){helper.kill();await exitPromise}if(code!==0&&code!==null)throw Error('Capture bridge cleanup failed: '+helperStderr.slice(-1000))}
-    const identity=JSON.parse(await readFile(path.join(fixture,'capture-owner.json'),'utf8'));if(identity.fixture_id!==fixtureID||!path.basename(fixture).startsWith('insonic-capture-'))throw Error('Fixture cleanup identity mismatch.');await rm(fixture,{recursive:true,force:true});
+    const cleanupErrors=[];
+    const cleanup=async(name,operation,timeout=5000)=>{try{return await checkpoint('cleanup.'+name,operation,timeout)}catch(error){cleanupErrors.push(error.code||'cleanup_failed');return null}};
+    if(browser)await cleanup('browser',()=>browser.close(),8000);
+    if(server)await cleanup('server',()=>new Promise(resolve=>{server.closeAllConnections();server.close(resolve)}));
+    if(endpoint&&helperToken)try{await checkpoint('cleanup.helper.shutdown',()=>fetch(endpoint+'/shutdown',{method:'POST',headers:{'X-Capture-Token':helperToken,Origin:endpoint},signal:AbortSignal.timeout(4000)}),5000)}catch{await progress('cleanup.helper.shutdown','connection_closed')}
+    if(helper){const code=await cleanup('helper.exit',()=>exitPromise,8000);if(code===null){helper.kill();await cleanup('helper.kill',()=>exitPromise,3000)}else if(code!==0)cleanupErrors.push('helper_failed')}
+    await cleanup('fixture',async()=>{const identity=JSON.parse(await readFile(path.join(fixture,'capture-owner.json'),'utf8'));if(identity.fixture_id!==fixtureID||!path.basename(fixture).startsWith('insonic-capture-'))throw Error('Fixture cleanup identity mismatch.');await rm(fixture,{recursive:true,force:true,maxRetries:1,retryDelay:100})},8000);
+    await progress('cleanup',cleanupErrors.length?'failed':'completed');
+    if(!failure&&cleanupErrors.length)throw Error('Capture cleanup did not complete within its bounds.');
   }
+  capturedReceipt.verification.cleanup_complete=true;
+  await checkpoint('publish',async()=>{await mkdir(options.output,{recursive:true});for(const image of capturedReceipt.images)await writeFile(path.join(options.output,image.path),capturedImages.get(image.path));await writeFile(path.join(options.output,'application-capture.json'),JSON.stringify(capturedReceipt,null,2)+'\n','utf8')});
+  return capturedReceipt;
 }
 
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+  // The qualification runner owns this process and its descendants. This final
+  // guard reports a phase failure before that runner's 150-second tree limit.
+  const deadline=setTimeout(()=>{console.error(JSON.stringify({time:new Date().toISOString(),phase:'capture.total',event:'timed_out'}));process.exit(1)},125000);
   try{const receipt=await capture(parseOptions(process.argv.slice(2)));console.log(JSON.stringify({kind:receipt.kind,source:receipt.source.revision,images:receipt.images.map(x=>x.path),renderer:receipt.renderer}));}
-  catch(error){console.error(error.message);process.exitCode=1}
+  catch(error){console.error(JSON.stringify({phase:error.phase||'capture',event:'failed',code:error.code==='capture_timeout'?'capture_timeout':'capture_failed'}));process.exitCode=1;setTimeout(()=>process.exit(1),1000).unref()}
+  finally{clearTimeout(deadline)}
 }

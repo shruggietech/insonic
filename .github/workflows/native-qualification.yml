@@ -175,6 +175,7 @@ jobs:
           path: |
             build/native/*receipt.json
             build/native/package-inventory.json
+            build/ui-capture
           if-no-files-found: error
   runtime:
     if: always() && inputs.core && inputs.lane != 'packages'

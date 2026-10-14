@@ -76,3 +76,9 @@ Establish typed identity/tests, deliver selected clients, transactional lifecycl
 
 - [x] T032 [US2] Restore independently verified same-run desktop archives into an owned workspace path and separate MSI lifecycle checks into their own ten-minute job in .github/workflows/native-qualification.yml and scripts/package-msi.py.
 - [x] T033 [US2] Replace MSI composite Upgrade key mutation with complete verified row replacement and an actual native database-only clone regression in scripts/qualify-windows-msi.py and tests/windows_msi_test.py.
+
+- [x] T034 [US2] Run native Installer APIs in an exact owned hidden worker with checked UI/log initialization and bounded process/service diagnostics in scripts/qualify-windows-msi.py.
+- [x] T035 [US2] Persist unchecked shortcut elections as zero and verify migration without automation overriding the saved choices in scripts/windows_msi.py and scripts/qualify-windows-msi.py.
+- [x] T036 Hold only synthetic completion timers while exercising real durable active-capacity attempts in internal/app/capacity_test.go; keep the portable capture-source test independent of Windows subprocess constants.
+- [x] T037 [US4] Bound capture phases and cleanup, create conventional isolated Windows profile directories, and retain failure diagnostics in scripts/capture-application-ui.mjs and native-qualification.yml.
+- [x] T038 [US4] Reject untracked capture inputs and modified embedded Go builds, with a temporary repository regression for final external review.
