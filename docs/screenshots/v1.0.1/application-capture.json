@@ -2,9 +2,9 @@
   "kind": "application-ui-capture",
   "schema_version": "1.0.1",
   "source": {
-    "revision": "28b7c3958012efcca4b61191d54ec064b00a70d9",
+    "revision": "5f247931c54ceb6b06914ad246f4fd953b6aff62",
     "dirty": false,
-    "tree_sha256": "64c160e06a40d8d0e3a2ad7e8520b83fb9e74fa7c318f11f9f9cdbb352aa4fcb",
+    "tree_sha256": "cd11d4e133b79039f217d5417e7e23f2eca8759da7c629b3aa1b6d67135c95f8",
     "files": [
       {
         "path": "brand/README.md",
@@ -3920,19 +3920,19 @@
       },
       {
         "path": "internal/launcher/launcher.go",
-        "sha256": "b5bbd26884f1e4c776f4429a2bd57fde5c42e0f4e6ccded6934e02bfd909b31d"
+        "sha256": "7b2a80dc787fdc3d05f29b776bbb3138af095b4cf455894d7cc7fac4afb470ef"
       },
       {
         "path": "internal/launcher/launcher_test.go",
-        "sha256": "13c6067e09bfd0dba3a784d372f78ffe1acfe46f3c60d7bb39d14477263dcb22"
+        "sha256": "5485c34c2470a6588edeb5d29f59eae5ec7b0dbd2d74fb974a18cecc396fea15"
       },
       {
         "path": "internal/launcher/other.go",
-        "sha256": "59e610980acb071ab2e1b369a4091e1313a66b8e559054f572428a6663b44675"
+        "sha256": "44a3d734feb2f422a54f1d0877168b601a6781b9a3322ac8c091cd9c5232c683"
       },
       {
         "path": "internal/launcher/windows.go",
-        "sha256": "af861a6d3a3c3aa0ccfc2f8bbc571db7713ea11916c681b51e002a7aa6c456c1"
+        "sha256": "4053f552af86f9d3798f535393fc97047e8611b4ae2394e294d3346781af74d6"
       },
       {
         "path": "internal/library/UNICODE-LICENSE.txt",
@@ -5017,7 +5017,7 @@
     "windows_build": "10.0.26300"
   },
   "fixture": {
-    "id": "228766331e7ad8a41bb4ed93abaf8971",
+    "id": "6b658251390cc49baf091daf75529194",
     "isolated": true,
     "browser_profile_owned": true,
     "private_inputs": false
@@ -5030,8 +5030,8 @@
   "locale": "en-US",
   "signing": "unsigned",
   "binaries": {
-    "cli_sha256": "31caf8a0cc69b6ae871534f19c2a08c5ebab0aa91a58fb01a5f91f799f4a5d23",
-    "bridge_sha256": "4f158e4312b4e75c2e62dc63543419880051b7b2a5da326bca23ed93b6338e96",
+    "cli_sha256": "d11f128d9a03c9fdadbb3d0dd058dfd6ac51c4a72dba4eaeecd6ca1d01a459cb",
+    "bridge_sha256": "2b5f6637b382a46318a7f35927f8e3d22daf89bfdeeb498e3ddc34e9ed4582da",
     "cli_vcs_modified": false,
     "bridge_vcs_modified": false
   },
@@ -5100,7 +5100,7 @@
   "images": [
     {
       "path": "setup-location.png",
-      "sha256": "0f15fc4a67d60acb60362985174db4a2429538506ad3041fb069fd3f1da3fa3c",
+      "sha256": "3eb641b517fbf52f6a4e19a7748889ccc36f3464b8ba71eae8486deadc34245e",
       "width": 1392,
       "height": 1766,
       "landmark": "Workspace and location (Step 1 of 5)",
