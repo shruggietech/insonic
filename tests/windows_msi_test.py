@@ -231,20 +231,41 @@ class InstallerModelTests(unittest.TestCase):
             def __init__(self,call):self.call=call
             def __call__(self,*args):return self.call(*args)
         def create(name,domain,secret,logon,exe,command,flags,environment,cwd,startup,process):
-            calls.append('self-logon');self.assertEqual(name,account);self.assertEqual(secret,password);self.assertEqual(logon,1);self.assertEqual(flags,0x08000400);self.assertNotIn(password,command.value);self.assertNotIn(password,environment.value);self.assertEqual(startup._obj.desktop,'owned-private\\Default')
+            calls.append('self-logon');self.assertEqual(name,account);self.assertEqual(secret,password);self.assertEqual(logon,1);self.assertEqual(flags,0x08000400);self.assertNotIn(password,command.value);self.assertNotIn(password,environment.value);self.assertIsNone(startup._obj.desktop)
             process._obj.process=111;process._obj.thread=222;process._obj.pid=333;return True
         def exit_code(process,code):code._obj.value=0;return True
         security=SimpleNamespace(CreateProcessWithLogonW=Function(create));kernel=SimpleNamespace(WaitForSingleObject=Function(lambda *args:0),GetExitCodeProcess=Function(exit_code),CloseHandle=Function(lambda handle:closed.append(handle) or True),TerminateProcess=Function(lambda *args:True));dlls={'kernel32':kernel,'advapi32':security}
         credentials={'account':'CI-FIXTURE\\'+account,'sid':sid,'password':password};output=self.path/'context.json';pipe='insonic-ci-credential-'+'a'*32
         env={'COMPUTERNAME':'CI-FIXTURE','USERNAME':account}
-        with patch.dict(os.environ,env,clear=True),patch.object(m,'disposable_runner',return_value=None),patch.object(module,'token_info',return_value=token),patch.object(module,'open',return_value=io.BytesIO((json.dumps(credentials)+'\n').encode()),create=True),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'private_context_desktop',return_value=nullcontext({'path':'owned-private\\Default'})) as desktop:
+        with patch.dict(os.environ,env,clear=True),patch.object(m,'disposable_runner',return_value=None),patch.object(module,'token_info',return_value=token),patch.object(module,'open',return_value=io.BytesIO((json.dumps(credentials)+'\n').encode()),create=True),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'inherited_ordinary_desktop',return_value={'visible':False,'station_or_desktop_modified':False}) as desktop,patch.object(module,'private_context_desktop') as create_desktop:
             module.ordinary_interactive_bootstrap(pipe,self.path/'fixture.msi',self.path/'installed',output)
-            desktop.assert_called_once();self.assertEqual(desktop.call_args.args[:2],(sid,sid))
+            desktop.assert_called_once_with(token);create_desktop.assert_not_called()
         self.assertEqual(calls,['self-logon']);self.assertEqual(closed,[222,111]);self.assertNotIn(password,output.with_suffix('.bootstrap.json').read_text(encoding='utf-8'))
         credentials['sid']='S-1-5-21-1-2-3-9999'
         with patch.dict(os.environ,env,clear=True),patch.object(m,'disposable_runner',return_value=None),patch.object(module,'token_info',return_value=token),patch.object(module,'open',return_value=io.BytesIO((json.dumps(credentials)+'\n').encode()),create=True),patch.object(C,'WinDLL',create=True) as native:
             with self.assertRaisesRegex(RuntimeError,'actor differs'):module.ordinary_interactive_bootstrap(pipe,self.path/'fixture.msi',self.path/'installed',output)
             native.assert_not_called()
+    def test_task_engine_cleanup_rejects_foreign_sid_and_closes_only_verified_owned_host(self):
+        import ctypes as C
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_owned_engine_cleanup',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.stop_owned_task_engine(None,None)
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.inherited_ordinary_desktop(None)
+        sid='S-1-5-21-1-2-3-1001';system=self.path/'Windows';calls=[];closed=[]
+        class Function:
+            def __init__(self,call):self.call=call
+            def __call__(self,*args):return self.call(*args)
+        def token(process,access,out):out._obj.value=200;return True
+        def image(process,flags,out,size):out.value=str(system/'System32/taskeng.exe');return True
+        kernel=SimpleNamespace(OpenProcess=Function(lambda rights,inherit,pid:300),QueryFullProcessImageNameW=Function(image),WaitForSingleObject=Function(lambda handle,milliseconds:258 if milliseconds==0 else 0),TerminateProcess=Function(lambda handle,code:calls.append(handle) or True),CloseHandle=Function(lambda handle:closed.append(handle.value if hasattr(handle,'value') else handle)))
+        security=SimpleNamespace(OpenProcessToken=Function(token));dlls={'kernel32':kernel,'advapi32':security}
+        with patch.dict(os.environ,{'SystemRoot':str(system)}),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',return_value='S-1-5-18'):
+            with self.assertRaisesRegex(RuntimeError,'another actor'):module.stop_owned_task_engine(777,sid)
+        self.assertEqual(calls,[]);self.assertEqual(closed,[200,300]);closed.clear()
+        with patch.dict(os.environ,{'SystemRoot':str(system)}),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',return_value=sid):
+            result=module.stop_owned_task_engine(777,sid)
+        self.assertEqual(calls,[300]);self.assertTrue(result['terminated']);self.assertFalse(result['shared_system_process_stopped']);self.assertEqual(closed,[200,300])
     def test_existing_ci_account_is_never_reused_or_deleted(self):
         import ctypes as C
         import secrets

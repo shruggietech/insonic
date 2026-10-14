@@ -409,7 +409,8 @@ def token_info():
         privileges=info(3);count=struct.unpack_from('<I',privileges.raw)[0]
         if count>100:raise RuntimeError('invalid token privilege count')
         enabled=sum(bool(struct.unpack_from('<I',privileges.raw,4+i*12+8)[0]&2) for i in range(count))
-        return {'administrator_enabled':bool(member.value),'elevated':elevated,'elevation_type':elevation_type,'enabled_privileges':enabled,'user_sid_sha256':user_hash,'integrity_sid':integrity_sid,'integrity_rid':integrity_rid,'session_id':int(C.cast(info(12),C.POINTER(W.DWORD))[0]),**logon_groups}
+        authentication_low,authentication_high=struct.unpack_from('<II',info(10).raw,8)
+        return {'administrator_enabled':bool(member.value),'elevated':elevated,'elevation_type':elevation_type,'enabled_privileges':enabled,'user_sid_sha256':user_hash,'integrity_sid':integrity_sid,'integrity_rid':integrity_rid,'session_id':int(C.cast(info(12),C.POINTER(W.DWORD))[0]),'authentication_luid':{'low':authentication_low,'high':authentication_high},**logon_groups}
     finally:kernel.CloseHandle(token)
 
 def ordinary_worker(installer,directory,output):
@@ -595,7 +596,7 @@ try {
     $action=$definition.Actions.Create(0);$action.Path=$inputObject.executable;$action.Arguments=$inputObject.arguments;$action.WorkingDirectory=$inputObject.directory
     $registered=$folder.RegisterTaskDefinition($inputObject.task_name,$definition,2,$inputObject.account,$inputObject.password,1,$null)
     $created=$true;$result.phase='registered';$result.requested_run_level=0;$result.logon_type=1
-    $null=$registered.Run($null);$deadline=[DateTime]::UtcNow.AddSeconds(95)
+    $running=$registered.Run($null);$result.engine_pid=$running.EnginePID;$deadline=[DateTime]::UtcNow.AddSeconds(95)
     $result.phase='private-pipe-connect'
     if (-not $connection.AsyncWaitHandle.WaitOne(15000)) { throw 'owned credential pipe connection timed out' }
     $pipe.EndWaitForConnection($connection)
@@ -646,6 +647,8 @@ def scheduler_ordinary(stage,name,sid,password,args,record,profile):
         if outcome is None or outcome.get('deleted') is not True:
             cleanup=invoke({**metadata,'mode':'cleanup'});record('TaskScheduler-owned-cleanup',scheduler=cleanup)
             if cleanup.get('deleted') is not True:raise RuntimeError('owned ordinary task cleanup failed')
+        if outcome is not None and outcome.get('engine_pid'):
+            outcome['engine_cleanup']=stop_owned_task_engine(outcome['engine_pid'],sid);record('TaskScheduler-owned-engine-cleanup',engine=outcome['engine_cleanup'])
 
 def retain_ordinary_diagnostics(native,output):
     """Keep each actor's exact evidence distinct before deleting its stage."""
@@ -653,6 +656,57 @@ def retain_ordinary_diagnostics(native,output):
         if item.is_file() and item.name.startswith('context.'):
             if item.is_symlink():raise ValueError('ordinary diagnostic source is redirected')
             shutil.copyfile(item,Path(output).with_name(Path(output).stem+item.name[len('context'):]))
+
+def stop_owned_task_engine(pid,sid):
+    """Release only the reported task engine if it belongs to this new CI actor."""
+    m.disposable_runner()
+    import ctypes as C
+    import ctypes.wintypes as W
+    kernel=C.WinDLL('kernel32',use_last_error=True);security=C.WinDLL('advapi32',use_last_error=True)
+    kernel.OpenProcess.argtypes=[W.DWORD,W.BOOL,W.DWORD];kernel.OpenProcess.restype=W.HANDLE
+    kernel.QueryFullProcessImageNameW.argtypes=[W.HANDLE,W.DWORD,W.LPWSTR,C.POINTER(W.DWORD)];kernel.QueryFullProcessImageNameW.restype=W.BOOL
+    kernel.WaitForSingleObject.argtypes=[W.HANDLE,W.DWORD];kernel.WaitForSingleObject.restype=W.DWORD;kernel.TerminateProcess.argtypes=[W.HANDLE,W.UINT];kernel.TerminateProcess.restype=W.BOOL;kernel.CloseHandle.argtypes=[W.HANDLE]
+    security.OpenProcessToken.argtypes=[W.HANDLE,W.DWORD,C.POINTER(W.HANDLE)];security.OpenProcessToken.restype=W.BOOL
+    if not isinstance(pid,int) or pid<=0:raise ValueError('invalid reported task-engine PID')
+    process=kernel.OpenProcess(0x101001,False,pid)
+    if not process:
+        if C.get_last_error()==87:return {'pid':pid,'already_exited':True,'terminated':False}
+        raise C.WinError(C.get_last_error())
+    token=W.HANDLE()
+    try:
+        if kernel.WaitForSingleObject(process,0)==0:return {'pid':pid,'already_exited':True,'terminated':False}
+        if not security.OpenProcessToken(process,8,C.byref(token)):raise C.WinError(C.get_last_error())
+        if account_sid(token)!=sid:raise RuntimeError('reported task engine belongs to another actor; no process stopped')
+        image=C.create_unicode_buffer(32768);size=W.DWORD(len(image))
+        if not kernel.QueryFullProcessImageNameW(process,0,image,C.byref(size)):raise C.WinError(C.get_last_error())
+        path=Path(image.value);system=Path(os.environ['SystemRoot'])/'System32'
+        if path.parent.resolve()!=system.resolve() or path.name.casefold() not in ('taskeng.exe','taskhost.exe','taskhostw.exe'):raise RuntimeError('reported task engine is not an owned-account Windows task host; no process stopped')
+        if not kernel.TerminateProcess(process,0) or kernel.WaitForSingleObject(process,5000)!=0:raise RuntimeError('owned account task engine did not exit')
+        return {'pid':pid,'user_sid_sha256':m.digest(sid.encode()),'image':path.name,'terminated':True,'shared_system_process_stopped':False}
+    finally:
+        if token:kernel.CloseHandle(token)
+        kernel.CloseHandle(process)
+
+def inherited_ordinary_desktop(observed):
+    """Observe the task's existing noninteractive context without changing it."""
+    m.disposable_runner()
+    import ctypes as C
+    import ctypes.wintypes as W
+    user=C.WinDLL('user32',use_last_error=True);security=C.WinDLL('advapi32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True)
+    user.GetProcessWindowStation.restype=W.HANDLE;user.GetThreadDesktop.argtypes=[W.DWORD];user.GetThreadDesktop.restype=W.HANDLE;kernel.GetCurrentThreadId.restype=W.DWORD
+    user.GetUserObjectInformationW.argtypes=[W.HANDLE,C.c_int,C.c_void_p,W.DWORD,C.POINTER(W.DWORD)];user.GetUserObjectInformationW.restype=W.BOOL
+    kernel.LocalFree.argtypes=[C.c_void_p];kernel.LocalFree.restype=C.c_void_p
+    station=user.GetProcessWindowStation();desktop=user.GetThreadDesktop(kernel.GetCurrentThreadId())
+    def name(handle):
+        value=C.create_unicode_buffer(512);needed=W.DWORD()
+        if not user.GetUserObjectInformationW(handle,2,value,C.sizeof(value),C.byref(needed)):raise C.WinError(C.get_last_error())
+        return value.value
+    flags=(W.DWORD*3)();needed=W.DWORD()
+    if not user.GetUserObjectInformationW(station,1,flags,C.sizeof(flags),C.byref(needed)):raise C.WinError(C.get_last_error())
+    station_name=name(station);desktop_name=name(desktop)
+    if flags[2]&1 or station_name.casefold()=='winsta0':raise RuntimeError('ordinary bootstrap is not on its noninteractive task station')
+    station_security=owned_user_object_observation(station,user,security,kernel);desktop_security=owned_user_object_observation(desktop,user,security,kernel)
+    return {'kind':'inherited-task-noninteractive-context','station':station_name,'desktop':desktop_name,'visible':False,'station_or_desktop_modified':False,'user_sid_sha256':observed['user_sid_sha256'],'authentication_luid':observed['authentication_luid'],'actual_station_security':station_security,'actual_desktop_security':desktop_security,'startup_desktop':None}
 
 def ordinary_interactive_bootstrap(pipe,installer,directory,output):
     """Self-log on inside the isolated batch session, without elevating the actor."""
@@ -675,18 +729,18 @@ def ordinary_interactive_bootstrap(pipe,installer,directory,output):
     kernel.WaitForSingleObject.argtypes=[W.HANDLE,W.DWORD];kernel.WaitForSingleObject.restype=W.DWORD;kernel.GetExitCodeProcess.argtypes=[W.HANDLE,C.POINTER(W.DWORD)];kernel.GetExitCodeProcess.restype=W.BOOL;kernel.CloseHandle.argtypes=[W.HANDLE];kernel.TerminateProcess.argtypes=[W.HANDLE,W.UINT]
     process=Process()
     try:
-        with private_context_desktop(credentials['sid'],credentials['sid'],record) as desktop:
-            startup=Startup();startup.cb=C.sizeof(startup);startup.flags=1;startup.show=0;startup.desktop=desktop['path']
-            args=[sys.executable,__file__,'--ordinary-worker',str(installer),'--context-dir',str(directory),'--output',str(output)];command=C.create_unicode_buffer(subprocess.list2cmdline(args));environment=C.create_unicode_buffer('\0'.join(key+'='+value for key,value in sorted(os.environ.items()))+'\0\0')
-            record('before-self-interactive-logon',desktop=desktop)
-            if not security.CreateProcessWithLogonW(os.environ['USERNAME'],'.',credentials['password'],1,sys.executable,command,0x08000400,environment,str(directory.parent),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
-            credentials['password']=None;record('self-interactive-process-created',pid=process.pid,desktop=desktop)
-            if kernel.WaitForSingleObject(process.process,80000)!=0:
-                kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000);raise RuntimeError('owned self-interactive worker exceeded existing task bound')
-            code=W.DWORD()
-            if not kernel.GetExitCodeProcess(process.process,C.byref(code)):raise C.WinError(C.get_last_error())
-            record('self-interactive-process-exited',pid=process.pid,exit_code=code.value,desktop=desktop)
-            if code.value:raise RuntimeError('ordinary self-interactive worker failed '+str(code.value))
+        desktop=inherited_ordinary_desktop(observed)
+        startup=Startup();startup.cb=C.sizeof(startup);startup.flags=1;startup.show=0;startup.desktop=None
+        args=[sys.executable,__file__,'--ordinary-worker',str(installer),'--context-dir',str(directory),'--output',str(output)];command=C.create_unicode_buffer(subprocess.list2cmdline(args));environment=C.create_unicode_buffer('\0'.join(key+'='+value for key,value in sorted(os.environ.items()))+'\0\0')
+        record('before-self-interactive-logon',desktop=desktop)
+        if not security.CreateProcessWithLogonW(os.environ['USERNAME'],'.',credentials['password'],1,sys.executable,command,0x08000400,environment,str(directory.parent),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
+        credentials['password']=None;record('self-interactive-process-created',pid=process.pid,desktop=desktop)
+        if kernel.WaitForSingleObject(process.process,80000)!=0:
+            kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000);raise RuntimeError('owned self-interactive worker exceeded existing task bound')
+        code=W.DWORD()
+        if not kernel.GetExitCodeProcess(process.process,C.byref(code)):raise C.WinError(C.get_last_error())
+        record('self-interactive-process-exited',pid=process.pid,exit_code=code.value,desktop=desktop)
+        if code.value:raise RuntimeError('ordinary self-interactive worker failed '+str(code.value))
     finally:
         credentials['password']=None
         for handle in (process.thread,process.process):
@@ -801,7 +855,7 @@ def ordinary_context(installer,directory,output,model=None):
         scheduler=scheduler_ordinary(stage,name,sid,password,args,record,profile)
         evidence=json.loads(worker_output.read_text(encoding='utf-8'))
         if evidence['token']['user_sid_sha256']!=m.digest(sid.encode()) or Path(evidence['user_profile']).resolve()!=profile.resolve():raise RuntimeError('ordinary worker changed account/profile identity')
-        evidence.update({'process_creation':'Task Scheduler least-privilege batch session, then same-account interactive logon on an owned private desktop','scheduler':scheduler,'profile_creation':'native LOGON_WITH_PROFILE bootstrap and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode()),'owned_account_rights_before':batch_original})
+        evidence.update({'process_creation':'Task Scheduler least-privilege batch session, then same-account interactive logon inheriting its noninteractive task desktop','scheduler':scheduler,'profile_creation':'native LOGON_WITH_PROFILE bootstrap and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode()),'owned_account_rights_before':batch_original})
     except BaseException as error:
         failure=error;record('failed',failed_api=getattr(error,'api',current_phase['name']),winerror=getattr(error,'winerror',None),errno=getattr(error,'errno',None),error_type=type(error).__name__,error=str(error))
     finally:
