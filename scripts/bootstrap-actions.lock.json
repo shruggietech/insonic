@@ -1,0 +1,10 @@
+{
+  "setup-go": {
+    "revision": "b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+    "sha256": "c0f9ce2412e45f9ed1115f9950a01403b58b7f2b830cbcf52b186bb7a2d5b120"
+  },
+  "setup-node": {
+    "revision": "949feb2413d6458794dcd2491c4babbbce0c15c1",
+    "sha256": "738f1f022b9004d05770ca7d294748ef37f40f977472ce978c1f3f74aaa45e34"
+  }
+}

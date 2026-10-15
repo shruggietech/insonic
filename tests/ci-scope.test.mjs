@@ -75,7 +75,7 @@ test('native caches can retain tagged builds independently of the immutable core
  const qualification = parse(readFileSync(new URL('../.github/workflows/native-qualification.yml', import.meta.url), 'utf8'));
  assert.equal(qualification.jobs.runtime_checks.steps.find(step => step.name === 'Cross-process CLI acceptance').run,
   "python scripts/qualify.py cli ${{ inputs.native && '--native' || '' }}");
- const goCache = job => job.steps.find(step => step.uses?.startsWith('actions/setup-go@')).with['cache-dependency-path'];
+ const goCache = job => job.steps.find(step => step.uses === './build/actions/setup-go').with['cache-dependency-path'];
  const runtime = goCache(qualification.jobs.runtime_checks).trim().split('\n');
  const packageInputs = goCache(qualification.jobs.packages).trim().split('\n');
  assert.deepEqual(runtime, ['go.sum', 'internal/qualification/dependencies.json', '.github/workflows/cache-keys/native-${{ matrix.runtime_lane }}']);

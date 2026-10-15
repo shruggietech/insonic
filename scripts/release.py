@@ -456,17 +456,21 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 class GitHub:
-    def __init__(self, token):
-        if not token: raise ValueError('GitHub publication token is required')
-        self.token = token; self.opener = urllib.request.build_opener(NoRedirect())
+    def __init__(self, token, *, read_only=False):
+        if not token and not read_only: raise ValueError('GitHub publication token is required')
+        self.token = token; self.read_only = read_only
+        self.opener = urllib.request.build_opener(NoRedirect())
 
     def call(self, method, endpoint, value=None, path=None):
+        if self.read_only and (method != 'GET' or value is not None or path is not None):
+            raise ValueError('read-only GitHub verification permits GET only')
         url = endpoint if urllib.parse.urlsplit(endpoint).scheme else 'https://api.github.com/' + endpoint
         parsed = urllib.parse.urlsplit(url)
         if parsed.scheme != 'https' or parsed.hostname not in ('api.github.com', 'uploads.github.com') or parsed.username is not None or parsed.port not in (None, 443):
             raise ValueError('GitHub publication endpoint is invalid')
         body = json.dumps(value).encode() if value is not None else None
-        headers = {'Authorization': 'Bearer ' + self.token, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/octet-stream' if path else 'application/json'}
+        headers = {'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/octet-stream' if path else 'application/json'}
+        if self.token: headers['Authorization'] = 'Bearer ' + self.token
         if path:
             headers['Content-Length'] = str(path.stat().st_size)
             connection = http.client.HTTPSConnection(parsed.hostname, timeout=120)
@@ -879,7 +883,45 @@ def pages_promote(directory, api, verifier=verify_package, trusted_root=ROOT, hi
     transport = pages_module()
     destination = transport.preflight(api, REPOSITORY)
     files = transport.prepare_tree(directory / 'documentation.tar.gz', destination, value['version'], value['revision'])
-    return transport.promote_tree(api, REPOSITORY, destination, files, value['version'], value['revision'])
+    result = transport.promote_tree(api, REPOSITORY, destination, files, value['version'], value['revision'])
+    result['public_verification'] = verify_public(directory, api, source_root=source_root,
+        verifier=verifier, pages_commit=result['pages_commit'])
+    return result
+
+
+def public_release(api, value):
+    verify_tag(api, value['tag'], value['revision'])
+    release = api.call('GET', f'repos/{REPOSITORY}/releases/tags/{value["tag"]}')
+    if (not release or release.get('draft') is not False or release.get('prerelease') is not False
+            or release.get('tag_name') != value['tag'] or release.get('target_commitish') != value['revision']
+            or not release.get('published_at')):
+        raise ValueError('public verification requires exact published release identity')
+    return release
+
+
+def verify_public(directory, api, *, source_root=ROOT, verifier=verify_package,
+                  site='https://insonic.io/', pages_commit=None, reader=None):
+    """Verify existing publication with GETs only; never rebuild or republish."""
+    value, expected = load_candidate(directory, verifier, source_root)
+    release = public_release(api, value)
+    remote_assets(api, release, expected)
+    for name in ('documentation.tar.gz', 'offline-help.tar.gz'):
+        verify_documentation(directory / name, value['version'], value['revision'], require_release=True)
+    spec = importlib.util.spec_from_file_location('insonic_public_verification', ROOT / 'scripts/public-verification.py')
+    public = importlib.util.module_from_spec(spec); spec.loader.exec_module(public)
+    package_names = [entry['name'] for entry in expected if entry['name'].startswith('insonic_')]
+    package_urls = [f'https://github.com/{REPOSITORY}/releases/download/{value["tag"]}/{name}' for name in package_names]
+    options = {'package_urls': package_urls, 'api': api, 'pages_commit': pages_commit}
+    if reader is not None: options['reader'] = reader
+    result = public.verify(directory / 'documentation.tar.gz', value['version'], value['revision'], site, **options)
+    # Fence both publication metadata and tag after observing live responses.
+    if public_release(api, value)['id'] != release['id']:
+        raise ValueError('public release identity changed during verification')
+    remote_assets(api, release, expected)
+    result.update(publication_proof='complete-api-asset-digests-and-sizes',
+                  local_candidate_proof='all-original-assets-verified', public_assets=len(expected),
+                  release=f'https://github.com/{REPOSITORY}/releases/tag/{value["tag"]}')
+    return result
 
 
 def promote(directory, config, api, runner=child, verifier=verify_package, trusted_root=ROOT, history_runner=child, source_root=ROOT):
@@ -907,6 +949,7 @@ def main():
     p = sub.add_parser('trusted'); p.add_argument('--revision', required=True)
     p = sub.add_parser('publish'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--highlights', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT)
     p = sub.add_parser('published'); p.add_argument('--revision', required=True); p.add_argument('--output', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT)
+    p = sub.add_parser('verify-public'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT); p.add_argument('--site', default='https://insonic.io/'); p.add_argument('--pages-commit'); p.add_argument('--output', type=Path)
     p = sub.add_parser('deployment'); p.add_argument('--configuration', type=Path, required=True)
     sub.add_parser('pages-preflight')
     p = sub.add_parser('pages-promote'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT)
@@ -920,6 +963,9 @@ def main():
     elif options.command == 'trusted': result = trusted_history(options.revision, GitHub(os.environ.get('GH_TOKEN', '')))
     elif options.command == 'publish': result = publish(options.candidate, options.highlights.read_text(encoding='utf-8'), GitHub(os.environ.get('GH_TOKEN', '')), root=options.source_root, trusted_root=ROOT)
     elif options.command == 'published': result = published_candidate(options.output, options.revision, GitHub(os.environ.get('GH_TOKEN', '')), root=options.source_root, trusted_root=ROOT)
+    elif options.command == 'verify-public':
+        result = verify_public(options.candidate, GitHub(os.environ.get('GH_TOKEN', ''), read_only=True), source_root=options.source_root, site=options.site, pages_commit=options.pages_commit)
+        if options.output: write_json(options.output, result)
     elif options.command == 'deployment': deployment_environment(GitHub(os.environ.get('GH_TOKEN', ''))); result = materialize_deployment(options.configuration)
     elif options.command == 'pages-preflight':
         destination = pages_module().preflight(GitHub(os.environ.get('GH_TOKEN', '')), REPOSITORY)

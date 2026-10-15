@@ -133,7 +133,7 @@ test('release qualification reuses parallel native/package lanes and matching re
   assert.equal(native.jobs.runtime.name, 'native (${{ inputs.os }})');
   assert.ok(native.jobs.runtime.if.includes('always()'));
   const steps = native.jobs.runtime_checks.steps;
-  const cache = steps.find(step => step.uses?.startsWith('actions/setup-go@'));
+  const cache = steps.find(step => step.uses === './build/actions/setup-go');
   assert.ok(cache.with['cache-dependency-path'].includes('cache-keys/native-'));
   assert.ok(steps.find(step => step.run?.includes('qualify.py cli')).run.includes('--native'));
   for (const job of [native.jobs.runtime_checks, native.jobs.packages]) assert.equal(job.timeout_minutes ?? job['timeout-minutes'], 11);
