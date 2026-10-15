@@ -1,0 +1,290 @@
+1:"$Sreact.fragment"
+2:"/_next/static/chunks/41f0ssqj7go1u.js"
+3:I[36064,["$2"],"default"]
+4:I[81497,["$2"],"default"]
+b:I[75049,["$2"],"OutletBoundary"]
+c:"$Sreact.suspense"
+e:"ViewportBoundary"
+f:I[75049,["$2"],"$e"]
+11:"MetadataBoundary"
+12:I[75049,["$2"],"$11"]
+14:I[9986,["$2"],"default",1]
+:HL["/_next/static/chunks/2d2kicukgq1vb.css","style"]
+:HL["/brand/theme.css","style"]
+:HL["/brand/fonts/fonts.css","style"]
+:HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","image"]
+:HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","image"]
+7:X
+9:[["children",{"s":"__PAGE__","h":512,"d":{"r":["$","$1","c",{"children":["$La",null,["$","$Lb",null,{"children":["$","$c",null,{"name":"Next.MetadataOutlet","children":"$@d"}]}]]}],"p":false,"v":null}}]]
+8:[["children",{"s":{"n":"slug","t":"d","k":"desktop","s":["references"]},"h":66048,"d":{"r":["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],"p":false,"v":"$7"},"c":"$Q9"}]]
+6:[["children",{"s":{"n":"version","t":"d","k":"v1.0.1","s":["latest","versions"]},"h":197120,"d":{"r":["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}]]}],"p":false,"v":"$7"},"c":"$Q8"}]]
+5:[["children",{"s":"docs","h":131584,"d":{"r":["$","$1","c",{"children":[null,[["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":"$undefined","forbidden":"$undefined","unauthorized":"$undefined"}],["$","script",null,{"src":"/docs-runtime.js","defer":true}]]]}],"p":false,"v":null},"c":"$Q6"}]]
+0:{"P":null,"c":["","docs","v1.0.1","desktop",""],"q":"","i":false,"t":{"t":{"s":"","h":131600,"d":{"r":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2d2kicukgq1vb.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}],["$","script","script-0",{"src":"/_next/static/chunks/41f0ssqj7go1u.js","async":true,"nonce":"$undefined"}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","meta",null,{"name":"color-scheme","content":"light dark"}],["$","script",null,{"src":"/theme-init.js"}],["$","link",null,{"rel":"stylesheet","href":"/brand/theme.css"}],["$","link",null,{"rel":"stylesheet","href":"/brand/fonts/fonts.css"}],["$","link",null,{"rel":"icon","href":"/brand/icons/web/favicon.ico"}],["$","link",null,{"rel":"apple-touch-icon","href":"/brand/icons/web/favicon-180x180.png"}]]}],["$","body",null,{"children":[["$","a",null,{"className":"skip-link","href":"#main","children":"Skip to content"}],["$","header",null,{"className":"site-header","children":[["$","a",null,{"className":"brand-link","href":"/","aria-label":"insonic home","children":[["$","img",null,{"className":"theme-logo-light","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","alt":"insonic","width":"240","height":"64"}],["$","img",null,{"className":"theme-logo-dark","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","alt":"insonic","width":"240","height":"64"}]]}],["$","nav",null,{"aria-label":"Main navigation","children":[["$","a",null,{"href":"/docs/latest/","children":"Documentation"}],["$","a",null,{"href":"https://github.com/shruggietech/insonic","children":"Repository"}],["$","button",null,{"id":"theme-toggle","className":"theme-toggle","type":"button","role":"switch","aria-label":"Dark mode","aria-checked":"false","title":"Switch to dark theme","hidden":true,"children":[["$","svg",null,{"className":"theme-icon-moon","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","aria-hidden":"true","children":["$","path",null,{"d":"M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"}]}],["$","svg",null,{"className":"theme-icon-sun","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","aria-hidden":"true","children":[["$","circle",null,{"cx":"12","cy":"12","r":"4"}],["$","path",null,{"d":"M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"}]]}]]}]]}]]}],["$","$L3",null,{"parallelRouterKey":"children","error":"$undefined","errorStyles":"$undefined","errorScripts":"$undefined","template":["$","$L4",null,{}],"templateStyles":"$undefined","templateScripts":"$undefined","notFound":[["$","main",null,{"id":"main","className":"landing","tabIndex":-1,"children":[["$","h1",null,{"children":"Page not found"}],["$","p",null,{"children":"This documentation page is unavailable."}],["$","p",null,{"children":["$","a",null,{"href":"/docs/latest/","children":"Open current documentation"}]}],["$","p",null,{"children":["$","a",null,{"href":"/docs/versions/","children":"Browse documentation versions"}]}]]}],[]],"forbidden":"$undefined","unauthorized":"$undefined"}],["$","footer",null,{"className":"site-footer","children":[["$","p",null,{"children":["A ",["$","a",null,{"href":"https://shruggie.tech/","children":"ShruggieTech"}]," project."]}],["$","p",null,{"children":"Apache 2.0. Documentation versions are published with their corresponding releases."}]]}],["$","script",null,{"src":"/site-runtime.js","defer":true}]]}]]}]]}],"p":false,"v":null},"c":"$Q5"},"h":{"r":["$","$1","h",{"children":[null,["$","$Lf",null,{"children":"$L10"}],["$","$L12",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$c",null,{"name":"Next.Metadata","children":"$L13"}]}],null]}],null]}],"p":false,"v":null}},"m":"$undefined","G":["$14",[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2d2kicukgq1vb.css","precedence":"next","crossOrigin":"$undefined","nonce":"$undefined"}]]],"S":true,"r":"$undefined","s":"$undefined","a":"$undefined","l":"$undefined","p":"$undefined","d":"$undefined","b":"2fX-LAnToK96KUl_Gl-yT"}
+7:C
+a:["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"className":"docs-sidebar","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"960","children":[["$","summary",null,{"children":"Documentation"}],["$","nav",null,{"aria-label":"Documentation topics v1.0.1","children":[["$","p",null,{"className":"version-label","children":["v","1.0.1"," · ","released"]}],["$","ul",null,{"children":[[["$","li","index",{"children":["$","a",null,{"href":"/docs/v1.0.1/index/","aria-current":"$undefined","children":"Start here"}]}],["$","li","cli",{"children":["$","a",null,{"href":"/docs/v1.0.1/cli/","aria-current":"$undefined","children":"CLI invocation and results"}]}],["$","li","setup",{"children":["$","a",null,{"href":"/docs/v1.0.1/setup/","aria-current":"$undefined","children":"Optional first-run setup"}]}],["$","li","product",{"children":["$","a",null,{"href":"/docs/v1.0.1/product/","aria-current":"$undefined","children":"Product and requirements"}]}],["$","li","architecture",{"children":["$","a",null,{"href":"/docs/v1.0.1/architecture/","aria-current":"$undefined","children":"System architecture"}]}],["$","li","technology",{"children":["$","a",null,{"href":"/docs/v1.0.1/technology/","aria-current":"$undefined","children":"Technology decisions"}]}],["$","li","ingestion",{"children":["$","a",null,{"href":"/docs/v1.0.1/ingestion/","aria-current":"$undefined","children":"Import, metadata and dates"}]}],["$","li","media",{"children":["$","a",null,{"href":"/docs/v1.0.1/media/","aria-current":"$undefined","children":"Media and provenance"}]}],["$","li","processing-setup",{"children":["$","a",null,{"href":"/docs/v1.0.1/processing-setup/","aria-current":"$undefined","children":"Local processing setup"}]}],["$","li","pipelines",{"children":["$","a",null,{"href":"/docs/v1.0.1/pipelines/","aria-current":"$undefined","children":"Pipelines and adapters"}]}],["$","li","subtitles",{"children":["$","a",null,{"href":"/docs/v1.0.1/subtitles/","aria-current":"$undefined","children":"Cueson and subtitles"}]}],["$","li","speakers",{"children":["$","a",null,{"href":"/docs/v1.0.1/speakers/","aria-current":"$undefined","children":"Speakers and terminology"}]}],["$","li","voice-models",{"children":["$","a",null,{"href":"/docs/v1.0.1/voice-models/","aria-current":"$undefined","children":"Speaker audio and voice models"}]}],["$","li","graph",{"children":["$","a",null,{"href":"/docs/v1.0.1/graph/","aria-current":"$undefined","children":"Queries, timeline and graph"}]}],["$","li","storage",{"children":["$","a",null,{"href":"/docs/v1.0.1/storage/","aria-current":"$undefined","children":"Installation and storage"}]}],["$","li","schema",{"children":["$","a",null,{"href":"/docs/v1.0.1/schema/","aria-current":"$undefined","children":"Storage and catalog schema"}]}],["$","li","contracts",{"children":["$","a",null,{"href":"/docs/v1.0.1/contracts/","aria-current":"$undefined","children":"JSON contracts"}]}],["$","li","security",{"children":["$","a",null,{"href":"/docs/v1.0.1/security/","aria-current":"$undefined","children":"Credentials and data access"}]}],["$","li","secrets",{"children":["$","a",null,{"href":"/docs/v1.0.1/secrets/","aria-current":"$undefined","children":"Credential commands"}]}],["$","li","models",{"children":["$","a",null,{"href":"/docs/v1.0.1/models/","aria-current":"$undefined","children":"Downloaded models"}]}],["$","li","desktop",{"children":["$","a",null,{"href":"/docs/v1.0.1/desktop/","aria-current":"page","children":"CLI and desktop experience"}]}],["$","li","windows-installation",{"children":["$","a",null,{"href":"/docs/v1.0.1/windows-installation/","aria-current":"$undefined","children":"Windows installation, updates and removal"}]}],["$","li","development",{"children":["$","a",null,{"href":"/docs/v1.0.1/development/","aria-current":"$undefined","children":"Development workflow"}]}],["$","li","releases",{"children":["$","a",null,{"href":"/docs/v1.0.1/releases/","aria-current":"$undefined","children":"Brand, docs and releases"}]}],["$","li","roadmap",{"children":["$","a",null,{"href":"/docs/v1.0.1/roadmap/","aria-current":"$undefined","children":"Delivery outcomes"}]}],["$","li","glossary",{"children":["$","a",null,{"href":"/docs/v1.0.1/glossary/","aria-current":"$undefined","children":"Glossary"}]}],["$","li","changelog",{"children":["$","a",null,{"href":"/docs/v1.0.1/changelog/","aria-current":"$undefined","children":"Changelog"}]}]],null]}]]}]]}]}],["$","aside",null,{"className":"table-of-contents","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"1200","children":[["$","summary",null,{"children":"On this page"}],["$","nav",null,{"aria-label":"On this page","children":["$","ul",null,{"children":[["$","li","shared-operations",{"children":["$","a",null,{"href":"#shared-operations","children":"Shared operations"}]}],"$L15","$L16","$L17","$L18","$L19"]}]}]]}]}],"$L1a"]}]
+15:["$","li","first-run-experience",{"children":["$","a",null,{"href":"#first-run-experience","children":"First-run experience"}]}]
+16:["$","li","desktop-surfaces",{"children":["$","a",null,{"href":"#desktop-surfaces","children":"Desktop surfaces"}]}]
+17:["$","li","native-package-layouts",{"children":["$","a",null,{"href":"#native-package-layouts","children":"Native package layouts"}]}]
+18:["$","li","accessibility-and-offline-help",{"children":["$","a",null,{"href":"#accessibility-and-offline-help","children":"Accessibility and offline help"}]}]
+19:["$","li","canonical-admission-controls",{"children":["$","a",null,{"href":"#canonical-admission-controls","children":"Canonical admission controls"}]}]
+1b:T808f,<h1 id="cli-and-desktop-experience">CLI and desktop experience</h1>
+<p>Settings provides shared managed CPU setup, existing-environment inspection, exact builtin model preparation, protected token registration and task readiness. A preview precedes durable preparation; Jobs exposes its progress, cancel and retry actions. Manual tools remain under Advanced. See <a href="/docs/v1.0.1/processing-setup/">local processing setup</a> for CLI parity and installation prerequisites.</p>
+<p>Optional <a href="/docs/v1.0.1/setup/">first-run setup</a> guides workspace location, backend choice, processing, connected services and first import. Skip stages or choose Set up later without blocking normal commands; reopen from Settings with accepted configuration and work intact.</p>
+<h2 id="shared-operations">Shared operations</h2>
+<p>The application is CLI-first. Every core capability has an automation-ready CLI contract, and the GUI installs the CLI and wraps equivalent shared-runtime operations. Both use the same workspace IDs, job states, pipeline definitions, query parameters and errors. No core behavior lives only in GUI code. Shared capability and release matrices record which client exposes each operation.</p>
+<p>Advanced or experimental CLI capabilities may ship before their GUI controls. Each release documents that lag in its capability matrix, including the CLI command, current GUI availability and its follow-up outcome. This exception does not turn mature core operations into permanent CLI-only features. Speaker-model dataset, training, discovery, retrieval, profile selection and matching controls use the same shared operations as the CLI.</p>
+<p>CLI groups include <code>setup</code>, <code>workspace</code>, <code>media</code>, <code>import-presets</code>, <code>transcript</code>, <code>recordings</code>, <code>pipelines</code>, <code>work</code>, <code>jobs</code>, <code>speakers</code>, <code>terms</code>, <code>search</code>, <code>query</code>, <code>export</code>, <code>models</code>, <code>workers</code>, <code>processing</code>, <code>settings</code> and <code>doctor</code>. Human output is concise; <code>--json</code> provides versioned machine-readable records, diagnostics go to stderr, and exit statuses distinguish failure and partial completion. Noninteractive invocations never prompt. Secret entry uses a protected input channel, not command-line values.</p>
+<p>The desktop exposes Library, Import presets, Jobs, Pipelines, Speakers, Terms, Models, Explore and Settings screens. The native bridge uses the same workspace/runtime requests and protected credential channel as the CLI. Library details support captured metadata, date corrections, reference relocation, explicit audio replacement and transcript policies, initial/current declared rosters, current recording assembly/processing, inspection, rerun, native export and known-speaker mappings. See <a href="/docs/v1.0.1/subtitles/">subtitles</a>, <a href="/docs/v1.0.1/pipelines/">pipelines</a>, <a href="/docs/v1.0.1/secrets/">credential commands</a>, <a href="/docs/v1.0.1/models/">downloaded models</a> and <a href="/docs/v1.0.1/ingestion/">import</a> for shared validation and executable operations.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Capability</th>
+<th scope="col">CLI</th>
+<th scope="col">Desktop</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Optional first-run location/draft, saved setup progress and task readiness</td>
+<td>Shared setup commands and versioned state</td>
+<td>Five-stage Setup, skip/defer/resume and Settings reopening</td>
+</tr>
+<tr>
+<td>Create/open workspace, import/list/inspect media, metadata/date correction and relocation</td>
+<td>Implemented</td>
+<td>Dedicated Library controls and native dialogs</td>
+</tr>
+<tr>
+<td>Current Cueson assembly, configured processing, rerun, export and speaker mappings</td>
+<td>Implemented</td>
+<td>Library detail controls and current cues</td>
+</tr>
+<tr>
+<td>Saved pipelines and context, speaker identities/aliases/current evidence, terminology</td>
+<td>Implemented</td>
+<td>Pipelines, Speakers and Terms controls</td>
+</tr>
+<tr>
+<td>Durable work inspection, cancellation, retry and recovery</td>
+<td>Implemented</td>
+<td>Jobs controls; window closure preserves work</td>
+</tr>
+<tr>
+<td>Model register/acquire/list/show/verify/materialize, aliases, discovery and resolution</td>
+<td>Shared versioned commands</td>
+<td>Models controls, shared reference selectors and advanced source/alias configuration</td>
+</tr>
+<tr>
+<td>Managed local worker setup/reuse, builtin model preparation and task readiness</td>
+<td>Shared workers/models/processing operations</td>
+<td>Settings previews, protected model access and durable work controls</td>
+</tr>
+<tr>
+<td>Media/processing tool configuration and appearance</td>
+<td>Shared settings operations</td>
+<td>Revision-checked Settings forms</td>
+</tr>
+<tr>
+<td>Original/preview playback and current cue/span seeking</td>
+<td>Shared playback contracts</td>
+<td>Native audio/video controls</td>
+</tr>
+<tr>
+<td>Low-level artifact retention/leases, catalog snapshots, profile migration and detailed raw bundles</td>
+<td>Advanced commands</td>
+<td>Readable profiles; advanced operations remain in the CLI</td>
+</tr>
+<tr>
+<td>Text/graph queries, current evidence extraction, calendars, recording timelines, saved definitions/layouts</td>
+<td>Implemented</td>
+<td>Explore controls, source playback, force graph and accessible tables</td>
+</tr>
+<tr>
+<td>Optional query assistance</td>
+<td>Shared insonic-http/native Ollama adapters and validated current queries</td>
+<td>Explore discovery, endpoint/model election, synthetic test, suggestion/edit/run/save and explicit auto-run</td>
+</tr>
+<tr>
+<td>Speaker-model datasets, elected training, exact retrieval and profile selection</td>
+<td>Implemented shared commands</td>
+<td>Speakers training and Models discovery/fetch/profile controls</td>
+</tr>
+<tr>
+<td>Roster-constrained matching of current voices</td>
+<td>Matching-only command</td>
+<td>Library controls and bounded outcome pages</td>
+</tr>
+<tr>
+<td>Complete portable backups, reference-only retention and verified empty-target restore</td>
+<td>Advanced offline <code>backup</code> commands</td>
+<td>CLI maintenance availability; dedicated backup controls follow</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>The matrix describes the interfaces in this documentation version. Dedicated profile migration controls follow catalog migration/backup delivery; saving an appearance or tool setting does not replace storage/catalog configuration.</p>
+<p>Model selectors distinguish registered declarations from verified availability, and show aliases, exact versions and compatibility. Missing compatible selections acquire before elected processing; Jobs exposes acquisition dependencies and failure rather than claiming inference has completed. Models discovers trained outputs by speaker, fetches an exact version and selects or clears its current profile with a displayed revision. Speakers accepts explicit adapter configuration or a saved training profile at an exact revision. Source configuration remains an advanced structured input; it never silently guesses download URLs.</p>
+<p>The following examples illustrate the product contracts; consult each capability page for complete input files and current executable command syntax:</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-sh"><span class="hljs-title">insonic</span> workspace init <span class="hljs-variable">PATH</span>
+<span class="hljs-title">insonic</span> media import <span class="hljs-variable">FILE</span> <span class="hljs-attr">--copy</span>
+<span class="hljs-title">insonic</span> media import <span class="hljs-variable">FILE</span> <span class="hljs-attr">--copy</span> <span class="hljs-attr">--originated-at</span> <span class="hljs-string">&quot;2024-06-08T14:30:00&quot;</span> <span class="hljs-attr">--timezone</span> America/New_York
+<span class="hljs-title">insonic</span> media import <span class="hljs-variable">FILE</span> <span class="hljs-attr">--copy</span> <span class="hljs-attr">--originated-on</span> 2024-06-08
+<span class="hljs-title">insonic</span> media import <span class="hljs-attr">--manifest</span> imports.json
+<span class="hljs-title">insonic</span> transcript import <span class="hljs-variable">SUBTITLE_FILE</span> <span class="hljs-attr">--record</span> <span class="hljs-variable">MEDIA_ID</span>
+<span class="hljs-title">insonic</span> work list <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> search <span class="hljs-string">&quot;sample phrase&quot;</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> models dataset create <span class="hljs-attr">--input</span> dataset.json
+<span class="hljs-title">insonic</span> models train <span class="hljs-attr">--input</span> training.json
+<span class="hljs-title">insonic</span> models list <span class="hljs-attr">--speaker</span> <span class="hljs-variable">SPEAKER_ID</span>
+<span class="hljs-title">insonic</span> models speaker show <span class="hljs-variable">MODEL_VERSION_ID</span>
+<span class="hljs-title">insonic</span> models speaker fetch <span class="hljs-variable">MODEL_VERSION_ID</span> <span class="hljs-attr">--destination</span> <span class="hljs-variable">MODEL_DIRECTORY</span>
+</code></pre>
+<p><code>--originated-at</code> accepts a date and time; <code>--timezone</code> accepts an IANA zone, UTC or a numeric UTC offset. An unzoned supplied time uses the captured local IANA zone for that import. <code>--originated-on</code> records date-only precision and does not invent midnight or an exact instant. CSV and JSON batch manifests carry per-item source paths, date precision, zone and metadata overrides; saved preset values are overridden by manifest defaults, then per-item fields, then explicit CLI flags. The default date precedence is owner-supplied value, valid zoned embedded value, explicitly timezone-interpreted embedded value with its assumption recorded, then unknown. File modification time is never silently treated as origination time. <code>--date-precedence</code> accepts <code>owner-first</code>, <code>embedded-first</code> or <code>filesystem-fallback</code>.</p>
+<p>Repeated daylight-saving wall times accept an explicit offset or <code>--dst-fold earlier|later</code>. Nonexistent wall times require a corrected date or explicit <code>--dst-gap shift-forward</code> policy. The media is still admitted with that date observation marked unresolved until disambiguated. Batch jobs continue with unaffected items; work succeeds when every admission succeeds, while <code>result.partial: true</code> and per-item date states disclose unresolved observations. Failed admissions make <code>work wait</code> return exit 1. Missing or unusable embedded dates never block admission. Media inspection exposes the chosen recording time, precision, zone, source and competing metadata observations so corrections are understandable and reversible. See <a href="/docs/v1.0.1/ingestion/">import, metadata and dates</a>.</p>
+<h2 id="first-run-experience">First-run experience</h2>
+<ol>
+<li>Open optional Setup and preview the editable library location, or open an existing library. An existing identity and accepted routes are preserved.</li>
+<li>For a fresh library, choose local defaults or complete backend fields and preflight before provisioning. Filesystem/SQLite/LadybugDB need no account or API key.</li>
+<li>Elect processing only when wanted. Use shared managed CPU setup or inspect an existing environment, prepare exact selected models and save a pipeline. Preview requirements before accepting work; Jobs retains preparation progress.</li>
+<li>Discover connected-service metadata and explicitly elect a route when wanted. Protected credential entry generates opaque references; discovery alone changes no routing.</li>
+<li>Open normal Import controls, inspect captured metadata and known recording dates, then follow admission and elected processing separately in Jobs. Save reusable destination/date/pipeline choices in Import presets.</li>
+</ol>
+<p>Each optional stage has Skip, and Set up later leaves ordinary Library and commands available. Back and later reopening retain saved progress. Closing setup or skipping processing does not cancel accepted downloads or undo configuration; use the selected work's explicit cancellation/retry controls. Stage completion is checked against current observations, so changed settings can require attention without blocking unrelated work.</p>
+<p><a href="/docs/v1.0.1/setup/">First-run setup</a> documents shared CLI inputs, revision conflicts, replay reconciliation and offline paths. <a href="/docs/v1.0.1/processing-setup/">Local processing setup</a> documents hardware observations, managed worker/model prerequisites and task-specific readiness. A configuration declaration or stored credential reference alone does not establish successful authentication or usable inference.</p>
+<p>Selecting a preset and its routing preferences authorizes its routine operations. Imports, derivative generation, configured speaker attribution and jobs proceed without per-item approval dialogs. Electing a speaker-training workflow authorizes its saved selection and destination rules; corpus qualification and model validation are automated checks. Users can inspect or override results, and an error pauses only the affected work. New external destinations, unresolved dates and previously unauthorized destructive effects explain the concrete decision that needs input.</p>
+<h2 id="desktop-surfaces">Desktop surfaces</h2>
+<p>The Library accepts audio and video inputs and retains canonical audio with import/indexing state. Media details contain playback, captured metadata, date provenance, transcript tracks, speaker intervals, related derivatives and processing history. Raw metadata remains inspectable beside normalized facts. Jobs show current stage, elapsed time and the next useful action on failure. Speakers and Terms expose the catalogs without requiring schema knowledge; speaker details include source-linked audio corpora and revisions. Explore contains text search, the calendar/media timeline and saved graph queries. Settings shows current workspace profiles, provides complete backend plan/preflight/fresh-provisioning controls, and edits appearance, tool overrides and model references. Import presets and Pipelines have separate management screens. Profile migration remains an advanced CLI operation.</p>
+<p>AI query assistance shows proposed read-only queries by default. An explicit <code>mode: &quot;auto-run&quot;</code> request or saved auto-run preference can execute suggestions after parsing, read-only validation and configured limits. This preference avoids repeated confirmation while retaining direct queries when assistance is disabled. Invalid or unsupported suggestions report their error without execution.</p>
+<p>Progress distinguishes decoding, model download, inference, subtitle publication and graph indexing. Closing the window does not silently cancel durable jobs. Users can keep work running, cancel selected jobs and retry interrupted durable operations. Runtime restarts show interrupted attempts explicitly and offer resumable work.</p>
+<p>Failed or interrupted supplied-turn assembly requires resubmitting its transient inputs through the Library assembly controls. Jobs explains this action; generic retry does not reconstruct unsaved turn inputs. Durable import, processing and model-acquisition work retains its shared retry behavior.</p>
+<p>Playback uses the original or a documented preview proxy. Selecting a cue, assertion or graph evidence opens its correlated original-media position. If a referenced original moved, the application asks for relocation and verifies the asset identity before reconnecting it.</p>
+<p>Implemented Library playback uses private native tickets scoped to the selected workspace, media revision and current recording/document. The desktop starts a playback-only HTTP transport on 127.0.0.1 with an ephemeral port and closes it on exit. This supports native media engines that cannot consume Wails custom-scheme media. Its handler supports ranged GET/HEAD requests, checks current authority and renews materialization leases during streaming. Host and browser Origin checks limit requests; ticket URLs expose no native paths and the endpoint provides no general-purpose CORS API. The mounted player also checks every five seconds so a replacement from another client stops already buffered playback and clears obsolete cue selections. Closing playback or selecting another workspace releases its handle; a changed original, replacement recording or expired handle requires a fresh request. Files are never served by accepting an arbitrary path from the webview.</p>
+<p>Unsupported media and nonzero source clocks receive a bounded temporary WAV or MP4 preview made by the configured hash-verified FFmpeg tools. Original bytes remain immutable. Preview responses identify served and source digests separately and carry the measured difference between original and preview timelines used when seeking. Zero-clock compatible originals play directly. Current cue clocks reach JavaScript as exact decimal strings; raw capture pages retain byte-exact JSON rather than rounding nanosecond integers through JavaScript numbers. Cues and speaker intervals always resolve against current embedded Cueson authority.</p>
+<h2 id="native-package-layouts">Native package layouts</h2>
+<p>insonic supports an unsigned Windows x86-64 MSI with selectable clients, Windows x86-64 ZIP packages and Linux x86-64 tar.gz packages. <a href="/docs/v1.0.1/windows-installation/">Windows installation, updates and removal</a> covers MSI controls, first launch, optional setup and conditional download/Windows warnings. Each platform has two choices, giving four package variants. A CLI is a command-line tool: type commands in a terminal and read their results there. The desktop application provides windows and controls and includes the same CLI.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Package</th>
+<th scope="col">Included clients</th>
+<th scope="col">Windows prerequisites</th>
+<th scope="col">Linux prerequisites</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Desktop + CLI</td>
+<td>Application windows and the command-line tool</td>
+<td>Microsoft Visual C++ x64 runtime and WebView2 Runtime</td>
+<td>Perl, GTK 3, WebKitGTK 4.1 and GStreamer decoders</td>
+</tr>
+<tr>
+<td>CLI only</td>
+<td>Command-line tool; no desktop application</td>
+<td>Microsoft Visual C++ x64 runtime</td>
+<td>Perl and the platform C/C++ runtime</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Both variants include required native libraries, metadata/media companions, Cueson and schemas, offline help, dependency notices and corresponding build sources. Keep the entire extracted tree together. Companions are verified and discovered relative to the installed executable. Explicit workspace tool configuration takes precedence; invalid configuration reports an error. Installation paths are not written into portable workspace settings.</p>
+<p>Choose the exact official version and variant. Windows assets end in _windows_amd64_desktop.zip or _windows_amd64_cli.zip; Linux assets end in _linux_amd64_desktop.tar.gz or _linux_amd64_cli.tar.gz. amd64 means x86-64, including compatible Intel and AMD processors. Other architectures have no qualified package claim. The version's index states candidate or publication status.</p>
+<p>Windows ZIP installation only copies files. It creates no MSI registration, PATH entry, shortcut, Installed Apps entry or uninstaller. The generated INSTALL.txt states whether a publisher signature was configured and verified; an unsigned package has no verified publisher identity. Checksums identify bytes and do not establish Windows reputation. Local recognition/diarization environments and model weights, or an explicitly selected compatible connected pipeline, remain separate from application installation. Installing media companions alone does not prepare inference.</p>
+<h3 id="windows-prerequisites">Windows prerequisites</h3>
+<p>Both Windows variants require the Microsoft Visual C++ v14 x64 runtime. Microsoft provides <a href="https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170">runtime guidance</a> and the <a href="https://aka.ms/vc14/vc_redist.x64.exe">official x64 installer</a>. Download the complete installer while online for transfer to an offline computer.</p>
+<p>Desktop + CLI additionally requires the WebView2 Runtime. Use <a href="https://developer.microsoft.com/en-us/microsoft-edge/webview2/">Microsoft's downloads</a> and <a href="https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution">distribution guidance</a>. The Evergreen Bootstrapper downloads the matching runtime online; the x64 Evergreen Standalone Installer contains the runtime for offline installation. Microsoft Edge itself does not replace this prerequisite. Prerequisite installers can request administrative approval according to their selected mode. <a href="/docs/v1.0.1/windows-installation/">Windows installation guidance</a> separates unsigned download/reputation prompts, permissions and policy blocks. Device policy can prevent unsigned installation.</p>
+<h3 id="install-a-windows-zip">Install a Windows ZIP</h3>
+<ol>
+<li>
+<p>Download the Windows x86-64 Desktop + CLI or CLI-only ZIP for your chosen official release. Install its applicable prerequisites.</p>
+</li>
+<li>
+<p>Extract the entire ZIP. Open the package folder containing install.ps1 and insonic.exe. Do not run an executable inside the ZIP or copy only an EXE.</p>
+</li>
+<li>
+<p>Choose a new stable program directory outside your library, with an existing parent. For example, create the parent %LOCALAPPDATA%\Programs\insonic once and choose a new VERSION child. Replace VERSION with the downloaded version and leave that child absent until copying.</p>
+</li>
+<li>
+<p>Optionally open PowerShell in the extracted directory and run the following, with VERSION replaced. The helper rejects existing destinations and source-contained aliases. If script policy prevents it, copy the complete extracted tree manually.</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-powershell">.\install.ps1 <span class="hljs-literal">-Destination</span> <span class="hljs-string">&quot;<span class="hljs-variable">$env:LOCALAPPDATA</span>\Programs\insonic\VERSION&quot;</span>
+</code></pre>
+</li>
+<li>
+<p>Open PowerShell or Windows Terminal in the final program directory. Keep it open while using the CLI; double-clicking insonic.exe does not provide a usable command session.</p>
+</li>
+<li>
+<p>Check the installed version and help:</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-powershell">.\insonic.exe version
+.\insonic.exe <span class="hljs-literal">--help</span>
+</code></pre>
+</li>
+<li>
+<p>Choose a separate library and initialize it once. Replace YOUR_NAME and the example folder with your actual chosen path, retaining quotes around spaced paths:</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-powershell">.\insonic.exe workspace init <span class="hljs-string">&quot;C:\Users\YOUR_NAME\Documents\insonic library&quot;</span>
+</code></pre>
+<p>For an existing library, select its current directory rather than initializing it again.</p>
+</li>
+<li>
+<p>Inspect that library and select it explicitly for subsequent commands:</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-powershell">.\insonic.exe <span class="hljs-literal">--workspace</span> <span class="hljs-string">&quot;C:\Users\YOUR_NAME\Documents\insonic library&quot;</span> doctor
+.\insonic.exe <span class="hljs-literal">--workspace</span> <span class="hljs-string">&quot;C:\Users\YOUR_NAME\Documents\insonic library&quot;</span> workspace show
+</code></pre>
+</li>
+<li>
+<p>With Desktop + CLI, launch insonic-desktop.exe from the same final program directory and open the library. <a href="#first-run-experience">First-run experience</a> describes current explicit configuration. CLI-only users continue in the terminal with <a href="/docs/v1.0.1/cli/">CLI invocation and results</a>. Optional guided setup is available from fresh entry and Settings. <a href="/docs/v1.0.1/windows-installation/">MSI installation</a> additionally supplies selected shortcuts and Installed Apps maintenance.</p>
+</li>
+</ol>
+<h3 id="close-the-old-installation-before-maintenance">Close the old installation before maintenance</h3>
+<ol>
+<li>
+<p>Use Jobs or CLI work commands to finish or cancel outstanding work. Closing the desktop alone does not cancel durable jobs.</p>
+</li>
+<li>
+<p>Close desktop and CLI clients using the old installation. Its hidden runtime exits after 30 seconds without active requests or work. Allow at least 31 seconds after the last client closes, without running more commands; requests reset activity.</p>
+</li>
+<li>
+<p>Check processes belonging to the old program directory before changing its files. From PowerShell at that directory, display matching process identities without command lines:</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-powershell"><span class="hljs-variable">$oldProgramDirectory</span> = (<span class="hljs-built_in">Get-Location</span>).Path
+<span class="hljs-variable">$oldExecutables</span> = <span class="hljs-selector-tag">@</span>(
+  (<span class="hljs-built_in">Join-Path</span> <span class="hljs-variable">$oldProgramDirectory</span> <span class="hljs-string">&quot;insonic.exe&quot;</span>)
+  (<span class="hljs-built_in">Join-Path</span> <span class="hljs-variable">$oldProgramDirectory</span> <span class="hljs-string">&quot;insonic-desktop.exe&quot;</span>)
+)
+<span class="hljs-built_in">Get-CimInstance</span> Win32_Process |
+  <span class="hljs-built_in">Where-Object</span> { <span class="hljs-variable">$_</span>.ExecutablePath <span class="hljs-operator">-in</span> <span class="hljs-variable">$oldExecutables</span> } |
+  <span class="hljs-built_in">Select-Object</span> ProcessId, Name, ExecutablePath
+</code></pre>
+<p>If one remains, finish/cancel its work, close its clients and allow idle exit. If process paths cannot be inspected, identify the old installation in Task Manager's Details view before changing files. There is no runtime stop command.</p>
+</li>
+</ol>
+<h3 id="update-a-windows-zip-installation">Update a Windows ZIP installation</h3>
+<ol>
+<li>Locate the existing library and inspect its selected profiles with workspace show. Back up configuration, catalog and managed artifacts using <a href="/docs/v1.0.1/storage/">storage and backup guidance</a>; remote profiles can hold data elsewhere.</li>
+<li>Download/extract the replacement into a separate complete program directory. Preserve the old installation for rollback.</li>
+<li>Follow the closure procedure above before changing old program files.</li>
+<li>From the replacement, run version, --help and --workspace &quot;YOUR_EXISTING_LIBRARY&quot; doctor. Select the existing library; do not initialize a replacement.</li>
+<li>Launch the replacement desktop if included. Update only shortcuts/PATH entries you previously created. Retain the old installation and backup until the update is accepted. Changed stored contracts can require restoring the matching backup as well as old program files during rollback.</li>
+</ol>
+<h3 id="remove-a-windows-zip-installation">Remove a Windows ZIP installation</h3>
+<ol>
+<li>Identify the exact program directory and follow the closure procedure above.</li>
+<li>Remove only that directory and shortcuts/PATH entries you created manually. ZIP installation has no Installed Apps entry or supplied uninstaller.</li>
+<li>Preserve library, source media, managed artifacts, model data and credentials. Deleting them is a separate explicit choice.</li>
+</ol>
+<p>A local library's chosen <code>.insonic</code> control directory contains <code>workspace.json</code>, <code>catalog.sqlite</code> and managed <code>artifacts/</code> by default. The default LadybugDB graph is <code>graph/library.lbug</code> relative to the workspace root. Configured storage/catalog/graph profiles can point elsewhere. Credential configuration and vault files use the workspace's private secret area; native credential values remain in Windows Credential Manager. Program removal does not remove these stores.</p>
+<p>Windows per-user configuration uses %APPDATA%\insonic; local data/cache/runtime coordination use %LOCALAPPDATA%\insonic. Models follow configured managed storage. Keep these locations during ordinary program removal. See <a href="/docs/v1.0.1/storage/">storage</a>, <a href="/docs/v1.0.1/secrets/">credentials</a> and <a href="/docs/v1.0.1/models/">models</a> to inspect actual locations and ownership.</p>
+<h3 id="linux-prerequisites-and-installation">Linux prerequisites and installation</h3>
+<p>Both Linux variants require Perl. Desktop + CLI also requires GTK 3, WebKitGTK 4.1 and GStreamer base/good/bad/libav decoders for webview playback. Ubuntu names include gstreamer1.0-plugins-base, gstreamer1.0-plugins-good, gstreamer1.0-plugins-bad and gstreamer1.0-libav. Extract the complete tar.gz tree and retain companions beside the executables. The desktop helper writes an application launcher; CLI-only installation does not. Consult platform-specific INSTALL.txt.</p>
+<p>Settings displays effective packaged tools read-only. Selecting “Edit explicit workspace media tools” or “Edit explicit workspace processing tools” opens separate override inputs without copying installation paths. Save remains disabled while editing is off; turning editing off leaves an existing override in place. The matching “Reset … to installed defaults” action removes the override with a revision check and resumes installation-relative discovery. The shared CLI supports the same reset through <code>settings set --input reset.json</code>, with a section, its current revision and <code>&quot;value&quot;: null</code>.</p>
+<h2 id="accessibility-and-offline-help">Accessibility and offline help</h2>
+<p>Support keyboard navigation, readable contrast, reduced motion, scalable text, screen-reader labels and tabular alternatives for timeline/graph content. Automatic light/dark styling follows the upstream brand tokens and user preference. Graph physics can be paused and a layout saved.</p>
+<p>Help opens the documentation-only bundle from <code>site/offline/</code> for the installed application version. The public product landing page is part of the website export in <code>site/out/</code> and is excluded from installed help. It works without a network connection and clearly states the version. Online help offers the matching version first and latest docs as a deliberate navigation choice. The GUI cannot imply that a feature documented for a newer release exists in an older installation.</p>
+<p>The documentation website and bundled offline help follow the operating-system theme by default. A sun/moon toggle switches between light and dark mode and remembers the choice when browser storage is available. This setting controls documentation appearance independently of the desktop application's preference.</p>
+<h2 id="canonical-admission-controls">Canonical admission controls</h2>
+<p>Library imports accept a media path/URL plus an optional transcript path/URL, or a transcript into an existing recording selected by UUID or exact title. Controls expose replacement, auto/native/off/explicit diarization, format hints, embedded index/language, independent credential IDs and transcript budgets. Native file selection includes SRT, WebVTT, ASS, SSA and Cue JSON. Legacy managed sidecars can be converted from recording details. Advanced manifest adapter selection and loopback credential HTTP election remain CLI/runtime options.</p>
+<p>Grouped audio offers a playback-track selector. Browser-compatible playback uses a verified selected track or a bounded temporary preview, with the original track clock carried separately for cue seeking. Multichannel audio is presented through a disposable stereo PCM preview because native webview decoders differ; this preview does not replace the canonical master. Canonical masters retain all tracks and channels. Existing legacy video/reference playback remains available.</p>
+<p>Ollama discovery retains running/reachable evidence from a successful version response when later metadata fails. Model details include redacted corrections for failed capability or route inspection; a selected-model failure marks the candidate metadata-failed without changing the saved selection.</p>
+1a:["$","main",null,{"id":"main","className":"docs-main","tabIndex":-1,"children":[["$","div",null,{"className":"docs-version-context","children":[["$","p",null,{"children":["insonic"," · v","1.0.1"," · ","released"," · Current documentation"]}],["$","a",null,{"href":"/docs/versions/","children":"All versions"}],false]}],["$","article",null,{"className":"prose","dangerouslySetInnerHTML":{"__html":"$1b"}}],"$L1c"]}]
+1c:["$","nav",null,{"className":"page-navigation","aria-label":"Previous and next page","children":[["$","a",null,{"href":"/docs/v1.0.1/models/","rel":"prev","children":[["$","span",null,{"children":"Previous"}],"Downloaded models"]}],["$","a",null,{"href":"/docs/v1.0.1/windows-installation/","rel":"next","children":[["$","span",null,{"children":"Next"}],"Windows installation, updates and removal"]}]]}]
+10:[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]
+d:null
+13:[["$","title","0",{"children":"CLI and desktop experience (v1.0.1) | insonic"}],["$","meta","1",{"name":"description","content":"Voice archives, speaker models, and connected knowledge."}]]
