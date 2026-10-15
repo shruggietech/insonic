@@ -731,7 +731,8 @@ def external_source_checks(api, revision, checks, context=None):
         if (is_release_workflow_run(previous, run_id) and previous['workflow_id'] == current['workflow_id']
                 and previous['head_sha'] == revision and previous['check_suite_id'] == suite.get('id')
                 and previous.get('status') == 'completed'
-                and previous.get('conclusion') in ('success', 'failure', 'cancelled', 'timed_out')):
+                and previous.get('conclusion') in ('action_required', 'cancelled', 'failure', 'neutral',
+                                                       'skipped', 'stale', 'success', 'timed_out')):
             # A fully qualified newer release attempt supersedes earlier attempts
             # of this workflow. CI/security workflows and active/newer runs remain gates.
             excluded.add(previous['check_suite_id'])

@@ -569,13 +569,28 @@ class ReleaseDeliveryTests(unittest.TestCase):
                     with patch.dict(os.environ, context):
                         self.assertTrue(release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)['published'])
 
+    def test_all_documented_terminal_release_outcomes_are_superseded(self):
+        target = self.candidate()
+        context = {'GITHUB_RUN_ID': '77', 'GITHUB_REPOSITORY': release.REPOSITORY, 'GITHUB_SHA': REVISION}
+        outcomes = ['action_required', 'cancelled', 'failure', 'neutral', 'skipped', 'stale', 'success', 'timed_out']
+        for outcome in outcomes:
+            with self.subTest(outcome=outcome):
+                api = GitHubFixture(); self.superseded_release(api)
+                api.past_workflows[66]['conclusion'] = outcome
+                api.checks[-1]['conclusion'] = outcome
+                selected = release.external_source_checks(api, REVISION, api.checks, context)
+                self.assertEqual({check['check_suite']['id'] for check in selected}, {11})
+                with patch.dict(os.environ, context):
+                    self.assertTrue(release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)['published'])
+
     def test_superseded_release_identity_mismatches_and_active_or_newer_runs_block_all_writes(self):
         target = self.candidate()
         invalid = [{'head_sha': 'c' * 40}, {'repository': {'full_name': 'someone/else'}},
                    {'path': '.github/workflows/ci.yml'}, {'path': '.github/workflows/release.yml@feature'},
                    {'path': '.github/workflows/release.yml@refs/heads/feature'},
                    {'path': '.github/workflows/release.yml@mainish'}, {'head_branch': 'feature'}, {'event': 'pull_request'},
-                   {'workflow_id': 1234}, {'check_suite_id': 999}, {'id': 67}, {'status': 'in_progress'}, {'conclusion': None}]
+                   {'workflow_id': 1234}, {'check_suite_id': 999}, {'id': 67}, {'status': 'in_progress'}, {'conclusion': None},
+                   {'conclusion': ''}, {'conclusion': 'unknown-outcome'}]
         context = {'GITHUB_RUN_ID': '77', 'GITHUB_REPOSITORY': release.REPOSITORY, 'GITHUB_SHA': REVISION}
         for changes in invalid + [None]:
             with self.subTest(changes=changes):
