@@ -20,7 +20,7 @@ All notable changes to this project will be documented here. The format follows 
 - Add revisioned workspace import presets shared by the CLI and desktop, with applied filesystem/S3 destinations, date policy and optional frozen pipeline elections. Reject unresolved selections before enqueue and retain effective choices and deterministic processing children across retries.
 - Replace unsupported current documentation commands with executable input files, observed ID/revision steps and extracted-package qualification. Clarify mapping concurrency, admitted partial-date results and current manual setup capabilities; preserve immutable historical documentation.
 
-- Withdraw macOS support effective with the unreleased 1.0.1 candidate. Windows/Linux x86-64 retain CLI-only and Desktop + CLI packages; current candidates require four variants. Historical 1.0.0 packages, documentation and six-variant record validation remain unchanged.
+- Withdraw macOS support in 1.0.1. Windows/Linux x86-64 retain CLI-only and Desktop + CLI packages; this release requires four variants. Historical 1.0.0 packages, documentation and six-variant record validation remain unchanged.
 - Explain package inclusion, prerequisites and complete Windows ZIP installation/update/removal; copy through alias-aware owned attempts with atomic promotion, and preserve existing/substituted directories on failure.
 
 - Add complete shared CLI/desktop backend plans, non-mutating readiness preflight and explicit fresh provisioning with protected credentials before catalog connection.

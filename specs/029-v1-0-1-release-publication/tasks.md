@@ -37,8 +37,8 @@ Independent test: existing mock-source/draft/asset/security suites plus structur
 ## Phase 6: Integration and owner handoff
 
 - [x] T012 Run npm run check, npm test, site/Python release/Pages checks and Spec Kit convergence; inspect UTF-8/LF/mojibake and record analysis/convergence/results under specs/029-v1-0-1-release-publication/.
-- [ ] T013 Commit/push codex/029-v1-0-1-release-publication and open/attach the official PR with non-closing #97 reference, milestone and Project In review; record URL in specs/029-v1-0-1-release-publication/verification.md.
-- [ ] T014 Address every review comment and resolve all threads, counting automatic opening round and at most one manual second request; record in specs/029-v1-0-1-release-publication/verification.md and official PR.
+- [x] T013 Commit/push codex/029-v1-0-1-release-publication and open/attach the official PR with non-closing #97 reference, milestone and Project In review; record URL in specs/029-v1-0-1-release-publication/verification.md.
+- [x] T014 Address every review comment and resolve all threads, counting automatic opening round and at most one manual second request; record in specs/029-v1-0-1-release-publication/verification.md and official PR.
 - [ ] T015 Verify exact final-head elected CI green and compare full elapsed turnaround against 660 seconds, directly audit all review threads and ping owner for final review/squash merge; record post-commit results on official PR rather than infer them from this source snapshot.
 
 ## Phase 7: US2 after owner merge only (P1)
