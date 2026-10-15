@@ -314,14 +314,14 @@ jobs:
         if: runner.os == 'Windows' && inputs.native
         run: |
           python -m pip install --disable-pip-version-check --no-input --only-binary=:all: --target build/native/python zstandard==0.25.0
-      - name: Pinned native artifacts
-        if: inputs.native
-        run: python scripts/qualify.py prepare
       - name: Await exact same-run source after overlapping consumer setup
         if: inputs.overlap-source-setup && inputs.core
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/wait-ci-artifact.mjs '${{ inputs.os }}'
+      - name: Pinned native artifacts
+        if: inputs.native
+        run: python scripts/qualify.py prepare
       - name: Download exact same-run source build
         if: inputs.core
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2

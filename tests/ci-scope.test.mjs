@@ -204,7 +204,7 @@ test('same-run export reuse never removes later qualification gates or release b
  const ci=parse(readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8'));
  const native=parse(readFileSync(new URL('../.github/workflows/native-qualification.yml',import.meta.url),'utf8'));
  assert.equal(ci.jobs.scope.needs,undefined);assert.equal(ci.jobs.foundation.needs,undefined);
- for(const label of ['linux','windows'])for(const lane of ['qualify','package']){const job=ci.jobs[lane+'-'+label];assert.ok(job.needs.includes('docs-build'));assert.equal(job.with['reuse-ci-offline-help'],true);assert.ok(job.if.includes("needs.foundation.result == 'success'"));}
+ for(const label of ['linux','windows'])for(const lane of ['qualify','package']){const job=ci.jobs[lane+'-'+label];assert.equal(job.with['reuse-ci-offline-help'],true);if(label==='windows'&&lane==='package'){assert.deepEqual(job.needs,['scope']);assert.equal(job.with['overlap-source-setup'],true);}else{assert.ok(job.needs.includes('docs-build'));assert.ok(job.if.includes("needs.foundation.result == 'success'"));}}
  assert.equal(native.on.workflow_call.inputs['reuse-ci-offline-help'].default,false);
  for(const job of [native.jobs.runtime_checks,native.jobs.packages]){assert.ok(job.steps.some(s=>s.run?.includes('site-transfer.py restore')));assert.ok(job.steps.some(s=>s.run==='npm --prefix site run build'&&s.if.includes('!inputs.reuse-ci-offline-help')));}
  assert.ok(ci.jobs.candidate.needs.includes('foundation'));assert.ok(ci.jobs.candidate.needs.includes('docs'));

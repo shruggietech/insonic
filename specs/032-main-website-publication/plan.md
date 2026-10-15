@@ -47,7 +47,7 @@ After design: PASS. Credentials separated from read-only build/verification; sit
 
 ## Measured scheduling refinement
 
-Windows package consumers prepare their toolchains while the independent same-run source producer runs. A bounded read-only artifact inventory wait precedes the existing digest-checked download and full restore verification. Candidate aggregation still requires producer success. Release scheduling remains sequential by default. A single retry of the exact native restricted-session initialization timeout preserves capture assertions and existing worker deadlines; both attempts must otherwise satisfy the complete current capture.
+Windows package consumers prepare their toolchains while the independent same-run source producer runs. Setup starts after scope selection, independently of foundation/documentation. A bounded read-only same-attempt job/artifact gate requires foundation and documentation success before native preparation, the existing digest-checked download and full restore verification. Candidate aggregation still requires producer success. Release scheduling remains sequential by default. A single retry of the exact native restricted-session initialization timeout preserves capture assertions and existing worker deadlines; both attempts must otherwise satisfy the complete current capture.
 
 ## Delivery
 

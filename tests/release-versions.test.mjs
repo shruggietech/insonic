@@ -28,7 +28,7 @@ test('PR candidate collection uses complete independent package lanes with no pu
     assert.equal(runtime.with.lane, 'runtime');
     assert.equal(packages.with.lane, 'packages');
     assert.equal(packages.with.revision, '${{ github.sha }}');
-    assert.deepEqual(packages.needs, platform === 'windows' ? runtime.needs.filter(name => name !== 'media-windows') : runtime.needs);
+    assert.deepEqual(packages.needs, platform === 'windows' ? ['scope'] : runtime.needs);
   }
   const assets = native.jobs.packages.steps.find(step => step.with?.name?.startsWith('candidate-package-'));
   assert.ok(assets.if.includes('success()'));

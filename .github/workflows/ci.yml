@@ -207,9 +207,7 @@ jobs:
   package-windows:
     needs:
       - scope
-      - foundation
-      - docs-build
-    if: always() && needs.foundation.result == 'success' && needs.docs-build.result == 'success' && needs.scope.outputs.native == 'true'
+    if: needs.scope.outputs.native == 'true'
     uses: ./.github/workflows/native-qualification.yml
     with:
       reuse-ci-offline-help: true
