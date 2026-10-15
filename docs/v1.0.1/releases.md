@@ -57,6 +57,66 @@ The static export is portable to ordinary static hosting; its host and domain ar
 
 ## Candidate integrity and publication
 
+### Toolchain acquisition and retry limits
+
+Automation acquires the approved Go and Node setup actions in job steps before
+invoking them through local action paths. The complete upstream action trees,
+setup inputs and cache main/post hooks remain unchanged. The adjacent
+`scripts/bootstrap-actions.lock.json` records immutable revisions and archive
+SHA256 digests. Acquisition allows three attempts within 60 seconds per action,
+including bounded backoff. Only transport failures, transient server responses,
+rate limiting and the known public pinned-archive 404 case are retried.
+Authentication errors, changed digests and unsafe or oversized archives fail.
+No unverified action is executed and existing destinations are not reused.
+
+Jobs qualifying older source commits obtain bootstrap tooling from the exact
+revision defining their workflow, separately from product source. Checkout and
+other remote actions still depend on GitHub runner preparation; these retries
+cannot repair a provider failure before job steps begin. Upstream setup actions
+retain their own toolchain-download behavior after acquisition. A failed product
+test is not retried by this mechanism.
+
+To update a setup action, review its immutable upstream commit, download its
+official codeload archive independently, verify the complete tree and main/post
+metadata, then update revision and SHA256 together. Run bootstrap failure tests
+and both hosted qualification platforms before merging. Dependabot's ordinary
+workflow-action discovery does not update this lock. GitHub can change archive
+compression while retaining immutable extracted contents; a compression-only
+digest change requires the same reviewed refresh, never an unchecked fallback.
+
+### Public release and documentation verification
+
+`verify-public --candidate DIRECTORY --source-root SOURCE_DIRECTORY --site
+https://insonic.io/ --pages-commit FULL_COMMIT [--output RECEIPT_JSON]` is a
+read-only `python scripts/release.py` command. Select the original complete
+candidate retrieved by `published`, the matching historical source checkout and
+the expected completed Pages commit. It validates original local assets,
+tag/source/version, complete published asset names, sizes and API digests, then
+compares live documentation with the original publication-target archive.
+Pages promotion runs this verification after its exact build completes.
+
+The receipt distinguishes locally verified original assets, public binary API
+metadata evidence and downloaded live documentation byte matches. It records
+every checked path and digest, including archived HTML pages, schemas,
+navigation targets and directly referenced local render resources. It is not a
+repeat download of every public product binary or a visual/accessibility audit.
+The public content phase allows 120 seconds total, at most three attempts and
+five same-origin HTTPS redirects per request, and at most 16 MiB per response.
+No GitHub token, ambient cookie or authorization header accompanies site GETs.
+The metadata client permits GET only; `GH_TOKEN` is optional for public release
+API reads and may be needed to avoid anonymous API rate limits. Exact Pages
+control-plane verification requires an authenticated token with Pages read
+access, even when the deployed website is public.
+
+The selected Pages branch and completed build must match before and after
+content requests. Omitting `--pages-commit` supports an explicitly selected
+generic HTTPS site and produces content evidence without a Pages identity
+claim. The selected archive must elect the deployed released latest version.
+Stale bytes, a mismatching alias, incomplete inventory or a concurrent
+deployment cause a nonzero exit. A verifier failure after promotion means the
+deployment needs investigation; it does not roll back or republish anything.
+Use the exact original candidate again after repairing the actual cause.
+
 Maintainer commands use `python scripts/release.py`: `prepare --version VERSION --date YYYY-MM-DD --highlights FILE` prepares a version locally, `validate --revision FULL_COMMIT [--tag vVERSION]` checks owned version/source identity, `docs --revision FULL_COMMIT --output DIRECTORY` archives matching built documentation, and `candidate --revision FULL_COMMIT --assets DIRECTORY --output NEW_DIRECTORY RECEIPTS...` assembles the verified complete asset set. `publish --candidate DIRECTORY --highlights FILE` publishes only that candidate. `published --revision FULL_COMMIT --output NEW_DIRECTORY` retrieves and validates the original complete asset set from an existing exact-version release; `promote --candidate DIRECTORY --configuration FILE` uses the configured static-host command after published-release verification. Commands do not infer a release version or deployment host.
 
 Release preparation preserves older versioned documentation and schemas and freezes the matching changelog and referenced public files. It updates owned software and runtime bindings, package manifests and lockfiles, documentation navigation and schema identities together. Upstream tool, model and subtitle versions keep their independent identities. Preparation records an unpublished candidate in the navigation manifest; it does not create a tag or publish product downloads.

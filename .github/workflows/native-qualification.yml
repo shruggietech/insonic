@@ -54,8 +54,24 @@ jobs:
         with:
           ref: ${{ inputs.revision }}
           persist-credentials: false
+      - name: Check out exact workflow bootstrap tooling
+        if: inputs.revision != job.workflow_sha
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: build/automation
+          sparse-checkout: |
+            scripts/bootstrap-actions.py
+            scripts/bootstrap-actions.lock.json
+            scripts/http_read.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Acquire verified setup-go action with bounded retries
+        if: inputs.core
+        run: python "${{ inputs.revision == job.workflow_sha && '.' || 'build/automation' }}/scripts/bootstrap-actions.py" setup-go --output build/actions/setup-go
       - if: inputs.core
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: ./build/actions/setup-go # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
@@ -63,8 +79,11 @@ jobs:
             go.sum
             internal/qualification/dependencies.json
             .github/workflows/cache-keys/native-${{ matrix.runtime_lane }}
+      - name: Acquire verified setup-node action with bounded retries
+        if: inputs.native && matrix.runtime_lane == 'desktop'
+        run: python "${{ inputs.revision == job.workflow_sha && '.' || 'build/automation' }}/scripts/bootstrap-actions.py" setup-node --output build/actions/setup-node
       - if: inputs.native && matrix.runtime_lane == 'desktop'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        uses: ./build/actions/setup-node # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -210,8 +229,24 @@ jobs:
         with:
           ref: ${{ inputs.revision }}
           persist-credentials: false
+      - name: Check out exact workflow bootstrap tooling
+        if: inputs.revision != job.workflow_sha
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: build/automation
+          sparse-checkout: |
+            scripts/bootstrap-actions.py
+            scripts/bootstrap-actions.lock.json
+            scripts/http_read.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Acquire verified setup-go action with bounded retries
+        if: inputs.core
+        run: python "${{ inputs.revision == job.workflow_sha && '.' || 'build/automation' }}/scripts/bootstrap-actions.py" setup-go --output build/actions/setup-go
       - if: inputs.core
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: ./build/actions/setup-go # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
@@ -219,8 +254,11 @@ jobs:
             go.sum
             internal/qualification/dependencies.json
             ${{ matrix.variant == 'desktop' && 'desktop/frontend/package-lock.json' || 'internal/contracts/contracts.go' }}
+      - name: Acquire verified setup-node action with bounded retries
+        if: inputs.native
+        run: python "${{ inputs.revision == job.workflow_sha && '.' || 'build/automation' }}/scripts/bootstrap-actions.py" setup-node --output build/actions/setup-node
       - if: inputs.native
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        uses: ./build/actions/setup-node # v7.1.0
         with:
           node-version: 22
           cache: npm

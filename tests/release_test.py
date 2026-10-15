@@ -202,6 +202,47 @@ class ReleaseDeliveryTests(unittest.TestCase):
         release.candidate(receipts or self.receipts, self.assets, target, REVISION, self.root, verify_fixture, runner)
         return target
 
+    def test_public_release_metadata_is_get_only_and_exact(self):
+        value = {'tag': 'v' + VERSION, 'revision': REVISION}
+        published = {'id': 1, 'tag_name': value['tag'], 'target_commitish': REVISION,
+                     'draft': False, 'prerelease': False, 'published_at': '2026-10-15T00:00:00Z'}
+        class ReadOnlyAPI:
+            def call(inner, method, endpoint):
+                self.assertEqual(method, 'GET')
+                return {'object': {'type': 'commit', 'sha': REVISION}} if '/git/ref/' in endpoint else published
+        self.assertEqual(release.public_release(ReadOnlyAPI(), value)['id'], 1)
+        for key, bad in [('tag_name', 'v0.0.0'), ('target_commitish', 'b' * 40),
+                         ('draft', True), ('prerelease', True), ('published_at', None)]:
+            original = published[key]
+            published[key] = bad
+            with self.assertRaisesRegex(ValueError, 'published release identity'):
+                release.public_release(ReadOnlyAPI(), value)
+            published[key] = original
+
+    def test_read_only_github_client_rejects_writes_without_credentials(self):
+        api = release.GitHub('', read_only=True)
+        for method in ('POST', 'PATCH', 'DELETE', 'PUT'):
+            with self.assertRaisesRegex(ValueError, 'GET only'): api.call(method, 'repos/example/project')
+        with self.assertRaisesRegex(ValueError, 'token'): release.GitHub('')
+
+    def test_pages_promotion_verifies_live_content_after_exact_build(self):
+        from types import SimpleNamespace
+        target = self.root / 'original'
+        identity = {'version': VERSION, 'revision': REVISION}
+        order = []
+        transport = SimpleNamespace(
+            preflight=lambda *a: {}, prepare_tree=lambda *a: {},
+            promote_tree=lambda *a: order.append('built') or {'pages_commit': 'b' * 40})
+        def verify(directory, api, **options):
+            self.assertEqual(order, ['built'])
+            self.assertEqual(directory, target)
+            self.assertEqual(options['pages_commit'], 'b' * 40)
+            self.assertEqual(options['source_root'], self.root)
+            return {'content_proof': 'downloaded-original-byte-match'}
+        with patch.object(release, 'promotion_authority', return_value=identity), patch.object(release, 'pages_module', return_value=transport), patch.object(release, 'verify_public', side_effect=verify):
+            result = release.pages_promote(target, object(), source_root=self.root)
+        self.assertEqual(result['public_verification']['content_proof'], 'downloaded-original-byte-match')
+
     def test_preparation_preserves_old_bytes_and_freezes_release_authorities(self):
         self.assertEqual(release.versions(self.root), VERSION)
         self.assertEqual((self.root / f'schemas/v{CURRENT}/master.schema.json').read_bytes(), (ROOT / f'schemas/v{CURRENT}/master.schema.json').read_bytes())

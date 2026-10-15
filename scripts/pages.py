@@ -70,8 +70,8 @@ def preflight(api, repository):
     return {'repository': repository, 'domain': DOMAIN, 'branch': BRANCH, 'head': head, 'tree': tree_sha, 'entries': entries}
 
 
-def prepare_tree(archive_path, destination, version, revision):
-    commit_sha(revision)
+def archive_files(archive_path):
+    """Read a confined, bounded regular-file static archive without extraction."""
     files, aliases, total = {}, set(), 0
     with tarfile.open(archive_path, 'r:gz') as archive:
         for member in archive:
@@ -85,6 +85,13 @@ def prepare_tree(archive_path, destination, version, revision):
             data = archive.extractfile(member).read(member.size + 1)
             if len(data) != member.size: raise ValueError('Pages archive member size differs')
             files[name] = data
+    return files
+
+
+def prepare_tree(archive_path, destination, version, revision):
+    commit_sha(revision)
+    files = archive_files(archive_path)
+    aliases, total = {name.casefold() for name in files}, sum(map(len, files.values()))
     try:
         identity = json.loads(files['release-documentation.json'])
         marker = json.loads(files['documentation-build.json'])
