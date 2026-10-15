@@ -42,3 +42,7 @@ Affected source: docs/versions.json; site/lib/docs.mjs and release-status.mjs; s
 ## Complexity Tracking
 
 No exceptions. Existing release pipeline is reused. Manual reviewed finalization of an already prepared candidate is simpler than adding a second version-preparation API. Current mutable release metadata is corrected; immutable historical document bytes are preserved.
+
+## Post-merge recovery (2026-10-15 UTC)
+
+The demonstrated-failure exception applies to scripts/release.py: completed superseded release suites block publication after an otherwise successful retry. Recovery branch codex/029-release-retry-recovery retains exact tag/source 136f5c0307a6fce00ba8240ef69c907a944cd8c0 and repairs only verified release-workflow supersession. See recovery.md for evidence, alternatives, provenance requirements, test results and the operator review-cycle boundary. T020-T022 precede resuming T017-T019. No historical bytes, native qualification or unrelated CI/security gate is removed.

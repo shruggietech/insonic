@@ -679,7 +679,17 @@ def published_candidate(output, revision, api, root=ROOT, runner=child, verifier
     return {'candidate': 'retrieved-and-verified', 'version': version, 'revision': revision}
 
 
-def current_release_suite(api, revision, context=None):
+def is_release_workflow_run(run, identifier):
+    return (isinstance(run, dict) and type(run.get('id')) is int and run['id'] == identifier
+            and isinstance(run.get('repository'), dict) and run['repository'].get('full_name') == REPOSITORY
+            and run.get('path') in ('.github/workflows/release.yml', '.github/workflows/release.yml@refs/heads/main')
+            and run.get('event') == 'workflow_dispatch' and run.get('head_branch') == 'main'
+            and type(run.get('workflow_id')) is int and run['workflow_id'] > 0
+            and type(run.get('check_suite_id')) is int and run['check_suite_id'] > 0
+            and isinstance(run.get('head_sha'), str) and re.fullmatch(r'[a-f0-9]{40}', run['head_sha']) is not None)
+
+
+def current_release_run(api, context=None):
     selected = os.environ if context is None else context
     run_id = selected.get('GITHUB_RUN_ID', '')
     if not run_id:
@@ -687,17 +697,44 @@ def current_release_suite(api, revision, context=None):
     if not re.fullmatch(r'[1-9][0-9]*', run_id) or selected.get('GITHUB_REPOSITORY') != REPOSITORY:
         raise ValueError('current release workflow context does not identify this repository')
     run = api.call('GET', f'repos/{REPOSITORY}/actions/runs/{run_id}')
-    if (not isinstance(run, dict) or run.get('id') != int(run_id)
-            or run.get('repository', {}).get('full_name') != REPOSITORY
-            or not isinstance(run.get('path'), str) or run['path'].split('@', 1)[0] != '.github/workflows/release.yml'
-            or run.get('event') != 'workflow_dispatch'
-            or type(run.get('check_suite_id')) is not int or run['check_suite_id'] <= 0
-            or not re.fullmatch(r'[a-f0-9]{40}', run.get('head_sha', ''))
+    if (not is_release_workflow_run(run, int(run_id))
             or (selected.get('GITHUB_SHA') and selected['GITHUB_SHA'] != run['head_sha'])):
         raise ValueError('current release workflow suite identity could not be verified')
-    # A dispatch can build an older reviewed commit. Its own suite is then absent
-    # from that commit's checks, so there is no check suite to exclude there.
-    return run['check_suite_id'] if run['head_sha'] == revision else None
+    return run
+
+
+def current_release_suite(api, revision, context=None):
+    run = current_release_run(api, context)
+    return run['check_suite_id'] if run and run['head_sha'] == revision else None
+
+
+def external_source_checks(api, revision, checks, context=None):
+    current = current_release_run(api, context)
+    if current is None:
+        return checks
+    excluded = {current['check_suite_id']} if current['head_sha'] == revision else set()
+    previous_runs = {}
+    job_url = re.compile(r'https://github\.com/' + re.escape(REPOSITORY) + r'/actions/runs/([1-9][0-9]*)/job/[1-9][0-9]*')
+    for check in checks:
+        suite = check.get('check_suite', {})
+        if not isinstance(suite, dict) or suite.get('id') in excluded:
+            continue
+        link = check.get('details_url')
+        match = job_url.fullmatch(link) if isinstance(link, str) else None
+        if match is None or int(match[1]) >= current['id']:
+            continue
+        run_id = int(match[1])
+        if run_id not in previous_runs:
+            previous_runs[run_id] = api.call('GET', f'repos/{REPOSITORY}/actions/runs/{run_id}')
+        previous = previous_runs[run_id]
+        if (is_release_workflow_run(previous, run_id) and previous['workflow_id'] == current['workflow_id']
+                and previous['head_sha'] == revision and previous['check_suite_id'] == suite.get('id')
+                and previous.get('status') == 'completed'
+                and previous.get('conclusion') in ('success', 'failure', 'cancelled', 'timed_out')):
+            # A fully qualified newer release attempt supersedes earlier attempts
+            # of this workflow. CI/security workflows and active/newer runs remain gates.
+            excluded.add(previous['check_suite_id'])
+    return [check for check in checks if check.get('check_suite', {}).get('id') not in excluded]
 
 
 def source_checks(api, revision):
@@ -732,8 +769,7 @@ def publish(directory, highlights, api, root=ROOT, runner=child, verifier=verify
     verify_tag(api, value['tag'], value['revision'])
     runs = source_checks(api, value['revision'])
     required = read_json(root / '.github/bootstrap.json')['required_checks']
-    suite = current_release_suite(api, value['revision'])
-    external_runs = [check for check in runs if suite is None or check.get('check_suite', {}).get('id') != suite]
+    external_runs = external_source_checks(api, value['revision'], runs)
     if not all(any(c['name'] == name and c.get('conclusion') == 'success' and c.get('status') == 'completed' for c in external_runs) for name in required) or any(c.get('status') != 'completed' or c.get('conclusion') not in ('success', 'neutral', 'skipped') for c in external_runs):
         raise ValueError('exact-source automated checks are not green')
     if not highlights.strip() or len(highlights.split()) > 180: raise ValueError('release highlights must be concise')
