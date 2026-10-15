@@ -18,8 +18,16 @@ The five package destinations match the fresh official v1.0.1 API and the origin
 
 ## Hosted-browser and delivery acceptance
 
-Pending the authorized PR's Linux-hosted CI: full-page snapshot/released-fixture captures, eight viewport/theme combinations per state, actual 200% text, 320px 400%-equivalent reflow, target/label geometry, all-link inventory, actual Tab focus and intercepted trusted Enter/mouse/touch activation. Existing 180-second browser deadline, external HTTP/WebSocket blocks, owned cleanup and 660-second CI target remain in force.
+Initial PR head `f0040d8ac215bf4e94c6f0d2926fbdb2b8c99d49`, hosted run `38740731965`: documentation UI passed in 131.4 seconds (131.2-second qualification phase). It inspected 114 public and 111 offline HTML files, passed 19 case groups, and produced 18 full-page landing captures: eight width/theme cases per state plus two actual 200% text cases. Reported 25 actual Tab focus targets and all 22 native links activated independently through trusted keyboard, pointer and touch inputs. Candidate inventory: 17 links/zero downloads; released fixture: 22 links/five downloads. No browser error, external HTTP request or WebSocket escape; all contexts/server/owned files cleaned up.
+
+Inspected all 16 complete-page viewport/theme captures through full-page comparison sheets and all eight released download-region crops at their original sizes, plus both 200% text crops. Labels wrap without touching or clipping; hierarchy, header/footer and preview remain readable in both themes. Measurements verify minimum 44px controls, at least 12px peer action gaps and non-overlap. 320 CSS pixels is explicitly the reflow equivalent from 1280px at 400%, not a browser zoom UI claim.
+
+Both round-one Codex code and security reviews completed on `f0040d8` without findings; bot thumbs-up and explicit security result observed. Self-review then aligned fixture links with the real postbuild portable URL rewrite and added literal-replacement/link regressions. Final-head hosted CI and the second/final code/security round are required after that change. The 180-second browser and 660-second CI bounds remain unchanged.
 
 No local Windows browser, personal profile or installer was launched. Browser screenshots/report will distinguish same-source released fixtures from real exported state. Neither the automated checks nor image inspection certifies assistive technology or other browser engines. Live deployed inspection follows an authorized deployment after merge; this PR handoff cannot establish deployed behavior.
 
 Review cap: two rounds maximum for this PR. Final exact-head CI/review evidence will be recorded on the PR after the last code commit.
+
+## Convergence
+
+Post-implementation Spec Kit convergence checked all ten functional requirements, five success criteria, three user journeys, plan decisions and constitution constraints against current source and the observed checks. No unbuilt code, contradictory behavior or unrequested addition remains. Existing T013 retains final exact-head CI/review delivery; no duplicate convergence phase/task is appended.

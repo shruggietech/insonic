@@ -7,6 +7,7 @@ import { build } from 'esbuild';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { root } from '../lib/docs.mjs';
+import { relativeTarget } from './postbuild.mjs';
 import { getBrandMessaging } from '../lib/brand.mjs';
 
 export async function landingRenderer() {
@@ -31,5 +32,9 @@ export async function landingRenderer() {
 export function replaceLanding(html, rendered) {
   const matches = html.match(/<main\b[^>]*data-public-landing="true"[\s\S]*?<\/main>/g) || [];
   if (matches.length !== 1 || !rendered.startsWith('<main ') || !rendered.endsWith('</main>')) throw new Error('Expected one real public landing frame.');
-  return html.replace(matches[0], () => rendered);
+  // Apply the same portable URL rewrite as the actual static export.
+  const out = path.join(root, 'site/out');
+  const portable = rendered.replace(/\b(href|src|srcSet|srcset)="(\/[^" ]*)"/g,
+    (_, attribute, value) => attribute + '="' + relativeTarget(path.join(out, 'index.html'), value, out) + '"');
+  return html.replace(matches[0], () => portable);
 }

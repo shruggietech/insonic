@@ -59,6 +59,9 @@ test('same-source fixture replaces only the real landing frame and rejects ambig
   assert.match(result, /<header>chrome<\/header>/);
   assert.match(result, /<footer>company<\/footer>/);
   assert.match(result, /Download Windows MSI/);
+  assert.match(result, /href="docs\/latest\/windows-installation\/index.html"/);
+  assert.doesNotMatch(result, /href="\/docs\//);
+  assert.ok(replaceLanding(frame, released.replace('Download Windows MSI', () => 'Literal $& package')).includes('Literal $& package'));
   assert.throws(() => replaceLanding('<main>other</main>', released), /one real public landing/);
   assert.throws(() => replaceLanding(frame.replace('</body>',released+'</body>'), released), /one real public landing/);
 });

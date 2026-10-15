@@ -36,7 +36,7 @@
 ## Phase 6: Verification and delivery
 
 - [x] T011 Update `CHANGELOG.md` and record local repository/site/build and encoding checks in `specs/031-landing-download-clarity/verification.md`.
-- [ ] T012 Inspect hosted Linux browser reports/screenshots and all five official asset identities; record evidence and truthful limitations in `verification.md`.
+- [x] T012 Inspect hosted Linux browser reports/screenshots and all five official asset identities; record evidence and truthful limitations in `verification.md`.
 - [ ] T013 Commit, push and open the official PR with `Closes #101`; resolve every finding in at most two rounds and verify CI on the final head. Record final acceptance externally on the PR after the last commit to avoid evidence-only CI churn.
 
 ## Dependencies and implementation strategy
