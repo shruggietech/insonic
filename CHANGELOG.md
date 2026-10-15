@@ -6,9 +6,19 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Dedicated current-main website publication preserves original product releases and records separate site/product source identities, exact Pages/live-byte proof, five package-link checks and eight hosted landing screenshots.
+
 - Read-only public release and documentation verification compares the selected published inventory and original documentation with live pages, schemas, aliases and referenced resources, then rechecks the elected Pages deployment identity.
 
 ### Fixed
+
+- Native query and explain RPCs use one bounded 25-second budget around projection publication and the engine's query deadline. Socket and caller deadlines report cancellation instead of malformed input.
+
+- Catalog-only media views and cleanup no longer rediscover and hash installed executable companions. Import and processing tool-use validation remains fresh; native WebView qualification emits success after cleanup.
+
+- Versioned screenshots retain their original capture-time provenance when backend source changes. Frozen-source verification uses bounded ancestral Git blobs, while image-byte checks and current native UI capture qualification remain mandatory.
+
+- CI overlaps conservative scope selection with foundation, shares source/run/attempt/hash-bound documentation exports across native jobs, and overlaps Windows package setup with its verified source producer. Documentation browser, native and installer checks remain mandatory; only restricted-session capture initialization can retry once after its exact startup timeout.
 
 - Landing-page downloads separate Windows MSI installation, portable Windows ZIPs and Linux tar.gz choices with explicit client/format labels, accurate platform guidance and spaced subordinate actions.
 
@@ -19,6 +29,8 @@ All notable changes to this project will be documented here. The format follows 
 - Release publication accepts documented main-workflow path forms and can supersede verified completed older release-workflow attempts for the same source while retaining every required CI/security gate and immutable tag/artifact checks.
 
 ### Decisions
+
+- 2026-10-15: Separate reviewed-main website corrections from immutable product release promotion. Use parent-fenced Git transport, retain independent source identities, verify deployed bytes and bounded live-response browser renders, and share same-run documentation exports to remove repeated native CI builds without weakening qualification.
 
 - 2026-10-15: Recover interrupted publication through a reviewed trusted-main verifier correction rather than deleting check history, changing immutable v1.0.1 source or bypassing failed unrelated checks. Older release attempts require independently verified repository, main branch, workflow, source, suite and terminal-run identity.
 - 2026-10-15: Repair the failed main-branch Windows package qualification in its UI driver after verifying the pinned loader clears browser environment overrides. Preserve foreground-free execution, ordinary application browser policy, all package/installer acceptance and the 660-second CI budget; do not turn a failed run green by skipping or extending its checks.

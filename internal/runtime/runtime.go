@@ -40,6 +40,10 @@ func frame(reader io.Reader) ([]byte, error) {
 func frameLimit(reader io.Reader, limit int) ([]byte, error) {
 	r := bufio.NewReaderSize(reader, limit+1)
 	data, err := r.ReadSlice('\n')
+	var timeout net.Error
+	if errors.As(err, &timeout) && timeout.Timeout() {
+		return nil, contracts.Fail("cancelled")
+	}
 	if err != nil || len(data) > limit {
 		return nil, contracts.Fail("invalid_request")
 	}
@@ -213,6 +217,9 @@ func Call(ctx context.Context, w *workspace.Workspace, request contracts.Request
 	}
 	data, err = frame(conn)
 	if err != nil {
+		if ctx.Err() != nil {
+			return contracts.Response{Kind: "runtime-response"}, contracts.Fail("cancelled")
+		}
 		return contracts.Response{Kind: "runtime-response"}, err
 	}
 	var response contracts.Response

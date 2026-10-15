@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classify } from '../scripts/ci-scope.mjs';
+import { classify, selectedScope } from '../scripts/ci-scope.mjs';
 import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 
@@ -20,26 +20,34 @@ test('invalid or unavailable diffs conservatively qualify everything',()=>{
  assert.equal(classify(['../../escape']).native,true);
 });
 
+test('only an explicitly elected maintenance smoke avoids duplicate native packages', () => {
+ assert.equal(selectedScope(null, 'workflow_dispatch', 'true').native, false);
+ for (const event of ['push','pull_request','workflow_dispatch']) {
+  assert.equal(selectedScope(null,event,'false').native,true);
+  if(event!=='workflow_dispatch')assert.equal(selectedScope(null,event,'true').native,true);
+ }
+});
+
 test('platform qualification waits only for its own exact same-run source build', () => {
  const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
  const qualification = parse(readFileSync(new URL('../.github/workflows/native-qualification.yml', import.meta.url), 'utf8'));
  assert.equal(ci.jobs.media, undefined);
  for (const [label, os] of [['linux', 'ubuntu-24.04'], ['windows', 'windows-2022']]) {
   const media = ci.jobs[`media-${label}`], native = ci.jobs[`qualify-${label}`];
-  assert.equal(media.needs, 'foundation');
+  assert.equal(media.needs, 'scope');
   assert.equal(media.uses, './.github/workflows/media-source.yml');
   assert.equal(media.with.os, os);
   assert.equal(media.with.revision, '${{ github.sha }}');
-  assert.deepEqual(native.needs, ['foundation', `media-${label}`]);
+  assert.deepEqual(native.needs, ['scope', 'foundation', 'docs-build', `media-${label}`]);
   assert.ok(native.if.includes(`needs.media-${label}.result == 'success'`));
   assert.equal(native.uses, './.github/workflows/native-qualification.yml');
   assert.equal(native.with.os, os);
   assert.equal(native.with.revision, '${{ github.sha }}');
-  for (const field of ['core', 'cli', 'native']) assert.equal(native.with[field], '${{ needs.foundation.outputs.' + field + " == 'true' }}");
+  for (const field of ['core', 'cli', 'native']) assert.equal(native.with[field], '${{ needs.scope.outputs.' + field + " == 'true' }}");
  }
- assert.equal(ci.jobs.core.needs, 'foundation');
+ assert.deepEqual(ci.jobs.core.needs, ['foundation','scope']);
  assert.deepEqual(ci.jobs.core.strategy.matrix.os, ['ubuntu-24.04']);
- assert.equal(ci.jobs['core-windows'].needs, 'foundation');
+ assert.deepEqual(ci.jobs['core-windows'].needs, ['foundation','scope']);
  for (const job of [ci.jobs.core, ci.jobs['core-windows']]) {
   const commands = job.steps.map(step => step.run ?? '').join('\n');
   for (const command of ['go test ./...', 'go vet ./...', "python -m unittest discover -s tests -p '*_test.py'"]) assert.ok(commands.includes(command));
@@ -65,7 +73,7 @@ test('platform qualification waits only for its own exact same-run source build'
  assert.ok(packages.includes('scripts/package-desktop.py all --variant ${{ matrix.variant }}'));
  assert.ok(packages.includes('scripts/media-tools.py --prepare-only'));
  assert.ok(packages.includes('npm --prefix desktop/frontend ci --ignore-scripts'));
- assert.deepEqual(ci.jobs.adapters.needs, ['foundation', 'media-linux']);
+ assert.deepEqual(ci.jobs.adapters.needs, ['scope','foundation', 'media-linux']);
  assert.deepEqual(Object.keys(ci.jobs.adapters.services).sort(), ['arcade', 'postgres', 's3']);
  const backends = ci.jobs.adapters.steps.map(step => step.run ?? '').join('\n');
  for (const target of ['qualification', 'catalog', 'artifact', 'models', 'library', 'graph', 'app', 'backup']) assert.ok(backends.includes(`./internal/${target}`));
@@ -174,7 +182,10 @@ test('documentation CI qualifies and retains isolated public/offline browser evi
  const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
  const steps = ci.jobs.docs.steps;
  assert.ok(steps.some(step => step.run === 'npm ci --ignore-scripts'));
- const build = steps.findIndex(step => step.run === 'npm --prefix site run build');
+ assert.equal(ci.jobs.docs.needs, 'docs-build');
+ const build = steps.findIndex(step => step.run?.includes('site-transfer.py restore'));
+ assert.ok(build >= 0);
+ assert.ok(ci.jobs['docs-build'].steps.some(step => step.run === 'npm --prefix site run build'));
  const browser = steps.findIndex(step => step.run?.includes('node scripts/check-docs-ui.mjs'));
  assert.ok(browser > build, 'browser qualification must inspect complete exports');
  assert.ok(steps[browser].run.includes('--browser /usr/bin/google-chrome'));
@@ -182,4 +193,35 @@ test('documentation CI qualifies and retains isolated public/offline browser evi
  assert.equal(evidence?.if, 'always()');
  assert.ok(evidence?.with.name.endsWith('-${{ github.sha }}-${{ github.run_attempt }}'));
  assert.equal(evidence?.with['retention-days'], 14);
+});
+
+test('known site presentation skips native work but mixed, new and dependency inputs qualify fully', () => {
+ for (const item of ['site/app/page.jsx', 'site/app/styles.css', 'scripts/check-live-site-ui.mjs']) assert.equal(classify([item]).native,false);
+ for (const item of ['site/package-lock.json','site/next.config.mjs','site/app/new.jsx','scripts/website.py','schemas/v1.0.1/master.schema.json']) assert.equal(classify(['site/app/page.jsx',item]).native,true);
+});
+
+test('same-run export reuse never removes later qualification gates or release builds', () => {
+ const ci=parse(readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8'));
+ const native=parse(readFileSync(new URL('../.github/workflows/native-qualification.yml',import.meta.url),'utf8'));
+ assert.equal(ci.jobs.scope.needs,undefined);assert.equal(ci.jobs.foundation.needs,undefined);
+ for(const label of ['linux','windows'])for(const lane of ['qualify','package']){const job=ci.jobs[lane+'-'+label];assert.equal(job.with['reuse-ci-offline-help'],true);if(label==='windows'&&lane==='package'){assert.deepEqual(job.needs,['scope']);assert.equal(job.with['overlap-source-setup'],true);}else{assert.ok(job.needs.includes('docs-build'));assert.ok(job.if.includes("needs.foundation.result == 'success'"));}}
+ assert.equal(native.on.workflow_call.inputs['reuse-ci-offline-help'].default,false);
+ for(const job of [native.jobs.runtime_checks,native.jobs.packages]){assert.ok(job.steps.some(s=>s.run?.includes('site-transfer.py restore')));assert.ok(job.steps.some(s=>s.run==='npm --prefix site run build'&&s.if.includes('!inputs.reuse-ci-offline-help')));}
+ assert.ok(ci.jobs.candidate.needs.includes('foundation'));assert.ok(ci.jobs.candidate.needs.includes('docs'));
+});
+
+test('Windows package setup overlaps source work but publication still requires its producer', () => {
+ const ci=parse(readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8'));
+ const native=parse(readFileSync(new URL('../.github/workflows/native-qualification.yml',import.meta.url),'utf8'));
+ assert.ok(!ci.jobs['package-windows'].needs.includes('media-windows'));
+ assert.equal(ci.jobs['package-windows'].with['overlap-source-setup'],true);
+ assert.equal(native.on.workflow_call.inputs['overlap-source-setup'].default,false);
+ const steps=native.jobs.packages.steps;
+ const wait=steps.findIndex(s=>s.run?.includes('wait-ci-artifact.mjs'));
+ const download=steps.findIndex(s=>s.with?.name==='media-source-${{ inputs.os }}-${{ github.run_attempt }}');
+ const verify=steps.findIndex(s=>s.run?.includes('media-transfer.py restore'));
+ assert.ok(wait>steps.findIndex(s=>s.uses==='./build/actions/setup-go')&&download>wait&&verify>download);
+ assert.equal(steps[download].with['digest-mismatch'],'error');
+ assert.ok(ci.jobs.candidate.needs.includes('media-windows'));
+ assert.ok(ci.jobs.candidate.if.includes("needs.media-windows.result == 'success'"));
 });

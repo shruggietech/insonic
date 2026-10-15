@@ -12,6 +12,9 @@ export function classify(files) {
     if (typeof file !== 'string' || file.includes('..') || file.startsWith('/')) return full();
     if (/^(docs\/|specs\/)/.test(file) || /^(README|CHANGELOG|CONTRIBUTING|SECURITY|AGENTS|CLAUDE)\.md$/.test(file) || file.startsWith('.specify/')) continue;
     if (/^(package(-lock)?\.json|scripts\/(check|check-schemas|github-bootstrap|sync-brand-kit)\.mjs|tests\/[^/]+\.test\.mjs)$/.test(file)) continue;
+    // Only existing presentation/verification surfaces, never arbitrary site build inputs.
+    if (/^site\/(app\/(page|layout)\.jsx|app\/styles\.css|app\/components\/(LandingPage|DocumentationFrame)\.jsx)$/.test(file)
+        || /^scripts\/check-(docs|live-site)-ui\.mjs$/.test(file)) continue;
     // Runtime/catalog/schema changes can affect the desktop's shared IPC bridge.
     // Unknown/new areas qualify fully instead of silently skipping new dependencies.
     Object.assign(result, full());
@@ -31,8 +34,13 @@ function changedFiles() {
     return diff.stdout.split('\0').filter(Boolean);
   } catch { return null; }
 }
+export function selectedScope(files, event, siteSmoke) {
+  // An explicit maintenance smoke does not rebuild product packages. Ordinary
+  // dispatches and unavailable PR/push diffs still elect the full qualification.
+  return classify(event === 'workflow_dispatch' && siteSmoke === 'true' ? [] : files);
+}
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const scope = classify(changedFiles());
+  const scope = selectedScope(changedFiles(), process.env.GITHUB_EVENT_NAME, process.env.INSONIC_CI_SITE_SMOKE);
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, Object.entries(scope).map(([key,value])=>`${key}=${value}\n`).join(''));
   process.stdout.write(`${JSON.stringify(scope)}\n`);
 }

@@ -599,6 +599,22 @@ class InstallerModelTests(unittest.TestCase):
         # application/native-webview and ordinary archive installation evidence.
         receipt.update({'publication_eligible':True,'payload_qualification':'passed'})
         with self.assertRaisesRegex(ValueError,'package relocation and native qualification'):m.verify_installer(artifact,receipt)
+    def test_native_capture_retries_only_one_session_initialization_failure(self):
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('package_msi_capture_retry',ROOT/'scripts/package-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        transient=RuntimeError('native authored capture failed: native session initialization exceeded its bound\r\n')
+        for errors,passes,count in [([transient,None],True,2),([transient,transient],False,2),([RuntimeError('native page landmark is absent')],False,1)]:
+            calls=[];receipt={'qualification':{key:'pending' for key in m.QUALIFICATION_KEYS}}
+            def capture(*args):
+                error=errors[len(calls)];calls.append('capture')
+                if error:raise error
+            with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'load',return_value=SimpleNamespace(capture=capture)),patch.object(module,'write'):
+                if passes:module.run_gates(None,receipt,'capture')
+                else:
+                    with self.assertRaisesRegex(RuntimeError,'gates failed'):module.run_gates(None,receipt,'capture')
+            self.assertEqual(len(calls),count)
+            self.assertEqual(receipt['qualification']['native_ui_capture'],'passed' if passes else 'failed')
+            self.assertTrue(all(value=='pending' for key,value in receipt['qualification'].items() if key!='native_ui_capture'))
     def test_diagnostic_reports_failed_feature_add_without_qualification(self):
         import shutil
         from types import SimpleNamespace

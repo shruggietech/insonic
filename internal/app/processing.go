@@ -171,11 +171,11 @@ func (a *App) recordingExecutorWithTools(elected *ProcessingTools) (*recordingEx
 	if e != nil {
 		return nil, e
 	}
-	lib, e := a.libraryService()
+	artifacts, e := a.artifactService()
 	if e != nil {
 		return nil, e
 	}
-	engine := &processing.Service{Artifacts: lib.Artifacts, Catalog: a.Catalog, Config: c.Processing}
+	engine := &processing.Service{Artifacts: artifacts, Catalog: a.Catalog, Config: c.Processing}
 	return &recordingExecution{Subtitles: driver, Prepare: func(ctx context.Context, entry catalog.LibraryEntry, options processing.AudioOptions) (*audioExecution, error) {
 		s, e := engine.Prepare(ctx, entry, options)
 		if e != nil {
@@ -499,7 +499,7 @@ func (a *App) processRecording(ctx context.Context, claim catalog.Work) (any, er
 		return nil, e
 	}
 	committed = true
-	lib, e := a.libraryService()
+	lib, e := a.libraryCatalogService()
 	if e == nil {
 		lib.Cleanup(ctx, entry.ID)
 	}
@@ -651,7 +651,7 @@ func (a *App) assembleClaim(ctx context.Context, claim catalog.Work, entry catal
 	if e != nil {
 		return nil, e
 	}
-	lib, e := a.libraryService()
+	lib, e := a.libraryCatalogService()
 	if e == nil {
 		lib.Cleanup(ctx, entry.ID)
 	}
@@ -933,7 +933,7 @@ func (a *App) recoverDerivedCleanup() {
 		}
 		a.Catalog.QueueDerivedCleanup(ctx, library.DerivedID(w.ID, "candidate-cleanup"), p.MediaID, id)
 	}
-	lib, e := a.libraryService()
+	lib, e := a.libraryCatalogService()
 	if e != nil {
 		return
 	}

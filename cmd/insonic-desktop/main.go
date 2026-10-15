@@ -22,10 +22,25 @@ import (
 )
 
 func main() {
-	os.Exit(run())
+	code := run()
+	if len(os.Args) == 2 && os.Args[1] == "--webview-qualification" {
+		fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: process exit")
+	}
+	os.Exit(code)
 }
 
-func run() int {
+func run() (exitCode int) {
+	smoke := len(os.Args) == 2 && os.Args[1] == "--webview-qualification"
+	var smokePassed atomic.Bool
+	if smoke {
+		// Register first: success is emitted only after every later cleanup has
+		// returned, including runtime cancellation and fixture removal.
+		defer func() {
+			if exitCode == 0 && smokePassed.Load() {
+				json.NewEncoder(os.Stdout).Encode(map[string]any{"schema_version": contracts.Version, "native_webview": "passed", "frontend_bridge_ipc": "passed", "desktop_journeys": "passed", "ui_model_references": "passed", "audio_video_playback": "passed", "model_execution": "not-run"})
+			}
+		}()
+	}
 	if err := workspace.RequireSupportedHost(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
@@ -45,18 +60,31 @@ func run() int {
 		fmt.Fprintln(os.Stderr, "Desktop playback transport unavailable.")
 		return 1
 	}
-	defer closePlayback()
-	smoke := len(os.Args) == 2 && os.Args[1] == "--webview-qualification"
+	defer func() {
+		if smoke {
+			fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: playback")
+		}
+		closePlayback()
+		if smoke {
+			fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: playback complete")
+		}
+	}()
 	var startup func(context.Context)
 	var domReady func(context.Context)
 	var smokeContext context.Context
-	var smokePassed atomic.Bool
 	if smoke {
 		directory, err := os.MkdirTemp("", "insonic-webview-*")
 		if err != nil {
 			return 1
 		}
-		defer os.RemoveAll(directory)
+		defer func() {
+			fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: fixtures")
+			if err := os.RemoveAll(directory); err != nil {
+				fmt.Fprintln(os.Stderr, "Desktop qualification fixture cleanup failed.")
+				exitCode = 1
+			}
+			fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: fixtures complete")
+		}()
 		w, err := workspace.Init(directory, "Webview qualification")
 		if err != nil {
 			return 1
@@ -84,7 +112,15 @@ func run() int {
 			<-done
 			return 1
 		}
-		defer func() { cancel(); <-done }()
+		defer func() {
+			fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: runtime")
+			cancel()
+			if err := <-done; err != nil {
+				fmt.Fprintln(os.Stderr, "Desktop qualification runtime cleanup failed.")
+				exitCode = 1
+			}
+			fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: runtime complete")
+		}()
 		if err := desktop.PrepareWebviewQualification(bridge); err != nil {
 			fmt.Fprintln(os.Stderr, "Desktop media qualification preparation failed:", err)
 			return 1
@@ -151,7 +187,6 @@ func run() int {
 			fmt.Fprintln(os.Stderr, "Native webview qualification failed.")
 			return 1
 		}
-		json.NewEncoder(os.Stdout).Encode(map[string]any{"schema_version": contracts.Version, "native_webview": "passed", "frontend_bridge_ipc": "passed", "desktop_journeys": "passed", "ui_model_references": "passed", "audio_video_playback": "passed", "model_execution": "not-run"})
 	}
 	return 0
 }

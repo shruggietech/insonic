@@ -1,0 +1,165 @@
+name: Website publication
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Exact current green main SHA to publish
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: website-publication
+  cancel-in-progress: false
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 11
+    permissions:
+      contents: read
+      actions: read
+    env:
+      SOURCE_REVISION: ${{ inputs.revision }}
+      INSONIC_DOCUMENTATION_TARGET: release
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - name: Check out trusted main tooling for source selection
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require exact green current main before build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/website.py source --revision "$SOURCE_REVISION" --output build/website/source.json
+      - name: Check out the qualified immutable source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.revision }}
+          fetch-depth: 0
+          persist-credentials: false
+      - run: python scripts/bootstrap-actions.py setup-node --output build/actions/setup-node
+      - uses: ./build/actions/setup-node
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            site/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm --prefix site ci --ignore-scripts
+      - run: npm --prefix site test
+      - run: npm --prefix site run build
+      - run: python scripts/qualify-docs-renderer.py
+      - run: node scripts/check-docs-ui.mjs --browser /usr/bin/google-chrome --out site/out --offline site/offline --output build/website/export-ui
+      - name: Archive and bind the qualified exact-source export
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/release.py docs --revision "$SOURCE_REVISION" --output build/website/export
+          python scripts/website.py prepare --revision "$SOURCE_REVISION" --archive build/website/export/documentation.tar.gz --output build/website/export/website.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          archive: true
+          name: website-export-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/website/export
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          archive: true
+          name: website-build-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/website/export-ui
+          if-no-files-found: warn
+          retention-days: 14
+  publish:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 11
+    concurrency:
+      group: pages-publication
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pages: write
+      actions: read
+    steps:
+      - name: Check out trusted main tooling
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          digest-mismatch: error
+          skip-decompress: false
+          name: website-export-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/website/export
+      - name: Revalidate and publish only the existing website destination
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/website.py publish --archive build/website/export/documentation.tar.gz --receipt build/website/export/website.json --output build/website/deployment.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          archive: true
+          name: website-deployment-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/website/deployment.json
+          if-no-files-found: warn
+          retention-days: 14
+  verify:
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 11
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          digest-mismatch: error
+          skip-decompress: false
+          name: website-export-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/website/export
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          digest-mismatch: error
+          skip-decompress: false
+          name: website-deployment-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/website
+      - run: python scripts/bootstrap-actions.py setup-node --output build/actions/setup-node
+      - uses: ./build/actions/setup-node
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Verify exact live bytes and five package responses
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/website.py verify --archive build/website/export/documentation.tar.gz --receipt build/website/export/website.json --deployment build/website/deployment.json --output build/website/live.json
+      - name: Capture eight actual live landing layouts
+        run: node scripts/check-live-site-ui.mjs --receipt build/website/live.json --output build/website/live-ui --browser /usr/bin/google-chrome
+      - name: Fence deployment identity after browser verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/website.py deployment --deployment build/website/deployment.json --output build/website/completion.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          archive: true
+          name: website-live-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/website/live.json
+            build/website/live-ui
+            build/website/completion.json
+          if-no-files-found: warn
+          retention-days: 14
