@@ -682,7 +682,8 @@ def published_candidate(output, revision, api, root=ROOT, runner=child, verifier
 def is_release_workflow_run(run, identifier):
     return (isinstance(run, dict) and type(run.get('id')) is int and run['id'] == identifier
             and isinstance(run.get('repository'), dict) and run['repository'].get('full_name') == REPOSITORY
-            and run.get('path') in ('.github/workflows/release.yml', '.github/workflows/release.yml@refs/heads/main')
+            and run.get('path') in ('.github/workflows/release.yml', '.github/workflows/release.yml@main',
+                                    '.github/workflows/release.yml@refs/heads/main')
             and run.get('event') == 'workflow_dispatch' and run.get('head_branch') == 'main'
             and type(run.get('workflow_id')) is int and run['workflow_id'] > 0
             and type(run.get('check_suite_id')) is int and run['check_suite_id'] > 0

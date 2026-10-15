@@ -6,7 +6,7 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
-- Release publication can supersede verified completed older release-workflow attempts for the same source while retaining every required CI/security gate and immutable tag/artifact checks.
+- Release publication accepts documented main-workflow path forms and can supersede verified completed older release-workflow attempts for the same source while retaining every required CI/security gate and immutable tag/artifact checks.
 
 ### Decisions
 

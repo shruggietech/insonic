@@ -32,3 +32,11 @@ Converge appended T020-T022 against FR-004/FR-006/FR-007 and SC-003. Read-only a
 ## Delivery boundary
 
 This patch is a recovery proposal, not an official release. T017-T019 and #97 remain open. The original source/tag and qualified candidate are retained. No failed run/check is deleted or relabeled. Publishing requires reviewed trusted-main recovery and the existing publication/deployment gates. Obtain a new PR review-cycle authorization before opening a recovery PR; never request a third review on #99.
+
+## Recovery PR review checkpoint (2026-10-15 UTC)
+
+The owner authorized a fresh maximum of two review rounds. Recovery PR #100 is open against main, with no closing issue reference; #97 remains open through publication. Automatic round one identified the missing documented .github/workflows/release.yml@main path form (discussion_r4279637930). GitHub official workflow-run response examples support that form.
+
+The path regression was red first in five of nine current/prior form combinations. This correction accepts bare, @main and @refs/heads/main forms while retaining independent main-branch, workflow ID, repository/source/suite and terminal-run checks. Non-main and main-like ref suffixes remain blocked. The default fixture now uses documented @main metadata. All 50 publisher tests and the actual 93-check read-only replay pass; all 32 main-CI checks remain gates, and no publication write occurred. Full local checks and exact final-head CI/review results are recorded on PR #100 after this source checkpoint.
+
+The original preparation/authorization statements above are historical checkpoints. No additional review is requested on PR #99. PR #100 has its own explicit two-round cap; its opening review is round one, followed by at most one final manual request after correction. Owner merge remains necessary before trusted-main publication resumes.

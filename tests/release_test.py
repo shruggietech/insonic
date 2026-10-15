@@ -79,7 +79,7 @@ class GitHubFixture:
         self.asset_bytes = {}; self.downloads = []
         self.checks = [{'name': name, 'status': 'completed', 'conclusion': 'success', 'check_suite': {'id': 11}} for name in ('foundation', 'docs')]
         self.workflow = {'id': 77, 'repository': {'full_name': release.REPOSITORY},
-                         'path': '.github/workflows/release.yml@refs/heads/main', 'event': 'workflow_dispatch',
+                         'path': '.github/workflows/release.yml@main', 'event': 'workflow_dispatch',
                          'head_sha': REVISION, 'check_suite_id': 42, 'head_branch': 'main', 'workflow_id': 9}
         self.past_workflows = {}
 
@@ -556,10 +556,25 @@ class ReleaseDeliveryTests(unittest.TestCase):
                     self.assertTrue(release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)['published'])
                 self.assertEqual(sum(endpoint.endswith('/actions/runs/66') for _, endpoint, _ in api.calls), 1)
 
+    def test_main_workflow_path_forms_preserve_current_and_superseded_identity(self):
+        target = self.candidate()
+        paths = ['.github/workflows/release.yml', '.github/workflows/release.yml@main',
+                 '.github/workflows/release.yml@refs/heads/main']
+        context = {'GITHUB_RUN_ID': '77', 'GITHUB_REPOSITORY': release.REPOSITORY, 'GITHUB_SHA': REVISION}
+        for current_path in paths:
+            for previous_path in paths:
+                with self.subTest(current_path=current_path, previous_path=previous_path):
+                    api = GitHubFixture(); api.workflow['path'] = current_path
+                    self.superseded_release(api); api.past_workflows[66]['path'] = previous_path
+                    with patch.dict(os.environ, context):
+                        self.assertTrue(release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)['published'])
+
     def test_superseded_release_identity_mismatches_and_active_or_newer_runs_block_all_writes(self):
         target = self.candidate()
         invalid = [{'head_sha': 'c' * 40}, {'repository': {'full_name': 'someone/else'}},
-                   {'path': '.github/workflows/ci.yml'}, {'head_branch': 'feature'}, {'event': 'pull_request'},
+                   {'path': '.github/workflows/ci.yml'}, {'path': '.github/workflows/release.yml@feature'},
+                   {'path': '.github/workflows/release.yml@refs/heads/feature'},
+                   {'path': '.github/workflows/release.yml@mainish'}, {'head_branch': 'feature'}, {'event': 'pull_request'},
                    {'workflow_id': 1234}, {'check_suite_id': 999}, {'id': 67}, {'status': 'in_progress'}, {'conclusion': None}]
         context = {'GITHUB_RUN_ID': '77', 'GITHUB_REPOSITORY': release.REPOSITORY, 'GITHUB_SHA': REVISION}
         for changes in invalid + [None]:
