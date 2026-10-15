@@ -4,6 +4,14 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+### Fixed
+
+- Release publication accepts documented main-workflow path forms and can supersede verified completed older release-workflow attempts for the same source while retaining every required CI/security gate and immutable tag/artifact checks.
+
+### Decisions
+
+- 2026-10-15: Recover interrupted publication through a reviewed trusted-main verifier correction rather than deleting check history, changing immutable v1.0.1 source or bypassing failed unrelated checks. Older release attempts require independently verified repository, main branch, workflow, source, suite and terminal-run identity.
+
 ## [1.0.1] - 2026-10-15
 
 - Resolve contextual CLI help before effects and preserve literal arguments, atomic option values, scalar/Boolean arity, repeatable speaker selectors and early invalid-command diagnostics. Include operation-specific JSON-file templates and contracts.

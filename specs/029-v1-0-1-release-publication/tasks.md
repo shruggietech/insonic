@@ -39,11 +39,11 @@ Independent test: existing mock-source/draft/asset/security suites plus structur
 - [x] T012 Run npm run check, npm test, site/Python release/Pages checks and Spec Kit convergence; inspect UTF-8/LF/mojibake and record analysis/convergence/results under specs/029-v1-0-1-release-publication/.
 - [x] T013 Commit/push codex/029-v1-0-1-release-publication and open/attach the official PR with non-closing #97 reference, milestone and Project In review; record URL in specs/029-v1-0-1-release-publication/verification.md.
 - [x] T014 Address every review comment and resolve all threads, counting automatic opening round and at most one manual second request; record in specs/029-v1-0-1-release-publication/verification.md and official PR.
-- [ ] T015 Verify exact final-head elected CI green and compare full elapsed turnaround against 660 seconds, directly audit all review threads and ping owner for final review/squash merge; record post-commit results on official PR rather than infer them from this source snapshot.
+- [x] T015 Verify exact final-head elected CI green and compare full elapsed turnaround against 660 seconds, directly audit all review threads and ping owner for final review/squash merge; record post-commit results on official PR rather than infer them from this source snapshot.
 
 ## Phase 7: US2 after owner merge only (P1)
 
-- [ ] T016 [US2] Verify owner-merged exact squash-main source, clean checkout, green source checks and immutable tag absence/identity; create/push v1.0.1 at that source and record identity in specs/029-v1-0-1-release-publication/verification.md or the delivery PR/issue checkpoint.
+- [x] T016 [US2] Verify owner-merged exact squash-main source, clean checkout, green source checks and immutable tag absence/identity; create/push v1.0.1 at that source and record identity in specs/029-v1-0-1-release-publication/verification.md or the delivery PR/issue checkpoint.
 - [ ] T017 [US2] Dispatch trusted-main .github/workflows/release.yml for fresh exact-source qualification and verified draft publication with publish/promote_docs true, existing Pages and reviewed highlights; verify four archives, one MSI, both docs bundles, release manifest and checksums.
 
 ## Phase 8: US3 after publication (P2)
@@ -63,3 +63,9 @@ Research agents ran in parallel with disjoint read-only scopes. Root owns integr
 ## Implementation strategy and completion
 
 All three stories are required for #97. Preparation is a reviewable intermediate delivery; do not close #97 or call publication complete at T015. Custom release-quality checklist markers are reviewer-owned requirements questions, not implementation completion or an extra human gate. Source checklists are a pre-CI snapshot; final post-commit and post-publication evidence lives on the official delivery PR/issue.
+
+## Phase 10: Convergence
+
+- [x] T020 [US2] Repair superseded release-attempt handling in scripts/release.py with red/green provenance and fail-closed regressions in tests/release_test.py per FR-006/FR-007 and SC-003 (partial). Only completed older same-repository main-branch dispatches of the verified same release workflow and exact candidate source may be superseded; unrelated CI/security and active/newer/unverified runs remain blocking.
+- [x] T021 Run full repository/site/Python checks, read-only analyze and convergence for the recovery patch; record exact tag, candidate, failure and verification evidence in specs/029-v1-0-1-release-publication/recovery.md per FR-006/FR-007 (partial).
+- [ ] T022 Obtain a new recovery-PR review-cycle authorization because FR-004 original rounds are exhausted, then deliver the verified trusted-main recovery PR under owner review/merge boundaries before resuming T017-T019 per FR-004/FR-007 (partial). Do not delete check history, bypass source gates, move v1.0.1 or claim publication.

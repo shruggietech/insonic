@@ -79,8 +79,9 @@ class GitHubFixture:
         self.asset_bytes = {}; self.downloads = []
         self.checks = [{'name': name, 'status': 'completed', 'conclusion': 'success', 'check_suite': {'id': 11}} for name in ('foundation', 'docs')]
         self.workflow = {'id': 77, 'repository': {'full_name': release.REPOSITORY},
-                         'path': '.github/workflows/release.yml@refs/heads/main', 'event': 'workflow_dispatch',
-                         'head_sha': REVISION, 'check_suite_id': 42}
+                         'path': '.github/workflows/release.yml@main', 'event': 'workflow_dispatch',
+                         'head_sha': REVISION, 'check_suite_id': 42, 'head_branch': 'main', 'workflow_id': 9}
+        self.past_workflows = {}
 
     def call(self, method, endpoint, value=None, path=None):
         self.calls.append((method, endpoint, copy.deepcopy(value)))
@@ -93,7 +94,7 @@ class GitHubFixture:
             page = int(release.urllib.parse.parse_qs(release.urllib.parse.urlsplit(endpoint).query).get('page', ['1'])[0])
             checks = [{**check, 'id': index + 1} for index, check in enumerate(self.checks)]
             return {'total_count': len(checks), 'check_runs': copy.deepcopy(checks[(page - 1) * 100:page * 100])}
-        if '/actions/runs/' in endpoint: return copy.deepcopy(self.workflow)
+        if '/actions/runs/' in endpoint: return copy.deepcopy(self.past_workflows.get(int(endpoint.rsplit('/', 1)[-1]), self.workflow))
         if '/releases/tags/' in endpoint: return copy.deepcopy(self.release)
         if endpoint.endswith('/releases') and method == 'POST':
             self.release = {**value, 'id': 7, 'upload_url': 'https://uploads.github.com/repos/shruggietech/insonic/releases/7/assets{?name,label}'}; return copy.deepcopy(self.release)
@@ -534,11 +535,104 @@ class ReleaseDeliveryTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'not green'):
                     release.publish(target, 'Highlights.', required, self.root, runner, verify_fixture)
 
+    def superseded_release(self, api, run_id=66, suite_id=33):
+        api.past_workflows[run_id] = {**api.workflow, 'id': run_id, 'check_suite_id': suite_id,
+                                      'head_sha': REVISION, 'status': 'completed', 'conclusion': 'cancelled'}
+        api.checks.append({'name': 'obsolete release lane', 'status': 'completed', 'conclusion': 'cancelled',
+                           'check_suite': {'id': suite_id},
+                           'details_url': f'https://github.com/{release.REPOSITORY}/actions/runs/{run_id}/job/123'})
+
+    def test_superseded_release_suites_allow_current_and_historical_source_publication(self):
+        target = self.candidate()
+        for current_revision in [REVISION, 'b' * 40]:
+            with self.subTest(current_revision=current_revision):
+                api = GitHubFixture(); api.workflow['head_sha'] = current_revision
+                api.checks.extend({'name': f'qualified lane {index}', 'status': 'completed', 'conclusion': 'success',
+                                   'check_suite': {'id': 23}} for index in range(100))
+                self.superseded_release(api)
+                api.checks.append({**api.checks[-1], 'name': 'another obsolete lane', 'conclusion': 'failure'})
+                with patch.dict(os.environ, {'GITHUB_RUN_ID': '77', 'GITHUB_REPOSITORY': release.REPOSITORY,
+                                             'GITHUB_SHA': current_revision}):
+                    self.assertTrue(release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)['published'])
+                self.assertEqual(sum(endpoint.endswith('/actions/runs/66') for _, endpoint, _ in api.calls), 1)
+
+    def test_main_workflow_path_forms_preserve_current_and_superseded_identity(self):
+        target = self.candidate()
+        paths = ['.github/workflows/release.yml', '.github/workflows/release.yml@main',
+                 '.github/workflows/release.yml@refs/heads/main']
+        context = {'GITHUB_RUN_ID': '77', 'GITHUB_REPOSITORY': release.REPOSITORY, 'GITHUB_SHA': REVISION}
+        for current_path in paths:
+            for previous_path in paths:
+                with self.subTest(current_path=current_path, previous_path=previous_path):
+                    api = GitHubFixture(); api.workflow['path'] = current_path
+                    self.superseded_release(api); api.past_workflows[66]['path'] = previous_path
+                    with patch.dict(os.environ, context):
+                        self.assertTrue(release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)['published'])
+
+    def test_all_documented_terminal_release_outcomes_are_superseded(self):
+        target = self.candidate()
+        context = {'GITHUB_RUN_ID': '77', 'GITHUB_REPOSITORY': release.REPOSITORY, 'GITHUB_SHA': REVISION}
+        outcomes = ['action_required', 'cancelled', 'failure', 'neutral', 'skipped', 'stale', 'success', 'timed_out']
+        for outcome in outcomes:
+            with self.subTest(outcome=outcome):
+                api = GitHubFixture(); self.superseded_release(api)
+                api.past_workflows[66]['conclusion'] = outcome
+                api.checks[-1]['conclusion'] = outcome
+                selected = release.external_source_checks(api, REVISION, api.checks, context)
+                self.assertEqual({check['check_suite']['id'] for check in selected}, {11})
+                with patch.dict(os.environ, context):
+                    self.assertTrue(release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)['published'])
+
+    def test_superseded_release_identity_mismatches_and_active_or_newer_runs_block_all_writes(self):
+        target = self.candidate()
+        invalid = [{'head_sha': 'c' * 40}, {'repository': {'full_name': 'someone/else'}},
+                   {'path': '.github/workflows/ci.yml'}, {'path': '.github/workflows/release.yml@feature'},
+                   {'path': '.github/workflows/release.yml@refs/heads/feature'},
+                   {'path': '.github/workflows/release.yml@mainish'}, {'head_branch': 'feature'}, {'event': 'pull_request'},
+                   {'workflow_id': 1234}, {'check_suite_id': 999}, {'id': 67}, {'status': 'in_progress'}, {'conclusion': None},
+                   {'conclusion': ''}, {'conclusion': 'unknown-outcome'}]
+        context = {'GITHUB_RUN_ID': '77', 'GITHUB_REPOSITORY': release.REPOSITORY, 'GITHUB_SHA': REVISION}
+        for changes in invalid + [None]:
+            with self.subTest(changes=changes):
+                api = GitHubFixture(); self.superseded_release(api, run_id=88 if changes is None else 66)
+                if changes: api.past_workflows[66].update(changes)
+                with patch.dict(os.environ, context), self.assertRaisesRegex(ValueError, 'not green'):
+                    release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
+                self.assertFalse(any(method in ('POST', 'PATCH') for method, _, _ in api.calls))
+
+    def test_superseded_release_does_not_hide_security_ci_or_missing_required_checks(self):
+        target = self.candidate()
+        context = {'GITHUB_RUN_ID': '77', 'GITHUB_REPOSITORY': release.REPOSITORY, 'GITHUB_SHA': REVISION}
+        for kind in ['security', 'ci', 'missing-required']:
+            with self.subTest(kind=kind):
+                api = GitHubFixture(); self.superseded_release(api)
+                if kind == 'missing-required':
+                    api.checks[0].update(check_suite={'id': 33}, details_url=api.checks[-1]['details_url'])
+                else:
+                    api.checks.append({'name': kind, 'status': 'completed', 'conclusion': 'failure',
+                                       'check_suite': {'id': 23}, 'details_url': api.checks[-1]['details_url']})
+                with patch.dict(os.environ, context), self.assertRaisesRegex(ValueError, 'not green'):
+                    release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
+                self.assertFalse(any(method in ('POST', 'PATCH') for method, _, _ in api.calls))
+
+    def test_superseded_release_requires_verified_current_context_and_canonical_run_url(self):
+        target = self.candidate()
+        context = {'GITHUB_RUN_ID': '77', 'GITHUB_REPOSITORY': release.REPOSITORY, 'GITHUB_SHA': REVISION}
+        for prefix in ['https://untrusted.example/', 'https://github.com:444/', 'https://user@github.com/',
+                       'https://github.com/', None]:
+            api = GitHubFixture(); self.superseded_release(api)
+            if prefix: api.checks[-1]['details_url'] = prefix + release.REPOSITORY + '/actions/runs/66/job/123' + ('?unverified=1' if prefix == 'https://github.com/' else '')
+            selected = context if prefix else dict(context, GITHUB_RUN_ID='')
+            with self.subTest(prefix=prefix), patch.dict(os.environ, selected), self.assertRaisesRegex(ValueError, 'not green'):
+                release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
+            self.assertFalse(any(method in ('POST', 'PATCH') for method, _, _ in api.calls))
+
     def test_unverified_or_irrelevant_suites_cannot_hide_checks(self):
         context = {'GITHUB_RUN_ID': '77', 'GITHUB_REPOSITORY': release.REPOSITORY, 'GITHUB_SHA': REVISION}
         api = GitHubFixture()
         for changes in [{'path': '.github/workflows/ci.yml'}, {'id': 78}, {'check_suite_id': None},
-                        {'repository': {'full_name': 'someone/else'}}, {'head_sha': 'b' * 40}]:
+                        {'repository': {'full_name': 'someone/else'}}, {'head_sha': 'b' * 40},
+                        {'head_branch': 'feature'}, {'workflow_id': None}]:
             fixture_api = GitHubFixture(); fixture_api.workflow.update(changes)
             with self.assertRaises(ValueError):
                 release.current_release_suite(fixture_api, REVISION, context)
