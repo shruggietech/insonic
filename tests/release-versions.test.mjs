@@ -15,7 +15,7 @@ test('PR candidate collection uses complete independent package lanes with no pu
   assert.equal(candidate.permissions.contents, 'read');
   assert.equal(candidate.environment, undefined);
   assert.equal(candidate.env.SOURCE_REVISION, '${{ github.sha }}');
-  assert.deepEqual(candidate.needs, ['docs', 'package-linux', 'package-windows']);
+  assert.deepEqual(candidate.needs, ['foundation', 'docs', 'package-linux', 'package-windows']);
   assert.ok(!JSON.stringify(candidate).includes('secrets.'));
   assert.ok(!JSON.stringify(candidate).includes('scripts/release.py publish'));
   assert.equal(candidate.steps[0].with['persist-credentials'], false);
@@ -34,7 +34,8 @@ test('PR candidate collection uses complete independent package lanes with no pu
   assert.ok(assets.if.includes('success()'));
   assert.ok(assets.with.path.includes('build/packages/*.zip'));
   assert.ok(assets.with.path.includes('build/packages/*.tar.gz'));
-  assert.ok(workflow.jobs.docs.steps.some(step => step.run?.includes('release.py docs')));
+  assert.ok(workflow.jobs['docs-build'].steps.some(step => step.run?.includes('release.py docs')));
+  assert.equal(workflow.jobs.docs.needs, 'docs-build');
 });
 
 test('release version checks include desktop locks and the shared runtime binding', () => {

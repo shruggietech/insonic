@@ -24,6 +24,9 @@ on:
       documentation-target:
         type: string
         default: snapshot
+      reuse-ci-offline-help:
+        type: boolean
+        default: false
       windows-sign-cert-sha1:
         type: string
         default: ''
@@ -157,13 +160,28 @@ jobs:
               gnome-keyring-daemon --daemonize --unlock --components=secrets --control-directory "$GNOME_KEYRING_CONTROL" >/dev/null
             python scripts/qualify.py secrets
           '
-      - name: Install package notice inputs and build local help
+      - name: Download exact same-run documentation export
+        if: inputs.reuse-ci-offline-help && inputs.native && matrix.runtime_lane == 'desktop'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          digest-mismatch: error
+          skip-decompress: false
+          name: candidate-documentation-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/documentation-transfer
+      - name: Restore verified same-run offline help
+        if: inputs.reuse-ci-offline-help && inputs.native && matrix.runtime_lane == 'desktop'
+        run: python scripts/site-transfer.py restore --revision '${{ inputs.revision }}' --directory build/documentation-transfer
+      - name: Install package notice inputs
         if: inputs.native && matrix.runtime_lane == 'desktop'
         run: |
           npm --prefix desktop/frontend ci --ignore-scripts
           npm --prefix site ci --ignore-scripts
-          npm --prefix site run build
-          python scripts/qualify.py assets
+      - name: Build independent release help
+        if: inputs.native && matrix.runtime_lane == 'desktop' && !inputs.reuse-ci-offline-help
+        run: npm --prefix site run build
+      - name: Stage qualified local help and brand assets
+        if: inputs.native && matrix.runtime_lane == 'desktop'
+        run: python scripts/qualify.py assets
       - name: Check and build desktop frontend
         if: inputs.native && matrix.runtime_lane == 'desktop'
         run: |
@@ -306,13 +324,28 @@ jobs:
       - name: Prepare pinned metadata extractors for package qualification
         if: inputs.core
         run: python scripts/media-tools.py --prepare-only
-      - name: Install package notice inputs and build local help
+      - name: Download exact same-run documentation export
+        if: inputs.reuse-ci-offline-help && inputs.native
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          digest-mismatch: error
+          skip-decompress: false
+          name: candidate-documentation-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/documentation-transfer
+      - name: Restore verified same-run offline help
+        if: inputs.reuse-ci-offline-help && inputs.native
+        run: python scripts/site-transfer.py restore --revision '${{ inputs.revision }}' --directory build/documentation-transfer
+      - name: Install package notice inputs
         if: inputs.native
         run: |
           npm --prefix desktop/frontend ci --ignore-scripts
           npm --prefix site ci --ignore-scripts
-          npm --prefix site run build
-          python scripts/qualify.py assets
+      - name: Build independent release help
+        if: inputs.native && !inputs.reuse-ci-offline-help
+        run: npm --prefix site run build
+      - name: Stage qualified local help and brand assets
+        if: inputs.native
+        run: python scripts/qualify.py assets
       - name: Build this desktop package frontend
         if: inputs.native && matrix.variant == 'desktop'
         run: |

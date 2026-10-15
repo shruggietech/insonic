@@ -344,6 +344,9 @@ jobs:
       - name: Verify existing Pages destination without changing configuration
         run: python scripts/release.py pages-preflight
   promote-pages:
+    concurrency:
+      group: pages-publication
+      cancel-in-progress: false
     if: always() && github.ref == 'refs/heads/main' && inputs.promote_docs && inputs.documentation-transport == 'pages' && needs.pages-preflight.result == 'success' && (!inputs.publish || needs.publish.result == 'success')
     needs:
       - publish

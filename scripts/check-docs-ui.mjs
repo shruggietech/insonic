@@ -90,7 +90,7 @@ async function htmlFiles(directory) {
   return files.sort();
 }
 
-function browserEnvironment(fixture, executable) {
+export function browserEnvironment(fixture, executable) {
   const env = {};
   for (const name of ['SystemRoot', 'WINDIR', 'SystemDrive', 'COMSPEC']) if (process.env[name]) env[name] = process.env[name];
   Object.assign(env, {
@@ -180,7 +180,7 @@ async function verifyWebSocketIsolation(browser, contexts, network, deadline) {
 
 function assert(condition, message) { if (!condition) throw new Error(message); }
 
-async function inspectPage(page) {
+export async function inspectPage(page) {
   return page.evaluate(() => {
     const visible = element => Boolean(element.getClientRects().length) && getComputedStyle(element).visibility !== 'hidden';
     const name = element => (element.getAttribute('aria-label') || element.textContent || [...element.querySelectorAll('img[alt]')].map(image => image.alt).join(' ')).trim();
@@ -209,7 +209,7 @@ async function inspectPage(page) {
   });
 }
 
-function assertPage(result, label, { compact = true, bare = false } = {}) {
+export function assertPage(result, label, { compact = true, bare = false } = {}) {
   assert(result.lang === 'en', `${label}: document language is missing.`);
   assert(result.main === 1 && result.h1 === 1, `${label}: expected one main landmark and one h1.`);
   assert(!result.unnamedLinks && !result.unnamedButtons && !result.missingAlt && !result.duplicateIds.length, `${label}: missing accessible names/alternatives or duplicate IDs: ${JSON.stringify(result)}.`);
@@ -235,7 +235,7 @@ async function ready(page, url, deadline, { scripts = true } = {}) {
   if (scripts) await page.waitForFunction(() => [...document.querySelectorAll('.mermaid')].every(element => element.dataset.processed === 'true' || element.parentElement.querySelector('.diagram-error')), null, { timeout: Math.min(10000, deadline - Date.now()) });
 }
 
-async function inspectReadability(page) {
+export async function inspectReadability(page) {
   return page.evaluate(() => {
     const visible = element => Boolean(element.getClientRects().length) && getComputedStyle(element).visibility !== 'hidden';
     const color = value => { const values = value.match(/[\d.]+/g)?.map(Number) || []; return values.length >= 3 ? { rgb: values.slice(0, 3), alpha: values[3] ?? 1 } : { rgb: [0, 0, 0], alpha: 0 }; };
@@ -294,7 +294,7 @@ export function captureLandingActivation() {
   }, true);
 }
 
-async function landingGeometry(page) {
+export async function landingGeometry(page) {
   return page.evaluate(() => {
     const visible = element => Boolean(element.getClientRects().length) && getComputedStyle(element).visibility !== 'hidden' && !element.closest('[inert]');
     const measure = element => {
@@ -319,7 +319,7 @@ async function landingGeometry(page) {
   });
 }
 
-async function landingInventory(page, version) {
+export async function landingInventory(page, version) {
   return page.locator('a[href]').evaluateAll((anchors, version) => anchors.map(anchor => {
     const copy = anchor.cloneNode(true);
     copy.querySelectorAll('[aria-hidden="true"]').forEach(element => element.remove());

@@ -12,6 +12,9 @@ export function classify(files) {
     if (typeof file !== 'string' || file.includes('..') || file.startsWith('/')) return full();
     if (/^(docs\/|specs\/)/.test(file) || /^(README|CHANGELOG|CONTRIBUTING|SECURITY|AGENTS|CLAUDE)\.md$/.test(file) || file.startsWith('.specify/')) continue;
     if (/^(package(-lock)?\.json|scripts\/(check|check-schemas|github-bootstrap|sync-brand-kit)\.mjs|tests\/[^/]+\.test\.mjs)$/.test(file)) continue;
+    // Only existing presentation/verification surfaces, never arbitrary site build inputs.
+    if (/^site\/(app\/(page|layout)\.jsx|app\/styles\.css|app\/components\/(LandingPage|DocumentationFrame)\.jsx)$/.test(file)
+        || /^scripts\/check-(docs|live-site)-ui\.mjs$/.test(file)) continue;
     // Runtime/catalog/schema changes can affect the desktop's shared IPC bridge.
     // Unknown/new areas qualify fully instead of silently skipping new dependencies.
     Object.assign(result, full());

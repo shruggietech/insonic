@@ -4,19 +4,36 @@ on:
     branches: [ main ]
   pull_request:
   workflow_dispatch:
+    inputs:
+      site_smoke:
+        description: Read-only production byte, download and browser verification
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  foundation:
-    name: foundation
+  scope:
+    name: scope
     outputs:
       core: ${{ steps.scope.outputs.core }}
       cli: ${{ steps.scope.outputs.cli }}
       native: ${{ steps.scope.outputs.native }}
       adapters: ${{ steps.scope.outputs.adapters }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 11
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Classify affected components with runner Node
+        id: scope
+        run: node scripts/ci-scope.mjs
+  foundation:
+    name: foundation
     runs-on: ubuntu-latest
     timeout-minutes: 11
     steps:
@@ -29,14 +46,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Classify affected components
-        id: scope
-        run: node scripts/ci-scope.mjs
       - run: npm ci --ignore-scripts
       - run: npm run check
       - run: npm test
-  docs:
-    name: docs
+  docs-build:
+    name: docs-build
     runs-on: ubuntu-latest
     timeout-minutes: 11
     steps:
@@ -56,6 +70,46 @@ jobs:
       - run: npm --prefix site run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+      - name: Package exact-source candidate documentation
+        env:
+          SOURCE_REVISION: ${{ github.sha }}
+        run: python scripts/release.py docs --revision "$SOURCE_REVISION" --output build/release/docs
+      - name: Bind same-run documentation transfer
+        run: python scripts/site-transfer.py pack --revision '${{ github.sha }}' --directory build/release/docs
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          archive: true
+          name: candidate-documentation-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/release/docs
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+  docs:
+    name: docs
+    needs: docs-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 11
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Acquire verified setup-node action with bounded retries
+        run: python scripts/bootstrap-actions.py setup-node --output build/actions/setup-node
+      - uses: ./build/actions/setup-node # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            site/package-lock.json
+      - run: npm ci --ignore-scripts
+      - run: npm --prefix site ci --ignore-scripts
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          digest-mismatch: error
+          skip-decompress: false
+          name: candidate-documentation-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/documentation-transfer
+      - name: Restore exact documentation exports
+        run: python scripts/site-transfer.py restore --revision '${{ github.sha }}' --directory build/documentation-transfer
       - name: Qualify local public and offline diagram rendering
         run: python scripts/qualify-docs-renderer.py
       - name: Qualify responsive public and offline documentation
@@ -82,45 +136,39 @@ jobs:
           path: site/offline
           if-no-files-found: error
           retention-days: 14
-      - name: Package exact-source candidate documentation
-        env:
-          SOURCE_REVISION: ${{ github.sha }}
-        run: python scripts/release.py docs --revision "$SOURCE_REVISION" --output build/release/docs
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          archive: true
-          name: candidate-documentation-${{ github.sha }}-${{ github.run_attempt }}
-          path: build/release/docs
-          compression-level: 0
-          if-no-files-found: error
-          retention-days: 14
   media-linux:
-    needs: foundation
-    if: needs.foundation.outputs.native == 'true' || needs.foundation.outputs.adapters == 'true'
+    needs: scope
+    if: needs.scope.outputs.native == 'true' || needs.scope.outputs.adapters == 'true'
     uses: ./.github/workflows/media-source.yml
     with:
       revision: ${{ github.sha }}
       os: ubuntu-24.04
   qualify-linux:
     needs:
+      - scope
       - foundation
+      - docs-build
       - media-linux
-    if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.core == 'true' && needs.media-linux.result == 'success'
+    if: always() && needs.foundation.result == 'success' && needs.docs-build.result == 'success' && needs.scope.outputs.core == 'true' && needs.media-linux.result == 'success'
     uses: ./.github/workflows/native-qualification.yml
     with:
+      reuse-ci-offline-help: true
       revision: ${{ github.sha }}
       os: ubuntu-24.04
-      core: ${{ needs.foundation.outputs.core == 'true' }}
-      cli: ${{ needs.foundation.outputs.cli == 'true' }}
-      native: ${{ needs.foundation.outputs.native == 'true' }}
+      core: ${{ needs.scope.outputs.core == 'true' }}
+      cli: ${{ needs.scope.outputs.cli == 'true' }}
+      native: ${{ needs.scope.outputs.native == 'true' }}
       lane: runtime
   package-linux:
     needs:
+      - scope
       - foundation
+      - docs-build
       - media-linux
-    if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.native == 'true' && needs.media-linux.result == 'success'
+    if: always() && needs.foundation.result == 'success' && needs.docs-build.result == 'success' && needs.scope.outputs.native == 'true' && needs.media-linux.result == 'success'
     uses: ./.github/workflows/native-qualification.yml
     with:
+      reuse-ci-offline-help: true
       revision: ${{ github.sha }}
       os: ubuntu-24.04
       core: true
@@ -128,32 +176,38 @@ jobs:
       native: true
       lane: packages
   media-windows:
-    needs: foundation
-    if: needs.foundation.outputs.native == 'true' || needs.foundation.outputs.adapters == 'true'
+    needs: scope
+    if: needs.scope.outputs.native == 'true' || needs.scope.outputs.adapters == 'true'
     uses: ./.github/workflows/media-source.yml
     with:
       revision: ${{ github.sha }}
       os: windows-2022
   qualify-windows:
     needs:
+      - scope
       - foundation
+      - docs-build
       - media-windows
-    if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.core == 'true' && needs.media-windows.result == 'success'
+    if: always() && needs.foundation.result == 'success' && needs.docs-build.result == 'success' && needs.scope.outputs.core == 'true' && needs.media-windows.result == 'success'
     uses: ./.github/workflows/native-qualification.yml
     with:
+      reuse-ci-offline-help: true
       revision: ${{ github.sha }}
       os: windows-2022
-      core: ${{ needs.foundation.outputs.core == 'true' }}
-      cli: ${{ needs.foundation.outputs.cli == 'true' }}
-      native: ${{ needs.foundation.outputs.native == 'true' }}
+      core: ${{ needs.scope.outputs.core == 'true' }}
+      cli: ${{ needs.scope.outputs.cli == 'true' }}
+      native: ${{ needs.scope.outputs.native == 'true' }}
       lane: runtime
   package-windows:
     needs:
+      - scope
       - foundation
+      - docs-build
       - media-windows
-    if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.native == 'true' && needs.media-windows.result == 'success'
+    if: always() && needs.foundation.result == 'success' && needs.docs-build.result == 'success' && needs.scope.outputs.native == 'true' && needs.media-windows.result == 'success'
     uses: ./.github/workflows/native-qualification.yml
     with:
+      reuse-ci-offline-help: true
       revision: ${{ github.sha }}
       os: windows-2022
       core: true
@@ -162,10 +216,11 @@ jobs:
       lane: packages
   candidate:
     needs:
+      - foundation
       - docs
       - package-linux
       - package-windows
-    if: always() && needs.docs.result == 'success' && needs.package-linux.result == 'success' && needs.package-windows.result == 'success'
+    if: always() && needs.foundation.result == 'success' && needs.docs.result == 'success' && needs.package-linux.result == 'success' && needs.package-windows.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 11
     permissions:
@@ -206,8 +261,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
   core:
-    needs: foundation
-    if: needs.foundation.outputs.core == 'true'
+    needs: [foundation, scope]
+    if: needs.scope.outputs.core == 'true'
     name: core (${{ matrix.os }})
     strategy:
       fail-fast: false
@@ -239,8 +294,8 @@ jobs:
           go vet ./...
           python -m unittest discover -s tests -p '*_test.py'
   core-windows:
-    needs: foundation
-    if: needs.foundation.outputs.core == 'true'
+    needs: [foundation, scope]
+    if: needs.scope.outputs.core == 'true'
     name: core (windows-2022)
     runs-on: windows-2022
     timeout-minutes: 11
@@ -279,9 +334,10 @@ jobs:
           python -m unittest discover -s tests -p '*_test.py'
   adapters:
     needs:
+      - scope
       - foundation
       - media-linux
-    if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.adapters == 'true' && needs.media-linux.result == 'success'
+    if: always() && needs.foundation.result == 'success' && needs.scope.outputs.adapters == 'true' && needs.media-linux.result == 'success'
     name: adapter fixtures
     runs-on: ubuntu-24.04
     timeout-minutes: 11
@@ -342,3 +398,44 @@ jobs:
           python scripts/media-transfer.py restore --stage complete --revision '${{ github.sha }}' build/transfer/media-source.tar.gz
           python scripts/media-tools.py --prepare-only
           go test -v -p 1 -tags integration ./internal/qualification ./internal/backendsetup ./internal/catalog ./internal/artifact ./internal/models ./internal/library ./internal/graph ./internal/app ./internal/backup
+  live-site:
+    if: github.event_name == 'workflow_dispatch' && inputs.site_smoke
+    name: read-only live website
+    runs-on: ubuntu-24.04
+    timeout-minutes: 11
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Check out deployed branch as data only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: gh-pages
+          path: build/deployed
+          persist-credentials: false
+      - run: python scripts/bootstrap-actions.py setup-node --output build/actions/setup-node
+      - uses: ./build/actions/setup-node
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Verify deployed branch against live HTTPS and package links
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          pages_commit=$(git -C build/deployed rev-parse HEAD)
+          python scripts/website.py verify-deployed --site-tree build/deployed --pages-commit "$pages_commit" --output build/live-site/live.json
+      - name: Measure actual live landing layouts
+        run: node scripts/check-live-site-ui.mjs --receipt build/live-site/live.json --output build/live-site/ui --browser /usr/bin/google-chrome
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          archive: true
+          name: live-site-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/live-site
+          if-no-files-found: warn
+          retention-days: 14
