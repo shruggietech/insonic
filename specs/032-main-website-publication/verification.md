@@ -15,3 +15,7 @@ Spec Kit specify, clarify, checklist, plan/research, tasks, blocking analysis an
 ## Pending hosted evidence
 
 Full final-head native/package/renderer CI, complete timing below 660 seconds, optional read-only production content/download/eight-browser proof, and at most two external review rounds remain delivery gates. Production deployment using the new workflow and merge remain owner boundaries.
+
+## Hosted first pass
+
+PR #108 opened at 311528c. Initial read-only smoke verified complete deployed bytes and all five package responses, then rejected hydrated /docs/latest/ because the initial browser assertion accepted only the exported index.html spelling. Both paths select the same page. The checker now fetches and digest-checks the actual directory alias before accepting it; no layout or content check was removed. A deterministic single theme initializer replaces repeated init-script registration. Duplicate native work from the superseded smoke was cancelled; explicit maintenance smoke now leaves full qualification to the independent PR run while retaining foundation/docs.

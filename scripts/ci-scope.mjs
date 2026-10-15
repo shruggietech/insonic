@@ -34,8 +34,13 @@ function changedFiles() {
     return diff.stdout.split('\0').filter(Boolean);
   } catch { return null; }
 }
+export function selectedScope(files, event, siteSmoke) {
+  // An explicit maintenance smoke does not rebuild product packages. Ordinary
+  // dispatches and unavailable PR/push diffs still elect the full qualification.
+  return classify(event === 'workflow_dispatch' && siteSmoke === 'true' ? [] : files);
+}
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const scope = classify(changedFiles());
+  const scope = selectedScope(changedFiles(), process.env.GITHUB_EVENT_NAME, process.env.INSONIC_CI_SITE_SMOKE);
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, Object.entries(scope).map(([key,value])=>`${key}=${value}\n`).join(''));
   process.stdout.write(`${JSON.stringify(scope)}\n`);
 }

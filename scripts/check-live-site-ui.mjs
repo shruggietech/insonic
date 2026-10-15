@@ -28,6 +28,10 @@ export function liveInventory(receipt) {
     selected.set(url.href, item.sha256);
   }
   assert(selected.has('https://insonic.io/'), 'Live landing identity is missing.');
+  // Hydrated navigation uses the directory alias; require the same exported bytes.
+  if (selected.has('https://insonic.io/docs/latest/index.html') && !selected.has('https://insonic.io/docs/latest/')) {
+    selected.set('https://insonic.io/docs/latest/', selected.get('https://insonic.io/docs/latest/index.html'));
+  }
   return selected;
 }
 
@@ -95,6 +99,7 @@ export async function checkLiveSite({ receipt, output, executable = '/usr/bin/go
     const browser = await chromium.connect(server.wsEndpoint(), { timeout: 10000 });
     context = await browser.newContext({ acceptDownloads: false, serviceWorkers: 'block' });
     context.setDefaultTimeout(15000);
+    await context.addInitScript(() => { localStorage.setItem('insonic-theme', matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); });
     await context.routeWebSocket('**', route => { report.blocked_requests++; route.close(); });
     await context.route('**/*', async route => {
       try {
@@ -109,7 +114,6 @@ export async function checkLiveSite({ receipt, output, executable = '/usr/bin/go
       assert(!controller.signal.aborted, 'Live browser aggregate deadline exceeded.');
       await page.setViewportSize({ width, height: 1000 });
       await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
-      await context.addInitScript(theme => { localStorage.setItem('insonic-theme', theme); }, theme);
       await page.goto('https://insonic.io/', { waitUntil: 'networkidle', timeout: Math.min(20000, Math.max(1, 180000 - (Date.now() - started))) });
       await page.evaluate(() => document.fonts.ready);
       const item = { width, theme, image: `${width}-${theme}.png`, passed: false };
@@ -122,7 +126,9 @@ export async function checkLiveSite({ receipt, output, executable = '/usr/bin/go
         assert(!item.readability.contrast_failures.length && !item.readability.target_failures.length, 'Live contrast/target checks failed.');
         item.links = await landingInventory(page, receipt.version);
         const hrefs = new Set(item.links.map(link => link.resolved_href));
-        assert(hrefs.has('https://insonic.io/docs/latest/index.html'), 'Live latest documentation link differs.');
+        const latest = ['https://insonic.io/docs/latest/', 'https://insonic.io/docs/latest/index.html'].find(url => hrefs.has(url) && selected.has(url));
+        assert(latest, 'Live latest documentation link differs.');
+        await fetch(latest);
         for (const pack of receipt.packages ?? []) assert(hrefs.has(pack.url), 'Live package link differs.');
         assert(item.actual_theme === theme, 'Actual theme differs.');
         item.passed = true;

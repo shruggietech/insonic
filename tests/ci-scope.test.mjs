@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classify } from '../scripts/ci-scope.mjs';
+import { classify, selectedScope } from '../scripts/ci-scope.mjs';
 import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 
@@ -18,6 +18,14 @@ test('native/dependency/workflow inputs receive full qualification',()=>{
 test('invalid or unavailable diffs conservatively qualify everything',()=>{
  assert.equal(classify(null).native,true);
  assert.equal(classify(['../../escape']).native,true);
+});
+
+test('only an explicitly elected maintenance smoke avoids duplicate native packages', () => {
+ assert.equal(selectedScope(null, 'workflow_dispatch', 'true').native, false);
+ for (const event of ['push','pull_request','workflow_dispatch']) {
+  assert.equal(selectedScope(null,event,'false').native,true);
+  if(event!=='workflow_dispatch')assert.equal(selectedScope(null,event,'true').native,true);
+ }
 });
 
 test('platform qualification waits only for its own exact same-run source build', () => {

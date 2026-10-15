@@ -14,6 +14,10 @@ test('live browser inventory only admits bounded exact production URLs and SHA25
   }
   assert.throws(() => liveInventory({ paths: [item, item] }));
   assert.throws(() => liveInventory({ paths: [] }));
+  const latest = {url:'https://insonic.io/docs/latest/index.html',sha256:'b'.repeat(64)};
+  const aliases = liveInventory({paths:[item,latest]});
+  assert.equal(aliases.get('https://insonic.io/docs/latest/'),latest.sha256);
+  assert.equal(aliases.has('https://insonic.io/docs/v0.0.0/'),false);
 });
 
 test('a stalled graceful close kills only the retained owned browser server', async () => {

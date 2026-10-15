@@ -32,6 +32,8 @@ jobs:
       - name: Classify affected components with runner Node
         id: scope
         run: node scripts/ci-scope.mjs
+        env:
+          INSONIC_CI_SITE_SMOKE: ${{ github.event_name == 'workflow_dispatch' && inputs.site_smoke }}
   foundation:
     name: foundation
     runs-on: ubuntu-latest
