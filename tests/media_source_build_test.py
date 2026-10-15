@@ -115,7 +115,7 @@ class OwnedSourceIntegrity(unittest.TestCase):
                                      for flag in configure.args[0]))
                 self.assertEqual(compilation.args, (['make', '-j4'], target, 360))
                 self.assertEqual(compilation.kwargs, {'shell': shell})
-                self.assertLess(compilation.args[2], 600)
+                self.assertLess(compilation.args[2], 660)
                 self.assertEqual(install.args, (['make', 'install'], target, 60))
                 self.assertEqual(install.kwargs, {'shell': shell})
 
@@ -127,7 +127,7 @@ class OwnedSourceIntegrity(unittest.TestCase):
                 compilation = next(call for call in run.call_args_list if call.args[0][0] == 'ninja')
                 self.assertEqual(compilation.args[0][-2:], ['-j', expected])
                 self.assertEqual(compilation.args[2], 240)
-                self.assertLess(compilation.args[2], 600)
+                self.assertLess(compilation.args[2], 660)
 
     def test_source_network_retry_keeps_pin_integrity_and_bounded_timeouts(self):
         with tempfile.TemporaryDirectory() as temporary:

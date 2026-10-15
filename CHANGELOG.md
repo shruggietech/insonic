@@ -31,6 +31,9 @@ All notable changes to this project will be documented here. The format follows 
 - Keep desktop grid content aligned to the start of its viewport so tall windows do not stretch setup and form rows into blank gaps.
 - Add version-matched unsigned Windows installation guidance and repeatable headless application/native installer capture tooling with explicit renderer, fixture and exact-source receipts.
 
+- Restore deterministic real-backend lease-fencing qualification and allow eleven minutes for active CI/release jobs. Preserve operation-specific timeouts and all security/integrity gates.
+- Add manifest-elected current documentation routes and explicit archives, with shared mobile disclosures, readable reference pages and keyboard/reflow improvements across public and offline help. Link the README company attribution.
+
 ### Decisions
 
 
@@ -53,6 +56,8 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-13: Author Windows Installer tables/cabinets through native Windows APIs, retain shared runtime bytes for Desktop-only and omit global PATH/prerequisite acquisition. Model MSI separately from the four archive receipts; maintain strict payload/source/help/license identity and transactional ownership.
 - 2026-10-13: Retire native installer UI probing on the owner host after an isolation/cleanup failure affected unrelated windows. Local captures use verified headless Chromium and real shared runtime fixtures; native installer UI/lifecycle run only on disposable CI runners. Cleanup targets owned process trees and never desktop-wide windows. Launcher label proposals require explicit owner signoff before shipping.
 - 2026-10-13: Separate MSI qualification from independently verified same-run archive assembly. Use exact owned native API workers with checked logging and bounded diagnostics, retain unchecked shortcut elections through upgrades, and publish screenshots only after clean-source validation and verified fixture/browser cleanup.
+
+- 2026-10-14: Constitution 3.0.1 applies the owner-approved additional minute to the active CI policy (660 seconds). Test real lease authority against guarded durable fixture states rather than wall-clock sleeps; production lease duration remains unchanged. Render full current-documentation aliases statically so no-script readers, fragments and offline files retain content, while explicit version URLs preserve historical identity. Use native disclosures and governed semantic styles for shared documentation navigation; automated standards evidence states its assistive-technology limits.
 
 ## [1.0.1] - 2026-10-11
 

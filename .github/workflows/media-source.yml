@@ -15,7 +15,7 @@ permissions:
 jobs:
   probe:
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 10
+    timeout-minutes: 11
     outputs:
       complete: ${{ steps.ready.outputs.ready }}
     env:
@@ -120,7 +120,7 @@ jobs:
     needs: probe
     if: needs.probe.outputs.complete != 'true'
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 10
+    timeout-minutes: 11
     strategy:
       fail-fast: false
       matrix:
@@ -193,7 +193,7 @@ jobs:
       - groups
     if: needs.probe.outputs.complete != 'true'
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 10
+    timeout-minutes: 11
     env:
       SOURCE_REVISION: ${{ inputs.revision }}
     steps:
@@ -273,7 +273,7 @@ jobs:
       - formats
     if: needs.probe.outputs.complete != 'true' && inputs.os == 'windows-2022'
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 10
+    timeout-minutes: 11
     env:
       SOURCE_REVISION: ${{ inputs.revision }}
     steps:
@@ -340,7 +340,7 @@ jobs:
       - codec
     if: always() && !cancelled() && needs.probe.result == 'success' && needs.probe.outputs.complete != 'true' && needs.formats.result == 'success' && (inputs.os != 'windows-2022' || needs.codec.result == 'success')
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 10
+    timeout-minutes: 11
     env:
       SOURCE_REVISION: ${{ inputs.revision }}
     steps:

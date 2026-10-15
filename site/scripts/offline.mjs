@@ -2,7 +2,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { root, getManifest } from '../lib/docs.mjs';
-import { walk } from './postbuild.mjs';
+import { walk, relativeTarget } from './postbuild.mjs';
 
 export async function copyOfflineFiles(out, offline) {
   const files = await walk(out);
@@ -24,7 +24,20 @@ export async function buildOffline() {
   await fs.rm(offline, { recursive: true, force: true });
   await copyOfflineFiles(out, offline);
   const version = getManifest().latest;
-  await fs.writeFile(path.join(offline, 'index.html'), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=docs/index.html"><title>insonic ${version} documentation</title></head><body><main><h1>insonic documentation</h1><a href="docs/index.html">Open versioned documentation</a></main></body></html>\n`, 'utf8');
+  // The entry file is the full current article, not a timed redirect. Rebase
+  // the already-portable docs/index.html links one directory upwards.
+  const sourceIndex = path.join(out, 'docs', 'index.html');
+  const entryIndex = path.join(offline, 'index.html');
+  let index = await fs.readFile(sourceIndex, 'utf8');
+  index = index.replace(/\b(href|src|srcSet|srcset)="([^" ]*)"/g, (attribute, name, value) => {
+    if (!value || /^(?:[a-z]+:|\/\/|#)/i.test(value)) return attribute;
+    const [, pathname, query = '', fragment = ''] = value.match(/^([^?#]*)(\?[^#]*)?(#.*)?$/);
+    const target = path.resolve(path.dirname(sourceIndex), pathname);
+    const exportedPath = path.relative(out, target).split(path.sep).join('/');
+    if (exportedPath.startsWith('../')) throw new Error('Offline entry link leaves the export.');
+    return name + '="' + relativeTarget(entryIndex, '/' + exportedPath + query + fragment, offline) + '"';
+  });
+  await fs.writeFile(entryIndex, index, 'utf8');
   await fs.writeFile(path.join(offline, 'offline-manifest.json'), `${JSON.stringify({ version, entrypoint: 'docs/index.html', public_landing_included: false }, null, 2)}\n`, 'utf8');
   await fs.copyFile(path.join(out, 'documentation-build.json'), path.join(offline, 'documentation-build.json'));
   return offline;

@@ -29,7 +29,7 @@ def run_child(label, arguments):
     # Keep the existing runtime breakaway election and hidden tree ownership.
     with ProcessTree(arguments, cwd=ROOT, env=dict(os.environ), allow_detached=True) as tree:
         try:
-            output, error = tree.process.communicate(timeout=600)
+            output, error = tree.process.communicate(timeout=660)
         except subprocess.TimeoutExpired:
             tree.kill()
             output, error = tree.process.communicate(timeout=5)

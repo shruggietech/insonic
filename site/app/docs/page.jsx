@@ -1,23 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-import { getManifest, versionPath } from '../../lib/docs.mjs';
+import { LatestDocument, latestDocumentMetadata } from '../components/LatestDocumentation.jsx';
 
-export const metadata = { title: 'Documentation versions' };
+export function generateMetadata() { return latestDocumentMetadata(); }
 
-export default function DocumentationIndex() {
-  const manifest = getManifest();
-  return (
-    <main id="main" className="landing">
-      <p className="eyebrow">Documentation</p>
-      <h1>Versioned by release</h1>
-      <p className="lead">Choose matching versioned documentation. Prepared release candidates and specification baselines are identified separately from published releases.</p>
-      <ul className="version-list">
-        {manifest.versions.map((entry) => (
-          <li key={entry.version}>
-            <h2><a href={versionPath(entry.version, entry.pages[0].slug)}>v{entry.version}</a></h2>
-            <p>{entry.status === 'specification' ? 'System specification; application not yet released.' : entry.status === 'candidate' ? 'Prepared release candidate; official product downloads have not been published.' : 'Release documentation.'} {entry.version === manifest.latest ? 'Latest documentation.' : 'Archived version.'}</p>
-          </li>
-        ))}
-      </ul>
-    </main>
-  );
-}
+export default function DocumentationIndex() { return LatestDocument({}); }

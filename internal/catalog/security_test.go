@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"math"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -57,23 +58,70 @@ func securitySuite(t *testing.T, s *Store) {
 		}
 	})
 	t.Run("lease takeover fences old owner", func(t *testing.T) {
-		first, e := s.ClaimLease(ctx, "worker", contracts.ID(), 100*time.Millisecond)
+		readLease := func(role string) Lease {
+			t.Helper()
+			got := Lease{Role: role}
+			if e := s.db.QueryRowContext(ctx, s.query("SELECT owner_id,generation,lease_until FROM workspace_lease WHERE workspace_id=? AND role=?"), s.workspace, role).Scan(&got.OwnerID, &got.Generation, &got.Until); e != nil {
+				t.Fatal(e)
+			}
+			return got
+		}
+		setDeadline := func(claim Lease, until int64) Lease {
+			t.Helper()
+			// Control only this fixture's expiry in the real durable backend.
+			// Production claims and renewals retain their actual clocks/TTL limits.
+			r, e := s.db.ExecContext(ctx, s.query("UPDATE workspace_lease SET lease_until=? WHERE workspace_id=? AND role=? AND owner_id=? AND generation=? AND lease_until=?"), until, s.workspace, claim.Role, claim.OwnerID, claim.Generation, claim.Until)
+			if e != nil {
+				t.Fatal(e)
+			}
+			if changed, e := r.RowsAffected(); e != nil || changed != 1 {
+				t.Fatalf("fixture lease update changed %d rows: %v", changed, e)
+			}
+			claim.Until = until
+			if got := readLease(claim.Role); got != claim {
+				t.Fatalf("fixture lease differs: got %+v, want %+v", got, claim)
+			}
+			return claim
+		}
+		requireConflict := func(e error) {
+			t.Helper()
+			if typed, ok := e.(*contracts.Error); !ok || typed.Code != "conflict" {
+				t.Fatalf("want lease conflict, got %v", e)
+			}
+		}
+		first, e := s.ClaimLease(ctx, "worker", contracts.ID(), time.Minute)
 		if e != nil {
 			t.Fatal(e)
 		}
-		if _, e = s.ClaimLease(ctx, "worker", contracts.ID(), time.Second); e == nil {
-			t.Fatal("live owner stolen")
+		// A 100ms real-time fixture could expire during durable I/O on busy CI.
+		// Pin live authority explicitly, then expire it deliberately below.
+		first = setDeadline(first, math.MaxInt64)
+		_, e = s.ClaimLease(ctx, first.Role, contracts.ID(), time.Minute)
+		requireConflict(e)
+		if got := readLease(first.Role); got != first {
+			t.Fatalf("rejected claim changed live authority: %+v", got)
 		}
-		time.Sleep(150 * time.Millisecond)
-		next, e := s.ClaimLease(ctx, "worker", contracts.ID(), time.Second)
-		if e != nil || next.Generation != first.Generation+1 {
+		first = setDeadline(first, 0)
+		requireConflict(s.RenewLease(ctx, first, time.Minute))
+		next, e := s.ClaimLease(ctx, first.Role, contracts.ID(), time.Minute)
+		if e != nil || next.Generation != first.Generation+1 || next.OwnerID == first.OwnerID {
 			t.Fatalf("takeover %+v %v", next, e)
 		}
-		if e = s.RenewLease(ctx, first, time.Second); e == nil {
-			t.Fatal("obsolete lease renewed")
+		next = setDeadline(next, math.MaxInt64)
+		requireConflict(s.RenewLease(ctx, first, time.Minute))
+		// Match the new owner so this rejection proves generation fencing alone.
+		staleGeneration := next
+		staleGeneration.Generation = first.Generation
+		requireConflict(s.RenewLease(ctx, staleGeneration, time.Minute))
+		if got := readLease(next.Role); got != next {
+			t.Fatalf("stale renewal changed current authority: %+v", got)
 		}
-		if e = s.RenewLease(ctx, next, time.Second); e != nil {
+		if e = s.RenewLease(ctx, next, time.Minute); e != nil {
 			t.Fatal(e)
+		}
+		renewed := readLease(next.Role)
+		if renewed.OwnerID != next.OwnerID || renewed.Generation != next.Generation || renewed.Until <= 0 || renewed.Until == next.Until {
+			t.Fatalf("valid renewal did not update current lease: %+v", renewed)
 		}
 	})
 	t.Run("restore validation rolls back", func(t *testing.T) {

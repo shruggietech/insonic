@@ -115,7 +115,7 @@ test('cold source dependency formats and FFmpeg transfer independently verified 
  assert.ok(ffmpeg.includes('media-transfer.py pack --stage complete --revision "$SOURCE_REVISION"'));
  assert.ok(media.jobs.ffmpeg.steps.some(step => step.with?.name === 'media-formats-${{ inputs.os }}-${{ github.run_attempt }}'));
  for (const job of Object.values(media.jobs)) {
-  assert.equal(job['timeout-minutes'], 10);
+  assert.equal(job['timeout-minutes'], 11);
   assert.equal(job.env.SOURCE_REVISION, '${{ inputs.revision }}');
   assert.equal(job.steps.find(step => step.uses?.startsWith('actions/checkout@')).with.ref, '${{ inputs.revision }}');
  }
@@ -158,4 +158,28 @@ test('full workflow attempts preserve old artifacts and consume only their match
    }
   }
  }
+});
+
+test('active CI and release jobs retain the owner-approved eleven-minute ceiling', () => {
+ for (const name of ['ci', 'native-qualification', 'media-source', 'release']) {
+  const workflow = parse(readFileSync(new URL(`../.github/workflows/${name}.yml`, import.meta.url), 'utf8'));
+  for (const [id, job] of Object.entries(workflow.jobs)) {
+   if (job.uses) continue; // Reusable calls inherit their implementation's bound.
+   assert.equal(job['timeout-minutes'], 11, `${name}/${id}`);
+  }
+ }
+});
+
+test('documentation CI qualifies and retains isolated public/offline browser evidence', () => {
+ const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+ const steps = ci.jobs.docs.steps;
+ assert.ok(steps.some(step => step.run === 'npm ci --ignore-scripts'));
+ const build = steps.findIndex(step => step.run === 'npm --prefix site run build');
+ const browser = steps.findIndex(step => step.run?.includes('node scripts/check-docs-ui.mjs'));
+ assert.ok(browser > build, 'browser qualification must inspect complete exports');
+ assert.ok(steps[browser].run.includes('--browser /usr/bin/google-chrome'));
+ const evidence = steps.find(step => step.with?.path === 'build/s028-docs-ui');
+ assert.equal(evidence?.if, 'always()');
+ assert.ok(evidence?.with.name.endsWith('-${{ github.sha }}-${{ github.run_attempt }}'));
+ assert.equal(evidence?.with['retention-days'], 14);
 });
