@@ -1,0 +1,36 @@
+# Foundation verification
+
+**Date**: 2026-10-04\
+**Status**: Local foundation validated; one upstream semantic proof failure
+
+**Local tooling runtime**: Node.js 26.5.0 on Windows
+
+## Local evidence
+
+| Check | Result |
+| --- | --- |
+| Root locked dependency installation | Pass with lifecycle scripts disabled |
+| Repository integrity | Pass: UTF-8 without BOM, corruption/conflict checks, Markdown structure, top-down Mermaid, links, navigation, version alignment and offline brand inventory |
+| Focused maintainer tests | 25 pass: six updater tests, seven checker tests and twelve mocked GitHub setup tests; actual hosted calls remain unexecuted |
+| Spec Kit integration | Official Specify CLI 1.0.8 initialized Codex skills; all ten integration manifests match their files |
+| GitHub YAML | Five workflow/template/config files parsed successfully |
+| Static documentation | 24 exported routes with internal links and anchors checked |
+| Browser inspection | All 16 specification pages and 17 diagrams; desktop, 390px and 320px in both themes; no page errors or horizontal overflow |
+| Offline help | Direct `file://` navigation through architecture, development and bundled CONTRIBUTING passed |
+| Consuming site lint | Pinned upstream ESLint and stylelint passed |
+| Site dependency audit | Zero reported vulnerabilities at the verification date |
+| Public scope review | Documentation, planning and setup files contain no private source-directory mentions or case-specific material |
+
+Node processes, the preview server and research tooling used hidden noninteractive launch with redirected I/O on Windows. No visible console was required. Site assets are local; exported documentation needs no production Node server or CDN.
+
+The manual brand updater successfully imported the current formal kit and performed a read-only freshness comparison. All 574 integrated files retain exact upstream bytes. Pinned glyph validation passed all 15 checks. Full semantic verification completed 36 checks with 35 passes, one failure and zero skips. The remaining delivered proof hash mismatch is documented in [brand conformance evidence](brand-conformance.md); full semantic conformance is not claimed.
+
+## Prepared and unverified behavior
+
+The GitHub bootstrap is exercised with isolated mocks. Repository settings, issue/milestone creation and Project fields are prepared for the future hosted repository; no GitHub setup was executed. Hosted permissions, actual CI and branch deletion need their first real run after publication. CI jobs each have a ten-minute timeout; local checks do not establish hosted timing.
+
+No native application, installer, media processing, model worker, credential backend, database pairing or cross-platform IPC was executed. These are application-slice acceptance items starting with S001. Cueson's current zero-cue limitation remains an explicit S004 compatibility item. No Git repository, remote, first push, release or upstream issue was created.
+
+## Handoff
+
+The owner can review the [v0.0.0 specification](../../docs/v0.0.0/index.md), [staged delivery](../../docs/v0.0.0/roadmap.md) and [repository README](../../README.md). Proceed with S001 to prove the proposed Go/Wails and native dependency contracts before implementing the media pipeline.

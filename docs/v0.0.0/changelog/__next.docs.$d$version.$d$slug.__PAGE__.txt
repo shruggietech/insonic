@@ -7,7 +7,7 @@
 29:"MetadataBoundary"
 2a:I[75049,["$2"],"$29"]
 2b:"$Sreact.suspense"
-:HL["/_next/static/chunks/2d2kicukgq1vb.css","style"]
+:HL["/_next/static/chunks/2uagwtcyuh2xm.css","style"]
 :HL["/brand/theme.css","style"]
 :HL["/brand/fonts/fonts.css","style"]
 :HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","image"]
@@ -19,7 +19,7 @@ e:[["children",{"s":"__PAGE__","h":160,"d":{"r":["$","$1","c",{"children":[["$",
 c:[["children",{"s":{"n":"slug","t":"d","k":"changelog","s":["references"]},"h":65632,"d":{"r":["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}]]}],"p":"$@d","v":"$b","s":"$6"},"c":"$Qe"}]]
 9:[["children",{"s":{"n":"version","t":"d","k":"v0.0.0","s":["latest","versions"]},"h":196704,"d":{"r":["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}]]}],"p":"$@a","v":"$b","s":"$6"},"c":"$Qc"}]]
 7:[["children",{"s":"docs","h":131168,"d":{"r":["$","$1","c",{"children":[null,[["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}],["$","script",null,{"src":"/docs-runtime.js","defer":true}]]]}],"p":"$@8","v":null,"s":"$6"},"c":"$Q9"}]]
-0:{"t":{"t":{"s":"","h":131152,"d":{"r":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2d2kicukgq1vb.css","precedence":"next"}],["$","script","script-0",{"src":"/_next/static/chunks/41f0ssqj7go1u.js","async":true}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","meta",null,{"name":"color-scheme","content":"light dark"}],["$","script",null,{"src":"/theme-init.js"}],["$","link",null,{"rel":"stylesheet","href":"/brand/theme.css"}],["$","link",null,{"rel":"stylesheet","href":"/brand/fonts/fonts.css"}],["$","link",null,{"rel":"icon","href":"/brand/icons/web/favicon.ico"}],["$","link",null,{"rel":"apple-touch-icon","href":"/brand/icons/web/favicon-180x180.png"}]]}],["$","body",null,{"children":[["$","a",null,{"className":"skip-link","href":"#main","children":"Skip to content"}],["$","header",null,{"className":"site-header","children":[["$","a",null,{"className":"brand-link","href":"/","aria-label":"insonic home","children":[["$","img",null,{"className":"theme-logo-light","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","alt":"insonic","width":"240","height":"64"}],["$","img",null,{"className":"theme-logo-dark","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","alt":"insonic","width":"240","height":"64"}]]}],["$","nav",null,{"aria-label":"Main navigation","children":[["$","a",null,{"href":"/docs/latest/","children":"Documentation"}],["$","a",null,{"href":"https://github.com/shruggietech/insonic","children":"Repository"}],["$","button",null,{"id":"theme-toggle","className":"theme-toggle","type":"button","role":"switch","aria-label":"Dark mode","aria-checked":"false","title":"Switch to dark theme","hidden":true,"children":[["$","svg",null,{"className":"theme-icon-moon","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","aria-hidden":"true","children":["$","path",null,{"d":"M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"}]}],["$","svg",null,{"className":"theme-icon-sun","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","aria-hidden":"true","children":[["$","circle",null,{"cx":"12","cy":"12","r":"4"}],["$","path",null,{"d":"M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"}]]}]]}]]}]]}],["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}],"notFound":[["$","main",null,{"id":"main","className":"landing","tabIndex":-1,"children":[["$","h1",null,{"children":"Page not found"}],["$","p",null,{"children":"This documentation page is unavailable."}],["$","p",null,{"children":["$","a",null,{"href":"/docs/latest/","children":"Open current documentation"}]}],["$","p",null,{"children":["$","a",null,{"href":"/docs/versions/","children":"Browse documentation versions"}]}]]}],[]]}],["$","footer",null,{"className":"site-footer","children":[["$","p",null,{"children":["A ",["$","a",null,{"href":"https://shruggie.tech/","children":"ShruggieTech"}]," project."]}],["$","p",null,{"children":"Apache 2.0. Documentation versions are published with their corresponding releases."}]]}],["$","script",null,{"src":"/site-runtime.js","defer":true}]]}]]}]]}],"p":"$@5","v":null,"s":"$6"},"c":"$Q7"},"h":{"r":["$","$1","h",{"children":[null,["$","$L28",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","$L2a",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$2b",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Changelog (v0.0.0) | insonic"}],["$","meta","1",{"name":"description","content":"Voice archives, speaker models, and connected knowledge."}]]}]}],null]}],null]}],"p":"$@2c","v":null,"s":"$6"}},"a":"$@2d","u":"$@2e","b":"2fX-LAnToK96KUl_Gl-yT"}
+0:{"t":{"t":{"s":"","h":131152,"d":{"r":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2uagwtcyuh2xm.css","precedence":"next"}],["$","script","script-0",{"src":"/_next/static/chunks/41f0ssqj7go1u.js","async":true}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","meta",null,{"name":"color-scheme","content":"light dark"}],["$","script",null,{"src":"/theme-init.js"}],["$","link",null,{"rel":"stylesheet","href":"/brand/theme.css"}],["$","link",null,{"rel":"stylesheet","href":"/brand/fonts/fonts.css"}],["$","link",null,{"rel":"icon","href":"/brand/icons/web/favicon.ico"}],["$","link",null,{"rel":"apple-touch-icon","href":"/brand/icons/web/favicon-180x180.png"}]]}],["$","body",null,{"children":[["$","a",null,{"className":"skip-link","href":"#main","children":"Skip to content"}],["$","header",null,{"className":"site-header","children":[["$","a",null,{"className":"brand-link","href":"/","aria-label":"insonic home","children":[["$","img",null,{"className":"theme-logo-light","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","alt":"insonic","width":"240","height":"64"}],["$","img",null,{"className":"theme-logo-dark","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","alt":"insonic","width":"240","height":"64"}]]}],["$","nav",null,{"aria-label":"Main navigation","children":[["$","a",null,{"href":"/docs/latest/","children":"Documentation"}],["$","a",null,{"href":"https://github.com/shruggietech/insonic","children":"Repository"}],["$","button",null,{"id":"theme-toggle","className":"theme-toggle","type":"button","role":"switch","aria-label":"Dark mode","aria-checked":"false","title":"Switch to dark theme","hidden":true,"children":[["$","svg",null,{"className":"theme-icon-moon","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","aria-hidden":"true","children":["$","path",null,{"d":"M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"}]}],["$","svg",null,{"className":"theme-icon-sun","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","aria-hidden":"true","children":[["$","circle",null,{"cx":"12","cy":"12","r":"4"}],["$","path",null,{"d":"M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"}]]}]]}]]}]]}],["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}],"notFound":[["$","main",null,{"id":"main","className":"landing","tabIndex":-1,"children":[["$","h1",null,{"children":"Page not found"}],["$","p",null,{"children":"This documentation page is unavailable."}],["$","p",null,{"children":["$","a",null,{"href":"/docs/latest/","children":"Open current documentation"}]}],["$","p",null,{"children":["$","a",null,{"href":"/docs/versions/","children":"Browse documentation versions"}]}]]}],[]]}],["$","footer",null,{"className":"site-footer","children":[["$","p",null,{"children":["A ",["$","a",null,{"href":"https://shruggie.tech/","children":"ShruggieTech"}]," project."]}],["$","p",null,{"children":"Apache 2.0. Documentation versions are published with their corresponding releases."}]]}],["$","script",null,{"src":"/site-runtime.js","defer":true}]]}]]}]]}],"p":"$@5","v":null,"s":"$6"},"c":"$Q7"},"h":{"r":["$","$1","h",{"children":[null,["$","$L28",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","$L2a",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$2b",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Changelog (v0.0.0) | insonic"}],["$","meta","1",{"name":"description","content":"Voice archives, speaker models, and connected knowledge."}]]}]}],null]}],null]}],"p":"$@2c","v":null,"s":"$6"}},"a":"$@2d","u":"$@2e","b":"CaYaiDoeMSd7vz7CIF4DL"}
 31:I[75049,["$2"],"OutletBoundary"]
 f:["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisions"}]
 10:["$","li","ingestion",{"children":["$","a",null,{"href":"/docs/v0.0.0/ingestion/","children":"Import, metadata and dates"}]}]
@@ -42,9 +42,35 @@ f:["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisi
 21:["$","li","glossary",{"children":["$","a",null,{"href":"/docs/v0.0.0/glossary/","children":"Glossary"}]}]
 22:["$","li","changelog",{"children":["$","a",null,{"href":"/docs/v0.0.0/changelog/","aria-current":"page","children":"Changelog"}]}]
 23:["$","aside",null,{"className":"table-of-contents","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"1200","children":[["$","summary",null,{"children":"On this page"}],["$","nav",null,{"aria-label":"On this page","children":["$","ul",null,{"children":[["$","li","unreleased",{"children":["$","a",null,{"href":"#unreleased","children":"[Unreleased]"}]}],["$","li","101---2026-10-15",{"children":["$","a",null,{"href":"#101---2026-10-15","children":"[1.0.1] - 2026-10-15"}]}],["$","li","100---2026-10-11",{"children":["$","a",null,{"href":"#100---2026-10-11","children":"[1.0.0] - 2026-10-11"}]}],["$","li","decisions-2026-10-08",{"children":["$","a",null,{"href":"#decisions-2026-10-08","children":"Decisions (2026-10-08)"}]}],["$","li","decisions-2026-10-09",{"children":["$","a",null,{"href":"#decisions-2026-10-09","children":"Decisions (2026-10-09)"}]}]]}]}]]}]}]
-2f:Tbad7,<h1 id="changelog">Changelog</h1>
+2f:Tc648,<h1 id="changelog">Changelog</h1>
 <p>All notable changes to this project will be documented here. The format follows <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>, and releases use <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased"><a href="https://github.com/shruggietech/insonic/compare/v1.0.1...HEAD">Unreleased</a></h2>
+<h3 id="added">Added</h3>
+<ul>
+<li>Read-only public release and documentation verification compares the selected published inventory and original documentation with live pages, schemas, aliases and referenced resources, then rechecks the elected Pages deployment identity.</li>
+</ul>
+<h3 id="fixed">Fixed</h3>
+<ul>
+<li>
+<p>Landing-page downloads separate Windows MSI installation, portable Windows ZIPs and Linux tar.gz choices with explicit client/format labels, accurate platform guidance and spaced subordinate actions.</p>
+</li>
+<li>
+<p>Go and Node setup actions are acquired in bounded, digest-verified job steps before normal local action execution, preserving their pinned code, setup inputs and cache post hooks. Historical candidates use bootstrap tooling from the exact defining workflow revision.</p>
+</li>
+<li>
+<p>Hidden native WebView qualification waits for actual select options and committed React state, yielding UI actions through event-loop message turns instead of fixed timer sleeps. The existing 80/90-second watchdogs and every native assertion remain mandatory.</p>
+</li>
+<li>
+<p>Release publication accepts documented main-workflow path forms and can supersede verified completed older release-workflow attempts for the same source while retaining every required CI/security gate and immutable tag/artifact checks.</p>
+</li>
+</ul>
+<h3 id="decisions">Decisions</h3>
+<ul>
+<li>2026-10-15: Recover interrupted publication through a reviewed trusted-main verifier correction rather than deleting check history, changing immutable v1.0.1 source or bypassing failed unrelated checks. Older release attempts require independently verified repository, main branch, workflow, source, suite and terminal-run identity.</li>
+<li>2026-10-15: Repair the failed main-branch Windows package qualification in its UI driver after verifying the pinned loader clears browser environment overrides. Preserve foreground-free execution, ordinary application browser policy, all package/installer acceptance and the 660-second CI budget; do not turn a failed run green by skipping or extending its checks.</li>
+<li>2026-10-15: Move only Go/Node action acquisition out of runner preparation into a three-attempt, 60-second digest-locked bootstrap. Preserve upstream action/cache execution and exact historical-source qualification. Verify live documentation after exact Pages promotion using original published bytes; report public binary metadata proof separately from downloaded documentation content proof.</li>
+<li>2026-10-15: Verify landing choices in both publication states from the same product component, retaining candidate truth and all five official package destinations. Extend the isolated hosted-Linux browser verifier for full-page captures, target geometry, reflow and intercepted native link activation; do not launch an owner-desktop browser or claim these checks certify assistive technology.</li>
+</ul>
 <h2 id="101---2026-10-15"><a href="https://github.com/shruggietech/insonic/compare/v1.0.0...v1.0.1">1.0.1</a> - 2026-10-15</h2>
 <ul>
 <li>
@@ -132,11 +158,11 @@ f:["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisi
 <p>Finalize the 1.0.1 release cut, correct historical release labels and require publication-target site, diagram and browser qualification before documentation archival.</p>
 </li>
 </ul>
-<h3 id="fixed">Fixed</h3>
+<h3 id="fixed-1">Fixed</h3>
 <ul>
 <li>Read every page of exact-source GitHub checks before publication, retaining required checks, external failure/pending rejection and verified current-workflow suite exclusion. Reject incomplete, duplicate or changing inventories before release writes.</li>
 </ul>
-<h3 id="decisions">Decisions</h3>
+<h3 id="decisions-1">Decisions</h3>
 <ul>
 <li>
 <p>2026-10-11: Correct the publication verifier's first-page limit after complete qualification and launch together exceeded 100 checks. Keep the qualified immutable v1.0.0 source/tag unchanged and execute the corrected verifier from reviewed protected-main tooling against that ancestor.</p>
@@ -199,7 +225,7 @@ f:["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisi
 <li>Current insonic workspace/runtime envelopes and master JSON contracts identify version 1.0.0. The preserved 0.0.0 tree remains a specification baseline, not a deployed product data migration. Cueson transcript versions and catalog schema revisions retain their separate compatibility rules.</li>
 <li>Native packages have no configured publisher signing identity or notarization. macOS ARM64 retains platform-required ad-hoc loader signatures. Required qualification does not establish acoustic prediction or speaker-identification accuracy.</li>
 </ul>
-<h3 id="decisions-1">Decisions</h3>
+<h3 id="decisions-2">Decisions</h3>
 <ul>
 <li>
 <p>2026-10-09: Constitution 2.2.1 removes a hypothetical pre-v1 bulk audio-migration obligation where no deployed data requires it. Explicit replacement, normal catalog/schema evolution and transcript-version interoperability retain their independent integrity contracts.</p>
@@ -319,7 +345,7 @@ f:["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisi
 <li>Add verified original-release promotion to the existing <code>insonic.io</code> GitHub Pages source, with read-only preflight, nonforced parented ref updates and exact-commit build completion. Retain separately configured generic hosting.</li>
 <li>Include the processing worker in both native package inventories and qualify connected Windows CPU journeys from an elected extracted archive with package-only companion resolution.</li>
 </ul>
-<h3 id="added">Added</h3>
+<h3 id="added-1">Added</h3>
 <ul>
 <li>
 <p>Unpublished 1.0.0 candidate preparation, immutable baseline routes, a connected import/process/enrollment/matching/query/recovery harness and read-only six-variant exact-source CI collection.</p>
@@ -467,7 +493,7 @@ f:["$","a",null,{"href":"/docs/v0.0.0/technology/","children":"Technology decisi
 <li>Load a small shared theme/tab script and confine the Mermaid runtime to documentation routes.</li>
 <li>Keep specification status in the documentation index, replace generic landing copy with concrete outcomes, and remove conversation-specific instructions from public prose.</li>
 </ul>
-<h3 id="fixed-1">Fixed</h3>
+<h3 id="fixed-2">Fixed</h3>
 <ul>
 <li>
 <p>Preserve accepted speaker-dataset retries after evidence invalidation, enforce inline hosted model/checkpoint outputs, send declared hosted cancellation after adapter deadlines and use one complete-corpus reference limit. Retry elected playback seeks when native decoder data becomes ready without rewinding subsequent playback.</p>

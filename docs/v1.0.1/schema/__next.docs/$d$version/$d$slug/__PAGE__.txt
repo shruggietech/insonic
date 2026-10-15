@@ -1,0 +1,441 @@
+1:"$Sreact.fragment"
+2:"/_next/static/chunks/41f0ssqj7go1u.js"
+3:I[36064,["$2"],"default"]
+4:I[81497,["$2"],"default"]
+2a:"ViewportBoundary"
+2b:I[75049,["$2"],"$2a"]
+2c:"MetadataBoundary"
+2d:I[75049,["$2"],"$2c"]
+2e:"$Sreact.suspense"
+:HL["/_next/static/chunks/2uagwtcyuh2xm.css","style"]
+:HL["/brand/theme.css","style"]
+:HL["/brand/fonts/fonts.css","style"]
+:HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","image"]
+:HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","image"]
+6:X
+b:X
+b:C
+e:[["children",{"s":"__PAGE__","h":160,"d":{"r":["$","$1","c",{"children":[["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"className":"docs-sidebar","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"960","children":[["$","summary",null,{"children":"Documentation"}],["$","nav",null,{"aria-label":"Documentation topics v1.0.1","children":[["$","p",null,{"className":"version-label","children":["v","1.0.1"," · ","released"]}],["$","ul",null,{"children":[[["$","li","index",{"children":["$","a",null,{"href":"/docs/v1.0.1/index/","children":"Start here"}]}],["$","li","cli",{"children":["$","a",null,{"href":"/docs/v1.0.1/cli/","children":"CLI invocation and results"}]}],["$","li","setup",{"children":["$","a",null,{"href":"/docs/v1.0.1/setup/","children":"Optional first-run setup"}]}],["$","li","product",{"children":["$","a",null,{"href":"/docs/v1.0.1/product/","children":"Product and requirements"}]}],"$Lf","$L10","$L11","$L12","$L13","$L14","$L15","$L16","$L17","$L18","$L19","$L1a","$L1b","$L1c","$L1d","$L1e","$L1f","$L20","$L21","$L22","$L23","$L24","$L25"],null]}]]}]]}]}],"$L26","$L27"]}],null,"$L28"]}],"p":"$@29","v":null,"s":"$6"}}]]
+c:[["children",{"s":{"n":"slug","t":"d","k":"schema","s":["references"]},"h":65632,"d":{"r":["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}]]}],"p":"$@d","v":"$b","s":"$6"},"c":"$Qe"}]]
+9:[["children",{"s":{"n":"version","t":"d","k":"v1.0.1","s":["latest","versions"]},"h":196704,"d":{"r":["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}]]}],"p":"$@a","v":"$b","s":"$6"},"c":"$Qc"}]]
+7:[["children",{"s":"docs","h":131168,"d":{"r":["$","$1","c",{"children":[null,[["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}],["$","script",null,{"src":"/docs-runtime.js","defer":true}]]]}],"p":"$@8","v":null,"s":"$6"},"c":"$Q9"}]]
+0:{"t":{"t":{"s":"","h":131152,"d":{"r":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2uagwtcyuh2xm.css","precedence":"next"}],["$","script","script-0",{"src":"/_next/static/chunks/41f0ssqj7go1u.js","async":true}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","meta",null,{"name":"color-scheme","content":"light dark"}],["$","script",null,{"src":"/theme-init.js"}],["$","link",null,{"rel":"stylesheet","href":"/brand/theme.css"}],["$","link",null,{"rel":"stylesheet","href":"/brand/fonts/fonts.css"}],["$","link",null,{"rel":"icon","href":"/brand/icons/web/favicon.ico"}],["$","link",null,{"rel":"apple-touch-icon","href":"/brand/icons/web/favicon-180x180.png"}]]}],["$","body",null,{"children":[["$","a",null,{"className":"skip-link","href":"#main","children":"Skip to content"}],["$","header",null,{"className":"site-header","children":[["$","a",null,{"className":"brand-link","href":"/","aria-label":"insonic home","children":[["$","img",null,{"className":"theme-logo-light","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","alt":"insonic","width":"240","height":"64"}],["$","img",null,{"className":"theme-logo-dark","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","alt":"insonic","width":"240","height":"64"}]]}],["$","nav",null,{"aria-label":"Main navigation","children":[["$","a",null,{"href":"/docs/latest/","children":"Documentation"}],["$","a",null,{"href":"https://github.com/shruggietech/insonic","children":"Repository"}],["$","button",null,{"id":"theme-toggle","className":"theme-toggle","type":"button","role":"switch","aria-label":"Dark mode","aria-checked":"false","title":"Switch to dark theme","hidden":true,"children":[["$","svg",null,{"className":"theme-icon-moon","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","aria-hidden":"true","children":["$","path",null,{"d":"M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"}]}],["$","svg",null,{"className":"theme-icon-sun","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","aria-hidden":"true","children":[["$","circle",null,{"cx":"12","cy":"12","r":"4"}],["$","path",null,{"d":"M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"}]]}]]}]]}]]}],["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}],"notFound":[["$","main",null,{"id":"main","className":"landing","tabIndex":-1,"children":[["$","h1",null,{"children":"Page not found"}],["$","p",null,{"children":"This documentation page is unavailable."}],["$","p",null,{"children":["$","a",null,{"href":"/docs/latest/","children":"Open current documentation"}]}],["$","p",null,{"children":["$","a",null,{"href":"/docs/versions/","children":"Browse documentation versions"}]}]]}],[]]}],["$","footer",null,{"className":"site-footer","children":[["$","p",null,{"children":["A ",["$","a",null,{"href":"https://shruggie.tech/","children":"ShruggieTech"}]," project."]}],["$","p",null,{"children":"Apache 2.0. Documentation versions are published with their corresponding releases."}]]}],["$","script",null,{"src":"/site-runtime.js","defer":true}]]}]]}]]}],"p":"$@5","v":null,"s":"$6"},"c":"$Q7"},"h":{"r":["$","$1","h",{"children":[null,["$","$L2b",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","$L2d",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$2e",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Storage and catalog schema (v1.0.1) | insonic"}],["$","meta","1",{"name":"description","content":"Voice archives, speaker models, and connected knowledge."}]]}]}],null]}],null]}],"p":"$@2f","v":null,"s":"$6"}},"a":"$@30","u":"$@31","b":"CaYaiDoeMSd7vz7CIF4DL"}
+34:I[75049,["$2"],"OutletBoundary"]
+f:["$","li","architecture",{"children":["$","a",null,{"href":"/docs/v1.0.1/architecture/","children":"System architecture"}]}]
+10:["$","li","technology",{"children":["$","a",null,{"href":"/docs/v1.0.1/technology/","children":"Technology decisions"}]}]
+11:["$","li","ingestion",{"children":["$","a",null,{"href":"/docs/v1.0.1/ingestion/","children":"Import, metadata and dates"}]}]
+12:["$","li","media",{"children":["$","a",null,{"href":"/docs/v1.0.1/media/","children":"Media and provenance"}]}]
+13:["$","li","processing-setup",{"children":["$","a",null,{"href":"/docs/v1.0.1/processing-setup/","children":"Local processing setup"}]}]
+14:["$","li","pipelines",{"children":["$","a",null,{"href":"/docs/v1.0.1/pipelines/","children":"Pipelines and adapters"}]}]
+15:["$","li","subtitles",{"children":["$","a",null,{"href":"/docs/v1.0.1/subtitles/","children":"Cueson and subtitles"}]}]
+16:["$","li","speakers",{"children":["$","a",null,{"href":"/docs/v1.0.1/speakers/","children":"Speakers and terminology"}]}]
+17:["$","li","voice-models",{"children":["$","a",null,{"href":"/docs/v1.0.1/voice-models/","children":"Speaker audio and voice models"}]}]
+18:["$","li","graph",{"children":["$","a",null,{"href":"/docs/v1.0.1/graph/","children":"Queries, timeline and graph"}]}]
+19:["$","li","storage",{"children":["$","a",null,{"href":"/docs/v1.0.1/storage/","children":"Installation and storage"}]}]
+1a:["$","li","schema",{"children":["$","a",null,{"href":"/docs/v1.0.1/schema/","aria-current":"page","children":"Storage and catalog schema"}]}]
+1b:["$","li","contracts",{"children":["$","a",null,{"href":"/docs/v1.0.1/contracts/","children":"JSON contracts"}]}]
+1c:["$","li","security",{"children":["$","a",null,{"href":"/docs/v1.0.1/security/","children":"Credentials and data access"}]}]
+1d:["$","li","secrets",{"children":["$","a",null,{"href":"/docs/v1.0.1/secrets/","children":"Credential commands"}]}]
+1e:["$","li","models",{"children":["$","a",null,{"href":"/docs/v1.0.1/models/","children":"Downloaded models"}]}]
+1f:["$","li","desktop",{"children":["$","a",null,{"href":"/docs/v1.0.1/desktop/","children":"CLI and desktop experience"}]}]
+20:["$","li","windows-installation",{"children":["$","a",null,{"href":"/docs/v1.0.1/windows-installation/","children":"Windows installation, updates and removal"}]}]
+21:["$","li","development",{"children":["$","a",null,{"href":"/docs/v1.0.1/development/","children":"Development workflow"}]}]
+22:["$","li","releases",{"children":["$","a",null,{"href":"/docs/v1.0.1/releases/","children":"Brand, docs and releases"}]}]
+23:["$","li","roadmap",{"children":["$","a",null,{"href":"/docs/v1.0.1/roadmap/","children":"Delivery outcomes"}]}]
+24:["$","li","glossary",{"children":["$","a",null,{"href":"/docs/v1.0.1/glossary/","children":"Glossary"}]}]
+25:["$","li","changelog",{"children":["$","a",null,{"href":"/docs/v1.0.1/changelog/","children":"Changelog"}]}]
+26:["$","aside",null,{"className":"table-of-contents","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"1200","children":[["$","summary",null,{"children":"On this page"}],["$","nav",null,{"aria-label":"On this page","children":["$","ul",null,{"children":[["$","li","logical-contract-and-authority",{"children":["$","a",null,{"href":"#logical-contract-and-authority","children":"Logical contract and authority"}]}],["$","li","portable-values-and-invariants",{"children":["$","a",null,{"href":"#portable-values-and-invariants","children":"Portable values and invariants"}]}],["$","li","workspace-artifacts-and-media",{"children":["$","a",null,{"href":"#workspace-artifacts-and-media","children":"Workspace, artifacts and media"}]}],["$","li","early-metadata-and-origination-dates",{"children":["$","a",null,{"href":"#early-metadata-and-origination-dates","children":"Early metadata and origination dates"}]}],["$","li","pipelines-current-recordings-and-evidence",{"children":["$","a",null,{"href":"#pipelines-current-recordings-and-evidence","children":"Pipelines, current recordings and evidence"}]}],["$","li","speaker-corpus-and-trained-models",{"children":["$","a",null,{"href":"#speaker-corpus-and-trained-models","children":"Speaker corpus and trained models"}]}],["$","li","durable-jobs-outbox-and-queries",{"children":["$","a",null,{"href":"#durable-jobs-outbox-and-queries","children":"Durable jobs, outbox and queries"}]}],["$","li","adapter-acceptance-and-migration",{"children":["$","a",null,{"href":"#adapter-acceptance-and-migration","children":"Adapter acceptance and migration"}]}]]}]}]]}]}]
+32:T70d5,<h1 id="storage-and-catalog-schema">Storage and catalog schema</h1>
+<h2 id="logical-contract-and-authority">Logical contract and authority</h2>
+<p>The SQLite and PostgreSQL catalog adapters implement this logical schema. Application functions operate on typed records through the <a href="/docs/v1.0.1/storage/#catalog-adapter-and-postgresql-ownership">catalog adapter</a>; SQL syntax, connection management and migrations stay inside that adapter. Both official backends implement every catalog record and operation. The selected LadybugDB or ArcadeDB graph is a projection of this authority, not the only repository of media, speaker or trained-model lineage. <a href="/docs/v1.0.1/contracts/">JSON contracts</a> define the versioned interchange payloads around these records.</p>
+<p>Every workspace-scoped row carries <code>workspace_id</code> and a stable application-generated ID. Foreign keys and uniqueness include workspace scope so a relationship cannot accidentally cross workspaces. IDs use one documented UUID text representation at the application boundary; adapters may use compatible native storage. Never use SQLite row IDs, PostgreSQL sequences or graph record IDs as public identity. Mutable selections/settings have increasing revisions and expected-revision checks. Original source assets remain immutable. Computed current evidence is atomically replaced; accepted receipts retain identities and hashes without preserving obsolete documents or assignments.</p>
+<p>Byte identity, media identity and speaker identity are separate. A SHA-256 digest identifies immutable content; a media entry is a user-facing library item; a speaker is a catalog identity with correction history. Equal bytes can serve several entries, and a speaker can have many model families/versions without being equated with a model file.</p>
+<figure class="diagram" role="group" tabindex="0" aria-label="System diagram and source"><div class="mermaid" role="img" aria-label="System diagram">flowchart TB
+  Workspace[Workspace and backend profiles] --&gt; Media[Media entries and assets]
+  Media --&gt; Metadata[Current raw metadata and typed observations]
+  Metadata --&gt; Dates[Origination observations and selection revisions]
+  Media --&gt; Transcripts[One current embedded Cue JSON and source map]
+  Media --&gt; Segments[Current segment references]
+  Transcripts --&gt; Attribution[Cue-contained UUID assignments and external mappings]
+  Segments --&gt; Attribution
+  Attribution --&gt; Speaker[Stable speaker identity and lineage]
+  Segments --&gt; Dataset[Current corpus references or invalidated state]
+  Speaker --&gt; Dataset
+  Dataset --&gt; Training[Preparation manifest and training runs]
+  Training --&gt; Models[Speaker-model families and immutable versions]
+  Media --&gt; Artifacts[Immutable artifact IDs and locations]
+  Metadata --&gt; Artifacts
+  Training --&gt; Artifacts
+  Models --&gt; Artifacts
+  Workspace --&gt; Jobs[Jobs, leases, catalog revisions and graph outbox]
+</div><details><summary>Diagram source</summary><pre tabindex="0" aria-label="Diagram source"><code>flowchart TB
+  Workspace[Workspace and backend profiles] --&gt; Media[Media entries and assets]
+  Media --&gt; Metadata[Current raw metadata and typed observations]
+  Metadata --&gt; Dates[Origination observations and selection revisions]
+  Media --&gt; Transcripts[One current embedded Cue JSON and source map]
+  Media --&gt; Segments[Current segment references]
+  Transcripts --&gt; Attribution[Cue-contained UUID assignments and external mappings]
+  Segments --&gt; Attribution
+  Attribution --&gt; Speaker[Stable speaker identity and lineage]
+  Segments --&gt; Dataset[Current corpus references or invalidated state]
+  Speaker --&gt; Dataset
+  Dataset --&gt; Training[Preparation manifest and training runs]
+  Training --&gt; Models[Speaker-model families and immutable versions]
+  Media --&gt; Artifacts[Immutable artifact IDs and locations]
+  Metadata --&gt; Artifacts
+  Training --&gt; Artifacts
+  Models --&gt; Artifacts
+  Workspace --&gt; Jobs[Jobs, leases, catalog revisions and graph outbox]
+</code></pre></details></figure><h2 id="portable-values-and-invariants">Portable values and invariants</h2>
+<p>Catalog schema 5 adds revisioned saved pipelines, canonical speaker state and aliases,
+scoped terminology and context-selection provenance to the current embedded
+recordings, external mappings and reference-only corpus evidence.
+The current library's nullable <code>duration_us</code> is authoritative: null means unknown
+and zero means a measured zero. Existing numeric source-asset duration fields
+remain for snapshot compatibility and never supply a fallback for unknown current
+media duration. Historical schema-1/schema-2/schema-3/schema-4 migration definitions remain frozen. Legacy speakers retain their stable IDs and names; aliases and terms are not guessed from old assignment data.</p>
+<p>Current facts, metadata and dates are replaced atomically. Operational receipts
+retain identities and record hashes, rather than an archive of superseded
+computed values. Physical cleanup removes only report publications authorized by
+the accepted replacement; active readers delay success until their leases end.
+Original and supplied subtitle source assets remain retained. Exports include
+current data and expire imported running authority on restore.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Value</th>
+<th scope="col">Logical representation and rule</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>IDs</td>
+<td>Stable UUID text; explicit workspace scope and foreign keys</td>
+</tr>
+<tr>
+<td>Revision</td>
+<td>Positive signed 64-bit integer, monotonically increasing within its entity/stream</td>
+</tr>
+<tr>
+<td>Audit instant</td>
+<td>Cueson-compatible <code>{ &quot;iso&quot;: &quot;2026-10-04T18:30:00Z&quot;, &quot;unix_ns&quot;: 1791138600000000000 }</code>; RFC 3339 text and Unix nanoseconds represent the same instant</td>
+</tr>
+<tr>
+<td>Media interval</td>
+<td>Original-clock integer microseconds, half-open <code>[start, end)</code>, ordered and duration-validated</td>
+</tr>
+<tr>
+<td>Cue interval</td>
+<td>Cueson integer milliseconds with exact source mapping outside the document; deliberate inward projection</td>
+</tr>
+<tr>
+<td>Origination time</td>
+<td>Literal wall time/date, zone/offset and policy, precision and optional UTC instant/bounds; unknown remains null</td>
+</tr>
+<tr>
+<td>Content identity</td>
+<td>SHA-256 hex plus byte length; transport ETag/version ID stored separately</td>
+</tr>
+<tr>
+<td>Structured options</td>
+<td>Versioned, canonical JSON with typed validation and deterministic digest; no credentials</td>
+</tr>
+<tr>
+<td>Status</td>
+<td>Documented textual values with backend check constraints or equivalent validation; no backend enum dependency</td>
+</tr>
+<tr>
+<td>Numbers/booleans</td>
+<td>Identical range/null semantics at adapter boundaries; do not depend on SQLite affinity coercion</td>
+</tr>
+<tr>
+<td>Ordered membership</td>
+<td>Explicit ordinal and stable IDs; query order is never assumed without ordering</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Absolute timestamps use the <a href="https://github.com/shruggietech/cueson/blob/v1.2.0/internal/schema/cueson.schema.json">Cueson timestamp format</a>: <code>iso</code> contains RFC 3339 text and <code>unix_ns</code> contains the exact Unix-epoch nanosecond count for the same instant. Audit output uses UTC. The application validates agreement between both values; structural schema validation alone cannot prove it. Import wall-time literals retain their separate timezone and uncertainty rules, and media-relative intervals use the units defined above.</p>
+<p>Catalog adapters preserve the exact nanosecond value; a PostgreSQL timestamp column alone cannot preserve nanosecond precision. Native runtimes and JSON consumers use lossless integer parsing and serialization. The desktop wrapper displays <code>iso</code> and passes exact timestamp payloads through the shared runtime rather than converting <code>unix_ns</code> through a JavaScript floating-point number.</p>
+<p>Use non-null references for required provenance. An unknown value differs from an empty string, zero or a guessed default. Portable JSON is not a substitute for relational foreign keys on core associations. Store commonly queried properties in typed columns; preserve complete vendor reports/options in versioned JSON or artifact manifests. Backend-specific JSON, full-text and index facilities may optimize operations only if the normalized results stay equivalent.</p>
+<p>Primary uniqueness includes artifact digest/size within the deduplication scope, entity/revision pairs, job idempotency keys, dataset/member ordinal, outbox event ID and graph target checkpoint. Duplicate cue text is not a unique identity. Deletion must obey explicit retention rules; a speaker correction invalidates dependent current preparation while retaining canonical sources and captured provenance and noncontent model lineage. Hard deletion of referenced durable artifacts fails until the user-requested retention operation has reconciled those references.</p>
+<h2 id="workspace-artifacts-and-media">Workspace, artifacts and media</h2>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Record</th>
+<th scope="col">Required relationships and fields</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>workspace</code></td>
+<td>ID, logical/catalog schema versions, current revision, backend profile IDs and lifecycle state</td>
+</tr>
+<tr>
+<td><code>backend_profile_revision</code></td>
+<td>Role, adapter ID/contract version, immutable nonsecret config, credential IDs, capabilities and validation result</td>
+</tr>
+<tr>
+<td><code>artifact</code></td>
+<td>ID, SHA-256, size, kind, creation/producer provenance, durable retention class and lifecycle/retirement generation</td>
+</tr>
+<tr>
+<td><code>artifact_location</code></td>
+<td>Artifact/profile IDs, managed filesystem key or S3 bucket/key/version, availability and publication receipt; no signed URL</td>
+</tr>
+<tr>
+<td><code>artifact_verification</code></td>
+<td>Artifact/location IDs, verified digest/size, method, time and verification result</td>
+</tr>
+<tr>
+<td><code>materialization_lease</code></td>
+<td>Artifact/location and attempt IDs, local cache path, verification, owner and expiry; disposable local state</td>
+</tr>
+<tr>
+<td><code>import_batch</code> / <code>import_item</code></td>
+<td>Manifest/preset revision, ordered source inputs, captured timezone policy, per-item options, outcome and admitted media/asset IDs</td>
+</tr>
+<tr>
+<td><code>acquisition_receipt</code></td>
+<td>Sanitized stable locator, adapter/version, retrieval/import instants, original digest and available acquisition-metadata artifact</td>
+</tr>
+<tr>
+<td><code>media_entry</code></td>
+<td>Stable library ID, title/classification, current metadata/date/transcript selections and lifecycle revision</td>
+</tr>
+<tr>
+<td><code>media_asset</code></td>
+<td>Artifact ID, original/derived role, source clock/duration and admission/processing provenance</td>
+</tr>
+<tr>
+<td><code>media_entry_asset</code></td>
+<td>Entry/asset IDs, role and selected stream/track association; several entries can reference one asset</td>
+</tr>
+<tr>
+<td><code>asset_stream</code></td>
+<td>Asset ID, stable stream identity/index, media kind, codec, language, sample/channel/layout facts and probe snapshot</td>
+</tr>
+<tr>
+<td><code>asset_derivation</code></td>
+<td>Output asset, ordered input asset/stream IDs, transform/run/version/options and immutable map/receipt artifacts</td>
+</tr>
+<tr>
+<td><code>time_map_piece</code></td>
+<td>Derivation ID, ordinal, source asset/stream interval, derived interval and exact rate/offset semantics</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Artifact locations are separate from byte identity so provider migration does not rewrite current document identities, valid corpus references or model versions. An artifact may have several verified locations; a local materialization is not automatically a durable replica. Unavailable external bytes retain the admitted identity and an explicit changed/missing state. A newly changed external source requires a new asset; it does not redefine the original digest.</p>
+<p>The time map can represent extraction, resampling, trimming and concatenation. Each piece names its original source clock; a concatenated training input cannot claim a single offset if it contains disjoint intervals. Stream selection and channel provenance remain explicit. Supplied subtitle bytes use artifact records with a media/track attachment, not filename-based implicit ownership.</p>
+<h2 id="early-metadata-and-origination-dates">Early metadata and origination dates</h2>
+<p><code>MediaMetadataSnapshot</code>, <code>MetadataObservation</code> and <code>OriginationDateObservation</code> are the conceptual names; the records below use consistent snake_case. <a href="/docs/v1.0.1/ingestion/">Ingestion</a> defines capture and precedence before any media transformation.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Record</th>
+<th scope="col">Required information</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>media_metadata_snapshot</code></td>
+<td>Input item/source asset, inspected digest, raw report/payload artifact IDs, extractor/version/options, capture time, format coverage and warnings</td>
+</tr>
+<tr>
+<td><code>metadata_capture_attempt</code></td>
+<td>Snapshot/source identity, capture state, stage outcome and retry linkage</td>
+</tr>
+<tr>
+<td><code>metadata_observation</code></td>
+<td>Snapshot, qualified family/group/tag/path and duplicate instance, raw value/reference, typed normalized value, units, precision and interpretation method</td>
+</tr>
+<tr>
+<td><code>mime_resolution_revision</code></td>
+<td>Asset, extension/acquisition/byte/extractor/probe observation IDs, chosen preferred MIME, resolver/version, disagreements and optional owner override</td>
+</tr>
+<tr>
+<td><code>origination_date_observation</code></td>
+<td>Entry/asset, owner or embedded basis, supporting observation, entered/raw literal, zone source, IANA zone or fixed offset, resolved offset, timezone-database version, precision, assumption flags and optional UTC instant/bounds</td>
+</tr>
+<tr>
+<td><code>origination_date_selection_revision</code></td>
+<td>Entry, selected observation or explicit unknown, precedence/policy version, reason, expected prior revision and creation instant</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Capture states are <code>captured</code>, <code>no-embedded-metadata</code>, <code>partial</code>, <code>unsupported</code> and <code>failed</code>. Only successful extraction with no embedded fields establishes <code>no-embedded-metadata</code>. An extraction failure can have no report artifact while still retaining its attempt and original source. Partial reports describe omissions and retain original bytes for retry. Raw reports and normalized observations describe the current capture. Refresh atomically replaces computed metadata and queues physical removal of superseded reports. Original media and supplied subtitle assets remain immutable. Owner edits add date observations or selection revisions without rewriting source tags.</p>
+<p>Store the input's wall-time literal and its resolved interpretation. Local time is resolved once at import and retains the actual zone/offset and timezone rules version. A date-only value has date precision and calendar bounds where resolvable, not an invented midnight recording instant. Ambiguous or invalid daylight-saving values retain an unresolved interpretation until the affected observation is disambiguated. Another machine never reinterprets old records using its current local timezone.</p>
+<p>Keep recording/origination, publication, retrieval, import, filesystem modification and processing observations distinguishable. The selected recording date can be unknown even when other timestamps exist. Date corrections advance only the selection revision and affected calendar projection; they do not rewrite original tags or media-relative cue/segment times.</p>
+<h2 id="pipelines-current-recordings-and-evidence">Pipelines, current recordings and evidence</h2>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Record</th>
+<th scope="col">Required relationships and fields</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>current_pipeline</code></td>
+<td>Stable ID, display name, Local/Connected/Custom preset, current revision and typed recognition/diarization/quality configuration</td>
+</tr>
+<tr>
+<td><code>speaker</code> / <code>speaker_alias</code></td>
+<td>Stable canonical identity, state and aggregate revision; alternate text with explicit owner ID, language/scope/state and provenance</td>
+</tr>
+<tr>
+<td><code>context_term</code></td>
+<td>Stable term ID/revision, canonical/variant spellings, language/context/state and optional speaker/alias links</td>
+</tr>
+<tr>
+<td><code>processing_run</code></td>
+<td>Source/model/tool digests, effective settings, work fence and noncontent accepted result references</td>
+</tr>
+<tr>
+<td><code>recording</code></td>
+<td>Library entry/source digest, current revision/state, sole embedded Cue JSON and document digest, measured nullable duration, current mapped-audio publication and exact source map</td>
+</tr>
+<tr>
+<td><code>recording_roster</code> / <code>roster_member</code></td>
+<td>Independent positive header/member revision, stable library parent and unique centralized speaker references; undeclared and empty are distinct</td>
+</tr>
+<tr>
+<td><code>recording_speaker_mapping</code></td>
+<td>Recording/document identity, local speaker token, known speaker ID and expected current recording and mapping revisions</td>
+</tr>
+<tr>
+<td><code>segment</code></td>
+<td>Recording/document/cue/local-UUID references and optional current clip artifact; no copied interval/channel/known-person assignment</td>
+</tr>
+<tr>
+<td><code>speaker</code> / <code>speaker_identity_revision</code></td>
+<td>Stable known-speaker identity, name/attributes and current identity state</td>
+</tr>
+<tr>
+<td><code>speaker_alias</code> / <code>speaker_lineage_event</code></td>
+<td>Alias provenance and identity merge/split relationships</td>
+</tr>
+<tr>
+<td><code>term_revision</code> / <code>term_speaker_association</code></td>
+<td>Specialized terms, pronunciation/context and explicit speaker links</td>
+</tr>
+<tr>
+<td><code>evidence_chunk</code> / <code>assertion_revision</code></td>
+<td>Current recording/document/cue references, extraction provenance and explicit current/invalidated state</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Only the embedded Cue JSON stores recording-local assignments. Native source labels remain separate upstream observations. External known-speaker corrections preserve document text and bytes. Segment/query/playback/training consumers resolve current cue/token references rather than freezing another assignment list. Audio replacement removes stale acoustic segment/dataset membership references and invalidates dependent preparation/evidence even when document bytes are kept. Declared roster membership has its own revision and is retained or cleared only by its explicit election. Historical receipts retain IDs/digests/diagnostics without copied documents or turn arrays.</p>
+<p>Unknown duration is null, known zero remains zero, and full media duration is measured independently of cue coverage. Preserve exact original-clock integer/rational mapping outside Cue JSON; deliberately project the consumer millisecond representation under <a href="/docs/v1.0.1/subtitles/#exact-source-time-and-millisecond-projection">subtitles</a>.</p>
+<h2 id="speaker-corpus-and-trained-models">Speaker corpus and trained models</h2>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Record</th>
+<th scope="col">Required relationships and fields</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>training_selection_recipe_revision</code></td>
+<td>Speaker scope, current evidence filters and effective preparation/diagnostic settings</td>
+</tr>
+<tr>
+<td><code>dataset</code> / <code>training_dataset_member</code></td>
+<td>Current recording/document/cue/local-UUID membership, source digests, manifest identity and current/invalidated state</td>
+</tr>
+<tr>
+<td><code>training_preparation_manifest</code></td>
+<td>Valid current membership, processing/settings digest and prepared input/time-map references</td>
+</tr>
+<tr>
+<td><code>training_run</code></td>
+<td>Dataset/preparation identity, originating speaker, durable attempt and adapter/model/settings provenance</td>
+</tr>
+<tr>
+<td><code>training_checkpoint</code></td>
+<td>Run/attempt, durable output artifact or hosted handle, format and resume compatibility</td>
+</tr>
+<tr>
+<td><code>speaker_model</code> / <code>speaker_model_version</code></td>
+<td>Originating speaker/run/source lineage, output identities, current/invalidated manifest state and declared compatibility</td>
+</tr>
+<tr>
+<td><code>speaker_model_association_revision</code></td>
+<td>Current known-speaker association without changing output provenance</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Dataset and model provenance can retain source identities and hashes. It cannot preserve obsolete assignments or frozen subtitle text. Document replacement removes affected segment memberships; mapping correction invalidates affected selection while preserving the document. Invalidated dataset/run/model records clear obsolete derived manifest/preparation references and copied options, then queue their removed managed publications for physical retirement. Current corpus reuse requires rebuilding valid preparation. Original sources and durable completed model weights/checkpoints retain their independent provenance.</p>
+<p>Downloaded base models, trained models, embeddings and provider handles are separate kinds. A provider-only version names its sanitized stable handle and actual retrieval capability, without inventing a digest for unavailable weights. Credentials remain local references. Fetching an exact supported output never substitutes a default model silently. Elected training and roster-constrained matching use the shared <a href="/docs/v1.0.1/voice-models/">speaker-model runtime</a>.</p>
+<p>Catalog schema 9 adds immutable speaker outputs, revisioned exact current profiles and durable checkpoint records. A training run links to actual durable work. Mapping origin distinguishes manual corrections from automatic results; legacy independently confirmed mappings become manual. Schema-8 migration definitions remain frozen. Portable restore validates receipt proofs, output/publication relationships and current evidence, while source corrections retire obsolete matching payloads and assignment-bearing inputs.</p>
+<h2 id="durable-jobs-outbox-and-queries">Durable jobs, outbox and queries</h2>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Record</th>
+<th scope="col">Required information</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>job</code> / <code>job_attempt</code></td>
+<td>Idempotency key, effective input/options references, lifecycle state, owner claim/generation, cancellation and retry history</td>
+</tr>
+<tr>
+<td><code>workspace_lease</code></td>
+<td>Workspace/role key, owner ID, increasing generation, expiry and renewal state</td>
+</tr>
+<tr>
+<td><code>catalog_revision</code> / <code>operation_receipt</code></td>
+<td>Accepted change sequence, operation ID and committed entity revisions</td>
+</tr>
+<tr>
+<td><code>graph_outbox_event</code></td>
+<td>Workspace/target, consecutive target event sequence and predecessor, exact catalog revision, immutable payload/digest, operation ID, claim/generation and outcome</td>
+</tr>
+<tr>
+<td><code>graph_projection_target</code> / <code>graph_checkpoint</code></td>
+<td>Adapter/profile/schema, installed projection generation, applied target sequence/catalog revision, event receipt and pending/rebuild state</td>
+</tr>
+<tr>
+<td><code>saved_query</code> / <code>saved_query_revision</code></td>
+<td>Stable query ID, normalized QuerySpec or native text/dialect, typed parameters, schema/backend/capability validation and title</td>
+</tr>
+<tr>
+<td><code>saved_graph_view_revision</code></td>
+<td>Query revision, display settings, separate layout positions, without result snapshots</td>
+</tr>
+<tr>
+<td><code>retention_operation</code> / <code>backup_manifest</code></td>
+<td>Explicit scope, reference checks, catalog revision, artifact/version manifest and recovery outcome</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Lease generations fence long-running work; expected revisions fence user edits. Outbox events are immutable by operation/revision, with claim/outcome state tracked separately. Allocate gap-free event sequences per projection target in the accepting catalog transaction. Apply only the next sequence using a predecessor/generation compare-and-set with facts and exact event receipt in one graph transaction; event 11 cannot discard unapplied event 10 merely because its catalog revision is newer. A new owner installs its higher generation atomically in the graph checkpoint before publishing, preserves the committed sequence and reconciles already committed receipts. Catalog acknowledgements use the current lease generation separately. A graph rebuild selects a recorded catalog revision and replays its accepted evidence. Query/view revisions identify dialect compatibility after backend migration; incompatible native text remains stored with a reason.</p>
+<p>Artifact retirement is a catalog operation with an expected lifecycle generation. Atomically claim retirement, verify retention references/active leases and prevent new durable-reference admission or materialization claims before deleting physical locations. A cleanup worker deletes only the claimed key/version/generation, reconciles an unknown result, then records completion. New writers wait, cancel retirement under the current generation or publish a new verified location rather than race a checked-but-not-yet-deleted object. Do not reuse an S3 key while an earlier deletion can still complete; use immutable unique keys or exact object versions. Filesystem publication/deletion shares the runtime's lifecycle lock. Historical identity/provenance survives deliberate byte removal with explicit missing/retired availability.</p>
+<h2 id="adapter-acceptance-and-migration">Adapter acceptance and migration</h2>
+<p>SQLite/PostgreSQL migrations preserve foreign keys, unknown/precision values, metadata capture states, workspace isolation, current-result replacement receipts, speaker lineage, valid or explicitly invalidated dataset/model references, job claims, stale-worker fencing, idempotent operation reconciliation, outbox replay and consistent export/restore. Shared fixtures compare application results, including JSON/nulls and deterministic ordering. Backend-specific indexes and queue locks optimize operations without changing the contract.</p>
+<p>Artifact-store migration copies and verifies bytes/locations before switching selected profiles. Catalog migration transfers typed records and validates all constraints at a paused revision. Graph migration rebuilds from catalog evidence and revalidates saved queries. Cross-store operations use the recovery contracts above. Interruptions retain a recoverable old authority and explicit pending state rather than activating a partly copied workspace. Release packages declare their supported database/server versions.</p>
+<p>Catalog schema 7 adds declared roster domains and the truthful <code>untranscribed</code> state. Startup migration widens current-state representation and retains normal logical export/restore integrity; it does not convert media bytes. Portable roster proofs contain IDs and digests, while current membership remains in typed catalog records.</p>
+<p>Catalog schema 8 adds revisioned model aliases and configured sources. Alias tombstones preserve remove/recreate concurrency fences; targets distinguish exact base installations, speaker versions and hosted handles. Processing/import work records preserve frozen model selections and shared acquisition dependencies. Schema-7 catalogs and snapshots retain their frozen migration/proof compatibility. Export preserves target relationships, source and alias revisions and opaque credential IDs, while excluding secret values and machine-specific materialization paths. Restored work must resolve its configured credentials in the destination workspace; it cannot silently change the selected model or inference route.</p>
+27:["$","main",null,{"id":"main","className":"docs-main","tabIndex":-1,"children":[["$","div",null,{"className":"docs-version-context","children":[["$","p",null,{"children":["insonic"," · v","1.0.1"," · ","released"," · Current documentation"]}],["$","a",null,{"href":"/docs/versions/","children":"All versions"}],false]}],["$","article",null,{"className":"prose","dangerouslySetInnerHTML":{"__html":"$32"}}],"$L33"]}]
+28:["$","$L34",null,{"children":["$","$2e",null,{"name":"Next.MetadataOutlet","children":"$@35"}]}]
+6:300
+33:["$","nav",null,{"className":"page-navigation","aria-label":"Previous and next page","children":[["$","a",null,{"href":"/docs/v1.0.1/storage/","rel":"prev","children":[["$","span",null,{"children":"Previous"}],"Installation and storage"]}],["$","a",null,{"href":"/docs/v1.0.1/contracts/","rel":"next","children":[["$","span",null,{"children":"Next"}],"JSON contracts"]}]]}]
+35:null
+31:true
+6:C
+30:0
+d:"$undefined"
+a:"$undefined"
+8:"$undefined"
+5:"$undefined"
+2f:"$undefined"
+29:"$undefined"

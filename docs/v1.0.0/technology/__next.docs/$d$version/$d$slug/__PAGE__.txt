@@ -1,0 +1,119 @@
+1:"$Sreact.fragment"
+2:"/_next/static/chunks/41f0ssqj7go1u.js"
+3:I[36064,["$2"],"default"]
+4:I[81497,["$2"],"default"]
+27:"ViewportBoundary"
+28:I[75049,["$2"],"$27"]
+29:"MetadataBoundary"
+2a:I[75049,["$2"],"$29"]
+2b:"$Sreact.suspense"
+:HL["/_next/static/chunks/2uagwtcyuh2xm.css","style"]
+:HL["/brand/theme.css","style"]
+:HL["/brand/fonts/fonts.css","style"]
+:HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","image"]
+:HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","image"]
+6:X
+b:X
+b:C
+e:[["children",{"s":"__PAGE__","h":160,"d":{"r":["$","$1","c",{"children":[["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"className":"docs-sidebar","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"960","children":[["$","summary",null,{"children":"Documentation"}],["$","nav",null,{"aria-label":"Documentation topics v1.0.0","children":[["$","p",null,{"className":"version-label","children":["v","1.0.0"," · ","released"]}],["$","ul",null,{"children":[[["$","li","index",{"children":["$","a",null,{"href":"/docs/v1.0.0/index/","children":"Start here"}]}],["$","li","product",{"children":["$","a",null,{"href":"/docs/v1.0.0/product/","children":"Product and requirements"}]}],["$","li","architecture",{"children":["$","a",null,{"href":"/docs/v1.0.0/architecture/","children":"System architecture"}]}],["$","li","technology",{"children":"$Lf"}],"$L10","$L11","$L12","$L13","$L14","$L15","$L16","$L17","$L18","$L19","$L1a","$L1b","$L1c","$L1d","$L1e","$L1f","$L20","$L21","$L22"],null]}]]}]]}]}],"$L23","$L24"]}],null,"$L25"]}],"p":"$@26","v":null,"s":"$6"}}]]
+c:[["children",{"s":{"n":"slug","t":"d","k":"technology","s":["references"]},"h":65632,"d":{"r":["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}]]}],"p":"$@d","v":"$b","s":"$6"},"c":"$Qe"}]]
+9:[["children",{"s":{"n":"version","t":"d","k":"v1.0.0","s":["latest","versions"]},"h":196704,"d":{"r":["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}]]}],"p":"$@a","v":"$b","s":"$6"},"c":"$Qc"}]]
+7:[["children",{"s":"docs","h":131168,"d":{"r":["$","$1","c",{"children":[null,[["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}],["$","script",null,{"src":"/docs-runtime.js","defer":true}]]]}],"p":"$@8","v":null,"s":"$6"},"c":"$Q9"}]]
+0:{"t":{"t":{"s":"","h":131152,"d":{"r":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2uagwtcyuh2xm.css","precedence":"next"}],["$","script","script-0",{"src":"/_next/static/chunks/41f0ssqj7go1u.js","async":true}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","meta",null,{"name":"color-scheme","content":"light dark"}],["$","script",null,{"src":"/theme-init.js"}],["$","link",null,{"rel":"stylesheet","href":"/brand/theme.css"}],["$","link",null,{"rel":"stylesheet","href":"/brand/fonts/fonts.css"}],["$","link",null,{"rel":"icon","href":"/brand/icons/web/favicon.ico"}],["$","link",null,{"rel":"apple-touch-icon","href":"/brand/icons/web/favicon-180x180.png"}]]}],["$","body",null,{"children":[["$","a",null,{"className":"skip-link","href":"#main","children":"Skip to content"}],["$","header",null,{"className":"site-header","children":[["$","a",null,{"className":"brand-link","href":"/","aria-label":"insonic home","children":[["$","img",null,{"className":"theme-logo-light","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","alt":"insonic","width":"240","height":"64"}],["$","img",null,{"className":"theme-logo-dark","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","alt":"insonic","width":"240","height":"64"}]]}],["$","nav",null,{"aria-label":"Main navigation","children":[["$","a",null,{"href":"/docs/latest/","children":"Documentation"}],["$","a",null,{"href":"https://github.com/shruggietech/insonic","children":"Repository"}],["$","button",null,{"id":"theme-toggle","className":"theme-toggle","type":"button","role":"switch","aria-label":"Dark mode","aria-checked":"false","title":"Switch to dark theme","hidden":true,"children":[["$","svg",null,{"className":"theme-icon-moon","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","aria-hidden":"true","children":["$","path",null,{"d":"M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"}]}],["$","svg",null,{"className":"theme-icon-sun","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","aria-hidden":"true","children":[["$","circle",null,{"cx":"12","cy":"12","r":"4"}],["$","path",null,{"d":"M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"}]]}]]}]]}]]}],["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}],"notFound":[["$","main",null,{"id":"main","className":"landing","tabIndex":-1,"children":[["$","h1",null,{"children":"Page not found"}],["$","p",null,{"children":"This documentation page is unavailable."}],["$","p",null,{"children":["$","a",null,{"href":"/docs/latest/","children":"Open current documentation"}]}],["$","p",null,{"children":["$","a",null,{"href":"/docs/versions/","children":"Browse documentation versions"}]}]]}],[]]}],["$","footer",null,{"className":"site-footer","children":[["$","p",null,{"children":["A ",["$","a",null,{"href":"https://shruggie.tech/","children":"ShruggieTech"}]," project."]}],["$","p",null,{"children":"Apache 2.0. Documentation versions are published with their corresponding releases."}]]}],["$","script",null,{"src":"/site-runtime.js","defer":true}]]}]]}]]}],"p":"$@5","v":null,"s":"$6"},"c":"$Q7"},"h":{"r":["$","$1","h",{"children":[null,["$","$L28",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","$L2a",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$2b",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Technology decisions (v1.0.0) | insonic"}],["$","meta","1",{"name":"description","content":"Voice archives, speaker models, and connected knowledge."}]]}]}],null]}],null]}],"p":"$@2c","v":null,"s":"$6"}},"a":"$@2d","u":"$@2e","b":"CaYaiDoeMSd7vz7CIF4DL"}
+31:I[75049,["$2"],"OutletBoundary"]
+f:["$","a",null,{"href":"/docs/v1.0.0/technology/","aria-current":"page","children":"Technology decisions"}]
+10:["$","li","ingestion",{"children":["$","a",null,{"href":"/docs/v1.0.0/ingestion/","children":"Import, metadata and dates"}]}]
+11:["$","li","media",{"children":["$","a",null,{"href":"/docs/v1.0.0/media/","children":"Media and provenance"}]}]
+12:["$","li","pipelines",{"children":["$","a",null,{"href":"/docs/v1.0.0/pipelines/","children":"Pipelines and adapters"}]}]
+13:["$","li","subtitles",{"children":["$","a",null,{"href":"/docs/v1.0.0/subtitles/","children":"Cueson and subtitles"}]}]
+14:["$","li","speakers",{"children":["$","a",null,{"href":"/docs/v1.0.0/speakers/","children":"Speakers and terminology"}]}]
+15:["$","li","voice-models",{"children":["$","a",null,{"href":"/docs/v1.0.0/voice-models/","children":"Speaker audio and voice models"}]}]
+16:["$","li","graph",{"children":["$","a",null,{"href":"/docs/v1.0.0/graph/","children":"Queries, timeline and graph"}]}]
+17:["$","li","storage",{"children":["$","a",null,{"href":"/docs/v1.0.0/storage/","children":"Installation and storage"}]}]
+18:["$","li","schema",{"children":["$","a",null,{"href":"/docs/v1.0.0/schema/","children":"Storage and catalog schema"}]}]
+19:["$","li","contracts",{"children":["$","a",null,{"href":"/docs/v1.0.0/contracts/","children":"JSON contracts"}]}]
+1a:["$","li","security",{"children":["$","a",null,{"href":"/docs/v1.0.0/security/","children":"Credentials and data access"}]}]
+1b:["$","li","secrets",{"children":["$","a",null,{"href":"/docs/v1.0.0/secrets/","children":"Credential commands"}]}]
+1c:["$","li","models",{"children":["$","a",null,{"href":"/docs/v1.0.0/models/","children":"Downloaded models"}]}]
+1d:["$","li","desktop",{"children":["$","a",null,{"href":"/docs/v1.0.0/desktop/","children":"CLI and desktop experience"}]}]
+1e:["$","li","development",{"children":["$","a",null,{"href":"/docs/v1.0.0/development/","children":"Development workflow"}]}]
+1f:["$","li","releases",{"children":["$","a",null,{"href":"/docs/v1.0.0/releases/","children":"Brand, docs and releases"}]}]
+20:["$","li","roadmap",{"children":["$","a",null,{"href":"/docs/v1.0.0/roadmap/","children":"Delivery outcomes"}]}]
+21:["$","li","glossary",{"children":["$","a",null,{"href":"/docs/v1.0.0/glossary/","children":"Glossary"}]}]
+22:["$","li","changelog",{"children":["$","a",null,{"href":"/docs/v1.0.0/changelog/","children":"Changelog"}]}]
+23:["$","aside",null,{"className":"table-of-contents","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"1200","children":[["$","summary",null,{"children":"On this page"}],["$","nav",null,{"aria-label":"On this page","children":["$","ul",null,{"children":[["$","li","language-and-desktop-comparison",{"children":["$","a",null,{"href":"#language-and-desktop-comparison","children":"Language and desktop comparison"}]}],["$","li","subtitle-and-graph-dependencies",{"children":["$","a",null,{"href":"#subtitle-and-graph-dependencies","children":"Subtitle and graph dependencies"}]}],["$","li","catalog-and-artifact-adapters",{"children":["$","a",null,{"href":"#catalog-and-artifact-adapters","children":"Catalog and artifact adapters"}]}],["$","li","local-ai-and-speaker-training",{"children":["$","a",null,{"href":"#local-ai-and-speaker-training","children":"Local AI and speaker training"}]}],["$","li","platform-and-dependency-qualification",{"children":["$","a",null,{"href":"#platform-and-dependency-qualification","children":"Platform and dependency qualification"}]}]]}]}]]}]}]
+2f:T279a,<h1 id="technology-decisions">Technology decisions</h1>
+<h2 id="language-and-desktop-comparison">Language and desktop comparison</h2>
+<p>Go is the orchestration language because the application is dominated by storage, process supervision, streaming I/O, adapters and a scriptable CLI. The decision does not require AI libraries to be rewritten in Go. Dedicated workers use the runtime best supported by each model. The CLI is a fixed application foundation and the GUI wraps the same contracts, with declared temporary lag for advanced/experimental capabilities.</p>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Option</th>
+<th scope="col">Strengths for insonic</th>
+<th scope="col">Material costs</th>
+<th scope="col">Decision</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Go core and Wails GUI</td>
+<td>Shared Go application logic; native webview; conventional CLI; straightforward supervision</td>
+<td>Ladybug uses Cgo; webview/native packaging varies by OS; model workers still need packaging</td>
+<td>Orchestration and desktop choice</td>
+</tr>
+<tr>
+<td>Rust core and Tauri GUI</td>
+<td>Native integration and strong compile-time contracts; mature desktop packaging</td>
+<td>More complex core implementation and FFI; changing language does not eliminate model/native dependencies</td>
+<td>Strong fallback if Go packaging proves unsuitable</td>
+</tr>
+<tr>
+<td>Electron with TypeScript</td>
+<td>Consistent bundled browser; large desktop ecosystem</td>
+<td>Larger runtime and update footprint; native graph binding and shared CLI contracts need care</td>
+<td>Consider if native webviews cannot meet product needs</td>
+</tr>
+<tr>
+<td>Python application and Qt</td>
+<td>Direct local AI integration; established desktop toolkit</td>
+<td>Runtime/environment distribution, native dependencies and CLI/GUI packaging remain substantial</td>
+<td>Use Python for suitable workers, not the default core</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><a href="https://wails.io/docs/introduction/">Wails v2</a> is the stable starting point; <a href="https://v3.wails.io/">v3</a> must be evaluated against its release status before adoption. React and TypeScript provide the desktop UI. Next.js is the documentation renderer and is not a desktop production server. <a href="https://v2.tauri.app/concept/architecture/">Tauri's architecture</a> remains an alternative.</p>
+<h2 id="subtitle-and-graph-dependencies">Subtitle and graph dependencies</h2>
+<p>Cueson is mandatory and upstream-owned. The <a href="https://github.com/shruggietech/cueson/blob/v1.2.0/docs/architecture.md">v1.2.0 public architecture</a> defines a CLI and Cue JSON Schema contract, not a stable importable Go library. Integrate a pinned official executable and schema through the subtitle adapter. Do not import upstream <code>internal/</code> packages or invent a second subtitle interchange model.</p>
+<p><a href="https://docs.ladybugdb.com/">LadybugDB</a> is the default embedded property graph and openCypher engine. Its <a href="https://github.com/LadybugDB/go-ladybug">Go binding</a> uses Cgo and native libraries. Pin a compatible binding/core pair and its artifact digests. Package metadata records both revisions; builds never resolve a mutable latest-library download.</p>
+<p>ArcadeDB is a required supported secondary graph backend, not a fallback if Ladybug fails. Its <a href="https://github.com/ArcadeData/arcadedb/blob/main/LICENSE">Apache 2.0 licensed implementation</a> provides a server <a href="https://docs.arcadedb.com/arcadedb/reference/http-api/http">HTTP/JSON API</a> suitable for a Go adapter without embedding a JVM in the default desktop package. Current <a href="https://docs.arcadedb.com/arcadedb/reference/cypher/cypher-introduction">native OpenCypher documentation</a> distinguishes <code>opencypher</code> from deprecated legacy <code>cypher</code>; the actual server contract/version must be pinned and tested. SQL and Cypher support are not proof of dialect equivalence with LadybugDB. Both adapters implement normalized application operations and explicit native query dialects.</p>
+<p>Only officially supported, license-compatible dependencies are shipped. Users can supply optional unofficial graph adapters with declared licenses and capabilities. The official product does not adopt or redistribute an additional graph engine merely because an extension can connect to it.</p>
+<h2 id="catalog-and-artifact-adapters">Catalog and artifact adapters</h2>
+<p>SQLite is the default operational catalog. PostgreSQL is a required fully supported alternative for the same process/state/settings/metadata/association/lease/outbox functions. Qualify maintained SQLite and PostgreSQL drivers against the packaging and server-version matrices. Backend-specific SQL and migrations implement one <a href="/docs/v1.0.0/schema/">logical schema</a>. No processing or UI code depends on SQLite SQL or assumes an on-disk catalog exists.</p>
+<p>Filesystem is the default immutable artifact store. A generic S3 API adapter supports local filesystem-backed S3 services and remote S3-compliant providers. Endpoint, bucket, prefix, region, addressing style and credentials are configuration. No particular S3 server product becomes a required dependency. Provider capabilities are qualified for correctness, including completed-object visibility, conditional creation, checksums, multipart/resume and ranged reads. Use a maintained Go S3 client against this contract; an S3 compatibility claim does not justify assuming every AWS-specific feature exists.</p>
+<p><a href="/docs/v1.0.0/storage/">Storage</a> defines publication, materialization, catalog transactions, leases, migration and backup for these choices. Full adapter support covers those operations and their recovery behavior.</p>
+<h2 id="local-ai-and-speaker-training">Local AI and speaker training</h2>
+<p><a href="https://github.com/SYSTRAN/faster-whisper">faster-whisper</a> implements the local recognition adapter for CPU int8 transcription and suitable NVIDIA systems. The current source build uses an explicitly configured hash-pinned Python executable and worker with exact dependency versions. Managed installer delivery remains a packaging contract. <a href="https://opennmt.net/CTranslate2/hardware_support.html">CTranslate2 hardware support</a> and model size determine CPU/GPU profiles.</p>
+<p><a href="https://github.com/ggml-org/whisper.cpp">whisper.cpp</a> provides a native alternative, particularly for macOS acceleration and compact CPU setups. Users can override either default. The model catalog describes language coverage, download size, approximate memory needs, acceleration, license and source before acquisition. CPU processing remains available without acceleration.</p>
+<p>For acoustic diarization, <a href="https://huggingface.co/pyannote/speaker-diarization-community-1">pyannote Community-1</a> implements the local diarization adapter through a separately configured Python/PyTorch worker. Structural acceptance cannot establish voice accuracy: models may split one voice or merge several voices, and quality diagnostics disclose that uncertainty. Upstream model acquisition conditions and any Hugging Face token are shown as distribution requirements for that model. Users can select another local or hosted adapter. Text reasoning can help name voices but cannot substitute for acoustic segmentation.</p>
+<p><a href="/docs/v1.0.0/voice-models/">Optional speaker-model training</a> reuses the library-wide segment corpus through versioned preparation/training adapters. Preparation and training algorithms are adapter choices; dataset and artifact contracts are independent of them. Persist datasets, training attempts, checkpoints and speaker-model versions before choosing a specific worker, so model/provenance storage is independent of the training library.</p>
+<p>FFmpeg/ffprobe provide media probing and derivatives. Capture broad embedded metadata before transformations using the extractor contract in <a href="/docs/v1.0.0/ingestion/">ingestion</a>. Packaging selects redistributable artifacts and preserves <a href="https://ffmpeg.org/legal.html">FFmpeg notices</a>. Codec licensing and native-library requirements are checked for the exact shipped bytes. Packages may contain companion executables and libraries; a one-file dependency-free binary is not promised.</p>
+<h2 id="platform-and-dependency-qualification">Platform and dependency qualification</h2>
+<p>Prove CLI/runtime/GUI IPC, Cueson invocation, the Ladybug binding/core pair, SQLite and PostgreSQL catalog operations, filesystem and generic S3 publication, ArcadeDB sessions/query dialects, early metadata extraction, secrets storage, hidden process creation and static offline docs. The native installation matrix covers Windows, macOS and Linux; remote-service integration uses bounded fixtures and an explicit version/capability matrix. Prove the default and supported-alternative paths without bundling or launching every remote service for ordinary users.</p>
+<p>Target x86-64 and ARM64 where the dependency matrix supports them; record gaps as work to resolve before claiming packages. All three operating systems remain required. Measure cold-start and build time before expanding implementation. Record exact Go, Wails, driver and native pins with the platform evidence.</p>
+<p>Qualify the exact dependency contract and artifact digests; version labels alone do not establish compatibility.</p>
+<p>Desktop packaging pins Windows/Linux x86-64 and macOS ARM64. The macOS FFmpeg/ffprobe companions build from exact upstream source with automatic external-library discovery and network access disabled; the system VideoToolbox encoder provides non-H.264 previews. Windows/Linux companion inventories retain their exact upstream build/source information and licenses. Public redistribution of GPL-enabled builds requires their complete corresponding source, including enabled external libraries, rather than only the FFmpeg archive. Local package qualification does not establish release signing or public distribution readiness.</p>
+24:["$","main",null,{"id":"main","className":"docs-main","tabIndex":-1,"children":[["$","div",null,{"className":"docs-version-context","children":[["$","p",null,{"children":["insonic"," · v","1.0.0"," · ","released",""]}],["$","a",null,{"href":"/docs/versions/","children":"All versions"}],["$","a",null,{"href":"/docs/latest/","children":"Current documentation"}]]}],["$","article",null,{"className":"prose","dangerouslySetInnerHTML":{"__html":"$2f"}}],"$L30"]}]
+25:["$","$L31",null,{"children":["$","$2b",null,{"name":"Next.MetadataOutlet","children":"$@32"}]}]
+6:300
+30:["$","nav",null,{"className":"page-navigation","aria-label":"Previous and next page","children":[["$","a",null,{"href":"/docs/v1.0.0/architecture/","rel":"prev","children":[["$","span",null,{"children":"Previous"}],"System architecture"]}],["$","a",null,{"href":"/docs/v1.0.0/ingestion/","rel":"next","children":[["$","span",null,{"children":"Next"}],"Import, metadata and dates"]}]]}]
+32:null
+2e:true
+6:C
+2d:0
+d:"$undefined"
+a:"$undefined"
+8:"$undefined"
+5:"$undefined"
+2c:"$undefined"
+26:"$undefined"

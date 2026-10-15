@@ -1,0 +1,87 @@
+1:"$Sreact.fragment"
+2:"/_next/static/chunks/41f0ssqj7go1u.js"
+3:I[36064,["$2"],"default"]
+4:I[81497,["$2"],"default"]
+26:"ViewportBoundary"
+27:I[75049,["$2"],"$26"]
+28:"MetadataBoundary"
+29:I[75049,["$2"],"$28"]
+2a:"$Sreact.suspense"
+:HL["/_next/static/chunks/2uagwtcyuh2xm.css","style"]
+:HL["/brand/theme.css","style"]
+:HL["/brand/fonts/fonts.css","style"]
+:HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","image"]
+:HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","image"]
+6:X
+b:X
+b:C
+e:[["children",{"s":"__PAGE__","h":160,"d":{"r":["$","$1","c",{"children":[["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"className":"docs-sidebar","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"960","children":[["$","summary",null,{"children":"Documentation"}],["$","nav",null,{"aria-label":"Documentation topics v1.0.0","children":[["$","p",null,{"className":"version-label","children":["v","1.0.0"," · ","released"]}],["$","ul",null,{"children":[[["$","li","index",{"children":["$","a",null,{"href":"/docs/v1.0.0/index/","children":"Start here"}]}],["$","li","product",{"children":["$","a",null,{"href":"/docs/v1.0.0/product/","children":"Product and requirements"}]}],["$","li","architecture",{"children":["$","a",null,{"href":"/docs/v1.0.0/architecture/","children":"System architecture"}]}],["$","li","technology",{"children":["$","a",null,{"href":"/docs/v1.0.0/technology/","children":"Technology decisions"}]}],"$Lf","$L10","$L11","$L12","$L13","$L14","$L15","$L16","$L17","$L18","$L19","$L1a","$L1b","$L1c","$L1d","$L1e","$L1f","$L20","$L21"],null]}]]}]]}]}],"$L22","$L23"]}],null,"$L24"]}],"p":"$@25","v":null,"s":"$6"}}]]
+c:[["children",{"s":{"n":"slug","t":"d","k":"security","s":["references"]},"h":65632,"d":{"r":["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}]]}],"p":"$@d","v":"$b","s":"$6"},"c":"$Qe"}]]
+9:[["children",{"s":{"n":"version","t":"d","k":"v1.0.0","s":["latest","versions"]},"h":196704,"d":{"r":["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}]]}],"p":"$@a","v":"$b","s":"$6"},"c":"$Qc"}]]
+7:[["children",{"s":"docs","h":131168,"d":{"r":["$","$1","c",{"children":[null,[["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}],["$","script",null,{"src":"/docs-runtime.js","defer":true}]]]}],"p":"$@8","v":null,"s":"$6"},"c":"$Q9"}]]
+0:{"t":{"t":{"s":"","h":131152,"d":{"r":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2uagwtcyuh2xm.css","precedence":"next"}],["$","script","script-0",{"src":"/_next/static/chunks/41f0ssqj7go1u.js","async":true}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","meta",null,{"name":"color-scheme","content":"light dark"}],["$","script",null,{"src":"/theme-init.js"}],["$","link",null,{"rel":"stylesheet","href":"/brand/theme.css"}],["$","link",null,{"rel":"stylesheet","href":"/brand/fonts/fonts.css"}],["$","link",null,{"rel":"icon","href":"/brand/icons/web/favicon.ico"}],["$","link",null,{"rel":"apple-touch-icon","href":"/brand/icons/web/favicon-180x180.png"}]]}],["$","body",null,{"children":[["$","a",null,{"className":"skip-link","href":"#main","children":"Skip to content"}],["$","header",null,{"className":"site-header","children":[["$","a",null,{"className":"brand-link","href":"/","aria-label":"insonic home","children":[["$","img",null,{"className":"theme-logo-light","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","alt":"insonic","width":"240","height":"64"}],["$","img",null,{"className":"theme-logo-dark","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","alt":"insonic","width":"240","height":"64"}]]}],["$","nav",null,{"aria-label":"Main navigation","children":[["$","a",null,{"href":"/docs/latest/","children":"Documentation"}],["$","a",null,{"href":"https://github.com/shruggietech/insonic","children":"Repository"}],["$","button",null,{"id":"theme-toggle","className":"theme-toggle","type":"button","role":"switch","aria-label":"Dark mode","aria-checked":"false","title":"Switch to dark theme","hidden":true,"children":[["$","svg",null,{"className":"theme-icon-moon","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","aria-hidden":"true","children":["$","path",null,{"d":"M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"}]}],["$","svg",null,{"className":"theme-icon-sun","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","aria-hidden":"true","children":[["$","circle",null,{"cx":"12","cy":"12","r":"4"}],["$","path",null,{"d":"M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"}]]}]]}]]}]]}],["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}],"notFound":[["$","main",null,{"id":"main","className":"landing","tabIndex":-1,"children":[["$","h1",null,{"children":"Page not found"}],["$","p",null,{"children":"This documentation page is unavailable."}],["$","p",null,{"children":["$","a",null,{"href":"/docs/latest/","children":"Open current documentation"}]}],["$","p",null,{"children":["$","a",null,{"href":"/docs/versions/","children":"Browse documentation versions"}]}]]}],[]]}],["$","footer",null,{"className":"site-footer","children":[["$","p",null,{"children":["A ",["$","a",null,{"href":"https://shruggie.tech/","children":"ShruggieTech"}]," project."]}],["$","p",null,{"children":"Apache 2.0. Documentation versions are published with their corresponding releases."}]]}],["$","script",null,{"src":"/site-runtime.js","defer":true}]]}]]}]]}],"p":"$@5","v":null,"s":"$6"},"c":"$Q7"},"h":{"r":["$","$1","h",{"children":[null,["$","$L27",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","$L29",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$2a",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Credentials and data access (v1.0.0) | insonic"}],["$","meta","1",{"name":"description","content":"Voice archives, speaker models, and connected knowledge."}]]}]}],null]}],null]}],"p":"$@2b","v":null,"s":"$6"}},"a":"$@2c","u":"$@2d","b":"CaYaiDoeMSd7vz7CIF4DL"}
+30:I[75049,["$2"],"OutletBoundary"]
+f:["$","li","ingestion",{"children":["$","a",null,{"href":"/docs/v1.0.0/ingestion/","children":"Import, metadata and dates"}]}]
+10:["$","li","media",{"children":["$","a",null,{"href":"/docs/v1.0.0/media/","children":"Media and provenance"}]}]
+11:["$","li","pipelines",{"children":["$","a",null,{"href":"/docs/v1.0.0/pipelines/","children":"Pipelines and adapters"}]}]
+12:["$","li","subtitles",{"children":["$","a",null,{"href":"/docs/v1.0.0/subtitles/","children":"Cueson and subtitles"}]}]
+13:["$","li","speakers",{"children":["$","a",null,{"href":"/docs/v1.0.0/speakers/","children":"Speakers and terminology"}]}]
+14:["$","li","voice-models",{"children":["$","a",null,{"href":"/docs/v1.0.0/voice-models/","children":"Speaker audio and voice models"}]}]
+15:["$","li","graph",{"children":["$","a",null,{"href":"/docs/v1.0.0/graph/","children":"Queries, timeline and graph"}]}]
+16:["$","li","storage",{"children":["$","a",null,{"href":"/docs/v1.0.0/storage/","children":"Installation and storage"}]}]
+17:["$","li","schema",{"children":["$","a",null,{"href":"/docs/v1.0.0/schema/","children":"Storage and catalog schema"}]}]
+18:["$","li","contracts",{"children":["$","a",null,{"href":"/docs/v1.0.0/contracts/","children":"JSON contracts"}]}]
+19:["$","li","security",{"children":["$","a",null,{"href":"/docs/v1.0.0/security/","aria-current":"page","children":"Credentials and data access"}]}]
+1a:["$","li","secrets",{"children":["$","a",null,{"href":"/docs/v1.0.0/secrets/","children":"Credential commands"}]}]
+1b:["$","li","models",{"children":["$","a",null,{"href":"/docs/v1.0.0/models/","children":"Downloaded models"}]}]
+1c:["$","li","desktop",{"children":["$","a",null,{"href":"/docs/v1.0.0/desktop/","children":"CLI and desktop experience"}]}]
+1d:["$","li","development",{"children":["$","a",null,{"href":"/docs/v1.0.0/development/","children":"Development workflow"}]}]
+1e:["$","li","releases",{"children":["$","a",null,{"href":"/docs/v1.0.0/releases/","children":"Brand, docs and releases"}]}]
+1f:["$","li","roadmap",{"children":["$","a",null,{"href":"/docs/v1.0.0/roadmap/","children":"Delivery outcomes"}]}]
+20:["$","li","glossary",{"children":["$","a",null,{"href":"/docs/v1.0.0/glossary/","children":"Glossary"}]}]
+21:["$","li","changelog",{"children":["$","a",null,{"href":"/docs/v1.0.0/changelog/","children":"Changelog"}]}]
+22:["$","aside",null,{"className":"table-of-contents","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"1200","children":[["$","summary",null,{"children":"On this page"}],["$","nav",null,{"aria-label":"On this page","children":["$","ul",null,{"children":[["$","li","secret-storage",{"children":["$","a",null,{"href":"#secret-storage","children":"Secret storage"}]}],["$","li","provider-routing",{"children":["$","a",null,{"href":"#provider-routing","children":"Provider routing"}]}],["$","li","local-access-and-diagnostics",{"children":["$","a",null,{"href":"#local-access-and-diagnostics","children":"Local access and diagnostics"}]}]]}]}]]}]}]
+2e:T1a06,<h1 id="credentials-and-data-access">Credentials and data access</h1>
+<h2 id="secret-storage">Secret storage</h2>
+<p>See <a href="/docs/v1.0.0/secrets/">credential commands</a> for implemented bootstrap, status,
+replacement, vault and session input. S3 resolves the selected reference for
+subsequent requests. PostgreSQL resolves it when establishing a new connection;
+existing authenticated connections follow the server's session authorization.</p>
+<p>The runtime owns a <code>SecretStore</code> interface. Prefer Windows Credential Manager, macOS Keychain and Linux Secret Service. Store opaque credential IDs in pipeline, storage and database configuration, the catalog and job records. The runtime resolves a secret only for the selected adapter and does not return its value to the GUI or status API. S3 access keys/session tokens, PostgreSQL connection credentials and ArcadeDB credentials use the same secret-reference boundary; connection records and object references never embed passwords or signed URLs.</p>
+<p>A headless Linux machine may lack an unlocked Secret Service. Support a passphrase-encrypted vault or session-only credentials as explicit alternatives; never fall back to plaintext. The vault uses a reviewed password KDF and authenticated encryption through maintained libraries. Its key is not saved beside ciphertext. Pin and test the exact algorithms and platform integration; do not implement custom cryptography.</p>
+<figure class="diagram" role="group" tabindex="0" aria-label="System diagram and source"><div class="mermaid" role="img" aria-label="System diagram">flowchart TB
+  Settings[Add or Replace provider key] --&gt; Runtime[Go runtime]
+  Runtime --&gt; Store[OS credential store or encrypted vault]
+  Pipeline[Pipeline contains credential ID] --&gt; Runtime
+  Store --&gt; Adapter[Selected adapter receives secret for request]
+  Adapter --&gt; Status[UI receives configured, missing or rejected status]
+</div><details><summary>Diagram source</summary><pre tabindex="0" aria-label="Diagram source"><code>flowchart TB
+  Settings[Add or Replace provider key] --&gt; Runtime[Go runtime]
+  Runtime --&gt; Store[OS credential store or encrypted vault]
+  Pipeline[Pipeline contains credential ID] --&gt; Runtime
+  Store --&gt; Adapter[Selected adapter receives secret for request]
+  Adapter --&gt; Status[UI receives configured, missing or rejected status]
+</code></pre></details></figure><p>Show Configured, Missing or Rejected without displaying stored values. Replacing a key starts only after the user selects Replace; deleting it explains affected presets. A password/key input can reveal only the newly entered value at the user's request, never retrieve a saved value for display. Tests must cover logs, errors, URLs, process arguments, traces and GUI response payloads for secret disclosure.</p>
+<h2 id="provider-routing">Provider routing</h2>
+<p>Each pipeline makes local/remote routing visible by stage. Transcription can send audio; reasoning usually sends selected transcript text; query assistance normally sends a prompt and schema. The selected stage explains the actual payload and provider. Remote use is a user configuration choice, with no silent escalation from a local failure to an unselected hosted service.</p>
+<p>Storage/database setup similarly explains where media, metadata and graph facts reside. A configured remote artifact store may hold originals, metadata snapshots, corpus clips and trained models; a PostgreSQL catalog or ArcadeDB graph sends its corresponding records to that endpoint. Optional remote training sends the selected dataset/base-model inputs according to the chosen adapter. Once this routing is configured, routine jobs proceed without repeated approval. Changing endpoints or export destinations is an explicit configuration/action, and failures do not silently switch to another backend.</p>
+<p>Endpoint configuration supports user-hosted servers and frontier providers through capability adapters. TLS certificate validation is enabled by default. Local HTTP endpoints can be supported explicitly without treating all configured endpoints as public cloud services. A model endpoint accepting requests is not proof that it supports transcription, diarization or tool queries. The implemented hosted audio worker uses the explicit version-1 multipart <code>insonic-http</code> protocol; endpoints declare capabilities and budgets. Requests resolve only the elected opaque credential, refuse redirects and redact provider error bodies. Configuration rejects endpoint user information, query strings and fragments; Bearer credentials require HTTPS except explicit loopback HTTP. Inspection does not upload media or probe reachability.</p>
+<h2 id="local-access-and-diagnostics">Local access and diagnostics</h2>
+<p>Local IPC is restricted to the current user and verifies protocol/version during connection. Worker output and source text are untrusted data; parse and validate them without treating embedded instructions as runtime authority. Third-party executable adapters are user-selected code, with their source and permissions described clearly. Launchers use hidden noninteractive execution on Windows. Local media, subtitle and model workers receive an explicit allowlisted operating environment (executable lookup, system directories, temporary directories and locale) plus configured nonsecret worker controls. They do not inherit runtime session credentials or unrelated provider tokens from the parent environment.</p>
+<p>Operational logs contain stage IDs, elapsed time, input/output hashes and readable error categories. Media, transcript excerpts and credentials are excluded by default. A user can create a diagnostic bundle with a preview of included fields. It omits keys and local path details unless deliberately included. Keep logs bounded and deletable.</p>
+<p>With the default local backends, source bytes and catalog/graph records remain local unless selected processing or export sends them elsewhere. Configured remote storage and databases use the routing described above. Raw metadata may contain locations, device identifiers or other source facts. Preserve it as library evidence and exclude it from routine diagnostic bundles or unselected provider payloads. Speaker models, embeddings and dataset manifests retain the same configured storage/access boundary as their source corpus.</p>
+<p>Credential encryption does not encrypt every local or remote artifact. Transport encryption and server/filesystem encryption settings are separate documented properties. Workspace encryption follows the selected filesystem and object-store configuration.</p>
+23:["$","main",null,{"id":"main","className":"docs-main","tabIndex":-1,"children":[["$","div",null,{"className":"docs-version-context","children":[["$","p",null,{"children":["insonic"," · v","1.0.0"," · ","released",""]}],["$","a",null,{"href":"/docs/versions/","children":"All versions"}],["$","a",null,{"href":"/docs/latest/","children":"Current documentation"}]]}],["$","article",null,{"className":"prose","dangerouslySetInnerHTML":{"__html":"$2e"}}],"$L2f"]}]
+24:["$","$L30",null,{"children":["$","$2a",null,{"name":"Next.MetadataOutlet","children":"$@31"}]}]
+6:300
+2f:["$","nav",null,{"className":"page-navigation","aria-label":"Previous and next page","children":[["$","a",null,{"href":"/docs/v1.0.0/contracts/","rel":"prev","children":[["$","span",null,{"children":"Previous"}],"JSON contracts"]}],["$","a",null,{"href":"/docs/v1.0.0/secrets/","rel":"next","children":[["$","span",null,{"children":"Next"}],"Credential commands"]}]]}]
+31:null
+2d:true
+6:C
+2c:0
+d:"$undefined"
+a:"$undefined"
+8:"$undefined"
+5:"$undefined"
+2b:"$undefined"
+25:"$undefined"

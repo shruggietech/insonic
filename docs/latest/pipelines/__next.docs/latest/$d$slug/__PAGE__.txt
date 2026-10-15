@@ -1,0 +1,296 @@
+1:"$Sreact.fragment"
+2:"/_next/static/chunks/41f0ssqj7go1u.js"
+3:I[36064,["$2"],"default"]
+4:I[81497,["$2"],"default"]
+2a:"ViewportBoundary"
+2b:I[75049,["$2"],"$2a"]
+2c:"MetadataBoundary"
+2d:I[75049,["$2"],"$2c"]
+2e:"$Sreact.suspense"
+:HL["/_next/static/chunks/2uagwtcyuh2xm.css","style"]
+:HL["/brand/theme.css","style"]
+:HL["/brand/fonts/fonts.css","style"]
+:HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","image"]
+:HL["/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","image"]
+6:X
+b:X
+b:C
+e:[["children",{"s":"__PAGE__","h":160,"d":{"r":["$","$1","c",{"children":[["$","div",null,{"className":"docs-layout","children":[["$","aside",null,{"className":"docs-sidebar","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"960","children":[["$","summary",null,{"children":"Documentation"}],["$","nav",null,{"aria-label":"Documentation topics v1.0.1","children":[["$","p",null,{"className":"version-label","children":["v","1.0.1"," · ","released"]}],["$","ul",null,{"children":[[["$","li","index",{"children":["$","a",null,{"href":"/docs/v1.0.1/index/","children":"Start here"}]}],["$","li","cli",{"children":["$","a",null,{"href":"/docs/v1.0.1/cli/","children":"CLI invocation and results"}]}],["$","li","setup",{"children":["$","a",null,{"href":"/docs/v1.0.1/setup/","children":"Optional first-run setup"}]}],["$","li","product",{"children":["$","a",null,{"href":"/docs/v1.0.1/product/","children":"Product and requirements"}]}],"$Lf","$L10","$L11","$L12","$L13","$L14","$L15","$L16","$L17","$L18","$L19","$L1a","$L1b","$L1c","$L1d","$L1e","$L1f","$L20","$L21","$L22","$L23","$L24","$L25"],null]}]]}]]}]}],"$L26","$L27"]}],null,"$L28"]}],"p":"$@29","v":null,"s":"$6"}}]]
+c:[["children",{"s":{"n":"slug","t":"d","k":"pipelines","s":["references"]},"h":65632,"d":{"r":["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}]]}],"p":"$@d","v":"$b","s":"$6"},"c":"$Qe"}]]
+9:[["children",{"s":"latest","h":131168,"d":{"r":["$","$1","c",{"children":[null,["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}]]}],"p":"$@a","v":"$b","s":"$6"},"c":"$Qc"}]]
+7:[["children",{"s":"docs","h":131168,"d":{"r":["$","$1","c",{"children":[null,[["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}]}],["$","script",null,{"src":"/docs-runtime.js","defer":true}]]]}],"p":"$@8","v":null,"s":"$6"},"c":"$Q9"}]]
+0:{"t":{"t":{"s":"","h":131152,"d":{"r":["$","$1","c",{"children":[[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/2uagwtcyuh2xm.css","precedence":"next"}],["$","script","script-0",{"src":"/_next/static/chunks/41f0ssqj7go1u.js","async":true}]],["$","html",null,{"lang":"en","children":[["$","head",null,{"children":[["$","meta",null,{"name":"color-scheme","content":"light dark"}],["$","script",null,{"src":"/theme-init.js"}],["$","link",null,{"rel":"stylesheet","href":"/brand/theme.css"}],["$","link",null,{"rel":"stylesheet","href":"/brand/fonts/fonts.css"}],["$","link",null,{"rel":"icon","href":"/brand/icons/web/favicon.ico"}],["$","link",null,{"rel":"apple-touch-icon","href":"/brand/icons/web/favicon-180x180.png"}]]}],["$","body",null,{"children":[["$","a",null,{"className":"skip-link","href":"#main","children":"Skip to content"}],["$","header",null,{"className":"site-header","children":[["$","a",null,{"className":"brand-link","href":"/","aria-label":"insonic home","children":[["$","img",null,{"className":"theme-logo-light","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-light.svg","alt":"insonic","width":"240","height":"64"}],["$","img",null,{"className":"theme-logo-dark","src":"/brand/logos/named/insonic-logo-lockup-wide-full-color-clear-for-dark.svg","alt":"insonic","width":"240","height":"64"}]]}],["$","nav",null,{"aria-label":"Main navigation","children":[["$","a",null,{"href":"/docs/latest/","children":"Documentation"}],["$","a",null,{"href":"https://github.com/shruggietech/insonic","children":"Repository"}],["$","button",null,{"id":"theme-toggle","className":"theme-toggle","type":"button","role":"switch","aria-label":"Dark mode","aria-checked":"false","title":"Switch to dark theme","hidden":true,"children":[["$","svg",null,{"className":"theme-icon-moon","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","strokeLinejoin":"round","aria-hidden":"true","children":["$","path",null,{"d":"M20.9 13.1A9 9 0 0 1 10.9 3.1 9 9 0 1 0 20.9 13.1Z"}]}],["$","svg",null,{"className":"theme-icon-sun","viewBox":"0 0 24 24","fill":"none","stroke":"currentColor","strokeWidth":"2","strokeLinecap":"round","aria-hidden":"true","children":[["$","circle",null,{"cx":"12","cy":"12","r":"4"}],["$","path",null,{"d":"M12 2v2 M12 20v2 M2 12h2 M20 12h2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4"}]]}]]}]]}]]}],["$","$L3",null,{"parallelRouterKey":"children","template":["$","$L4",null,{}],"notFound":[["$","main",null,{"id":"main","className":"landing","tabIndex":-1,"children":[["$","h1",null,{"children":"Page not found"}],["$","p",null,{"children":"This documentation page is unavailable."}],["$","p",null,{"children":["$","a",null,{"href":"/docs/latest/","children":"Open current documentation"}]}],["$","p",null,{"children":["$","a",null,{"href":"/docs/versions/","children":"Browse documentation versions"}]}]]}],[]]}],["$","footer",null,{"className":"site-footer","children":[["$","p",null,{"children":["A ",["$","a",null,{"href":"https://shruggie.tech/","children":"ShruggieTech"}]," project."]}],["$","p",null,{"children":"Apache 2.0. Documentation versions are published with their corresponding releases."}]]}],["$","script",null,{"src":"/site-runtime.js","defer":true}]]}]]}]]}],"p":"$@5","v":null,"s":"$6"},"c":"$Q7"},"h":{"r":["$","$1","h",{"children":[null,["$","$L2b",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","$L2d",null,{"children":[["$","div",null,{"hidden":true,"children":["$","$2e",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"Pipelines and adapters (current v1.0.1) | insonic"}],["$","meta","1",{"name":"description","content":"Voice archives, speaker models, and connected knowledge."}],["$","link","2",{"rel":"canonical","href":"https://insonic.io/docs/v1.0.1/pipelines/"}]]}]}],null]}],null]}],"p":"$@2f","v":null,"s":"$6"}},"a":"$@30","u":"$@31","b":"CaYaiDoeMSd7vz7CIF4DL"}
+34:I[75049,["$2"],"OutletBoundary"]
+f:["$","li","architecture",{"children":["$","a",null,{"href":"/docs/v1.0.1/architecture/","children":"System architecture"}]}]
+10:["$","li","technology",{"children":["$","a",null,{"href":"/docs/v1.0.1/technology/","children":"Technology decisions"}]}]
+11:["$","li","ingestion",{"children":["$","a",null,{"href":"/docs/v1.0.1/ingestion/","children":"Import, metadata and dates"}]}]
+12:["$","li","media",{"children":["$","a",null,{"href":"/docs/v1.0.1/media/","children":"Media and provenance"}]}]
+13:["$","li","processing-setup",{"children":["$","a",null,{"href":"/docs/v1.0.1/processing-setup/","children":"Local processing setup"}]}]
+14:["$","li","pipelines",{"children":["$","a",null,{"href":"/docs/v1.0.1/pipelines/","aria-current":"page","children":"Pipelines and adapters"}]}]
+15:["$","li","subtitles",{"children":["$","a",null,{"href":"/docs/v1.0.1/subtitles/","children":"Cueson and subtitles"}]}]
+16:["$","li","speakers",{"children":["$","a",null,{"href":"/docs/v1.0.1/speakers/","children":"Speakers and terminology"}]}]
+17:["$","li","voice-models",{"children":["$","a",null,{"href":"/docs/v1.0.1/voice-models/","children":"Speaker audio and voice models"}]}]
+18:["$","li","graph",{"children":["$","a",null,{"href":"/docs/v1.0.1/graph/","children":"Queries, timeline and graph"}]}]
+19:["$","li","storage",{"children":["$","a",null,{"href":"/docs/v1.0.1/storage/","children":"Installation and storage"}]}]
+1a:["$","li","schema",{"children":["$","a",null,{"href":"/docs/v1.0.1/schema/","children":"Storage and catalog schema"}]}]
+1b:["$","li","contracts",{"children":["$","a",null,{"href":"/docs/v1.0.1/contracts/","children":"JSON contracts"}]}]
+1c:["$","li","security",{"children":["$","a",null,{"href":"/docs/v1.0.1/security/","children":"Credentials and data access"}]}]
+1d:["$","li","secrets",{"children":["$","a",null,{"href":"/docs/v1.0.1/secrets/","children":"Credential commands"}]}]
+1e:["$","li","models",{"children":["$","a",null,{"href":"/docs/v1.0.1/models/","children":"Downloaded models"}]}]
+1f:["$","li","desktop",{"children":["$","a",null,{"href":"/docs/v1.0.1/desktop/","children":"CLI and desktop experience"}]}]
+20:["$","li","windows-installation",{"children":["$","a",null,{"href":"/docs/v1.0.1/windows-installation/","children":"Windows installation, updates and removal"}]}]
+21:["$","li","development",{"children":["$","a",null,{"href":"/docs/v1.0.1/development/","children":"Development workflow"}]}]
+22:["$","li","releases",{"children":["$","a",null,{"href":"/docs/v1.0.1/releases/","children":"Brand, docs and releases"}]}]
+23:["$","li","roadmap",{"children":["$","a",null,{"href":"/docs/v1.0.1/roadmap/","children":"Delivery outcomes"}]}]
+24:["$","li","glossary",{"children":["$","a",null,{"href":"/docs/v1.0.1/glossary/","children":"Glossary"}]}]
+25:["$","li","changelog",{"children":["$","a",null,{"href":"/docs/v1.0.1/changelog/","children":"Changelog"}]}]
+26:["$","aside",null,{"className":"table-of-contents","children":["$","details",null,{"className":"navigation-disclosure","data-responsive-disclosure":"1200","children":[["$","summary",null,{"children":"On this page"}],["$","nav",null,{"aria-label":"On this page","children":["$","ul",null,{"children":[["$","li","configured-work-and-current-results",{"children":["$","a",null,{"href":"#configured-work-and-current-results","children":"Configured work and current results"}]}],["$","li","saved-definitions-and-command-inputs",{"children":["$","a",null,{"href":"#saved-definitions-and-command-inputs","children":"Saved definitions and command inputs"}]}],["$","li","hosted-worker-contract",{"children":["$","a",null,{"href":"#hosted-worker-contract","children":"Hosted worker contract"}]}],["$","li","local-processing-and-quality-diagnostics",{"children":["$","a",null,{"href":"#local-processing-and-quality-diagnostics","children":"Local processing and quality diagnostics"}]}],["$","li","capability-contracts",{"children":["$","a",null,{"href":"#capability-contracts","children":"Capability contracts"}]}],["$","li","durable-work-and-recovery",{"children":["$","a",null,{"href":"#durable-work-and-recovery","children":"Durable work and recovery"}]}],["$","li","required-checks-and-maintainer-evidence",{"children":["$","a",null,{"href":"#required-checks-and-maintainer-evidence","children":"Required checks and maintainer evidence"}]}],["$","li","current-evidence-extraction",{"children":["$","a",null,{"href":"#current-evidence-extraction","children":"Current evidence extraction"}]}],["$","li","complete-per-run-inputs",{"children":["$","a",null,{"href":"#complete-per-run-inputs","children":"Complete per-run inputs"}]}],["$","li","connected-definition-example",{"children":["$","a",null,{"href":"#connected-definition-example","children":"Connected definition example"}]}]]}]}]]}]}]
+32:T76e8,<h1 id="pipelines-and-adapters">Pipelines and adapters</h1>
+<p><a href="/docs/v1.0.1/processing-setup/">Local processing setup</a> prepares optional engines and models and reports prerequisites for a selected pipeline. Settings can save an exact builtin Local CPU pipeline; saving it does not begin inference. CPU and CUDA are explicit elections without automatic fallback.</p>
+<h2 id="configured-work-and-current-results">Configured work and current results</h2>
+<p>A pipeline declares elected models, adapters, device/resource settings and routing. Saved definitions advance revisions and accepted work retains its elected configuration; processing does not retain alternative transcripts or assignment stores. Changing defaults affects future work. Rerunning a stage replaces the current result after validation and fenced acceptance. Once routing is configured, normal work proceeds without per-item approval or silent provider fallback.</p>
+<p>Saved Local, Connected and Custom pipelines use stable IDs and expected-revision updates. Local selects both local workers, Connected selects both hosted workers, and Custom supports an explicit mix. The stored values are <code>local</code>, <code>connected</code> and <code>custom</code>. Each stage declares its adapter contract, exact managed local model or remote model, options and resource limits. Inspection reports effective settings and capabilities without contacting endpoints or running models. The desktop Pipelines screen saves and inspects the same definitions; Library processing selects their IDs.</p>
+<figure class="diagram" role="group" tabindex="0" aria-label="System diagram and source"><div class="mermaid" role="img" aria-label="System diagram">flowchart TB
+  Input[Verified current canonical audio and supplied subtitles] --&gt; Audio[Extract selected mapped audio]
+  Audio --&gt; Recognition[Generate timed text when elected]
+  Input --&gt; Supplied[Use supplied or current subtitles]
+  Recognition --&gt; Normalize[Pinned Cueson normalization]
+  Supplied --&gt; Normalize
+  Audio --&gt; Voices[Run elected diarization]
+  Normalize --&gt; Assemble[Current cues and recording-local speaker tokens]
+  Voices --&gt; Assemble
+  Assemble --&gt; Validate[Document validity and separate quality diagnostics]
+  Validate --&gt; Current[Atomic current result and reference reconciliation]
+  Current --&gt; Export[Diagnosed subtitle export]
+  Current --&gt; Corpus[Reference-only current speaker corpus]
+  Corpus --&gt; Training[Optional separate training job]
+</div><details><summary>Diagram source</summary><pre tabindex="0" aria-label="Diagram source"><code>flowchart TB
+  Input[Verified current canonical audio and supplied subtitles] --&gt; Audio[Extract selected mapped audio]
+  Audio --&gt; Recognition[Generate timed text when elected]
+  Input --&gt; Supplied[Use supplied or current subtitles]
+  Recognition --&gt; Normalize[Pinned Cueson normalization]
+  Supplied --&gt; Normalize
+  Audio --&gt; Voices[Run elected diarization]
+  Normalize --&gt; Assemble[Current cues and recording-local speaker tokens]
+  Voices --&gt; Assemble
+  Assemble --&gt; Validate[Document validity and separate quality diagnostics]
+  Validate --&gt; Current[Atomic current result and reference reconciliation]
+  Current --&gt; Export[Diagnosed subtitle export]
+  Current --&gt; Corpus[Reference-only current speaker corpus]
+  Corpus --&gt; Training[Optional separate training job]
+</code></pre></details></figure><p>Supplied subtitles bypass recognition. Reusing current subtitles supports diarization-only reruns; reusing current assignments requires compatibility with the new cue evidence. A supplied or generated text-only result without usable timing cannot be silently assigned invented intervals. Metadata capture precedes transforms under <a href="/docs/v1.0.1/ingestion/">ingestion</a>.</p>
+<p>The pinned local Whisper adapter intersects a final predicted endpoint with decoded media only when its overrun is at most 250 milliseconds, and records the exact change in <code>whisper_end_intersected_decoded_media</code>. Community-1 frame intersections use the same maximum with their separate diagnostic. Larger excursions, reversed intervals and generic adapter results remain invalid. These adapter policies preserve the decoded source boundary; they do not establish prediction accuracy or add audio beyond that boundary.</p>
+<h2 id="saved-definitions-and-command-inputs">Saved definitions and command inputs</h2>
+<pre tabindex="0" aria-label="Code example"><code class="language-sh"><span class="hljs-title">insonic</span> pipelines list <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> pipelines show <span class="hljs-variable">PIPELINE_ID</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> pipelines <span class="hljs-built_in">set</span> <span class="hljs-variable">PIPELINE_ID</span> <span class="hljs-attr">--input</span> pipeline-update.json <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> pipelines inspect <span class="hljs-variable">PIPELINE_ID</span> <span class="hljs-attr">--input</span> inspection.json <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> recordings process <span class="hljs-variable">MEDIA_ID</span> <span class="hljs-attr">--input</span> processing.json <span class="hljs-attr">--json</span>
+</code></pre>
+<p>A pipeline mutation carries <code>expected_revision</code> and <code>pipeline</code>, whose fields are <code>id</code>, <code>name</code>, <code>preset</code> and <code>configuration</code>. Zero expected revision creates a new ID; a positive expected revision must match the saved record. The returned revision is authoritative. Configuration contains <code>recognition</code>, <code>diarization</code> and optional <code>quality</code>. Each supplied per-run override replaces that complete stage or quality policy; it does not merge arbitrary option keys. Inspection input is optional and accepts <code>revision</code>, <code>overrides</code> and <code>context</code>.</p>
+<p>Save this as <code>pipeline-update.json</code>, replacing the local model UUIDs with compatible registrations from <code>models list</code>. The pipeline UUID is a valid creation example:</p>
+<p>&lt;!-- executable-example: pipeline-update.json --&gt;</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;expected_revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;pipeline&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;66666666-6666-4666-8666-666666666666&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Local speech&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;preset&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;local&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;configuration&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;recognition&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;adapter&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;faster-whisper&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;contract_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;mode&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;local&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;model_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;11111111-1111-4111-8111-111111111111&quot;</span>
+      <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;diarization&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;adapter&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;pyannote&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;contract_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;mode&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;local&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;model_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;22222222-2222-4222-8222-222222222222&quot;</span>
+      <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<p>Local <code>model_id</code> fields accept exact base installation UUIDs, <code>base:UUID</code>, short workspace aliases and <code>source:NAME/SELECTOR</code> references. Saving or inspecting a definition performs no model acquisition or inference. Processing resolves the references once, validates the selected adapter contract and complete file layout, and freezes exact model identities before acquisition. Registered compatible models can be selected before their bytes are available.</p>
+<p>Recording processing can elect <code>pipeline_id</code>, optional <code>pipeline_revision</code>, <code>overrides</code> and speaker/language/context filters. Submission freezes the saved revision, normalized effective configuration, selected nonsecret tool identities, local model manifest digests and compiled recognition hints. Missing elected bundles acquire through shared durable work; dependent processing waits without occupying an inference worker slot. Work inspection identifies acquisition dependencies separately from processing. Execution revalidates each elected local manifest digest and verified bytes. Alias, source and pipeline edits affect future submissions; retry retains the original election. Recognition and diarization reuse still follow current-document compatibility rules. Omitting a pipeline retains direct <code>recognition_model_id</code> and <code>diarization_model_id</code> inputs with the same reference syntax. Import's explicitly elected diarization also freezes its model identity. See <a href="/docs/v1.0.1/models/">model selection and acquisition</a>.</p>
+<p>Entity lists accept optional JSON input with <code>after_id</code> and <code>limit</code> (1 through 100), and return <code>items</code> and <code>next_id</code>. Every command accepts the normal workspace, request-ID and JSON-output options. <a href="/docs/v1.0.1/contracts/">JSON contracts</a> describe exact worker and configuration fields.</p>
+<h2 id="hosted-worker-contract">Hosted worker contract</h2>
+<p>The <code>insonic-http</code> adapter uses contract version <code>1</code>. An operator configures the endpoint, remote model, declared transcription/diarization capabilities, supported hint budget and optional opaque credential ID. It sends one multipart POST containing a <code>request</code> JSON field and an <code>audio</code> field with the selected mapped WAV. The request identifies contract version, operation, model and effective options. The recognition response contains timed text segments; the diarization response contains voice turns. Both use integer mapped-audio-relative microseconds and an explicit <code>no_speech</code> result. The runtime validates bounds and projects results onto the original source clock before assembly.</p>
+<p>An arbitrary provider API is not automatically compatible with this worker protocol. Provider-specific services can implement it through an adapter. Endpoint inspection validates configuration but reports reachability as not probed. Execution resolves only the elected credential and sends it as a Bearer authorization header. Redirects are refused; endpoint user information, query strings and fragments are rejected. Credentials require HTTPS, with an explicit loopback HTTP exception for locally hosted services. Errors return fixed categories without provider response bodies, credential values or endpoint details.</p>
+<p>Local and hosted stages both use bounded audio, response and timeout settings. Omitted limits normalize to 128 MiB audio, 16 MiB response and 600000 milliseconds; explicit limits are validated before submission. A route or capability failure does not choose another provider, model or device.</p>
+<h2 id="local-processing-and-quality-diagnostics">Local processing and quality diagnostics</h2>
+<p>Mapped audio records original source digest, selected stream/channels, sample format, tool identity and exact source-time mapping. The selected local recognizer and diarizer receive verified managed model files, not an ambient latest model name. Missing or invalid models, incompatible capabilities and unsupported device selection produce actionable failure. A local failure never chooses hosted routing or another device silently.</p>
+<p>Local workers import engine packages lazily only for elected product processing or explicit maintainer qualification. Offline execution prevents ambient model retrieval. Literal argv, protected bounded input, separate bounded output, hidden Windows creation and supervised cancellation apply to every worker. Model files are materialized under confined relative names; temporary stage output is cleaned after success, failure and cancellation.</p>
+<p>Automatic diarization diagnostics are enabled by default and describe speech coverage, overlap, short turns, boundary/timing consistency and empty output. The quality policy can set minimum speech coverage, maximum overlap fraction and a short-turn threshold, or disable these optional checks. They are separate from Cueson schema validity. A valid assignment document does not prove voice accuracy. Reused diarization quality is recomputed from current embedded millisecond assignments and the current source map; its provenance names that quantized current-document basis rather than implying a fresh acoustic engine run. No-speech and unusable timing remain explicit outcomes, and diagnostics do not create a manual review queue. Maintainer qualification records exact model/settings, resource use, recognized text and speaker/timing diagnostic method; it never injects reference subtitles as generated recognition output.</p>
+<h2 id="capability-contracts">Capability contracts</h2>
+<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0"><table>
+<thead>
+<tr>
+<th scope="col">Capability</th>
+<th scope="col">Inputs</th>
+<th scope="col">Required result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Acquisition</td>
+<td>Source locator and selected credential reference</td>
+<td>Original bytes and sanitized provenance</td>
+</tr>
+<tr>
+<td>Probe/derive</td>
+<td>Exact source and transform</td>
+<td>Stream facts or mapped audio</td>
+</tr>
+<tr>
+<td>Transcription</td>
+<td>Mapped audio, model and effective options</td>
+<td>Actual text and timed segments, with declared diagnostics</td>
+</tr>
+<tr>
+<td>Diarization</td>
+<td>Mapped audio, model and effective options</td>
+<td>Temporary recording-local voice turns and automatic diagnostics</td>
+</tr>
+<tr>
+<td>Subtitle normalization</td>
+<td>Supplied or generated native bytes</td>
+<td>Current valid upstream Cue JSON</td>
+</tr>
+<tr>
+<td>Speaker mapping</td>
+<td>Recording/local speaker token and known catalog speaker</td>
+<td>External mapping without rewriting subtitle text</td>
+</tr>
+<tr>
+<td>Alignment</td>
+<td>Current text and mapped audio</td>
+<td>Timed evidence or explicit unavailable outcome</td>
+</tr>
+<tr>
+<td>Assertion extraction</td>
+<td>Current cue references</td>
+<td>Structured assertions citing current evidence</td>
+</tr>
+<tr>
+<td>Dataset preparation</td>
+<td>Current speaker/cue references and recipe</td>
+<td>Mapped inputs and reference/digest provenance</td>
+</tr>
+<tr>
+<td>Voice training</td>
+<td>Valid current dataset and elected adapter</td>
+<td>Durable model outputs and noncontent lineage</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Adapters advertise actual capabilities and protocol versions. A text-only endpoint is not an audio recognizer. Worker requests/results bind source/model/tool identities and effective settings, using managed references for large input and never credential values in argv or durable receipts.</p>
+<h2 id="durable-work-and-recovery">Durable work and recovery</h2>
+<figure class="diagram" role="group" tabindex="0" aria-label="System diagram and source"><div class="mermaid" role="img" aria-label="System diagram">flowchart TB
+  Ready[Durable configured work] --&gt; Claim[Live owner, generation and lease]
+  Claim --&gt; Compute[Mapped audio and elected stages]
+  Compute --&gt; Validate[Validate candidate result]
+  Validate --&gt; Commit[Atomic current replacement and cleanup obligations]
+  Compute --&gt; Interrupted[Failed, cancelled or interrupted]
+  Interrupted --&gt; Retry[Fresh fenced attempt]
+  Retry --&gt; Claim
+  Commit --&gt; Reconcile[Accepted receipt and physical retirement]
+  Reconcile --&gt; RetryCleanup[Retry uncertain cleanup]
+  RetryCleanup --&gt; Reconcile
+</div><details><summary>Diagram source</summary><pre tabindex="0" aria-label="Diagram source"><code>flowchart TB
+  Ready[Durable configured work] --&gt; Claim[Live owner, generation and lease]
+  Claim --&gt; Compute[Mapped audio and elected stages]
+  Compute --&gt; Validate[Validate candidate result]
+  Validate --&gt; Commit[Atomic current replacement and cleanup obligations]
+  Compute --&gt; Interrupted[Failed, cancelled or interrupted]
+  Interrupted --&gt; Retry[Fresh fenced attempt]
+  Retry --&gt; Claim
+  Commit --&gt; Reconcile[Accepted receipt and physical retirement]
+  Reconcile --&gt; RetryCleanup[Retry uncertain cleanup]
+  RetryCleanup --&gt; Reconcile
+</code></pre></details></figure><p>Pause prevents new claims, Cancel revokes current authority and terminates supervised children, and Retry obtains a fresh fenced attempt. Acceptance checks expected current/source revisions as well as the work fence. Late results cannot replace newer accepted data. Accepted receipts carry identities/digests/diagnostics, not duplicate documents or turns.</p>
+<p>Before acceptance, configured processing can recompute stages after interruption. Explicit assembly input is ephemeral and must be resubmitted. After acceptance, recovery reconciles the receipt and cleanup without rerunning engines. Physical retirement waits for active leases/references and retries uncertain removal without resurrecting obsolete output.</p>
+<p>Current replacement invalidates stale segment/evidence references, dataset membership and prepared inputs rather than retaining frozen copies of old assignments. Completed model outputs and their source IDs/digests remain provenance. Graph assertion extraction and optional query assistance use elected versioned HTTP adapters. Speaker training uses an explicitly selected local or hosted adapter, or local embedding-profile enrollment; see <a href="/docs/v1.0.1/voice-models/">speaker-model workflows</a>.</p>
+<p>A saved configuration can contain <code>speaker_training</code> with <code>adapter</code>, <code>output_kind</code>, optional <code>base_model_id</code> and <code>parameters</code>. Training accepts the exact <code>pipeline_id</code> and <code>pipeline_revision</code>. A training-only definition can omit recognition and diarization; ordinary recording processing requires both stages. A mixed definition can serve either workflow. Inspection reports capabilities without loading a model or contacting the selected provider.</p>
+<h2 id="required-checks-and-maintainer-evidence">Required checks and maintainer evidence</h2>
+<p>No CI suite, native/backend qualification or required status check invokes transcription/diarization, initializes or loads their models, downloads model weights or requires engine results. The rule applies even to small or cached models. Deterministic tests supply stage results at the adapter boundary and may probe/extract committed real media and execute Cueson. Actual recognition/diarization quality testing requires the explicit opt-in maintainer path outside CI and merge requirements.</p>
+<h2 id="current-evidence-extraction">Current evidence extraction</h2>
+<p>Evidence extraction operates on accepted current Cue JSON through the shared durable-work runtime. The builtin cue-statement adapter preserves literal source ownership; an explicitly configured HTTP adapter can supply propositions with cue citations, polarity, modality and conditions. Acceptance validates current recording revision, document digest and cited local voices. Replacement invalidates that extraction. <a href="/docs/v1.0.1/graph/">Graph operations</a> document executable inputs, bounds and provenance. Required CI exercises deterministic supplied replies and never initializes models.</p>
+<h2 id="complete-per-run-inputs">Complete per-run inputs</h2>
+<p>Save this as <code>processing.json</code> after creating the example pipeline above. Replace its ID/revision with the values from <code>pipelines show</code>; <code>pipeline_revision</code> fences the definition observed by this invocation. Replace <code>MEDIA_ID</code> with <code>result.items[].media_id</code> from completed import.</p>
+<p>&lt;!-- executable-example: processing.json --&gt;</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;pipeline_id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;66666666-6666-4666-8666-666666666666&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;pipeline_revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;transcription&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;generate&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;diarization&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;run&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<pre tabindex="0" aria-label="Code example"><code class="language-sh"><span class="hljs-title">insonic</span> recordings process <span class="hljs-variable">MEDIA_ID</span> <span class="hljs-attr">--input</span> processing.json <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> work <span class="hljs-built_in">wait</span> <span class="hljs-variable">WORK_ID</span> <span class="hljs-attr">--json</span>
+<span class="hljs-title">insonic</span> recordings show <span class="hljs-variable">MEDIA_ID</span> <span class="hljs-attr">--json</span>
+</code></pre>
+<p>Submission returns a <code>work_id</code>; success returns the current recording revision and document digest. Actual processing requires configured compatible tools, model bundles and elected workers. Saving a pipeline alone supplies no inference environment. For an existing supplied transcript, change <code>transcription</code> to <code>supplied</code> to bypass recognition; <code>reuse</code> reuses the current document.</p>
+<p>Save <code>inspection.json</code> below for a configuration-only inspection. It requires no model execution. Read readiness and capability diagnostics before electing the pipeline.</p>
+<p>&lt;!-- executable-example: inspection.json --&gt;</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span><span class="hljs-punctuation">}</span>
+</code></pre>
+<h2 id="connected-definition-example">Connected definition example</h2>
+<p>Save <code>pipeline-connected.json</code> for a worker that implements the contract below. Replace the endpoint and remote model with the selected service; the loopback address is an example, not a bundled server. Both stages must be available. Use a fresh pipeline UUID if this example ID already exists.</p>
+<p>&lt;!-- executable-example: pipeline-connected.json --&gt;</p>
+<pre tabindex="0" aria-label="Code example"><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;expected_revision&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;pipeline&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;66666666-6666-4666-8666-666666666666&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Connected speech&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;preset&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;connected&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;configuration&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;recognition&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;adapter&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic-http&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;contract_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;mode&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;hosted&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;endpoint&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;http://127.0.0.1:8001/process&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;remote_model&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;configured-model&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;capabilities&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+          <span class="hljs-string">&quot;transcription&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-string">&quot;diarization&quot;</span>
+        <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;supports_hints&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;max_hint_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">200</span>
+      <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;diarization&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;adapter&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;insonic-http&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;contract_version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;1&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;mode&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;hosted&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;endpoint&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;http://127.0.0.1:8001/process&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;remote_model&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;configured-model&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;capabilities&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+          <span class="hljs-string">&quot;transcription&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-string">&quot;diarization&quot;</span>
+        <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;supports_hints&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-literal"><span class="hljs-keyword">true</span></span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;max_hint_bytes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">200</span>
+      <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<pre tabindex="0" aria-label="Code example"><code class="language-sh"><span class="hljs-title">insonic</span> pipelines <span class="hljs-built_in">set</span> 66666666-6666-4666-8666-666666666666 <span class="hljs-attr">--input</span> pipeline-connected.json <span class="hljs-attr">--json</span>
+</code></pre>
+27:["$","main",null,{"id":"main","className":"docs-main","tabIndex":-1,"children":[["$","div",null,{"className":"docs-version-context","children":[["$","p",null,{"children":["insonic"," · v","1.0.1"," · ","released"," · Current documentation"]}],["$","a",null,{"href":"/docs/versions/","children":"All versions"}],false]}],["$","article",null,{"className":"prose","dangerouslySetInnerHTML":{"__html":"$32"}}],"$L33"]}]
+28:["$","$L34",null,{"children":["$","$2e",null,{"name":"Next.MetadataOutlet","children":"$@35"}]}]
+6:300
+33:["$","nav",null,{"className":"page-navigation","aria-label":"Previous and next page","children":[["$","a",null,{"href":"/docs/v1.0.1/processing-setup/","rel":"prev","children":[["$","span",null,{"children":"Previous"}],"Local processing setup"]}],["$","a",null,{"href":"/docs/v1.0.1/subtitles/","rel":"next","children":[["$","span",null,{"children":"Next"}],"Cueson and subtitles"]}]]}]
+35:null
+31:true
+6:C
+30:0
+d:"$undefined"
+a:"$undefined"
+8:"$undefined"
+5:"$undefined"
+2f:"$undefined"
+29:"$undefined"
