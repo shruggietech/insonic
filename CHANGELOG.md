@@ -6,7 +6,7 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
-- Hidden native WebView qualification yields UI actions through event-loop message turns instead of fixed timer sleeps, preventing background timer throttling from exhausting the existing 80/90-second watchdogs.
+- Hidden native WebView qualification waits for actual select options and committed React state, yielding UI actions through event-loop message turns instead of fixed timer sleeps. The existing 80/90-second watchdogs and every native assertion remain mandatory.
 
 - Release publication accepts documented main-workflow path forms and can supersede verified completed older release-workflow attempts for the same source while retaining every required CI/security gate and immutable tag/artifact checks.
 

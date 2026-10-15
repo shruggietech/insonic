@@ -1668,3 +1668,24 @@ test('qualification event-loop turn yields to pending work without hidden-window
     assert.equal(timerCalls,0);
   } finally {globalThis.setTimeout=original;}
 });
+
+test('qualification waits for an asynchronously populated select instead of silently choosing the empty value', {timeout:2000}, async()=>{
+ const {qualificationValue,qualificationTurn}=await import('../.test-build/qualification.js');
+ const select=document.createElement('select');select.add(new window.Option('Explicit choices',''));document.body.append(select);
+ let selected='';select.addEventListener('change',()=>{selected=select.value;});
+ try {
+  const pending=qualificationValue(select,'saved-preset',1000);
+  await qualificationTurn();assert.equal(selected,'');
+  select.add(new window.Option('Saved preset','saved-preset'));
+  await pending;assert.equal(select.value,'saved-preset');assert.equal(selected,'saved-preset');
+ } finally {select.remove();}
+});
+test('qualification actions commit React state before the next control inspects it', async()=>{
+ const {qualificationAction}=await import('../.test-build/qualification.js');
+ const {useState}=await import('react');const container=document.createElement('div');document.body.append(container);const fixture=createRoot(container);
+ function Fixture(){const [value,setValue]=useState('Ready');return createElement('button',{onClick:()=>setValue('Working')},value);}
+ try {
+  await act(()=>fixture.render(createElement(Fixture)));
+  await act(()=>{qualificationAction(()=>container.querySelector('button').click());assert.equal(container.textContent,'Working');});
+ } finally {await act(()=>fixture.unmount());container.remove();}
+});

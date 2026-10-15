@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import { result, type NativeBridge, type Obj } from './client';
+import { flushSync } from 'react-dom';
 export function runQualificationOnce(
   run: () => Promise<void>,
 ): () => Promise<void> {
@@ -27,6 +28,30 @@ export function qualificationTurn(): Promise<void> {
     };
     channel.port2.postMessage(null);
   });
+}
+export function qualificationAction(action: () => void): void {
+  flushSync(action);
+}
+export async function qualificationValue(
+  control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
+  value: string,
+  timeout = 25000,
+): Promise<void> {
+  if (control instanceof HTMLSelectElement) {
+    const deadline = Date.now() + timeout;
+    while (![...control.options].some((option) => option.value === value)) {
+      if (Date.now() >= deadline) throw new Error('Requested select option did not load.');
+      await new Promise((resolve) => setTimeout(resolve, 40));
+    }
+  }
+  const prototype = control instanceof HTMLSelectElement ? HTMLSelectElement.prototype
+    : control instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+  qualificationAction(() => {
+    Object.getOwnPropertyDescriptor(prototype, 'value')!.set!.call(control, value);
+    control.dispatchEvent(new Event('input', { bubbles: true }));
+    control.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await qualificationTurn();
 }
 // Mounting includes the asynchronous workspace Show call. Cold runner startup
 // uses the same bounded readiness window as the rest of the native journey.
@@ -128,7 +153,7 @@ async function qualifyJourney(
       const style = window.getComputedStyle(control);
       return style.visibility !== 'hidden' && style.visibility !== 'collapse';
     }, `Control did not become visible and enabled: ${text}`);
-    button(text).click();
+    qualificationAction(() => button(text).click());
     await idle();
   };
   const fill = async (label: string, value: string) => {
@@ -143,19 +168,7 @@ async function qualifyJourney(
       control instanceof HTMLTextAreaElement
     ))
       throw new Error(`Missing field: ${label}`);
-    const prototype =
-      control instanceof HTMLSelectElement
-        ? HTMLSelectElement.prototype
-        : control instanceof HTMLTextAreaElement
-          ? HTMLTextAreaElement.prototype
-          : HTMLInputElement.prototype;
-    Object.getOwnPropertyDescriptor(prototype, 'value')!.set!.call(
-      control,
-      value,
-    );
-    control.dispatchEvent(new Event('input', { bubbles: true }));
-    control.dispatchEvent(new Event('change', { bubbles: true }));
-    await qualificationTurn();
+    await qualificationValue(control, value);
   };
   const flags: Obj = {};
   const initialJobs=await call('work.list','',{limit:100});const initialImportIDs=new Set(initialJobs.items.filter((j:Obj)=>j.kind==='media.import').map((j:Obj)=>j.work_id??j.id));
@@ -176,7 +189,7 @@ async function qualifyJourney(
   const distinct =
     distinctLabel && document.getElementById(distinctLabel.htmlFor);
   if (distinct instanceof HTMLInputElement && !distinct.checked) {
-    distinct.click();
+    qualificationAction(() => distinct.click());
     await idle();
   }
   for (const [kind, path] of [
@@ -271,7 +284,7 @@ async function qualifyJourney(
       if (!seek) throw new Error('Source cue seek unavailable.');
       const cueSeconds =
         Number(seek.textContent!.match(/Seek (\d+) ms/)![1]) / 1000;
-      seek.click();
+      qualificationAction(() => seek.click());
       stage('Seek current source cue');
       await idle();
       await wait(() => {
@@ -373,7 +386,7 @@ async function qualifyJourney(
   const targetControl=targetLabel&&document.getElementById(targetLabel.htmlFor);if(!(targetControl instanceof HTMLInputElement))throw new Error('Target audio control missing.');targetControl.click();await idle();
   await fill('Existing recording ID or exact title',target.id);await fill('Media path or URL',fixtures.video_path);
   const replaceLabel=[...document.querySelectorAll('label')].find(l=>l.textContent==='Replace current audio');
-  const replaceControl=replaceLabel&&document.getElementById(replaceLabel.htmlFor);if(!(replaceControl instanceof HTMLInputElement))throw new Error('Replacement election missing.');replaceControl.click();await idle();
+  const replaceControl=replaceLabel&&document.getElementById(replaceLabel.htmlFor);if(!(replaceControl instanceof HTMLInputElement))throw new Error('Replacement election missing.');qualificationAction(() => replaceControl.click());await idle();
   await fill('Existing transcript policy','clear');await fill('Existing roster policy','retain');await click('Import');
   await wait(async()=>{const jobs=await call('work.list','',{limit:100});return jobs.items.filter((j:Obj)=>j.kind==='media.import').every((j:Obj)=>j.state==='succeeded')},'Audio replacement did not finish.');
   const replaced=await call('recordings.show',target.id);const retained=await call('recordings.roster.show',target.id);
@@ -399,7 +412,7 @@ async function qualifyJourney(
     (b) => b.textContent === 'Inspect job',
   );
   if (!inspect) throw new Error('Durable jobs missing.');
-  inspect.click();
+  qualificationAction(() => inspect.click());
   stage('Inspect durable job');
   await idle();
   flags.ui_jobs = 'passed';
@@ -449,7 +462,7 @@ async function qualifyJourney(
   const loopbackLabel=[...document.querySelectorAll('label')].find(l=>l.textContent==='Model file uses explicit loopback HTTP');
   const loopback=loopbackLabel&&document.getElementById(loopbackLabel.htmlFor);
   if(!(loopback instanceof HTMLInputElement))throw new Error('Missing loopback model source control.');
-  if(!loopback.checked){loopback.click();await idle();}
+  if(!loopback.checked){qualificationAction(() => loopback.click());await idle();}
   for(const file of manifest.files){
     for(const [label,value] of [['Model file role',file.role],['Model file source URL',file.url],['Model file SHA-256',file.sha256],['Model file byte size',String(file.size)]])await fill(label,value);
     await click('Add pinned file');
