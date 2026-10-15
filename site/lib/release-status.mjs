@@ -15,8 +15,9 @@ export function publicationManifest(manifest, target) {
   return value;
 }
 
-export function publicationDocument(source, entry, slug, target) {
-  if (target !== 'release' || entry.status !== 'released' || slug !== 'index') return source;
+export function publicationDocument(source, entry, slug) {
+  // Manifest election already resolved publication state, including historical releases.
+  if (entry.status !== 'released' || slug !== 'index') return source;
   const escaped = entry.version.replaceAll('.', '\\.');
   return source.replace(new RegExp('^v' + escaped + ' documents the prepared release candidate\\.[^\\n]*', 'm'),
     `v${entry.version} documents this release. Package availability and qualification are recorded in its release manifest.`);

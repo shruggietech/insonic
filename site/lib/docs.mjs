@@ -79,7 +79,7 @@ export function readDocument(version, slug) {
     if (!fs.existsSync(changelog)) throw new Error(`Release documentation must freeze its changelog: ${changelog}`);
     source = fs.readFileSync(changelog, 'utf8');
   }
-  if (entry.version === getManifest().latest) source = publicationDocument(source, entry, slug, documentationTarget());
+  source = publicationDocument(source, entry, slug);
   return { entry, page, source };
 }
 

@@ -159,3 +159,29 @@ test('deployment routes separate Pages authority from generic host secrets', () 
   assert.ok(promotion.steps.some(step => step.run?.includes('release.py pages-promote --source-root')));
   assert.ok(workflow.jobs.promote.if.includes("inputs.documentation-transport == 'generic'"));
 });
+
+test('release documentation is qualified before archival with bounded source-attempt evidence', () => {
+  const workflow = parse(readFileSync(new URL('.github/workflows/release.yml', source), 'utf8'));
+  const job = workflow.jobs.docs;
+  assert.equal(job.env.INSONIC_DOCUMENTATION_TARGET, 'release');
+  const commands = job.steps.flatMap((step, index) => (step.run || '').split('\n').map(command => ({ command, index, step })));
+  const siteTest = commands.find(item => item.command === 'npm --prefix site test');
+  const build = commands.find(item => item.command === 'npm --prefix site run build');
+  const diagrams = commands.find(item => item.command === 'python scripts/qualify-docs-renderer.py');
+  const ui = commands.find(item => item.command.startsWith('node scripts/check-docs-ui.mjs '));
+  const archive = commands.find(item => item.command.startsWith('python scripts/release.py docs '));
+  assert.ok(siteTest && build && diagrams && ui && archive, 'all release-target documentation gates must be elected');
+  assert.ok(siteTest.index < build.index);
+  assert.ok(build.index < diagrams.index && diagrams.index < ui.index && ui.index < archive.index);
+  for (const item of [siteTest, build, diagrams, ui]) {
+    assert.notEqual(item.step['continue-on-error'], true);
+    assert.equal(item.step.if, undefined, 'publication qualifications cannot be silently conditional');
+  }
+  const report = job.steps.find(step => step.with?.name === 'documentation-ui-${{ inputs.revision }}-${{ github.run_attempt }}');
+  assert.ok(report, 'audit evidence must be bound to exact source and attempt');
+  assert.equal(report.if, 'always()');
+  assert.equal(report.with['retention-days'], 14);
+  assert.equal(report.with.path, 'build/release/docs-ui');
+  assert.ok(ui.command.includes('--output build/release/docs-ui'));
+  assert.ok(job.steps.indexOf(report) < archive.index);
+});

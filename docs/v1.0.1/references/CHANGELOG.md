@@ -4,7 +4,7 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
-## [1.0.1] - 2026-10-11
+## [1.0.1] - 2026-10-15
 
 - Resolve contextual CLI help before effects and preserve literal arguments, atomic option values, scalar/Boolean arity, repeatable speaker selectors and early invalid-command diagnostics. Include operation-specific JSON-file templates and contracts.
 - Repair shared settings dispatch, initial speaker-model listing and protected vault deletion against live or stopped runtimes.
@@ -13,6 +13,38 @@ All notable changes to this project will be documented here. The format follows 
 - Normalize all machine output to runtime-response envelopes with success on stdout and failure on stderr; failed waits retain both result and error. Consumers of formerly bare local/maintenance output must unwrap result. Output delivery failures return a nonzero status.
 - Retain read compatibility for persisted 1.0.0 workspace/tool/document contracts without rewriting historical bytes, profile identities or generic failure receipts. Current transport/package versions remain exact.
 
+- Add readable bounded CLI results, exact document/page and lease actions, interactive work progress, partial-date warnings, truthful credential state and generated operation-specific corrections.
+- Report hidden runtime startup failures promptly and support verbose/debug/quiet controls with explicitly elected private bounded diagnostic logs.
+- Retain incompatible model inspection identity, acquisition/verification readiness, manifest file roles and dataset preparation readiness. Model materialization now returns an object containing named `files` and readiness instead of a bare positional array; consumers must read `result.files`. Execution eligibility and frozen identities remain unchanged.
+
+- Add revisioned workspace import presets shared by the CLI and desktop, with applied filesystem/S3 destinations, date policy and optional frozen pipeline elections. Reject unresolved selections before enqueue and retain effective choices and deterministic processing children across retries.
+- Replace unsupported current documentation commands with executable input files, observed ID/revision steps and extracted-package qualification. Clarify mapping concurrency, admitted partial-date results and current manual setup capabilities; preserve immutable historical documentation.
+
+- Withdraw macOS support in 1.0.1. Windows/Linux x86-64 retain CLI-only and Desktop + CLI packages; this release requires four variants. Historical 1.0.0 packages, documentation and six-variant record validation remain unchanged.
+- Explain package inclusion, prerequisites and complete Windows ZIP installation/update/removal; copy through alias-aware owned attempts with atomic promotion, and preserve existing/substituted directories on failure.
+
+- Add complete shared CLI/desktop backend plans, non-mutating readiness preflight and explicit fresh provisioning with protected credentials before catalog connection.
+- Add native Ollama query assistance, metadata-only service/model discovery, explicit inference-route election, synthetic task receipts and cancellation of underlying desktop operations.
+- Reject remote PostgreSQL profiles mislabeled local; retain verified TLS by default and provide explicitly named insecure remote transport.
+- Qualify cache/restore 6.1.0, artifact upload 7.0.2/download 8.0.2, setup-node 7.1.0, Next.js 16.4.0 and the Go runtime dependency group. Require explicit archived artifact uploads, extracted downloads and digest failure, with repository checks rejecting mutable artifact pins and missing attempt fences regardless of action-name case. Retain controlled qualification output on timeout after terminating its process tree.
+
+- Derive Go package notices from the modules linked into each shipped executable, reject missing or mismatched upstream source/license evidence, and independently check candidate inventory membership. Exclude unused tooling modules without downloading their graph.
+- Update x/net to 0.61.0 and the docs renderer to Mermaid 12.2.0 with KaTeX 0.18.2, covering inherited trust-option handling and actual public/offline SVG theme rendering.
+
+- Add shared managed CPU worker setup, exact builtin model acquisition/local reuse, protected token registration and five-task readiness across CLI and desktop Settings. Preserve frozen environments, devices, destinations and settings revisions; package complete optional acquisition metadata and hash locks.
+
+- Add optional, resumable first-run setup across CLI and desktop, with editable library location, backend selection before fresh provisioning, five saved stages and explicit task readiness. Preserve accepted settings and durable work on skip/defer, reconcile repeated saves and reject stale progress writes.
+
+- Add an unsigned per-user Windows MSI with selectable Desktop/CLI clients, optional branded integrations, transactional maintenance and a useful selected-client launcher. Preserve the four archive choices and add independent MSI payload/source qualification.
+- Preserve explicitly selected program locations during upgrades, check active work in both installation roots and refuse unrelated exact-name shortcut replacement.
+- Keep desktop grid content aligned to the start of its viewport so tall windows do not stretch setup and form rows into blank gaps.
+- Add version-matched unsigned Windows installation guidance and repeatable headless application/native installer capture tooling with explicit renderer, fixture and exact-source receipts.
+
+- Restore deterministic real-backend lease-fencing qualification and allow eleven minutes for active CI/release jobs. Preserve operation-specific timeouts and all security/integrity gates.
+- Add manifest-elected current documentation routes and explicit archives, with shared mobile disclosures, readable reference pages and keyboard/reflow improvements across public and offline help. Link the README company attribution.
+
+- Finalize the 1.0.1 release cut, correct historical release labels and require publication-target site, diagram and browser qualification before documentation archival.
+
 ### Fixed
 
 - Read every page of exact-source GitHub checks before publication, retaining required checks, external failure/pending rejection and verified current-workflow suite exclusion. Reject incomplete, duplicate or changing inventories before release writes.
@@ -20,6 +52,32 @@ All notable changes to this project will be documented here. The format follows 
 ### Decisions
 
 - 2026-10-11: Correct the publication verifier's first-page limit after complete qualification and launch together exceeded 100 checks. Keep the qualified immutable v1.0.0 source/tag unchanged and execute the corrected verifier from reviewed protected-main tooling against that ancestor.
+
+- 2026-10-11: Keep startup transport separate from detached lifetime: one bounded report, one child wait owner and one ten-second deadline cover the client handshake. Log only generated context, using three bounded data files and a private empty coordination lock; diagnostic input/tool/provider payloads are excluded. Model readiness remains response-only and named file roles come from immutable manifests.
+- 2026-10-11: Save import choices in a bounded typed catalog registry; publish/read by immutable storage profile revision. Preset values precede manifest defaults/items and explicit CLI overrides; capture local timezone only after resolution. Elect existing processing contracts and reconcile child identity after admission. Current documentation examples qualify extracted binaries using deterministic adapter fixtures without inference.
+- 2026-10-12: Execute documented post-install processing/training against owned loopback fixtures in a separate disposable workspace. Retain CI refusal in the main runtime and all guard tests; permit the established detached runtime owner to restart between package qualification journeys.
+
+- 2026-10-13: Keep first-run orchestration metadata separate from accepted configuration/work. Persist normalized bootstrap identities before provisioning and qualify setup retry/readback plus ordinary import after deferral in native package checks.
+
+- 2026-10-13: Constitution 3.0.0 implements the owner-directed removal of the macOS platform obligation. Remove owned Darwin runtime/build/signing paths and macOS CI/release dependencies while retaining every Windows/Linux/backend integrity lane. Read historical version schemas as data under trusted current validation rather than changing published records.
+- 2026-10-13: Windows copy attempts are created and held through native directory handles. Resolve source/parent aliases, create a unique absent attempt atomically, preserve locks through no-replace promotion and delete failed owned objects by handle without following reparse points. Program files and persistent user data remain separate; current runtime shutdown uses existing idle exit.
+
+- 2026-10-13: Keep backend preflight outside mutating owner startup; fresh provisioning publishes configuration after selected catalog/storage preparation and retains identical generated-plan and credential-backend retry identity before mutations and on completed retries. Observe selected S3 bucket access and initialize graph schema/owner before success. Native Ollama translates into the existing validated query contract and separates endpoint location from actual model routing. Preserve cloud support without assuming upstream structured-output support.
+- 2026-10-13: Add initial credential/bootstrap and read-only PostgreSQL qualification to the existing bounded adapter CI lane. Explicit insecure transport preserves elected remote plaintext while removing the misleading local label.
+- 2026-10-13: Consolidate seven dependency updates into one complete Windows/Linux qualification boundary. Preserve verified cache keys, source/attempt identities, four-package candidate completeness and frozen historical documentation; retain the original bot PRs until consolidation merge. Runtime updates include the required text/sync closure without changing Go or native library pins. Preserve flat and nested historical Next segment URLs only through exact verified counterparts beside the same page. Keep the 180-second qualification child and ten-minute job bounds; retain controlled timeout checkpoints after terminating owned descendants.
+
+- 2026-10-13: Resolve shipped Go membership from executable build metadata, check selective source identities against the canonical module cache, and record effective versioned replacement sources without changing inventory fields. Pin Mermaid's KaTeX resolution to the elected patched 0.18.2 rather than silently taking a later range match. Render exported diagram sources with a bounded hidden browser and private temporary profile; final qualification retains all native/backend/source and publication boundaries.
+
+- 2026-10-13: Authenticate selected cached module files against the executable's Go h1 sum and copy the notice bytes captured by that verification. Recorded cache metadata and copy equality alone cannot establish upstream evidence; do not reread mutable source notices afterward.
+
+- 2026-10-13: Prepare local engines through private isolated CPython/uv environments and complete platform wheel hashes. Record and revalidate runtime/dependency bytes before frozen work; reuse unchanged accepted environments. Model preparation retains immutable builtin roles and first-elected storage/credentials, strips cross-origin tokens on official CDN redirects and reports prerequisite readiness separately from inference. Request Windows ownership transfer only when the directory owner changes; retain private protected ACL verification.
+- 2026-10-13: Author Windows Installer tables/cabinets through native Windows APIs, retain shared runtime bytes for Desktop-only and omit global PATH/prerequisite acquisition. Model MSI separately from the four archive receipts; maintain strict payload/source/help/license identity and transactional ownership.
+- 2026-10-13: Retire native installer UI probing on the owner host after an isolation/cleanup failure affected unrelated windows. Local captures use verified headless Chromium and real shared runtime fixtures; native installer UI/lifecycle run only on disposable CI runners. Cleanup targets owned process trees and never desktop-wide windows. Launcher label proposals require explicit owner signoff before shipping.
+- 2026-10-13: Separate MSI qualification from independently verified same-run archive assembly. Use exact owned native API workers with checked logging and bounded diagnostics, retain unchecked shortcut elections through upgrades, and publish screenshots only after clean-source validation and verified fixture/browser cleanup.
+
+- 2026-10-14: Constitution 3.0.1 applies the owner-approved additional minute to the active CI policy (660 seconds). Test real lease authority against guarded durable fixture states rather than wall-clock sleeps; production lease duration remains unchanged. Render full current-documentation aliases statically so no-script readers, fragments and offline files retain content, while explicit version URLs preserve historical identity. Use native disclosures and governed semantic styles for shared documentation navigation; automated standards evidence states its assistive-technology limits.
+
+- 2026-10-15: Finalize the existing unpublished 1.0.1 cut without weakening newer-version/no-overwrite preparation guards. Correct known historical release status through current metadata and render-only overlays, qualify publication-target site/diagram/browser output before archival, and publish/promote only a fresh reviewed squash-main candidate after owner merge.
 
 ## [1.0.0] - 2026-10-11
 

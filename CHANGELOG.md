@@ -4,6 +4,15 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-15
+
+- Resolve contextual CLI help before effects and preserve literal arguments, atomic option values, scalar/Boolean arity, repeatable speaker selectors and early invalid-command diagnostics. Include operation-specific JSON-file templates and contracts.
+- Repair shared settings dispatch, initial speaker-model listing and protected vault deletion against live or stopped runtimes.
+- Preserve exact signed integer values and distinguish captured local timezone policy from explicit timezone selections across prepared/replayed date inputs.
+- Preserve classified durable failures through show/results/wait, reload and portable proofs, including acquisition checksum, limit and timeout causes.
+- Normalize all machine output to runtime-response envelopes with success on stdout and failure on stderr; failed waits retain both result and error. Consumers of formerly bare local/maintenance output must unwrap result. Output delivery failures return a nonzero status.
+- Retain read compatibility for persisted 1.0.0 workspace/tool/document contracts without rewriting historical bytes, profile identities or generic failure receipts. Current transport/package versions remain exact.
+
 - Add readable bounded CLI results, exact document/page and lease actions, interactive work progress, partial-date warnings, truthful credential state and generated operation-specific corrections.
 - Report hidden runtime startup failures promptly and support verbose/debug/quiet controls with explicitly elected private bounded diagnostic logs.
 - Retain incompatible model inspection identity, acquisition/verification readiness, manifest file roles and dataset preparation readiness. Model materialization now returns an object containing named `files` and readiness instead of a bare positional array; consumers must read `result.files`. Execution eligibility and frozen identities remain unchanged.
@@ -11,7 +20,7 @@ All notable changes to this project will be documented here. The format follows 
 - Add revisioned workspace import presets shared by the CLI and desktop, with applied filesystem/S3 destinations, date policy and optional frozen pipeline elections. Reject unresolved selections before enqueue and retain effective choices and deterministic processing children across retries.
 - Replace unsupported current documentation commands with executable input files, observed ID/revision steps and extracted-package qualification. Clarify mapping concurrency, admitted partial-date results and current manual setup capabilities; preserve immutable historical documentation.
 
-- Withdraw macOS support effective with the unreleased 1.0.1 candidate. Windows/Linux x86-64 retain CLI-only and Desktop + CLI packages; current candidates require four variants. Historical 1.0.0 packages, documentation and six-variant record validation remain unchanged.
+- Withdraw macOS support in 1.0.1. Windows/Linux x86-64 retain CLI-only and Desktop + CLI packages; this release requires four variants. Historical 1.0.0 packages, documentation and six-variant record validation remain unchanged.
 - Explain package inclusion, prerequisites and complete Windows ZIP installation/update/removal; copy through alias-aware owned attempts with atomic promotion, and preserve existing/substituted directories on failure.
 
 - Add complete shared CLI/desktop backend plans, non-mutating readiness preflight and explicit fresh provisioning with protected credentials before catalog connection.
@@ -34,12 +43,21 @@ All notable changes to this project will be documented here. The format follows 
 - Restore deterministic real-backend lease-fencing qualification and allow eleven minutes for active CI/release jobs. Preserve operation-specific timeouts and all security/integrity gates.
 - Add manifest-elected current documentation routes and explicit archives, with shared mobile disclosures, readable reference pages and keyboard/reflow improvements across public and offline help. Link the README company attribution.
 
+- Finalize the 1.0.1 release cut, correct historical release labels and require publication-target site, diagram and browser qualification before documentation archival.
+
+### Fixed
+
+- Read every page of exact-source GitHub checks before publication, retaining required checks, external failure/pending rejection and verified current-workflow suite exclusion. Reject incomplete, duplicate or changing inventories before release writes.
+
 ### Decisions
 
+- 2026-10-11: Correct the publication verifier's first-page limit after complete qualification and launch together exceeded 100 checks. Keep the qualified immutable v1.0.0 source/tag unchanged and execute the corrected verifier from reviewed protected-main tooling against that ancestor.
 
 - 2026-10-11: Keep startup transport separate from detached lifetime: one bounded report, one child wait owner and one ten-second deadline cover the client handshake. Log only generated context, using three bounded data files and a private empty coordination lock; diagnostic input/tool/provider payloads are excluded. Model readiness remains response-only and named file roles come from immutable manifests.
 - 2026-10-11: Save import choices in a bounded typed catalog registry; publish/read by immutable storage profile revision. Preset values precede manifest defaults/items and explicit CLI overrides; capture local timezone only after resolution. Elect existing processing contracts and reconcile child identity after admission. Current documentation examples qualify extracted binaries using deterministic adapter fixtures without inference.
 - 2026-10-12: Execute documented post-install processing/training against owned loopback fixtures in a separate disposable workspace. Retain CI refusal in the main runtime and all guard tests; permit the established detached runtime owner to restart between package qualification journeys.
+
+- 2026-10-13: Keep first-run orchestration metadata separate from accepted configuration/work. Persist normalized bootstrap identities before provisioning and qualify setup retry/readback plus ordinary import after deferral in native package checks.
 
 - 2026-10-13: Constitution 3.0.0 implements the owner-directed removal of the macOS platform obligation. Remove owned Darwin runtime/build/signing paths and macOS CI/release dependencies while retaining every Windows/Linux/backend integrity lane. Read historical version schemas as data under trusted current validation rather than changing published records.
 - 2026-10-13: Windows copy attempts are created and held through native directory handles. Resolve source/parent aliases, create a unique absent attempt atomically, preserve locks through no-replace promotion and delete failed owned objects by handle without following reparse points. Program files and persistent user data remain separate; current runtime shutdown uses existing idle exit.
@@ -59,24 +77,7 @@ All notable changes to this project will be documented here. The format follows 
 
 - 2026-10-14: Constitution 3.0.1 applies the owner-approved additional minute to the active CI policy (660 seconds). Test real lease authority against guarded durable fixture states rather than wall-clock sleeps; production lease duration remains unchanged. Render full current-documentation aliases statically so no-script readers, fragments and offline files retain content, while explicit version URLs preserve historical identity. Use native disclosures and governed semantic styles for shared documentation navigation; automated standards evidence states its assistive-technology limits.
 
-## [1.0.1] - 2026-10-11
-
-- Resolve contextual CLI help before effects and preserve literal arguments, atomic option values, scalar/Boolean arity, repeatable speaker selectors and early invalid-command diagnostics. Include operation-specific JSON-file templates and contracts.
-- Repair shared settings dispatch, initial speaker-model listing and protected vault deletion against live or stopped runtimes.
-- Preserve exact signed integer values and distinguish captured local timezone policy from explicit timezone selections across prepared/replayed date inputs.
-- Preserve classified durable failures through show/results/wait, reload and portable proofs, including acquisition checksum, limit and timeout causes.
-- Normalize all machine output to runtime-response envelopes with success on stdout and failure on stderr; failed waits retain both result and error. Consumers of formerly bare local/maintenance output must unwrap result. Output delivery failures return a nonzero status.
-- Retain read compatibility for persisted 1.0.0 workspace/tool/document contracts without rewriting historical bytes, profile identities or generic failure receipts. Current transport/package versions remain exact.
-
-### Fixed
-
-- Read every page of exact-source GitHub checks before publication, retaining required checks, external failure/pending rejection and verified current-workflow suite exclusion. Reject incomplete, duplicate or changing inventories before release writes.
-
-### Decisions
-
-- 2026-10-11: Correct the publication verifier's first-page limit after complete qualification and launch together exceeded 100 checks. Keep the qualified immutable v1.0.0 source/tag unchanged and execute the corrected verifier from reviewed protected-main tooling against that ancestor.
-
-- 2026-10-13: Keep first-run orchestration metadata separate from accepted configuration/work. Persist normalized bootstrap identities before provisioning and qualify setup retry/readback plus ordinary import after deferral in native package checks.
+- 2026-10-15: Finalize the existing unpublished 1.0.1 cut without weakening newer-version/no-overwrite preparation guards. Correct known historical release status through current metadata and render-only overlays, qualify publication-target site/diagram/browser output before archival, and publish/promote only a fresh reviewed squash-main candidate after owner merge.
 
 ## [1.0.0] - 2026-10-11
 

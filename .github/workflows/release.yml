@@ -56,11 +56,24 @@ jobs:
           npm ci --ignore-scripts
           npm run check
           npm test
+      - run: npm --prefix site ci --ignore-scripts
+      - run: npm --prefix site test
       - name: Build publication-target public and offline documentation
-        run: |
-          npm --prefix site ci --ignore-scripts
-          npm --prefix site run build
-          python scripts/release.py docs --revision "$SOURCE_REVISION" --output build/release/docs
+        run: npm --prefix site run build
+      - name: Qualify publication-target diagram rendering
+        run: python scripts/qualify-docs-renderer.py
+      - name: Qualify publication-target responsive public and offline documentation
+        run: node scripts/check-docs-ui.mjs --browser /usr/bin/google-chrome --out site/out --offline site/offline --output build/release/docs-ui
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          archive: true
+          name: documentation-ui-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/release/docs-ui
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Archive qualified publication-target documentation
+        run: python scripts/release.py docs --revision "$SOURCE_REVISION" --output build/release/docs
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           archive: true
