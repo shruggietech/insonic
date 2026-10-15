@@ -34,6 +34,7 @@ After design: PASS. Credentials separated from read-only build/verification; sit
 
 ## Project Structure
 
+- site/lib/screenshots.mjs and site/tests/screenshots.test.mjs: preserve capture-time identity for frozen versioned images using bounded ancestral Git blobs, separately from current native UI qualification.
 - scripts/website.py: qualify/publish/read-only verify.
 - scripts/site-transfer.py: CI archive identity/restore.
 - scripts/check-live-site-ui.mjs and shared check-docs-ui.mjs assertions.

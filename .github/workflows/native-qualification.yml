@@ -57,6 +57,7 @@ jobs:
         with:
           ref: ${{ inputs.revision }}
           persist-credentials: false
+          fetch-depth: ${{ inputs.reuse-ci-offline-help && 1 || 0 }}
       - name: Check out exact workflow bootstrap tooling
         if: inputs.revision != job.workflow_sha
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -247,6 +248,7 @@ jobs:
         with:
           ref: ${{ inputs.revision }}
           persist-credentials: false
+          fetch-depth: ${{ inputs.reuse-ci-offline-help && 1 || 0 }}
       - name: Check out exact workflow bootstrap tooling
         if: inputs.revision != job.workflow_sha
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
