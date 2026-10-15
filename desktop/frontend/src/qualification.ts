@@ -14,6 +14,20 @@ export function mediaDiagnostics(media: HTMLMediaElement | null): string {
   // only bounded numeric state and known error categories during qualification.
   return `readyState=${media.readyState},networkState=${media.networkState},error=${code}(${errors[code] ?? 'unknown'}),buffered=${media.buffered.length},duration=${Number.isFinite(media.duration) && media.duration > 0 ? 'positive' : 'unavailable'}`;
 }
+// A hidden WebView can clamp setTimeout to one second. Yield through the
+// message task queue so React can commit each action without accumulating those
+// background timer delays. Both ports are closed before the turn resolves.
+export function qualificationTurn(): Promise<void> {
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => {
+      channel.port1.close();
+      channel.port2.close();
+      resolve();
+    };
+    channel.port2.postMessage(null);
+  });
+}
 // Mounting includes the asynchronous workspace Show call. Cold runner startup
 // uses the same bounded readiness window as the rest of the native journey.
 export async function qualificationMounted(timeout = 25000): Promise<void> {
@@ -85,7 +99,7 @@ async function qualifyJourney(
     throw new Error(typeof message === 'function' ? message() : message);
   };
   const idle = async () => {
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await qualificationTurn();
     await wait(
       () =>
         !document
@@ -141,7 +155,7 @@ async function qualifyJourney(
     );
     control.dispatchEvent(new Event('input', { bubbles: true }));
     control.dispatchEvent(new Event('change', { bubbles: true }));
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await qualificationTurn();
   };
   const flags: Obj = {};
   const initialJobs=await call('work.list','',{limit:100});const initialImportIDs=new Set(initialJobs.items.filter((j:Obj)=>j.kind==='media.import').map((j:Obj)=>j.work_id??j.id));

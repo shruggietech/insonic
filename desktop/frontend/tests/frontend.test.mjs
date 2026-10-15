@@ -1652,3 +1652,19 @@ test('six backend forms use shared bootstrap and keep initial credentials out of
  await click('Preflight selected backends');const probe=bootstrap.find(x=>x.action==='preflight');assert.ok(probe);assert.equal(probe.draft.profiles.storage.adapter_id,'s3');assert.equal(probe.draft.profiles.catalog.configuration.tls_mode,'verify-full');assert.equal(probe.draft.profiles.graph.adapter_id,'arcadedb');assert.ok(Object.values(probe.protected.session).some(v=>v.secret_key==='initial-private-secret'));assert.equal(JSON.stringify(probe.draft).includes('initial-private-secret'),false);assert.equal(JSON.stringify(b.calls.filter(x=>x.operation!=='Credential')).includes('initial-private-secret'),false);
  await fill('storage backend','filesystem');await fill('catalog backend','sqlite');await fill('graph backend','ladybugdb');await click('Prepare backend plan');const local=bootstrap.filter(x=>x.action==='plan').at(-1);assert.deepEqual(Object.values(local.draft.profiles).map(x=>x.adapter_id),['filesystem','sqlite','ladybugdb']);await unmount();
 });
+
+test('qualification event-loop turn yields to pending work without hidden-window timer sleeps', {timeout:2000}, async () => {
+  const {qualificationTurn}=await import('../.test-build/qualification.js');
+  const original=globalThis.setTimeout;
+  let timerCalls=0;
+  let completed=false;
+  try {
+    globalThis.setTimeout=()=>{timerCalls++;throw new Error('hidden timers must not pace a UI action');};
+    const pending=qualificationTurn().then(()=>{completed=true;});
+    await Promise.resolve();
+    assert.equal(completed,false,'an event-loop turn must yield beyond microtasks');
+    await pending;
+    assert.equal(completed,true);
+    assert.equal(timerCalls,0);
+  } finally {globalThis.setTimeout=original;}
+});

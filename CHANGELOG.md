@@ -6,11 +6,14 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Hidden native WebView qualification yields UI actions through event-loop message turns instead of fixed timer sleeps, preventing background timer throttling from exhausting the existing 80/90-second watchdogs.
+
 - Release publication accepts documented main-workflow path forms and can supersede verified completed older release-workflow attempts for the same source while retaining every required CI/security gate and immutable tag/artifact checks.
 
 ### Decisions
 
 - 2026-10-15: Recover interrupted publication through a reviewed trusted-main verifier correction rather than deleting check history, changing immutable v1.0.1 source or bypassing failed unrelated checks. Older release attempts require independently verified repository, main branch, workflow, source, suite and terminal-run identity.
+- 2026-10-15: Repair the failed main-branch Windows package qualification in its UI driver after verifying the pinned loader clears browser environment overrides. Preserve foreground-free execution, ordinary application browser policy, all package/installer acceptance and the 660-second CI budget; do not turn a failed run green by skipping or extending its checks.
 
 ## [1.0.1] - 2026-10-15
 
