@@ -17,7 +17,6 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"os"
-	"runtime/pprof"
 	"sync/atomic"
 	"time"
 )
@@ -34,13 +33,6 @@ func run() (exitCode int) {
 	smoke := len(os.Args) == 2 && os.Args[1] == "--webview-qualification"
 	var smokePassed atomic.Bool
 	if smoke {
-		// Qualification owns only disposable fixture state. Capture the blocked
-		// shutdown frame before the unchanged external 90-second watchdog fires.
-		timer := time.AfterFunc(85*time.Second, func() {
-			fmt.Fprintln(os.Stderr, "Desktop qualification shutdown deadline: goroutines")
-			pprof.Lookup("goroutine").WriteTo(os.Stderr, 2)
-		})
-		defer timer.Stop()
 		// Register first: success is emitted only after every later cleanup has
 		// returned, including runtime cancellation and fixture removal.
 		defer func() {
@@ -87,7 +79,10 @@ func run() (exitCode int) {
 		}
 		defer func() {
 			fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: fixtures")
-			os.RemoveAll(directory)
+			if err := os.RemoveAll(directory); err != nil {
+				fmt.Fprintln(os.Stderr, "Desktop qualification fixture cleanup failed.")
+				exitCode = 1
+			}
 			fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: fixtures complete")
 		}()
 		w, err := workspace.Init(directory, "Webview qualification")
@@ -120,7 +115,10 @@ func run() (exitCode int) {
 		defer func() {
 			fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: runtime")
 			cancel()
-			<-done
+			if err := <-done; err != nil {
+				fmt.Fprintln(os.Stderr, "Desktop qualification runtime cleanup failed.")
+				exitCode = 1
+			}
 			fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: runtime complete")
 		}()
 		if err := desktop.PrepareWebviewQualification(bridge); err != nil {

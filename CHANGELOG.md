@@ -12,6 +12,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Catalog-only media views and cleanup no longer rediscover and hash installed executable companions. Import and processing tool-use validation remains fresh; native WebView qualification emits success after cleanup.
+
 - CI overlaps conservative scope selection with foundation and shares source/run/attempt/hash-bound documentation exports across native jobs, retaining documentation browser, native and installer qualification.
 
 - Landing-page downloads separate Windows MSI installation, portable Windows ZIPs and Linux tar.gz choices with explicit client/format labels, accurate platform guidance and spaced subordinate actions.

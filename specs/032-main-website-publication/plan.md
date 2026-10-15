@@ -40,6 +40,8 @@ After design: PASS. Credentials separated from read-only build/verification; sit
 - .github/workflows/website.yml, ci.yml, native-qualification.yml, release.yml.
 - tests/website_test.py, site_transfer_test.py, live-site-ui.test.mjs, ci-scope tests.
 - docs/v1.0.1/releases.md, development.md, CHANGELOG.md.
+- internal/app/work.go, processing.go, package_tools_test.go: remove measured tool discovery from catalog-only paths while retaining fresh execution checks.
+- cmd/insonic-desktop/main.go: qualification success follows cleanup.
 - specs/032-main-website-publication/: design, tasks and exact evidence.
 
 ## Delivery

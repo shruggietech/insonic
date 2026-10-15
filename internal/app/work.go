@@ -40,8 +40,18 @@ func strictPayload(raw []byte, out any) error {
 	return nil
 }
 
-func (a *App) libraryService() (*library.Service, error) {
+// Catalog operations and retirement consume stored authority and artifacts,
+// not media executables. Keep discovery at the operations that use tools.
+func (a *App) libraryCatalogService() (*library.Service, error) {
 	artifacts, e := a.artifactService()
+	if e != nil {
+		return nil, e
+	}
+	return library.NewService(artifacts, a.Catalog, a.secrets, library.Tools{}), nil
+}
+
+func (a *App) libraryService() (*library.Service, error) {
+	service, e := a.libraryCatalogService()
 	if e != nil {
 		return nil, e
 	}
@@ -49,7 +59,7 @@ func (a *App) libraryService() (*library.Service, error) {
 	if e != nil {
 		return nil, e
 	}
-	service := library.NewService(artifacts, a.Catalog, a.secrets, tools)
+	service.Tools = tools
 	service.AfterAdmission = a.queueImportProcessing
 	service.NativeIngest = func(ctx context.Context, data []byte, format string) (json.RawMessage, error) {
 		config, err := ReadProcessingTools(a.Workspace)
@@ -549,7 +559,7 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 		}
 		return a.modelWorkView(out), nil
 	case "media.list", "media.show", "media.metadata", "media.raw", "media.set-origin", "media.relocate":
-		s, e := a.libraryService()
+		s, e := a.libraryCatalogService()
 		if e != nil {
 			return nil, e
 		}

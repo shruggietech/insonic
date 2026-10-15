@@ -104,6 +104,7 @@ Maintainers get proportionate complete checks within the existing CI turnaround 
 - Replay qualified archives; rebuilding the same source does not imply identical Next.js bytes.
 - Use isolated Git with a parent fence and non-force push. Preserve historical schema bytes. Original release promotion retains integrity checks.
 - Native CI reuses source/run/attempt/hash-bound documentation with no fallback. Keep dependencies, notices, native and MSI checks. Release callers build independently by default.
+- Hosted stacks demonstrated repeated installed-companion hashing on catalog-only paths. Remove that unused initialization, retaining fresh integrity checks on import/processing tool use and truthful post-cleanup qualification receipts.
 
 ## Tracking
 
