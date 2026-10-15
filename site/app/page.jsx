@@ -1,56 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
-import { getManifest, latestPath } from '../lib/docs.mjs';
+import { getManifest } from '../lib/docs.mjs';
 import { getBrandMessaging } from '../lib/brand.mjs';
-import ArchivePreview from './components/ArchivePreview.jsx';
-import { releaseDownloads } from '../lib/release-status.mjs';
+import LandingPage from './components/LandingPage.jsx';
 
 export default function Home() {
   const manifest = getManifest();
-  const brand = getBrandMessaging();
-  const latest = manifest.versions.find((entry) => entry.version === manifest.latest);
-  const released = latest.status === 'released';
-  return (
-    <main id="main" className="landing product-landing" data-public-landing="true" tabIndex={-1}>
-      <section className="product-hero" aria-labelledby="product-heading">
-        <div>
-          <p className="eyebrow">insonic · v{latest.version}</p>
-          <h1 id="product-heading">{brand.slogan}</h1>
-          <p className="lead">{brand.description}</p>
-          <p className="hero-detail">Organize audio and video, preserve source metadata, and connect speakers to what they said. Configure local or hosted processing through a CLI-first core and desktop client.</p>
-          <div className="product-actions">
-            <a className="button" href="#downloads">Download insonic <span aria-hidden="true">↓</span></a>
-            <a className="button button-secondary" href={latestPath()}>Read the docs <span aria-hidden="true">→</span></a>
-          </div>
-          <p className="product-stage">v{latest.version} {released ? 'released. Official packages are available below.' : latest.status === 'candidate' ? 'prepared release candidate. Official product downloads have not been published for this version.' : 'system specification. Official product downloads have not been published for this version.'}</p>
-          <p className="product-platforms">Windows · Linux <span>CLI + desktop</span></p>
-        </div>
-        <ArchivePreview />
-      </section>
-      <section id="capabilities" className="product-section" aria-labelledby="capability-heading">
-        <p className="eyebrow">From original media to connected knowledge</p>
-        <h2 id="capability-heading">One library. A precise source for every result.</h2>
-        <div className="capability-grid">
-          <article><span className="feature-number">01 / Library</span><h3>Preserve the audio and its source.</h3><p>Capture source metadata early. Retain canonical audio, independent tracks, source timing and one current Cue JSON transcript.</p><a href={latestPath('ingestion')}>Media and metadata</a></article>
-          <article><span className="feature-number">02 / Processing</span><h3>Choose your pipeline.</h3><p>Route transcription, diarization and reasoning through local models or configured providers. Cueson gives subtitles one consistent contract.</p><a href={latestPath('pipelines')}>Pipelines and adapters</a></article>
-          <article><span className="feature-number">03 / Speakers</span><h3>Follow a voice.</h3><p>Connect speakers, aliases and tagged audio across the library. Elect training from a frozen corpus and retrieve model versions by speaker.</p><a href={latestPath('voice-models')}>Speaker audio and models</a></article>
-          <article><span className="feature-number">04 / Explore</span><h3>Find what was said and when.</h3><p>Search words, people and time. Follow results back to source media, navigate timelines and save graph views with optional AI query assistance.</p><a href={latestPath('graph')}>Queries and exploration</a></article>
-        </div>
-      </section>
-      <section className="product-section product-foundation" aria-labelledby="foundation-heading">
-        <div><p className="eyebrow">A system you can configure</p><h2 id="foundation-heading">Open contracts.<br />Your infrastructure.</h2><p>Documented JSON schemas connect the CLI, adapters and application. The desktop client wraps the shared core, and versioned help travels with it.</p><a href={latestPath('contracts')}>Explore the JSON contracts</a></div>
-        <dl className="backend-list"><div><dt>Artifact storage</dt><dd>Filesystem / S3-compatible</dd></div><div><dt>Operational catalog</dt><dd>SQLite / PostgreSQL</dd></div><div><dt>Graph queries</dt><dd>LadybugDB / ArcadeDB</dd></div><div><dt>Processing</dt><dd>Local / connected providers</dd></div></dl>
-      </section>
-      <section className="product-section product-cta" aria-labelledby="start-heading">
-        <p className="eyebrow">Start with the system</p><h2 id="start-heading">See how the pieces connect.</h2><p>Read the architecture, import rules and processing contracts.</p><a className="button" href={latestPath('architecture')}>Read the architecture</a><a className="text-action" href="/docs/versions/">All documentation versions</a>
-      </section>
-      <section id="downloads" className="product-section download-section" aria-labelledby="download-heading">
-        <p className="eyebrow">CLI + desktop</p><h2 id="download-heading">Download insonic.</h2>
-        <p>{released ? `Download v${latest.version} for Windows or Linux. Choose the desktop application with its CLI or the CLI-only package.` : `v${latest.version} ${latest.status === 'candidate' ? 'is a prepared release candidate' : 'is the system specification baseline'}; official product downloads have not been published for this version.`}</p>
-        <div className="download-grid">
-          {releaseDownloads(latest.version).map(platform => <article key={platform.label}><h3>{platform.label}</h3><p>Desktop + CLI includes application windows and terminal commands. CLI only provides terminal commands without the desktop application.</p><p>{platform.label} x86-64. {platform.label === "Windows" ? "Both variants require Microsoft Visual C++ x64; desktop also requires WebView2." : "Both variants require Perl; desktop also requires GTK 3, WebKitGTK 4.1 and GStreamer decoders."}</p><a className="text-action" href={latestPath(platform.label === "Windows" ? "windows-installation" : "desktop")}>Installation, updates and removal</a>{released ? <>{platform.installer && <a className="button" href={platform.installer}>Download Windows MSI</a>}<a className="button" href={platform.desktop}>Download desktop + CLI archive</a><a className="text-action" href={platform.cli}>Download CLI only</a></> : <button type="button" disabled>{platform.label} download pending</button>}</article>)}
-        </div>
-        <a className="text-action" href={latestPath('desktop')}>Installation and packaging requirements <span aria-hidden="true">→</span></a>
-      </section>
-    </main>
-  );
+  const latest = manifest.versions.find(entry => entry.version === manifest.latest);
+  return <LandingPage latest={latest} brand={getBrandMessaging()} />;
 }
