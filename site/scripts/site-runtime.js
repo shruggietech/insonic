@@ -4,6 +4,9 @@ import { applyTheme, normalizeThemePreference, readThemePreference, themeStorage
 // Explicit index files keep offline help portable; HTTP hosts use directory URLs.
 if (['http:', 'https:'].includes(window.location.protocol)) {
   for (const anchor of document.querySelectorAll('a[href]')) {
+    // In-page skip/contents anchors must not become a directory navigation when
+    // the reader opened an explicit index.html URL.
+    if (anchor.getAttribute('href').startsWith('#')) continue;
     const destination = new URL(anchor.href);
     if (destination.origin === window.location.origin && destination.pathname.endsWith('/index.html')) {
       destination.pathname = destination.pathname.slice(0, -'index.html'.length);

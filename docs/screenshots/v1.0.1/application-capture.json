@@ -2,9 +2,9 @@
   "kind": "application-ui-capture",
   "schema_version": "1.0.1",
   "source": {
-    "revision": "e490a30bea0ac9263cbf1bc542622b342856c1dd",
+    "revision": "e16f3a0bb7041a426d8a548bfbcd0c120239fa0f",
     "dirty": false,
-    "tree_sha256": "6a0e99e1003709caa5f5b447ac7b64cf157726714fc4fbc3f0bbb61101c92e3f",
+    "tree_sha256": "555e627cd1d2ae6f890049b544afc523590c24823e7587ee11f20f93a443bd8e",
     "files": [
       {
         "path": "brand/README.md",
@@ -3612,7 +3612,7 @@
       },
       {
         "path": "internal/catalog/security_test.go",
-        "sha256": "191a7e08052871d21739cd1878833ec5a2ba8bfb51e2b142e31e32a04fc68393"
+        "sha256": "2824af99106dc9ac5dd463bde56592ed25315e3d0945e0ddac3ad97638b599a5"
       },
       {
         "path": "internal/catalog/selection.go",
@@ -5025,7 +5025,7 @@
     "windows_build": "10.0.26300"
   },
   "fixture": {
-    "id": "3e7ccccae3fc50f8cf42525d98f22150",
+    "id": "ac9097c12173dde1a8f188a5f2326360",
     "isolated": true,
     "browser_profile_owned": true,
     "private_inputs": false
@@ -5038,8 +5038,8 @@
   "locale": "en-US",
   "signing": "unsigned",
   "binaries": {
-    "cli_sha256": "1eda6b718b95331b0d8596547df2952181aba6dd3c450b9f827f359293ae24f4",
-    "bridge_sha256": "02b71587b97ac35c314b1d17a4d342a634d1238e193e10275ecac343013891f2",
+    "cli_sha256": "b609a472c0e749899eb4d8fb191d9858b8d01284afc6f4cd20c849e8202e482d",
+    "bridge_sha256": "55d552809005a53f8e81f6aa8996448d17798cae1da559f1b78f7d102f5c6390",
     "cli_vcs_modified": false,
     "bridge_vcs_modified": false
   },
@@ -5108,7 +5108,7 @@
   "images": [
     {
       "path": "setup-location.png",
-      "sha256": "77be8b1b64dc17c0944b6176ba5836b2e94083f581d897889e6e66fb4c77bba5",
+      "sha256": "44d9945f04ca8e19d3d277ed818e81cf93033b63abd7367aa336494b362fccbf",
       "width": 1392,
       "height": 1766,
       "landmark": "Workspace and location (Step 1 of 5)",

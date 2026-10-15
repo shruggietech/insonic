@@ -1,0 +1,959 @@
+{
+  "kind": "documentation-ui-verification",
+  "qualification_limit_seconds": 180,
+  "viewport_widths": [
+    320,
+    360,
+    390,
+    768,
+    1440
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "browser": "155.0.8059.40",
+  "isolated_profile": true,
+  "public_pages": 114,
+  "offline_pages": 111,
+  "cases": [
+    {
+      "name": "All exported public and offline pages: 320px reflow, compact navigation, landmarks, names, alternatives and unique IDs",
+      "passed": true
+    },
+    {
+      "name": "Article, diagram, contracts, changelog, installation and reference templates: 320px/light",
+      "passed": true
+    },
+    {
+      "name": "Article, diagram, contracts, changelog, installation and reference templates: 320px/dark",
+      "passed": true
+    },
+    {
+      "name": "Article, diagram, contracts, changelog, installation and reference templates: 360px/light",
+      "passed": true
+    },
+    {
+      "name": "Article, diagram, contracts, changelog, installation and reference templates: 360px/dark",
+      "passed": true
+    },
+    {
+      "name": "Article, diagram, contracts, changelog, installation and reference templates: 390px/light",
+      "passed": true
+    },
+    {
+      "name": "Article, diagram, contracts, changelog, installation and reference templates: 390px/dark",
+      "passed": true
+    },
+    {
+      "name": "Article, diagram, contracts, changelog, installation and reference templates: 768px/light",
+      "passed": true
+    },
+    {
+      "name": "Article, diagram, contracts, changelog, installation and reference templates: 768px/dark",
+      "passed": true
+    },
+    {
+      "name": "Article, diagram, contracts, changelog, installation and reference templates: 1440px/light",
+      "passed": true
+    },
+    {
+      "name": "Article, diagram, contracts, changelog, installation and reference templates: 1440px/dark",
+      "passed": true
+    },
+    {
+      "name": "Keyboard: skip focus, Enter/Space disclosure, expanded/collapsed tab order and visible focus",
+      "passed": true
+    },
+    {
+      "name": "Archive and unavailable-page skip links reach their main landmark",
+      "passed": true
+    },
+    {
+      "name": "Offline file URLs with JavaScript disabled: all representative templates and native disclosure",
+      "passed": true
+    },
+    {
+      "name": "Unavailable preference storage preserves current-page theme controls",
+      "passed": true
+    },
+    {
+      "name": "200% text and WCAG text-spacing overrides retain reading/navigation reflow",
+      "passed": true
+    },
+    {
+      "name": "Forced colors and reduced motion retain reachable navigation",
+      "passed": true
+    }
+  ],
+  "readability": [
+    {
+      "page": "docs/v1.0.1/index/index.html",
+      "width": 320,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 86,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/architecture/index.html",
+      "width": 320,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 94,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/contracts/index.html",
+      "width": 320,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 700,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/changelog/index.html",
+      "width": 320,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 131,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/windows-installation/index.html",
+      "width": 320,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 107,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/references/contributing-md/index.html",
+      "width": 320,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 55,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v0.0.0/references/contributing-md/index.html",
+      "width": 320,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 51,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/index/index.html",
+      "width": 320,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 86,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/architecture/index.html",
+      "width": 320,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 94,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/contracts/index.html",
+      "width": 320,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 700,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/changelog/index.html",
+      "width": 320,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 131,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/windows-installation/index.html",
+      "width": 320,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 107,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/references/contributing-md/index.html",
+      "width": 320,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 55,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v0.0.0/references/contributing-md/index.html",
+      "width": 320,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 51,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/index/index.html",
+      "width": 360,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 86,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/architecture/index.html",
+      "width": 360,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 94,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/contracts/index.html",
+      "width": 360,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 700,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/changelog/index.html",
+      "width": 360,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 131,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/windows-installation/index.html",
+      "width": 360,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 107,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/references/contributing-md/index.html",
+      "width": 360,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 55,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v0.0.0/references/contributing-md/index.html",
+      "width": 360,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 51,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/index/index.html",
+      "width": 360,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 86,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/architecture/index.html",
+      "width": 360,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 94,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/contracts/index.html",
+      "width": 360,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 700,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/changelog/index.html",
+      "width": 360,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 131,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/windows-installation/index.html",
+      "width": 360,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 107,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/references/contributing-md/index.html",
+      "width": 360,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 55,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v0.0.0/references/contributing-md/index.html",
+      "width": 360,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 51,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/index/index.html",
+      "width": 390,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 86,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/architecture/index.html",
+      "width": 390,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 94,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/contracts/index.html",
+      "width": 390,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 700,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/changelog/index.html",
+      "width": 390,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 131,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/windows-installation/index.html",
+      "width": 390,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 107,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/references/contributing-md/index.html",
+      "width": 390,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 55,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v0.0.0/references/contributing-md/index.html",
+      "width": 390,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 51,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/index/index.html",
+      "width": 390,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 86,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/architecture/index.html",
+      "width": 390,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 94,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/contracts/index.html",
+      "width": 390,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 700,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/changelog/index.html",
+      "width": 390,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 131,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/windows-installation/index.html",
+      "width": 390,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 107,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/references/contributing-md/index.html",
+      "width": 390,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 55,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v0.0.0/references/contributing-md/index.html",
+      "width": 390,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 51,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/index/index.html",
+      "width": 768,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 86,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/architecture/index.html",
+      "width": 768,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 94,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/contracts/index.html",
+      "width": 768,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 700,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/changelog/index.html",
+      "width": 768,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 131,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/windows-installation/index.html",
+      "width": 768,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 107,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/references/contributing-md/index.html",
+      "width": 768,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 55,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v0.0.0/references/contributing-md/index.html",
+      "width": 768,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 51,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/index/index.html",
+      "width": 768,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 86,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/architecture/index.html",
+      "width": 768,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 94,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/contracts/index.html",
+      "width": 768,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 700,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/changelog/index.html",
+      "width": 768,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 131,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/windows-installation/index.html",
+      "width": 768,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 107,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/references/contributing-md/index.html",
+      "width": 768,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 55,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v0.0.0/references/contributing-md/index.html",
+      "width": 768,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 51,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/index/index.html",
+      "width": 1440,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 86,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/architecture/index.html",
+      "width": 1440,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 94,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/contracts/index.html",
+      "width": 1440,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 700,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/changelog/index.html",
+      "width": 1440,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 131,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/windows-installation/index.html",
+      "width": 1440,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 107,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/references/contributing-md/index.html",
+      "width": 1440,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 55,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v0.0.0/references/contributing-md/index.html",
+      "width": 1440,
+      "theme": "light",
+      "minimum_contrast": 5.08,
+      "contrast_samples": 51,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/index/index.html",
+      "width": 1440,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 86,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/architecture/index.html",
+      "width": 1440,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 94,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/contracts/index.html",
+      "width": 1440,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 700,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/changelog/index.html",
+      "width": 1440,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 131,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/windows-installation/index.html",
+      "width": 1440,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 107,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v1.0.1/references/contributing-md/index.html",
+      "width": 1440,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 55,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    },
+    {
+      "page": "docs/v0.0.0/references/contributing-md/index.html",
+      "width": 1440,
+      "theme": "dark",
+      "minimum_contrast": 6.65,
+      "contrast_samples": 51,
+      "contrast_failures": [],
+      "minimum_target_width": 44,
+      "minimum_target_height": 44,
+      "target_failures": [],
+      "theme_glyph_failures": []
+    }
+  ],
+  "screenshots": [
+    "installation-320-light.png",
+    "installation-320-dark.png",
+    "installation-360-light.png",
+    "installation-360-dark.png",
+    "installation-390-light.png",
+    "installation-390-dark.png",
+    "installation-768-light.png",
+    "installation-768-dark.png",
+    "installation-1440-light.png",
+    "installation-1440-dark.png",
+    "offline-no-javascript-320.png",
+    "offline-navigation-expanded-320.png",
+    "contracts-enlarged-text-768.png"
+  ],
+  "external_requests": [],
+  "browser_errors": [],
+  "cleanup": {
+    "browser_contexts_closed": true,
+    "server_closed": true,
+    "owned_fixture_removed": true
+  },
+  "limitations": [
+    "Automated Chromium checks and captured visual inspection do not certify screen-reader behavior, other browser engines, every assistive technology, or complete WCAG conformance. Contrast checks sample body, link, muted, navigation, syntax and diagram-label text on computed solid surfaces; arbitrary raster-image text and gradients are not certified."
+  ],
+  "qualification_elapsed_seconds": 60.2,
+  "elapsed_seconds": 60.5,
+  "passed": true
+}

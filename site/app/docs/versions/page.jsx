@@ -8,10 +8,10 @@ export default function DocumentationVersions() {
   const current = getLatestEntry(manifest);
   const versions = [current, ...manifest.versions.filter(entry => entry.version !== current.version).reverse()];
   return (
-    <main id="main" className="landing">
+    <main id="main" className="landing" tabIndex={-1}>
       <p className="eyebrow">Documentation archive</p>
       <h1>Documentation versions</h1>
-      <p className="lead">Choose the documentation matching your installation. Explicit version links retain their version; current documentation follows the manifest's latest version.</p>
+      <p className="lead">Choose the documentation matching your installation. Explicit version links retain their version; current documentation follows the newest available documentation version.</p>
       <p><a className="button" href={latestPath()}>Read current documentation · v{current.version} · {current.status}</a></p>
       <ul className="version-list">
         {versions.map(entry => (

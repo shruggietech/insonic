@@ -6,7 +6,7 @@ import { getManifest, getLatestEntry, getRepositoryReferences, latestTopicSlugs,
 
 function missingTopic(entry, topic) {
   return (
-    <main id="main" className="landing">
+    <main id="main" className="landing" tabIndex={-1}>
       <p className="eyebrow">Current documentation · v{entry.version} · {entry.status}</p>
       <h1>This topic is unavailable in the current documentation</h1>
       <p>The archived topic <strong>{topic}</strong> is not included in v{entry.version}. No historical content has been substituted for it.</p>

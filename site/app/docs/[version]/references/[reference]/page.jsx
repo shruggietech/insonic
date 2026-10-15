@@ -21,7 +21,7 @@ export default async function ReferencePage({ params }) {
   const { html, headings } = renderDocument(markdown, entry, repositoryPath);
   const gitReference = entry.status === 'specification' ? 'main' : `v${entry.version}`;
   return (
-    <DocumentationFrame entry={entry} slug={slug} headings={headings} reference>
+    <DocumentationFrame entry={entry} slug={slug} headings={headings} reference={{ slug, title: repositoryPath }}>
       <p><a href={versionPath(entry.version, entry.pages[0].slug)}>← Return to documentation</a></p>
       <article className="prose" dangerouslySetInnerHTML={{ __html: html }} />
       <p><a href={`/reference-sources/v${entry.version}/${slug}.txt`}>Read the bundled source</a> · <a href={`https://github.com/shruggietech/insonic/blob/${gitReference}/${repositoryPath}`}>View upstream repository source</a></p>

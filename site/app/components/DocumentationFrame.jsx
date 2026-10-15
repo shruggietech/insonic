@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
-import { getManifest, latestPath, versionPath } from '../../lib/docs.mjs';
+import { getManifest, latestPath, referencePath, versionPath } from '../../lib/docs.mjs';
 
-export default function DocumentationFrame({ entry, slug, headings = [], previous, next, children, reference = false }) {
+export default function DocumentationFrame({ entry, slug, headings = [], previous, next, children, reference = null }) {
   const current = getManifest().latest === entry.version;
   return (
     <div className="docs-layout">
@@ -10,7 +10,10 @@ export default function DocumentationFrame({ entry, slug, headings = [], previou
           <summary>Documentation</summary>
           <nav aria-label={`Documentation topics v${entry.version}`}>
             <p className="version-label">v{entry.version} · {entry.status}</p>
-            <ul>{entry.pages.map(item => <li key={item.slug}><a href={versionPath(entry.version, item.slug)} aria-current={!reference && item.slug === slug ? 'page' : undefined}>{item.title}</a></li>)}</ul>
+            <ul>
+              {entry.pages.map(item => <li key={item.slug}><a href={versionPath(entry.version, item.slug)} aria-current={!reference && item.slug === slug ? 'page' : undefined}>{item.title}</a></li>)}
+              {reference && <li><a href={referencePath(entry.version, reference.slug)} aria-current="page">Reference: {reference.title}</a></li>}
+            </ul>
           </nav>
         </details>
       </aside>
