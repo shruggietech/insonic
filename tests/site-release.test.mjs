@@ -16,10 +16,12 @@ test('release rendering is elected and leaves source/baseline publication state 
 
 test('release artifact index removes the candidate assertion while ordinary snapshots preserve it', () => {
   const source = '# insonic v1.0.1\n\nv1.0.1 documents the prepared release candidate. Official product downloads have not been published.\n';
-  const entry = { version: '1.0.1', status: 'released' };
-  assert.equal(publicationDocument(source, entry, 'index', 'snapshot'), source);
-  assert.equal(publicationDocument(source, entry, 'technology', 'release'), source);
-  const output = publicationDocument(source, entry, 'index', 'release');
+  const entry = { version: '1.0.1', status: 'candidate' };
+  const manifest = { latest: entry.version, versions: [entry] };
+  assert.equal(publicationDocument(source, publicationManifest(manifest, 'snapshot').versions[0], 'index'), source);
+  const released = publicationManifest(manifest, 'release').versions[0];
+  assert.equal(publicationDocument(source, released, 'technology'), source);
+  const output = publicationDocument(source, released, 'index');
   assert.match(output, /documents this release/);
   assert.doesNotMatch(output, /candidate|unpublished|not been published/);
 });

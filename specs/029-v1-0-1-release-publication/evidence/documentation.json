@@ -1,0 +1,288 @@
+{
+  "kind": "s029-local-documentation-verification",
+  "source_state": "working tree before publication; exact final clean head verified by hosted CI later",
+  "snapshot": {
+    "kind": "documentation-ui-verification",
+    "qualification_limit_seconds": 180,
+    "viewport_widths": [
+      320,
+      360,
+      390,
+      768,
+      1440
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "browser": "155.0.8059.40",
+    "isolated_profile": true,
+    "public_pages": 114,
+    "offline_pages": 111,
+    "cases": [
+      {
+        "name": "Owned loopback WebSocket probe is recorded and blocked before any server connection, upgrade or traffic",
+        "passed": true
+      },
+      {
+        "name": "All exported public and offline pages: 320px reflow, compact navigation, landmarks, names, alternatives and unique IDs",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 320px/light",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 320px/dark",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 360px/light",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 360px/dark",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 390px/light",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 390px/dark",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 768px/light",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 768px/dark",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 1440px/light",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 1440px/dark",
+        "passed": true
+      },
+      {
+        "name": "Keyboard: skip focus, Enter/Space disclosure, expanded/collapsed tab order and visible focus",
+        "passed": true
+      },
+      {
+        "name": "Archive and unavailable-page skip links reach their main landmark",
+        "passed": true
+      },
+      {
+        "name": "Offline file URLs with JavaScript disabled: all representative templates and native disclosure",
+        "passed": true
+      },
+      {
+        "name": "Unavailable preference storage preserves current-page theme controls",
+        "passed": true
+      },
+      {
+        "name": "200% text and WCAG text-spacing overrides retain reading/navigation reflow",
+        "passed": true
+      },
+      {
+        "name": "Forced colors and reduced motion retain reachable navigation",
+        "passed": true
+      }
+    ],
+    "screenshots": [
+      "installation-320-light.png",
+      "installation-320-dark.png",
+      "installation-360-light.png",
+      "installation-360-dark.png",
+      "installation-390-light.png",
+      "installation-390-dark.png",
+      "installation-768-light.png",
+      "installation-768-dark.png",
+      "installation-1440-light.png",
+      "installation-1440-dark.png",
+      "offline-no-javascript-320.png",
+      "offline-navigation-expanded-320.png",
+      "contracts-enlarged-text-768.png"
+    ],
+    "external_requests": [],
+    "external_websockets": [],
+    "browser_errors": [],
+    "cleanup": {
+      "browser_contexts_closed": true,
+      "server_closed": true,
+      "owned_fixture_removed": true
+    },
+    "limitations": [
+      "Automated Chromium checks and captured visual inspection do not certify screen-reader behavior, other browser engines, every assistive technology, or complete WCAG conformance. Contrast checks sample body, link, muted, navigation, syntax and diagram-label text on computed solid surfaces; arbitrary raster-image text and gradients are not certified."
+    ],
+    "websocket_isolation_probe": {
+      "attempts": [
+        "ws://127.0.0.1:21493/owned-isolation-probe"
+      ],
+      "connections": 0,
+      "upgrades": 0,
+      "received_bytes": 0,
+      "passed": true,
+      "browser": {
+        "closed": true,
+        "code": 1008
+      }
+    },
+    "qualification_elapsed_seconds": 73.3,
+    "elapsed_seconds": 73.5,
+    "passed": true
+  },
+  "release": {
+    "kind": "documentation-ui-verification",
+    "qualification_limit_seconds": 180,
+    "viewport_widths": [
+      320,
+      360,
+      390,
+      768,
+      1440
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "browser": "155.0.8059.40",
+    "isolated_profile": true,
+    "public_pages": 114,
+    "offline_pages": 111,
+    "cases": [
+      {
+        "name": "Owned loopback WebSocket probe is recorded and blocked before any server connection, upgrade or traffic",
+        "passed": true
+      },
+      {
+        "name": "All exported public and offline pages: 320px reflow, compact navigation, landmarks, names, alternatives and unique IDs",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 320px/light",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 320px/dark",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 360px/light",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 360px/dark",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 390px/light",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 390px/dark",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 768px/light",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 768px/dark",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 1440px/light",
+        "passed": true
+      },
+      {
+        "name": "Article, diagram, contracts, changelog, installation and reference templates: 1440px/dark",
+        "passed": true
+      },
+      {
+        "name": "Keyboard: skip focus, Enter/Space disclosure, expanded/collapsed tab order and visible focus",
+        "passed": true
+      },
+      {
+        "name": "Archive and unavailable-page skip links reach their main landmark",
+        "passed": true
+      },
+      {
+        "name": "Offline file URLs with JavaScript disabled: all representative templates and native disclosure",
+        "passed": true
+      },
+      {
+        "name": "Unavailable preference storage preserves current-page theme controls",
+        "passed": true
+      },
+      {
+        "name": "200% text and WCAG text-spacing overrides retain reading/navigation reflow",
+        "passed": true
+      },
+      {
+        "name": "Forced colors and reduced motion retain reachable navigation",
+        "passed": true
+      }
+    ],
+    "screenshots": [
+      "installation-320-light.png",
+      "installation-320-dark.png",
+      "installation-360-light.png",
+      "installation-360-dark.png",
+      "installation-390-light.png",
+      "installation-390-dark.png",
+      "installation-768-light.png",
+      "installation-768-dark.png",
+      "installation-1440-light.png",
+      "installation-1440-dark.png",
+      "offline-no-javascript-320.png",
+      "offline-navigation-expanded-320.png",
+      "contracts-enlarged-text-768.png"
+    ],
+    "external_requests": [],
+    "external_websockets": [],
+    "browser_errors": [],
+    "cleanup": {
+      "browser_contexts_closed": true,
+      "server_closed": true,
+      "owned_fixture_removed": true
+    },
+    "limitations": [
+      "Automated Chromium checks and captured visual inspection do not certify screen-reader behavior, other browser engines, every assistive technology, or complete WCAG conformance. Contrast checks sample body, link, muted, navigation, syntax and diagram-label text on computed solid surfaces; arbitrary raster-image text and gradients are not certified."
+    ],
+    "websocket_isolation_probe": {
+      "attempts": [
+        "ws://127.0.0.1:20262/owned-isolation-probe"
+      ],
+      "connections": 0,
+      "upgrades": 0,
+      "received_bytes": 0,
+      "passed": true,
+      "browser": {
+        "closed": true,
+        "code": 1008
+      }
+    },
+    "qualification_elapsed_seconds": 67,
+    "elapsed_seconds": 67.3,
+    "passed": true
+  },
+  "readability": {
+    "snapshot_minimum_contrast": 5.08,
+    "release_minimum_contrast": 5.08
+  },
+  "release_download_links": [
+    "https://github.com/shruggietech/insonic/releases/download/v1.0.1/insonic_1.0.1_windows_amd64_installer.msi",
+    "https://github.com/shruggietech/insonic/releases/download/v1.0.1/insonic_1.0.1_windows_amd64_desktop.zip",
+    "https://github.com/shruggietech/insonic/releases/download/v1.0.1/insonic_1.0.1_windows_amd64_cli.zip",
+    "https://github.com/shruggietech/insonic/releases/download/v1.0.1/insonic_1.0.1_linux_amd64_desktop.tar.gz",
+    "https://github.com/shruggietech/insonic/releases/download/v1.0.1/insonic_1.0.1_linux_amd64_cli.tar.gz"
+  ],
+  "historical_source_unchanged": true,
+  "current_changelog_snapshot_equal": true,
+  "screen_reader_other_engines": "not verified"
+}
