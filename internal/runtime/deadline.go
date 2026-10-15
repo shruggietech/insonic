@@ -10,6 +10,11 @@ import (
 // OperationTimeout gives bounded configuration, artifact, media and model work enough time for
 // selected storage and tools while retaining each caller's ordinary timeout.
 func OperationTimeout(operation string, ordinary time.Duration) time.Duration {
+	if operation == "query.run" || operation == "query.explain" {
+		// Native engines allow twenty seconds, and the first read may also
+		// publish the current projection. Keep both under one bounded RPC.
+		return 25 * time.Second
+	}
 	if strings.HasPrefix(operation, "workers.") || operation == "processing.readiness" || operation == "setup.readiness" || operation == "doctor" {
 		return 65 * time.Second
 	}

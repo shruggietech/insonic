@@ -54,4 +54,8 @@ T001–T002 block source edits. Tests precede each behavior group. US2 uses US1 
 
 ## Phase 9: Measured hosted scheduling and capture startup
 
-- [ ] T017 Overlap independent Windows package setup with its source producer using a bounded same-run/attempt artifact wait; retain digest/source validation and require the producer at candidate aggregation per FR-008/FR-011/SC-004 (partial). Record one retry only for the observed restricted-session initialization timeout, preserving all native capture assertions and worker deadlines.
+- [x] T017 Overlap independent Windows package setup with its source producer using a bounded same-run/attempt artifact wait; retain digest/source validation and require the producer at candidate aggregation per FR-008/FR-011/SC-004 (partial). Record one retry only for the observed restricted-session initialization timeout, preserving all native capture assertions and worker deadlines.
+
+## Phase 10: Native-query transport diagnosis
+
+- [ ] T018 Align query.run/query.explain RPC deadlines with the native engine budget and classify socket/caller deadlines as cancellation rather than malformed input, per FR-008/FR-011/SC-004 (partial). Prove a valid slow response beyond five seconds and retain malformed-frame rejection, caller cancellation and hosted installed-query acceptance.

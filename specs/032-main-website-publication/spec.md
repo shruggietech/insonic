@@ -106,6 +106,8 @@ Maintainers get proportionate complete checks within the existing CI turnaround 
 - Native CI reuses source/run/attempt/hash-bound documentation with no fallback. Keep dependencies, notices, native and MSI checks. Release callers build independently by default.
 - Hosted stacks demonstrated repeated installed-companion hashing on catalog-only paths. Remove that unused initialization, retaining fresh integrity checks on import/processing tool use and truthful post-cleanup qualification receipts.
 
+- A controlled delayed native-query response demonstrated that the ordinary five-second RPC cutoff rejected valid work before the native engine's twenty-second budget. Use one bounded 25-second query RPC budget and classify actual transport/caller deadlines as cancellation, retaining original query assertions. This demonstrates the timeout defect; it does not identify a historical hosted stack that was not captured.
+
 ## Tracking
 
 - [#106 website publication](https://github.com/shruggietech/insonic/issues/106)

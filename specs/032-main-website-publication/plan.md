@@ -49,6 +49,10 @@ After design: PASS. Credentials separated from read-only build/verification; sit
 
 Windows package consumers prepare their toolchains while the independent same-run source producer runs. Setup starts after scope selection, independently of foundation/documentation. A bounded read-only same-attempt job/artifact gate requires foundation and documentation success before native preparation, the existing digest-checked download and full restore verification. Candidate aggregation still requires producer success. Release scheduling remains sequential by default. A single retry of the exact native restricted-session initialization timeout preserves capture assertions and existing worker deadlines; both attempts must otherwise satisfy the complete current capture.
 
+## Query transport recovery
+
+The installed-query rejection exposed a reproducible transport mismatch: query.run and query.explain inherited a five-second RPC deadline while native queries allow twenty seconds. Use a 25-second aggregate RPC budget, preserving stricter caller cancellation, and report timeout as cancellation rather than malformed input. A controlled valid delayed response and socket-deadline regression fail before the repair. Hosted acceptance remains mandatory; no query assertion is retried or removed.
+
 ## Delivery
 
 Write failing tests before behavior. Run root/affected checks and converge, then push official PR. Resolve at most two actual external review rounds; inspect every thread and final exact-head CI. Measure complete CI rather than accepting projections. Read-only hosted smoke proves live S031 without deploying unmerged code. Stop for owner final merge review.

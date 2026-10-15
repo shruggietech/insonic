@@ -12,6 +12,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Native query and explain RPCs use one bounded 25-second budget around projection publication and the engine's query deadline. Socket and caller deadlines report cancellation instead of malformed input.
+
 - Catalog-only media views and cleanup no longer rediscover and hash installed executable companions. Import and processing tool-use validation remains fresh; native WebView qualification emits success after cleanup.
 
 - Versioned screenshots retain their original capture-time provenance when backend source changes. Frozen-source verification uses bounded ancestral Git blobs, while image-byte checks and current native UI capture qualification remain mandatory.
