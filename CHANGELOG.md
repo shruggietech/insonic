@@ -10,6 +10,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Landing-page downloads separate Windows MSI installation, portable Windows ZIPs and Linux tar.gz choices with explicit client/format labels, accurate platform guidance and spaced subordinate actions.
+
 - Go and Node setup actions are acquired in bounded, digest-verified job steps before normal local action execution, preserving their pinned code, setup inputs and cache post hooks. Historical candidates use bootstrap tooling from the exact defining workflow revision.
 
 - Hidden native WebView qualification waits for actual select options and committed React state, yielding UI actions through event-loop message turns instead of fixed timer sleeps. The existing 80/90-second watchdogs and every native assertion remain mandatory.
@@ -21,6 +23,7 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-15: Recover interrupted publication through a reviewed trusted-main verifier correction rather than deleting check history, changing immutable v1.0.1 source or bypassing failed unrelated checks. Older release attempts require independently verified repository, main branch, workflow, source, suite and terminal-run identity.
 - 2026-10-15: Repair the failed main-branch Windows package qualification in its UI driver after verifying the pinned loader clears browser environment overrides. Preserve foreground-free execution, ordinary application browser policy, all package/installer acceptance and the 660-second CI budget; do not turn a failed run green by skipping or extending its checks.
 - 2026-10-15: Move only Go/Node action acquisition out of runner preparation into a three-attempt, 60-second digest-locked bootstrap. Preserve upstream action/cache execution and exact historical-source qualification. Verify live documentation after exact Pages promotion using original published bytes; report public binary metadata proof separately from downloaded documentation content proof.
+- 2026-10-15: Verify landing choices in both publication states from the same product component, retaining candidate truth and all five official package destinations. Extend the isolated hosted-Linux browser verifier for full-page captures, target geometry, reflow and intercepted native link activation; do not launch an owner-desktop browser or claim these checks certify assistive technology.
 
 ## [1.0.1] - 2026-10-15
 

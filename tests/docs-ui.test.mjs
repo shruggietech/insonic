@@ -5,7 +5,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import os from 'node:os';
 import { readFile, writeFile, mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
-import { boundedPath, parseOptions, readExportAsset, serve, configureBrowserNetwork, sanitizedRequestURL } from '../scripts/check-docs-ui.mjs';
+import { boundedPath, parseOptions, readExportAsset, serve, configureBrowserNetwork, sanitizedRequestURL, assertLandingGeometry, captureLandingActivation } from '../scripts/check-docs-ui.mjs';
 
 test('documentation server confines public assets to its selected export', () => {
   const directory = path.resolve('site/out');
@@ -111,4 +111,33 @@ test('responsive native navigation preserves reader choices and focus through wi
   media.matches = true; callbacks.change();
   assert.equal(disclosure.open, false);
   assert.equal(summary.focused, true, 'collapsing must not strand focus in hidden navigation');
+});
+
+
+test('landing geometry rejects touching controls, clipped labels and undersized targets', () => {
+  const control = (label, x, y, width = 100, height = 44) => ({ label, x, y, width, height, text_clipped: false, center_blocked: false });
+  const valid = { primary_actions: 1, controls: [control('First',0,0),control('Second',0,56)], groups: [[control('First',0,0),control('Second',0,56)]] };
+  assert.doesNotThrow(() => assertLandingGeometry(valid, 'fixture'));
+  for (const broken of [
+    {...valid, primary_actions: 2},
+    {...valid, controls:[control('Small',0,0,20)]},
+    {...valid, controls:[{...control('Clipped',0,0),text_clipped:true}]},
+    {...valid, controls:[{...control('Obscured',0,0),center_blocked:true}]},
+    {...valid, groups:[[control('First',0,0),control('Touching',0,44)]]},
+    {...valid, controls:[control('First',0,0),control('Overlapping',20,20)]},
+  ]) assert.throws(() => assertLandingGeometry(broken, 'fixture'), /fixture/);
+});
+
+test('activation probe cancels only native link navigation and records exact trusted input', () => {
+  let handler;
+  const recordedWindow = {};
+  const document = {addEventListener(name, callback, capture) {assert.equal(name,'click'); assert.equal(capture,true); handler=callback;}};
+  vm.runInNewContext('(' + captureLandingActivation.toString() + ')()', {document,window:recordedWindow});
+  const anchor = {getAttribute:()=> 'https://github.com/example/package.zip'};
+  let prevented=0,stopped=0;
+  handler({target:{closest:()=>anchor},isTrusted:true,preventDefault(){prevented++;},stopImmediatePropagation(){stopped++;}});
+  assert.equal(prevented,1); assert.equal(stopped,1);
+  assert.equal(recordedWindow.__landingActivations[0].href,'https://github.com/example/package.zip');
+  assert.equal(recordedWindow.__landingActivations[0].trusted,true);
+  handler({target:{closest:()=>null},preventDefault(){assert.fail('non-link blocked');}});
 });

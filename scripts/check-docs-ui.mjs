@@ -243,7 +243,7 @@ async function inspectReadability(page) {
     const luminance = rgb => rgb.map(channel => channel / 255).map(channel => channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4).reduce((sum, channel, index) => sum + channel * [.2126, .7152, .0722][index], 0);
     const samples = [];
     const elements = [...new Set([
-      ...[...document.querySelectorAll('body, .prose p, .prose a, .prose blockquote, .docs-version-context p, .docs-sidebar a, .table-of-contents a, summary')].filter(visible).slice(0, 200),
+      ...[...document.querySelectorAll('body, .prose p, .prose a, .prose blockquote, .docs-version-context p, .docs-sidebar a, .table-of-contents a, summary, .product-landing p, .product-landing a, .product-landing h1, .product-landing h2, .product-landing h3, .product-landing h4, .site-footer a')].filter(visible).slice(0, 200),
       ...[...document.querySelectorAll('pre code, pre code span')].filter(visible).slice(0, 500),
       ...[...document.querySelectorAll('.mermaid svg text, .mermaid svg foreignObject div')].filter(visible).slice(0, 200),
     ])];
@@ -260,10 +260,159 @@ async function inspectReadability(page) {
       const required = parseFloat(style.fontSize) >= 24 || parseFloat(style.fontSize) >= 18.66 && parseInt(style.fontWeight, 10) >= 700 ? 3 : 4.5;
       samples.push({ selector: element.tagName.toLowerCase() + (element.className ? '.' + String(element.className).trim().replaceAll(' ', '.') : ''), ratio: Math.round(ratio * 100) / 100, required });
     }
-    const targets = [...document.querySelectorAll('.brand-link, .site-header nav a, .theme-toggle, .docs-sidebar a, .table-of-contents a, summary, .page-navigation a, .docs-version-context a')].filter(visible).map(element => ({ text: (element.getAttribute('aria-label') || element.textContent).trim().slice(0, 60), width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height }));
+    const targets = [...document.querySelectorAll('.brand-link, .site-header nav a, .theme-toggle, .docs-sidebar a, .table-of-contents a, summary, .page-navigation a, .docs-version-context a, .product-landing a, .archive-tabs button, .site-footer a')].filter(visible).map(element => ({ text: (element.getAttribute('aria-label') || element.textContent).trim().slice(0, 60), width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height }));
     const themeGlyphs = [...document.querySelectorAll('#theme-toggle svg')].filter(visible).map(element => ({ width: element.getBoundingClientRect().width, height: element.getBoundingClientRect().height }));
     return { minimum_contrast: Math.min(...samples.map(sample => sample.ratio)), contrast_samples: samples.length, contrast_failures: samples.filter(sample => sample.ratio + .01 < sample.required), minimum_target_width: Math.min(...targets.map(target => target.width)), minimum_target_height: Math.min(...targets.map(target => target.height)), target_failures: targets.filter(target => target.width < 44 || target.height < 44), theme_glyph_failures: themeGlyphs.filter(glyph => glyph.width < 20 || glyph.height < 20) };
   });
+}
+
+export function assertLandingGeometry(result, label) {
+  assert(result.primary_actions === 1, label + ': expected one primary hero action.');
+  for (const control of result.controls) {
+    assert(control.width >= 44 && control.height >= 44, label + ': undersized target: ' + control.label);
+    assert(!control.text_clipped && !control.center_blocked, label + ': clipped or obscured control: ' + control.label);
+  }
+  for (let first = 0; first < result.controls.length; first += 1) for (let second = first + 1; second < result.controls.length; second += 1) {
+    const a = result.controls[first], b = result.controls[second];
+    const overlapX = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+    const overlapY = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+    assert(overlapX <= 1 || overlapY <= 1, label + ': overlapping targets: ' + a.label + ' / ' + b.label);
+  }
+  for (const group of result.groups) for (let index = 1; index < group.length; index += 1) {
+    assert(group[index].y - (group[index - 1].y + group[index - 1].height) >= 11, label + ': download actions must have a 12px gap.');
+  }
+}
+
+export function captureLandingActivation() {
+  window.__landingActivations = [];
+  document.addEventListener('click', event => {
+    const anchor = event.target?.closest?.('a[href]');
+    if (!anchor) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    window.__landingActivations.push({ href: anchor.getAttribute('href'), trusted: event.isTrusted });
+  }, true);
+}
+
+async function landingGeometry(page) {
+  return page.evaluate(() => {
+    const visible = element => Boolean(element.getClientRects().length) && getComputedStyle(element).visibility !== 'hidden' && !element.closest('[inert]');
+    const measure = element => {
+      const box = element.getBoundingClientRect();
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      let text_clipped = false;
+      while (walker.nextNode()) {
+        if (!walker.currentNode.textContent.trim()) continue;
+        const range = document.createRange(); range.selectNodeContents(walker.currentNode);
+        for (const text of range.getClientRects()) if (text.left < box.left - 1 || text.right > box.right + 1 || text.top < box.top - 1 || text.bottom > box.bottom + 1) text_clipped = true;
+      }
+      const x = box.x + box.width / 2, y = box.y + box.height / 2;
+      const withinViewport = x >= 0 && x < innerWidth && y >= 0 && y < innerHeight;
+      const center_blocked = withinViewport && !element.contains(document.elementFromPoint(x, y));
+      return { label: element.getAttribute('aria-label') || element.textContent.trim(), x: box.x, y: box.y, width: box.width, height: box.height, text_clipped, center_blocked };
+    };
+    return {
+      primary_actions: document.querySelectorAll('.product-landing a.button:not(.button-secondary)').length,
+      controls: [...document.querySelectorAll('a[href],button:not([disabled])')].filter(visible).filter(element => !element.matches('.skip-link')).map(measure),
+      groups: [...document.querySelectorAll('.download-actions')].map(group => [...group.querySelectorAll('a[href]')].filter(visible).map(measure)),
+    };
+  });
+}
+
+async function landingInventory(page, version) {
+  return page.locator('a[href]').evaluateAll((anchors, version) => anchors.map(anchor => {
+    const copy = anchor.cloneNode(true);
+    copy.querySelectorAll('[aria-hidden="true"]').forEach(element => element.remove());
+    const label = anchor.getAttribute('aria-label') || copy.textContent.trim();
+    const href = anchor.getAttribute('href');
+    const url = new URL(href, location.href);
+    const category = href.startsWith('#') ? 'in-page' : url.pathname.includes('/releases/download/') ? 'download' : url.hostname === 'github.com' ? 'repository' : url.origin !== location.origin ? 'company' : url.pathname.includes('/docs/versions/') ? 'archive' : url.pathname.includes('/docs/') ? 'guidance' : 'home';
+    return { label, href, resolved_href: url.href, category, version };
+  }), version);
+}
+
+async function landingKeyboard(page, navigate, url) {
+  await navigate(page, url);
+  const sequence = await page.evaluate(() => [...document.querySelectorAll('a[href],button,input,select,textarea,[tabindex]')]
+    .filter(element => element.tabIndex >= 0 && !element.disabled && !element.closest('[inert]') && element.getClientRects().length && getComputedStyle(element).visibility !== 'hidden')
+    .map((element, index) => { element.dataset.landingFocus = String(index); return { id: String(index), label: element.getAttribute('aria-label') || element.textContent.trim() }; }));
+  for (const expected of sequence) {
+    await page.keyboard.press('Tab');
+    const actual = await page.evaluate(() => { const element = document.activeElement, style = getComputedStyle(element); return { id: element.dataset.landingFocus, width: parseFloat(style.outlineWidth), offset: parseFloat(style.outlineOffset), style: style.outlineStyle }; });
+    assert(actual.id === expected.id && actual.width >= 2 && actual.offset >= 2 && actual.style !== 'none', 'Landing keyboard order/focus: ' + expected.label + ': ' + JSON.stringify(actual));
+  }
+  await navigate(page, url);
+  await page.keyboard.press('Tab'); await page.keyboard.press('Enter');
+  assert(await page.evaluate(() => document.activeElement.id === 'main'), 'Landing skip link must move focus to main.');
+  await page.getByRole('link', { name: 'Choose a download' }).click();
+  assert(await page.evaluate(() => location.hash === '#downloads' && document.querySelector('#downloads').getBoundingClientRect().top < innerHeight), 'Hero must reach the real download region.');
+  return sequence;
+}
+
+async function landingActivation(page, navigate, url, mode) {
+  await navigate(page, url);
+  await page.evaluate(captureLandingActivation);
+  const links = page.locator('a[href]');
+  const hrefs = await links.evaluateAll(anchors => anchors.map(anchor => anchor.getAttribute('href')));
+  for (let index = 0; index < hrefs.length; index += 1) {
+    const link = links.nth(index);
+    await link.focus();
+    if (mode === 'keyboard') await link.press('Enter');
+    else if (mode === 'touch') await link.tap();
+    else await link.click();
+  }
+  const activations = await page.evaluate(() => window.__landingActivations);
+  assert(activations.length === hrefs.length && activations.every((activation, index) => activation.href === hrefs[index] && activation.trusted), 'Landing ' + mode + ' must activate every exact native href.');
+  return { mode, anchors: activations.length, exact_destinations: true, trusted_input: true, navigation_intercepted: true };
+}
+
+async function checkLanding({ page, browser, contexts, configure, navigate, report, output, releasedURL, version }) {
+  report.landing = { cases: [], inventories: [], activation: [], limitations: ['Released-state fixture uses the actual product component and real export chrome/styles; it is not deployed proof.', 'Native link clicks are intercepted before navigation; they prove destination activation, not a completed HTTP package download.', '320 CSS pixels is the 400%-zoom reflow equivalent from a 1280px baseline; browser zoom UI is not operated.'] };
+  const actualURL = report.origin + '/public/index.html';
+  for (const [state, url] of [['snapshot-export', actualURL], ['released-fixture', releasedURL]]) {
+    await navigate(page, url);
+    const inventory = await landingInventory(page, version);
+    const downloads = inventory.filter(link => link.category === 'download');
+    if (state === 'released-fixture') {
+      const { releaseDownloads } = await import('../site/lib/release-status.mjs');
+      const expected = releaseDownloads(version).flatMap(item => [item.installer, item.desktop, item.cli].filter(Boolean));
+      assert(downloads.length === expected.length && downloads.every(link => expected.includes(link.resolved_href)), 'Released landing must expose exactly the official package destinations.');
+    }
+    report.landing.inventories.push({ state, links: inventory });
+    for (const width of [320, 390, 768, 1440]) for (const theme of report.themes) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+      await navigate(page, url);
+      const label = 'Landing ' + state + ': ' + width + 'px/' + theme;
+      assertPage(await inspectPage(page), label);
+      const geometry = await landingGeometry(page); assertLandingGeometry(geometry, label);
+      const readability = await inspectReadability(page);
+      assert(!readability.contrast_failures.length && !readability.target_failures.length, label + ': readability failure: ' + JSON.stringify(readability));
+      const image = 'landing-' + state + '-' + width + '-' + theme + '.png';
+      await page.screenshot({ path: path.join(output, image), fullPage: true }); report.screenshots.push(image);
+      report.landing.cases.push({ state, width, theme, geometry, readability, image, passed: true });
+    }
+  }
+  for (const theme of report.themes) {
+    await page.setViewportSize({ width: 768, height: 900 }); await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
+    await navigate(page, releasedURL);
+    const before = await page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize));
+    await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
+    const after = await page.evaluate(() => parseFloat(getComputedStyle(document.body).fontSize));
+    assert(after >= before * 1.99, 'Landing enlargement must really double body text.');
+    assertPage(await inspectPage(page), 'Landing 200% text/' + theme);
+    const geometry = await landingGeometry(page); assertLandingGeometry(geometry, 'Landing 200% text/' + theme);
+    const image = 'landing-text-200-' + theme + '.png';
+    await page.screenshot({ path: path.join(output, image), fullPage: true }); report.screenshots.push(image);
+    report.landing.cases.push({ state: 'released-fixture', width: 768, theme, text_percent: 200, font_before: before, font_after: after, geometry, image, passed: true });
+  }
+  report.landing.reflow_equivalent = { baseline_css_width: 1280, zoom_percent: 400, tested_css_width: 320, passed: true };
+  await page.setViewportSize({ width: 390, height: 900 });
+  report.landing.focus_sequence = await landingKeyboard(page, navigate, releasedURL);
+  for (const mode of ['keyboard', 'pointer']) report.landing.activation.push(await landingActivation(page, navigate, releasedURL, mode));
+  const touch = await browser.newContext({ viewport: { width: 390, height: 900 }, hasTouch: true, reducedMotion: 'reduce', serviceWorkers: 'block' }); contexts.push(touch); await configure(touch);
+  report.landing.activation.push(await landingActivation(await touch.newPage(), navigate, releasedURL, 'touch'));
+  report.cases.push({ name: 'Whole landing: real snapshot and same-source released state, all links, geometry, full-page light/dark captures, enlargement, keyboard/pointer/touch activation', passed: true });
 }
 
 export async function checkDocumentationUI(options = parseOptions([])) {
@@ -299,9 +448,16 @@ export async function checkDocumentationUI(options = parseOptions([])) {
     contexts.push(context);
     const browser = context.browser();
     report.browser = browser.version();
+    const manifest = JSON.parse(await readFile(path.join(options.out, 'documentation-manifest.json'), 'utf8'));
+    const version = manifest.latest;
+    const { landingRenderer, replaceLanding } = await import('../site/scripts/landing-fixture.mjs');
+    const renderLanding = await landingRenderer();
+    const releasedHTML = replaceLanding(await readFile(path.join(options.out, 'index.html'), 'utf8'), renderLanding({ version, status: 'released' }));
+    const releasedURL = report.origin + '/public/index.html?landing-fixture=released';
     const network = { origin: report.origin, out: options.out, offline: options.offline };
     const configure = async current => {
       await configureBrowserNetwork(current, { ...network, externalRequests: report.external_requests, webSocketAttempts: report.external_websockets });
+      await current.route(url => url.href === releasedURL, route => route.fulfill({ contentType: 'text/html', body: releasedHTML }));
       current.on('page', page => page.on('pageerror', error => report.browser_errors.push(error.message)));
     };
     await configure(context);
@@ -318,8 +474,8 @@ export async function checkDocumentationUI(options = parseOptions([])) {
       }
     }
     report.cases.push({ name: 'All exported public and offline pages: 320px reflow, compact navigation, landmarks, names, alternatives and unique IDs', passed: true });
-    const manifest = JSON.parse(await readFile(path.join(options.out, 'documentation-manifest.json'), 'utf8'));
-    const version = manifest.latest;
+    await checkLanding({ page, browser, contexts, configure, navigate, report, output: options.output, releasedURL, version });
+    await page.setViewportSize({ width: 320, height: 900 });
     const representatives = ['index', 'architecture', 'contracts', 'changelog', 'windows-installation'].map(slug => `docs/v${version}/${slug}/index.html`);
     const references = [publicFiles.find(filename => filename.includes(`${path.sep}v${version}${path.sep}references${path.sep}`)), publicFiles.find(filename => /[\\/]docs[\\/]v[^\\/]+[\\/]references[\\/]/.test(filename) && !filename.includes(`${path.sep}v${version}${path.sep}`))];
     for (const reference of new Set(references.filter(Boolean))) representatives.push(path.relative(options.out, reference).split(path.sep).join('/'));
