@@ -2,9 +2,9 @@
   "kind": "application-ui-capture",
   "schema_version": "1.0.1",
   "source": {
-    "revision": "e16f3a0bb7041a426d8a548bfbcd0c120239fa0f",
+    "revision": "8f3995de2077983b9f7ffa026930e0694e0ffe93",
     "dirty": false,
-    "tree_sha256": "555e627cd1d2ae6f890049b544afc523590c24823e7587ee11f20f93a443bd8e",
+    "tree_sha256": "eabaae5a89108438d1e6bde8383b6c791f5d5c97afa70e0fe0926e3457852207",
     "files": [
       {
         "path": "brand/README.md",
@@ -2588,7 +2588,7 @@
       },
       {
         "path": "desktop/frontend/src/qualification.ts",
-        "sha256": "6cae4f875dc03a286f6bdfdecc3568e928d2c7b7c9f527247120f46e84b797e7"
+        "sha256": "4df4e92b614e956d36de03b0c286bd5a884abf492819787a3d6a4201aa413fc0"
       },
       {
         "path": "desktop/frontend/src/screens.tsx",
@@ -2628,7 +2628,7 @@
       },
       {
         "path": "desktop/frontend/tests/frontend.test.mjs",
-        "sha256": "d4e7d82c73e87626ef09e6c76dffba86754e8a817eae0327b12b07a1d8b09d34"
+        "sha256": "0f4f22a062aaa187a2f3904d67eeac787e51f0c7c865b77ecd0e9230b081e8d5"
       },
       {
         "path": "desktop/frontend/tests/setup.test.mjs",
@@ -5025,7 +5025,7 @@
     "windows_build": "10.0.26300"
   },
   "fixture": {
-    "id": "ac9097c12173dde1a8f188a5f2326360",
+    "id": "4e4ab6f07de2e30c304760b4a5fa4cc6",
     "isolated": true,
     "browser_profile_owned": true,
     "private_inputs": false
@@ -5038,15 +5038,15 @@
   "locale": "en-US",
   "signing": "unsigned",
   "binaries": {
-    "cli_sha256": "b609a472c0e749899eb4d8fb191d9858b8d01284afc6f4cd20c849e8202e482d",
-    "bridge_sha256": "55d552809005a53f8e81f6aa8996448d17798cae1da559f1b78f7d102f5c6390",
+    "cli_sha256": "75ed41b6d989a3405ed8188b1477aeef7a0cff6dc8f38e2d80eeb2ce38d9c78d",
+    "bridge_sha256": "2fe3f427dce50fc9b5fd6a0c567de451c4a72aba0b2eca06810cb72603926664",
     "cli_vcs_modified": false,
     "bridge_vcs_modified": false
   },
   "bundle": [
     {
       "path": "assets/bundle/app.js",
-      "sha256": "c2a18063923c5b23f416e1467140f23aab0df38691072bd35d4c69c5ef3213f6"
+      "sha256": "25a0f6766240f10d951e326d9a0f864c39f7ceedb6634b45ab512088dc1c7e2b"
     },
     {
       "path": "assets/bundle/app.css",
@@ -5108,7 +5108,7 @@
   "images": [
     {
       "path": "setup-location.png",
-      "sha256": "44d9945f04ca8e19d3d277ed818e81cf93033b63abd7367aa336494b362fccbf",
+      "sha256": "9b07db35f4ce2de0b8ff3e6be9f9d1134e806a8c7502018935cacccbd4cec84c",
       "width": 1392,
       "height": 1766,
       "landmark": "Workspace and location (Step 1 of 5)",
