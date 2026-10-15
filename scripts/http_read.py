@@ -2,13 +2,22 @@
 # SPDX-License-Identifier: Apache-2.0
 """Bounded unauthenticated HTTPS GETs for explicitly selected public origins."""
 import http.client
+import base64
+from concurrent.futures import ThreadPoolExecutor
+import hashlib
+import json
+import os
+from pathlib import Path
 import ssl
 import socket
+import subprocess
+import sys
 import threading
 import time
 from urllib.parse import urljoin, urlsplit
 
 TRANSIENT = {429, 500, 502, 503, 504}
+MAX_PATHS = 10000
 
 
 def origin(url):
@@ -83,8 +92,16 @@ def request(url, limit, deadline, clock):
         connection.close()
 
 
-def read(url, *, max_bytes, deadline, retry_404=False, transport=request,
+def read(url, *, max_bytes, deadline, retry_404=False, transport=None,
          sleep=time.sleep, clock=time.monotonic, on_attempt=None):
+    if transport is None:
+        origin(url)
+        result = json.loads(worker({'mode': 'fetch', 'url': url, 'max_bytes': max_bytes,
+                                    'deadline': deadline, 'retry_404': retry_404}, deadline))
+        data = base64.b64decode(result['data'], validate=True)
+        if len(data) > max_bytes: raise ValueError('public response size exceeds limit')
+        if on_attempt is not None: on_attempt(result['attempts'])
+        return data
     elected = origin(url)
     retryable = TRANSIENT | ({404} if retry_404 else set())
     for attempt in range(3):
@@ -120,3 +137,70 @@ def read(url, *, max_bytes, deadline, retry_404=False, transport=request,
             sleep(min(1 << attempt, remaining))
             continue
         raise OSError('public request failed after three attempts')
+
+
+def worker(payload, deadline, *, argv=None):
+    """Bound DNS, connect, TLS and body work by this owned child's lifetime.
+
+    subprocess.run kills and reaps its own child on timeout. The child launches
+    no subprocesses. Batch requests reuse one process and four bounded threads.
+    """
+    remaining = deadline - time.monotonic()
+    if remaining <= 0: raise TimeoutError('public worker deadline exceeded')
+    allowed = {'PATH', 'SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP', 'TMPDIR', 'LANG', 'LC_ALL'}
+    environment = {key: value for key, value in os.environ.items() if key.upper() in allowed}
+    environment['PYTHONUTF8'] = '1'
+    try:
+        result = subprocess.run(argv or [sys.executable, str(Path(__file__).resolve()), '--worker'],
+                                input=json.dumps(payload).encode('utf-8'), stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, timeout=remaining, env=environment,
+                                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+    except subprocess.TimeoutExpired:
+        raise TimeoutError('public worker deadline exceeded') from None
+    if result.returncode:
+        message = result.stderr.decode('utf-8', errors='replace').strip()
+        raise OSError(message[:1000] or 'public network worker failed')
+    if time.monotonic() > deadline: raise TimeoutError('public worker deadline exceeded')
+    return result.stdout
+
+
+def read_many(jobs, *, deadline):
+    """Return downloaded hashes for one bounded batch, without product binaries."""
+    if len(jobs) > MAX_PATHS: raise ValueError('public batch path limit exceeded')
+    origins = {origin(job['url']) for job in jobs}
+    if len(origins) > 1: raise ValueError('public batch left the selected HTTPS origin')
+    return json.loads(worker({'mode': 'batch', 'jobs': jobs, 'deadline': deadline}, deadline))
+
+
+def worker_main():
+    payload = json.loads(sys.stdin.buffer.read(16 << 20))
+    deadline = payload['deadline']
+    if payload['mode'] == 'fetch':
+        attempts = [0]
+        data = read(payload['url'], max_bytes=payload['max_bytes'], deadline=deadline,
+                    retry_404=payload.get('retry_404', False), transport=request,
+                    on_attempt=lambda value: attempts.__setitem__(0, value))
+        value = {'data': base64.b64encode(data).decode('ascii'), 'attempts': attempts[0]}
+    elif payload['mode'] == 'batch':
+        jobs = payload['jobs']
+        if len(jobs) > MAX_PATHS: raise ValueError('public batch path limit exceeded')
+        def fetch(job):
+            try:
+                data = read(job['url'], max_bytes=16 << 20, deadline=deadline, transport=request)
+            except (OSError, ValueError, http.client.HTTPException):
+                return {'url': job['url'], 'error': 'public request failed'}
+            return {'url': job['url'], 'sha256': hashlib.sha256(data).hexdigest(), 'size_bytes': len(data)}
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            value = list(pool.map(fetch, jobs))
+    else: raise ValueError('public worker mode is invalid')
+    sys.stdout.write(json.dumps(value))
+
+
+if __name__ == '__main__':
+    try:
+        if sys.argv[1:] != ['--worker']: raise ValueError('public network worker requires its internal mode')
+        worker_main()
+    except (OSError, ValueError, KeyError, http.client.HTTPException):
+        # Never echo URLs, response bodies, environment or exception payloads.
+        print('public network worker failed or exceeded its request budget', file=sys.stderr)
+        sys.exit(1)

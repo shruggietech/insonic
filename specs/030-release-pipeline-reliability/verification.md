@@ -13,7 +13,7 @@ complete; CI/review delivery remains the explicit pending acceptance gate.
 | Check | Result |
 | --- | --- |
 | Root `npm test` | 104 passed |
-| Python discovery `*_test.py` | 279 passed |
+| Python discovery `*_test.py` | 284 passed |
 | Site tests | 10 passed |
 | Public and offline site build | Passed; each export's 111 documentation pages validated |
 | `npm run check` | Passed; repository, links, versions, YAML/JSON, schemas and brand bytes |
@@ -67,6 +67,33 @@ release/deployment/content checks above. No product or publication gate changed.
 
 The next review request is the second and final authorized round. Its result
 and exact-head CI evidence are recorded on the official PR.
+
+## 2026-10-15: final review findings
+
+The final round reported two P2 findings on `1404e48`: missing stylesheet-linked
+asset coverage and DNS/setup outside the socket watchdog's control. T016/T017
+address both. Verification now compares every original archive file and follows
+bounded HTML/CSS references, including imports and escaped font URLs. Networking
+runs in one disposable, hidden worker for a public batch (four threads), or one
+worker for a single action acquisition. The parent timeout kills and reaps only
+its own worker even when no socket exists. Child environments exclude GitHub
+credentials. The earlier socket watchdog remains an additional I/O interruption.
+
+Focused regressions cover stale and missing fonts, CSS imports/cycles, comments
+and escaped URLs, generic-site root-relative dependencies, an unassigned-socket
+stall, exact owned-child termination and single-worker reuse. Actual downloads
+of both locked setup actions passed through the final worker boundary. The live
+CLI verified all nine original release assets and 891 URLs representing all
+813 original export files in 41.515 seconds, with the same exact Pages commit
+before and after requests. No external state was changed. No third review
+request will be made; resolved findings and final-head CI are tracked on PR #104.
+
+After both fixes and matching documentation changes, final local parity passed:
+104 root tests, 284 Python tests, 10 site tests, both public/offline exports and
+repository/schema/brand checks. The network worker's sanitized environment and
+both approved action archives were exercised successfully. Exact final-head CI
+and review-thread resolution remain recorded on PR #104 rather than requiring
+an additional evidence-only commit after checks complete.
 
 ## Delivery boundary
 

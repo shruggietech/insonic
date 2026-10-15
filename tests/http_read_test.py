@@ -6,6 +6,7 @@ import ssl
 import threading
 import time
 from unittest.mock import patch
+import subprocess
 
 spec = importlib.util.spec_from_file_location('http_read', Path(__file__).resolve().parents[1] / 'scripts/http_read.py')
 http = importlib.util.module_from_spec(spec); spec.loader.exec_module(http)
@@ -82,6 +83,37 @@ class HttpTests(unittest.TestCase):
                 http.request('https://example.com/a', 10, started + 0.05, time.monotonic)
         self.assertTrue(stopped.is_set())
         self.assertLess(time.monotonic() - started, 0.5)
+
+    def test_owned_worker_deadline_covers_unassigned_socket_and_is_reaped(self):
+        started = time.monotonic()
+        # This worker never creates a socket, just like stalled DNS/setup.
+        # The parent must kill/reap only this child before returning.
+        children = []
+        original = http.subprocess.Popen
+        def observed(*args, **kwargs):
+            child = original(*args, **kwargs); children.append(child)
+            return child
+        with patch.object(http.subprocess, 'Popen', side_effect=observed):
+            with self.assertRaisesRegex(TimeoutError, 'deadline'):
+                http.worker({'mode': 'fetch'}, started + 0.08,
+                            argv=[http.sys.executable, '-c', 'import time; time.sleep(30)'])
+        self.assertLess(time.monotonic() - started, 1)
+        self.assertEqual(len(children), 1)
+        self.assertIsNotNone(children[0].returncode)
+
+    def test_public_batch_uses_one_hidden_noninteractive_worker(self):
+        calls = []
+        def runner(argv, **options):
+            calls.append((argv, options))
+            return subprocess.CompletedProcess(argv, 0, b'[]', b'')
+        with patch.object(http.subprocess, 'run', side_effect=runner):
+            self.assertEqual(http.read_many([], deadline=time.monotonic() + 1), [])
+        self.assertEqual(len(calls), 1)
+        options = calls[0][1]
+        self.assertEqual(options['stdout'], subprocess.PIPE)
+        self.assertEqual(options['stderr'], subprocess.PIPE)
+        self.assertNotIn('GH_TOKEN', options['env'])
+        if http.os.name == 'nt': self.assertTrue(options['creationflags'] & subprocess.CREATE_NO_WINDOW)
 
 
 if __name__ == '__main__': unittest.main()

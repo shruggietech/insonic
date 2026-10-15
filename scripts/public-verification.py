@@ -21,20 +21,49 @@ http = sibling('http_read')
 pages = sibling('pages')
 
 
+CSS_TOKEN = re.compile(r'''/\*.*?\*/|\burl\(\s*(?P<url>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|(?:\\.|[^()'"\\])*)\s*\)|@import\s+(?P<import>"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*' ''', re.I | re.S | re.X)
+
+
+def css_links(text):
+    def unescape(match):
+        if match[1]:
+            value = int(match[1], 16)
+            return chr(value) if 0 < value <= 0x10ffff else '\ufffd'
+        return '' if match[2] else match[3]
+    links = []
+    for token in CSS_TOKEN.finditer(text):
+        value = token['url'] if token['url'] is not None else token['import']
+        if value is None: continue
+        value = value.strip()
+        if value[:1] in ('"', "'"): value = value[1:-1]
+        value = re.sub(r'\\(?:([0-9a-fA-F]{1,6})[ \t\r\n\f]?|(\r\n|[\r\n\f])|(.))', unescape, value)
+        links.append(value)
+    return links
+
+
 class Links(HTMLParser):
     def __init__(self, text):
         super().__init__(convert_charrefs=True)
         self.links, self.canonical = [], []
+        self.in_style = False
         self.feed(text)
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
+        if tag == 'style': self.in_style = True
+        self.links.extend((value, True) for value in css_links(attrs.get('style', '')))
         if tag == 'link' and attrs.get('rel') == 'canonical': self.canonical.append(attrs.get('href'))
         for key in ('href', 'src', 'poster'):
             if key in attrs:
                 if tag == 'link' and attrs.get('rel') == 'canonical': continue
                 resource = key != 'href' or (tag == 'link' and attrs.get('rel') != 'canonical')
                 self.links.append((attrs[key], resource))
+
+    def handle_endtag(self, tag):
+        if tag == 'style': self.in_style = False
+
+    def handle_data(self, data):
+        if self.in_style: self.links.extend((value, True) for value in css_links(data))
 
 
 def deployment(api, commit):
@@ -73,18 +102,23 @@ def inventory(files, version, revision, site, package_urls):
     canonical = Links(files['docs/latest/index.html'].decode('utf-8')).canonical
     if canonical != [f'https://insonic.io/docs/v{version}/index/']:
         raise ValueError('latest documentation canonical differs from release')
-    selected = {name for name in files if name.endswith('.html') or name.startswith('schemas/')}
-    selected.update(('release-documentation.json', 'documentation-build.json', 'documentation-manifest.json'))
+    # Include the complete bounded original export, not just HTML entry points.
+    # This also covers fonts and indirectly loaded JS/CSS resources.
+    selected = set(files)
     base_origin = http.origin(site)
     requests = {}
     for name in sorted(selected):
         route = name.removesuffix('index.html') if name.endswith('/index.html') and '/latest/' not in name else name
         if name == 'index.html': route = ''
         requests[site + quote(route, safe='/')] = name
-    for name in sorted(selected.copy()):
-        if not name.endswith('.html'): continue
-        page_url = site + name.removesuffix('index.html') if name.endswith('/index.html') else site + name
-        for href, resource in Links(files[name].decode('utf-8')).links:
+    pending = list(requests.items())
+    for page_url, name in pending:
+        if name.endswith('.html'):
+            links = Links(files[name].decode('utf-8')).links
+        elif name.endswith('.css'):
+            links = [(value, True) for value in css_links(files[name].decode('utf-8'))]
+        else: continue
+        for href, resource in links:
             if not href or href.startswith('#'): continue
             resolved = urljoin(page_url, href)
             parts = urlsplit(resolved)
@@ -105,13 +139,16 @@ def inventory(files, version, revision, site, package_urls):
             resolved = parts._replace(path=quote(unquote(parts.path), safe='/'), fragment='').geturl()
             if http.origin(resolved) != base_origin:
                 raise ValueError('public reference left the elected HTTPS origin')
-            requests[resolved] = matched
-    if len(requests) > 1000: raise ValueError('public verification path inventory exceeds limit')
+            if resolved not in requests:
+                requests[resolved] = matched
+                pending.append((resolved, matched))
+                if len(requests) > http.MAX_PATHS: raise ValueError('public verification path inventory exceeds limit')
+    if len(requests) > http.MAX_PATHS: raise ValueError('public verification path inventory exceeds limit')
     return sorted(requests.items())
 
 
 def verify(archive, version, revision, site, *, package_urls, api=None,
-           pages_commit=None, reader=http.read, clock=time.monotonic):
+           pages_commit=None, reader=None, clock=time.monotonic):
     started = clock()
     http.origin(site)
     if not site.endswith('/'): raise ValueError('public site base must end with a slash')
@@ -121,10 +158,21 @@ def verify(archive, version, revision, site, *, package_urls, api=None,
     if pages_commit is not None: deployment(api, pages_commit)
     deadline = clock() + 120
     checked = []
-    for url, name in requests:
-        actual = reader(url, max_bytes=16 << 20, deadline=deadline)
+    if reader is None:
+        results = http.read_many([{'url': url} for url, _ in requests], deadline=deadline)
+        if len(results) != len(requests) or [item['url'] for item in results] != [url for url, _ in requests]:
+            raise ValueError('public worker response inventory differs')
+    else:
+        results = None
+    for index, (url, name) in enumerate(requests):
+        if results is None:
+            actual = reader(url, max_bytes=16 << 20, deadline=deadline)
+            digest = hashlib.sha256(actual).hexdigest()
+        else:
+            if 'error' in results[index]:
+                raise OSError('public request failed for original archive path: ' + name)
+            digest = results[index]['sha256']
         if clock() > deadline: raise TimeoutError('public verification deadline exceeded')
-        digest = hashlib.sha256(actual).hexdigest()
         if digest != hashlib.sha256(files[name]).hexdigest():
             raise ValueError('live public bytes differ from original archive: ' + name)
         checked.append({'path': name, 'url': url, 'sha256': digest})

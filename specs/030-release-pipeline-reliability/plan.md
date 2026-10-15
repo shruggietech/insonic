@@ -60,8 +60,10 @@ change, so existing screenshot provenance remains valid. UTF-8 without BOM/LF.
 4. Reuse original candidate bytes. Public binary proof is API digest metadata;
    live docs content proof downloads and hashes responses. Never describe this
    as repeating every public product-binary download.
-5. Derive a deterministic page/schema/navigation/resource inventory from the
-   original archive. Verify exact Pages branch/build before and after HTTP.
+5. Verify the complete bounded original archive plus resolved HTML/CSS
+   navigation/resource URLs. Use one parent-bounded network worker with four
+   concurrent requests, including DNS/setup in its lifetime limit. Verify exact
+   Pages branch/build before and after HTTP.
    Generic HTTPS verification provides content proof without Pages identity.
    Keep live network checks out of ordinary PR CI; use injected fixtures.
 6. Write adversarial tests before implementation. Integrate workflows and docs,

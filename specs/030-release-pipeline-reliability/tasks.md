@@ -54,3 +54,6 @@ CI and reviews satisfy the done gate.
 - [x] T014 [US2] Close FR-007/009 URL-selection gap in scripts/public-verification.py and tests/public_verification_test.py: generic destinations with a path prefix must verify actual resolved navigation/resource URLs, including root-relative resources, rather than only reconstructing URLs from archive filenames. Keep all requests on the elected origin.
 
 - [x] T015 Harden the aggregate network deadline in scripts/http_read.py and tests/http_read_test.py so a stalled or trickling header response is interrupted on the owned connection rather than relying only on a per-socket timeout (FR-001/009).
+
+- [x] T016 [US2] Resolve final-review CSS resource coverage in scripts/public-verification.py and tests/public_verification_test.py: check all original archive files and resolved bounded stylesheet dependencies, including WOFF2 fonts and imports (FR-007).
+- [x] T017 Resolve final-review DNS/setup deadline gap in scripts/http_read.py and tests/http_read_test.py: isolate network work in an owned CREATE_NO_WINDOW worker, bound its complete lifetime from the parent, and reuse one bounded batch worker for public verification (FR-001/009).

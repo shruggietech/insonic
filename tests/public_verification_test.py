@@ -6,6 +6,7 @@ from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('public_verification', ROOT / 'scripts/public-verification.py')
@@ -26,7 +27,10 @@ class PublicTests(unittest.TestCase):
             'docs/latest/index.html': b'<link rel="canonical" href="https://insonic.io/docs/v1.2.3/index/">',
             'docs/v1.2.3/index.html': b'<a href="index/">Start</a>',
             'docs/v1.2.3/index/index.html': b'<link rel="stylesheet" href="/style.css">',
-            'app.js': b'console.log("fixture")', 'style.css': b'body{color:blue}',
+            'app.js': b'console.log("fixture")',
+            'style.css': b'@import "theme.css"; @font-face{src:url("fonts/body.woff2")}',
+            'theme.css': b'@import "style.css"; body{color:blue}',
+            'fonts/body.woff2': b'original-font',
             'schemas/v1.2.3/master.schema.json': b'{"type":"object"}',
             'release-documentation.json': json.dumps({'kind': 'documentation', 'version': VERSION, 'revision': REVISION}).encode(),
             'documentation-build.json': json.dumps({'version': VERSION, 'revision': REVISION, 'source_dirty': False, 'documentation_target': 'release'}).encode(),
@@ -60,7 +64,7 @@ class PublicTests(unittest.TestCase):
         self.assertEqual(result['content_proof'], 'downloaded-original-byte-match')
 
     def test_stale_content_fails_even_with_matching_marker(self):
-        for path in ('index.html', 'app.js', 'style.css', 'schemas/v1.2.3/master.schema.json'):
+        for path in ('index.html', 'app.js', 'style.css', 'fonts/body.woff2', 'theme.css', 'schemas/v1.2.3/master.schema.json'):
             with self.subTest(path=path):
                 self.live = self.files.copy(); self.live[path] = b'stale'
                 with self.assertRaisesRegex(ValueError, 'differ'): self.verify()
@@ -83,6 +87,23 @@ class PublicTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'resource'): self.verify()
         self.assertFalse(self.calls)
 
+    def test_css_tokens_ignore_comments_and_strings_and_decode_escapes(self):
+        text = r'''/* url(fake.woff2) */ a{content:"url(fake2.woff2)";src:url("fonts/\62 ody.woff2")} @import 'theme.css';'''
+        self.assertEqual(public.css_links(text), ['fonts/body.woff2', 'theme.css'])
+
+    def test_missing_css_dependency_fails_before_network(self):
+        del self.files['fonts/body.woff2']
+        with self.assertRaisesRegex(ValueError, 'resource'): self.verify()
+        self.assertFalse(self.calls)
+
+    def test_batch_failure_identifies_original_path(self):
+        self.pack()
+        def missing(jobs, **options):
+            return [{'url': job['url'], 'error': 'public request failed'} for job in jobs]
+        with patch.object(public.http, 'read_many', side_effect=missing):
+            with self.assertRaisesRegex(OSError, 'original archive path'):
+                public.verify(self.archive, VERSION, REVISION, 'https://example.com/', package_urls=[self.asset])
+
     def test_destination_rejected_before_network(self):
         self.pack()
         for site in ('http://example.com/', 'https://user:secret@example.com/', 'https://example.com/?token=secret'):
@@ -100,9 +121,11 @@ class PublicTests(unittest.TestCase):
         public.verify(self.archive, VERSION, REVISION, 'https://example.com/mirror/',
                       package_urls=[self.asset], reader=reader)
         self.assertIn('https://example.com/app.js', requests)
-        self.assertNotIn('https://example.com/mirror/app.js', requests)
+        self.assertIn('https://example.com/mirror/app.js', requests)
         self.assertIn('https://example.com/mirror/schemas/v1.2.3/master.schema.json', requests)
         self.assertIn('https://example.com/style.css', requests)
+        self.assertIn('https://example.com/fonts/body.woff2', requests)
+        self.assertIn('https://example.com/theme.css', requests)
 
     def test_external_render_resource_and_query_are_rejected(self):
         for value in ('https://evil.test/track.js', '/app.js?token=secret'):

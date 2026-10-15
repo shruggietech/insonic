@@ -97,11 +97,18 @@ Pages promotion runs this verification after its exact build completes.
 
 The receipt distinguishes locally verified original assets, public binary API
 metadata evidence and downloaded live documentation byte matches. It records
-every checked path and digest, including archived HTML pages, schemas,
-navigation targets and directly referenced local render resources. It is not a
+every checked path and digest for the complete original public export,
+including HTML, schemas, stylesheet imports, fonts, navigation targets and
+resolved local render resources. It is not a
 repeat download of every public product binary or a visual/accessibility audit.
 The public content phase allows 120 seconds total, at most three attempts and
 five same-origin HTTPS redirects per request, and at most 16 MiB per response.
+The original archive is bounded to 10,000 regular files and 64 MiB; the resolved
+request inventory is also bounded. Public requests share one disposable worker
+with four concurrent requests. Its parent enforces the complete network-phase
+deadline, including DNS, connection and TLS setup, and kills/reaps only that
+owned worker on timeout. Single action acquisitions use the same parent-owned
+deadline boundary. Windows workers use hidden, redirected, noninteractive I/O.
 No GitHub token, ambient cookie or authorization header accompanies site GETs.
 The metadata client permits GET only; `GH_TOKEN` is optional for public release
 API reads and may be needed to avoid anonymous API rate limits. Exact Pages
