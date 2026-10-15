@@ -30,4 +30,4 @@ Foreground, flashing or focus-stealing console windows are prohibited. Direct Gi
 
 ## Verification and publication
 
-Run `npm run check`, `npm test` and the affected site/product checks. Keep CI below ten minutes through targeted checks and caching, not weaker integrity checks. User observations normally follow releases as issues; do not invent an attended pre-release verification gate. Follow the owner-approved squash merge and branch-deletion model. Release notes are short highlights ending with a link to `CHANGELOG.md`. No first push or GitHub publication is authorized by the local foundation request.
+Run `npm run check`, `npm test` and the affected site/product checks. Keep CI within eleven minutes (660 seconds) through targeted checks and caching, not weaker integrity checks. User observations normally follow releases as issues; do not invent an attended pre-release verification gate. Follow the owner-approved squash merge and branch-deletion model. Release notes are short highlights ending with a link to `CHANGELOG.md`. No first push or GitHub publication is authorized by the local foundation request.

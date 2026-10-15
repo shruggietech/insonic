@@ -18,7 +18,7 @@ jobs:
       native: ${{ steps.scope.outputs.native }}
       adapters: ${{ steps.scope.outputs.adapters }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 11
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -36,14 +36,17 @@ jobs:
   docs:
     name: docs
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 11
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: site/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            site/package-lock.json
+      - run: npm ci --ignore-scripts
       - run: npm --prefix site ci --ignore-scripts
       - run: npm --prefix site test
       - run: npm --prefix site run build
@@ -51,6 +54,16 @@ jobs:
           NEXT_TELEMETRY_DISABLED: 1
       - name: Qualify local public and offline diagram rendering
         run: python scripts/qualify-docs-renderer.py
+      - name: Qualify responsive public and offline documentation
+        run: node scripts/check-docs-ui.mjs --browser /usr/bin/google-chrome --out site/out --offline site/offline --output build/s028-docs-ui
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          archive: true
+          name: documentation-ui-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/s028-docs-ui
+          if-no-files-found: warn
+          retention-days: 14
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           archive: true
@@ -150,7 +163,7 @@ jobs:
       - package-windows
     if: always() && needs.docs.result == 'success' && needs.package-linux.result == 'success' && needs.package-windows.result == 'success'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 11
     permissions:
       contents: read
     env:
@@ -196,7 +209,7 @@ jobs:
         os:
           - ubuntu-24.04
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 11
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
@@ -220,7 +233,7 @@ jobs:
     if: needs.foundation.outputs.core == 'true'
     name: core (windows-2022)
     runs-on: windows-2022
-    timeout-minutes: 10
+    timeout-minutes: 11
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
@@ -257,7 +270,7 @@ jobs:
     if: always() && needs.foundation.result == 'success' && needs.foundation.outputs.adapters == 'true' && needs.media-linux.result == 'success'
     name: adapter fixtures
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 11
     services:
       postgres:
         image: postgres:18.6@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722

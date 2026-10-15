@@ -15,7 +15,7 @@ Organize audio and video, correlate subtitles and speakers, and explore what was
 
 ## Documentation
 
-Read the [v1.0.1 system contracts](docs/v1.0.1/index.md), [technology decisions](docs/v1.0.1/technology.md) and [delivery outcomes](docs/v1.0.1/roadmap.md). The documentation index identifies candidate and publication status.
+Read the [current system contracts](https://insonic.io/docs/latest/), [technology decisions](https://insonic.io/docs/latest/technology/) and [delivery outcomes](https://insonic.io/docs/latest/roadmap/). The documentation index identifies candidate and publication status; [version archives](https://insonic.io/docs/versions/) preserve release-specific guidance.
 
 ## Installation
 
@@ -63,4 +63,4 @@ Use GitHub Issues for bugs and proposals. Include the affected version and concr
 
 Source code and original documentation use [Apache 2.0](LICENSE). Upstream assets and dependencies retain their own notices; see [NOTICE](NOTICE) and the kit's licensing files.
 
-A ShruggieTech project
+A [ShruggieTech](https://shruggie.tech/) project

@@ -13,12 +13,12 @@ export async function walk(directory) {
   return results;
 }
 
-function relativeTarget(filename, url, out) {
+export function relativeTarget(filename, url, out) {
   if (!url.startsWith('/') || url.startsWith('//')) return url;
-  const [pathname, fragment = ''] = url.split('#');
+  const [, pathname, query = '', fragment = ''] = url.match(/^([^?#]*)(\?[^#]*)?(#.*)?$/);
   const target = path.join(out, pathname, pathname.endsWith('/') ? 'index.html' : '');
   const relative = path.relative(path.dirname(filename), target).split(path.sep).join('/');
-  return `${relative || 'index.html'}${fragment ? `#${fragment}` : ''}`;
+  return `${relative || 'index.html'}${query}${fragment}`;
 }
 
 export async function postbuild() {

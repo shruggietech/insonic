@@ -2,13 +2,14 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { root, getManifest, getRepositoryReferences } from '../lib/docs.mjs';
+import { root, getManifest, getRepositoryReferences, getLatestEntry, latestTopicSlugs, latestReferenceSlugs } from '../lib/docs.mjs';
 import { walk } from './postbuild.mjs';
 
 export async function checkExport({ out = path.join(root, 'site/out'), offline = false } = {}) {
   const manifest = getManifest();
   const failures = [];
-  const expected = ['index.html', 'docs/index.html', ...manifest.versions.flatMap((entry) => [`docs/v${entry.version}/index.html`, ...entry.pages.map((page) => `docs/v${entry.version}/${page.slug}/index.html`)]), ...getRepositoryReferences().map((item) => `docs/v${item.entry.version}/references/${item.slug}/index.html`)];
+  const references = getRepositoryReferences();
+  const expected = ['index.html', 'docs/index.html', 'docs/latest/index.html', 'docs/versions/index.html', ...latestTopicSlugs(manifest).map(slug => `docs/latest/${slug}/index.html`), ...latestReferenceSlugs(references).map(slug => `docs/latest/references/${slug}/index.html`), ...manifest.versions.flatMap((entry) => [`docs/v${entry.version}/index.html`, ...entry.pages.map((page) => `docs/v${entry.version}/${page.slug}/index.html`)]), ...getRepositoryReferences().map((item) => `docs/v${item.entry.version}/references/${item.slug}/index.html`)];
   for (const filename of expected) {
     try { await fs.access(path.join(out, filename)); } catch { failures.push(`Missing exported page: ${filename}`); }
   }
@@ -31,6 +32,13 @@ export async function checkExport({ out = path.join(root, 'site/out'), offline =
         }
       }
     }
+    if (relativePage === 'docs/index.html' || relativePage === 'docs/latest/index.html' || relativePage.startsWith('docs/latest/')) {
+      const entry = getLatestEntry(manifest);
+      const canonical = html.match(/<link\b[^>]*rel="canonical"[^>]*href="([^"]+)"/);
+      if (!canonical || !canonical[1].includes('v' + entry.version + '/')) failures.push('Current documentation alias lacks fixed-version canonical identity: ' + relativePage);
+      if (/<meta\b[^>]*http-equiv="refresh"/i.test(html)) failures.push('Current documentation must render without a redirect: ' + relativePage);
+      if (!/<(?:article|h1)\b/.test(html)) failures.push('Current documentation lacks a readable static body: ' + relativePage);
+    }
     const scripts = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)].map(([, source]) => path.posix.basename(source));
     if (!offline && relativePage === 'index.html' && scripts.includes('docs-runtime.js')) failures.push('The public landing page must not load the Mermaid runtime.');
     if (relativePage.startsWith('docs/') && (!scripts.includes('docs-runtime.js') || !scripts.includes('site-runtime.js'))) failures.push(`Documentation controls or Mermaid runtime missing: ${relativePage}`);
@@ -38,7 +46,7 @@ export async function checkExport({ out = path.join(root, 'site/out'), offline =
     if (/\b(?:href|src)="\/(?!\/)/.test(html)) failures.push(`Root-absolute URL in ${path.relative(out, filename)}`);
     for (const [, value] of html.matchAll(/\b(?:href|src|srcset)="([^" ]+)"/g)) {
       if (/^(?:[a-z]+:|\/\/)/i.test(value)) continue;
-      const [relative, fragment] = value.split('#');
+      const [, relative, , fragment = ''] = value.match(/^([^?#]*)(\?[^#]*)?(?:#(.*))?$/);
       const target = relative ? path.resolve(path.dirname(filename), relative) : filename;
       if (!target.startsWith(`${out}${path.sep}`) && target !== out) { failures.push(`Link leaves export: ${value}`); continue; }
       try {

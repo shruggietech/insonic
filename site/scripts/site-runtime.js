@@ -26,7 +26,10 @@ function updateTheme(next, persist = false) {
   if (persist) { try { window.localStorage.setItem(themeStorageKey, preference); } catch { /* The current page still changes when storage is unavailable. */ } }
   if (previous !== resolved) window.dispatchEvent(new Event('insonic-themechange'));
 }
-if (themeToggle) themeToggle.addEventListener('click', () => updateTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', true));
+if (themeToggle) {
+  themeToggle.hidden = false;
+  themeToggle.addEventListener('click', () => updateTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark', true));
+}
 theme.addEventListener('change', () => { if (preference === 'system') updateTheme('system'); });
 window.addEventListener('storage', event => {
   if (event.key !== themeStorageKey && event.key !== null) return;
@@ -56,3 +59,19 @@ for (const [index, tab] of previewTabs.entries()) {
 
 // Reconcile an OS change between the blocking initializer and this deferred script.
 updateTheme(preference);
+
+// Native details remain usable without scripting. Each viewport mode remembers
+// the reader's election; moving to a narrow reading layout starts collapsed.
+for (const disclosure of document.querySelectorAll('details[data-responsive-disclosure]')) {
+  const media = window.matchMedia(`(min-width: ${disclosure.dataset.responsiveDisclosure}px)`);
+  const states = { wide: true, narrow: false };
+  let mode = media.matches ? 'wide' : 'narrow';
+  disclosure.open = states[mode];
+  disclosure.addEventListener('toggle', () => { states[mode] = disclosure.open; });
+  media.addEventListener('change', () => {
+    states[mode] = disclosure.open;
+    mode = media.matches ? 'wide' : 'narrow';
+    if (!states[mode] && disclosure.contains(document.activeElement)) disclosure.querySelector('summary').focus();
+    disclosure.open = states[mode];
+  });
+}

@@ -419,7 +419,7 @@ def compile_openmpt(target, prefix, platform_id, parallel_jobs, run):
          '--without-portaudiocpp', '--without-pulseaudio', '--without-sdl2', '--without-sndfile', '--without-flac'],
         target, shell=True)
     # The C++ module decoders took over four minutes on a slower Windows CI
-    # runner. Keep their full build bounded within the ten-minute formats job.
+    # runner. Keep their full build bounded within the eleven-minute formats job.
     run(['make', '-j' + str(parallel_jobs)], target, 360, shell=platform_id.startswith('windows'))
     run(['make', 'install'], target, 60, shell=platform_id.startswith('windows'))
 

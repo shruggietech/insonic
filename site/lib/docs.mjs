@@ -8,6 +8,8 @@ import { highlightSource } from './highlight.mjs';
 import { loadSchemaCatalog, renderSchemaReference } from '../../scripts/schema-catalog.mjs';
 import { documentationTarget, publicationManifest, publicationDocument } from './release-status.mjs';
 
+export { getLatestEntry, latestPath, latestReferencePath, latestTopicSlugs, latestReferenceSlugs } from './docs-routes.mjs';
+
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const docsRoot = path.join(root, 'docs');
 
@@ -18,6 +20,7 @@ export function getManifest() {
   for (const entry of manifest.versions) {
     if (!/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(entry.version) || seen.has(entry.version)) throw new Error(`Invalid or duplicate documentation version: ${entry.version}`);
     seen.add(entry.version);
+    if (!['specification', 'candidate', 'released'].includes(entry.status)) throw new Error(`Invalid documentation status: ${entry.status}`);
     if (!entry.pages?.length) throw new Error(`Documentation v${entry.version} has no pages.`);
     const slugs = new Set();
     for (const page of entry.pages) {
@@ -91,11 +94,21 @@ export function renderDocument(source, entry, repositoryPath) {
       return highlightSource(code, language) ?? md.utils.escapeHtml(code);
     },
   }).use(taskLists);
+  const tableOpen = md.renderer.rules.table_open || ((tokens, index, options, environment, renderer) => renderer.renderToken(tokens, index, options));
+  const tableClose = md.renderer.rules.table_close || ((tokens, index, options, environment, renderer) => renderer.renderToken(tokens, index, options));
+  md.renderer.rules.table_open = (...args) => '<div class="table-scroll" role="region" aria-label="Scrollable table" tabindex="0">' + tableOpen(...args);
+  md.renderer.rules.table_close = (...args) => tableClose(...args) + '</div>\n';
+  md.renderer.rules.th_open = (tokens, index, options, environment, renderer) => {
+    tokens[index].attrSet('scope', 'col');
+    return renderer.renderToken(tokens, index, options);
+  };
+  const defaultCodeBlock = md.renderer.rules.code_block;
+  md.renderer.rules.code_block = (...args) => defaultCodeBlock(...args).replace('<pre>', '<pre tabindex="0" aria-label="Code example">');
   const defaultFence = md.renderer.rules.fence;
   md.renderer.rules.fence = (tokens, index, options, environment, renderer) => {
     const token = tokens[index];
-    if (token.info.trim() !== 'mermaid') return defaultFence(tokens, index, options, environment, renderer);
-    return `<figure class="diagram"><div class="mermaid" role="img" aria-label="System diagram">${md.utils.escapeHtml(token.content)}</div><details><summary>Diagram source</summary><pre><code>${md.utils.escapeHtml(token.content)}</code></pre></details></figure>`;
+    if (token.info.trim() !== 'mermaid') return defaultFence(tokens, index, options, environment, renderer).replace('<pre>', '<pre tabindex="0" aria-label="Code example">');
+    return `<figure class="diagram" role="group" tabindex="0" aria-label="System diagram and source"><div class="mermaid" role="img" aria-label="System diagram">${md.utils.escapeHtml(token.content)}</div><details><summary>Diagram source</summary><pre tabindex="0" aria-label="Diagram source"><code>${md.utils.escapeHtml(token.content)}</code></pre></details></figure>`;
   };
   md.core.ruler.push('documentation-links-and-headings', (state) => {
     for (let index = 0; index < state.tokens.length; index += 1) {
