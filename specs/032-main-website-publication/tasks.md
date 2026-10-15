@@ -33,8 +33,8 @@ Independent test: drift fails, selection conservative, final full CI below 660 s
 ## Delivery
 
 - [x] T011 Update docs/v1.0.1/releases.md, development.md, CHANGELOG.md; check encoding and planning separation.
-- [ ] T012 Run root/affected/hosted checks and Spec Kit converge; record exact evidence in verification.md.
-- [ ] T013 Commit/push official PR, resolve at most two actual review rounds, inspect every thread and final exact-head CI; request owner merge review.
+- [x] T012 Run root/affected/hosted checks and Spec Kit converge; record exact evidence in verification.md.
+- [x] T013 Commit/push official PR, resolve at most two actual review rounds, inspect every thread and final exact-head CI; request owner merge review.
 
 ## Dependencies and execution
 
@@ -58,4 +58,4 @@ T001–T002 block source edits. Tests precede each behavior group. US2 uses US1 
 
 ## Phase 10: Native-query transport diagnosis
 
-- [ ] T018 Align query.run/query.explain RPC deadlines with the native engine budget and classify socket/caller deadlines as cancellation rather than malformed input, per FR-008/FR-011/SC-004 (partial). Prove a valid slow response beyond five seconds and retain malformed-frame rejection, caller cancellation and hosted installed-query acceptance.
+- [x] T018 Align query.run/query.explain RPC deadlines with the native engine budget and classify socket/caller deadlines as cancellation rather than malformed input, per FR-008/FR-011/SC-004 (partial). Prove a valid slow response beyond five seconds and retain malformed-frame rejection, caller cancellation and hosted installed-query acceptance.

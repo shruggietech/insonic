@@ -12,9 +12,9 @@ Spec Kit specify, clarify, checklist, plan/research, tasks, blocking analysis an
 - Publication tests include invalid current/newest CI, missing actual required jobs, archive/receipt failure before transport, immutable schema bytes, release metadata drift, non-force conflicts/uncertain responses, and real local binary Git tree/replay.
 - No local installer or browser was launched. All local console children use verified hidden launch patterns. Test browser closure uses a fake retained server handle.
 
-## Pending hosted evidence
+## Initial hosted gates
 
-Full final-head native/package/renderer CI, complete timing below 660 seconds, optional read-only production content/download/eight-browser proof, and at most two external review rounds remain delivery gates. Production deployment using the new workflow and merge remain owner boundaries.
+At the initial local handoff, full native/package/renderer CI, complete timing below 660 seconds, read-only production proof and external review remained delivery gates. The records below close those gates. Production use of the new workflow and merge remain owner boundaries.
 
 ## Hosted first pass
 
@@ -61,3 +61,19 @@ Source inspection found a concrete mismatch: native engines permit twenty second
 ## Full scheduling qualification
 
 Run 38776647150 at e212624b02d8ce8832280903df2ebe1431af3833 completed successfully from 17:21:28Z to 17:30:32Z (544 seconds by run timestamps). All elected core, native, installed CLI, current UI capture, four relocated archive variants, MSI, alternative backend, documentation renderer/browser and complete candidate checks passed. This gives 116 seconds of observed margin below 660 seconds. The subsequent query transport repair has controlled failing-before/passing-after tests and requires its own exact-head hosted verification; this run is not represented as testing that later change.
+
+## Complete query-repair qualification and review audit
+
+Run 38778088855 attempt 2 passed on implementation head bd5bb578d5ab1357fe9349bbf812103ee18200c3. Attempt start was 17:42:32Z; first job started 17:42:37Z; last job completed 17:50:50Z; final workflow status updated 17:50:51Z. Elapsed time is 499 seconds through final status, including five seconds initial queue, 493 seconds first-job-to-last-job work, and one second status propagation. This is 161 seconds below the 660-second budget. All twenty elected jobs passed, including both core/Go vet/Python suites, full native operations, installed CLI contracts, current Windows UI capture, all four archives, all eleven MSI gates, backend fixtures, renderer/browser documentation and candidate assembly.
+
+Attempt 1 correctly remained failed after the Linux artifact service returned ECONNRESET during ListArtifacts, before native execution in that lane. Every other elected qualification and candidate assembly passed. A complete retry preserved old evidence and generated all producers/consumers under attempt 2; no failing test or native assertion was rerun selectively or bypassed.
+
+Final local checks pass: root integrity/schema check, 118 root tests, 15 site tests, public/offline exports (111 checked pages each), installer model regressions (58), affected application/packageenv/library/runtime/desktop/CLI Go tests, and the real isolated Git binary-tree/replay test. Hosted Python core reports 300 passing tests. All local children used verified hidden launchers. No local browser or installer ran; separate CLI reproductions used owned private fixtures.
+
+The complete review-thread audit at bd5bb57 found one thread, answered and resolved, with no pagination or unresolved findings. Code round one identified the theme initializer; round two completed cleanly at a9cc239. Security completed with no findings at 311528c. The second security request remains recorded; no additional report arrived and the bot summary shows no active review. No third request was made. Later CI recovery changes, including frozen capture provenance and query transport, are explicitly included in the owner final-review scope and are not claimed to have received external re-review.
+
+Final convergence inspected twelve functional requirements, five success criteria, eight acceptance scenarios, ten scoped technical decisions and seven constitution/constraint groups. Missing, partial, contradicting and unrequested findings are all zero. Convergence left tasks.md byte-for-byte unchanged; the subsequent delivery update closed the completed task markers. No extension hooks are installed.
+
+## Handoff boundary
+
+Implementation and its hosted qualification are complete. The completion record is a documentation-only follow-up; its own exact-head check state is rechecked on PR #108 before the chat handoff. The owner retains final review, squash merge and branch deletion. Production use of the newly merged website publisher remains a subsequent invocation. Existing live-site smoke proves the elected deployed S031 bytes and download links; it does not claim that this unmerged publisher has performed a production write.

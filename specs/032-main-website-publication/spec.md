@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-15
 
-**Status**: Specified
+**Status**: Implemented and verified; awaiting owner review and merge
 
 **Input**: S032 under autopilot: publish website/docs changes from reviewed green main independently of product releases; automate exact live verification, download checks and hosted screenshots; improve CI headroom below 660 seconds. Push and open the official PR, resolve at most two review rounds, then stop for owner final review and merge.
 
