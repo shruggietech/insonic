@@ -52,3 +52,5 @@ CI and reviews satisfy the done gate.
 ## Phase 6: Convergence
 
 - [x] T014 [US2] Close FR-007/009 URL-selection gap in scripts/public-verification.py and tests/public_verification_test.py: generic destinations with a path prefix must verify actual resolved navigation/resource URLs, including root-relative resources, rather than only reconstructing URLs from archive filenames. Keep all requests on the elected origin.
+
+- [x] T015 Harden the aggregate network deadline in scripts/http_read.py and tests/http_read_test.py so a stalled or trickling header response is interrupted on the owned connection rather than relying only on a per-socket timeout (FR-001/009).

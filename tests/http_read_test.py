@@ -3,6 +3,9 @@ import importlib.util
 from pathlib import Path
 import unittest
 import ssl
+import threading
+import time
+from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('http_read', Path(__file__).resolve().parents[1] / 'scripts/http_read.py')
 http = importlib.util.module_from_spec(spec); spec.loader.exec_module(http)
@@ -60,6 +63,25 @@ class HttpTests(unittest.TestCase):
         with self.assertRaisesRegex(TimeoutError, 'deadline'):
             http.read('https://example.com/a', max_bytes=1, deadline=0, clock=lambda: 1,
                       transport=lambda *args: self.fail('network'))
+
+    def test_deadline_interrupts_a_stalled_header_read(self):
+        stopped = threading.Event()
+        class Socket:
+            def shutdown(self, how): stopped.set()
+        class Connection:
+            sock = Socket()
+            def __init__(self, *args, **kwargs): pass
+            def request(self, *args, **kwargs): pass
+            def getresponse(self):
+                if not stopped.wait(1): raise AssertionError('deadline did not interrupt headers')
+                raise TimeoutError('controlled stalled header read')
+            def close(self): pass
+        started = time.monotonic()
+        with patch.object(http.http.client, 'HTTPSConnection', Connection):
+            with self.assertRaises(TimeoutError):
+                http.request('https://example.com/a', 10, started + 0.05, time.monotonic)
+        self.assertTrue(stopped.is_set())
+        self.assertLess(time.monotonic() - started, 0.5)
 
 
 if __name__ == '__main__': unittest.main()

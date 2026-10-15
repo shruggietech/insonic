@@ -13,7 +13,7 @@ complete; CI/review delivery remains the explicit pending acceptance gate.
 | Check | Result |
 | --- | --- |
 | Root `npm test` | 104 passed |
-| Python discovery `*_test.py` | 278 passed |
+| Python discovery `*_test.py` | 279 passed |
 | Site tests | 10 passed |
 | Public and offline site build | Passed; each export's 111 documentation pages validated |
 | `npm run check` | Passed; repository, links, versions, YAML/JSON, schemas and brand bytes |
@@ -37,7 +37,7 @@ normal action main/post behavior is reserved for disposable hosted CI proof.
 The actual `release.py verify-public` command validated all nine original local
 v1.0.1 assets against their package/installer/documentation contracts, exact
 public release/tag identity and full API asset digests/sizes. It compared 290
-live URLs representing 212 unique original archive files in a 42.204-second
+live URLs representing 212 unique original archive files in a 45.296-second
 content phase. The original archive contains 813 files. Checked URLs include
 archived HTML, schemas, stable aliases, navigation destinations and directly
 referenced resources. This is byte verification, not a visual or assistive
@@ -54,6 +54,19 @@ authenticated Pages read access. With the existing credential held only in
 memory, the GET-only command passed. No credential was logged or persisted.
 The release, tag and deployment were not changed. No application, MSI, personal
 browser or desktop interaction was used.
+
+## 2026-10-15: final deadline correction and first review
+
+The opening Codex review completed on `862e0a7` with a bot thumbs-up and no
+inline threads or findings. During final inspection, a socket inactivity timeout
+was found insufficient for a slowly delivered HTTP header. A failing regression
+demonstrated the gap; T015 adds a deadline watchdog that interrupts only the
+request's owned connection. The regression and all 279 Python tests pass. The
+actual read-only CLI was repeated with this correction and passed the complete
+release/deployment/content checks above. No product or publication gate changed.
+
+The next review request is the second and final authorized round. Its result
+and exact-head CI evidence are recorded on the official PR.
 
 ## Delivery boundary
 
