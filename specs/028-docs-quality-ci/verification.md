@@ -47,3 +47,13 @@ Automated Chromium results and visual inspection do not certify screen readers, 
 ## Delivery snapshot
 
 Official PR, external rounds and final exact-head hosted CI are pending at this pre-publication snapshot. At most two requested rounds are authorized. Every finding must be answered/resolved before owner handoff. Final reviewed head, run/source identities and elapsed 660-second comparison will be recorded on the official PR after verification.
+
+## Published PR and review round tracking
+
+2026-10-14: Official non-draft PR #98 is published on codex/028-docs-quality-ci, linked to milestone 12 and Project 7 with all four issues In review. Round 1 automatic Code Review completed on b733e87c7120e0f52ee31303f85ae90eed074a48 with no posted findings or review submissions/threads. Round 2 was requested once through @codex security review at issuecomment-6183273610 on the same head. This is the final authorized review request. CI run 38672612989 is still in progress; no final readiness is claimed from this snapshot.
+
+## Final review remediation
+
+2026-10-14: The final manual request completed on b733e87 and posted two findings. The bot labels the result Code Review despite the security command; no separate security verdict is claimed. P1 discussion_r4278537580 identified unintercepted WebSockets; P2 discussion_r4278537587 identified symlink traversal in export serving. Both are corrected in the browser checker. Each context registers a WebSocket route before pages, blocks every socket without forwarding, and records sanitized attempts. A real owned loopback probe records one blocked attempt, close code 1008, zero TCP connections/upgrades/bytes. Actual-site HTTP/WebSocket attempts and browser errors remain zero. Asset reads reject component symlinks/junctions, enforce real-root boundaries, open with NOFOLLOW where available, and compare exact BigInt regular-file identities before reading/caching. Real junction and final-file symlink fixtures plus HTTP/cache refusal regressions pass.
+
+The owner host supports owned file symlink creation, verified without privilege changes; the unnecessary platform skip was removed. All 102 root JavaScript tests now pass with zero skips. The complete updated browser audit passes in 65.9 seconds (65.7 seconds qualification), with 18 case groups, 225 HTML pages, 70 representative combinations, 13 screenshots and complete owned cleanup. Hosted final-head CI and thread response/resolution remain the last delivery gates. No third review request is authorized or sent.

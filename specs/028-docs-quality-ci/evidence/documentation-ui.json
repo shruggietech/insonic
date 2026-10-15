@@ -18,6 +18,10 @@
   "offline_pages": 111,
   "cases": [
     {
+      "name": "Owned loopback WebSocket probe is recorded and blocked before any server connection, upgrade or traffic",
+      "passed": true
+    },
+    {
       "name": "All exported public and offline pages: 320px reflow, compact navigation, landmarks, names, alternatives and unique IDs",
       "passed": true
     },
@@ -944,6 +948,7 @@
     "contracts-enlarged-text-768.png"
   ],
   "external_requests": [],
+  "external_websockets": [],
   "browser_errors": [],
   "cleanup": {
     "browser_contexts_closed": true,
@@ -953,7 +958,20 @@
   "limitations": [
     "Automated Chromium checks and captured visual inspection do not certify screen-reader behavior, other browser engines, every assistive technology, or complete WCAG conformance. Contrast checks sample body, link, muted, navigation, syntax and diagram-label text on computed solid surfaces; arbitrary raster-image text and gradients are not certified."
   ],
-  "qualification_elapsed_seconds": 60.2,
-  "elapsed_seconds": 60.5,
+  "websocket_isolation_probe": {
+    "attempts": [
+      "ws://127.0.0.1:60283/owned-isolation-probe"
+    ],
+    "connections": 0,
+    "upgrades": 0,
+    "received_bytes": 0,
+    "passed": true,
+    "browser": {
+      "closed": true,
+      "code": 1008
+    }
+  },
+  "qualification_elapsed_seconds": 65.7,
+  "elapsed_seconds": 65.9,
   "passed": true
 }

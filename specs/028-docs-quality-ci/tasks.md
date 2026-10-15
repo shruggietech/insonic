@@ -58,7 +58,7 @@
 
 - [x] T022 Integrate all stories, update CHANGELOG.md and specs/028-docs-quality-ci/ evidence chronologically, inspect encoding/LF/brand-byte integrity and run npm run check, npm test plus affected site/product/Python/catalog checks from quickstart.md.
 - [x] T023 Commit source implementation, build exact clean-source application capture inputs through hidden launchers and refresh affected governed application screenshots/receipts through scripts/capture-application-ui.mjs using only a fresh owned headless browser context; verify public/offline asset integrity and retain candidate version 1.0.1.
-- [ ] T024 Run Spec Kit convergence, document its result in convergence.md, complete tasks only with evidence, commit final artifacts, push codex/028-docs-quality-ci and open/attach the official PR closing #93–#96 with milestone 12 and Project In review.
+- [x] T024 Run Spec Kit convergence, document its result in convergence.md, complete tasks only with evidence, commit final artifacts, push codex/028-docs-quality-ci and open/attach the official PR closing #93–#96 with milestone 12 and Project In review.
 - [ ] T025 Inspect all automatic first-round reviews/reactions, answer every comment and resolve each actionable thread with verified changes; optionally request exactly one second review round, never a third, recording rounds and final head in verification.md.
 - [ ] T026 Verify elected CI checks green on the exact final PR head and elapsed turnaround against 660 seconds, verify all review threads satisfied, and ping the owner for final review/merge. Keep #97 after merge and perform no merge/tag/release/site publication.
 

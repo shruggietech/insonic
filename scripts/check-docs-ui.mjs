@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 // Browser checks own a fresh headless profile. They never attach to a desktop browser.
-import { readFile, writeFile, readdir, mkdir, mkdtemp, rm, stat } from 'node:fs/promises';
+import { readFile, writeFile, readdir, mkdir, mkdtemp, rm, stat, lstat, realpath, open } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import os from 'node:os';
 import http from 'node:http';
@@ -28,6 +30,56 @@ export function boundedPath(directory, relative) {
   return target;
 }
 
+function inside(directory, filename) {
+  const relative = path.relative(directory, filename);
+  return relative === '' || relative !== '..' && !relative.startsWith('..' + path.sep) && !path.isAbsolute(relative);
+}
+
+async function validateExportPath(directory, relative) {
+  const requested = boundedPath(directory, relative);
+  const base = await lstat(directory, { bigint: true });
+  if (!base.isDirectory() || base.isSymbolicLink()) throw new Error('Documentation export must be a real directory.');
+  const boundary = await realpath(directory);
+  const segments = path.relative(directory, requested).split(path.sep).filter(Boolean);
+  let filename = directory;
+  let observed = base;
+  for (const segment of segments) {
+    if (!observed.isDirectory()) throw new Error('Documentation asset parent is not a directory.');
+    filename = path.join(filename, segment);
+    observed = await lstat(filename, { bigint: true });
+    if (observed.isSymbolicLink()) throw new Error('Symbolic links and junctions are not documentation export assets.');
+    if (!inside(boundary, await realpath(filename))) throw new Error('Asset real target leaves its documentation export.');
+  }
+  if (observed.isDirectory()) return validateExportPath(directory, path.join(relative, 'index.html'));
+  if (!observed.isFile()) throw new Error('Documentation asset must be a regular file.');
+  const canonical = await realpath(filename);
+  if (!inside(boundary, canonical)) throw new Error('Asset real target leaves its documentation export.');
+  return { filename: canonical, observed, boundary };
+}
+
+const sameFile = (first, second) => first.dev === second.dev && first.ino === second.ino;
+
+// Component checks reject Windows junctions and platforms without O_NOFOLLOW.
+// The opened regular handle must retain the identity validated before/after open;
+// bytes and cache entries are created only after those checks succeed.
+export async function readExportAsset(directory, relative, cache = new Map()) {
+  const selected = await validateExportPath(directory, relative);
+  const handle = await open(selected.filename, constants.O_RDONLY | (constants.O_NOFOLLOW || 0));
+  try {
+    const opened = await handle.stat({ bigint: true });
+    const confirmed = await validateExportPath(directory, relative);
+    if (!opened.isFile() || !sameFile(selected.observed, opened) || !sameFile(confirmed.observed, opened) || selected.boundary !== confirmed.boundary || selected.filename !== confirmed.filename) throw new Error('Documentation asset identity changed while opening.');
+    const key = `${selected.filename}:${opened.dev}:${opened.ino}:${opened.size}:${opened.mtimeNs}`;
+    if (!cache.has(key)) {
+      const bytes = await handle.readFile();
+      const afterRead = await handle.stat({ bigint: true });
+      if (!sameFile(opened, afterRead) || opened.size !== afterRead.size || opened.mtimeNs !== afterRead.mtimeNs) throw new Error('Documentation asset changed while reading.');
+      cache.set(key, bytes);
+    }
+    return { filename: selected.filename, bytes: cache.get(key) };
+  } finally { await handle.close(); }
+}
+
 async function htmlFiles(directory) {
   const files = [];
   for (const entry of await readdir(directory, { withFileTypes: true })) {
@@ -50,7 +102,7 @@ function browserEnvironment(fixture, executable) {
   return env;
 }
 
-async function serve(exports) {
+export async function serve(exports) {
   const cache = new Map();
   const server = http.createServer(async (request, response) => {
     try {
@@ -58,14 +110,72 @@ async function serve(exports) {
       const [, mount, ...segments] = decodeURIComponent(url.pathname).split('/');
       const directory = exports[mount];
       if (!directory) { response.writeHead(404).end(); return; }
-      let filename = boundedPath(directory, segments.join('/'));
-      if ((await stat(filename)).isDirectory()) filename = path.join(filename, 'index.html');
-      if (!cache.has(filename)) cache.set(filename, await readFile(filename));
-      response.writeHead(200, { 'Content-Type': mime[path.extname(filename)] || 'application/octet-stream', 'Cache-Control': 'no-cache' }).end(cache.get(filename));
+      const { filename, bytes } = await readExportAsset(directory, segments.join('/'), cache);
+      response.writeHead(200, { 'Content-Type': mime[path.extname(filename)] || 'application/octet-stream', 'Cache-Control': 'no-cache' }).end(bytes);
     } catch { response.writeHead(404).end(); }
   });
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
-  return { server, origin: `http://127.0.0.1:${server.address().port}` };
+  return { server, origin: `http://127.0.0.1:${server.address().port}`, cache };
+}
+
+export function sanitizedRequestURL(value) {
+  try { const url = new URL(value); url.username = ''; url.password = ''; url.search = ''; url.hash = ''; return url.href; }
+  catch { return 'Unparseable blocked URL'; }
+}
+
+export async function configureBrowserNetwork(context, { origin, out, offline, externalRequests, webSocketAttempts }) {
+  // HTTP routing does not intercept WebSocket upgrades. Documentation uses no
+  // owned WebSocket protocol, including on loopback: never connect to a server.
+  await context.routeWebSocket('**/*', async socket => {
+    webSocketAttempts.push(sanitizedRequestURL(socket.url()));
+    await socket.close({ code: 1008, reason: 'Documentation verification does not permit WebSockets.' });
+  });
+  await context.route('**/*', route => {
+    const url = route.request().url();
+    if (url.startsWith(origin + '/') || url.startsWith('data:') || url.startsWith('blob:') || [out, offline].some(directory => url.startsWith(pathToFileURL(directory + path.sep).href))) return route.continue();
+    externalRequests.push(sanitizedRequestURL(url));
+    return route.abort();
+  });
+}
+
+async function verifyWebSocketIsolation(browser, contexts, network, deadline) {
+  const result = { attempts: [], connections: 0, upgrades: 0, received_bytes: 0, passed: false };
+  const sockets = new Set();
+  const server = http.createServer((_, response) => response.writeHead(404).end());
+  server.on('connection', socket => {
+    result.connections += 1; sockets.add(socket);
+    socket.on('data', bytes => { result.received_bytes += bytes.length; });
+    socket.once('close', () => sockets.delete(socket));
+  });
+  server.on('upgrade', (request, socket) => {
+    result.upgrades += 1;
+    const accept = createHash('sha1').update(request.headers['sec-websocket-key'] + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
+    socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
+  });
+  let context;
+  try {
+    await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
+    context = await browser.newContext({ serviceWorkers: 'block' }); contexts.push(context);
+    await configureBrowserNetwork(context, { ...network, externalRequests: [], webSocketAttempts: result.attempts });
+    const page = await context.newPage();
+    const url = `ws://127.0.0.1:${server.address().port}/owned-isolation-probe?credential=fixture-only`;
+    result.browser = await bounded('owned WebSocket isolation probe', () => page.evaluate(url => new Promise(resolve => {
+      const socket = new WebSocket(url);
+      const timer = setTimeout(() => { socket.close(); resolve({ closed: false }); }, 1500);
+      socket.onopen = () => socket.send('owned-isolation-probe');
+      socket.onclose = event => { clearTimeout(timer); resolve({ closed: true, code: event.code }); };
+      socket.onerror = () => {}; // The explicit close result is checked below.
+    }), url), Math.min(5000, deadline - Date.now()));
+    await bounded('owned WebSocket probe completion', () => context.close(), Math.min(8000, deadline - Date.now()));
+    assert(result.attempts.length === 1 && result.attempts[0] === sanitizedRequestURL(url) && result.browser.closed && result.browser.code === 1008, 'WebSocket isolation probe must record and close its attempted connection.');
+    assert(result.connections === 0 && result.upgrades === 0 && result.received_bytes === 0, 'WebSocket isolation probe reached its owned loopback server.');
+    result.passed = true;
+    return result;
+  } finally {
+    if (context) await bounded('owned WebSocket probe context cleanup', () => context.close(), 8000);
+    for (const socket of sockets) socket.destroy();
+    await new Promise(resolve => server.close(resolve));
+  }
 }
 
 function assert(condition, message) { if (!condition) throw new Error(message); }
@@ -160,7 +270,7 @@ export async function checkDocumentationUI(options = parseOptions([])) {
   const started = Date.now();
   const deadline = started + 180000;
   const navigate = (page, url, settings) => ready(page, url, deadline, settings);
-  const report = { kind: 'documentation-ui-verification', qualification_limit_seconds: 180, viewport_widths: [320, 360, 390, 768, 1440], themes: ['light', 'dark'], browser: null, isolated_profile: true, public_pages: 0, offline_pages: 0, cases: [], readability: [], screenshots: [], external_requests: [], browser_errors: [], cleanup: {}, limitations: ['Automated Chromium checks and captured visual inspection do not certify screen-reader behavior, other browser engines, every assistive technology, or complete WCAG conformance. Contrast checks sample body, link, muted, navigation, syntax and diagram-label text on computed solid surfaces; arbitrary raster-image text and gradients are not certified.'] };
+  const report = { kind: 'documentation-ui-verification', qualification_limit_seconds: 180, viewport_widths: [320, 360, 390, 768, 1440], themes: ['light', 'dark'], browser: null, isolated_profile: true, public_pages: 0, offline_pages: 0, cases: [], readability: [], screenshots: [], external_requests: [], external_websockets: [], browser_errors: [], cleanup: {}, limitations: ['Automated Chromium checks and captured visual inspection do not certify screen-reader behavior, other browser engines, every assistive technology, or complete WCAG conformance. Contrast checks sample body, link, muted, navigation, syntax and diagram-label text on computed solid surfaces; arbitrary raster-image text and gradients are not certified.'] };
   await mkdir(options.output, { recursive: true });
   const fixtureBase = os.platform() === 'win32' ? path.parse(os.tmpdir()).root : os.tmpdir();
   const fixture = await mkdtemp(path.join(fixtureBase, 'insonic-docs-ui-'));
@@ -189,16 +299,14 @@ export async function checkDocumentationUI(options = parseOptions([])) {
     contexts.push(context);
     const browser = context.browser();
     report.browser = browser.version();
+    const network = { origin: report.origin, out: options.out, offline: options.offline };
     const configure = async current => {
-      await current.route('**/*', route => {
-        const url = route.request().url();
-        if (url.startsWith(report.origin + '/') || url.startsWith('data:') || url.startsWith('blob:') || [options.out, options.offline].some(directory => url.startsWith(pathToFileURL(directory + path.sep).href))) return route.continue();
-        report.external_requests.push(url.replace(/[?#].*$/, ''));
-        return route.abort();
-      });
+      await configureBrowserNetwork(current, { ...network, externalRequests: report.external_requests, webSocketAttempts: report.external_websockets });
       current.on('page', page => page.on('pageerror', error => report.browser_errors.push(error.message)));
     };
     await configure(context);
+    report.websocket_isolation_probe = await verifyWebSocketIsolation(browser, contexts, network, deadline);
+    report.cases.push({ name: 'Owned loopback WebSocket probe is recorded and blocked before any server connection, upgrade or traffic', passed: true });
     const page = await context.newPage();
     const urlFor = (filename, directory, mount) => `${report.origin}/${mount}/${path.relative(directory, filename).split(path.sep).join('/')}`;
     for (const [mount, directory, files] of [['public', options.out, publicFiles], ['offline', options.offline, offlineFiles]]) {
@@ -303,7 +411,7 @@ export async function checkDocumentationUI(options = parseOptions([])) {
     assertPage(await inspectPage(page), 'Forced colors and reduced motion');
     report.cases.push({ name: 'Forced colors and reduced motion retain reachable navigation', passed: true });
     assert(!deadlineExpired && Date.now() <= deadline, 'Documentation browser qualification exceeded its180second limit.');
-    assert(report.external_requests.length === 0 && report.browser_errors.length === 0, `Browser errors or external asset requests: ${JSON.stringify({ requests: report.external_requests, errors: report.browser_errors })}`);
+    assert(report.external_requests.length === 0 && report.external_websockets.length === 0 && report.browser_errors.length === 0, `Browser errors or external asset requests: ${JSON.stringify({ requests: report.external_requests, websockets: report.external_websockets, errors: report.browser_errors })}`);
   } catch (error) { failure = error; report.failure = error.message; }
   finally {
     clearTimeout(qualificationGuard);
