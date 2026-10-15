@@ -61,6 +61,7 @@ Maintainers get proportionate complete checks within the existing CI turnaround 
 - Download responses redirect, time out or disagree with release metadata; live bytes become stale mid-verification.
 - Browser verification fails after deployment; screenshots, failure evidence and owned-resource cleanup still complete.
 - Windows maintenance helpers run without visible consoles or interaction with personal browser profiles.
+- An unrelated native qualification reaches UI completion but remains alive during cleanup; retain checks and diagnose the blocking exit before claiming CI reliability.
 
 ## Requirements
 

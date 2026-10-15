@@ -43,3 +43,7 @@ T001–T002 block source edits. Tests precede each behavior group. US2 uses US1 
 ## Phase 6: Convergence
 
 - [x] T014 Complete bounded owned-browser termination in scripts/check-live-site-ui.mjs per FR-008 and SC-005 (partial). Convergence inspected 12 FRs, five success criteria, nine acceptance scenarios, seven architecture decisions and all applicable constitution constraints. One partial/high finding; no missing, contradicting or unrequested work. Hosted evidence remains T012, delivery remains T013.
+
+## Phase 7: Hosted qualification recovery
+
+- [ ] T015 Trace and repair the relocated Windows WebView process that emits its result but remains alive at the unchanged 90-second watchdog per FR-011/SC-004/SC-005. Emit qualification success only after cleanup, retain bounded shutdown diagnostics, and rerun complete hosted qualification without weakening native/installer assertions.

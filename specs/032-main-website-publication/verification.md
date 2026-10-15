@@ -19,3 +19,7 @@ Full final-head native/package/renderer CI, complete timing below 660 seconds, o
 ## Hosted first pass
 
 PR #108 opened at 311528c. Initial read-only smoke verified complete deployed bytes and all five package responses, then rejected hydrated /docs/latest/ because the initial browser assertion accepted only the exported index.html spelling. Both paths select the same page. The checker now fetches and digest-checks the actual directory alias before accepting it; no layout or content check was removed. A deterministic single theme initializer replaces repeated init-script registration. Duplicate native work from the superseded smoke was cancelled; explicit maintenance smoke now leaves full qualification to the independent PR run while retaining foundation/docs.
+
+## Hosted Windows qualification recovery
+
+Run 38764795007 passed every elected lane except relocated Windows Desktop ZIP qualification. The owned timeout receipt records poll_before_kill null and cleanup_timeout false: the executable was still alive, not merely a pipe inherited by another process. It had emitted the WebView success JSON before deferred cleanup. Targeted fixture-only shutdown checkpoints and a pre-watchdog goroutine dump distinguish runtime cancellation, fixture removal, playback closure and native process exit. Success receipt emission now follows all cleanup. The 90-second process deadline and all native/MSI checks remain intact. No third review round is requested.
