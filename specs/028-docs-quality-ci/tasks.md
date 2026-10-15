@@ -59,7 +59,7 @@
 - [x] T022 Integrate all stories, update CHANGELOG.md and specs/028-docs-quality-ci/ evidence chronologically, inspect encoding/LF/brand-byte integrity and run npm run check, npm test plus affected site/product/Python/catalog checks from quickstart.md.
 - [x] T023 Commit source implementation, build exact clean-source application capture inputs through hidden launchers and refresh affected governed application screenshots/receipts through scripts/capture-application-ui.mjs using only a fresh owned headless browser context; verify public/offline asset integrity and retain candidate version 1.0.1.
 - [x] T024 Run Spec Kit convergence, document its result in convergence.md, complete tasks only with evidence, commit final artifacts, push codex/028-docs-quality-ci and open/attach the official PR closing #93–#96 with milestone 12 and Project In review.
-- [ ] T025 Inspect all automatic first-round reviews/reactions, answer every comment and resolve each actionable thread with verified changes; optionally request exactly one second review round, never a third, recording rounds and final head in verification.md.
+- [x] T025 Inspect all automatic first-round reviews/reactions, answer every comment and resolve each actionable thread with verified changes; optionally request exactly one second review round, never a third, recording rounds and final head in verification.md.
 - [ ] T026 Verify elected CI checks green on the exact final PR head and elapsed turnaround against 660 seconds, verify all review threads satisfied, and ping the owner for final review/merge. Keep #97 after merge and perform no merge/tag/release/site publication.
 
 ## Dependencies and parallel execution
@@ -69,3 +69,7 @@ T001–T003 establish the implementation gate. T004 can follow that gate indepen
 ## Implementation strategy and boundaries
 
 All four stories are required for completion. No partial MVP is declared delivered. Changes to frozen historical source, governed kit bytes, production lease TTL policy or unrelated operation timeouts are excluded. Use hidden noninteractive tooling, direct Git/GitHub commands and exact owned-process cleanup. Every review comment receives an appropriate response, even where no code change is warranted. The owner performs final merge; release publication is #97 afterward.
+
+## Publication snapshot and final acceptance
+
+This committed checklist is the pre-CI source snapshot. T026 is evaluated after this commit and its final exact head, run, elapsed time and completion are recorded on official PR #98, the primary delivery record. Do not infer final CI success from a source checkbox, or treat this historical snapshot as a new unfinished product change after the PR records completion. Both authorized review rounds are complete; both findings have been fixed, answered and resolved. No third review request is permitted.
