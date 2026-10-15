@@ -11,6 +11,7 @@ on:
         default: false
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -208,11 +209,11 @@ jobs:
       - scope
       - foundation
       - docs-build
-      - media-windows
-    if: always() && needs.foundation.result == 'success' && needs.docs-build.result == 'success' && needs.scope.outputs.native == 'true' && needs.media-windows.result == 'success'
+    if: always() && needs.foundation.result == 'success' && needs.docs-build.result == 'success' && needs.scope.outputs.native == 'true'
     uses: ./.github/workflows/native-qualification.yml
     with:
       reuse-ci-offline-help: true
+      overlap-source-setup: true
       revision: ${{ github.sha }}
       os: windows-2022
       core: true
@@ -225,7 +226,8 @@ jobs:
       - docs
       - package-linux
       - package-windows
-    if: always() && needs.foundation.result == 'success' && needs.docs.result == 'success' && needs.package-linux.result == 'success' && needs.package-windows.result == 'success'
+      - media-windows
+    if: always() && needs.foundation.result == 'success' && needs.docs.result == 'success' && needs.package-linux.result == 'success' && needs.package-windows.result == 'success' && needs.media-windows.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 11
     permissions:

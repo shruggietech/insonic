@@ -46,8 +46,12 @@ T001–T002 block source edits. Tests precede each behavior group. US2 uses US1 
 
 ## Phase 7: Hosted qualification recovery
 
-- [ ] T015 Trace and repair the relocated Windows WebView timeout at the unchanged 90-second watchdog per FR-011/SC-004/SC-005. Emit qualification success only after cleanup, retain bounded shutdown diagnostics, and rerun complete hosted qualification without weakening native/installer assertions.
+- [x] T015 Trace and repair the relocated Windows WebView timeout at the unchanged 90-second watchdog per FR-011/SC-004/SC-005. Emit qualification success only after cleanup, retain bounded shutdown diagnostics, and rerun complete hosted qualification without weakening native/installer assertions.
 
 ## Phase 8: Frozen capture provenance
 
-- [ ] T016 Verify versioned documentation screenshot sources against their exact recorded ancestral capture revision in site/lib/screenshots.mjs, with full-history producer checkouts and tamper/version/ancestry regressions in site/tests/screenshots.test.mjs per FR-004/FR-010/FR-011 (partial). Keep PNGs/receipts unchanged and current native UI capture mandatory.
+- [x] T016 Verify versioned documentation screenshot sources against their exact recorded ancestral capture revision in site/lib/screenshots.mjs, with full-history producer checkouts and tamper/version/ancestry regressions in site/tests/screenshots.test.mjs per FR-004/FR-010/FR-011 (partial). Keep PNGs/receipts unchanged and current native UI capture mandatory.
+
+## Phase 9: Measured hosted scheduling and capture startup
+
+- [ ] T017 Overlap independent Windows package setup with its source producer using a bounded same-run/attempt artifact wait; retain digest/source validation and require the producer at candidate aggregation per FR-008/FR-011/SC-004 (partial). Record one retry only for the observed restricted-session initialization timeout, preserving all native capture assertions and worker deadlines.

@@ -25,6 +25,7 @@ on:
         type: string
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: release-${{ inputs.revision }}
   cancel-in-progress: false

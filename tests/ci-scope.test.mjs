@@ -209,3 +209,19 @@ test('same-run export reuse never removes later qualification gates or release b
  for(const job of [native.jobs.runtime_checks,native.jobs.packages]){assert.ok(job.steps.some(s=>s.run?.includes('site-transfer.py restore')));assert.ok(job.steps.some(s=>s.run==='npm --prefix site run build'&&s.if.includes('!inputs.reuse-ci-offline-help')));}
  assert.ok(ci.jobs.candidate.needs.includes('foundation'));assert.ok(ci.jobs.candidate.needs.includes('docs'));
 });
+
+test('Windows package setup overlaps source work but publication still requires its producer', () => {
+ const ci=parse(readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8'));
+ const native=parse(readFileSync(new URL('../.github/workflows/native-qualification.yml',import.meta.url),'utf8'));
+ assert.ok(!ci.jobs['package-windows'].needs.includes('media-windows'));
+ assert.equal(ci.jobs['package-windows'].with['overlap-source-setup'],true);
+ assert.equal(native.on.workflow_call.inputs['overlap-source-setup'].default,false);
+ const steps=native.jobs.packages.steps;
+ const wait=steps.findIndex(s=>s.run?.includes('wait-ci-artifact.mjs'));
+ const download=steps.findIndex(s=>s.with?.name==='media-source-${{ inputs.os }}-${{ github.run_attempt }}');
+ const verify=steps.findIndex(s=>s.run?.includes('media-transfer.py restore'));
+ assert.ok(wait>steps.findIndex(s=>s.uses==='./build/actions/setup-go')&&download>wait&&verify>download);
+ assert.equal(steps[download].with['digest-mismatch'],'error');
+ assert.ok(ci.jobs.candidate.needs.includes('media-windows'));
+ assert.ok(ci.jobs.candidate.if.includes("needs.media-windows.result == 'success'"));
+});

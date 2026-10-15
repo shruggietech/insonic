@@ -15,7 +15,7 @@ test('PR candidate collection uses complete independent package lanes with no pu
   assert.equal(candidate.permissions.contents, 'read');
   assert.equal(candidate.environment, undefined);
   assert.equal(candidate.env.SOURCE_REVISION, '${{ github.sha }}');
-  assert.deepEqual(candidate.needs, ['foundation', 'docs', 'package-linux', 'package-windows']);
+  assert.deepEqual(candidate.needs, ['foundation', 'docs', 'package-linux', 'package-windows', 'media-windows']);
   assert.ok(!JSON.stringify(candidate).includes('secrets.'));
   assert.ok(!JSON.stringify(candidate).includes('scripts/release.py publish'));
   assert.equal(candidate.steps[0].with['persist-credentials'], false);
@@ -28,7 +28,7 @@ test('PR candidate collection uses complete independent package lanes with no pu
     assert.equal(runtime.with.lane, 'runtime');
     assert.equal(packages.with.lane, 'packages');
     assert.equal(packages.with.revision, '${{ github.sha }}');
-    assert.deepEqual(packages.needs, runtime.needs);
+    assert.deepEqual(packages.needs, platform === 'windows' ? runtime.needs.filter(name => name !== 'media-windows') : runtime.needs);
   }
   const assets = native.jobs.packages.steps.find(step => step.with?.name?.startsWith('candidate-package-'));
   assert.ok(assets.if.includes('success()'));

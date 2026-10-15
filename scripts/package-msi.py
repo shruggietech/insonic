@@ -54,7 +54,15 @@ def run_gates(output,receipt,stage):
     if stage=='provisional':receipt.update({'publication_eligible':False,'payload_qualification':'pending'});write(receipt)
     if stage in ('capture','all','provisional'):
         try:
-            load('capture_installer_ui','capture-installer-ui.py').capture(output,receipt)
+            capture=load('capture_installer_ui','capture-installer-ui.py').capture
+            try:capture(output,receipt)
+            except RuntimeError as error:
+                # A cold native session can miss its intermediate startup bound.
+                # The worker has exited; retry the complete unchanged capture
+                # exactly once in fresh owned workers. Never retry assertions.
+                if str(error).strip()!='native authored capture failed: native session initialization exceeded its bound':raise
+                receipt.setdefault('qualification_retries',{})['native_ui_capture']={'attempts':2,'first_failure':'restricted-session-initialization-timeout'}
+                write(receipt);capture(output,receipt)
             receipt['qualification']['native_ui_capture']='passed'
         except Exception as error:
             receipt['qualification']['native_ui_capture']='failed';failures['native_ui_capture']=str(error)[-4000:]

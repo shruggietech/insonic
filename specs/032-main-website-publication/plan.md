@@ -45,6 +45,10 @@ After design: PASS. Credentials separated from read-only build/verification; sit
 - cmd/insonic-desktop/main.go: qualification success follows cleanup.
 - specs/032-main-website-publication/: design, tasks and exact evidence.
 
+## Measured scheduling refinement
+
+Windows package consumers prepare their toolchains while the independent same-run source producer runs. A bounded read-only artifact inventory wait precedes the existing digest-checked download and full restore verification. Candidate aggregation still requires producer success. Release scheduling remains sequential by default. A single retry of the exact native restricted-session initialization timeout preserves capture assertions and existing worker deadlines; both attempts must otherwise satisfy the complete current capture.
+
 ## Delivery
 
 Write failing tests before behavior. Run root/affected checks and converge, then push official PR. Resolve at most two actual external review rounds; inspect every thread and final exact-head CI. Measure complete CI rather than accepting projections. Read-only hosted smoke proves live S031 without deploying unmerged code. Stop for owner final merge review.
