@@ -29,6 +29,34 @@ func TestInvocationPreservesLiteralAndAtomicValues(t *testing.T) {
 	}
 }
 
+func TestTranscriptInvocationRequiresTargetOnlyForSingleInput(t *testing.T) {
+	valid := [][]string{
+		{"transcript", "import", "--manifest", "captions.json"},
+		{"transcript", "import", "caption.srt", "--record", "Recording title"},
+		{"transcript", "import", "--record", "Recording title", "--legacy-sidecar"},
+	}
+	for _, args := range valid {
+		if _, err := parseInvocation(args); err != nil {
+			t.Fatalf("valid invocation %q: %v", args, err)
+		}
+	}
+	for _, args := range [][]string{
+		{"transcript", "import", "caption.srt"},
+		{"transcript", "import"},
+		{"transcript", "import", "--manifest", "captions.json", "--record", "Recording title"},
+		{"transcript", "import", "caption.srt", "--manifest", "captions.json"},
+		{"transcript", "import", "--manifest", "captions.json", "--legacy-sidecar"},
+	} {
+		if _, err := parseInvocation(args); err == nil {
+			t.Fatalf("invalid invocation accepted: %q", args)
+		}
+	}
+	help := commandHelp([]string{"transcript", "import"})
+	if !strings.Contains(help, "--manifest") || !strings.Contains(help, "per-item") {
+		t.Fatal("manifest target workflow missing from help")
+	}
+}
+
 func TestInvocationMachineErrorsIndependentOfOrder(t *testing.T) {
 	for _, args := range [][]string{{"--request-id", "bad", "--json", "doctor"}, {"--json", "--request-id", "bad", "doctor"}, {"unknown", "--json"}, {"doctor", "--unknown", "--json"}} {
 		got, e := parseInvocation(args)

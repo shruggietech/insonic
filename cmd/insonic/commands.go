@@ -187,7 +187,7 @@ var commandDefinitions = func() []commandDefinition {
 	dates := "--originated-at --originated-on --originated-earliest --originated-latest --timezone --dst-fold --dst-gap --date-precedence"
 	transcript := "--record --legacy-sidecar --replace-transcript --attribution --transcript-format --transcript-credential-id --transcript-adapter --transcript-max-bytes --transcript-timeout-ms --subtitle-stream-index --subtitle-language --diarization-model-id --local-http --manifest"
 	add("media import", "[FILES...] or --manifest FILE", 0, 10000, dates+" "+transcript+" --copy --reference --transcript --subtitle --title --credential-id --acquisition-adapter --acquisition-max-bytes --acquisition-timeout-ms --new-entry --preset --pipeline-id --no-pipeline --destination-profile --known-speaker --replace-audio --existing-transcript --transcript-applies --existing-roster", "")
-	add("transcript import", "[PATH_OR_URL] --record UUID_OR_TITLE", 0, 1, transcript, "--record")
+	add("transcript import", "[PATH_OR_URL --record UUID_OR_TITLE] or --manifest FILE", 0, 1, transcript, "")
 	for _, a := range strings.Fields("list show metadata raw refresh set-origin relocate capture playback playback-check playback-close") {
 		n, max, operand, opts, required := 1, 1, "MEDIA_UUID", "", ""
 		switch a {
@@ -563,6 +563,15 @@ func parseInvocation(args []string) (invocation, error) {
 	if strings.Join(out.Path, " ") == "media import" && len(operands) == 0 && seen["--manifest"] == 0 {
 		return out, argumentError("media import requires files or --manifest FILE.")
 	}
+	if strings.Join(out.Path, " ") == "transcript import" {
+		if seen["--manifest"] > 0 {
+			if len(operands) != 0 || seen["--record"] > 0 || seen["--legacy-sidecar"] > 0 {
+				return out, argumentError("--manifest uses per-item recording targets and cannot be combined with a positional transcript, --record or --legacy-sidecar.")
+			}
+		} else if seen["--record"] == 0 || seen["--legacy-sidecar"] == 0 && len(operands) != 1 || seen["--legacy-sidecar"] > 0 && len(operands) != 0 {
+			return out, argumentError("A single transcript requires PATH_OR_URL and --record UUID_OR_TITLE; --legacy-sidecar uses --record without a path. Use --manifest FILE for per-item targets.")
+		}
+	}
 	out.Args = append([]string{}, selected.Path...)
 	domain := out.Path[0] == "media" && len(out.Path) > 1 && !containsOption([]string{"tools", "capture", "playback", "playback-check", "playback-close"}, out.Path[1]) || out.Path[0] == "transcript" || out.Path[0] == "work" && out.Path[1] != "wait" || out.Path[0] == "models" && (len(out.Path) == 2 && out.Path[1] != "resolve" && out.Path[1] != "discover" && out.Path[1] != "train" && seen["--speaker"] == 0 || len(out.Path) > 2 && out.Path[1] == "base")
 	if domain {
@@ -649,6 +658,7 @@ func commandHelp(path []string) string {
 			}
 			if p == "transcript import" {
 				operation = "media.import"
+				b.WriteString("Single transcript: PATH_OR_URL --record UUID_OR_TITLE. Batch: --manifest FILE uses per-item recording targets without --record, a positional path or --legacy-sidecar.\n")
 			}
 			if containsOption(c.Options, "--input") {
 				template, schema := schemas.InputHelp(operation)
@@ -662,6 +672,9 @@ func commandHelp(path []string) string {
 			b.WriteString("Diagnostic controls: --verbose adds request/workspace identifiers; --debug adds generated progress detail; --quiet suppresses informational human output and progress. Warnings/errors remain visible. --log-level error|warn|info|debug selects diagnostic severity (default info, debug with --debug). --log-file FILE elects private rotating JSONL logs (1 MiB plus two predecessors); its directory must exist. No arguments, input documents, credentials, endpoints or environment values are logged. These controls do not change --json result envelopes.\n")
 			b.WriteString("Global options may precede or follow command options. Scalar options appear once; value options accept --name=value. -- ends option and help recognition. Machine success uses stdout; machine failure uses stderr.\n")
 			example := c.Operands
+			if p == "transcript import" {
+				example = "--manifest transcripts.json"
+			}
 			for _, key := range c.Required {
 				value := "input.json"
 				if key == "--revision" || key == "--expected-revision" {

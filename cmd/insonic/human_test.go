@@ -16,6 +16,16 @@ func TestHumanOutputIsReadableAndExact(t *testing.T) {
 		t.Fatal(out.String(), err.String())
 	}
 }
+
+func TestHumanTranscriptCorrectionPreservesLiteralFlags(t *testing.T) {
+	var out, stderr bytes.Buffer
+	notice := "Transcript input exceeded its elected byte limit. Increase --transcript-max-bytes (manifest transcript_max_bytes), then retry this work."
+	result := map[string]any{"result": map[string]any{"items": []any{map[string]any{"state": "failed", "error": "input_limit", "notices": []any{notice}}}}}
+	outputTo(result, contracts.Fail("input_limit"), false, contracts.Response{}, &out, &stderr)
+	if out.Len() != 0 || !strings.Contains(stderr.String(), notice) {
+		t.Fatal("actionable transcript notice changed", out.String(), stderr.String())
+	}
+}
 func TestHumanDocumentDoesNotDumpBase64(t *testing.T) {
 	previous := operatorContext
 	defer func() { operatorContext = previous }()

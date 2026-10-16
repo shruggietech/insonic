@@ -266,7 +266,11 @@ func humanWarnings(b *humanBuffer, v any, depth int) {
 				if i >= 16 {
 					break
 				}
-				b.line("Warning: %s", humanLabel(humanValue(n)))
+				notice := humanValue(n)
+				if !strings.Contains(notice, " ") {
+					notice = humanLabel(notice)
+				}
+				b.line("Warning: %s", notice)
 			}
 		}
 		if x["partial"] == true {

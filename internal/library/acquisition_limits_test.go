@@ -74,8 +74,8 @@ func TestAcquisitionDeclaredAndUnknownByteLimits(t *testing.T) {
 						t.Fatal("at-limit bytes lost")
 					}
 				} else {
-					if code(e) != "output_limit" {
-						t.Fatalf("over-limit response accepted: %v", e)
+					if code(e) != "input_limit" {
+						t.Fatalf("over-limit response lost its input-limit cause: %v", e)
 					}
 					if _, e = os.Stat(destination); !os.IsNotExist(e) {
 						t.Fatal("over-limit scratch retained")

@@ -108,6 +108,7 @@ func TestFullLibraryBackendParity(t *testing.T) {
 		for _, storage := range []string{"filesystem", "s3"} {
 			t.Run(backend+"/"+storage, func(t *testing.T) {
 				s := backendLibrary(t, backend, storage)
+				t.Run("leased-report-refresh", func(t *testing.T) { refreshLeaseSuite(t, backendLibrary(t, backend, storage), false) })
 				ctx := context.Background()
 				source := wavFixture(t)
 				transcript, _ := transcriptFixture(t)

@@ -4,6 +4,7 @@ package catalog
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"path/filepath"
 	"strings"
@@ -57,8 +58,8 @@ func artifactAuthoritySuite(t *testing.T, s *Store, newStore func(string) *Store
 	if e != nil {
 		t.Fatal(e)
 	}
-	if _, e = s.ClaimRetirement(ctx, p.ID, contracts.ID(), 0, time.Second); e == nil {
-		t.Fatal("retired live materialization")
+	if _, e = s.ClaimRetirement(ctx, p.ID, contracts.ID(), 0, time.Second); !errors.Is(e, ErrRetirementDeferred) || contracts.SafeError(e).Code != "conflict" {
+		t.Fatal("live materialization did not defer retirement with a public conflict", e)
 	}
 	_, e = s.ArtifactLease(ctx, p.ID, lease.ID, lease.Owner, 0, true)
 	if e != nil {
@@ -68,8 +69,8 @@ func artifactAuthoritySuite(t *testing.T, s *Store, newStore func(string) *Store
 	if e = s.ArtifactReference(ctx, p.ID, ref, false); e != nil {
 		t.Fatal(e)
 	}
-	if _, e = s.ClaimRetirement(ctx, p.ID, contracts.ID(), 0, time.Second); e == nil {
-		t.Fatal("retired retained artifact")
+	if _, e = s.ClaimRetirement(ctx, p.ID, contracts.ID(), 0, time.Second); !errors.Is(e, ErrRetirementDeferred) || contracts.SafeError(e).Code != "conflict" {
+		t.Fatal("retained artifact did not defer retirement with a public conflict", e)
 	}
 	if e = s.ArtifactReference(ctx, p.ID, ref, true); e != nil {
 		t.Fatal(e)

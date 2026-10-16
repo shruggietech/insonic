@@ -220,7 +220,7 @@ func TestNativeCanonicalGroupedSelectedPlayback(t *testing.T) {
 			t.Fatal(index, response.Error)
 		}
 		descriptor := response.Result.(PlaybackDescriptor)
-		if descriptor.StreamIndex == nil || *descriptor.StreamIndex != index || !descriptor.Preview || math.Abs(descriptor.TimelineOffsetSeconds-want) > 0.000001 {
+		if descriptor.StreamIndex == nil || *descriptor.StreamIndex != index || !descriptor.Preview || descriptor.MIME != "audio/wav" || math.Abs(descriptor.TimelineOffsetSeconds-want) > 0.000001 {
 			t.Fatal("selected track clock", descriptor)
 		}
 		preview, err := probePlayback(ctx, tools.FFprobe, descriptor.Path)

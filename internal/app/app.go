@@ -3,6 +3,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"github.com/shruggietech/insonic/internal/artifact"
 	"github.com/shruggietech/insonic/internal/assistance"
 	"github.com/shruggietech/insonic/internal/catalog"
@@ -433,7 +434,8 @@ func (a *App) DispatchContext(ctx context.Context, req contracts.Request) contra
 	}
 	response.Result = result
 	if err != nil {
-		if typed, ok := err.(*contracts.Error); ok {
+		var typed *contracts.Error
+		if errors.As(err, &typed) {
 			response.Error = typed
 		} else {
 			response.Error = contracts.Fail("operation_failed")

@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"math"
 	"reflect"
@@ -14,6 +15,10 @@ import (
 
 const artifactDDL = `CREATE TABLE IF NOT EXISTS artifact_publication (workspace_id TEXT NOT NULL, id TEXT NOT NULL, artifact_id TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(workspace_id,id), FOREIGN KEY(workspace_id) REFERENCES workspace(id))`
 const artifactIndexDDL = `CREATE INDEX IF NOT EXISTS artifact_publication_content ON artifact_publication(workspace_id,artifact_id)`
+
+// ErrRetirementDeferred marks retention or another live retirement claim, while
+// preserving the public conflict code. Other publication conflicts are errors.
+var ErrRetirementDeferred = errors.New("artifact retirement is deferred")
 
 // Publication separates operational availability from immutable location evidence.
 // Paths and credential values never belong in this portable journal.
@@ -496,6 +501,7 @@ func (s *Store) structuralReferences(ctx context.Context, tx *sql.Tx, artifact s
 }
 func (s *Store) ClaimRetirement(ctx context.Context, id, owner string, grace, ttl time.Duration) (Publication, error) {
 	var out Publication
+	deferred := false
 	if !contracts.ValidID(owner) || grace < 0 || !validTTL(ttl) {
 		return out, contracts.Fail("invalid_request")
 	}
@@ -513,16 +519,19 @@ func (s *Store) ClaimRetirement(ctx context.Context, id, owner string, grace, tt
 			return nil
 		}
 		if p.State == "retiring" && p.LeaseUntil > now && p.Owner != owner {
+			deferred = true
 			return contracts.Fail("conflict")
 		}
 		if p.State != "available" && p.State != "missing" && p.State != "retiring" {
 			return contracts.Fail("conflict")
 		}
 		if now-p.AvailableAt < int64(grace) || len(p.References) > 0 {
+			deferred = true
 			return contracts.Fail("conflict")
 		}
 		for _, l := range p.Leases {
 			if l.Until > now {
+				deferred = true
 				return contracts.Fail("conflict")
 			}
 		}
@@ -530,7 +539,11 @@ func (s *Store) ClaimRetirement(ctx context.Context, id, owner string, grace, tt
 		if e != nil {
 			return e
 		}
-		if retained || p.Generation == math.MaxInt64 {
+		if retained {
+			deferred = true
+			return contracts.Fail("conflict")
+		}
+		if p.Generation == math.MaxInt64 {
 			return contracts.Fail("conflict")
 		}
 		p.Owner = owner
@@ -542,6 +555,12 @@ func (s *Store) ClaimRetirement(ctx context.Context, id, owner string, grace, tt
 		out = p
 		return e
 	})
+	// write sanitizes error wrappers, so attach only this locally proven marker
+	// after the transaction has returned its expected conflict.
+	var typed *contracts.Error
+	if deferred && errors.As(e, &typed) && typed.Code == "conflict" {
+		return out, errors.Join(e, ErrRetirementDeferred)
+	}
 	return out, e
 }
 func (s *Store) FinishRetirement(ctx context.Context, p Publication) (Publication, error) {

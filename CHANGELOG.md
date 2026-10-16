@@ -12,6 +12,10 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Metadata refresh succeeds after acceptance when readers retain old report leases. Durable cleanup remains pending until retention clears; genuine cleanup failures take precedence and accepted retries retain their selected revision.
+- Playback MIME identifies canonical audio or preview bytes while preserving original-source observations. Embedded SubRip extraction uses the encoder present in the exact packaged FFmpeg build.
+- Manifest-only transcript import uses per-item recording targets. HTTP transcript deadlines, byte ceilings and cancellation retain distinct durable causes, with literal corrective flags in human and JSON item notices.
+
 - Native query and explain RPCs use one bounded 25-second budget around projection publication and the engine's query deadline. Socket and caller deadlines report cancellation instead of malformed input.
 
 - Catalog-only media views and cleanup no longer rediscover and hash installed executable companions. Import and processing tool-use validation remains fresh; native WebView qualification emits success after cleanup.
@@ -36,6 +40,7 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-15: Repair the failed main-branch Windows package qualification in its UI driver after verifying the pinned loader clears browser environment overrides. Preserve foreground-free execution, ordinary application browser policy, all package/installer acceptance and the 660-second CI budget; do not turn a failed run green by skipping or extending its checks.
 - 2026-10-15: Move only Go/Node action acquisition out of runner preparation into a three-attempt, 60-second digest-locked bootstrap. Preserve upstream action/cache execution and exact historical-source qualification. Verify live documentation after exact Pages promotion using original published bytes; report public binary metadata proof separately from downloaded documentation content proof.
 - 2026-10-15: Verify landing choices in both publication states from the same product component, retaining candidate truth and all five official package destinations. Extend the isolated hosted-Linux browser verifier for full-page captures, target geometry, reflow and intercepted native link activation; do not launch an owner-desktop browser or claim these checks certify assistive technology.
+- 2026-10-15: Reuse catalog retirement rows and runtime sweeps for retained media reports. Mark only proven retention deferrals internally, preserve real conflict/storage failures, and carry transcript corrections in existing durable notices so published versioned schema bytes remain unchanged.
 
 ## [1.0.1] - 2026-10-15
 
