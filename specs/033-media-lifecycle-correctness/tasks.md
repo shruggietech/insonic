@@ -48,7 +48,7 @@
 - [x] T017 Extend scripts/cli_contract_qualification.py and reusable fixture support with all five installed-binary regressions using spaces/Unicode paths; document partial #114 coverage.
 - [x] T018 Update docs/v1.0.1 contracts and CHANGELOG.md with resulting behavior and decisions.
 - [x] T019 Run focused/full relevant checks, package qualification, UTF-8/LF/mojibake sanity and record exact evidence in verification.md.
-- [ ] T020 Commit, push, open/attach the PR closing the five issues, update GitHub tracking, resolve at most two review rounds and verify final-head CI/threads in verification.md; stop before merge.
+- [x] T020 Commit, push and open/attach the PR closing the five issues; update GitHub tracking and record publication/review evidence in verification.md. Maintain the remaining capped-review and final-head CI gates directly on the PR, stopping before owner merge.
 
 ## Dependencies and Execution Order
 
@@ -67,3 +67,5 @@ Complete and verify US1, then US2 and US3, and finally connected package regress
 - [x] T021 Extend internal/library/cleanup_test.go with expired-report-lease retirement coverage per FR-002 and SC-002 (partial verification coverage).
 
 - [x] T022 Strengthen embedded subtitle regressions to assert parsed cue text and exact start/end times in internal/library/admission_test.go and scripts/cli_media_qualification.py.
+
+- [x] T023 Resolve round-one review: reject media intent in transcript manifests before dispatch, preserve transcript aliases/presets, and verify the mixed-batch rejection through the installed CLI.

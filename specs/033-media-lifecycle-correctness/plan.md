@@ -37,7 +37,7 @@ Before research and after design: PASS. Shared CLI-first behavior, immutable own
 1. Reuse existing cleanup rows and startup/periodic sweeps. Make real errors outrank deferred conflicts, and use accepted-state cleanup in both refresh commit and same-work reconciliation paths. Do not swallow arbitrary failures or invent a new worker.
 2. Canonical format determines playback MIME before original metadata. Preview encoding retains its own output MIME. Unknown canonical formats do not inherit original MIME.
 3. Use FFmpeg's enabled SubRip encoder name while retaining SRT output. Prove execution with shipped companions rather than testing an argument string alone.
-4. Express --record conditionally for positional transcript import. Preserve manifest/per-item validation and rejection of conflicting forms.
+4. Express --record conditionally for positional transcript import. Preserve manifest/per-item validation and rejection of conflicting forms. Enforce transcript-only intent before dispatching the shared importer, including mixed batches and inherited replacement options.
 5. Reuse existing stable error vocabulary when suitable; distinguish explicit caller cancellation, acquisition deadlines and byte bounds without retaining arbitrary network errors/bodies. Durable item/work errors already persist categories; extend this path only if needed for actionable causes.
 6. Put tiny deterministic lifecycle fixtures in the existing package qualification flow, including paths with spaces/Unicode. Limit extra work through reuse and bounded loops.
 

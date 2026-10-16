@@ -27,7 +27,7 @@ Run the offline integrity suite with `python scripts/test-media-fixtures.py`. Af
 | Mono/stereo audio | One second, 16 kHz, signed PCM16; sample `(frame * 97 + channel * 31) % 2000 - 1000`. The exact companion derives a mono AAC input from PCM; facts confirm canonical mono MP3 and stereo FLAC. Playback types agree with independently probed materialized bytes (including WAV previews), digest and size. |
 | Video canonical audio | Existing attributed Sintel fixture; playback describes current canonical or preview bytes and leaves captured source observations intact. |
 | Embedded text tracks | Tiny SRT, WebVTT and ASS documents contain `Selected résumé track` at 0 through 500 ms. Exact packaged FFmpeg stream-copies them into an audio container; admission then exercises actual extraction and Cueson validation. |
-| Transcript batch | Two existing recording selectors and a generated SRT reach admission through a manifest-only CLI invocation. |
+| Transcript batch | Two existing recording selectors and a generated SRT reach admission through a manifest-only CLI invocation. A mixed transcript/media-replacement batch is rejected before any work is queued or canonical audio changes. |
 | Retained metadata report | A real report lease remains readable across accepted refresh; release permits the durable cleanup queue to retire obsolete reports. |
 | HTTP transcript failures | Owned loopback endpoints provide delayed, declared-oversize and streamed-oversize responses. Durable causes and literal corrective flags survive wait/show/results; failed replacement retains the accepted document. |
 

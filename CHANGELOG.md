@@ -14,7 +14,7 @@ All notable changes to this project will be documented here. The format follows 
 
 - Metadata refresh succeeds after acceptance when readers retain old report leases. Durable cleanup remains pending until retention clears; genuine cleanup failures take precedence and accepted retries retain their selected revision.
 - Playback MIME identifies canonical audio or preview bytes while preserving original-source observations. Embedded SubRip extraction uses the encoder present in the exact packaged FFmpeg build.
-- Manifest-only transcript import uses per-item recording targets. HTTP transcript deadlines, byte ceilings and cancellation retain distinct durable causes, with literal corrective flags in human and JSON item notices.
+- Manifest-only transcript import uses per-item recording targets and rejects media-replacement items before queueing work. HTTP transcript deadlines, byte ceilings and cancellation retain distinct durable causes, with literal corrective flags in human and JSON item notices.
 
 - Native query and explain RPCs use one bounded 25-second budget around projection publication and the engine's query deadline. Socket and caller deadlines report cancellation instead of malformed input.
 

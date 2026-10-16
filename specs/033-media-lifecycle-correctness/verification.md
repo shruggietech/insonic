@@ -33,8 +33,16 @@ Cross-artifact analysis mapped all 12 functional requirements. Implementation co
 
 ## Publication and review
 
-Local package qualification passed. Commit and PR publication are next. Five issues are assigned to milestone 17 and Project 7, slice S033, status In progress. Opening the PR starts review round 1; at most one further round is authorized. Final-head checks and unresolved-thread counts will be verified directly before handoff.
+[PR #148](https://github.com/shruggietech/insonic/pull/148) is published and attached to the owner chat. The five issues and PR are assigned to milestone 17 and Project 7, slice S033, status In review. They remain open until owner merge.
+
+First implementation head: `e0affd0d44e8a59d83e581ae6ca8537bb124a339`. [Hosted run 38830031358](https://github.com/shruggietech/insonic/actions/runs/38830031358) passed in 551 seconds (9 minutes 11 seconds), including Windows/Linux CLI and desktop packages, native engine/UI, alternate-backend fixtures, docs and core checks. The longest job took 490 seconds. Cached source-stage jobs were intentionally skipped after exact warm-cache validation; product qualification remained mandatory.
+
+Round 1 code review reported one P2 finding: a transcript manifest could dispatch a media replacement. Security review completed separately with no findings on the same head. The correction rejects media kinds, new-entry intent and explicit/inherited audio-replacement policies before shared dispatch, and normalizes valid transcript source aliases (including unresolved saved presets) to retain transcript-only intent. A mixed-batch installed-CLI regression verifies rejection before any work is queued or canonical audio changes.
+
+The finding was reproduced before correction. All CLI tests then passed (2.384 seconds), repository/schema checks passed, and all five cases plus mixed-manifest rejection passed through a rebuilt native CLI package (25.625 seconds). Evidence: `build/s033-review1-red.log`, `build/s033-review1-tests.log`, `build/s033-review1-installed.log` and `build/s033-review1-npm-check.log`.
+
+This committed record covers local verification and the first review correction. Final review and CI receipts are maintained directly on PR #148, which is the primary tracking record after publication. Handoff requires successful CI on the final commit and direct verification of every review thread. Round 2 is the final authorized review round; do not request a third. Stop for owner final review and merge; no merge or release is authorized.
 
 ## Limits of evidence
 
-Local native runtime and package work target Windows x86-64. Hosted CI must verify Linux, desktop packaging and alternate PostgreSQL/S3 backends. This slice runs deterministic media/loopback fixtures without inference, model downloads or owner media. It does not complete the broad fixture corpus in #114 or all acquisition diagnostics in #130. No release or owner-facing installation has been performed.
+Local native runtime and package work target Windows x86-64. The first hosted run additionally verified Linux, desktop packaging and alternate PostgreSQL/S3 backends; the final committed head must pass those gates again. This slice runs deterministic media/loopback fixtures without inference, model downloads or owner media. It does not complete the broad fixture corpus in #114 or all acquisition diagnostics in #130. No release or owner-facing installation has been performed.

@@ -110,6 +110,23 @@ def qualify(invoke, supplied, workspace, executable, environment, version):
     if len(items) != 2 or any(item['state'] != 'admitted' for item in items):
         raise ValueError('Manifest-only transcript batch failed')
 
+    # Reject the whole transcript command before shared media dispatch, even
+    # when a valid transcript precedes an otherwise valid audio replacement.
+    invalid_manifest = directory / 'mixed media transcript batch.json'
+    invalid_manifest.write_text(json.dumps({'kind': 'import-manifest', 'schema_version': version, 'items': [
+        {'record': records[1], 'transcript': str(directory / 'selected.srt'), 'replace_transcript': True},
+        {'kind': 'media', 'record': records[0], 'source': str(stereo), 'replace_audio': True,
+         'existing_transcript': 'clear', 'existing_roster': 'retain'},
+    ]}) + '\n', encoding='utf-8', newline='\n')
+    before_invalid = invoke(['media', 'show', records[0]])['result']
+    before_work = {work['id'] for work in invoke(['work', 'list'])['result']['items']}
+    rejected = invoke(['transcript', 'import', '--manifest', invalid_manifest], expected=2)
+    after_invalid = invoke(['media', 'show', records[0]])['result']
+    after_work = {work['id'] for work in invoke(['work', 'list'])['result']['items']}
+    if (rejected['error']['code'] != 'invalid_request' or after_work != before_work
+            or (after_invalid['revision'], after_invalid['digest']) != (before_invalid['revision'], before_invalid['digest'])):
+        raise ValueError('Transcript command queued media replacement or changed canonical audio')
+
     # A normal raw reader must not turn a committed refresh into failed work.
     identity = records[0]
     leases = invoke(['media', 'raw', identity])['result']
@@ -187,5 +204,5 @@ def qualify(invoke, supplied, workspace, executable, environment, version):
         if thread.is_alive():
             raise ValueError('Owned transcript fixture server did not stop')
     return {'issues': [140, 141, 142, 143, 145], 'state': 'passed', 'playback_cases': 3,
-            'embedded_formats': list(texts), 'transcript_manifest_items': 2, 'failures': failures,
+            'embedded_formats': list(texts), 'transcript_manifest_items': 2, 'media_manifest_rejection': 'passed', 'failures': failures,
             'elapsed_seconds': round(time.monotonic() - started, 3)}

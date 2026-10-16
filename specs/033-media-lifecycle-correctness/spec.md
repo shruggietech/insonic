@@ -6,7 +6,7 @@
 
 **Tracking**: [S033 milestone](https://github.com/shruggietech/insonic/milestone/17), [insonic Project](https://github.com/orgs/shruggietech/projects/7), issues #140, #141, #142, #143 and #145.
 
-**Status**: Implemented; local verification passed; publication/review pending
+**Status**: Implemented; owner review through [PR #148](https://github.com/shruggietech/insonic/pull/148)
 
 **Input**: Run S033 under autopilot for #140, #141, #142, #143 and #145. Push and open the PR, resolve up to two review rounds, then stop for owner final review and merge.
 
@@ -72,7 +72,7 @@ A user imports a transcript manifest with per-item targets and distinguishes rem
 - **FR-003**: Genuine storage and stale-write failures MUST remain observable; unrelated conflicts cannot be blanket-suppressed (#143).
 - **FR-004**: Supported embedded transcripts MUST extract using exact packaged companions and preserve selected text/timing (#142).
 - **FR-005**: Playback MIME/size/digest MUST describe actual canonical/preview bytes, retaining original metadata and legacy readability (#141).
-- **FR-006**: Manifest targets MUST come from each item; --record MUST be required only for single positional admission, with incompatible forms rejected (#140).
+- **FR-006**: Manifest targets MUST come from each item; --record MUST be required only for single positional admission, with incompatible forms rejected. Transcript manifests MUST reject media items and audio-replacement policies before queueing work (#140).
 - **FR-007**: Remote transcript deadline/byte-limit failures MUST retain stable distinct causes, bounded explanations and corrections naming the elected transcript options (#145).
 - **FR-008**: Causes MUST survive durable wait/show/results and reload, distinguish cancellation/invalid content and preserve failed-replacement authority (#145).
 - **FR-009**: Diagnostics MUST exclude credentials, protected input, private content and arbitrary provider bodies.
