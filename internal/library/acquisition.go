@@ -3,6 +3,7 @@ package library
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net"
 	"net/http"
@@ -146,19 +147,26 @@ func (a httpAcquisition) Acquire(ctx context.Context, source, credential, destin
 	}
 	response, e := client.Do(req)
 	if e != nil {
-		return Acquisition{}, contracts.Fail("operation_failed")
+		return Acquisition{}, acquisitionFailure(ctx, e)
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return Acquisition{}, contracts.Fail("operation_failed")
 	}
 	if response.ContentLength > maxBytes {
-		return Acquisition{}, contracts.Fail("output_limit")
+		return Acquisition{}, contracts.Fail("input_limit")
 	}
 	f, e := os.OpenFile(destination, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if e != nil {
 		return Acquisition{}, contracts.Fail("unavailable")
 	}
+	complete := false
+	defer func() {
+		if !complete {
+			f.Close()
+			os.Remove(destination)
+		}
+	}()
 	n, e := io.Copy(f, io.LimitReader(response.Body, maxBytes))
 	over := false
 	if e == nil && n == maxBytes {
@@ -169,19 +177,35 @@ func (a httpAcquisition) Acquire(ctx context.Context, source, credential, destin
 			e = readErr
 		}
 	}
-	if e == nil {
-		e = f.Sync()
+	if e != nil {
+		return Acquisition{}, acquisitionFailure(ctx, e)
 	}
-	closeErr := f.Close()
-	if e == nil {
-		e = closeErr
+	if over {
+		return Acquisition{}, contracts.Fail("input_limit")
 	}
-	if e != nil || over || (response.ContentLength >= 0 && n != response.ContentLength) {
-		os.Remove(destination)
-		if over {
-			return Acquisition{}, contracts.Fail("output_limit")
-		}
+	if response.ContentLength >= 0 && n != response.ContentLength {
 		return Acquisition{}, contracts.Fail("operation_failed")
 	}
+	// Local persistence failures must not become network timeouts merely because
+	// a deadline expires while the verified response is being flushed.
+	if e = f.Sync(); e != nil {
+		return Acquisition{}, contracts.Fail("operation_failed")
+	}
+	if e = f.Close(); e != nil {
+		return Acquisition{}, contracts.Fail("operation_failed")
+	}
+	complete = true
 	return Acquisition{Adapter: "http", Version: "1", SourceLocator: locator, RetrievedAt: time.Now().UTC().Format(time.RFC3339Nano), DeclaredMIME: response.Header.Get("Content-Type"), PublisherMetadata: map[string]string{"last_modified": response.Header.Get("Last-Modified"), "etag": response.Header.Get("ETag")}}, nil
+}
+
+func acquisitionFailure(ctx context.Context, err error) error {
+	if errors.Is(err, context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {
+		return contracts.Fail("cancelled")
+	}
+	var networkError net.Error
+	if errors.Is(err, context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.As(err, &networkError) && networkError.Timeout() {
+		return contracts.Fail("acquisition_timeout")
+	}
+	// Raw URL, transport and provider details never enter durable diagnostics.
+	return contracts.Fail("operation_failed")
 }

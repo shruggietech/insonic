@@ -220,7 +220,7 @@ func TestNativeReplacementRosterElectionAndReplay(t *testing.T) {
 	if e = s.Artifacts.Release(ctx, *entry.OriginalPublicationID, lease.Lease.ID); e != nil {
 		t.Fatal(e)
 	}
-	if e = s.admissionCleanup(ctx, entry.ID); e != nil {
+	if e = s.acceptedCleanup(ctx, entry.ID); e != nil {
 		t.Fatal(e)
 	}
 	oldPublication, e = db.Publication(ctx, *entry.OriginalPublicationID)

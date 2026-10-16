@@ -233,6 +233,38 @@ func TestNativeAdmissionEmbeddedAndNativeFormats(t *testing.T) {
 	if !bytes.Contains(recording.Document, []byte("Text from selected track")) || !bytes.Contains(recording.Document, []byte("2000")) {
 		t.Fatal("embedded text/time lost")
 	}
+	for _, embedded := range []struct{ name, text string }{
+		{"srt", "1\n00:00:02,000 --> 00:00:02,010\nSelected résumé track\n\n"},
+		{"ass", "[Script Info]\nScriptType: v4.00+\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,Arial,20,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,2,0,2,10,10,10,1\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\nDialogue: 0,0:00:02.00,0:00:02.01,Default,,0,0,0,,Selected résumé track\n"},
+	} {
+		t.Run("embedded-"+embedded.name, func(t *testing.T) {
+			track := filepath.Join(dir, "selected."+embedded.name)
+			if err := os.WriteFile(track, []byte(embedded.text), 0600); err != nil {
+				t.Fatal(err)
+			}
+			media := filepath.Join(dir, "selected-"+embedded.name+".mkv")
+			mediaFixtureCommand(t, tools.FFmpeg, "-i", wav, "-i", track, "-map", "0:a:0", "-map", "1:s:0", "-c", "copy", "-metadata:s:s:0", "language=eng", media)
+			result, err := s.Execute(ctx, claimLibraryWork(t, db, "media.import", ImportRequest{Defaults: Options{Timezone: "UTC", SubtitleLanguage: "eng"}, Items: []Item{{Source: media, NewEntry: true}}}))
+			if err != nil || result.(ImportResult).Items[0].State != "admitted" {
+				t.Fatalf("embedded %s: %v %v", embedded.name, result, err)
+			}
+			current, err := db.Recording(ctx, result.(ImportResult).Items[0].MediaID)
+			var document struct {
+				Cues []struct {
+					Timing struct {
+						Start int64 `json:"start_milliseconds"`
+						End   int64 `json:"end_milliseconds"`
+					}
+					Payload struct {
+						Text string `json:"plain_text"`
+					}
+				}
+			}
+			if err != nil || json.Unmarshal(current.Document, &document) != nil || len(document.Cues) != 1 || document.Cues[0].Payload.Text != "Selected résumé track" || document.Cues[0].Timing.Start != 2000 || document.Cues[0].Timing.End != 2010 {
+				t.Fatal("embedded Unicode text/source timing lost", err)
+			}
+		})
+	}
 	current, _ := transcriptFixture(t)
 	result, err = s.Execute(ctx, claimLibraryWork(t, db, "media.import", ImportRequest{Defaults: Options{Timezone: "UTC", Attribution: "off"}, Items: []Item{{Source: container, Transcript: current, NewEntry: true}}}))
 	if err != nil {

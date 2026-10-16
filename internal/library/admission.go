@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math/big"
 	"net/url"
@@ -35,7 +36,7 @@ func readTranscript(path string, max int64) ([]byte, error) {
 		return nil, contracts.Fail("operation_failed")
 	}
 	if int64(len(data)) > max {
-		return nil, contracts.Fail("output_limit")
+		return nil, contracts.Fail("input_limit")
 	}
 	if len(data) == 0 {
 		return nil, contracts.Fail("invalid_request")
@@ -180,7 +181,7 @@ func (s *Service) accepted(ctx context.Context, work catalog.Work, ordinal int) 
 		return ItemResult{}, false, contracts.Fail("operation_failed")
 	}
 	if result.Result.MediaID != "" {
-		if err = s.admissionCleanup(ctx, result.Result.MediaID); err != nil {
+		if err = s.acceptedCleanup(ctx, result.Result.MediaID); err != nil {
 			return ItemResult{}, false, err
 		}
 	}
@@ -347,6 +348,9 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 	} else if item.Transcript != "" {
 		phase = "transcript-acquisition"
 		input, format, transcriptAcquisition, err = s.transcript(ctx, item, options, directory, nil)
+		if err != nil {
+			out.Notices = append(out.Notices, transcriptFailureNotices(err, options)...)
+		}
 		if len(tracks) > 0 {
 			notices = append(notices, "explicit_transcript_selected;embedded_tracks_unused")
 		}
@@ -530,7 +534,7 @@ func (s *Service) admit(ctx context.Context, work catalog.Work, ordinal int, ite
 		out.RecordingRevision = recording.Revision
 		out.DocumentDigest = recording.DocumentDigest
 	}
-	if err = s.admissionCleanup(ctx, entry.ID); err != nil {
+	if err = s.acceptedCleanup(ctx, entry.ID); err != nil {
 		return out, err
 	}
 	return out, nil
@@ -616,7 +620,7 @@ func (s *Service) admitTranscript(ctx context.Context, work catalog.Work, ordina
 	}
 	data, format, acquired, err := s.transcript(ctx, item, options, directory, &entry)
 	if err != nil {
-		return ItemResult{}, err
+		return ItemResult{Notices: transcriptFailureNotices(err, options)}, err
 	}
 	document, err := s.document(ctx, data, format, entry.ID, options.Attribution)
 	if err != nil {
@@ -641,7 +645,7 @@ func (s *Service) admitTranscript(ctx context.Context, work catalog.Work, ordina
 	}
 	out.RecordingRevision = recording.Revision
 	out.DocumentDigest = recording.DocumentDigest
-	if err = s.admissionCleanup(ctx, entry.ID); err != nil {
+	if err = s.acceptedCleanup(ctx, entry.ID); err != nil {
 		return out, err
 	}
 	return out, nil
@@ -669,16 +673,6 @@ func (s *Service) freshAdmissionCandidate(ctx context.Context, base string) (str
 		return "", err
 	}
 	return id, nil
-}
-
-// Live leases and another current reference leave durable cleanup pending.
-// Genuine storage failures remain retryable failures rather than being hidden.
-func (s *Service) admissionCleanup(ctx context.Context, id string) error {
-	err := s.Cleanup(ctx, id)
-	if code(err) == "conflict" {
-		return nil
-	}
-	return err
 }
 
 // FreezeTargets resolves standalone selectors and observed revisions before work
@@ -851,6 +845,18 @@ func validateAudioAttribution(entry catalog.LibraryEntry, document json.RawMessa
 				return contracts.Fail("invalid_timing")
 			}
 		}
+	}
+	return nil
+}
+
+// Notices retain fixed, actionable transcript corrections in existing durable results.
+func transcriptFailureNotices(err error, options Options) []string {
+	limits := transcriptOptions(options)
+	switch code(err) {
+	case "acquisition_timeout":
+		return []string{fmt.Sprintf("Transcript acquisition exceeded its elected deadline (%d ms). Check the source or increase --transcript-timeout-ms (manifest transcript_timeout_ms), then retry this work.", *limits.AcquisitionTimeoutMS)}
+	case "input_limit":
+		return []string{fmt.Sprintf("Transcript input exceeded its elected byte limit (%d bytes). Select a smaller source or increase --transcript-max-bytes (manifest transcript_max_bytes), then retry this work.", *limits.AcquisitionMaxBytes)}
 	}
 	return nil
 }

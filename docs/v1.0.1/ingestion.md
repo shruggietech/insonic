@@ -163,6 +163,8 @@ the failed items. An admitted item with partial metadata or unresolved dates
 remains usable and does not by itself fail the work. Unused canonical candidates from failed admissions are retired using the current-reference
 fence, preserving shared or committed current artifacts.
 
+An accepted metadata refresh succeeds while live report leases or current references defer physical retirement. Obsolete reports remain in durable pending cleanup; release or expiry permits the existing reconciliation process to retire them. Replaying accepted work reconciles its receipt without accepting another revision. Genuine storage or catalog failures remain reported separately from ordinary retention delays; inspect the current recording when recovering a failure after acceptance.
+
 Inspect completion through
 `work show`; large batches expose references through
 `work results WORK_ID --after-ordinal 0 --limit 100`. Continue from the returned

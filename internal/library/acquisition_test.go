@@ -4,16 +4,149 @@ package library
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 )
 
 type acquisitionSecret struct{ resolved []byte }
+
+func TestAcquisitionBoundsCancellationAndRedaction(t *testing.T) {
+	for _, tc := range []struct{ mode, want string }{
+		{"headers-timeout", "acquisition_timeout"}, {"body-timeout", "acquisition_timeout"},
+		{"probe-timeout", "acquisition_timeout"}, {"cancel", "cancelled"},
+		{"declared-limit", "input_limit"}, {"streamed-limit", "input_limit"},
+		{"exact-limit", ""}, {"truncated", "operation_failed"},
+	} {
+		t.Run(tc.mode, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch tc.mode {
+				case "headers-timeout":
+					<-r.Context().Done()
+				case "body-timeout", "probe-timeout", "cancel":
+					w.WriteHeader(http.StatusOK)
+					if tc.mode == "probe-timeout" {
+						w.Write([]byte("12345678"))
+					} else {
+						w.Write([]byte("1234"))
+					}
+					w.(http.Flusher).Flush()
+					if tc.mode == "cancel" {
+						cancel()
+					}
+					<-r.Context().Done()
+				case "declared-limit":
+					w.Header().Set("Content-Length", "9")
+					w.Write([]byte("123456789"))
+				case "streamed-limit":
+					w.(http.Flusher).Flush()
+					w.Write([]byte("123456789"))
+				case "truncated":
+					w.Header().Set("Content-Length", "7")
+					w.Write([]byte("1234"))
+				default:
+					w.Write([]byte("12345678"))
+				}
+			}))
+			defer server.Close()
+			max, timeout, local := int64(8), int64(100), true
+			if tc.mode == "cancel" {
+				timeout = 1000
+			}
+			destination := filepath.Join(t.TempDir(), "private-input")
+			adapter := httpAcquisition{Secrets: &acquisitionSecret{}}
+			_, err := adapter.Acquire(ctx, server.URL+"/private-selector", contracts.ID(), destination, Options{AcquisitionMaxBytes: &max, AcquisitionTimeoutMS: &timeout, LocalHTTP: &local})
+			if tc.want == "" {
+				data, readErr := os.ReadFile(destination)
+				if err != nil || readErr != nil || string(data) != "12345678" {
+					t.Fatal("exact cap rejected", err, readErr)
+				}
+				return
+			}
+			if code(err) != tc.want {
+				t.Fatalf("got %v, want %s", err, tc.want)
+			}
+			if _, statErr := os.Stat(destination); !os.IsNotExist(statErr) {
+				t.Fatal("failed acquisition left scratch bytes", statErr)
+			}
+			for _, forbidden := range []string{server.URL, "private-selector", "fixture-access", "12345678"} {
+				if strings.Contains(err.Error(), forbidden) {
+					t.Fatal("private transport details escaped")
+				}
+			}
+		})
+	}
+}
+
+func TestTranscriptAcquisitionFailurePersistsCorrectionAndAcceptedDocument(t *testing.T) {
+	for _, tc := range []struct{ mode, want, flag string }{{"timeout", "acquisition_timeout", "--transcript-timeout-ms"}, {"declared", "input_limit", "--transcript-max-bytes"}, {"streamed", "input_limit", "--transcript-max-bytes"}} {
+		t.Run(tc.mode, func(t *testing.T) {
+			s, db := libraryFixture(t)
+			ctx := context.Background()
+			entry := seedLegacyAdmission(t, s, db, "")
+			transcript, _ := transcriptFixture(t)
+			if first := executeTranscript(t, s, db, Item{Record: entry.ID, Transcript: transcript}); first.State != "admitted" {
+				t.Fatal(first)
+			}
+			before, err := db.Recording(ctx, entry.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if tc.mode == "timeout" {
+					<-r.Context().Done()
+					return
+				}
+				if tc.mode == "streamed" {
+					w.(http.Flusher).Flush()
+				}
+				w.Write([]byte("1\n00:00:00,000 --> 00:00:00,010\nprivate fixture text\n"))
+			}))
+			defer server.Close()
+			max, timeout, replace := int64(8), int64(100), true
+			work := claimLibraryWork(t, db, "media.import", ImportRequest{Items: []Item{{Record: entry.ID, Transcript: server.URL + "/selected.srt", Options: Options{ReplaceTranscript: &replace, TranscriptMaxBytes: &max, TranscriptTimeoutMS: &timeout}}}})
+			result, err := s.Execute(ctx, work)
+			if err != nil {
+				t.Fatal(err)
+			}
+			item := result.(ImportResult).Items[0]
+			if item.State != "failed" || item.Error != tc.want || !strings.Contains(strings.Join(item.Notices, " "), tc.flag) {
+				t.Fatalf("failure contract: %+v", item)
+			}
+			current, err := db.Recording(ctx, entry.ID)
+			if err != nil || current.Revision != before.Revision || !bytes.Equal(current.Document, before.Document) {
+				t.Fatal("failed acquisition changed accepted document", err)
+			}
+			// Reopen through another catalog connection; corrections are persisted,
+			// rather than supplied by the lifetime of this service instance.
+			reopened, err := catalog.OpenWorkspace(ctx, s.Artifacts.Workspace, nil, false)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer reopened.Close()
+			durable, err := reopened.Work(ctx, work.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var persisted ImportResult
+			if json.Unmarshal(durable.Result, &persisted) != nil || len(persisted.Items) != 1 || persisted.Items[0].Error != tc.want || !strings.Contains(strings.Join(persisted.Items[0].Notices, " "), tc.flag) {
+				t.Fatal("durable correction lost", string(durable.Result))
+			}
+			if bytes.Contains(durable.Result, []byte("private fixture text")) {
+				t.Fatal("response body leaked into durable failure")
+			}
+		})
+	}
+}
 
 func (s *acquisitionSecret) Resolve(context.Context, string) ([]byte, error) {
 	s.resolved = []byte("fixture-access")

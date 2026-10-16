@@ -79,7 +79,7 @@ func selectEmbedded(tracks []EmbeddedTrack, options Options) (*EmbeddedTrack, er
 	return &chosen, nil
 }
 func (s *Service) extractEmbedded(ctx context.Context, path, directory string, track EmbeddedTrack) ([]byte, string, error) {
-	format, codec := "srt", "srt"
+	format, codec := "srt", "subrip"
 	if track.Codec == "ass" || track.Codec == "ssa" {
 		format = "ass"
 		codec = "ass"

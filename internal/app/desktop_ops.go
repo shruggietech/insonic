@@ -300,6 +300,19 @@ func keepPlaybackPreparationLease(ctx context.Context, service *artifact.Service
 }
 
 func playbackMIME(entry catalog.LibraryEntry) string {
+	var facts library.Facts
+	if json.Unmarshal(entry.Facts, &facts) == nil && facts.Canonical != nil {
+		switch facts.Canonical.Format {
+		case "flac":
+			return "audio/flac"
+		case "mp3":
+			return "audio/mpeg"
+		case "mka":
+			return "audio/x-matroska"
+		default:
+			return "application/octet-stream"
+		}
+	}
 	var metadata library.Metadata
 	if json.Unmarshal(entry.Metadata, &metadata) == nil {
 		mime := metadata.MIME.Preferred
@@ -307,7 +320,6 @@ func playbackMIME(entry catalog.LibraryEntry) string {
 			return mime
 		}
 	}
-	var facts library.Facts
 	json.Unmarshal(entry.Facts, &facts)
 	switch strings.ToLower(facts.Extension) {
 	case ".wav", "wav":

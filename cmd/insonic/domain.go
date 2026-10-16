@@ -322,16 +322,28 @@ func parseDomain(args []string) (string, string, json.RawMessage, error) {
 				return "", "", nil, err
 			}
 			overrideOptions(&request.Defaults, f.options)
+			if !transcriptManifestOptions(request.Defaults) || !transcriptManifestOptions(request.Overrides) {
+				return fail()
+			}
 			for i := range request.Items {
 				item := &request.Items[i]
+				if item.Record == "" || item.Kind == "media" || item.NewEntry || !transcriptManifestOptions(item.Options) {
+					return fail()
+				}
+				// Preserve source-as-transcript aliases even while a saved preset is
+				// unresolved, without carrying a media source into shared dispatch.
+				if item.Source != "" {
+					if item.Transcript != "" {
+						return fail()
+					}
+					item.Transcript, item.Source = item.Source, ""
+				}
+				item.Kind = "transcript"
 				if item.TranscriptCredentialID == "" {
 					item.TranscriptCredentialID = f.transcriptCredential
 				}
 				if item.TranscriptAdapter == "" {
 					item.TranscriptAdapter = f.transcriptAdapter
-				}
-				if item.Record == "" {
-					return fail()
 				}
 			}
 			data, err := payload(request)
@@ -540,3 +552,7 @@ func overrideOptions(target *library.Options, source library.Options) {
 }
 
 var transcriptFlags = []string{"--record", "--legacy-sidecar", "--replace-transcript", "--attribution", "--transcript-format", "--transcript-credential-id", "--transcript-adapter", "--transcript-max-bytes", "--transcript-timeout-ms", "--subtitle-stream-index", "--subtitle-language", "--diarization-model-id", "--local-http", "--manifest"}
+
+func transcriptManifestOptions(o library.Options) bool {
+	return o.ReplaceAudio == nil && o.ExistingTranscript == "" && o.TranscriptApplies == nil && o.ExistingRoster == "" && o.KnownSpeakers == nil
+}

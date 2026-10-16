@@ -17,3 +17,18 @@ Direct auditory input was unavailable during fixture preparation. Published subt
 The adjacent SRT/VTT files are supplied test oracles, with original text and deliberate display windows. Their references, byte digests and lengths are pinned. The manifests carry license attribution separately from the repository's Apache-2.0 code license. The fixture media and derived film subtitles remain CC BY 3.0.
 
 Run the offline integrity suite with `python scripts/test-media-fixtures.py`. After exact native tools have been prepared, run `python scripts/media-fixtures.py --native` for bounded probe/decode and stream/channel checks. The receipt records tool identities, full PCM hashes and mapped sample counts, and explicitly states that inference was not invoked. Required checks must not add recognition/diarization imports, model initialization or weight downloads to this path.
+
+## Constructed installed-CLI lifecycle fixtures
+
+`scripts/cli_media_qualification.py` extends the existing installed CLI qualification. Its generators use no owner media or downloads. Generated text uses UTF-8 without BOM and LF; generated files live in an owned workspace path containing spaces and Unicode.
+
+| Fixture | Construction and semantic expectation |
+| --- | --- |
+| Mono/stereo audio | One second, 16 kHz, signed PCM16; sample `(frame * 97 + channel * 31) % 2000 - 1000`. The exact companion derives a mono AAC input from PCM; facts confirm canonical mono MP3 and stereo FLAC. Playback types agree with independently probed materialized bytes (including WAV previews), digest and size. |
+| Video canonical audio | Existing attributed Sintel fixture; playback describes current canonical or preview bytes and leaves captured source observations intact. |
+| Embedded text tracks | Tiny SRT, WebVTT and ASS documents contain `Selected résumé track` at 0 through 500 ms. Exact packaged FFmpeg stream-copies them into an audio container; admission then exercises actual extraction and Cueson validation. |
+| Transcript batch | Two existing recording selectors and a generated SRT reach admission through a manifest-only CLI invocation. A mixed transcript/media-replacement batch is rejected before any work is queued or canonical audio changes. |
+| Retained metadata report | A real report lease remains readable across accepted refresh; release permits the durable cleanup queue to retire obsolete reports. |
+| HTTP transcript failures | Owned loopback endpoints provide delayed, declared-oversize and streamed-oversize responses. Durable causes and literal corrective flags survive wait/show/results; failed replacement retains the accepted document. |
+
+The harness runs in both extracted package variants and uses only their exact FFmpeg/FFprobe companions. It closes playback handles, releases report leases and joins its HTTP server; the enclosing package qualification observes runtime-owner exit and removes its disposable profile/library. Go regressions additionally cover acquisition cancellation, body/probe deadlines, exact byte bounds, scratch cleanup, redaction, accepted retry/reopen, real-error precedence and runtime startup recovery. This is partial audit-fixture coverage, not a complete command/option or engine-quality qualification.

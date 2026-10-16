@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/url"
 	"os"
@@ -169,7 +170,8 @@ func (s *Service) Import(ctx context.Context, work catalog.Work, req ImportReque
 	return result, nil
 }
 func code(e error) string {
-	if c, ok := e.(*contracts.Error); ok {
+	var c *contracts.Error
+	if errors.As(e, &c) {
 		return c.Code
 	}
 	return "operation_failed"
@@ -496,7 +498,7 @@ func (s *Service) Refresh(ctx context.Context, work catalog.Work, req RefreshReq
 	currentReports, _ := catalog.PublicationIDs(entry.ReportPublicationIDs)
 	for _, id := range currentReports {
 		if id == reportID {
-			if e = s.Cleanup(ctx, entry.ID); e != nil {
+			if e = s.acceptedCleanup(ctx, entry.ID); e != nil {
 				return entry, e
 			}
 			return entry, nil
@@ -570,7 +572,7 @@ func (s *Service) Refresh(ctx context.Context, work catalog.Work, req RefreshReq
 	if e != nil {
 		return entry, e
 	}
-	if e = s.Cleanup(ctx, entry.ID); e != nil {
+	if e = s.acceptedCleanup(ctx, entry.ID); e != nil {
 		return entry, e
 	}
 	return entry, nil
@@ -624,6 +626,11 @@ func (s *Service) Cleanup(ctx context.Context, entryID string) error {
 		return e
 	}
 	var first error
+	remember := func(err error) {
+		if err != nil && (first == nil || errors.Is(first, catalog.ErrRetirementDeferred) && !errors.Is(err, catalog.ErrRetirementDeferred)) {
+			first = err
+		}
+	}
 	legacyRecovered := false
 	for _, cleanup := range cleanups {
 		if cleanup.EntryID != entryID || cleanup.State == "done" {
@@ -631,21 +638,15 @@ func (s *Service) Cleanup(ctx context.Context, entryID string) error {
 		}
 		if cleanup.LegacyLocationID != nil && !legacyRecovered {
 			legacyRecovered = true
-			if e = s.Artifacts.RecoverLegacy(ctx); e != nil && first == nil {
-				first = e
-			}
+			remember(s.Artifacts.RecoverLegacy(ctx))
 		}
 		p, err := s.Catalog.Publication(ctx, cleanup.ID)
 		if err != nil {
-			if first == nil {
-				first = err
-			}
+			remember(err)
 			continue
 		}
 		if cleanup.LegacyLocationID != nil && (p.State == "pending" || p.State == "aborted") {
-			if first == nil {
-				first = contracts.Fail("unavailable")
-			}
+			remember(contracts.Fail("unavailable"))
 			continue
 		}
 		if p.State == "pending" || p.State == "aborted" {
@@ -656,11 +657,19 @@ func (s *Service) Cleanup(ctx context.Context, entryID string) error {
 		if e == nil {
 			e = s.Catalog.FinishCleanup(ctx, cleanup.ID)
 		}
-		if e != nil && first == nil {
-			first = e
-		}
+		remember(e)
 	}
 	return first
+}
+
+// Accepted authority stays successful while retention defers physical cleanup.
+// Genuine storage, profile and catalog conflicts remain retryable failures.
+func (s *Service) acceptedCleanup(ctx context.Context, id string) error {
+	err := s.Cleanup(ctx, id)
+	if errors.Is(err, catalog.ErrRetirementDeferred) {
+		return nil
+	}
+	return err
 }
 
 func (s *Service) List(ctx context.Context) ([]EntryView, error) {
