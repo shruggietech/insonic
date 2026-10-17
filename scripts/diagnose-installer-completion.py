@@ -12,6 +12,8 @@ import sys
 import time
 import windows_msi as m
 
+CONTAINER_MODES=("rollback-container","rollback-container-independent")
+
 
 def qualifier():
     spec=importlib.util.spec_from_file_location('owned_msi_diagnostic',Path(__file__).with_name('qualify-windows-msi.py'))
@@ -124,10 +126,10 @@ def rollback_case(stage,name):
         try:recovery['without_original_source']=attempt('missing-source')
         finally:hidden.rename(source)
         if recovery['without_original_source']['code']!=0:recovery['with_original_source']=attempt('available-source')
-    if mode in ('rollback-exit-quiet','rollback-container'):
-        if mode=='rollback-container' and name=='failed-upgrade':installer=stage/'recovery-container.msi'
+    if mode=='rollback-exit-quiet' or mode in CONTAINER_MODES:
+        if mode in CONTAINER_MODES and name=='failed-upgrade':installer=stage/'recovery-container.msi'
         log=stage/'native'/('context.ui-rollback-'+name+'.log')
-        properties=['REBOOT=ReallySuppress'] if mode=='rollback-container' and name=='failed-upgrade' else ['INSTALLDIR='+str(stage/'UI program é & spaces'),'ADDLOCAL=Core,CLI','REMOVE=Desktop','START_MENU=0','DESKTOP_SHORTCUT=0','LICENSE_ACCEPTED=1','LAUNCH=0','REBOOT=ReallySuppress']
+        properties=['REBOOT=ReallySuppress'] if mode in CONTAINER_MODES and name=='failed-upgrade' else ['INSTALLDIR='+str(stage/'UI program é & spaces'),'ADDLOCAL=Core,CLI','REMOVE=Desktop','START_MENU=0','DESKTOP_SHORTCUT=0','LICENSE_ACCEPTED=1','LAUNCH=0','REBOOT=ReallySuppress']
         code=q.run_installer(['/i',str(installer),*properties],log,expected=name=='install')
         row={'name':'rollback-'+name,'code':code,'native_engine':'MsiInstallProductW NONE','feature_qualification':False}
     else:
@@ -135,7 +137,7 @@ def rollback_case(stage,name):
     if mode in ('rollback-exit-full','rollback-exit-quiet') and name=='failed-upgrade':
         target=stage/'native/context.recovery-available-source.json'
         recovery['execute_sequence_exit']=json.loads(target.read_text(encoding='utf-8')) if target.is_file() else {'not_observed':True}
-    if mode=='rollback-container' and name=='failed-upgrade':
+    if mode in CONTAINER_MODES and name=='failed-upgrade':
         receipt=stage/'native/context.container-coordinator.json'
         row['container_at_client_return']=json.loads(receipt.read_text(encoding='utf-8')) if receipt.is_file() else {'not_observed':True}
     if recovery:row['registration_recovery']=recovery
@@ -159,7 +161,7 @@ def author_recovery_container_probe(stage):
         for action,number in [('CostInitialize',800),('FileCost',900),('CostFinalize',1000),('InstallValidate',1400),('InstallInitialize',1500),('InstallFinalize',6600)]:db.execute('INSERT INTO '+q('InstallExecuteSequence')+' ('+q('Action')+','+q('Condition')+','+q('Sequence')+') VALUES (?,?,?)',[action,None,number])
         db.execute('INSERT INTO '+q('Binary')+' ('+q('Name')+','+q('Data')+') VALUES (?,?)',['OwnedRecoveryCoordinator',stage/'launcher-context-fixture/owned-coordinator.exe'],streams=(2,))
         db.execute('CREATE TABLE '+q('MsiEmbeddedChainer')+' ('+q('MsiEmbeddedChainer')+' CHAR(72) NOT NULL, '+q('Condition')+' CHAR(255), '+q('CommandLine')+' CHAR(0), '+q('Source')+' CHAR(72) NOT NULL, '+q('Type')+' SHORT NOT NULL PRIMARY KEY '+q('MsiEmbeddedChainer')+')')
-        db.execute('INSERT INTO '+q('MsiEmbeddedChainer')+' ('+','.join(q(n) for n in ('MsiEmbeddedChainer','Condition','CommandLine','Source','Type'))+') VALUES (?,?,?,?,?)',['OwnedRecoveryCoordinator','1','"'+str(stage)+'"','OwnedRecoveryCoordinator',2])
+        db.execute('INSERT INTO '+q('MsiEmbeddedChainer')+' ('+','.join(q(n) for n in ('MsiEmbeddedChainer','Condition','CommandLine','Source','Type'))+') VALUES (?,?,?,?,?)',['OwnedRecoveryCoordinator','1','"'+str(stage)+'"'+(' --independent' if qualifier().diagnostic_mode(stage)=='rollback-container-independent' else ''),'OwnedRecoveryCoordinator',2])
         db.summary(m.guid('owned-container-package/'+stage.name));db.check(db.dll.MsiDatabaseCommit(db.handle))
     finally:db.close()
     (stage/'container-product.json').write_text(json.dumps({'product_code':product,'feature_qualification':False}),encoding='utf-8',newline='\n')
@@ -193,7 +195,7 @@ def observe_rollback(stage,token,quiet_install):
     m.disposable_runner();stage=Path(stage)
     mode=qualifier().diagnostic_mode(stage);isolated=mode=='rollback-isolated'
     candidate=None
-    if mode=='rollback-container':author_recovery_container_probe(stage)
+    if mode in CONTAINER_MODES:author_recovery_container_probe(stage)
     if mode in ('rollback-exit-full','rollback-exit-quiet'):
         author_recovery_exit_probe(stage)
     if mode in ('rollback-primed','rollback-late'):
@@ -223,7 +225,7 @@ def observe_rollback(stage,token,quiet_install):
             row['registered_states']={product:int(dll.MsiQueryProductStateW(product)) for product in products};result['transactions'].append(row)
         directory=stage/'UI program é & spaces';model=json.loads((stage/'ui-model.json').read_text(encoding='utf-8'))
         result['restored_old_payload']=all((directory/item['path']).is_file() and m.sha(directory/item['path'])==item['sha256'] for item in model['payload'] if item['feature']!='Desktop')
-        if mode=='rollback-container':
+        if mode in CONTAINER_MODES:
             probe=result['transactions'][-1].get('container_at_client_return',{})
             if probe.get('phase')!='completed' or probe.get('inner_code')!=1603 or probe.get('old_final')!=5 or probe.get('new_final')!=-1 or not result['restored_old_payload']:raise RuntimeError('container recovery is not proved at client return: '+json.dumps(probe,sort_keys=True))
         result['state']='passed'
@@ -299,8 +301,8 @@ def main():
     model=m.installer_model(inventory,m.digest(raw),(fixture/'LICENSE').read_text(encoding='utf-8'),upgrade=m.guid('invocation-diagnostic/'+__import__('uuid').uuid4().hex))
     installer=work/'diagnostic.msi';m.author(installer,fixture,model)
     kind=os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_KIND','completion')
-    if kind not in ('completion','rollback','msiexec','recovery','exit','container'):raise RuntimeError('unknown diagnostic kind')
-    modes=['completion'] if kind=='completion' else ['rollback-msiexec'] if kind=='msiexec' else ['rollback-recovery'] if kind=='recovery' else ['rollback-exit-quiet','rollback-exit-full'] if kind=='exit' else ['rollback-container'] if kind=='container' else [mode for mode in q.DIAGNOSTIC_MODES[1:] if mode not in ('rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container')]
+    if kind not in ('completion','rollback','msiexec','recovery','exit','container','container-independent'):raise RuntimeError('unknown diagnostic kind')
+    modes=['completion'] if kind=='completion' else ['rollback-msiexec'] if kind=='msiexec' else ['rollback-recovery'] if kind=='recovery' else ['rollback-exit-quiet','rollback-exit-full'] if kind=='exit' else ['rollback-container-independent'] if kind=='container-independent' else ['rollback-container'] if kind=='container' else [mode for mode in q.DIAGNOSTIC_MODES[1:] if mode not in ('rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container','rollback-container-independent')]
     results=[]
     for mode in modes:
         os.environ['INSONIC_INSTALLER_DIAGNOSTIC_MODE']=mode

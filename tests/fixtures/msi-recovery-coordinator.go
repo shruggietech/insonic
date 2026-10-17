@@ -18,9 +18,16 @@ import (
 )
 
 func main() {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	independent := false
 	var stage string
 	var transaction uint64
 	for _, arg := range os.Args[1:] {
+		if arg == "--independent" {
+			independent = true
+			continue
+		}
 		if value, err := strconv.ParseUint(arg, 0, 32); err == nil {
 			transaction = value
 			continue
@@ -90,6 +97,14 @@ func main() {
 	if event != 0 {
 		defer windows.CloseHandle(event)
 	}
+	if independent {
+		code, _, _ = dll.NewProc("MsiEndTransaction").Call(1)
+		proof["empty_container_commit_code"] = uint32(code)
+		save()
+		if code != 0 {
+			os.Exit(int(code))
+		}
+	}
 	dll.NewProc("MsiSetInternalUI").Call(2, 0)
 	dll.NewProc("MsiEnableLogW").Call(0x1000, ptr(filepath.Join(stage, "native/context.container-inner.log")), 0)
 	properties := "ADDLOCAL=Core,CLI REMOVE=Desktop INSTALLDIR=\"" + filepath.Join(stage, "UI program é & spaces") + "\" START_MENU=0 DESKTOP_SHORTCUT=0 LICENSE_ACCEPTED=1 LAUNCH=0 REBOOT=ReallySuppress"
@@ -103,18 +118,22 @@ func main() {
 	if original != 0 {
 		state = 0
 	}
-	code, _, _ = dll.NewProc("MsiEndTransaction").Call(state)
-	proof["end_code"] = uint32(code)
+	if !independent {
+		code, _, _ = dll.NewProc("MsiEndTransaction").Call(state)
+		proof["end_code"] = uint32(code)
+	}
 	proof["old_after_end"] = query(model.Old)
 	proof["new_after_end"] = query(model.New)
 	proof["phase"] = "after-end"
 	save()
 	if original != 0 && query(model.Old) == 1 {
+		dll.NewProc("MsiEnableLogW").Call(0x1000, ptr(filepath.Join(stage, "native/context.container-recovery-remove.log")), 0)
 		code, _, _ = dll.NewProc("MsiConfigureProductExW").Call(ptr(model.Old), 0, 2, ptr("REMOVE=ALL LAUNCH=0 REBOOT=ReallySuppress"))
 		proof["recovery_remove_code"] = uint32(code)
 		proof["old_after_remove"] = query(model.Old)
 		save()
 		if code == 0 && query(model.Old) == -1 {
+			dll.NewProc("MsiEnableLogW").Call(0x1000, ptr(filepath.Join(stage, "native/context.container-recovery-install.log")), 0)
 			code, _, _ = dll.NewProc("MsiInstallProductW").Call(ptr(filepath.Join(stage, "ui-old.msi")), ptr(properties))
 			proof["recovery_install_code"] = uint32(code)
 		}

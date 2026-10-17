@@ -215,7 +215,7 @@ class InstallerModelTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('recovery_container_author',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         stage=self.path/'container-probe';(stage/'scripts').mkdir(parents=True);(stage/'native').mkdir();(stage/'ui-old.msi').write_bytes(b'owned native-valid costing fixture');rows=[]
         db=SimpleNamespace(execute=lambda sql,args=None,streams=():rows.append((sql,args,streams)),check=lambda code:None,handle=1,dll=SimpleNamespace(MsiDatabaseCommit=lambda handle:0),summary=lambda value:None,close=lambda:None)
-        with patch.object(m,'disposable_runner',return_value=None),patch.object(m,'NativeDatabase',return_value=db),patch.dict(os.environ,{'GITHUB_ACTIONS':'true','RUNNER_ENVIRONMENT':'github-hosted','INSONIC_DISPOSABLE_INSTALLER_TEST':'1'}):module.author_recovery_container_probe(stage)
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'qualifier',return_value=SimpleNamespace(diagnostic_mode=lambda stage:'rollback-container')),patch.object(m,'NativeDatabase',return_value=db),patch.dict(os.environ,{'GITHUB_ACTIONS':'true','RUNNER_ENVIRONMENT':'github-hosted','INSONIC_DISPOSABLE_INSTALLER_TEST':'1'}):module.author_recovery_container_probe(stage)
         actions=[args[0] for sql,args,streams in rows if args and 'InstallExecuteSequence' in sql]
         self.assertEqual(actions,['CostInitialize','FileCost','CostFinalize','InstallValidate','InstallInitialize','InstallFinalize'])
         self.assertNotIn('RegisterProduct',actions);self.assertNotIn('RemoveExistingProducts',actions)
@@ -275,7 +275,7 @@ class InstallerModelTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('diagnostic_mode_fixture',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         target=self.path/'installer-diagnostic-mode.json'
         with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{},clear=True):
-            for mode in ('completion','rollback-reused','rollback-isolated','rollback-primed','rollback-late','rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container'):
+            for mode in ('completion','rollback-reused','rollback-isolated','rollback-primed','rollback-late','rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container','rollback-container-independent'):
                 target.write_text(json.dumps({'feature_qualification':False,'mode':mode}),encoding='utf-8')
                 self.assertEqual(module.diagnostic_mode(self.path),mode)
             for invalid in ({'feature_qualification':True,'mode':'completion'},{'feature_qualification':False,'mode':'unknown'},{'feature_qualification':False,'mode':'completion','extra':1}):

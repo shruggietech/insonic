@@ -649,7 +649,7 @@ def ordinary_namespace_probe(stage):
     proof={'state':'passed','token':token_info(),'directories':object_namespace_diagnostic(),'mutex':installer_mutex_diagnostic()}
     (stage/'native/context.namespace-probe.json').write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
 
-DIAGNOSTIC_MODES=('completion','rollback-reused','rollback-isolated','rollback-primed','rollback-late','rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container')
+DIAGNOSTIC_MODES=('completion','rollback-reused','rollback-isolated','rollback-primed','rollback-late','rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container','rollback-container-independent')
 
 def diagnostic_mode(stage):
     m.disposable_runner()

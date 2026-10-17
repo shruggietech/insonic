@@ -6,17 +6,21 @@ on:
         description: Focused diagnostic boundary (never product qualification)
         type: choice
         default: completion
-        options: [completion, rollback, msiexec, recovery, exit, container]
+        options: [completion, rollback, msiexec, recovery, exit, container, container-independent, container-compare]
 permissions:
   contents: read
 jobs:
   invocation:
-    name: diagnostic only (does not qualify MSI)
+    name: diagnostic ${{ matrix.kind }} (does not qualify MSI)
+    strategy:
+      fail-fast: false
+      matrix:
+        kind: ${{ fromJSON(inputs.kind == 'container-compare' && '["container","container-independent"]' || format('["{0}"]', inputs.kind)) }}
     runs-on: windows-2022
     timeout-minutes: 5
     env:
       INSONIC_DISPOSABLE_INSTALLER_TEST: '1'
-      INSONIC_INSTALLER_DIAGNOSTIC_KIND: ${{ inputs.kind }}
+      INSONIC_INSTALLER_DIAGNOSTIC_KIND: ${{ matrix.kind }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -32,7 +36,7 @@ jobs:
         if: always()
         with:
           archive: true
-          name: installer-invocation-diagnostic-${{ github.sha }}-${{ github.run_attempt }}
+          name: installer-invocation-diagnostic-${{ matrix.kind }}-${{ github.sha }}-${{ github.run_attempt }}
           path: build/completion-invocation-diagnostic/evidence
           if-no-files-found: warn
           retention-days: 7
