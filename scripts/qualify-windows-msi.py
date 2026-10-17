@@ -902,7 +902,8 @@ def ordinary_system_broker(pipe,installer,directory,output):
 def interactive_context_desktop(user_sid,caller_sid,stage):
     """Hold one inactive desktop in the existing CI caller's interactive session.
 
-    The temporary station ACE names only the disposable account. No Default
+    The temporary full-access station ACE names only the disposable account,
+    as required for CreateProcessAsUser GUI initialization. No Default
     desktop permissions, input desktop, account rights or session policy change.
     """
     m.disposable_runner();sddl=private_desktop_sddl(user_sid,caller_sid)
@@ -931,12 +932,13 @@ def interactive_context_desktop(user_sid,caller_sid,stage):
     station=checked(user.OpenWindowStationW('WinSta0',False,0x0006000a));flags=Flags();size=W.DWORD()
     original=user.GetProcessWindowStation();thread=kernel.GetCurrentThreadId();original_desktop=user.GetThreadDesktop(thread)
     owned=None;converted=C.c_void_p();desktop_descriptor=C.c_void_p();before=None;granted=None;info=W.DWORD(4)
-    evidence={'kind':'owned-inactive-interactive-CI-desktop','session_id':observed['session_id'],'target_user_sid_sha256':m.digest(user_sid.encode()),'caller_sid_sha256':m.digest(caller_sid.encode()),'visible_switch':False,'default_desktop_acl_modified':False,'station_ace_mask':0x00020037,'station_dacl_restored':False}
+    evidence={'kind':'owned-inactive-interactive-CI-desktop','session_id':observed['session_id'],'target_user_sid_sha256':m.digest(user_sid.encode()),'caller_sid_sha256':m.digest(caller_sid.encode()),'visible_switch':False,'default_desktop_acl_modified':False,'station_ace_mask':0x000f037f,'station_dacl_restored':False}
     try:
         checked(user.GetUserObjectInformationW(station,1,C.byref(flags),C.sizeof(flags),C.byref(size)))
         if not flags.flags&1:raise RuntimeError('CI WinSta0 is not interactive; full UI cannot be qualified here')
         before,before_text=descriptor(station)
-        checked(security.ConvertStringSecurityDescriptorToSecurityDescriptorW(before_text+'(A;;0x00020037;;;'+user_sid+')',1,C.byref(converted),None))
+        evidence['original_station_security']=owned_user_object_observation(station,user,security,kernel)
+        checked(security.ConvertStringSecurityDescriptorToSecurityDescriptorW(before_text+'(A;;0x000f037f;;;'+user_sid+')',1,C.byref(converted),None))
         checked(user.SetUserObjectSecurity(station,C.byref(info),converted));_,granted=descriptor(station)
         checked(user.SetProcessWindowStation(station));name='insonic-ci-'+uuid.uuid4().hex
         probe=user.OpenDesktopW(name,0,False,0x00020000)
@@ -958,7 +960,9 @@ def interactive_context_desktop(user_sid,caller_sid,stage):
                 if current!=granted:raise RuntimeError('CI station DACL changed outside the exact owned grant; restoration refused')
                 checked(user.SetUserObjectSecurity(station,C.byref(info),before));_,restored=descriptor(station)
                 evidence['station_dacl_restored']=restored==before_text
-                if not evidence['station_dacl_restored']:raise RuntimeError('CI station DACL restoration differs')
+                evidence['restored_station_security']=owned_user_object_observation(station,user,security,kernel)
+                evidence['station_security_restored']=evidence['restored_station_security']==evidence['original_station_security']
+                if not evidence['station_dacl_restored'] or not evidence['station_security_restored']:raise RuntimeError('CI station owner/group/DACL/label restoration differs')
         finally:
             if owned:checked(user.CloseDesktop(owned))
             if station:checked(user.CloseWindowStation(station))
