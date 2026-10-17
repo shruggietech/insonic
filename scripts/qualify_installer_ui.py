@@ -80,6 +80,7 @@ class NativeUI:
         self.u.GetDlgItem.argtypes=[W.HWND,C.c_int];self.u.GetDlgItem.restype=W.HWND
         self.dll.MsiSetInternalUI.argtypes=[W.UINT,C.POINTER(W.HWND)];self.dll.MsiSetInternalUI.restype=W.UINT
         self.dll.MsiInstallProductW.argtypes=[W.LPCWSTR,W.LPCWSTR];self.dll.MsiInstallProductW.restype=W.UINT
+        self.dll.MsiQueryProductStateW.argtypes=[W.LPCWSTR];self.dll.MsiQueryProductStateW.restype=C.c_int
         self.dll.MsiEnableLogW.argtypes=[W.DWORD,W.LPCWSTR,W.DWORD]
         self.handler=C.WINFUNCTYPE(C.c_int,C.c_void_p,W.UINT,W.LPCWSTR)
         self.dll.MsiSetExternalUIW.argtypes=[self.handler,W.DWORD,C.c_void_p];self.dll.MsiSetExternalUIW.restype=C.c_void_p
@@ -188,8 +189,12 @@ class NativeUI:
             return 0
         callback=self.handler(observe)
         def install():
-            ole=C.OleDLL('ole32');ole.CoInitializeEx(None,2)
+            initialized=False;ole=None
             try:
+                ole=C.WinDLL('ole32');ole.CoInitializeEx.argtypes=[C.c_void_p,W.DWORD];ole.CoInitializeEx.restype=C.c_long
+                ole.CoUninitialize.argtypes=[];ole.CoUninitialize.restype=None
+                initialized=ole.CoInitializeEx(None,2) in (0,1)
+                if not initialized:raise RuntimeError('native UI COM apartment could not initialize')
                 state['initial_ui_level']=self.dll.MsiSetInternalUI(0,None)
                 self.dll.MsiSetExternalUIW(callback,(1<<8)|(1<<10),None)
                 state['ui_level_after_observer']=self.dll.MsiSetInternalUI(0,None)
@@ -200,7 +205,11 @@ class NativeUI:
                 props='INSTALLDIR="'+str(directory)+'" REBOOT=ReallySuppress'
                 state['code']=self.dll.MsiInstallProductW(str(msi),props)
             except BaseException as error:state['error']=str(error)
-            finally:self.dll.MsiSetExternalUIW(self.handler(),0,None);ole.CoUninitialize();done.set()
+            finally:
+                try:
+                    self.dll.MsiSetExternalUIW(self.handler(),0,None)
+                    if initialized:ole.CoUninitialize()
+                finally:done.set()
         thread=threading.Thread(target=install,name='owned-native-full-ui',daemon=True);thread.start()
         deadline=time.monotonic()+60;last=None;cancel_sent=False;terminal_closed=False
         try:
@@ -217,6 +226,7 @@ class NativeUI:
                         self.click(controls,'Yes, cancel');time.sleep(.03);continue
                     if 'Intentional transactional fixture failure' in joined:
                         self.click(controls,'OK');time.sleep(.03);continue
+                    state['last_native_window']={'title':self.text(hwnd)[:120],'controls':[label[:160] for label in labels[:24]]}
                     if self.text(hwnd)!='insonic Setup':continue
                     if any(self.klass(c).casefold()=='msctls_progress32' for c in controls):
                         bar=next(c for c in controls if self.klass(c).casefold()=='msctls_progress32')
@@ -292,10 +302,16 @@ def qualify(stage,exact_installer,exact_directory,output,token,quiet_install):
     m.disposable_runner();stage=Path(stage);config=json.loads((stage/'ui-model.json').read_text(encoding='utf-8'))
     ui=NativeUI(output);directory=stage/'UI program é & spaces';old=stage/'ui-old.msi';new=stage/'ui-new.msi';bad=stage/'ui-bad.msi';results=[]
     exact_product=dict(m.table_rows(m.CompoundFile(exact_installer).streams,'Property'))['ProductCode']
+    def states(row,expected):
+        observed={product:ui.dll.MsiQueryProductStateW(product) for product in expected}
+        row['registered_product_states']=observed
+        if observed!=expected:raise RuntimeError('native registered state differs after '+row['name']+': '+json.dumps(observed))
     try:
         # Production payload, actual engine/full UI, elected no completion actions.
         results.append(ui.run(exact_installer,exact_directory,'exact-install',selection='cli'))
+        states(results[-1],{exact_product:5})
         results.append(ui.run(exact_installer,exact_directory,'exact-remove',operation='remove',selection='cli'))
+        states(results[-1],{exact_product:-1})
         results.append(ui.run(old,directory,'before-cancel',cancel='before',expected=1602))
         results.append(ui.run(stage/'ui-scaled.msi',directory,'enlarged-font-cancel',cancel='ready',expected=1602))
         if (directory/m.OWNERSHIP).exists():raise RuntimeError('pre-execution cancellation installed files')
@@ -309,6 +325,7 @@ def qualify(stage,exact_installer,exact_directory,output,token,quiet_install):
                     renderer.update(directory=str(directory),version=config['version'],output=str(receipt),nonce=nonce)
                     (directory.parent/'documentation-handler.json').write_text(json.dumps(renderer),encoding='utf-8',newline='\n')
                     results.append(ui.run(old,directory,name,selection=selection,launch=launch,docs=docs))
+                    states(results[-1],{config['old_product']:5})
                     deadline=time.monotonic()+25
                     client=directory/('insonic.exe.token.json' if selection=='cli' else 'insonic-desktop.exe.token.json')
                     while (launch and not client.is_file()) or (docs and not receipt.is_file()):
@@ -317,7 +334,7 @@ def qualify(stage,exact_installer,exact_directory,output,token,quiet_install):
                     if client.exists()!=launch or receipt.exists()!=docs:raise RuntimeError('independent completion election mismatch')
                     if launch:
                         observed=json.loads(client.read_text(encoding='utf-8'))
-                        if observed['elevated'] or observed['administrator_enabled'] or observed['user_sid_sha256']!=token['user_sid_sha256']:raise RuntimeError('client completion changed user/elevation')
+                        if observed['elevated'] or observed['administrator_enabled'] or observed['user_sid_sha256']!=token['user_sid_sha256'] or observed['integrity_rid']!=8192 or observed['session_id']!=token['session_id'] or observed['authentication_luid']!=token['authentication_luid']:raise RuntimeError('client completion changed user/elevation')
                     if docs:
                         proof=json.loads(receipt.read_text(encoding='utf-8'))
                         if proof.get('nonce')!=nonce or proof.get('state')!='passed':raise RuntimeError('actual OS HTML association/rendering proof differs')
@@ -348,18 +365,26 @@ def qualify(stage,exact_installer,exact_directory,output,token,quiet_install):
         for name in expected:
             if m.sha(directory/name)!=expected[name]:raise RuntimeError('full-UI repair did not restore exact bytes')
         results.append(ui.run(new,directory,'execution-cancel',operation='upgrade',selection='cli',cancel='execution',expected=1602))
+        states(results[-1],{config['old_product']:5,config['new_product']:-1})
+        for name in expected:
+            if m.sha(directory/name)!=expected[name]:raise RuntimeError('full-UI cancellation did not roll back old bytes')
         results.append(ui.run(bad,directory,'failed-upgrade',operation='upgrade',selection='cli',expected=1603))
+        states(results[-1],{config['old_product']:5,config['new_product']:-1})
         for name in expected:
             if m.sha(directory/name)!=expected[name]:raise RuntimeError('full-UI cancellation/failure did not roll back old bytes')
         results.append(ui.run(new,directory,'upgrade',operation='upgrade',selection='cli'))
+        states(results[-1],{config['old_product']:-1,config['new_product']:5})
         results.append(ui.run(new,directory,'remove',operation='remove',selection='cli'))
+        states(results[-1],{config['old_product']:-1,config['new_product']:-1})
         if any((directory/f['path']).exists() for f in config['payload']):raise RuntimeError('full-UI removal retained owned payload')
         return {'state':'passed','token':token,'transactions':results,'completion_cases':12,'exact_payload_full_ui':['install','remove'],'instrumented_clients':'owned native token reporters, production launcher and MSI model','outcomes':[0,1602,1603]}
     finally:
         for product in (exact_product,config['old_product'],config['new_product']):
             # Every identity is an explicitly generated, owned fixture family.
-            # Registration cleanup also covers a failure before its marker write.
-            quiet_install(['/x',product],stage/'native'/('context.ui-cleanup-'+product.strip('{}')+'.log'),False)
+            # Query registration, not marker presence, so successful cleanup is
+            # never misclassified as an intentionally invalid installation.
+            if ui.dll.MsiQueryProductStateW(product)==5:
+                quiet_install(['/x',product],stage/'native'/('context.ui-cleanup-'+product.strip('{}')+'.log'))
 
 
 def association(stage,token):
@@ -389,7 +414,7 @@ def association(stage,token):
             reports=[p for p in (stage/'native').glob('context.docs-*.json') if p.name!='context.docs-unattended.json']
             if len(reports)!=6:raise RuntimeError('ordinary association did not complete all six elected browser renders')
             report=json.loads((stage/'documentation-handler.exe.last-token.json').read_text(encoding='utf-8'))
-            if report['elevated'] or report['administrator_enabled'] or report['user_sid_sha256']!=token['user_sid_sha256']:raise RuntimeError('documentation association changed user/elevation')
+            if report['elevated'] or report['administrator_enabled'] or report['user_sid_sha256']!=token['user_sid_sha256'] or report['integrity_rid']!=8192 or report['session_id']!=token['session_id'] or report['authentication_luid']!=token['authentication_luid']:raise RuntimeError('documentation association changed user/elevation')
         finally:
             winreg.DeleteKey(winreg.HKEY_CURRENT_USER,program+r'\shell\open\command');winreg.DeleteKey(winreg.HKEY_CURRENT_USER,program+r'\shell\open');winreg.DeleteKey(winreg.HKEY_CURRENT_USER,program+r'\shell');winreg.DeleteKey(winreg.HKEY_CURRENT_USER,program);winreg.DeleteKey(winreg.HKEY_CURRENT_USER,html);shell.SHChangeNotify(0x08000000,0,None,None)
     return owned()

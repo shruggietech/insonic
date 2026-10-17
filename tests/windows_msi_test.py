@@ -283,9 +283,36 @@ class InstallerModelTests(unittest.TestCase):
     def test_full_ui_desktop_and_session_fixture_refuse_owner_machine(self):
         spec=importlib.util.spec_from_file_location('qualify_full_ui_guard',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with patch.dict(os.environ,{},clear=True):
-            for context in (module.interactive_context_desktop('S-1-5-21-1-2-3-1001','S-1-5-18',self.path),module.ordinary_actor_desktop(None,'S-1-5-21-1-2-3-1001',self.path)):
+            for context in (module.interactive_context_desktop('S-1-5-21-1-2-3-1001','S-1-5-18',self.path),):
                 with self.assertRaisesRegex(RuntimeError,'disposable'):
                     with context:self.fail('fixture entered the owner machine')
+
+    def test_interactive_actor_authenticates_normal_user_without_second_profile_or_session_reassignment(self):
+        import ctypes as C
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_interactive_actor',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.interactive_ordinary(None,None,None,None,None,None,None)
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.ordinary_ui_worker(None)
+        stage=self.path/'interactive';stage.mkdir();(stage/'scripts').mkdir();(stage/'native').mkdir()
+        name='inso_ci_0123456789ab';sid='S-1-5-21-1-2-3-1001';password='private-memory-password';closed=[];events=[]
+        (stage/'owned-ci-account.json').write_text(json.dumps({'account':name,'sid_sha256':m.digest(sid.encode())}),encoding='utf-8')
+        target={'user_sid_sha256':m.digest(sid.encode()),'session_id':2,'elevated':False,'administrator_enabled':False,'integrity_rid':8192,'authentication_luid':{'low':123,'high':0}}
+        desktop={'path':'WinSta0\\insonic-ci-'+'a'*32,'session_id':2,'target_user_sid_sha256':target['user_sid_sha256']}
+        class Function:
+            def __init__(self,call):self.call=call
+            def __call__(self,*args):return self.call(*args)
+        def create(account,domain,secret,logon,exe,command,flags,environment,cwd,startup,out):
+            self.assertEqual((account,domain,secret,logon),(name,'.',password,0));self.assertTrue(exe.endswith('pythonw.exe'));self.assertLess(len(command.value),1024);self.assertEqual(flags,0x08000400);self.assertEqual(startup._obj.desktop,desktop['path']);self.assertEqual(cwd,str(stage));self.assertNotIn(password,command.value+environment.value)
+            self.assertNotIn(password,(stage/'scripts/interactive-bootstrap.py').read_text());out._obj.process=555;out._obj.thread=556;out._obj.pid=888
+            (stage/'native/context.ui.json').write_text(json.dumps({'token':target,'state':'passed'}),encoding='utf-8');return True
+        def token(process,access,out):self.assertEqual((process,access),(555,8));out._obj.value=444;return True
+        def code(process,out):out._obj.value=0;return True
+        security=SimpleNamespace(CreateProcessWithLogonW=Function(create),OpenProcessToken=Function(token))
+        kernel=SimpleNamespace(WaitForSingleObject=Function(lambda *args:0),GetExitCodeProcess=Function(code),CloseHandle=Function(lambda handle:closed.append(handle.value if hasattr(handle,'value') else handle)),TerminateProcess=Function(lambda *args:self.fail('successful child must not be killed')))
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'COMPUTERNAME':'CIHOST'}),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:{'advapi32':security,'kernel32':kernel}[name],create=True),patch.object(module,'token_info',side_effect=[{'session_id':2},target]):
+            module.interactive_ordinary(stage,name,sid,password,self.path/name,desktop,lambda phase,**extra:events.append({'phase':phase,**extra}))
+        self.assertEqual(closed,[444,556,555]);self.assertEqual(events[0]['token'],target);self.assertFalse(events[0]['profile_loaded_by_child']);self.assertFalse(events[0]['session_token_reassignment']);self.assertNotIn(password,repr(events))
 
     def test_system_broker_creates_only_the_verified_normal_target_without_profile_load(self):
         import ctypes as C
@@ -307,8 +334,8 @@ class InstallerModelTests(unittest.TestCase):
         kernel=SimpleNamespace(WaitForSingleObject=Function(lambda *args:0),GetExitCodeProcess=Function(code),CloseHandle=Function(lambda handle:closed.append(handle.value if hasattr(handle,'value') else handle)),TerminateProcess=Function(lambda *args:self.fail('no successful child or SYSTEM process may be killed')))
         security=SimpleNamespace(LogonUserW=Function(logon),CreateProcessAsUserW=Function(create));dlls={'kernel32':kernel,'advapi32':security};output=self.path/'context.json';env={'USERNAME':account,'COMPUTERNAME':'CIHOST','APPDATA':'owned-ordinary-profile'}
         def privileges(names):self.assertEqual(names,('SeAssignPrimaryTokenPrivilege','SeIncreaseQuotaPrivilege'));calls.append('broker-only-privileges');return nullcontext({'ordinary_actor_token_changed':False})
-        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,env,clear=True),patch.object(module,'token_info',side_effect=[system,target]),patch.object(module,'open',return_value=io.BytesIO((json.dumps(credentials)+'\n').encode()),create=True),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'ordinary_actor_desktop',return_value=nullcontext({'path':'owned-CI-station\\Default','target_token':target})) as desktop,patch.object(module,'qualifier_profile_privileges',side_effect=privileges):module.ordinary_system_broker(pipe,self.path/'fixture.msi',self.path/'owned-install',output)
-        self.assertEqual(calls,['target-interactive-logon','broker-only-privileges','normal-target-created']);self.assertEqual(closed,[556,555,444]);self.assertEqual(desktop.call_args.args[0].value,444);self.assertEqual(desktop.call_args.args[1:],(sid,self.path));proof=json.loads(output.with_suffix('.broker.json').read_text());self.assertEqual(proof['broker_token'],system);self.assertEqual(proof['target_token'],target);self.assertFalse(proof['target_profile_loaded_by_broker']);self.assertNotIn(password,output.with_suffix('.broker.json').read_text())
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,env,clear=True),patch.object(module,'token_info',side_effect=[system,target]),patch.object(module,'open',return_value=io.BytesIO((json.dumps(credentials)+'\n').encode()),create=True),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'private_context_desktop',return_value=nullcontext({'path':'owned-CI-station\\Default'})) as desktop,patch.object(module,'qualifier_profile_privileges',side_effect=privileges):module.ordinary_system_broker(pipe,self.path/'fixture.msi',self.path/'owned-install',output)
+        self.assertEqual(calls,['target-interactive-logon','broker-only-privileges','normal-target-created']);self.assertEqual(closed,[556,555,444]);self.assertEqual(desktop.call_args.args,(sid,'S-1-5-18'));proof=json.loads(output.with_suffix('.broker.json').read_text());self.assertEqual(proof['broker_token'],system);self.assertEqual(proof['target_token'],target);self.assertFalse(proof['target_profile_loaded_by_broker']);self.assertNotIn(password,output.with_suffix('.broker.json').read_text())
         with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,env,clear=True),patch.object(module,'token_info',return_value={**system,'user_sid_sha256':m.digest(sid.encode())}),patch.object(module,'open',create=True) as pipe_open:
             with self.assertRaisesRegex(RuntimeError,'SYSTEM'):module.ordinary_system_broker(pipe,None,None,output)
             pipe_open.assert_not_called()
@@ -421,18 +448,13 @@ class InstallerModelTests(unittest.TestCase):
             return True
         kernel=SimpleNamespace(GetCurrentProcess=Function(lambda:1),CloseHandle=Function(lambda handle:events.append('close-own-token')))
         security=SimpleNamespace(OpenProcessToken=Function(token),LookupPrivilegeValueW=Function(lookup),AdjustTokenPrivileges=Function(adjust));dlls={'kernel32':kernel,'advapi32':security}
-        for names in (('SeBackupPrivilege','SeRestorePrivilege'),('SeAssignPrimaryTokenPrivilege','SeIncreaseQuotaPrivilege'),('SeTcbPrivilege',)):
+        for names in (('SeBackupPrivilege','SeRestorePrivilege'),('SeAssignPrimaryTokenPrivilege','SeIncreaseQuotaPrivilege')):
             events.clear()
             with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'account_sid',return_value='S-1-5-18'),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(C,'set_last_error',side_effect=lambda value:last_error.__setitem__(0,value),create=True),patch.object(C,'get_last_error',side_effect=lambda:last_error[0],create=True):
                 with self.assertRaisesRegex(ValueError,'profile API failure'):
                     with module.qualifier_profile_privileges(names) as scope:
                         self.assertFalse(scope['ordinary_actor_token_changed']);raise ValueError('profile API failure')
             self.assertEqual(events,[*names,'enable-own-token','restore-exact-own-token','close-own-token'])
-        events.clear()
-        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'account_sid',return_value='S-1-5-21-1-2-3-1001'),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True):
-            with self.assertRaisesRegex(RuntimeError,'exact SYSTEM'):
-                with module.qualifier_profile_privileges(('SeTcbPrivilege',)):self.fail('ordinary account accepted broker session scope')
-        self.assertEqual(events,['close-own-token'])
     def test_native_recorder_probe_retains_exit_and_never_substitutes_elected_receipt(self):
         from types import SimpleNamespace
         spec=importlib.util.spec_from_file_location('qualify_native_probe',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
@@ -586,7 +608,7 @@ class InstallerModelTests(unittest.TestCase):
         def release(initial,install,remove,task,sid,deadline):
             self.assertEqual(initial,ownership);self.assertEqual(sid,actor_sid);self.assertEqual(task['exit_code'],0);self.assertEqual(json.loads(install.read_text())['action'],'/i');self.assertEqual(json.loads(remove.read_text())['action'],'/x');events.append('owned-service-restored');return {'restored_initial_stopped_state':True,'process_terminated':False,'registry_hive_forced':False}
         def lease(sid,profile,deadline):events.append('profile-lease-observed');return {'machine_state_modified':False}
-        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'qualifier_profile_privileges',side_effect=lambda:nullcontext({'ordinary_actor_token_changed':False})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch('qualify_installer_ui.prepare'),patch.object(module,'interactive_context_desktop',return_value=nullcontext({'station_dacl_restored':True})),patch.object(module,'disposable_server_installer_policy',return_value=nullcontext({'restored':True,'always_install_elevated_unchanged':True})),patch.object(module,'profile_cleanup_observation',return_value={'machine_state_modified':False}),patch.object(module,'profile_lease_observation',side_effect=lease),patch.object(module,'release_owned_installer_service',side_effect=release),patch.object(module,'delete_owned_profile_provider',return_value={'complete_absence':False}),patch.object(C,'get_last_error',return_value=32,create=True),patch.object(module.time,'sleep'):
+        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'qualifier_profile_privileges',side_effect=lambda:nullcontext({'ordinary_actor_token_changed':False})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch('qualify_installer_ui.prepare'),patch.object(module,'interactive_context_desktop',return_value=nullcontext({'station_dacl_restored':True})),patch.object(module,'interactive_ordinary'),patch.object(module,'token_info',return_value={}),patch.object(module,'installer_mutex_diagnostic',return_value={'objects':[]}),patch.object(module,'disposable_server_installer_policy',return_value=nullcontext({'restored':True,'always_install_elevated_unchanged':True})),patch.object(module,'profile_cleanup_observation',return_value={'machine_state_modified':False}),patch.object(module,'profile_lease_observation',side_effect=lease),patch.object(module,'release_owned_installer_service',side_effect=release),patch.object(module,'delete_owned_profile_provider',return_value={'complete_absence':False}),patch.object(C,'get_last_error',return_value=32,create=True),patch.object(module.time,'sleep'):
             proof=module.ordinary_context(installer,self.path/'installation',output,self.model,ownership)
         self.assertEqual(events,['account-created','profile-created-by-native-load','ordinary-task-completed','profile-handle-unloaded','profile-lease-observed','owned-service-restored','profile-lease-observed','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3);self.assertEqual(rights,[])
         self.assertTrue(all(item.get('deleted',item.get('restored',item.get('unloaded'))) for item in proof['cleanup']));self.assertEqual((original/'owner-data').read_bytes(),b'keep');self.assertEqual((programdata/'owner-data').read_bytes(),b'keep')
@@ -633,9 +655,9 @@ class InstallerModelTests(unittest.TestCase):
         called=[];receipt={'qualification':{key:'pending' for key in m.QUALIFICATION_KEYS}}
         def capture(*args):called.append('capture');raise RuntimeError('actual renderer failed')
         def qualify(*args):called.append('qualify');raise RuntimeError('actual context failed')
-        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'load',side_effect=[SimpleNamespace(capture=capture),SimpleNamespace(qualify=qualify)]),patch.object(module,'write'),patch.object(m,'verify_installer') as verify:
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'load',side_effect=[SimpleNamespace(qualify=qualify),SimpleNamespace(capture=capture)]),patch.object(module,'write'),patch.object(m,'verify_installer') as verify:
             with self.assertRaisesRegex(RuntimeError,'gates failed'):module.run_gates(None,receipt,'all')
-            self.assertEqual(called,['capture','qualify']);verify.assert_not_called()
+            self.assertEqual(called,['qualify','capture']);verify.assert_not_called()
             self.assertEqual(receipt['qualification']['native_ui_capture'],'failed');self.assertEqual(receipt['qualification']['user_context'],'pending')
             self.assertEqual(set(receipt['qualification_errors']),{'native_ui_capture','native_lifecycle'})
     def test_provisional_all_native_pass_still_requires_qualified_zip_join(self):
@@ -645,9 +667,9 @@ class InstallerModelTests(unittest.TestCase):
         receipt={'kind':'windows-installer-receipt','format':'msi','platform':'windows_amd64','variant':'selectable','schema_version':'1.0.1','product_version':'1.0.1','documentation_version':'1.0.1','artifact':artifact.name,'artifact_sha256':m.sha(artifact),'artifact_size_bytes':artifact.stat().st_size,'source_dirty':False,'revision':'a'*40,'payload_receipt':dict(self.inv),'payload_inventory':self.inv,'qualification':{key:'pending' for key in m.QUALIFICATION_KEYS}}
         capture=SimpleNamespace(capture=lambda *args:called.append('native-ui'))
         qualifier=SimpleNamespace(qualify=lambda *args:called.append('actual-lifecycle') or {key:'passed' for key in m.QUALIFICATION_KEYS if key!='native_ui_capture'})
-        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'load',side_effect=[capture,qualifier]),patch.object(module,'write'),patch.object(m,'verify_installer') as verify:
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'load',side_effect=[qualifier,capture]),patch.object(module,'write'),patch.object(m,'verify_installer') as verify:
             module.run_gates(artifact,receipt,'provisional');verify.assert_not_called()
-        self.assertEqual(called,['native-ui','actual-lifecycle']);self.assertTrue(all(value=='passed' for value in receipt['qualification'].values()))
+        self.assertEqual(called,['actual-lifecycle','native-ui']);self.assertTrue(all(value=='passed' for value in receipt['qualification'].values()))
         self.assertIs(receipt['publication_eligible'],False);self.assertEqual(receipt['payload_qualification'],'pending')
         with self.assertRaisesRegex(ValueError,'provisional'):m.verify_installer(artifact,receipt)
         # Changing flags cannot fabricate the missing ZIP's actual relocation,
@@ -753,12 +775,12 @@ class InstallerModelTests(unittest.TestCase):
             if access==0x1f0001:state['error']=5;return 0
             return access
         def descriptor(handle,kind,information,*args):
-            self.assertEqual(kind,6);self.assertEqual(information,0x17);args[-1]._obj.value=1234;return 0
+            self.assertEqual(kind,6);self.assertEqual(information,7);args[-1]._obj.value=1234;return 0
         kernel=SimpleNamespace(OpenMutexW=Function(open_mutex),CloseHandle=Function(lambda handle:closed.append(handle) or True),LocalFree=Function(lambda value:None))
         security=SimpleNamespace(GetSecurityInfo=Function(descriptor));dlls={'kernel32':kernel,'advapi32':security}
         with patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(C,'get_last_error',side_effect=lambda:state['error'],create=True),patch.object(module,'descriptor_observation',return_value={'owner_group_dacl_label_sddl':'O:SYS:(ML;;NW;;;HI)'}) as observed:
             result=module.installer_mutex_diagnostic()
-        self.assertEqual(len(calls),9);self.assertEqual(closed,[0x100000,0x20000]);observed.assert_called_once()
+        self.assertEqual(len(calls),15);self.assertEqual(closed,[0x100000,0x20000]);observed.assert_called_once()
         denied=next(row for row in result['objects'] if row['name']=='Global\\_MSIExecute' and row['requested_access']==0x1f0001)
         self.assertFalse(denied['opened']);self.assertEqual(denied['error'],5);self.assertFalse(result['mutex_acquired']);self.assertFalse(result['machine_state_modified'])
     def test_intentional_rejection_requires_message_and_correct_action(self):

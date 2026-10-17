@@ -52,6 +52,10 @@ def write(receipt):
 def run_gates(output,receipt,stage):
     m.disposable_runner();failures={}
     if stage=='provisional':receipt.update({'publication_eligible':False,'payload_qualification':'pending'});write(receipt)
+    if stage in ('qualify','all','provisional'):
+        try:receipt['qualification'].update(load('qualify_windows_msi','qualify-windows-msi.py').qualify(output,receipt))
+        except Exception as error:failures['native_lifecycle']=str(error)[-4000:]
+        write(receipt)
     if stage in ('capture','all','provisional'):
         try:
             capture=load('capture_installer_ui','capture-installer-ui.py').capture
@@ -66,10 +70,6 @@ def run_gates(output,receipt,stage):
             receipt['qualification']['native_ui_capture']='passed'
         except Exception as error:
             receipt['qualification']['native_ui_capture']='failed';failures['native_ui_capture']=str(error)[-4000:]
-        write(receipt)
-    if stage in ('qualify','all','provisional'):
-        try:receipt['qualification'].update(load('qualify_windows_msi','qualify-windows-msi.py').qualify(output,receipt))
-        except Exception as error:failures['native_lifecycle']=str(error)[-4000:]
         write(receipt)
     if failures:
         receipt['qualification_errors']=failures;write(receipt)
