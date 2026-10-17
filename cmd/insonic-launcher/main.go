@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/shruggietech/insonic/internal/launcher"
+	"github.com/shruggietech/insonic/internal/setup"
 	"os"
 	"path/filepath"
 )
@@ -19,6 +20,12 @@ func run(args []string) int {
 		}
 		json.NewEncoder(os.Stderr).Encode(map[string]any{"status": "failed", "message": e.Error()})
 		return 1
+	}
+	if len(args) == 2 && args[0] == "--cleanup-setup" {
+		if err := setup.CleanupUninstalled(args[1]); err != nil {
+			return fail(err)
+		}
+		return 0
 	}
 	if len(args) == 3 && args[0] == "--preflight" {
 		if e := launcher.Preflight(args[1], args[2]); e != nil {

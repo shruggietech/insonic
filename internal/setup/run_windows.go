@@ -292,13 +292,21 @@ func Run(args []string) int {
 	if err := e.logging("setup"); err != nil {
 		return fail(err)
 	}
+	stopObserver, err := observeMSI(c.root, uint32(ui))
+	if err != nil {
+		return fail(err)
+	}
 	nativeCode, invokeErr := native("MsiInstallProductW", source.Path, properties)
+	traceErr := stopObserver()
 	if invokeErr != nil {
 		nativeCode = 1603
 	}
 	e.close()
 	oldEngine.close()
 	receipt := result{Native: nativeCode, Code: nativeCode, Recovery: "not-needed", Logs: c.root}
+	if traceErr != nil {
+		receipt.Error = traceErr.Error()
+	}
 	if nativeCode != 0 && prior != nil {
 		recovery.Original = nativeCode
 		if err := runWorker(c, recovery); err != nil {
@@ -308,6 +316,11 @@ func Run(args []string) int {
 			receipt.Recovery = "completed"
 			if err := os.Remove(filepath.Join(c.root, "pending.json")); err != nil {
 				receipt.Error = err.Error()
+			}
+			if e.State(p.Product) == -1 {
+				if err := c.clean(p.Product); err != nil {
+					receipt.Error = err.Error()
+				}
 			}
 		}
 	} else if nativeCode == 0 {

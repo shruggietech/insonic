@@ -34,7 +34,7 @@ def prepare(stage, fixture, clone, diagnostic_only=False):
     version=json.loads((payload/'help/offline-manifest.json').read_text(encoding='utf-8'))['version']
     inv={'schema_version':version,'platform':'windows_amd64','variant':'desktop','files':files}
     raw=m.inventory_bytes(inv);(payload/'package-inventory.json').write_bytes(raw)
-    setup_probe=diagnostic_only and os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_MODE')=='rollback-setup'
+    setup_probe=diagnostic_only and os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_MODE') in ('rollback-setup','rollback-setup-full')
     if setup_probe:
         inv['kind']='native-package-inventory';raw=m.inventory_bytes(inv);(payload/'package-inventory.json').write_bytes(raw)
     family=m.UPGRADE_CODE if setup_probe else m.guid('owned-full-ui/'+uuid.uuid4().hex)
@@ -55,10 +55,19 @@ def prepare(stage, fixture, clone, diagnostic_only=False):
     (stage/'ui-model.json').write_text(json.dumps(config),encoding='utf-8',newline='\n')
     if setup_probe:
         import windows_setup
-        for name in ('old','new','bad'):
+        clone(old,stage/'ui-cancel.msi',new_version,family)
+        db=m.NativeDatabase(stage/'ui-cancel.msi',write=True)
+        try:
+            db.execute('INSERT INTO `Binary` (`Name`,`Data`) VALUES (?,?)',['OwnedCancellationBarrier',payload/'owned-cancel-barrier.exe'],streams=(2,))
+            db.execute('INSERT INTO `CustomAction` (`Action`,`Type`,`Source`,`Target`) VALUES (?,?,?,?)',['OwnedCancellationBarrier',2,'OwnedCancellationBarrier','"'+str(stage)+'"'])
+            db.execute('INSERT INTO `InstallExecuteSequence` (`Action`,`Condition`,`Sequence`) VALUES (?,?,?)',['OwnedCancellationBarrier','OLDPRODUCTS',3900])
+            db.check(db.dll.MsiDatabaseCommit(db.handle))
+        finally:db.close()
+        for name in ('old','new','bad','cancel'):
             source=stage/('ui-'+name+'.msi');target=stage/('ui-'+name+'-setup.exe')
             shutil.copyfile(fixture/'owned-setup.exe',target)
             props=dict(m.table_rows(m.CompoundFile(source).streams,'Property'))
+            windows_setup.add_resources(target.resolve(),props['ProductVersion'])
             identity={'product_code':props['ProductCode'],'upgrade_code':props['UpgradeCode'],'version':props['ProductVersion'],'sha256':m.sha(source),'size_bytes':source.stat().st_size}
             windows_setup.append_payload(target,source,identity)
     if diagnostic_only:return
@@ -101,6 +110,14 @@ def launch_standalone_diagnostic(msi,directory,log):
     m.disposable_runner();msi=Path(msi);stage=msi.resolve().parent;log=Path(log)
     if stage.parent!=Path(os.environ['ProgramData']).resolve() or not __import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name) or msi.name!='ui-bad.msi' or (stage/'completion-invocation-diagnostic.json').read_text(encoding='utf-8')!='{"qualification":false}' or Path(directory).resolve()!=stage/'UI program é & spaces' or log.resolve().parent!=stage/'native' or log.name!='context.ui-rollback-failed-upgrade.log':raise RuntimeError('standalone UI diagnostic is outside its exact owned stage')
     command=[str(stage/'launcher-context-fixture/owned-coordinator.exe'),'--standalone','--full-ui',str(stage)]
+    return subprocess.Popen(command,cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=0x08000000)
+
+
+def launch_setup_probe(msi,directory,log):
+    m.disposable_runner();msi=Path(msi);stage=msi.resolve().parent
+    mode=json.loads((stage/'installer-diagnostic-mode.json').read_text(encoding='utf-8'))
+    if stage.parent!=Path(os.environ['ProgramData']).resolve() or mode!={'feature_qualification':False,'mode':'rollback-setup-full'} or msi.name not in ('ui-old.msi','ui-bad.msi','ui-cancel.msi') or Path(directory).resolve()!=stage/'UI program é & spaces':raise RuntimeError('production setup probe is outside its owned ordinary stage')
+    command=[str(msi.with_name(msi.stem+'-setup.exe')),'--install-dir',str(directory)]
     return subprocess.Popen(command,cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=0x08000000)
 
 
@@ -217,7 +234,7 @@ class NativeUI:
             return {'path':target.name,'sha256':m.sha(target),'width':width,'height':height}
         finally:g.SelectObject(memory,old);g.DeleteObject(bitmap);g.DeleteDC(memory);u.ReleaseDC(hwnd,dc)
 
-    def run(self,msi,directory,name,operation='install',selection='both',launch=False,docs=False,cancel=None,expected=0,before_finish=None,execution_required=True,native_process=False,before_terminal_close=None,standalone_process=False):
+    def run(self,msi,directory,name,operation='install',selection='both',launch=False,docs=False,cancel=None,expected=0,before_finish=None,execution_required=True,native_process=False,before_terminal_close=None,standalone_process=False,setup_process=False):
         state={'name':name,'operation':operation,'fixture_msi_sha256':m.sha(msi),'pages':[],'actions':[],'progress_messages':0,'progress_observed':False,'bar_positions':[],'visible_phases':[],'terminal':None,'captures':[]}
         action_text=m.table_rows(m.CompoundFile(msi).streams,'ActionText');descriptions={row[1] for row in action_text if row[1]};described_actions={row[0] for row in action_text if row[1]}
         action_ready=threading.Event();progress_seen=threading.Event();done=threading.Event();inspection=ProgressInspection(progress_seen)
@@ -239,10 +256,14 @@ class NativeUI:
             initialized=False;ole=None
             try:
                 if native_process:
-                    process=(launch_standalone_diagnostic if standalone_process else launch_msiexec_diagnostic)(msi,directory,self.output.parent/('context.ui-'+name+'.log'))
-                    self.actor_pid=process.pid;state['native_engine']={'kind':'external coordinator full UI' if standalone_process else 'msiexec.exe full UI','pid':process.pid,'feature_qualification':False,'progress_source':'native controls, no in-process API observer'}
+                    process=(launch_setup_probe if setup_process else launch_standalone_diagnostic if standalone_process else launch_msiexec_diagnostic)(msi,directory,self.output.parent/('context.ui-'+name+'.log'))
+                    self.actor_pid=process.pid;state['native_engine']={'kind':'production setup full UI' if setup_process else 'external coordinator full UI' if standalone_process else 'msiexec.exe full UI','pid':process.pid,'feature_qualification':False,'progress_source':'native controls and private passive MSI event receipt' if setup_process else 'native controls, no in-process API observer'}
                     stdout,stderr=process.communicate(timeout=75)
                     state['code']=process.returncode;state['native_engine'].update(stdout=stdout.decode(errors='replace')[-4000:],stderr=stderr.decode(errors='replace')[-4000:])
+                    if setup_process:
+                        trace=json.loads((Path(os.environ['LOCALAPPDATA'])/'insonic-setup/setup-events.json').read_text(encoding='utf-8'))
+                        if trace.get('passive') is not True or trace.get('ui_level')!=5:raise RuntimeError('production setup native progress observer differs')
+                        state['progress_messages']=trace['progress_messages'];state['actions']=trace['actions'];state['native_event_receipt']=trace
                     return
                 ole=C.WinDLL('ole32');ole.CoInitializeEx.argtypes=[C.c_void_p,W.DWORD];ole.CoInitializeEx.restype=C.c_long
                 ole.CoUninitialize.argtypes=[];ole.CoUninitialize.restype=None
@@ -278,7 +299,12 @@ class NativeUI:
                         state['documentation_warning']=True
                         self.click(controls,'OK');continue
                     if 'Cancel this operation?' in joined:
-                        self.click(controls,'Yes, cancel');time.sleep(.03);continue
+                        self.click(controls,'Yes, cancel')
+                        if setup_process and cancel=='execution':(Path(msi).parent/'native/setup-cancel-release').write_bytes(b'actual Cancel confirmation clicked\n')
+                        time.sleep(.03);continue
+                    if setup_process and self.text(hwnd)=='insonic setup':
+                        if 'The previous installation was restored.' not in joined:raise RuntimeError('setup recovery correction requires attention: '+joined)
+                        state['recovery_outcome_observed']=True;self.click(controls,'OK');continue
                     if 'Install Microsoft Visual C++ v14 x64 Redistributable, then retry:' in joined:
                         if name!='prerequisite-failure':raise RuntimeError('unexpected prerequisite rejection')
                         state['prerequisite_correction_observed']=True;self.click(controls,'OK');continue
@@ -300,7 +326,12 @@ class NativeUI:
                             if description in joined and description not in state['visible_phases']:state['visible_phases'].append(description)
                         if not state['progress_observed'] and position>0 and state['visible_phases']:
                             state['progress_observed']=True;state['captures'].append(self.capture(hwnd,name+'-progress'));progress_seen.set()
-                        if cancel=='execution' and action_ready.is_set() and state['progress_observed'] and not cancel_sent:
+                        ready=Path(msi).parent/'native/setup-cancel-ready.json'
+                        if setup_process and cancel=='execution' and ready.is_file() and not cancel_sent:
+                            model=json.loads((Path(msi).parent/'ui-model.json').read_text(encoding='utf-8'))
+                            if self.dll.MsiQueryProductStateW(model['old_product'])!=-1 or (directory/m.OWNERSHIP).exists():raise RuntimeError('cancellation barrier preceded actual old removal')
+                            state['old_removed_before_cancel']=True;action_ready.set()
+                        if cancel=='execution' and action_ready.is_set() and (state['progress_observed'] or setup_process) and not cancel_sent:
                             self.click(controls,'Cancel');cancel_sent=True
                         continue
                     page=next((p for p,mark in [('Welcome','Install for this Windows account.'),('License','Apache License 2.0'),('Choices','Select clients and shortcuts'),('Location','Choose program directory'),('Ready','Setup verifies capacity'),('Maintenance','Change, repair or remove'),('Cancelled','Setup cancelled'),('FatalError','Setup could not finish'),('Finish','The selected operation completed.')] if mark in joined),None)

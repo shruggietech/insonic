@@ -291,13 +291,14 @@ def observe_setup(stage,token,quiet_install):
     """Focused production-coordinator probe, never a complete product receipt."""
     m.disposable_runner();q=qualifier();stage=Path(stage)
     marker=json.loads((stage/'owned-ci-account.json').read_text(encoding='utf-8'))
-    if q.diagnostic_mode(stage)!='rollback-setup' or marker['sid_sha256']!=token['user_sid_sha256'] or token['elevated'] or token['administrator_enabled']:raise RuntimeError('setup probe is outside the owned ordinary account')
+    if q.diagnostic_mode(stage) not in ('rollback-setup','rollback-setup-full') or marker['sid_sha256']!=token['user_sid_sha256'] or token['elevated'] or token['administrator_enabled']:raise RuntimeError('setup probe is outside the owned ordinary account')
     model=json.loads((stage/'ui-model.json').read_text(encoding='utf-8'))
     if model['family']!=m.UPGRADE_CODE:raise RuntimeError('production coordinator requires the exact insonic family in its otherwise empty owned profile')
     import ctypes as C
     import ctypes.wintypes as W
     dll=C.WinDLL('msi');dll.MsiQueryProductStateW.argtypes=[W.LPCWSTR];dll.MsiQueryProductStateW.restype=C.c_int
     if any(dll.MsiQueryProductStateW(model[key])!=-1 for key in ('old_product','new_product')):raise RuntimeError('setup probe refuses pre-existing registration')
+    full=q.diagnostic_mode(stage)=='rollback-setup-full'
     root=Path(os.environ['LOCALAPPDATA'])/'insonic-setup';directory=stage/'UI program é & spaces'
     result={'kind':'production-setup-focused-probe','feature_qualification':False,'token':token,'transactions':[],'cleanup':[]}
     def run(name,args,expected):
@@ -309,15 +310,45 @@ def observe_setup(stage,token,quiet_install):
         if done.returncode!=expected:raise RuntimeError('production setup returned unexpected result: '+json.dumps(row))
         return row
     try:
-        run('old',['--quiet','--accept-license','--install-dir',str(directory),'--clients','cli','--start-menu','0','--desktop-shortcut','0'],0)
+        old_source=stage/'ui-old.msi';old_sha=m.sha(old_source)
+        legacy=stage/'legacy-full-source.msi';shutil.copyfile(old_source,legacy)
+        if full:
+            from qualify_installer_ui import NativeUI
+            ui=NativeUI(stage/'native/context.setup-ui.json')
+            row=ui.run(old_source,directory,'setup-install',selection='cli',native_process=True,setup_process=True)
+            result['transactions'].append(row)
+        else:run('old',['--quiet','--accept-license','--install-dir',str(directory),'--clients','cli','--start-menu','0','--desktop-shortcut','0'],0)
         if dll.MsiQueryProductStateW(model['old_product'])!=5:raise RuntimeError('setup did not install old registration')
         expected={item['path']:m.sha(directory/item['path']) for item in model['payload'] if item['feature']!='Desktop'}
-        (stage/'ui-old.msi').unlink();(stage/'ui-old-setup.exe').unlink()
+        def unchanged():
+            if dll.MsiQueryProductStateW(model['old_product'])!=5 or dll.MsiQueryProductStateW(model['new_product'])!=-1 or any(m.sha(directory/name)!=sha for name,sha in expected.items()):raise RuntimeError('source preflight changed the working installation')
+        cache_source=root/model['old_product']/'source.msi'
+        if not full:
+            # An actual legacy raw-MSI install has no source producer. Recreate
+            # that state, then prove missing-source refusal before old removal.
+            quiet_install(['/x',model['old_product']],stage/'native/context.setup-legacy-reset.log')
+            if (root/model['old_product']).exists():raise RuntimeError('committed raw removal retained old source cache')
+            quiet_install(['/i',old_source,'INSTALLDIR='+str(directory),'LICENSE_ACCEPTED=1','ADDLOCAL=Core,CLI','REMOVE=Desktop','START_MENU=0','DESKTOP_SHORTCUT=0','LAUNCH=0'],stage/'native/context.setup-legacy-install.log')
+            run('bad',['--quiet','--accept-license'],1603);unchanged()
+            if (root/'pending.json').exists():raise RuntimeError('missing source began a destructive upgrade')
+            run('bad',['--quiet','--accept-license','--previous-msi',str(legacy),'--previous-sha256',old_sha],1603);unchanged()
+            result['legacy_source_refusal_and_reseed']='passed'
+            backup=stage/'owned-cached-source.backup';shutil.copyfile(cache_source,backup)
+            with cache_source.open('r+b') as stream:stream.seek(128);value=stream.read(1);stream.seek(128);stream.write(bytes([value[0]^1]))
+            run('bad',['--quiet','--accept-license'],1603);unchanged()
+            if (root/'pending.json').exists():raise RuntimeError('corrupt source began a destructive upgrade')
+            shutil.copyfile(backup,cache_source);backup.unlink();result['corrupt_source_refusal']='passed'
+        old_source.unlink();(stage/'ui-old-setup.exe').unlink();legacy.unlink()
         result['downloaded_old_sources_absent']=True
-        run('bad',['--quiet','--accept-license'],1603)
-        if dll.MsiQueryProductStateW(model['old_product'])!=5 or dll.MsiQueryProductStateW(model['new_product'])!=-1:raise RuntimeError('production setup failed to restore installed registration')
-        if any(m.sha(directory/name)!=sha for name,sha in expected.items()):raise RuntimeError('production setup did not restore exact old payload')
-        q.assert_unchecked_shortcuts()
+        if full:
+            for name,cancel,code in [('cancel','execution',1602),('bad',None,1603)]:
+                row=ui.run(stage/('ui-'+name+'.msi'),directory,'setup-'+name,operation='upgrade',selection='cli',cancel=cancel,expected=code,native_process=True,setup_process=True)
+                result['transactions'].append(row);unchanged()
+                if cancel and row.get('old_removed_before_cancel') is not True:raise RuntimeError('actual Cancel did not occur after old removal')
+                receipt=json.loads((root/'last-result.json').read_text(encoding='utf-8'))
+                if receipt['native_code']!=code or receipt['setup_code']!=code or receipt['recovery']!='completed':raise RuntimeError('setup did not complete recovery before native return')
+        else:run('bad',['--quiet','--accept-license'],1603)
+        unchanged();q.assert_unchecked_shortcuts()
         receipt=json.loads((root/'last-result.json').read_text(encoding='utf-8'))
         if receipt['native_code']!=1603 or receipt['setup_code']!=1603 or receipt['recovery']!='completed':raise RuntimeError('production coordinator result does not prove synchronous recovery')
         result['state']='passed';return result
@@ -340,6 +371,7 @@ def main():
     build(fixture/'insonic-launcher.exe','./cmd/insonic-launcher')
     build(fixture/'owned-coordinator.exe','tests/fixtures/msi-recovery-coordinator.go')
     build(fixture/'owned-setup.exe','./cmd/insonic-setup')
+    build(fixture/'owned-cancel-barrier.exe','tests/fixtures/setup-cancel-barrier.go')
     import windows_setup
     windows_setup.add_resources((fixture/'owned-setup.exe').resolve(),json.loads((m.ROOT/'package.json').read_text(encoding='utf-8'))['version'])
     source=work/'token-only.go';source.write_text(q.LAUNCH_REPORTER_SOURCE.replace('if filepath.Base(exe)=="documentation-handler.exe" {\n','if filepath.Base(exe)=="documentation-handler.exe" && false {\n'),encoding='utf-8',newline='\n')
@@ -358,9 +390,9 @@ def main():
     model=m.installer_model(inventory,m.digest(raw),(fixture/'LICENSE').read_text(encoding='utf-8'),upgrade=m.guid('invocation-diagnostic/'+__import__('uuid').uuid4().hex))
     installer=work/'diagnostic.msi';m.author(installer,fixture,model)
     kind=os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_KIND','completion')
-    if kind not in ('completion','rollback','msiexec','recovery','exit','container','container-independent','standalone','standalone-full','setup'):raise RuntimeError('unknown diagnostic kind')
+    if kind not in ('completion','rollback','msiexec','recovery','exit','container','container-independent','standalone','standalone-full','setup','setup-full'):raise RuntimeError('unknown diagnostic kind')
     modes=['completion'] if kind=='completion' else ['rollback-msiexec'] if kind=='msiexec' else ['rollback-recovery'] if kind=='recovery' else ['rollback-exit-quiet','rollback-exit-full'] if kind=='exit' else ['rollback-standalone-full'] if kind=='standalone-full' else ['rollback-standalone'] if kind=='standalone' else ['rollback-container-independent'] if kind=='container-independent' else ['rollback-container'] if kind=='container' else [mode for mode in q.DIAGNOSTIC_MODES[1:] if mode not in ('rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container','rollback-container-independent','rollback-standalone','rollback-standalone-full')]
-    if kind=='setup':modes=['rollback-setup']
+    if kind in ('setup','setup-full'):modes=['rollback-'+kind]
     results=[]
     for mode in modes:
         os.environ['INSONIC_INSTALLER_DIAGNOSTIC_MODE']=mode

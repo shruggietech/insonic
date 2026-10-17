@@ -34,6 +34,17 @@ def versioned_pe_fixture():
     struct.pack_into('<IIII',data,512+72,0x1000+88,len(value),0,0);data[600:600+len(value)]=value
     return bytes(data)
 class InstallerModelTests(unittest.TestCase):
+    def test_source_cleanup_waits_for_committed_removal_and_excludes_upgrade_removal(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            _,model=fixture(Path(temporary))
+        actions={row[0]:row for row in model['tables']['CustomAction']}
+        sequence={row[0]:row for row in model['tables']['InstallExecuteSequence']}
+        cleanup=actions['CleanupSetupSource']
+        self.assertEqual(cleanup[1],66)  # synchronous binary EXE, nonfatal after commit
+        self.assertEqual(cleanup[3],'--cleanup-setup [ProductCode]')
+        self.assertEqual(sequence['CleanupSetupSource'][1],'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE')
+        self.assertGreater(sequence['CleanupSetupSource'][2],sequence['InstallFinalize'][2])
+
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(prefix='s027-msi-test-');self.path=Path(self.temp.name);self.inv,self.model=fixture(self.path)
     def tearDown(self):self.temp.cleanup()
