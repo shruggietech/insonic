@@ -150,25 +150,57 @@ Figure 6. Close affected clients and finish/cancel work before changing features
 
 Figure 7. The refreshed native completion fixture shows checked client launch and unchecked Open documentation as independent choices. Select either, both or neither, then Finish. Maintenance and terminal failure/cancellation results suppress these choices.
 
+## Actual transaction outcomes
+
+These captures come from completed full-UI Windows Installer journeys in a separate ordinary account on a disposable Windows CI runner. Progress follows native engine events. The installation image uses the exact packaged payload; maintenance, upgrade and rollback images use owned package fixtures with the production installer authoring. Native client reporters verify independent completion actions and user identity. These fixtures do not represent an additional published release or an attended installation on the operator's computer.
+
+![Native installation progress shows an advancing bar and the current engine phase](../screenshots/v1.0.1/installer-08-progress-exact-install.png)
+
+Figure 8. Installation displays actual engine progress and phase text. Cancel requests cancellation while the operation remains cancellable; rollback can take time before setup closes.
+
+![Native repair completion has an operation-specific heading and one Finish action](../screenshots/v1.0.1/installer-09-finish-repair.png)
+
+Figure 9. Successful repair restores the owned program bytes and ends with insonic repaired. Fresh-install client and documentation choices are absent.
+
+![Native removal completion explains retained user data and has one Finish action](../screenshots/v1.0.1/installer-10-finish-remove.png)
+
+Figure 10. Successful removal ends with insonic removed. Libraries, media, settings, models and credentials remain outside program removal.
+
+![Native cancellation result uses Close after the execution transaction rolls back](../screenshots/v1.0.1/installer-11-cancelled-execution-cancel.png)
+
+Figure 11. Cancellation during execution returns native code 1602 and shows Setup cancelled after rollback. This cancellation fixture verifies the prior registration and owned bytes; coordinated upgrade recovery uses the setup EXE.
+
+![Native controlled failure shows Setup could not finish and a single Close action](../screenshots/v1.0.1/installer-12-fatalerror-failed-upgrade.png)
+
+Figure 12. The controlled failed upgrade returns native code 1603, shows the failure result and restores prior owned files. Raw MSI registration can remain advertised after this failure; use the setup EXE for coordinated restoration before return. A failed operation does not offer fresh-install completion actions.
+
+![Native feature-change completion says insonic changed](../screenshots/v1.0.1/installer-13-finish-change.png)
+
+Figure 13. A successful feature change ends with its own heading and one Finish action.
+
+![Native upgrade completion says insonic updated](../screenshots/v1.0.1/installer-14-finish-upgrade.png)
+
+Figure 14. A successful upgrade ends with insonic updated. Client launch and documentation choices belong to successful fresh interactive installation.
+
 ## Application walkthrough
 
 These application images are real rendered controls from the compiled frontend using an isolated library and current shared CLI contracts. Their renderer is headless Chromium rather than native WebView2. Browser/viewport/source and image identities are recorded beside the captures. They contain fixture data, not a user's library. Policy-dependent Edge, SmartScreen and UAC prompts are described above; no unobserved OS dialog is presented as a screenshot.
 
 ![Optional setup showing an editable library location and capacity preview](../screenshots/v1.0.1/setup-location.png)
 
-Figure 8. Optional setup previews an editable library location outside program files. Keep the default or enter your chosen separate library directory, preview capacity, then save the location and continue.
+Figure 15. Optional setup previews an editable library location outside program files. Keep the default or enter your chosen separate library directory, preview capacity, then save the location and continue.
 
 ![Backend choices for a fresh library with local defaults and protected credential inputs](../screenshots/v1.0.1/setup-backends.png)
 
-Figure 9. Keep local backend defaults or explicitly choose the three storage roles before creating a library. Choose local defaults or complete the elected backend fields. Preflight before provisioning; service credentials remain transient protected inputs.
+Figure 16. Keep local backend defaults or explicitly choose the three storage roles before creating a library. Choose local defaults or complete the elected backend fields. Preflight before provisioning; service credentials remain transient protected inputs.
 
 ![Optional processing stage with task readiness and existing pipeline choices](../screenshots/v1.0.1/setup-processing.png)
 
-Figure 10. Optional processing follows successful library creation; import and supplied subtitles need no model download. Elect processing when wanted, or skip it and continue. Application installation alone does not prepare model inference.
+Figure 17. Optional processing follows successful library creation; import and supplied subtitles need no model download. Elect processing when wanted, or skip it and continue. Application installation alone does not prepare model inference.
 
 ![Ordinary Library controls remain available after optional setup is deferred](../screenshots/v1.0.1/library-ready.png)
 
-Figure 11. Deferring setup leaves the ordinary Library controls available. Use ordinary Import controls without completing optional stages.
+Figure 18. Deferring setup leaves the ordinary Library controls available. Use ordinary Import controls without completing optional stages.
 
 ## Support checklist
 

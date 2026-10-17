@@ -1,5 +1,5 @@
 {
-  "artifact_sha256": "9d37628368a686797c3415ed05aba7d3326d50b3f7e689d4bc53dff6cb390045",
+  "artifact_sha256": "782b63b307ea476f6b3aa768f4c75f5f5c0cb2660a2ce126c4812ca3da50c7f2",
   "fixture": {
     "conditional_finish_binding": "actual elected Desktop feature action state, no Finish click or launch",
     "control_election_method": "MsiSetProperty/MsiSetInstallLevel/MsiSetFeatureState, native controls read back before capture",
@@ -334,7 +334,7 @@
     "files": [
       {
         "path": "scripts/windows_msi.py",
-        "sha256": "e2e2a6408ffe4c99cf2d41bb05e9b8935002ec2ad72eb187f09a00f7c2856cf8"
+        "sha256": "fcd5a18830682e53ae5e0a3ada1e873feaee9caecc5e4f224df5d294852fc89a"
       },
       {
         "path": "scripts/capture-installer-ui.py",
@@ -349,6 +349,6 @@
         "sha256": "d4b871a2e1c60680d6a999a73b140ad8371e7ecdadae0dcc50cb6bd6d922f78c"
       }
     ],
-    "revision": "3afa8b4ded04f86fbeee35423b8b22c7af606799"
+    "revision": "9dffeaed6be9736cf945fa3dda1926f8c98a5854"
   }
 }
