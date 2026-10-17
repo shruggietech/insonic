@@ -408,6 +408,23 @@ class NativePackageIntegrityTests(unittest.TestCase):
             self.assertEqual((source / 'library').read_bytes(), b'exact original library')
             self.assertFalse(list(source.parent.glob('ladybug-isolated-*')))
 
+    def test_relocated_archive_can_prove_library_isolation_on_an_sdk_free_host(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / 'build/native/ladybug'
+            source.parent.mkdir(parents=True)
+            with patch.object(package, 'ROOT', root):
+                with package.isolated_development_libraries():
+                    self.assertFalse(source.exists())
+                self.assertFalse(source.exists())
+                with self.assertRaisesRegex(RuntimeError, 'controlled failure'):
+                    with package.isolated_development_libraries():
+                        raise RuntimeError('controlled failure')
+                self.assertFalse(source.exists())
+                with self.assertRaisesRegex(ValueError, 'recreated'):
+                    with package.isolated_development_libraries():
+                        source.mkdir()
+
     def test_extracted_zip_preserves_exact_bytes_and_executable_mode(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

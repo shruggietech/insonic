@@ -144,19 +144,23 @@ def isolated_development_libraries():
     native = (ROOT / 'build/native').resolve()
     original = native / 'ladybug'
     backup = native / ('ladybug-isolated-' + uuid.uuid4().hex)
+    had_development_libraries = original.exists()
     if (not native.is_relative_to(ROOT.resolve()) or not native.is_relative_to((ROOT / 'build').resolve())
-            or not original.is_dir() or original.is_symlink() or backup.exists()
+            or (had_development_libraries and not original.is_dir()) or original.is_symlink() or backup.exists()
             or not original.resolve().is_relative_to(native) or not backup.resolve().is_relative_to(native)):
         raise ValueError('development library isolation target is invalid')
-    original.rename(backup)
+    if had_development_libraries:
+        original.rename(backup)
     try:
         if original.exists():
             raise ValueError('development native libraries remain available during extracted smoke')
         yield
     finally:
         if original.exists():
-            raise ValueError('development native library path was recreated; preserved isolated tree at ' + str(backup))
-        backup.rename(original)
+            detail = '; preserved isolated tree at ' + str(backup) if had_development_libraries else ''
+            raise ValueError('development native library path was recreated' + detail)
+        if had_development_libraries:
+            backup.rename(original)
 
 
 def fetch_license():
