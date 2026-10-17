@@ -33,9 +33,9 @@ func exitOwnedWindow() (uintptr, error) {
 		if pid != uint32(os.Getpid()) || exitWinCall("GetMenu", hwnd) == 0 {
 			return 1
 		}
-		var class [64]uint16
-		exitWinCall("GetClassNameW", hwnd, uintptr(unsafe.Pointer(&class[0])), uintptr(len(class)))
-		if windows.UTF16ToString(class[:]) == "winc_Form" {
+		var title [64]uint16
+		exitWinCall("GetWindowTextW", hwnd, uintptr(unsafe.Pointer(&title[0])), uintptr(len(title)))
+		if windows.UTF16ToString(title[:]) == "insonic" {
 			handles = append(handles, hwnd)
 		}
 		return 1

@@ -84,6 +84,9 @@ func TestExitOwnerFixtureReleasesWorkAfterClientCleanup(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("INSONIC_DESKTOP_FIXTURE_DIRECTORY", filepath.Join(root, "tests", "fixtures", "media"))
+	if os.Getenv("INSONIC_LIBRARY_TOOLS_FILE") == "" {
+		t.Setenv("INSONIC_LIBRARY_TOOLS_FILE", filepath.Join(root, "build", "native", "media-tools.json"))
+	}
 	calls := 0
 	err = runExitQualificationWith(func(fixture exitFixture, _ string) (exitObservation, error) {
 		calls++

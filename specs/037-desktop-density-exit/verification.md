@@ -27,3 +27,12 @@ Product tests and native behavior remain unexecuted at this planning checkpoint.
 - T015 complete: clean sourcee45f90a653314ff61bd119f77f2f5143d2eab2f9 passes all96 scenarios with actual Tab/Space focus and label-padding activation, values restored, and original receipts/PNGs published unchanged. Capture/build/check took20.047seconds. A relative-label locator defect in the test harness was corrected before this successful run.
 
 - Final local site check/test/build and repository check/test pass with the updated captures. UTF-8/no-BOM, LF and mojibake checks report no problems across the changed text files; git diff whitespace validation passes.
+
+## PR/native validation
+
+- PR153 opened onb0cdad3f6f8da184c2036ad956372201dd3a15e7. Automatic code review (round1) completed with zero findings and no review threads. Both issues and the PR are in Project7 review under milestone21.
+- Initial source native jobs on Windows/Linux exposed a test-only relative companion path: Go tests run from cmd/insonic-desktop, while the fixture used build/native relative to that directory. The test now supplies an absolute repository-root media-tools path when no override is elected. A local regression with INSONIC_LIBRARY_TOOLS_FILE removed passes in4.407seconds. No gate was removed or relaxed.
+- The initial extracted Linux desktop package job passed its actual GTK Exit, ordinary close, playback cleanup, exact shared runtime/work survival and acquisition completion assertions, as well as the compact-control native journey.
+
+- Initial Windows archive qualification reached the new native Exit probe after passing the compact native journey, then rejected the application window because the probe filtered for the underlying winc_Form class. Inspection of pinned Wails2.16.0 window.go confirms its application class is wailsWindow. The probe now selects only its own PID, exact application title and actual native menu, retaining ambiguity rejection and mnemonic activation without depending on that internal class. The corrected Windows probe compiles, and the override-free fixture test passes again.
+- Windows setup, maintenance and interactive installer lanes passed on the initial head. The archive lane failure above and the two source test-fixture failures are addressed together before rerunning full qualification.
