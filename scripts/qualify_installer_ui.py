@@ -211,7 +211,7 @@ class NativeUI:
                     if initialized:ole.CoUninitialize()
                 finally:done.set()
         thread=threading.Thread(target=install,name='owned-native-full-ui',daemon=True);thread.start()
-        deadline=time.monotonic()+60;last=None;cancel_sent=False;terminal_closed=False
+        deadline=time.monotonic()+60;last=None;cancel_sent=False;terminal_closed=False;navigation=0
         try:
             while not done.is_set():
                 if time.monotonic()>deadline:raise RuntimeError('full-UI transaction exceeded bound: '+name)
@@ -252,14 +252,30 @@ class NativeUI:
                     if page=='Welcome':self.click(controls,'Next')
                     elif page=='License':
                         next_button=self.button(controls,'Next')
-                        if self.send(self.button(controls,'I accept the Apache License 2.0'),0xf0)!=0 or self.u.IsWindowEnabled(next_button):raise RuntimeError('license acceptance default changed')
+                        accepted=self.send(self.button(controls,'I accept the Apache License 2.0'),0xf0)
+                        if navigation==3:
+                            if accepted!=1 or not self.u.IsWindowEnabled(next_button):raise RuntimeError('Back navigation lost accepted license')
+                            navigation=4
+                        elif accepted!=0 or self.u.IsWindowEnabled(next_button):raise RuntimeError('license acceptance default changed')
                         self.check(controls,'I accept the Apache License 2.0',True);self.click(controls,'Next')
                     elif page=='Choices':
+                        if navigation in (2,4):
+                            for label,elected in [('Desktop application',selection!='cli'),('CLI integrations (persistent help/setup session)',selection!='desktop'),('Create Start menu shortcuts',False),('Create Desktop shortcut for the desktop application',False)]:
+                                if self.send(self.button(controls,label),0xf0)!=int(elected):raise RuntimeError('Back navigation lost selected clients/shortcuts')
+                            if navigation==2:navigation=3;self.click(controls,'Back');continue
+                            navigation=5
                         self.check(controls,'Desktop application',selection!='cli');self.check(controls,'CLI integrations (persistent help/setup session)',selection!='desktop')
                         self.check(controls,'Create Start menu shortcuts',False);self.check(controls,'Create Desktop shortcut for the desktop application',False);self.click(controls,'Next')
-                    elif page=='Location':self.click(controls,'Next')
+                    elif page=='Location':
+                        if navigation==1:navigation=2;self.click(controls,'Back')
+                        else:
+                            if navigation==5:navigation=6
+                            self.click(controls,'Next')
                     elif page=='Ready':
-                        if cancel=='ready':self.click(controls,'Cancel');cancel_sent=True
+                        if name=='enlarged-font-cancel' and navigation==0:navigation=1;self.click(controls,'Back')
+                        elif cancel=='ready':
+                            if navigation!=6:raise RuntimeError('configuration Back round trip did not complete')
+                            state['navigation_selections_preserved']=True;self.click(controls,'Cancel');cancel_sent=True
                         else:self.click(controls,{'install':'Install','upgrade':'Update','change':'Apply changes'}[operation])
                     elif page=='Maintenance':self.click(controls,{'repair':'Repair','remove':'Remove','change':'Next'}[operation])
                     else:

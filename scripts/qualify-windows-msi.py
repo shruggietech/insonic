@@ -578,7 +578,7 @@ def interactive_ordinary(stage,name,sid,password,profile,desktop,record):
         # caller session. Its profile is already held by the parent's one lease.
         if not security.CreateProcessWithLogonW(name,'.',password,0,executable,command,0x08000400,environment,str(stage),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
         child_token=W.HANDLE()
-        if not security.OpenProcessToken(process.process,8,C.byref(child_token)):raise C.WinError(C.get_last_error())
+        if not security.OpenProcessToken(process.process,0x0a,C.byref(child_token)):raise C.WinError(C.get_last_error())
         try:child_observed=token_info(child_token)
         finally:kernel.CloseHandle(child_token)
         if child_observed['user_sid_sha256']!=desktop['target_user_sid_sha256'] or child_observed['session_id']!=desktop['session_id'] or child_observed['elevated'] or child_observed['administrator_enabled'] or child_observed['integrity_rid']!=8192:raise RuntimeError('created interactive process token differs from ordinary actor')

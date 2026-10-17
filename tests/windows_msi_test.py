@@ -306,11 +306,11 @@ class InstallerModelTests(unittest.TestCase):
             self.assertEqual((account,domain,secret,logon),(name,'.',password,0));self.assertTrue(exe.endswith('pythonw.exe'));self.assertLess(len(command.value),1024);self.assertEqual(flags,0x08000400);self.assertEqual(startup._obj.desktop,desktop['path']);self.assertEqual(cwd,str(stage));self.assertNotIn(password,command.value+environment.value)
             self.assertNotIn(password,(stage/'scripts/interactive-bootstrap.py').read_text());out._obj.process=555;out._obj.thread=556;out._obj.pid=888
             (stage/'native/context.ui.json').write_text(json.dumps({'token':target,'state':'passed'}),encoding='utf-8');return True
-        def token(process,access,out):self.assertEqual((process,access),(555,8));out._obj.value=444;return True
+        def token(process,access,out):self.assertEqual((process,access),(555,0x0a));out._obj.value=444;return True
         def code(process,out):out._obj.value=0;return True
         security=SimpleNamespace(CreateProcessWithLogonW=Function(create),OpenProcessToken=Function(token))
         kernel=SimpleNamespace(WaitForSingleObject=Function(lambda *args:0),GetExitCodeProcess=Function(code),CloseHandle=Function(lambda handle:closed.append(handle.value if hasattr(handle,'value') else handle)),TerminateProcess=Function(lambda *args:self.fail('successful child must not be killed')))
-        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'COMPUTERNAME':'CIHOST'}),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:{'advapi32':security,'kernel32':kernel}[name],create=True),patch.object(module,'token_info',side_effect=[{'session_id':2},target]):
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'COMPUTERNAME':'CIHOST','SystemRoot':str(self.path/'Windows')},clear=True),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:{'advapi32':security,'kernel32':kernel}[name],create=True),patch.object(module,'token_info',side_effect=[{'session_id':2},target]):
             module.interactive_ordinary(stage,name,sid,password,self.path/name,desktop,lambda phase,**extra:events.append({'phase':phase,**extra}))
         self.assertEqual(closed,[444,556,555]);self.assertEqual(events[0]['token'],target);self.assertFalse(events[0]['profile_loaded_by_child']);self.assertFalse(events[0]['session_token_reassignment']);self.assertNotIn(password,repr(events))
 
