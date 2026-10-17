@@ -6,3 +6,7 @@
 - Launcher: explicit documentation mode shares installed-help validation and OS opening with desktop. Windows preserves non-elevated invoking user; no forced-browser fallback.
 - MSI: client launch remains checked on fresh full-UI success; Open documentation is independent and unchecked. Neither action executes for other modes/outcomes. Documentation failure cannot fail the committed install.
 - Verification: real transactions/activation receipts are distinct from portable model and restricted dialog rendering checks.
+
+## Upgrade recovery completion
+
+Direct MSI full-UI and unattended invocations retain the original cancellation/failure code. Before the call returns, recover the prior registered installation when destructive work has occurred, using supported public Installer operations and the validated original full package. Complete recovery requires registration, choices and old bytes; UI and logs distinguish incomplete recovery. Missing/corrupt recovery data stops the upgrade before old removal and identifies the local-source correction. Fresh-install post-actions remain suppressed on every failure/cancellation. Successful upgrade/removal clean obsolete application-owned recovery material. No elevation, external routing or Windows Installer internal registry/cache edits are introduced.

@@ -124,7 +124,8 @@ def rollback_case(stage,name):
         try:recovery['without_original_source']=attempt('missing-source')
         finally:hidden.rename(source)
         if recovery['without_original_source']['code']!=0:recovery['with_original_source']=attempt('available-source')
-    if mode=='rollback-exit-quiet':
+    if mode in ('rollback-exit-quiet','rollback-container'):
+        if mode=='rollback-container' and name=='failed-upgrade':installer=stage/'recovery-container.msi'
         log=stage/'native'/('context.ui-rollback-'+name+'.log')
         code=q.run_installer(['/i',str(installer),'INSTALLDIR='+str(stage/'UI program é & spaces'),'ADDLOCAL=Core,CLI','REMOVE=Desktop','START_MENU=0','DESKTOP_SHORTCUT=0','LICENSE_ACCEPTED=1','LAUNCH=0','REBOOT=ReallySuppress'],log,expected=name=='install')
         row={'name':'rollback-'+name,'code':code,'native_engine':'MsiInstallProductW NONE','feature_qualification':False}
@@ -133,10 +134,37 @@ def rollback_case(stage,name):
     if mode in ('rollback-exit-full','rollback-exit-quiet') and name=='failed-upgrade':
         target=stage/'native/context.recovery-available-source.json'
         recovery['execute_sequence_exit']=json.loads(target.read_text(encoding='utf-8')) if target.is_file() else {'not_observed':True}
+    if mode=='rollback-container' and name=='failed-upgrade':
+        receipt=stage/'native/context.container-coordinator.json'
+        row['container_at_client_return']=json.loads(receipt.read_text(encoding='utf-8')) if receipt.is_file() else {'not_observed':True}
     if recovery:row['registration_recovery']=recovery
     row['token']=token
     (stage/'native'/('context.rollback-'+name+'.json')).write_text(json.dumps(row,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     return row
+
+
+def author_recovery_container_probe(stage):
+    m.disposable_runner();stage=Path(stage);q=m.quote
+    product=m.guid('owned-container/'+stage.name)
+    db=m.NativeDatabase(stage/'recovery-container.msi',create=True)
+    schema={
+        'Property':[('Property','CHAR(72) NOT NULL'),('Value','CHAR(0)')],
+        'Directory':[('Directory','CHAR(72) NOT NULL'),('Directory_Parent','CHAR(72)'),('DefaultDir','CHAR(255) NOT NULL')],
+        'InstallExecuteSequence':[('Action','CHAR(72) NOT NULL'),('Condition','CHAR(255)'),('Sequence','SHORT')],
+        'MsiEmbeddedChainer':[('MsiEmbeddedChainer','CHAR(72) NOT NULL'),('Condition','CHAR(255)'),('CommandLine','CHAR(0)'),('Source','CHAR(72) NOT NULL'),('Type','SHORT NOT NULL')],
+        'Binary':[('Name','CHAR(72) NOT NULL'),('Data','OBJECT NOT NULL')],
+    }
+    def add(table,values,streams=()):db.execute('INSERT INTO '+q(table)+' ('+','.join(q(c[0]) for c in schema[table])+') VALUES ('+','.join('?' for _ in values)+')',values,streams=streams)
+    try:
+        for table,columns in schema.items():db.execute('CREATE TABLE '+q(table)+' ('+','.join(q(name)+' '+kind for name,kind in columns)+' PRIMARY KEY '+q(columns[0][0])+')')
+        for key,value in {'ProductCode':product,'ProductName':'Owned unregistered recovery container','ProductVersion':'1.0.1','ProductLanguage':'1033','Manufacturer':'ShruggieTech','REBOOT':'ReallySuppress'}.items():add('Property',[key,value])
+        add('Directory',['TARGETDIR',None,'SourceDir'])
+        for action,number in [('CostInitialize',800),('FileCost',900),('CostFinalize',1000),('InstallValidate',1400),('InstallInitialize',1500),('InstallFinalize',6600)]:add('InstallExecuteSequence',[action,None,number])
+        add('Binary',['OwnedRecoveryCoordinator',stage/'launcher-context-fixture/owned-coordinator.exe'],streams=(2,))
+        add('MsiEmbeddedChainer',['OwnedRecoveryCoordinator','1','"'+str(stage)+'"','OwnedRecoveryCoordinator',2])
+        db.summary(m.guid('owned-container-package/'+stage.name));db.check(db.dll.MsiDatabaseCommit(db.handle))
+    finally:db.close()
+    (stage/'container-product.json').write_text(json.dumps({'product_code':product,'feature_qualification':False}),encoding='utf-8',newline='\n')
 
 
 def author_recovery_exit_probe(stage):
@@ -167,6 +195,7 @@ def observe_rollback(stage,token,quiet_install):
     m.disposable_runner();stage=Path(stage)
     mode=qualifier().diagnostic_mode(stage);isolated=mode=='rollback-isolated'
     candidate=None
+    if mode=='rollback-container':author_recovery_container_probe(stage)
     if mode in ('rollback-exit-full','rollback-exit-quiet'):
         author_recovery_exit_probe(stage)
     if mode in ('rollback-primed','rollback-late'):
@@ -252,6 +281,7 @@ def main():
         done=subprocess.run(['go','build','-ldflags','-H windowsgui','-o',str(target),source],cwd=m.ROOT,env=env,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=60)
         if done.returncode:raise RuntimeError(done.stderr.decode(errors='replace')[-4000:])
     build(fixture/'insonic-launcher.exe','./cmd/insonic-launcher')
+    build(fixture/'owned-coordinator.exe','tests/fixtures/msi-recovery-coordinator.go')
     source=work/'token-only.go';source.write_text(q.LAUNCH_REPORTER_SOURCE.replace('if filepath.Base(exe)=="documentation-handler.exe" {\n','if filepath.Base(exe)=="documentation-handler.exe" && false {\n'),encoding='utf-8',newline='\n')
     build(fixture/'insonic-desktop.exe',str(source));shutil.copyfile(fixture/'insonic-desktop.exe',fixture/'insonic.exe')
     wrapper=work/'invocation-wrapper.go';body=q.LAUNCH_REPORTER_SOURCE.replace(' "crypto/sha256"',' "context"\n "bytes"\n "time"\n "crypto/sha256"').replace(' diagnostic("token-recorded",nil)',' diagnostic("token-recorded",nil)\n'+WRAPPER)
@@ -268,8 +298,8 @@ def main():
     model=m.installer_model(inventory,m.digest(raw),(fixture/'LICENSE').read_text(encoding='utf-8'),upgrade=m.guid('invocation-diagnostic/'+__import__('uuid').uuid4().hex))
     installer=work/'diagnostic.msi';m.author(installer,fixture,model)
     kind=os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_KIND','completion')
-    if kind not in ('completion','rollback','msiexec','recovery','exit'):raise RuntimeError('unknown diagnostic kind')
-    modes=['completion'] if kind=='completion' else ['rollback-msiexec'] if kind=='msiexec' else ['rollback-recovery'] if kind=='recovery' else ['rollback-exit-quiet','rollback-exit-full'] if kind=='exit' else [mode for mode in q.DIAGNOSTIC_MODES[1:] if mode not in ('rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet')]
+    if kind not in ('completion','rollback','msiexec','recovery','exit','container'):raise RuntimeError('unknown diagnostic kind')
+    modes=['completion'] if kind=='completion' else ['rollback-msiexec'] if kind=='msiexec' else ['rollback-recovery'] if kind=='recovery' else ['rollback-exit-quiet','rollback-exit-full'] if kind=='exit' else ['rollback-container'] if kind=='container' else [mode for mode in q.DIAGNOSTIC_MODES[1:] if mode not in ('rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container')]
     results=[]
     for mode in modes:
         os.environ['INSONIC_INSTALLER_DIAGNOSTIC_MODE']=mode
