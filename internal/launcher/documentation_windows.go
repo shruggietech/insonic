@@ -11,10 +11,24 @@ import (
 	"unsafe"
 )
 
-func openDocumentation(directory, entry string) error {
+func openDocumentation(directory, target string) error {
+	if !filepath.IsAbs(directory) {
+		return documentationCorrection
+	}
 	helper := filepath.Join(directory, "insonic-launcher.exe")
-	if handled, err := launchLimited(Plan{Mode: "documentation", Executable: helper, CommandLine: syscall.EscapeArg(helper) + " --documentation --interactive"}); handled || err != nil {
+	command := syscall.EscapeArg(helper) + " --documentation --interactive"
+	if target != "" {
+		command += " --reference " + syscall.EscapeArg(target)
+	}
+	if handled, err := launchLimited(Plan{Mode: "documentation", Executable: helper, CommandLine: command}); handled || err != nil {
 		return err
+	}
+	if target == "" {
+		var err error
+		target, err = DocumentationEntry(directory)
+		if err != nil {
+			return err
+		}
 	}
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -24,7 +38,7 @@ func openDocumentation(directory, entry string) error {
 		return documentationCorrection
 	}
 	defer ole.NewProc("CoUninitialize").Call()
-	file, err := windows.UTF16PtrFromString(entry)
+	file, err := windows.UTF16PtrFromString(target)
 	if err != nil {
 		return documentationCorrection
 	}

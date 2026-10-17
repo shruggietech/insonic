@@ -9,6 +9,7 @@ export interface Response {
 }
 export interface NativeBridge {
   OpenHelp?(): Promise<Response>;
+  OpenHelpReference?(url:string):Promise<Response>;
   Show(): Promise<Response>;
   SetupDraft?(action: string, input: string, requestID: string): Promise<Response>;
   BackendSetup?(action:string,path:string,plan:string,protectedInput:string,mode:string,requestID:string):Promise<Response>;

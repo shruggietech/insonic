@@ -35,3 +35,46 @@ func TestDocumentationEntryUsesInstalledIdentity(t *testing.T) {
 		t.Fatal("missing help accepted")
 	}
 }
+
+func TestDocumentationRejectsEscapedRootAndAcceptsProgramAlias(t *testing.T) {
+	program := t.TempDir()
+	outside := t.TempDir()
+	if err := os.WriteFile(filepath.Join(outside, "offline-manifest.json"), []byte(`{"version":"`+contracts.Version+`","entrypoint":"index.html"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(outside, "index.html"), []byte("outside installation"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	directoryAlias(t, outside, filepath.Join(program, "help"))
+	if _, err := DocumentationEntry(program); err == nil {
+		t.Fatal("accepted a help root outside the installed program")
+	}
+	if err := os.Remove(filepath.Join(program, "help")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(program, "help"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"offline-manifest.json", "index.html"} {
+		data, _ := os.ReadFile(filepath.Join(outside, name))
+		if err := os.WriteFile(filepath.Join(program, "help", name), data, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	alias := filepath.Join(t.TempDir(), "program alias é")
+	directoryAlias(t, program, alias)
+	if _, err := DocumentationEntry(alias); err != nil {
+		t.Fatal("legitimate program relocation alias rejected", err)
+	}
+}
+
+func TestDocumentationReferencesExcludePrivateOriginsAndExecutableSchemes(t *testing.T) {
+	for _, value := range []string{"file:///private.html", "javascript:alert(1)", "http://wails.localhost/assets/help/index.html", "https://name:secret@example.org/", "//example.org/", "https://example.org/\nargument"} {
+		if ValidDocumentationReference(value) {
+			t.Fatal("accepted invalid external reference", value)
+		}
+	}
+	if !ValidDocumentationReference("https://learn.microsoft.com/en-us/windows/?a=one&b=two#topic") {
+		t.Fatal("rejected explicit web reference")
+	}
+}

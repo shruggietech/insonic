@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,8 +19,12 @@ func DocumentationEntry(directory string) (string, error) {
 	if !filepath.IsAbs(directory) {
 		return "", documentationCorrection
 	}
-	base, err := filepath.EvalSymlinks(filepath.Join(directory, "help"))
+	program, err := filepath.EvalSymlinks(directory)
 	if err != nil {
+		return "", documentationCorrection
+	}
+	base, err := filepath.EvalSymlinks(filepath.Join(program, "help"))
+	if err != nil || !containsPath(program, base) || base == program {
 		return "", documentationCorrection
 	}
 	f, err := os.Open(filepath.Join(base, "offline-manifest.json"))
@@ -47,11 +52,24 @@ func DocumentationEntry(directory string) (string, error) {
 }
 
 func OpenDocumentation(directory string) error {
-	entry, err := DocumentationEntry(directory)
-	if err != nil {
-		return err
+	return openDocumentation(directory, "")
+}
+
+// Online references are an explicit user election outside the offline frame.
+// Private application origins and executable/non-web schemes never leave it.
+func ValidDocumentationReference(value string) bool {
+	if len(value) > 2048 || strings.ContainsAny(value, "\x00\r\n") {
+		return false
 	}
-	return openDocumentation(directory, entry)
+	u, err := url.ParseRequestURI(value)
+	return err == nil && (u.Scheme == "https" || u.Scheme == "http") && u.Host != "" && u.User == nil && !strings.EqualFold(strings.TrimSuffix(u.Hostname(), "."), "wails.localhost") && !strings.EqualFold(strings.TrimSuffix(u.Hostname(), "."), "wails")
+}
+
+func OpenDocumentationReference(directory, target string) error {
+	if !ValidDocumentationReference(target) {
+		return documentationCorrection
+	}
+	return openDocumentation(directory, target)
 }
 
 // DocumentationManifest is shared by installed-file and embedded-view consumers.

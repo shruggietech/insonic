@@ -7,11 +7,14 @@ import (
 	"io/fs"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
 // HelpAssetPolicy keeps bundled help independent of network availability. It
-// applies to both navigation and resources inside the controlled native frame.
+// restricts resources; the frame navigation handler routes explicit web links
+// through the native system-browser dispatcher.
 func HelpAssetPolicy(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasPrefix(r.URL.Path, "/assets/help/") {
@@ -50,6 +53,32 @@ func (b *Bridge) OpenHelp() contracts.Response {
 }
 func helpFailure() contracts.Response {
 	return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Error: contracts.Condition("unavailable", "documentation_open")}
+}
+
+func (b *Bridge) OpenHelpReference(target string) contracts.Response {
+	if !launcher.ValidDocumentationReference(target) {
+		return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Error: contracts.Fail("invalid_request")}
+	}
+	b.mu.Lock()
+	opener := b.referenceOpen
+	if b.qualification != nil {
+		// The explicit native fixture observes dispatch without opening an
+		// internet site or changing the runner's web association.
+		b.qualification["help_reference"] = target
+		opener = func(string) error { return nil }
+	}
+	b.mu.Unlock()
+	if opener == nil {
+		executable, err := os.Executable()
+		if err != nil {
+			return helpFailure()
+		}
+		opener = func(value string) error { return launcher.OpenDocumentationReference(filepath.Dir(executable), value) }
+	}
+	if opener(target) != nil {
+		return helpFailure()
+	}
+	return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Result: map[string]any{"opened": true}}
 }
 
 // ConfigureHelpQualification elects only the explicit no-workspace native fixture.

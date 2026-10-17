@@ -35,8 +35,16 @@ func run(args []string) int {
 		return 0
 	}
 	describe := false
-	for _, a := range args {
+	reference := ""
+	for index := 0; index < len(args); index++ {
+		a := args[index]
 		switch a {
+		case "--reference":
+			index++
+			if index >= len(args) || reference != "" {
+				return fail(fmt.Errorf("one documentation reference URL is required"))
+			}
+			reference = args[index]
 		case "--documentation":
 			if mode != "" {
 				return fail(fmt.Errorf("choose one action"))
@@ -63,11 +71,20 @@ func run(args []string) int {
 	if interactive && mode != "documentation" {
 		return fail(fmt.Errorf("interactive warnings require documentation mode"))
 	}
+	if reference != "" && (mode != "documentation" || describe || !launcher.ValidDocumentationReference(reference)) {
+		return fail(fmt.Errorf("use an explicit web reference with documentation mode"))
+	}
 	exe, e := os.Executable()
 	if e != nil {
 		return fail(e)
 	}
 	directory := filepath.Dir(exe)
+	if reference != "" {
+		if err := launcher.OpenDocumentationReference(directory, reference); err != nil {
+			return fail(err)
+		}
+		return 0
+	}
 	if mode == "" && describe {
 		if _, e := os.Stat(filepath.Join(directory, "insonic-desktop.exe")); e == nil {
 			mode = "desktop"

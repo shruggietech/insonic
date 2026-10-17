@@ -43,3 +43,8 @@ Independent test: all client selections support either/both/neither post-action,
 ## Dependencies and execution
 
 T001 -> T002 -> read-only analyze gate -> T003/T004 -> T005/T006/T007 and T008/T009/T010 -> T011/T012/T013 -> T014/T015 -> T016. US1 and US2 can be qualified independently, while US3 integrates their shared boundaries. Primary agent owns sequential shared-file edits; independent read-only research and hidden verification may run in parallel. Do not run competing MSI transactions concurrently. Deliver all three issues, no release or merge.
+
+## Phase 7: Convergence
+
+- [ ] T017 [HIGH, partial, FR-001/FR-002/FR-003/FR-006/FR-007/FR-008, SC-001/SC-003/SC-004] Complete the actual full-UI driver in scripts/qualify_installer_ui.py using effective native UI-level evidence and a supported unrestricted transaction entry point or proven isolated desktop context. Observe all authored pages, engine progress, real outcomes/rollback and all independent completion elections without supplying license acceptance or substituting callback cancellation/results. Hosted receipts show effective NONE before entering any authored UI.
+- [ ] T018 [HIGH, partial, FR-008, SC-001/SC-005] Retain, verify and publish actual transaction progress/operation/cancel/failure captures and final proof in docs/screenshots/v1.0.1 and verification.md after T017 passes; keep the seven restricted-session captures truthfully distinguished. Verify exact-head CI and the bounded review/thread closure before owner handoff.

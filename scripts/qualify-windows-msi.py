@@ -545,7 +545,9 @@ def ordinary_worker(installer,directory,output):
     def record(phase,**extra):progress.write_text(json.dumps({'pid':os.getpid(),'phase':phase,**extra},sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     record('python-started');observed=token_info();record('token-observed',token=observed,mutex_before_install=installer_mutex_diagnostic())
     if observed['administrator_enabled'] or observed['enabled_privileges']>1 or observed['elevated'] or observed['integrity_rid']!=8192:raise RuntimeError('ordinary worker retained administrator membership/privileges/elevation or did not run at medium integrity')
-    if os.environ.get('INSONIC_CI_ORDINARY_SCHEDULER')=='1' and (not observed['interactive_logon'] or observed['session_id']!=0):raise RuntimeError('ordinary worker did not retain its isolated session with an interactive logon')
+    if os.environ.get('INSONIC_CI_ORDINARY_SCHEDULER')=='1':
+        desktop=json.loads((directory.parent/'ui-actor-desktop.json').read_text(encoding='utf-8'))
+        if not observed['interactive_logon'] or observed['session_id']!=desktop['session_id'] or observed['user_sid_sha256']!=desktop['target_user_sid_sha256']:raise RuntimeError('ordinary worker did not retain its exact interactive CI desktop/session and ordinary logon')
     product=dict(m.table_rows(m.CompoundFile(installer).streams,'Property'))['ProductCode']
     from qualify_installer_ui import qualify as qualify_ui
     ui_evidence=qualify_ui(directory.parent,installer,directory,output,observed,run_installer)
@@ -869,7 +871,8 @@ def ordinary_system_broker(pipe,installer,directory,output):
         credentials['password']=None;target_observed=token_info(target)
         if target_observed['user_sid_sha256']!=m.digest(credentials['sid'].encode()) or target_observed['administrator_enabled'] or target_observed['elevated'] or target_observed['enabled_privileges']>1 or target_observed['integrity_rid']!=8192 or target_observed['session_id']!=0 or not target_observed['interactive_logon']:raise RuntimeError('broker target did not retain its actual normal-user identity/token')
         record('target-token-observed',target_token=target_observed)
-        with private_context_desktop(credentials['sid'],'S-1-5-18') as desktop:
+        with ordinary_actor_desktop(target,credentials['sid'],directory.parent) as desktop:
+            target_observed=desktop['target_token']
             startup=Startup();startup.cb=C.sizeof(startup);startup.flags=1;startup.show=0;startup.desktop=desktop['path']
             args=[sys.executable,__file__,'--ordinary-worker',str(installer),'--context-dir',str(directory),'--output',str(output)];command=C.create_unicode_buffer(subprocess.list2cmdline(args));environment=C.create_unicode_buffer('\0'.join(key+'='+value for key,value in sorted(os.environ.items()))+'\0\0')
             record('before-target-process',target_token=target_observed,desktop=desktop)
@@ -888,6 +891,100 @@ def ordinary_system_broker(pipe,installer,directory,output):
             kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000)
         for handle in (process.thread,process.process,target):
             if handle:kernel.CloseHandle(handle)
+
+@__import__('contextlib').contextmanager
+def interactive_context_desktop(user_sid,caller_sid,stage):
+    """Hold one inactive desktop in the existing CI caller's interactive session.
+
+    The temporary station ACE names only the disposable account. No Default
+    desktop permissions, input desktop, account rights or session policy change.
+    """
+    m.disposable_runner();sddl=private_desktop_sddl(user_sid,caller_sid)
+    import ctypes as C
+    import ctypes.wintypes as W
+    user=C.WinDLL('user32',use_last_error=True);security=C.WinDLL('advapi32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True)
+    class Attributes(C.Structure):_fields_=[('size',W.DWORD),('descriptor',C.c_void_p),('inherit',W.BOOL)]
+    class Flags(C.Structure):_fields_=[('inherit',W.BOOL),('reserved',W.BOOL),('flags',W.DWORD)]
+    functions={'GetProcessWindowStation':([],W.HANDLE),'SetProcessWindowStation':([W.HANDLE],W.BOOL),'OpenWindowStationW':([W.LPCWSTR,W.BOOL,W.DWORD],W.HANDLE),'GetThreadDesktop':([W.DWORD],W.HANDLE),'SetThreadDesktop':([W.HANDLE],W.BOOL),'OpenDesktopW':([W.LPCWSTR,W.DWORD,W.BOOL,W.DWORD],W.HANDLE),'CreateDesktopW':([W.LPCWSTR,W.LPCWSTR,C.c_void_p,W.DWORD,W.DWORD,C.POINTER(Attributes)],W.HANDLE),'CloseWindowStation':([W.HANDLE],W.BOOL),'CloseDesktop':([W.HANDLE],W.BOOL),'GetUserObjectInformationW':([W.HANDLE,C.c_int,C.c_void_p,W.DWORD,C.POINTER(W.DWORD)],W.BOOL),'GetUserObjectSecurity':([W.HANDLE,C.POINTER(W.DWORD),C.c_void_p,W.DWORD,C.POINTER(W.DWORD)],W.BOOL),'SetUserObjectSecurity':([W.HANDLE,C.POINTER(W.DWORD),C.c_void_p],W.BOOL)}
+    for name,(args,result) in functions.items():function=getattr(user,name);function.argtypes=args;function.restype=result
+    kernel.GetCurrentThreadId.restype=W.DWORD;kernel.LocalFree.argtypes=[C.c_void_p]
+    security.ConvertStringSecurityDescriptorToSecurityDescriptorW.argtypes=[W.LPCWSTR,W.DWORD,C.POINTER(C.c_void_p),C.c_void_p];security.ConvertStringSecurityDescriptorToSecurityDescriptorW.restype=W.BOOL
+    security.ConvertSecurityDescriptorToStringSecurityDescriptorW.argtypes=[C.c_void_p,W.DWORD,W.DWORD,C.POINTER(C.c_void_p),C.c_void_p];security.ConvertSecurityDescriptorToStringSecurityDescriptorW.restype=W.BOOL
+    def checked(value):
+        if not value:raise C.WinError(C.get_last_error())
+        return value
+    def descriptor(handle):
+        info=W.DWORD(4);size=W.DWORD();user.GetUserObjectSecurity(handle,C.byref(info),None,0,C.byref(size))
+        if not 0<size.value<=65536:raise RuntimeError('invalid CI station descriptor bound')
+        raw=C.create_string_buffer(size.value);checked(user.GetUserObjectSecurity(handle,C.byref(info),raw,size.value,C.byref(size)))
+        value=C.c_void_p();checked(security.ConvertSecurityDescriptorToStringSecurityDescriptorW(raw,1,4,C.byref(value),None))
+        try:return raw,C.wstring_at(value)
+        finally:kernel.LocalFree(value)
+    observed=token_info()
+    if observed['session_id']<=0 or observed['user_sid_sha256']!=m.digest(caller_sid.encode()):raise RuntimeError('full-UI fixture requires the existing interactive CI caller session')
+    station=checked(user.OpenWindowStationW('WinSta0',False,0x0006000a));flags=Flags();size=W.DWORD()
+    original=user.GetProcessWindowStation();thread=kernel.GetCurrentThreadId();original_desktop=user.GetThreadDesktop(thread)
+    owned=None;converted=C.c_void_p();desktop_descriptor=C.c_void_p();before=None;granted=None;info=W.DWORD(4)
+    evidence={'kind':'owned-inactive-interactive-CI-desktop','session_id':observed['session_id'],'target_user_sid_sha256':m.digest(user_sid.encode()),'caller_sid_sha256':m.digest(caller_sid.encode()),'visible_switch':False,'default_desktop_acl_modified':False,'station_ace_mask':0x00020037,'station_dacl_restored':False}
+    try:
+        checked(user.GetUserObjectInformationW(station,1,C.byref(flags),C.sizeof(flags),C.byref(size)))
+        if not flags.flags&1:raise RuntimeError('CI WinSta0 is not interactive; full UI cannot be qualified here')
+        before,before_text=descriptor(station)
+        checked(security.ConvertStringSecurityDescriptorToSecurityDescriptorW(before_text+'(A;;0x00020037;;;'+user_sid+')',1,C.byref(converted),None))
+        checked(user.SetUserObjectSecurity(station,C.byref(info),converted));_,granted=descriptor(station)
+        checked(user.SetProcessWindowStation(station));name='insonic-ci-'+uuid.uuid4().hex
+        probe=user.OpenDesktopW(name,0,False,0x00020000)
+        if probe:user.CloseDesktop(probe);raise RuntimeError('refused an existing full-UI desktop')
+        if C.get_last_error()!=2:raise C.WinError(C.get_last_error())
+        checked(security.ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl,1,C.byref(desktop_descriptor),None));attrs=Attributes(C.sizeof(Attributes),desktop_descriptor,False)
+        owned=checked(user.CreateDesktopW(name,None,None,0,0x000f01ff,C.byref(attrs)))
+        checked(user.SetProcessWindowStation(original))
+        if user.GetThreadDesktop(thread)!=original_desktop:checked(user.SetThreadDesktop(original_desktop))
+        evidence.update({'path':'WinSta0\\'+name,'station_visible':True,'caller_station_restored':user.GetProcessWindowStation()==original,'original_station_dacl_sha256':m.digest(before_text.encode()),'granted_station_dacl_sha256':m.digest(granted.encode())})
+        Path(stage,'ui-actor-desktop.json').write_text(json.dumps(evidence),encoding='utf-8',newline='\n')
+        yield evidence
+    finally:
+        if user.GetProcessWindowStation()!=original:checked(user.SetProcessWindowStation(original))
+        if user.GetThreadDesktop(thread)!=original_desktop:checked(user.SetThreadDesktop(original_desktop))
+        if before is not None and granted is not None:
+            _,current=descriptor(station)
+            if current!=granted:raise RuntimeError('CI station DACL changed outside the exact owned grant; restoration refused')
+            checked(user.SetUserObjectSecurity(station,C.byref(info),before));_,restored=descriptor(station)
+            evidence['station_dacl_restored']=restored==before_text
+            if not evidence['station_dacl_restored']:raise RuntimeError('CI station DACL restoration differs')
+        if owned:checked(user.CloseDesktop(owned))
+        if station:checked(user.CloseWindowStation(station))
+        for value in (converted,desktop_descriptor):
+            if value:kernel.LocalFree(value)
+
+
+@__import__('contextlib').contextmanager
+def ordinary_actor_desktop(target,sid,stage):
+    """Move only the new actor's session, retaining its ordinary logon token."""
+    m.disposable_runner();private_desktop_sddl(sid)
+    import ctypes as C
+    import ctypes.wintypes as W
+    evidence=json.loads(Path(stage,'ui-actor-desktop.json').read_text(encoding='utf-8'))
+    if evidence.get('target_user_sid_sha256')!=m.digest(sid.encode()) or not __import__('re').fullmatch(r'WinSta0\\insonic-ci-[0-9a-f]{32}',evidence.get('path','')) or evidence.get('session_id',0)<=0 or not evidence.get('station_visible') or evidence.get('visible_switch') or evidence.get('default_desktop_acl_modified'):raise RuntimeError('full-UI actor desktop identity differs')
+    before=token_info(target);session=W.DWORD(evidence['session_id']);existing=W.HANDLE()
+    wts=C.WinDLL('wtsapi32',use_last_error=True);security=C.WinDLL('advapi32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True)
+    wts.WTSQueryUserToken.argtypes=[W.ULONG,C.POINTER(W.HANDLE)];wts.WTSQueryUserToken.restype=W.BOOL
+    wts.WTSQuerySessionInformationW.argtypes=[W.HANDLE,W.DWORD,C.c_int,C.POINTER(C.c_void_p),C.POINTER(W.DWORD)];wts.WTSQuerySessionInformationW.restype=W.BOOL;wts.WTSFreeMemory.argtypes=[C.c_void_p]
+    security.SetTokenInformation.argtypes=[W.HANDLE,C.c_int,C.c_void_p,W.DWORD];security.SetTokenInformation.restype=W.BOOL;kernel.CloseHandle.argtypes=[W.HANDLE]
+    state=C.c_void_p();size=W.DWORD()
+    try:
+        if not wts.WTSQuerySessionInformationW(None,session,8,C.byref(state),C.byref(size)):raise C.WinError(C.get_last_error())
+        if size.value!=4 or C.cast(state,C.POINTER(W.DWORD))[0]!=0:raise RuntimeError('the existing CI interactive session is no longer active')
+        with qualifier_profile_privileges(('SeTcbPrivilege',)) as privileges:
+            if not wts.WTSQueryUserToken(session,C.byref(existing)):raise C.WinError(C.get_last_error())
+            if m.digest(account_sid(existing).encode())!=evidence['caller_sid_sha256']:raise RuntimeError('interactive session no longer belongs to the exact CI caller')
+            if not security.SetTokenInformation(target,12,C.byref(session),C.sizeof(session)):raise C.WinError(C.get_last_error())
+        after=token_info(target)
+        if after!={**before,'session_id':session.value}:raise RuntimeError('ordinary token changed beyond its elected UI session')
+        yield {**evidence,'token_before_session_assignment':before,'target_token':after,'broker_session_privilege_scope':privileges}
+    finally:
+        if existing:kernel.CloseHandle(existing)
+        if state:wts.WTSFreeMemory(state)
 
 def grant_owned_account_stage(stage,user_sid,caller_sid,progress=None):
     m.disposable_runner()
@@ -1222,11 +1319,13 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
         (stage/'context-model.json').write_text(json.dumps(model),encoding='utf-8',newline='\n')
         install=stage/'installed program é with spaces';worker_output=native/'context.json'
         args=[str(scripts/'qualify-windows-msi.py'),'--ordinary-worker',str(target),'--context-dir',str(install),'--output',str(worker_output)]
-        with disposable_server_installer_policy(record) as policy_fixture:
-            scheduler=scheduler_ordinary(stage,name,sid,password,args,record,profile)
+        with interactive_context_desktop(sid,caller_sid,stage) as ui_desktop:
+            with disposable_server_installer_policy(record) as policy_fixture:
+                scheduler=scheduler_ordinary(stage,name,sid,password,args,record,profile)
+        record('inactive-full-UI-desktop-restored',desktop=ui_desktop)
         evidence=json.loads(worker_output.read_text(encoding='utf-8'))
         if evidence['token']['user_sid_sha256']!=m.digest(sid.encode()) or Path(evidence['user_profile']).resolve()!=profile.resolve():raise RuntimeError('ordinary worker changed account/profile identity')
-        evidence.update({'process_creation':'SYSTEM disposable CI task broker, target LogonUserW INTERACTIVE2 and CreateProcessAsUserW on an owned nonvisible desktop; parent is sole profile-load owner','scheduler':scheduler,'profile_creation':'explicit owned LoadUserProfileW handle and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode()),'owned_account_rights_before':batch_original,'ci_host_policy_fixture':policy_fixture})
+        evidence.update({'process_creation':'SYSTEM disposable CI task broker, target LogonUserW INTERACTIVE2 and CreateProcessAsUserW in the verified CI interactive session on an owned inactive WinSta0 desktop; exact station ACE restored and parent is sole profile-load owner','scheduler':scheduler,'profile_creation':'explicit owned LoadUserProfileW handle and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode()),'owned_account_rights_before':batch_original,'ci_host_policy_fixture':policy_fixture})
         evidence['os_policy_mutations'].update({'ci_server_disable_msi_fixture':True,'ci_server_disable_msi_restored':policy_fixture['restored'],'always_install_elevated_unchanged':policy_fixture['always_install_elevated_unchanged']})
     except BaseException as error:
         failure=error;record('failed',failed_api=getattr(error,'api',current_phase['name']),winerror=getattr(error,'winerror',None),errno=getattr(error,'errno',None),error_type=type(error).__name__,error=str(error))

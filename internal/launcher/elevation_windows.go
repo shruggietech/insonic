@@ -81,7 +81,7 @@ func launchLimited(p Plan) (handled bool, err error) {
 		return true, normalLaunchAction
 	}
 	command, e := windows.UTF16FromString(commandLine)
-	if e != nil || len(command) > 1024 {
+	if e != nil || len(command) > 32767 {
 		return true, normalLaunchAction
 	}
 	working, e := windows.UTF16PtrFromString(directory)

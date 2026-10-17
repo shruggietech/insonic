@@ -9,7 +9,14 @@ import (
 	"time"
 )
 
-func openDocumentation(_, entry string) error {
+func openDocumentation(directory, entry string) error {
+	if entry == "" {
+		var err error
+		entry, err = DocumentationEntry(directory)
+		if err != nil {
+			return err
+		}
+	}
 	null, err := os.OpenFile(os.DevNull, os.O_RDWR, 0)
 	if err != nil {
 		return documentationCorrection

@@ -132,7 +132,7 @@ class NativePackageIntegrityTests(unittest.TestCase):
 
     def test_busy_image_diagnostic_retains_only_bounded_owner_categories(self):
         with tempfile.TemporaryDirectory() as temporary, patch.object(package, 'ROOT', Path(temporary)), \
-                patch.object(package, 'child', return_value=json.dumps([{'pid': 42, 'parent_pid': 7, 'role': 'main', 'command_line': 'private fixture path'}]).encode()):
+                patch.object(package, 'windows_image_owners', return_value=[{'pid': 42, 'parent_pid': 7, 'role': 'main', 'command_line': 'private fixture path'}]):
             package.retain_busy_image_diagnostic(Path(temporary) / 'fixture.exe')
             receipt = json.loads((Path(temporary) / 'build/native/package-image-busy-receipt.json').read_text())
             self.assertEqual(receipt['owners'], [{'pid': 42, 'parent_pid': 7, 'role': 'main'}])

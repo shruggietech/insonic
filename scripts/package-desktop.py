@@ -894,27 +894,47 @@ def windows_image_released(executable):
     return True
 
 
+def windows_image_owners(executable):
+    """Read exact-image process owners without a slow, separate CIM process."""
+    import ctypes as C
+    import ctypes.wintypes as W
+    class Entry(C.Structure):
+        _fields_=[('size',W.DWORD),('usage',W.DWORD),('pid',W.DWORD),('heap',C.c_size_t),('module',W.DWORD),('threads',W.DWORD),('parent',W.DWORD),('priority',W.LONG),('flags',W.DWORD),('image',W.WCHAR*260)]
+    kernel=C.WinDLL('kernel32',use_last_error=True)
+    kernel.CreateToolhelp32Snapshot.argtypes=[W.DWORD,W.DWORD];kernel.CreateToolhelp32Snapshot.restype=W.HANDLE
+    for name in ('Process32FirstW','Process32NextW'):
+        function=getattr(kernel,name);function.argtypes=[W.HANDLE,C.POINTER(Entry)];function.restype=W.BOOL
+    kernel.OpenProcess.argtypes=[W.DWORD,W.BOOL,W.DWORD];kernel.OpenProcess.restype=W.HANDLE
+    kernel.QueryFullProcessImageNameW.argtypes=[W.HANDLE,W.DWORD,W.LPWSTR,C.POINTER(W.DWORD)];kernel.QueryFullProcessImageNameW.restype=W.BOOL
+    kernel.CloseHandle.argtypes=[W.HANDLE]
+    snapshot=kernel.CreateToolhelp32Snapshot(2,0)
+    if snapshot==C.c_void_p(-1).value:raise C.WinError(C.get_last_error())
+    found=[];entry=Entry();entry.size=C.sizeof(entry);target=os.path.normcase(os.path.abspath(executable))
+    try:
+        present=kernel.Process32FirstW(snapshot,C.byref(entry))
+        while present:
+            if entry.image.casefold()==Path(executable).name.casefold():
+                process=kernel.OpenProcess(0x1000,False,entry.pid)
+                if process:
+                    try:
+                        image=C.create_unicode_buffer(32768);size=W.DWORD(32768)
+                        if kernel.QueryFullProcessImageNameW(process,0,image,C.byref(size)) and os.path.normcase(os.path.abspath(image.value))==target:found.append({'pid':entry.pid,'parent_pid':entry.parent,'role':'other'})
+                    finally:kernel.CloseHandle(process)
+            if len(found)>=16:break
+            present=kernel.Process32NextW(snapshot,C.byref(entry))
+        return found
+    finally:kernel.CloseHandle(snapshot)
+
+
 def retain_busy_image_diagnostic(executable):
     value = {'kind': 'package-image-busy', 'image_writable': os.access(executable, os.W_OK), 'owners': []}
-    powershell = Path(os.environ.get('SystemRoot', 'C:/Windows')) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
-    script = r"""$ErrorActionPreference = 'Stop';
-$owners = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:INSONIC_QUALIFIED_IMAGE } | Select-Object -First 16 | ForEach-Object {
-  $role = 'other'; $command = $_.CommandLine;
-  if ($command -like '*cold operator workspace*') { $role = 'cold-credentials' }
-  elseif ($command -like '*isolated documented workflows*') { $role = 'documentation' }
-  elseif ($command -like '*first-use library*') { $role = 'first-use' }
-  elseif ($command -like '*insonic-webview-*' -or $command -like '*insonic-desktop-*') { $role = 'gui' }
-  elseif ($command -like '*workspace with spaces*') { $role = 'main' }
-  @{pid=$_.ProcessId; parent_pid=$_.ParentProcessId; role=$role}
-}); ConvertTo-Json -InputObject $owners -Compress"""
     try:
-        owners = json.loads(child([powershell, '-NoProfile', '-NonInteractive', '-Command', script],
-                                  env={'INSONIC_QUALIFIED_IMAGE': str(executable)}, timeout=10))
-        value['owners'] = [{'pid': int(owner['pid']), 'parent_pid': int(owner['parent_pid']),
-                            'role': owner['role'] if owner['role'] in ['other', 'cold-credentials', 'documentation', 'first-use', 'gui', 'main'] else 'other'}
-                           for owner in owners[:16]]
-    except (OSError, RuntimeError, ValueError, TypeError, KeyError, subprocess.TimeoutExpired):
-        value['diagnostic'] = 'unavailable'
+        owners=windows_image_owners(executable)
+        value['owners']=[{'pid':int(owner['pid']),'parent_pid':int(owner['parent_pid']),
+                          'role':owner['role'] if owner['role'] in ['other','cold-credentials','documentation','first-use','gui','main'] else 'other'} for owner in owners[:16]]
+        value['observer']='native exact-image process snapshot'
+    except (OSError, RuntimeError, ValueError, TypeError, KeyError):
+        value['diagnostic']='unavailable'
     try:
         write_json(ROOT / 'build/native/package-image-busy-receipt.json', value)
     except OSError:

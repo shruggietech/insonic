@@ -24,9 +24,8 @@ func Build(directory, mode, systemDirectory string) (Plan, error) {
 	}
 	directory = filepath.Clean(directory)
 	if mode == "documentation" {
-		if _, err := DocumentationEntry(directory); err != nil {
-			return p, err
-		}
+		// Resolve documentation only after any elevated caller has handed off
+		// to its same-user limited helper. Describe constructs a plan only.
 		p.Executable = filepath.Join(directory, "insonic-launcher.exe")
 		return p, nil
 	}

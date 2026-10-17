@@ -2,6 +2,7 @@
 package desktop
 
 import (
+	"errors"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"net/http"
 	"net/http/httptest"
@@ -37,5 +38,23 @@ func TestOfflineHelpPolicyDoesNotRestrictRuntimeRequests(t *testing.T) {
 		} else if policy != "" {
 			t.Fatal("help policy changed runtime access", policy)
 		}
+	}
+}
+
+func TestOfflineHelpReferenceDispatchBeforeWorkspace(t *testing.T) {
+	var opened []string
+	b := &Bridge{referenceOpen: func(target string) error { opened = append(opened, target); return nil }}
+	target := "https://example.org/learning?one=1&two=2#topic"
+	if response := b.OpenHelpReference(target); response.Error != nil || len(opened) != 1 || opened[0] != target {
+		t.Fatal(response, opened)
+	}
+	for _, bad := range []string{"file:///private.html", "javascript:alert(1)", "https://wails.localhost/assets/help/index.html", "https://user:password@example.org/"} {
+		if response := b.OpenHelpReference(bad); response.Error == nil || len(opened) != 1 {
+			t.Fatal(response, opened)
+		}
+	}
+	b.referenceOpen = func(string) error { return errors.New("association unavailable") }
+	if response := b.OpenHelpReference(target); response.Error == nil || response.Error.Reason != "documentation_open" {
+		t.Fatal(response)
 	}
 }

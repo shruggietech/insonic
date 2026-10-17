@@ -501,13 +501,13 @@ async function qualifyJourney(
     !button('Offline help')
   )
     throw new Error('Keyboard/help controls missing.');
-  await qualifyOfflineHelp(click,wait,button,String(result(await bridge.OpenHelp!()).version));
+  await qualifyOfflineHelp(click,wait,button,String(result(await bridge.OpenHelp!()).version),bridge);
   flags.ui_keyboard_help = 'passed';
   flags.ui_offline_help_activation='passed';
   return flags;
 }
 
-export async function qualifyOfflineHelp(click:(label:string)=>Promise<void>,wait:(condition:()=>boolean|Promise<boolean>,message:string,timeout?:number)=>Promise<void>,button:(label:string)=>HTMLButtonElement,version:string){
+export async function qualifyOfflineHelp(click:(label:string)=>Promise<void>,wait:(condition:()=>boolean|Promise<boolean>,message:string,timeout?:number)=>Promise<void>,button:(label:string)=>HTMLButtonElement,version:string,bridge:NativeBridge){
   await click('Offline help');
   const frame=()=>document.querySelector('iframe[title="Installed offline documentation"]') as HTMLIFrameElement|null;
   await wait(()=>frame()?.contentDocument?.readyState==='complete'&&!!frame()?.contentDocument?.querySelector('h1'),'Installed help did not render in the native view.');
@@ -523,6 +523,11 @@ export async function qualifyOfflineHelp(click:(label:string)=>Promise<void>,wai
   try{await view.fetch('https://offline.invalid/help-probe');}catch{}
   await wait(()=>blocked,'Help did not enforce its network-unavailable policy.');
   doc.removeEventListener('securitypolicyviolation',violation);
+  const external=doc.createElement('a');external.href='https://offline.invalid/help-reference';external.textContent='Qualification explicit web reference';doc.body.append(external);
+  external.click();
+  await wait(async()=>result(await bridge.NativeQualificationData!()).help_reference===external.href,'Explicit help reference did not reach the native dispatcher.');
+  external.remove();
+  if(!frame()?.contentDocument?.URL.includes('/assets/help/'))throw new Error('External reference navigated the offline frame.');
   const link=[...doc.querySelectorAll('a')].find(a=>a.textContent?.trim()==='CLI invocation and results');
   if(!link||!link.href.includes('/assets/help/'))throw new Error('Installed help local navigation missing.');
   link.click();
@@ -531,7 +536,7 @@ export async function qualifyOfflineHelp(click:(label:string)=>Promise<void>,wai
   if(document.activeElement!==button('Offline help'))throw new Error('Help close lost keyboard focus.');
 }
 
-export async function qualifyHelpOnly(version:string){
+export async function qualifyHelpOnly(version:string,bridge:NativeBridge){
  const wait=async(condition:()=>boolean|Promise<boolean>,message:string,timeout=15000)=>{const end=Date.now()+timeout;while(!await condition()){if(Date.now()>end)throw new Error(message);await qualificationTurn();}};
  const button=(label:string)=>{const found=[...document.querySelectorAll("button")].find(b=>b.textContent?.trim()===label);if(!found)throw new Error("Missing help button.");return found;};
  const click=async(label:string)=>{qualificationAction(()=>button(label).click());await qualificationTurn();};
@@ -539,6 +544,6 @@ export async function qualifyHelpOnly(version:string){
  const control=button("Offline help"),rect=control.getBoundingClientRect();
  control.focus();
  if(document.activeElement!==control||rect.width>=300||control.tabIndex<0||control.closest("a"))throw new Error("Help control is not compact and keyboard focusable.");
- await qualifyOfflineHelp(click,wait,button,version);
+ await qualifyOfflineHelp(click,wait,button,version,bridge);
  return {ui_offline_help_activation:"passed"};
 }

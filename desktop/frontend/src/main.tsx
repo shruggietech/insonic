@@ -30,7 +30,7 @@ const startQualification = runQualificationOnce(async () => {
     if (fixtures?.result?.help_only) {
       const response = await bridge.OpenHelp!();
       if(response.error)throw new Error(response.error.message);
-      response.result = {...response.result,...await qualifyHelpOnly(String(response.result?.version))};
+      response.result = {...response.result,...await qualifyHelpOnly(String(response.result?.version),bridge)};
       await bridge.CompleteSmoke(response);
       return;
     }

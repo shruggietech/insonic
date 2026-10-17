@@ -291,10 +291,11 @@ class NativeUI:
 def qualify(stage,exact_installer,exact_directory,output,token,quiet_install):
     m.disposable_runner();stage=Path(stage);config=json.loads((stage/'ui-model.json').read_text(encoding='utf-8'))
     ui=NativeUI(output);directory=stage/'UI program é & spaces';old=stage/'ui-old.msi';new=stage/'ui-new.msi';bad=stage/'ui-bad.msi';results=[]
-    # Production payload, actual engine/full UI, elected no completion actions.
-    results.append(ui.run(exact_installer,exact_directory,'exact-install',selection='cli'))
-    results.append(ui.run(exact_installer,exact_directory,'exact-remove',operation='remove',selection='cli'))
+    exact_product=dict(m.table_rows(m.CompoundFile(exact_installer).streams,'Property'))['ProductCode']
     try:
+        # Production payload, actual engine/full UI, elected no completion actions.
+        results.append(ui.run(exact_installer,exact_directory,'exact-install',selection='cli'))
+        results.append(ui.run(exact_installer,exact_directory,'exact-remove',operation='remove',selection='cli'))
         results.append(ui.run(old,directory,'before-cancel',cancel='before',expected=1602))
         results.append(ui.run(stage/'ui-scaled.msi',directory,'enlarged-font-cancel',cancel='ready',expected=1602))
         if (directory/m.OWNERSHIP).exists():raise RuntimeError('pre-execution cancellation installed files')
@@ -355,9 +356,10 @@ def qualify(stage,exact_installer,exact_directory,output,token,quiet_install):
         if any((directory/f['path']).exists() for f in config['payload']):raise RuntimeError('full-UI removal retained owned payload')
         return {'state':'passed','token':token,'transactions':results,'completion_cases':12,'exact_payload_full_ui':['install','remove'],'instrumented_clients':'owned native token reporters, production launcher and MSI model','outcomes':[0,1602,1603]}
     finally:
-        for product in (config['old_product'],config['new_product']):
-            # Only this explicitly generated owned family can be cleaned here.
-            if (directory/m.OWNERSHIP).exists():quiet_install(['/x',product],stage/'native'/'context.ui-cleanup.log',False)
+        for product in (exact_product,config['old_product'],config['new_product']):
+            # Every identity is an explicitly generated, owned fixture family.
+            # Registration cleanup also covers a failure before its marker write.
+            quiet_install(['/x',product],stage/'native'/('context.ui-cleanup-'+product.strip('{}')+'.log'),False)
 
 
 def association(stage,token):
