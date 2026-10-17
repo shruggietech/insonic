@@ -67,14 +67,17 @@ func (a HTTPAdapter) Extract(ctx context.Context, ch Chunk, c Config) ([]Asserti
 		return nil, contracts.Fail("operation_failed")
 	}
 	raw, e = io.ReadAll(io.LimitReader(res.Body, int64(c.MaxResponseBytes)+1))
-	if e != nil || len(raw) > c.MaxResponseBytes {
-		return nil, contracts.Fail("output_limit")
+	if len(raw) > c.MaxResponseBytes {
+		return nil, contracts.Condition("output_limit", "provider_response_limit")
+	}
+	if e != nil {
+		return nil, contracts.Fail("operation_failed")
 	}
 	var result struct {
 		ContractVersion string      `json:"contract_version"`
 		Assertions      []Assertion `json:"assertions"`
 	}
-	if contracts.DecodeExplore(raw, &result) != nil || result.ContractVersion != "1" {
+	if contracts.ValidateJSON(raw) != nil || contracts.DecodeExplore(raw, &result) != nil || result.ContractVersion != "1" || result.Assertions == nil {
 		return nil, contracts.Fail("invalid_request")
 	}
 	return result.Assertions, nil

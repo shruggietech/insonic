@@ -101,7 +101,7 @@ func Fail(code string) *Error {
 		"invalid_request":          "The request is invalid.", "incompatible_version": "The contract version is unsupported.",
 		"workspace_mismatch": "The request belongs to another workspace.", "not_found": "The item is unavailable in this workspace.",
 		"conflict": "The operation conflicts with current state. Inspect the selected item and its current revision before retrying.", "unavailable": "The selected dependency is unavailable.",
-		"cancelled": "The operation was cancelled.", "output_limit": "The child output limit was exceeded.", "operation_failed": "The operation failed.",
+		"cancelled": "The operation was cancelled.", "output_limit": "The operation output limit was exceeded.", "operation_failed": "The operation failed.",
 	}[code]
 	if message == "" {
 		code = "operation_failed"

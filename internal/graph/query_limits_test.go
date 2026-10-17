@@ -11,9 +11,10 @@ import (
 )
 
 type limitEngine struct {
-	rows   Rows
-	native bool
-	pages  []int
+	failure error
+	rows    Rows
+	native  bool
+	pages   []int
 }
 
 func (e *limitEngine) Close() {}
@@ -30,6 +31,9 @@ type limitSession struct{ e *limitEngine }
 func (s limitSession) Commit(context.Context) error { return nil }
 func (s limitSession) Rollback(context.Context)     {}
 func (s limitSession) Query(_ context.Context, _ bool, q string, p map[string]any) (Rows, error) {
+	if s.e.failure != nil {
+		return nil, s.e.failure
+	}
 	if p["offset"] == nil {
 		return s.e.rows, nil
 	}
@@ -49,19 +53,25 @@ func (s limitSession) Query(_ context.Context, _ bool, q string, p map[string]an
 type nativeLimitSession struct{ limitSession }
 
 func (s nativeLimitSession) Native(context.Context, string, string, map[string]any) (Rows, error) {
+	if s.e.failure != nil {
+		return nil, s.e.failure
+	}
 	return s.e.rows, nil
 }
 func TestNativeOutputBudgetSharedByRoutedAndDirectSessions(t *testing.T) {
 	for _, native := range []bool{false, true} {
-		for _, rows := range []Rows{make(Rows, 501), {{"value": strings.Repeat("x", (512<<10)+1)}}} {
+		for _, test := range []struct {
+			rows    Rows
+			failure error
+		}{{rows: make(Rows, 501)}, {rows: Rows{{"value": strings.Repeat("x", (512<<10)+1)}}}, {failure: contracts.Fail("output_limit")}} {
 			backend, dialect := "ladybugdb", "ladybug-cypher"
 			text := "RETURN 1 AS value"
 			if native {
 				backend, dialect, text = "arcadedb", "arcade-sql", "SELECT 1 AS value"
 			}
-			a := &adapter{engine: &limitEngine{rows: rows, native: native}, backend: backend}
+			a := &adapter{engine: &limitEngine{rows: test.rows, failure: test.failure, native: native}, backend: backend}
 			_, e := a.Query(context.Background(), dialect, text, nil)
-			if code, ok := e.(*contracts.Error); !ok || code.Code != "output_limit" {
+			if code, ok := e.(*contracts.Error); !ok || (code.Code != "output_limit" || code.Reason != "native_result_limit") {
 				t.Fatalf("native=%v: %v", native, e)
 			}
 		}

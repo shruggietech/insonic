@@ -3518,9 +3518,10 @@
                   "adapter": {
                     "enum": [
                       "cue-statement",
+                      "insonic-http",
                       "http"
                     ],
-                    "description": "Literal source-reference extraction, or elected HTTP assertion adapter."
+                    "description": "Literal source-reference extraction, or canonical insonic-http assertion adapter (legacy http alias accepted)."
                   },
                   "contract_version": {
                     "const": "1",

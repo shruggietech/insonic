@@ -12,6 +12,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- HTTP assertion extraction accepts canonical `insonic-http` and legacy `http` inputs, rejects ambiguous or spoofed responses, and retains current cue citations and original source clocks. Query assistance distinguishes provider authentication, missing routes/models, busy services, transport/protocol failures, deadlines and cancellation. Output limits explain artifact materialization, native results and provider responses without exposing external details.
+
 - Windows package qualification joins CLI and GUI activity before the runtime idle allowance, then observes executable-image release with bounded failure and owner diagnostics before fixture cleanup.
 
 - Graph and search continuation retrieves cross-page relationships and large result sets within bounded responses, binds the effective page limit, and distinguishes stale results from malformed offsets. Query/calendar filters share bundled timezone rules; saved-query examples require titles, native parameter files reject duplicate members, and native reads accept one trailing terminator with actionable grammar guidance. Function validation distinguishes read-clause grouping from calls and rejects qualified calls outside the declared pure subset.
@@ -37,6 +39,8 @@ All notable changes to this project will be documented here. The format follows 
 - Release publication accepts documented main-workflow path forms and can supersede verified completed older release-workflow attempts for the same source while retaining every required CI/security gate and immutable tag/artifact checks.
 
 ### Decisions
+
+- 2026-10-17: Extracted Windows/Linux package checks exercise deterministic loopback HTTP extraction, provider diagnostics and operation-specific output bounds in the existing isolated fixture workspace. Production CI inference refusal remains in place. Canonical extraction configuration retains the legacy input alias, and strict JSON validation is shared below the catalog to avoid dependency cycles.
 
 - 2026-10-17: Installed-package qualification adds generated query/graph continuation, timezone, save-example and native-parameter cases on Windows and Linux. Separate row/relationship continuation preserves existing response budgets, and old pagination-policy cursors conflict instead of mixing results.
 

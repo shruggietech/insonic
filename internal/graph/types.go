@@ -456,6 +456,9 @@ func (a *adapter) Query(ctx context.Context, dialect, text string, params map[st
 		rows, err = s.Query(ctx, false, text, values)
 	}
 	if err != nil {
+		if contracts.SafeError(err).Code == "output_limit" {
+			return nil, contracts.Condition("output_limit", "native_result_limit")
+		}
 		return nil, err
 	}
 	raw, marshalErr := json.Marshal(rows)
@@ -463,7 +466,7 @@ func (a *adapter) Query(ctx context.Context, dialect, text string, params map[st
 		return nil, contracts.Fail("operation_failed")
 	}
 	if len(rows) > 500 || len(raw) > 512<<10 {
-		return nil, contracts.Fail("output_limit")
+		return nil, contracts.Condition("output_limit", "native_result_limit")
 	}
 	return rows, nil
 }

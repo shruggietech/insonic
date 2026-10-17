@@ -2,14 +2,18 @@
 package schemas
 
 import (
-	"fmt"
+	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"testing"
 )
 
 func TestGeneratedOperatorReasonEnvelope(t *testing.T) {
-	raw := []byte(fmt.Sprintf("{\"kind\":\"runtime-response\",\"schema_version\":\"%s\",\"error\":{\"code\":\"conflict\",\"message\":\"The credential ID is already stored.\",\"reason\":\"credential_duplicate\"}}", contracts.Version))
-	if e := ValidateResponse(raw); e != nil {
-		t.Fatal(e)
+	for _, reason := range contracts.OperatorReasons() {
+		t.Run(reason, func(t *testing.T) {
+			raw, _ := json.Marshal(map[string]any{"kind": "runtime-response", "schema_version": contracts.Version, "error": contracts.Condition("operation_failed", reason)})
+			if err := ValidateResponse(raw); err != nil {
+				t.Fatal(err)
+			}
+		})
 	}
 }

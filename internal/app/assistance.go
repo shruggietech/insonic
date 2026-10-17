@@ -206,21 +206,21 @@ func (a *App) assist(ctx context.Context, req contracts.Request) (any, error) {
 	} else {
 		p, e = (assistance.HTTPAdapter{Secrets: a.secrets}).Propose(generating, input, c)
 	}
-	canceled := generating.Err() != nil
+	generationError := assistance.ProviderContextError(generating)
 	cancel()
 	if e != nil {
 		return nil, e
 	}
-	if canceled || ctx.Err() != nil {
-		return nil, contracts.Fail("cancelled")
+	if generationError != nil {
+		return nil, generationError
 	}
 	// Injected fixtures must satisfy exactly the same untrusted response contract.
 	observedRoute := p.ObservedRoute
 	raw, _ := json.Marshal(p)
 	if len(raw) > c.Limits.MaxResponseBytes {
-		return nil, contracts.Fail("output_limit")
+		return nil, contracts.Condition("output_limit", "provider_response_limit")
 	}
-	p, e = assistance.Parse(raw)
+	p, e = assistance.ParseProvider(raw, c.Adapter)
 	if e != nil {
 		return nil, e
 	}
