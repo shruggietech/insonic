@@ -77,6 +77,10 @@ class InstallerModelTests(unittest.TestCase):
     def test_client_dependency_and_owned_marker(self):
         items={x['path']:x for x in self.model['payload']}
         self.assertEqual(items['insonic-desktop.exe']['feature'],'Desktop');self.assertEqual(items['insonic.exe']['feature'],'Core');self.assertIn(m.OWNERSHIP,items);self.assertNotIn(m.OWNERSHIP,{x['path'] for x in self.inv['files']})
+    def test_removal_does_not_require_fresh_license_acceptance(self):
+        condition=next(row[0] for row in self.model['tables']['LaunchCondition'] if row[1].startswith('Read and accept'))
+        self.assertEqual(condition,'REMOVE="ALL" OR Installed OR LICENSE_ACCEPTED=1')
+
     def test_license_initially_unchecked_and_exact(self):
         self.assertNotIn('LICENSE_ACCEPTED',dict(self.model['tables']['Property']));self.assertEqual(self.model['license_sha256'],m.sha(ROOT/'LICENSE'))
     def test_three_selection_contract(self):
@@ -196,6 +200,22 @@ class InstallerModelTests(unittest.TestCase):
             for function,args in [(module.main,()),(module.observe_invocation,(None,None,None)),(module.observe_rollback,(None,None,None)),(module.rollback_case,(None,None))]:
                 with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
             native.assert_not_called()
+
+    def test_rollback_diagnostic_retains_observation_when_native_cleanup_fails(self):
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('rollback_retention_fixture',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        stage=self.path/'rollback-diagnostic';(stage/'native').mkdir(parents=True);directory=stage/'UI program é & spaces';directory.mkdir();(directory/'owned.txt').write_bytes(b'old')
+        (stage/'ui-model.json').write_text(json.dumps({'payload':[{'path':'owned.txt','sha256':m.digest(b'old'),'feature':'Core'}]}),encoding='utf-8')
+        token={'user_sid_sha256':'owned','elevated':False}
+        def state(product):return 1 if product=='old' else -1
+        dll=SimpleNamespace(MsiQueryProductStateW=state)
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'qualifier',return_value=SimpleNamespace(diagnostic_mode=lambda stage:'rollback-reused')),patch.object(module,'rollback_case',side_effect=lambda stage,name:{'name':name,'token':token}),patch.object(module.C,'WinDLL',return_value=dll),patch.object(m,'CompoundFile',side_effect=lambda path:SimpleNamespace(streams=Path(path).name)),patch.object(m,'table_rows',side_effect=lambda stream,table:[['ProductCode','old' if stream=='ui-old.msi' else 'new']]):
+            result=module.observe_rollback(stage,token,lambda *args:(_ for _ in ()).throw(RuntimeError('native cleanup1603')))
+        self.assertEqual(result['transactions'][-1]['registered_states'],{'old':1,'new':-1})
+        self.assertTrue(result['restored_old_payload']);self.assertFalse(result['feature_qualification'])
+        self.assertFalse(result['cleanup'][0]['completed'])
+        retained=json.loads((stage/'native/context.rollback-comparison.json').read_text(encoding='utf-8'))
+        self.assertEqual(retained,result)
 
     def test_diagnostic_mode_uses_explicit_record_without_inherited_environment(self):
         spec=importlib.util.spec_from_file_location('diagnostic_mode_fixture',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)

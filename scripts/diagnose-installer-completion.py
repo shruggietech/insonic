@@ -97,8 +97,15 @@ def observe_rollback(stage,token,quiet_install):
         result['state']='passed'
         return result
     finally:
+        result['cleanup']=[]
         for product in products:
-            if dll.MsiQueryProductStateW(product) in (1,5):quiet_install(['/x',product],stage/'native'/('context.rollback-cleanup-'+product.strip('{}')+'.log'))
+            if dll.MsiQueryProductStateW(product) in (1,5):
+                try:
+                    quiet_install(['/x',product],stage/'native'/('context.rollback-cleanup-'+product.strip('{}')+'.log'))
+                    result['cleanup'].append({'product':product,'completed':True})
+                except BaseException as error:result['cleanup'].append({'product':product,'completed':False,'error':str(error)[-2000:]})
+        result['state']='observed'
+        (stage/'native/context.rollback-comparison.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
 
 
 WRAPPER=r''' if filepath.Base(exe)=="insonic-launcher.exe" {
@@ -169,6 +176,7 @@ def main():
         result=q.ordinary_context(installer,work/'installed',folder/'ordinary-context.json',model,diagnostic_only=True)
         results.append({'mode':mode,'diagnostic':result['diagnostic']})
     print(json.dumps({'diagnostic_trace_complete':True,'feature_qualification':False,'results':results},indent=2))
+    if any(not entry['completed'] for result in results for entry in result['diagnostic'].get('cleanup',[])):raise RuntimeError('owned native registration cleanup failed; observations retained and disposable runner teardown required')
 
 
 if __name__=='__main__':
