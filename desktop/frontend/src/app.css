@@ -122,9 +122,8 @@ summary:focus-visible {
   border: var(--bb-border-strong) solid var(--bb-cue-error);
   padding: var(--bb-spacing-control-inline);
 }
-.help-link {
-  color: var(--bb-text-muted);
-  padding: var(--bb-spacing-control-block);
+.help-action {
+  justify-self: start;
 }
 pre {
   white-space: pre-wrap;
@@ -183,4 +182,10 @@ html[data-reduced-motion='true'] *::after {
 .calendar-entries:focus-visible {
  outline: var(--bb-focus-width) solid var(--bb-focus-ring);
  outline-offset: var(--bb-focus-offset);
+}
+
+.offline-help-frame {
+  inline-size: 100%;
+  block-size: 70vh;
+  border: var(--bb-border-strong) solid var(--bb-text-muted);
 }

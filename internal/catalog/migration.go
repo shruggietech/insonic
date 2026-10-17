@@ -579,7 +579,14 @@ func (s *Store) insertRecords(ctx context.Context, tx *sql.Tx, records Records) 
 	}
 	return nil
 }
-func (s *Store) readRecords(ctx context.Context, tx *sql.Tx, selected ...string) (Records, error) {
+
+// Multi-table snapshots pass a transaction; single-table listings may use one
+// autocommit SELECT without reserving SQLite's immediate writer transaction.
+type recordReader interface {
+	QueryContext(context.Context, string, ...any) (*sql.Rows, error)
+}
+
+func (s *Store) readRecords(ctx context.Context, reader recordReader, selected ...string) (Records, error) {
 	var out Records
 	v := reflect.ValueOf(&out).Elem()
 	for _, d := range domains {
@@ -601,7 +608,7 @@ func (s *Store) readRecords(ctx context.Context, tx *sql.Tx, selected ...string)
 			args = append(args, selected[2])
 		}
 		query += " ORDER BY " + d.primary
-		rows, e := tx.QueryContext(ctx, s.query(query), args...)
+		rows, e := reader.QueryContext(ctx, s.query(query), args...)
 		if e != nil {
 			return out, e
 		}

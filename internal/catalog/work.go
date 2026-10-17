@@ -90,6 +90,13 @@ func (s *Store) readOne(ctx context.Context, field, id string, out any) error {
 	if !contracts.ValidID(id) {
 		return contracts.Fail("invalid_request")
 	}
+	return s.readDomainRow(ctx, field, "id", id, out)
+}
+
+func (s *Store) readDomainRow(ctx context.Context, field, key, value string, out any) error {
+	if key != "id" && key != "name" {
+		return contracts.Fail("invalid_request")
+	}
 	// One SELECT supplies a coherent row snapshot. Release its connection
 	// before expensive JSON decoding; SQLite's immediate transactions would
 	// otherwise reserve the writer while decoding large paginated results.
@@ -100,24 +107,19 @@ func (s *Store) readOne(ctx context.Context, field, id string, out any) error {
 	for i := range vals {
 		ptr[i] = &vals[i]
 	}
-	query := "SELECT " + strings.Join(names(cols), ",") + " FROM " + d.name + " WHERE workspace_id=? AND id=?"
-	if e := s.db.QueryRowContext(ctx, s.query(query), s.workspace, id).Scan(ptr...); e != nil {
+	query := "SELECT " + strings.Join(names(cols), ",") + " FROM " + d.name + " WHERE workspace_id=? AND " + key + "=?"
+	if e := s.db.QueryRowContext(ctx, s.query(query), s.workspace, value).Scan(ptr...); e != nil {
 		return sanitize(e)
 	}
 	return sanitize(decodeDomainRow(cols, vals, out))
 }
 func (s *Store) currentRecords(ctx context.Context, field string) (Records, error) {
-	tx, e := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
-	if e != nil {
-		return Records{}, sanitize(e)
-	}
-	defer tx.Rollback()
-	r, e := s.readRecords(ctx, tx, field)
-	if e == nil {
-		e = tx.Commit()
-	}
+	// This helper selects exactly one domain table. Its single SELECT provides
+	// a coherent snapshot without reserving SQLite's immediate writer lock.
+	r, e := s.readRecords(ctx, s.db, field)
 	return r, sanitize(e)
 }
+
 func (s *Store) Work(ctx context.Context, id string) (Work, error) {
 	var out Work
 	e := s.readOne(ctx, "Works", id, &out)

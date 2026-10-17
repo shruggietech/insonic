@@ -8,13 +8,13 @@ const render = await landingRenderer();
 const anchors = html => [...html.matchAll(/<a\b([^>]*)href="([^"]+)"([^>]*)>([\s\S]*?)<\/a>/g)].map(([, before, href, after, body]) => ({ href, label: body.replace(/<span[^>]*aria-hidden="true"[^>]*>[\s\S]*?<\/span>/g, '').replace(/<[^>]+>/g, '').trim(), attributes: before + after }));
 const released = render({ version: '1.0.1', status: 'released' });
 
-test('released landing preserves exactly five versioned OS/client/format choices', () => {
+test('released landing preserves exactly six versioned OS/client/format choices', () => {
   const links = anchors(released);
   const downloads = links.filter(link => link.href.includes('/releases/download/'));
-  assert.equal(downloads.length, 5);
-  const expected = releaseDownloads('1.0.1').flatMap(item => [item.installer, item.desktop, item.cli].filter(Boolean));
+  assert.equal(downloads.length, 6);
+  const expected = releaseDownloads('1.0.1').flatMap(item => [item.setup, item.installer, item.desktop, item.cli].filter(Boolean));
   assert.deepEqual(downloads.map(link => link.href).sort(), expected.sort());
-  assert.deepEqual(downloads.map(link => link.label), ['Download Windows MSI', 'Download Windows Desktop + CLI ZIP', 'Download Windows CLI-only ZIP', 'Download Linux Desktop + CLI tar.gz', 'Download Linux CLI-only tar.gz']);
+  assert.deepEqual(downloads.map(link => link.label), ['Download Windows setup EXE', 'Download raw MSI', 'Download Windows Desktop + CLI ZIP', 'Download Windows CLI-only ZIP', 'Download Linux Desktop + CLI tar.gz', 'Download Linux CLI-only tar.gz']);
   assert.match(released, /Desktop, CLI or both/);
   assert.match(released, /Both are selected by default/);
   assert.equal((released.match(/class="download-group"/g) || []).length, 3);
@@ -44,7 +44,7 @@ test('rendered landing gives one primary hero jump and truthful distinct guidanc
     ['Linux prerequisites and installation', '/docs/latest/desktop/#linux-prerequisites-and-installation'],
   ]);
   assert.doesNotMatch(released, /Installation and packaging requirements/);
-  assert.equal(links.length, 17);
+  assert.equal(links.length, 18);
   for (const link of links) {
     assert.ok(link.label);
     if (link.href.startsWith('/docs/') && link.href !== '/docs/versions/') assert.ok(link.href.startsWith('/docs/latest/'));
@@ -58,10 +58,10 @@ test('same-source fixture replaces only the real landing frame and rejects ambig
   assert.ok(result.startsWith('<html><head>'));
   assert.match(result, /<header>chrome<\/header>/);
   assert.match(result, /<footer>company<\/footer>/);
-  assert.match(result, /Download Windows MSI/);
+  assert.match(result, /Download Windows setup EXE/);
   assert.match(result, /href="docs\/latest\/windows-installation\/index.html"/);
   assert.doesNotMatch(result, /href="\/docs\//);
-  assert.ok(replaceLanding(frame, released.replace('Download Windows MSI', () => 'Literal $& package')).includes('Literal $& package'));
+  assert.ok(replaceLanding(frame, released.replace('Download Windows setup EXE', () => 'Literal $& package')).includes('Literal $& package'));
   assert.throws(() => replaceLanding('<main>other</main>', released), /one real public landing/);
   assert.throws(() => replaceLanding(frame.replace('</body>',released+'</body>'), released), /one real public landing/);
 });

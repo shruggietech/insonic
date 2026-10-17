@@ -122,11 +122,11 @@ def worker(path,output,page):
         state['owned_controls']=[{'class':class_name(control),'text':text(control)[:4096]} for control in controls]
         if not any(landmark in text(control) for control in controls):raise RuntimeError('native page landmark is absent: '+page)
         elections=[]
-        labels={'Choices':['Desktop application','CLI integrations (persistent help/setup session)','Create Start menu shortcuts','Create Desktop shortcut for the desktop application'],'Finish':['Launch insonic'],'License':['I accept the Apache License 2.0']}.get(page,[])
+        labels={'Choices':['Desktop application','CLI integrations (persistent help/setup session)','Create Start menu shortcuts','Create Desktop shortcut for the desktop application'],'Finish':['Launch insonic','Open documentation'],'License':['I accept the Apache License 2.0']}.get(page,[])
         for label in labels:
             matches=[control for control in controls if text(control)==label and class_name(control).casefold()=='button']
             if len(matches)!=1:raise RuntimeError('expected one native checkbox for '+label)
-            expected=page!='License';observed=checked(matches[0])
+            expected=page!='License' and label!='Open documentation';observed=checked(matches[0])
             if observed!=expected:raise RuntimeError('native property-backed checkbox state differs: '+label)
             elections.append({'control_label':label,'checked':observed,'method':'verified session property/BM_GETCHECK'})
         if page=='Location':

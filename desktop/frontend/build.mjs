@@ -29,6 +29,7 @@ if (process.argv.includes('--tests')) {
     entryPoints: [
       path.join(root, 'src/App.tsx'),
       path.join(root, 'src/client.ts'),
+      path.join(root, 'src/help.ts'),
       path.join(root, 'src/forms.ts'),
       path.join(root, 'src/qualification.ts'),
       path.join(root, 'src/graph-view.tsx'),

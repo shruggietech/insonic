@@ -34,12 +34,64 @@ def versioned_pe_fixture():
     struct.pack_into('<IIII',data,512+72,0x1000+88,len(value),0,0);data[600:600+len(value)]=value
     return bytes(data)
 class InstallerModelTests(unittest.TestCase):
+    def test_source_cleanup_waits_for_committed_removal_and_excludes_upgrade_removal(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            _,model=fixture(Path(temporary))
+        actions={row[0]:row for row in model['tables']['CustomAction']}
+        sequence={row[0]:row for row in model['tables']['InstallExecuteSequence']}
+        cleanup=actions['CleanupSetupSource']
+        self.assertEqual(cleanup[1],66)  # synchronous binary EXE, nonfatal after commit
+        self.assertEqual(cleanup[3],'--cleanup-setup [ProductCode]')
+        self.assertEqual(sequence['CleanupSetupSource'][1],'REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE')
+        self.assertGreater(sequence['CleanupSetupSource'][2],sequence['InstallFinalize'][2])
+
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(prefix='s027-msi-test-');self.path=Path(self.temp.name);self.inv,self.model=fixture(self.path)
     def tearDown(self):self.temp.cleanup()
+    def test_execution_progress_is_native_and_terminal_controls_match_outcome(self):
+        tables=self.model['tables']
+        sequence={r[0]:r[2] for r in tables['InstallUISequence']}
+        self.assertLess(sequence['Progress'],sequence['ExecuteAction'])
+        self.assertIn(['Progress','Bar','SetProgress','Progress'],tables['EventMapping'])
+        self.assertIn(['Progress','Action','ActionText','Text'],tables['EventMapping'])
+        dialog=next(r for r in tables['Dialog'] if r[0]=='Progress')
+        self.assertFalse(dialog[5]&2)
+        for name in ['Finish','Cancelled','FatalError']:
+            controls=[r for r in tables['Control'] if r[0]==name and r[2]=='PushButton']
+            self.assertEqual(len(controls),1)
+            self.assertNotIn(controls[0][9],['Cancel','Next >'])
+            row=next(r for r in tables['Dialog'] if r[0]==name)
+            self.assertEqual(row[8],row[9])
+            self.assertTrue(any(row[:5]==[name,controls[0][1],'EndDialog','Return','1'] for row in tables['ControlEvent']))
+        self.assertNotIn('rollback',next(r[1] for r in tables['ActionText'] if r[0]=='RollbackCleanup').casefold())
+        for action in ['Rollback','RollbackCleanup','GenerateScript']:
+            self.assertEqual(next(r for r in tables['ActionText'] if r[0]==action)[2],'[1]')
+
+    def test_maintenance_repair_does_not_recache_its_open_installer(self):
+        events=[row for row in self.model['tables']['ControlEvent'] if row[:2]==['Maintenance','Repair']]
+        self.assertEqual(next(row[3] for row in events if row[2]=='[REINSTALL]'),'ALL')
+        mode=next(row[3] for row in events if row[2]=='[REINSTALLMODE]')
+        self.assertEqual(mode,'omus')
+        self.assertNotIn('v',mode)
+
+    def test_documentation_completion_election_is_independent_and_fresh_only(self):
+        tables=self.model['tables'];props=dict(tables['Property'])
+        self.assertEqual(props['LAUNCH'],'1');self.assertNotIn('OPEN_DOCUMENTATION',props)
+        self.assertIn(['OPEN_DOCUMENTATION','1'],tables['CheckBox'])
+        action=next(r for r in tables['CustomAction'] if r[0]=='OpenDocumentation')
+        self.assertEqual(action[1],82);self.assertEqual(action[3],'--documentation --interactive')
+        events=[r for r in tables['ControlEvent'] if r[2]=='DoAction' and r[3]=='OpenDocumentation']
+        self.assertEqual(len(events),1)
+        for clause in ['OPEN_DOCUMENTATION=1','UILevel=5','NOT Installed','NOT OLDPRODUCTS']:
+            self.assertIn(clause,events[0][4])
+
     def test_client_dependency_and_owned_marker(self):
         items={x['path']:x for x in self.model['payload']}
         self.assertEqual(items['insonic-desktop.exe']['feature'],'Desktop');self.assertEqual(items['insonic.exe']['feature'],'Core');self.assertIn(m.OWNERSHIP,items);self.assertNotIn(m.OWNERSHIP,{x['path'] for x in self.inv['files']})
+    def test_removal_does_not_require_fresh_license_acceptance(self):
+        condition=next(row[0] for row in self.model['tables']['LaunchCondition'] if row[1].startswith('Read and accept'))
+        self.assertEqual(condition,'REMOVE="ALL" OR Installed OR LICENSE_ACCEPTED=1')
+
     def test_license_initially_unchecked_and_exact(self):
         self.assertNotIn('LICENSE_ACCEPTED',dict(self.model['tables']['Property']));self.assertEqual(self.model['license_sha256'],m.sha(ROOT/'LICENSE'))
     def test_three_selection_contract(self):
@@ -133,12 +185,175 @@ class InstallerModelTests(unittest.TestCase):
     def test_owner_host_ui_guard(self):
         with patch.dict(os.environ,{},clear=True):
             with self.assertRaisesRegex(RuntimeError,'disposable'):m.disposable_runner()
+    def test_setup_qualification_refuses_owner_host_before_native_or_path_work(self):
+        import qualify_installer_setup as setup
+        with patch.dict(os.environ,{},clear=True):
+            for function,args in [(setup.qualify,(None,None,None)),(setup.exercise,(None,None,None))]:
+                with self.assertRaisesRegex(RuntimeError,'disposable'):
+                    if function is setup.exercise:function(*args,full=True)
+                    else:function(*args)
+    def test_setup_qualification_binds_exact_artifacts_and_ordinary_identity(self):
+        import qualify_installer_setup as setup
+        stage=self.path/('insonic-ci-account-'+'a'*32);stage.mkdir()
+        token={'user_sid_sha256':'a'*64,'elevated':False,'administrator_enabled':False,'integrity_rid':8192}
+        (stage/'owned-ci-account.json').write_text(json.dumps({'sid_sha256':token['user_sid_sha256']}),encoding='utf-8')
+        (stage/'fixture.msi').write_bytes(b'full MSI identity');(stage/'exact-setup.exe').write_bytes(b'exact setup identity')
+        (stage/'setup-qualification.json').write_text(json.dumps({'feature_qualification':True,'msi_sha256':m.sha(stage/'fixture.msi'),'setup_sha256':m.sha(stage/'exact-setup.exe')}),encoding='utf-8')
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'ProgramData':str(self.path)}):
+            setup.validate_scope(stage,token,True)
+            with self.assertRaisesRegex(RuntimeError,'ordinary account'):setup.validate_scope(stage,{**token,'elevated':True},True)
+            (stage/'exact-setup.exe').write_bytes(b'changed program')
+            with self.assertRaisesRegex(RuntimeError,'artifact authority'):setup.validate_scope(stage,token,True)
     def test_cancel_and_context_entrypoints_reject_owner_host_before_native_calls(self):
         spec=importlib.util.spec_from_file_location('qualify_msi_guard',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with patch.dict(os.environ,{},clear=True):
             for function,args in [(module.token_info,()),(module.owned_actor_processes,(None,)),(module.installer_mutex_diagnostic,()),(module.owned_user_object_observation,(None,None,None,None)),(module.ordinary_context,(None,None,None)),(module.ordinary_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,()),(module.service_diagnostic,()),(module.native_installer_worker,(None,)),(module.native_installer_dll,(None,)),(module.run_installer,(['/i','unused'],None)),(module.create_removal_sentinels,()),(module.assert_removal_sentinels,(None,)),(module.clean_removal_sentinels,(None,)),(module.private_context_desktop,('S-1-5-21-1-2-3-1001',)),(module.account_sid,(None,)),(module.grant_owned_account_stage,(None,None,None)),(module.registered_feature_states,(None,None))]:
                 with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
         self.assertIn('cancellation_rollback',m.QUALIFICATION_KEYS);self.assertIn('user_context',m.QUALIFICATION_KEYS)
+    def test_full_ui_prepare_rebuilds_inherited_inventory_without_native_execution(self):
+        import qualify_installer_ui as ui
+        source=self.path/'diagnostic-input';fixture(source)
+        (source/'help/offline-manifest.json').write_text(json.dumps({'version':'1.0.1','entrypoint':'index.html','public_landing_included':False}),encoding='utf-8')
+        stage=self.path/'diagnostic-stage';stage.mkdir();models=[]
+        def author(path,payload,model):models.append(model);path.write_bytes(b'owned portable MSI placeholder')
+        def clone(old,target,*args,**kwargs):target.write_bytes(old.read_bytes())
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(m,'author',side_effect=author),patch.object(m,'NativeDatabase'):
+            ui.prepare(stage,source,clone,diagnostic_only=True)
+        self.assertEqual(len(models),1)
+        inventory=[row for row in models[0]['payload'] if row['path']=='package-inventory.json']
+        self.assertEqual(len(inventory),1)
+        self.assertEqual(inventory[0]['sha256'],m.sha(stage/'ui-payload/package-inventory.json'))
+
+    def test_invocation_diagnostic_refuses_owner_host_before_native_calls(self):
+        spec=importlib.util.spec_from_file_location('invocation_guard',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True),patch.object(module,'qualifier') as native:
+            for function,args in [(module.main,()),(module.observe_invocation,(None,None,None)),(module.observe_rollback,(None,None,None)),(module.rollback_case,(None,None)),(module.recover_registration,(None,None,None)),(module.reinstall_advertised_probe,(None,None,None,None)),(module.author_recovery_exit_probe,(None,)),(module.author_recovery_container_probe,(None,))]:
+                with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
+            native.assert_not_called()
+
+    def test_recovery_reinstall_probe_refuses_missing_source_before_unregister(self):
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('recovery_reinstall_fixture',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        calls=[]
+        dll=SimpleNamespace(MsiQueryProductStateW=lambda product:1,MsiConfigureProductExW=lambda *args:calls.append(args),MsiInstallProductW=lambda *args:calls.append(args))
+        with patch.object(m,'disposable_runner',return_value=None):
+            with self.assertRaisesRegex(RuntimeError,'source'):module.reinstall_advertised_probe(dll,'old',self.path/'missing.msi','ADDLOCAL=Core,CLI')
+        self.assertEqual(calls,[])
+
+    def test_container_probe_commits_no_product_or_payload_before_coordinator(self):
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('recovery_container_author',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        stage=self.path/'container-probe';(stage/'scripts').mkdir(parents=True);(stage/'native').mkdir();(stage/'ui-old.msi').write_bytes(b'owned native-valid costing fixture');rows=[]
+        db=SimpleNamespace(execute=lambda sql,args=None,streams=():rows.append((sql,args,streams)),check=lambda code:None,handle=1,dll=SimpleNamespace(MsiDatabaseCommit=lambda handle:0),summary=lambda value:None,close=lambda:None)
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'qualifier',return_value=SimpleNamespace(diagnostic_mode=lambda stage:'rollback-container')),patch.object(m,'NativeDatabase',return_value=db),patch.dict(os.environ,{'GITHUB_ACTIONS':'true','RUNNER_ENVIRONMENT':'github-hosted','INSONIC_DISPOSABLE_INSTALLER_TEST':'1'}):module.author_recovery_container_probe(stage)
+        actions=[args[0] for sql,args,streams in rows if args and 'InstallExecuteSequence' in sql]
+        self.assertEqual(actions,['CostInitialize','FileCost','CostFinalize','InstallValidate','InstallInitialize','InstallFinalize'])
+        self.assertNotIn('RegisterProduct',actions);self.assertNotIn('RemoveExistingProducts',actions)
+        self.assertTrue(any(args and args[0]=='OwnedRecoveryCoordinator' and streams==(2,) for sql,args,streams in rows))
+        self.assertTrue((stage/'container-product.json').is_file())
+
+    def test_recovery_exit_probe_retains_startup_and_uses_failure_termination(self):
+        import ast
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('recovery_exit_author',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        stage=self.path/'owned-exit-probe';(stage/'scripts').mkdir(parents=True);(stage/'native').mkdir();(stage/'ui-model.json').write_text(json.dumps({'old_product':'owned-old-product'}),encoding='utf-8');rows=[]
+        db=SimpleNamespace(execute=lambda sql,args:rows.append(args),check=lambda code:None,handle=1,dll=SimpleNamespace(MsiDatabaseCommit=lambda handle:0),close=lambda:None)
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'qualifier',return_value=SimpleNamespace(diagnostic_mode=lambda path:'rollback-exit-quiet')),patch.object(m,'NativeDatabase',return_value=db),patch.dict(os.environ,{'GITHUB_ACTIONS':'true','RUNNER_ENVIRONMENT':'github-hosted','INSONIC_DISPOSABLE_INSTALLER_TEST':'1'}):module.author_recovery_exit_probe(stage)
+        self.assertIn(['OwnedRecoveryFailure','OLDPRODUCTS',-3],rows)
+        action=next(row for row in rows if row[0]=='OwnedRecoveryFailure' and len(row)==4)
+        self.assertEqual(action[1:3],[114,'OWNED_RECOVERY_PYTHON']);self.assertTrue(action[3].startswith('-I "'))
+        source=(stage/'scripts/recovery-exit-bootstrap.py').read_text(encoding='utf-8');ast.parse(source)
+        self.assertIn('environment_before',source);self.assertIn('context.recovery-exit-stream.log',source);self.assertIn('--recover-registration',source)
+
+    def test_recovery_reinstall_probe_does_not_install_after_failed_unregister(self):
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('recovery_reinstall_failure',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        source=self.path/'old.msi';source.write_bytes(b'original owned MSI');calls=[]
+        dll=SimpleNamespace(MsiQueryProductStateW=lambda product:1,MsiConfigureProductExW=lambda *args:1603,MsiInstallProductW=lambda *args:calls.append(args))
+        with patch.object(m,'disposable_runner',return_value=None):result=module.reinstall_advertised_probe(dll,'old',source,'ADDLOCAL=Core,CLI LAUNCH=0')
+        self.assertEqual(calls,[]);self.assertEqual(result['uninstall_code'],1603);self.assertNotIn('install_code',result)
+
+    def test_recovery_reinstall_probe_uses_public_absent_then_original_package(self):
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('recovery_reinstall_order',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        calls=[];state=[1];source=self.path/'old.msi';source.write_bytes(b'original owned MSI')
+        def uninstall(*args):calls.append(('uninstall',args));state[0]=-1;return 0
+        def install(*args):calls.append(('install',args));state[0]=5;return 0
+        dll=SimpleNamespace(MsiQueryProductStateW=lambda product:state[0],MsiConfigureProductExW=uninstall,MsiInstallProductW=install)
+        with patch.object(m,'disposable_runner',return_value=None):result=module.reinstall_advertised_probe(dll,'old',source,'ADDLOCAL=Core,CLI LAUNCH=0')
+        self.assertEqual(calls,[('uninstall',('old',0,2,'REMOVE=ALL LAUNCH=0 REBOOT=ReallySuppress')),('install',(str(source),'ADDLOCAL=Core,CLI LAUNCH=0'))])
+        self.assertEqual(result,{'uninstall_code':0,'after_uninstall':-1,'install_code':0,'after_install':5,'feature_qualification':False})
+
+    def test_rollback_diagnostic_retains_observation_when_native_cleanup_fails(self):
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('rollback_retention_fixture',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        stage=self.path/'rollback-diagnostic';(stage/'native').mkdir(parents=True);directory=stage/'UI program é & spaces';directory.mkdir();(directory/'owned.txt').write_bytes(b'old')
+        (stage/'ui-model.json').write_text(json.dumps({'payload':[{'path':'owned.txt','sha256':m.digest(b'old'),'feature':'Core'}]}),encoding='utf-8')
+        token={'user_sid_sha256':'owned','elevated':False}
+        def state(product):return 1 if product=='old' else -1
+        dll=SimpleNamespace(MsiQueryProductStateW=state)
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'qualifier',return_value=SimpleNamespace(diagnostic_mode=lambda stage:'rollback-reused')),patch.object(module,'rollback_case',side_effect=lambda stage,name:{'name':name,'token':token}),patch.object(module.C,'WinDLL',return_value=dll,create=True),patch.object(m,'CompoundFile',side_effect=lambda path:SimpleNamespace(streams=Path(path).name)),patch.object(m,'table_rows',side_effect=lambda stream,table:[['ProductCode','old' if stream=='ui-old.msi' else 'new']]):
+            result=module.observe_rollback(stage,token,lambda *args:(_ for _ in ()).throw(RuntimeError('native cleanup1603')))
+        self.assertEqual(result['transactions'][-1]['registered_states'],{'old':1,'new':-1})
+        self.assertTrue(result['restored_old_payload']);self.assertFalse(result['feature_qualification'])
+        self.assertEqual(result['state'],'passed')  # completed trace, explicitly never feature qualification
+        self.assertFalse(result['cleanup'][0]['completed'])
+        retained=json.loads((stage/'native/context.rollback-comparison.json').read_text(encoding='utf-8'))
+        self.assertEqual(retained,result)
+
+    def test_diagnostic_mode_uses_explicit_record_without_inherited_environment(self):
+        spec=importlib.util.spec_from_file_location('diagnostic_mode_fixture',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        target=self.path/'installer-diagnostic-mode.json'
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{},clear=True):
+            for mode in ('completion','rollback-reused','rollback-isolated','rollback-primed','rollback-late','rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container','rollback-container-independent','rollback-standalone','rollback-standalone-full'):
+                target.write_text(json.dumps({'feature_qualification':False,'mode':mode}),encoding='utf-8')
+                self.assertEqual(module.diagnostic_mode(self.path),mode)
+            for invalid in ({'feature_qualification':True,'mode':'completion'},{'feature_qualification':False,'mode':'unknown'},{'feature_qualification':False,'mode':'completion','extra':1}):
+                target.write_text(json.dumps(invalid),encoding='utf-8')
+                with self.assertRaisesRegex(RuntimeError,'diagnostic mode'):module.diagnostic_mode(self.path)
+
+    def test_native_client_preparation_is_not_an_error_dialog(self):
+        import qualify_installer_ui as ui
+        self.assertFalse(ui.native_client_error_dialog(['','Preparing to install...','Cancel','']))
+        self.assertTrue(ui.native_client_error_dialog(['Invalid command line argument.','OK']))
+
+    def test_standalone_full_ui_probe_has_owned_hidden_scope(self):
+        from types import SimpleNamespace
+        import qualify_installer_ui as ui
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):ui.launch_standalone_diagnostic(None,None,None)
+        stage=self.path/'insonic-ci-account-00000000000000000000000000000000';stage.mkdir();(stage/'native').mkdir();(stage/'completion-invocation-diagnostic.json').write_text('{"qualification":false}',encoding='utf-8')
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'ProgramData':str(self.path)}),patch.object(ui.subprocess,'Popen',return_value=SimpleNamespace(pid=123)) as start:
+            ui.launch_standalone_diagnostic(stage/'ui-bad.msi',stage/'UI program é & spaces',stage/'native/context.ui-rollback-failed-upgrade.log')
+        args,kwargs=start.call_args
+        self.assertEqual(args[0],[str(stage.resolve()/'launcher-context-fixture/owned-coordinator.exe'),'--standalone','--full-ui',str(stage.resolve())])
+        self.assertEqual(kwargs['creationflags'],0x08000000);self.assertEqual(kwargs['stdin'],ui.subprocess.DEVNULL)
+        self.assertNotIn('shell',kwargs)
+
+    def test_msiexec_diagnostic_has_hidden_explicit_owned_launch(self):
+        from types import SimpleNamespace
+        import qualify_installer_ui as ui
+        stage=self.path/'insonic-ci-account-00000000000000000000000000000000';stage.mkdir();(stage/'completion-invocation-diagnostic.json').write_text('{"qualification":false}',encoding='utf-8')
+        (stage/'native').mkdir();msi=stage/'ui-old.msi';msi.write_bytes(b'owned fixture')
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'ProgramData':str(self.path),'SystemRoot':str(self.path/'windows')}),patch.object(ui.subprocess,'Popen',return_value=SimpleNamespace(pid=123)) as start:
+            ui.launch_msiexec_diagnostic(msi,stage/'UI program é & spaces',stage/'native/context.ui-rollback-install.log')
+        args,kwargs=start.call_args
+        self.assertIsInstance(args[0],str)
+        self.assertIn('/qf',args[0]);self.assertIn('/l*v',args[0]);self.assertNotIn('LICENSE_ACCEPTED',args[0]);self.assertNotIn('LAUNCH=',args[0])
+        self.assertIn(' INSTALLDIR="'+str(stage/'UI program é & spaces')+'" ',args[0])
+        self.assertEqual(kwargs['executable'],str(self.path/'windows/System32/msiexec.exe'))
+        self.assertEqual(kwargs['creationflags'],0x08000000);self.assertEqual(kwargs['stdin'],ui.subprocess.DEVNULL)
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):ui.launch_msiexec_diagnostic(None,None,None)
+
+    def test_full_ui_and_association_helpers_refuse_owner_host_before_native_calls(self):
+        import qualify_installer_ui as ui
+        with patch.dict(os.environ,{},clear=True):
+            for function,args in [(ui.prepare,(None,None,None)),(ui.NativeUI,(None,)),(ui.qualify,(None,None,None,None,None,None)),(ui.export_captures,(None,None,None,None))]:
+                with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
+            with self.assertRaisesRegex(RuntimeError,'disposable'):
+                with ui.association(None,None):self.fail('owner association was changed')
+
     def test_private_context_desktop_restores_caller_on_success_and_failure(self):
         import ctypes as C
         from types import SimpleNamespace
@@ -199,8 +414,8 @@ class InstallerModelTests(unittest.TestCase):
         (stage/'owned-ci-account.json').write_text(json.dumps({'account':name,'sid_sha256':m.digest(sid.encode())}),encoding='utf-8');calls=[];records=[]
         def bridge(command,**options):
             self.assertNotIn(password,repr(command));self.assertNotIn(password,repr(options.get('env')))
-            self.assertEqual(options['creationflags'],0x08000000);self.assertEqual(options['timeout'],110)
-            script=base64.b64decode(command[-1]).decode('utf-16le');self.assertIn("ExecutionTimeLimit='PT90S'",script);self.assertIn('RegisterTaskDefinition($inputObject.task_name,$definition,2,',script);self.assertIn("$definition.Principal.UserId='SYSTEM';$definition.Principal.LogonType=5;",script);self.assertIn("'SYSTEM',$null,5,$null)",script);self.assertIn('$result.logon_type=5',script)
+            self.assertEqual(options['creationflags'],0x08000000);self.assertEqual(options['timeout'],260)
+            script=base64.b64decode(command[-1]).decode('utf-16le');self.assertIn("ExecutionTimeLimit='PT240S'",script);self.assertIn('RegisterTaskDefinition($inputObject.task_name,$definition,2,',script);self.assertIn("$definition.Principal.UserId='SYSTEM';$definition.Principal.LogonType=5;",script);self.assertIn("'SYSTEM',$null,5,$null)",script);self.assertIn('$result.logon_type=5',script)
             request=json.loads(options['input']);calls.append(request)
             if request['mode']=='run':
                 self.assertEqual(request['password'],password);self.assertNotIn('provider-secret',request['arguments']);self.assertNotIn('owner-private',request['arguments']);self.assertIn('os.environ.clear()',request['arguments'])
@@ -243,6 +458,184 @@ class InstallerModelTests(unittest.TestCase):
         security=SimpleNamespace(OpenProcessToken=Function(lambda *args:self.fail('borrowed target must not open SYSTEM token')),GetTokenInformation=Function(info),CreateWellKnownSid=Function(well_known),CheckTokenMembership=Function(membership),ConvertSidToStringSidW=Function(convert),DuplicateToken=Function(duplicate));dlls={'kernel32':kernel,'advapi32':security}
         with patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True):proof=module.token_info(primary)
         self.assertEqual(proof['user_sid_sha256'],m.digest(sid.encode()));self.assertFalse(proof['administrator_enabled']);self.assertTrue(proof['interactive_logon']);self.assertEqual(proof['integrity_rid'],8192);self.assertEqual(closed,[600]);self.assertEqual(membership_handles,[600,600,600])
+    def test_full_ui_desktop_and_session_fixture_refuse_owner_machine(self):
+        spec=importlib.util.spec_from_file_location('qualify_full_ui_guard',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True):
+            for context in (module.interactive_context_desktop('S-1-5-21-1-2-3-1001','S-1-5-18',self.path),):
+                with self.assertRaisesRegex(RuntimeError,'disposable'):
+                    with context:self.fail('fixture entered the owner machine')
+
+    def test_exact_account_user_object_grant_restores_after_failure_and_refuses_outside_drift(self):
+        import ctypes as C
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_user_object_access',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        sid='S-1-5-21-1-2-3-1001';original='D:(A;;GA;;;SY)';state={'sddl':original};buffers=[];writes=[]
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):
+                with module.owned_user_object_access(None,sid,0xf01ff,None,None,None):self.fail('owner object was touched')
+        def text_pointer(value,out):
+            buffer=C.create_unicode_buffer(value);buffers.append(buffer);out._obj.value=C.addressof(buffer);return True
+        def get_security(handle,info,target,capacity,needed):
+            buffer=C.create_unicode_buffer(state['sddl']);needed._obj.value=C.sizeof(buffer)
+            if target is None:return False
+            C.memmove(target,buffer,C.sizeof(buffer));return True
+        def set_security(handle,info,value):
+            self.assertEqual(info._obj.value,4);state['sddl']=C.wstring_at(value);writes.append(state['sddl']);return True
+        user=SimpleNamespace(GetUserObjectSecurity=get_security,SetUserObjectSecurity=set_security)
+        security=SimpleNamespace(ConvertSecurityDescriptorToStringSecurityDescriptorW=lambda raw,revision,info,out,length:text_pointer(C.wstring_at(raw),out),ConvertStringSecurityDescriptorToSecurityDescriptorW=lambda text,revision,out,length:text_pointer(text,out))
+        kernel=SimpleNamespace(LocalFree=lambda pointer:None)
+        def observation(*args):return {'descriptor_sha256':m.digest(state['sddl'].encode()),'owner':'unchanged','group':'unchanged','mandatory_label':'unchanged'}
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'owned_user_object_observation',side_effect=observation):
+            for fail in (False,True):
+                state['sddl']=original
+                try:
+                    with module.owned_user_object_access(55,sid,0xf01ff,user,security,kernel) as evidence:
+                        self.assertEqual(state['sddl'],original+'(A;;0xf01ff;;;'+sid+')')
+                        if fail:raise RuntimeError('injected actor failure')
+                except RuntimeError as error:self.assertEqual(str(error),'injected actor failure')
+                self.assertEqual(state['sddl'],original);self.assertTrue(evidence['restored']);self.assertEqual(evidence['original_security'],evidence['restored_security'])
+            with self.assertRaisesRegex(RuntimeError,'outside the exact grant'):
+                with module.owned_user_object_access(55,sid,0xf01ff,user,security,kernel):state['sddl']='D:(A;;GR;;;WD)'
+            self.assertEqual(state['sddl'],'D:(A;;GR;;;WD)')
+        self.assertEqual(writes[-1],original+'(A;;0xf01ff;;;'+sid+')')
+
+    def test_interactive_actor_authenticates_normal_user_without_second_profile_or_session_reassignment(self):
+        import ctypes as C
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_interactive_actor',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.interactive_ordinary(None,None,None,None,None,None,None)
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.ordinary_ui_worker(None)
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.ordinary_namespace_probe(None)
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.object_namespace_diagnostic()
+        stage=self.path/'interactive';stage.mkdir();(stage/'scripts').mkdir();(stage/'native').mkdir()
+        name='inso_ci_0123456789ab';sid='S-1-5-21-1-2-3-1001';password='private-memory-password';closed=[];events=[]
+        (stage/'owned-ci-account.json').write_text(json.dumps({'account':name,'sid_sha256':m.digest(sid.encode())}),encoding='utf-8')
+        target={'user_sid_sha256':m.digest(sid.encode()),'session_id':2,'elevated':False,'administrator_enabled':False,'integrity_rid':8192,'authentication_luid':{'low':123,'high':0},'enabled_privileges':1,'interactive_logon':True}
+        desktop={'path':r'WinSta0\Default','session_id':2,'target_user_sid_sha256':target['user_sid_sha256']}
+        class Function:
+            def __init__(self,call):self.call=call
+            def __call__(self,*args):return self.call(*args)
+        def create(account,domain,secret,logon,exe,command,flags,environment,cwd,startup,out):
+            self.assertEqual((account,domain,secret,logon),(name,'.',password,0));self.assertTrue(exe.endswith('pythonw.exe'));self.assertLess(len(command.value),1024);self.assertEqual(flags,0x08000400);self.assertEqual(startup._obj.desktop,desktop['path']);self.assertEqual(cwd,str(stage));self.assertNotIn(password,command.value+environment.value)
+            purpose='namespace-probe' if 'namespace-probe' in command.value else 'ui'
+            bootstrap=(stage/('scripts/interactive-'+purpose+'-bootstrap.py')).read_text();self.assertNotIn(password,bootstrap);self.assertIn('--ordinary-namespace-probe' if purpose=='namespace-probe' else '--ordinary-ui-worker',bootstrap);out._obj.process=555;out._obj.thread=556;out._obj.pid=888
+            (stage/('native/context.namespace-probe.json' if purpose=='namespace-probe' else 'native/context.ui.json')).write_text(json.dumps({'token':target,'state':'passed'}),encoding='utf-8');return True
+        def code(process,out):out._obj.value=0;return True
+        security=SimpleNamespace(CreateProcessWithLogonW=Function(create))
+        kernel=SimpleNamespace(WaitForSingleObject=Function(lambda *args:0),GetExitCodeProcess=Function(code),CloseHandle=Function(lambda handle:closed.append(handle.value if hasattr(handle,'value') else handle)),TerminateProcess=Function(lambda *args:self.fail('successful child must not be killed')))
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'COMPUTERNAME':'CIHOST','SystemRoot':str(self.path/'Windows')},clear=True),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:{'advapi32':security,'kernel32':kernel}[name],create=True),patch.object(module,'token_info',return_value={'session_id':2}):
+            for probe_only in (True,False):
+                proof=module.interactive_ordinary(stage,name,sid,password,self.path/name,desktop,lambda phase,**extra:events.append({'phase':phase,**extra}),probe_only=probe_only)
+                self.assertEqual(proof['token'],target)
+        self.assertEqual(closed,[556,555,556,555]);self.assertEqual(events[-1]['token'],target);self.assertFalse(events[0]['profile_loaded_by_child']);self.assertFalse(events[0]['session_token_reassignment']);self.assertNotIn(password,repr(events))
+
+    def test_existing_html_user_choice_is_preserved_and_owned_command_restored_after_failure(self):
+        import copy
+        import ctypes as C
+        from types import SimpleNamespace
+        import qualify_installer_ui as ui
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):
+                with ui.fixture_html_registration(None,None,None,None):self.fail('owner association entered')
+        name='inso_ci_0123456789ab';sid='S-1-5-21-1-2-3-1001';stage=self.path/('insonic-ci-account-'+'a'*32);stage.mkdir();(stage/'native').mkdir();handler=stage/'documentation-handler.exe';handler.write_bytes(b'owned image')
+        token={'user_sid_sha256':m.digest(sid.encode()),'administrator_enabled':False,'elevated':False}
+        (stage/'owned-ci-account.json').write_text(json.dumps({'account':name,'sid_sha256':token['user_sid_sha256']}),encoding='utf-8')
+        prog='MSEdgeHTM';base='Software\\Classes\\'+prog;command=base+r'\shell\open\command';choice=r'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.html\UserChoice'
+        class Key:
+            def __init__(self,path):self.path=path
+            def __enter__(self):return self
+            def __exit__(self,*args):pass
+        class Registry:
+            HKEY_CURRENT_USER='exact-current-user';KEY_QUERY_VALUE=1;KEY_SET_VALUE=2;REG_SZ=1
+            def __init__(self,existing):
+                self.data={choice:{'ProgId':(prog,1),'Hash':('private-native-choice-hash',1)}}
+                if existing:
+                    for suffix in ('',r'\shell',r'\shell\open',r'\shell\open\command'):self.data[base+suffix]={}
+                    self.data[command]={'':('original-browser-command',1),'DelegateExecute':('original-delegate',1),'Keep':('unrelated',1)}
+            def OpenKey(self,root,path,*args):
+                if root!=self.HKEY_CURRENT_USER:raise AssertionError('machine association requested')
+                if path not in self.data:raise FileNotFoundError(path)
+                return Key(path)
+            def CreateKey(self,root,path):self.data.setdefault(path,{});return self.OpenKey(root,path)
+            def QueryValueEx(self,key,name):
+                if name not in self.data[key.path]:raise FileNotFoundError(name)
+                return self.data[key.path][name]
+            def SetValueEx(self,key,name,reserved,kind,value):self.data[key.path][name]=(value,kind)
+            def DeleteValue(self,key,name):
+                if name not in self.data[key.path]:raise FileNotFoundError(name)
+                del self.data[key.path][name]
+            def QueryInfoKey(self,key):return sum(path.rpartition('\\')[0]==key.path for path in self.data),len(self.data[key.path]),0
+            def EnumValue(self,key,index):name=sorted(self.data[key.path])[index];value,kind=self.data[key.path][name];return name,value,kind
+            def DeleteKey(self,root,path):del self.data[path]
+        class Function:
+            def __call__(self,account,size):account.value=name;return True
+        security=SimpleNamespace(GetUserNameW=Function())
+        for existing in (False,True):
+            registry=Registry(existing);before=copy.deepcopy(registry.data)
+            with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'ProgramData':str(self.path)}),patch.object(C,'WinDLL',return_value=security,create=True),patch.dict(sys.modules,{'winreg':registry}):
+                with self.assertRaisesRegex(ValueError,'native actor failure'):
+                    with ui.fixture_html_registration(stage,token,prog,handler):
+                        self.assertEqual(registry.data[choice],before[choice]);self.assertNotIn('DelegateExecute',registry.data[command]);self.assertIn(str(handler),registry.data[command][''][0]);raise ValueError('native actor failure')
+            self.assertEqual(registry.data,before)
+            evidence=json.loads((stage/'native/context.association.json').read_text());self.assertTrue(evidence['restored']);self.assertFalse(evidence['user_choice_modified']);self.assertNotIn('private-native-choice-hash',repr(evidence))
+
+    def test_progress_inspection_does_not_scale_pause_with_validation_or_message_count(self):
+        import qualify_installer_ui as ui
+        class Event:
+            def __init__(self):self.ready=False;self.total=0;self.now=0
+            def is_set(self):return self.ready
+            def wait(self,seconds):self.total+=seconds;self.now+=seconds
+        event=Event();inspection=ui.ProgressInspection(event,lambda:event.now)
+        for _ in range(2000):inspection.progress()
+        self.assertEqual(event.total,0)
+        for _ in range(2000):inspection.start();inspection.progress()
+        self.assertLessEqual(event.total,.251)
+        event.ready=True;before=event.total
+        for _ in range(2000):inspection.progress()
+        self.assertEqual(event.total,before)
+
+    def test_session_namespace_fixture_restores_exact_descriptor_without_touching_global_or_child_objects(self):
+        from contextlib import nullcontext
+        spec=importlib.util.spec_from_file_location('qualify_session_namespace',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):
+                with module.interactive_context_namespace(None,None,None,None,None):self.fail('owner namespace entered')
+        stage=self.path/('insonic-ci-account-'+'a'*32);stage.mkdir();sid='S-1-5-21-1-2-3-1001';caller='S-1-5-21-1-2-3-1000';session=2
+        (stage/'owned-ci-account.json').write_text(json.dumps({'account':'inso_ci_0123456789ab','sid_sha256':m.digest(sid.encode())}),encoding='utf-8')
+        desktop={'session_id':session,'target_user_sid_sha256':m.digest(sid.encode()),'caller_sid_sha256':m.digest(caller.encode())}
+        target=r'\Sessions\2\BaseNamedObjects';probe={'token':{'session_id':session,'user_sid_sha256':m.digest(sid.encode())},'directories':{'objects':[{'path':target,'requested_access':15,'error':5,'opened':False}]}}
+        class API:
+            def __init__(self):self.current='D:(A;;GA;;;SY)';self.calls=[]
+            def open(self,name,access):self.calls.append(('open',name,access));return 77,0
+            def checked(self,name,status):self.asserted=(name,status)
+            def dacl(self,handle):return self.current.encode(),self.current
+            def describe(self,handle):return {'descriptor_sha256':m.digest(self.current.encode()),'owner_group_dacl_label_sddl':'O:SYG:SY'+self.current+'S:(ML;;NW;;;ME)'}
+            def convert(self,text):return nullcontext(text)
+            def set_dacl(self,handle,value):self.calls.append(('set',handle,value));self.current=value.decode() if isinstance(value,bytes) else value
+            def close(self,handle):self.calls.append(('close',handle))
+        api=API();observed=None
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'ProgramData':str(self.path)}),patch.object(module,'token_info',return_value={'session_id':session,'user_sid_sha256':m.digest(caller.encode())}),patch.object(module,'NativeObjectDirectories',return_value=api):
+            with self.assertRaisesRegex(ValueError,'native worker failed'):
+                with module.interactive_context_namespace(stage,sid,caller,desktop,probe) as observed:raise ValueError('native worker failed')
+        self.assertEqual(api.current,'D:(A;;GA;;;SY)');self.assertEqual(api.calls[0],('open',target,0x6000f));self.assertEqual(api.calls[-1],('close',77));self.assertEqual(len([x for x in api.calls if x[0]=='set']),2)
+        self.assertTrue(api.calls[1][2].endswith('(A;;0xf;;;'+sid+')'));self.assertTrue(observed['security_restored']);self.assertFalse(observed['global_namespace_modified']);self.assertEqual(observed['rights_mask'],15)
+        api=API()
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'ProgramData':str(self.path)}),patch.object(module,'token_info',return_value={'session_id':session,'user_sid_sha256':m.digest(caller.encode())}),patch.object(module,'NativeObjectDirectories',return_value=api):
+            with self.assertRaisesRegex(RuntimeError,'changed outside'):
+                with module.interactive_context_namespace(stage,sid,caller,desktop,probe):api.current='D:(A;;0x1;;;SY)'
+        self.assertEqual(api.current,'D:(A;;0x1;;;SY)');self.assertEqual(len([x for x in api.calls if x[0]=='set']),1)
+        for error,opened in ((0,True),(2,False)):
+            probe['directories']['objects'][0].update(error=error,opened=opened)
+            with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'ProgramData':str(self.path)}),patch.object(module,'token_info',return_value={'session_id':session,'user_sid_sha256':m.digest(caller.encode())}),patch.object(module,'NativeObjectDirectories') as native:
+                if opened:
+                    with module.interactive_context_namespace(stage,sid,caller,desktop,probe) as healthy:self.assertFalse(healthy['modified']);self.assertTrue(healthy['security_restored'])
+                else:
+                    with self.assertRaisesRegex(RuntimeError,'other than access denied'):
+                        with module.interactive_context_namespace(stage,sid,caller,desktop,probe):self.fail('unexpected native error entered fixture')
+                native.assert_not_called()
+
+
     def test_system_broker_creates_only_the_verified_normal_target_without_profile_load(self):
         import ctypes as C
         import io
@@ -258,13 +651,13 @@ class InstallerModelTests(unittest.TestCase):
             def __call__(self,*args):return self.call(*args)
         def logon(name,domain,secret,kind,provider,out):self.assertEqual(secret,password);self.assertEqual(kind,2);out._obj.value=444;calls.append('target-interactive-logon');return True
         def create(token,exe,command,process_acl,thread_acl,inherit,flags,environment,cwd,startup,out):
-            self.assertEqual(token.value,444);self.assertEqual(flags,0x08000400);self.assertFalse(inherit);self.assertNotIn(password,command.value);self.assertNotIn(password,environment.value);self.assertEqual(startup._obj.desktop,'owned-CI-station\\Default');out._obj.process=555;out._obj.thread=556;out._obj.pid=888;calls.append('normal-target-created');return True
+            self.assertEqual(token.value,444);self.assertTrue(str(exe).endswith('pythonw.exe'));self.assertIn('worker-stream.log',command.value);self.assertIn('runpy.run_path',command.value);self.assertEqual(flags,0x08000400);self.assertFalse(inherit);self.assertNotIn(password,command.value);self.assertNotIn(password,environment.value);self.assertEqual(startup._obj.desktop,'owned-CI-station\\Default');out._obj.process=555;out._obj.thread=556;out._obj.pid=888;calls.append('normal-target-created');return True
         def code(process,out):out._obj.value=0;return True
         kernel=SimpleNamespace(WaitForSingleObject=Function(lambda *args:0),GetExitCodeProcess=Function(code),CloseHandle=Function(lambda handle:closed.append(handle.value if hasattr(handle,'value') else handle)),TerminateProcess=Function(lambda *args:self.fail('no successful child or SYSTEM process may be killed')))
         security=SimpleNamespace(LogonUserW=Function(logon),CreateProcessAsUserW=Function(create));dlls={'kernel32':kernel,'advapi32':security};output=self.path/'context.json';env={'USERNAME':account,'COMPUTERNAME':'CIHOST','APPDATA':'owned-ordinary-profile'}
         def privileges(names):self.assertEqual(names,('SeAssignPrimaryTokenPrivilege','SeIncreaseQuotaPrivilege'));calls.append('broker-only-privileges');return nullcontext({'ordinary_actor_token_changed':False})
         with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,env,clear=True),patch.object(module,'token_info',side_effect=[system,target]),patch.object(module,'open',return_value=io.BytesIO((json.dumps(credentials)+'\n').encode()),create=True),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'private_context_desktop',return_value=nullcontext({'path':'owned-CI-station\\Default'})) as desktop,patch.object(module,'qualifier_profile_privileges',side_effect=privileges):module.ordinary_system_broker(pipe,self.path/'fixture.msi',self.path/'owned-install',output)
-        self.assertEqual(calls,['target-interactive-logon','broker-only-privileges','normal-target-created']);self.assertEqual(closed,[556,555,444]);desktop.assert_called_once_with(sid,'S-1-5-18');proof=json.loads(output.with_suffix('.broker.json').read_text());self.assertEqual(proof['broker_token'],system);self.assertEqual(proof['target_token'],target);self.assertFalse(proof['target_profile_loaded_by_broker']);self.assertNotIn(password,output.with_suffix('.broker.json').read_text())
+        self.assertEqual(calls,['target-interactive-logon','broker-only-privileges','normal-target-created']);self.assertEqual(closed,[556,555,444]);self.assertEqual(desktop.call_args.args,(sid,'S-1-5-18'));proof=json.loads(output.with_suffix('.broker.json').read_text());self.assertEqual(proof['broker_token'],system);self.assertEqual(proof['target_token'],target);self.assertFalse(proof['target_profile_loaded_by_broker']);self.assertNotIn(password,output.with_suffix('.broker.json').read_text())
         with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,env,clear=True),patch.object(module,'token_info',return_value={**system,'user_sid_sha256':m.digest(sid.encode())}),patch.object(module,'open',create=True) as pipe_open:
             with self.assertRaisesRegex(RuntimeError,'SYSTEM'):module.ordinary_system_broker(pipe,None,None,output)
             pipe_open.assert_not_called()
@@ -367,17 +760,23 @@ class InstallerModelTests(unittest.TestCase):
         def adjust(handle,disable,requested,size,previous,needed):
             self.assertEqual(handle.value,99)
             if previous is not None:
-                self.assertEqual(requested._obj.count,2);previous._obj.count=2;previous._obj.entries[0].attributes=0;previous._obj.entries[1].attributes=2;events.append('enable-own-token')
+                self.assertEqual(requested._obj.count,len(names));previous._obj.count=len(names)
+                for index in range(len(names)):previous._obj.entries[index].attributes=index*2
+                events.append('enable-own-token')
             else:
-                self.assertEqual(requested._obj.entries[0].attributes,0);self.assertEqual(requested._obj.entries[1].attributes,2);events.append('restore-exact-own-token')
+                self.assertEqual(requested._obj.count,len(names))
+                for index in range(len(names)):self.assertEqual(requested._obj.entries[index].attributes,index*2)
+                events.append('restore-exact-own-token')
             return True
         kernel=SimpleNamespace(GetCurrentProcess=Function(lambda:1),CloseHandle=Function(lambda handle:events.append('close-own-token')))
         security=SimpleNamespace(OpenProcessToken=Function(token),LookupPrivilegeValueW=Function(lookup),AdjustTokenPrivileges=Function(adjust));dlls={'kernel32':kernel,'advapi32':security}
-        with patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(C,'set_last_error',side_effect=lambda value:last_error.__setitem__(0,value),create=True),patch.object(C,'get_last_error',side_effect=lambda:last_error[0],create=True):
-            with self.assertRaisesRegex(ValueError,'profile API failure'):
-                with module.qualifier_profile_privileges() as scope:
-                    self.assertFalse(scope['ordinary_actor_token_changed']);raise ValueError('profile API failure')
-        self.assertEqual(events,['SeBackupPrivilege','SeRestorePrivilege','enable-own-token','restore-exact-own-token','close-own-token'])
+        for names in (('SeBackupPrivilege','SeRestorePrivilege'),('SeAssignPrimaryTokenPrivilege','SeIncreaseQuotaPrivilege')):
+            events.clear()
+            with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'account_sid',return_value='S-1-5-18'),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(C,'set_last_error',side_effect=lambda value:last_error.__setitem__(0,value),create=True),patch.object(C,'get_last_error',side_effect=lambda:last_error[0],create=True):
+                with self.assertRaisesRegex(ValueError,'profile API failure'):
+                    with module.qualifier_profile_privileges(names) as scope:
+                        self.assertFalse(scope['ordinary_actor_token_changed']);raise ValueError('profile API failure')
+            self.assertEqual(events,[*names,'enable-own-token','restore-exact-own-token','close-own-token'])
     def test_native_recorder_probe_retains_exit_and_never_substitutes_elected_receipt(self):
         from types import SimpleNamespace
         spec=importlib.util.spec_from_file_location('qualify_native_probe',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
@@ -531,7 +930,8 @@ class InstallerModelTests(unittest.TestCase):
         def release(initial,install,remove,task,sid,deadline):
             self.assertEqual(initial,ownership);self.assertEqual(sid,actor_sid);self.assertEqual(task['exit_code'],0);self.assertEqual(json.loads(install.read_text())['action'],'/i');self.assertEqual(json.loads(remove.read_text())['action'],'/x');events.append('owned-service-restored');return {'restored_initial_stopped_state':True,'process_terminated':False,'registry_hive_forced':False}
         def lease(sid,profile,deadline):events.append('profile-lease-observed');return {'machine_state_modified':False}
-        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'qualifier_profile_privileges',side_effect=lambda:nullcontext({'ordinary_actor_token_changed':False})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch.object(module,'disposable_server_installer_policy',return_value=nullcontext({'restored':True,'always_install_elevated_unchanged':True})),patch.object(module,'profile_cleanup_observation',return_value={'machine_state_modified':False}),patch.object(module,'profile_lease_observation',side_effect=lease),patch.object(module,'release_owned_installer_service',side_effect=release),patch.object(module,'delete_owned_profile_provider',return_value={'complete_absence':False}),patch.object(C,'get_last_error',return_value=32,create=True),patch.object(module.time,'sleep'):
+        with __import__('contextlib').ExitStack() as patches:
+            for context in (patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'qualifier_profile_privileges',side_effect=lambda:nullcontext({'ordinary_actor_token_changed':False})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch('qualify_installer_ui.prepare'),patch.object(module,'interactive_context_desktop',return_value=nullcontext({'station_dacl_restored':True})),patch.object(module,'interactive_ordinary'),patch.object(module,'interactive_context_namespace',return_value=nullcontext({'security_restored':True})),patch.object(module,'object_namespace_diagnostic',return_value={'objects':[]}),patch.object(module,'token_info',return_value={}),patch.object(module,'installer_mutex_diagnostic',return_value={'objects':[]}),patch.object(module,'disposable_server_installer_policy',return_value=nullcontext({'restored':True,'always_install_elevated_unchanged':True})),patch.object(module,'profile_cleanup_observation',return_value={'machine_state_modified':False}),patch.object(module,'profile_lease_observation',side_effect=lease),patch.object(module,'release_owned_installer_service',side_effect=release),patch.object(module,'delete_owned_profile_provider',return_value={'complete_absence':False}),patch.object(C,'get_last_error',return_value=32,create=True),patch.object(module.time,'sleep')):patches.enter_context(context)
             proof=module.ordinary_context(installer,self.path/'installation',output,self.model,ownership)
         self.assertEqual(events,['account-created','profile-created-by-native-load','ordinary-task-completed','profile-handle-unloaded','profile-lease-observed','owned-service-restored','profile-lease-observed','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3);self.assertEqual(rights,[])
         self.assertTrue(all(item.get('deleted',item.get('restored',item.get('unloaded'))) for item in proof['cleanup']));self.assertEqual((original/'owner-data').read_bytes(),b'keep');self.assertEqual((programdata/'owner-data').read_bytes(),b'keep')
@@ -578,9 +978,9 @@ class InstallerModelTests(unittest.TestCase):
         called=[];receipt={'qualification':{key:'pending' for key in m.QUALIFICATION_KEYS}}
         def capture(*args):called.append('capture');raise RuntimeError('actual renderer failed')
         def qualify(*args):called.append('qualify');raise RuntimeError('actual context failed')
-        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'load',side_effect=[SimpleNamespace(capture=capture),SimpleNamespace(qualify=qualify)]),patch.object(module,'write'),patch.object(m,'verify_installer') as verify:
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'load',side_effect=[SimpleNamespace(qualify=qualify),SimpleNamespace(capture=capture)]),patch.object(module,'write'),patch.object(m,'verify_installer') as verify:
             with self.assertRaisesRegex(RuntimeError,'gates failed'):module.run_gates(None,receipt,'all')
-            self.assertEqual(called,['capture','qualify']);verify.assert_not_called()
+            self.assertEqual(called,['qualify','capture']);verify.assert_not_called()
             self.assertEqual(receipt['qualification']['native_ui_capture'],'failed');self.assertEqual(receipt['qualification']['user_context'],'pending')
             self.assertEqual(set(receipt['qualification_errors']),{'native_ui_capture','native_lifecycle'})
     def test_provisional_all_native_pass_still_requires_qualified_zip_join(self):
@@ -590,9 +990,9 @@ class InstallerModelTests(unittest.TestCase):
         receipt={'kind':'windows-installer-receipt','format':'msi','platform':'windows_amd64','variant':'selectable','schema_version':'1.0.1','product_version':'1.0.1','documentation_version':'1.0.1','artifact':artifact.name,'artifact_sha256':m.sha(artifact),'artifact_size_bytes':artifact.stat().st_size,'source_dirty':False,'revision':'a'*40,'payload_receipt':dict(self.inv),'payload_inventory':self.inv,'qualification':{key:'pending' for key in m.QUALIFICATION_KEYS}}
         capture=SimpleNamespace(capture=lambda *args:called.append('native-ui'))
         qualifier=SimpleNamespace(qualify=lambda *args:called.append('actual-lifecycle') or {key:'passed' for key in m.QUALIFICATION_KEYS if key!='native_ui_capture'})
-        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'load',side_effect=[capture,qualifier]),patch.object(module,'write'),patch.object(m,'verify_installer') as verify:
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'load',side_effect=[qualifier,capture]),patch.object(module,'write'),patch.object(m,'verify_installer') as verify:
             module.run_gates(artifact,receipt,'provisional');verify.assert_not_called()
-        self.assertEqual(called,['native-ui','actual-lifecycle']);self.assertTrue(all(value=='passed' for value in receipt['qualification'].values()))
+        self.assertEqual(called,['actual-lifecycle','native-ui']);self.assertTrue(all(value=='passed' for value in receipt['qualification'].values()))
         self.assertIs(receipt['publication_eligible'],False);self.assertEqual(receipt['payload_qualification'],'pending')
         with self.assertRaisesRegex(ValueError,'provisional'):m.verify_installer(artifact,receipt)
         # Changing flags cannot fabricate the missing ZIP's actual relocation,
@@ -698,12 +1098,12 @@ class InstallerModelTests(unittest.TestCase):
             if access==0x1f0001:state['error']=5;return 0
             return access
         def descriptor(handle,kind,information,*args):
-            self.assertEqual(kind,6);self.assertEqual(information,0x17);args[-1]._obj.value=1234;return 0
+            self.assertEqual(kind,6);self.assertEqual(information,7);args[-1]._obj.value=1234;return 0
         kernel=SimpleNamespace(OpenMutexW=Function(open_mutex),CloseHandle=Function(lambda handle:closed.append(handle) or True),LocalFree=Function(lambda value:None))
         security=SimpleNamespace(GetSecurityInfo=Function(descriptor));dlls={'kernel32':kernel,'advapi32':security}
         with patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(C,'get_last_error',side_effect=lambda:state['error'],create=True),patch.object(module,'descriptor_observation',return_value={'owner_group_dacl_label_sddl':'O:SYS:(ML;;NW;;;HI)'}) as observed:
             result=module.installer_mutex_diagnostic()
-        self.assertEqual(len(calls),9);self.assertEqual(closed,[0x100000,0x20000]);observed.assert_called_once()
+        self.assertEqual(len(calls),15);self.assertEqual(closed,[0x100000,0x20000]);observed.assert_called_once()
         denied=next(row for row in result['objects'] if row['name']=='Global\\_MSIExecute' and row['requested_access']==0x1f0001)
         self.assertFalse(denied['opened']);self.assertEqual(denied['error'],5);self.assertFalse(result['mutex_acquired']);self.assertFalse(result['machine_state_modified'])
     def test_intentional_rejection_requires_message_and_correct_action(self):
@@ -716,7 +1116,7 @@ class InstallerModelTests(unittest.TestCase):
         log.write_text('Read and accept Apache License 2.0\nAction ended 3:12:57: LaunchConditions. Return value 3.\n',encoding='utf-16')
         self.assertEqual(module.assert_rejection(log,'Read and accept Apache License 2.0'),'Read and accept Apache License 2.0')
     def test_required_empty_search_table_definitions_are_authored(self):
-        for table in ('Signature','CompLocator','IniLocator','DrLocator','ActionText'):
+        for table in ('Signature','CompLocator','IniLocator','DrLocator'):
             self.assertIn(table,self.model['tables']);self.assertEqual(self.model['tables'][table],[])
     def test_alternate_directory_proof_rejects_registry_override(self):
         spec=importlib.util.spec_from_file_location('qualify_directory_proof',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
@@ -819,7 +1219,11 @@ class InstallerModelTests(unittest.TestCase):
         payload.update({'archive':'desktop.zip','archive_sha256':'b'*64,'inventory_sha256':inv_sha,'variant':'desktop','extracted_inventory':'passed','relocation_path_spaces':'passed','cli_real_audio_video_import':'passed','development_native_libraries':'isolated-and-restored','windows_copy_install':'passed','windows_first_use':'passed','gui_bridge':'passed','native_webview':'passed'})
         receipt={k:self.inv[k] for k in ('revision','source_dirty','platform','schema_version','distribution')}
         receipt.update({'kind':'windows-installer-receipt','format':'msi','variant':'selectable','product_version':'1.0.1','documentation_version':'1.0.1','signing':dict(m.UNSIGNED_SIGNING),'artifact':artifact.name,'artifact_sha256':m.sha(artifact),'artifact_size_bytes':artifact.stat().st_size,'payload_receipt':payload,'payload_inventory':self.inv,'payload_archive':'desktop.zip','payload_archive_sha256':'b'*64,'qualification':{k:'passed' for k in m.QUALIFICATION_KEYS},'msi_product_version':'1.0.1','product_code':model['product_code'],'upgrade_code':model['upgrade_code'],'scope':'per-user','license_sha256':m.sha(ROOT/'LICENSE'),'icon_sha256':m.sha(ROOT/m.ICON)})
-        self.assertEqual(m.verify_installer(artifact,receipt)['inventory']['signing'],self.inv['signing'])
+        # Isolate the MSI disposition. Setup bytes/resources and their separate
+        # unsigned state have independent artifact and native qualification tests.
+        receipt['setup']={'artifact':'isolated-setup.exe'}
+        with patch('windows_setup.verify',return_value=None):
+            self.assertEqual(m.verify_installer(artifact,receipt)['inventory']['signing'],self.inv['signing'])
         receipt['signing']=dict(self.inv['signing'])
         with self.assertRaisesRegex(ValueError,'independently unsigned'):m.verify_installer(artifact,receipt)
     @unittest.skipUnless(os.name=='nt','native database authoring Windows only, no UI')

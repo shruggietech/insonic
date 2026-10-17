@@ -366,6 +366,9 @@ jobs:
       - name: Assemble and qualify this relocated native package variant
         if: inputs.native && (runner.os != 'Windows' || matrix.variant != 'desktop')
         run: python scripts/package-desktop.py all --variant ${{ matrix.variant }}
+      - name: Install owned HTML association renderer dependency
+        if: inputs.native && runner.os == 'Windows' && matrix.variant == 'desktop'
+        run: npm ci --ignore-scripts
       - name: Qualify the same Windows ZIP and MSI in parallel
         if: inputs.native && runner.os == 'Windows' && matrix.variant == 'desktop'
         env:
@@ -401,6 +404,7 @@ jobs:
           name: candidate-package-${{ inputs.os }}-installer-${{ inputs.revision }}-${{ github.run_attempt }}
           path: |
             build/packages/*.msi
+            build/packages/*_setup.exe
             build/native/windows-installer-receipt.json
             build/native/installer-capture
           compression-level: 0

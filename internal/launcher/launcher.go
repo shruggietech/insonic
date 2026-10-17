@@ -23,11 +23,17 @@ func Build(directory, mode, systemDirectory string) (Plan, error) {
 		return p, errors.New("absolute program and system directories are required")
 	}
 	directory = filepath.Clean(directory)
+	if mode == "documentation" {
+		// Resolve documentation only after any elevated caller has handed off
+		// to its same-user limited helper. Describe constructs a plan only.
+		p.Executable = filepath.Join(directory, "insonic-launcher.exe")
+		return p, nil
+	}
 	target := filepath.Join(directory, "insonic-desktop.exe")
 	if mode == "cli" {
 		target = filepath.Join(directory, "insonic.exe")
 	} else if mode != "desktop" {
-		return p, errors.New("choose desktop or cli")
+		return p, errors.New("choose desktop, cli or documentation")
 	}
 	if f, e := os.Stat(target); e != nil || !f.Mode().IsRegular() {
 		return p, errors.New("the selected client is not installed; use installer Change or Repair")
