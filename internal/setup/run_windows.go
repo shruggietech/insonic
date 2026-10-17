@@ -231,13 +231,28 @@ func Run(args []string) int {
 			receipt.Recovery = "incomplete"
 			receipt.Error = err.Error()
 		} else {
-			err = os.Remove(filepath.Join(c.root, "pending.json"))
+			err = c.clean(outstanding.Recovery.NewProduct)
+			if err == nil {
+				err = os.Remove(filepath.Join(c.root, "pending.json"))
+			}
 		}
-		_ = atomicJSON(filepath.Join(c.root, "last-result.json"), receipt)
 		if err != nil {
-			return fail(fmt.Errorf("recovery is incomplete; retained source and logs: %s", c.root))
+			receipt.Code = 1603
+			receipt.Error = err.Error()
 		}
-		return int(outstanding.Original)
+		if writeErr := atomicJSON(filepath.Join(c.root, "last-result.json"), receipt); writeErr != nil {
+			receipt.Code = 1603
+			receipt.Error = writeErr.Error()
+		}
+		_ = json.NewEncoder(os.Stdout).Encode(receipt)
+		if receipt.Error != "" {
+			message := fmt.Sprintf("Recovery requires attention; retained source and logs: %s", c.root)
+			fmt.Fprintln(os.Stderr, message)
+			if !o.Quiet {
+				Report(message)
+			}
+		}
+		return int(receipt.Code)
 	}
 	if !os.IsNotExist(pendingErr) {
 		return fail(fmt.Errorf("a previous recovery record requires correction; run this setup with --resume-recovery and inspect %s", c.root))

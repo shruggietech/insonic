@@ -31,6 +31,7 @@ def exercise(stage,token,quiet_install,*,full,qualification=False):
     dll=C.WinDLL('msi');dll.MsiQueryProductStateW.argtypes=[W.LPCWSTR];dll.MsiQueryProductStateW.restype=C.c_int
     if any(dll.MsiQueryProductStateW(model[key])!=-1 for key in ('old_product','new_product')):raise RuntimeError('setup probe refuses pre-existing registration')
     root=Path(os.environ['LOCALAPPDATA'])/'insonic-setup';directory=stage/'UI program é & spaces'
+    selection='cli' if full else 'both';shortcuts=not full
     result={'kind':'windows-setup-recovery','feature_qualification':qualification,'token':token,'transactions':[],'cleanup':[]}
     def run(name,args,expected):
         command=[str(stage/('ui-'+name+'-setup.exe')),*args]
@@ -48,18 +49,28 @@ def exercise(stage,token,quiet_install,*,full,qualification=False):
             ui=NativeUI(stage/'native/context.setup-ui.json')
             row=ui.run(old_source,directory,'setup-install',selection='cli',native_process=True,setup_process=True)
             result['transactions'].append(row)
-        else:run('old',['--quiet','--accept-license','--install-dir',str(directory),'--clients','cli','--start-menu','0','--desktop-shortcut','0'],0)
+        else:run('old',['--quiet','--accept-license','--install-dir',str(directory),'--clients',selection,'--start-menu','1','--desktop-shortcut','1'],0)
         if dll.MsiQueryProductStateW(model['old_product'])!=5:raise RuntimeError('setup did not install old registration')
-        expected={item['path']:m.sha(directory/item['path']) for item in model['payload'] if item['feature']!='Desktop'}
+        expected={item['path']:m.sha(directory/item['path']) for item in model['payload'] if selection!='cli' or item['feature']!='Desktop'}
+        def choices():
+            elected={'start_menu':str(int(shortcuts)),'desktop_shortcut':str(int(shortcuts))}
+            if q.saved_shortcut_elections()!=elected:raise RuntimeError('recovery changed prior shortcut elections')
+            for name,selected in [('Core',True),('CLI',True),('Desktop',selection=='both')]:
+                dll.MsiQueryFeatureStateW.argtypes=[W.LPCWSTR,W.LPCWSTR];dll.MsiQueryFeatureStateW.restype=C.c_int
+                if dll.MsiQueryFeatureStateW(model['old_product'],name)!=(3 if selected else 2):raise RuntimeError('recovery changed prior client election: '+name)
+            menu=Path(os.environ['APPDATA'])/'Microsoft/Windows/Start Menu/Programs/insonic';desktop=Path(os.environ['USERPROFILE'])/'Desktop'
+            for link in (menu/'insonic.lnk',menu/'insonic CLI.lnk',desktop/'insonic.lnk'):
+                if link.is_file()!=shortcuts:raise RuntimeError('recovery changed a prior shortcut integration')
         def unchanged():
             if dll.MsiQueryProductStateW(model['old_product'])!=5 or dll.MsiQueryProductStateW(model['new_product'])!=-1 or any(m.sha(directory/name)!=sha for name,sha in expected.items()):raise RuntimeError('source preflight changed the working installation')
+            choices()
         cache_source=root/model['old_product']/'source.msi'
         if not full:
             # An actual legacy raw-MSI install has no source producer. Recreate
             # that state, then prove missing-source refusal before old removal.
             quiet_install(['/x',model['old_product']],stage/'native/context.setup-legacy-reset.log')
             if (root/model['old_product']).exists():raise RuntimeError('committed raw removal retained old source cache')
-            quiet_install(['/i',old_source,'INSTALLDIR='+str(directory),'LICENSE_ACCEPTED=1','ADDLOCAL=Core,CLI','REMOVE=Desktop','START_MENU=0','DESKTOP_SHORTCUT=0','LAUNCH=0'],stage/'native/context.setup-legacy-install.log')
+            quiet_install(['/i',old_source,'INSTALLDIR='+str(directory),'LICENSE_ACCEPTED=1','ADDLOCAL=Core,Desktop,CLI','START_MENU=1','DESKTOP_SHORTCUT=1','LAUNCH=0'],stage/'native/context.setup-legacy-install.log')
             run('bad',['--quiet','--accept-license'],1603);unchanged()
             if (root/'pending.json').exists():raise RuntimeError('missing source began a destructive upgrade')
             wrong=stage/'ui-wrong-source.msi'
@@ -80,19 +91,41 @@ def exercise(stage,token,quiet_install,*,full,qualification=False):
         old_source.unlink();(stage/'ui-old-setup.exe').unlink();legacy.unlink()
         result['downloaded_old_sources_absent']=True
         if full:
+            pending_observation={}
+            def retain_pending(page):
+                if page in ('Cancelled','FatalError'):pending_observation.update(json.loads((root/'pending.json').read_text(encoding='utf-8')))
             for name,cancel,code in [('cancel','execution',1602),('bad',None,1603)]:
-                row=ui.run(stage/('ui-'+name+'.msi'),directory,'setup-'+name,operation='upgrade',selection='cli',cancel=cancel,expected=code,native_process=True,setup_process=True)
+                row=ui.run(stage/('ui-'+name+'.msi'),directory,'setup-'+name,operation='upgrade',selection='cli',cancel=cancel,expected=code,native_process=True,setup_process=True,before_terminal_close=retain_pending)
                 result['transactions'].append(row);unchanged()
                 if cancel and row.get('old_removed_before_cancel') is not True:raise RuntimeError('actual Cancel did not occur after old removal')
                 receipt=json.loads((root/'last-result.json').read_text(encoding='utf-8'))
                 if receipt['native_code']!=code or receipt['setup_code']!=code or receipt['recovery']!='completed':raise RuntimeError('setup did not complete recovery before native return')
+            # Recreate an interrupted private journal from the exact record
+            # observed during this transaction. This is a resume-state fixture,
+            # not a claim that the native transaction or parent was terminated.
+            if not pending_observation:raise RuntimeError('native setup pending state was not observed')
+            pending_observation.update(original_code=1603,native_result_known=True)
+            (root/'pending.json').write_text(json.dumps(pending_observation),encoding='utf-8',newline='\n')
+            backup=stage/'resume-source.backup';shutil.copyfile(cache_source,backup)
+            try:
+                with cache_source.open('r+b') as stream:stream.seek(128);value=stream.read(1);stream.seek(128);stream.write(bytes([value[0]^1]))
+                run('bad',['--quiet','--resume-recovery'],1603);unchanged()
+                failed=json.loads((root/'last-result.json').read_text(encoding='utf-8'))
+                if failed.get('native_code')!=1603 or failed.get('recovery')!='incomplete' or not failed.get('error') or not (root/'pending.json').is_file():raise RuntimeError('failed resume overwrote its observed native result or pending recovery state')
+            finally:shutil.copyfile(backup,cache_source);backup.unlink()
+            pending_observation['native_result_known']=False
+            (root/'pending.json').write_text(json.dumps(pending_observation),encoding='utf-8',newline='\n')
+            run('bad',['--quiet','--resume-recovery'],1603);unchanged()
+            resumed=json.loads((root/'last-result.json').read_text(encoding='utf-8'))
+            if resumed.get('native_code') is not None or resumed.get('recovery')!='completed' or (root/'pending.json').exists():raise RuntimeError('resumed recovery invented an unobserved native result or retained its completed journal')
+            result['resume_failure_and_unobserved_result']='passed'
         else:run('bad',['--quiet','--accept-license'],1603)
-        unchanged();q.assert_unchecked_shortcuts()
+        unchanged()
         receipt=json.loads((root/'last-result.json').read_text(encoding='utf-8'))
-        if receipt['native_code']!=1603 or receipt['setup_code']!=1603 or receipt['recovery']!='completed':raise RuntimeError('production coordinator result does not prove synchronous recovery')
+        if receipt['native_code']!=(None if full else 1603) or receipt['setup_code']!=1603 or receipt['recovery']!='completed':raise RuntimeError('production coordinator result does not prove synchronous recovery')
         run('new',['--quiet','--accept-license'],0)
         if dll.MsiQueryProductStateW(model['old_product'])!=-1 or dll.MsiQueryProductStateW(model['new_product'])!=5:raise RuntimeError('successful coordinated upgrade registration differs')
-        q.assert_unchecked_shortcuts()
+        if q.saved_shortcut_elections()!={'start_menu':str(int(shortcuts)),'desktop_shortcut':str(int(shortcuts))}:raise RuntimeError('successful upgrade changed prior shortcut elections')
         if (root/model['old_product']).exists() or not (root/model['new_product']/'source.msi').is_file():raise RuntimeError('successful upgrade did not replace its retained source')
         run('new',['--quiet','--remove'],0)
         if dll.MsiQueryProductStateW(model['new_product'])!=-1 or (root/model['new_product']).exists():raise RuntimeError('coordinated removal retained registration or full source')
