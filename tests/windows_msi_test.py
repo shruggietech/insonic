@@ -318,6 +318,21 @@ class InstallerModelTests(unittest.TestCase):
                 self.assertEqual(proof['token'],target)
         self.assertEqual(closed,[556,555,556,555]);self.assertEqual(events[-1]['token'],target);self.assertFalse(events[0]['profile_loaded_by_child']);self.assertFalse(events[0]['session_token_reassignment']);self.assertNotIn(password,repr(events))
 
+    def test_progress_inspection_does_not_scale_pause_with_validation_or_message_count(self):
+        import qualify_installer_ui as ui
+        class Event:
+            def __init__(self):self.ready=False;self.total=0;self.now=0
+            def is_set(self):return self.ready
+            def wait(self,seconds):self.total+=seconds;self.now+=seconds
+        event=Event();inspection=ui.ProgressInspection(event,lambda:event.now)
+        for _ in range(2000):inspection.progress()
+        self.assertEqual(event.total,0)
+        for _ in range(2000):inspection.start();inspection.progress()
+        self.assertLessEqual(event.total,.251)
+        event.ready=True;before=event.total
+        for _ in range(2000):inspection.progress()
+        self.assertEqual(event.total,before)
+
     def test_session_namespace_fixture_restores_exact_descriptor_without_touching_global_or_child_objects(self):
         from contextlib import nullcontext
         spec=importlib.util.spec_from_file_location('qualify_session_namespace',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
@@ -348,6 +363,16 @@ class InstallerModelTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'changed outside'):
                 with module.interactive_context_namespace(stage,sid,caller,desktop,probe):api.current='D:(A;;0x1;;;SY)'
         self.assertEqual(api.current,'D:(A;;0x1;;;SY)');self.assertEqual(len([x for x in api.calls if x[0]=='set']),1)
+        for error,opened in ((0,True),(2,False)):
+            probe['directories']['objects'][0].update(error=error,opened=opened)
+            with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'ProgramData':str(self.path)}),patch.object(module,'token_info',return_value={'session_id':session,'user_sid_sha256':m.digest(caller.encode())}),patch.object(module,'NativeObjectDirectories') as native:
+                if opened:
+                    with module.interactive_context_namespace(stage,sid,caller,desktop,probe) as healthy:self.assertFalse(healthy['modified']);self.assertTrue(healthy['security_restored'])
+                else:
+                    with self.assertRaisesRegex(RuntimeError,'other than access denied'):
+                        with module.interactive_context_namespace(stage,sid,caller,desktop,probe):self.fail('unexpected native error entered fixture')
+                native.assert_not_called()
+
 
     def test_system_broker_creates_only_the_verified_normal_target_without_profile_load(self):
         import ctypes as C

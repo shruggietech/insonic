@@ -233,7 +233,7 @@ def object_namespace_diagnostic():
 def interactive_context_namespace(stage,user_sid,caller_sid,desktop,probe):
     """Temporarily grant only the owned actor non-inheriting session-directory access."""
     m.disposable_runner();stage=Path(stage);base=Path(os.environ['ProgramData']).resolve()
-    if stage.is_symlink() or stage.resolve().parent!=base or not __import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name):raise ValueError('namespace fixture requires the exact owned account stage')
+    if stage.is_symlink() or stage.resolve()!=base/stage.name or not __import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name):raise ValueError('namespace fixture requires the exact owned account stage')
     for sid in (user_sid,caller_sid):private_desktop_sddl(sid)
     marker=json.loads((stage/'owned-ci-account.json').read_text(encoding='utf-8'))
     if not __import__('re').fullmatch('inso_ci_[0-9a-f]{12}',marker.get('account','')) or marker.get('sid_sha256')!=m.digest(user_sid.encode()):raise ValueError('namespace fixture account ownership differs')
@@ -1478,7 +1478,10 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
         failure=error;record('failed',failed_api=getattr(error,'api',current_phase['name']),winerror=getattr(error,'winerror',None),errno=getattr(error,'errno',None),error_type=type(error).__name__,error=str(error))
     finally:
         if stage is not None and (stage/'native').is_dir():
-            retain_ordinary_diagnostics(stage/'native',output)
+            try:retain_ordinary_diagnostics(stage/'native',output)
+            except BaseException as error:
+                cleanup.append({'object':'ordinary diagnostic retention','complete':False,'error':str(error)})
+                if failure is None:failure=error
         if profile_loaded:
             try:
                 with qualifier_profile_privileges():unloaded=bool(profiles.UnloadUserProfile(token,profile_info.hive));unload_error=0 if unloaded else C.get_last_error()
@@ -1528,7 +1531,10 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
         if stage is not None:
             base=Path(os.environ['ProgramData']).resolve()
             if stage.is_symlink() or stage.resolve().parent!=base or not __import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name):raise ValueError('owned stage cleanup target changed')
-            shutil.rmtree(stage);cleanup.append({'object':'owned staging directory','deleted':True})
+            try:shutil.rmtree(stage);cleanup.append({'object':'owned staging directory','deleted':True})
+            except BaseException as error:
+                cleanup.append({'object':'owned staging directory','deleted':False,'error':str(error)})
+                if failure is None:failure=error
         password=None
         Path(output).with_suffix('.cleanup.json').write_text(json.dumps({'cleanup':cleanup,'failure':str(failure) if failure else None},indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     if failure is not None:raise failure

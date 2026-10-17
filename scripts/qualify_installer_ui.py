@@ -64,6 +64,15 @@ def prepare(stage, fixture, clone):
     (stage/'ui-renderer.json').write_text(json.dumps({'browser':str(browser),'node':str(stage/'node.exe'),'script':str(stage/'scripts/render-installed-help.mjs')}),encoding='utf-8',newline='\n')
 
 
+class ProgressInspection:
+    """At most 250ms total observation grace, never once per validation tick."""
+    def __init__(self,event,clock=time.monotonic):self.event=event;self.clock=clock;self.deadline=None
+    def start(self):
+        if self.deadline is None:self.deadline=self.clock()+.25
+    def progress(self):
+        if self.deadline is not None and not self.event.is_set():self.event.wait(min(.02,max(0,self.deadline-self.clock())))
+
+
 class NativeUI:
     def __init__(self,output):
         m.disposable_runner();self.output=Path(output)
@@ -174,19 +183,20 @@ class NativeUI:
 
     def run(self,msi,directory,name,operation='install',selection='both',launch=False,docs=False,cancel=None,expected=0,before_finish=None):
         state={'name':name,'operation':operation,'fixture_msi_sha256':m.sha(msi),'pages':[],'actions':[],'progress_messages':0,'progress_observed':False,'bar_positions':[],'visible_phases':[],'terminal':None,'captures':[]}
-        descriptions={row[1] for row in m.table_rows(m.CompoundFile(msi).streams,'ActionText') if row[1]}
-        action_ready=threading.Event();progress_seen=threading.Event();done=threading.Event()
+        action_text=m.table_rows(m.CompoundFile(msi).streams,'ActionText');descriptions={row[1] for row in action_text if row[1]};described_actions={row[0] for row in action_text if row[1]}
+        action_ready=threading.Event();progress_seen=threading.Event();done=threading.Event();inspection=ProgressInspection(progress_seen)
         def observe(_,kind,message):
             category=kind&0xff000000
             if category==0x08000000:
                 action=(message or '').split(': ',1)[-1].split('.',1)[0]
                 state['actions'].append((message or '')[:350])
-                if 'InstallFiles' in (message or ''):action_ready.set()
+                if action=='InstallFiles':action_ready.set()
+                if action in described_actions:inspection.start()
             if category==0x0a000000:
                 state['progress_messages']+=1
-                # Keep a real small transaction visible long enough to inspect.
-                # Always return 0: the authored Cancel control owns cancellation.
-                progress_seen.wait(.08)
+                # Bounded observation grace for authored phases only. Validation
+                # can emit thousands of ticks; their count must not add latency.
+                inspection.progress()
             return 0
         callback=self.handler(observe)
         def install():
@@ -209,6 +219,7 @@ class NativeUI:
             finally:
                 try:
                     self.dll.MsiSetExternalUIW(self.handler(),0,None)
+                    state['logging_closed']=self.dll.MsiEnableLogW(0,None,0)==0
                     if initialized:ole.CoUninitialize()
                 finally:done.set()
         thread=threading.Thread(target=install,name='owned-native-full-ui',daemon=True);thread.start()
@@ -313,6 +324,25 @@ class NativeUI:
             if cancel not in ('before','ready') and (not state['progress_observed'] or not state['progress_messages'] or len(state['bar_positions'])<2 or not state['visible_phases']):raise RuntimeError('visible engine-driven bar movement/action text was not observed')
             if cancel and not cancel_sent:raise RuntimeError('native Cancel control was not exercised')
             return state
+        except BaseException as error:
+            state['driver_error']=str(error);progress_seen.set()
+            # Ask the exact owned UI to cancel and finish its native rollback.
+            # Never terminate Windows Installer or replace the original failure.
+            cleanup_deadline=time.monotonic()+15
+            try:
+                while not done.is_set() and time.monotonic()<cleanup_deadline:
+                    for hwnd in self.windows(directory/'insonic-launcher.exe'):
+                        controls=self.controls(hwnd);joined='\n'.join(self.text(control).replace('&','') for control in controls)
+                        if 'Cancel this operation?' in joined:self.click(controls,'Yes, cancel')
+                        elif any(mark in joined for mark in ('Setup cancelled','Setup could not finish')):self.click(controls,'Close')
+                        elif 'The selected operation completed.' in joined or any('insonic '+word in joined for word in ('installed','updated','changed','repaired','removed')):self.click(controls,'Finish')
+                        elif self.text(hwnd)=='insonic Setup':
+                            buttons=[control for control in controls if self.klass(control).casefold()=='button' and self.text(control).replace('&','')=='Cancel' and self.u.IsWindowEnabled(control)]
+                            if buttons:self.click(controls,'Cancel')
+                    time.sleep(.025)
+                thread.join(.5);state['failed_driver_native_call_settled']=done.is_set()
+            except BaseException as cleanup_error:state['failed_driver_cleanup_error']=str(cleanup_error)
+            raise
         finally:
             progress_seen.set();self.output.parent.joinpath('context.ui-'+name+'.json').write_text(json.dumps(state,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
 
