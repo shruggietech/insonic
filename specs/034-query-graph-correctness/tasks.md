@@ -57,3 +57,5 @@ T001 -> T002 -> analysis gate -> regression tests -> implementations -> T013 -> 
 - [x] T021 Bind the effective page limit in normalized cursor digests and classify stale cursor digests before current offset bounds in internal/explore/query.go; add failing-then-passing regression coverage in query_cursor_contract_test.go per FR-001/FR-002 (partial).
 
 - [x] T022 Observe bounded Windows executable-image release after the existing detached idle lease in scripts/package-desktop.py; retain timeout failure and verify loaded-image/no-mutation semantics in tests/package_desktop_test.py (installed qualification convergence).
+
+- [x] T023 Join GUI completion before the full desktop detached-owner idle allowance, retaining CLI-only deadline reuse and bounded owner diagnostics on persistent locks; cover late/failing GUI activity in tests/package_desktop_test.py (installed qualification convergence).

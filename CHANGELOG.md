@@ -12,7 +12,7 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
-- Windows package qualification waits for executable-image release after the existing runtime idle allowance, preserving a bounded failure for persistent locks before fixture cleanup.
+- Windows package qualification joins CLI and GUI activity before the runtime idle allowance, then observes executable-image release with bounded failure and owner diagnostics before fixture cleanup.
 
 - Graph and search continuation retrieves cross-page relationships and large result sets within bounded responses, binds the effective page limit, and distinguishes stale results from malformed offsets. Query/calendar filters share bundled timezone rules; saved-query examples require titles, native parameter files reject duplicate members, and native reads accept one trailing terminator with actionable grammar guidance. Function validation distinguishes read-clause grouping from calls and rejects qualified calls outside the declared pure subset.
 

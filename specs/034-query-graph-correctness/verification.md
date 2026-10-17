@@ -53,3 +53,9 @@ After T022, npm run check (1.406 seconds), npm test (1.359 seconds) and all 302 
 Run 39008209088 passed Go acceptance; its Windows core failure was the added probe assertion: Windows Server permits opening a loaded image for DELETE alone. The probe now also requests FILE_WRITE_DATA without writing, and the regression selects the actual loaded module path through GetModuleFileNameW. The loaded-image and unchanged-byte assertions remain mandatory.
 
 All four hosted package variants, including Windows desktop ZIP/MSI qualification, subsequently passed on a456d41. After the Server-compatible probe correction, npm run check (1.453 seconds), npm test (1.219 seconds) and all 302 Python tests (33.671 seconds) passed locally. Final exact-head hosted verification follows on the PR.
+
+## Package activity ordering (2026-10-17)
+
+Run 39008774139 passed the corrected Windows core probe and all other product/backend checks, but its desktop archive image remained busy past the grace interval. A full hidden local desktop package passed in 205.5 seconds; direct process snapshots showed main and documented-workflow owners before waiting and neither owner afterward. This does not prove the hosted failure cause. Inspection found the idle clock excluded later GUI activity even though GUI bootstrap permits independent owners. T023 joins GUI completion, including failure, before a full desktop idle allowance; CLI-only checks retain their deadline optimization. Persistent locks still fail and retain at most sixteen owner PIDs, parent PIDs and fixed role labels without command lines, paths or credentials. The 660-second outer deadline and all assertions remain unchanged.
+
+T023 local checks passed: npm run check (1.469 seconds), npm test (1.250 seconds) and all 304 Python tests (33.469 seconds), including late/failing GUI activity order and path-free diagnostic retention. Final hosted results remain tracked on the PR.
