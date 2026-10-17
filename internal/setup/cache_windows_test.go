@@ -4,6 +4,7 @@
 package setup
 
 import (
+	"github.com/shruggietech/insonic/internal/workspace"
 	"os"
 	"path/filepath"
 	"testing"
@@ -31,6 +32,9 @@ func TestCacheCleanupRemovesOnlyItsKnownSourceFiles(t *testing.T) {
 	c := cache{root: t.TempDir()}
 	dir := filepath.Join(c.root, testPackage.Product)
 	if err := os.Mkdir(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := workspace.SecureDirectory(dir, true); err != nil {
 		t.Fatal(err)
 	}
 	if err := atomicJSON(filepath.Join(dir, "source.json"), testPackage); err != nil {

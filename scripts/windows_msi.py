@@ -142,7 +142,7 @@ def installer_model(inv,inv_sha,license_text,upgrade=UPGRADE_CODE,version=None):
     if not {'insonic.exe','insonic-desktop.exe','insonic-launcher.exe','insonic-session.cmd','LICENSE','NOTICE','insonic-companions.json'}<={f['path'] for f in files}:raise ValueError('missing MSI runtime/client authority')
     tables={n:[] for n in SCHEMA}
     def add(t,*r):tables[t].append(list(r))
-    props={'ProductCode':product_code(version,upgrade),'UpgradeCode':upgrade,'ProductVersion':version,'ProductLanguage':'1033','Manufacturer':'ShruggieTech','ProductName':'insonic','DefaultUIFont':'Normal','INSTALLLEVEL':'1','ARPCOMMENTS':'Voice archive CLI and desktop application','ARPHELPLINK':'https://insonic.io/docs/','ARPURLINFOABOUT':'https://insonic.io/','ARPPRODUCTICON':'InsonicIcon','MSIRESTARTMANAGERCONTROL':'Disable','REBOOT':'ReallySuppress','SecureCustomProperties':'OLDPRODUCTS;NEWPRODUCTS;INSTALLDIR;SAVED_INSTALLDIR;LICENSE_ACCEPTED;START_MENU;DESKTOP_SHORTCUT;CLIENT_DESKTOP;CLIENT_CLI','CLIENT_DESKTOP':'1','CLIENT_CLI':'1','START_MENU':'1','DESKTOP_SHORTCUT':'1','LAUNCH':'1','UI_OPERATION':'install','UI_SUCCESS_TITLE':'insonic installed','UI_SUCCESS_BODY':'Open the selected client or documentation. First-run setup can be deferred.','UI_PROGRESS_TITLE':'Installing insonic','UI_READY_TITLE':'Ready to install','UI_COMMIT':'Install'}
+    props={'ProductCode':product_code(version,upgrade),'INSONIC_INVENTORY_SHA256':inv_sha,'UpgradeCode':upgrade,'ProductVersion':version,'ProductLanguage':'1033','Manufacturer':'ShruggieTech','ProductName':'insonic','DefaultUIFont':'Normal','INSTALLLEVEL':'1','ARPCOMMENTS':'Voice archive CLI and desktop application','ARPHELPLINK':'https://insonic.io/docs/','ARPURLINFOABOUT':'https://insonic.io/','ARPPRODUCTICON':'InsonicIcon','MSIRESTARTMANAGERCONTROL':'Disable','REBOOT':'ReallySuppress','SecureCustomProperties':'OLDPRODUCTS;NEWPRODUCTS;INSTALLDIR;SAVED_INSTALLDIR;LICENSE_ACCEPTED;START_MENU;DESKTOP_SHORTCUT;CLIENT_DESKTOP;CLIENT_CLI','CLIENT_DESKTOP':'1','CLIENT_CLI':'1','START_MENU':'1','DESKTOP_SHORTCUT':'1','LAUNCH':'1','UI_OPERATION':'install','UI_SUCCESS_TITLE':'insonic installed','UI_SUCCESS_BODY':'Open the selected client or documentation. First-run setup can be deferred.','UI_PROGRESS_TITLE':'Installing insonic','UI_READY_TITLE':'Ready to install','UI_COMMIT':'Install'}
     for k,v in props.items():add('Property',k,v)
     for r in [('TARGETDIR',None,'SourceDir'),('LocalAppDataFolder','TARGETDIR','.'),('Programs','LocalAppDataFolder','Programs'),('INSTALLDIR','Programs','insonic'),('ProgramMenuFolder','TARGETDIR','.'),('InsonicMenu','ProgramMenuFolder','insonic'),('DesktopFolder','TARGETDIR','.')]:add('Directory',*r)
     dirs={'':'INSTALLDIR'}
@@ -504,6 +504,10 @@ def verify_installer(path,receipt,source_root=None):
     if receipt.get('payload_archive')!=payload.get('archive') or receipt.get('payload_archive_sha256')!=payload.get('archive_sha256'):raise ValueError('MSI archive authority differs')
     inv_sha=digest(inventory_bytes(inventory))
     if inv_sha!=payload.get('inventory_sha256'):raise ValueError('MSI inventory identity differs')
+    import windows_setup
+    setup=receipt.get('setup',{})
+    if not setup:raise ValueError('MSI receipt lacks coordinated setup artifact and recovery qualification')
+    windows_setup.verify(path.with_name(setup['artifact']),setup,receipt,source_root)
     model=installer_model(inventory,inv_sha,(source_root/'LICENSE').read_text(encoding='utf-8'))
     if receipt.get('artifact')!='insonic_'+version+'_windows_amd64_installer.msi':raise ValueError('MSI filename/version/format identity differs')
     for k,value in [('msi_product_version',model['version']),('product_code',model['product_code']),('upgrade_code',model['upgrade_code']),('scope','per-user'),('license_sha256',sha(source_root/'LICENSE')),('icon_sha256',sha(source_root/ICON))]:

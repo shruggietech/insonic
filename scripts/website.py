@@ -138,8 +138,8 @@ def published_product(api, version, fetch=package_response):
     revision = pages.commit_sha(value.get('target_commitish'))
     release.verify_tag(api, tag, revision)
     assets = api.call('GET', ENDPOINT + f'/releases/{value["id"]}/assets?per_page=100')
-    if (not isinstance(assets, list) or len(assets) != 9 or len({a.get('name') for a in assets}) != 9):
-        raise ValueError('published release requires five packages and four metadata/documentation assets')
+    if (not isinstance(assets, list) or len(assets) != 10 or len({a.get('name') for a in assets}) != 10):
+        raise ValueError('published release requires six package assets and four metadata/documentation assets')
     by_name = {a['name']: a for a in assets}
     for asset in assets:
         release.asset_name(asset['name'])
@@ -163,8 +163,9 @@ def published_product(api, version, fetch=package_response):
         raise ValueError('published product manifest identity differs')
     expected_names = {f'insonic_{version}_{platform}_{variant}{suffix}' for platform, suffix in [('windows_amd64', '.zip'), ('linux_amd64', '.tar.gz')] for variant in ('cli', 'desktop')}
     expected_names.add(f'insonic_{version}_windows_amd64_installer.msi')
+    expected_names.add(f'insonic_{version}_windows_amd64_setup.exe')
     entries = manifest.get('assets', [])
-    if len(entries) != 7 or {e.get('name') for e in entries} != expected_names | {'documentation.tar.gz', 'offline-help.tar.gz'}:
+    if len(entries) != 8 or {e.get('name') for e in entries} != expected_names | {'documentation.tar.gz', 'offline-help.tar.gz'}:
         raise ValueError('published product download matrix differs')
     for entry in entries:
         asset = by_name.get(entry['name'], {})

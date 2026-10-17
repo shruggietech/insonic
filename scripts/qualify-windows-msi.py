@@ -671,7 +671,10 @@ def ordinary_ui_worker(stage):
     directory=[row for row in before['directories']['objects'] if row['path']==target and row['requested_access']==15]
     absent=[row for row in before['mutex']['objects'] if 'insonic-absent-' in row['name']]
     if len(directory)!=1 or not directory[0]['opened'] or not absent or any(row['opened'] or row['error']!=2 for row in absent):raise RuntimeError('ordinary native object namespace still denies exact directory access or absent mutex lookup')
-    if (stage/'completion-invocation-diagnostic.json').is_file():
+    if (stage/'setup-qualification.json').is_file():
+        from qualify_installer_setup import qualify as qualify_setup
+        proof=qualify_setup(stage,observed,run_installer)
+    elif (stage/'completion-invocation-diagnostic.json').is_file():
         import runpy
         diagnostic=runpy.run_path(str(stage/'scripts/diagnose-installer-completion.py'),run_name='owned_invocation_diagnostic')
         mode=diagnostic_mode(stage)
@@ -1437,7 +1440,7 @@ def qualifier_profile_privileges(names=('SeBackupPrivilege','SeRestorePrivilege'
                 if not security.AdjustTokenPrivileges(token,False,C.byref(previous),0,None,None) or C.get_last_error():raise C.WinError(C.get_last_error())
         finally:kernel.CloseHandle(token)
 
-def ordinary_context(installer,directory,output,model=None,service_ownership=None,diagnostic_only=False):
+def ordinary_context(installer,directory,output,model=None,service_ownership=None,diagnostic_only=False,setup_only=False,setup_path=None,setup_receipt=None):
     """Qualify an actual ordinary account, exclusively on a disposable runner."""
     m.disposable_runner()
     import secrets
@@ -1488,7 +1491,7 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
         if not profile.is_dir():raise RuntimeError('native profile load did not create the observed ordinary-user directory')
         record('ordinary-profile-observed',profile=str(profile),method='owned LoadUserProfileW handle, GetUserProfileDirectoryW',privilege_scope=privilege_scope)
         record('Copy-exact-owned-worker-inputs');scripts=stage/'scripts';scripts.mkdir();(stage/'temp').mkdir();native=stage/'native';native.mkdir()
-        for filename in ('qualify-windows-msi.py','windows_msi.py','qualify_installer_ui.py','render-installed-help.mjs'):
+        for filename in ('qualify-windows-msi.py','windows_msi.py','windows_setup.py','qualify_installer_setup.py','qualify_installer_ui.py','render-installed-help.mjs'):
             shutil.copyfile(m.ROOT/'scripts'/filename,scripts/filename)
             if m.sha(scripts/filename)!=m.sha(m.ROOT/'scripts'/filename):raise RuntimeError('ordinary staged script identity differs')
         target=stage/'fixture.msi';shutil.copyfile(installer,target)
@@ -1497,13 +1500,17 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
         for original in fixture.iterdir():
             if original.is_file() and m.sha(original)!=m.sha(stage/'launcher-context-fixture'/original.name):raise RuntimeError('ordinary launcher fixture copy differs')
         from qualify_installer_ui import prepare
-        prepare(stage,fixture,clone,diagnostic_only=diagnostic_only)
+        prepare(stage,fixture,clone,diagnostic_only=diagnostic_only or setup_only,setup_probe=setup_only)
         if diagnostic_only:
             shutil.copyfile(m.ROOT/'scripts/diagnose-installer-completion.py',scripts/'diagnose-installer-completion.py')
             shutil.copyfile(m.ROOT/'scripts/windows_setup.py',scripts/'windows_setup.py')
             (stage/'completion-invocation-diagnostic.json').write_text('{"qualification":false}',encoding='utf-8',newline='\n')
             (stage/'installer-diagnostic-mode.json').write_text(json.dumps({'feature_qualification':False,'mode':os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_MODE','completion')}),encoding='utf-8',newline='\n')
             diagnostic_mode(stage)
+        if setup_only:
+            if not setup_path or not setup_receipt or m.sha(setup_path)!=setup_receipt['artifact_sha256'] or m.sha(target)!=setup_receipt['embedded_msi']['sha256']:raise RuntimeError('exact setup context source identity differs')
+            shutil.copyfile(setup_path,stage/'exact-setup.exe')
+            (stage/'setup-qualification.json').write_text(json.dumps({'feature_qualification':True,'msi_sha256':m.sha(target),'setup_sha256':m.sha(stage/'exact-setup.exe')}),encoding='utf-8',newline='\n')
         (stage/'context-model.json').write_text(json.dumps(model),encoding='utf-8',newline='\n')
         install=stage/'installed program é with spaces';worker_output=native/'context.json'
         args=[str(scripts/'qualify-windows-msi.py'),'--ordinary-worker',str(target),'--context-dir',str(install),'--output',str(worker_output)]
@@ -1519,6 +1526,10 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
                     scheduler={'skipped':'invocation diagnostic only, no feature qualification'}
                     invocation=json.loads((native/'context.ui.json').read_text(encoding='utf-8'))
                     worker_output.write_text(json.dumps({'token':invocation['token'],'user_profile':str(profile),'os_policy_mutations':{},'diagnostic':invocation,'feature_qualification':False}),encoding='utf-8',newline='\n')
+                elif setup_only:
+                    scheduler={'skipped':'setup source/quiet and full lifecycle executed in the same ordinary interactive actor'}
+                    setup_proof=json.loads((native/'context.ui.json').read_text(encoding='utf-8'))
+                    worker_output.write_text(json.dumps({'token':setup_proof['token'],'user_profile':str(profile),'os_policy_mutations':{},'setup':setup_proof,'feature_qualification':True}),encoding='utf-8',newline='\n')
                 else:scheduler=scheduler_ordinary(stage,name,sid,password,args,record,profile)
         finally:
             if namespace:record('owned-session-namespace-restoration',namespace=namespace)
@@ -1655,7 +1666,17 @@ def qualify(path,receipt):
             for entry in model['payload']:
                 if entry['path']!=m.OWNERSHIP and m.sha(payload/entry['path'])!=entry['sha256']:raise ValueError('ordinary-first payload differs from exact MSI model')
             fixture_evidence=prepare_launcher_fixture(payload,tmp/'launcher-context-fixture')
+            import windows_setup
+            setup_path=m.ROOT/'build/packages'/receipt['setup']['artifact']
+            setup_identity,stub_size=windows_setup.read_payload(setup_path)
+            if setup_identity!=receipt['setup']['embedded_msi'] or stub_size>128*1024*1024:raise RuntimeError('setup fixture program source differs')
+            with setup_path.open('rb') as source,(tmp/'launcher-context-fixture/owned-setup.exe').open('wb') as target:target.write(source.read(stub_size))
+            build_barrier=subprocess.run(['go','build','-ldflags','-H windowsgui','-o',str(tmp/'launcher-context-fixture/owned-cancel-barrier.exe'),str(m.ROOT/'tests/fixtures/setup-cancel-barrier.go')],cwd=m.ROOT,env=dict(os.environ,CGO_ENABLED='0'),stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=60)
+            if build_barrier.returncode:raise RuntimeError('owned cancellation barrier compile failed: '+build_barrier.stderr.decode(errors='replace')[-2000:])
             context_evidence=ordinary_context(old,tmp/'ordinary per-user installation',logs/'ordinary-context.json',model,service_ownership)
+            phase('ordinary-exact-setup-and-recovery')
+            setup_evidence=ordinary_context(path,tmp/'ordinary setup installation',logs/'ordinary-setup-context.json',model,service_ownership,setup_only=True,setup_path=setup_path,setup_receipt=receipt['setup'])
+            receipt['setup']['qualification'].update(setup_evidence['setup']['qualification'])
             phase('administrator-prerequisite-rejections')
             run_installer(['/i',old,'INSTALLDIR='+str(install),'ADDLOCAL=Core'],logs/'license-rejected.log',False,'Read and accept Apache License 2.0')
             run_installer(call(old,'Core'),logs/'empty-selection-rejected.log',False,'Select Desktop, CLI integrations, or both.')
@@ -1684,7 +1705,7 @@ def qualify(path,receipt):
             phase('administrator-maintenance')
             run_installer(call(old,'Core,CLI',START_MENU='',DESKTOP_SHORTCUT=''),logs/'maintenance-initial.log');installed=m.product_code(version,upgrade);assert_unchecked_shortcuts()
             registered_feature_states(installed,logs/'feature-change.registered.json')
-            run_installer(call(old,'Core,Desktop,CLI',REINSTALL='Core',REINSTALLMODE='vomus'),logs/'feature-change.log');installed_hashes(install,model,True)
+            run_installer(call(old,'Core,Desktop,CLI',REINSTALL='Core',REINSTALLMODE='omus'),logs/'feature-change.log');installed_hashes(install,model,True)
             run_installer(call(old,REMOVE='Core'),logs/'maintenance-core-removal-rejected.log',False,'Shared runtime is mandatory.');installed_hashes(install,model,True)
             run_installer(call(old,REMOVE='Desktop,CLI'),logs/'maintenance-all-clients-removal-rejected.log',False,'Select Desktop, CLI integrations, or both.');installed_hashes(install,model,True)
             (install/'insonic-session.cmd').unlink();(install/m.OWNERSHIP).unlink();run_installer(['/fa',installed],logs/'repair.log');installed_hashes(install,model,True);result['maintenance']='passed'
@@ -1722,7 +1743,7 @@ def qualify(path,receipt):
             from qualify_installer_ui import export_captures
             export_captures(m.ROOT/'build/native/installer-capture',logs,context_evidence['interactive'],receipt)
             result['user_context']='passed';result['interactive_transactions']='passed';result['documentation_completion']='passed'
-            proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'windows_build':str(__import__('sys').getwindowsversion().build),'fixture_upgrade_code':upgrade,'checks':result,'elapsed_seconds':round(time.monotonic()-started,3),'active_work_fixture':{'process':'running owned ping image, no process shutdown','rejected_actions':['alternate-install-directory upgrade','uninstall'],'alternate_directory_absent':True,'old_payload_hashes_preserved':True},'exact_shortcut_collision':{'fresh_cli_exact_name':'rejected before installation changes','unrelated_bytes':'preserved','failed_action':'CheckCliMenu'},'unrelated_integrations':{'start_menu_sibling':'preserved','desktop_sibling':'preserved','product_key_sibling_value':'preserved','sentinel_content_sha256':m.digest(integration_sentinels['content'])},'shortcut_migration':{'fresh_unchecked_properties':'empty values normalized to zero','upgrade_overrides':False,'saved_elections':final_shortcut_elections},'policy_prompts':'not-observed','signing':'unsigned','cancellation':cancellation_evidence,'installer_service_initial':service_ownership,'user_context':{'original_elevated_token':original_token,'ordinary_process':context_evidence},'elected_launcher':{'fixture':fixture_evidence,'elevated_caller':elevated_launch_evidence,'ordinary_caller':context_evidence['elected_launcher']}}
+            proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'windows_build':str(__import__('sys').getwindowsversion().build),'fixture_upgrade_code':upgrade,'checks':result,'elapsed_seconds':round(time.monotonic()-started,3),'active_work_fixture':{'process':'running owned ping image, no process shutdown','rejected_actions':['alternate-install-directory upgrade','uninstall'],'alternate_directory_absent':True,'old_payload_hashes_preserved':True},'exact_shortcut_collision':{'fresh_cli_exact_name':'rejected before installation changes','unrelated_bytes':'preserved','failed_action':'CheckCliMenu'},'unrelated_integrations':{'start_menu_sibling':'preserved','desktop_sibling':'preserved','product_key_sibling_value':'preserved','sentinel_content_sha256':m.digest(integration_sentinels['content'])},'shortcut_migration':{'fresh_unchecked_properties':'empty values normalized to zero','upgrade_overrides':False,'saved_elections':final_shortcut_elections},'policy_prompts':'not-observed','signing':'unsigned','cancellation':cancellation_evidence,'installer_service_initial':service_ownership,'user_context':{'original_elevated_token':original_token,'ordinary_process':context_evidence},'setup':setup_evidence['setup'],'elected_launcher':{'fixture':fixture_evidence,'elevated_caller':elevated_launch_evidence,'ordinary_caller':context_evidence['elected_launcher']}}
             phase('completed')
         except BaseException as error:
             phase('failed',error_type=type(error).__name__,error=str(error)[-4000:]);raise

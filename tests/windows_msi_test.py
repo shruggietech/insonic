@@ -185,6 +185,25 @@ class InstallerModelTests(unittest.TestCase):
     def test_owner_host_ui_guard(self):
         with patch.dict(os.environ,{},clear=True):
             with self.assertRaisesRegex(RuntimeError,'disposable'):m.disposable_runner()
+    def test_setup_qualification_refuses_owner_host_before_native_or_path_work(self):
+        import qualify_installer_setup as setup
+        with patch.dict(os.environ,{},clear=True):
+            for function,args in [(setup.qualify,(None,None,None)),(setup.exercise,(None,None,None))]:
+                with self.assertRaisesRegex(RuntimeError,'disposable'):
+                    if function is setup.exercise:function(*args,full=True)
+                    else:function(*args)
+    def test_setup_qualification_binds_exact_artifacts_and_ordinary_identity(self):
+        import qualify_installer_setup as setup
+        stage=self.path/('insonic-ci-account-'+'a'*32);stage.mkdir()
+        token={'user_sid_sha256':'a'*64,'elevated':False,'administrator_enabled':False,'integrity_rid':8192}
+        (stage/'owned-ci-account.json').write_text(json.dumps({'sid_sha256':token['user_sid_sha256']}),encoding='utf-8')
+        (stage/'fixture.msi').write_bytes(b'full MSI identity');(stage/'exact-setup.exe').write_bytes(b'exact setup identity')
+        (stage/'setup-qualification.json').write_text(json.dumps({'feature_qualification':True,'msi_sha256':m.sha(stage/'fixture.msi'),'setup_sha256':m.sha(stage/'exact-setup.exe')}),encoding='utf-8')
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'ProgramData':str(self.path)}):
+            setup.validate_scope(stage,token,True)
+            with self.assertRaisesRegex(RuntimeError,'ordinary account'):setup.validate_scope(stage,{**token,'elevated':True},True)
+            (stage/'exact-setup.exe').write_bytes(b'changed program')
+            with self.assertRaisesRegex(RuntimeError,'artifact authority'):setup.validate_scope(stage,token,True)
     def test_cancel_and_context_entrypoints_reject_owner_host_before_native_calls(self):
         spec=importlib.util.spec_from_file_location('qualify_msi_guard',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with patch.dict(os.environ,{},clear=True):
@@ -1200,7 +1219,11 @@ class InstallerModelTests(unittest.TestCase):
         payload.update({'archive':'desktop.zip','archive_sha256':'b'*64,'inventory_sha256':inv_sha,'variant':'desktop','extracted_inventory':'passed','relocation_path_spaces':'passed','cli_real_audio_video_import':'passed','development_native_libraries':'isolated-and-restored','windows_copy_install':'passed','windows_first_use':'passed','gui_bridge':'passed','native_webview':'passed'})
         receipt={k:self.inv[k] for k in ('revision','source_dirty','platform','schema_version','distribution')}
         receipt.update({'kind':'windows-installer-receipt','format':'msi','variant':'selectable','product_version':'1.0.1','documentation_version':'1.0.1','signing':dict(m.UNSIGNED_SIGNING),'artifact':artifact.name,'artifact_sha256':m.sha(artifact),'artifact_size_bytes':artifact.stat().st_size,'payload_receipt':payload,'payload_inventory':self.inv,'payload_archive':'desktop.zip','payload_archive_sha256':'b'*64,'qualification':{k:'passed' for k in m.QUALIFICATION_KEYS},'msi_product_version':'1.0.1','product_code':model['product_code'],'upgrade_code':model['upgrade_code'],'scope':'per-user','license_sha256':m.sha(ROOT/'LICENSE'),'icon_sha256':m.sha(ROOT/m.ICON)})
-        self.assertEqual(m.verify_installer(artifact,receipt)['inventory']['signing'],self.inv['signing'])
+        # Isolate the MSI disposition. Setup bytes/resources and their separate
+        # unsigned state have independent artifact and native qualification tests.
+        receipt['setup']={'artifact':'isolated-setup.exe'}
+        with patch('windows_setup.verify',return_value=None):
+            self.assertEqual(m.verify_installer(artifact,receipt)['inventory']['signing'],self.inv['signing'])
         receipt['signing']=dict(self.inv['signing'])
         with self.assertRaisesRegex(ValueError,'independently unsigned'):m.verify_installer(artifact,receipt)
     @unittest.skipUnless(os.name=='nt','native database authoring Windows only, no UI')

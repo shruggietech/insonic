@@ -43,6 +43,8 @@ func native(name string, args ...any) (uint32, error) {
 			values[i] = uintptr(v)
 		case int:
 			values[i] = uintptr(v)
+		case *byte:
+			values[i] = uintptr(unsafe.Pointer(v))
 		case *uint32:
 			values[i] = uintptr(unsafe.Pointer(v))
 		case *uint16:

@@ -404,6 +404,7 @@ jobs:
           name: candidate-package-${{ inputs.os }}-installer-${{ inputs.revision }}-${{ github.run_attempt }}
           path: |
             build/packages/*.msi
+            build/packages/*_setup.exe
             build/native/windows-installer-receipt.json
             build/native/installer-capture
           compression-level: 0

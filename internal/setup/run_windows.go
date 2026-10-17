@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,15 +18,16 @@ import (
 )
 
 type pending struct {
-	Recovery Recovery `json:"recovery"`
-	Original uint32   `json:"original_code"`
+	Recovery    Recovery `json:"recovery"`
+	Original    uint32   `json:"original_code"`
+	ResultKnown bool     `json:"native_result_known"`
 }
 type result struct {
-	Native   uint32 `json:"native_code"`
-	Code     uint32 `json:"setup_code"`
-	Recovery string `json:"recovery"`
-	Error    string `json:"error,omitempty"`
-	Logs     string `json:"logs"`
+	Native   *uint32 `json:"native_code"`
+	Code     uint32  `json:"setup_code"`
+	Recovery string  `json:"recovery"`
+	Error    string  `json:"error,omitempty"`
+	Logs     string  `json:"logs"`
 }
 
 func Report(message string) {
@@ -143,7 +145,17 @@ func previousSource(c *cache, before Choices, o Options) (Source, error) {
 		if p.Product != before.Product || p.Version != before.Version {
 			return Source{}, errors.New("selected previous MSI does not match the installed version")
 		}
-		return c.retain(p, input)
+		if err := CopyPayload(io.Discard, input, p); err != nil {
+			return Source{}, err
+		}
+		e := &nativeEngine{logDirectory: c.root}
+		if err := e.ValidateInventory(Source{Package: p, Path: path}, before); err != nil {
+			return Source{}, err
+		}
+		if _, err := input.Seek(0, io.SeekStart); err != nil {
+			return Source{}, err
+		}
+		return c.retain(p, input, true)
 	}
 	source, err := c.source(before.Product)
 	if err != nil {
@@ -151,6 +163,8 @@ func previousSource(c *cache, before Choices, o Options) (Source, error) {
 	}
 	return source, nil
 }
+func nativeResult(code uint32) *uint32 { return &code }
+
 func Run(args []string) int {
 	o, err := Parse(args)
 	quiet := false
@@ -159,7 +173,11 @@ func Run(args []string) int {
 			quiet = true
 		}
 	}
+	var c *cache
 	fail := func(err error) int {
+		if c != nil && o.Worker == "" {
+			_ = atomicJSON(filepath.Join(c.root, "last-result.json"), result{Native: nil, Code: 1603, Recovery: "not-started", Error: err.Error(), Logs: c.root})
+		}
 		fmt.Fprintln(os.Stderr, err)
 		if !quiet {
 			Report(err.Error())
@@ -187,7 +205,7 @@ func Run(args []string) int {
 		return fail(err)
 	}
 	defer finish()
-	c, err := openCache(o.Worker == "")
+	c, err = openCache(o.Worker == "")
 	if err != nil {
 		return fail(err)
 	}
@@ -205,7 +223,10 @@ func Run(args []string) int {
 			return fail(errors.New("no readable pending recovery is available"))
 		}
 		err = runWorker(c, outstanding)
-		receipt := result{Native: outstanding.Original, Code: outstanding.Original, Recovery: "completed", Logs: c.root}
+		receipt := result{Code: outstanding.Original, Recovery: "completed", Logs: c.root}
+		if outstanding.ResultKnown {
+			receipt.Native = nativeResult(outstanding.Original)
+		}
 		if err != nil {
 			receipt.Recovery = "incomplete"
 			receipt.Error = err.Error()
@@ -247,7 +268,7 @@ func Run(args []string) int {
 	}
 	var prior *Choices
 	var recovery pending
-	oldEngine := &nativeEngine{}
+	oldEngine := &nativeEngine{logDirectory: c.root}
 	defer oldEngine.close()
 	if product != "" && product != p.Product {
 		before, err := snapshot(product)
@@ -260,6 +281,9 @@ func Run(args []string) int {
 		}
 		if err := oldEngine.ValidateSource(source); err != nil {
 			return fail(fmt.Errorf("previous source failed validation before upgrade: %w", err))
+		}
+		if err := oldEngine.ValidateInventory(source, before); err != nil {
+			return fail(err)
 		}
 		prior = &before
 		recovery = pending{Recovery: Recovery{Source: source, Before: before, NewProduct: p.Product}, Original: 1603}
@@ -303,12 +327,13 @@ func Run(args []string) int {
 	}
 	e.close()
 	oldEngine.close()
-	receipt := result{Native: nativeCode, Code: nativeCode, Recovery: "not-needed", Logs: c.root}
+	receipt := result{Native: nativeResult(nativeCode), Code: nativeCode, Recovery: "not-needed", Logs: c.root}
 	if traceErr != nil {
 		receipt.Error = traceErr.Error()
 	}
 	if nativeCode != 0 && prior != nil {
 		recovery.Original = nativeCode
+		recovery.ResultKnown = true
 		if err := runWorker(c, recovery); err != nil {
 			receipt.Recovery = "incomplete"
 			receipt.Error = err.Error()
@@ -324,6 +349,11 @@ func Run(args []string) int {
 			}
 		}
 	} else if nativeCode == 0 {
+		state := e.State(p.Product)
+		if state != 5 && !(state == -1 && product == p.Product) {
+			receipt.Code = 1603
+			receipt.Error = "native success has unexpected product registration; recovery sources retained"
+		}
 		if prior != nil {
 			if e.State(p.Product) != 5 || e.State(prior.Product) != -1 {
 				receipt.Error = "successful native result has unexpected registration; recovery data retained"
@@ -337,7 +367,7 @@ func Run(args []string) int {
 				}
 			}
 		}
-		if e.State(p.Product) == -1 {
+		if receipt.Code == 0 && e.State(p.Product) == -1 {
 			if err := c.clean(p.Product); err != nil {
 				receipt.Error = err.Error()
 			}

@@ -240,6 +240,9 @@ func (c *cache) source(product string) (Source, error) {
 	if err := noReparse(dir); err != nil {
 		return Source{}, err
 	}
+	if err := workspace.PrivateDirectory(dir); err != nil {
+		return Source{}, errors.New("retained source directory is not privately owned")
+	}
 	if err := decodeFile(filepath.Join(dir, "source.json"), &p); err != nil {
 		return Source{}, err
 	}
@@ -251,34 +254,53 @@ func (c *cache) source(product string) (Source, error) {
 	}
 	return Source{Package: p, Path: filepath.Join(dir, "source.msi")}, nil
 }
-func (c *cache) retain(p Package, input io.Reader) (Source, error) {
+func (c *cache) retain(p Package, input io.Reader, repair ...bool) (Source, error) {
 	if err := p.Validate(); err != nil {
 		return Source{}, err
 	}
 	final := filepath.Join(c.root, p.Product)
-	if _, err := os.Lstat(final); err == nil {
-		source, err := c.source(p.Product)
-		if err != nil {
+	existing := false
+	if info, err := os.Lstat(final); err == nil {
+		existing = true
+		if !info.IsDir() || noReparse(final) != nil {
+			return Source{}, errors.New("retained source directory is redirected or unavailable")
+		}
+		source, readErr := c.source(p.Product)
+		if readErr == nil {
+			e := &nativeEngine{}
+			verifyErr := e.ValidateSource(source)
+			e.close()
+			if verifyErr == nil {
+				if source.Package != p {
+					return Source{}, errors.New("a different valid full source is already retained for this product version")
+				}
+				return source, nil
+			}
+		}
+		if len(repair) != 1 || !repair[0] {
+			if readErr != nil {
+				return Source{}, readErr
+			}
+			return Source{}, errors.New("retained source is corrupt; retry with the exact previous MSI and its official SHA256")
+		}
+		// Explicit original-source repair changes only this account's two owned
+		// source files, after a complete replacement has been validated and flushed.
+		if err := workspace.SecureDirectory(final); err != nil {
 			return Source{}, err
 		}
-		if source.Package != p {
-			return Source{}, errors.New("a different source is already retained for this product version")
-		}
-		e := &nativeEngine{}
-		defer e.close()
-		if err := e.ValidateSource(source); err != nil {
-			return Source{}, err
-		}
-		return source, nil
 	} else if !os.IsNotExist(err) {
 		return Source{}, err
 	}
+
 	id, err := randomID()
 	if err != nil {
 		return Source{}, err
 	}
 	stage := filepath.Join(c.root, "source-"+id)
 	if err := os.Mkdir(stage, 0700); err != nil {
+		return Source{}, err
+	}
+	if err := workspace.SecureDirectory(stage, true); err != nil {
 		return Source{}, err
 	}
 	defer func() {
@@ -308,7 +330,22 @@ func (c *cache) retain(p Package, input io.Reader) (Source, error) {
 	if err := atomicJSON(filepath.Join(stage, "source.json"), p); err != nil {
 		return Source{}, err
 	}
-	if err := os.Rename(stage, final); err != nil {
+	if existing {
+		from, err := windows.UTF16PtrFromString(filepath.Join(stage, "source.msi"))
+		if err != nil {
+			return Source{}, err
+		}
+		to, err := windows.UTF16PtrFromString(filepath.Join(final, "source.msi"))
+		if err != nil {
+			return Source{}, err
+		}
+		if err := windows.MoveFileEx(from, to, windows.MOVEFILE_REPLACE_EXISTING|windows.MOVEFILE_WRITE_THROUGH); err != nil {
+			return Source{}, err
+		}
+		if err := atomicJSON(filepath.Join(final, "source.json"), p); err != nil {
+			return Source{}, err
+		}
+	} else if err := os.Rename(stage, final); err != nil {
 		return Source{}, err
 	}
 	return c.source(p.Product)

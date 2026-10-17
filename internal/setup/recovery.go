@@ -83,6 +83,7 @@ func RecoveryProperties(c Choices) (string, error) {
 type RecoveryEngine interface {
 	State(string) int32
 	ValidateSource(Source) error
+	ValidateInventory(Source, Choices) error
 	Remove(string) uint32
 	Install(Source, string) uint32
 	Verify(Choices) error
@@ -104,6 +105,9 @@ func Recover(engine RecoveryEngine, r Recovery) error {
 		return err
 	}
 	if err = engine.ValidateSource(r.Source); err != nil {
+		return err
+	}
+	if err = engine.ValidateInventory(r.Source, r.Before); err != nil {
 		return err
 	}
 	if engine.State(r.NewProduct) != -1 {

@@ -12,15 +12,19 @@ var testPackage = Package{Product: "{11111111-1111-5111-8111-111111111111}", Upg
 var testChoices = Choices{Product: testPackage.Product, Version: "1.0.0", Directory: `C:\Users\ordinary\Program é & space`, CLI: true}
 
 type fakeRecovery struct {
-	states                   map[string]int32
-	calls                    []string
-	sourceError, verifyError error
+	states                                   map[string]int32
+	calls                                    []string
+	sourceError, inventoryError, verifyError error
 }
 
 func (f *fakeRecovery) State(product string) int32 { return f.states[product] }
 func (f *fakeRecovery) ValidateSource(Source) error {
 	f.calls = append(f.calls, "validate")
 	return f.sourceError
+}
+func (f *fakeRecovery) ValidateInventory(Source, Choices) error {
+	f.calls = append(f.calls, "inventory")
+	return f.inventoryError
 }
 func (f *fakeRecovery) Remove(product string) uint32 {
 	f.calls = append(f.calls, "remove")
@@ -45,10 +49,10 @@ func TestRecoveryValidatesBeforeDestructiveRemovalAndRestoresPriorChoices(t *tes
 	if err := Recover(engine, r); err != nil {
 		t.Fatal(err)
 	}
-	if len(engine.calls) != 4 || engine.calls[0] != "validate" || engine.calls[1] != "remove" || engine.calls[3] != "verify" {
+	if len(engine.calls) != 5 || engine.calls[0] != "validate" || engine.calls[1] != "inventory" || engine.calls[2] != "remove" || engine.calls[4] != "verify" {
 		t.Fatal(engine.calls)
 	}
-	properties := engine.calls[2]
+	properties := engine.calls[3]
 	for _, want := range []string{`ADDLOCAL=Core,CLI`, `REMOVE=Desktop`, `INSTALLDIR="C:\Users\ordinary\Program é & space"`, `START_MENU=0`, `DESKTOP_SHORTCUT=0`, `LICENSE_ACCEPTED=1`, `LAUNCH=0`, `OPEN_DOCUMENTATION=0`} {
 		if !strings.Contains(properties, want) {
 			t.Fatal(properties, want)
@@ -58,6 +62,7 @@ func TestRecoveryValidatesBeforeDestructiveRemovalAndRestoresPriorChoices(t *tes
 func TestRecoveryRefusesMissingCorruptOrForeignSourceBeforeRemoval(t *testing.T) {
 	for _, change := range []func(*Recovery, *fakeRecovery){
 		func(r *Recovery, f *fakeRecovery) { f.sourceError = errors.New("missing source") },
+		func(r *Recovery, f *fakeRecovery) { f.inventoryError = errors.New("source inventory differs") },
 		func(r *Recovery, f *fakeRecovery) {
 			r.Source.Package.Upgrade = "{33333333-3333-5333-8333-333333333333}"
 		},
@@ -83,7 +88,7 @@ func TestRecoveryAcceptsAlreadyRestoredProductOnlyAfterVerifyingChoicesAndBytes(
 	if Recover(f, r) == nil {
 		t.Fatal("claimed restored from registration alone")
 	}
-	if !reflect.DeepEqual(f.calls, []string{"validate", "verify"}) {
+	if !reflect.DeepEqual(f.calls, []string{"validate", "inventory", "verify"}) {
 		t.Fatal(f.calls)
 	}
 }

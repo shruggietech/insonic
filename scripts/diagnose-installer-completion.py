@@ -288,81 +288,10 @@ WRAPPER=r''' if filepath.Base(exe)=="insonic-launcher.exe" {
 
 
 def observe_setup(stage,token,quiet_install):
-    """Focused production-coordinator probe, never a complete product receipt."""
-    m.disposable_runner();q=qualifier();stage=Path(stage)
-    marker=json.loads((stage/'owned-ci-account.json').read_text(encoding='utf-8'))
-    if q.diagnostic_mode(stage) not in ('rollback-setup','rollback-setup-full') or marker['sid_sha256']!=token['user_sid_sha256'] or token['elevated'] or token['administrator_enabled']:raise RuntimeError('setup probe is outside the owned ordinary account')
-    model=json.loads((stage/'ui-model.json').read_text(encoding='utf-8'))
-    if model['family']!=m.UPGRADE_CODE:raise RuntimeError('production coordinator requires the exact insonic family in its otherwise empty owned profile')
-    import ctypes as C
-    import ctypes.wintypes as W
-    dll=C.WinDLL('msi');dll.MsiQueryProductStateW.argtypes=[W.LPCWSTR];dll.MsiQueryProductStateW.restype=C.c_int
-    if any(dll.MsiQueryProductStateW(model[key])!=-1 for key in ('old_product','new_product')):raise RuntimeError('setup probe refuses pre-existing registration')
-    full=q.diagnostic_mode(stage)=='rollback-setup-full'
-    root=Path(os.environ['LOCALAPPDATA'])/'insonic-setup';directory=stage/'UI program é & spaces'
-    result={'kind':'production-setup-focused-probe','feature_qualification':False,'token':token,'transactions':[],'cleanup':[]}
-    def run(name,args,expected):
-        command=[str(stage/('ui-'+name+'-setup.exe')),*args]
-        done=subprocess.run(command,cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=75)
-        row={'name':name,'actual_code':done.returncode,'stdout':done.stdout.decode(errors='replace')[-4000:],'stderr':done.stderr.decode(errors='replace')[-4000:]};result['transactions'].append(row)
-        for source in root.glob('*'):
-            if source.is_file() and source.suffix in ('.json','.log') and source.stat().st_size<=8*1024*1024:shutil.copyfile(source,stage/'native'/('context.setup-'+name+'-'+source.name))
-        if done.returncode!=expected:raise RuntimeError('production setup returned unexpected result: '+json.dumps(row))
-        return row
-    try:
-        old_source=stage/'ui-old.msi';old_sha=m.sha(old_source)
-        legacy=stage/'legacy-full-source.msi';shutil.copyfile(old_source,legacy)
-        if full:
-            from qualify_installer_ui import NativeUI
-            ui=NativeUI(stage/'native/context.setup-ui.json')
-            row=ui.run(old_source,directory,'setup-install',selection='cli',native_process=True,setup_process=True)
-            result['transactions'].append(row)
-        else:run('old',['--quiet','--accept-license','--install-dir',str(directory),'--clients','cli','--start-menu','0','--desktop-shortcut','0'],0)
-        if dll.MsiQueryProductStateW(model['old_product'])!=5:raise RuntimeError('setup did not install old registration')
-        expected={item['path']:m.sha(directory/item['path']) for item in model['payload'] if item['feature']!='Desktop'}
-        def unchanged():
-            if dll.MsiQueryProductStateW(model['old_product'])!=5 or dll.MsiQueryProductStateW(model['new_product'])!=-1 or any(m.sha(directory/name)!=sha for name,sha in expected.items()):raise RuntimeError('source preflight changed the working installation')
-        cache_source=root/model['old_product']/'source.msi'
-        if not full:
-            # An actual legacy raw-MSI install has no source producer. Recreate
-            # that state, then prove missing-source refusal before old removal.
-            quiet_install(['/x',model['old_product']],stage/'native/context.setup-legacy-reset.log')
-            if (root/model['old_product']).exists():raise RuntimeError('committed raw removal retained old source cache')
-            quiet_install(['/i',old_source,'INSTALLDIR='+str(directory),'LICENSE_ACCEPTED=1','ADDLOCAL=Core,CLI','REMOVE=Desktop','START_MENU=0','DESKTOP_SHORTCUT=0','LAUNCH=0'],stage/'native/context.setup-legacy-install.log')
-            run('bad',['--quiet','--accept-license'],1603);unchanged()
-            if (root/'pending.json').exists():raise RuntimeError('missing source began a destructive upgrade')
-            run('bad',['--quiet','--accept-license','--previous-msi',str(legacy),'--previous-sha256',old_sha],1603);unchanged()
-            result['legacy_source_refusal_and_reseed']='passed'
-            backup=stage/'owned-cached-source.backup';shutil.copyfile(cache_source,backup)
-            with cache_source.open('r+b') as stream:stream.seek(128);value=stream.read(1);stream.seek(128);stream.write(bytes([value[0]^1]))
-            run('bad',['--quiet','--accept-license'],1603);unchanged()
-            if (root/'pending.json').exists():raise RuntimeError('corrupt source began a destructive upgrade')
-            shutil.copyfile(backup,cache_source);backup.unlink();result['corrupt_source_refusal']='passed'
-        old_source.unlink();(stage/'ui-old-setup.exe').unlink();legacy.unlink()
-        result['downloaded_old_sources_absent']=True
-        if full:
-            for name,cancel,code in [('cancel','execution',1602),('bad',None,1603)]:
-                row=ui.run(stage/('ui-'+name+'.msi'),directory,'setup-'+name,operation='upgrade',selection='cli',cancel=cancel,expected=code,native_process=True,setup_process=True)
-                result['transactions'].append(row);unchanged()
-                if cancel and row.get('old_removed_before_cancel') is not True:raise RuntimeError('actual Cancel did not occur after old removal')
-                receipt=json.loads((root/'last-result.json').read_text(encoding='utf-8'))
-                if receipt['native_code']!=code or receipt['setup_code']!=code or receipt['recovery']!='completed':raise RuntimeError('setup did not complete recovery before native return')
-        else:run('bad',['--quiet','--accept-license'],1603)
-        unchanged();q.assert_unchecked_shortcuts()
-        receipt=json.loads((root/'last-result.json').read_text(encoding='utf-8'))
-        if receipt['native_code']!=1603 or receipt['setup_code']!=1603 or receipt['recovery']!='completed':raise RuntimeError('production coordinator result does not prove synchronous recovery')
-        result['state']='passed';return result
-    finally:
-        for source in root.glob('*'):
-            if source.is_file() and source.suffix in ('.json','.log') and source.stat().st_size<=8*1024*1024:
-                try:shutil.copyfile(source,stage/'native'/('context.setup-final-'+source.name))
-                except OSError as error:result.setdefault('retention_errors',[]).append({'file':source.name,'error':str(error)})
-        for key in ('old_product','new_product'):
-            product=model[key]
-            if dll.MsiQueryProductStateW(product) in (1,5):
-                try:quiet_install(['/x',product],stage/'native'/('context.setup-cleanup-'+key+'.log'));result['cleanup'].append({'product':product,'completed':True})
-                except BaseException as error:result['cleanup'].append({'product':product,'completed':False,'error':str(error)[-2000:]})
-        (stage/'native/context.setup-probe.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+    m.disposable_runner();mode=qualifier().diagnostic_mode(stage)
+    if mode not in ('rollback-setup','rollback-setup-full'):raise RuntimeError('setup diagnostic is not elected')
+    from qualify_installer_setup import exercise
+    return exercise(stage,token,quiet_install,full=mode=='rollback-setup-full')
 
 
 def main():

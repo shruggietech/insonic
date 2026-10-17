@@ -18,7 +18,7 @@ import uuid
 import windows_msi as m
 
 
-def prepare(stage, fixture, clone, diagnostic_only=False):
+def prepare(stage, fixture, clone, diagnostic_only=False, setup_probe=False):
     """Build a small instrumented package with the production MSI author/model.
 
     The separate exact-payload lifecycle and full-UI install remain mandatory.
@@ -26,7 +26,9 @@ def prepare(stage, fixture, clone, diagnostic_only=False):
     without creating persistent GUI/console sessions between MSI transactions.
     """
     m.disposable_runner()
-    payload=stage/'ui-payload';shutil.copytree(fixture,payload)
+    payload=stage/'ui-payload'
+    if payload.exists():payload=stage/('ui-payload-'+uuid.uuid4().hex)
+    shutil.copytree(fixture,payload)
     files=[]
     for p in sorted(payload.rglob('*')):
         if p.is_file() and p.name not in ('token-recorder.go','package-inventory.json') and not p.name.endswith(('.token.json','.diagnostic.json')):
@@ -34,11 +36,12 @@ def prepare(stage, fixture, clone, diagnostic_only=False):
     version=json.loads((payload/'help/offline-manifest.json').read_text(encoding='utf-8'))['version']
     inv={'schema_version':version,'platform':'windows_amd64','variant':'desktop','files':files}
     raw=m.inventory_bytes(inv);(payload/'package-inventory.json').write_bytes(raw)
-    setup_probe=diagnostic_only and os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_MODE') in ('rollback-setup','rollback-setup-full')
+    setup_probe=setup_probe or diagnostic_only and os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_MODE') in ('rollback-setup','rollback-setup-full')
     if setup_probe:
         inv['kind']='native-package-inventory';raw=m.inventory_bytes(inv);(payload/'package-inventory.json').write_bytes(raw)
     family=m.UPGRADE_CODE if setup_probe else m.guid('owned-full-ui/'+uuid.uuid4().hex)
     model=m.installer_model(inv,m.digest(raw),(payload/'LICENSE').read_text(encoding='utf-8'),upgrade=family)
+    if setup_probe:model['tables']['Property']=[row for row in model['tables']['Property'] if row[0]!='INSONIC_INVENTORY_SHA256']
     old=stage/'ui-old.msi';m.author(old,payload,model)
     parts=list(map(int,version.split('.')));parts[2]+=1;new_version='.'.join(map(str,parts))
     clone(old,stage/'ui-new.msi',new_version,family)
@@ -61,6 +64,12 @@ def prepare(stage, fixture, clone, diagnostic_only=False):
             db.execute('INSERT INTO `Binary` (`Name`,`Data`) VALUES (?,?)',['OwnedCancellationBarrier',payload/'owned-cancel-barrier.exe'],streams=(2,))
             db.execute('INSERT INTO `CustomAction` (`Action`,`Type`,`Source`,`Target`) VALUES (?,?,?,?)',['OwnedCancellationBarrier',2,'OwnedCancellationBarrier','"'+str(stage)+'"'])
             db.execute('INSERT INTO `InstallExecuteSequence` (`Action`,`Condition`,`Sequence`) VALUES (?,?,?)',['OwnedCancellationBarrier','OLDPRODUCTS',3900])
+            db.check(db.dll.MsiDatabaseCommit(db.handle))
+        finally:db.close()
+        clone(old,stage/'ui-wrong-source.msi',version,family)
+        db=m.NativeDatabase(stage/'ui-wrong-source.msi',write=True)
+        try:
+            db.execute('INSERT INTO `Property` (`Property`,`Value`) VALUES (?,?)',['INSONIC_INVENTORY_SHA256','0'*64])
             db.check(db.dll.MsiDatabaseCommit(db.handle))
         finally:db.close()
         for name in ('old','new','bad','cancel'):
@@ -115,9 +124,21 @@ def launch_standalone_diagnostic(msi,directory,log):
 
 def launch_setup_probe(msi,directory,log):
     m.disposable_runner();msi=Path(msi);stage=msi.resolve().parent
-    mode=json.loads((stage/'installer-diagnostic-mode.json').read_text(encoding='utf-8'))
-    if stage.parent!=Path(os.environ['ProgramData']).resolve() or mode!={'feature_qualification':False,'mode':'rollback-setup-full'} or msi.name not in ('ui-old.msi','ui-bad.msi','ui-cancel.msi') or Path(directory).resolve()!=stage/'UI program é & spaces':raise RuntimeError('production setup probe is outside its owned ordinary stage')
-    command=[str(msi.with_name(msi.stem+'-setup.exe')),'--install-dir',str(directory)]
+    if stage.parent!=Path(os.environ['ProgramData']).resolve() or not __import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name):raise RuntimeError('setup UI is outside its owned stage')
+    if (stage/'setup-qualification.json').is_file():
+        scope=json.loads((stage/'setup-qualification.json').read_text(encoding='utf-8'))
+        if scope.get('feature_qualification') is not True:raise RuntimeError('setup qualification is not elected')
+        if msi.name=='fixture.msi':
+            executable=stage/'exact-setup.exe'
+            if m.sha(msi)!=scope['msi_sha256'] or m.sha(executable)!=scope['setup_sha256'] or Path(directory).resolve()!=stage/'exact setup program é & spaces':raise RuntimeError('exact setup entry-point identity differs')
+        else:
+            if msi.name not in ('ui-old.msi','ui-bad.msi','ui-cancel.msi') or Path(directory).resolve()!=stage/'UI program é & spaces':raise RuntimeError('setup fault capsule is outside its owned paths')
+            executable=msi.with_name(msi.stem+'-setup.exe')
+    else:
+        mode=json.loads((stage/'installer-diagnostic-mode.json').read_text(encoding='utf-8'))
+        if mode!={'feature_qualification':False,'mode':'rollback-setup-full'} or msi.name not in ('ui-old.msi','ui-bad.msi','ui-cancel.msi') or Path(directory).resolve()!=stage/'UI program é & spaces':raise RuntimeError('production setup probe is outside its owned ordinary stage')
+        executable=msi.with_name(msi.stem+'-setup.exe')
+    command=[str(executable),'--install-dir',str(directory)]
     return subprocess.Popen(command,cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=0x08000000)
 
 
@@ -257,7 +278,7 @@ class NativeUI:
             try:
                 if native_process:
                     process=(launch_setup_probe if setup_process else launch_standalone_diagnostic if standalone_process else launch_msiexec_diagnostic)(msi,directory,self.output.parent/('context.ui-'+name+'.log'))
-                    self.actor_pid=process.pid;state['native_engine']={'kind':'production setup full UI' if setup_process else 'external coordinator full UI' if standalone_process else 'msiexec.exe full UI','pid':process.pid,'feature_qualification':False,'progress_source':'native controls and private passive MSI event receipt' if setup_process else 'native controls, no in-process API observer'}
+                    self.actor_pid=process.pid;state['native_engine']={'kind':'production setup full UI' if setup_process else 'external coordinator full UI' if standalone_process else 'msiexec.exe full UI','pid':process.pid,'feature_qualification':bool(setup_process and (Path(msi).parent/'setup-qualification.json').is_file()),'progress_source':'native controls and private passive MSI event receipt' if setup_process else 'native controls, no in-process API observer'}
                     stdout,stderr=process.communicate(timeout=75)
                     state['code']=process.returncode;state['native_engine'].update(stdout=stdout.decode(errors='replace')[-4000:],stderr=stderr.decode(errors='replace')[-4000:])
                     if setup_process:
@@ -514,9 +535,19 @@ def qualify(stage,exact_installer,exact_directory,output,token,quiet_install):
         for name in expected:
             if m.sha(directory/name)!=expected[name]:raise RuntimeError('full-UI cancellation did not roll back old bytes')
         results.append(ui.run(bad,directory,'failed-upgrade',operation='upgrade',selection='cli',expected=1603))
-        states(results[-1],{config['old_product']:5,config['new_product']:-1})
+        old_state=ui.dll.MsiQueryProductStateW(config['old_product'])
+        if old_state not in (1,5) or ui.dll.MsiQueryProductStateW(config['new_product'])!=-1:raise RuntimeError('raw MSI failed-upgrade registration is outside its documented engine outcomes')
+        results[-1]['raw_msi_recovery_limit']={'old_registration':old_state,'new_registration':-1,'coordinated_recovery':False,'installed_registration_restored':old_state==5}
         for name in expected:
             if m.sha(directory/name)!=expected[name]:raise RuntimeError('full-UI cancellation/failure did not roll back old bytes')
+        if old_state==1:
+            # The owner retained raw MSI with this explicit native-engine limit.
+            # Reset only this owned test fixture through public operations; this
+            # is not credited as recovery performed by the raw MSI. The separate
+            # production setup context must prove registration5 before return.
+            quiet_install(['/x',config['old_product']],stage/'native/context.ui-raw-advertised-cleanup.log')
+            quiet_install(['/i',old,'INSTALLDIR='+str(directory),'LICENSE_ACCEPTED=1','ADDLOCAL=Core,CLI','REMOVE=Desktop','START_MENU=0','DESKTOP_SHORTCUT=0','LAUNCH=0'],stage/'native/context.ui-raw-fixture-reset.log')
+            if ui.dll.MsiQueryProductStateW(config['old_product'])!=5:raise RuntimeError('owned raw-MSI fixture reset did not install its registration')
         results.append(ui.run(new,directory,'upgrade',operation='upgrade',selection='cli'))
         states(results[-1],{config['old_product']:-1,config['new_product']:5})
         results.append(ui.run(new,directory,'remove',operation='remove',selection='cli'))
