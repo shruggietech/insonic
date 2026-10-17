@@ -255,7 +255,6 @@ jobs:
     name: Join exact-byte Windows desktop qualification
     needs:
       - assemble
-      - proofs
     runs-on: windows-2022
     timeout-minutes: 11
     env:
@@ -299,6 +298,10 @@ jobs:
           skip-decompress: false
           name: windows-desktop-input-${{ inputs.revision }}-${{ github.run_attempt }}
           path: build/windows-desktop-input
+      - name: Await all exact-run native proofs after overlapping preparation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/wait-ci-artifact.mjs windows-desktop-proofs '${{ inputs.revision }}'
       - name: Download each completed qualification scope
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:

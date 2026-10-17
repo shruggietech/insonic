@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { waitForArtifact } from '../scripts/wait-ci-artifact.mjs';
+import { waitForArtifact, waitForDesktopProofs } from '../scripts/wait-ci-artifact.mjs';
 
 const options = { repository: 'shruggietech/insonic', run: '123', attempt: '2', os: 'windows-2022', token: 'fixture' };
 const artifact = { id: 42, name: 'media-source-windows-2022-2', expired: false, digest: 'sha256:' + 'a'.repeat(64), workflow_run: { id: 123 } };
@@ -40,4 +40,53 @@ test('early setup cannot consume artifacts before exact-attempt integrity and do
     return response([artifact]);
   } }), 42);
   assert.equal(elapsed, 5000);
+});
+
+const proofOptions = { ...options, revision: 'a'.repeat(40) };
+const scopes = ['archive', 'interactive', 'maintenance', 'setup'];
+const proofArtifacts = scopes.map((scope, i) => ({ ...artifact, id: 51 + i,
+  name: `windows-desktop-proof-${scope}-${proofOptions.revision}-2` }));
+const proofGates = { total_count: 4, jobs: scopes.map(scope => ({
+  name: `package-windows / windows-desktop / Qualify Windows desktop (${scope})`, status: 'completed', conclusion: 'success',
+})) };
+const proofApi = (artifacts = proofArtifacts, jobs = proofGates) => async url => url.includes('/jobs?') ? jobs : response(artifacts);
+
+test('early Windows preparation waits for all four successful exact-attempt producers', async () => {
+  let elapsed = 0;
+  const pending = structuredClone(proofGates); pending.jobs[2].status = 'in_progress'; pending.jobs[2].conclusion = null;
+  const value = await waitForDesktopProofs({ ...proofOptions, now: () => elapsed, sleep: async ms => { elapsed += ms; }, request: async url => {
+    if (url.includes('/jobs?')) { assert.match(url, /\/attempts\/2\/jobs\?/); return elapsed ? proofGates : pending; }
+    assert.match(url, /\/runs\/123\/artifacts\?/); return response(proofArtifacts);
+  } });
+  assert.deepEqual(value, { archive: 51, interactive: 52, maintenance: 53, setup: 54 });
+  assert.equal(elapsed, 5000);
+});
+
+test('proof availability cannot override failed, cancelled or skipped native qualification', async () => {
+  for (const scope of scopes) for (const conclusion of ['failure', 'cancelled', 'skipped']) {
+    const jobs = structuredClone(proofGates); jobs.jobs[scopes.indexOf(scope)].conclusion = conclusion;
+    await assert.rejects(waitForDesktopProofs({ ...proofOptions, request: proofApi(proofArtifacts, jobs) }), /proof failed/);
+  }
+});
+
+test('Windows proof readiness rejects ambiguous, foreign, expired and incomplete inventories', async () => {
+  for (const change of [item => ({ ...item, workflow_run: { id: 999 } }), item => ({ ...item, expired: true }),
+    item => ({ ...item, digest: null }), item => ({ ...item, id: -1 })]) {
+    await assert.rejects(waitForDesktopProofs({ ...proofOptions, request: proofApi([change(proofArtifacts[0]), ...proofArtifacts.slice(1)]) }), /authority/);
+  }
+  await assert.rejects(waitForDesktopProofs({ ...proofOptions, request: proofApi([...proofArtifacts, proofArtifacts[0]]) }), /Ambiguous/);
+  await assert.rejects(waitForDesktopProofs({ ...proofOptions, request: proofApi(proofArtifacts, { total_count: 5, jobs: [...proofGates.jobs, proofGates.jobs[0]] }) }), /Ambiguous/);
+  await assert.rejects(waitForDesktopProofs({ ...proofOptions, request: async () => ({ total_count: 101, artifacts: [], jobs: [] }) }), /Incomplete/);
+});
+
+test('Windows proof wait has one deadline and cannot reuse another revision or attempt', async () => {
+  for (const artifacts of [[], proofArtifacts.slice(1), proofArtifacts.map(item => ({ ...item, name: item.name.replace('-2', '-1') })),
+    proofArtifacts.map(item => ({ ...item, name: item.name.replace(proofOptions.revision, 'b'.repeat(40)) }))]) {
+    let elapsed = 0;
+    await assert.rejects(waitForDesktopProofs({ ...proofOptions, deadlineMs: 10000, now: () => elapsed,
+      sleep: async ms => { elapsed += ms; }, request: proofApi(artifacts) }), /deadline/);
+    assert.equal(elapsed, 10000);
+  }
+  for (const override of [{ revision: '../other' }, { attempt: '0' }, { deadlineMs: 400001 }])
+    await assert.rejects(waitForDesktopProofs({ ...proofOptions, ...override, request: async () => { throw new Error('must not request'); } }), /identity/);
 });

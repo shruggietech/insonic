@@ -89,7 +89,13 @@ test('Windows delivery joins every isolated scope before exposing candidate arti
  assert.deepEqual(proofs.needs, ['assemble']);
  assert.deepEqual(proofs.strategy.matrix.scope, ['archive', 'interactive', 'maintenance', 'setup']);
  assert.equal(proofs.strategy['fail-fast'], false);
- assert.deepEqual(finalize.needs, ['assemble', 'proofs']);
+ assert.deepEqual(finalize.needs, ['assemble']);
+ const prepared = finalize.steps.findIndex(s => s.name === 'Restore the same immutable Windows delivery');
+ const wait = finalize.steps.findIndex(s => s.run?.includes('wait-ci-artifact.mjs windows-desktop-proofs'));
+ const download = finalize.steps.findIndex(s => s.name === 'Download each completed qualification scope');
+ assert.ok(prepared < wait && wait < download);
+ assert.equal(finalize.steps[wait].env.GH_TOKEN, '${{ github.token }}');
+ assert.ok(finalize.steps[wait].run.includes("'${{ inputs.revision }}'"));
  for (const job of [assemble, proofs, finalize]) {
   assert.equal(job['runs-on'], 'windows-2022');
   assert.equal(job['timeout-minutes'], 11);

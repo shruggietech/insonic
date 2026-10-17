@@ -63,3 +63,7 @@ T019 proof: external native full/quiet controls pass in run39050679170 with old 
 ## Phase 9: Second-round security remediation (2026-10-17)
 
 - [x] T023 [HIGH, FR-009, SC-005, Constitution V] Bind every setup executable prefix byte to an independent pinned-toolchain rebuild of reviewed source; make resources reproducible, isolate compiler credentials and caches, reject forged lane receipts and retain final native/publication verification in T016/T018.
+
+## Phase 10: Qualification turnaround (2026-10-17)
+
+- [x] T024 [HIGH, FR-009, SC-005, Constitution V] Start finalizer preparation alongside isolated native proofs, wait for all four successful exact-run/attempt/revision producers with one deadline, and retain fresh independent setup source rebuilds plus all artifact and native gates. Final hosted turnaround remains part of T016/T018.
