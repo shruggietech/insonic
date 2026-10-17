@@ -874,10 +874,16 @@ def ordinary_system_broker(pipe,installer,directory,output):
         with ordinary_actor_desktop(target,credentials['sid'],directory.parent) as desktop:
             target_observed=desktop['target_token']
             startup=Startup();startup.cb=C.sizeof(startup);startup.flags=1;startup.show=0;startup.desktop=desktop['path']
-            args=[sys.executable,__file__,'--ordinary-worker',str(installer),'--context-dir',str(directory),'--output',str(output)];command=C.create_unicode_buffer(subprocess.list2cmdline(args));environment=C.create_unicode_buffer('\0'.join(key+'='+value for key,value in sorted(os.environ.items()))+'\0\0')
+            # Cross-session standard console handles cannot be inherited. The GUI
+            # interpreter has no console initialization dependency; redirect Python
+            # streams before loading the worker so even import/startup errors persist.
+            executable=str(Path(sys.executable).with_name('pythonw.exe'))
+            worker=[__file__,'--ordinary-worker',str(installer),'--context-dir',str(directory),'--output',str(output)]
+            bootstrap='import os,runpy,sys;sys.stdout=sys.stderr=open('+repr(str(output.with_suffix('.worker-stream.log')))+',"w",encoding="utf-8",buffering=1);sys.argv='+repr(worker)+';sys.path.insert(0,os.path.dirname(sys.argv[0]));runpy.run_path(sys.argv[0],run_name="__main__")'
+            args=[executable,'-u','-c',bootstrap];command=C.create_unicode_buffer(subprocess.list2cmdline(args));environment=C.create_unicode_buffer('\0'.join(key+'='+value for key,value in sorted(os.environ.items()))+'\0\0')
             record('before-target-process',target_token=target_observed,desktop=desktop)
             with qualifier_profile_privileges(('SeAssignPrimaryTokenPrivilege','SeIncreaseQuotaPrivilege')) as privilege_scope:
-                if not security.CreateProcessAsUserW(target,sys.executable,command,None,None,False,0x08000400,environment,str(directory.parent),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
+                if not security.CreateProcessAsUserW(target,executable,command,None,None,False,0x08000400,environment,str(directory.parent),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
             record('target-process-created',pid=process.pid,target_token=target_observed,desktop=desktop,broker_privilege_scope=privilege_scope)
             if kernel.WaitForSingleObject(process.process,230000)!=0:
                 kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000);raise RuntimeError('exact owned normal worker exceeded full-UI task bound')
@@ -1322,10 +1328,13 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
         (stage/'context-model.json').write_text(json.dumps(model),encoding='utf-8',newline='\n')
         install=stage/'installed program é with spaces';worker_output=native/'context.json'
         args=[str(scripts/'qualify-windows-msi.py'),'--ordinary-worker',str(target),'--context-dir',str(install),'--output',str(worker_output)]
-        with interactive_context_desktop(sid,caller_sid,stage) as ui_desktop:
-            with disposable_server_installer_policy(record) as policy_fixture:
-                scheduler=scheduler_ordinary(stage,name,sid,password,args,record,profile)
-        record('inactive-full-UI-desktop-restored',desktop=ui_desktop)
+        ui_desktop={}
+        try:
+            with interactive_context_desktop(sid,caller_sid,stage) as ui_desktop:
+                with disposable_server_installer_policy(record) as policy_fixture:
+                    scheduler=scheduler_ordinary(stage,name,sid,password,args,record,profile)
+        finally:
+            if ui_desktop:record('inactive-full-UI-desktop-restoration',desktop=ui_desktop)
         evidence=json.loads(worker_output.read_text(encoding='utf-8'))
         if evidence['token']['user_sid_sha256']!=m.digest(sid.encode()) or Path(evidence['user_profile']).resolve()!=profile.resolve():raise RuntimeError('ordinary worker changed account/profile identity')
         evidence.update({'process_creation':'SYSTEM disposable CI task broker, target LogonUserW INTERACTIVE2 and CreateProcessAsUserW in the verified CI interactive session on an owned inactive WinSta0 desktop; exact station ACE restored and parent is sole profile-load owner','scheduler':scheduler,'profile_creation':'explicit owned LoadUserProfileW handle and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode()),'owned_account_rights_before':batch_original,'ci_host_policy_fixture':policy_fixture})
