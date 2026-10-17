@@ -353,6 +353,10 @@ def observe_setup(stage,token,quiet_install):
         if receipt['native_code']!=1603 or receipt['setup_code']!=1603 or receipt['recovery']!='completed':raise RuntimeError('production coordinator result does not prove synchronous recovery')
         result['state']='passed';return result
     finally:
+        for source in root.glob('*'):
+            if source.is_file() and source.suffix in ('.json','.log') and source.stat().st_size<=8*1024*1024:
+                try:shutil.copyfile(source,stage/'native'/('context.setup-final-'+source.name))
+                except OSError as error:result.setdefault('retention_errors',[]).append({'file':source.name,'error':str(error)})
         for key in ('old_product','new_product'):
             product=model[key]
             if dll.MsiQueryProductStateW(product) in (1,5):

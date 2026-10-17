@@ -333,6 +333,12 @@ class NativeUI:
                             state['old_removed_before_cancel']=True;action_ready.set()
                         if cancel=='execution' and action_ready.is_set() and (state['progress_observed'] or setup_process) and not cancel_sent:
                             self.click(controls,'Cancel');cancel_sent=True
+                            if setup_process:
+                                # A synchronous EXE action can hold the native
+                                # UI caller. Release it after posting the real
+                                # Cancel click so the engine can process that
+                                # request and display its real confirmation.
+                                (Path(msi).parent/'native/setup-cancel-release').write_bytes(b'actual Cancel button clicked\n')
                         continue
                     page=next((p for p,mark in [('Welcome','Install for this Windows account.'),('License','Apache License 2.0'),('Choices','Select clients and shortcuts'),('Location','Choose program directory'),('Ready','Setup verifies capacity'),('Maintenance','Change, repair or remove'),('Cancelled','Setup cancelled'),('FatalError','Setup could not finish'),('Finish','The selected operation completed.')] if mark in joined),None)
                     if page is None and any(x in joined for x in ('insonic installed','insonic updated','insonic changed','insonic repaired','insonic removed')):page='Finish'
