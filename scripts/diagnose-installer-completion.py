@@ -78,7 +78,7 @@ def recover_registration(stage,product,phase):
         return values
     result={'kind':'owned-before-Close-registration-recovery','feature_qualification':False,'token':token,'before':int(dll.MsiQueryProductStateW(product)),'metadata_before':info(),'source':phase}
     dll.MsiSetInternalUI(2,None);dll.MsiEnableLogW(0x1000,str(stage/'native'/('context.recovery-'+phase+'.log')),0)
-    try:result['code']=int(dll.MsiConfigureProductExW(product,0,5,'REINSTALL=ALL REINSTALLMODE=omus LICENSE_ACCEPTED=1 LAUNCH=0 REBOOT=ReallySuppress'))
+    try:result['code']=int(dll.MsiConfigureProductExW(product,0,5,'ADDLOCAL=Core,CLI REMOVE=Desktop REINSTALL=Core,CLI REINSTALLMODE=omus LICENSE_ACCEPTED=1 LAUNCH=0 REBOOT=ReallySuppress'))
     finally:dll.MsiEnableLogW(0,None,0)
     result.update(after=int(dll.MsiQueryProductStateW(product)),metadata_after=info(),features={name:int(dll.MsiQueryFeatureStateW(product,name)) for name in ('Core','CLI','Desktop')})
     (stage/'native'/('context.recovery-'+phase+'.json')).write_text(json.dumps(result,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
