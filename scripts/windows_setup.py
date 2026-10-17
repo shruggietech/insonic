@@ -5,7 +5,6 @@
 No installation APIs are invoked here. Native lifecycle qualification belongs
 on acknowledged disposable Windows hosts.
 """
-import ctypes
 import hashlib
 import io
 import json
@@ -14,8 +13,10 @@ from pathlib import Path
 import re
 import shutil
 import struct
+import subprocess
 import sys
-import xml.etree.ElementTree as ET
+import tempfile
+import threading
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import windows_msi as m
@@ -94,24 +95,58 @@ def icon_resources(icon):
     return images, bytes(group)
 
 
-def add_resources(executable, version):
-    if os.name != 'nt': raise RuntimeError('native setup resource authoring requires Windows')
-    dll = ctypes.WinDLL('kernel32', use_last_error=True)
-    begin, update, end = dll.BeginUpdateResourceW, dll.UpdateResourceW, dll.EndUpdateResourceW
-    begin.argtypes = [ctypes.c_wchar_p, ctypes.c_int]; begin.restype = ctypes.c_void_p
-    update.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_ushort, ctypes.c_void_p, ctypes.c_uint32]; update.restype = ctypes.c_int
-    end.argtypes = [ctypes.c_void_p, ctypes.c_int]; end.restype = ctypes.c_int
-    handle = begin(str(executable), False)
-    if not handle: raise ctypes.WinError(ctypes.get_last_error())
-    images, group = icon_resources((m.ROOT / m.ICON).read_bytes())
-    complete = False
-    try:
-        for kind, identity, data in [(24, 1, manifest(version)), (14, 1, group), *[(3, i + 1, data) for i, data in enumerate(images)]]:
-            buffer = ctypes.create_string_buffer(data)
-            if not update(handle, kind, identity, 1033, buffer, len(data)): raise ctypes.WinError(ctypes.get_last_error())
-        complete = True
-    finally:
-        if not end(handle, not complete) and complete: raise ctypes.WinError(ctypes.get_last_error())
+def add_resources(executable, version, source_root=None):
+    """Append deterministic PE resources, identically on build and verifier hosts."""
+    data = bytearray(Path(executable).read_bytes())
+    if len(data) < 64 or len(data) > 128 << 20 or data[:2] != b'MZ': raise ValueError('invalid setup resource input')
+    pe = struct.unpack_from('<I', data, 60)[0]
+    if pe + 24 > len(data) or data[pe:pe + 4] != b'PE\0\0': raise ValueError('invalid setup PE signature')
+    machine, count, _, _, _, optional_size, _ = struct.unpack_from('<HHIIIHH', data, pe + 4)
+    optional = pe + 24; table = optional + optional_size; end = table + count * 40
+    if machine != 0x8664 or not 0 < count < 96 or optional_size < 240 or end + 40 > len(data): raise ValueError('invalid setup PE architecture')
+    if struct.unpack_from('<H', data, optional)[0] != 0x20b or struct.unpack_from('<H', data, optional + 68)[0] != 2: raise ValueError('setup requires GUI PE32+')
+    alignment, file_alignment = struct.unpack_from('<II', data, optional + 32)
+    headers = struct.unpack_from('<I', data, optional + 60)[0]
+    if (not 512 <= file_alignment <= alignment <= 1 << 20 or alignment & (alignment - 1)
+            or file_alignment & (file_alignment - 1) or end + 40 > headers or headers > len(data)
+            or data[end:end + 40] != bytes(40)):
+        raise ValueError('setup PE lacks bounded resource header space')
+    if any(struct.unpack_from('<II', data, optional + 112 + 32)): raise ValueError('setup resource input must be unsigned')
+    sections = [struct.unpack_from('<IIII', data, table + i * 40 + 8) for i in range(count)]
+    if any(raw < headers or raw + size > len(data) for _, _, size, raw in sections if size): raise ValueError('setup PE section escapes file')
+    align = lambda value, boundary: (value + boundary - 1) & -boundary
+    address = align(max(start + max(virtual, size) for virtual, start, size, _ in sections), alignment)
+    raw = align(len(data), file_alignment)
+    images, group = icon_resources((Path(source_root or m.ROOT) / m.ICON).read_bytes())
+    tree = {24: {1: {1033: manifest(version)}}, 14: {1: {1033: group}},
+            3: {i + 1: {1033: image} for i, image in enumerate(images)}}
+    resource = bytearray(); leaves = []
+    def directory(children):
+        at = len(resource); resource.extend(bytes(16 + len(children) * 8))
+        struct.pack_into('<HH', resource, at + 12, 0, len(children))
+        for index, (identity, child) in enumerate(sorted(children.items())):
+            if isinstance(child, dict): pointer = directory(child) | 0x80000000
+            else:
+                pointer = len(resource); resource.extend(bytes(16)); leaves.append((pointer, child))
+            struct.pack_into('<II', resource, at + 16 + index * 8, identity, pointer)
+        return at
+    directory(tree)
+    for entry, value in leaves:
+        resource.extend(bytes(align(len(resource), 4) - len(resource)))
+        struct.pack_into('<IIII', resource, entry, address + len(resource), len(value), 0, 0)
+        resource.extend(value)
+    size = align(len(resource), file_alignment)
+    names = {bytes(data[table + i * 40:table + i * 40 + 8]).rstrip(b'\0') for i in range(count)}
+    name = next(name for name in (b'.rsrc', b'.rsrc2', b'.rsrc3') if name not in names)
+    struct.pack_into('<8sIIIIIIHHI', data, end, name, len(resource), address, size, raw, 0, 0, 0, 0, 0x40000040)
+    struct.pack_into('<H', data, pe + 6, count + 1)
+    initialized = struct.unpack_from('<I', data, optional + 8)[0]
+    struct.pack_into('<I', data, optional + 8, initialized + size)
+    struct.pack_into('<I', data, optional + 56, align(address + len(resource), alignment))
+    struct.pack_into('<I', data, optional + 64, 0)
+    struct.pack_into('<II', data, optional + 112 + 16, address, len(resource))
+    data.extend(bytes(raw - len(data))); data.extend(resource); data.extend(bytes(size - len(resource)))
+    Path(executable).write_bytes(data)
 
 
 def pe_resources(data):
@@ -162,12 +197,79 @@ def verify_resources(path, version, source_root=None):
     return resources
 
 
-def build(msi, receipt, child):
+_code_cache = None
+_code_cache_lock = threading.Lock()
+
+
+def compiler_environment(isolated=False):
+    allowed = {'PATH', 'PATHEXT', 'SYSTEMROOT', 'WINDIR', 'SYSTEMDRIVE', 'COMSPEC', 'TEMP', 'TMP', 'TMPDIR',
+               'HOME', 'USERPROFILE', 'LOCALAPPDATA', 'APPDATA', 'PROGRAMFILES', 'PROGRAMFILES(X86)',
+               'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY', 'SSL_CERT_FILE', 'SSL_CERT_DIR'}
+    if not isolated: allowed.update({'GOCACHE', 'GOMODCACHE', 'GOPATH'})
+    selected = {key: value for key, value in os.environ.items() if key.upper() in allowed}
+    selected.update(GOOS='windows', GOARCH='amd64', GOAMD64='v1', CGO_ENABLED='0',
+                    GOENV='off', GOFLAGS='', GOWORK='off', GOTOOLCHAIN='local', GOEXPERIMENT='',
+                    GO111MODULE='on', GOFIPS140='off', GOTELEMETRY='off', GIT_TERMINAL_PROMPT='0')
+    if isolated:
+        global _code_cache
+        with _code_cache_lock:
+            parent = (m.ROOT / 'build').resolve()
+            if not parent.is_relative_to(m.ROOT.resolve()): raise ValueError('setup verifier cache root is redirected')
+            if _code_cache is None: _code_cache = tempfile.TemporaryDirectory(prefix='setup-code-', dir=parent)
+            cache = Path(_code_cache.name)
+        selected.update(GOCACHE=str(cache / 'compiled'), GOMODCACHE=str(cache / 'modules'),
+                        GOPROXY='https://proxy.golang.org', GOSUMDB='sum.golang.org',
+                        GONOSUMDB='', GOPRIVATE='', GONOPROXY='')
+    return selected
+
+
+def run_compiler(arguments, source_root, environment):
+    # Selected Go source is compiler input only: no cgo, go generate, workspace,
+    # alternate toolchain or inherited toolexec/build flags. Never run setup.
+    from process_tree import ProcessTree
+    with ProcessTree(arguments, cwd=source_root, env=environment) as tree:
+        try: output, error = tree.process.communicate(timeout=180)
+        except subprocess.TimeoutExpired as expired:
+            tree.kill()
+            try: tree.process.communicate(timeout=5)
+            except subprocess.TimeoutExpired: pass
+            raise RuntimeError('setup source rebuild exceeded its bound') from expired
+        if tree.process.returncode: raise RuntimeError('setup source rebuild failed: ' + error.decode(errors='replace')[-4000:])
+        return output
+
+
+def compile_prefix(target, version, source_root=None, *, isolated=False):
+    source_root = Path(source_root or m.ROOT).resolve(); target = Path(target).resolve()
+    compiler = shutil.which('go')
+    if not compiler: raise RuntimeError('pinned Go compiler is required to verify setup executable code')
+    environment = compiler_environment(isolated)
+    expected = json.loads((source_root / 'internal/qualification/dependencies.json').read_text(encoding='utf-8'))['go']
+    if run_compiler([compiler, 'env', 'GOVERSION'], source_root, environment).decode().strip() != 'go' + expected:
+        raise ValueError('setup rebuild compiler differs from selected source toolchain')
+    target.parent.mkdir(parents=True, exist_ok=True)
+    run_compiler([compiler, 'build', '-mod=readonly', '-trimpath', '-buildvcs=false',
+                  '-ldflags', '-H windowsgui -buildid=', '-o', str(target), './cmd/insonic-setup'], source_root, environment)
+    add_resources(target, version, source_root)
+    return target
+
+
+def verify_code(path, version, source_root=None):
+    _, prefix_size = read_payload(path)
+    if prefix_size > 128 << 20: raise ValueError('setup executable prefix exceeds bound')
+    parent = (m.ROOT / 'build').resolve()
+    if not parent.is_relative_to(m.ROOT.resolve()): raise ValueError('setup verifier output root is redirected')
+    with tempfile.TemporaryDirectory(prefix='setup-rebuild-', dir=parent) as temporary:
+        expected = compile_prefix(Path(temporary) / 'setup.exe', version, source_root, isolated=True)
+        with Path(path).open('rb') as source: actual = source.read(prefix_size)
+        if expected.stat().st_size != prefix_size or hashlib.sha256(actual).hexdigest() != m.sha(expected):
+            raise ValueError('setup executable code differs from independently rebuilt source')
+
+
+def build(msi, receipt):
     version = receipt['product_version']
     target = Path(msi).with_name('insonic_' + version + '_windows_amd64_setup.exe')
     if m.sha(msi) != receipt['artifact_sha256']: raise ValueError('setup requires exact authored MSI')
-    child(['go', 'build', '-ldflags', '-H windowsgui', '-o', target, './cmd/insonic-setup'])
-    add_resources(target, version)
+    compile_prefix(target, version)
     identity = {'product_code': receipt['product_code'], 'upgrade_code': receipt['upgrade_code'],
                 'version': version, 'sha256': receipt['artifact_sha256'], 'size_bytes': receipt['artifact_size_bytes']}
     append_payload(target, msi, identity)
@@ -189,4 +291,5 @@ def verify(path, setup, installer_receipt, source_root=None):
     if Path(path).name != setup['artifact'] or m.sha(path) != setup.get('artifact_sha256') or Path(path).stat().st_size != setup.get('artifact_size_bytes'): raise ValueError('setup artifact differs')
     if read_payload(path)[0] != expected: raise ValueError('setup embedded MSI differs')
     verify_resources(path, version, source_root)
+    verify_code(path, version, source_root)
     if any(setup.get('qualification', {}).get(key) != 'passed' for key in QUALIFICATION_KEYS): raise ValueError('setup recovery qualification is incomplete')

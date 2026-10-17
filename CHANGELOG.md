@@ -6,7 +6,7 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
-- Windows setup EXE coordinates the native per-user MSI and retains full local package sources for failed-upgrade recovery. The raw MSI remains available with explicit engine recovery limits.
+- Windows setup EXE coordinates the native per-user MSI and retains full local package sources for failed-upgrade recovery. The raw MSI remains available with explicit engine recovery limits. Trusted release verification independently rebuilds the setup executable from reviewed source and compares its complete code/resource prefix.
 
 - Successful full-UI fresh Windows installation offers an independent, initially unchecked Open documentation choice alongside the existing checked client-launch option. It uses the invoking user’s HTML association and reports opening failures without changing the committed installation result.
 

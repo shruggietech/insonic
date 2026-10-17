@@ -44,7 +44,7 @@ def build(payload,receipt_path,provisional=False):
     receipt={k:archive_receipt[k] for k in ('schema_version','product_version','documentation_version','revision','source_dirty','distribution')}
     receipt.update({'signing':dict(m.UNSIGNED_SIGNING),'kind':'windows-installer-receipt','platform':'windows_amd64','variant':'selectable','format':'msi','artifact':output.name,'artifact_sha256':m.sha(output),'artifact_size_bytes':output.stat().st_size,'payload_archive':archive_receipt['archive'],'payload_archive_sha256':archive_receipt['archive_sha256'],'payload_receipt':archive_receipt,'payload_inventory':inventory,'msi_product_version':model['version'],'product_code':model['product_code'],'upgrade_code':model['upgrade_code'],'scope':'per-user','license_sha256':m.sha(ROOT/'LICENSE'),'icon_sha256':m.sha(ROOT/m.ICON),'qualification':{k:'pending' for k in m.QUALIFICATION_KEYS},'authoring':{'kind':'native-windows-installer-database','cabinet':'windows-makecab-mszip','tables_independently_verified':True,'cabinet_files_independently_verified':True}})
     import windows_setup
-    receipt['setup']=windows_setup.build(output,receipt,package.child)
+    receipt['setup']=windows_setup.build(output,receipt)
     if provisional:receipt.update({'publication_eligible':False,'payload_qualification':'pending'})
     write(receipt);return output,receipt
 

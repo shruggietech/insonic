@@ -59,3 +59,7 @@ T001 -> T002 -> read-only analyze gate -> T003/T004 -> T005/T006/T007 and T008/T
 Recovery dependency: T019 -> T020 -> T021 -> T022 -> final captures/full CI -> reserved review round 2. Existing evidence remains historical until final native qualification passes.
 
 T019 proof: external native full/quiet controls pass in run39050679170 with old registration5, exact old bytes and original failure1603 before return. This is prototype proof only. The owner selected the additional recommended setup EXE and retained raw MSI with explicit limits. T020/T021 implementation and focused recovery controls pass; T022 exact shipping entry-point and full native delivery gates pass in run39064173855; final review/thread closure and exact final documentation-head CI remain tracked by T016/T018.
+
+## Phase 9: Second-round security remediation (2026-10-17)
+
+- [x] T023 [HIGH, FR-009, SC-005, Constitution V] Bind every setup executable prefix byte to an independent pinned-toolchain rebuild of reviewed source; make resources reproducible, isolate compiler credentials and caches, reject forged lane receipts and retain final native/publication verification in T016/T018.
