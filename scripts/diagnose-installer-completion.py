@@ -77,7 +77,7 @@ def rollback_case(stage,name):
 
 def observe_rollback(stage,token,quiet_install):
     m.disposable_runner();stage=Path(stage)
-    isolated=os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_MODE')=='rollback-isolated'
+    isolated=qualifier().diagnostic_mode(stage)=='rollback-isolated'
     result={'kind':'owned-native-rollback-comparison','feature_qualification':False,'token':token,'isolated_transaction_processes':isolated,'transactions':[]}
     products=[dict(m.table_rows(m.CompoundFile(stage/name).streams,'Property'))['ProductCode'] for name in ('ui-old.msi','ui-bad.msi')]
     dll=C.WinDLL('msi');dll.MsiQueryProductStateW.argtypes=[W.LPCWSTR];dll.MsiQueryProductStateW.restype=C.c_int

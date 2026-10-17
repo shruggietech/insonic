@@ -197,6 +197,17 @@ class InstallerModelTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
             native.assert_not_called()
 
+    def test_diagnostic_mode_uses_explicit_record_without_inherited_environment(self):
+        spec=importlib.util.spec_from_file_location('diagnostic_mode_fixture',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        target=self.path/'installer-diagnostic-mode.json'
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{},clear=True):
+            for mode in ('completion','rollback-reused','rollback-isolated'):
+                target.write_text(json.dumps({'feature_qualification':False,'mode':mode}),encoding='utf-8')
+                self.assertEqual(module.diagnostic_mode(self.path),mode)
+            for invalid in ({'feature_qualification':True,'mode':'completion'},{'feature_qualification':False,'mode':'unknown'},{'feature_qualification':False,'mode':'completion','extra':1}):
+                target.write_text(json.dumps(invalid),encoding='utf-8')
+                with self.assertRaisesRegex(RuntimeError,'diagnostic mode'):module.diagnostic_mode(self.path)
+
     def test_full_ui_and_association_helpers_refuse_owner_host_before_native_calls(self):
         import qualify_installer_ui as ui
         with patch.dict(os.environ,{},clear=True):

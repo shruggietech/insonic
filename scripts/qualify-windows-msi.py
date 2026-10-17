@@ -649,6 +649,15 @@ def ordinary_namespace_probe(stage):
     proof={'state':'passed','token':token_info(),'directories':object_namespace_diagnostic(),'mutex':installer_mutex_diagnostic()}
     (stage/'native/context.namespace-probe.json').write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
 
+def diagnostic_mode(stage):
+    m.disposable_runner()
+    raw=(Path(stage)/'installer-diagnostic-mode.json').read_bytes()
+    if len(raw)>1024:raise RuntimeError('owned diagnostic mode exceeds its bound')
+    mode=json.loads(raw)
+    if set(mode)!={'feature_qualification','mode'} or mode['feature_qualification'] is not False or mode['mode'] not in ('completion','rollback-reused','rollback-isolated'):raise RuntimeError('invalid owned diagnostic mode')
+    return mode['mode']
+
+
 def ordinary_ui_worker(stage):
     """Run real full UI in the normal logon created in the CI caller session."""
     m.disposable_runner();stage=Path(stage);output=stage/'native/context.ui.json'
@@ -663,8 +672,7 @@ def ordinary_ui_worker(stage):
     if (stage/'completion-invocation-diagnostic.json').is_file():
         import runpy
         diagnostic=runpy.run_path(str(stage/'scripts/diagnose-installer-completion.py'),run_name='owned_invocation_diagnostic')
-        mode=os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_MODE','completion')
-        if mode not in ('completion','rollback-reused','rollback-isolated'):raise RuntimeError('unknown owned MSI diagnostic mode')
+        mode=diagnostic_mode(stage)
         proof=diagnostic['observe_invocation' if mode=='completion' else 'observe_rollback'](stage,observed,run_installer)
     else:
         from qualify_installer_ui import qualify as qualify_ui
@@ -1491,6 +1499,8 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
         if diagnostic_only:
             shutil.copyfile(m.ROOT/'scripts/diagnose-installer-completion.py',scripts/'diagnose-installer-completion.py')
             (stage/'completion-invocation-diagnostic.json').write_text('{"qualification":false}',encoding='utf-8',newline='\n')
+            (stage/'installer-diagnostic-mode.json').write_text(json.dumps({'feature_qualification':False,'mode':os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_MODE','completion')}),encoding='utf-8',newline='\n')
+            diagnostic_mode(stage)
         (stage/'context-model.json').write_text(json.dumps(model),encoding='utf-8',newline='\n')
         install=stage/'installed program é with spaces';worker_output=native/'context.json'
         args=[str(scripts/'qualify-windows-msi.py'),'--ordinary-worker',str(target),'--context-dir',str(install),'--output',str(worker_output)]
