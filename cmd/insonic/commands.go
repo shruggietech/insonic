@@ -533,6 +533,12 @@ func parseInvocation(args []string) (invocation, error) {
 		return out, argumentError("Usage: insonic " + strings.Join(selected.Path, " ") + " " + selected.Operands + ". Use --help for details.")
 	}
 	for _, key := range strings.Fields("--after --media --credential-id --transcript-credential-id --saved") {
+		if key == "--after" && out.Path[0] == "search" {
+			if len(values[key]) > 2048 {
+				return out, argumentError("--after requires an opaque cursor of at most 2048 bytes.")
+			}
+			continue
+		}
 		if seen[key] > 0 && !contracts.ValidID(values[key]) {
 			return out, argumentError(key + " requires a UUID.")
 		}

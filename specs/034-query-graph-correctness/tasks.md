@@ -47,3 +47,5 @@ T001 -> T002 -> analysis gate -> regression tests -> implementations -> T013 -> 
 
 - [x] T016 Refresh graph layout effects for edge-only continuation in desktop/frontend/src/graph-view.tsx per FR-001/FR-007 (partial).
 - [x] T017 Capture the actual local-zone provenance for the Local alias in internal/library/date.go and add its regression per FR-003/FR-007 (partial).
+
+- [x] T018 Accept bounded opaque search cursors in the top-level invocation parser, retaining UUID validation for catalog cursors in cmd/insonic/commands.go; extend full-parser regression per FR-002 (partial).

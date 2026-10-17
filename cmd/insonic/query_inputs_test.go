@@ -33,7 +33,11 @@ func TestNativeParameterMembersAreUnique(t *testing.T) {
 	}
 }
 func TestSearchConsumesCursor(t *testing.T) {
-	_, _, raw, e := parseExploreAlias([]string{"search", "phrase", "--after", "opaque", "--limit", "25"})
+	inv, e := parseInvocation([]string{"search", "phrase", "--after", "opaque", "--limit", "25"})
+	if e != nil {
+		t.Fatal(e)
+	}
+	_, _, raw, e := parseExploreAlias(inv.Args)
 	var q contracts.QueryInput
 	json.Unmarshal(raw, &q)
 	if e != nil || q.Definition.Pagination == nil || q.Definition.Pagination.Cursor != "opaque" {

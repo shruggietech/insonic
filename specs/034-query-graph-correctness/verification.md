@@ -23,3 +23,7 @@ Installed-package qualification now includes deterministic generated media/trans
 ## Publication boundary
 
 Owner explicitly authorized push and PR creation, superseding the skill's default pre-push halt. At most two review rounds are permitted. No merge, auto-merge, release, inference or owner-media execution is authorized by this slice. #114 and #147 remain broader open tracking work.
+
+## Installed-boundary correction (2026-10-17)
+
+The first fresh Windows package run reproduced a top-level parser rejection of a valid search cursor as non-UUID, before query dispatch. T018 makes the rule command-specific: search accepts bounded opaque cursors; catalog list routes retain UUID validation. The regression now covers parseInvocation and parseExploreAlias together. Fresh package execution is repeated after this correction.
