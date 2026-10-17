@@ -32,5 +32,5 @@ export function releaseDownloads(version, { historical = false } = {}) {
   return platforms.map(item => ({ ...item,
       desktop: base + item.platform + '_desktop' + item.extension,
       cli: base + item.platform + '_cli' + item.extension,
-      ...(item.platform === 'windows_amd64' && !['0.0.0', '1.0.0'].includes(version) ? { installer: base + item.platform + '_installer.msi' } : {}) }));
+      ...(item.platform === 'windows_amd64' && !['0.0.0', '1.0.0'].includes(version) ? { setup: base + item.platform + '_setup.exe', installer: base + item.platform + '_installer.msi' } : {}) }));
 }

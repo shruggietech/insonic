@@ -1422,7 +1422,17 @@ test('core fields have associated labels, navigation is native keyboard focusabl
     document.querySelector('[data-bb-host]').dataset.bbHost,
     'wails',
   );
-  assert.ok(document.querySelector('a[href="/assets/help/index.html"]'));
+  assert.equal(document.querySelectorAll('a[href*="help"]').length,0);
+  assert.ok(button('Offline help'));
+  let opened=0;bridge.OpenHelp=async()=>{opened++;return {result:{opened:true,url:"/assets/help/docs/index.html"}}};
+  await act(()=>button('Offline help').click());await tick();
+  assert.equal(opened,1);
+  assert.equal(document.querySelector('iframe').getAttribute('src'),'/assets/help/docs/index.html');
+  await act(()=>button('Close documentation').click());await tick();
+  assert.equal(document.activeElement,button('Offline help'));
+  bridge.OpenHelp=async()=>({error:{code:'unavailable',message:'Use installer Repair to restore offline help.'}});
+  await act(()=>button('Offline help').click());await tick();
+  assert.match(document.body.textContent,/Use installer Repair/);
   button('Jobs').focus();
   assert.equal(document.activeElement, button('Jobs'));
   assert.equal(

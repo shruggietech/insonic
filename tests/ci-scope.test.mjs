@@ -56,7 +56,11 @@ test('platform qualification waits only for its own exact same-run source build'
  const commands = runtime.steps.map(step => step.run ?? '').join('\n');
  for (const command of ['python scripts/media-tools.py', 'python scripts/qualify.py prepare', 'python scripts/qualify.py native', 'python scripts/qualify.py cli', 'python scripts/qualify.py secrets', 'python scripts/qualify.py desktop', 'npm --prefix desktop/frontend run check', 'npm --prefix desktop/frontend test', 'npm --prefix desktop/frontend run build', 'npm --prefix site run build']) assert.ok(commands.includes(command), command);
  assert.ok(!commands.includes('go test ./...')); // Platform core tests now overlap source compilation.
- assert.deepEqual(qualification.jobs.packages.strategy.matrix.variant, ['cli', 'desktop']);
+ assert.equal(qualification.jobs.packages.strategy.matrix.variant, '${{ inputs.os == \'windows-2022\' && fromJSON(\'["cli"]\') || fromJSON(\'["cli","desktop"]\') }}');
+ const windows = qualification.jobs['windows-desktop'];
+ assert.equal(windows.uses, './.github/workflows/windows-desktop-qualification.yml');
+ assert.equal(windows.with.revision, '${{ inputs.revision }}');
+ assert.equal(windows.if, "inputs.native && inputs.os == 'windows-2022' && inputs.lane != 'runtime'");
  assert.equal(qualification.jobs.packages.needs, undefined); // Runtime and each package qualify independently.
  for (const job of [runtime, qualification.jobs.packages]) {
   assert.equal(job['runs-on'], '${{ inputs.os }}');
@@ -77,6 +81,34 @@ test('platform qualification waits only for its own exact same-run source build'
  assert.deepEqual(Object.keys(ci.jobs.adapters.services).sort(), ['arcade', 'postgres', 's3']);
  const backends = ci.jobs.adapters.steps.map(step => step.run ?? '').join('\n');
  for (const target of ['qualification', 'catalog', 'artifact', 'models', 'library', 'graph', 'app', 'backup']) assert.ok(backends.includes(`./internal/${target}`));
+});
+
+test('Windows delivery joins every isolated scope before exposing candidate artifacts', () => {
+ const workflow = parse(readFileSync(new URL('../.github/workflows/windows-desktop-qualification.yml', import.meta.url), 'utf8'));
+ const {assemble, proofs, finalize} = workflow.jobs;
+ assert.deepEqual(proofs.needs, ['assemble']);
+ assert.deepEqual(proofs.strategy.matrix.scope, ['archive', 'interactive', 'maintenance', 'setup']);
+ assert.equal(proofs.strategy['fail-fast'], false);
+ assert.deepEqual(finalize.needs, ['assemble', 'proofs']);
+ for (const job of [assemble, proofs, finalize]) {
+  assert.equal(job['runs-on'], 'windows-2022');
+  assert.equal(job['timeout-minutes'], 11);
+  assert.equal(job.env.SOURCE_REVISION, '${{ inputs.revision }}');
+  assert.equal(job.steps[0].with.ref, '${{ inputs.revision }}');
+ }
+ assert.equal(assemble.steps.filter(s => s.run?.includes('windows_package_pipeline.py assemble')).length, 1);
+ assert.ok(!proofs.steps.some(s => s.run?.includes('package-desktop.py build')));
+ for (const job of [proofs, finalize]) {
+  const transfer = job.steps.find(s => s.name === 'Restore the same immutable Windows delivery');
+  assert.equal(transfer.with.name, 'windows-desktop-input-${{ inputs.revision }}-${{ github.run_attempt }}');
+  assert.equal(transfer.with['digest-mismatch'], 'error');
+ }
+ for (const job of [assemble, proofs]) assert.ok(!job.steps.some(s => s.with?.name?.startsWith('candidate-package-')));
+ const joined = finalize.steps.findIndex(s => s.run?.includes('windows_package_pipeline.py finalize'));
+ for (const [index, step] of finalize.steps.entries()) if (step.with?.name?.startsWith('candidate-package-')) {
+  assert.ok(index > joined);
+  assert.ok(!step.if || step.if === 'success()');
+ }
 });
 
 test('native caches can retain tagged builds independently of the immutable core cache', () => {

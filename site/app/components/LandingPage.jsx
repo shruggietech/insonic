@@ -51,10 +51,10 @@ export default function LandingPage({ latest, brand }) {
                 ? 'Both clients require Microsoft Visual C++ x64. Desktop also requires WebView2.'
                 : 'Both packages require Perl. Desktop also requires GTK 3, WebKitGTK 4.1 and GStreamer decoders.'}</p>
               {platform.installer && <section className="download-group" aria-labelledby="windows-installer-heading">
-                <h4 id="windows-installer-heading">Installer (MSI)</h4>
-                <p>Choose Desktop, CLI or both. Both are selected by default. Use Installed Apps to change or remove components.</p>
+                <h4 id="windows-installer-heading">Windows setup (recommended)</h4>
+                <p>Choose Desktop, CLI or both. Both are selected by default. Setup retains a local recovery source for upgrades. The raw MSI is also available.</p>
                 <div className="download-actions">
-                  {released && <a className="button button-secondary" href={platform.installer}>Download Windows MSI</a>}
+                  {released && <><a className="button button-secondary" href={platform.setup}>Download Windows setup EXE</a><a className="text-action" href={platform.installer}>Download raw MSI</a></>}
                   <a className="text-action" href={latestPath('windows-installation')}>Windows installation, updates and removal</a>
                 </div>
               </section>}

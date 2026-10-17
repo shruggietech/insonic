@@ -17,6 +17,7 @@ import {BackendSetup} from './backend-setup';
 import { ImportPresets } from './import-presets';
 import { Explore } from './explore';
 import { SpeakerModels } from './speaker-models';
+import {bindHelpNavigation} from './help';
 export function App({ bridge }: { bridge: NativeBridge }) {
   const client = useMemo(() => new Client(bridge), [bridge]);
   const [workspace, setWorkspace] = useState<Obj>(),
@@ -27,6 +28,34 @@ export function App({ bridge }: { bridge: NativeBridge }) {
     [error, setError] = useState(''),
     [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(0);
+  const [helpOpening,setHelpOpening]=useState(false);
+  const [helpURL,setHelpURL]=useState('');
+  const helpCleanup=useRef<(()=>void)|undefined>(undefined);
+  useEffect(()=>()=>helpCleanup.current?.(),[]);
+  const openReference=async(url:string)=>{
+    try {
+      if(!bridge.OpenHelpReference)throw new Error('Web reference dispatcher unavailable.');
+      result(await bridge.OpenHelpReference(url));setNotice('Web reference sent to your system browser.');
+    }catch{setError('This web reference could not be opened. Copy its address into your browser.');}
+  };
+  const helpLoaded=(frame:HTMLIFrameElement)=>{
+    helpCleanup.current?.();
+    const doc=frame.contentDocument;
+    if(!doc||doc.URL==='about:blank')return;
+    helpCleanup.current=bindHelpNavigation(doc,url=>void openReference(url),()=>setError('This help link is not a web reference or installed help page.'));
+    setNotice('Offline documentation opened.');
+  };
+  const closeHelp=()=>{helpCleanup.current?.();helpCleanup.current=undefined;setHelpURL('');setNotice('');(document.querySelector('.help-action button') as HTMLElement)?.focus();};
+  const openHelp=async()=>{
+    setHelpOpening(true);setError('');setNotice('');
+    try {
+      if(!bridge.OpenHelp)throw new Error('Offline help is unavailable. Open the installed help directory or use installer Repair.');
+      const help=result(await bridge.OpenHelp());
+      if(typeof help?.url!=='string'||!help.url.startsWith('/assets/help/'))throw new Error('Installed offline help returned an invalid local entry. Use installer Repair.');
+      setHelpURL(help.url);
+    }catch(error){setError(error instanceof Error?error.message:'Offline help could not be opened. Use installer Repair.')}
+    finally{setHelpOpening(false)}
+  };
   const generation = useRef(0);
   const run: Run = async (action) => {
     const token = generation.current;
@@ -151,14 +180,7 @@ export function App({ bridge }: { bridge: NativeBridge }) {
         ))}
       </nav>
       {bridge.SetupDraft&&<Button variant="secondary" onClick={()=>{++generation.current;client.invalidate();setScreen('Setup');setError('');setNotice('')}}>Set up library</Button>}
-      <a
-        className="help-link bb-control"
-        href="/assets/help/index.html"
-        target="_blank"
-        rel="noreferrer"
-      >
-        Offline help
-      </a>
+      <div className="help-action"><Button variant="secondary" disabled={helpOpening} onClick={()=>void openHelp()}>Offline help</Button></div>
     </header>
   );
   return (
@@ -166,6 +188,7 @@ export function App({ bridge }: { bridge: NativeBridge }) {
       <AppFrameEnvironmentBridge />
       <div className="desktop-content">
         <h1>{screen}</h1>
+        {helpURL&&<Card heading="Offline documentation"><Button variant="secondary" onClick={closeHelp}>Close documentation</Button><iframe className="offline-help-frame" title="Installed offline documentation" src={helpURL} sandbox="allow-scripts allow-same-origin allow-downloads" onLoad={event=>helpLoaded(event.currentTarget)} onError={()=>{setHelpURL('');setError('Offline help could not be loaded. Use installer Repair to restore matching help files.')}}/></Card>}
         <Card heading="Workspace">
           <p>
             {workspace

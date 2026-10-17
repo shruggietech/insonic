@@ -375,7 +375,7 @@ async function checkLanding({ page, browser, contexts, configure, navigate, repo
     const downloads = inventory.filter(link => link.category === 'download');
     if (state === 'released-fixture') {
       const { releaseDownloads } = await import('../site/lib/release-status.mjs');
-      const expected = releaseDownloads(version).flatMap(item => [item.installer, item.desktop, item.cli].filter(Boolean));
+      const expected = releaseDownloads(version).flatMap(item => [item.setup, item.installer, item.desktop, item.cli].filter(Boolean));
       assert(downloads.length === expected.length && downloads.every(link => expected.includes(link.resolved_href)), 'Released landing must expose exactly the official package destinations.');
     }
     report.landing.inventories.push({ state, links: inventory });
