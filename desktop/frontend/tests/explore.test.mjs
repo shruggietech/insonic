@@ -87,3 +87,10 @@ test('CLI saved definitions keep all advanced fields when run, saved or edited i
  await fill('Media ID filter',qid);await click('Run current query');edited.definition.filters.media_ids=[qid];assert.deepEqual(b.calls.filter(r=>r.operation==='query.run').at(-1).data,edited);
  await unmount();
 });
+
+ test('query continuation retains edge-only pages and accumulated relationship counts',async()=>{
+ const b=mock(),operate=b.Operate;let page=0;
+ b.Operate=async r=>{if(r.operation!=='query.run')return operate(r);b.calls.push(r);page++;return {workspace_id:wid,result:page===1?{items:[row],edges:[],total:2,total_edges:1,next_cursor:'second'}:page===2?{items:[{id:'speaker:'+qid,kind:'speaker',label:'Later endpoint'}],edges:[],total:2,total_edges:1,next_cursor:'edges'}:{items:[],edges:[{id:'cross-page',from:row.id,to:'speaker:'+qid,kind:'maps-to'}],total:2,total_edges:1}}};
+ await mount(b);await click('Graph');await click('Run current query');await click('Load more query results');await click('Load more query results');
+ assert.match(document.body.textContent,/2 of 2 matching rows loaded/);assert.match(document.body.textContent,/0 of 1 relationships not yet loaded/);assert.equal(b.calls.filter(c=>c.operation==='query.run').at(-1).data.definition.pagination.cursor,'edges');assert.ok(![...document.querySelectorAll('button')].some(b=>b.textContent==='Load more query results'));await unmount();
+ });

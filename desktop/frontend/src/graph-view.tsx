@@ -22,14 +22,14 @@ export function GraphView({rows,edges,select,expand,positions,setPositions,pause
  const current=useRef(positions),iteration=useRef(0),drag=useRef<{id:string;x:number;y:number}|undefined>(undefined);
  current.current=positions;
  const visible=rows.filter(r=>String(r.label).toLowerCase().includes(filter.toLowerCase())).slice(0,200),ids=visible.map(r=>String(r.id)),idKey=ids.join('|');
- const links=edges.filter(e=>ids.includes(e.from)&&ids.includes(e.to));
- useEffect(()=>{iteration.current=0;setPositions(forceStep(ids,links,current.current,0))},[idKey]);
+ const links=edges.filter(e=>ids.includes(e.from)&&ids.includes(e.to)),linkKey=links.map(e=>e.id).join('|');
+ useEffect(()=>{iteration.current=0;setPositions(forceStep(ids,links,current.current,0))},[idKey,linkKey]);
  useEffect(()=>{
   const reduced=document.documentElement.dataset.reducedMotion==='true'||(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches??false);
   if(paused||reduced||ids.length===0)return;
   const timer=setInterval(()=>{if(iteration.current>=160){clearInterval(timer);return;}setPositions(forceStep(ids,links,current.current,++iteration.current))},40);
   return()=>clearInterval(timer);
- },[idKey,paused]);
+ },[idKey,linkKey,paused]);
  return <>
   <Actions><Input label="Graph label filter" value={filter} onChange={setFilter}/><Check label="Pause graph motion" value={paused} onChange={setPaused}/>
    <Button onClick={()=>setZoom(z=>Math.min(4,z*1.2))}>Zoom graph in</Button><Button onClick={()=>setZoom(z=>Math.max(.25,z/1.2))}>Zoom graph out</Button><Button onClick={()=>{setZoom(1);setPan({x:0,y:0})}}>Reset graph view</Button></Actions>

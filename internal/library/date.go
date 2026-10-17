@@ -2,18 +2,11 @@
 package library
 
 import (
-	"archive/zip"
-	"bytes"
-	"crypto/sha256"
-	"embed"
-	"encoding/hex"
 	"encoding/json"
-	"io"
+	"github.com/shruggietech/insonic/internal/timezone"
 	"math"
 	"sort"
-	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/shruggietech/insonic/internal/catalog"
@@ -21,14 +14,9 @@ import (
 
 // Exact Go 1.27.1 IANA data and CLDR release-48 world mappings are bundled, so
 // historical inputs have the same interpretation on every supported platform.
-//
-//go:embed zoneinfo.zip windows-zones.json
-var zoneFiles embed.FS
-var zoneOnce sync.Once
-var zones map[string][]byte
-var RulesVersion string
+var RulesVersion = timezone.RulesVersion()
 
-const MappingVersion = "CLDR-release-48"
+const MappingVersion = timezone.MappingVersion
 
 type Date struct {
 	ID             string           `json:"id"`
@@ -56,75 +44,15 @@ type Dates struct {
 	Conflict     bool   `json:"conflict"`
 }
 
-func loadZones() {
-	zones = map[string][]byte{}
-	data, _ := zoneFiles.ReadFile("zoneinfo.zip")
-	sum := sha256.Sum256(data)
-	RulesVersion = "Go-1.27.1-zoneinfo-sha256:" + hex.EncodeToString(sum[:])
-	archive, e := zip.NewReader(bytes.NewReader(data), int64(len(data)))
-	if e != nil {
-		return
-	}
-	for _, f := range archive.File {
-		r, e := f.Open()
-		if e != nil {
-			continue
-		}
-		b, e := io.ReadAll(r)
-		r.Close()
-		if e == nil {
-			zones[f.Name] = b
-		}
-	}
-}
-
-// CalendarLocation uses the same pinned timezone data as date interpretation.
-func CalendarLocation(name string) (*time.Location, error) {
-	if name == "" {
-		name = "UTC"
-	}
-	return loadZone(name)
-}
-func loadZone(name string) (*time.Location, error) {
-	zoneOnce.Do(loadZones)
-	if name == "UTC" || name == "Z" {
-		return time.UTC, nil
-	}
-	if offset, ok := parseOffset(name); ok {
-		return time.FixedZone(name, int(offset)), nil
-	}
-	if data, ok := zones[name]; ok {
-		return time.LoadLocationFromTZData(name, data)
-	}
-	return nil, &zoneError{}
-}
+// CalendarLocation shares pinned rules with query validation and metadata dates.
+func CalendarLocation(name string) (*time.Location, error) { return timezone.Location(name) }
+func loadZone(name string) (*time.Location, error)         { return timezone.Location(name) }
+func LocalZone() (string, error)                           { return timezone.LocalName() }
 
 type zoneError struct{}
 
 func (*zoneError) Error() string { return "unavailable timezone" }
-func parseOffset(s string) (int64, bool) {
-	if len(s) != 6 || (s[0] != '+' && s[0] != '-') || s[3] != ':' {
-		return 0, false
-	}
-	for _, i := range []int{1, 2, 4, 5} {
-		if s[i] < '0' || s[i] > '9' {
-			return 0, false
-		}
-	}
-	h, e1 := strconv.Atoi(s[1:3])
-	m, e2 := strconv.Atoi(s[4:])
-	if e1 != nil || e2 != nil || h > 23 || m > 59 {
-		return 0, false
-	}
-	offset := int64(h*3600 + m*60)
-	if s[0] == '-' {
-		offset = -offset
-	}
-	return offset, true
-}
-func LocalZone() (string, error) { return platformLocalZone() }
 func ResolveDate(literal, precision, zone, fold, gap, basis string) Date {
-	zoneOnce.Do(loadZones)
 	d := Date{Literal: literal, Basis: basis, Precision: precision, Zone: zone, ZoneSource: "import-policy", RulesVersion: RulesVersion, MappingVersion: MappingVersion, State: "invalid", Assumptions: []string{}}
 	if precision == "day" {
 		if _, e := time.Parse("2006-01-02", literal); e == nil {
@@ -153,7 +81,7 @@ func ResolveDate(literal, precision, zone, fold, gap, basis string) Date {
 		}
 		d.ZoneSource = "entered-offset"
 	}
-	if zone == "" || zone == "local" {
+	if zone == "" || strings.EqualFold(zone, "local") {
 		zone, e = LocalZone()
 		d.ZoneSource = "captured-local"
 		if e != nil {
@@ -331,7 +259,6 @@ func validBoundedDate(d Date) bool {
 }
 func ownerDate(options Options) Date {
 	if options.OriginatedEarliest != nil || options.OriginatedLatest != nil {
-		zoneOnce.Do(loadZones)
 		d := Date{Basis: "owner", Precision: "range", State: "bounded", Lower: options.OriginatedEarliest, Upper: options.OriginatedLatest, Zone: options.Timezone, RulesVersion: RulesVersion, MappingVersion: MappingVersion, Assumptions: []string{"approximate-bounds"}}
 		if !validBoundedDate(d) {
 			d.State = "invalid"
@@ -360,11 +287,4 @@ func decodeDates(data json.RawMessage) Dates {
 	var state Dates
 	json.Unmarshal(data, &state)
 	return state
-}
-func windowsMapping(key string) (string, bool) {
-	data, _ := zoneFiles.ReadFile("windows-zones.json")
-	var mappings map[string]string
-	json.Unmarshal(data, &mappings)
-	v, ok := mappings[strings.TrimSpace(key)]
-	return v, ok
 }

@@ -26,8 +26,9 @@ type Result struct {
 	GraphError      string       `json:"graph_error,omitempty"`
 }
 type cursor struct {
-	Digest string `json:"digest"`
-	Offset int    `json:"offset"`
+	Digest     string `json:"digest"`
+	Offset     int    `json:"offset"`
+	EdgeOffset int    `json:"edge_offset"`
 }
 
 func Query(c Corpus, refs graph.References, q contracts.QueryInput) (Result, error) {
@@ -286,45 +287,65 @@ func Query(c Corpus, refs graph.References, q contracts.QueryInput) (Result, err
 	})
 	digestInput := q
 	digestInput.Definition.Pagination = nil
-	raw, _ := json.Marshal([]any{digestInput, ordered, edges})
+	// Bind the pagination policy as well as values; pre-policy cursors conflict.
+	raw, _ := json.Marshal([]any{"rows-and-edges-v2", digestInput, ordered, edges})
 	sum := sha256.Sum256(raw)
 	digest := hex.EncodeToString(sum[:])
-	limit, offset := 100, 0
+	selectedEdges := []graph.Edge{}
+	for _, e := range edges {
+		if selected[e.From] && selected[e.To] {
+			selectedEdges = append(selectedEdges, e)
+		}
+	}
+	limit, offset, edgeOffset := 100, 0, 0
 	if p := q.Definition.Pagination; p != nil {
 		limit = p.Limit
 		if p.Cursor != "" {
 			b, e := base64.RawURLEncoding.DecodeString(p.Cursor)
 			var cur cursor
-			if e != nil || contracts.DecodeExplore(b, &cur) != nil || cur.Offset < 0 || cur.Offset > len(ordered) {
+			if e != nil || contracts.DecodeExplore(b, &cur) != nil || cur.Offset < 0 || cur.Offset > len(ordered) || cur.EdgeOffset < 0 || cur.EdgeOffset > len(selectedEdges) {
 				return out, contracts.Fail("invalid_request")
 			}
 			if cur.Digest != digest {
 				return out, contracts.Fail("conflict")
 			}
-			offset = cur.Offset
+			offset, edgeOffset = cur.Offset, cur.EdgeOffset
 		}
 	}
-	out.Total = len(ordered)
-	end := min(offset+limit, len(ordered))
-	out.Rows = ordered[offset:end]
-	out.Omitted = len(ordered) - len(out.Rows)
-	if end < len(ordered) {
-		b, _ := json.Marshal(cursor{digest, end})
+	// Page both streams independently. A dense hub must not strand relationships
+	// behind a node page that cannot fit the response budget.
+	out.Total, out.TotalEdges = len(ordered), len(selectedEdges)
+	out.Omitted, out.OmittedEdges = out.Total, out.TotalEdges
+	base, _ := json.Marshal(out)
+	// Reserve envelope/cursor growth before adding exact encoded entry sizes.
+	remaining := (512 << 10) - 2048 - len(base)
+	end, edgeEnd := offset, edgeOffset
+	for end < min(offset+limit, len(ordered)) {
+		encoded, _ := json.Marshal(ordered[end])
+		if len(encoded)+1 > remaining {
+			break
+		}
+		out.Rows = append(out.Rows, ordered[end])
+		remaining -= len(encoded) + 1
+		end++
+	}
+	for edgeEnd < min(edgeOffset+limit, len(selectedEdges)) {
+		encoded, _ := json.Marshal(selectedEdges[edgeEnd])
+		if len(encoded)+1 > remaining {
+			break
+		}
+		out.Edges = append(out.Edges, selectedEdges[edgeEnd])
+		remaining -= len(encoded) + 1
+		edgeEnd++
+	}
+	out.Omitted, out.OmittedEdges = out.Total-len(out.Rows), out.TotalEdges-len(out.Edges)
+	if end < len(ordered) || edgeEnd < len(selectedEdges) {
+		if end == offset && edgeEnd == edgeOffset {
+			return Result{}, contracts.Fail("output_limit")
+		}
+		b, _ := json.Marshal(cursor{Digest: digest, Offset: end, EdgeOffset: edgeEnd})
 		out.NextCursor = base64.RawURLEncoding.EncodeToString(b)
 	}
-	visible := map[string]bool{}
-	for _, r := range out.Rows {
-		visible[r.ID] = true
-	}
-	for _, e := range edges {
-		if selected[e.From] && selected[e.To] {
-			out.TotalEdges++
-		}
-		if visible[e.From] && visible[e.To] {
-			out.Edges = append(out.Edges, e)
-		}
-	}
-	out.OmittedEdges = out.TotalEdges - len(out.Edges)
 	output, _ := json.Marshal(out)
 	if len(output) > 512<<10 {
 		return Result{}, contracts.Fail("output_limit")

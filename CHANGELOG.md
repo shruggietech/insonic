@@ -12,6 +12,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Graph and search continuation retrieves cross-page relationships and large result sets within bounded responses. Query/calendar filters share bundled timezone rules; saved-query examples require titles, native parameter files reject duplicate members, and native reads accept one trailing terminator with actionable grammar guidance.
+
 - Metadata refresh succeeds after acceptance when readers retain old report leases. Durable cleanup remains pending until retention clears; genuine cleanup failures take precedence and accepted retries retain their selected revision.
 - Playback MIME identifies canonical audio or preview bytes while preserving original-source observations. Embedded SubRip extraction uses the encoder present in the exact packaged FFmpeg build.
 - Manifest-only transcript import uses per-item recording targets and rejects media-replacement items before queueing work. HTTP transcript deadlines, byte ceilings and cancellation retain distinct durable causes, with literal corrective flags in human and JSON item notices.
@@ -33,6 +35,8 @@ All notable changes to this project will be documented here. The format follows 
 - Release publication accepts documented main-workflow path forms and can supersede verified completed older release-workflow attempts for the same source while retaining every required CI/security gate and immutable tag/artifact checks.
 
 ### Decisions
+
+- 2026-10-17: Installed-package qualification adds generated query/graph continuation, timezone, save-example and native-parameter cases on Windows and Linux. Separate row/relationship continuation preserves existing response budgets, and old pagination-policy cursors conflict instead of mixing results.
 
 - 2026-10-15: Separate reviewed-main website corrections from immutable product release promotion. Use parent-fenced Git transport, retain independent source identities, verify deployed bytes and bounded live-response browser renders, and share same-run documentation exports to remove repeated native CI builds without weakening qualification.
 

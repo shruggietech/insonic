@@ -3,6 +3,7 @@ package library
 
 import (
 	"encoding/json"
+	"github.com/shruggietech/insonic/internal/timezone"
 	"testing"
 )
 
@@ -94,7 +95,7 @@ func TestDateConflictComparesRecordingValuesAndRetainsProvenance(t *testing.T) {
 
 func TestOffsetRequiresASCIIDigits(t *testing.T) {
 	for _, zone := range []string{"+-1:00", "+01:-1", "++1:00", "+24:00", "+01:60"} {
-		if _, ok := parseOffset(zone); ok {
+		if _, ok := timezone.ParseOffset(zone); ok {
 			t.Fatal("malformed offset accepted")
 		}
 		if d := ResolveDate("2026-10-07T12:00:00", "instant", zone, "", "", "owner"); d.Resolved != nil {
@@ -167,5 +168,16 @@ func TestPreparedItemTimezoneOverridesAndReplay(t *testing.T) {
 	d := ownerDate(CaptureDateOptions(frozen))
 	if d.Resolved == nil || d.Resolved.ISO != "2026-11-01T06:30:00Z" || d.ZoneSource != "captured-local" {
 		t.Fatal("frozen host replay", d)
+	}
+}
+
+func TestLocalAliasRetainsCapturedTimezone(t *testing.T) {
+	name, e := LocalZone()
+	if e != nil {
+		t.Fatal(e)
+	}
+	d := ResolveDate("2026-01-15T12:00:00", "instant", "Local", "", "", "owner")
+	if d.State != "resolved" || d.Zone != name || d.ZoneSource != "captured-local" {
+		t.Fatal(d)
 	}
 }

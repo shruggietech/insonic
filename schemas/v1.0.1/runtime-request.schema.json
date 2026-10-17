@@ -4093,8 +4093,27 @@
                 "description": "Expected current revision, or zero when creating."
               },
               "query": {
-                "$ref": "#/$defs/exploreQuery",
-                "description": "New immutable definition."
+                "allOf": [
+                  {
+                    "$ref": "#/$defs/exploreQuery"
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "title"
+                    ],
+                    "properties": {
+                      "title": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 512,
+                        "pattern": "[^\t-\r    -     　]",
+                        "description": "Required title with at least one non-whitespace character."
+                      }
+                    }
+                  }
+                ],
+                "description": "Saved-query definition with a required nonblank title."
               }
             },
             "required": [

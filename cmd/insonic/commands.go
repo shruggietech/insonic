@@ -313,7 +313,7 @@ var commandDefinitions = func() []commandDefinition {
 		add("query "+a, operand, n, n, opts, required)
 	}
 	add("query native", "", 0, 0, "--dialect --file --parameters", "--dialect --file")
-	add("search", "TEXT", 1, 1, "--speaker --media --limit", "")
+	add("search", "TEXT", 1, 1, "--speaker --media --limit --after", "")
 	add("timeline calendar", "", 0, 0, "--input", "")
 	add("timeline recording", "MEDIA_UUID", 1, 1, "--input", "")
 	add("views show", "VIEW_UUID", 1, 1, "--input", "")
@@ -633,6 +633,12 @@ func commandHelp(path []string) string {
 			}
 			if containsOption(c.Options, "--limit") {
 				b.WriteString("Default page limit: 100. Omit --after for the initial page.\n")
+			}
+			if p == "search" {
+				b.WriteString("Continue with the same search text and filters plus --after NEXT_CURSOR from the preceding page. A page can contain only relationships; follow next_cursor until absent.\n")
+			}
+			if p == "query native" {
+				b.WriteString("Read-only subset: one statement, optional trailing semicolon and comments. Cypher starts MATCH, OPTIONAL MATCH, RETURN, WITH or UNWIND; SQL starts SELECT; EXPLAIN may prefix a read. No mutation, transaction control, procedures or PROFILE. Pure functions: COUNT, SUM, MIN, MAX, AVG, COALESCE, TOSTRING, TOINTEGER, LOWER, UPPER, ABS, SIZE, LENGTH, COLLECT. Other functions (including range) are rejected; use literal inputs or supported functions. Parameter JSON must have unique object members at every level.\n")
 			}
 			if p == "work wait" {
 				b.WriteString("Default timeout: 30000 ms. A timeout leaves work running; use work show, wait or cancel.\n")

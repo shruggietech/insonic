@@ -181,7 +181,11 @@
             "startup_report",
             "startup_timeout",
             "wait_timeout",
-            "wait_interrupted"
+            "wait_interrupted",
+            "native_statement",
+            "native_function",
+            "native_syntax",
+            "native_read_only"
           ],
           "description": "Allowlisted locally generated operation condition; never external text."
         }
