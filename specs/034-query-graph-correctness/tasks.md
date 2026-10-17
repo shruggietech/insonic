@@ -53,3 +53,5 @@ T001 -> T002 -> analysis gate -> regression tests -> implementations -> T013 -> 
 - [x] T019 Normalize the accepted trailing terminator before native engine dispatch in internal/graph/native.go and internal/graph/types.go; retain literal/comment distinctions and all guards, with cross-dialect regression coverage per FR-006/FR-007 (partial).
 
 - [x] T020 Distinguish parenthesized read clauses from function calls while rejecting qualified calls outside the declared pure subset in internal/graph/native.go and native_terminator_test.go; document grammar per FR-006 (partial).
+
+- [x] T021 Bind the effective page limit in normalized cursor digests and classify stale cursor digests before current offset bounds in internal/explore/query.go; add failing-then-passing regression coverage in query_cursor_contract_test.go per FR-001/FR-002 (partial).

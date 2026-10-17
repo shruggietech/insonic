@@ -285,8 +285,12 @@ func Query(c Corpus, refs graph.References, q contracts.QueryInput) (Result, err
 		}
 		return ordered[i].ID < ordered[j].ID
 	})
+	limit := 100
+	if q.Definition.Pagination != nil {
+		limit = q.Definition.Pagination.Limit
+	}
 	digestInput := q
-	digestInput.Definition.Pagination = nil
+	digestInput.Definition.Pagination = &contracts.QueryPagination{Limit: limit}
 	// Bind the pagination policy as well as values; pre-policy cursors conflict.
 	raw, _ := json.Marshal([]any{"rows-and-edges-v2", digestInput, ordered, edges})
 	sum := sha256.Sum256(raw)
@@ -297,17 +301,19 @@ func Query(c Corpus, refs graph.References, q contracts.QueryInput) (Result, err
 			selectedEdges = append(selectedEdges, e)
 		}
 	}
-	limit, offset, edgeOffset := 100, 0, 0
+	offset, edgeOffset := 0, 0
 	if p := q.Definition.Pagination; p != nil {
-		limit = p.Limit
 		if p.Cursor != "" {
 			b, e := base64.RawURLEncoding.DecodeString(p.Cursor)
 			var cur cursor
-			if e != nil || contracts.DecodeExplore(b, &cur) != nil || cur.Offset < 0 || cur.Offset > len(ordered) || cur.EdgeOffset < 0 || cur.EdgeOffset > len(selectedEdges) {
+			if e != nil || contracts.DecodeExplore(b, &cur) != nil {
 				return out, contracts.Fail("invalid_request")
 			}
 			if cur.Digest != digest {
 				return out, contracts.Fail("conflict")
+			}
+			if cur.Offset < 0 || cur.Offset > len(ordered) || cur.EdgeOffset < 0 || cur.EdgeOffset > len(selectedEdges) {
+				return out, contracts.Fail("invalid_request")
 			}
 			offset, edgeOffset = cur.Offset, cur.EdgeOffset
 		}
