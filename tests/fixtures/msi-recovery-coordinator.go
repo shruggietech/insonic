@@ -10,10 +10,12 @@ import (
 	"encoding/json"
 	"golang.org/x/sys/windows"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"unsafe"
 )
 
@@ -21,9 +23,14 @@ func main() {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 	independent := false
+	worker := false
 	var stage string
 	var transaction uint64
 	for _, arg := range os.Args[1:] {
+		if arg == "--recovery-worker" {
+			worker = true
+			continue
+		}
 		if arg == "--independent" {
 			independent = true
 			continue
@@ -37,7 +44,7 @@ func main() {
 			continue
 		}
 	}
-	if stage == "" || transaction == 0 || !strings.EqualFold(filepath.Dir(stage), os.Getenv("ProgramData")) {
+	if stage == "" || (!worker && transaction == 0) || !strings.EqualFold(filepath.Dir(stage), os.Getenv("ProgramData")) {
 		os.Exit(91)
 	}
 	marker, err := os.ReadFile(filepath.Join(stage, "owned-ci-account.json"))
@@ -67,9 +74,14 @@ func main() {
 		os.Exit(96)
 	}
 	proof := map[string]any{"feature_qualification": false, "pid": os.Getpid(), "args": os.Args, "user_sid_sha256": identity.SID, "phase": "startup"}
+	receipt := "native/context.container-coordinator.json"
+	if worker {
+		receipt = "native/context.container-worker.json"
+	}
+	proof["recovery_worker"] = worker
 	save := func() {
 		data, _ := json.MarshalIndent(proof, "", "  ")
-		_ = os.WriteFile(filepath.Join(stage, "native/context.container-coordinator.json"), append(data, '\n'), 0600)
+		_ = os.WriteFile(filepath.Join(stage, receipt), append(data, '\n'), 0600)
 	}
 	save()
 	dll := windows.NewLazySystemDLL("msi.dll")
@@ -86,6 +98,36 @@ func main() {
 	query := func(product string) int32 {
 		code, _, _ := dll.NewProc("MsiQueryProductStateW").Call(ptr(product))
 		return int32(code)
+	}
+	properties := "ADDLOCAL=Core,CLI REMOVE=Desktop INSTALLDIR=\"" + filepath.Join(stage, "UI program é & spaces") + "\" START_MENU=0 DESKTOP_SHORTCUT=0 LICENSE_ACCEPTED=1 LAUNCH=0 REBOOT=ReallySuppress"
+	if worker {
+		source := filepath.Join(stage, "ui-old.msi")
+		info, err := os.Lstat(source)
+		if err != nil || !info.Mode().IsRegular() || query(model.Old) != 1 {
+			proof["source_or_state_invalid"] = true
+			save()
+			os.Exit(98)
+		}
+		dll.NewProc("MsiSetInternalUI").Call(2, 0)
+		dll.NewProc("MsiEnableLogW").Call(0x1000, ptr(filepath.Join(stage, "native/context.container-worker-remove.log")), 0)
+		code, _, _ := dll.NewProc("MsiConfigureProductExW").Call(ptr(model.Old), 0, 2, ptr("REMOVE=ALL LAUNCH=0 REBOOT=ReallySuppress"))
+		proof["remove_code"] = uint32(code)
+		proof["after_remove"] = query(model.Old)
+		save()
+		if code == 0 && query(model.Old) == -1 {
+			dll.NewProc("MsiEnableLogW").Call(0x1000, ptr(filepath.Join(stage, "native/context.container-worker-install.log")), 0)
+			code, _, _ = dll.NewProc("MsiInstallProductW").Call(ptr(source), ptr(properties))
+			proof["install_code"] = uint32(code)
+		}
+		dll.NewProc("MsiEnableLogW").Call(0, 0, 0)
+		proof["old_final"] = query(model.Old)
+		proof["new_final"] = query(model.New)
+		proof["phase"] = "completed"
+		save()
+		if code != 0 || query(model.Old) != 5 || query(model.New) != -1 {
+			os.Exit(99)
+		}
+		os.Exit(0)
 	}
 	var event windows.Handle
 	code, _, _ := dll.NewProc("MsiJoinTransaction").Call(uintptr(transaction), 0, uintptr(unsafe.Pointer(&event)))
@@ -107,7 +149,7 @@ func main() {
 	}
 	dll.NewProc("MsiSetInternalUI").Call(2, 0)
 	dll.NewProc("MsiEnableLogW").Call(0x1000, ptr(filepath.Join(stage, "native/context.container-inner.log")), 0)
-	properties := "ADDLOCAL=Core,CLI REMOVE=Desktop INSTALLDIR=\"" + filepath.Join(stage, "UI program é & spaces") + "\" START_MENU=0 DESKTOP_SHORTCUT=0 LICENSE_ACCEPTED=1 LAUNCH=0 REBOOT=ReallySuppress"
+
 	proof["phase"] = "before-inner"
 	save()
 	original, _, _ := dll.NewProc("MsiInstallProductW").Call(ptr(filepath.Join(stage, "ui-bad.msi")), ptr(properties))
@@ -127,16 +169,29 @@ func main() {
 	proof["phase"] = "after-end"
 	save()
 	if original != 0 && query(model.Old) == 1 {
-		dll.NewProc("MsiEnableLogW").Call(0x1000, ptr(filepath.Join(stage, "native/context.container-recovery-remove.log")), 0)
-		code, _, _ = dll.NewProc("MsiConfigureProductExW").Call(ptr(model.Old), 0, 2, ptr("REMOVE=ALL LAUNCH=0 REBOOT=ReallySuppress"))
-		proof["recovery_remove_code"] = uint32(code)
-		proof["old_after_remove"] = query(model.Old)
-		save()
-		if code == 0 && query(model.Old) == -1 {
-			dll.NewProc("MsiEnableLogW").Call(0x1000, ptr(filepath.Join(stage, "native/context.container-recovery-install.log")), 0)
-			code, _, _ = dll.NewProc("MsiInstallProductW").Call(ptr(filepath.Join(stage, "ui-old.msi")), ptr(properties))
-			proof["recovery_install_code"] = uint32(code)
+		exe, err := os.Executable()
+		if err != nil {
+			os.Exit(100)
 		}
+		stream, err := os.Create(filepath.Join(stage, "native/context.container-fresh-worker-stream.log"))
+		if err != nil {
+			os.Exit(101)
+		}
+		command := exec.Command(exe, "--recovery-worker", stage)
+		command.SysProcAttr = &syscall.SysProcAttr{HideWindow: true, CreationFlags: 0x08000000}
+		command.Stdout = stream
+		command.Stderr = stream
+		err = command.Run()
+		_ = stream.Close()
+		result := 0
+		if err != nil {
+			result = 1
+			if failed, ok := err.(*exec.ExitError); ok {
+				result = failed.ExitCode()
+			}
+		}
+		proof["fresh_recovery_worker_code"] = result
+		save()
 	}
 	dll.NewProc("MsiEnableLogW").Call(0, 0, 0)
 	proof["old_final"] = query(model.Old)
