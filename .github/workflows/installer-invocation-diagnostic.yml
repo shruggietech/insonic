@@ -6,7 +6,7 @@ on:
         description: Focused diagnostic boundary (never product qualification)
         type: choice
         default: completion
-        options: [completion, rollback, msiexec, recovery]
+        options: [completion, rollback, msiexec, recovery, exit]
 permissions:
   contents: read
 jobs:
