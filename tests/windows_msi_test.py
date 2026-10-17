@@ -309,6 +309,40 @@ class InstallerModelTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError,'disposable'):
                     with context:self.fail('fixture entered the owner machine')
 
+    def test_exact_account_user_object_grant_restores_after_failure_and_refuses_outside_drift(self):
+        import ctypes as C
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('qualify_user_object_access',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        sid='S-1-5-21-1-2-3-1001';original='D:(A;;GA;;;SY)';state={'sddl':original};buffers=[];writes=[]
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):
+                with module.owned_user_object_access(None,sid,0xf01ff,None,None,None):self.fail('owner object was touched')
+        def text_pointer(value,out):
+            buffer=C.create_unicode_buffer(value);buffers.append(buffer);out._obj.value=C.addressof(buffer);return True
+        def get_security(handle,info,target,capacity,needed):
+            buffer=C.create_unicode_buffer(state['sddl']);needed._obj.value=C.sizeof(buffer)
+            if target is None:return False
+            C.memmove(target,buffer,C.sizeof(buffer));return True
+        def set_security(handle,info,value):
+            self.assertEqual(info._obj.value,4);state['sddl']=C.wstring_at(value);writes.append(state['sddl']);return True
+        user=SimpleNamespace(GetUserObjectSecurity=get_security,SetUserObjectSecurity=set_security)
+        security=SimpleNamespace(ConvertSecurityDescriptorToStringSecurityDescriptorW=lambda raw,revision,info,out,length:text_pointer(C.wstring_at(raw),out),ConvertStringSecurityDescriptorToSecurityDescriptorW=lambda text,revision,out,length:text_pointer(text,out))
+        kernel=SimpleNamespace(LocalFree=lambda pointer:None)
+        def observation(*args):return {'descriptor_sha256':m.digest(state['sddl'].encode()),'owner':'unchanged','group':'unchanged','mandatory_label':'unchanged'}
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'owned_user_object_observation',side_effect=observation):
+            for fail in (False,True):
+                state['sddl']=original
+                try:
+                    with module.owned_user_object_access(55,sid,0xf01ff,user,security,kernel) as evidence:
+                        self.assertEqual(state['sddl'],original+'(A;;0xf01ff;;;'+sid+')')
+                        if fail:raise RuntimeError('injected actor failure')
+                except RuntimeError as error:self.assertEqual(str(error),'injected actor failure')
+                self.assertEqual(state['sddl'],original);self.assertTrue(evidence['restored']);self.assertEqual(evidence['original_security'],evidence['restored_security'])
+            with self.assertRaisesRegex(RuntimeError,'outside the exact grant'):
+                with module.owned_user_object_access(55,sid,0xf01ff,user,security,kernel):state['sddl']='D:(A;;GR;;;WD)'
+            self.assertEqual(state['sddl'],'D:(A;;GR;;;WD)')
+        self.assertEqual(writes[-1],original+'(A;;0xf01ff;;;'+sid+')')
+
     def test_interactive_actor_authenticates_normal_user_without_second_profile_or_session_reassignment(self):
         import ctypes as C
         from types import SimpleNamespace
@@ -322,7 +356,7 @@ class InstallerModelTests(unittest.TestCase):
         name='inso_ci_0123456789ab';sid='S-1-5-21-1-2-3-1001';password='private-memory-password';closed=[];events=[]
         (stage/'owned-ci-account.json').write_text(json.dumps({'account':name,'sid_sha256':m.digest(sid.encode())}),encoding='utf-8')
         target={'user_sid_sha256':m.digest(sid.encode()),'session_id':2,'elevated':False,'administrator_enabled':False,'integrity_rid':8192,'authentication_luid':{'low':123,'high':0},'enabled_privileges':1,'interactive_logon':True}
-        desktop={'path':'WinSta0\\insonic-ci-'+'a'*32,'session_id':2,'target_user_sid_sha256':target['user_sid_sha256']}
+        desktop={'path':r'WinSta0\Default','session_id':2,'target_user_sid_sha256':target['user_sid_sha256']}
         class Function:
             def __init__(self,call):self.call=call
             def __call__(self,*args):return self.call(*args)

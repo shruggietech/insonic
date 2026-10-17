@@ -673,7 +673,7 @@ def interactive_ordinary(stage,name,sid,password,profile,desktop,record,probe_on
     """Use Secondary Logon from the existing interactive caller, without a second profile load."""
     m.disposable_runner();stage=Path(stage)
     if json.loads((stage/'owned-ci-account.json').read_text(encoding='utf-8'))!={'account':name,'sid_sha256':m.digest(sid.encode())}:raise RuntimeError('interactive actor ownership differs')
-    if desktop['session_id']!=token_info()['session_id'] or desktop['target_user_sid_sha256']!=m.digest(sid.encode()):raise RuntimeError('interactive actor desktop/session differs')
+    if desktop['path']!=r'WinSta0\Default' or desktop['session_id']!=token_info()['session_id'] or desktop['target_user_sid_sha256']!=m.digest(sid.encode()):raise RuntimeError('interactive actor desktop/session differs')
     import ctypes as C
     import ctypes.wintypes as W
     security=C.WinDLL('advapi32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True)
@@ -1067,76 +1067,93 @@ def ordinary_system_broker(pipe,installer,directory,output):
             if handle:kernel.CloseHandle(handle)
 
 @__import__('contextlib').contextmanager
-def interactive_context_desktop(user_sid,caller_sid,stage):
-    """Hold one inactive desktop in the existing CI caller's interactive session.
-
-    The temporary full-access station ACE names only the disposable account,
-    as required for normal Secondary Logon GUI initialization. No Default
-    desktop permissions, input desktop, account rights or session policy change.
-    """
-    m.disposable_runner();sddl=private_desktop_sddl(user_sid,caller_sid)
+def owned_user_object_access(handle,user_sid,mask,user,security,kernel):
+    """Temporary exact-account DACL only; retain owner/group/mandatory label."""
+    m.disposable_runner();private_desktop_sddl(user_sid)
     import ctypes as C
     import ctypes.wintypes as W
+    info=W.DWORD(4);converted=C.c_void_p();attempted=False;evidence={'restored':False,'trustee_sid_sha256':m.digest(user_sid.encode()),'ace_mask':mask}
+    def checked(value):
+        if not value:raise C.WinError(C.get_last_error())
+        return value
+    def descriptor(value):
+        text=C.c_void_p();checked(security.ConvertSecurityDescriptorToStringSecurityDescriptorW(value,1,4,C.byref(text),None))
+        try:return C.wstring_at(text)
+        finally:kernel.LocalFree(text)
+    def current():
+        size=W.DWORD();user.GetUserObjectSecurity(handle,C.byref(info),None,0,C.byref(size))
+        if not 0<size.value<=65536:raise RuntimeError('invalid CI user-object descriptor bound')
+        raw=C.create_string_buffer(size.value);checked(user.GetUserObjectSecurity(handle,C.byref(info),raw,size.value,C.byref(size)))
+        return raw,descriptor(raw)
+    before,before_text=current();evidence['original_security']=owned_user_object_observation(handle,user,security,kernel)
+    if not evidence['original_security'].get('descriptor_sha256'):raise RuntimeError('CI user-object owner/group/DACL/label observation is unavailable')
+    try:
+        checked(security.ConvertStringSecurityDescriptorToSecurityDescriptorW(before_text+'(A;;'+hex(mask)+';;;'+user_sid+')',1,C.byref(converted),None))
+        expected=descriptor(converted);attempted=True
+        checked(user.SetUserObjectSecurity(handle,C.byref(info),converted))
+        if current()[1]!=expected:raise RuntimeError('CI exact-account user-object grant differs')
+        evidence.update({'original_dacl_sha256':m.digest(before_text.encode()),'granted_dacl_sha256':m.digest(expected.encode())})
+        yield evidence
+    finally:
+        try:
+            if attempted:
+                if current()[1] not in (before_text,expected):raise RuntimeError('CI user-object DACL changed outside the exact grant; restoration refused')
+                checked(user.SetUserObjectSecurity(handle,C.byref(info),before))
+                evidence['restored_security']=owned_user_object_observation(handle,user,security,kernel)
+                evidence['restored']=current()[1]==before_text and evidence['restored_security']==evidence['original_security']
+                if not evidence['restored']:raise RuntimeError('CI user-object owner/group/DACL/label restoration differs')
+        finally:
+            if converted:kernel.LocalFree(converted)
+
+
+@__import__('contextlib').contextmanager
+def interactive_context_desktop(user_sid,caller_sid,stage):
+    """Use the disposable CI Default desktop selected by MSI EXE actions.
+
+    Add only the unique owned account's temporary station/desktop access.
+    Never switch input desktops or change owner/group/mandatory labels.
+    """
+    m.disposable_runner();private_desktop_sddl(user_sid,caller_sid)
+    import ctypes as C
+    import ctypes.wintypes as W
+    stage=Path(stage);marker=json.loads((stage/'owned-ci-account.json').read_text(encoding='utf-8'))
+    if stage.is_symlink() or stage.resolve().parent!=Path(os.environ['ProgramData']).resolve() or not __import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name) or marker.get('sid_sha256')!=m.digest(user_sid.encode()) or not __import__('re').fullmatch('inso_ci_[0-9a-f]{12}',marker.get('account','')):raise RuntimeError('CI desktop grant requires the exact owned disposable account stage')
     user=C.WinDLL('user32',use_last_error=True);security=C.WinDLL('advapi32',use_last_error=True);kernel=C.WinDLL('kernel32',use_last_error=True)
-    class Attributes(C.Structure):_fields_=[('size',W.DWORD),('descriptor',C.c_void_p),('inherit',W.BOOL)]
     class Flags(C.Structure):_fields_=[('inherit',W.BOOL),('reserved',W.BOOL),('flags',W.DWORD)]
-    functions={'GetProcessWindowStation':([],W.HANDLE),'SetProcessWindowStation':([W.HANDLE],W.BOOL),'OpenWindowStationW':([W.LPCWSTR,W.BOOL,W.DWORD],W.HANDLE),'GetThreadDesktop':([W.DWORD],W.HANDLE),'SetThreadDesktop':([W.HANDLE],W.BOOL),'OpenDesktopW':([W.LPCWSTR,W.DWORD,W.BOOL,W.DWORD],W.HANDLE),'CreateDesktopW':([W.LPCWSTR,W.LPCWSTR,C.c_void_p,W.DWORD,W.DWORD,C.POINTER(Attributes)],W.HANDLE),'CloseWindowStation':([W.HANDLE],W.BOOL),'CloseDesktop':([W.HANDLE],W.BOOL),'GetUserObjectInformationW':([W.HANDLE,C.c_int,C.c_void_p,W.DWORD,C.POINTER(W.DWORD)],W.BOOL),'GetUserObjectSecurity':([W.HANDLE,C.POINTER(W.DWORD),C.c_void_p,W.DWORD,C.POINTER(W.DWORD)],W.BOOL),'SetUserObjectSecurity':([W.HANDLE,C.POINTER(W.DWORD),C.c_void_p],W.BOOL)}
+    functions={'GetProcessWindowStation':([],W.HANDLE),'SetProcessWindowStation':([W.HANDLE],W.BOOL),'OpenWindowStationW':([W.LPCWSTR,W.BOOL,W.DWORD],W.HANDLE),'OpenDesktopW':([W.LPCWSTR,W.DWORD,W.BOOL,W.DWORD],W.HANDLE),'CloseWindowStation':([W.HANDLE],W.BOOL),'CloseDesktop':([W.HANDLE],W.BOOL),'GetUserObjectInformationW':([W.HANDLE,C.c_int,C.c_void_p,W.DWORD,C.POINTER(W.DWORD)],W.BOOL),'GetUserObjectSecurity':([W.HANDLE,C.POINTER(W.DWORD),C.c_void_p,W.DWORD,C.POINTER(W.DWORD)],W.BOOL),'SetUserObjectSecurity':([W.HANDLE,C.POINTER(W.DWORD),C.c_void_p],W.BOOL)}
     for name,(args,result) in functions.items():function=getattr(user,name);function.argtypes=args;function.restype=result
-    kernel.GetCurrentThreadId.restype=W.DWORD;kernel.LocalFree.argtypes=[C.c_void_p]
+    kernel.LocalFree.argtypes=[C.c_void_p]
     security.ConvertStringSecurityDescriptorToSecurityDescriptorW.argtypes=[W.LPCWSTR,W.DWORD,C.POINTER(C.c_void_p),C.c_void_p];security.ConvertStringSecurityDescriptorToSecurityDescriptorW.restype=W.BOOL
     security.ConvertSecurityDescriptorToStringSecurityDescriptorW.argtypes=[C.c_void_p,W.DWORD,W.DWORD,C.POINTER(C.c_void_p),C.c_void_p];security.ConvertSecurityDescriptorToStringSecurityDescriptorW.restype=W.BOOL
     def checked(value):
         if not value:raise C.WinError(C.get_last_error())
         return value
-    def descriptor(handle):
-        info=W.DWORD(4);size=W.DWORD();user.GetUserObjectSecurity(handle,C.byref(info),None,0,C.byref(size))
-        if not 0<size.value<=65536:raise RuntimeError('invalid CI station descriptor bound')
-        raw=C.create_string_buffer(size.value);checked(user.GetUserObjectSecurity(handle,C.byref(info),raw,size.value,C.byref(size)))
-        value=C.c_void_p();checked(security.ConvertSecurityDescriptorToStringSecurityDescriptorW(raw,1,4,C.byref(value),None))
-        try:return raw,C.wstring_at(value)
-        finally:kernel.LocalFree(value)
     observed=token_info()
     if observed['session_id']<=0 or observed['user_sid_sha256']!=m.digest(caller_sid.encode()):raise RuntimeError('full-UI fixture requires the existing interactive CI caller session')
-    station=checked(user.OpenWindowStationW('WinSta0',False,0x0006000a));flags=Flags();size=W.DWORD()
-    original=user.GetProcessWindowStation();thread=kernel.GetCurrentThreadId();original_desktop=user.GetThreadDesktop(thread)
-    owned=None;converted=C.c_void_p();desktop_descriptor=C.c_void_p();before=None;granted=None;info=W.DWORD(4)
-    evidence={'kind':'owned-inactive-interactive-CI-desktop','session_id':observed['session_id'],'target_user_sid_sha256':m.digest(user_sid.encode()),'caller_sid_sha256':m.digest(caller_sid.encode()),'visible_switch':False,'default_desktop_acl_modified':False,'station_ace_mask':0x000f037f,'station_dacl_restored':False}
+    original=user.GetProcessWindowStation();station=checked(user.OpenWindowStationW('WinSta0',False,0x0006000a));desktop=None;flags=Flags();size=W.DWORD()
+    evidence={'kind':'exact-account-disposable-CI-default-desktop','path':r'WinSta0\Default','session_id':observed['session_id'],'target_user_sid_sha256':m.digest(user_sid.encode()),'caller_sid_sha256':m.digest(caller_sid.encode()),'visible_switch':False,'default_desktop_acl_modified':True,'station_dacl_restored':False,'desktop_dacl_restored':False}
     try:
         checked(user.GetUserObjectInformationW(station,1,C.byref(flags),C.sizeof(flags),C.byref(size)))
         if not flags.flags&1:raise RuntimeError('CI WinSta0 is not interactive; full UI cannot be qualified here')
-        before,before_text=descriptor(station)
-        evidence['original_station_security']=owned_user_object_observation(station,user,security,kernel)
-        if not evidence['original_station_security'].get('descriptor_sha256'):raise RuntimeError('CI station owner/group/DACL/label observation is unavailable')
-        checked(security.ConvertStringSecurityDescriptorToSecurityDescriptorW(before_text+'(A;;0x000f037f;;;'+user_sid+')',1,C.byref(converted),None))
-        checked(user.SetUserObjectSecurity(station,C.byref(info),converted));_,granted=descriptor(station)
-        checked(user.SetProcessWindowStation(station));name='insonic-ci-'+uuid.uuid4().hex
-        probe=user.OpenDesktopW(name,0,False,0x00020000)
-        if probe:user.CloseDesktop(probe);raise RuntimeError('refused an existing full-UI desktop')
-        if C.get_last_error()!=2:raise C.WinError(C.get_last_error())
-        checked(security.ConvertStringSecurityDescriptorToSecurityDescriptorW(sddl,1,C.byref(desktop_descriptor),None));attrs=Attributes(C.sizeof(Attributes),desktop_descriptor,False)
-        owned=checked(user.CreateDesktopW(name,None,None,0,0x000f01ff,C.byref(attrs)))
-        checked(user.SetProcessWindowStation(original))
-        if user.GetThreadDesktop(thread)!=original_desktop:checked(user.SetThreadDesktop(original_desktop))
-        evidence.update({'path':'WinSta0\\'+name,'station_visible':True,'caller_station_restored':user.GetProcessWindowStation()==original,'original_station_dacl_sha256':m.digest(before_text.encode()),'granted_station_dacl_sha256':m.digest(granted.encode())})
-        Path(stage,'ui-actor-desktop.json').write_text(json.dumps(evidence),encoding='utf-8',newline='\n')
-        yield evidence
+        with owned_user_object_access(station,user_sid,0x000f037f,user,security,kernel) as station_grant:
+            evidence['station_grant']=station_grant
+            checked(user.SetProcessWindowStation(station))
+            try:desktop=checked(user.OpenDesktopW('Default',0,False,0x00060081))
+            finally:checked(user.SetProcessWindowStation(original))
+            with owned_user_object_access(desktop,user_sid,0x000f01ff,user,security,kernel) as desktop_grant:
+                evidence.update({'desktop_grant':desktop_grant,'station_visible':True,'caller_station_restored':user.GetProcessWindowStation()==original})
+                Path(stage,'ui-actor-desktop.json').write_text(json.dumps(evidence),encoding='utf-8',newline='\n')
+                yield evidence
+            evidence['desktop_dacl_restored']=desktop_grant['restored']
+        evidence['station_dacl_restored']=station_grant['restored']
     finally:
         try:
             if user.GetProcessWindowStation()!=original:checked(user.SetProcessWindowStation(original))
-            if user.GetThreadDesktop(thread)!=original_desktop:checked(user.SetThreadDesktop(original_desktop))
-            if before is not None and granted is not None:
-                _,current=descriptor(station)
-                if current!=granted:raise RuntimeError('CI station DACL changed outside the exact owned grant; restoration refused')
-                checked(user.SetUserObjectSecurity(station,C.byref(info),before));_,restored=descriptor(station)
-                evidence['station_dacl_restored']=restored==before_text
-                evidence['restored_station_security']=owned_user_object_observation(station,user,security,kernel)
-                evidence['station_security_restored']=evidence['restored_station_security']==evidence['original_station_security']
-                if not evidence['station_dacl_restored'] or not evidence['station_security_restored']:raise RuntimeError('CI station owner/group/DACL/label restoration differs')
+            evidence['desktop_dacl_restored']=evidence.get('desktop_grant',{}).get('restored',False)
+            evidence['station_dacl_restored']=evidence.get('station_grant',{}).get('restored',False)
         finally:
-            if owned:checked(user.CloseDesktop(owned))
-            if station:checked(user.CloseWindowStation(station))
-            for value in (converted,desktop_descriptor):
-                if value:kernel.LocalFree(value)
+            if desktop:checked(user.CloseDesktop(desktop))
+            checked(user.CloseWindowStation(station))
 
 
 def grant_owned_account_stage(stage,user_sid,caller_sid,progress=None):
@@ -1490,10 +1507,10 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
                 else:scheduler=scheduler_ordinary(stage,name,sid,password,args,record,profile)
         finally:
             if namespace:record('owned-session-namespace-restoration',namespace=namespace)
-            if ui_desktop:record('inactive-full-UI-desktop-restoration',desktop=ui_desktop)
+            if ui_desktop:record('full-UI-default-desktop-restoration',desktop=ui_desktop)
         evidence=json.loads(worker_output.read_text(encoding='utf-8'))
         if evidence['token']['user_sid_sha256']!=m.digest(sid.encode()) or Path(evidence['user_profile']).resolve()!=profile.resolve():raise RuntimeError('ordinary worker changed account/profile identity')
-        evidence.update({'process_creation':'full UI via CreateProcessWithLogonW flags0 in the existing interactive session on an owned inactive WinSta0 desktop; separate quiet LogonUserW/CreateProcessAsUserW SYSTEM broker in private session0; exact station ACE restored and parent is sole profile-load owner','scheduler':scheduler,'profile_creation':'explicit owned LoadUserProfileW handle and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode()),'owned_account_rights_before':batch_original,'ci_host_policy_fixture':policy_fixture,'ci_session_namespace_fixture':namespace})
+        evidence.update({'process_creation':'full UI via CreateProcessWithLogonW flags0 in the existing interactive session on the disposable CI WinSta0 Default desktop with exact-account station/desktop DACL grants restored; separate quiet LogonUserW/CreateProcessAsUserW SYSTEM broker in private session0; exact station ACE restored and parent is sole profile-load owner','scheduler':scheduler,'profile_creation':'explicit owned LoadUserProfileW handle and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode()),'owned_account_rights_before':batch_original,'ci_host_policy_fixture':policy_fixture,'ci_session_namespace_fixture':namespace})
         evidence['os_policy_mutations'].update({'ci_server_disable_msi_fixture':True,'ci_server_disable_msi_restored':policy_fixture['restored'],'always_install_elevated_unchanged':policy_fixture['always_install_elevated_unchanged']})
     except BaseException as error:
         failure=error;record('failed',failed_api=getattr(error,'api',current_phase['name']),winerror=getattr(error,'winerror',None),errno=getattr(error,'errno',None),error_type=type(error).__name__,error=str(error))

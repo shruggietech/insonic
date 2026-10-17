@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Real full-UI transactions, exclusively in the owned disposable CI account.
 
-The ordinary actor uses an owned inactive desktop and private registry profile. Every
+The ordinary actor uses the disposable CI Default desktop and its private registry profile. Every
 product family here is fixture-owned. Native clicks drive the authored dialogs; external MSI
 callbacks only observe messages and never substitute an outcome or cancellation.
 """
@@ -602,6 +602,6 @@ def export_captures(output,logs,interactive,receipt):
         name='installer-'+str(number).zfill(2)+'-'+suffix+'-'+operation+'.png';(output/name).write_bytes(raw)
         images.append({**item,'path':name,'landmark':title,'caption':'Native full-UI '+row['operation']+' transaction on the owned disposable ordinary-user desktop; '+('engine-driven execution progress.' if suffix=='progress' else 'final outcome, native return code '+str(row['code'])+'.'),'fixture_msi_sha256':row['fixture_msi_sha256']})
     sources=['scripts/windows_msi.py','scripts/qualify-windows-msi.py','scripts/qualify_installer_ui.py','LICENSE',m.ICON]
-    evidence={'kind':'installer-transactions-ui-capture','schema_version':receipt['schema_version'],'source':{'revision':receipt['revision'],'dirty':False,'files':[{'path':p,'sha256':m.sha(m.ROOT/p)} for p in sources]},'parent_artifact_sha256':receipt['artifact_sha256'],'renderer':{'kind':'windows-installer-full-ui','windows_build':str(__import__('sys').getwindowsversion().build)},'fixture':{'isolated':True,'private_inputs':False,'transaction_proven':True,'native_return_codes':[0,1602,1603],'kind':'unique owned package families, exact payload install/removal plus instrumented native client reporters for bounded maintenance/elections','production_msi_authoring':True,'separate_ordinary_user':True,'private_nonvisible_desktop':True},'locale':'en-US','images':images}
+    evidence={'kind':'installer-transactions-ui-capture','schema_version':receipt['schema_version'],'source':{'revision':receipt['revision'],'dirty':False,'files':[{'path':p,'sha256':m.sha(m.ROOT/p)} for p in sources]},'parent_artifact_sha256':receipt['artifact_sha256'],'renderer':{'kind':'windows-installer-full-ui','windows_build':str(__import__('sys').getwindowsversion().build)},'fixture':{'isolated':True,'private_inputs':False,'transaction_proven':True,'native_return_codes':[0,1602,1603],'kind':'unique owned package families, exact payload install/removal plus instrumented native client reporters for bounded maintenance/elections','production_msi_authoring':True,'separate_ordinary_user':True,'private_nonvisible_desktop':False,'disposable_ci_default_desktop':True},'locale':'en-US','images':images}
     (output/'installer-transactions-capture.json').write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     return evidence

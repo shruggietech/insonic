@@ -18,3 +18,12 @@ func TestDocumentationShellDispatchPolicy(t *testing.T) {
 		t.Fatal("documentation dispatch must finish before COM cleanup and report errors through its caller")
 	}
 }
+
+func TestDocumentationUnavailableProcedureReturnsCorrection(t *testing.T) {
+	if procedure, err := documentationProcedure("kernel32.dll", "InsonicAbsentDocumentationProcedure"); procedure != nil || err != documentationCorrection {
+		t.Fatal("missing Windows capability did not return the documentation correction", procedure, err)
+	}
+	if procedure, err := documentationProcedure("kernel32.dll", "GetCurrentProcessId"); procedure == nil || err != nil {
+		t.Fatal("available system procedure could not resolve", err)
+	}
+}

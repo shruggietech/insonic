@@ -18,6 +18,14 @@ const (
 	documentationShellMask = seeMaskNoAsync | seeMaskFlagNoUI | seeMaskNoConsole
 )
 
+func documentationProcedure(library, name string) (*windows.LazyProc, error) {
+	procedure := windows.NewLazySystemDLL(library).NewProc(name)
+	if procedure.Find() != nil {
+		return nil, documentationCorrection
+	}
+	return procedure, nil
+}
+
 func openDocumentation(directory, target string) error {
 	if !filepath.IsAbs(directory) {
 		return documentationCorrection
@@ -39,12 +47,23 @@ func openDocumentation(directory, target string) error {
 	}
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	ole := windows.NewLazySystemDLL("ole32.dll")
-	result, _, _ := ole.NewProc("CoInitializeEx").Call(0, 2)
+	initialize, err := documentationProcedure("ole32.dll", "CoInitializeEx")
+	if err != nil {
+		return err
+	}
+	uninitialize, err := documentationProcedure("ole32.dll", "CoUninitialize")
+	if err != nil {
+		return err
+	}
+	dispatch, err := documentationProcedure("shell32.dll", "ShellExecuteExW")
+	if err != nil {
+		return err
+	}
+	result, _, _ := initialize.Call(0, 2)
 	if int32(result) < 0 {
 		return documentationCorrection
 	}
-	defer ole.NewProc("CoUninitialize").Call()
+	defer uninitialize.Call()
 	file, err := windows.UTF16PtrFromString(target)
 	if err != nil {
 		return documentationCorrection
@@ -73,7 +92,7 @@ func openDocumentation(directory, target string) error {
 	// The filename is not a shell command.
 	info := shellExecuteInfo{Mask: documentationShellMask, Verb: verb, File: file, Show: 1}
 	info.Size = uint32(unsafe.Sizeof(info))
-	ok, _, _ := windows.NewLazySystemDLL("shell32.dll").NewProc("ShellExecuteExW").Call(uintptr(unsafe.Pointer(&info)))
+	ok, _, _ := dispatch.Call(uintptr(unsafe.Pointer(&info)))
 	runtime.KeepAlive(file)
 	if ok == 0 {
 		return documentationCorrection
@@ -82,7 +101,11 @@ func openDocumentation(directory, target string) error {
 }
 
 func ReportDocumentationError() {
+	report, err := documentationProcedure("user32.dll", "MessageBoxW")
+	if err != nil {
+		return
+	}
 	message, _ := windows.UTF16PtrFromString(documentationCorrection.Error())
 	title, _ := windows.UTF16PtrFromString("Open insonic documentation")
-	windows.NewLazySystemDLL("user32.dll").NewProc("MessageBoxW").Call(0, uintptr(unsafe.Pointer(message)), uintptr(unsafe.Pointer(title)), 0x30)
+	report.Call(0, uintptr(unsafe.Pointer(message)), uintptr(unsafe.Pointer(title)), 0x30)
 }
