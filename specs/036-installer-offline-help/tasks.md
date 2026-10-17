@@ -51,9 +51,11 @@ T001 -> T002 -> read-only analyze gate -> T003/T004 -> T005/T006/T007 and T008/T
 
 ## Phase 8: Owner-approved upgrade recovery (2026-10-17)
 
-- [ ] T019 [US4] Prove supported ordinary-user recovery in scripts/diagnose-installer-completion.py using exact owned product/source checks and portable regressions in tests/windows_msi_test.py before production integration (FR-010, SC-006).
+- [x] T019 [US4] Prove supported ordinary-user recovery in scripts/diagnose-installer-completion.py using exact owned product/source checks and portable regressions in tests/windows_msi_test.py before production integration (FR-010, SC-006).
 - [ ] T020 [US4] Define and implement validated private recovery source/choice state and legacy missing/corrupt-source handling in the installer launcher and scripts/windows_msi.py after T019 passes (FR-011).
 - [ ] T021 [US4] Integrate recovery with direct interactive and unattended MSI completion, retaining actual failure/cancellation results and bounded native progress in scripts/windows_msi.py and internal/launcher (FR-010/FR-011).
 - [ ] T022 [US4] Prove registration, prior choices, bytes, source-loss, corruption, cleanup and no-elevation behavior in scripts/qualify-windows-msi.py and scripts/qualify_installer_ui.py, then complete T014..T018 (FR-010/FR-011, SC-004/SC-006).
 
 Recovery dependency: T019 -> T020 -> T021 -> T022 -> final captures/full CI -> reserved review round 2. Existing evidence remains historical until final native qualification passes.
+
+T019 proof: external native full/quiet controls pass in run39050679170 with old registration5, exact old bytes and original failure1603 before return. This is prototype proof only. T020/T021 wait for the owner entry-point decision documented in recovery-design.md; T022 and final delivery gates remain incomplete.

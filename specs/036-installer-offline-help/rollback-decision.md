@@ -33,3 +33,9 @@ The upstream file-only per-user rollback report provides independent related evi
 ## Public recovery consumer result (2026-10-17)
 
 The focused native public-removal/full-reinstall comparison now restores old registration5 and Core/CLI feature state3 with exact old hashes, under the same ordinary medium account. Both operations return0. The earlier advertised-maintenance failures do not imply that fresh reinstallation after supported removal requires elevation. Native direct-MSI completion ordering is the next independent gate; no production cache or helper is implemented merely from this result. The recovery work is tracked in #152 under the existing S036 milestone and PR #151.
+
+## Entry-point decision after native controls (2026-10-17)
+
+The owner-approved recovery expansion stays in S036 and is tracked by #152. Direct external coordinator controls pass in both silent and actual full UI; the same STA/pinned-thread coordinator inside the tested MSI containers still fails. The external coordinator waits for its fresh ordinary-user recovery child before returning the original1603, with old registration5, new absent and exact old hashes. It creates no second product/anchor, and account/profile/stage cleanup completes. This proves a supported recovery consumer with the original source available, not a production cache or completed S036.
+
+An additional setup EXE is proposed as the recommended upgrade route while retaining the raw MSI and stating its recovery limits. That changes the documented entry-point contract and the current FR-010 direct-MSI recovery wording. An explicit owner choice is pending. See recovery-design.md for the concrete proposal. Do not adopt that contract or weaken the current native registration gate before the choice.
