@@ -61,6 +61,29 @@ def observe_invocation(stage,token,quiet_install):
 
 
 
+def recover_registration(stage,product,phase):
+    m.disposable_runner();stage=Path(stage);q=qualifier();token=q.token_info()
+    marker=json.loads((stage/'owned-ci-account.json').read_text(encoding='utf-8'));model=json.loads((stage/'ui-model.json').read_text(encoding='utf-8'))
+    if q.diagnostic_mode(stage)!='rollback-recovery' or marker['sid_sha256']!=token['user_sid_sha256'] or token['elevated'] or token['administrator_enabled'] or product!=model['old_product'] or phase not in ('missing-source','available-source'):raise RuntimeError('registration recovery is not the exact ordinary owned diagnostic')
+    dll=C.WinDLL('msi');dll.MsiSetInternalUI.argtypes=[W.UINT,C.POINTER(W.HWND)];dll.MsiSetInternalUI.restype=W.UINT
+    dll.MsiConfigureProductExW.argtypes=[W.LPCWSTR,C.c_int,C.c_int,W.LPCWSTR];dll.MsiConfigureProductExW.restype=W.UINT
+    dll.MsiEnableLogW.argtypes=[W.DWORD,W.LPCWSTR,W.DWORD];dll.MsiEnableLogW.restype=W.UINT
+    dll.MsiQueryProductStateW.argtypes=[W.LPCWSTR];dll.MsiQueryProductStateW.restype=C.c_int
+    dll.MsiQueryFeatureStateW.argtypes=[W.LPCWSTR,W.LPCWSTR];dll.MsiQueryFeatureStateW.restype=C.c_int
+    dll.MsiGetProductInfoW.argtypes=[W.LPCWSTR,W.LPCWSTR,W.LPWSTR,C.POINTER(W.DWORD)];dll.MsiGetProductInfoW.restype=W.UINT
+    def info():
+        values={}
+        for property in ('LocalPackage','InstallSource','PackageName','VersionString'):
+            value=C.create_unicode_buffer(32768);size=W.DWORD(len(value));code=dll.MsiGetProductInfoW(product,property,value,C.byref(size));values[property]={'code':code,'value':value.value}
+        return values
+    result={'kind':'owned-before-Close-registration-recovery','feature_qualification':False,'token':token,'before':int(dll.MsiQueryProductStateW(product)),'metadata_before':info(),'source':phase}
+    dll.MsiSetInternalUI(2,None);dll.MsiEnableLogW(0x1000,str(stage/'native'/('context.recovery-'+phase+'.log')),0)
+    try:result['code']=int(dll.MsiConfigureProductExW(product,0,5,'REINSTALL=ALL REINSTALLMODE=omus LICENSE_ACCEPTED=1 LAUNCH=0 REBOOT=ReallySuppress'))
+    finally:dll.MsiEnableLogW(0,None,0)
+    result.update(after=int(dll.MsiQueryProductStateW(product)),metadata_after=info(),features={name:int(dll.MsiQueryFeatureStateW(product,name)) for name in ('Core','CLI','Desktop')})
+    (stage/'native'/('context.recovery-'+phase+'.json')).write_text(json.dumps(result,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+
+
 def rollback_case(stage,name):
     m.disposable_runner();stage=Path(stage);q=qualifier()
     from qualify_installer_ui import NativeUI
@@ -69,8 +92,21 @@ def rollback_case(stage,name):
     if stage.resolve().parent!=Path(os.environ['ProgramData']).resolve() or not (stage/'completion-invocation-diagnostic.json').is_file() or marker.get('sid_sha256')!=token['user_sid_sha256'] or token['administrator_enabled'] or token['elevated']:raise RuntimeError('rollback diagnostic is not the exact owned ordinary account')
     if name not in ('install','failed-upgrade'):raise RuntimeError('unknown owned rollback diagnostic case')
     installer=stage/('ui-old.msi' if name=='install' else 'ui-bad.msi')
-    normal_client=q.diagnostic_mode(stage)=='rollback-msiexec'
-    row=NativeUI(stage/'native/context.json').run(installer,stage/'UI program é & spaces','rollback-'+name,selection='cli',operation='install' if name=='install' else 'upgrade',expected=0 if name=='install' else 1603,native_process=normal_client,execution_required=not normal_client)
+    mode=q.diagnostic_mode(stage);normal_client=mode in ('rollback-msiexec','rollback-recovery');recovery={}
+    def before_close(page):
+        if page!='FatalError':raise RuntimeError('recovery experiment requires the actual failed terminal page')
+        product=json.loads((stage/'ui-model.json').read_text(encoding='utf-8'))['old_product'];source=stage/'ui-old.msi';hidden=stage/'owned-old-source.offline'
+        def attempt(phase):
+            done=subprocess.run([str(Path(sys.executable).with_name('python.exe')),str(Path(__file__)),'--recover-registration',str(stage),product,phase],cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=25)
+            (stage/'native'/('context.recovery-'+phase+'-stream.log')).write_bytes(done.stdout+done.stderr)
+            if done.returncode:raise RuntimeError('owned recovery diagnostic child failed '+str(done.returncode))
+            return json.loads((stage/'native'/('context.recovery-'+phase+'.json')).read_text(encoding='utf-8'))
+        source.rename(hidden)
+        try:recovery['without_original_source']=attempt('missing-source')
+        finally:hidden.rename(source)
+        if recovery['without_original_source']['code']!=0:recovery['with_original_source']=attempt('available-source')
+    row=NativeUI(stage/'native/context.json').run(installer,stage/'UI program é & spaces','rollback-'+name,selection='cli',operation='install' if name=='install' else 'upgrade',expected=0 if name=='install' else 1603,native_process=normal_client,execution_required=not normal_client,before_terminal_close=before_close if mode=='rollback-recovery' and name=='failed-upgrade' else None)
+    if recovery:row['registration_recovery']=recovery
     row['token']=token
     (stage/'native'/('context.rollback-'+name+'.json')).write_text(json.dumps(row,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     return row
@@ -179,8 +215,8 @@ def main():
     model=m.installer_model(inventory,m.digest(raw),(fixture/'LICENSE').read_text(encoding='utf-8'),upgrade=m.guid('invocation-diagnostic/'+__import__('uuid').uuid4().hex))
     installer=work/'diagnostic.msi';m.author(installer,fixture,model)
     kind=os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_KIND','completion')
-    if kind not in ('completion','rollback','msiexec'):raise RuntimeError('unknown diagnostic kind')
-    modes=['completion'] if kind=='completion' else ['rollback-msiexec'] if kind=='msiexec' else [mode for mode in q.DIAGNOSTIC_MODES[1:] if mode!='rollback-msiexec']
+    if kind not in ('completion','rollback','msiexec','recovery'):raise RuntimeError('unknown diagnostic kind')
+    modes=['completion'] if kind=='completion' else ['rollback-msiexec'] if kind=='msiexec' else ['rollback-recovery'] if kind=='recovery' else [mode for mode in q.DIAGNOSTIC_MODES[1:] if mode not in ('rollback-msiexec','rollback-recovery')]
     results=[]
     for mode in modes:
         os.environ['INSONIC_INSTALLER_DIAGNOSTIC_MODE']=mode
@@ -193,4 +229,5 @@ def main():
 
 if __name__=='__main__':
     if len(sys.argv)==4 and sys.argv[1]=='--rollback-case':rollback_case(sys.argv[2],sys.argv[3])
+    elif len(sys.argv)==5 and sys.argv[1]=='--recover-registration':recover_registration(sys.argv[2],sys.argv[3],sys.argv[4])
     else:main()

@@ -199,7 +199,7 @@ class NativeUI:
             return {'path':target.name,'sha256':m.sha(target),'width':width,'height':height}
         finally:g.SelectObject(memory,old);g.DeleteObject(bitmap);g.DeleteDC(memory);u.ReleaseDC(hwnd,dc)
 
-    def run(self,msi,directory,name,operation='install',selection='both',launch=False,docs=False,cancel=None,expected=0,before_finish=None,execution_required=True,native_process=False):
+    def run(self,msi,directory,name,operation='install',selection='both',launch=False,docs=False,cancel=None,expected=0,before_finish=None,execution_required=True,native_process=False,before_terminal_close=None):
         state={'name':name,'operation':operation,'fixture_msi_sha256':m.sha(msi),'pages':[],'actions':[],'progress_messages':0,'progress_observed':False,'bar_positions':[],'visible_phases':[],'terminal':None,'captures':[]}
         action_text=m.table_rows(m.CompoundFile(msi).streams,'ActionText');descriptions={row[1] for row in action_text if row[1]};described_actions={row[0] for row in action_text if row[1]}
         action_ready=threading.Event();progress_seen=threading.Event();done=threading.Event();inspection=ProgressInspection(progress_seen)
@@ -342,6 +342,7 @@ class NativeUI:
                         default=self.u.GetDlgItem(hwnd,self.send(hwnd,0x0400)&0xffff)
                         if not default or self.text(default)!=('Finish' if page=='Finish' else 'Close'):raise RuntimeError('terminal default action differs from the displayed outcome')
                         state['captures'].append(self.capture(hwnd,name+'-'+page.lower()))
+                        if before_terminal_close:before_terminal_close(page)
                         if name=='remove':
                             # Escape uses the authored terminal cancel/default
                             # control and must retain the committed success code.

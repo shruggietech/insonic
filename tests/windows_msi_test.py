@@ -197,7 +197,7 @@ class InstallerModelTests(unittest.TestCase):
     def test_invocation_diagnostic_refuses_owner_host_before_native_calls(self):
         spec=importlib.util.spec_from_file_location('invocation_guard',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with patch.dict(os.environ,{},clear=True),patch.object(module,'qualifier') as native:
-            for function,args in [(module.main,()),(module.observe_invocation,(None,None,None)),(module.observe_rollback,(None,None,None)),(module.rollback_case,(None,None))]:
+            for function,args in [(module.main,()),(module.observe_invocation,(None,None,None)),(module.observe_rollback,(None,None,None)),(module.rollback_case,(None,None)),(module.recover_registration,(None,None,None))]:
                 with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
             native.assert_not_called()
 
@@ -222,7 +222,7 @@ class InstallerModelTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('diagnostic_mode_fixture',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         target=self.path/'installer-diagnostic-mode.json'
         with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{},clear=True):
-            for mode in ('completion','rollback-reused','rollback-isolated','rollback-primed','rollback-late','rollback-msiexec'):
+            for mode in ('completion','rollback-reused','rollback-isolated','rollback-primed','rollback-late','rollback-msiexec','rollback-recovery'):
                 target.write_text(json.dumps({'feature_qualification':False,'mode':mode}),encoding='utf-8')
                 self.assertEqual(module.diagnostic_mode(self.path),mode)
             for invalid in ({'feature_qualification':True,'mode':'completion'},{'feature_qualification':False,'mode':'unknown'},{'feature_qualification':False,'mode':'completion','extra':1}):
