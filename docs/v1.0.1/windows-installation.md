@@ -95,7 +95,7 @@ Replace both versions, the local path and the complete digest. Source identity, 
 
 The raw `insonic_VERSION_windows_amd64_installer.msi` remains available for direct Windows Installer use and advanced deployment tooling. It bypasses coordinated source retention and recovery. On the reproduced Windows Installer failure, old files return while old registration is only advertised, so raw-MSI file rollback cannot establish a usable registered installation. Use setup for the coordinated guarantee. Installed Apps still uses native MSI maintenance and removal.
 
-If recovery cannot finish, setup retains its local source and `pending.json` record, reports incomplete recovery and returns failure. Correct the reported local-source or active-work problem, then retry the same setup with `--resume-recovery`. Private `last-result.json`, `setup.log` and recovery logs distinguish the original native result from recovery. A preflight refusal has no native result because the MSI did not run. Omit private paths and account details when sharing diagnostics.
+If recovery cannot finish, setup retains its local source and `pending.json` record, reports incomplete recovery and returns failure. Correct the reported local-source or active-work problem, then retry the same setup with `--resume-recovery` (add `--quiet` for unattended recovery). Private `last-result.json`, `setup.log` and recovery logs distinguish the original native result from recovery. A preflight refusal has no native result because the MSI did not run. Omit private paths and account details when sharing diagnostics.
 
 ## Unattended setup
 
@@ -108,7 +108,7 @@ $LASTEXITCODE
 
 Use `both`, `desktop` or `cli`; new installations default to both. `--install-dir PATH` selects a program location. Unattended upgrades retain prior choices unless explicitly overridden. Use setup for the installed version with `--quiet --repair` or `--quiet --remove` for maintenance. No completion launch or documentation action runs in quiet mode.
 
-A result of 0 means the selected operation succeeded. Native 1602 means cancellation; 1603 means failure. Recovery preserves those original codes even when it restores the previous version successfully. Preflight failures return 1603 before starting MSI work. Recovery runs synchronously under the ordinary invoking account.
+A result of 0 means the selected operation succeeded. Windows Installer can also return successful restart codes 3010 (restart required) or 1641 (restart initiated); setup preserves these [native results](https://learn.microsoft.com/en-us/windows/win32/msi/error-codes) and suppresses automatic restart requests. Native 1602 means cancellation; 1603 means failure. Recovery preserves those original codes even when it restores the previous version successfully. Preflight failures return 1603 before starting MSI work. Recovery runs synchronously under the ordinary invoking account.
 
 ## Portable ZIP alternative
 

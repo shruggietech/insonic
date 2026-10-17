@@ -51,3 +51,17 @@ func TestSetupRejectsUnboundedMSIOptionsAndUnpairedLegacySource(t *testing.T) {
 		}
 	}
 }
+
+func TestSetupResumeSupportsUnattendedRecoveryWithoutInstallationOptions(t *testing.T) {
+	for _, args := range [][]string{{"--resume-recovery"}, {"--quiet", "--resume-recovery"}, {"--resume-recovery", "--quiet"}} {
+		o, err := Parse(args)
+		if err != nil || !o.Resume || o.Quiet != (len(args) == 2) {
+			t.Fatal(args, o, err)
+		}
+	}
+	for _, args := range [][]string{{"--resume-recovery", "--remove"}, {"--resume-recovery", "--install-dir", `C:\program`}, {"--quiet", "--resume-recovery", "--accept-license"}} {
+		if _, err := Parse(args); err == nil {
+			t.Fatal("accepted installation options during recovery", args)
+		}
+	}
+}

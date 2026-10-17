@@ -74,7 +74,7 @@ func Parse(args []string) (Options, error) {
 	if o.Repair && o.Remove || o.AcceptLicense && !o.Quiet || o.Clients != "" && o.Clients != "both" && o.Clients != "desktop" && o.Clients != "cli" || (o.PreviousMSI == "") != (o.PreviousSHA == "") || o.PreviousSHA != "" && !digestPattern.MatchString(o.PreviousSHA) {
 		return o, errors.New("invalid setup options; use --help")
 	}
-	if (o.Worker != "" && (len(args) != 2 || len(o.Worker) != 48)) || (o.Resume && len(args) != 1) {
+	if (o.Worker != "" && (len(args) != 2 || len(o.Worker) != 48)) || (o.Resume && len(args) != 1 && !(o.Quiet && len(args) == 2)) {
 		return o, errors.New("recovery must run separately from other setup operations")
 	}
 	return o, nil

@@ -346,7 +346,10 @@ func Run(args []string) int {
 	if traceErr != nil {
 		receipt.Error = traceErr.Error()
 	}
-	if nativeCode != 0 && prior != nil {
+	// Windows Installer also reports committed success with a restart result.
+	// Preserve it without attempting to roll back an already installed upgrade.
+	committed := nativeCode == 0 || nativeCode == 3010 || nativeCode == 1641
+	if !committed && prior != nil {
 		recovery.Original = nativeCode
 		recovery.ResultKnown = true
 		if err := runWorker(c, recovery); err != nil {
@@ -363,7 +366,7 @@ func Run(args []string) int {
 				}
 			}
 		}
-	} else if nativeCode == 0 {
+	} else if committed {
 		state := e.State(p.Product)
 		if state != 5 && !(state == -1 && product == p.Product) {
 			receipt.Code = 1603
@@ -382,7 +385,7 @@ func Run(args []string) int {
 				}
 			}
 		}
-		if receipt.Code == 0 && e.State(p.Product) == -1 {
+		if receipt.Code == nativeCode && e.State(p.Product) == -1 {
 			if err := c.clean(p.Product); err != nil {
 				receipt.Error = err.Error()
 			}
