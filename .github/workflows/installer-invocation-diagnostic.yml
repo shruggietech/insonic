@@ -1,9 +1,5 @@
 name: Installer invocation diagnostic
 on:
-  pull_request:
-    paths:
-      - scripts/diagnose-installer-completion.py
-      - .github/workflows/installer-invocation-diagnostic.yml
   workflow_dispatch:
 permissions:
   contents: read
