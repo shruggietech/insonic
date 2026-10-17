@@ -644,7 +644,7 @@ func commandHelp(path []string) string {
 				b.WriteString("Continue with the same search text and filters plus --after NEXT_CURSOR from the preceding page. A page can contain only relationships; follow next_cursor until absent.\n")
 			}
 			if p == "query native" {
-				b.WriteString("Read-only subset: one statement, optional trailing semicolon and comments. Cypher starts MATCH, OPTIONAL MATCH, RETURN, WITH or UNWIND; SQL starts SELECT; EXPLAIN may prefix a read. No mutation, transaction control, procedures or PROFILE. Pure functions: COUNT, SUM, MIN, MAX, AVG, COALESCE, TOSTRING, TOINTEGER, LOWER, UPPER, ABS, SIZE, LENGTH, COLLECT. Other functions (including range) are rejected; use literal inputs or supported functions. Parameter JSON must have unique object members at every level.\n")
+				b.WriteString("Read-only subset: one statement, optional trailing semicolon and comments. Cypher starts MATCH, OPTIONAL MATCH, RETURN, WITH or UNWIND; SQL starts SELECT; EXPLAIN may prefix a read. No mutation, transaction control, procedures or PROFILE. Pure functions: COUNT, SUM, MIN, MAX, AVG, COALESCE, TOSTRING, TOINTEGER, LOWER, UPPER, ABS, SIZE, LENGTH, COLLECT. Parenthesized read expressions are accepted; function names must be unqualified. Other functions (including range) are rejected; use literal inputs or supported functions. Parameter JSON must have unique object members at every level.\n")
 			}
 			if p == "work wait" {
 				b.WriteString("Default timeout: 30000 ms. A timeout leaves work running; use work show, wait or cancel.\n")

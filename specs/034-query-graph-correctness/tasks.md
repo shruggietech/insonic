@@ -49,3 +49,7 @@ T001 -> T002 -> analysis gate -> regression tests -> implementations -> T013 -> 
 - [x] T017 Capture the actual local-zone provenance for the Local alias in internal/library/date.go and add its regression per FR-003/FR-007 (partial).
 
 - [x] T018 Accept bounded opaque search cursors in the top-level invocation parser, retaining UUID validation for catalog cursors in cmd/insonic/commands.go; extend full-parser regression per FR-002 (partial).
+
+- [x] T019 Normalize the accepted trailing terminator before native engine dispatch in internal/graph/native.go and internal/graph/types.go; retain literal/comment distinctions and all guards, with cross-dialect regression coverage per FR-006/FR-007 (partial).
+
+- [x] T020 Distinguish parenthesized read clauses from function calls while rejecting qualified calls outside the declared pure subset in internal/graph/native.go and native_terminator_test.go; document grammar per FR-006 (partial).

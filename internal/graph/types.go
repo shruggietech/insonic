@@ -412,9 +412,11 @@ func (a *adapter) ExportSnapshot(ctx context.Context, w string) (References, err
 	return a.ReadRefs(ctx, w)
 }
 func (a *adapter) Query(ctx context.Context, dialect, text string, params map[string]contracts.QueryParameter) (Rows, error) {
-	if e := ValidateNative(dialect, text, params); e != nil {
+	statement, e := validatedNative(dialect, text, params)
+	if e != nil {
 		return nil, e
 	}
+	text = statement
 	if (a.sql() && dialect != "arcade-sql" && dialect != "arcade-opencypher") || (!a.sql() && dialect != "ladybug-cypher") {
 		return nil, contracts.Fail("unsupported_capability")
 	}
@@ -466,9 +468,11 @@ func (a *adapter) Query(ctx context.Context, dialect, text string, params map[st
 	return rows, nil
 }
 func (a *adapter) Explain(ctx context.Context, dialect, text string, p map[string]contracts.QueryParameter) (Rows, error) {
-	if e := ValidateNative(dialect, text, p); e != nil {
+	statement, e := validatedNative(dialect, text, p)
+	if e != nil {
 		return nil, e
 	}
+	text = statement
 	tokens, _ := nativeTokens(text)
 	if len(tokens) > 0 && tokens[0] == "EXPLAIN" {
 		return a.Query(ctx, dialect, text, p)
