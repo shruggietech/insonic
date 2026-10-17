@@ -34,6 +34,27 @@ def versioned_pe_fixture():
     struct.pack_into('<IIII',data,512+72,0x1000+88,len(value),0,0);data[600:600+len(value)]=value
     return bytes(data)
 class InstallerModelTests(unittest.TestCase):
+    def test_actor_authoring_resources_keep_the_governed_icon_at_its_module_path(self):
+        spec=importlib.util.spec_from_file_location('qualify_staged_icon',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);source=root/'source';stage=root/'actor'
+            icon=source/m.ICON;icon.parent.mkdir(parents=True);icon.write_bytes((ROOT/m.ICON).read_bytes())
+            with patch.object(module.m,'ROOT',source),patch.object(module.m,'disposable_runner'):
+                evidence=module.stage_authoring_resources(stage)
+                self.assertEqual((stage/m.ICON).read_bytes(),icon.read_bytes())
+                self.assertEqual(evidence,{'path':m.ICON,'sha256':m.sha(icon)})
+                # A later ordinary-user capsule author resolves ROOT/ICON from
+                # the copied module, after the downloaded old MSI was deleted.
+                self.assertTrue((stage/m.ICON).is_file())
+
+    def test_missing_authoring_icon_fails_before_actor_resources_are_published(self):
+        spec=importlib.util.spec_from_file_location('qualify_missing_icon',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as temporary:
+            source=Path(temporary)/'missing';stage=Path(temporary)/'actor'
+            with patch.object(module.m,'ROOT',source),patch.object(module.m,'disposable_runner'):
+                with self.assertRaisesRegex(ValueError,'icon is unavailable'):module.stage_authoring_resources(stage)
+            self.assertFalse(stage.exists())
+
     def test_source_cleanup_waits_for_committed_removal_and_excludes_upgrade_removal(self):
         with tempfile.TemporaryDirectory() as temporary:
             _,model=fixture(Path(temporary))

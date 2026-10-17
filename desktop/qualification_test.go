@@ -2,7 +2,9 @@
 package desktop
 
 import (
+	"bytes"
 	"encoding/json"
+	"sync"
 	"testing"
 
 	"github.com/shruggietech/insonic/internal/app"
@@ -50,4 +52,55 @@ func TestQualificationSmokeStartsHidden(t *testing.T) {
 	if !QualificationStartsHidden(true) || QualificationStartsHidden(false) {
 		t.Fatal("smoke visibility changed ordinary desktop behavior")
 	}
+}
+
+func TestNativeQualificationResponseRemainsDetachedAfterHelpDispatch(t *testing.T) {
+	b := &Bridge{}
+	ConfigureHelpQualification(b)
+	first := "https://example.com/first"
+	if response := b.OpenHelpReference(first); response.Error != nil {
+		t.Fatal(response.Error)
+	}
+	snapshot := b.NativeQualificationData()
+	if response := b.OpenHelpReference("https://example.com/second"); response.Error != nil {
+		t.Fatal(response.Error)
+	}
+	raw, err := json.Marshal(snapshot)
+	if err != nil || !bytes.Contains(raw, []byte(first)) {
+		t.Fatalf("in-flight Wails response changed after method returned: %s %v", raw, err)
+	}
+	snapshot.Result.(map[string]any)["help_only"] = false
+	if b.NativeQualificationData().Result.(map[string]any)["help_only"] != true {
+		t.Fatal("response mutation changed native fixture state")
+	}
+}
+
+func TestNativeQualificationResponseSerializesDuringHelpDispatch(t *testing.T) {
+	b := &Bridge{}
+	ConfigureHelpQualification(b)
+	start := make(chan struct{})
+	var workers sync.WaitGroup
+	workers.Add(2)
+	go func() {
+		defer workers.Done()
+		<-start
+		for range 1000 {
+			if response := b.OpenHelpReference("https://example.com/reference"); response.Error != nil {
+				t.Error(response.Error)
+				return
+			}
+		}
+	}()
+	go func() {
+		defer workers.Done()
+		<-start
+		for range 1000 {
+			if _, err := json.Marshal(b.NativeQualificationData()); err != nil {
+				t.Error(err)
+				return
+			}
+		}
+	}()
+	close(start)
+	workers.Wait()
 }

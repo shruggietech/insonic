@@ -649,6 +649,15 @@ def ordinary_namespace_probe(stage):
     proof={'state':'passed','token':token_info(),'directories':object_namespace_diagnostic(),'mutex':installer_mutex_diagnostic()}
     (stage/'native/context.namespace-probe.json').write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
 
+def stage_authoring_resources(stage):
+    """Retain the exact governed icon for capsule authoring inside the actor."""
+    m.disposable_runner();stage=Path(stage)
+    source=m.ROOT/m.ICON;target=stage/m.ICON
+    if not source.is_file() or source.is_symlink():raise ValueError('owned authoring icon is unavailable')
+    target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(source,target)
+    if m.sha(target)!=m.sha(source):raise RuntimeError('owned authoring icon copy differs')
+    return {'path':m.ICON,'sha256':m.sha(target)}
+
 DIAGNOSTIC_MODES=('completion','rollback-reused','rollback-isolated','rollback-primed','rollback-late','rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container','rollback-container-independent','rollback-standalone','rollback-standalone-full','rollback-setup','rollback-setup-full','keyboard')
 
 def diagnostic_mode(stage):
@@ -1494,6 +1503,7 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
         for filename in ('qualify-windows-msi.py','windows_msi.py','windows_setup.py','qualify_installer_setup.py','qualify_installer_ui.py','render-installed-help.mjs'):
             shutil.copyfile(m.ROOT/'scripts'/filename,scripts/filename)
             if m.sha(scripts/filename)!=m.sha(m.ROOT/'scripts'/filename):raise RuntimeError('ordinary staged script identity differs')
+        record('Copy-exact-owned-authoring-icon',**stage_authoring_resources(stage))
         target=stage/'fixture.msi';shutil.copyfile(installer,target)
         if m.sha(target)!=m.sha(Path(installer)):raise RuntimeError('ordinary MSI fixture copy differs')
         fixture=Path(directory).parent/'launcher-context-fixture';shutil.copytree(fixture,stage/'launcher-context-fixture')
@@ -1638,12 +1648,13 @@ def cancellation(installer,directory,output):
     if completed.returncode:raise RuntimeError('native cancellation worker failed: '+completed.stderr.decode(errors='replace')[-3000:])
     return json.loads(output.read_text(encoding='utf-8'))
 
-def qualify(path,receipt):
+def qualify(path,receipt,lane='all'):
+    if lane not in ('all','interactive','maintenance','setup'):raise ValueError('unknown native installer qualification lane')
     m.disposable_runner();service_ownership=service_diagnostic(configuration=True);path=Path(path);started=time.monotonic()
     inventory=receipt['payload_inventory'];model=m.installer_model(inventory,receipt['payload_receipt']['inventory_sha256'],(m.ROOT/'LICENSE').read_text(encoding='utf-8'));m.verify_model_bytes(path,model)
     original_token=token_info()
     if not original_token['administrator_enabled'] or not original_token['elevated']:raise RuntimeError('elevated disposable runner token is required for dual-context qualification')
-    result={};logs=m.ROOT/'build/native/msi-logs';logs.mkdir(parents=True,exist_ok=True);proof=[]
+    result={};logs=m.ROOT/'build/native/msi-logs';logs.mkdir(parents=True,exist_ok=True);proof=[];context_evidence=None;setup_evidence=None
     upgrade=m.guid('disposable-ci/'+os.environ.get('GITHUB_RUN_ID','')+'/'+str(uuid.uuid4()))
     version=model['version'];major,minor,patch=map(int,version.split('.'));new_version=f'{major}.{minor}.{patch+1}'
     def phase(name,**extra):
@@ -1666,17 +1677,28 @@ def qualify(path,receipt):
             for entry in model['payload']:
                 if entry['path']!=m.OWNERSHIP and m.sha(payload/entry['path'])!=entry['sha256']:raise ValueError('ordinary-first payload differs from exact MSI model')
             fixture_evidence=prepare_launcher_fixture(payload,tmp/'launcher-context-fixture')
-            import windows_setup
-            setup_path=m.ROOT/'build/packages'/receipt['setup']['artifact']
-            setup_identity,stub_size=windows_setup.read_payload(setup_path)
-            if setup_identity!=receipt['setup']['embedded_msi'] or stub_size>128*1024*1024:raise RuntimeError('setup fixture program source differs')
-            with setup_path.open('rb') as source,(tmp/'launcher-context-fixture/owned-setup.exe').open('wb') as target:target.write(source.read(stub_size))
-            build_barrier=subprocess.run(['go','build','-ldflags','-H windowsgui','-o',str(tmp/'launcher-context-fixture/owned-cancel-barrier.exe'),str(m.ROOT/'tests/fixtures/setup-cancel-barrier.go')],cwd=m.ROOT,env=dict(os.environ,CGO_ENABLED='0'),stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=60)
-            if build_barrier.returncode:raise RuntimeError('owned cancellation barrier compile failed: '+build_barrier.stderr.decode(errors='replace')[-2000:])
-            context_evidence=ordinary_context(old,tmp/'ordinary per-user installation',logs/'ordinary-context.json',model,service_ownership)
-            phase('ordinary-exact-setup-and-recovery')
-            setup_evidence=ordinary_context(path,tmp/'ordinary setup installation',logs/'ordinary-setup-context.json',model,service_ownership,setup_only=True,setup_path=setup_path,setup_receipt=receipt['setup'])
-            receipt['setup']['qualification'].update(setup_evidence['setup']['qualification'])
+            if lane in ('all','setup'):
+                import windows_setup
+                setup_path=m.ROOT/'build/packages'/receipt['setup']['artifact']
+                setup_identity,stub_size=windows_setup.read_payload(setup_path)
+                if setup_identity!=receipt['setup']['embedded_msi'] or stub_size>128*1024*1024:raise RuntimeError('setup fixture program source differs')
+                with setup_path.open('rb') as source,(tmp/'launcher-context-fixture/owned-setup.exe').open('wb') as target:target.write(source.read(stub_size))
+                build_barrier=subprocess.run(['go','build','-ldflags','-H windowsgui','-o',str(tmp/'launcher-context-fixture/owned-cancel-barrier.exe'),str(m.ROOT/'tests/fixtures/setup-cancel-barrier.go')],cwd=m.ROOT,env=dict(os.environ,CGO_ENABLED='0'),stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=60)
+                if build_barrier.returncode:raise RuntimeError('owned cancellation barrier compile failed: '+build_barrier.stderr.decode(errors='replace')[-2000:])
+            if lane in ('all','interactive'):
+                context_evidence=ordinary_context(old,tmp/'ordinary per-user installation',logs/'ordinary-context.json',model,service_ownership)
+                from qualify_installer_ui import export_captures
+                export_captures(m.ROOT/'build/native/installer-capture',logs,context_evidence['interactive'],receipt)
+                result.update({key:'passed' for key in ('user_context','interactive_transactions','documentation_completion')})
+            if lane in ('all','setup'):
+                phase('ordinary-exact-setup-and-recovery')
+                setup_evidence=ordinary_context(path,tmp/'ordinary setup installation',logs/'ordinary-setup-context.json',model,service_ownership,setup_only=True,setup_path=setup_path,setup_receipt=receipt['setup'])
+                receipt['setup']['qualification'].update(setup_evidence['setup']['qualification'])
+            if lane in ('interactive','setup'):
+                proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'lane':lane,'checks':dict(result),'elapsed_seconds':round(time.monotonic()-started,3),'ordinary':context_evidence,'setup':setup_evidence}
+                (m.ROOT/'build/native/msi-lifecycle.json').write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+                phase('completed')
+                return result
             phase('administrator-prerequisite-rejections')
             run_installer(['/i',old,'INSTALLDIR='+str(install),'ADDLOCAL=Core'],logs/'license-rejected.log',False,'Read and accept Apache License 2.0')
             run_installer(call(old,'Core'),logs/'empty-selection-rejected.log',False,'Select Desktop, CLI integrations, or both.')
@@ -1727,7 +1749,7 @@ def qualify(path,receipt):
             installed_hashes(install,model,True);active.terminate();active.wait(timeout=5);active=None;active_path.unlink();result['active_work_preserved']='passed'
             phase('administrator-cancellation-and-rollback')
             # Deliberately remove Desktop before upgrading to prove feature migration.
-            run_installer(call(old,'Core,CLI',REMOVE='Desktop',REINSTALLMODE='vomus'),logs/'cli-election.log');installed_hashes(install,model,False)
+            run_installer(call(old,'Core,CLI',REMOVE='Desktop',REINSTALLMODE='omus'),logs/'cli-election.log');installed_hashes(install,model,False)
             cancellation_evidence=cancellation(new,install,logs/'cancelled-upgrade.json');installed_hashes(install,model,False)
             if sentinel.read_bytes()!=b'preserve library media settings models credentials':raise ValueError('cancelled MSI changed user data')
             result['cancellation_rollback']='passed'
@@ -1740,10 +1762,7 @@ def qualify(path,receipt):
             if any((install/f['path']).exists() for f in model['payload']):raise ValueError('MSI removal retained owned files')
             assert_removal_sentinels(integration_sentinels)
             result['user_data_preserved']='passed'
-            from qualify_installer_ui import export_captures
-            export_captures(m.ROOT/'build/native/installer-capture',logs,context_evidence['interactive'],receipt)
-            result['user_context']='passed';result['interactive_transactions']='passed';result['documentation_completion']='passed'
-            proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'windows_build':str(__import__('sys').getwindowsversion().build),'fixture_upgrade_code':upgrade,'checks':result,'elapsed_seconds':round(time.monotonic()-started,3),'active_work_fixture':{'process':'running owned ping image, no process shutdown','rejected_actions':['alternate-install-directory upgrade','uninstall'],'alternate_directory_absent':True,'old_payload_hashes_preserved':True},'exact_shortcut_collision':{'fresh_cli_exact_name':'rejected before installation changes','unrelated_bytes':'preserved','failed_action':'CheckCliMenu'},'unrelated_integrations':{'start_menu_sibling':'preserved','desktop_sibling':'preserved','product_key_sibling_value':'preserved','sentinel_content_sha256':m.digest(integration_sentinels['content'])},'shortcut_migration':{'fresh_unchecked_properties':'empty values normalized to zero','upgrade_overrides':False,'saved_elections':final_shortcut_elections},'policy_prompts':'not-observed','signing':'unsigned','cancellation':cancellation_evidence,'installer_service_initial':service_ownership,'user_context':{'original_elevated_token':original_token,'ordinary_process':context_evidence},'setup':setup_evidence['setup'],'elected_launcher':{'fixture':fixture_evidence,'elevated_caller':elevated_launch_evidence,'ordinary_caller':context_evidence['elected_launcher']}}
+            proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'windows_build':str(__import__('sys').getwindowsversion().build),'fixture_upgrade_code':upgrade,'checks':result,'elapsed_seconds':round(time.monotonic()-started,3),'active_work_fixture':{'process':'running owned ping image, no process shutdown','rejected_actions':['alternate-install-directory upgrade','uninstall'],'alternate_directory_absent':True,'old_payload_hashes_preserved':True},'exact_shortcut_collision':{'fresh_cli_exact_name':'rejected before installation changes','unrelated_bytes':'preserved','failed_action':'CheckCliMenu'},'unrelated_integrations':{'start_menu_sibling':'preserved','desktop_sibling':'preserved','product_key_sibling_value':'preserved','sentinel_content_sha256':m.digest(integration_sentinels['content'])},'shortcut_migration':{'fresh_unchecked_properties':'empty values normalized to zero','upgrade_overrides':False,'saved_elections':final_shortcut_elections},'policy_prompts':'not-observed','signing':'unsigned','cancellation':cancellation_evidence,'installer_service_initial':service_ownership,'user_context':{'original_elevated_token':original_token,'ordinary_process':context_evidence},'setup':setup_evidence['setup'] if setup_evidence else None,'elected_launcher':{'fixture':fixture_evidence,'elevated_caller':elevated_launch_evidence,'ordinary_caller':context_evidence['elected_launcher'] if context_evidence else None}}
             phase('completed')
         except BaseException as error:
             phase('failed',error_type=type(error).__name__,error=str(error)[-4000:]);raise

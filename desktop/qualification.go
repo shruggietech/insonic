@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/shruggietech/insonic/internal/assistance"
 	"github.com/shruggietech/insonic/internal/models"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -77,7 +78,9 @@ func QualificationStartsHidden(smoke bool) bool { return smoke }
 func (b *Bridge) NativeQualificationData() contracts.Response {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
-	return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Result: b.qualification}
+	// Wails serializes after this method releases the lock. The top-level
+	// observation map changes during help dispatch; fixture inputs are immutable.
+	return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Result: maps.Clone(b.qualification)}
 }
 
 // QualificationStep emits bounded fixture-only progress, never paths or values.

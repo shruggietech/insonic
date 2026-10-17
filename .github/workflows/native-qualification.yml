@@ -236,7 +236,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: [ cli, desktop ]
+        variant: ${{ inputs.os == 'windows-2022' && fromJSON('["cli"]') || fromJSON('["cli","desktop"]') }}
     runs-on: ${{ inputs.os }}
     timeout-minutes: 11
     permissions:
@@ -364,16 +364,8 @@ jobs:
         run: |
           npm --prefix desktop/frontend run build
       - name: Assemble and qualify this relocated native package variant
-        if: inputs.native && (runner.os != 'Windows' || matrix.variant != 'desktop')
+        if: inputs.native
         run: python scripts/package-desktop.py all --variant ${{ matrix.variant }}
-      - name: Install owned HTML association renderer dependency
-        if: inputs.native && runner.os == 'Windows' && matrix.variant == 'desktop'
-        run: npm ci --ignore-scripts
-      - name: Qualify the same Windows ZIP and MSI in parallel
-        if: inputs.native && runner.os == 'Windows' && matrix.variant == 'desktop'
-        env:
-          INSONIC_DISPOSABLE_INSTALLER_TEST: '1'
-        run: python scripts/qualify-windows-package.py
       - name: Retain qualified candidate package bytes
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: success() && inputs.native
@@ -396,29 +388,21 @@ jobs:
             build/native/*receipt.json
             build/native/package-inventory.json
           if-no-files-found: error
-      - name: Retain qualified candidate installer bytes
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        if: success() && inputs.native && runner.os == 'Windows' && matrix.variant == 'desktop'
-        with:
-          archive: true
-          name: candidate-package-${{ inputs.os }}-installer-${{ inputs.revision }}-${{ github.run_attempt }}
-          path: |
-            build/packages/*.msi
-            build/packages/*_setup.exe
-            build/native/windows-installer-receipt.json
-            build/native/installer-capture
-          compression-level: 0
-          if-no-files-found: error
-          retention-days: 14
-      - name: Retain installer qualification diagnostics
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
-        if: always() && inputs.native && runner.os == 'Windows' && matrix.variant == 'desktop'
-        with:
-          archive: true
-          name: installer-receipts-${{ inputs.os }}-${{ inputs.revision }}-${{ github.run_attempt }}
-          path: |
-            build/native/windows-installer-receipt.json
-            build/native/msi-lifecycle.json
-            build/native/msi-logs
-            build/native/installer-capture
-          if-no-files-found: error
+  windows-desktop:
+    permissions:
+      contents: read
+      actions: read
+    if: inputs.native && inputs.os == 'windows-2022' && inputs.lane != 'runtime'
+    uses: ./.github/workflows/windows-desktop-qualification.yml
+    with:
+      revision: ${{ inputs.revision }}
+      os: ${{ inputs.os }}
+      core: ${{ inputs.core }}
+      cli: ${{ inputs.cli }}
+      native: ${{ inputs.native }}
+      documentation-target: ${{ inputs.documentation-target }}
+      reuse-ci-offline-help: ${{ inputs.reuse-ci-offline-help }}
+      overlap-source-setup: ${{ inputs.overlap-source-setup }}
+      windows-sign-cert-sha1: ${{ inputs.windows-sign-cert-sha1 }}
+      signtool-executable: ${{ inputs.signtool-executable }}
+      windows-sign-timestamp-url: ${{ inputs.windows-sign-timestamp-url }}
