@@ -944,18 +944,20 @@ def interactive_context_desktop(user_sid,caller_sid,stage):
         Path(stage,'ui-actor-desktop.json').write_text(json.dumps(evidence),encoding='utf-8',newline='\n')
         yield evidence
     finally:
-        if user.GetProcessWindowStation()!=original:checked(user.SetProcessWindowStation(original))
-        if user.GetThreadDesktop(thread)!=original_desktop:checked(user.SetThreadDesktop(original_desktop))
-        if before is not None and granted is not None:
-            _,current=descriptor(station)
-            if current!=granted:raise RuntimeError('CI station DACL changed outside the exact owned grant; restoration refused')
-            checked(user.SetUserObjectSecurity(station,C.byref(info),before));_,restored=descriptor(station)
-            evidence['station_dacl_restored']=restored==before_text
-            if not evidence['station_dacl_restored']:raise RuntimeError('CI station DACL restoration differs')
-        if owned:checked(user.CloseDesktop(owned))
-        if station:checked(user.CloseWindowStation(station))
-        for value in (converted,desktop_descriptor):
-            if value:kernel.LocalFree(value)
+        try:
+            if user.GetProcessWindowStation()!=original:checked(user.SetProcessWindowStation(original))
+            if user.GetThreadDesktop(thread)!=original_desktop:checked(user.SetThreadDesktop(original_desktop))
+            if before is not None and granted is not None:
+                _,current=descriptor(station)
+                if current!=granted:raise RuntimeError('CI station DACL changed outside the exact owned grant; restoration refused')
+                checked(user.SetUserObjectSecurity(station,C.byref(info),before));_,restored=descriptor(station)
+                evidence['station_dacl_restored']=restored==before_text
+                if not evidence['station_dacl_restored']:raise RuntimeError('CI station DACL restoration differs')
+        finally:
+            if owned:checked(user.CloseDesktop(owned))
+            if station:checked(user.CloseWindowStation(station))
+            for value in (converted,desktop_descriptor):
+                if value:kernel.LocalFree(value)
 
 
 @__import__('contextlib').contextmanager
@@ -1226,7 +1228,7 @@ def worker_failure_path(output,bootstrap=False):
 def qualifier_profile_privileges(names=('SeBackupPrivilege','SeRestorePrivilege')):
     """Scope required existing rights on the calling CI token and restore them."""
     m.disposable_runner()
-    if names not in (('SeBackupPrivilege','SeRestorePrivilege'),('SeAssignPrimaryTokenPrivilege','SeIncreaseQuotaPrivilege')):raise ValueError('unsupported CI process privilege scope')
+    if names not in (('SeBackupPrivilege','SeRestorePrivilege'),('SeAssignPrimaryTokenPrivilege','SeIncreaseQuotaPrivilege'),('SeTcbPrivilege',)):raise ValueError('unsupported CI process privilege scope')
     import ctypes as C
     import ctypes.wintypes as W
     kernel=C.WinDLL('kernel32',use_last_error=True);security=C.WinDLL('advapi32',use_last_error=True)
@@ -1240,7 +1242,8 @@ def qualifier_profile_privileges(names=('SeBackupPrivilege','SeRestorePrivilege'
     token=W.HANDLE();requested=Privileges();previous=Privileges();size=W.DWORD();changed=False
     if not security.OpenProcessToken(kernel.GetCurrentProcess(),0x28,C.byref(token)):raise C.WinError(C.get_last_error())
     try:
-        requested.count=2
+        if names==('SeTcbPrivilege',) and account_sid(token)!='S-1-5-18':raise RuntimeError('UI session assignment requires the exact SYSTEM broker token')
+        requested.count=len(names)
         for index,name in enumerate(names):
             if not security.LookupPrivilegeValueW(None,name,C.byref(requested.entries[index].luid)):raise C.WinError(C.get_last_error())
             requested.entries[index].attributes=2

@@ -27,7 +27,11 @@ func DocumentationEntry(directory string) (string, error) {
 	if err != nil || !containsPath(program, base) || base == program {
 		return "", documentationCorrection
 	}
-	f, err := os.Open(filepath.Join(base, "offline-manifest.json"))
+	manifest, err := filepath.EvalSymlinks(filepath.Join(base, "offline-manifest.json"))
+	if err != nil || !containsPath(base, manifest) || manifest == base {
+		return "", documentationCorrection
+	}
+	f, err := os.Open(manifest)
 	if err != nil {
 		return "", documentationCorrection
 	}

@@ -66,6 +66,14 @@ func TestDocumentationRejectsEscapedRootAndAcceptsProgramAlias(t *testing.T) {
 	if _, err := DocumentationEntry(alias); err != nil {
 		t.Fatal("legitimate program relocation alias rejected", err)
 	}
+	manifest := filepath.Join(program, "help", "offline-manifest.json")
+	if err := os.Remove(manifest); err != nil {
+		t.Fatal(err)
+	}
+	directoryAlias(t, filepath.Join(outside, "offline-manifest.json"), manifest)
+	if _, err := DocumentationEntry(program); err == nil {
+		t.Fatal("accepted a manifest outside the installed help root")
+	}
 }
 
 func TestDocumentationReferencesExcludePrivateOriginsAndExecutableSchemes(t *testing.T) {

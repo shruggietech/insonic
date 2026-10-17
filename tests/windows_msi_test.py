@@ -411,17 +411,28 @@ class InstallerModelTests(unittest.TestCase):
         def adjust(handle,disable,requested,size,previous,needed):
             self.assertEqual(handle.value,99)
             if previous is not None:
-                self.assertEqual(requested._obj.count,2);previous._obj.count=2;previous._obj.entries[0].attributes=0;previous._obj.entries[1].attributes=2;events.append('enable-own-token')
+                self.assertEqual(requested._obj.count,len(names));previous._obj.count=len(names)
+                for index in range(len(names)):previous._obj.entries[index].attributes=index*2
+                events.append('enable-own-token')
             else:
-                self.assertEqual(requested._obj.entries[0].attributes,0);self.assertEqual(requested._obj.entries[1].attributes,2);events.append('restore-exact-own-token')
+                self.assertEqual(requested._obj.count,len(names))
+                for index in range(len(names)):self.assertEqual(requested._obj.entries[index].attributes,index*2)
+                events.append('restore-exact-own-token')
             return True
         kernel=SimpleNamespace(GetCurrentProcess=Function(lambda:1),CloseHandle=Function(lambda handle:events.append('close-own-token')))
         security=SimpleNamespace(OpenProcessToken=Function(token),LookupPrivilegeValueW=Function(lookup),AdjustTokenPrivileges=Function(adjust));dlls={'kernel32':kernel,'advapi32':security}
-        with patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(C,'set_last_error',side_effect=lambda value:last_error.__setitem__(0,value),create=True),patch.object(C,'get_last_error',side_effect=lambda:last_error[0],create=True):
-            with self.assertRaisesRegex(ValueError,'profile API failure'):
-                with module.qualifier_profile_privileges() as scope:
-                    self.assertFalse(scope['ordinary_actor_token_changed']);raise ValueError('profile API failure')
-        self.assertEqual(events,['SeBackupPrivilege','SeRestorePrivilege','enable-own-token','restore-exact-own-token','close-own-token'])
+        for names in (('SeBackupPrivilege','SeRestorePrivilege'),('SeAssignPrimaryTokenPrivilege','SeIncreaseQuotaPrivilege'),('SeTcbPrivilege',)):
+            events.clear()
+            with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'account_sid',return_value='S-1-5-18'),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(C,'set_last_error',side_effect=lambda value:last_error.__setitem__(0,value),create=True),patch.object(C,'get_last_error',side_effect=lambda:last_error[0],create=True):
+                with self.assertRaisesRegex(ValueError,'profile API failure'):
+                    with module.qualifier_profile_privileges(names) as scope:
+                        self.assertFalse(scope['ordinary_actor_token_changed']);raise ValueError('profile API failure')
+            self.assertEqual(events,[*names,'enable-own-token','restore-exact-own-token','close-own-token'])
+        events.clear()
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'account_sid',return_value='S-1-5-21-1-2-3-1001'),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True):
+            with self.assertRaisesRegex(RuntimeError,'exact SYSTEM'):
+                with module.qualifier_profile_privileges(('SeTcbPrivilege',)):self.fail('ordinary account accepted broker session scope')
+        self.assertEqual(events,['close-own-token'])
     def test_native_recorder_probe_retains_exit_and_never_substitutes_elected_receipt(self):
         from types import SimpleNamespace
         spec=importlib.util.spec_from_file_location('qualify_native_probe',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
