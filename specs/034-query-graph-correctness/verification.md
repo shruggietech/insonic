@@ -27,3 +27,9 @@ Owner explicitly authorized push and PR creation, superseding the skill's defaul
 ## Installed-boundary correction (2026-10-17)
 
 The first fresh Windows package run reproduced a top-level parser rejection of a valid search cursor as non-UUID, before query dispatch. T018 makes the rule command-specific: search accepts bounded opaque cursors; catalog list routes retain UUID validation. The regression now covers parseInvocation and parseExploreAlias together. Fresh package execution is repeated after this correction.
+
+## Fresh Windows CLI result (2026-10-17)
+
+Implementation head e953fcc rebuilt the Windows CLI package in 12.390 seconds with clean source identity. Installed qualification passed: 608 selected graph nodes, all 607 relationships, all 607 search matches, local/IANA/fixed-offset timezone paths, live schema-generated save example, duplicate parameter rejection and exact signed int64 native execution with a trailing terminator. The six-case fixture took 8.157 seconds (39.578 seconds including owned runtime idle cleanup). The complete CLI suite passed again in 4.046 seconds outside the restricted profile. No owner media or inference was used.
+
+Convergence after T018 reports no remaining implementation gap. GitHub milestone 18 and Project 7 track exactly the six scoped issues; publication and subsequent CI/review outcomes are recorded on the linked PR.

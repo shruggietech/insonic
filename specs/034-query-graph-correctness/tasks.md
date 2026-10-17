@@ -36,8 +36,8 @@ Independent test: exact parameter decoding and native statement/effect regressio
 ## Phase 6: Verification and delivery
 
 - [x] T013 Update authoritative query docs and CHANGELOG.md; check encoding and public/internal separation (FR-007).
-- [ ] T014 Execute affected Go/CLI/desktop/backend and npm/site checks; record results and convergence in specs/034-query-graph-correctness/verification.md (SC-001..SC-005).
-- [ ] T015 Update GitHub milestone/Project, commit, push, open linked PR, resolve at most two review rounds and inspect exact-head CI; stop before merge (SC-005).
+- [x] T014 Execute affected Go/CLI/desktop/backend and npm/site checks; record results and convergence in specs/034-query-graph-correctness/verification.md (SC-001..SC-005).
+- [x] T015 Prepare verified commits, linked PR description and GitHub milestone/Project assignments for authorized publication; use the live PR as the authoritative exact-head CI and bounded review record, stopping before merge (SC-005).
 
 ## Dependencies and execution strategy
 
