@@ -110,3 +110,66 @@ func TestSingleRowReadPreservesWorkspaceAndJSONAuthority(t *testing.T) {
 		t.Fatal("single row read accepted ambiguous JSON", err)
 	}
 }
+
+func TestModelReferenceNameReadDoesNotReserveSQLiteWriter(t *testing.T) {
+	ctx := context.Background()
+	s := localStore(t, contracts.ID())
+	target, _ := json.Marshal(ModelTarget{Kind: "hosted", Operation: "transcription", Adapter: "insonic-http", ContractVersion: "1", Endpoint: "https://example.org/inference", RemoteModel: "pinned", UpstreamRevision: "r1"})
+	alias, err := s.PutModelAlias(ctx, contracts.ID(), 0, ModelAlias{Name: "speech", State: "active", Target: target})
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, err := s.PutModelSource(ctx, contracts.ID(), 0, ModelSource{ID: ModelReferenceID(s.workspace, "source", "upstream"), Name: "upstream", State: "active", URL: "https://example.org/models"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.db.SetMaxOpenConns(2)
+	one, err := s.db.Conn(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	two, err := s.db.Conn(ctx)
+	if err != nil {
+		one.Close()
+		t.Fatal(err)
+	}
+	one.Close()
+	two.Close()
+	writer, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Rollback()
+	for _, row := range []struct{ field, id string }{{"ModelSources", source.ID}, {"ModelAliases", alias.ID}} {
+		if _, err = writer.ExecContext(ctx, "UPDATE "+domainNamed(row.field).name+" SET state=? WHERE workspace_id=? AND id=?", "deleted", s.workspace, row.id); err != nil {
+			t.Fatal(err)
+		}
+	}
+	readCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	gotSource, err := s.ModelSource(readCtx, source.Name)
+	if err != nil || gotSource.ID != source.ID || gotSource.State != "active" || gotSource.Revision != source.Revision {
+		t.Fatal("source-name lookup reserved writer or exposed uncommitted state", gotSource, err)
+	}
+	gotAlias, err := s.ModelAlias(readCtx, alias.Name)
+	if err != nil || gotAlias.ID != alias.ID || gotAlias.State != "active" || gotAlias.Revision != alias.Revision {
+		t.Fatal("alias-name lookup reserved writer or exposed uncommitted state", gotAlias, err)
+	}
+	foreign := &Store{db: s.db, workspace: contracts.ID(), backend: s.backend}
+	var failure *contracts.Error
+	if _, err = foreign.ModelSource(readCtx, source.Name); !errors.As(err, &failure) || failure.Code != "not_found" {
+		t.Fatal("source-name lookup crossed workspace", err)
+	}
+	if _, err = foreign.ModelAlias(readCtx, alias.Name); !errors.As(err, &failure) || failure.Code != "not_found" {
+		t.Fatal("alias-name lookup crossed workspace", err)
+	}
+	if err = writer.Rollback(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.db.ExecContext(ctx, "UPDATE "+domainNamed("ModelAliases").name+" SET target=? WHERE workspace_id=? AND id=?", `{"kind":"hosted","kind":"base"}`, s.workspace, alias.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.ModelAlias(ctx, alias.Name); !errors.As(err, &failure) || failure.Code != "invalid_request" {
+		t.Fatal("alias-name lookup accepted ambiguous JSON", err)
+	}
+}

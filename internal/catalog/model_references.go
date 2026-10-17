@@ -97,17 +97,9 @@ func (s *Store) modelRefRead(ctx context.Context, field, ref string, out any) er
 	if !ValidModelName(ref) {
 		return contracts.Fail("invalid_request")
 	}
-	tx, e := s.identityRead(ctx)
-	if e != nil {
-		return sanitize(e)
-	}
-	defer tx.Rollback()
-	var id string
-	e = s.row(ctx, tx, "SELECT id FROM "+domainNamed(field).name+" WHERE workspace_id=? AND name=?", s.workspace, ref).Scan(&id)
-	if e == nil {
-		e = s.domainTx(ctx, tx, field, id, out)
-	}
-	return sanitize(e)
+	// Name and ID resolve the same row through one committed SELECT. A read
+	// must not reserve SQLite's writer while model acquisition is active.
+	return s.readDomainRow(ctx, field, "name", ref, out)
 }
 func (s *Store) ModelAlias(ctx context.Context, ref string) (out ModelAlias, e error) {
 	e = s.modelRefRead(ctx, "ModelAliases", ref, &out)

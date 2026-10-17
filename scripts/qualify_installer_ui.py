@@ -29,7 +29,7 @@ def prepare(stage, fixture, clone, diagnostic_only=False):
     payload=stage/'ui-payload';shutil.copytree(fixture,payload)
     files=[]
     for p in sorted(payload.rglob('*')):
-        if p.is_file() and p.name not in ('token-recorder.go',) and not p.name.endswith(('.token.json','.diagnostic.json')):
+        if p.is_file() and p.name not in ('token-recorder.go','package-inventory.json') and not p.name.endswith(('.token.json','.diagnostic.json')):
             files.append({'path':p.relative_to(payload).as_posix(),'sha256':m.sha(p),'size_bytes':p.stat().st_size})
     version=json.loads((payload/'help/offline-manifest.json').read_text(encoding='utf-8'))['version']
     inv={'schema_version':version,'platform':'windows_amd64','variant':'desktop','files':files}
