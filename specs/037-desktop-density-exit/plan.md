@@ -29,7 +29,7 @@ Pre-research and post-design gates pass: owner scope preserved; UI composition a
 - `scripts/desktop-density-capture.mjs`, `capture-application-ui.mjs`: actual production frontend and Go bridge, renderer matrix and source-bound representative screenshots.
 - `desktop/menu.go`, `menu_test.go`: native menu composition and synchronized startup/quit controller.
 - `cmd/insonic-desktop/main.go`, `exit_qualification*.go`: normal lifecycle integration and explicit bounded native test hooks.
-- `scripts/qualify-desktop-exit.py`, `qualify.py`, `package-desktop.py`: private external-runtime/held-acquisition proof and packaged desktop checks.
+- `cmd/insonic-desktop/exit_qualification_test.go`, `scripts/qualify.py`, `package-desktop.py`: private external-runtime/held-acquisition proof and source/package gates.
 - `docs/v1.0.1/desktop.md`, `development.md`, `docs/screenshots/v1.0.1`, `CHANGELOG.md`: public behavior, consumer adaptation and witnessed images.
 
 ## Execution and decisions
@@ -37,7 +37,7 @@ Pre-research and post-design gates pass: owner scope preserved; UI composition a
 1. Establish failing geometry/label-target and menu/startup regressions before product edits.
 2. Implement token-based compact host composition, retaining native controls and full label targets.
 3. Integrate native File > Exit with synchronized startup context and ordinary shutdown.
-4. Extend existing source capture/native journey hooks; prove detached work survives Exit and playback closes.
+4. Extend existing source capture/native journey hooks; prove GUI-independent work survives Exit and playback closes.
 5. Run focused and required checks, converge requirements, commit cleanly, run exact-head full CI and publish clean-source images without rewriting receipts.
 6. Complete at most two code/security rounds, verify all threads and final CI, stop unmerged.
 

@@ -37,6 +37,10 @@ export async function probeControls(browserPath){
   await input.evaluate(node=>{node.style.inlineSize='100%'});
   await assert.rejects(page.evaluate(desktopDensityGeometry),/glyph|target/);
   await input.evaluate(node=>{node.style.inlineSize=''});
+  const apply=page.getByRole('button',{name:'Apply',exact:true});
+  await apply.evaluate(node=>{node.style.inlineSize='100%'});
+  await assert.rejects(page.evaluate(desktopDensityGeometry),/Action geometry/);
+  await apply.evaluate(node=>{node.style.inlineSize=''});
   const action=await page.getByRole('button',{name:'Apply',exact:true}).boundingBox();assert.ok(action.width<300,'ordinary action must not stretch to its grid container');
   await page.setViewportSize({width:720,height:600});
   const narrow=await input.boundingBox();assert.ok(Math.abs(narrow.width-glyph.width)<=1&&Math.abs(narrow.height-glyph.height)<=1,'glyph does not expand with the container');
@@ -73,6 +77,7 @@ export async function runDensityMatrix(page, context, {checkpoint, image}) {
           else await page.getByRole('navigation', {name: 'Workspace views'}).getByRole('button', {name: view, exact: true}).click();
           await page.getByRole('heading', {name: view, level: 1, exact: true}).waitFor();
           await idle();
+          await page.evaluate(() => { document.querySelector('.desktop-content').scrollTop=0; document.querySelector('.app-header').scrollTop=0; });
           const observed = await page.evaluate(() => ({device_scale_factor: devicePixelRatio, width: innerWidth, height: innerHeight, text_pixels: parseFloat(getComputedStyle(document.documentElement).fontSize)}));
           if (observed.width !== width || observed.height !== height || Math.abs(observed.device_scale_factor - scale) > 0.01)
             throw new Error('Renderer did not apply the declared density scenario.');

@@ -34,6 +34,7 @@ type exitFixture struct {
 	Action    string "json:\"action\""
 	Workspace string "json:\"workspace,omitempty\""
 	MediaID   string "json:\"media_id,omitempty\""
+	Revision  int64  `json:"revision,omitempty"`
 }
 type exitObservation struct {
 	Action     string "json:\"action\""
@@ -57,7 +58,7 @@ func readExitFixture(path string) (exitFixture, error) {
 	if decoder.Decode(&extra) != io.EOF || fixture.Action != "menu" && fixture.Action != "close" && (fixture.Action != "alt-f4" || runtime.GOOS != "windows") {
 		return fixture, fmt.Errorf("invalid Exit action")
 	}
-	if fixture.Workspace != "" && (!filepath.IsAbs(fixture.Workspace) || !contracts.ValidID(fixture.MediaID)) || fixture.Workspace == "" && fixture.MediaID != "" {
+	if fixture.Workspace != "" && (!filepath.IsAbs(fixture.Workspace) || !contracts.ValidID(fixture.MediaID) || fixture.Revision < 1) || fixture.Workspace == "" && (fixture.MediaID != "" || fixture.Revision != 0) {
 		return fixture, fmt.Errorf("invalid Exit workspace")
 	}
 	return fixture, nil
@@ -86,7 +87,7 @@ func qualifyNativeExitChild(path string) int {
 	var playbackID string
 	startup := func(ctx context.Context) {
 		if bridge.Workspace != nil {
-			playbackID, verify, prepareErr = desktop.ObserveExitPlaybackQualification(bridge, fixture.MediaID, 1)
+			playbackID, verify, prepareErr = desktop.ObserveExitPlaybackQualification(bridge, fixture.MediaID, fixture.Revision)
 		}
 		close(ready)
 		go func() {
@@ -169,6 +170,9 @@ func (r *exitRuntime) call(operation, item string, data any) (contracts.Response
 	if err == nil && response.Error != nil {
 		err = response.Error
 	}
+	if err != nil {
+		err = fmt.Errorf("%s: %w", operation, err)
+	}
 	return response, err
 }
 func (r *exitRuntime) result(operation, item string, data any, target any) error {
@@ -218,12 +222,18 @@ func (r *exitRuntime) assertHeld(parent, acquisition string) error {
 
 // The outer fixture owns a disposable workspace, a loopback byte barrier and
 // child GUI processes. It joins its runtime only after the durable job finishes.
-func runExitQualification() (err error) {
+func runExitQualification() error { return runExitQualificationWith(runExitGUIChild) }
+
+func runExitQualificationWith(runChild func(exitFixture, string) (exitObservation, error)) (err error) {
 	directory, err := os.MkdirTemp("", "insonic-exit-*")
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(directory)
+	defer func() {
+		if cleanup := os.RemoveAll(directory); cleanup != nil && err == nil {
+			err = cleanup
+		}
+	}()
 	w, err := workspace.Init(directory, "Native Exit qualification")
 	if err != nil {
 		return err
@@ -285,6 +295,13 @@ func runExitQualification() (err error) {
 	if len(imported.Items) != 1 || !contracts.ValidID(imported.Items[0].MediaID) {
 		return fmt.Errorf("Exit media fixture unavailable")
 	}
+	var entry library.EntryView
+	if err = r.result("media.show", imported.Items[0].MediaID, nil, &entry); err != nil {
+		return err
+	}
+	if entry.Revision < 1 {
+		return fmt.Errorf("media revision missing")
+	}
 	released, entered := make(chan struct{}), make(chan struct{})
 	var releaseOnce, enterOnce sync.Once
 	release := func() { releaseOnce.Do(func() { close(released) }) }
@@ -325,11 +342,7 @@ func runExitQualification() (err error) {
 	if err = r.assertHeld(acquired.ID, acquired.Acquisitions[0]); err != nil {
 		return err
 	}
-	executable, err := os.Executable()
-	if err != nil {
-		return err
-	}
-	cases := []exitFixture{{Action: "menu"}, {Action: "menu", Workspace: directory, MediaID: imported.Items[0].MediaID}, {Action: "close", Workspace: directory, MediaID: imported.Items[0].MediaID}}
+	cases := []exitFixture{{Action: "menu"}, {Action: "menu", Workspace: directory, MediaID: imported.Items[0].MediaID, Revision: entry.Revision}, {Action: "close", Workspace: directory, MediaID: imported.Items[0].MediaID, Revision: entry.Revision}}
 	if runtime.GOOS == "windows" {
 		cases = append(cases, exitFixture{Action: "alt-f4"})
 	}
@@ -339,15 +352,11 @@ func runExitQualification() (err error) {
 		if err = os.WriteFile(config, raw, 0600); err != nil {
 			return err
 		}
-		childCtx, stop := context.WithTimeout(context.Background(), 18*time.Second)
-		report, childErr := process.Capture(childCtx, process.Spec{Executable: executable, Args: []string{"--exit-qualification-child", config}, MaxOutput: 64 << 10})
-		stop()
+		observation, childErr := runChild(fixture, config)
 		if childErr != nil {
-			fmt.Fprint(os.Stderr, string(report.Stderr))
-			return fmt.Errorf("native %s child failed: %w", fixture.Action, childErr)
+			return childErr
 		}
-		var observation exitObservation
-		if json.Unmarshal(report.Stdout, &observation) != nil || observation.NativeExit != "passed" || observation.Action != fixture.Action {
+		if observation.NativeExit != "passed" || observation.Action != fixture.Action {
 			return fmt.Errorf("native action receipt invalid")
 		}
 		if fixture.Workspace != "" {
@@ -379,4 +388,23 @@ func qualifyNativeExit() int {
 	}
 	json.NewEncoder(os.Stdout).Encode(map[string]any{"schema_version": contracts.Version, "native_exit": "passed", "no_workspace_exit": "passed", "workspace_exit": "passed", "ordinary_close": "passed", "playback_cleanup": "passed", "runtime_work_survival": "passed"})
 	return 0
+}
+
+func runExitGUIChild(fixture exitFixture, config string) (exitObservation, error) {
+	var observation exitObservation
+	executable, err := os.Executable()
+	if err != nil {
+		return observation, err
+	}
+	ctx, stop := context.WithTimeout(context.Background(), 18*time.Second)
+	defer stop()
+	report, err := process.Capture(ctx, process.Spec{Executable: executable, Args: []string{"--exit-qualification-child", config}, MaxOutput: 64 << 10})
+	if err != nil {
+		fmt.Fprint(os.Stderr, string(report.Stderr))
+		return observation, fmt.Errorf("native %s child failed: %w", fixture.Action, err)
+	}
+	if json.Unmarshal(report.Stdout, &observation) != nil {
+		return observation, fmt.Errorf("native action receipt invalid")
+	}
+	return observation, nil
 }

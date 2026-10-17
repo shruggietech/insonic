@@ -17,10 +17,21 @@ export function desktopDensityGeometry() {
   const actions = [...host.querySelectorAll<HTMLButtonElement>('button.bb-button')]
     .filter(node => node.getClientRects().length).map(node => {
       const box = node.getBoundingClientRect(), style = getComputedStyle(node);
-      const range = document.createRange(); range.selectNodeContents(node);
-      const text = range.getBoundingClientRect();
-      const intended = Math.max(target, text.width + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
-        + parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth));
+      // fit-content caps long labels at the available width before wrapping.
+      // A wrapped line's Range width underestimates that intrinsic maximum.
+      const canvas = document.createElement('canvas').getContext('2d');
+      if (!canvas) throw new Error('Text measurement is unavailable.');
+      canvas.font = [style.fontStyle, style.fontWeight, style.fontSize, style.fontFamily].join(' ');
+      const text = (node.textContent ?? '').replace(/\s+/g, ' ').trim();
+      const spacing = parseFloat(style.letterSpacing) || 0;
+      const intrinsic = canvas.measureText(text).width + Math.max(0, text.length - 1) * spacing
+        + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
+        + parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth);
+      const parent = node.parentElement;
+      if (!parent) throw new Error('Action container is unavailable.');
+      const parentStyle = getComputedStyle(parent);
+      const available = parent.clientWidth - parseFloat(parentStyle.paddingLeft) - parseFloat(parentStyle.paddingRight);
+      const intended = Math.max(target, Math.min(intrinsic, available));
       if (box.width + 1 < target || box.height + 1 < target || box.width > intended + 2)
         throw new Error('Action geometry: width=' + box.width + ', height=' + box.height + ', intended=' + intended);
       return {width: box.width, height: box.height};

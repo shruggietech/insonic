@@ -13,19 +13,19 @@
 
 Independent test: actual six core workflows preserve square glyphs, clickable label targets, intrinsic actions and reachable commands across the declared window/renderer/text matrix.
 
-- [ ] T004 [US1] Add meaningful failing selection-label and rendered-geometry regressions in desktop/frontend/tests/density.test.mjs and scripts/desktop-density-capture.mjs before CSS/component edits (FR-001..FR-005, SC-001..SC-003).
-- [ ] T005 [US1] Apply documented token-based consumer composition in desktop/frontend/src/components.tsx and app.css: square glyphs, label targets at least44 by44, intrinsic action widths and contained overflow (FR-001..FR-005).
-- [ ] T006 [US1] Add the source-shared observer in desktop/frontend/src/density.ts; integrate the full renderer matrix and clean-source representative image receipt in scripts/capture-application-ui.mjs and scripts/qualify-ui-capture.py (FR-004/FR-008, SC-001..SC-003).
-- [ ] T007 [US1] Require real compact geometry observations during core native Windows/Linux workflow visits in desktop/frontend/src/qualification.ts and cmd/insonic-desktop/main.go (FR-005/FR-008, SC-003).
+- [x] T004 [US1] Add meaningful failing selection-label and rendered-geometry regressions in desktop/frontend/tests/density.test.mjs and scripts/desktop-density-capture.mjs before CSS/component edits (FR-001..FR-005, SC-001..SC-003).
+- [x] T005 [US1] Apply documented token-based consumer composition in desktop/frontend/src/components.tsx and app.css: square glyphs, label targets at least44 by44, intrinsic action widths and contained overflow (FR-001..FR-005).
+- [x] T006 [US1] Add the source-shared observer in desktop/frontend/src/density.ts; integrate the full renderer matrix and clean-source representative image receipt in scripts/capture-application-ui.mjs and scripts/qualify-ui-capture.py (FR-004/FR-008, SC-001..SC-003).
+- [x] T007 [US1] Require real compact geometry observations during core native Windows/Linux workflow visits in desktop/frontend/src/qualification.ts and cmd/insonic-desktop/main.go (FR-005/FR-008, SC-003).
 
 ## Phase 4: US2 Native Exit (P2)
 
 Independent test: actual owned native menu activation quits without/with a workspace; playback ownership closes while a held GUI-independent acquisition retains the same runtime session/work and finishes after release.
 
-- [ ] T008 [US2] Add failing menu-label/composition and synchronized early/repeated-quit tests in desktop/menu_test.go before desktop/menu.go implementation (FR-006/FR-007).
-- [ ] T009 [US2] Integrate the native menu and guarded lifecycle in cmd/insonic-desktop/main.go, preserving ordinary close/playback/runtime ownership (FR-006/FR-007, SC-004).
-- [ ] T010 [US2] Implement bounded explicit native test hooks in cmd/insonic-desktop/exit_qualification*.go and the private runtime/acquisition owner in cmd/insonic-desktop/exit_qualification.go with ownership/error regressions in exit_qualification_test.go (FR-006..FR-008, SC-004).
-- [ ] T011 [US2] Require native source/package Exit proofs through scripts/qualify.py and scripts/package-desktop.py without dropping existing journey/recovery gates (FR-008, SC-004/SC-005).
+- [x] T008 [US2] Add failing menu-label/composition and synchronized early/repeated-quit tests in desktop/menu_test.go before desktop/menu.go implementation (FR-006/FR-007).
+- [x] T009 [US2] Integrate the native menu and guarded lifecycle in cmd/insonic-desktop/main.go, preserving ordinary close/playback/runtime ownership (FR-006/FR-007, SC-004).
+- [x] T010 [US2] Implement bounded explicit native test hooks in cmd/insonic-desktop/exit_qualification*.go and the private runtime/acquisition owner in cmd/insonic-desktop/exit_qualification.go with ownership/error regressions in exit_qualification_test.go (FR-006..FR-008, SC-004).
+- [x] T011 [US2] Require native source/package Exit proofs through scripts/qualify.py and scripts/package-desktop.py without dropping existing journey/recovery gates (FR-008, SC-004/SC-005).
 
 ## Phase 5: Delivery
 
