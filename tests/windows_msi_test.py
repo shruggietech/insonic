@@ -213,7 +213,7 @@ class InstallerModelTests(unittest.TestCase):
     def test_container_probe_commits_no_product_or_payload_before_coordinator(self):
         from types import SimpleNamespace
         spec=importlib.util.spec_from_file_location('recovery_container_author',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
-        stage=self.path/'container-probe';(stage/'scripts').mkdir(parents=True);(stage/'native').mkdir();rows=[]
+        stage=self.path/'container-probe';(stage/'scripts').mkdir(parents=True);(stage/'native').mkdir();(stage/'ui-old.msi').write_bytes(b'owned native-valid costing fixture');rows=[]
         db=SimpleNamespace(execute=lambda sql,args=None,streams=():rows.append((sql,args,streams)),check=lambda code:None,handle=1,dll=SimpleNamespace(MsiDatabaseCommit=lambda handle:0),summary=lambda value:None,close=lambda:None)
         with patch.object(m,'disposable_runner',return_value=None),patch.object(m,'NativeDatabase',return_value=db),patch.dict(os.environ,{'GITHUB_ACTIONS':'true','RUNNER_ENVIRONMENT':'github-hosted','INSONIC_DISPOSABLE_INSTALLER_TEST':'1'}):module.author_recovery_container_probe(stage)
         actions=[args[0] for sql,args,streams in rows if args and 'InstallExecuteSequence' in sql]

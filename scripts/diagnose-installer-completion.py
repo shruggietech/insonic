@@ -146,25 +146,20 @@ def rollback_case(stage,name):
 
 def author_recovery_container_probe(stage):
     m.disposable_runner();stage=Path(stage);q=m.quote
-    product=m.guid('owned-container/'+stage.name)
-    db=m.NativeDatabase(stage/'recovery-container.msi',create=True)
-    schema={
-        'Property':[('Property','CHAR(72) NOT NULL'),('Value','CHAR(0)')],
-        'Directory':[('Directory','CHAR(72) NOT NULL'),('Directory_Parent','CHAR(72)'),('DefaultDir','CHAR(255) NOT NULL')],
-        'Feature':[('Feature','CHAR(38) NOT NULL'),('Feature_Parent','CHAR(38)'),('Title','CHAR(64)'),('Description','CHAR(255)'),('Display','SHORT'),('Level','SHORT NOT NULL'),('Directory_','CHAR(72)'),('Attributes','SHORT NOT NULL')],
-        'InstallExecuteSequence':[('Action','CHAR(72) NOT NULL'),('Condition','CHAR(255)'),('Sequence','SHORT')],
-        'MsiEmbeddedChainer':[('MsiEmbeddedChainer','CHAR(72) NOT NULL'),('Condition','CHAR(255)'),('CommandLine','CHAR(0)'),('Source','CHAR(72) NOT NULL'),('Type','SHORT NOT NULL')],
-        'Binary':[('Name','CHAR(72) NOT NULL'),('Data','OBJECT NOT NULL')],
-    }
-    def add(table,values,streams=()):db.execute('INSERT INTO '+q(table)+' ('+','.join(q(c[0]) for c in schema[table])+') VALUES ('+','.join('?' for _ in values)+')',values,streams=streams)
+    product=m.guid('owned-container/'+stage.name);target=stage/'recovery-container.msi'
+    # Reuse the already native-valid costing/feature/component schema. The
+    # container retains no actions that install files or register products.
+    shutil.copyfile(stage/'ui-old.msi',target)
+    db=m.NativeDatabase(target,write=True)
     try:
-        for table,columns in schema.items():db.execute('CREATE TABLE '+q(table)+' ('+','.join(q(name)+' '+kind for name,kind in columns)+' PRIMARY KEY '+q(columns[0][0])+')')
-        for key,value in {'ProductCode':product,'ProductName':'Owned unregistered recovery container','ProductVersion':'1.0.1','ProductLanguage':'1033','Manufacturer':'ShruggieTech','REBOOT':'ReallySuppress'}.items():add('Property',[key,value])
-        add('Directory',['TARGETDIR',None,'SourceDir'])
-        add('Feature',['Core',None,'Coordination only',None,0,1,'TARGETDIR',0])
-        for action,number in [('CostInitialize',800),('FileCost',900),('CostFinalize',1000),('InstallValidate',1400),('InstallInitialize',1500),('InstallFinalize',6600)]:add('InstallExecuteSequence',[action,None,number])
-        add('Binary',['OwnedRecoveryCoordinator',stage/'launcher-context-fixture/owned-coordinator.exe'],streams=(2,))
-        add('MsiEmbeddedChainer',['OwnedRecoveryCoordinator','1','"'+str(stage)+'"','OwnedRecoveryCoordinator',2])
+        for name,value in [('ProductCode',product),('ProductName','Owned unregistered recovery container'),('UpgradeCode',m.guid('owned-container-family/'+stage.name))]:db.execute('UPDATE '+q('Property')+' SET '+q('Value')+'=? WHERE '+q('Property')+'=?',[value,name])
+        db.execute('INSERT INTO '+q('Property')+' ('+q('Property')+','+q('Value')+') VALUES (?,?)',['INSTALLDIR',str(stage/'uncreated-container-anchor')])
+        db.execute('DELETE FROM '+q('InstallUISequence'))
+        db.execute('DELETE FROM '+q('InstallExecuteSequence'))
+        for action,number in [('CostInitialize',800),('FileCost',900),('CostFinalize',1000),('InstallValidate',1400),('InstallInitialize',1500),('InstallFinalize',6600)]:db.execute('INSERT INTO '+q('InstallExecuteSequence')+' ('+q('Action')+','+q('Condition')+','+q('Sequence')+') VALUES (?,?,?)',[action,None,number])
+        db.execute('INSERT INTO '+q('Binary')+' ('+q('Name')+','+q('Data')+') VALUES (?,?)',['OwnedRecoveryCoordinator',stage/'launcher-context-fixture/owned-coordinator.exe'],streams=(2,))
+        db.execute('CREATE TABLE '+q('MsiEmbeddedChainer')+' ('+q('MsiEmbeddedChainer')+' CHAR(72) NOT NULL, '+q('Condition')+' CHAR(255), '+q('CommandLine')+' CHAR(0), '+q('Source')+' CHAR(72) NOT NULL, '+q('Type')+' SHORT NOT NULL PRIMARY KEY '+q('MsiEmbeddedChainer')+')')
+        db.execute('INSERT INTO '+q('MsiEmbeddedChainer')+' ('+','.join(q(n) for n in ('MsiEmbeddedChainer','Condition','CommandLine','Source','Type'))+') VALUES (?,?,?,?,?)',['OwnedRecoveryCoordinator','1','"'+str(stage)+'"','OwnedRecoveryCoordinator',2])
         db.summary(m.guid('owned-container-package/'+stage.name));db.check(db.dll.MsiDatabaseCommit(db.handle))
     finally:db.close()
     (stage/'container-product.json').write_text(json.dumps({'product_code':product,'feature_qualification':False}),encoding='utf-8',newline='\n')
