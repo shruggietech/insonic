@@ -183,8 +183,8 @@ func (a Ollama) Discover(ctx context.Context, in DiscoveryInput, c Config) (Disc
 				candidate.ProbeState = "metadata-failed"
 			}
 			candidate.Correction = contracts.SafeError(e).Message
-			if ctx.Err() != nil {
-				return out, contracts.Fail("cancelled")
+			if err := ProviderContextError(ctx); err != nil {
+				return out, err
 			}
 			continue
 		}
@@ -193,8 +193,8 @@ func (a Ollama) Discover(ctx context.Context, in DiscoveryInput, c Config) (Disc
 		candidate.ProbeState = "observed"
 		candidate.Info = &info
 	}
-	if ctx.Err() != nil {
-		return out, contracts.Fail("cancelled")
+	if err := ProviderContextError(ctx); err != nil {
+		return out, err
 	}
 	return out, nil
 }

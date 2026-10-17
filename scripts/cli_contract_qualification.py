@@ -245,6 +245,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
     if documentation:
         from cli_query_qualification import qualify as qualify_queries
         query_contracts = qualify_queries(invoke, supplied, workspace)
+    provider_contracts = {'state': 'not-included', 'reason': 'required in extracted packages'}
     documented = {'state': 'not-included', 'reason': 'source CLI lane; required in extracted packages'}
     if documentation:
         from documented_workflows import qualify as qualify_documentation
@@ -264,6 +265,8 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
             path.write_text(json.dumps(value) + '\n', encoding='utf-8', newline='\n')
             return documented_invoke([*args, '--input', path])
         documented = qualify_documentation(documented_invoke, documented_supplied, documented_workspace, version)
+        from cli_provider_qualification import qualify as qualify_providers
+        provider_contracts = qualify_providers(documented_invoke, documented_supplied, documented_workspace)
         # Package smoke's existing bounded idle-owner cleanup covers this workspace too.
     input_file.unlink(missing_ok=True)
     for path in [logfile, Path(str(logfile) + '.1'), Path(str(logfile) + '.2')]:
@@ -271,7 +274,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
             logged = path.read_text(encoding='utf-8')
             if len(logged.encode('utf-8')) > 1 << 20 or any(value in logged for value in [secret['passphrase'], secret['value'], 'wrong-fixture-passphrase', str(workspace)]):
                 raise ValueError('Diagnostic log retained protected or arbitrary input')
-    return {'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
+    return {'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
             'protected_vault_delete': 'passed', 'typed_failures': failures,
             'operator_feedback': 'passed', 'cold_startup_failure': 'passed', 'detached_owner': 'passed',
             'model_roles_leases': 'passed', 'diagnostic_redaction': 'passed'}

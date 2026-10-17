@@ -56,8 +56,8 @@ func validEndpoint(endpoint string) bool {
 	return e == nil && len(endpoint) <= 2048 && u.IsAbs() && u.Hostname() != "" && u.User == nil && u.RawQuery == "" && !u.ForceQuery && u.Fragment == "" && (u.Scheme == "http" || u.Scheme == "https") && (u.Path == "" || u.Path == "/")
 }
 func (a Ollama) call(ctx context.Context, endpoint, route, id string, body any, cap int, out any) error {
-	if ctx.Err() != nil {
-		return contracts.Fail("cancelled")
+	if err := ProviderContextError(ctx); err != nil {
+		return err
 	}
 	if !validEndpoint(endpoint) {
 		return contracts.Condition("invalid_request", "ollama_endpoint")
@@ -95,8 +95,8 @@ func (a Ollama) call(ctx context.Context, endpoint, route, id string, body any, 
 	defer client.CloseIdleConnections()
 	res, e := client.Do(req)
 	if e != nil {
-		if ctx.Err() != nil {
-			return contracts.Fail("cancelled")
+		if err := ProviderContextError(ctx); err != nil {
+			return err
 		}
 		return contracts.Condition("unavailable", "ollama_unavailable")
 	}
@@ -116,11 +116,14 @@ func (a Ollama) call(ctx context.Context, endpoint, route, id string, body any, 
 		return contracts.Condition("unavailable", reason)
 	}
 	raw, e := io.ReadAll(io.LimitReader(res.Body, int64(cap)+1))
-	if ctx.Err() != nil {
-		return contracts.Fail("cancelled")
+	if err := ProviderContextError(ctx); err != nil {
+		return err
 	}
-	if e != nil || len(raw) > cap {
-		return contracts.Fail("output_limit")
+	if len(raw) > cap {
+		return contracts.Condition("output_limit", "provider_response_limit")
+	}
+	if e != nil {
+		return contracts.Condition("operation_failed", "ollama_protocol")
 	}
 	if catalog.ValidateJSON(raw) != nil || json.Unmarshal(raw, out) != nil {
 		return contracts.Condition("operation_failed", "ollama_protocol")
@@ -145,11 +148,11 @@ func (a Ollama) model(ctx context.Context, endpoint, id, name string) (OllamaMod
 	}
 	m.DetailState = "observed"
 	if len(meta.Capabilities) > 32 {
-		return m, contracts.Fail("output_limit")
+		return m, contracts.Condition("output_limit", "provider_response_limit")
 	}
 	for _, c := range meta.Capabilities {
 		if len(c) > 128 {
-			return m, contracts.Fail("output_limit")
+			return m, contracts.Condition("output_limit", "provider_response_limit")
 		}
 		if c == "completion" {
 			m.Compatible = true
@@ -221,8 +224,8 @@ func (a Ollama) Inspect(ctx context.Context, endpoint, id, selected string) (Oll
 		}
 		out.Models = append(out.Models, m)
 	}
-	if ctx.Err() != nil {
-		return out, contracts.Fail("cancelled")
+	if err := ProviderContextError(ctx); err != nil {
+		return out, err
 	}
 	return out, selectedError
 }
@@ -279,10 +282,10 @@ func (a Ollama) Propose(ctx context.Context, input Request, c Config) (Proposal,
 	if c.Route == "local" && (response.RemoteHost != "" || response.RemoteModel != "") {
 		return empty, contracts.Condition("invalid_request", "ollama_route")
 	}
-	if ctx.Err() != nil {
-		return empty, contracts.Fail("cancelled")
+	if err := ProviderContextError(ctx); err != nil {
+		return empty, err
 	}
-	proposal, err := Parse([]byte(response.Message.Content))
+	proposal, err := ParseProvider([]byte(response.Message.Content), "ollama")
 	proposal.ObservedRoute = m.InferenceRoute
 	return proposal, err
 }

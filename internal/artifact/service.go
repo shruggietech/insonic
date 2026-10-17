@@ -368,7 +368,7 @@ func (s *Service) MaterializeBound(ctx context.Context, id string, maxBytes int6
 		return Materialization{}, e
 	}
 	if maxBytes < 0 || p.Size > maxBytes {
-		return Materialization{}, contracts.Fail("output_limit")
+		return Materialization{}, contracts.Condition("output_limit", "artifact_materialization_limit")
 	}
 	leaseID := contracts.ID()
 	lease, e := s.Catalog.ArtifactLease(ctx, id, leaseID, leaseID, s.TTL, false)

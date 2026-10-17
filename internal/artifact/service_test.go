@@ -44,6 +44,9 @@ func TestServiceJourney(t *testing.T) {
 	if e = s.Verify(ctx, p.ID); e != nil {
 		t.Fatal(e)
 	}
+	if _, e := s.MaterializeBound(ctx, p.ID, 1); e == nil || contracts.SafeError(e).Code != "output_limit" || contracts.SafeError(e).Reason != "artifact_materialization_limit" {
+		t.Fatal("missing materialization bound context", e)
+	}
 	m, e := s.Materialize(ctx, p.ID)
 	if e != nil {
 		t.Fatal(e)

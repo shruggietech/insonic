@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 	"unicode"
-	"unicode/utf8"
 )
 
 // Instant keeps Cueson nanoseconds out of floating-point and native SQL timestamps.
@@ -254,63 +253,9 @@ func strict(data []byte, v any) error {
 	return nil
 }
 
-// ValidateJSON rejects ambiguous keys and damaged UTF-8 before lossless decoding.
-func ValidateJSON(data []byte) error {
-	if !utf8.Valid(data) {
-		return contracts.Fail("invalid_request")
-	}
-	return validateJSONDecoder(json.NewDecoder(bytes.NewReader(data)))
-}
-
-func validateJSONDecoder(d *json.Decoder) error {
-	d.UseNumber()
-	var value func() error
-	value = func() error {
-		token, e := d.Token()
-		if e != nil {
-			return e
-		}
-		delim, ok := token.(json.Delim)
-		if !ok {
-			return nil
-		}
-		switch delim {
-		case '{':
-			seen := map[string]bool{}
-			for d.More() {
-				key, e := d.Token()
-				if e != nil {
-					return e
-				}
-				name, ok := key.(string)
-				if !ok || seen[name] {
-					return contracts.Fail("invalid_request")
-				}
-				seen[name] = true
-				if e = value(); e != nil {
-					return e
-				}
-			}
-		case '[':
-			for d.More() {
-				if e = value(); e != nil {
-					return e
-				}
-			}
-		default:
-			return contracts.Fail("invalid_request")
-		}
-		_, e = d.Token()
-		return e
-	}
-	if value() != nil {
-		return contracts.Fail("invalid_request")
-	}
-	if _, e := d.Token(); e != io.EOF {
-		return contracts.Fail("invalid_request")
-	}
-	return nil
-}
+// ValidateJSON preserves the catalog API for strict contract validation.
+func ValidateJSON(data []byte) error            { return contracts.ValidateJSON(data) }
+func validateJSONDecoder(d *json.Decoder) error { return contracts.ValidateJSONDecoder(d) }
 func canonical(data []byte) ([]byte, error) {
 	var v any
 	if e := strict(data, &v); e != nil {

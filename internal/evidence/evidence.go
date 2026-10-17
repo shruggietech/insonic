@@ -66,6 +66,9 @@ func DefaultConfig() Config {
 	return Config{Adapter: "cue-statement", ContractVersion: "1", WindowCues: 16, OverlapCues: 2, MaxChunkBytes: 65536, TimeoutMS: 30000, MaxResponseBytes: 524288}
 }
 func Normalize(c Config) (Config, error) {
+	if c.Adapter == "http" {
+		c.Adapter = "insonic-http"
+	}
 	if c.Adapter == "" {
 		c.Adapter = "cue-statement"
 	}

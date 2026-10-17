@@ -332,3 +332,41 @@ func TestAssistanceSharesQueryBudgetAcrossContextAndExecution(t *testing.T) {
 		})
 	}
 }
+
+func TestAssistanceProviderBoundary(t *testing.T) {
+	for _, kind := range []string{"late", "malformed", "oversize"} {
+		t.Run(kind, func(t *testing.T) {
+			a := configuredApp(t)
+			// Warm native startup independently of the provider deadline.
+			if _, _, err := a.assistanceContext(a.ctx); err != nil {
+				t.Fatal(err)
+			}
+			a.AssistanceFixture = func(ctx context.Context, _ assistance.Request, _ assistance.Config) (assistance.Proposal, error) {
+				p := testProposal()
+				switch kind {
+				case "late":
+					<-ctx.Done()
+				case "malformed":
+					p.ContractVersion = "unsupported"
+				case "oversize":
+					p.Explanation = string(make([]byte, 2048))
+				}
+				return p, nil
+			}
+			c := assistanceConfig()
+			c.Limits.TimeoutMS = 20
+			code, reason := "operation_failed", "provider_protocol"
+			if kind == "late" {
+				code, reason = "unavailable", "provider_timeout"
+			}
+			if kind == "oversize" {
+				c.Limits.MaxResponseBytes = 1024
+				code, reason = "output_limit", "provider_response_limit"
+			}
+			r := realRequest(a, "query.assist", "", map[string]any{"prompt": "fixture", "configuration": c})
+			if r.Error == nil || r.Error.Code != code || r.Error.Reason != reason {
+				t.Fatal(r.Error)
+			}
+		})
+	}
+}
