@@ -91,7 +91,13 @@ class NativePackageIntegrityTests(unittest.TestCase):
 
     @unittest.skipUnless(package.os.name == 'nt', 'Windows executable image semantics')
     def test_image_release_probe_observes_loaded_image_without_modifying_files(self):
-        self.assertFalse(package.windows_image_released(Path(package.sys.executable)))
+        import ctypes
+        kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+        kernel.GetModuleFileNameW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_uint32]
+        kernel.GetModuleFileNameW.restype = ctypes.c_uint32
+        image_path = ctypes.create_unicode_buffer(32768)
+        self.assertGreater(kernel.GetModuleFileNameW(None, image_path, len(image_path)), 0)
+        self.assertFalse(package.windows_image_released(Path(image_path.value)))
         with tempfile.TemporaryDirectory() as temporary:
             image = Path(temporary) / 'unused.exe'
             image.write_bytes(b'unchanged image bytes')

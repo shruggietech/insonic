@@ -867,8 +867,8 @@ def background_gui_qualification(gui, directory, env):
 
 
 def windows_image_released(executable):
-    # Request delete access without deleting or changing the installed image.
-    # Windows denies it while an executable section is still mapped.
+    # Request write-data and delete access without modifying the image.
+    # Write-data access observes mapped-image sharing on Windows Server too.
     import ctypes
     from ctypes import wintypes
     kernel = ctypes.WinDLL('kernel32', use_last_error=True)
@@ -877,7 +877,7 @@ def windows_image_released(executable):
     kernel.CreateFileW.restype = wintypes.HANDLE
     kernel.CloseHandle.argtypes = [wintypes.HANDLE]
     kernel.CloseHandle.restype = wintypes.BOOL
-    handle = kernel.CreateFileW(str(executable), 0x10000, 7, None, 3, 0, None)
+    handle = kernel.CreateFileW(str(executable), 0x10002, 7, None, 3, 0, None)
     if handle == ctypes.c_void_p(-1).value:
         error = ctypes.get_last_error()
         if error in (5, 32):
