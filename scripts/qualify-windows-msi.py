@@ -173,6 +173,97 @@ def descriptor_observation(descriptor,security,kernel,information=0x17):
         return {'descriptor_sha256':m.digest(C.string_at(descriptor,size)),'owner_group_dacl_label_sddl':sanitized,'security_information':information,'machine_state_modified':False}
     finally:kernel.LocalFree(value)
 
+class NativeObjectDirectories:
+    """Bounded native object-directory access, exclusively in disposable CI."""
+    def __init__(self):
+        m.disposable_runner()
+        import ctypes as C
+        import ctypes.wintypes as W
+        self.C=C;self.W=W;self.nt=C.WinDLL('ntdll');self.kernel=C.WinDLL('kernel32',use_last_error=True);self.security=C.WinDLL('advapi32',use_last_error=True)
+        class Unicode(C.Structure):_fields_=[('length',W.USHORT),('maximum',W.USHORT),('buffer',W.LPWSTR)]
+        class Attributes(C.Structure):_fields_=[('length',W.ULONG),('root',W.HANDLE),('name',C.POINTER(Unicode)),('flags',W.ULONG),('security',C.c_void_p),('qos',C.c_void_p)]
+        self.Unicode=Unicode;self.Attributes=Attributes
+        self.nt.NtOpenDirectoryObject.argtypes=[C.POINTER(W.HANDLE),W.DWORD,C.POINTER(Attributes)];self.nt.NtOpenDirectoryObject.restype=C.c_long
+        self.nt.NtQuerySecurityObject.argtypes=[W.HANDLE,W.ULONG,C.c_void_p,W.ULONG,C.POINTER(W.ULONG)];self.nt.NtQuerySecurityObject.restype=C.c_long
+        self.nt.NtSetSecurityObject.argtypes=[W.HANDLE,W.ULONG,C.c_void_p];self.nt.NtSetSecurityObject.restype=C.c_long
+        self.nt.RtlNtStatusToDosError.argtypes=[W.ULONG];self.nt.RtlNtStatusToDosError.restype=W.ULONG
+        self.kernel.CloseHandle.argtypes=[W.HANDLE];self.kernel.CloseHandle.restype=W.BOOL;self.kernel.LocalFree.argtypes=[C.c_void_p];self.kernel.LocalFree.restype=C.c_void_p
+        self.security.ConvertStringSecurityDescriptorToSecurityDescriptorW.argtypes=[W.LPCWSTR,W.DWORD,C.POINTER(C.c_void_p),C.c_void_p];self.security.ConvertStringSecurityDescriptorToSecurityDescriptorW.restype=W.BOOL
+        self.security.ConvertSecurityDescriptorToStringSecurityDescriptorW.argtypes=[C.c_void_p,W.DWORD,W.DWORD,C.POINTER(C.c_void_p),C.c_void_p];self.security.ConvertSecurityDescriptorToStringSecurityDescriptorW.restype=W.BOOL
+    def checked(self,name,status):
+        if status<0:
+            error=self.C.WinError(self.nt.RtlNtStatusToDosError(status&0xffffffff));error.api=name;error.ntstatus=status&0xffffffff;raise error
+    def open(self,path,access):
+        C=self.C;W=self.W;length=len(path.encode('utf-16-le'));name=self.Unicode(length,length+2,path);attributes=self.Attributes(C.sizeof(self.Attributes),None,C.pointer(name),0x40,None,None);handle=W.HANDLE()
+        status=self.nt.NtOpenDirectoryObject(C.byref(handle),access,C.byref(attributes));return handle,status
+    def query(self,handle,information):
+        C=self.C;size=self.W.ULONG();status=self.nt.NtQuerySecurityObject(handle,information,None,0,C.byref(size))
+        if status<0 and status&0xffffffff not in (0xc0000023,0x80000005):self.checked('NtQuerySecurityObject-size',status)
+        if not 0<size.value<=65536:raise RuntimeError('native object-directory descriptor exceeds bound')
+        data=C.create_string_buffer(size.value);self.checked('NtQuerySecurityObject',self.nt.NtQuerySecurityObject(handle,information,data,len(data),C.byref(size)));return data
+    def dacl(self,handle):
+        C=self.C;data=self.query(handle,4);text=C.c_void_p()
+        if not self.security.ConvertSecurityDescriptorToStringSecurityDescriptorW(data,1,4,C.byref(text),None):raise C.WinError(C.get_last_error())
+        try:return data,C.wstring_at(text)
+        finally:self.kernel.LocalFree(text)
+    def describe(self,handle):return descriptor_observation(self.query(handle,0x17),self.security,self.kernel)
+    @__import__('contextlib').contextmanager
+    def convert(self,text):
+        C=self.C;value=C.c_void_p()
+        if not self.security.ConvertStringSecurityDescriptorToSecurityDescriptorW(text,1,C.byref(value),None):raise C.WinError(C.get_last_error())
+        try:yield value
+        finally:self.kernel.LocalFree(value)
+    def set_dacl(self,handle,value):self.checked('NtSetSecurityObject-DACL-only',self.nt.NtSetSecurityObject(handle,4,value))
+    def close(self,handle):
+        if not self.kernel.CloseHandle(handle):raise self.C.WinError(self.C.get_last_error())
+
+def object_namespace_diagnostic():
+    """Read directory access independently of Win32 Local/Global alias setup."""
+    m.disposable_runner();session=token_info()['session_id'];api=NativeObjectDirectories();rows=[]
+    for path in (r'\Sessions','\\Sessions\\'+str(session),'\\Sessions\\'+str(session)+r'\BaseNamedObjects',r'\BaseNamedObjects'):
+        for access in (1,2,4,8,15,0x20000):
+            handle,status=api.open(path,access);row={'path':path,'requested_access':access,'ntstatus':status&0xffffffff,'opened':status>=0,'error':0 if status>=0 else int(api.nt.RtlNtStatusToDosError(status&0xffffffff))};rows.append(row)
+            if status>=0:
+                try:
+                    if access&0x20000:row['security']=api.describe(handle)
+                finally:api.close(handle)
+    return {'kind':'read-only-native-object-directory-access','objects':rows,'machine_state_modified':False}
+
+@__import__('contextlib').contextmanager
+def interactive_context_namespace(stage,user_sid,caller_sid,desktop,probe):
+    """Temporarily grant only the owned actor non-inheriting session-directory access."""
+    m.disposable_runner();stage=Path(stage);base=Path(os.environ['ProgramData']).resolve()
+    if stage.is_symlink() or stage.resolve().parent!=base or not __import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name):raise ValueError('namespace fixture requires the exact owned account stage')
+    for sid in (user_sid,caller_sid):private_desktop_sddl(sid)
+    marker=json.loads((stage/'owned-ci-account.json').read_text(encoding='utf-8'))
+    if not __import__('re').fullmatch('inso_ci_[0-9a-f]{12}',marker.get('account','')) or marker.get('sid_sha256')!=m.digest(user_sid.encode()):raise ValueError('namespace fixture account ownership differs')
+    actor=token_info();session=actor['session_id'];target='\\Sessions\\'+str(session)+r'\BaseNamedObjects'
+    if session<=0 or actor['user_sid_sha256']!=m.digest(caller_sid.encode()) or desktop['session_id']!=session or desktop['caller_sid_sha256']!=actor['user_sid_sha256'] or desktop['target_user_sid_sha256']!=marker['sid_sha256'] or probe['token']['session_id']!=session or probe['token']['user_sid_sha256']!=marker['sid_sha256']:raise RuntimeError('namespace fixture caller, ordinary actor or exact session differs')
+    rows=[row for row in probe['directories']['objects'] if row['path']==target and row['requested_access']==15]
+    if len(rows)!=1:raise RuntimeError('exact ordinary session-directory preflight is missing')
+    evidence={'kind':'owned-CI-session-object-directory-fixture','session_id':session,'path':target,'rights_mask':15,'non_inheriting':True,'target_user_sid_sha256':marker['sid_sha256'],'global_namespace_modified':False,'child_object_security_modified':False,'security_restored':False,'modified':False}
+    if rows[0]['opened']:
+        evidence['security_restored']=True;yield evidence;return
+    if rows[0]['error']!=5:raise RuntimeError('ordinary session directory failed for a reason other than access denied')
+    api=NativeObjectDirectories();handle,status=api.open(target,0x6000f);api.checked('NtOpenDirectoryObject-owned-session',status);before=None;granted=None
+    try:
+        before,before_text=api.dacl(handle);original=api.describe(handle)
+        if not original.get('descriptor_sha256') or not before_text.startswith('D:') or 'NO_ACCESS_CONTROL' in before_text:raise RuntimeError('exact session directory security is unavailable or has a null DACL')
+        evidence['original_security']=original
+        grant_text=before_text+'(A;;0xf;;;'+user_sid+')'
+        with api.convert(grant_text) as descriptor:api.set_dacl(handle,descriptor)
+        granted=grant_text
+        _,granted=api.dacl(handle);evidence['modified']=True;evidence['granted_dacl_sha256']=m.digest(granted.encode())
+        yield evidence
+    finally:
+        try:
+            if granted is not None:
+                _,current=api.dacl(handle)
+                if current!=granted:raise RuntimeError('CI session-directory DACL changed outside the exact owned grant; restoration refused')
+                api.set_dacl(handle,before);_,restored=api.dacl(handle);evidence['restored_security']=api.describe(handle);evidence['security_restored']=restored==before_text and evidence['restored_security']==original
+                if not evidence['security_restored']:raise RuntimeError('CI session-directory owner/group/DACL/label restoration differs')
+        finally:api.close(handle)
+
 def installer_mutex_diagnostic():
     """Read exact Installer mutex access, never create, acquire or modify one."""
     m.disposable_runner()
@@ -544,18 +635,27 @@ def token_info(existing=None):
         if membership:kernel.CloseHandle(membership)
         if owns_token:kernel.CloseHandle(token)
 
+def ordinary_namespace_probe(stage):
+    m.disposable_runner();stage=Path(stage)
+    proof={'state':'passed','token':token_info(),'directories':object_namespace_diagnostic(),'mutex':installer_mutex_diagnostic()}
+    (stage/'native/context.namespace-probe.json').write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+
 def ordinary_ui_worker(stage):
     """Run real full UI in the normal logon created in the CI caller session."""
     m.disposable_runner();stage=Path(stage);output=stage/'native/context.ui.json'
     observed=token_info();desktop=json.loads((stage/'ui-actor-desktop.json').read_text(encoding='utf-8'))
-    before={'phase':'before-first-install','token':observed,'mutex':installer_mutex_diagnostic()}
+    before={'phase':'before-first-install','token':observed,'directories':object_namespace_diagnostic(),'mutex':installer_mutex_diagnostic()}
     output.with_suffix('.boundary.json').write_text(json.dumps(before,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     if observed['administrator_enabled'] or observed['elevated'] or observed['enabled_privileges']>1 or observed['integrity_rid']!=8192 or not observed['interactive_logon'] or observed['session_id']!=desktop['session_id'] or observed['user_sid_sha256']!=desktop['target_user_sid_sha256']:raise RuntimeError('full-UI worker did not retain its exact ordinary interactive logon')
+    target=r'\Sessions'+'\\'+str(observed['session_id'])+r'\BaseNamedObjects'
+    directory=[row for row in before['directories']['objects'] if row['path']==target and row['requested_access']==15]
+    absent=[row for row in before['mutex']['objects'] if 'insonic-absent-' in row['name']]
+    if len(directory)!=1 or not directory[0]['opened'] or not absent or any(row['opened'] or row['error']!=2 for row in absent):raise RuntimeError('ordinary native object namespace still denies exact directory access or absent mutex lookup')
     from qualify_installer_ui import qualify as qualify_ui
     proof=qualify_ui(stage,stage/'fixture.msi',stage/'installed program é with spaces',stage/'native/context.json',observed,run_installer)
     output.write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
 
-def interactive_ordinary(stage,name,sid,password,profile,desktop,record):
+def interactive_ordinary(stage,name,sid,password,profile,desktop,record,probe_only=False):
     """Use Secondary Logon from the existing interactive caller, without a second profile load."""
     m.disposable_runner();stage=Path(stage)
     if json.loads((stage/'owned-ci-account.json').read_text(encoding='utf-8'))!={'account':name,'sid_sha256':m.digest(sid.encode())}:raise RuntimeError('interactive actor ownership differs')
@@ -567,8 +667,8 @@ def interactive_ordinary(stage,name,sid,password,profile,desktop,record):
     class Process(C.Structure):_fields_=[('process',W.HANDLE),('thread',W.HANDLE),('pid',W.DWORD),('tid',W.DWORD)]
     security.CreateProcessWithLogonW.argtypes=[W.LPCWSTR,W.LPCWSTR,W.LPCWSTR,W.DWORD,W.LPCWSTR,W.LPWSTR,W.DWORD,C.c_void_p,W.LPCWSTR,C.POINTER(Startup),C.POINTER(Process)];security.CreateProcessWithLogonW.restype=W.BOOL
     kernel.WaitForSingleObject.argtypes=[W.HANDLE,W.DWORD];kernel.WaitForSingleObject.restype=W.DWORD;kernel.GetExitCodeProcess.argtypes=[W.HANDLE,C.POINTER(W.DWORD)];kernel.GetExitCodeProcess.restype=W.BOOL;kernel.CloseHandle.argtypes=[W.HANDLE];kernel.TerminateProcess.argtypes=[W.HANDLE,W.UINT]
-    executable=str(Path(sys.executable).with_name('pythonw.exe'));bootstrap=stage/'scripts/interactive-bootstrap.py';script=stage/'scripts/qualify-windows-msi.py'
-    bootstrap.write_text('import os,runpy,sys\nsys.stdout=sys.stderr=open('+repr(str(stage/'native/context.ui-stream.log'))+',"w",encoding="utf-8",buffering=1)\nsys.argv='+repr([str(script),'--ordinary-ui-worker',str(stage)])+'\nsys.path.insert(0,os.path.dirname(sys.argv[0]))\nrunpy.run_path(sys.argv[0],run_name="__main__")\n',encoding='utf-8',newline='\n')
+    purpose='namespace-probe' if probe_only else 'ui';executable=str(Path(sys.executable).with_name('pythonw.exe'));bootstrap=stage/('scripts/interactive-'+purpose+'-bootstrap.py');script=stage/'scripts/qualify-windows-msi.py'
+    bootstrap.write_text('import os,runpy,sys\nsys.stdout=sys.stderr=open('+repr(str(stage/('native/context.'+purpose+'-stream.log')))+',"w",encoding="utf-8",buffering=1)\nsys.argv='+repr([str(script),'--ordinary-namespace-probe' if probe_only else '--ordinary-ui-worker',str(stage)])+'\nsys.path.insert(0,os.path.dirname(sys.argv[0]))\nrunpy.run_path(sys.argv[0],run_name="__main__")\n',encoding='utf-8',newline='\n')
     command=C.create_unicode_buffer(subprocess.list2cmdline([executable,str(bootstrap)]))
     if len(command.value)>1023:raise RuntimeError('interactive Secondary Logon command exceeds its documented bound')
     environment=C.create_unicode_buffer(ordinary_environment(profile,name,stage/'temp'));startup=Startup();startup.cb=C.sizeof(startup);startup.flags=1;startup.show=0;startup.desktop=desktop['path'];process=Process()
@@ -579,15 +679,16 @@ def interactive_ordinary(stage,name,sid,password,profile,desktop,record):
         if not security.CreateProcessWithLogonW(name,'.',password,0,executable,command,0x08000400,environment,str(stage),C.byref(startup),C.byref(process)):
             error=C.WinError(C.get_last_error());error.api='CreateProcessWithLogonW';raise error
         record('interactive-ordinary-created',pid=process.pid,logon_flags=0,profile_loaded_by_child=False,session_token_reassignment=False)
-        if kernel.WaitForSingleObject(process.process,230000)!=0:raise RuntimeError('exact owned full-UI actor exceeded its bound')
+        if kernel.WaitForSingleObject(process.process,30000 if probe_only else 230000)!=0:raise RuntimeError('exact owned full-UI actor exceeded its bound')
         code=W.DWORD()
         if not kernel.GetExitCodeProcess(process.process,C.byref(code)):
             error=C.WinError(C.get_last_error());error.api='GetExitCodeProcess-interactive';raise error
         record('interactive-ordinary-exited',pid=process.pid,exit_code=code.value)
         if code.value:raise RuntimeError('ordinary interactive worker failed '+str(code.value))
-        proof=json.loads((stage/'native/context.ui.json').read_text(encoding='utf-8'));child_observed=proof['token']
+        proof=json.loads((stage/('native/context.namespace-probe.json' if probe_only else 'native/context.ui.json')).read_text(encoding='utf-8'));child_observed=proof['token']
         if proof.get('state')!='passed' or child_observed['user_sid_sha256']!=desktop['target_user_sid_sha256'] or child_observed['session_id']!=desktop['session_id'] or child_observed['elevated'] or child_observed['administrator_enabled'] or child_observed['integrity_rid']!=8192 or child_observed['enabled_privileges']>1 or not child_observed['interactive_logon']:raise RuntimeError('actual interactive worker token differs from the exact ordinary account/session')
-        record('interactive-ordinary-token-observed',pid=process.pid,token=child_observed,observation='GetTokenInformation in the exact completed ordinary worker')
+        record('interactive-ordinary-token-observed',pid=process.pid,token=child_observed,observation='GetTokenInformation in the exact completed ordinary worker',purpose=purpose)
+        return proof
     finally:
         if process.process and kernel.WaitForSingleObject(process.process,0)!=0:kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000)
         for handle in (process.thread,process.process):
@@ -1357,18 +1458,21 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
         (stage/'context-model.json').write_text(json.dumps(model),encoding='utf-8',newline='\n')
         install=stage/'installed program é with spaces';worker_output=native/'context.json'
         args=[str(scripts/'qualify-windows-msi.py'),'--ordinary-worker',str(target),'--context-dir',str(install),'--output',str(worker_output)]
-        ui_desktop={}
+        ui_desktop={};namespace={}
         try:
             with disposable_server_installer_policy(record) as policy_fixture:
                 with interactive_context_desktop(sid,caller_sid,stage) as ui_desktop:
-                    record('parent-before-first-full-UI',token=token_info(),mutex=installer_mutex_diagnostic())
-                    interactive_ordinary(stage,name,sid,password,profile,ui_desktop,record)
+                    record('parent-before-first-full-UI',token=token_info(),directories=object_namespace_diagnostic(),mutex=installer_mutex_diagnostic())
+                    probe=interactive_ordinary(stage,name,sid,password,profile,ui_desktop,record,probe_only=True)
+                    with interactive_context_namespace(stage,sid,caller_sid,ui_desktop,probe) as namespace:
+                        interactive_ordinary(stage,name,sid,password,profile,ui_desktop,record)
                 scheduler=scheduler_ordinary(stage,name,sid,password,args,record,profile)
         finally:
+            if namespace:record('owned-session-namespace-restoration',namespace=namespace)
             if ui_desktop:record('inactive-full-UI-desktop-restoration',desktop=ui_desktop)
         evidence=json.loads(worker_output.read_text(encoding='utf-8'))
         if evidence['token']['user_sid_sha256']!=m.digest(sid.encode()) or Path(evidence['user_profile']).resolve()!=profile.resolve():raise RuntimeError('ordinary worker changed account/profile identity')
-        evidence.update({'process_creation':'full UI via CreateProcessWithLogonW flags0 in the existing interactive session on an owned inactive WinSta0 desktop; separate quiet LogonUserW/CreateProcessAsUserW SYSTEM broker in private session0; exact station ACE restored and parent is sole profile-load owner','scheduler':scheduler,'profile_creation':'explicit owned LoadUserProfileW handle and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode()),'owned_account_rights_before':batch_original,'ci_host_policy_fixture':policy_fixture})
+        evidence.update({'process_creation':'full UI via CreateProcessWithLogonW flags0 in the existing interactive session on an owned inactive WinSta0 desktop; separate quiet LogonUserW/CreateProcessAsUserW SYSTEM broker in private session0; exact station ACE restored and parent is sole profile-load owner','scheduler':scheduler,'profile_creation':'explicit owned LoadUserProfileW handle and observed GetUserProfileDirectoryW','fixture_msi_sha256':m.sha(target),'fixture_script_sha256':m.sha(scripts/'qualify-windows-msi.py'),'elevated_actor_sid_sha256':m.digest(caller_sid.encode()),'owned_account_rights_before':batch_original,'ci_host_policy_fixture':policy_fixture,'ci_session_namespace_fixture':namespace})
         evidence['os_policy_mutations'].update({'ci_server_disable_msi_fixture':True,'ci_server_disable_msi_restored':policy_fixture['restored'],'always_install_elevated_unchanged':policy_fixture['always_install_elevated_unchanged']})
     except BaseException as error:
         failure=error;record('failed',failed_api=getattr(error,'api',current_phase['name']),winerror=getattr(error,'winerror',None),errno=getattr(error,'errno',None),error_type=type(error).__name__,error=str(error))
@@ -1571,8 +1675,9 @@ def qualify(path,receipt):
     (m.ROOT/'build/native/msi-lifecycle.json').write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     return result
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('installer',type=Path,nargs='?');p.add_argument('--receipt',type=Path);p.add_argument('--cancel-worker',type=Path);p.add_argument('--installer-worker',type=Path);p.add_argument('--ordinary-worker',type=Path);p.add_argument('--ordinary-broker');p.add_argument('--ordinary-ui-worker',type=Path);p.add_argument('--context-dir',type=Path);p.add_argument('--output',type=Path);a=p.parse_args();m.disposable_runner()
-    if a.ordinary_ui_worker:ordinary_ui_worker(a.ordinary_ui_worker)
+    p=argparse.ArgumentParser();p.add_argument('installer',type=Path,nargs='?');p.add_argument('--receipt',type=Path);p.add_argument('--cancel-worker',type=Path);p.add_argument('--installer-worker',type=Path);p.add_argument('--ordinary-worker',type=Path);p.add_argument('--ordinary-broker');p.add_argument('--ordinary-ui-worker',type=Path);p.add_argument('--ordinary-namespace-probe',type=Path);p.add_argument('--context-dir',type=Path);p.add_argument('--output',type=Path);a=p.parse_args();m.disposable_runner()
+    if a.ordinary_namespace_probe:ordinary_namespace_probe(a.ordinary_namespace_probe)
+    elif a.ordinary_ui_worker:ordinary_ui_worker(a.ordinary_ui_worker)
     elif a.installer_worker:native_installer_worker(a.installer_worker)
     elif a.cancel_worker:cancellation_worker(a.cancel_worker,a.context_dir,a.output)
     elif a.ordinary_worker or a.ordinary_broker:

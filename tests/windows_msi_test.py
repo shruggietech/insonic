@@ -294,6 +294,8 @@ class InstallerModelTests(unittest.TestCase):
         with patch.dict(os.environ,{},clear=True):
             with self.assertRaisesRegex(RuntimeError,'disposable'):module.interactive_ordinary(None,None,None,None,None,None,None)
             with self.assertRaisesRegex(RuntimeError,'disposable'):module.ordinary_ui_worker(None)
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.ordinary_namespace_probe(None)
+            with self.assertRaisesRegex(RuntimeError,'disposable'):module.object_namespace_diagnostic()
         stage=self.path/'interactive';stage.mkdir();(stage/'scripts').mkdir();(stage/'native').mkdir()
         name='inso_ci_0123456789ab';sid='S-1-5-21-1-2-3-1001';password='private-memory-password';closed=[];events=[]
         (stage/'owned-ci-account.json').write_text(json.dumps({'account':name,'sid_sha256':m.digest(sid.encode())}),encoding='utf-8')
@@ -304,14 +306,48 @@ class InstallerModelTests(unittest.TestCase):
             def __call__(self,*args):return self.call(*args)
         def create(account,domain,secret,logon,exe,command,flags,environment,cwd,startup,out):
             self.assertEqual((account,domain,secret,logon),(name,'.',password,0));self.assertTrue(exe.endswith('pythonw.exe'));self.assertLess(len(command.value),1024);self.assertEqual(flags,0x08000400);self.assertEqual(startup._obj.desktop,desktop['path']);self.assertEqual(cwd,str(stage));self.assertNotIn(password,command.value+environment.value)
-            self.assertNotIn(password,(stage/'scripts/interactive-bootstrap.py').read_text());out._obj.process=555;out._obj.thread=556;out._obj.pid=888
-            (stage/'native/context.ui.json').write_text(json.dumps({'token':target,'state':'passed'}),encoding='utf-8');return True
+            purpose='namespace-probe' if 'namespace-probe' in command.value else 'ui'
+            bootstrap=(stage/('scripts/interactive-'+purpose+'-bootstrap.py')).read_text();self.assertNotIn(password,bootstrap);self.assertIn('--ordinary-namespace-probe' if purpose=='namespace-probe' else '--ordinary-ui-worker',bootstrap);out._obj.process=555;out._obj.thread=556;out._obj.pid=888
+            (stage/('native/context.namespace-probe.json' if purpose=='namespace-probe' else 'native/context.ui.json')).write_text(json.dumps({'token':target,'state':'passed'}),encoding='utf-8');return True
         def code(process,out):out._obj.value=0;return True
         security=SimpleNamespace(CreateProcessWithLogonW=Function(create))
         kernel=SimpleNamespace(WaitForSingleObject=Function(lambda *args:0),GetExitCodeProcess=Function(code),CloseHandle=Function(lambda handle:closed.append(handle.value if hasattr(handle,'value') else handle)),TerminateProcess=Function(lambda *args:self.fail('successful child must not be killed')))
         with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'COMPUTERNAME':'CIHOST','SystemRoot':str(self.path/'Windows')},clear=True),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:{'advapi32':security,'kernel32':kernel}[name],create=True),patch.object(module,'token_info',return_value={'session_id':2}):
-            module.interactive_ordinary(stage,name,sid,password,self.path/name,desktop,lambda phase,**extra:events.append({'phase':phase,**extra}))
-        self.assertEqual(closed,[556,555]);self.assertEqual(events[-1]['token'],target);self.assertFalse(events[0]['profile_loaded_by_child']);self.assertFalse(events[0]['session_token_reassignment']);self.assertNotIn(password,repr(events))
+            for probe_only in (True,False):
+                proof=module.interactive_ordinary(stage,name,sid,password,self.path/name,desktop,lambda phase,**extra:events.append({'phase':phase,**extra}),probe_only=probe_only)
+                self.assertEqual(proof['token'],target)
+        self.assertEqual(closed,[556,555,556,555]);self.assertEqual(events[-1]['token'],target);self.assertFalse(events[0]['profile_loaded_by_child']);self.assertFalse(events[0]['session_token_reassignment']);self.assertNotIn(password,repr(events))
+
+    def test_session_namespace_fixture_restores_exact_descriptor_without_touching_global_or_child_objects(self):
+        from contextlib import nullcontext
+        spec=importlib.util.spec_from_file_location('qualify_session_namespace',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):
+                with module.interactive_context_namespace(None,None,None,None,None):self.fail('owner namespace entered')
+        stage=self.path/('insonic-ci-account-'+'a'*32);stage.mkdir();sid='S-1-5-21-1-2-3-1001';caller='S-1-5-21-1-2-3-1000';session=2
+        (stage/'owned-ci-account.json').write_text(json.dumps({'account':'inso_ci_0123456789ab','sid_sha256':m.digest(sid.encode())}),encoding='utf-8')
+        desktop={'session_id':session,'target_user_sid_sha256':m.digest(sid.encode()),'caller_sid_sha256':m.digest(caller.encode())}
+        target=r'\Sessions\2\BaseNamedObjects';probe={'token':{'session_id':session,'user_sid_sha256':m.digest(sid.encode())},'directories':{'objects':[{'path':target,'requested_access':15,'error':5,'opened':False}]}}
+        class API:
+            def __init__(self):self.current='D:(A;;GA;;;SY)';self.calls=[]
+            def open(self,name,access):self.calls.append(('open',name,access));return 77,0
+            def checked(self,name,status):self.asserted=(name,status)
+            def dacl(self,handle):return self.current.encode(),self.current
+            def describe(self,handle):return {'descriptor_sha256':m.digest(self.current.encode()),'owner_group_dacl_label_sddl':'O:SYG:SY'+self.current+'S:(ML;;NW;;;ME)'}
+            def convert(self,text):return nullcontext(text)
+            def set_dacl(self,handle,value):self.calls.append(('set',handle,value));self.current=value.decode() if isinstance(value,bytes) else value
+            def close(self,handle):self.calls.append(('close',handle))
+        api=API();observed=None
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'ProgramData':str(self.path)}),patch.object(module,'token_info',return_value={'session_id':session,'user_sid_sha256':m.digest(caller.encode())}),patch.object(module,'NativeObjectDirectories',return_value=api):
+            with self.assertRaisesRegex(ValueError,'native worker failed'):
+                with module.interactive_context_namespace(stage,sid,caller,desktop,probe) as observed:raise ValueError('native worker failed')
+        self.assertEqual(api.current,'D:(A;;GA;;;SY)');self.assertEqual(api.calls[0],('open',target,0x6000f));self.assertEqual(api.calls[-1],('close',77));self.assertEqual(len([x for x in api.calls if x[0]=='set']),2)
+        self.assertTrue(api.calls[1][2].endswith('(A;;0xf;;;'+sid+')'));self.assertTrue(observed['security_restored']);self.assertFalse(observed['global_namespace_modified']);self.assertEqual(observed['rights_mask'],15)
+        api=API()
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'ProgramData':str(self.path)}),patch.object(module,'token_info',return_value={'session_id':session,'user_sid_sha256':m.digest(caller.encode())}),patch.object(module,'NativeObjectDirectories',return_value=api):
+            with self.assertRaisesRegex(RuntimeError,'changed outside'):
+                with module.interactive_context_namespace(stage,sid,caller,desktop,probe):api.current='D:(A;;0x1;;;SY)'
+        self.assertEqual(api.current,'D:(A;;0x1;;;SY)');self.assertEqual(len([x for x in api.calls if x[0]=='set']),1)
 
     def test_system_broker_creates_only_the_verified_normal_target_without_profile_load(self):
         import ctypes as C
@@ -607,7 +643,8 @@ class InstallerModelTests(unittest.TestCase):
         def release(initial,install,remove,task,sid,deadline):
             self.assertEqual(initial,ownership);self.assertEqual(sid,actor_sid);self.assertEqual(task['exit_code'],0);self.assertEqual(json.loads(install.read_text())['action'],'/i');self.assertEqual(json.loads(remove.read_text())['action'],'/x');events.append('owned-service-restored');return {'restored_initial_stopped_state':True,'process_terminated':False,'registry_hive_forced':False}
         def lease(sid,profile,deadline):events.append('profile-lease-observed');return {'machine_state_modified':False}
-        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'qualifier_profile_privileges',side_effect=lambda:nullcontext({'ordinary_actor_token_changed':False})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch('qualify_installer_ui.prepare'),patch.object(module,'interactive_context_desktop',return_value=nullcontext({'station_dacl_restored':True})),patch.object(module,'interactive_ordinary'),patch.object(module,'token_info',return_value={}),patch.object(module,'installer_mutex_diagnostic',return_value={'objects':[]}),patch.object(module,'disposable_server_installer_policy',return_value=nullcontext({'restored':True,'always_install_elevated_unchanged':True})),patch.object(module,'profile_cleanup_observation',return_value={'machine_state_modified':False}),patch.object(module,'profile_lease_observation',side_effect=lease),patch.object(module,'release_owned_installer_service',side_effect=release),patch.object(module,'delete_owned_profile_provider',return_value={'complete_absence':False}),patch.object(C,'get_last_error',return_value=32,create=True),patch.object(module.time,'sleep'):
+        with __import__('contextlib').ExitStack() as patches:
+            for context in (patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'qualifier_profile_privileges',side_effect=lambda:nullcontext({'ordinary_actor_token_changed':False})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch('qualify_installer_ui.prepare'),patch.object(module,'interactive_context_desktop',return_value=nullcontext({'station_dacl_restored':True})),patch.object(module,'interactive_ordinary'),patch.object(module,'interactive_context_namespace',return_value=nullcontext({'security_restored':True})),patch.object(module,'object_namespace_diagnostic',return_value={'objects':[]}),patch.object(module,'token_info',return_value={}),patch.object(module,'installer_mutex_diagnostic',return_value={'objects':[]}),patch.object(module,'disposable_server_installer_policy',return_value=nullcontext({'restored':True,'always_install_elevated_unchanged':True})),patch.object(module,'profile_cleanup_observation',return_value={'machine_state_modified':False}),patch.object(module,'profile_lease_observation',side_effect=lease),patch.object(module,'release_owned_installer_service',side_effect=release),patch.object(module,'delete_owned_profile_provider',return_value={'complete_absence':False}),patch.object(C,'get_last_error',return_value=32,create=True),patch.object(module.time,'sleep')):patches.enter_context(context)
             proof=module.ordinary_context(installer,self.path/'installation',output,self.model,ownership)
         self.assertEqual(events,['account-created','profile-created-by-native-load','ordinary-task-completed','profile-handle-unloaded','profile-lease-observed','owned-service-restored','profile-lease-observed','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3);self.assertEqual(rights,[])
         self.assertTrue(all(item.get('deleted',item.get('restored',item.get('unloaded'))) for item in proof['cleanup']));self.assertEqual((original/'owner-data').read_bytes(),b'keep');self.assertEqual((programdata/'owner-data').read_bytes(),b'keep')

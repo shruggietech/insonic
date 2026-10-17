@@ -5,42 +5,66 @@ import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
-function capturedSources(repositoryRoot, receipt) {
+function capturedSources(repositoryRoot, receipt, changed) {
   const revision = receipt.source.revision;
   const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^GIT_|TOKEN|SECRET|PASSWORD|CREDENTIAL|ASKPASS/i.test(name)));
   Object.assign(env, {GIT_TERMINAL_PROMPT:'0',GIT_CONFIG_NOSYSTEM:'1'});
   const options = {cwd:repositoryRoot,env,windowsHide:true,shell:false,timeout:15000,maxBuffer:64 << 20};
-  const ancestry = spawnSync('git',['merge-base','--is-ancestor',revision,'HEAD'],options);
-  if (ancestry.status !== 0) throw new Error('Screenshot source differs; its captured revision is unavailable or outside this history. Fetch complete history.');
-  const paths = ['VERSION', ...receipt.source.files.map(item => item.path)];
-  const result = spawnSync('git',['cat-file','--batch'],{...options,input:paths.map(name=>`${revision}:${name}\n`).join('')});
-  if (result.status !== 0 || !result.stdout) throw new Error('Screenshot source differs; captured Git objects are unavailable.');
-  let offset=0;const files=[];
-  for (const name of paths) {
-    const end=result.stdout.indexOf(10,offset);
-    if(end<0)throw new Error('Screenshot source differs; incomplete captured source.');
-    const header=result.stdout.subarray(offset,end).toString('ascii');
-    const match=header.match(/^[a-f0-9]{40} blob ([0-9]+)$/);
-    const size=match ? Number(match[1]) : -1;offset=end+1;
-    if(size<0||size>16<<20||offset+size>=result.stdout.length||result.stdout[offset+size]!==10)throw new Error('Screenshot source differs; invalid captured object.');
-    files.push(result.stdout.subarray(offset,offset+size));offset+=size+1;
+  function blobs(references) {
+    const result=spawnSync('git',['cat-file','--batch'],{...options,input:references.join('\n')+'\n'});
+    if(result.status!==0||!result.stdout)throw new Error('Screenshot source differs; captured Git objects are unavailable.');
+    let offset=0;const files=[];
+    for(const reference of references){
+      const end=result.stdout.indexOf(10,offset);
+      if(end<0)throw new Error('Screenshot source differs; incomplete captured source.');
+      const header=result.stdout.subarray(offset,end).toString('ascii');offset=end+1;
+      if(header===reference+' missing'){files.push(null);continue;}
+      const match=header.match(/^[a-f0-9]{40} blob ([0-9]+)$/);
+      const size=match?Number(match[1]):-1;
+      if(size<0||size>16<<20||offset+size>=result.stdout.length||result.stdout[offset+size]!==10)throw new Error('Screenshot source differs; invalid captured object.');
+      files.push(result.stdout.subarray(offset,offset+size));offset+=size+1;
+    }
+    if(offset!==result.stdout.length)throw new Error('Screenshot source differs; extra captured objects.');
+    return files;
   }
-  if(offset!==result.stdout.length||files[0].toString('utf8').trim()!==receipt.schema_version)throw new Error('Screenshot source differs from its captured version.');
-  for(let index=0;index<receipt.source.files.length;index++)if(hash(files[index+1])!==receipt.source.files[index].sha256)throw new Error('Screenshot source differs from its recorded capture.');
+  const paths=['VERSION',...receipt.source.files.map(item=>item.path)];
+  const matches=files=>files[0]?.toString('utf8').trim()===receipt.schema_version&&receipt.source.files.every((item,index)=>files[index+1]&&hash(files[index+1])===item.sha256);
+  const ancestry=spawnSync('git',['merge-base','--is-ancestor',revision,'HEAD'],options);
+  if(ancestry.status===0){
+    const files=blobs(paths.map(name=>revision+':'+name));
+    if(files[0]?.toString('utf8').trim()!==receipt.schema_version)throw new Error('Screenshot source differs from its captured version.');
+    if(!matches(files))throw new Error('Screenshot source differs from its recorded capture.');
+    return;
+  }
+  // Squash merges do not retain the CI test-merge commit in main's ancestry.
+  // Accept only one coherent ancestral snapshot with every recorded byte hash
+  // and version. Preserve the original capture revision and receipt unchanged.
+  const history=spawnSync('git',['log','--format=%H','--max-count=64','HEAD','--','VERSION',changed.path],options);
+  if(history.status!==0)throw new Error('Screenshot source differs; captured history is unavailable. Fetch complete history.');
+  const revisions=history.stdout.toString('ascii').trim().split('\n').filter(value=>/^[a-f0-9]{40}$/.test(value));
+  if(revisions.length){
+    const anchors=blobs(revisions.map(value=>value+':'+changed.path));
+    const candidates=revisions.filter((value,index)=>anchors[index]&&hash(anchors[index])===changed.sha256).slice(0,4);
+    if(candidates.length){
+      const files=blobs(candidates.flatMap(value=>paths.map(name=>value+':'+name)));
+      if(candidates.some((value,index)=>matches(files.slice(index*paths.length,(index+1)*paths.length))))return;
+    }
+  }
+  throw new Error('Screenshot source differs; no matching complete snapshot exists in bounded repository history. Refresh the capture or fetch complete history.');
 }
 
 async function verifySources(repositoryRoot, receipt) {
   if(receipt.source.files.length>4096)throw new Error('Screenshot source inventory exceeds its bound.');
-  let current=true;
+  let changed=null;
   for (const item of receipt.source.files) {
     if (typeof item.path !== 'string' || !item.path || path.isAbsolute(item.path) || item.path.includes('..') || /[\\:\x00-\x1f]/.test(item.path)
         || !/^[a-f0-9]{64}$/.test(item.sha256)) throw new Error('Invalid capture source path or digest.');
-    try {if(hash(await fs.readFile(path.join(repositoryRoot,item.path)))!==item.sha256)current=false;}
-    catch(error){if(error.code==='ENOENT')current=false;else throw error;}
+    try {if(hash(await fs.readFile(path.join(repositoryRoot,item.path)))!==item.sha256)changed??=item;}
+    catch(error){if(error.code==='ENOENT')changed??=item;else throw error;}
   }
   // Versioned images describe their recorded clean source. Later backend edits
   // cannot invalidate that historical evidence or rewrite its receipt.
-  if(!current)capturedSources(repositoryRoot,receipt);
+  if(changed)capturedSources(repositoryRoot,receipt,changed);
 }
 export async function prepareScreenshots(repositoryRoot, publicRoot) {
   const source = path.join(repositoryRoot, 'docs/screenshots');
