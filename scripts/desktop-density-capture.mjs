@@ -93,7 +93,7 @@ export async function runDensityMatrix(page, context, {checkpoint, image}) {
           const input=page.locator('.desktop-content .desktop-selection input[type="checkbox"]:not(:disabled)').first();
           let selection='not-present';
           if(await input.count()){
-            const before=await input.isChecked();const label=page.locator('label').filter({has:input});const area=await label.boundingBox();
+            const before=await input.isChecked();const label=input.locator('..');assert.equal(await label.evaluate(node=>node instanceof HTMLLabelElement&&node.control===node.querySelector('input')),true);const area=await label.boundingBox();
             assert.ok(area&&area.width>=44&&area.height>=44);
             await label.click({position:{x:area.width-3,y:area.height-3}});assert.equal(await input.isChecked(),!before);
             await input.focus();await page.keyboard.press('Space');assert.equal(await input.isChecked(),before);
