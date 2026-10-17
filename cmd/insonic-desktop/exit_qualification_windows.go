@@ -26,21 +26,22 @@ func exitWinLabel(handle uintptr, index uintptr) string {
 }
 func exitOwnedWindow() (uintptr, error) {
 	deadline := time.Now().Add(5 * time.Second)
-	for time.Now().Before(deadline) {
-		var handles []uintptr
-		callback := syscall.NewCallback(func(hwnd, unused uintptr) uintptr {
-			var pid uint32
-			exitWinCall("GetWindowThreadProcessId", hwnd, uintptr(unsafe.Pointer(&pid)))
-			if pid != uint32(os.Getpid()) || exitWinCall("GetMenu", hwnd) == 0 {
-				return 1
-			}
-			var class [64]uint16
-			exitWinCall("GetClassNameW", hwnd, uintptr(unsafe.Pointer(&class[0])), uintptr(len(class)))
-			if windows.UTF16ToString(class[:]) == "winc_Form" {
-				handles = append(handles, hwnd)
-			}
+	var handles []uintptr
+	callback := syscall.NewCallback(func(hwnd, unused uintptr) uintptr {
+		var pid uint32
+		exitWinCall("GetWindowThreadProcessId", hwnd, uintptr(unsafe.Pointer(&pid)))
+		if pid != uint32(os.Getpid()) || exitWinCall("GetMenu", hwnd) == 0 {
 			return 1
-		})
+		}
+		var class [64]uint16
+		exitWinCall("GetClassNameW", hwnd, uintptr(unsafe.Pointer(&class[0])), uintptr(len(class)))
+		if windows.UTF16ToString(class[:]) == "winc_Form" {
+			handles = append(handles, hwnd)
+		}
+		return 1
+	})
+	for time.Now().Before(deadline) {
+		handles = nil
 		exitWinCall("EnumWindows", callback, 0)
 		if len(handles) > 1 {
 			return 0, fmt.Errorf("ambiguous owned native window")

@@ -498,12 +498,29 @@ async function qualifyJourney(
   const selected=await call('models.resolve','',{reference:'native-speech',operation:'transcription'});
   if(!selected.compatible||selected.target.id!==fixtures.model_id||selected.state!=='available')throw new Error('Native reference did not retain its exact verified model.');
   flags.ui_model_references='passed';
+  const observeCompact = async () => {
+    desktopDensityGeometry();
+    const main=document.querySelector('.desktop-content');
+    const action=main?.querySelector<HTMLButtonElement>('button:not(:disabled)');
+    if(!action)throw new Error('Workflow focus target missing.');
+    action.focus();if(document.activeElement!==action)throw new Error('Workflow action could not receive keyboard focus.');
+    const input=main?.querySelector<HTMLInputElement>('.desktop-selection input[type="checkbox"]:not(:disabled)');
+    if(input){
+      const label=input.closest('label'),before=input.checked;
+      if(!label||label.control!==input)throw new Error('Workflow selection label missing.');
+      qualificationAction(()=>label.click());await qualificationTurn();
+      if(input.checked===before)throw new Error('Workflow label did not activate its checkbox.');
+      qualificationAction(()=>label.click());await qualificationTurn();
+      if(input.checked!==before)throw new Error('Workflow selection did not restore its value.');
+      input.focus();if(document.activeElement!==input)throw new Error('Workflow selection could not receive keyboard focus.');
+    }
+  };
   for (const view of ['Jobs', 'Pipelines', 'Models', 'Settings', 'Library']) {
     await click(view);
-    desktopDensityGeometry();
+    await observeCompact();
   }
   await click('Set up library');
-  desktopDensityGeometry();
+  await observeCompact();
   await click('Set up later');
   flags.ui_compact_density='passed';
   await bridge.QualificationStep?.('keyboard-help');

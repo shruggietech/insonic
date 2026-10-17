@@ -100,7 +100,7 @@ The window opens at 1200 by 800 and supports a 720 by 600 minimum. Enlarged text
 
 ![Settings at the minimum window size with text enlarged to 200 percent](../screenshots/v1.0.1/desktop-settings-enlarged.png)
 
-These images record a clean source build in an isolated Chromium renderer. The [capture receipt](../screenshots/v1.0.1/density-capture.json) records the window, renderer scale, text scale and geometry observations. Renderer scale checks do not establish behavior under every operating-system display setting. Native Windows and Linux qualification separately observes the controls in their application webviews.
+These images record a clean source build in an isolated Chromium renderer. The capture receipt records the window, renderer scale, text scale and geometry observations. Renderer scale checks do not establish behavior under every operating-system display setting. Native Windows and Linux qualification separately observes the controls in their application webviews.
 
 ## Native package layouts
 

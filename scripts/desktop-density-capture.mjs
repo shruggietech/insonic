@@ -85,7 +85,24 @@ export async function runDensityMatrix(page, context, {checkpoint, image}) {
           let geometry;
           try { geometry = await page.evaluate(desktopDensityGeometry); }
           catch (error) { console.error(JSON.stringify({phase:'density-observation',view,width,height,scale,text,reason:error.message.split('\n')[0]}));await page.screenshot({path:path.join(ROOT,'build/density-failure.png')});throw error; }
-          observations.push({view, width, height, device_scale_factor: scale, text_scale: text, observed, ...geometry});
+          // Exercise shared controls while each real workflow is mounted.
+          const action=page.locator('.desktop-content button:not(:disabled)').first();
+          await page.keyboard.press('Tab'); await action.focus();
+          assert.equal(await action.evaluate(node=>document.activeElement===node&&node.matches(':focus-visible')),true);
+          assert.ok(await action.evaluate(node=>parseFloat(getComputedStyle(node).outlineWidth)>=2));
+          const input=page.locator('.desktop-content .desktop-selection input[type="checkbox"]:not(:disabled)').first();
+          let selection='not-present';
+          if(await input.count()){
+            const before=await input.isChecked();const label=page.locator('label').filter({has:input});const area=await label.boundingBox();
+            assert.ok(area&&area.width>=44&&area.height>=44);
+            await label.click({position:{x:area.width-3,y:area.height-3}});assert.equal(await input.isChecked(),!before);
+            await input.focus();await page.keyboard.press('Space');assert.equal(await input.isChecked(),before);
+            assert.equal(await input.evaluate(node=>node.matches(':focus-visible')),true);
+            assert.ok(await input.evaluate(node=>parseFloat(getComputedStyle(node).outlineWidth)>=2));
+            selection='label-padding-and-space-passed';
+          }
+          await page.evaluate(()=>{if(document.activeElement instanceof HTMLElement)document.activeElement.blur();document.querySelector('.desktop-content').scrollTop=0;document.querySelector('.app-header').scrollTop=0;});
+          observations.push({view, width, height, device_scale_factor: scale, text_scale: text, observed, keyboard_focus:'passed', selection_activation:selection, ...geometry});
           if (scale === 1 && ((width === 1200 && text === 1) || (width === 720 && text === 2 && view === 'Settings')))
             await image('desktop-' + view.toLowerCase() + (width === 720 ? '-enlarged' : '') + '.png', view,
               'Compact ' + view + ' controls at ' + width + ' by ' + height + (text === 2 ? ' with 200% text.' : '.'));
