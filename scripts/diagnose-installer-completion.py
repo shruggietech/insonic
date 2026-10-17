@@ -61,12 +61,26 @@ def observe_invocation(stage,token,quiet_install):
 
 
 
+def reinstall_advertised_probe(dll,product,source,properties):
+    """Diagnostic only: public removal followed by the original full package."""
+    m.disposable_runner();source=Path(source)
+    if source.is_symlink() or not source.is_file():raise RuntimeError('original owned recovery source is unavailable')
+    if dll.MsiQueryProductStateW(product)!=1:raise RuntimeError('owned recovery product is not advertised')
+    result={'feature_qualification':False,'uninstall_code':int(dll.MsiConfigureProductExW(product,0,2,'REMOVE=ALL LAUNCH=0 REBOOT=ReallySuppress'))}
+    result['after_uninstall']=int(dll.MsiQueryProductStateW(product))
+    if result['uninstall_code']==0 and result['after_uninstall']==-1:
+        result['install_code']=int(dll.MsiInstallProductW(str(source),properties))
+        result['after_install']=int(dll.MsiQueryProductStateW(product))
+    return result
+
+
 def recover_registration(stage,product,phase):
     m.disposable_runner();stage=Path(stage);q=qualifier();token=q.token_info()
     marker=json.loads((stage/'owned-ci-account.json').read_text(encoding='utf-8'));model=json.loads((stage/'ui-model.json').read_text(encoding='utf-8'))
     if q.diagnostic_mode(stage)!='rollback-recovery' or marker['sid_sha256']!=token['user_sid_sha256'] or token['elevated'] or token['administrator_enabled'] or product!=model['old_product'] or phase not in ('missing-source','available-source'):raise RuntimeError('registration recovery is not the exact ordinary owned diagnostic')
     dll=C.WinDLL('msi');dll.MsiSetInternalUI.argtypes=[W.UINT,C.POINTER(W.HWND)];dll.MsiSetInternalUI.restype=W.UINT
     dll.MsiConfigureProductExW.argtypes=[W.LPCWSTR,C.c_int,C.c_int,W.LPCWSTR];dll.MsiConfigureProductExW.restype=W.UINT
+    dll.MsiInstallProductW.argtypes=[W.LPCWSTR,W.LPCWSTR];dll.MsiInstallProductW.restype=W.UINT
     dll.MsiEnableLogW.argtypes=[W.DWORD,W.LPCWSTR,W.DWORD];dll.MsiEnableLogW.restype=W.UINT
     dll.MsiQueryProductStateW.argtypes=[W.LPCWSTR];dll.MsiQueryProductStateW.restype=C.c_int
     dll.MsiQueryFeatureStateW.argtypes=[W.LPCWSTR,W.LPCWSTR];dll.MsiQueryFeatureStateW.restype=C.c_int
@@ -80,6 +94,11 @@ def recover_registration(stage,product,phase):
     dll.MsiSetInternalUI(2,None);dll.MsiEnableLogW(0x1000,str(stage/'native'/('context.recovery-'+phase+'.log')),0)
     try:result['code']=int(dll.MsiConfigureProductExW(product,0,5,'ADDLOCAL=Core,CLI REMOVE=Desktop LICENSE_ACCEPTED=1 LAUNCH=0 REBOOT=ReallySuppress'))
     finally:dll.MsiEnableLogW(0,None,0)
+    if phase=='available-source' and dll.MsiQueryProductStateW(product)==1:
+        source=stage/'ui-old.msi';properties=q.installer_properties(['ADDLOCAL=Core,CLI','REMOVE=Desktop','INSTALLDIR='+str(stage/'UI program é & spaces'),'START_MENU=0','DESKTOP_SHORTCUT=0','LICENSE_ACCEPTED=1','LAUNCH=0','REBOOT=ReallySuppress'])
+        dll.MsiEnableLogW(0x1000,str(stage/'native/context.recovery-public-reinstall.log'),0)
+        try:result['public_reinstall']=reinstall_advertised_probe(dll,product,source,properties)
+        finally:dll.MsiEnableLogW(0,None,0)
     result.update(after=int(dll.MsiQueryProductStateW(product)),metadata_after=info(),features={name:int(dll.MsiQueryFeatureStateW(product,name)) for name in ('Core','CLI','Desktop')})
     (stage/'native'/('context.recovery-'+phase+'.json')).write_text(json.dumps(result,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
 

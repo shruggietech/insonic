@@ -1,6 +1,6 @@
 # Upgrade rollback decision
 
-Status: proposed, owner decision pending. No new product recovery or source-retention behavior is implemented. S036 remains draft in PR #151.
+Status: expansion authorized by the owner on 2026-10-17 ("Expand S036 recovery scope"). No product recovery or source-retention behavior is implemented yet. S036 remains draft in PR #151.
 
 ## Established evidence
 
@@ -23,3 +23,9 @@ The alternative is a separately tracked blocking work slice while S036 remains u
 Exercise ordinary-user native install, failure/cancellation after old removal, registration5 and exact old bytes, original source unavailable, exact retained feature/path choices, missing/corrupt recovery data, cleanup after successful upgrade/uninstall, and the existing no-elevation/ownership/inventory gates. Keep the660-second budget. Final captures, full CI and the reserved second review round remain pending.
 
 [Owner scope boundary](../../AGENTS.md): Ask for material scope changes; do not repeat routine authorization.
+
+## Authorized research and implementation order (2026-10-17)
+
+Prove a public-API recovery path before designing source retention. The next focused comparison removes only the exact owned advertised diagnostic product through MsiConfigureProductEx and reinstalls the original full MSI through MsiInstallProduct, preserving the old path and feature choices. It refuses removal when that source is absent. This tests whether SecureRepair belongs to advertised maintenance rather than fresh ordinary-user installation. It is diagnostic only and cannot qualify the product.
+
+The upstream file-only per-user rollback report provides independent related evidence, not proof of an identical cause: https://github.com/wixtoolset/issues/issues/8574. Retain the existing gate until a supported recovery path passes. Production integration must cover direct MSI interactive and unattended invocation, transaction completion ordering, source trust/lifecycle and legacy cases; a helper that returns after an unrecovered failure is insufficient.

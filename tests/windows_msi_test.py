@@ -197,9 +197,29 @@ class InstallerModelTests(unittest.TestCase):
     def test_invocation_diagnostic_refuses_owner_host_before_native_calls(self):
         spec=importlib.util.spec_from_file_location('invocation_guard',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with patch.dict(os.environ,{},clear=True),patch.object(module,'qualifier') as native:
-            for function,args in [(module.main,()),(module.observe_invocation,(None,None,None)),(module.observe_rollback,(None,None,None)),(module.rollback_case,(None,None)),(module.recover_registration,(None,None,None))]:
+            for function,args in [(module.main,()),(module.observe_invocation,(None,None,None)),(module.observe_rollback,(None,None,None)),(module.rollback_case,(None,None)),(module.recover_registration,(None,None,None)),(module.reinstall_advertised_probe,(None,None,None,None))]:
                 with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
             native.assert_not_called()
+
+    def test_recovery_reinstall_probe_refuses_missing_source_before_unregister(self):
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('recovery_reinstall_fixture',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        calls=[]
+        dll=SimpleNamespace(MsiQueryProductStateW=lambda product:1,MsiConfigureProductExW=lambda *args:calls.append(args),MsiInstallProductW=lambda *args:calls.append(args))
+        with patch.object(m,'disposable_runner',return_value=None):
+            with self.assertRaisesRegex(RuntimeError,'source'):module.reinstall_advertised_probe(dll,'old',self.path/'missing.msi','ADDLOCAL=Core,CLI')
+        self.assertEqual(calls,[])
+
+    def test_recovery_reinstall_probe_uses_public_absent_then_original_package(self):
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('recovery_reinstall_order',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        calls=[];state=[1];source=self.path/'old.msi';source.write_bytes(b'original owned MSI')
+        def uninstall(*args):calls.append(('uninstall',args));state[0]=-1;return 0
+        def install(*args):calls.append(('install',args));state[0]=5;return 0
+        dll=SimpleNamespace(MsiQueryProductStateW=lambda product:state[0],MsiConfigureProductExW=uninstall,MsiInstallProductW=install)
+        with patch.object(m,'disposable_runner',return_value=None):result=module.reinstall_advertised_probe(dll,'old',source,'ADDLOCAL=Core,CLI LAUNCH=0')
+        self.assertEqual(calls,[('uninstall',('old',0,2,'REMOVE=ALL LAUNCH=0 REBOOT=ReallySuppress')),('install',(str(source),'ADDLOCAL=Core,CLI LAUNCH=0'))])
+        self.assertEqual(result,{'uninstall_code':0,'after_uninstall':-1,'install_code':0,'after_install':5,'feature_qualification':False})
 
     def test_rollback_diagnostic_retains_observation_when_native_cleanup_fails(self):
         from types import SimpleNamespace

@@ -3,7 +3,7 @@
 **Feature Branch**: codex/036-installer-offline-help
 **Created**: 2026-10-17
 **Status**: Clarified
-**Input**: S036 autopilot for #109, #110 and #111; publish PR, up to two review rounds, stop before owner merge.
+**Input**: S036 autopilot for #109, #110 and #111; publish PR, up to two review rounds, stop before owner merge. On 2026-10-17 the owner explicitly expanded S036 to include the reproduced native upgrade rollback and recovery defect.
 
 ## User Scenarios & Testing
 
@@ -57,6 +57,19 @@ After successful interactive fresh installation, the operator can open documenta
 - Missing help, unsupported handler, local links/assets and installed-version identity.
 - Existing libraries, credentials, durable runtime work and unrelated files remain outside installer ownership.
 
+### User Story 4 - Recover a failed per-user upgrade (Priority: P1)
+
+A failed or cancelled upgrade leaves the previous installed version usable and registered with its prior path, feature and integration choices. Recovery works under the invoking ordinary user, with interactive and unattended results that state the actual outcome.
+
+**Independent Test**: Force failure and cancellation after the old installation has been removed, then verify old product registration, feature states and exact program bytes before the installer returns. Repeat with the original downloaded installer absent, legacy installations, and missing/corrupt recovery data.
+
+**Acceptance Scenarios**:
+
+1. Given a previous installation and sufficient validated recovery data, failure or cancellation restores its installed registration and prior owned program bytes, without elevation or external downloads.
+2. Given unavailable or corrupt required recovery data, the upgrade stops before removing the working installation and identifies the missing local source.
+3. Given recovery failure, the result states that recovery is incomplete and identifies a retained local recovery route; it never reports a restored installation from file hashes alone.
+4. Successful upgrade and removal clean obsolete application-owned recovery data while preserving libraries, settings and other user data.
+
 ## Requirements
 
 ### Functional Requirements
@@ -70,6 +83,9 @@ After successful interactive fresh installation, the operator can open documenta
 - **FR-007**: Honor invoking-user non-elevated Windows associations for every client selection and relocated paths; opening failures must not fail committed installation (#111).
 - **FR-008**: Qualify actual packaged/native activation and full-UI transactions; retain silent lifecycle, inventory, ownership and rollback checks, and refresh truthful guidance/screenshots (#109..#111).
 - **FR-009**: Preserve the 660-second CI budget, hidden local console launches, UTF-8/LF integrity, exact issue scope and owner merge boundary.
+
+- **FR-010**: A failed or cancelled per-user upgrade must restore old installed registration, bytes and prior choices before reporting recovery complete. Recovery must preserve ordinary-user execution and both interactive/unattended entry points.
+- **FR-011**: Establish a validated local recovery source before destructive upgrade work, including legacy/source-unavailable and missing/corrupt-data behavior. Retain actionable recovery information on failure and remove obsolete application-owned recovery data after successful upgrade/removal.
 
 ### Key Entities
 
@@ -87,9 +103,11 @@ After successful interactive fresh installation, the operator can open documenta
 - **SC-004**: Existing lifecycle, rollback, active-work, data-ownership and launch-user checks pass.
 - **SC-005**: Required local checks and exact-head hosted CI pass within the existing budget; at most two review rounds precede an unmerged owner handoff.
 
+- **SC-006**: Focused native ordinary-user failure/cancellation cases restore installed registration and exact old payload with the downloaded MSI unavailable. Missing/corrupt recovery data prevents removal, and full native qualification subsequently passes.
+
 ## Assumptions and Clarifications
 
-- Exact scope is #109/#110/#111; desktop-wide density #112 and File/Exit #113 remain separate.
+- Scope is #109/#110/#111 plus the owner-approved native upgrade recovery expansion; desktop-wide density #112 and File/Exit #113 remain separate.
 - Documentation defaults unchecked. Upgrade/change/repair/removal do not offer fresh-install post-actions.
 - Prefer a shared supported native help opener; an internal GUI help view is allowed if needed.
 - Interactive transactions/capture run only on acknowledged disposable hosted runners; no attended owner gate.

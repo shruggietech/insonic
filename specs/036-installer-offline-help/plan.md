@@ -8,13 +8,13 @@ Add native modeless engine progress and outcome-specific MSI pages; use a shared
 
 ## Technical Context
 
-Language: pinned Go, Python 3 and TypeScript/React. Dependencies: native MSI tables via ctypes, pinned Wails v2.16, existing Windows user-token launcher and package/browser qualification. No new runtime framework or storage migration.
+Language: pinned Go, Python 3 and TypeScript/React. Dependencies: native MSI tables via ctypes, pinned Wails v2.16, existing Windows user-token launcher and package/browser qualification. No new runtime framework or catalog storage migration. Owner-approved recovery work may add private local installer recovery state only after a public native recovery path is proved.
 Targets: Windows x86-64 MSI/CLI/desktop and Linux x86-64 desktop help. Existing SQLite/PostgreSQL, filesystem/S3 and LadybugDB/ArcadeDB contracts remain shared.
 Constraints: 660-second CI budget, no visible local consoles, actual native evidence separated from static/dialog fixtures, installed-version offline help, non-elevated same-user launch, no inference or owner media.
 
 ## Constitution Check
 
-Before and after design: PASS. Exact #109/#110/#111 scope; CLI/GUI share native help mechanisms; no media/data ownership change; no routing/policy expansion; native user boundaries preserved; public contracts separate from numbered planning; current version unchanged; no kit byte edits; explicit push/PR authorization honored and owner retains merge. No exceptions.
+Before and after design: PASS. Original #109/#110/#111 scope plus owner-approved upgrade recovery; CLI/GUI share native help mechanisms; no media/data ownership change; no routing/policy expansion; native user boundaries preserved; public contracts separate from numbered planning; current version unchanged; no kit byte edits; explicit push/PR authorization honored and owner retains merge. No exceptions.
 
 ## Project Structure
 
@@ -38,3 +38,7 @@ No constitution exceptions. Two read-only research agents inspect MSI and help b
 ## Qualification corrections (2026-10-17)
 
 A focused invocation trace replaces repeated inference from ignored MSI action status: actual arguments, startup desktop, UI-library initialization and delegate exit identify the boundary before changing dispatch. The disposable actor uses the CI Default desktop selected by MSI, with exact-account grants and complete restoration. The manual diagnostic cannot publish feature proof. Maintenance Repair uses standard omus without recaching its open package; native0 and exact restored bytes remain required. Deterministic writer-held regressions also correct single-table catalog lists and named model lookups to avoid unnecessary immediate writer reservations, retaining multi-table snapshots. These proportional corrections unblock the mandatory existing package journeys without reducing their assertions.
+
+## Upgrade recovery expansion (2026-10-17)
+
+The owner authorized recovery scope after the native ordinary-user rollback restored files but left old registration advertised. Follow the staged decision in rollback-decision.md: prove supported API recovery first, then source/choice persistence and transaction integration, then native failure/cancellation/source-loss cases. Preserve direct MSI interactive and unattended behavior, no elevation, no Windows Installer internal registry/cache manipulation, no external download, exact prior choices, owned-data cleanup and the 660-second budget. Do not implement a source cache without a proved recovery consumer.
