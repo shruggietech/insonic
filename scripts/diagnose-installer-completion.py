@@ -107,6 +107,7 @@ def main():
     (help/'offline-manifest.json').write_text(json.dumps({'version':version,'entrypoint':'index.html','public_landing_included':False}),encoding='utf-8',newline='\n')
     files=[{'path':p.relative_to(fixture).as_posix(),'sha256':m.sha(p),'size_bytes':p.stat().st_size} for p in sorted(fixture.rglob('*')) if p.is_file()]
     inventory={'schema_version':version,'platform':'windows_amd64','variant':'desktop','files':files};raw=m.inventory_bytes(inventory)
+    (fixture/'package-inventory.json').write_bytes(raw)
     model=m.installer_model(inventory,m.digest(raw),(fixture/'LICENSE').read_text(encoding='utf-8'),upgrade=m.guid('invocation-diagnostic/'+__import__('uuid').uuid4().hex))
     installer=work/'diagnostic.msi';m.author(installer,fixture,model)
     result=q.ordinary_context(installer,work/'installed',evidence/'ordinary-context.json',model,diagnostic_only=True)
