@@ -55,6 +55,11 @@ func exploreBackendSuite(t *testing.T, a *App, g graph.Adapter) {
 		actual := response.Result.(explore.Result)
 		want, _ := json.Marshal(expected.Rows)
 		got, _ := json.Marshal(actual.Rows)
+		wantEdges, _ := json.Marshal(expected.Edges)
+		gotEdges, _ := json.Marshal(actual.Edges)
+		if string(wantEdges) != string(gotEdges) || expected.TotalEdges != actual.TotalEdges {
+			t.Fatal(op, "relationship backend parity", string(wantEdges), string(gotEdges))
+		}
 		if string(want) != string(got) || expected.Total != actual.Total {
 			t.Fatal(op, "backend parity", string(want), string(got))
 		}
@@ -117,7 +122,7 @@ func exploreBackendSuite(t *testing.T, a *App, g graph.Adapter) {
 	a.Graph = g
 
 	// Decimal transport strings bind as real int64 values on each supported engine.
-	paramText := "MATCH (n:Entity) RETURN $clock AS clock LIMIT 1"
+	paramText := "MATCH (n:Entity) RETURN $clock AS clock LIMIT 1; /* trailing terminator */"
 	params := map[string]contracts.QueryParameter{"clock": {Type: "integer", Value: json.RawMessage(`"9223372036854775807"`)}}
 	exact, e := g.Query(a.ctx, dialect, paramText, params)
 	if e != nil || len(exact) != 1 {

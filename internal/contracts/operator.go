@@ -4,6 +4,10 @@ package contracts
 import "errors"
 
 var operatorReasons = map[string]string{
+	"native_statement":          "Submit one read statement with at most one trailing semicolon followed only by whitespace or comments. Split multiple statements into separate query native invocations.",
+	"native_function":           "A function call is outside the supported pure-function subset. Use COUNT, SUM, MIN, MAX, AVG, COALESCE, TOSTRING, TOINTEGER, LOWER, UPPER, ABS, SIZE, LENGTH or COLLECT where supported by the selected dialect; see query native --help. Calls such as range are not supported.",
+	"native_syntax":             "The native read has empty or malformed text, an unterminated quote/comment or an invalid token. Correct the statement and consult query native --help for the supported grammar.",
+	"native_read_only":          "Native queries require a read statement: SELECT for SQL, or MATCH, OPTIONAL MATCH, RETURN, WITH or UNWIND for Cypher, optionally prefixed by EXPLAIN. Remove mutations, transaction control, procedures and profiling parameters; use explicit maintenance operations for effects.",
 	"backend_pending_plan":      "This directory cannot reconcile this provisioning input. Reuse its retained provision-intent configuration and credential backend; changed input, a missing receipt or a changed credential selection conflicts.",
 	"backend_s3_bucket":         "The selected S3 bucket access could not be established. Verify the endpoint, existing bucket, credentials and TLS; provisioning does not create S3 buckets.",
 	"backend_plan":              "The backend plan is invalid. Correct the reported fields and use workspace plan --help for complete supported shapes.",

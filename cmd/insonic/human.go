@@ -287,7 +287,7 @@ func humanWarnings(b *humanBuffer, v any, depth int) {
 			if strings.HasPrefix(strings.Join(operatorContext.Path, " "), "work ") && contracts.ValidID(selectedItem()) {
 				route = commandFor("work results " + selectedItem())
 			}
-			b.line("Warning: Additional item details omitted; inspect %s.", route)
+			b.line("Warning: Additional item details omitted; %s.", route)
 		}
 		for i, item := range x {
 			if i >= 64 {
@@ -372,6 +372,30 @@ func humanMaterializations(b *humanBuffer, v any, depth int) {
 		}
 	}
 }
+
+// Query metadata must precede details that can exhaust the human display bound.
+func humanQueryPaging(b *humanBuffer, v any) {
+	op := strings.Join(operatorContext.Path, " ")
+	if op != "search" && op != "query run" && op != "timeline calendar" && op != "timeline recording" {
+		return
+	}
+	root, ok := v.(map[string]any)
+	if !ok {
+		return
+	}
+	if root["total"] == nil {
+		return
+	}
+	b.line("Matching rows: %s; rows outside this page: %s.", humanValue(root["total"]), humanValue(root["omitted"]))
+	if cur, ok := root["next_cursor"].(string); ok && cur != "" {
+		b.line("Next cursor: %s", cur)
+		if op == "search" {
+			b.line("Continue: repeat this search text and filters with --after NEXT_CURSOR (the complete value above).")
+		} else {
+			b.line("Continue: set pagination.cursor in the input JSON to the complete cursor above, keeping the query/filter unchanged.")
+		}
+	}
+}
 func renderHuman(response contracts.Response) (string, error) {
 	v, e := humanJSON(response.Result)
 	if e != nil {
@@ -395,6 +419,9 @@ func renderHuman(response contracts.Response) (string, error) {
 		}
 	} else if !operatorContext.Quiet {
 		b.line("%s completed.", humanLabel(op))
+	}
+	if !operatorContext.Quiet || response.Error != nil {
+		humanQueryPaging(b, v)
 	}
 	humanWarnings(b, v, 0)
 	if v == nil && response.Error != nil && strings.HasPrefix(op, "work ") {

@@ -858,20 +858,87 @@ def qualify_package_gui(gui, directory, env):
 
 @contextmanager
 def background_gui_qualification(gui, directory, env):
-    # Both probes create their own workspaces and in-process runtimes. Join every
-    # owned probe before restoring development libraries or removing fixtures.
+    # Probes own their fixture workspaces. Join every probe, including any
+    # bootstrap activity, before restoring libraries or removing fixtures.
     with ThreadPoolExecutor(max_workers=1) as workers:
         future = workers.submit(qualify_package_gui, gui, directory, dict(env))
         yield future
         future.result()
 
 
-def wait_for_detached_idle(last_completed_at=None):
-    # Preserve the entire existing allowance after the last CLI request. GUI
-    # probes use separate in-process runtimes and cannot extend this idle lease.
+def windows_image_released(executable):
+    # Request write-data and delete access without modifying the image.
+    # Write-data access observes mapped-image sharing on Windows Server too.
+    import ctypes
+    from ctypes import wintypes
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    kernel.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+                                  ctypes.c_void_p, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    kernel.CreateFileW.restype = wintypes.HANDLE
+    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel.CloseHandle.restype = wintypes.BOOL
+    handle = kernel.CreateFileW(str(executable), 0x10002, 7, None, 3, 0, None)
+    if handle == ctypes.c_void_p(-1).value:
+        error = ctypes.get_last_error()
+        if error in (5, 32):
+            return False
+        raise ctypes.WinError(error)
+    if not kernel.CloseHandle(handle):
+        raise ctypes.WinError(ctypes.get_last_error())
+    return True
+
+
+def retain_busy_image_diagnostic(executable):
+    value = {'kind': 'package-image-busy', 'image_writable': os.access(executable, os.W_OK), 'owners': []}
+    powershell = Path(os.environ.get('SystemRoot', 'C:/Windows')) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
+    script = r"""$ErrorActionPreference = 'Stop';
+$owners = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:INSONIC_QUALIFIED_IMAGE } | Select-Object -First 16 | ForEach-Object {
+  $role = 'other'; $command = $_.CommandLine;
+  if ($command -like '*cold operator workspace*') { $role = 'cold-credentials' }
+  elseif ($command -like '*isolated documented workflows*') { $role = 'documentation' }
+  elseif ($command -like '*first-use library*') { $role = 'first-use' }
+  elseif ($command -like '*insonic-webview-*' -or $command -like '*insonic-desktop-*') { $role = 'gui' }
+  elseif ($command -like '*workspace with spaces*') { $role = 'main' }
+  @{pid=$_.ProcessId; parent_pid=$_.ParentProcessId; role=$role}
+}); ConvertTo-Json -InputObject $owners -Compress"""
+    try:
+        owners = json.loads(child([powershell, '-NoProfile', '-NonInteractive', '-Command', script],
+                                  env={'INSONIC_QUALIFIED_IMAGE': str(executable)}, timeout=10))
+        value['owners'] = [{'pid': int(owner['pid']), 'parent_pid': int(owner['parent_pid']),
+                            'role': owner['role'] if owner['role'] in ['other', 'cold-credentials', 'documentation', 'first-use', 'gui', 'main'] else 'other'}
+                           for owner in owners[:16]]
+    except (OSError, RuntimeError, ValueError, TypeError, KeyError, subprocess.TimeoutExpired):
+        value['diagnostic'] = 'unavailable'
+    try:
+        write_json(ROOT / 'build/native/package-image-busy-receipt.json', value)
+    except OSError:
+        pass  # Diagnostic failure cannot replace the package cleanup failure.
+
+
+def wait_for_detached_idle(last_completed_at=None, executable=None):
+    # Keep the full idle lease, then observe Windows image release rather than
+    # assuming shutdown and native-library teardown finish on the next tick.
     remaining = 31 if last_completed_at is None else max(0, 31 - (time.monotonic() - last_completed_at))
     if remaining:
         time.sleep(remaining)
+    if executable is not None and platform.system() == 'Windows':
+        deadline = time.monotonic() + 10
+        while not windows_image_released(executable):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                retain_busy_image_diagnostic(executable)
+                raise TimeoutError('packaged CLI image remained busy after detached idle allowance')
+            time.sleep(min(0.1, remaining))
+
+
+def finish_package_checks(gui_future, last_completed_at, executable):
+    try:
+        if gui_future is not None:
+            gui_future.result()
+    finally:
+        # GUI bootstrap can elect another detached owner. Its final activity can
+        # occur after the last CLI request, including on a failed CLI journey.
+        wait_for_detached_idle(None if gui_future is not None else last_completed_at, executable)
 
 
 def _smoke(archive=None, dirname=None, receipt=None):
@@ -1001,12 +1068,10 @@ def _smoke(archive=None, dirname=None, receipt=None):
             idle_started = time.monotonic()
             if replacement['state'] != 'succeeded' or recording['recording']['state'] != 'untranscribed' or retained['revision'] != roster['revision'] or retained['members']:
                 raise ValueError('packaged replacement/declared-empty roster authority changed')
-            if gui_future is not None:
-                gui_future.result()
         finally:
-            # The detached runtime owns its jobs and releases its own scratch
-            # catalog handles at the existing bounded idle exit.
-            wait_for_detached_idle(idle_started)
+            # Join both activity paths before allowing every detached owner its
+            # idle exit; an image still held afterward remains a hard failure.
+            finish_package_checks(gui_future, idle_started, cli)
     receipt.update({'windows_copy_install': installation, 'windows_first_use': installation, 'cli_contract': contract_receipt, 'extracted_inventory': 'passed', 'relocation_path_spaces': 'passed',
                     'cli_real_audio_video_import': 'passed', 'recording_replacement': 'passed', 'declared_roster': 'passed', 'cueson_assembly': 'passed', 'native_subtitle_export': 'passed',
                     'gui_bridge': 'passed' if receipt['variant'] == 'desktop' else 'not-included',

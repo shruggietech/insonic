@@ -3,6 +3,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"io"
 	"os"
@@ -25,6 +26,8 @@ func parseExploreAlias(args []string) (string, string, json.RawMessage, error) {
 				q.Definition.Filters.SpeakerIDs = []string{args[i+1]}
 			case "--media":
 				q.Definition.Filters.MediaIDs = []string{args[i+1]}
+			case "--after":
+				q.Definition.Pagination.Cursor = args[i+1]
 			case "--limit":
 				n, e := strconv.Atoi(args[i+1])
 				if e != nil {
@@ -80,7 +83,7 @@ func parseExploreAlias(args []string) (string, string, json.RawMessage, error) {
 			if e != nil {
 				return "", "", nil, e
 			}
-			if contracts.DecodeExplore(raw, &q.Parameters) != nil {
+			if catalog.ValidateJSON(raw) != nil || contracts.DecodeExplore(raw, &q.Parameters) != nil {
 				return fail()
 			}
 		}

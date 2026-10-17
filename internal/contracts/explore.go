@@ -4,6 +4,7 @@ package contracts
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/shruggietech/insonic/internal/timezone"
 	"io"
 	"strconv"
 	"strings"
@@ -135,7 +136,7 @@ func (q QueryInput) Validate() error {
 				return Fail("invalid_request")
 			}
 			if c.Timezone != "" {
-				if _, e := time.LoadLocation(c.Timezone); e != nil {
+				if _, e := timezone.Location(c.Timezone); e != nil {
 					return Fail("invalid_request")
 				}
 			}

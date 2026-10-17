@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //go:build windows
 
-package library
+package timezone
 
 import "golang.org/x/sys/windows/registry"
 

@@ -241,6 +241,10 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
     if documentation:
         from cli_media_qualification import qualify as qualify_media
         lifecycle = qualify_media(invoke, supplied, workspace, executable, environment, version)
+    query_contracts = {'state': 'not-included', 'reason': 'exact companions required in extracted packages'}
+    if documentation:
+        from cli_query_qualification import qualify as qualify_queries
+        query_contracts = qualify_queries(invoke, supplied, workspace)
     documented = {'state': 'not-included', 'reason': 'source CLI lane; required in extracted packages'}
     if documentation:
         from documented_workflows import qualify as qualify_documentation
@@ -267,7 +271,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
             logged = path.read_text(encoding='utf-8')
             if len(logged.encode('utf-8')) > 1 << 20 or any(value in logged for value in [secret['passphrase'], secret['value'], 'wrong-fixture-passphrase', str(workspace)]):
                 raise ValueError('Diagnostic log retained protected or arbitrary input')
-    return {'media_lifecycle': lifecycle, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
+    return {'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
             'protected_vault_delete': 'passed', 'typed_failures': failures,
             'operator_feedback': 'passed', 'cold_startup_failure': 'passed', 'detached_owner': 'passed',
             'model_roles_leases': 'passed', 'diagnostic_redaction': 'passed'}

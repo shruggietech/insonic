@@ -75,6 +75,69 @@ class NativePackageIntegrityTests(unittest.TestCase):
             package.wait_for_detached_idle()
             slept.assert_called_once_with(31)
 
+    def test_detached_idle_wait_observes_image_release_and_preserves_failure(self):
+        with patch.object(package.platform, 'system', return_value='Windows'), \
+                patch.object(package.time, 'monotonic', side_effect=[145, 145, 145.2, 145.3]), \
+                patch.object(package.time, 'sleep') as slept, \
+                patch.object(package, 'windows_image_released', side_effect=[False, False, True]) as released:
+            package.wait_for_detached_idle(100, Path('fixture.exe'))
+            self.assertEqual(released.call_count, 3)
+            self.assertEqual(slept.call_args_list, [unittest.mock.call(0.1), unittest.mock.call(0.1)])
+        with patch.object(package.platform, 'system', return_value='Windows'), \
+                patch.object(package.time, 'monotonic', side_effect=[145, 145, 155]), \
+                patch.object(package, 'windows_image_released', return_value=False), \
+                patch.object(package, 'retain_busy_image_diagnostic') as diagnostic:
+            with self.assertRaisesRegex(TimeoutError, 'image remained busy'):
+                package.wait_for_detached_idle(100, Path('fixture.exe'))
+            diagnostic.assert_called_once_with(Path('fixture.exe'))
+
+    @unittest.skipUnless(package.os.name == 'nt', 'Windows executable image semantics')
+    def test_image_release_probe_observes_loaded_image_without_modifying_files(self):
+        import ctypes
+        kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+        kernel.GetModuleFileNameW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_uint32]
+        kernel.GetModuleFileNameW.restype = ctypes.c_uint32
+        image_path = ctypes.create_unicode_buffer(32768)
+        self.assertGreater(kernel.GetModuleFileNameW(None, image_path, len(image_path)), 0)
+        self.assertFalse(package.windows_image_released(Path(image_path.value)))
+        with tempfile.TemporaryDirectory() as temporary:
+            image = Path(temporary) / 'unused.exe'
+            image.write_bytes(b'unchanged image bytes')
+            self.assertTrue(package.windows_image_released(image))
+            self.assertEqual(image.read_bytes(), b'unchanged image bytes')
+            image.unlink()
+
+    def test_package_idle_allowance_starts_after_late_gui_activity_even_on_failure(self):
+        for fail_gui in (False, True):
+            events = []
+            def joined():
+                events.append('gui-complete')
+                if fail_gui:
+                    raise ValueError('actual GUI failure')
+            future = SimpleNamespace(result=joined)
+            def waited(last, executable):
+                self.assertIsNone(last)
+                self.assertEqual(executable, Path('fixture.exe'))
+                events.append('full-idle-allowance')
+            with self.subTest(fail_gui=fail_gui), patch.object(package, 'wait_for_detached_idle', side_effect=waited):
+                if fail_gui:
+                    with self.assertRaisesRegex(ValueError, 'actual GUI failure'):
+                        package.finish_package_checks(future, 100, Path('fixture.exe'))
+                else:
+                    package.finish_package_checks(future, 100, Path('fixture.exe'))
+            self.assertEqual(events, ['gui-complete', 'full-idle-allowance'])
+        with patch.object(package, 'wait_for_detached_idle') as waited:
+            package.finish_package_checks(None, 100, Path('fixture.exe'))
+            waited.assert_called_once_with(100, Path('fixture.exe'))
+
+    def test_busy_image_diagnostic_retains_only_bounded_owner_categories(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.object(package, 'ROOT', Path(temporary)), \
+                patch.object(package, 'child', return_value=json.dumps([{'pid': 42, 'parent_pid': 7, 'role': 'main', 'command_line': 'private fixture path'}]).encode()):
+            package.retain_busy_image_diagnostic(Path(temporary) / 'fixture.exe')
+            receipt = json.loads((Path(temporary) / 'build/native/package-image-busy-receipt.json').read_text())
+            self.assertEqual(receipt['owners'], [{'pid': 42, 'parent_pid': 7, 'role': 'main'}])
+            self.assertNotIn('private', json.dumps(receipt))
+
     def test_owned_gui_probe_joins_before_library_restoration_even_on_cli_failure(self):
         import threading
         for fail_cli in (False, True):
