@@ -14,7 +14,7 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
-- Windows Installer repair restores files, registry and shortcuts without unnecessarily recaching its open package. Windows Installer displays engine-driven execution progress, confirms cancellation and reports operation-specific success, cancellation and failure with terminal Finish/Close controls. Desktop Offline help uses one compact button and a controlled local documentation view, with actual native activation and local navigation checks on Windows and Linux.
+- Windows Installer repair restores files, registry and shortcuts without unnecessarily recaching its open package. Removal can also clean an advertised product without repeating the fresh-install license requirement. Windows Installer displays engine-driven execution progress, confirms cancellation and reports operation-specific success, cancellation and failure with terminal Finish/Close controls. Desktop Offline help uses one compact button and a controlled local documentation view, with actual native activation and local navigation checks on Windows and Linux.
 
 - Single-table catalog lists and model-name lookups read committed rows without reserving the SQLite writer, allowing imports and model downloads to continue while those reads run. Multi-table snapshots retain transactional consistency.
 

@@ -213,6 +213,7 @@ class InstallerModelTests(unittest.TestCase):
             result=module.observe_rollback(stage,token,lambda *args:(_ for _ in ()).throw(RuntimeError('native cleanup1603')))
         self.assertEqual(result['transactions'][-1]['registered_states'],{'old':1,'new':-1})
         self.assertTrue(result['restored_old_payload']);self.assertFalse(result['feature_qualification'])
+        self.assertEqual(result['state'],'passed')  # completed trace, explicitly never feature qualification
         self.assertFalse(result['cleanup'][0]['completed'])
         retained=json.loads((stage/'native/context.rollback-comparison.json').read_text(encoding='utf-8'))
         self.assertEqual(retained,result)
@@ -221,7 +222,7 @@ class InstallerModelTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('diagnostic_mode_fixture',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         target=self.path/'installer-diagnostic-mode.json'
         with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{},clear=True):
-            for mode in ('completion','rollback-reused','rollback-isolated'):
+            for mode in ('completion','rollback-reused','rollback-isolated','rollback-primed','rollback-late'):
                 target.write_text(json.dumps({'feature_qualification':False,'mode':mode}),encoding='utf-8')
                 self.assertEqual(module.diagnostic_mode(self.path),mode)
             for invalid in ({'feature_qualification':True,'mode':'completion'},{'feature_qualification':False,'mode':'unknown'},{'feature_qualification':False,'mode':'completion','extra':1}):

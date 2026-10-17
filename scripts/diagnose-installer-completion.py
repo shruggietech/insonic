@@ -77,8 +77,20 @@ def rollback_case(stage,name):
 
 def observe_rollback(stage,token,quiet_install):
     m.disposable_runner();stage=Path(stage)
-    isolated=qualifier().diagnostic_mode(stage)=='rollback-isolated'
-    result={'kind':'owned-native-rollback-comparison','feature_qualification':False,'token':token,'isolated_transaction_processes':isolated,'transactions':[]}
+    mode=qualifier().diagnostic_mode(stage);isolated=mode=='rollback-isolated'
+    candidate=None
+    if mode in ('rollback-primed','rollback-late'):
+        target=stage/'ui-bad.msi';original=m.sha(target);db=m.NativeDatabase(target,write=True)
+        sequence=1510 if mode=='rollback-primed' else 6500
+        table=m.quote('InstallExecuteSequence');action=m.quote('Action');number=m.quote('Sequence')
+        try:
+            db.execute('INSERT INTO '+table+' ('+action+','+m.quote('Condition')+','+number+') VALUES (?,?,?)',['InstallExecute',None,sequence])
+            db.execute('UPDATE '+table+' SET '+number+'=? WHERE '+action+'=?',[sequence+10 if mode=='rollback-primed' else 6550,'RemoveExistingProducts'])
+            if mode=='rollback-late':db.execute('UPDATE '+table+' SET '+number+'=? WHERE '+action+'=?',[6560,'FixtureFailure'])
+            db.check(db.dll.MsiDatabaseCommit(db.handle))
+        finally:db.close()
+        candidate={'kind':mode,'original_msi_sha256':original,'candidate_msi_sha256':m.sha(target),'failure_after_old_product_removal':True}
+    result={'kind':'owned-native-rollback-comparison','feature_qualification':False,'token':token,'isolated_transaction_processes':isolated,'sequence_candidate':candidate,'transactions':[]}
     products=[dict(m.table_rows(m.CompoundFile(stage/name).streams,'Property'))['ProductCode'] for name in ('ui-old.msi','ui-bad.msi')]
     dll=C.WinDLL('msi');dll.MsiQueryProductStateW.argtypes=[W.LPCWSTR];dll.MsiQueryProductStateW.restype=C.c_int
     try:
@@ -104,7 +116,6 @@ def observe_rollback(stage,token,quiet_install):
                     quiet_install(['/x',product],stage/'native'/('context.rollback-cleanup-'+product.strip('{}')+'.log'))
                     result['cleanup'].append({'product':product,'completed':True})
                 except BaseException as error:result['cleanup'].append({'product':product,'completed':False,'error':str(error)[-2000:]})
-        result['state']='observed'
         (stage/'native/context.rollback-comparison.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
 
 
@@ -168,7 +179,7 @@ def main():
     installer=work/'diagnostic.msi';m.author(installer,fixture,model)
     kind=os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_KIND','completion')
     if kind not in ('completion','rollback'):raise RuntimeError('unknown diagnostic kind')
-    modes=['completion'] if kind=='completion' else ['rollback-reused','rollback-isolated']
+    modes=['completion'] if kind=='completion' else list(q.DIAGNOSTIC_MODES[1:])
     results=[]
     for mode in modes:
         os.environ['INSONIC_INSTALLER_DIAGNOSTIC_MODE']=mode

@@ -649,12 +649,14 @@ def ordinary_namespace_probe(stage):
     proof={'state':'passed','token':token_info(),'directories':object_namespace_diagnostic(),'mutex':installer_mutex_diagnostic()}
     (stage/'native/context.namespace-probe.json').write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
 
+DIAGNOSTIC_MODES=('completion','rollback-reused','rollback-isolated','rollback-primed','rollback-late')
+
 def diagnostic_mode(stage):
     m.disposable_runner()
     raw=(Path(stage)/'installer-diagnostic-mode.json').read_bytes()
     if len(raw)>1024:raise RuntimeError('owned diagnostic mode exceeds its bound')
     mode=json.loads(raw)
-    if set(mode)!={'feature_qualification','mode'} or mode['feature_qualification'] is not False or mode['mode'] not in ('completion','rollback-reused','rollback-isolated'):raise RuntimeError('invalid owned diagnostic mode')
+    if set(mode)!={'feature_qualification','mode'} or mode['feature_qualification'] is not False or mode['mode'] not in DIAGNOSTIC_MODES:raise RuntimeError('invalid owned diagnostic mode')
     return mode['mode']
 
 
