@@ -222,12 +222,25 @@ class InstallerModelTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('diagnostic_mode_fixture',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         target=self.path/'installer-diagnostic-mode.json'
         with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{},clear=True):
-            for mode in ('completion','rollback-reused','rollback-isolated','rollback-primed','rollback-late'):
+            for mode in ('completion','rollback-reused','rollback-isolated','rollback-primed','rollback-late','rollback-msiexec'):
                 target.write_text(json.dumps({'feature_qualification':False,'mode':mode}),encoding='utf-8')
                 self.assertEqual(module.diagnostic_mode(self.path),mode)
             for invalid in ({'feature_qualification':True,'mode':'completion'},{'feature_qualification':False,'mode':'unknown'},{'feature_qualification':False,'mode':'completion','extra':1}):
                 target.write_text(json.dumps(invalid),encoding='utf-8')
                 with self.assertRaisesRegex(RuntimeError,'diagnostic mode'):module.diagnostic_mode(self.path)
+
+    def test_msiexec_diagnostic_has_hidden_explicit_owned_launch(self):
+        from types import SimpleNamespace
+        import qualify_installer_ui as ui
+        stage=self.path/'insonic-ci-account-00000000000000000000000000000000';stage.mkdir();(stage/'completion-invocation-diagnostic.json').write_text('{"qualification":false}',encoding='utf-8')
+        (stage/'native').mkdir();msi=stage/'ui-old.msi';msi.write_bytes(b'owned fixture')
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'ProgramData':str(self.path),'SystemRoot':str(self.path/'windows')}),patch.object(ui.subprocess,'Popen',return_value=SimpleNamespace(pid=123)) as start:
+            ui.launch_msiexec_diagnostic(msi,stage/'UI program é & spaces',stage/'native/context.ui-rollback-install.log')
+        args,kwargs=start.call_args
+        self.assertIn('/qf',args[0]);self.assertIn('/l*v',args[0]);self.assertFalse(any('LICENSE_ACCEPTED' in str(value) for value in args[0]))
+        self.assertEqual(kwargs['creationflags'],0x08000000);self.assertEqual(kwargs['stdin'],ui.subprocess.DEVNULL)
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):ui.launch_msiexec_diagnostic(None,None,None)
 
     def test_full_ui_and_association_helpers_refuse_owner_host_before_native_calls(self):
         import qualify_installer_ui as ui

@@ -69,7 +69,8 @@ def rollback_case(stage,name):
     if stage.resolve().parent!=Path(os.environ['ProgramData']).resolve() or not (stage/'completion-invocation-diagnostic.json').is_file() or marker.get('sid_sha256')!=token['user_sid_sha256'] or token['administrator_enabled'] or token['elevated']:raise RuntimeError('rollback diagnostic is not the exact owned ordinary account')
     if name not in ('install','failed-upgrade'):raise RuntimeError('unknown owned rollback diagnostic case')
     installer=stage/('ui-old.msi' if name=='install' else 'ui-bad.msi')
-    row=NativeUI(stage/'native/context.json').run(installer,stage/'UI program é & spaces','rollback-'+name,selection='cli',operation='install' if name=='install' else 'upgrade',expected=0 if name=='install' else 1603)
+    normal_client=q.diagnostic_mode(stage)=='rollback-msiexec'
+    row=NativeUI(stage/'native/context.json').run(installer,stage/'UI program é & spaces','rollback-'+name,selection='cli',operation='install' if name=='install' else 'upgrade',expected=0 if name=='install' else 1603,native_process=normal_client,execution_required=not normal_client)
     row['token']=token
     (stage/'native'/('context.rollback-'+name+'.json')).write_text(json.dumps(row,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     return row
@@ -178,8 +179,8 @@ def main():
     model=m.installer_model(inventory,m.digest(raw),(fixture/'LICENSE').read_text(encoding='utf-8'),upgrade=m.guid('invocation-diagnostic/'+__import__('uuid').uuid4().hex))
     installer=work/'diagnostic.msi';m.author(installer,fixture,model)
     kind=os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_KIND','completion')
-    if kind not in ('completion','rollback'):raise RuntimeError('unknown diagnostic kind')
-    modes=['completion'] if kind=='completion' else list(q.DIAGNOSTIC_MODES[1:])
+    if kind not in ('completion','rollback','msiexec'):raise RuntimeError('unknown diagnostic kind')
+    modes=['completion'] if kind=='completion' else ['rollback-msiexec'] if kind=='msiexec' else [mode for mode in q.DIAGNOSTIC_MODES[1:] if mode!='rollback-msiexec']
     results=[]
     for mode in modes:
         os.environ['INSONIC_INSTALLER_DIAGNOSTIC_MODE']=mode

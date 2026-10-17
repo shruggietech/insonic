@@ -75,9 +75,15 @@ class ProgressInspection:
         if self.deadline is not None and not self.event.is_set():self.event.wait(min(.02,max(0,self.deadline-self.clock())))
 
 
+def launch_msiexec_diagnostic(msi,directory,log):
+    m.disposable_runner();msi=Path(msi);stage=msi.resolve().parent;log=Path(log)
+    if stage.parent!=Path(os.environ['ProgramData']).resolve() or not __import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name) or msi.name not in ('ui-old.msi','ui-bad.msi') or (stage/'completion-invocation-diagnostic.json').read_text(encoding='utf-8')!='{"qualification":false}' or Path(directory).resolve()!=stage/'UI program é & spaces' or log.resolve().parent!=stage/'native' or not __import__('re').fullmatch('context.ui-rollback-(install|failed-upgrade).log',log.name):raise RuntimeError('native msiexec diagnostic is outside its owned stage')
+    return subprocess.Popen([str(Path(os.environ['SystemRoot'])/'System32/msiexec.exe'),'/i',str(msi),'/qf','/l*v',str(log),'INSTALLDIR='+str(directory),'REBOOT=ReallySuppress'],cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=0x08000000)
+
+
 class NativeUI:
     def __init__(self,output):
-        m.disposable_runner();self.output=Path(output)
+        m.disposable_runner();self.output=Path(output);self.actor_pid=os.getpid()
         self.u=C.WinDLL('user32',use_last_error=True);self.dll=C.WinDLL('msi',use_last_error=True)
         self.cb=C.WINFUNCTYPE(W.BOOL,W.HWND,W.LPARAM)
         self.u.EnumWindows.argtypes=[self.cb,W.LPARAM];self.u.EnumChildWindows.argtypes=[W.HWND,self.cb,W.LPARAM]
@@ -111,7 +117,7 @@ class NativeUI:
         found=[]
         def visit(hwnd,_):
             pid=W.DWORD();self.u.GetWindowThreadProcessId(hwnd,C.byref(pid))
-            owned=pid.value==os.getpid()
+            owned=pid.value==self.actor_pid
             if not owned and helper and self.text(hwnd)=='Open insonic documentation':
                 kernel=C.WinDLL('kernel32',use_last_error=True)
                 kernel.OpenProcess.argtypes=[W.DWORD,W.BOOL,W.DWORD];kernel.OpenProcess.restype=W.HANDLE
@@ -183,7 +189,7 @@ class NativeUI:
             return {'path':target.name,'sha256':m.sha(target),'width':width,'height':height}
         finally:g.SelectObject(memory,old);g.DeleteObject(bitmap);g.DeleteDC(memory);u.ReleaseDC(hwnd,dc)
 
-    def run(self,msi,directory,name,operation='install',selection='both',launch=False,docs=False,cancel=None,expected=0,before_finish=None,execution_required=True):
+    def run(self,msi,directory,name,operation='install',selection='both',launch=False,docs=False,cancel=None,expected=0,before_finish=None,execution_required=True,native_process=False):
         state={'name':name,'operation':operation,'fixture_msi_sha256':m.sha(msi),'pages':[],'actions':[],'progress_messages':0,'progress_observed':False,'bar_positions':[],'visible_phases':[],'terminal':None,'captures':[]}
         action_text=m.table_rows(m.CompoundFile(msi).streams,'ActionText');descriptions={row[1] for row in action_text if row[1]};described_actions={row[0] for row in action_text if row[1]}
         action_ready=threading.Event();progress_seen=threading.Event();done=threading.Event();inspection=ProgressInspection(progress_seen)
@@ -204,6 +210,12 @@ class NativeUI:
         def install():
             initialized=False;ole=None
             try:
+                if native_process:
+                    process=launch_msiexec_diagnostic(msi,directory,self.output.parent/('context.ui-'+name+'.log'))
+                    self.actor_pid=process.pid;state['native_engine']={'kind':'msiexec.exe full UI','pid':process.pid,'feature_qualification':False,'progress_source':'native controls, no in-process API observer'}
+                    stdout,stderr=process.communicate(timeout=75)
+                    state['code']=process.returncode;state['native_engine'].update(stdout=stdout.decode(errors='replace')[-4000:],stderr=stderr.decode(errors='replace')[-4000:])
+                    return
                 ole=C.WinDLL('ole32');ole.CoInitializeEx.argtypes=[C.c_void_p,W.DWORD];ole.CoInitializeEx.restype=C.c_long
                 ole.CoUninitialize.argtypes=[];ole.CoUninitialize.restype=None
                 initialized=ole.CoInitializeEx(None,2) in (0,1)
@@ -220,8 +232,9 @@ class NativeUI:
             except BaseException as error:state['error']=str(error)
             finally:
                 try:
-                    self.dll.MsiSetExternalUIW(self.handler(),0,None)
-                    state['logging_closed']=self.dll.MsiEnableLogW(0,None,0)==0
+                    if not native_process:
+                        self.dll.MsiSetExternalUIW(self.handler(),0,None)
+                        state['logging_closed']=self.dll.MsiEnableLogW(0,None,0)==0
                     if initialized:ole.CoUninitialize()
                 finally:done.set()
         thread=threading.Thread(target=install,name='owned-native-full-ui',daemon=True);thread.start()
