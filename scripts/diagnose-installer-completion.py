@@ -127,7 +127,8 @@ def rollback_case(stage,name):
     if mode in ('rollback-exit-quiet','rollback-container'):
         if mode=='rollback-container' and name=='failed-upgrade':installer=stage/'recovery-container.msi'
         log=stage/'native'/('context.ui-rollback-'+name+'.log')
-        code=q.run_installer(['/i',str(installer),'INSTALLDIR='+str(stage/'UI program é & spaces'),'ADDLOCAL=Core,CLI','REMOVE=Desktop','START_MENU=0','DESKTOP_SHORTCUT=0','LICENSE_ACCEPTED=1','LAUNCH=0','REBOOT=ReallySuppress'],log,expected=name=='install')
+        properties=['REBOOT=ReallySuppress'] if mode=='rollback-container' and name=='failed-upgrade' else ['INSTALLDIR='+str(stage/'UI program é & spaces'),'ADDLOCAL=Core,CLI','REMOVE=Desktop','START_MENU=0','DESKTOP_SHORTCUT=0','LICENSE_ACCEPTED=1','LAUNCH=0','REBOOT=ReallySuppress']
+        code=q.run_installer(['/i',str(installer),*properties],log,expected=name=='install')
         row={'name':'rollback-'+name,'code':code,'native_engine':'MsiInstallProductW NONE','feature_qualification':False}
     else:
         row=NativeUI(stage/'native/context.json').run(installer,stage/'UI program é & spaces','rollback-'+name,selection='cli',operation='install' if name=='install' else 'upgrade',expected=0 if name=='install' else 1603,native_process=normal_client,execution_required=not normal_client,before_terminal_close=before_close if mode=='rollback-recovery' and name=='failed-upgrade' else None)
@@ -150,6 +151,7 @@ def author_recovery_container_probe(stage):
     schema={
         'Property':[('Property','CHAR(72) NOT NULL'),('Value','CHAR(0)')],
         'Directory':[('Directory','CHAR(72) NOT NULL'),('Directory_Parent','CHAR(72)'),('DefaultDir','CHAR(255) NOT NULL')],
+        'Feature':[('Feature','CHAR(38) NOT NULL'),('Feature_Parent','CHAR(38)'),('Title','CHAR(64)'),('Description','CHAR(255)'),('Display','SHORT'),('Level','SHORT NOT NULL'),('Directory_','CHAR(72)'),('Attributes','SHORT NOT NULL')],
         'InstallExecuteSequence':[('Action','CHAR(72) NOT NULL'),('Condition','CHAR(255)'),('Sequence','SHORT')],
         'MsiEmbeddedChainer':[('MsiEmbeddedChainer','CHAR(72) NOT NULL'),('Condition','CHAR(255)'),('CommandLine','CHAR(0)'),('Source','CHAR(72) NOT NULL'),('Type','SHORT NOT NULL')],
         'Binary':[('Name','CHAR(72) NOT NULL'),('Data','OBJECT NOT NULL')],
@@ -159,6 +161,7 @@ def author_recovery_container_probe(stage):
         for table,columns in schema.items():db.execute('CREATE TABLE '+q(table)+' ('+','.join(q(name)+' '+kind for name,kind in columns)+' PRIMARY KEY '+q(columns[0][0])+')')
         for key,value in {'ProductCode':product,'ProductName':'Owned unregistered recovery container','ProductVersion':'1.0.1','ProductLanguage':'1033','Manufacturer':'ShruggieTech','REBOOT':'ReallySuppress'}.items():add('Property',[key,value])
         add('Directory',['TARGETDIR',None,'SourceDir'])
+        add('Feature',['Core',None,'Coordination only',None,0,1,'TARGETDIR',0])
         for action,number in [('CostInitialize',800),('FileCost',900),('CostFinalize',1000),('InstallValidate',1400),('InstallInitialize',1500),('InstallFinalize',6600)]:add('InstallExecuteSequence',[action,None,number])
         add('Binary',['OwnedRecoveryCoordinator',stage/'launcher-context-fixture/owned-coordinator.exe'],streams=(2,))
         add('MsiEmbeddedChainer',['OwnedRecoveryCoordinator','1','"'+str(stage)+'"','OwnedRecoveryCoordinator',2])
@@ -225,6 +228,9 @@ def observe_rollback(stage,token,quiet_install):
             row['registered_states']={product:int(dll.MsiQueryProductStateW(product)) for product in products};result['transactions'].append(row)
         directory=stage/'UI program é & spaces';model=json.loads((stage/'ui-model.json').read_text(encoding='utf-8'))
         result['restored_old_payload']=all((directory/item['path']).is_file() and m.sha(directory/item['path'])==item['sha256'] for item in model['payload'] if item['feature']!='Desktop')
+        if mode=='rollback-container':
+            probe=result['transactions'][-1].get('container_at_client_return',{})
+            if probe.get('phase')!='completed' or probe.get('inner_code')!=1603 or probe.get('old_final')!=5 or probe.get('new_final')!=-1 or not result['restored_old_payload']:raise RuntimeError('container recovery is not proved at client return: '+json.dumps(probe,sort_keys=True))
         result['state']='passed'
         return result
     finally:
