@@ -5,15 +5,27 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/shruggietech/insonic/internal/launcher"
+	"github.com/shruggietech/insonic/internal/setup"
 	"os"
 	"path/filepath"
 )
 
 func main() { os.Exit(run(os.Args[1:])) }
 func run(args []string) int {
+	mode := ""
+	interactive := false
 	fail := func(e error) int {
+		if interactive && mode == "documentation" {
+			launcher.ReportDocumentationError()
+		}
 		json.NewEncoder(os.Stderr).Encode(map[string]any{"status": "failed", "message": e.Error()})
 		return 1
+	}
+	if len(args) == 2 && args[0] == "--cleanup-setup" {
+		if err := setup.CleanupUninstalled(args[1]); err != nil {
+			return fail(err)
+		}
+		return 0
 	}
 	if len(args) == 3 && args[0] == "--preflight" {
 		if e := launcher.Preflight(args[1], args[2]); e != nil {
@@ -30,9 +42,23 @@ func run(args []string) int {
 		return 0
 	}
 	describe := false
-	mode := ""
-	for _, a := range args {
+	reference := ""
+	for index := 0; index < len(args); index++ {
+		a := args[index]
 		switch a {
+		case "--reference":
+			index++
+			if index >= len(args) || reference != "" {
+				return fail(fmt.Errorf("one documentation reference URL is required"))
+			}
+			reference = args[index]
+		case "--documentation":
+			if mode != "" {
+				return fail(fmt.Errorf("choose one action"))
+			}
+			mode = "documentation"
+		case "--interactive":
+			interactive = true
 		case "--describe":
 			describe = true
 		case "--desktop":
@@ -46,14 +72,26 @@ func run(args []string) int {
 			}
 			mode = "cli"
 		default:
-			return fail(fmt.Errorf("use --desktop, --cli, --describe, --preflight DIRECTORY SELECTION or --check-shortcut FILE COMPONENT"))
+			return fail(fmt.Errorf("use --desktop, --cli, --documentation, --describe, --preflight DIRECTORY SELECTION or --check-shortcut FILE COMPONENT"))
 		}
+	}
+	if interactive && mode != "documentation" {
+		return fail(fmt.Errorf("interactive warnings require documentation mode"))
+	}
+	if reference != "" && (mode != "documentation" || describe || !launcher.ValidDocumentationReference(reference)) {
+		return fail(fmt.Errorf("use an explicit web reference with documentation mode"))
 	}
 	exe, e := os.Executable()
 	if e != nil {
 		return fail(e)
 	}
 	directory := filepath.Dir(exe)
+	if reference != "" {
+		if err := launcher.OpenDocumentationReference(directory, reference); err != nil {
+			return fail(err)
+		}
+		return 0
+	}
 	if mode == "" && describe {
 		if _, e := os.Stat(filepath.Join(directory, "insonic-desktop.exe")); e == nil {
 			mode = "desktop"

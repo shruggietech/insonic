@@ -144,19 +144,23 @@ def isolated_development_libraries():
     native = (ROOT / 'build/native').resolve()
     original = native / 'ladybug'
     backup = native / ('ladybug-isolated-' + uuid.uuid4().hex)
+    had_development_libraries = original.exists()
     if (not native.is_relative_to(ROOT.resolve()) or not native.is_relative_to((ROOT / 'build').resolve())
-            or not original.is_dir() or original.is_symlink() or backup.exists()
+            or (had_development_libraries and not original.is_dir()) or original.is_symlink() or backup.exists()
             or not original.resolve().is_relative_to(native) or not backup.resolve().is_relative_to(native)):
         raise ValueError('development library isolation target is invalid')
-    original.rename(backup)
+    if had_development_libraries:
+        original.rename(backup)
     try:
         if original.exists():
             raise ValueError('development native libraries remain available during extracted smoke')
         yield
     finally:
         if original.exists():
-            raise ValueError('development native library path was recreated; preserved isolated tree at ' + str(backup))
-        backup.rename(original)
+            detail = '; preserved isolated tree at ' + str(backup) if had_development_libraries else ''
+            raise ValueError('development native library path was recreated' + detail)
+        if had_development_libraries:
+            backup.rename(original)
 
 
 def fetch_license():
@@ -848,6 +852,12 @@ def qualify_package_gui(gui, directory, env):
     qualification_output = child([gui, '--qualification'], directory=directory, env=runtime_env, timeout=30, allow_detached=True)
     qualify.write_receipt(ROOT / 'build/native/package-desktop-bridge-receipt.json', qualification_output,
                           {'desktop_bridge': 'passed', 'offline_help': 'packaged', 'schema_version': VERSION})
+    help_args = [gui, '--help-qualification']
+    if platform.system() == 'Linux':
+        help_args = ['/usr/bin/xvfb-run', '-a', *help_args]
+    help_output = child(help_args, directory=directory, env=runtime_env, timeout=35, allow_detached=True)
+    qualify.write_receipt(ROOT / 'build/native/package-help-receipt.json', help_output,
+                          {'offline_help_activation': 'passed', 'workspace': 'not-selected', 'network_policy': 'local-assets-only', 'schema_version': VERSION})
     args = [gui, '--webview-qualification']
     if platform.system() == 'Linux':
         args = ['/usr/bin/xvfb-run', '-a', *args]
@@ -888,27 +898,47 @@ def windows_image_released(executable):
     return True
 
 
+def windows_image_owners(executable):
+    """Read exact-image process owners without a slow, separate CIM process."""
+    import ctypes as C
+    import ctypes.wintypes as W
+    class Entry(C.Structure):
+        _fields_=[('size',W.DWORD),('usage',W.DWORD),('pid',W.DWORD),('heap',C.c_size_t),('module',W.DWORD),('threads',W.DWORD),('parent',W.DWORD),('priority',W.LONG),('flags',W.DWORD),('image',W.WCHAR*260)]
+    kernel=C.WinDLL('kernel32',use_last_error=True)
+    kernel.CreateToolhelp32Snapshot.argtypes=[W.DWORD,W.DWORD];kernel.CreateToolhelp32Snapshot.restype=W.HANDLE
+    for name in ('Process32FirstW','Process32NextW'):
+        function=getattr(kernel,name);function.argtypes=[W.HANDLE,C.POINTER(Entry)];function.restype=W.BOOL
+    kernel.OpenProcess.argtypes=[W.DWORD,W.BOOL,W.DWORD];kernel.OpenProcess.restype=W.HANDLE
+    kernel.QueryFullProcessImageNameW.argtypes=[W.HANDLE,W.DWORD,W.LPWSTR,C.POINTER(W.DWORD)];kernel.QueryFullProcessImageNameW.restype=W.BOOL
+    kernel.CloseHandle.argtypes=[W.HANDLE]
+    snapshot=kernel.CreateToolhelp32Snapshot(2,0)
+    if snapshot==C.c_void_p(-1).value:raise C.WinError(C.get_last_error())
+    found=[];entry=Entry();entry.size=C.sizeof(entry);target=os.path.normcase(os.path.abspath(executable))
+    try:
+        present=kernel.Process32FirstW(snapshot,C.byref(entry))
+        while present:
+            if entry.image.casefold()==Path(executable).name.casefold():
+                process=kernel.OpenProcess(0x1000,False,entry.pid)
+                if process:
+                    try:
+                        image=C.create_unicode_buffer(32768);size=W.DWORD(32768)
+                        if kernel.QueryFullProcessImageNameW(process,0,image,C.byref(size)) and os.path.normcase(os.path.abspath(image.value))==target:found.append({'pid':entry.pid,'parent_pid':entry.parent,'role':'other'})
+                    finally:kernel.CloseHandle(process)
+            if len(found)>=16:break
+            present=kernel.Process32NextW(snapshot,C.byref(entry))
+        return found
+    finally:kernel.CloseHandle(snapshot)
+
+
 def retain_busy_image_diagnostic(executable):
     value = {'kind': 'package-image-busy', 'image_writable': os.access(executable, os.W_OK), 'owners': []}
-    powershell = Path(os.environ.get('SystemRoot', 'C:/Windows')) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
-    script = r"""$ErrorActionPreference = 'Stop';
-$owners = @(Get-CimInstance Win32_Process | Where-Object { $_.ExecutablePath -eq $env:INSONIC_QUALIFIED_IMAGE } | Select-Object -First 16 | ForEach-Object {
-  $role = 'other'; $command = $_.CommandLine;
-  if ($command -like '*cold operator workspace*') { $role = 'cold-credentials' }
-  elseif ($command -like '*isolated documented workflows*') { $role = 'documentation' }
-  elseif ($command -like '*first-use library*') { $role = 'first-use' }
-  elseif ($command -like '*insonic-webview-*' -or $command -like '*insonic-desktop-*') { $role = 'gui' }
-  elseif ($command -like '*workspace with spaces*') { $role = 'main' }
-  @{pid=$_.ProcessId; parent_pid=$_.ParentProcessId; role=$role}
-}); ConvertTo-Json -InputObject $owners -Compress"""
     try:
-        owners = json.loads(child([powershell, '-NoProfile', '-NonInteractive', '-Command', script],
-                                  env={'INSONIC_QUALIFIED_IMAGE': str(executable)}, timeout=10))
-        value['owners'] = [{'pid': int(owner['pid']), 'parent_pid': int(owner['parent_pid']),
-                            'role': owner['role'] if owner['role'] in ['other', 'cold-credentials', 'documentation', 'first-use', 'gui', 'main'] else 'other'}
-                           for owner in owners[:16]]
-    except (OSError, RuntimeError, ValueError, TypeError, KeyError, subprocess.TimeoutExpired):
-        value['diagnostic'] = 'unavailable'
+        owners=windows_image_owners(executable)
+        value['owners']=[{'pid':int(owner['pid']),'parent_pid':int(owner['parent_pid']),
+                          'role':owner['role'] if owner['role'] in ['other','cold-credentials','documentation','first-use','gui','main'] else 'other'} for owner in owners[:16]]
+        value['observer']='native exact-image process snapshot'
+    except (OSError, RuntimeError, ValueError, TypeError, KeyError):
+        value['diagnostic']='unavailable'
     try:
         write_json(ROOT / 'build/native/package-image-busy-receipt.json', value)
     except OSError:
@@ -951,7 +981,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
     verify_archive_receipt(archive, receipt)
     started = time.monotonic()
     with tempfile.TemporaryDirectory(prefix='insonic package relocation ') as temporary, ExitStack() as managed_checks:
-        location = Path(temporary) / 'extracted with spaces'
+        location = Path(temporary) / 'extracted é with spaces'
         extract_package(archive, location)
         root = path_inside(location, receipt['inventory_root'])
         inventory_file = path_inside(location, receipt['inventory_path'])
@@ -1068,6 +1098,26 @@ def _smoke(archive=None, dirname=None, receipt=None):
             idle_started = time.monotonic()
             if replacement['state'] != 'succeeded' or recording['recording']['state'] != 'untranscribed' or retained['revision'] != roster['revision'] or retained['members']:
                 raise ValueError('packaged replacement/declared-empty roster authority changed')
+        except BaseException:
+            # Preserve bounded execution metadata before the owned disposable
+            # workspace is removed. Never dump payloads or result documents.
+            import sqlite3
+            try:
+                database=workspace/'.insonic/catalog.sqlite'
+                with sqlite3.connect(database.as_uri()+'?mode=ro',uri=True,timeout=1) as connection:
+                    state={}
+                    for name,query in {
+                        'revision':'SELECT revision FROM workspace',
+                        'graph':'SELECT next_sequence,checkpoint,generation,lease_until FROM graph_target LIMIT 4',
+                        'work':'SELECT kind,state,phase,error,generation,lease_until FROM work_operation LIMIT 8',
+                    }.items():
+                        try:
+                            rows=connection.execute(query)
+                            state[name]=[dict(zip([column[0] for column in rows.description],row)) for row in rows]
+                        except sqlite3.Error:state[name]='unavailable'
+                print('Package fixture execution state: '+json.dumps(state,sort_keys=True),file=sys.stderr,flush=True)
+            except (OSError,sqlite3.Error):pass
+            raise
         finally:
             # Join both activity paths before allowing every detached owner its
             # idle exit; an image still held afterward remains a hard failure.

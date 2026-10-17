@@ -90,7 +90,7 @@ Unsupported media and nonzero source clocks receive a bounded temporary WAV or M
 
 ## Native package layouts
 
-insonic supports an unsigned Windows x86-64 MSI with selectable clients, Windows x86-64 ZIP packages and Linux x86-64 tar.gz packages. [Windows installation, updates and removal](windows-installation.md) covers MSI controls, first launch, optional setup and conditional download/Windows warnings. Each platform has two choices, giving four package variants. A CLI is a command-line tool: type commands in a terminal and read their results there. The desktop application provides windows and controls and includes the same CLI.
+insonic supports a recommended unsigned Windows x86-64 setup EXE containing its selectable-client raw MSI, Windows x86-64 ZIP packages and Linux x86-64 tar.gz packages. [Windows installation, updates and removal](windows-installation.md) covers MSI controls, first launch, optional setup and conditional download/Windows warnings. Each platform has two choices, giving four package variants. A CLI is a command-line tool: type commands in a terminal and read their results there. The desktop application provides windows and controls and includes the same CLI.
 
 | Package | Included clients | Windows prerequisites | Linux prerequisites |
 | --- | --- | --- | --- |
@@ -192,7 +192,7 @@ Settings displays effective packaged tools read-only. Selecting “Edit explicit
 
 Support keyboard navigation, readable contrast, reduced motion, scalable text, screen-reader labels and tabular alternatives for timeline/graph content. Automatic light/dark styling follows the upstream brand tokens and user preference. Graph physics can be paused and a layout saved.
 
-Help opens the documentation-only bundle from `site/offline/` for the installed application version. The public product landing page is part of the website export in `site/out/` and is excluded from installed help. It works without a network connection and clearly states the version. Online help offers the matching version first and latest docs as a deliberate navigation choice. The GUI cannot imply that a feature documented for a newer release exists in an older installation.
+The compact **Offline help** button opens a controlled documentation view inside the application, including before a workspace is selected. **Close documentation** returns keyboard focus to that button. The view loads the installed version’s documentation-only bundle, styles, fonts and local navigation under a policy that blocks network connections. Local links remain in that view. Activating an external web reference sends its address to the system browser, keeping the offline view open. Missing or incompatible help produces an actionable correction to use the installed `help/index.html` or repair the installation. The bundle is assembled from `site/offline/`. The public product landing page is part of the website export in `site/out/` and is excluded from installed help. It works without a network connection and clearly states the version. Online help offers the matching version first and latest docs as a deliberate navigation choice. The GUI cannot imply that a feature documented for a newer release exists in an older installation.
 
 The documentation website and bundled offline help follow the operating-system theme by default. A sun/moon toggle switches between light and dark mode and remembers the choice when browser storage is available. This setting controls documentation appearance independently of the desktop application's preference.
 

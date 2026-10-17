@@ -1,0 +1,352 @@
+name: Isolated Windows desktop delivery qualification
+on:
+  workflow_call:
+    inputs:
+      revision:
+        required: true
+        type: string
+      os:
+        required: true
+        type: string
+      core:
+        required: true
+        type: boolean
+      cli:
+        required: true
+        type: boolean
+      native:
+        required: true
+        type: boolean
+      lane:
+        required: false
+        default: both
+        type: string
+      documentation-target:
+        type: string
+        default: snapshot
+      reuse-ci-offline-help:
+        type: boolean
+        default: false
+      overlap-source-setup:
+        type: boolean
+        default: false
+      windows-sign-cert-sha1:
+        type: string
+        default: ""
+      signtool-executable:
+        type: string
+        default: ""
+      windows-sign-timestamp-url:
+        type: string
+        default: ""
+permissions:
+  contents: read
+  actions: read
+jobs:
+  assemble:
+    name: Assemble Windows desktop delivery
+    runs-on: windows-2022
+    timeout-minutes: 11
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      SOURCE_REVISION: ${{ inputs.revision }}
+      INSONIC_DOCUMENTATION_TARGET: ${{ inputs.documentation-target }}
+      INSONIC_WINDOWS_SIGN_CERT_SHA1: ${{ inputs.windows-sign-cert-sha1 }}
+      INSONIC_SIGNTOOL_EXECUTABLE: ${{ inputs.signtool-executable }}
+      INSONIC_WINDOWS_SIGN_TIMESTAMP_URL: ${{ inputs.windows-sign-timestamp-url }}
+      INSONIC_DISPOSABLE_INSTALLER_TEST: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.revision }}
+          persist-credentials: false
+          fetch-depth: ${{ inputs.reuse-ci-offline-help && 1 || 0 }}
+      - name: Check out exact workflow bootstrap tooling
+        if: inputs.revision != job.workflow_sha
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: build/automation
+          sparse-checkout: |
+            scripts/bootstrap-actions.py
+            scripts/bootstrap-actions.lock.json
+            scripts/http_read.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Acquire verified setup-go action with bounded retries
+        if: inputs.core
+        run: python "${{ inputs.revision == job.workflow_sha && '.' || 'build/automation' }}/scripts/bootstrap-actions.py" setup-go --output build/actions/setup-go
+      - if: inputs.core
+        uses: ./build/actions/setup-go
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            internal/qualification/dependencies.json
+            desktop/frontend/package-lock.json
+      - name: Acquire verified setup-node action with bounded retries
+        if: inputs.native
+        run: python "${{ inputs.revision == job.workflow_sha && '.' || 'build/automation' }}/scripts/bootstrap-actions.py" setup-node --output build/actions/setup-node
+      - if: inputs.native
+        uses: ./build/actions/setup-node
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - name: Windows native compiler and loader dependencies
+        if: runner.os == 'Windows' && inputs.core
+        id: msys2
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
+        with:
+          msystem: UCRT64
+          update: false
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-openssl make diffutils
+      - name: Bind the installed Windows toolchain
+        if: runner.os == 'Windows' && inputs.core
+        env:
+          SELECTED_MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
+        run: python -c "import os; assert os.environ['SELECTED_MSYS2_ROOT']; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+os.environ['SELECTED_MSYS2_ROOT']+'\n')"
+      - name: Pinned Windows archive decoder
+        if: runner.os == 'Windows' && inputs.native
+        run: |
+          python -m pip install --disable-pip-version-check --no-input --only-binary=:all: --target build/native/python zstandard==0.25.0
+      - name: Await exact same-run source after overlapping consumer setup
+        if: inputs.overlap-source-setup && inputs.core
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/wait-ci-artifact.mjs '${{ inputs.os }}'
+      - name: Pinned native artifacts
+        if: inputs.native
+        run: python scripts/qualify.py prepare
+      - name: Download exact same-run source build
+        if: inputs.core
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          digest-mismatch: error
+          skip-decompress: false
+          name: media-source-${{ inputs.os }}-${{ github.run_attempt }}
+          path: build/transfer
+      - name: Verify source build transfer before reuse
+        if: inputs.core
+        shell: bash
+        run: python scripts/media-transfer.py restore --stage complete --revision "$SOURCE_REVISION" build/transfer/media-source.tar.gz
+      - name: Prepare pinned metadata extractors for package qualification
+        if: inputs.core
+        run: python scripts/media-tools.py --prepare-only
+      - name: Download exact same-run documentation export
+        if: inputs.reuse-ci-offline-help && inputs.native
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          digest-mismatch: error
+          skip-decompress: false
+          name: candidate-documentation-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/documentation-transfer
+      - name: Restore verified same-run offline help
+        if: inputs.reuse-ci-offline-help && inputs.native
+        run: python scripts/site-transfer.py restore --revision '${{ inputs.revision }}' --directory build/documentation-transfer
+      - name: Install package notice inputs
+        if: inputs.native
+        run: |
+          npm --prefix desktop/frontend ci --ignore-scripts
+          npm --prefix site ci --ignore-scripts
+      - name: Build independent release help
+        if: inputs.native && !inputs.reuse-ci-offline-help
+        run: npm --prefix site run build
+      - name: Stage qualified local help and brand assets
+        if: inputs.native
+        run: python scripts/qualify.py assets
+      - name: Build this desktop package frontend
+        if: inputs.native
+        run: |
+          npm --prefix desktop/frontend run build
+      - name: Assemble one immutable ZIP, MSI and setup EXE
+        run: python scripts/windows_package_pipeline.py assemble
+      - name: Transfer exact unqualified delivery
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          archive: true
+          name: windows-desktop-input-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/windows-desktop-input
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+  proofs:
+    name: Qualify Windows desktop (${{ matrix.scope }})
+    needs:
+      - assemble
+    runs-on: windows-2022
+    timeout-minutes: 11
+    strategy:
+      fail-fast: false
+      matrix:
+        scope:
+          - archive
+          - interactive
+          - maintenance
+          - setup
+    env:
+      SOURCE_REVISION: ${{ inputs.revision }}
+      INSONIC_DISPOSABLE_INSTALLER_TEST: "1"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.revision }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Check out exact workflow bootstrap tooling
+        if: inputs.revision != job.workflow_sha
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: build/automation
+          sparse-checkout: |
+            scripts/bootstrap-actions.py
+            scripts/bootstrap-actions.lock.json
+            scripts/http_read.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Acquire verified setup-go action with bounded retries
+        if: inputs.core
+        run: python "${{ inputs.revision == job.workflow_sha && '.' || 'build/automation' }}/scripts/bootstrap-actions.py" setup-go --output build/actions/setup-go
+      - if: inputs.core
+        uses: ./build/actions/setup-go
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            scripts/windows_package_pipeline.py
+      - name: Acquire verified setup-node action with bounded retries
+        if: inputs.native
+        run: python "${{ inputs.revision == job.workflow_sha && '.' || 'build/automation' }}/scripts/bootstrap-actions.py" setup-node --output build/actions/setup-node
+      - if: inputs.native
+        uses: ./build/actions/setup-node
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install the owned HTML renderer dependency
+        if: matrix.scope == 'interactive'
+        run: npm ci --ignore-scripts
+      - name: Restore the same immutable Windows delivery
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          digest-mismatch: error
+          skip-decompress: false
+          name: windows-desktop-input-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/windows-desktop-input
+      - name: Require all elected checks in this isolated scope
+        run: python scripts/windows_package_pipeline.py ${{ matrix.scope }}
+      - name: Retain scoped qualification evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          archive: true
+          name: windows-desktop-proof-${{ matrix.scope }}-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/native
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+  finalize:
+    name: Join exact-byte Windows desktop qualification
+    needs:
+      - assemble
+    runs-on: windows-2022
+    timeout-minutes: 11
+    env:
+      SOURCE_REVISION: ${{ inputs.revision }}
+      INSONIC_DISPOSABLE_INSTALLER_TEST: "1"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.revision }}
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Check out exact workflow bootstrap tooling
+        if: inputs.revision != job.workflow_sha
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: build/automation
+          sparse-checkout: |
+            scripts/bootstrap-actions.py
+            scripts/bootstrap-actions.lock.json
+            scripts/http_read.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Acquire verified setup-go action with bounded retries
+        if: inputs.core
+        run: python "${{ inputs.revision == job.workflow_sha && '.' || 'build/automation' }}/scripts/bootstrap-actions.py" setup-go --output build/actions/setup-go
+      - if: inputs.core
+        uses: ./build/actions/setup-go
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            scripts/windows_package_pipeline.py
+      - name: Restore the same immutable Windows delivery
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          digest-mismatch: error
+          skip-decompress: false
+          name: windows-desktop-input-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/windows-desktop-input
+      - name: Await all exact-run native proofs after overlapping preparation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/wait-ci-artifact.mjs windows-desktop-proofs '${{ inputs.revision }}'
+      - name: Download each completed qualification scope
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          digest-mismatch: error
+          skip-decompress: false
+          pattern: windows-desktop-proof-*-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/windows-desktop-proofs
+          merge-multiple: false
+      - name: Require all scopes against the same three assets
+        run: python scripts/windows_package_pipeline.py finalize
+      - name: Retain qualified candidate archive bytes
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          archive: true
+          name: candidate-package-windows-2022-desktop-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: |
+            build/packages/*.zip
+            build/native/package-desktop-receipt.json
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain qualified candidate installer bytes
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          archive: true
+          name: candidate-package-windows-2022-installer-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: |
+            build/packages/*.msi
+            build/packages/*_setup.exe
+            build/native/windows-installer-receipt.json
+            build/native/installer-capture
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain joined installer diagnostics
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          archive: true
+          name: installer-receipts-windows-2022-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: |
+            build/native/windows-installer-receipt.json
+            build/native/msi-lifecycle.json
+            build/native/installer-capture
+            build/native/qualification
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14

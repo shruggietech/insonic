@@ -1,5 +1,5 @@
 {
-  "artifact_sha256": "73068fab0f8ae94bc310d73662e6f7883c7fb9fe0a17199a90bf37b445117ec7",
+  "artifact_sha256": "782b63b307ea476f6b3aa768f4c75f5f5c0cb2660a2ce126c4812ca3da50c7f2",
   "fixture": {
     "conditional_finish_binding": "actual elected Desktop feature action state, no Finish click or launch",
     "control_election_method": "MsiSetProperty/MsiSetInstallLevel/MsiSetFeatureState, native controls read back before capture",
@@ -278,6 +278,11 @@
           "checked": true,
           "control_label": "Launch insonic",
           "method": "verified session property/BM_GETCHECK"
+        },
+        {
+          "checked": false,
+          "control_label": "Open documentation",
+          "method": "verified session property/BM_GETCHECK"
         }
       ],
       "native_session": {
@@ -309,7 +314,7 @@
         }
       },
       "path": "installer-07-finish.png",
-      "sha256": "2267acb0230a256cc95e508f54a1428ab4e40df43f0936f770daa0479afef2b7",
+      "sha256": "22f7d26974fbe5d444eea06459dc9abf7ccfdbb75ee4ba2ed6da09db680e4e8c",
       "width": 576
     }
   ],
@@ -329,11 +334,11 @@
     "files": [
       {
         "path": "scripts/windows_msi.py",
-        "sha256": "b1d0c54f39b43402fdb7123b588a8a318c5ea24f84b9fc90359eed1de3485c04"
+        "sha256": "fcd5a18830682e53ae5e0a3ada1e873feaee9caecc5e4f224df5d294852fc89a"
       },
       {
         "path": "scripts/capture-installer-ui.py",
-        "sha256": "8c2089379c6ad831565713355c18cd5b7a5c4fde896e6dee5f45f46f640f0ab2"
+        "sha256": "f0979796a6b4f8e69eaf3a398bc62bdafdcb84a39bb964e57ebb66e6560d4d07"
       },
       {
         "path": "LICENSE",
@@ -344,6 +349,6 @@
         "sha256": "d4b871a2e1c60680d6a999a73b140ad8371e7ecdadae0dcc50cb6bd6d922f78c"
       }
     ],
-    "revision": "30effdc86f5d390dea668dad7ed03b168b454d26"
+    "revision": "9dffeaed6be9736cf945fa3dda1926f8c98a5854"
   }
 }

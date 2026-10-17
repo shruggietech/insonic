@@ -132,7 +132,7 @@ class NativePackageIntegrityTests(unittest.TestCase):
 
     def test_busy_image_diagnostic_retains_only_bounded_owner_categories(self):
         with tempfile.TemporaryDirectory() as temporary, patch.object(package, 'ROOT', Path(temporary)), \
-                patch.object(package, 'child', return_value=json.dumps([{'pid': 42, 'parent_pid': 7, 'role': 'main', 'command_line': 'private fixture path'}]).encode()):
+                patch.object(package, 'windows_image_owners', return_value=[{'pid': 42, 'parent_pid': 7, 'role': 'main', 'command_line': 'private fixture path'}]):
             package.retain_busy_image_diagnostic(Path(temporary) / 'fixture.exe')
             receipt = json.loads((Path(temporary) / 'build/native/package-image-busy-receipt.json').read_text())
             self.assertEqual(receipt['owners'], [{'pid': 42, 'parent_pid': 7, 'role': 'main'}])
@@ -407,6 +407,23 @@ class NativePackageIntegrityTests(unittest.TestCase):
                         raise RuntimeError('controlled failure')
             self.assertEqual((source / 'library').read_bytes(), b'exact original library')
             self.assertFalse(list(source.parent.glob('ladybug-isolated-*')))
+
+    def test_relocated_archive_can_prove_library_isolation_on_an_sdk_free_host(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / 'build/native/ladybug'
+            source.parent.mkdir(parents=True)
+            with patch.object(package, 'ROOT', root):
+                with package.isolated_development_libraries():
+                    self.assertFalse(source.exists())
+                self.assertFalse(source.exists())
+                with self.assertRaisesRegex(RuntimeError, 'controlled failure'):
+                    with package.isolated_development_libraries():
+                        raise RuntimeError('controlled failure')
+                self.assertFalse(source.exists())
+                with self.assertRaisesRegex(ValueError, 'recreated'):
+                    with package.isolated_development_libraries():
+                        source.mkdir()
 
     def test_extracted_zip_preserves_exact_bytes_and_executable_mode(self):
         with tempfile.TemporaryDirectory() as temporary:

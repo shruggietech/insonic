@@ -115,7 +115,7 @@ class WebsiteTest(unittest.TestCase):
 
     def product_fixture(self):
         names = {f'insonic_1.0.1_{platform}_{variant}{suffix}' for platform, suffix in [('windows_amd64', '.zip'), ('linux_amd64', '.tar.gz')] for variant in ('cli', 'desktop')}
-        names |= {'insonic_1.0.1_windows_amd64_installer.msi', 'documentation.tar.gz', 'offline-help.tar.gz'}
+        names |= {'insonic_1.0.1_windows_amd64_installer.msi', 'insonic_1.0.1_windows_amd64_setup.exe', 'documentation.tar.gz', 'offline-help.tar.gz'}
         data = {name: name.encode() for name in names}
         entries = [{'name': name, 'size_bytes': len(data[name]), 'sha256': hashlib.sha256(data[name]).hexdigest()} for name in sorted(names)]
         manifest = {'kind': 'release-candidate', 'repository': website.REPOSITORY, 'version': '1.0.1', 'schema_version': '1.0.1', 'tag': 'v1.0.1', 'revision': REV, 'assets': entries}
@@ -133,10 +133,10 @@ class WebsiteTest(unittest.TestCase):
                 raise AssertionError(endpoint)
         return Product(), assets, data
 
-    def test_product_metadata_preserves_exact_five_packages_without_mutation(self):
+    def test_product_metadata_preserves_exact_six_packages_without_mutation(self):
         api, assets, data = self.product_fixture()
         product = website.published_product(api, '1.0.1', lambda url: data[url.rsplit('/', 1)[1]])
-        self.assertEqual(len(product['packages']), 5)
+        self.assertEqual(len(product['packages']), 6)
         self.assertEqual(product['release_revision'], REV)
         self.assertEqual(api.writes, [])
 

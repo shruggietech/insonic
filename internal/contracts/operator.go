@@ -4,6 +4,7 @@ package contracts
 import "errors"
 
 var operatorReasons = map[string]string{
+	"documentation_open":             "Installed offline documentation could not be opened. Open help/index.html in the program directory with your HTML browser, or use installer Repair to restore matching help files.",
 	"provider_auth":                  "The provider rejected authentication. Check the elected credential or server account.",
 	"provider_missing":               "The elected provider endpoint or model is unavailable. Verify the endpoint, model and adapter protocol.",
 	"provider_busy":                  "The elected provider is busy or rate limited. Retry the same selection later.",

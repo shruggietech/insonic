@@ -22,7 +22,7 @@ ICON='brand/kit/icons/windows/classic/app.ico'
 UNSIGNED_SIGNING={'configured':False,'verified':False,'status':'unconfigured'}
 OWNERSHIP='insonic-msi-ownership.json'
 OWNERSHIP_BYTES=b'{"family":"insonic","kind":"windows-msi-installation"}\n'
-QUALIFICATION_KEYS=('client_selections','license_and_prerequisites','maintenance','upgrade_rollback','downgrade_rejection','active_work_preserved','user_data_preserved','launch_contract','native_ui_capture','cancellation_rollback','user_context')
+QUALIFICATION_KEYS=('client_selections','license_and_prerequisites','maintenance','upgrade_rollback','downgrade_rejection','active_work_preserved','user_data_preserved','launch_contract','native_ui_capture','cancellation_rollback','user_context','interactive_transactions','documentation_completion')
 
 def guid(s):return '{'+str(uuid.uuid5(NAMESPACE,s)).upper()+'}'
 UPGRADE_CODE=guid('insonic/windows_amd64/per-user')
@@ -142,7 +142,7 @@ def installer_model(inv,inv_sha,license_text,upgrade=UPGRADE_CODE,version=None):
     if not {'insonic.exe','insonic-desktop.exe','insonic-launcher.exe','insonic-session.cmd','LICENSE','NOTICE','insonic-companions.json'}<={f['path'] for f in files}:raise ValueError('missing MSI runtime/client authority')
     tables={n:[] for n in SCHEMA}
     def add(t,*r):tables[t].append(list(r))
-    props={'ProductCode':product_code(version,upgrade),'UpgradeCode':upgrade,'ProductVersion':version,'ProductLanguage':'1033','Manufacturer':'ShruggieTech','ProductName':'insonic','DefaultUIFont':'Normal','INSTALLLEVEL':'1','ARPCOMMENTS':'Voice archive CLI and desktop application','ARPHELPLINK':'https://insonic.io/docs/','ARPURLINFOABOUT':'https://insonic.io/','ARPPRODUCTICON':'InsonicIcon','MSIRESTARTMANAGERCONTROL':'Disable','REBOOT':'ReallySuppress','SecureCustomProperties':'OLDPRODUCTS;NEWPRODUCTS;INSTALLDIR;SAVED_INSTALLDIR;LICENSE_ACCEPTED;START_MENU;DESKTOP_SHORTCUT;CLIENT_DESKTOP;CLIENT_CLI','CLIENT_DESKTOP':'1','CLIENT_CLI':'1','START_MENU':'1','DESKTOP_SHORTCUT':'1','LAUNCH':'1'}
+    props={'ProductCode':product_code(version,upgrade),'INSONIC_INVENTORY_SHA256':inv_sha,'UpgradeCode':upgrade,'ProductVersion':version,'ProductLanguage':'1033','Manufacturer':'ShruggieTech','ProductName':'insonic','DefaultUIFont':'Normal','INSTALLLEVEL':'1','ARPCOMMENTS':'Voice archive CLI and desktop application','ARPHELPLINK':'https://insonic.io/docs/','ARPURLINFOABOUT':'https://insonic.io/','ARPPRODUCTICON':'InsonicIcon','MSIRESTARTMANAGERCONTROL':'Disable','REBOOT':'ReallySuppress','SecureCustomProperties':'OLDPRODUCTS;NEWPRODUCTS;INSTALLDIR;SAVED_INSTALLDIR;LICENSE_ACCEPTED;START_MENU;DESKTOP_SHORTCUT;CLIENT_DESKTOP;CLIENT_CLI','CLIENT_DESKTOP':'1','CLIENT_CLI':'1','START_MENU':'1','DESKTOP_SHORTCUT':'1','LAUNCH':'1','UI_OPERATION':'install','UI_SUCCESS_TITLE':'insonic installed','UI_SUCCESS_BODY':'Open the selected client or documentation. First-run setup can be deferred.','UI_PROGRESS_TITLE':'Installing insonic','UI_READY_TITLE':'Ready to install','UI_COMMIT':'Install'}
     for k,v in props.items():add('Property',k,v)
     for r in [('TARGETDIR',None,'SourceDir'),('LocalAppDataFolder','TARGETDIR','.'),('Programs','LocalAppDataFolder','Programs'),('INSTALLDIR','Programs','insonic'),('ProgramMenuFolder','TARGETDIR','.'),('InsonicMenu','ProgramMenuFolder','insonic'),('DesktopFolder','TARGETDIR','.')]:add('Directory',*r)
     dirs={'':'INSTALLDIR'}
@@ -167,23 +167,36 @@ def installer_model(inv,inv_sha,license_text,upgrade=UPGRADE_CODE,version=None):
     add('RemoveFile','RemoveMenu','GuiMenu',None,'InsonicMenu',2);add('RemoveFile','RemoveMenuCli','CliMenu',None,'InsonicMenu',2)
     add('Upgrade',upgrade,None,version,None,1,None,'OLDPRODUCTS');add('Upgrade',upgrade,version,None,None,2,None,'NEWPRODUCTS')
     for prop,sig,hive,reg,name,kind in [('OS_BUILD','WindowsBuild',2,'SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion','CurrentBuildNumber',18),('SAVED_INSTALLDIR','SavedInstall',1,key,'InstallDir',18),('START_MENU','SavedMenu',1,key,'StartMenu',18),('DESKTOP_SHORTCUT','SavedDesktop',1,key,'DesktopShortcut',18),('VC_RUNTIME','VCRuntime',2,'SOFTWARE\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\x64','Installed',18),('WEBVIEW_MACHINE','WebviewMachine',2,'SOFTWARE\\WOW6432Node\\Microsoft\\EdgeUpdate\\Clients\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}','pv',18),('WEBVIEW_USER','WebviewUser',1,'Software\\Microsoft\\EdgeUpdate\\Clients\\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}','pv',18)]:add('AppSearch',prop,sig);add('RegLocator',sig,hive,reg,name,kind)
-    for condition,message in [('NOT ALLUSERS','This is a per-user installer. Remove ALLUSERS and choose a writable user directory.'),('VersionNT64 AND OS_BUILD >= 10240','insonic requires Windows 10 or later, x86-64.'),('NOT NEWPRODUCTS','A newer insonic version is installed. Downgrades are not supported.'),('Installed OR LICENSE_ACCEPTED=1','Read and accept Apache License 2.0. For unattended installation set LICENSE_ACCEPTED=1.'),('REMOVE="ALL" OR '+core,'Shared runtime is mandatory. Include Core with Desktop/CLI selections.'),('REMOVE="ALL" OR ('+desktop+' OR '+cli+')','Select Desktop, CLI integrations, or both.'),('REMOVE="ALL" OR VC_RUNTIME="#1"','Install Microsoft Visual C++ v14 x64 Redistributable, then retry: https://aka.ms/vc14/vc_redist.x64.exe'),('REMOVE="ALL" OR NOT '+desktop+' OR (WEBVIEW_MACHINE AND WEBVIEW_MACHINE<>"0.0.0.0") OR (WEBVIEW_USER AND WEBVIEW_USER<>"0.0.0.0")','Desktop requires WebView2 Evergreen Runtime. For offline use install the x64 standalone installer: https://developer.microsoft.com/en-us/microsoft-edge/webview2/')]:add('LaunchCondition',condition,message)
+    for condition,message in [('NOT ALLUSERS','This is a per-user installer. Remove ALLUSERS and choose a writable user directory.'),('VersionNT64 AND OS_BUILD >= 10240','insonic requires Windows 10 or later, x86-64.'),('NOT NEWPRODUCTS','A newer insonic version is installed. Downgrades are not supported.'),('REMOVE="ALL" OR Installed OR LICENSE_ACCEPTED=1','Read and accept Apache License 2.0. For unattended installation set LICENSE_ACCEPTED=1.'),('REMOVE="ALL" OR '+core,'Shared runtime is mandatory. Include Core with Desktop/CLI selections.'),('REMOVE="ALL" OR ('+desktop+' OR '+cli+')','Select Desktop, CLI integrations, or both.'),('REMOVE="ALL" OR VC_RUNTIME="#1"','Install Microsoft Visual C++ v14 x64 Redistributable, then retry: https://aka.ms/vc14/vc_redist.x64.exe'),('REMOVE="ALL" OR NOT '+desktop+' OR (WEBVIEW_MACHINE AND WEBVIEW_MACHINE<>"0.0.0.0") OR (WEBVIEW_USER AND WEBVIEW_USER<>"0.0.0.0")','Desktop requires WebView2 Evergreen Runtime. For offline use install the x64 standalone installer: https://developer.microsoft.com/en-us/microsoft-edge/webview2/')]:add('LaunchCondition',condition,message)
     add('CustomAction','Preflight',2,'Launcher','--preflight "[INSTALLDIR]." both');add('CustomAction','LaunchDesktop',18,ident('f','insonic-launcher.exe'),'--desktop');add('CustomAction','LaunchCLI',18,ident('f','insonic-launcher.exe'),'--cli')
     for action,path,component in [('CheckGuiMenu','[InsonicMenu]insonic.lnk','GuiMenu'),('CheckCliMenu','[InsonicMenu]insonic CLI.lnk','CliMenu'),('CheckGuiDesktop','[DesktopFolder]insonic.lnk','GuiDesktop')]:add('CustomAction',action,2,'Launcher','--check-shortcut "'+path+'" '+component)
+    add('CustomAction','OpenDocumentation',82,ident('f','insonic-launcher.exe'),'--documentation --interactive')
+    add('CustomAction','CleanupSetupSource',66,'Launcher','--cleanup-setup [ProductCode]')
+    operation_actions={}
+    for operation,success,progress,ready,commit in [('install','installed','Installing','Ready to install','Install'),('upgrade','updated','Updating','Ready to update','Update'),('change','changed','Changing','Ready to change','Apply changes'),('repair','repaired','Repairing','Ready to repair','Repair'),('remove','removed','Removing','Ready to remove','Remove')]:
+        operation_actions[operation]=[]
+        values={'UI_OPERATION':operation,'UI_SUCCESS_TITLE':'insonic '+success,'UI_SUCCESS_BODY':('Owned program files and integrations were removed. Libraries, media, settings, models and credentials remain.' if operation=='remove' else 'The selected operation completed. Open insonic later from its installed clients or shortcuts.'),'UI_PROGRESS_TITLE':progress+' insonic','UI_READY_TITLE':ready,'UI_COMMIT':commit}
+        for index,(prop,value) in enumerate(values.items()):
+            action='UI'+operation.title()+str(index);add('CustomAction',action,51,prop,value);operation_actions[operation].append(action)
     add('CustomAction','RestoreInstallDir',51,'INSTALLDIR','[SAVED_INSTALLDIR]')
     add('CustomAction','NormalizeStartMenu',51,'START_MENU','0');add('CustomAction','NormalizeDesktopShortcut',51,'DESKTOP_SHORTCUT','0')
     for action,prop,value in [('ApplySavedDesktop','CLIENT_DESKTOP','1'),('ClearSavedDesktop','CLIENT_DESKTOP',None),('ApplySavedCLI','CLIENT_CLI','1'),('ClearSavedCLI','CLIENT_CLI',None)]:add('CustomAction',action,51,prop,value)
-    for r in [('FindRelatedProducts',None,25),('AppSearch',None,50),('RestoreInstallDir','SAVED_INSTALLDIR AND NOT INSTALLDIR',60),('NormalizeStartMenu','NOT START_MENU',700),('NormalizeDesktopShortcut','NOT DESKTOP_SHORTCUT',701),('CostInitialize',None,800),('FileCost',None,900),('CostFinalize',None,1000),('MigrateFeatureStates',None,1100),('LaunchConditions',None,1200),('Preflight',None,1300),('CheckGuiMenu','START_MENU=1 AND '+desktop,1310),('CheckCliMenu','START_MENU=1 AND '+cli,1311),('CheckGuiDesktop','DESKTOP_SHORTCUT=1 AND '+desktop,1312),('InstallValidate',None,1400),('InstallInitialize',None,1500),('RemoveExistingProducts','OLDPRODUCTS',1510),('ProcessComponents',None,1600),('UnpublishFeatures',None,1800),('RemoveShortcuts',None,3200),('RemoveRegistryValues',None,3300),('RemoveFiles',None,3500),('InstallFiles',None,4000),('CreateShortcuts',None,4500),('WriteRegistryValues',None,5000),('RegisterUser',None,6000),('RegisterProduct',None,6100),('PublishFeatures',None,6300),('PublishProduct',None,6400),('InstallFinalize',None,6600)]:add('InstallExecuteSequence',*r)
-    for r in [('FindRelatedProducts',None,25),('AppSearch',None,50),('RestoreInstallDir','SAVED_INSTALLDIR AND NOT INSTALLDIR',60),('CostInitialize',None,800),('FileCost',None,900),('CostFinalize',None,1000),('MigrateFeatureStates',None,1100),('ApplySavedDesktop','(Installed OR OLDPRODUCTS) AND '+desktop,1110),('ClearSavedDesktop','(Installed OR OLDPRODUCTS) AND NOT '+desktop,1111),('ApplySavedCLI','(Installed OR OLDPRODUCTS) AND '+cli,1112),('ClearSavedCLI','(Installed OR OLDPRODUCTS) AND NOT '+cli,1113),('Welcome','NOT Installed',1200),('Maintenance','Installed',1201),('ExecuteAction',None,1300),('Finish',None,-1),('Cancelled',None,-2),('FatalError',None,-3)]:add('InstallUISequence',*r)
+    for r in [('FindRelatedProducts',None,25),('AppSearch',None,50),('RestoreInstallDir','SAVED_INSTALLDIR AND NOT INSTALLDIR',60),('NormalizeStartMenu','NOT START_MENU',700),('NormalizeDesktopShortcut','NOT DESKTOP_SHORTCUT',701),('CostInitialize',None,800),('FileCost',None,900),('CostFinalize',None,1000),('MigrateFeatureStates',None,1100),('LaunchConditions',None,1200),('Preflight',None,1300),('CheckGuiMenu','START_MENU=1 AND '+desktop,1310),('CheckCliMenu','START_MENU=1 AND '+cli,1311),('CheckGuiDesktop','DESKTOP_SHORTCUT=1 AND '+desktop,1312),('InstallValidate',None,1400),('InstallInitialize',None,1500),('RemoveExistingProducts','OLDPRODUCTS',1510),('ProcessComponents',None,1600),('UnpublishFeatures',None,1800),('RemoveShortcuts',None,3200),('RemoveRegistryValues',None,3300),('RemoveFiles',None,3500),('InstallFiles',None,4000),('CreateShortcuts',None,4500),('WriteRegistryValues',None,5000),('RegisterUser',None,6000),('RegisterProduct',None,6100),('PublishFeatures',None,6300),('PublishProduct',None,6400),('InstallFinalize',None,6600),('CleanupSetupSource','REMOVE="ALL" AND NOT UPGRADINGPRODUCTCODE',6601)]:add('InstallExecuteSequence',*r)
+    for r in [('FindRelatedProducts',None,25),('AppSearch',None,50),('RestoreInstallDir','SAVED_INSTALLDIR AND NOT INSTALLDIR',60),('CostInitialize',None,800),('FileCost',None,900),('CostFinalize',None,1000),('MigrateFeatureStates',None,1100),('ApplySavedDesktop','(Installed OR OLDPRODUCTS) AND '+desktop,1110),('ClearSavedDesktop','(Installed OR OLDPRODUCTS) AND NOT '+desktop,1111),('ApplySavedCLI','(Installed OR OLDPRODUCTS) AND '+cli,1112),('ClearSavedCLI','(Installed OR OLDPRODUCTS) AND NOT '+cli,1113),('Welcome','NOT Installed',1200),('Maintenance','Installed',1201),('Progress',None,1290),('ExecuteAction',None,1300),('Finish',None,-1),('Cancelled',None,-2),('FatalError',None,-3)]:add('InstallUISequence',*r)
+    sequence=1120
+    for operation,condition in [('install','NOT Installed AND NOT OLDPRODUCTS'),('upgrade','NOT Installed AND OLDPRODUCTS'),('change','Installed AND NOT REINSTALL AND NOT (REMOVE="ALL")'),('repair','Installed AND REINSTALL AND NOT (REMOVE="ALL")'),('remove','REMOVE="ALL"')]:
+        for action in operation_actions[operation]:add('InstallUISequence',action,condition,sequence);sequence+=1
+    for action,description in [('InstallFiles','Installing program files'),('RemoveFiles','Removing owned program files'),('CreateShortcuts','Creating elected shortcuts'),('WriteRegistryValues','Saving installation choices'),('RemoveExistingProducts','Updating the previous installation'),('InstallFinalize','Completing the transaction'),('Rollback','Rolling back changes'),('RollbackCleanup','Finishing cleanup'),('GenerateScript','Preparing installation')]:add('ActionText',action,description,'[1]' if action in ('Rollback','RollbackCleanup','GenerateScript') else None)
     add('TextStyle','Normal','Segoe UI',10,0,0);add('TextStyle','Heading','Segoe UI',14,0,1)
     add('Error',1722,'Setup could not continue. Close insonic clients, finish/cancel jobs, then wait for the idle runtime to exit. Choose an empty writable directory for a fresh installation. If a shortcut already exists, deselect its Start menu or Desktop integration, or move that shortcut yourself. Your library/settings were not removed. Action: [2].')
-    for prop in ['CLIENT_DESKTOP','CLIENT_CLI','START_MENU','DESKTOP_SHORTCUT','LAUNCH','LICENSE_ACCEPTED']:add('CheckBox',prop,'1')
+    for prop in ['CLIENT_DESKTOP','CLIENT_CLI','START_MENU','DESKTOP_SHORTCUT','LAUNCH','LICENSE_ACCEPTED','OPEN_DOCUMENTATION']:add('CheckBox',prop,'1')
     def control(d,n,t,x,y,w,h,text=None,prop=None,attr=3,nxt=None):add('Control',d,n,t,x,y,w,h,attr,prop,text,nxt,None)
     def event(d,n,e,arg,condition='1',order=1):add('ControlEvent',d,n,e,arg,condition,order)
-    def page(d,title,body,back=None,next_page=None):
-        add('Dialog',d,50,50,420,290,3,'insonic Setup','Next','Next','Cancel')
+    def page(d,title,body,back=None,next_page=None,terminal=False):
+        add('Dialog',d,50,50,420,290,3,'insonic Setup','Next','Next','Next' if terminal else 'Cancel')
         control(d,'Title','Text',18,16,384,30,'{&Heading}'+title);control(d,'Body','Text',18,54,384,40,body)
-        control(d,'Next','PushButton',261,250,65,23,'Next >',nxt='Back' if back else 'Cancel');control(d,'Cancel','PushButton',335,250,65,23,'Cancel',nxt='Next');event(d,'Cancel','EndDialog','Exit')
+        control(d,'Next','PushButton',335 if terminal else 261,250,65,23,'Finish' if d=='Finish' else 'Close' if terminal else 'Next >',nxt='Back' if back else 'Next' if terminal else 'Cancel')
+        if not terminal:control(d,'Cancel','PushButton',335,250,65,23,'Cancel',nxt='Next');event(d,'Cancel','EndDialog','Exit')
         if back:control(d,'Back','PushButton',187,250,65,23,'< Back',nxt='Cancel');event(d,'Back','NewDialog',back)
         if next_page:event(d,'Next','NewDialog',next_page,order=10)
     page('Welcome','Install insonic','Install for this Windows account. No download or restart is performed.',next_page='License')
@@ -206,26 +219,51 @@ def installer_model(inv,inv_sha,license_text,upgrade=UPGRADE_CODE,version=None):
     event('Browse','Next','SetTargetPath','INSTALLDIR');event('Browse','Next','EndDialog','Return',order=2)
     for r in tables['ControlEvent']:
         if r[:2]==['Browse','Cancel']:r[3]='Return'
-    page('Ready','Ready to install','Setup verifies capacity and prerequisites. Install missing Microsoft dependencies separately from official downloads.',back='Location');event('Ready','Next','DoAction','NormalizeStartMenu','NOT START_MENU',1);event('Ready','Next','DoAction','NormalizeDesktopShortcut','NOT DESKTOP_SHORTCUT',2);event('Ready','Next','[REINSTALL]','Core','Installed AND NOT REINSTALL',3);event('Ready','Next','EndDialog','Return',order=4)
+    page('Ready','[UI_READY_TITLE]','Setup verifies capacity and prerequisites. Install missing Microsoft dependencies separately from official downloads.',back='Location');event('Ready','Next','DoAction','NormalizeStartMenu','NOT START_MENU',1);event('Ready','Next','DoAction','NormalizeDesktopShortcut','NOT DESKTOP_SHORTCUT',2);event('Ready','Next','[REINSTALL]','Core','Installed AND NOT REINSTALL',3);event('Ready','Next','EndDialog','Return',order=4)
     page('Maintenance','Change, repair or remove','Close clients and finish/cancel work first. Libraries, models, credentials and settings are preserved.',next_page='Choices')
-    control('Maintenance','Repair','PushButton',18,120,115,25,'Repair',nxt='Remove');event('Maintenance','Repair','[REINSTALL]','ALL');event('Maintenance','Repair','[REINSTALLMODE]','vomus',order=2);event('Maintenance','Repair','EndDialog','Return',order=3)
-    control('Maintenance','Remove','PushButton',145,120,115,25,'Remove',nxt='Next');event('Maintenance','Remove','[REMOVE]','ALL');event('Maintenance','Remove','Remove','ALL',order=2);event('Maintenance','Remove','EndDialog','Return',order=3)
-    page('Finish','insonic installed','Open the selected client from its program directory or optional shortcuts. First-run setup can be deferred.')
+    for operation,x,label in [('repair',18,'Repair'),('remove',145,'Remove')]:
+        name=operation.title();control('Maintenance',name,'PushButton',x,120,115,25,label,nxt='Next')
+        for order,action in enumerate(operation_actions[operation],1):event('Maintenance',name,'DoAction',action,order=order)
+        order=len(operation_actions[operation])+1
+        if operation=='repair':
+            event('Maintenance',name,'[REINSTALL]','ALL',order=order);event('Maintenance',name,'[REINSTALLMODE]','omus',order=order+1)
+        else:
+            event('Maintenance',name,'[REMOVE]','ALL',order=order);event('Maintenance',name,'Remove','ALL',order=order+1)
+        event('Maintenance',name,'EndDialog','Return',order=order+2)
+    add('Dialog','Progress',50,50,420,290,1,'insonic Setup','Cancel','Cancel','Cancel')
+    control('Progress','Title','Text',18,16,384,30,'{&Heading}[UI_PROGRESS_TITLE]')
+    control('Progress','Action','Text',18,76,384,35,'Preparing the selected operation...')
+    control('Progress','Bar','ProgressBar',18,130,384,18,'Progress')
+    control('Progress','Notice','Text',18,165,384,48,'Progress follows Windows Installer. Cancellation can require rollback before setup closes.')
+    control('Progress','Cancel','PushButton',335,250,65,23,'Cancel',nxt='Cancel');event('Progress','Cancel','SpawnDialog','CancelConfirm')
+    add('EventMapping','Progress','Bar','SetProgress','Progress');add('EventMapping','Progress','Action','ActionText','Text')
+    page('CancelConfirm','Cancel this operation?','Setup will stop and roll back in-progress changes where supported. Wait for the final result.')
+    event('CancelConfirm','Next','EndDialog','Exit')
+    page('Finish','[UI_SUCCESS_TITLE]','[UI_SUCCESS_BODY]',terminal=True)
     control('Finish','Launch','CheckBox',18,118,384,22,'Launch insonic','LAUNCH',nxt='Next');control('Finish','CliLaunch','CheckBox',18,118,384,22,'Open insonic CLI','LAUNCH',attr=2,nxt='Next')
-    add('ControlCondition','Finish','Launch','Hide','NOT '+desktop+' OR Installed OR OLDPRODUCTS');add('ControlCondition','Finish','Launch','Show',desktop+' AND NOT Installed AND NOT OLDPRODUCTS');add('ControlCondition','Finish','CliLaunch','Show','NOT '+desktop+' AND '+cli+' AND NOT Installed AND NOT OLDPRODUCTS')
-    event('Finish','Next','DoAction','LaunchDesktop','LAUNCH=1 AND '+desktop+' AND NOT Installed AND NOT OLDPRODUCTS AND UILevel=5');event('Finish','Next','DoAction','LaunchCLI','LAUNCH=1 AND NOT '+desktop+' AND '+cli+' AND NOT Installed AND NOT OLDPRODUCTS AND UILevel=5',2);event('Finish','Next','EndDialog','Return',order=3)
-    for d,title,body in [('Cancelled','Setup cancelled','No selected installation was accepted.'),('FatalError','Setup could not finish','Read the correction message/log. Close clients and install missing prerequisites, then retry.')]:page(d,title,body);event(d,'Next','EndDialog','Return')
+    fresh='NOT Installed AND NOT OLDPRODUCTS AND UILevel=5'
+    add('ControlCondition','Finish','Launch','Hide','NOT '+desktop+' OR Installed OR OLDPRODUCTS');add('ControlCondition','Finish','Launch','Show',desktop+' AND '+fresh);add('ControlCondition','Finish','CliLaunch','Show','NOT '+desktop+' AND '+cli+' AND '+fresh)
+    control('Finish','Documentation','CheckBox',18,154,384,22,'Open documentation','OPEN_DOCUMENTATION',attr=2,nxt='Next')
+    add('ControlCondition','Finish','Documentation','Show',fresh);add('ControlCondition','Finish','Documentation','Hide','Installed OR OLDPRODUCTS OR UILevel<>5')
+    event('Finish','Next','DoAction','LaunchDesktop','LAUNCH=1 AND '+desktop+' AND '+fresh)
+    event('Finish','Next','DoAction','LaunchCLI','LAUNCH=1 AND NOT '+desktop+' AND '+cli+' AND '+fresh,2)
+    event('Finish','Next','DoAction','OpenDocumentation','OPEN_DOCUMENTATION=1 AND '+fresh,3)
+    event('Finish','Next','EndDialog','Return',order=4)
+    for d,title,body in [('Cancelled','Setup cancelled','Setup stopped. Any in-progress transaction has finished rollback. Existing libraries and settings remain.'),('FatalError','Setup could not finish','Read the correction message/log. Close clients and install missing prerequisites, then retry.')]:page(d,title,body,terminal=True);event(d,'Next','EndDialog','Return')
+    for r in tables['ControlEvent']:
+        if r[:2]==['CancelConfirm','Cancel']:r[3]='Return'
     for r in tables['Control']:
-        if r[:2]==['Ready','Next']:r[9]='Install'
-        if r[:2]==['Finish','Next']:r[9]='Finish'
+        if r[:2]==['Ready','Next']:r[9]='[UI_COMMIT]'
         if r[:2]==['Browse','Next']:r[9]='OK'
+        if r[:2]==['CancelConfirm','Next']:r[9]='Yes, cancel'
+        if r[:2]==['CancelConfirm','Cancel']:r[9]='Continue setup'
     # One tab-order cycle, including every focusable authored control.
     for dialog in tables['Dialog']:
         inputs=[r for r in tables['Control'] if r[0]==dialog[0] and r[2] in ('CheckBox','PathEdit','ScrollableText','DirectoryCombo','DirectoryList')]
         buttons=[r for r in tables['Control'] if r[0]==dialog[0] and r[2]=='PushButton']
         cycle=inputs+buttons
         for i,r in enumerate(cycle):r[10]=cycle[(i+1)%len(cycle)][1]
-        dialog[7]=inputs[0][1] if inputs else 'Next'
+        dialog[7]=inputs[0][1] if inputs else buttons[0][1]
         if dialog[0] in ('Finish','Location'):dialog[7]='Next'
     model={'kind':'windows-installer-model','version':version,'product_code':product_code(version,upgrade),'upgrade_code':upgrade,'scope':'per-user','payload':payload,'tables':tables,'license_sha256':digest(license_text.encode())}
     validate_model(model);return model
@@ -466,6 +504,10 @@ def verify_installer(path,receipt,source_root=None):
     if receipt.get('payload_archive')!=payload.get('archive') or receipt.get('payload_archive_sha256')!=payload.get('archive_sha256'):raise ValueError('MSI archive authority differs')
     inv_sha=digest(inventory_bytes(inventory))
     if inv_sha!=payload.get('inventory_sha256'):raise ValueError('MSI inventory identity differs')
+    import windows_setup
+    setup=receipt.get('setup',{})
+    if not setup:raise ValueError('MSI receipt lacks coordinated setup artifact and recovery qualification')
+    windows_setup.verify(path.with_name(setup['artifact']),setup,receipt,source_root)
     model=installer_model(inventory,inv_sha,(source_root/'LICENSE').read_text(encoding='utf-8'))
     if receipt.get('artifact')!='insonic_'+version+'_windows_amd64_installer.msi':raise ValueError('MSI filename/version/format identity differs')
     for k,value in [('msi_product_version',model['version']),('product_code',model['product_code']),('upgrade_code',model['upgrade_code']),('scope','per-user'),('license_sha256',sha(source_root/'LICENSE')),('icon_sha256',sha(source_root/ICON))]:

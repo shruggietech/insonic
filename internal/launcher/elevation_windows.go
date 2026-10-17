@@ -71,15 +71,17 @@ func launchLimited(p Plan) (handled bool, err error) {
 	commandLine := p.CommandLine
 	directory := filepath.Dir(p.Environment["INSONIC_LAUNCH_CLI"])
 	flags := uint32(windows.CREATE_UNICODE_ENVIRONMENT | windows.CREATE_NEW_CONSOLE)
-	if p.Mode == "desktop" {
-		commandLine = syscall.EscapeArg(p.Executable)
+	if p.Mode == "desktop" || p.Mode == "documentation" {
+		if p.Mode == "desktop" {
+			commandLine = syscall.EscapeArg(p.Executable)
+		}
 		directory = filepath.Dir(p.Executable)
 		flags = windows.CREATE_UNICODE_ENVIRONMENT | windows.CREATE_NO_WINDOW
 	} else if p.Mode != "cli" {
 		return true, normalLaunchAction
 	}
 	command, e := windows.UTF16FromString(commandLine)
-	if e != nil || len(command) > 1024 {
+	if e != nil || len(command) > 32767 {
 		return true, normalLaunchAction
 	}
 	working, e := windows.UTF16PtrFromString(directory)

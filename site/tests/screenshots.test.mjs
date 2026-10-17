@@ -71,9 +71,37 @@ test('frozen captures verify exact ancestral source while later implementation c
   receipt.source.files[0].sha256='f'.repeat(64);await save();
   await assert.rejects(prepareScreenshots(root,out),/source differs/);
   receipt.source.files[0].sha256=digest(implementation);receipt.source.revision='f'.repeat(40);await save();
-  await assert.rejects(prepareScreenshots(root,out),/source differs/);
+  await prepareScreenshots(root,out);
+  assert.equal(JSON.parse(await fs.readFile(path.join(out,'screenshots/v1.0.1/application-capture.json'),'utf8')).source.revision,'f'.repeat(40));
   await fs.writeFile(path.join(root,'VERSION'),'1.0.2\n');git(['add','VERSION']);
   git(['-c','user.name=Fixture','-c','user.email=fixture@example.test','-c','commit.gpgsign=false','commit','--quiet','-m','another version']);
   receipt.source.revision=git(['rev-parse','HEAD']);await save();
   await assert.rejects(prepareScreenshots(root,out),/captured version/);
+});
+
+test('squashed CI capture sources require one coherent historical version and unchanged receipts', async t => {
+  const root=await fs.mkdtemp(path.join(os.tmpdir(),'insonic-capture-squash-'));
+  assert.equal(path.dirname(root),path.resolve(os.tmpdir()));
+  t.after(()=>fs.rm(root,{recursive:true,force:true}));
+  const git=args=>execFileSync('git',args,{cwd:root,encoding:'utf8',windowsHide:true,timeout:10000,stdio:['ignore','pipe','pipe']}).trim();
+  const commit=message=>git(['-c','user.name=Fixture','-c','user.email=fixture@example.test','-c','commit.gpgsign=false','commit','--quiet','-am',message]);
+  git(['init','--quiet']);
+  await fs.writeFile(path.join(root,'VERSION'),'1.0.1\n');
+  await fs.writeFile(path.join(root,'implementation.txt'),'before');
+  await fs.writeFile(path.join(root,'secondary.txt'),'before secondary');
+  git(['add','VERSION','implementation.txt','secondary.txt']);commit('initial');
+  const main=git(['branch','--show-current']);git(['checkout','--quiet','-b','ci-capture']);
+  const implementation=Buffer.from('captured implementation'),secondary=Buffer.from('captured secondary');
+  await fs.writeFile(path.join(root,'implementation.txt'),implementation);await fs.writeFile(path.join(root,'secondary.txt'),secondary);commit('captured');
+  const revision=git(['rev-parse','HEAD']);git(['checkout','--quiet',main]);git(['merge','--squash','ci-capture']);commit('owner squash');
+  assert.throws(()=>git(['merge-base','--is-ancestor',revision,'HEAD']));
+  await fs.writeFile(path.join(root,'implementation.txt'),'later implementation');await fs.writeFile(path.join(root,'secondary.txt'),'later secondary');commit('later');
+  const directory=path.join(root,'docs/screenshots/v1.0.1');await fs.mkdir(directory,{recursive:true});
+  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2uoAAAAASUVORK5CYII=','base64');await fs.writeFile(path.join(directory,'fixture.png'),png);
+  const receipt={schema_version:'1.0.1',source:{revision,dirty:false,files:[{path:'implementation.txt',sha256:digest(implementation)},{path:'secondary.txt',sha256:digest(secondary)}]},renderer:{kind:'native-installer'},fixture:{isolated:true,private_inputs:false},locale:'en-US',images:[{path:'fixture.png',sha256:digest(png),width:1,height:1,landmark:'Fixture',caption:'Actual capture.'}]};
+  const filename=path.join(directory,'installer-capture.json'),save=()=>fs.writeFile(filename,JSON.stringify(receipt));await save();
+  const out=path.join(root,'out');await prepareScreenshots(root,out);
+  assert.deepEqual(await fs.readFile(path.join(out,'screenshots/v1.0.1/installer-capture.json')),await fs.readFile(filename));
+  receipt.source.files[1].sha256=digest(Buffer.from('before secondary'));await save();
+  await assert.rejects(prepareScreenshots(root,out),/matching complete snapshot/);
 });

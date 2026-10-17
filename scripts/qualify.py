@@ -270,6 +270,12 @@ def desktop():
     output = child([executable, '--qualification'], env=runtime_env, allow_detached=True)
     write_receipt(BUILD / 'desktop-receipt.json', output,
                   {'desktop_bridge': 'passed', 'offline_help': 'packaged', 'schema_version': VERSION})
+    help_args = [executable, '--help-qualification']
+    if platform.system() == 'Linux':
+        help_args = ['xvfb-run', '-a', *help_args]
+    help_output = child(help_args, env=runtime_env, timeout=35, allow_detached=True)
+    write_receipt(BUILD / 'help-webview-receipt.json', help_output,
+                  {'offline_help_activation': 'passed', 'workspace': 'not-selected', 'network_policy': 'local-assets-only', 'schema_version': VERSION})
     args = [executable, '--webview-qualification']
     if platform.system() == 'Linux':
         args = ['xvfb-run', '-a', *args]
