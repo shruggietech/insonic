@@ -39,4 +39,4 @@ T001 -> T002 -> T003 -> T004 -> T005 -> T006/T007; independently T008 -> T009 ->
 
 ## Phase 6: Convergence
 
-- [ ] T015 Add per-workflow mounted keyboard-focus and associated-label activation observations to the renderer matrix and native journey per SC-003/US1-AC2 (partial, HIGH). Existing shared-control coverage does not establish each mounted workflow.
+- [x] T015 Add per-workflow mounted keyboard-focus and associated-label activation observations to the renderer matrix and native journey per SC-003/US1-AC2 (partial, HIGH). Existing shared-control coverage does not establish each mounted workflow.

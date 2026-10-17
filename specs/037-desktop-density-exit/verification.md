@@ -23,3 +23,7 @@ Product tests and native behavior remain unexecuted at this planning checkpoint.
 
 - Required repository check/test, all348 Python maintainer tests, all104 frontend tests/type check, desktop race/native command tests, and site check/test/build pass locally. The native gate test retains the previous bridge/help/journey probes and now requires the additional Exit receipt, including runtime survival and playback cleanup.
 - Convergence checked9 functional requirements,5 success criteria,8 story acceptance scenarios and the named architecture/constitution constraints. One HIGH partial gap (SC-003) was appended asT015: per-workflow mounted interactions. Implementation now adds actual keyboard Tab/Space and label-padding clicks to every renderer scenario, plus native focus/label checks. The complete rerun remains required before closingT015.
+
+- T015 complete: clean sourcee45f90a653314ff61bd119f77f2f5143d2eab2f9 passes all96 scenarios with actual Tab/Space focus and label-padding activation, values restored, and original receipts/PNGs published unchanged. Capture/build/check took20.047seconds. A relative-label locator defect in the test harness was corrected before this successful run.
+
+- Final local site check/test/build and repository check/test pass with the updated captures. UTF-8/no-BOM, LF and mojibake checks report no problems across the changed text files; git diff whitespace validation passes.

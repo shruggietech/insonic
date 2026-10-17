@@ -2,9 +2,9 @@
   "kind": "desktop-density-capture",
   "schema_version": "1.0.1",
   "source": {
-    "revision": "5c370d7c13eac6bcfe32700df2236bd4a9de699f",
+    "revision": "e45f90a653314ff61bd119f77f2f5143d2eab2f9",
     "dirty": false,
-    "tree_sha256": "5a3e61b165a2ac1411c1809507a1eed6b436effd9efb0884e75b07b1f72b4c01",
+    "tree_sha256": "3f660324a09204fd6a7eca425ab771a20b49b5bedbdc77642a1a040ab175a8ff",
     "files": [
       {
         "path": "brand/README.md",
@@ -2616,7 +2616,7 @@
       },
       {
         "path": "desktop/frontend/src/qualification.ts",
-        "sha256": "cbe7bf79779b398763514d7fe8549fa888e20a8584af2c3e8442288be1777358"
+        "sha256": "c74105537fdce9ed32efae4908846437a73d07715f568ac7b02ce3b879388e79"
       },
       {
         "path": "desktop/frontend/src/screens.tsx",
@@ -5192,7 +5192,7 @@
       },
       {
         "path": "scripts/desktop-density-capture.mjs",
-        "sha256": "24e2a650883008878b58e882aae8ba235b5cab25679ea9085e0033b10f9c5553"
+        "sha256": "8e9202a528dc8ea6bf8cc6bd11ba7aee6e918e3f3859d41d47521b90e0de7150"
       }
     ]
   },
@@ -5205,7 +5205,7 @@
     "windows_build": "10.0.26300"
   },
   "fixture": {
-    "id": "d74a20befa3dc93c8ad5065084f45b45",
+    "id": "ff735e93fdd9753b18a771c3d833c020",
     "isolated": true,
     "browser_profile_owned": true,
     "private_inputs": false
@@ -5216,15 +5216,15 @@
   "locale": "en-US",
   "signing": "unsigned",
   "binaries": {
-    "cli_sha256": "00449ac74afd1b9f6ea9fd9aeeb9e9642fa3ec742f9f9d6a8d0370a3f3de4e5a",
-    "bridge_sha256": "552dc3021fc5258dc8542a206995992c3e095c264fbb42647fca44da8cdb546b",
+    "cli_sha256": "8c34a70b5f9b989627fecb0241779514dfd85db60477d8aeba343dcd7d8dfb47",
+    "bridge_sha256": "9ec9c48100e79a91fa6f52698ecac140aeb11986ddbf4d907f1efecec49a4f16",
     "cli_vcs_modified": false,
     "bridge_vcs_modified": false
   },
   "bundle": [
     {
       "path": "assets/bundle/app.js",
-      "sha256": "c2e832ab21789fe523426f52f57cef0eeaf2156b70d45118c23e0c4b00d6c44c"
+      "sha256": "c654a80ce89de6f07925c5f46b1a708435d9aa2c74cfd661178a261affd3fb2a"
     },
     {
       "path": "assets/bundle/app.css",
@@ -5585,6 +5585,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -5683,6 +5685,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -5811,6 +5815,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -5893,6 +5899,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -6013,6 +6021,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -6111,6 +6121,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -6365,6 +6377,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -6463,6 +6477,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -6591,6 +6607,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -6673,6 +6691,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -6793,6 +6813,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -6891,6 +6913,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -7145,6 +7169,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -7243,6 +7269,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -7371,6 +7399,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -7453,6 +7483,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -7573,6 +7605,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -7671,6 +7705,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -7925,6 +7961,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -8023,6 +8061,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -8151,6 +8191,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -8233,6 +8275,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -8353,6 +8397,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -8451,6 +8497,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -8705,6 +8753,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -8803,6 +8853,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -8931,6 +8983,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -9013,6 +9067,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -9133,6 +9189,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -9231,6 +9289,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -9485,6 +9545,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -9583,6 +9645,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -9711,6 +9775,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -9793,6 +9859,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -9913,6 +9981,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -10011,6 +10081,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -10265,6 +10337,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -10363,6 +10437,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -10491,6 +10567,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -10573,6 +10651,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -10693,6 +10773,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -10791,6 +10873,8 @@
             "height": 800,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -11045,6 +11129,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -11143,6 +11229,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -11271,6 +11359,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -11353,6 +11443,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -11473,6 +11565,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -11571,6 +11665,8 @@
             "height": 800,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -11825,6 +11921,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -11923,6 +12021,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -12051,6 +12151,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -12133,6 +12235,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -12253,6 +12357,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -12351,6 +12457,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -12605,6 +12713,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -12703,6 +12813,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -12831,6 +12943,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -12913,6 +13027,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -13033,6 +13149,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -13131,6 +13249,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -13385,6 +13505,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -13483,6 +13605,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -13611,6 +13735,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -13693,6 +13819,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -13813,6 +13941,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -13911,6 +14041,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -14165,6 +14297,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -14263,6 +14397,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -14391,6 +14527,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -14473,6 +14611,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -14593,6 +14733,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -14691,6 +14833,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -14945,6 +15089,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -15043,6 +15189,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -15171,6 +15319,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -15253,6 +15403,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -15373,6 +15525,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -15471,6 +15625,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -15725,6 +15881,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -15823,6 +15981,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -15951,6 +16111,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -16033,6 +16195,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -16153,6 +16317,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -16251,6 +16417,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -16505,6 +16673,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -16603,6 +16773,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -16731,6 +16903,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -16813,6 +16987,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -16933,6 +17109,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -17031,6 +17209,8 @@
             "height": 600,
             "text_pixels": 16
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 16,
@@ -17285,6 +17465,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -17383,6 +17565,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -17511,6 +17695,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -17593,6 +17779,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -17713,6 +17901,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -17811,6 +18001,8 @@
             "height": 600,
             "text_pixels": 32
           },
+          "keyboard_focus": "passed",
+          "selection_activation": "label-padding-and-space-passed",
           "glyphs": [
             {
               "width": 32,
@@ -18060,7 +18252,7 @@
   "images": [
     {
       "path": "desktop-setup.png",
-      "sha256": "f376c54379ca9ac7ce938daddab5e86fa5016c571d0aa9519eed83648c0702c2",
+      "sha256": "a7a73928e0360865329aef4329247566a8050af00c124e58074bb9512ea0b386",
       "width": 1200,
       "height": 800,
       "landmark": "Setup",
@@ -18068,7 +18260,7 @@
     },
     {
       "path": "desktop-library.png",
-      "sha256": "53de89a67aab88a20264f82c4b16c7175f2acaf403498efd12d3a99265123672",
+      "sha256": "3c2c124ea545846bf35be56296ceed8180802c4a850d182a09a13d6bb4c28804",
       "width": 1200,
       "height": 800,
       "landmark": "Library",
@@ -18076,7 +18268,7 @@
     },
     {
       "path": "desktop-jobs.png",
-      "sha256": "cbfdb624c43e808ee629ead6411e1e21a6b611fe66b7c44441ba79f3d6c6a8a5",
+      "sha256": "8afa2ec81ce25463406a1e026e9e25602f578b30888f424f1bfb262546378420",
       "width": 1200,
       "height": 800,
       "landmark": "Jobs",
@@ -18084,7 +18276,7 @@
     },
     {
       "path": "desktop-pipelines.png",
-      "sha256": "5dadae2e568d7345a9099b17af6b692226e997bc85a2e20f0c2943432bf183c1",
+      "sha256": "4c6816010bdece43847a64befb45a0af0a052ae8e5c749d15cddfd2150d6cfcb",
       "width": 1200,
       "height": 800,
       "landmark": "Pipelines",
@@ -18092,7 +18284,7 @@
     },
     {
       "path": "desktop-models.png",
-      "sha256": "e3584456a0c7e93c8dedf15a638f9c0e8754b0662f3089a62218cc64e3637085",
+      "sha256": "5a8cf671967cec09adba946ffcb168f884a151ae6d00848e60aa9f7e3b241ef9",
       "width": 1200,
       "height": 800,
       "landmark": "Models",
@@ -18100,7 +18292,7 @@
     },
     {
       "path": "desktop-settings.png",
-      "sha256": "362ced86ab9ae9fef7ccd1d3abcccd7e99eedd1ecd635037a8530cb9d8060812",
+      "sha256": "8f78ea22f5158ad7eb2eed61749da072b31a8ecc56fe3301adc63388243a513a",
       "width": 1200,
       "height": 800,
       "landmark": "Settings",
@@ -18108,7 +18300,7 @@
     },
     {
       "path": "desktop-settings-enlarged.png",
-      "sha256": "0aa4d36612261d4b1cd8eca794e6d3b1ad84dbccf07b00675e1aea518774669d",
+      "sha256": "e52cfa3a1043832c62e608f2629830b24bfd0be30478fc6612d3a7f5a969a7a6",
       "width": 720,
       "height": 600,
       "landmark": "Settings",
