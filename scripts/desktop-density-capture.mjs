@@ -77,7 +77,9 @@ export async function runDensityMatrix(page, context, {checkpoint, image}) {
           if (observed.width !== width || observed.height !== height || Math.abs(observed.device_scale_factor - scale) > 0.01)
             throw new Error('Renderer did not apply the declared density scenario.');
           if (Math.abs(observed.text_pixels - normalText * text) > 0.1) throw new Error('Renderer text enlargement did not apply.');
-          const geometry = await page.evaluate(desktopDensityGeometry);
+          let geometry;
+          try { geometry = await page.evaluate(desktopDensityGeometry); }
+          catch (error) { console.error(JSON.stringify({phase:'density-observation',view,width,height,scale,text,reason:error.message.split('\n')[0]}));await page.screenshot({path:path.join(ROOT,'build/density-failure.png')});throw error; }
           observations.push({view, width, height, device_scale_factor: scale, text_scale: text, observed, ...geometry});
           if (scale === 1 && ((width === 1200 && text === 1) || (width === 720 && text === 2 && view === 'Settings')))
             await image('desktop-' + view.toLowerCase() + (width === 720 ? '-enlarged' : '') + '.png', view,

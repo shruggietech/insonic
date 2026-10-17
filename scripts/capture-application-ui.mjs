@@ -220,7 +220,7 @@ export async function capture(options) {
     failure=error;await progress('capture','failed');throw error;
   } finally {
     const cleanupErrors=[];
-    const cleanup=async(name,operation,timeout=5000)=>{try{return await checkpoint('cleanup.'+name,operation,timeout)}catch(error){cleanupErrors.push(error.code||'cleanup_failed');return null}};
+    const cleanup=async(name,operation,timeout=5000)=>{try{return await checkpoint('cleanup.'+name,operation,timeout)}catch(error){cleanupErrors.push(error.code||'cleanup_failed');console.error(JSON.stringify({phase:'cleanup.'+name,event:'error',code:error.code||'cleanup_failed'}));return null}};
     if(browser)await cleanup('browser',()=>browser.close(),8000);
     if(server)await cleanup('server',()=>new Promise(resolve=>{server.closeAllConnections();server.close(resolve)}));
     if(endpoint&&helperToken)try{await checkpoint('cleanup.helper.shutdown',()=>fetch(endpoint+'/shutdown',{method:'POST',headers:{'X-Capture-Token':helperToken,Origin:endpoint},signal:AbortSignal.timeout(4000)}),5000)}catch{await progress('cleanup.helper.shutdown','connection_closed')}

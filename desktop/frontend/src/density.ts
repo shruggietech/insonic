@@ -22,13 +22,13 @@ export function desktopDensityGeometry() {
       const intended = Math.max(target, text.width + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
         + parseFloat(style.borderLeftWidth) + parseFloat(style.borderRightWidth));
       if (box.width + 1 < target || box.height + 1 < target || box.width > intended + 2)
-        throw new Error('An ordinary action is stretched or has an undersized target.');
+        throw new Error('Action geometry: width=' + box.width + ', height=' + box.height + ', intended=' + intended);
       return {width: box.width, height: box.height};
     });
   const main = host.querySelector<HTMLElement>('.desktop-content');
   if (!main || main.getBoundingClientRect().height < target) throw new Error('Header wrapping hid the main commands.');
   for (const node of [document.documentElement, host, main])
-    if (node.scrollWidth > node.clientWidth + 1) throw new Error('Desktop content has unintended horizontal overflow.');
+    if (node.scrollWidth > node.clientWidth + 1) throw new Error('Desktop horizontal overflow: ' + node.tagName + ' ' + node.clientWidth + '/' + node.scrollWidth);
   for (const node of host.querySelectorAll<HTMLElement>('.table-scroll'))
     if (node.getBoundingClientRect().right > main.getBoundingClientRect().right + 1)
       throw new Error('Table overflow escaped its own region.');
