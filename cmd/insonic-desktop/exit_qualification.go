@@ -113,6 +113,12 @@ func qualifyNativeExitChild(path string) int {
 				wailsruntime.Quit(ctx)
 				return
 			}
+			// CREATE_NO_WINDOW remains mandatory for the console launcher. Its
+			// STARTUPINFO hide flag can suppress the first native show call, so this
+			// explicit disposable-UI probe requests the normal Wails show/activate path.
+			if runtime.GOOS == "windows" {
+				wailsruntime.WindowShow(ctx)
+			}
 			err := activateNativeExit(fixture.Action)
 			activated <- err
 			if err != nil {

@@ -27,6 +27,7 @@ func exitWinLabel(handle uintptr, index uintptr) string {
 func exitOwnedWindow() (uintptr, error) {
 	deadline := time.Now().Add(5 * time.Second)
 	var handles []uintptr
+	var owned, visible, active int
 	callback := syscall.NewCallback(func(hwnd, unused uintptr) uintptr {
 		var pid uint32
 		exitWinCall("GetWindowThreadProcessId", hwnd, uintptr(unsafe.Pointer(&pid)))
@@ -36,12 +37,24 @@ func exitOwnedWindow() (uintptr, error) {
 		var title [64]uint16
 		exitWinCall("GetWindowTextW", hwnd, uintptr(unsafe.Pointer(&title[0])), uintptr(len(title)))
 		if windows.UTF16ToString(title[:]) == "insonic" {
-			handles = append(handles, hwnd)
+			owned++
+			shown := exitWinCall("IsWindowVisible", hwnd) != 0
+			foreground := exitWinCall("GetForegroundWindow") == hwnd
+			if shown {
+				visible++
+			}
+			if foreground {
+				active++
+			}
+			if shown && exitWinCall("IsWindowEnabled", hwnd) != 0 {
+				handles = append(handles, hwnd)
+			}
 		}
 		return 1
 	})
 	for time.Now().Before(deadline) {
 		handles = nil
+		owned, visible, active = 0, 0, 0
 		exitWinCall("EnumWindows", callback, 0)
 		if len(handles) > 1 {
 			return 0, fmt.Errorf("ambiguous owned native window")
@@ -51,7 +64,7 @@ func exitOwnedWindow() (uintptr, error) {
 		}
 		time.Sleep(20 * time.Millisecond)
 	}
-	return 0, fmt.Errorf("owned native window unavailable")
+	return 0, fmt.Errorf("owned native window unavailable (owned=%d, visible=%d, active=%d)", owned, visible, active)
 }
 func activateNativeExit(action string) error {
 	hwnd, err := exitOwnedWindow()
@@ -90,15 +103,19 @@ func activateNativeExit(action string) error {
 		}
 		thread := exitWinCall("GetWindowThreadProcessId", hwnd, 0)
 		deadline := time.Now().Add(2 * time.Second)
+		var queried, active, owner bool
+		var flags uint32
 		for time.Now().Before(deadline) {
 			info := guiThreadInfo{}
 			info.Size = uint32(unsafe.Sizeof(info))
-			if exitWinCall("GetGUIThreadInfo", thread, uintptr(unsafe.Pointer(&info))) != 0 && info.Flags&4 != 0 && info.MenuOwner == hwnd {
+			queried = exitWinCall("GetGUIThreadInfo", thread, uintptr(unsafe.Pointer(&info))) != 0
+			active, owner, flags = info.Active == hwnd, info.MenuOwner == hwnd, info.Flags
+			if queried && info.Flags&4 != 0 && owner {
 				return post(0x102, 'x', 1)
 			}
 			time.Sleep(20 * time.Millisecond)
 		}
-		return fmt.Errorf("Alt+F did not enter the owned native menu")
+		return fmt.Errorf("Alt+F did not enter the owned native menu (query=%t, flags=%d, active=%t, owner=%t)", queried, flags, active, owner)
 	}
 	return fmt.Errorf("unknown native Exit action")
 }
