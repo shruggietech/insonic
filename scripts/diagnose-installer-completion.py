@@ -64,6 +64,13 @@ WRAPPER=r''' if filepath.Base(exe)=="insonic-launcher.exe" {
   marker,e:=os.ReadFile(filepath.Join(filepath.Dir(directory),"completion-invocation-diagnostic.json"));if e!=nil||string(marker)!="{\"qualification\":false}" {fatal("DiagnosticScope",fmt.Errorf("not the owned invocation fixture"))}
   cwd,_:=os.Getwd()
   trace:=map[string]any{"kind":"MSI-EXE-argv-and-delegate-trace","feature_qualification":false,"token":observed,"args":os.Args,"raw_command_line":windows.UTF16PtrToString(windows.GetCommandLine()),"working_directory":cwd}
+  writeTrace:=func(){data,_:=json.Marshal(trace);_ = os.WriteFile(filepath.Join(directory,"insonic-launcher.exe.invocation.json"),append(data,'\n'),0600)}
+  trace["stage"]="before-window-object-probe";writeTrace()
+  defer func(){if failure:=recover();failure!=nil {trace["stage"]="probe-panicked";trace["panic"]=fmt.Sprint(failure);writeTrace()}}()
+  var startup windows.StartupInfo
+  startup.Cb=uint32(unsafe.Sizeof(startup))
+  windows.NewLazySystemDLL("kernel32.dll").NewProc("GetStartupInfoW").Call(uintptr(unsafe.Pointer(&startup)))
+  trace["startup_desktop"]=windows.UTF16PtrToString(startup.Desktop);writeTrace()
   user32:=windows.NewLazySystemDLL("user32.dll")
   objectName:=func(handle uintptr) map[string]any {
    buffer:=make([]uint16,512);var needed uint32
@@ -71,10 +78,11 @@ WRAPPER=r''' if filepath.Base(exe)=="insonic-launcher.exe" {
    if ok==0 {return map[string]any{"win32_error":fmt.Sprint(nativeError)}}
    return map[string]any{"name":windows.UTF16ToString(buffer)}
   }
-  station,_,_:=user32.NewProc("GetProcessWindowStation").Call()
-  desktop,_,_:=user32.NewProc("GetThreadDesktop").Call(uintptr(windows.GetCurrentThreadId()))
-  trace["window_station"]=objectName(station);trace["desktop"]=objectName(desktop)
-  writeTrace:=func(){data,_:=json.Marshal(trace);_ = os.WriteFile(filepath.Join(directory,"insonic-launcher.exe.invocation.json"),append(data,'\n'),0600)}
+  if err:=user32.Load();err!=nil {trace["user32_load_error"]=err.Error()} else {
+   station,_,_:=user32.NewProc("GetProcessWindowStation").Call()
+   desktop,_,_:=user32.NewProc("GetThreadDesktop").Call(uintptr(windows.GetCurrentThreadId()))
+   trace["window_station"]=objectName(station);trace["desktop"]=objectName(desktop)
+  }
   trace["stage"]="before-production-delegate";writeTrace()
   context,cancel:=context.WithTimeout(context.Background(),15*time.Second);defer cancel()
   command:=exec.CommandContext(context,filepath.Join(directory,"insonic-launcher-real.exe"),os.Args[1:]...)
