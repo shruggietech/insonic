@@ -7,3 +7,5 @@
 - Decision: save-specific title constraint. Rationale: run/explain inputs may legitimately omit title. Contextual examples derive from schema and must also execute in runtime.
 - Decision: existing catalog.ValidateJSON before native parameter decoding. Rationale: it already rejects duplicate members without float-round-tripping numbers.
 - Decision: one trailing semicolon and existing pure functions. Rationale: improves conventional query input while retaining statement/effect guards. Diagnostics use stable allowlisted reasons rather than unbounded query echo.
+
+- Decision: preserve the detached runtime idle lease and check Windows delete-access release for at most ten additional seconds. Hosted desktop archive qualification passed both GUI probes but cleanup encountered a mapped insonic.exe after the fixed 31-second sleep. A loaded image blocks delete access; requesting that access without disposition observes release without modifying the image, terminating a process or ignoring cleanup failure. The overall 660-second qualification deadline remains unchanged.

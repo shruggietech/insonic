@@ -12,6 +12,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Windows package qualification waits for executable-image release after the existing runtime idle allowance, preserving a bounded failure for persistent locks before fixture cleanup.
+
 - Graph and search continuation retrieves cross-page relationships and large result sets within bounded responses, binds the effective page limit, and distinguishes stale results from malformed offsets. Query/calendar filters share bundled timezone rules; saved-query examples require titles, native parameter files reject duplicate members, and native reads accept one trailing terminator with actionable grammar guidance. Function validation distinguishes read-clause grouping from calls and rejects qualified calls outside the declared pure subset.
 
 - Metadata refresh succeeds after acceptance when readers retain old report leases. Durable cleanup remains pending until retention clears; genuine cleanup failures take precedence and accepted retries retain their selected revision.

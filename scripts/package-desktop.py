@@ -866,12 +866,41 @@ def background_gui_qualification(gui, directory, env):
         future.result()
 
 
-def wait_for_detached_idle(last_completed_at=None):
-    # Preserve the entire existing allowance after the last CLI request. GUI
-    # probes use separate in-process runtimes and cannot extend this idle lease.
+def windows_image_released(executable):
+    # Request delete access without deleting or changing the installed image.
+    # Windows denies it while an executable section is still mapped.
+    import ctypes
+    from ctypes import wintypes
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    kernel.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+                                  ctypes.c_void_p, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    kernel.CreateFileW.restype = wintypes.HANDLE
+    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel.CloseHandle.restype = wintypes.BOOL
+    handle = kernel.CreateFileW(str(executable), 0x10000, 7, None, 3, 0, None)
+    if handle == ctypes.c_void_p(-1).value:
+        error = ctypes.get_last_error()
+        if error in (5, 32):
+            return False
+        raise ctypes.WinError(error)
+    if not kernel.CloseHandle(handle):
+        raise ctypes.WinError(ctypes.get_last_error())
+    return True
+
+
+def wait_for_detached_idle(last_completed_at=None, executable=None):
+    # Keep the full idle lease, then observe Windows image release rather than
+    # assuming shutdown and native-library teardown finish on the next tick.
     remaining = 31 if last_completed_at is None else max(0, 31 - (time.monotonic() - last_completed_at))
     if remaining:
         time.sleep(remaining)
+    if executable is not None and platform.system() == 'Windows':
+        deadline = time.monotonic() + 10
+        while not windows_image_released(executable):
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError('packaged CLI image remained busy after detached idle allowance')
+            time.sleep(min(0.1, remaining))
 
 
 def _smoke(archive=None, dirname=None, receipt=None):
@@ -1006,7 +1035,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
         finally:
             # The detached runtime owns its jobs and releases its own scratch
             # catalog handles at the existing bounded idle exit.
-            wait_for_detached_idle(idle_started)
+            wait_for_detached_idle(idle_started, cli)
     receipt.update({'windows_copy_install': installation, 'windows_first_use': installation, 'cli_contract': contract_receipt, 'extracted_inventory': 'passed', 'relocation_path_spaces': 'passed',
                     'cli_real_audio_video_import': 'passed', 'recording_replacement': 'passed', 'declared_roster': 'passed', 'cueson_assembly': 'passed', 'native_subtitle_export': 'passed',
                     'gui_bridge': 'passed' if receipt['variant'] == 'desktop' else 'not-included',

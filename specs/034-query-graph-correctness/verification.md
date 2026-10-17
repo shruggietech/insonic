@@ -43,3 +43,9 @@ Native graph/application/CLI checks passed after normalization (46.859 seconds),
 ## Second and final review round (2026-10-17)
 
 Code review found two P2 cursor contract gaps on f4b1be9: page-size changes retained the old digest, and stale row/edge offsets could produce invalid_request before digest conflict. Both failures were reproduced by dedicated regressions. T021 binds the effective limit (omitted and explicit default 100 are equivalent), excludes only cursor state, and compares digests before current offset bounds. Invalid offsets with a matching current digest still fail as malformed. Security round 2 completed without findings. Both code threads are resolved after the correction and its checks; no third review is requested. Final CI and thread state are authoritative on the PR.
+
+## Windows package cleanup convergence (2026-10-17)
+
+Run 39007271356 passed product, alternate-backend, native and Linux package gates. Windows desktop archive qualification passed its GUI/bridge receipts but failed removing the installed CLI after the fixed idle wait. The fixed delay did not establish image release. T022 preserves that full allowance, then observes Windows delete access without modifying bytes for at most ten seconds; a persistent lock still fails. Regression coverage checks delayed release, deadline failure, an actually loaded Python image and unchanged unused image bytes. No additional code or security review is requested after the two authorized rounds. Exact final-head CI remains required.
+
+After T022, npm run check (1.406 seconds), npm test (1.359 seconds) and all 302 Python tests (34.282 seconds) passed through the hidden launcher. The live Windows probe rejected the currently loaded Python image, accepted an unused fixture image, preserved its bytes and released its handle for deletion.

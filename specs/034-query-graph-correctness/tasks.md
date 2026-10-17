@@ -55,3 +55,5 @@ T001 -> T002 -> analysis gate -> regression tests -> implementations -> T013 -> 
 - [x] T020 Distinguish parenthesized read clauses from function calls while rejecting qualified calls outside the declared pure subset in internal/graph/native.go and native_terminator_test.go; document grammar per FR-006 (partial).
 
 - [x] T021 Bind the effective page limit in normalized cursor digests and classify stale cursor digests before current offset bounds in internal/explore/query.go; add failing-then-passing regression coverage in query_cursor_contract_test.go per FR-001/FR-002 (partial).
+
+- [x] T022 Observe bounded Windows executable-image release after the existing detached idle lease in scripts/package-desktop.py; retain timeout failure and verify loaded-image/no-mutation semantics in tests/package_desktop_test.py (installed qualification convergence).

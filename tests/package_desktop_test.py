@@ -75,6 +75,30 @@ class NativePackageIntegrityTests(unittest.TestCase):
             package.wait_for_detached_idle()
             slept.assert_called_once_with(31)
 
+    def test_detached_idle_wait_observes_image_release_and_preserves_failure(self):
+        with patch.object(package.platform, 'system', return_value='Windows'), \
+                patch.object(package.time, 'monotonic', side_effect=[145, 145, 145.2, 145.3]), \
+                patch.object(package.time, 'sleep') as slept, \
+                patch.object(package, 'windows_image_released', side_effect=[False, False, True]) as released:
+            package.wait_for_detached_idle(100, Path('fixture.exe'))
+            self.assertEqual(released.call_count, 3)
+            self.assertEqual(slept.call_args_list, [unittest.mock.call(0.1), unittest.mock.call(0.1)])
+        with patch.object(package.platform, 'system', return_value='Windows'), \
+                patch.object(package.time, 'monotonic', side_effect=[145, 145, 155]), \
+                patch.object(package, 'windows_image_released', return_value=False):
+            with self.assertRaisesRegex(TimeoutError, 'image remained busy'):
+                package.wait_for_detached_idle(100, Path('fixture.exe'))
+
+    @unittest.skipUnless(package.os.name == 'nt', 'Windows executable image semantics')
+    def test_image_release_probe_observes_loaded_image_without_modifying_files(self):
+        self.assertFalse(package.windows_image_released(Path(package.sys.executable)))
+        with tempfile.TemporaryDirectory() as temporary:
+            image = Path(temporary) / 'unused.exe'
+            image.write_bytes(b'unchanged image bytes')
+            self.assertTrue(package.windows_image_released(image))
+            self.assertEqual(image.read_bytes(), b'unchanged image bytes')
+            image.unlink()
+
     def test_owned_gui_probe_joins_before_library_restoration_even_on_cli_failure(self):
         import threading
         for fail_cli in (False, True):
