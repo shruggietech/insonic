@@ -14,7 +14,9 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
-- Windows Installer displays engine-driven execution progress, confirms cancellation and reports operation-specific success, cancellation and failure with terminal Finish/Close controls. Desktop Offline help uses one compact button and a controlled local documentation view, with actual native activation and local navigation checks on Windows and Linux.
+- Windows Installer repair restores files, registry and shortcuts without unnecessarily recaching its open package. Windows Installer displays engine-driven execution progress, confirms cancellation and reports operation-specific success, cancellation and failure with terminal Finish/Close controls. Desktop Offline help uses one compact button and a controlled local documentation view, with actual native activation and local navigation checks on Windows and Linux.
+
+- Single-table catalog lists and model-name lookups read committed rows without reserving the SQLite writer, allowing imports and model downloads to continue while those reads run. Multi-table snapshots retain transactional consistency.
 
 - HTTP assertion extraction accepts canonical `insonic-http` and legacy `http` inputs, rejects ambiguous or spoofed responses, and retains current cue citations and original source clocks. Query assistance distinguishes provider authentication, missing routes/models, busy services, transport/protocol failures, deadlines and cancellation. Output limits explain artifact materialization, native results and provider responses without exposing external details.
 
@@ -44,7 +46,7 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Decisions
 
-- 2026-10-17: Use native Windows Installer progress subscriptions and operation-specific terminal dialogs. Share installed-help manifest validation between a controlled local-only desktop view and same-user Windows HTML association dispatch. Exercise real full-UI transactions and independent completion elections on the disposable ordinary-user private desktop; retain all silent, inventory and ownership gates within the 660-second job budget.
+- 2026-10-17: Use native Windows Installer progress subscriptions and operation-specific terminal dialogs. Share installed-help manifest validation between a controlled local-only desktop view and same-user Windows HTML association dispatch. Exercise real full-UI transactions and independent completion elections in a disposable ordinary-user Windows CI session; retain all silent, inventory and ownership gates within the 660-second job budget.
 
 - 2026-10-17: Extracted Windows/Linux package checks exercise deterministic loopback HTTP extraction, provider diagnostics and operation-specific output bounds in the existing isolated fixture workspace. Production CI inference refusal remains in place. Canonical extraction configuration retains the legacy input alias, and strict JSON validation is shared below the catalog to avoid dependency cycles.
 

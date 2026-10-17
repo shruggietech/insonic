@@ -56,6 +56,13 @@ class InstallerModelTests(unittest.TestCase):
         for action in ['Rollback','RollbackCleanup','GenerateScript']:
             self.assertEqual(next(r for r in tables['ActionText'] if r[0]==action)[2],'[1]')
 
+    def test_maintenance_repair_does_not_recache_its_open_installer(self):
+        events=[row for row in self.model['tables']['ControlEvent'] if row[:2]==['Maintenance','Repair']]
+        self.assertEqual(next(row[3] for row in events if row[2]=='[REINSTALL]'),'ALL')
+        mode=next(row[3] for row in events if row[2]=='[REINSTALLMODE]')
+        self.assertEqual(mode,'omus')
+        self.assertNotIn('v',mode)
+
     def test_documentation_completion_election_is_independent_and_fresh_only(self):
         tables=self.model['tables'];props=dict(tables['Property'])
         self.assertEqual(props['LAUNCH'],'1');self.assertNotIn('OPEN_DOCUMENTATION',props)

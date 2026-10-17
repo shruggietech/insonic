@@ -225,7 +225,7 @@ def installer_model(inv,inv_sha,license_text,upgrade=UPGRADE_CODE,version=None):
         for order,action in enumerate(operation_actions[operation],1):event('Maintenance',name,'DoAction',action,order=order)
         order=len(operation_actions[operation])+1
         if operation=='repair':
-            event('Maintenance',name,'[REINSTALL]','ALL',order=order);event('Maintenance',name,'[REINSTALLMODE]','vomus',order=order+1)
+            event('Maintenance',name,'[REINSTALL]','ALL',order=order);event('Maintenance',name,'[REINSTALLMODE]','omus',order=order+1)
         else:
             event('Maintenance',name,'[REMOVE]','ALL',order=order);event('Maintenance',name,'Remove','ALL',order=order+1)
         event('Maintenance',name,'EndDialog','Return',order=order+2)
