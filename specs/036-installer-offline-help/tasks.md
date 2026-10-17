@@ -37,12 +37,12 @@ Independent test: all client selections support either/both/neither post-action,
 ## Phase 6: Delivery
 
 - [ ] T014 Update docs/v1.0.1/desktop.md, windows-installation.md, screenshot evidence and CHANGELOG.md with actual defaults/modes/verification and dated build-script decisions (FR-008/FR-009).
-- [ ] T015 Run regression-first and required full checks; converge all nine requirements/five criteria and record specs/036-installer-offline-help/verification.md (FR-001..FR-009, SC-001..SC-005).
-- [ ] T016 Commit, push, open the three-issue PR, update milestone/Project tracking, resolve at most two code/security rounds, verify exact-head CI/threads and stop unmerged (SC-005).
+- [ ] T015 Run regression-first and required full checks; converge all eleven requirements/six criteria and record specs/036-installer-offline-help/verification.md (FR-001..FR-009, SC-001..SC-005).
+- [ ] T016 Commit, push, maintain the four-issue PR, update milestone/Project tracking, resolve at most two code/security rounds, verify exact-head CI/threads and stop unmerged (SC-005).
 
 ## Dependencies and execution
 
-T001 -> T002 -> read-only analyze gate -> T003/T004 -> T005/T006/T007 and T008/T009/T010 -> T011/T012/T013 -> T014/T015 -> T016. US1 and US2 can be qualified independently, while US3 integrates their shared boundaries. Primary agent owns sequential shared-file edits; independent read-only research and hidden verification may run in parallel. Do not run competing MSI transactions concurrently. Deliver all three issues, no release or merge.
+T001 -> T002 -> read-only analyze gate -> T003/T004 -> T005/T006/T007 and T008/T009/T010 -> T011/T012/T013 -> T014/T015 -> T016. US1 and US2 can be qualified independently, while US3 integrates their shared boundaries. Primary agent owns sequential shared-file edits; independent read-only research and hidden verification may run in parallel. Do not run competing MSI transactions concurrently. Deliver all four issues, no release or merge.
 
 ## Phase 7: Convergence
 
@@ -52,10 +52,10 @@ T001 -> T002 -> read-only analyze gate -> T003/T004 -> T005/T006/T007 and T008/T
 ## Phase 8: Owner-approved upgrade recovery (2026-10-17)
 
 - [x] T019 [US4] Prove supported ordinary-user recovery in scripts/diagnose-installer-completion.py using exact owned product/source checks and portable regressions in tests/windows_msi_test.py before production integration (FR-010, SC-006).
-- [ ] T020 [US4] Define and implement validated private recovery source/choice state and legacy missing/corrupt-source handling in the installer launcher and scripts/windows_msi.py after T019 passes (FR-011).
-- [ ] T021 [US4] Integrate recovery with direct interactive and unattended MSI completion, retaining actual failure/cancellation results and bounded native progress in scripts/windows_msi.py and internal/launcher (FR-010/FR-011).
+- [ ] T020 [US4] Define and implement validated private recovery source/choice state and legacy missing/corrupt-source handling in internal/setup and cmd/insonic-setup after T019 passes (FR-011).
+- [ ] T021 [US4] Integrate the owner-approved setup EXE with the exact MSI, native interactive and unattended completion, source/choice state and synchronous recovery, retaining actual failure/cancellation results; update scripts/package-msi.py, release asset contracts and raw-MSI limitations (FR-010/FR-011).
 - [ ] T022 [US4] Prove registration, prior choices, bytes, source-loss, corruption, cleanup and no-elevation behavior in scripts/qualify-windows-msi.py and scripts/qualify_installer_ui.py, then complete T014..T018 (FR-010/FR-011, SC-004/SC-006).
 
 Recovery dependency: T019 -> T020 -> T021 -> T022 -> final captures/full CI -> reserved review round 2. Existing evidence remains historical until final native qualification passes.
 
-T019 proof: external native full/quiet controls pass in run39050679170 with old registration5, exact old bytes and original failure1603 before return. This is prototype proof only. T020/T021 wait for the owner entry-point decision documented in recovery-design.md; T022 and final delivery gates remain incomplete.
+T019 proof: external native full/quiet controls pass in run39050679170 with old registration5, exact old bytes and original failure1603 before return. This is prototype proof only. The owner selected the additional recommended setup EXE and retained raw MSI with explicit limits. T020/T021 are authorized; T022 and final delivery gates remain incomplete.

@@ -18,6 +18,7 @@ Before and after design: PASS. Original #109/#110/#111 scope plus owner-approved
 
 ## Project Structure
 
+- internal/setup/ and cmd/insonic-setup/: same-user external coordinator, validated retained MSI sources, prior-choice snapshot and synchronous recovery worker.
 - internal/launcher/: installed-help validation, Windows association/limited-token path and Linux xdg-open dispatch; focused tests.
 - cmd/insonic-launcher/main.go: documentation mode and actionable bounded errors for elected interactive action.
 - desktop/bridge.go and frontend/src/: native help action, one compact control, click/error/keyboard coverage.
@@ -29,7 +30,7 @@ Before and after design: PASS. Original #109/#110/#111 scope plus owner-approved
 
 ## Delivery Strategy
 
-Regressions precede changes. Shared help resolution first; independent MSI progress/result authoring next; wire desktop and completion elections, then real native qualification. Use existing clones, actor/context ownership and bounded process tracking. Full UI opens only on acknowledged disposable CI, never the owner's desktop. Run root checks/tests, Python suite, Go/native/vet, frontend and site checks, then exact-head hosted package/native/alternate-backend checks. Publish the three-issue PR, resolve at most two code/security rounds and audit all threads. Stop unmerged.
+Regressions precede changes. Shared help resolution first; independent MSI progress/result authoring next; wire desktop and completion elections, then real native qualification. Use existing clones, actor/context ownership and bounded process tracking. Full UI opens only on acknowledged disposable CI, never the owner's desktop. Run root checks/tests, Python suite, Go/native/vet, frontend and site checks, then exact-head hosted package/native/alternate-backend checks. Publish the four-issue PR, resolve at most two code/security rounds and audit all threads. Stop unmerged.
 
 ## Complexity Tracking
 
@@ -41,4 +42,4 @@ A focused invocation trace replaces repeated inference from ignored MSI action s
 
 ## Upgrade recovery expansion (2026-10-17)
 
-The owner authorized recovery scope after the native ordinary-user rollback restored files but left old registration advertised. Follow the staged decision in rollback-decision.md: prove supported API recovery first, then source/choice persistence and transaction integration, then native failure/cancellation/source-loss cases. Preserve direct MSI interactive and unattended behavior, no elevation, no Windows Installer internal registry/cache manipulation, no external download, exact prior choices, owned-data cleanup and the 660-second budget. Do not implement a source cache without a proved recovery consumer.
+The owner authorized recovery scope after the native ordinary-user rollback restored files but left old registration advertised. Follow the staged decision in rollback-decision.md: prove supported API recovery first, then source/choice persistence and transaction integration, then native failure/cancellation/source-loss cases. Implement the owner-approved recommended setup EXE using the exact MSI and its native pages, retain raw MSI with documented engine recovery limits, preserve interactive and unattended behavior, no elevation, no Windows Installer internal registry/cache manipulation, no external download, exact prior choices, owned-data cleanup and the 660-second budget. Do not implement a source cache without a proved recovery consumer.

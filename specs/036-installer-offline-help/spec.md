@@ -3,7 +3,7 @@
 **Feature Branch**: codex/036-installer-offline-help
 **Created**: 2026-10-17
 **Status**: Clarified
-**Input**: S036 autopilot for #109, #110 and #111 plus owner-approved recovery issue #152; publish PR, up to two review rounds, stop before owner merge. On 2026-10-17 the owner explicitly expanded S036 to include the reproduced native upgrade rollback and recovery defect.
+**Input**: S036 autopilot for #109, #110 and #111 plus owner-approved recovery issue #152; publish PR, up to two review rounds, stop before owner merge. On 2026-10-17 the owner explicitly expanded S036 to include the reproduced native upgrade rollback and recovery defect, then selected an additional recommended setup EXE while retaining the raw MSI with documented recovery limits.
 
 ## User Scenarios & Testing
 
@@ -61,7 +61,7 @@ After successful interactive fresh installation, the operator can open documenta
 
 A failed or cancelled upgrade leaves the previous installed version usable and registered with its prior path, feature and integration choices. Recovery works under the invoking ordinary user, with interactive and unattended results that state the actual outcome.
 
-**Independent Test**: Force failure and cancellation after the old installation has been removed, then verify old product registration, feature states and exact program bytes before the installer returns. Repeat with the original downloaded installer absent, legacy installations, and missing/corrupt recovery data.
+**Independent Test**: Force failure and cancellation after the old installation has been removed, then verify old product registration, feature states and exact program bytes before the setup EXE returns. Repeat with the original downloaded installer absent, legacy installations, and missing/corrupt recovery data.
 
 **Acceptance Scenarios**:
 
@@ -84,7 +84,7 @@ A failed or cancelled upgrade leaves the previous installed version usable and r
 - **FR-008**: Qualify actual packaged/native activation and full-UI transactions; retain silent lifecycle, inventory, ownership and rollback checks, and refresh truthful guidance/screenshots (#109..#111).
 - **FR-009**: Preserve the 660-second CI budget, hidden local console launches, UTF-8/LF integrity, exact issue scope and owner merge boundary.
 
-- **FR-010**: A failed or cancelled per-user upgrade must restore old installed registration, bytes and prior choices before reporting recovery complete. Recovery must preserve ordinary-user execution and both interactive/unattended entry points.
+- **FR-010**: A failed or cancelled per-user upgrade must restore old installed registration, bytes and prior choices before reporting recovery complete. Recovery must preserve ordinary-user execution through the owner-approved setup EXE in interactive and unattended modes. Retain the raw MSI with explicitly documented engine recovery limits; do not claim raw-MSI recovery qualification.
 - **FR-011**: Establish a validated local recovery source before destructive upgrade work, including legacy/source-unavailable and missing/corrupt-data behavior. Retain actionable recovery information on failure and remove obsolete application-owned recovery data after successful upgrade/removal.
 
 ### Key Entities

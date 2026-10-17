@@ -251,3 +251,9 @@ The concrete external setup-coordinator proposal is in recovery-design.md. The o
 ### 2026-10-17: decision handoff verification
 
 Current root check and118 Node tests pass. The complete Python suite passes327 tests in64.881 seconds; the81-test MSI subgroup and Windows coordinator compile also pass. New/changed control and decision files pass UTF-8/no-BOM/LF/mojibake checks and git diff --check. PR #151 is open/draft with auto-merge absent; both actual round1 code threads remain resolved. Round2 is unused. No production recovery source/cache, setup asset, published entry-point change, final matrix or captures have been adopted. Wait only for the explicit owner choice on the reviewable entry-point proposal; existing S036 recovery authorization and push/PR authorization remain active.
+
+### 2026-10-17: owner-selected setup coordinator implementation
+
+The owner selected "Add setup EXE; retain raw MSI (Recommended)". Spec, plan, tasks and interaction contracts now use the approved entry point. Read-only analyze finds no remaining HIGH R1 conflict: eleven functional requirements and six criteria map to twenty-two tasks, with no constitution exception or uncovered requirement. No extension hooks are registered.
+
+Failing-first recovery/payload/options regressions now pass in internal/setup. The production Windows coordinator compiles and Go vet passes; GUI PE asInvoker manifest and original approved icon resources were independently parsed without executing setup. Four portable artifact regressions pass. The first broad Python attempt hit sandbox temporary-directory permissions; it did not establish a code failure and is replaced by the verified hidden maintainer runner. A focused owned ordinary-user production-coordinator probe is next. Source/choice integration, source-loss/cancellation coverage, release asset wiring, final native matrix/captures/full CI and reserved review round2 remain incomplete.

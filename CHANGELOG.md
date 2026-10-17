@@ -6,6 +6,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Windows setup EXE coordinates the native per-user MSI and retains full local package sources for failed-upgrade recovery. The raw MSI remains available with explicit engine recovery limits.
+
 - Successful full-UI fresh Windows installation offers an independent, initially unchecked Open documentation choice alongside the existing checked client-launch option. It uses the invoking user’s HTML association and reports opening failures without changing the committed installation result.
 
 - Dedicated current-main website publication preserves original product releases and records separate site/product source identities, exact Pages/live-byte proof, five package-link checks and eight hosted landing screenshots.
@@ -51,6 +53,7 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-17: Extracted Windows/Linux package checks exercise deterministic loopback HTTP extraction, provider diagnostics and operation-specific output bounds in the existing isolated fixture workspace. Production CI inference refusal remains in place. Canonical extraction configuration retains the legacy input alias, and strict JSON validation is shared below the catalog to avoid dependency cycles.
 
 - 2026-10-17: Installed-package qualification adds generated query/graph continuation, timezone, save-example and native-parameter cases on Windows and Linux. Separate row/relationship continuation preserves existing response budgets, and old pagination-policy cursors conflict instead of mixing results.
+- 2026-10-17: Add an owner-selected ordinary-user setup EXE around the exact MSI. The coordinator declares asInvoker, validates retained full MSI sources and prior installation choices before destructive upgrade work, and waits for supported public recovery in a fresh hidden process before returning the original failure/cancellation result. Embedded MSI containers and in-transaction recovery are rejected by focused native comparisons; raw MSI remains available with documented engine limits.
 
 - 2026-10-15: Separate reviewed-main website corrections from immutable product release promotion. Use parent-fenced Git transport, retain independent source identities, verify deployed bytes and bounded live-response browser renders, and share same-run documentation exports to remove repeated native CI builds without weakening qualification.
 

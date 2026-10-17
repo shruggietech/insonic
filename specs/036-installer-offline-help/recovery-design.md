@@ -1,6 +1,6 @@
 # S036 recovery architecture proposal
 
-Status: proposed, not implemented. The owner approved expanding S036 recovery scope on 2026-10-17. That approval does not by itself select a different primary Windows setup entry point. The native direct-coordinator controls pass in actual full UI and silent mode; the embedded variants fail. This is prototype evidence, not product recovery qualification.
+Status: owner approved on 2026-10-17 ("Add setup EXE; retain raw MSI (Recommended)"); production implementation pending. The earlier recovery expansion and this entry-point selection authorize the additional recommended setup EXE with retained raw-MSI limits. The native direct-coordinator controls pass in actual full UI and silent mode; the embedded variants fail. This is prototype evidence, not product recovery qualification.
 
 ## Established boundaries
 
@@ -10,9 +10,9 @@ Status: proposed, not implemented. The owner approved expanding S036 recovery sc
 - The tested embedded-chainer variants do not restore registration before return. Some produce internal Installer failures and are rejected. These tests do not prove every possible MSI authoring design is impossible.
 - Direct quiet/full coordinator controls in run39050679170 at8af788ec36387f42c476a2137d5e6dcd8a96906e pass: both return the actual inner1603 after fresh public recovery completes0, old registration5/new absent and exact old bytes. Full UI observes real progress and FatalError; all owned account/profile/stage cleanup completes. Embedded variants still fail with the same explicit STA initialization. A completed diagnostic trace never qualifies product recovery.
 
-## Candidate: external setup coordinator
+## Selected architecture: external setup coordinator
 
-The candidate supported by the direct controls is an additional Windows setup EXE containing the exact payload MSI and coordinating its native full/silent lifecycle. Preserve MSI product identity, native pages, actual license/choice controls, all completion elections and ordinary-user execution. Keep the MSI available, with an explicit distinction between a coordinated recovery guarantee and the raw engine behavior. No distribution contract changes are adopted in this proposal.
+The selected architecture supported by the direct controls is an additional Windows setup EXE containing the exact payload MSI and coordinating its native full/silent lifecycle. Preserve MSI product identity, native pages, actual license/choice controls, all completion elections and ordinary-user execution. Keep the MSI available, with an explicit distinction between a coordinated recovery guarantee and the raw engine behavior. Update the distribution contract with a setup EXE in addition to the raw MSI.
 
 The coordinator waits for the native result. On failure/cancellation after destructive work, supported recovery removes only the advertised old product and reinstalls the validated original full MSI with the prior directory, features and integrations. Recovery must finish before the coordinator returns, retaining the original1603/1602 result. Incomplete recovery remains an error with an actionable retained local record. Native MSI transactions and owned program bytes remain separate assertions.
 
@@ -20,9 +20,9 @@ Before upgrade, establish a validated local source and prior-choice snapshot. A 
 
 The setup EXE must declare asInvoker explicitly, avoid installer-detection elevation, and use hidden noninteractive console child creation. Do not execute mutable per-user cached sources with administrator privileges; use the verified same-user limited-token handoff before processing user-owned recovery data. Preserve the existing unconfigured signing truth and release version. Reuse approved icon/brand bytes. A new setup asset requires receipt, release-assembly and documentation updates, not a new runtime framework.
 
-## Decision needed if native in-MSI designs remain unsuccessful
+## Owner entry-point decision (2026-10-17)
 
-Making the EXE the recommended upgrade path changes the Windows installation entry-point contract. Retaining raw MSI with documented recovery limitations also changes the proposed direct-MSI recovery requirement. Obtain the owner's agreement before adopting that behavior, as required by AGENTS.md. The alternative is to keep S036 draft and continue an MSI-only recovery design; do not weaken the existing registration assertion or claim files alone prove restoration.
+The owner explicitly selected the additional recommended setup EXE and retention of raw MSI with documented recovery limits. FR-010, the plan and tasks now describe that approved contract. The raw-engine advertised-registration defect remains documented; the setup recovery assertion still requires installed registration and exact prior choices/bytes.
 
 ## Implementation and proof after selection
 

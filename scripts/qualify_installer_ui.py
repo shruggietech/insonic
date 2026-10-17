@@ -34,7 +34,10 @@ def prepare(stage, fixture, clone, diagnostic_only=False):
     version=json.loads((payload/'help/offline-manifest.json').read_text(encoding='utf-8'))['version']
     inv={'schema_version':version,'platform':'windows_amd64','variant':'desktop','files':files}
     raw=m.inventory_bytes(inv);(payload/'package-inventory.json').write_bytes(raw)
-    family=m.guid('owned-full-ui/'+uuid.uuid4().hex)
+    setup_probe=diagnostic_only and os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_MODE')=='rollback-setup'
+    if setup_probe:
+        inv['kind']='native-package-inventory';raw=m.inventory_bytes(inv);(payload/'package-inventory.json').write_bytes(raw)
+    family=m.UPGRADE_CODE if setup_probe else m.guid('owned-full-ui/'+uuid.uuid4().hex)
     model=m.installer_model(inv,m.digest(raw),(payload/'LICENSE').read_text(encoding='utf-8'),upgrade=family)
     old=stage/'ui-old.msi';m.author(old,payload,model)
     parts=list(map(int,version.split('.')));parts[2]+=1;new_version='.'.join(map(str,parts))
@@ -50,6 +53,14 @@ def prepare(stage, fixture, clone, diagnostic_only=False):
     finally:db.close()
     config={'version':version,'old_product':model['product_code'],'new_product':m.product_code(new_version,family),'payload':model['payload'],'family':family}
     (stage/'ui-model.json').write_text(json.dumps(config),encoding='utf-8',newline='\n')
+    if setup_probe:
+        import windows_setup
+        for name in ('old','new','bad'):
+            source=stage/('ui-'+name+'.msi');target=stage/('ui-'+name+'-setup.exe')
+            shutil.copyfile(fixture/'owned-setup.exe',target)
+            props=dict(m.table_rows(m.CompoundFile(source).streams,'Property'))
+            identity={'product_code':props['ProductCode'],'upgrade_code':props['UpgradeCode'],'version':props['ProductVersion'],'sha256':m.sha(source),'size_bytes':source.stat().st_size}
+            windows_setup.append_payload(target,source,identity)
     if diagnostic_only:return
     # A system browser is readable by the new ordinary account. Do not use the
     # elevated runner's private Playwright cache or change a machine association.

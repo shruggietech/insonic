@@ -649,7 +649,7 @@ def ordinary_namespace_probe(stage):
     proof={'state':'passed','token':token_info(),'directories':object_namespace_diagnostic(),'mutex':installer_mutex_diagnostic()}
     (stage/'native/context.namespace-probe.json').write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
 
-DIAGNOSTIC_MODES=('completion','rollback-reused','rollback-isolated','rollback-primed','rollback-late','rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container','rollback-container-independent','rollback-standalone','rollback-standalone-full')
+DIAGNOSTIC_MODES=('completion','rollback-reused','rollback-isolated','rollback-primed','rollback-late','rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container','rollback-container-independent','rollback-standalone','rollback-standalone-full','rollback-setup')
 
 def diagnostic_mode(stage):
     m.disposable_runner()
@@ -675,7 +675,7 @@ def ordinary_ui_worker(stage):
         import runpy
         diagnostic=runpy.run_path(str(stage/'scripts/diagnose-installer-completion.py'),run_name='owned_invocation_diagnostic')
         mode=diagnostic_mode(stage)
-        proof=diagnostic['observe_invocation' if mode=='completion' else 'observe_rollback'](stage,observed,run_installer)
+        proof=diagnostic['observe_setup' if mode=='rollback-setup' else 'observe_invocation' if mode=='completion' else 'observe_rollback'](stage,observed,run_installer)
     else:
         from qualify_installer_ui import qualify as qualify_ui
         proof=qualify_ui(stage,stage/'fixture.msi',stage/'installed program é with spaces',stage/'native/context.json',observed,run_installer)
@@ -1500,6 +1500,7 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
         prepare(stage,fixture,clone,diagnostic_only=diagnostic_only)
         if diagnostic_only:
             shutil.copyfile(m.ROOT/'scripts/diagnose-installer-completion.py',scripts/'diagnose-installer-completion.py')
+            shutil.copyfile(m.ROOT/'scripts/windows_setup.py',scripts/'windows_setup.py')
             (stage/'completion-invocation-diagnostic.json').write_text('{"qualification":false}',encoding='utf-8',newline='\n')
             (stage/'installer-diagnostic-mode.json').write_text(json.dumps({'feature_qualification':False,'mode':os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_MODE','completion')}),encoding='utf-8',newline='\n')
             diagnostic_mode(stage)

@@ -287,6 +287,49 @@ WRAPPER=r''' if filepath.Base(exe)=="insonic-launcher.exe" {
 '''
 
 
+def observe_setup(stage,token,quiet_install):
+    """Focused production-coordinator probe, never a complete product receipt."""
+    m.disposable_runner();q=qualifier();stage=Path(stage)
+    marker=json.loads((stage/'owned-ci-account.json').read_text(encoding='utf-8'))
+    if q.diagnostic_mode(stage)!='rollback-setup' or marker['sid_sha256']!=token['user_sid_sha256'] or token['elevated'] or token['administrator_enabled']:raise RuntimeError('setup probe is outside the owned ordinary account')
+    model=json.loads((stage/'ui-model.json').read_text(encoding='utf-8'))
+    if model['family']!=m.UPGRADE_CODE:raise RuntimeError('production coordinator requires the exact insonic family in its otherwise empty owned profile')
+    import ctypes as C
+    import ctypes.wintypes as W
+    dll=C.WinDLL('msi');dll.MsiQueryProductStateW.argtypes=[W.LPCWSTR];dll.MsiQueryProductStateW.restype=C.c_int
+    if any(dll.MsiQueryProductStateW(model[key])!=-1 for key in ('old_product','new_product')):raise RuntimeError('setup probe refuses pre-existing registration')
+    root=Path(os.environ['LOCALAPPDATA'])/'insonic-setup';directory=stage/'UI program é & spaces'
+    result={'kind':'production-setup-focused-probe','feature_qualification':False,'token':token,'transactions':[],'cleanup':[]}
+    def run(name,args,expected):
+        command=[str(stage/('ui-'+name+'-setup.exe')),*args]
+        done=subprocess.run(command,cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=75)
+        row={'name':name,'actual_code':done.returncode,'stdout':done.stdout.decode(errors='replace')[-4000:],'stderr':done.stderr.decode(errors='replace')[-4000:]};result['transactions'].append(row)
+        for source in root.glob('*'):
+            if source.is_file() and source.suffix in ('.json','.log') and source.stat().st_size<=8*1024*1024:shutil.copyfile(source,stage/'native'/('context.setup-'+name+'-'+source.name))
+        if done.returncode!=expected:raise RuntimeError('production setup returned unexpected result: '+json.dumps(row))
+        return row
+    try:
+        run('old',['--quiet','--accept-license','--install-dir',str(directory),'--clients','cli','--start-menu','0','--desktop-shortcut','0'],0)
+        if dll.MsiQueryProductStateW(model['old_product'])!=5:raise RuntimeError('setup did not install old registration')
+        expected={item['path']:m.sha(directory/item['path']) for item in model['payload'] if item['feature']!='Desktop'}
+        (stage/'ui-old.msi').unlink();(stage/'ui-old-setup.exe').unlink()
+        result['downloaded_old_sources_absent']=True
+        run('bad',['--quiet','--accept-license'],1603)
+        if dll.MsiQueryProductStateW(model['old_product'])!=5 or dll.MsiQueryProductStateW(model['new_product'])!=-1:raise RuntimeError('production setup failed to restore installed registration')
+        if any(m.sha(directory/name)!=sha for name,sha in expected.items()):raise RuntimeError('production setup did not restore exact old payload')
+        q.assert_unchecked_shortcuts()
+        receipt=json.loads((root/'last-result.json').read_text(encoding='utf-8'))
+        if receipt['native_code']!=1603 or receipt['setup_code']!=1603 or receipt['recovery']!='completed':raise RuntimeError('production coordinator result does not prove synchronous recovery')
+        result['state']='passed';return result
+    finally:
+        for key in ('old_product','new_product'):
+            product=model[key]
+            if dll.MsiQueryProductStateW(product) in (1,5):
+                try:quiet_install(['/x',product],stage/'native'/('context.setup-cleanup-'+key+'.log'));result['cleanup'].append({'product':product,'completed':True})
+                except BaseException as error:result['cleanup'].append({'product':product,'completed':False,'error':str(error)[-2000:]})
+        (stage/'native/context.setup-probe.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+
+
 def main():
     m.disposable_runner();q=qualifier();work=m.ROOT/'build/completion-invocation-diagnostic';work.mkdir(parents=True,exist_ok=False)
     fixture=work/'launcher-context-fixture';fixture.mkdir();evidence=work/'evidence';evidence.mkdir()
@@ -296,6 +339,9 @@ def main():
         if done.returncode:raise RuntimeError(done.stderr.decode(errors='replace')[-4000:])
     build(fixture/'insonic-launcher.exe','./cmd/insonic-launcher')
     build(fixture/'owned-coordinator.exe','tests/fixtures/msi-recovery-coordinator.go')
+    build(fixture/'owned-setup.exe','./cmd/insonic-setup')
+    import windows_setup
+    windows_setup.add_resources((fixture/'owned-setup.exe').resolve(),json.loads((m.ROOT/'package.json').read_text(encoding='utf-8'))['version'])
     source=work/'token-only.go';source.write_text(q.LAUNCH_REPORTER_SOURCE.replace('if filepath.Base(exe)=="documentation-handler.exe" {\n','if filepath.Base(exe)=="documentation-handler.exe" && false {\n'),encoding='utf-8',newline='\n')
     build(fixture/'insonic-desktop.exe',str(source));shutil.copyfile(fixture/'insonic-desktop.exe',fixture/'insonic.exe')
     wrapper=work/'invocation-wrapper.go';body=q.LAUNCH_REPORTER_SOURCE.replace(' "crypto/sha256"',' "context"\n "bytes"\n "time"\n "crypto/sha256"').replace(' diagnostic("token-recorded",nil)',' diagnostic("token-recorded",nil)\n'+WRAPPER)
@@ -312,8 +358,9 @@ def main():
     model=m.installer_model(inventory,m.digest(raw),(fixture/'LICENSE').read_text(encoding='utf-8'),upgrade=m.guid('invocation-diagnostic/'+__import__('uuid').uuid4().hex))
     installer=work/'diagnostic.msi';m.author(installer,fixture,model)
     kind=os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_KIND','completion')
-    if kind not in ('completion','rollback','msiexec','recovery','exit','container','container-independent','standalone','standalone-full'):raise RuntimeError('unknown diagnostic kind')
+    if kind not in ('completion','rollback','msiexec','recovery','exit','container','container-independent','standalone','standalone-full','setup'):raise RuntimeError('unknown diagnostic kind')
     modes=['completion'] if kind=='completion' else ['rollback-msiexec'] if kind=='msiexec' else ['rollback-recovery'] if kind=='recovery' else ['rollback-exit-quiet','rollback-exit-full'] if kind=='exit' else ['rollback-standalone-full'] if kind=='standalone-full' else ['rollback-standalone'] if kind=='standalone' else ['rollback-container-independent'] if kind=='container-independent' else ['rollback-container'] if kind=='container' else [mode for mode in q.DIAGNOSTIC_MODES[1:] if mode not in ('rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container','rollback-container-independent','rollback-standalone','rollback-standalone-full')]
+    if kind=='setup':modes=['rollback-setup']
     results=[]
     for mode in modes:
         os.environ['INSONIC_INSTALLER_DIAGNOSTIC_MODE']=mode
