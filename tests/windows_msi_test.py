@@ -237,7 +237,10 @@ class InstallerModelTests(unittest.TestCase):
         with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'ProgramData':str(self.path),'SystemRoot':str(self.path/'windows')}),patch.object(ui.subprocess,'Popen',return_value=SimpleNamespace(pid=123)) as start:
             ui.launch_msiexec_diagnostic(msi,stage/'UI program é & spaces',stage/'native/context.ui-rollback-install.log')
         args,kwargs=start.call_args
-        self.assertIn('/qf',args[0]);self.assertIn('/l*v',args[0]);self.assertFalse(any('LICENSE_ACCEPTED' in str(value) for value in args[0]))
+        self.assertIsInstance(args[0],str)
+        self.assertIn('/qf',args[0]);self.assertIn('/l*v',args[0]);self.assertNotIn('LICENSE_ACCEPTED',args[0]);self.assertNotIn('LAUNCH=',args[0])
+        self.assertIn(' INSTALLDIR="'+str(stage/'UI program é & spaces')+'" ',args[0])
+        self.assertEqual(kwargs['executable'],str(self.path/'windows/System32/msiexec.exe'))
         self.assertEqual(kwargs['creationflags'],0x08000000);self.assertEqual(kwargs['stdin'],ui.subprocess.DEVNULL)
         with patch.dict(os.environ,{},clear=True):
             with self.assertRaisesRegex(RuntimeError,'disposable'):ui.launch_msiexec_diagnostic(None,None,None)

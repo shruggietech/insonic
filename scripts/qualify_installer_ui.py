@@ -78,7 +78,9 @@ class ProgressInspection:
 def launch_msiexec_diagnostic(msi,directory,log):
     m.disposable_runner();msi=Path(msi);stage=msi.resolve().parent;log=Path(log)
     if stage.parent!=Path(os.environ['ProgramData']).resolve() or not __import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name) or msi.name not in ('ui-old.msi','ui-bad.msi') or (stage/'completion-invocation-diagnostic.json').read_text(encoding='utf-8')!='{"qualification":false}' or Path(directory).resolve()!=stage/'UI program é & spaces' or log.resolve().parent!=stage/'native' or not __import__('re').fullmatch('context.ui-rollback-(install|failed-upgrade).log',log.name):raise RuntimeError('native msiexec diagnostic is outside its owned stage')
-    return subprocess.Popen([str(Path(os.environ['SystemRoot'])/'System32/msiexec.exe'),'/i',str(msi),'/qf','/l*v',str(log),'INSTALLDIR='+str(directory),'REBOOT=ReallySuppress'],cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=0x08000000)
+    engine=str(Path(os.environ['SystemRoot'])/'System32/msiexec.exe')
+    command=subprocess.list2cmdline([engine,'/i',str(msi),'/qf','/l*v',str(log)])+' INSTALLDIR="'+str(directory).replace('"','""')+'" REBOOT=ReallySuppress'
+    return subprocess.Popen(command,executable=engine,cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=0x08000000)
 
 
 class NativeUI:
@@ -103,7 +105,12 @@ class NativeUI:
         self.dll.MsiSetExternalUIW.argtypes=[self.handler,W.DWORD,C.c_void_p];self.dll.MsiSetExternalUIW.restype=C.c_void_p
 
     def text(self,hwnd):
-        b=C.create_unicode_buffer(4096);self.u.GetWindowTextW(hwnd,b,4096);return b.value
+        b=C.create_unicode_buffer(4096);self.u.GetWindowTextW(hwnd,b,4096)
+        if not b.value:
+            # GetWindowText cannot read another process's edit controls. System
+            # WM_GETTEXT marshaling supports the owned native client's error text.
+            count=C.c_size_t();self.u.SendMessageTimeoutW(hwnd,0x000d,len(b),C.addressof(b),2,500,C.byref(count))
+        return b.value
 
     def klass(self,hwnd):
         b=C.create_unicode_buffer(128);self.u.GetClassNameW(hwnd,b,128);return b.value
@@ -257,7 +264,13 @@ class NativeUI:
                     if 'Intentional transactional fixture failure' in joined:
                         self.click(controls,'OK');time.sleep(.03);continue
                     state['last_native_window']={'title':self.text(hwnd)[:120],'controls':[label[:160] for label in labels[:24]]}
-                    if self.text(hwnd)!='insonic Setup':continue
+                    if self.text(hwnd)!='insonic Setup':
+                        if native_process and self.text(hwnd)=='Windows Installer':
+                            state['native_client_dialog']={'title':self.text(hwnd),'text':joined,'classes':[self.klass(c) for c in controls]}
+                            state['captures'].append(self.capture(hwnd,name+'-native-client-error'))
+                            self.click(controls,'OK')
+                            raise RuntimeError('native MSI client rejected invocation: '+joined)
+                        continue
                     if any(self.klass(c).casefold()=='msctls_progress32' for c in controls):
                         bar=next(c for c in controls if self.klass(c).casefold()=='msctls_progress32')
                         position=self.send(bar,0x0408)
