@@ -172,7 +172,7 @@ class NativeUI:
         finally:g.SelectObject(memory,old);g.DeleteObject(bitmap);g.DeleteDC(memory);u.ReleaseDC(hwnd,dc)
 
     def run(self,msi,directory,name,operation='install',selection='both',launch=False,docs=False,cancel=None,expected=0,before_finish=None):
-        state={'name':name,'operation':operation,'pages':[],'actions':[],'progress_messages':0,'progress_observed':False,'bar_positions':[],'terminal':None,'captures':[]}
+        state={'name':name,'operation':operation,'fixture_msi_sha256':m.sha(msi),'pages':[],'actions':[],'progress_messages':0,'progress_observed':False,'bar_positions':[],'terminal':None,'captures':[]}
         action_ready=threading.Event();progress_seen=threading.Event();done=threading.Event()
         def observe(_,kind,message):
             category=kind&0xff000000
@@ -190,7 +190,12 @@ class NativeUI:
         def install():
             ole=C.OleDLL('ole32');ole.CoInitializeEx(None,2)
             try:
-                self.dll.MsiSetInternalUI(5,None);self.dll.MsiSetExternalUIW(callback,(1<<8)|(1<<10),None)
+                state['initial_ui_level']=self.dll.MsiSetInternalUI(0,None)
+                self.dll.MsiSetExternalUIW(callback,(1<<8)|(1<<10),None)
+                state['ui_level_after_observer']=self.dll.MsiSetInternalUI(0,None)
+                state['previous_ui_level']=self.dll.MsiSetInternalUI(5,None)
+                state['configured_ui_level']=self.dll.MsiSetInternalUI(0,None)
+                if state['configured_ui_level']!=5:raise RuntimeError('native full UI could not be selected')
                 self.dll.MsiEnableLogW(0x1000,str(self.output.parent/('context.ui-'+name+'.log')),0)
                 props='INSTALLDIR="'+str(directory)+'" REBOOT=ReallySuppress'
                 state['code']=self.dll.MsiInstallProductW(str(msi),props)
@@ -319,6 +324,17 @@ def qualify(stage,exact_installer,exact_directory,output,token,quiet_install):
                     for extra in directory.glob('*.json'):
                         if extra.name.endswith(('.token.json','.diagnostic.json')):extra.unlink()
                     quiet_install(['/x',config['old_product']],stage/'native'/('context.ui-'+name+'-remove.log'))
+            # Explicit unattended documentation election still cannot publish
+            # a completion action: no full-UI Finish event exists here.
+            unattended=stage/'native/context.docs-unattended.json'
+            renderer.update(directory=str(directory),version=config['version'],output=str(unattended),nonce=uuid.uuid4().hex)
+            (stage/'documentation-handler.json').write_text(json.dumps(renderer),encoding='utf-8',newline='\n')
+            (stage/'documentation-handler.exe.token.json').unlink(missing_ok=True)
+            quiet_log=stage/'native/context.ui-unattended.log'
+            quiet_install(['/i',old,'INSTALLDIR='+str(directory),'LICENSE_ACCEPTED=1','ADDLOCAL=Core,CLI','OPEN_DOCUMENTATION=1'],quiet_log)
+            text=quiet_log.read_text(encoding='utf-16',errors='replace')
+            if unattended.exists() or (stage/'documentation-handler.exe.token.json').exists() or 'Doing action: OpenDocumentation' in text:raise RuntimeError('unattended transaction opened documentation')
+            quiet_install(['/x',config['old_product']],stage/'native/context.ui-unattended-remove.log')
         missing=ui.run(old,directory,'missing-documentation',docs=True,before_finish=lambda:(directory/'help/offline-manifest.json').unlink())
         if not missing.get('documentation_warning'):raise RuntimeError('elected missing help did not report its correction')
         results.append(missing)
@@ -348,8 +364,9 @@ def association(stage,token):
     from contextlib import contextmanager
     @contextmanager
     def owned():
+        m.disposable_runner()
         import winreg
-        m.disposable_runner();key=r'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.html\UserChoice'
+        key=r'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.html\UserChoice'
         try:
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER,key):raise RuntimeError('owned fresh profile unexpectedly has HTML UserChoice')
         except FileNotFoundError:pass
@@ -367,8 +384,31 @@ def association(stage,token):
         try:
             if query(0,2,'.html','open',executable,C.byref(size)) or Path(executable.value).resolve()!=handler.resolve():raise RuntimeError('ordinary HTML association did not resolve to owned handler')
             renderer=json.loads((stage/'ui-renderer.json').read_text(encoding='utf-8'));yield renderer
-            report=json.loads((stage/'documentation-handler.exe.token.json').read_text(encoding='utf-8'))
+            reports=[p for p in (stage/'native').glob('context.docs-*.json') if p.name!='context.docs-unattended.json']
+            if len(reports)!=6:raise RuntimeError('ordinary association did not complete all six elected browser renders')
+            report=json.loads((stage/'documentation-handler.exe.last-token.json').read_text(encoding='utf-8'))
             if report['elevated'] or report['administrator_enabled'] or report['user_sid_sha256']!=token['user_sid_sha256']:raise RuntimeError('documentation association changed user/elevation')
         finally:
             winreg.DeleteKey(winreg.HKEY_CURRENT_USER,program+r'\shell\open\command');winreg.DeleteKey(winreg.HKEY_CURRENT_USER,program+r'\shell\open');winreg.DeleteKey(winreg.HKEY_CURRENT_USER,program+r'\shell');winreg.DeleteKey(winreg.HKEY_CURRENT_USER,program);winreg.DeleteKey(winreg.HKEY_CURRENT_USER,html);shell.SHChangeNotify(0x08000000,0,None,None)
     return owned()
+
+
+def export_captures(output,logs,interactive,receipt):
+    """Preserve real transaction images independently of restricted dialogs."""
+    m.disposable_runner()
+    import struct
+    if interactive.get('state')!='passed':raise RuntimeError('transaction captures require completed full-UI proof')
+    rows={row['name']:row for row in interactive['transactions']};images=[];output=Path(output);output.mkdir(parents=True,exist_ok=True)
+    for operation,suffix,number,title in [('exact-install','progress',8,'Installing insonic'),('repair','finish',9,'insonic repaired'),('remove','finish',10,'insonic removed'),('execution-cancel','cancelled',11,'Setup cancelled'),('failed-upgrade','fatalerror',12,'Setup could not finish'),('change','finish',13,'insonic changed'),('upgrade','finish',14,'insonic updated')]:
+        row=rows[operation];filename='context.ui-'+operation+'-'+suffix+'.png'
+        item=next((x for x in row['captures'] if x['path']==filename),None)
+        if item is None:raise RuntimeError('required native transaction capture is absent: '+filename)
+        source=Path(logs)/filename.replace('context.','ordinary-context.',1)
+        raw=source.read_bytes()
+        if m.digest(raw)!=item['sha256'] or raw[:8]!=b'\x89PNG\r\n\x1a\n' or struct.unpack_from('>II',raw,16)!=(item['width'],item['height']):raise RuntimeError('retained native transaction pixels differ')
+        name='installer-'+str(number).zfill(2)+'-'+suffix+'-'+operation+'.png';(output/name).write_bytes(raw)
+        images.append({**item,'path':name,'landmark':title,'caption':'Native full-UI '+row['operation']+' transaction on the owned disposable ordinary-user desktop; '+('engine-driven execution progress.' if suffix=='progress' else 'final outcome, native return code '+str(row['code'])+'.'),'fixture_msi_sha256':row['fixture_msi_sha256']})
+    sources=['scripts/windows_msi.py','scripts/qualify-windows-msi.py','scripts/qualify_installer_ui.py','LICENSE',m.ICON]
+    evidence={'kind':'installer-transactions-ui-capture','schema_version':receipt['schema_version'],'source':{'revision':receipt['revision'],'dirty':False,'files':[{'path':p,'sha256':m.sha(m.ROOT/p)} for p in sources]},'parent_artifact_sha256':receipt['artifact_sha256'],'renderer':{'kind':'windows-installer-full-ui','windows_build':str(__import__('sys').getwindowsversion().build)},'fixture':{'isolated':True,'private_inputs':False,'transaction_proven':True,'native_return_codes':[0,1602,1603],'kind':'unique owned package families, exact payload install/removal plus instrumented native client reporters for bounded maintenance/elections','production_msi_authoring':True,'separate_ordinary_user':True,'private_nonvisible_desktop':True},'locale':'en-US','images':images}
+    (output/'installer-transactions-capture.json').write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+    return evidence

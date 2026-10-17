@@ -90,7 +90,35 @@ Per-user configuration uses `%APPDATA%\insonic`; local data/cache/runtime coordi
 
 ## Installer page walkthrough
 
-Setup proceeds through license acceptance, client and shortcut choices, program location and an explicit commit page. Execution displays native Installer progress; the final page reports the completed operation or cancellation/failure. Only successful fresh interactive installation offers the independent client and documentation choices.
+These are actual authored MSI pages rendered by native Windows Installer on a disposable Windows Server 2022 runner, build 20348, in English (United States). A restricted installer session elected the illustrated clients, integrations, program path and Launch option, then read back their actual native control values before capture. The images show those fixture choices; they do not prove fresh-install defaults or a completed installation transaction. The normal steps above describe default behavior. No browser reputation, SmartScreen, UAC or other Windows policy prompt was captured.
+
+![Native installer welcome page explains per-user installation and no prerequisite downloads](../screenshots/v1.0.1/installer-01-welcome.png)
+
+Figure 1. Welcome to per-user installation. Select Next to read the license before choosing clients and integrations.
+
+![Native license page shows Apache 2.0 text and an initially unchecked acceptance control](../screenshots/v1.0.1/installer-02-license.png)
+
+Figure 2. Read the Apache License 2.0. Select I accept the Apache License 2.0 to enable Next.
+
+![Native client page shows Desktop application and CLI integrations selected with optional shortcuts](../screenshots/v1.0.1/installer-03-choices.png)
+
+Figure 3. The fixture elects both clients and optional integrations. Choose the clients you want; Desktop-only retains shared runtime bytes, while CLI-only omits the GUI.
+
+![Native location page shows a generic writable program path and Browse control](../screenshots/v1.0.1/installer-04-location.png)
+
+Figure 4. The fixture shows a generic per-user program directory. Keep the default or enter your selected writable program directory; Browse opens directory selection. Keep library data outside this directory.
+
+![Native ready page explains prerequisite verification and offers Install](../screenshots/v1.0.1/installer-05-ready.png)
+
+Figure 5. Check your choices, install missing official prerequisites if requested, then select Install.
+
+![Native maintenance page offers change, repair and removal while preserving user data](../screenshots/v1.0.1/installer-06-maintenance.png)
+
+Figure 6. Close affected clients and finish/cancel work before changing features, repairing or removing this installation.
+
+![Native completion page shows independent client launch and documentation choices with one Finish control](../screenshots/v1.0.1/installer-07-finish.png)
+
+Figure 7. The refreshed native completion fixture shows checked client launch and unchecked Open documentation as independent choices. Select either, both or neither, then Finish. Maintenance and terminal failure/cancellation results suppress these choices.
 
 ## Application walkthrough
 

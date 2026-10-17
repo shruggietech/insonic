@@ -387,6 +387,7 @@ func main() {
  data,e:=json.Marshal(observed);if e!=nil {fatal("MarshalToken",e)}
  if e:=os.WriteFile(filepath.Join(directory,filepath.Base(exe)+".token.json"),append(data,'\n'),0600);e!=nil {fatal("WriteTokenReceipt",e)}
  diagnostic("token-recorded",nil)
+ if filepath.Base(exe)=="documentation-handler.exe" { _=os.WriteFile(filepath.Join(directory,"documentation-handler.exe.last-token.json"),append(data,'\n'),0600) }
  if filepath.Base(exe)=="documentation-handler.exe" {
   var config struct { Node string; Script string }
   configFile:=filepath.Join(directory,"documentation-handler.json")
@@ -875,8 +876,8 @@ def ordinary_system_broker(pipe,installer,directory,output):
             with qualifier_profile_privileges(('SeAssignPrimaryTokenPrivilege','SeIncreaseQuotaPrivilege')) as privilege_scope:
                 if not security.CreateProcessAsUserW(target,sys.executable,command,None,None,False,0x08000400,environment,str(directory.parent),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
             record('target-process-created',pid=process.pid,target_token=target_observed,desktop=desktop,broker_privilege_scope=privilege_scope)
-            if kernel.WaitForSingleObject(process.process,80000)!=0:
-                kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000);raise RuntimeError('exact owned normal worker exceeded existing task bound')
+            if kernel.WaitForSingleObject(process.process,230000)!=0:
+                kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000);raise RuntimeError('exact owned normal worker exceeded full-UI task bound')
             code=W.DWORD()
             if not kernel.GetExitCodeProcess(process.process,C.byref(code)):raise C.WinError(C.get_last_error())
             record('target-process-exited',pid=process.pid,exit_code=code.value,target_token=target_observed,desktop=desktop)
@@ -1408,7 +1409,10 @@ def qualify(path,receipt):
             assert_removal_sentinels(integration_sentinels)
             result['user_data_preserved']='passed'
             phase('ordinary-user-install-remove-and-elected-launch')
-            context_evidence=ordinary_context(old,tmp/'ordinary per-user installation',logs/'ordinary-context.json',model,service_ownership);result['user_context']='passed';result['interactive_transactions']='passed';result['documentation_completion']='passed'
+            context_evidence=ordinary_context(old,tmp/'ordinary per-user installation',logs/'ordinary-context.json',model,service_ownership)
+            from qualify_installer_ui import export_captures
+            export_captures(m.ROOT/'build/native/installer-capture',logs,context_evidence['interactive'],receipt)
+            result['user_context']='passed';result['interactive_transactions']='passed';result['documentation_completion']='passed'
             proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'windows_build':str(__import__('sys').getwindowsversion().build),'fixture_upgrade_code':upgrade,'checks':result,'elapsed_seconds':round(time.monotonic()-started,3),'active_work_fixture':{'process':'running owned ping image, no process shutdown','rejected_actions':['alternate-install-directory upgrade','uninstall'],'alternate_directory_absent':True,'old_payload_hashes_preserved':True},'exact_shortcut_collision':{'fresh_cli_exact_name':'rejected before installation changes','unrelated_bytes':'preserved','failed_action':'CheckCliMenu'},'unrelated_integrations':{'start_menu_sibling':'preserved','desktop_sibling':'preserved','product_key_sibling_value':'preserved','sentinel_content_sha256':m.digest(integration_sentinels['content'])},'shortcut_migration':{'fresh_unchecked_properties':'empty values normalized to zero','upgrade_overrides':False,'saved_elections':final_shortcut_elections},'policy_prompts':'not-observed','signing':'unsigned','cancellation':cancellation_evidence,'installer_service_initial':service_ownership,'user_context':{'original_elevated_token':original_token,'ordinary_process':context_evidence},'elected_launcher':{'fixture':fixture_evidence,'elevated_caller':elevated_launch_evidence,'ordinary_caller':context_evidence['elected_launcher']}}
             phase('completed')
         except BaseException as error:

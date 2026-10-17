@@ -44,6 +44,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Decisions
 
+- 2026-10-17: Use native Windows Installer progress subscriptions and operation-specific terminal dialogs. Share installed-help manifest validation between a controlled local-only desktop view and same-user Windows HTML association dispatch. Exercise real full-UI transactions and independent completion elections on the disposable ordinary-user private desktop; retain all silent, inventory and ownership gates within the 660-second job budget.
+
 - 2026-10-17: Extracted Windows/Linux package checks exercise deterministic loopback HTTP extraction, provider diagnostics and operation-specific output bounds in the existing isolated fixture workspace. Production CI inference refusal remains in place. Canonical extraction configuration retains the legacy input alias, and strict JSON validation is shared below the catalog to avoid dependency cycles.
 
 - 2026-10-17: Installed-package qualification adds generated query/graph continuation, timezone, save-example and native-parameter cases on Windows and Linux. Separate row/relationship continuation preserves existing response budgets, and old pagination-policy cursors conflict instead of mixing results.

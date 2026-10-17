@@ -168,6 +168,14 @@ class InstallerModelTests(unittest.TestCase):
             for function,args in [(module.token_info,()),(module.owned_actor_processes,(None,)),(module.installer_mutex_diagnostic,()),(module.owned_user_object_observation,(None,None,None,None)),(module.ordinary_context,(None,None,None)),(module.ordinary_worker,(None,None,None)),(module.cancellation,(None,None,None)),(module.cancellation_worker,(None,None,None)),(module.prepare_launcher_fixture,(None,None)),(module.elected_launcher_context,(None,)),(module.linked_token_evidence,()),(module.service_diagnostic,()),(module.native_installer_worker,(None,)),(module.native_installer_dll,(None,)),(module.run_installer,(['/i','unused'],None)),(module.create_removal_sentinels,()),(module.assert_removal_sentinels,(None,)),(module.clean_removal_sentinels,(None,)),(module.private_context_desktop,('S-1-5-21-1-2-3-1001',)),(module.account_sid,(None,)),(module.grant_owned_account_stage,(None,None,None)),(module.registered_feature_states,(None,None))]:
                 with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
         self.assertIn('cancellation_rollback',m.QUALIFICATION_KEYS);self.assertIn('user_context',m.QUALIFICATION_KEYS)
+    def test_full_ui_and_association_helpers_refuse_owner_host_before_native_calls(self):
+        import qualify_installer_ui as ui
+        with patch.dict(os.environ,{},clear=True):
+            for function,args in [(ui.prepare,(None,None,None)),(ui.NativeUI,(None,)),(ui.qualify,(None,None,None,None,None,None)),(ui.export_captures,(None,None,None,None))]:
+                with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
+            with self.assertRaisesRegex(RuntimeError,'disposable'):
+                with ui.association(None,None):self.fail('owner association was changed')
+
     def test_private_context_desktop_restores_caller_on_success_and_failure(self):
         import ctypes as C
         from types import SimpleNamespace

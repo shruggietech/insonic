@@ -510,7 +510,7 @@ async function qualifyJourney(
 export async function qualifyOfflineHelp(click:(label:string)=>Promise<void>,wait:(condition:()=>boolean|Promise<boolean>,message:string,timeout?:number)=>Promise<void>,button:(label:string)=>HTMLButtonElement,version:string){
   await click('Offline help');
   const frame=()=>document.querySelector('iframe[title="Installed offline documentation"]') as HTMLIFrameElement|null;
-  await wait(()=>!!frame()?.contentDocument?.querySelector('h1'),'Installed help did not render in the native view.');
+  await wait(()=>frame()?.contentDocument?.readyState==='complete'&&!!frame()?.contentDocument?.querySelector('h1'),'Installed help did not render in the native view.');
   const doc=frame()!.contentDocument!;
   if(!doc.querySelector('h1')?.textContent?.includes('insonic v'+version))throw new Error('Installed documentation heading missing.');
   if(!doc.styleSheets.length)throw new Error('Installed help has no local styles.');
