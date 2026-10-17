@@ -107,25 +107,20 @@ func (s *Store) readOne(ctx context.Context, field, id string, out any) error {
 	return sanitize(decodeDomainRow(cols, vals, out))
 }
 func (s *Store) currentRecords(ctx context.Context, field string) (Records, error) {
-	tx, e := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
-	if e != nil {
-		return Records{}, sanitize(e)
-	}
-	defer tx.Rollback()
-	r, e := s.readRecords(ctx, tx, field)
-	if e == nil {
-		e = tx.Commit()
-	}
+	// This helper selects exactly one domain table. Its single SELECT provides
+	// a coherent snapshot without reserving SQLite's immediate writer lock.
+	r, e := s.readRecords(ctx, s.db, field)
 	return r, sanitize(e)
 }
+
 func (s *Store) Work(ctx context.Context, id string) (Work, error) {
 	var out Work
 	e := s.readOne(ctx, "Works", id, &out)
 	return out, e
 }
 func (s *Store) Works(ctx context.Context) ([]Work, error) {
-	r, e := s.readRecords(ctx, s.db, "Works")
-	return r.Works, sanitize(e)
+	r, e := s.currentRecords(ctx, "Works")
+	return r.Works, e
 }
 func validWork(w Work) bool {
 	return contracts.ValidID(w.ID) && contracts.ValidID(w.JournalReceiptID) && w.Kind != "" && len(w.Kind) < 128 && len(w.Payload) <= contracts.MaxWorkPayload && nonsecret(w.Payload) && referenceResult(w.Result) && w.Generation >= 0 && len(w.Phase) < 256 && (w.Owner == "" || contracts.ValidID(w.Owner)) && (w.Error == "" || contracts.Fail(w.Error).Code == w.Error) && strings.Contains("|pending|running|succeeded|failed|cancelled|interrupted|", "|"+w.State+"|") && ((w.State == "running" && w.Owner != "" && w.Generation > 0) || (w.State != "running" && w.LeaseUntil == 0))

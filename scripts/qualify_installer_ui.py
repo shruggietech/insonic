@@ -62,7 +62,7 @@ def prepare(stage, fixture, clone):
     if not package.is_dir():package=m.ROOT/'desktop/frontend/node_modules/playwright-core'
     if not package.is_dir():raise RuntimeError('Playwright core fixture dependency is missing')
     shutil.copytree(package,stage/'node_modules/playwright-core')
-    (stage/'ui-renderer.json').write_text(json.dumps({'browser':str(browser),'node':str(stage/'node.exe'),'script':str(stage/'scripts/render-installed-help.mjs')}),encoding='utf-8',newline='\n')
+    (stage/'ui-renderer.json').write_text(json.dumps({'browser':str(browser),'node':str(stage/'node.exe'),'script':str(stage/'scripts/render-installed-help.mjs'),'environment':{key:os.environ[key] for key in ('GITHUB_ACTIONS','RUNNER_ENVIRONMENT','INSONIC_DISPOSABLE_INSTALLER_TEST')}}),encoding='utf-8',newline='\n')
 
 
 class ProgressInspection:
@@ -437,6 +437,11 @@ def qualify(stage,exact_installer,exact_directory,output,token,quiet_install):
         if any((directory/f['path']).exists() for f in config['payload']):raise RuntimeError('full-UI removal retained owned payload')
         return {'state':'passed','token':token,'transactions':results,'completion_cases':12,'exact_payload_full_ui':['install','remove'],'instrumented_clients':'owned native token reporters, production launcher and MSI model','outcomes':[0,1602,1603]}
     finally:
+        for suffix in ('.diagnostic.json','.token.json','.last-token.json'):
+            source=stage/('documentation-handler.exe'+suffix)
+            if source.is_file():
+                if source.is_symlink() or source.stat().st_size>65536:raise RuntimeError('owned association diagnostic is redirected or oversized')
+                shutil.copyfile(source,stage/('native/context.association-handler'+suffix))
         for product in (exact_product,config['old_product'],config['new_product']):
             # Every identity is an explicitly generated, owned fixture family.
             # Query registration, not marker presence, so successful cleanup is

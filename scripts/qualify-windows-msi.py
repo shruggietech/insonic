@@ -485,13 +485,22 @@ func main() {
  diagnostic("token-recorded",nil)
  if filepath.Base(exe)=="documentation-handler.exe" { _=os.WriteFile(filepath.Join(directory,"documentation-handler.exe.last-token.json"),append(data,'\n'),0600) }
  if filepath.Base(exe)=="documentation-handler.exe" {
-  var config struct { Node string; Script string }
+  var config struct { Node string; Script string; Environment map[string]string }
   configFile:=filepath.Join(directory,"documentation-handler.json")
   data,e:=os.ReadFile(configFile);if e!=nil {fatal("ReadRenderer",e)}
   if e=json.Unmarshal(data,&config);e!=nil {fatal("ParseRenderer",e)}
   if len(os.Args)!=2 {fatal("AssociationArgument",fmt.Errorf("expected exact HTML filename"))}
-  command:=exec.Command(config.Node,config.Script,configFile,os.Args[1]);command.SysProcAttr=&syscall.SysProcAttr{HideWindow:true,CreationFlags:0x08000000}
+  var owned struct { SIDHash string `json:"sid_sha256"` }
+  marker,e:=os.ReadFile(filepath.Join(directory,"owned-ci-account.json"));if e!=nil {fatal("ReadOwnedAccount",e)}
+  if e=json.Unmarshal(marker,&owned);e!=nil||owned.SIDHash!=hex.EncodeToString(sum[:]) {fatal("RendererOwnedAccount",fmt.Errorf("renderer account differs from the staged native SID"))}
+  expected:=map[string]string{"GITHUB_ACTIONS":"true","RUNNER_ENVIRONMENT":"github-hosted","INSONIC_DISPOSABLE_INSTALLER_TEST":"1"}
+  if len(config.Environment)!=len(expected) {fatal("RendererCIACK",fmt.Errorf("missing exact disposable runner acknowledgement"))}
+  environment:=os.Environ()
+  for key,value:=range expected {if config.Environment[key]!=value {fatal("RendererCIACK",fmt.Errorf("disposable runner acknowledgement differs"))};environment=append(environment,key+"="+value)}
+  diagnostic("offline-renderer-starting",nil)
+  command:=exec.Command(config.Node,config.Script,configFile,os.Args[1]);command.Env=environment;command.SysProcAttr=&syscall.SysProcAttr{HideWindow:true,CreationFlags:0x08000000}
   output,e:=command.CombinedOutput();if e!=nil {fatal("OfflineRenderer",fmt.Errorf("%v: %.2000s",e,output))}
+  diagnostic("offline-renderer-completed",nil)
  }
 }
 '''
