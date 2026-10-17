@@ -390,8 +390,8 @@ def qualify(stage,exact_installer,exact_directory,output,token,quiet_install):
                         if time.monotonic()>deadline:
                             # A failed election never becomes passing proof after
                             # this direct diagnostic. Keep MSI and direct paths distinct.
-                            diagnostic={'kind':'failed-completion-direct-launch-diagnostic','case':name,'elected_completion_passed':False,'probes':[]}
-                            for arguments in (['--describe','--documentation'],['--documentation']):
+                            diagnostic={'kind':'failed-completion-direct-launch-diagnostic','case':name,'elected_completion_passed':False,'custom_action':next(row for row in m.table_rows(m.CompoundFile(old).streams,'CustomAction') if row[0]=='OpenDocumentation'),'probes':[]}
+                            for arguments in (['--describe','--documentation'],['--documentation'],['--documentation','--interactive']):
                                 try:
                                     child=subprocess.run([str(directory/'insonic-launcher.exe'),*arguments],cwd=directory,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=10)
                                     diagnostic['probes'].append({'arguments':arguments,'exit_code':child.returncode,'stdout':child.stdout.decode(errors='replace')[:4000],'stderr':child.stderr.decode(errors='replace')[:4000]})
@@ -405,6 +405,27 @@ def qualify(stage,exact_installer,exact_directory,output,token,quiet_install):
                                 if receipt.is_file():diagnostic['post_direct_receipt_present']=True;break
                                 time.sleep(.05)
                             (stage/'native/context.association-direct-launch.json').write_text(json.dumps(diagnostic,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+                            # Diagnostic-only return checking, after the original
+                            # election has failed. Never substitute it for proof.
+                            checked={'kind':'failed-election-Type18-diagnostic','elected_completion_passed':False}
+                            try:
+                                quiet_install(['/x',config['old_product']],stage/'native/context.ui-diagnostic-reset.log')
+                                checked_msi=stage/'ui-checked-documentation.msi';shutil.copyfile(old,checked_msi)
+                                database=m.NativeDatabase(checked_msi,write=True)
+                                try:
+                                    database.execute('UPDATE `CustomAction` SET `Type`=18 WHERE `Action`=?',['OpenDocumentation'])
+                                    database.summary(m.guid('ci-checked-documentation/'+uuid.uuid4().hex));database.check(database.dll.MsiDatabaseCommit(database.handle))
+                                finally:database.close()
+                                checked['custom_action']=next(row for row in m.table_rows(m.CompoundFile(checked_msi).streams,'CustomAction') if row[0]=='OpenDocumentation')
+                                checked_receipt=stage/'native/context.checked-documentation.json'
+                                renderer.update(output=str(checked_receipt),nonce=uuid.uuid4().hex)
+                                (stage/'documentation-handler.json').write_text(json.dumps(renderer),encoding='utf-8',newline='\n')
+                                checked['native_ui']=ui.run(checked_msi,directory,'checked-documentation',selection=selection,docs=True)
+                                end=time.monotonic()+25
+                                while not checked_receipt.is_file() and time.monotonic()<end:time.sleep(.05)
+                                checked['handler_receipt_present']=checked_receipt.is_file()
+                            except BaseException as error:checked['error']=str(error)[:4000]
+                            finally:(stage/'native/context.checked-documentation-result.json').write_text(json.dumps(checked,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
                             raise RuntimeError('elected completion did not finish: '+name)
 
                         time.sleep(.025)

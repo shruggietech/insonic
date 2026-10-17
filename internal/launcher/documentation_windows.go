@@ -11,6 +11,13 @@ import (
 	"unsafe"
 )
 
+const (
+	seeMaskNoAsync         = 0x00000100
+	seeMaskFlagNoUI        = 0x00000400
+	seeMaskNoConsole       = 0x00008000
+	documentationShellMask = seeMaskNoAsync | seeMaskFlagNoUI | seeMaskNoConsole
+)
+
 func openDocumentation(directory, target string) error {
 	if !filepath.IsAbs(directory) {
 		return documentationCorrection
@@ -61,8 +68,10 @@ func openDocumentation(directory, target string) error {
 		Process    windows.Handle
 	}
 	// NOASYNC retains COM state until dispatch completes; NO_UI lets the caller
-	// provide the fixed correction. The filename is not a shell command.
-	info := shellExecuteInfo{Mask: 0x100 | 0x400, Verb: verb, File: file, Show: 1}
+	// provide the fixed correction. NO_CONSOLE prevents a console window for a
+	// console-based association handler. Zone checking remains enabled.
+	// The filename is not a shell command.
+	info := shellExecuteInfo{Mask: documentationShellMask, Verb: verb, File: file, Show: 1}
 	info.Size = uint32(unsafe.Sizeof(info))
 	ok, _, _ := windows.NewLazySystemDLL("shell32.dll").NewProc("ShellExecuteExW").Call(uintptr(unsafe.Pointer(&info)))
 	runtime.KeepAlive(file)
