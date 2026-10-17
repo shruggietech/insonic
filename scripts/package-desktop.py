@@ -863,7 +863,15 @@ def qualify_package_gui(gui, directory, env):
         args = ['/usr/bin/xvfb-run', '-a', *args]
     qualification_output = child(args, directory=directory, env=runtime_env, timeout=90, allow_detached=True)
     qualify.write_receipt(ROOT / 'build/native/package-webview-receipt.json', qualification_output,
-                          {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'schema_version': VERSION})
+                          {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'ui_compact_density': 'passed', 'schema_version': VERSION})
+    exit_args = [gui, '--exit-qualification']
+    if platform.system() == 'Linux':
+        exit_args = ['/usr/bin/xvfb-run', '-a', *exit_args]
+    exit_output = child(exit_args, directory=directory, env=runtime_env, timeout=100, allow_detached=True)
+    qualify.write_receipt(ROOT / 'build/native/package-exit-receipt.json', exit_output,
+                  {'native_exit': 'passed', 'no_workspace_exit': 'passed', 'workspace_exit': 'passed',
+                   'ordinary_close': 'passed', 'playback_cleanup': 'passed', 'runtime_work_survival': 'passed', 'schema_version': VERSION})
+
 
 
 @contextmanager

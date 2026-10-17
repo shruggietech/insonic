@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { result, type NativeBridge, type Obj } from './client';
 import { flushSync } from 'react-dom';
+import {desktopDensityGeometry} from './density';
 export function runQualificationOnce(
   run: () => Promise<void>,
 ): () => Promise<void> {
@@ -171,6 +172,7 @@ async function qualifyJourney(
     await qualificationValue(control, value);
   };
   const flags: Obj = {};
+  desktopDensityGeometry();
   const initialJobs=await call('work.list','',{limit:100});const initialImportIDs=new Set(initialJobs.items.filter((j:Obj)=>j.kind==='media.import').map((j:Obj)=>j.work_id??j.id));
   stage('Wait for mounted Library initialization');
   await idle();
@@ -221,6 +223,7 @@ async function qualifyJourney(
     }, () => `Media import fixture did not succeed: ${importState}`);
     await click('Refresh library');
     await click(`Open Desktop qualification ${kind}`);
+    desktopDensityGeometry();
     await bridge.QualificationStep?.(`${kind}-playback`);
     await click('Play recording audio');
     stage(`Wait for ${kind} playback metadata`);
@@ -495,6 +498,14 @@ async function qualifyJourney(
   const selected=await call('models.resolve','',{reference:'native-speech',operation:'transcription'});
   if(!selected.compatible||selected.target.id!==fixtures.model_id||selected.state!=='available')throw new Error('Native reference did not retain its exact verified model.');
   flags.ui_model_references='passed';
+  for (const view of ['Jobs', 'Pipelines', 'Models', 'Settings', 'Library']) {
+    await click(view);
+    desktopDensityGeometry();
+  }
+  await click('Set up library');
+  desktopDensityGeometry();
+  await click('Set up later');
+  flags.ui_compact_density='passed';
   await bridge.QualificationStep?.('keyboard-help');
   for (const field of document.querySelectorAll('input,select,textarea'))
     if (

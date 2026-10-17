@@ -78,6 +78,8 @@ The Library accepts audio and video inputs and retains canonical audio with impo
 
 AI query assistance shows proposed read-only queries by default. An explicit `mode: "auto-run"` request or saved auto-run preference can execute suggestions after parsing, read-only validation and configured limits. This preference avoids repeated confirmation while retaining direct queries when assistance is disabled. Invalid or unsupported suggestions report their error without execution.
 
+The native File menu contains Exit. On Windows, Alt+F opens File and X chooses Exit; Alt+F4 and the window close control retain their ordinary behavior. Exit also works before selecting a library. Closing the desktop releases its playback tickets, materialization handles and loopback playback listener. The shared runtime owns accepted work independently of the window.
+
 Progress distinguishes decoding, model download, inference, subtitle publication and graph indexing. Closing the window does not silently cancel durable jobs. Users can keep work running, cancel selected jobs and retry interrupted durable operations. Runtime restarts show interrupted attempts explicitly and offer resumable work.
 
 Failed or interrupted supplied-turn assembly requires resubmitting its transient inputs through the Library assembly controls. Jobs explains this action; generic retry does not reconstruct unsaved turn inputs. Durable import, processing and model-acquisition work retains its shared retry behavior.
@@ -87,6 +89,18 @@ Playback uses the original or a documented preview proxy. Selecting a cue, asser
 Implemented Library playback uses private native tickets scoped to the selected workspace, media revision and current recording/document. The desktop starts a playback-only HTTP transport on 127.0.0.1 with an ephemeral port and closes it on exit. This supports native media engines that cannot consume Wails custom-scheme media. Its handler supports ranged GET/HEAD requests, checks current authority and renews materialization leases during streaming. Host and browser Origin checks limit requests; ticket URLs expose no native paths and the endpoint provides no general-purpose CORS API. The mounted player also checks every five seconds so a replacement from another client stops already buffered playback and clears obsolete cue selections. Closing playback or selecting another workspace releases its handle; a changed original, replacement recording or expired handle requires a fresh request. Files are never served by accepting an arbitrary path from the webview.
 
 Unsupported media and nonzero source clocks receive a bounded temporary WAV or MP4 preview made by the configured hash-verified FFmpeg tools. Original bytes remain immutable. Preview responses identify served and source digests separately and carry the measured difference between original and preview timelines used when seeking. Zero-clock compatible originals play directly. Current cue clocks reach JavaScript as exact decimal strings; raw capture pages retain byte-exact JSON rather than rounding nanosecond integers through JavaScript numbers. Cues and speaker intervals always resolve against current embedded Cueson authority.
+
+## Compact controls
+
+Desktop forms use compact spacing and content-sized actions. Checkboxes retain a small square native glyph inside an associated label with a minimum 44 by 44 pixel activation target. Clicking the label or pressing Space on the focused checkbox changes its value. Keyboard focus remains visible.
+
+The window opens at 1200 by 800 and supports a 720 by 600 minimum. Enlarged text can wrap commands; the header and content scroll independently so commands remain reachable. Wide tables keep their own horizontal scrolling region.
+
+![Compact Library controls and workspace navigation](../screenshots/v1.0.1/desktop-library.png)
+
+![Settings at the minimum window size with text enlarged to 200 percent](../screenshots/v1.0.1/desktop-settings-enlarged.png)
+
+These images record a clean source build in an isolated Chromium renderer. The [capture receipt](../screenshots/v1.0.1/density-capture.json) records the window, renderer scale, text scale and geometry observations. Renderer scale checks do not establish behavior under every operating-system display setting. Native Windows and Linux qualification separately observes the controls in their application webviews.
 
 ## Native package layouts
 

@@ -28,6 +28,8 @@ if (process.argv.includes('--tests')) {
   await build({
     entryPoints: [
       path.join(root, 'src/App.tsx'),
+      path.join(root, 'src/components.tsx'),
+      path.join(root, 'src/density.ts'),
       path.join(root, 'src/client.ts'),
       path.join(root, 'src/help.ts'),
       path.join(root, 'src/forms.ts'),

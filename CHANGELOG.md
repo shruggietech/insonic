@@ -6,6 +6,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Desktop File > Exit uses the normal window shutdown lifecycle, works before library selection and preserves independently owned background work. Windows retains Alt+F, X and Alt+F4 behavior.
+
 - Windows setup EXE coordinates the native per-user MSI and retains full local package sources for failed-upgrade recovery. The raw MSI remains available with explicit engine recovery limits. Trusted release verification independently rebuilds the setup executable from reviewed source and compares its complete code/resource prefix.
 
 - Successful full-UI fresh Windows installation offers an independent, initially unchecked Open documentation choice alongside the existing checked client-launch option. It uses the invoking user’s HTML association and reports opening failures without changing the committed installation result.
@@ -15,6 +17,8 @@ All notable changes to this project will be documented here. The format follows 
 - Read-only public release and documentation verification compares the selected published inventory and original documentation with live pages, schemas, aliases and referenced resources, then rechecks the elected Pages deployment identity.
 
 ### Fixed
+
+- Desktop selection controls keep square native glyphs inside full label targets. Compact form/card spacing and content-sized buttons reduce wasted space; wrapped headers and wide tables retain contained scrolling at the minimum window size and enlarged text.
 
 - Windows Installer repair restores files, registry and shortcuts without unnecessarily recaching its open package. Removal can also clean an advertised product without repeating the fresh-install license requirement. Windows Installer displays engine-driven execution progress, confirms cancellation and reports operation-specific success, cancellation and failure with terminal Finish/Close controls. Desktop Offline help uses one compact button and a controlled local documentation view, with actual native activation and local navigation checks on Windows and Linux.
 

@@ -124,3 +124,11 @@ Documentation screenshots describe their recorded clean capture revision and ver
 The current source implementation gives native query and explain RPCs a 25-second aggregate budget covering current graph publication and execution. The engine retains its twenty-second query ceiling, bounded by the remaining RPC time. An earlier caller deadline or cancellation ends the client wait. Transport timeouts are cancellation conditions, not evidence of malformed query input. Immutable release binaries retain their tagged implementation.
 
 After a transient artifact-service failure, rerun complete qualification so all producers and consumers use one current workflow attempt. Isolated consumer reruns cannot substitute artifacts from an older attempt.
+
+## Desktop control and Exit qualification
+
+The Wails host applies consumer-owned composition using the delivered interface, spacing and typography tokens. The governed kit remains byte-for-byte upstream. The checkbox glyph uses native appearance at the body token size; its associated compound label retains the minimum interaction target. Ordinary actions size to their content. No undocumented density component property or preference is required.
+
+Application capture observes Setup, Library, Jobs, Pipelines, Models and Settings at 1200 by 800 and 720 by 600, with renderer scales 1, 1.25, 1.5 and 2 and normal or 200% text. Its separate density receipt records all 96 observations and seven representative images. The regular setup receipt retains its four original landmarks. Native journey checks additionally observe actual processing controls after opening an imported recording.
+
+Source and extracted-package native Exit qualification activate the owned Windows keyboard menu path or GTK menu item, then require normal GUI process termination. A separate fixture owner hosts the real runtime and a held synthetic model acquisition. Direct IPC must report the same runtime session and durable work identity after each GUI exits, with playback handles and the loopback listener released. Releasing the byte barrier must let the acquisition finish. Ordinary close is checked alongside Exit; Windows also checks its Alt+F4 message path. Only the fixture owner cancels its own runtime context after completion. No callback or forced-process fallback can produce a successful Exit receipt.
