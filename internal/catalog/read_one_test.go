@@ -48,6 +48,46 @@ func TestSingleRowReadDoesNotReserveSQLiteWriter(t *testing.T) {
 	}
 }
 
+func TestWorkListReadDoesNotReserveSQLiteWriter(t *testing.T) {
+	ctx := context.Background()
+	s := localStore(t, contracts.ID())
+	w, err := s.EnqueueWork(ctx, contracts.ID(), "media.import", json.RawMessage(`{"items":[]}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.db.SetMaxOpenConns(2)
+	one, err := s.db.Conn(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	two, err := s.db.Conn(ctx)
+	if err != nil {
+		one.Close()
+		t.Fatal(err)
+	}
+	one.Close()
+	two.Close()
+	writer, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer writer.Rollback()
+	if _, err = writer.ExecContext(ctx, "UPDATE "+domainNamed("Works").name+" SET phase=? WHERE workspace_id=? AND id=?", "uncommitted", s.workspace, w.ID); err != nil {
+		t.Fatal(err)
+	}
+	readCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	got, err := s.Works(readCtx)
+	if err != nil || len(got) != 1 || got[0].ID != w.ID || got[0].Phase != "" {
+		t.Fatal("work-list read reserved the active import writer or exposed uncommitted state", got, err)
+	}
+	foreign := &Store{db: s.db, workspace: contracts.ID(), backend: s.backend}
+	other, err := foreign.Works(readCtx)
+	if err != nil || len(other) != 0 {
+		t.Fatal("work-list read crossed workspace boundary", other, err)
+	}
+}
+
 func TestSingleRowReadPreservesWorkspaceAndJSONAuthority(t *testing.T) {
 	ctx := context.Background()
 	s := localStore(t, contracts.ID())
@@ -62,6 +102,9 @@ func TestSingleRowReadPreservesWorkspaceAndJSONAuthority(t *testing.T) {
 	}
 	if _, err = s.db.ExecContext(ctx, "UPDATE "+domainNamed("Works").name+" SET payload=? WHERE workspace_id=? AND id=?", `{"items":[],"items":[]}`, s.workspace, w.ID); err != nil {
 		t.Fatal(err)
+	}
+	if _, err = s.Works(ctx); !errors.As(err, &failure) || failure.Code != "invalid_request" {
+		t.Fatal("work-list read accepted ambiguous JSON", err)
 	}
 	if _, err = s.Work(ctx, w.ID); !errors.As(err, &failure) || failure.Code != "invalid_request" {
 		t.Fatal("single row read accepted ambiguous JSON", err)

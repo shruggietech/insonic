@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 """Real full-UI transactions, exclusively in the owned disposable CI account.
 
-The ordinary actor owns its private window station, registry profile and every
-product family here. Native clicks drive the authored dialogs; external MSI
+The ordinary actor uses an owned inactive desktop and private registry profile. Every
+product family here is fixture-owned. Native clicks drive the authored dialogs; external MSI
 callbacks only observe messages and never substitute an outcome or cancellation.
 """
 import ctypes as C
@@ -40,6 +40,7 @@ def prepare(stage, fixture, clone):
     parts=list(map(int,version.split('.')));parts[2]+=1;new_version='.'.join(map(str,parts))
     clone(old,stage/'ui-new.msi',new_version,family)
     clone(old,stage/'ui-bad.msi',new_version,family,failure=True)
+    clone(old,stage/'ui-missing-prerequisites.msi',version,family,missing_prerequisites=True)
     shutil.copyfile(old,stage/'ui-scaled.msi')
     db=m.NativeDatabase(stage/'ui-scaled.msi',write=True)
     try:
@@ -181,7 +182,7 @@ class NativeUI:
             return {'path':target.name,'sha256':m.sha(target),'width':width,'height':height}
         finally:g.SelectObject(memory,old);g.DeleteObject(bitmap);g.DeleteDC(memory);u.ReleaseDC(hwnd,dc)
 
-    def run(self,msi,directory,name,operation='install',selection='both',launch=False,docs=False,cancel=None,expected=0,before_finish=None):
+    def run(self,msi,directory,name,operation='install',selection='both',launch=False,docs=False,cancel=None,expected=0,before_finish=None,execution_required=True):
         state={'name':name,'operation':operation,'fixture_msi_sha256':m.sha(msi),'pages':[],'actions':[],'progress_messages':0,'progress_observed':False,'bar_positions':[],'visible_phases':[],'terminal':None,'captures':[]}
         action_text=m.table_rows(m.CompoundFile(msi).streams,'ActionText');descriptions={row[1] for row in action_text if row[1]};described_actions={row[0] for row in action_text if row[1]}
         action_ready=threading.Event();progress_seen=threading.Event();done=threading.Event();inspection=ProgressInspection(progress_seen)
@@ -236,6 +237,9 @@ class NativeUI:
                         self.click(controls,'OK');continue
                     if 'Cancel this operation?' in joined:
                         self.click(controls,'Yes, cancel');time.sleep(.03);continue
+                    if 'Install Microsoft Visual C++ v14 x64 Redistributable, then retry:' in joined:
+                        if name!='prerequisite-failure':raise RuntimeError('unexpected prerequisite rejection')
+                        state['prerequisite_correction_observed']=True;self.click(controls,'OK');continue
                     if 'Intentional transactional fixture failure' in joined:
                         self.click(controls,'OK');time.sleep(.03);continue
                     state['last_native_window']={'title':self.text(hwnd)[:120],'controls':[label[:160] for label in labels[:24]]}
@@ -321,7 +325,7 @@ class NativeUI:
             if state.get('code')!=expected or not terminal_closed:raise RuntimeError('native UI/outcome mismatch: '+json.dumps(state))
             want='Cancelled' if expected==1602 else 'FatalError' if expected else 'Finish'
             if state['terminal']!=want:raise RuntimeError('terminal page differs from actual Installer result')
-            if cancel not in ('before','ready') and (not state['progress_observed'] or not state['progress_messages'] or len(state['bar_positions'])<2 or not state['visible_phases']):raise RuntimeError('visible engine-driven bar movement/action text was not observed')
+            if execution_required and cancel not in ('before','ready') and (not state['progress_observed'] or not state['progress_messages'] or len(state['bar_positions'])<2 or not state['visible_phases']):raise RuntimeError('visible engine-driven bar movement/action text was not observed')
             if cancel and not cancel_sent:raise RuntimeError('native Cancel control was not exercised')
             return state
         except BaseException as error:
@@ -356,6 +360,11 @@ def qualify(stage,exact_installer,exact_directory,output,token,quiet_install):
         row['registered_product_states']=observed
         if observed!=expected:raise RuntimeError('native registered state differs after '+row['name']+': '+json.dumps(observed))
     try:
+        # Real prerequisite rejection reports correction and can be retried with
+        # the unchanged supported host prerequisites; no machine dependency edits.
+        rejected=ui.run(stage/'ui-missing-prerequisites.msi',directory,'prerequisite-failure',selection='cli',expected=1603,execution_required=False)
+        if not rejected.get('prerequisite_correction_observed') or (directory/m.OWNERSHIP).exists():raise RuntimeError('native prerequisite failure did not preserve the untouched destination/correction')
+        results.append(rejected);states(rejected,{config['old_product']:-1})
         # Production payload, actual engine/full UI, elected no completion actions.
         results.append(ui.run(exact_installer,exact_directory,'exact-install',selection='cli'))
         states(results[-1],{exact_product:5})
@@ -436,36 +445,98 @@ def qualify(stage,exact_installer,exact_directory,output,token,quiet_install):
                 quiet_install(['/x',product],stage/'native'/('context.ui-cleanup-'+product.strip('{}')+'.log'))
 
 
+@__import__('contextlib').contextmanager
+def fixture_html_registration(stage,token,prog,handler):
+    """Override only the owned ordinary profile's resolved ProgID command."""
+    m.disposable_runner();stage=Path(stage);marker=json.loads((stage/'owned-ci-account.json').read_text(encoding='utf-8'))
+    if stage.resolve()!=Path(os.environ['ProgramData']).resolve()/stage.name or not __import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name) or not __import__('re').fullmatch('inso_ci_[0-9a-f]{12}',marker.get('account','')) or marker.get('sid_sha256')!=token['user_sid_sha256'] or token['administrator_enabled'] or token['elevated']:raise RuntimeError('HTML fixture requires the exact ordinary owned account stage')
+    if Path(handler).is_symlink() or Path(handler).resolve()!=stage.resolve()/'documentation-handler.exe':raise RuntimeError('HTML fixture handler is not the exact staged image')
+    if not __import__('re').fullmatch('[A-Za-z0-9_.-]{1,128}',prog):raise RuntimeError('resolved HTML ProgID is not one bounded class name')
+    security=C.WinDLL('advapi32',use_last_error=True);security.GetUserNameW.argtypes=[W.LPWSTR,C.POINTER(W.DWORD)];security.GetUserNameW.restype=W.BOOL
+    account=C.create_unicode_buffer(256);size=W.DWORD(256)
+    if not security.GetUserNameW(account,C.byref(size)) or account.value.casefold()!=marker['account'].casefold():raise RuntimeError('HTML fixture is not running as its exact owned account')
+    import winreg
+    root=winreg.HKEY_CURRENT_USER;choice=r'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.html\UserChoice';base='Software\\Classes\\'+prog
+    def choice_snapshot():
+        try:
+            with winreg.OpenKey(root,choice) as key:
+                children,count,_=winreg.QueryInfoKey(key)
+                if children or count>16:raise RuntimeError('HTML UserChoice observation exceeds bound')
+                values=[winreg.EnumValue(key,index) for index in range(count)]
+                if len(repr(values).encode())>65536:raise RuntimeError('HTML UserChoice values exceed observation bound')
+                return sorted(values,key=lambda item:item[0].casefold())
+        except FileNotFoundError:return None
+    original_choice=choice_snapshot();created=[];before={};written=False;delegate_removed=False;command=base+r'\shell\open\command'
+    evidence={'kind':'owned-ordinary-HTML-class-command-fixture','resolved_prog_id':prog,'user_choice_modified':False,'machine_associations_modified':False,'restored':False,'user_choice_sha256':m.digest(repr(original_choice).encode())}
+    try:
+        for suffix in ('',r'\shell',r'\shell\open',r'\shell\open\command'):
+            name=base+suffix
+            try:
+                with winreg.OpenKey(root,name):pass
+            except FileNotFoundError:
+                with winreg.CreateKey(root,name):pass
+                created.append(name)
+        with winreg.OpenKey(root,command,0,winreg.KEY_QUERY_VALUE|winreg.KEY_SET_VALUE) as key:
+            for name in ('','DelegateExecute'):
+                try:before[name]=winreg.QueryValueEx(key,name)
+                except FileNotFoundError:before[name]=None
+            # A duplicate per-user ProgID shadows its machine class. Retain the
+            # existing UserChoice; only its owned-profile command is instrumented.
+            winreg.SetValueEx(key,'',0,winreg.REG_SZ,'"'+str(handler)+'" "%1"');written=True
+            if before['DelegateExecute'] is not None:winreg.DeleteValue(key,'DelegateExecute')
+            delegate_removed=True
+        yield evidence
+    finally:
+        try:
+            if written:
+                with winreg.OpenKey(root,command,0,winreg.KEY_QUERY_VALUE|winreg.KEY_SET_VALUE) as key:
+                    if winreg.QueryValueEx(key,'')!=('"'+str(handler)+'" "%1"',winreg.REG_SZ):raise RuntimeError('owned HTML command changed outside the fixture; restoration refused')
+                    try:delegate=winreg.QueryValueEx(key,'DelegateExecute')
+                    except FileNotFoundError:delegate=None
+                    if delegate!=(None if delegate_removed else before['DelegateExecute']):raise RuntimeError('owned HTML delegate changed outside the fixture; restoration refused')
+                    for name,value in before.items():
+                        if value is None:
+                            try:winreg.DeleteValue(key,name)
+                            except FileNotFoundError:pass
+                        else:winreg.SetValueEx(key,name,0,value[1],value[0])
+                    for name,value in before.items():
+                        try:restored=winreg.QueryValueEx(key,name)
+                        except FileNotFoundError:restored=None
+                        if restored!=value:raise RuntimeError('owned HTML class value restoration differs')
+            for name in reversed(created):
+                with winreg.OpenKey(root,name) as key:
+                    children,values,_=winreg.QueryInfoKey(key)
+                    if children or values:raise RuntimeError('owned HTML class acquired outside data; deletion refused')
+                winreg.DeleteKey(root,name)
+            evidence['restored']=choice_snapshot()==original_choice
+            if not evidence['restored']:raise RuntimeError('HTML UserChoice changed during the owned fixture')
+        finally:(stage/'native/context.association.json').write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+
+
 def association(stage,token):
     from contextlib import contextmanager
     @contextmanager
     def owned():
         m.disposable_runner()
-        import winreg
-        key=r'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.html\UserChoice'
-        try:
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER,key):raise RuntimeError('owned fresh profile unexpectedly has HTML UserChoice')
-        except FileNotFoundError:pass
-        prog='insonic.CI.'+uuid.uuid4().hex;html=r'Software\Classes\.html';program='Software\\Classes\\'+prog
-        try:
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER,html):raise RuntimeError('owned fresh profile unexpectedly has HTML class')
-        except FileNotFoundError:pass
         handler=stage/'documentation-handler.exe';shutil.copyfile(stage/'launcher-context-fixture/insonic-desktop.exe',handler)
         shutil.copyfile(stage/'launcher-context-fixture/owned-ci-fixture.json',stage/'owned-ci-fixture.json')
-        with winreg.CreateKey(winreg.HKEY_CURRENT_USER,html) as k:winreg.SetValueEx(k,'',0,winreg.REG_SZ,prog)
-        with winreg.CreateKey(winreg.HKEY_CURRENT_USER,program+r'\shell\open\command') as k:winreg.SetValueEx(k,'',0,winreg.REG_SZ,'"'+str(handler)+'" "%1"')
         shell=C.WinDLL('shell32');shell.SHChangeNotify(0x08000000,0,None,None)
         query=C.WinDLL('shlwapi').AssocQueryStringW;query.argtypes=[W.DWORD,C.c_int,W.LPCWSTR,W.LPCWSTR,W.LPWSTR,C.POINTER(W.DWORD)];query.restype=C.c_long
-        executable=C.create_unicode_buffer(32768);size=W.DWORD(32768)
+        prog=C.create_unicode_buffer(256);size=W.DWORD(len(prog))
+        if query(0,20,'.html',None,prog,C.byref(size)) or not prog.value:raise RuntimeError('ordinary HTML association has no resolved ProgID')
         try:
-            if query(0,2,'.html','open',executable,C.byref(size)) or Path(executable.value).resolve()!=handler.resolve():raise RuntimeError('ordinary HTML association did not resolve to owned handler')
-            renderer=json.loads((stage/'ui-renderer.json').read_text(encoding='utf-8'));yield renderer
-            reports=[p for p in (stage/'native').glob('context.docs-*.json') if p.name!='context.docs-unattended.json']
-            if len(reports)!=6:raise RuntimeError('ordinary association did not complete all six elected browser renders')
-            report=json.loads((stage/'documentation-handler.exe.last-token.json').read_text(encoding='utf-8'))
-            if report['elevated'] or report['administrator_enabled'] or report['user_sid_sha256']!=token['user_sid_sha256'] or report['integrity_rid']!=8192 or report['session_id']!=token['session_id'] or report['authentication_luid']!=token['authentication_luid']:raise RuntimeError('documentation association changed user/elevation')
-        finally:
-            winreg.DeleteKey(winreg.HKEY_CURRENT_USER,program+r'\shell\open\command');winreg.DeleteKey(winreg.HKEY_CURRENT_USER,program+r'\shell\open');winreg.DeleteKey(winreg.HKEY_CURRENT_USER,program+r'\shell');winreg.DeleteKey(winreg.HKEY_CURRENT_USER,program);winreg.DeleteKey(winreg.HKEY_CURRENT_USER,html);shell.SHChangeNotify(0x08000000,0,None,None)
+            with fixture_html_registration(stage,token,prog.value,handler):
+                shell.SHChangeNotify(0x08000000,0,None,None)
+                executable=C.create_unicode_buffer(32768);size=W.DWORD(len(executable))
+                try:
+                    if query(0,2,'.html','open',executable,C.byref(size)) or Path(executable.value).resolve()!=handler.resolve():raise RuntimeError('ordinary HTML association did not resolve to owned handler')
+                    renderer=json.loads((stage/'ui-renderer.json').read_text(encoding='utf-8'));yield renderer
+                    reports=[p for p in (stage/'native').glob('context.docs-*.json') if p.name!='context.docs-unattended.json']
+                    if len(reports)!=6:raise RuntimeError('ordinary association did not complete all six elected browser renders')
+                    report=json.loads((stage/'documentation-handler.exe.last-token.json').read_text(encoding='utf-8'))
+                    if report['elevated'] or report['administrator_enabled'] or report['user_sid_sha256']!=token['user_sid_sha256'] or report['integrity_rid']!=8192 or report['session_id']!=token['session_id'] or report['authentication_luid']!=token['authentication_luid']:raise RuntimeError('documentation association changed user/elevation')
+                finally:shell.SHChangeNotify(0x08000000,0,None,None)
+        finally:shell.SHChangeNotify(0x08000000,0,None,None)
     return owned()
 
 

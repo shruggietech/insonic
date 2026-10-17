@@ -124,8 +124,8 @@ func (s *Store) Work(ctx context.Context, id string) (Work, error) {
 	return out, e
 }
 func (s *Store) Works(ctx context.Context) ([]Work, error) {
-	r, e := s.currentRecords(ctx, "Works")
-	return r.Works, e
+	r, e := s.readRecords(ctx, s.db, "Works")
+	return r.Works, sanitize(e)
 }
 func validWork(w Work) bool {
 	return contracts.ValidID(w.ID) && contracts.ValidID(w.JournalReceiptID) && w.Kind != "" && len(w.Kind) < 128 && len(w.Payload) <= contracts.MaxWorkPayload && nonsecret(w.Payload) && referenceResult(w.Result) && w.Generation >= 0 && len(w.Phase) < 256 && (w.Owner == "" || contracts.ValidID(w.Owner)) && (w.Error == "" || contracts.Fail(w.Error).Code == w.Error) && strings.Contains("|pending|running|succeeded|failed|cancelled|interrupted|", "|"+w.State+"|") && ((w.State == "running" && w.Owner != "" && w.Generation > 0) || (w.State != "running" && w.LeaseUntil == 0))

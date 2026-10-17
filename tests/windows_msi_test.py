@@ -52,6 +52,7 @@ class InstallerModelTests(unittest.TestCase):
             row=next(r for r in tables['Dialog'] if r[0]==name)
             self.assertEqual(row[8],row[9])
             self.assertTrue(any(row[:5]==[name,controls[0][1],'EndDialog','Return','1'] for row in tables['ControlEvent']))
+        self.assertNotIn('rollback',next(r[1] for r in tables['ActionText'] if r[0]=='RollbackCleanup').casefold())
         for action in ['Rollback','RollbackCleanup','GenerateScript']:
             self.assertEqual(next(r for r in tables['ActionText'] if r[0]==action)[2],'[1]')
 
@@ -317,6 +318,56 @@ class InstallerModelTests(unittest.TestCase):
                 proof=module.interactive_ordinary(stage,name,sid,password,self.path/name,desktop,lambda phase,**extra:events.append({'phase':phase,**extra}),probe_only=probe_only)
                 self.assertEqual(proof['token'],target)
         self.assertEqual(closed,[556,555,556,555]);self.assertEqual(events[-1]['token'],target);self.assertFalse(events[0]['profile_loaded_by_child']);self.assertFalse(events[0]['session_token_reassignment']);self.assertNotIn(password,repr(events))
+
+    def test_existing_html_user_choice_is_preserved_and_owned_command_restored_after_failure(self):
+        import copy
+        import ctypes as C
+        from types import SimpleNamespace
+        import qualify_installer_ui as ui
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):
+                with ui.fixture_html_registration(None,None,None,None):self.fail('owner association entered')
+        name='inso_ci_0123456789ab';sid='S-1-5-21-1-2-3-1001';stage=self.path/('insonic-ci-account-'+'a'*32);stage.mkdir();(stage/'native').mkdir();handler=stage/'documentation-handler.exe';handler.write_bytes(b'owned image')
+        token={'user_sid_sha256':m.digest(sid.encode()),'administrator_enabled':False,'elevated':False}
+        (stage/'owned-ci-account.json').write_text(json.dumps({'account':name,'sid_sha256':token['user_sid_sha256']}),encoding='utf-8')
+        prog='MSEdgeHTM';base='Software\\Classes\\'+prog;command=base+r'\shell\open\command';choice=r'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.html\UserChoice'
+        class Key:
+            def __init__(self,path):self.path=path
+            def __enter__(self):return self
+            def __exit__(self,*args):pass
+        class Registry:
+            HKEY_CURRENT_USER='exact-current-user';KEY_QUERY_VALUE=1;KEY_SET_VALUE=2;REG_SZ=1
+            def __init__(self,existing):
+                self.data={choice:{'ProgId':(prog,1),'Hash':('private-native-choice-hash',1)}}
+                if existing:
+                    for suffix in ('',r'\shell',r'\shell\open',r'\shell\open\command'):self.data[base+suffix]={}
+                    self.data[command]={'':('original-browser-command',1),'DelegateExecute':('original-delegate',1),'Keep':('unrelated',1)}
+            def OpenKey(self,root,path,*args):
+                if root!=self.HKEY_CURRENT_USER:raise AssertionError('machine association requested')
+                if path not in self.data:raise FileNotFoundError(path)
+                return Key(path)
+            def CreateKey(self,root,path):self.data.setdefault(path,{});return self.OpenKey(root,path)
+            def QueryValueEx(self,key,name):
+                if name not in self.data[key.path]:raise FileNotFoundError(name)
+                return self.data[key.path][name]
+            def SetValueEx(self,key,name,reserved,kind,value):self.data[key.path][name]=(value,kind)
+            def DeleteValue(self,key,name):
+                if name not in self.data[key.path]:raise FileNotFoundError(name)
+                del self.data[key.path][name]
+            def QueryInfoKey(self,key):return sum(path.rpartition('\\')[0]==key.path for path in self.data),len(self.data[key.path]),0
+            def EnumValue(self,key,index):name=sorted(self.data[key.path])[index];value,kind=self.data[key.path][name];return name,value,kind
+            def DeleteKey(self,root,path):del self.data[path]
+        class Function:
+            def __call__(self,account,size):account.value=name;return True
+        security=SimpleNamespace(GetUserNameW=Function())
+        for existing in (False,True):
+            registry=Registry(existing);before=copy.deepcopy(registry.data)
+            with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'ProgramData':str(self.path)}),patch.object(C,'WinDLL',return_value=security,create=True),patch.dict(sys.modules,{'winreg':registry}):
+                with self.assertRaisesRegex(ValueError,'native actor failure'):
+                    with ui.fixture_html_registration(stage,token,prog,handler):
+                        self.assertEqual(registry.data[choice],before[choice]);self.assertNotIn('DelegateExecute',registry.data[command]);self.assertIn(str(handler),registry.data[command][''][0]);raise ValueError('native actor failure')
+            self.assertEqual(registry.data,before)
+            evidence=json.loads((stage/'native/context.association.json').read_text());self.assertTrue(evidence['restored']);self.assertFalse(evidence['user_choice_modified']);self.assertNotIn('private-native-choice-hash',repr(evidence))
 
     def test_progress_inspection_does_not_scale_pause_with_validation_or_message_count(self):
         import qualify_installer_ui as ui

@@ -1057,7 +1057,7 @@ def interactive_context_desktop(user_sid,caller_sid,stage):
     """Hold one inactive desktop in the existing CI caller's interactive session.
 
     The temporary full-access station ACE names only the disposable account,
-    as required for CreateProcessAsUser GUI initialization. No Default
+    as required for normal Secondary Logon GUI initialization. No Default
     desktop permissions, input desktop, account rights or session policy change.
     """
     m.disposable_runner();sddl=private_desktop_sddl(user_sid,caller_sid)
