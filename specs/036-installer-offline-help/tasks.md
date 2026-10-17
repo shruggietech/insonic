@@ -52,10 +52,10 @@ T001 -> T002 -> read-only analyze gate -> T003/T004 -> T005/T006/T007 and T008/T
 ## Phase 8: Owner-approved upgrade recovery (2026-10-17)
 
 - [x] T019 [US4] Prove supported ordinary-user recovery in scripts/diagnose-installer-completion.py using exact owned product/source checks and portable regressions in tests/windows_msi_test.py before production integration (FR-010, SC-006).
-- [ ] T020 [US4] Define and implement validated private recovery source/choice state and legacy missing/corrupt-source handling in internal/setup and cmd/insonic-setup after T019 passes (FR-011).
-- [ ] T021 [US4] Integrate the owner-approved setup EXE with the exact MSI, native interactive and unattended completion, source/choice state and synchronous recovery, retaining actual failure/cancellation results; update scripts/package-msi.py, release asset contracts and raw-MSI limitations (FR-010/FR-011).
+- [x] T020 [US4] Define and implement validated private recovery source/choice state and legacy missing/corrupt-source handling in internal/setup and cmd/insonic-setup after T019 passes (FR-011).
+- [x] T021 [US4] Integrate the owner-approved setup EXE with the exact MSI, native interactive and unattended completion, source/choice state and synchronous recovery, retaining actual failure/cancellation results; update scripts/package-msi.py, release asset contracts and raw-MSI limitations (FR-010/FR-011).
 - [ ] T022 [US4] Prove registration, prior choices, bytes, source-loss, corruption, cleanup and no-elevation behavior in scripts/qualify-windows-msi.py and scripts/qualify_installer_ui.py, then complete T014..T018 (FR-010/FR-011, SC-004/SC-006).
 
 Recovery dependency: T019 -> T020 -> T021 -> T022 -> final captures/full CI -> reserved review round 2. Existing evidence remains historical until final native qualification passes.
 
-T019 proof: external native full/quiet controls pass in run39050679170 with old registration5, exact old bytes and original failure1603 before return. This is prototype proof only. The owner selected the additional recommended setup EXE and retained raw MSI with explicit limits. T020/T021 are authorized; T022 and final delivery gates remain incomplete.
+T019 proof: external native full/quiet controls pass in run39050679170 with old registration5, exact old bytes and original failure1603 before return. This is prototype proof only. The owner selected the additional recommended setup EXE and retained raw MSI with explicit limits. T020/T021 implementation and focused recovery controls pass; T022 exact shipping entry-point and final delivery gates remain incomplete.

@@ -219,15 +219,13 @@ class NativeUI:
         if not self.u.PostMessageW(button,0xf5,0,0):raise C.WinError(C.get_last_error())
 
     def escape(self,hwnd,control):
-        # Use Windows' dialog keyboard translation against the exact owned
-        # terminal control. No foreground permission or global keyboard state
-        # belongs to this assertion, and no completion button is substituted.
+        # Queue a complete Escape message on the owned child control so MSI's
+        # own UI pump performs its authored keyboard translation. USER32's
+        # generic IsDialogMessage consumes the key without MSI's translation.
         if hwnd not in self.windows():raise RuntimeError('keyboard target is not an owned native dialog')
-        message=W.MSG();message.hWnd=control;message.message=0x0100
-        message.wParam=0x1b;message.lParam=0x00010001
-        self.u.IsDialogMessageW.argtypes=[W.HWND,C.POINTER(W.MSG)];self.u.IsDialogMessageW.restype=W.BOOL
-        if not self.u.IsDialogMessageW(hwnd,C.byref(message)):raise RuntimeError('owned dialog did not process the Escape keyboard message')
-        return 'IsDialogMessageW'
+        if not self.u.PostMessageW(control,0x0100,0x1b,0x00010001):raise C.WinError(C.get_last_error())
+        if not self.u.PostMessageW(control,0x0101,0x1b,0xc0010001):raise C.WinError(C.get_last_error())
+        return 'PostMessageW owned child, MSI UI message loop'
 
     def check(self,controls,label,value):
         hwnd=self.button(controls,label)
