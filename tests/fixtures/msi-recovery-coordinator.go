@@ -24,9 +24,19 @@ func main() {
 	defer runtime.UnlockOSThread()
 	independent := false
 	worker := false
+	standalone := false
+	fullUI := false
 	var stage string
 	var transaction uint64
 	for _, arg := range os.Args[1:] {
+		if arg == "--standalone" {
+			standalone = true
+			continue
+		}
+		if arg == "--full-ui" {
+			fullUI = true
+			continue
+		}
 		if arg == "--recovery-worker" {
 			worker = true
 			continue
@@ -44,7 +54,7 @@ func main() {
 			continue
 		}
 	}
-	if stage == "" || (!worker && transaction == 0) || !strings.EqualFold(filepath.Dir(stage), os.Getenv("ProgramData")) {
+	if stage == "" || (!worker && !standalone && transaction == 0) || !strings.EqualFold(filepath.Dir(stage), os.Getenv("ProgramData")) {
 		os.Exit(91)
 	}
 	marker, err := os.ReadFile(filepath.Join(stage, "owned-ci-account.json"))
@@ -84,6 +94,13 @@ func main() {
 		_ = os.WriteFile(filepath.Join(stage, receipt), append(data, '\n'), 0600)
 	}
 	save()
+	ole := windows.NewLazySystemDLL("ole32.dll")
+	hr, _, _ := ole.NewProc("CoInitializeEx").Call(0, 2)
+	proof["com_hresult"] = uint32(hr)
+	save()
+	if uint32(hr) != 0 && uint32(hr) != 1 {
+		os.Exit(102)
+	}
 	dll := windows.NewLazySystemDLL("msi.dll")
 	var pointers []*uint16
 	defer func() { runtime.KeepAlive(pointers) }()
@@ -129,16 +146,20 @@ func main() {
 		}
 		os.Exit(0)
 	}
-	var event windows.Handle
-	code, _, _ := dll.NewProc("MsiJoinTransaction").Call(uintptr(transaction), 0, uintptr(unsafe.Pointer(&event)))
-	proof["join_code"] = uint32(code)
-	save()
-	if code != 0 {
-		os.Exit(int(code))
+	var code uintptr
+	if !standalone {
+		var event windows.Handle
+		code, _, _ = dll.NewProc("MsiJoinTransaction").Call(uintptr(transaction), 0, uintptr(unsafe.Pointer(&event)))
+		proof["join_code"] = uint32(code)
+		save()
+		if code != 0 {
+			os.Exit(int(code))
+		}
+		if event != 0 {
+			defer windows.CloseHandle(event)
+		}
 	}
-	if event != 0 {
-		defer windows.CloseHandle(event)
-	}
+
 	if independent {
 		code, _, _ = dll.NewProc("MsiEndTransaction").Call(1)
 		proof["empty_container_commit_code"] = uint32(code)
@@ -147,7 +168,15 @@ func main() {
 			os.Exit(int(code))
 		}
 	}
-	dll.NewProc("MsiSetInternalUI").Call(2, 0)
+	ui := uintptr(2)
+	if fullUI {
+		ui = 5
+		properties = strings.Replace(properties, " LICENSE_ACCEPTED=1", "", 1)
+	}
+	dll.NewProc("MsiSetInternalUI").Call(ui, 0)
+	level, _, _ := dll.NewProc("MsiSetInternalUI").Call(0, 0)
+	proof["configured_ui_level"] = uint32(level)
+	save()
 	dll.NewProc("MsiEnableLogW").Call(0x1000, ptr(filepath.Join(stage, "native/context.container-inner.log")), 0)
 
 	proof["phase"] = "before-inner"
@@ -160,7 +189,7 @@ func main() {
 	if original != 0 {
 		state = 0
 	}
-	if !independent {
+	if !independent && !standalone {
 		code, _, _ = dll.NewProc("MsiEndTransaction").Call(state)
 		proof["end_code"] = uint32(code)
 	}

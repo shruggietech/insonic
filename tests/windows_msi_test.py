@@ -275,7 +275,7 @@ class InstallerModelTests(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('diagnostic_mode_fixture',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         target=self.path/'installer-diagnostic-mode.json'
         with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{},clear=True):
-            for mode in ('completion','rollback-reused','rollback-isolated','rollback-primed','rollback-late','rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container','rollback-container-independent'):
+            for mode in ('completion','rollback-reused','rollback-isolated','rollback-primed','rollback-late','rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container','rollback-container-independent','rollback-standalone','rollback-standalone-full'):
                 target.write_text(json.dumps({'feature_qualification':False,'mode':mode}),encoding='utf-8')
                 self.assertEqual(module.diagnostic_mode(self.path),mode)
             for invalid in ({'feature_qualification':True,'mode':'completion'},{'feature_qualification':False,'mode':'unknown'},{'feature_qualification':False,'mode':'completion','extra':1}):
@@ -286,6 +286,19 @@ class InstallerModelTests(unittest.TestCase):
         import qualify_installer_ui as ui
         self.assertFalse(ui.native_client_error_dialog(['','Preparing to install...','Cancel','']))
         self.assertTrue(ui.native_client_error_dialog(['Invalid command line argument.','OK']))
+
+    def test_standalone_full_ui_probe_has_owned_hidden_scope(self):
+        from types import SimpleNamespace
+        import qualify_installer_ui as ui
+        with patch.dict(os.environ,{},clear=True):
+            with self.assertRaisesRegex(RuntimeError,'disposable'):ui.launch_standalone_diagnostic(None,None,None)
+        stage=self.path/'insonic-ci-account-00000000000000000000000000000000';stage.mkdir();(stage/'native').mkdir();(stage/'completion-invocation-diagnostic.json').write_text('{"qualification":false}',encoding='utf-8')
+        with patch.object(m,'disposable_runner',return_value=None),patch.dict(os.environ,{'ProgramData':str(self.path)}),patch.object(ui.subprocess,'Popen',return_value=SimpleNamespace(pid=123)) as start:
+            ui.launch_standalone_diagnostic(stage/'ui-bad.msi',stage/'UI program é & spaces',stage/'native/context.ui-rollback-failed-upgrade.log')
+        args,kwargs=start.call_args
+        self.assertEqual(args[0],[str(stage.resolve()/'launcher-context-fixture/owned-coordinator.exe'),'--standalone','--full-ui',str(stage.resolve())])
+        self.assertEqual(kwargs['creationflags'],0x08000000);self.assertEqual(kwargs['stdin'],ui.subprocess.DEVNULL)
+        self.assertNotIn('shell',kwargs)
 
     def test_msiexec_diagnostic_has_hidden_explicit_owned_launch(self):
         from types import SimpleNamespace

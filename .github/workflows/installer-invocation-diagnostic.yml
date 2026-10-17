@@ -6,7 +6,7 @@ on:
         description: Focused diagnostic boundary (never product qualification)
         type: choice
         default: completion
-        options: [completion, rollback, msiexec, recovery, exit, container, container-independent, container-compare]
+        options: [completion, rollback, msiexec, recovery, exit, container, container-independent, container-compare, standalone, standalone-full, recovery-compare]
 permissions:
   contents: read
 jobs:
@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        kind: ${{ fromJSON(inputs.kind == 'container-compare' && '["container","container-independent"]' || format('["{0}"]', inputs.kind)) }}
+        kind: ${{ fromJSON(inputs.kind == 'recovery-compare' && '["container","container-independent","standalone","standalone-full"]' || inputs.kind == 'container-compare' && '["container","container-independent"]' || format('["{0}"]', inputs.kind)) }}
     runs-on: windows-2022
     timeout-minutes: 5
     env:

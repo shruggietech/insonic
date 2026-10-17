@@ -86,6 +86,13 @@ def launch_msiexec_diagnostic(msi,directory,log):
     return subprocess.Popen(command,executable=engine,cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=0x08000000)
 
 
+def launch_standalone_diagnostic(msi,directory,log):
+    m.disposable_runner();msi=Path(msi);stage=msi.resolve().parent;log=Path(log)
+    if stage.parent!=Path(os.environ['ProgramData']).resolve() or not __import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name) or msi.name!='ui-bad.msi' or (stage/'completion-invocation-diagnostic.json').read_text(encoding='utf-8')!='{"qualification":false}' or Path(directory).resolve()!=stage/'UI program é & spaces' or log.resolve().parent!=stage/'native' or log.name!='context.ui-rollback-failed-upgrade.log':raise RuntimeError('standalone UI diagnostic is outside its exact owned stage')
+    command=[str(stage/'launcher-context-fixture/owned-coordinator.exe'),'--standalone','--full-ui',str(stage)]
+    return subprocess.Popen(command,cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=0x08000000)
+
+
 class NativeUI:
     def __init__(self,output):
         m.disposable_runner();self.output=Path(output);self.actor_pid=os.getpid()
@@ -199,7 +206,7 @@ class NativeUI:
             return {'path':target.name,'sha256':m.sha(target),'width':width,'height':height}
         finally:g.SelectObject(memory,old);g.DeleteObject(bitmap);g.DeleteDC(memory);u.ReleaseDC(hwnd,dc)
 
-    def run(self,msi,directory,name,operation='install',selection='both',launch=False,docs=False,cancel=None,expected=0,before_finish=None,execution_required=True,native_process=False,before_terminal_close=None):
+    def run(self,msi,directory,name,operation='install',selection='both',launch=False,docs=False,cancel=None,expected=0,before_finish=None,execution_required=True,native_process=False,before_terminal_close=None,standalone_process=False):
         state={'name':name,'operation':operation,'fixture_msi_sha256':m.sha(msi),'pages':[],'actions':[],'progress_messages':0,'progress_observed':False,'bar_positions':[],'visible_phases':[],'terminal':None,'captures':[]}
         action_text=m.table_rows(m.CompoundFile(msi).streams,'ActionText');descriptions={row[1] for row in action_text if row[1]};described_actions={row[0] for row in action_text if row[1]}
         action_ready=threading.Event();progress_seen=threading.Event();done=threading.Event();inspection=ProgressInspection(progress_seen)
@@ -221,8 +228,8 @@ class NativeUI:
             initialized=False;ole=None
             try:
                 if native_process:
-                    process=launch_msiexec_diagnostic(msi,directory,self.output.parent/('context.ui-'+name+'.log'))
-                    self.actor_pid=process.pid;state['native_engine']={'kind':'msiexec.exe full UI','pid':process.pid,'feature_qualification':False,'progress_source':'native controls, no in-process API observer'}
+                    process=(launch_standalone_diagnostic if standalone_process else launch_msiexec_diagnostic)(msi,directory,self.output.parent/('context.ui-'+name+'.log'))
+                    self.actor_pid=process.pid;state['native_engine']={'kind':'external coordinator full UI' if standalone_process else 'msiexec.exe full UI','pid':process.pid,'feature_qualification':False,'progress_source':'native controls, no in-process API observer'}
                     stdout,stderr=process.communicate(timeout=75)
                     state['code']=process.returncode;state['native_engine'].update(stdout=stdout.decode(errors='replace')[-4000:],stderr=stderr.decode(errors='replace')[-4000:])
                     return
