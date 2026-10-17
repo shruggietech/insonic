@@ -173,7 +173,8 @@ class NativeUI:
         finally:g.SelectObject(memory,old);g.DeleteObject(bitmap);g.DeleteDC(memory);u.ReleaseDC(hwnd,dc)
 
     def run(self,msi,directory,name,operation='install',selection='both',launch=False,docs=False,cancel=None,expected=0,before_finish=None):
-        state={'name':name,'operation':operation,'fixture_msi_sha256':m.sha(msi),'pages':[],'actions':[],'progress_messages':0,'progress_observed':False,'bar_positions':[],'terminal':None,'captures':[]}
+        state={'name':name,'operation':operation,'fixture_msi_sha256':m.sha(msi),'pages':[],'actions':[],'progress_messages':0,'progress_observed':False,'bar_positions':[],'visible_phases':[],'terminal':None,'captures':[]}
+        descriptions={row[1] for row in m.table_rows(m.CompoundFile(msi).streams,'ActionText') if row[1]}
         action_ready=threading.Event();progress_seen=threading.Event();done=threading.Event()
         def observe(_,kind,message):
             category=kind&0xff000000
@@ -232,9 +233,11 @@ class NativeUI:
                         bar=next(c for c in controls if self.klass(c).casefold()=='msctls_progress32')
                         position=self.send(bar,0x0408)
                         if not state['bar_positions'] or state['bar_positions'][-1]!=position:state['bar_positions'].append(position)
-                        if not state['progress_observed']:
+                        for description in sorted(descriptions):
+                            if description in joined and description not in state['visible_phases']:state['visible_phases'].append(description)
+                        if not state['progress_observed'] and position>0 and state['visible_phases']:
                             state['progress_observed']=True;state['captures'].append(self.capture(hwnd,name+'-progress'));progress_seen.set()
-                        if cancel=='execution' and action_ready.is_set() and not cancel_sent:
+                        if cancel=='execution' and action_ready.is_set() and state['progress_observed'] and not cancel_sent:
                             self.click(controls,'Cancel');cancel_sent=True
                         continue
                     page=next((p for p,mark in [('Welcome','Install for this Windows account.'),('License','Apache License 2.0'),('Choices','Select clients and shortcuts'),('Location','Choose program directory'),('Ready','Setup verifies capacity'),('Maintenance','Change, repair or remove'),('Cancelled','Setup cancelled'),('FatalError','Setup could not finish'),('Finish','The selected operation completed.')] if mark in joined),None)
@@ -307,7 +310,7 @@ class NativeUI:
             if state.get('code')!=expected or not terminal_closed:raise RuntimeError('native UI/outcome mismatch: '+json.dumps(state))
             want='Cancelled' if expected==1602 else 'FatalError' if expected else 'Finish'
             if state['terminal']!=want:raise RuntimeError('terminal page differs from actual Installer result')
-            if cancel not in ('before','ready') and (not state['progress_observed'] or not state['progress_messages']):raise RuntimeError('real Installer progress was not observed')
+            if cancel not in ('before','ready') and (not state['progress_observed'] or not state['progress_messages'] or len(state['bar_positions'])<2 or not state['visible_phases']):raise RuntimeError('visible engine-driven bar movement/action text was not observed')
             if cancel and not cancel_sent:raise RuntimeError('native Cancel control was not exercised')
             return state
         finally:

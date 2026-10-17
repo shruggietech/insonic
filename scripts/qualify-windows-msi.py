@@ -566,7 +566,6 @@ def interactive_ordinary(stage,name,sid,password,profile,desktop,record):
     class Startup(C.Structure):_fields_=[('cb',W.DWORD),('reserved',W.LPWSTR),('desktop',W.LPWSTR),('title',W.LPWSTR),('x',W.DWORD),('y',W.DWORD),('width',W.DWORD),('height',W.DWORD),('charsx',W.DWORD),('charsy',W.DWORD),('fill',W.DWORD),('flags',W.DWORD),('show',W.WORD),('reserved2',W.WORD),('reserved_pointer',C.c_void_p),('stdin',W.HANDLE),('stdout',W.HANDLE),('stderr',W.HANDLE)]
     class Process(C.Structure):_fields_=[('process',W.HANDLE),('thread',W.HANDLE),('pid',W.DWORD),('tid',W.DWORD)]
     security.CreateProcessWithLogonW.argtypes=[W.LPCWSTR,W.LPCWSTR,W.LPCWSTR,W.DWORD,W.LPCWSTR,W.LPWSTR,W.DWORD,C.c_void_p,W.LPCWSTR,C.POINTER(Startup),C.POINTER(Process)];security.CreateProcessWithLogonW.restype=W.BOOL
-    security.OpenProcessToken.argtypes=[W.HANDLE,W.DWORD,C.POINTER(W.HANDLE)];security.OpenProcessToken.restype=W.BOOL
     kernel.WaitForSingleObject.argtypes=[W.HANDLE,W.DWORD];kernel.WaitForSingleObject.restype=W.DWORD;kernel.GetExitCodeProcess.argtypes=[W.HANDLE,C.POINTER(W.DWORD)];kernel.GetExitCodeProcess.restype=W.BOOL;kernel.CloseHandle.argtypes=[W.HANDLE];kernel.TerminateProcess.argtypes=[W.HANDLE,W.UINT]
     executable=str(Path(sys.executable).with_name('pythonw.exe'));bootstrap=stage/'scripts/interactive-bootstrap.py';script=stage/'scripts/qualify-windows-msi.py'
     bootstrap.write_text('import os,runpy,sys\nsys.stdout=sys.stderr=open('+repr(str(stage/'native/context.ui-stream.log'))+',"w",encoding="utf-8",buffering=1)\nsys.argv='+repr([str(script),'--ordinary-ui-worker',str(stage)])+'\nsys.path.insert(0,os.path.dirname(sys.argv[0]))\nrunpy.run_path(sys.argv[0],run_name="__main__")\n',encoding='utf-8',newline='\n')
@@ -576,19 +575,19 @@ def interactive_ordinary(stage,name,sid,password,profile,desktop,record):
     try:
         # flags0 authenticates a fresh local ordinary logon, retaining the
         # caller session. Its profile is already held by the parent's one lease.
-        if not security.CreateProcessWithLogonW(name,'.',password,0,executable,command,0x08000400,environment,str(stage),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
-        child_token=W.HANDLE()
-        if not security.OpenProcessToken(process.process,0x0a,C.byref(child_token)):raise C.WinError(C.get_last_error())
-        try:child_observed=token_info(child_token)
-        finally:kernel.CloseHandle(child_token)
-        if child_observed['user_sid_sha256']!=desktop['target_user_sid_sha256'] or child_observed['session_id']!=desktop['session_id'] or child_observed['elevated'] or child_observed['administrator_enabled'] or child_observed['integrity_rid']!=8192:raise RuntimeError('created interactive process token differs from ordinary actor')
-        record('interactive-ordinary-created',pid=process.pid,token=child_observed,logon_flags=0,profile_loaded_by_child=False,session_token_reassignment=False)
+        record('CreateProcessWithLogonW-before',logon_flags=0,profile_loaded_by_child=False,session_token_reassignment=False)
+        if not security.CreateProcessWithLogonW(name,'.',password,0,executable,command,0x08000400,environment,str(stage),C.byref(startup),C.byref(process)):
+            error=C.WinError(C.get_last_error());error.api='CreateProcessWithLogonW';raise error
+        record('interactive-ordinary-created',pid=process.pid,logon_flags=0,profile_loaded_by_child=False,session_token_reassignment=False)
         if kernel.WaitForSingleObject(process.process,230000)!=0:raise RuntimeError('exact owned full-UI actor exceeded its bound')
         code=W.DWORD()
-        if not kernel.GetExitCodeProcess(process.process,C.byref(code)):raise C.WinError(C.get_last_error())
+        if not kernel.GetExitCodeProcess(process.process,C.byref(code)):
+            error=C.WinError(C.get_last_error());error.api='GetExitCodeProcess-interactive';raise error
         record('interactive-ordinary-exited',pid=process.pid,exit_code=code.value)
         if code.value:raise RuntimeError('ordinary interactive worker failed '+str(code.value))
-        if json.loads((stage/'native/context.ui.json').read_text(encoding='utf-8'))['token']!=child_observed:raise RuntimeError('interactive worker changed its process token')
+        proof=json.loads((stage/'native/context.ui.json').read_text(encoding='utf-8'));child_observed=proof['token']
+        if proof.get('state')!='passed' or child_observed['user_sid_sha256']!=desktop['target_user_sid_sha256'] or child_observed['session_id']!=desktop['session_id'] or child_observed['elevated'] or child_observed['administrator_enabled'] or child_observed['integrity_rid']!=8192 or child_observed['enabled_privileges']>1 or not child_observed['interactive_logon']:raise RuntimeError('actual interactive worker token differs from the exact ordinary account/session')
+        record('interactive-ordinary-token-observed',pid=process.pid,token=child_observed,observation='GetTokenInformation in the exact completed ordinary worker')
     finally:
         if process.process and kernel.WaitForSingleObject(process.process,0)!=0:kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000)
         for handle in (process.thread,process.process):

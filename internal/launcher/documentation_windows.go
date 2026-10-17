@@ -62,7 +62,7 @@ func openDocumentation(directory, target string) error {
 	}
 	// NOASYNC retains COM state until dispatch completes; NO_UI lets the caller
 	// provide the fixed correction. The filename is not a shell command.
-	info := shellExecuteInfo{Mask: 0x100 | 0x400 | 0x8000, Verb: verb, File: file, Show: 1}
+	info := shellExecuteInfo{Mask: 0x100 | 0x400, Verb: verb, File: file, Show: 1}
 	info.Size = uint32(unsafe.Sizeof(info))
 	ok, _, _ := windows.NewLazySystemDLL("shell32.dll").NewProc("ShellExecuteExW").Call(uintptr(unsafe.Pointer(&info)))
 	runtime.KeepAlive(file)
