@@ -102,11 +102,12 @@ If recovery cannot finish, setup retains its local source and `pending.json` rec
 Read the Apache License 2.0 before electing unattended acceptance. From an existing PowerShell session, choose the exact release and client selection:
 
 ~~~powershell
-& ".\insonic_VERSION_windows_amd64_setup.exe" --quiet --accept-license --clients cli --start-menu 0 --desktop-shortcut 0
-$LASTEXITCODE
+$arguments = "--quiet --accept-license --clients cli --start-menu 0 --desktop-shortcut 0"
+$setup = Start-Process -FilePath ".\insonic_VERSION_windows_amd64_setup.exe" -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru
+$setup.ExitCode
 ~~~
 
-Use `both`, `desktop` or `cli`; new installations default to both. `--install-dir PATH` selects a program location. Unattended upgrades retain prior choices unless explicitly overridden. Use setup for the installed version with `--quiet --repair` or `--quiet --remove` for maintenance. No completion launch or documentation action runs in quiet mode.
+This [PowerShell process invocation](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/start-process) waits for setup and reads its actual process exit code. Use `both`, `desktop` or `cli`; new installations default to both. `--install-dir PATH` selects a program location. Unattended upgrades retain prior choices unless explicitly overridden. Use setup for the installed version with `--quiet --repair` or `--quiet --remove` for maintenance. No completion launch or documentation action runs in quiet mode.
 
 A result of 0 means the selected operation succeeded. Windows Installer can also return successful restart codes 3010 (restart required) or 1641 (restart initiated); setup preserves these [native results](https://learn.microsoft.com/en-us/windows/win32/msi/error-codes) and suppresses automatic restart requests. Native 1602 means cancellation; 1603 means failure. Recovery preserves those original codes even when it restores the previous version successfully. Preflight failures return 1603 before starting MSI work. Recovery runs synchronously under the ordinary invoking account.
 
