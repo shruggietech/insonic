@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
-import { qualifyDesktop, qualificationMounted, runQualificationOnce } from './qualification';
+import { qualifyDesktop, qualifyHelpOnly, qualificationMounted, runQualificationOnce } from './qualification';
 import type { NativeBridge } from './client';
 import '../../../brand/kit/tokens/interface.css';
 import '../../../brand/kit/tokens/typography.css';
@@ -26,6 +26,14 @@ const startQualification = runQualificationOnce(async () => {
   qualifying = true;
   failedOperations.length = 0;
   try {
+    const fixtures = await bridge.NativeQualificationData?.();
+    if (fixtures?.result?.help_only) {
+      const response = await bridge.OpenHelp!();
+      if(response.error)throw new Error(response.error.message);
+      response.result = {...response.result,...await qualifyHelpOnly(String(response.result?.version))};
+      await bridge.CompleteSmoke(response);
+      return;
+    }
     await bridge.QualificationStep?.('ready');
     await qualificationMounted();
     await bridge.QualificationStep?.('mounted');
@@ -60,7 +68,7 @@ void (async () => {
     if (!bridge.NativeQualificationData) return;
     const response = await bridge.NativeQualificationData();
     if (response.error) throw new Error(response.error.message);
-    if (!response.result?.audio_path) return;
+    if (!response.result?.audio_path && !response.result?.help_only) return;
     await bridge.QualificationStep?.('fixtures');
     await startQualification();
   } catch (error) {

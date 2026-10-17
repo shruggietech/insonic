@@ -6,11 +6,15 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Successful full-UI fresh Windows installation offers an independent, initially unchecked Open documentation choice alongside the existing checked client-launch option. It uses the invoking user’s HTML association and reports opening failures without changing the committed installation result.
+
 - Dedicated current-main website publication preserves original product releases and records separate site/product source identities, exact Pages/live-byte proof, five package-link checks and eight hosted landing screenshots.
 
 - Read-only public release and documentation verification compares the selected published inventory and original documentation with live pages, schemas, aliases and referenced resources, then rechecks the elected Pages deployment identity.
 
 ### Fixed
+
+- Windows Installer displays engine-driven execution progress, confirms cancellation and reports operation-specific success, cancellation and failure with terminal Finish/Close controls. Desktop Offline help uses one compact button and a controlled local documentation view, with actual native activation and local navigation checks on Windows and Linux.
 
 - HTTP assertion extraction accepts canonical `insonic-http` and legacy `http` inputs, rejects ambiguous or spoofed responses, and retains current cue citations and original source clocks. Query assistance distinguishes provider authentication, missing routes/models, busy services, transport/protocol failures, deadlines and cancellation. Output limits explain artifact materialization, native results and provider responses without exposing external details.
 

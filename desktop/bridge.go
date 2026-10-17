@@ -13,6 +13,7 @@ import (
 	"github.com/shruggietech/insonic/internal/secrets"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"github.com/shruggietech/insonic/schemas"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,6 +25,8 @@ import (
 var Assets embed.FS
 
 type Bridge struct {
+	helpAssets fs.FS // package-test fixture only, never a native binding
+
 	backendGraphFactory graph.Factory // explicit deterministic bootstrap fixtures only
 	operations          map[string]context.CancelFunc
 	mu                  sync.RWMutex

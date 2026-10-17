@@ -1,0 +1,374 @@
+# SPDX-License-Identifier: Apache-2.0
+"""Real full-UI transactions, exclusively in the owned disposable CI account.
+
+The ordinary actor owns its private window station, registry profile and every
+product family here. Native clicks drive the authored dialogs; external MSI
+callbacks only observe messages and never substitute an outcome or cancellation.
+"""
+import ctypes as C
+import ctypes.wintypes as W
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import threading
+import time
+import uuid
+import windows_msi as m
+
+
+def prepare(stage, fixture, clone):
+    """Build a small instrumented package with the production MSI author/model.
+
+    The separate exact-payload lifecycle and full-UI install remain mandatory.
+    Only the clients are token recorders, permitting all completion elections
+    without creating persistent GUI/console sessions between MSI transactions.
+    """
+    m.disposable_runner()
+    payload=stage/'ui-payload';shutil.copytree(fixture,payload)
+    files=[]
+    for p in sorted(payload.rglob('*')):
+        if p.is_file() and p.name not in ('token-recorder.go',) and not p.name.endswith(('.token.json','.diagnostic.json')):
+            files.append({'path':p.relative_to(payload).as_posix(),'sha256':m.sha(p),'size_bytes':p.stat().st_size})
+    version=json.loads((payload/'help/offline-manifest.json').read_text(encoding='utf-8'))['version']
+    inv={'schema_version':version,'platform':'windows_amd64','variant':'desktop','files':files}
+    raw=m.inventory_bytes(inv);(payload/'package-inventory.json').write_bytes(raw)
+    family=m.guid('owned-full-ui/'+uuid.uuid4().hex)
+    model=m.installer_model(inv,m.digest(raw),(payload/'LICENSE').read_text(encoding='utf-8'),upgrade=family)
+    old=stage/'ui-old.msi';m.author(old,payload,model)
+    parts=list(map(int,version.split('.')));parts[2]+=1;new_version='.'.join(map(str,parts))
+    clone(old,stage/'ui-new.msi',new_version,family)
+    clone(old,stage/'ui-bad.msi',new_version,family,failure=True)
+    shutil.copyfile(old,stage/'ui-scaled.msi')
+    db=m.NativeDatabase(stage/'ui-scaled.msi',write=True)
+    try:
+        db.execute('UPDATE `TextStyle` SET `Size`=14 WHERE `TextStyle`=?',['Normal'])
+        db.execute('UPDATE `TextStyle` SET `Size`=18 WHERE `TextStyle`=?',['Heading'])
+        db.check(db.dll.MsiDatabaseCommit(db.handle))
+    finally:db.close()
+    config={'version':version,'old_product':model['product_code'],'new_product':m.product_code(new_version,family),'payload':model['payload'],'family':family}
+    (stage/'ui-model.json').write_text(json.dumps(config),encoding='utf-8',newline='\n')
+    # A system browser is readable by the new ordinary account. Do not use the
+    # elevated runner's private Playwright cache or change a machine association.
+    browsers=[Path(os.environ.get('ProgramFiles(x86)','C:/Program Files (x86)'))/'Microsoft/Edge/Application/msedge.exe',Path(os.environ.get('ProgramFiles','C:/Program Files'))/'Google/Chrome/Application/chrome.exe']
+    browser=next((p for p in browsers if p.is_file()),None)
+    if browser is None:raise RuntimeError('ordinary offline renderer requires a readable installed browser')
+    node=shutil.which('node')
+    if not node:raise RuntimeError('Node missing for owned association renderer')
+    shutil.copyfile(node,stage/'node.exe')
+    package=m.ROOT/'node_modules/playwright-core'
+    if not package.is_dir():package=m.ROOT/'desktop/frontend/node_modules/playwright-core'
+    if not package.is_dir():raise RuntimeError('Playwright core fixture dependency is missing')
+    shutil.copytree(package,stage/'node_modules/playwright-core')
+    (stage/'ui-renderer.json').write_text(json.dumps({'browser':str(browser),'node':str(stage/'node.exe'),'script':str(stage/'scripts/render-installed-help.mjs')}),encoding='utf-8',newline='\n')
+
+
+class NativeUI:
+    def __init__(self,output):
+        m.disposable_runner();self.output=Path(output)
+        self.u=C.WinDLL('user32',use_last_error=True);self.dll=C.WinDLL('msi',use_last_error=True)
+        self.cb=C.WINFUNCTYPE(W.BOOL,W.HWND,W.LPARAM)
+        self.u.EnumWindows.argtypes=[self.cb,W.LPARAM];self.u.EnumChildWindows.argtypes=[W.HWND,self.cb,W.LPARAM]
+        self.u.GetWindowThreadProcessId.argtypes=[W.HWND,C.POINTER(W.DWORD)]
+        self.u.GetWindowTextW.argtypes=[W.HWND,W.LPWSTR,C.c_int];self.u.GetClassNameW.argtypes=[W.HWND,W.LPWSTR,C.c_int]
+        self.u.IsWindowVisible.argtypes=[W.HWND];self.u.IsWindowEnabled.argtypes=[W.HWND]
+        self.u.PostMessageW.argtypes=[W.HWND,W.UINT,W.WPARAM,W.LPARAM]
+        self.u.SendMessageTimeoutW.argtypes=[W.HWND,W.UINT,W.WPARAM,W.LPARAM,W.UINT,W.UINT,C.POINTER(C.c_size_t)]
+        self.u.GetWindowRect.argtypes=[W.HWND,C.POINTER(W.RECT)]
+        self.u.GetWindowLongW.argtypes=[W.HWND,C.c_int];self.u.GetWindowLongW.restype=W.LONG
+        self.u.GetDlgItem.argtypes=[W.HWND,C.c_int];self.u.GetDlgItem.restype=W.HWND
+        self.dll.MsiSetInternalUI.argtypes=[W.UINT,C.POINTER(W.HWND)];self.dll.MsiSetInternalUI.restype=W.UINT
+        self.dll.MsiInstallProductW.argtypes=[W.LPCWSTR,W.LPCWSTR];self.dll.MsiInstallProductW.restype=W.UINT
+        self.dll.MsiEnableLogW.argtypes=[W.DWORD,W.LPCWSTR,W.DWORD]
+        self.handler=C.WINFUNCTYPE(C.c_int,C.c_void_p,W.UINT,W.LPCWSTR)
+        self.dll.MsiSetExternalUIW.argtypes=[self.handler,W.DWORD,C.c_void_p];self.dll.MsiSetExternalUIW.restype=C.c_void_p
+
+    def text(self,hwnd):
+        b=C.create_unicode_buffer(4096);self.u.GetWindowTextW(hwnd,b,4096);return b.value
+
+    def klass(self,hwnd):
+        b=C.create_unicode_buffer(128);self.u.GetClassNameW(hwnd,b,128);return b.value
+
+    def send(self,hwnd,message):
+        value=C.c_size_t()
+        if not self.u.SendMessageTimeoutW(hwnd,message,0,0,2,1000,C.byref(value)):raise RuntimeError('owned native control read timed out')
+        return value.value
+
+    def windows(self,helper=None):
+        found=[]
+        def visit(hwnd,_):
+            pid=W.DWORD();self.u.GetWindowThreadProcessId(hwnd,C.byref(pid))
+            owned=pid.value==os.getpid()
+            if not owned and helper and self.text(hwnd)=='Open insonic documentation':
+                kernel=C.WinDLL('kernel32',use_last_error=True)
+                kernel.OpenProcess.argtypes=[W.DWORD,W.BOOL,W.DWORD];kernel.OpenProcess.restype=W.HANDLE
+                kernel.QueryFullProcessImageNameW.argtypes=[W.HANDLE,W.DWORD,W.LPWSTR,C.POINTER(W.DWORD)]
+                kernel.CloseHandle.argtypes=[W.HANDLE]
+                process=kernel.OpenProcess(0x1000,False,pid.value)
+                if process:
+                    try:
+                        image=C.create_unicode_buffer(32768);size=W.DWORD(32768)
+                        owned=bool(kernel.QueryFullProcessImageNameW(process,0,image,C.byref(size))) and Path(image.value).resolve()==helper.resolve()
+                    finally:kernel.CloseHandle(process)
+            if owned and self.u.IsWindowVisible(hwnd):found.append(hwnd)
+            return True
+        self.u.EnumWindows(self.cb(visit),0)
+        return found
+
+    def controls(self,hwnd):
+        found=[]
+        def visit(control,_):
+            if self.u.IsWindowVisible(control):found.append(control)
+            return True
+        self.u.EnumChildWindows(hwnd,self.cb(visit),0)
+        return found
+
+    def button(self,controls,label):
+        found=[c for c in controls if self.klass(c).casefold()=='button' and self.text(c).replace('&','').strip('<> ')==label]
+        if len(found)!=1:raise RuntimeError('expected one owned native control: '+label)
+        return found[0]
+
+    def click(self,controls,label):
+        button=self.button(controls,label)
+        if not self.u.IsWindowEnabled(button):raise RuntimeError('native control is disabled: '+label)
+        if not self.u.PostMessageW(button,0xf5,0,0):raise C.WinError(C.get_last_error())
+
+    def check(self,controls,label,value):
+        hwnd=self.button(controls,label)
+        if (self.send(hwnd,0xf0)==1)!=value:
+            self.click(controls,label)
+            deadline=time.monotonic()+2
+            while (self.send(hwnd,0xf0)==1)!=value:
+                if time.monotonic()>deadline:raise RuntimeError('native checkbox did not retain election: '+label)
+                time.sleep(.01)
+
+    def capture(self,hwnd,name):
+        # Actual transaction pixels, bounded to the exact owned window.
+        import struct,zlib
+        u=self.u;g=C.WinDLL('gdi32',use_last_error=True)
+        u.GetDC.argtypes=[W.HWND];u.GetDC.restype=W.HDC;u.ReleaseDC.argtypes=[W.HWND,W.HDC]
+        u.PrintWindow.argtypes=[W.HWND,W.HDC,W.UINT]
+        g.CreateCompatibleDC.argtypes=[W.HDC];g.CreateCompatibleDC.restype=W.HDC
+        g.CreateCompatibleBitmap.argtypes=[W.HDC,C.c_int,C.c_int];g.CreateCompatibleBitmap.restype=W.HBITMAP
+        g.SelectObject.argtypes=[W.HDC,W.HANDLE];g.SelectObject.restype=W.HANDLE
+        g.DeleteObject.argtypes=[W.HANDLE];g.DeleteDC.argtypes=[W.HDC]
+        g.GetDIBits.argtypes=[W.HDC,W.HBITMAP,W.UINT,W.UINT,C.c_void_p,C.c_void_p,W.UINT]
+        rect=W.RECT();u.GetWindowRect(hwnd,C.byref(rect));width=rect.right-rect.left;height=rect.bottom-rect.top
+        if not 200<width<2000 or not 150<height<1600:raise RuntimeError('unexpected transaction window geometry')
+        dc=u.GetDC(hwnd);memory=g.CreateCompatibleDC(dc);bitmap=g.CreateCompatibleBitmap(dc,width,height);old=g.SelectObject(memory,bitmap)
+        try:
+            if not u.PrintWindow(hwnd,memory,0):raise RuntimeError('native transaction capture failed')
+            g.SelectObject(memory,old);header=C.create_string_buffer(struct.pack('<IiiHHIIiiII',40,width,-height,1,32,0,width*height*4,0,0,0,0));pixels=C.create_string_buffer(width*height*4)
+            if g.GetDIBits(memory,bitmap,0,height,pixels,header,0)!=height:raise RuntimeError('native transaction pixel read failed')
+            raw=pixels.raw;rows=[]
+            for y in range(height):
+                row=raw[y*width*4:(y+1)*width*4];rgb=bytearray(width*3)
+                rgb[0::3]=row[2::4];rgb[1::3]=row[1::4];rgb[2::3]=row[0::4];rows.append(b'\0'+rgb)
+            def chunk(kind,data):return struct.pack('>I',len(data))+kind+data+struct.pack('>I',zlib.crc32(kind+data)&0xffffffff)
+            png=b'\x89PNG\r\n\x1a\n'+chunk(b'IHDR',struct.pack('>IIBBBBB',width,height,8,2,0,0,0))+chunk(b'IDAT',zlib.compress(b''.join(rows)))+chunk(b'IEND',b'')
+            target=self.output.parent/('context.ui-'+name+'.png');target.write_bytes(png)
+            return {'path':target.name,'sha256':m.sha(target),'width':width,'height':height}
+        finally:g.SelectObject(memory,old);g.DeleteObject(bitmap);g.DeleteDC(memory);u.ReleaseDC(hwnd,dc)
+
+    def run(self,msi,directory,name,operation='install',selection='both',launch=False,docs=False,cancel=None,expected=0,before_finish=None):
+        state={'name':name,'operation':operation,'pages':[],'actions':[],'progress_messages':0,'progress_observed':False,'bar_positions':[],'terminal':None,'captures':[]}
+        action_ready=threading.Event();progress_seen=threading.Event();done=threading.Event()
+        def observe(_,kind,message):
+            category=kind&0xff000000
+            if category==0x08000000:
+                action=(message or '').split(': ',1)[-1].split('.',1)[0]
+                state['actions'].append((message or '')[:350])
+                if 'InstallFiles' in (message or ''):action_ready.set()
+            if category==0x0a000000:
+                state['progress_messages']+=1
+                # Keep a real small transaction visible long enough to inspect.
+                # Always return 0: the authored Cancel control owns cancellation.
+                progress_seen.wait(.08)
+            return 0
+        callback=self.handler(observe)
+        def install():
+            ole=C.OleDLL('ole32');ole.CoInitializeEx(None,2)
+            try:
+                self.dll.MsiSetInternalUI(5,None);self.dll.MsiSetExternalUIW(callback,(1<<8)|(1<<10),None)
+                self.dll.MsiEnableLogW(0x1000,str(self.output.parent/('context.ui-'+name+'.log')),0)
+                props='INSTALLDIR="'+str(directory)+'" REBOOT=ReallySuppress'
+                state['code']=self.dll.MsiInstallProductW(str(msi),props)
+            except BaseException as error:state['error']=str(error)
+            finally:self.dll.MsiSetExternalUIW(self.handler(),0,None);ole.CoUninitialize();done.set()
+        thread=threading.Thread(target=install,name='owned-native-full-ui',daemon=True);thread.start()
+        deadline=time.monotonic()+60;last=None;cancel_sent=False;terminal_closed=False
+        try:
+            while not done.is_set():
+                if time.monotonic()>deadline:raise RuntimeError('full-UI transaction exceeded bound: '+name)
+                for hwnd in self.windows(directory/'insonic-launcher.exe'):
+                    controls=self.controls(hwnd);labels=[self.text(c).replace('&','') for c in controls];joined='\n'.join(labels)
+                    if self.text(hwnd)=='Open insonic documentation':
+                        if not docs:raise RuntimeError('unexpected documentation warning')
+                        if 'Repair' not in joined or 'installation remains available' not in joined:raise RuntimeError('documentation warning lacks actionable correction')
+                        state['documentation_warning']=True
+                        self.click(controls,'OK');continue
+                    if 'Cancel this operation?' in joined:
+                        self.click(controls,'Yes, cancel');time.sleep(.03);continue
+                    if 'Intentional transactional fixture failure' in joined:
+                        self.click(controls,'OK');time.sleep(.03);continue
+                    if self.text(hwnd)!='insonic Setup':continue
+                    if any(self.klass(c).casefold()=='msctls_progress32' for c in controls):
+                        bar=next(c for c in controls if self.klass(c).casefold()=='msctls_progress32')
+                        position=self.send(bar,0x0408)
+                        if not state['bar_positions'] or state['bar_positions'][-1]!=position:state['bar_positions'].append(position)
+                        if not state['progress_observed']:
+                            state['progress_observed']=True;state['captures'].append(self.capture(hwnd,name+'-progress'));progress_seen.set()
+                        if cancel=='execution' and action_ready.is_set() and not cancel_sent:
+                            self.click(controls,'Cancel');cancel_sent=True
+                        continue
+                    page=next((p for p,mark in [('Welcome','Install for this Windows account.'),('License','Apache License 2.0'),('Choices','Select clients and shortcuts'),('Location','Choose program directory'),('Ready','Setup verifies capacity'),('Maintenance','Change, repair or remove'),('Cancelled','Setup cancelled'),('FatalError','Setup could not finish'),('Finish','The selected operation completed.')] if mark in joined),None)
+                    if page is None and any(x in joined for x in ('insonic installed','insonic updated','insonic changed','insonic repaired','insonic removed')):page='Finish'
+                    if page is None:continue
+                    signature=(hwnd,page)
+                    if signature==last:continue
+                    last=signature;state['pages'].append(page)
+                    rect=W.RECT();self.u.GetWindowRect(hwnd,C.byref(rect))
+                    for control in controls:
+                        bounds=W.RECT();self.u.GetWindowRect(control,C.byref(bounds))
+                        if bounds.left<rect.left or bounds.top<rect.top or bounds.right>rect.right or bounds.bottom>rect.bottom:raise RuntimeError('visible native control escapes dialog bounds')
+                    if name=='enlarged-font-cancel':state['captures'].append(self.capture(hwnd,name+'-'+page.lower()))
+                    if cancel=='before' and page=='Welcome':self.click(controls,'Cancel');cancel_sent=True;continue
+                    if page=='Welcome':self.click(controls,'Next')
+                    elif page=='License':
+                        next_button=self.button(controls,'Next')
+                        if self.send(self.button(controls,'I accept the Apache License 2.0'),0xf0)!=0 or self.u.IsWindowEnabled(next_button):raise RuntimeError('license acceptance default changed')
+                        self.check(controls,'I accept the Apache License 2.0',True);self.click(controls,'Next')
+                    elif page=='Choices':
+                        self.check(controls,'Desktop application',selection!='cli');self.check(controls,'CLI integrations (persistent help/setup session)',selection!='desktop')
+                        self.check(controls,'Create Start menu shortcuts',False);self.check(controls,'Create Desktop shortcut for the desktop application',False);self.click(controls,'Next')
+                    elif page=='Location':self.click(controls,'Next')
+                    elif page=='Ready':
+                        if cancel=='ready':self.click(controls,'Cancel');cancel_sent=True
+                        else:self.click(controls,{'install':'Install','upgrade':'Update','change':'Apply changes'}[operation])
+                    elif page=='Maintenance':self.click(controls,{'repair':'Repair','remove':'Remove','change':'Next'}[operation])
+                    else:
+                        state['terminal']=page
+                        if page=='Finish':
+                            heading={'install':'installed','upgrade':'updated','change':'changed','repair':'repaired','remove':'removed'}[operation]
+                            if 'insonic '+heading not in labels:raise RuntimeError('completion heading does not match operation')
+                        if page=='Finish' and operation=='install':
+                            client_label='Open insonic CLI' if selection=='cli' else 'Launch insonic'
+                            if self.send(self.button(controls,client_label),0xf0)!=1 or self.send(self.button(controls,'Open documentation'),0xf0)!=0:raise RuntimeError('fresh completion defaults changed')
+                            self.check(controls,client_label,launch);self.check(controls,'Open documentation',docs)
+                            if before_finish:before_finish()
+                        elif any(label in labels for label in ('Launch insonic','Open insonic CLI','Open documentation')):raise RuntimeError('completion actions leaked into non-fresh or failed operation')
+                        push=[c for c in controls if self.klass(c).casefold()=='button' and (self.u.GetWindowLongW(c,-16)&15) in (0,1)]
+                        if len(push)!=1:raise RuntimeError('terminal outcome must expose exactly one action')
+                        default=self.u.GetDlgItem(hwnd,self.send(hwnd,0x0400)&0xffff)
+                        if not default or self.text(default)!=('Finish' if page=='Finish' else 'Close'):raise RuntimeError('terminal default action differs from the displayed outcome')
+                        state['captures'].append(self.capture(hwnd,name+'-'+page.lower()))
+                        if name=='remove':
+                            # Escape uses the authored terminal cancel/default
+                            # control and must retain the committed success code.
+                            self.u.PostMessageW(hwnd,0x0100,0x1b,0);self.u.PostMessageW(hwnd,0x0101,0x1b,0)
+                            state['terminal_keyboard']='Escape'
+                        else:self.click(controls,'Finish' if page=='Finish' else 'Close')
+                        terminal_closed=True
+                time.sleep(.01)
+            thread.join(1)
+            if state.get('error'):raise RuntimeError(state['error'])
+            if state.get('code')!=expected or not terminal_closed:raise RuntimeError('native UI/outcome mismatch: '+json.dumps(state))
+            want='Cancelled' if expected==1602 else 'FatalError' if expected else 'Finish'
+            if state['terminal']!=want:raise RuntimeError('terminal page differs from actual Installer result')
+            if cancel not in ('before','ready') and (not state['progress_observed'] or not state['progress_messages']):raise RuntimeError('real Installer progress was not observed')
+            if cancel and not cancel_sent:raise RuntimeError('native Cancel control was not exercised')
+            return state
+        finally:
+            progress_seen.set();self.output.parent.joinpath('context.ui-'+name+'.json').write_text(json.dumps(state,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+
+
+def qualify(stage,exact_installer,exact_directory,output,token,quiet_install):
+    m.disposable_runner();stage=Path(stage);config=json.loads((stage/'ui-model.json').read_text(encoding='utf-8'))
+    ui=NativeUI(output);directory=stage/'UI program é & spaces';old=stage/'ui-old.msi';new=stage/'ui-new.msi';bad=stage/'ui-bad.msi';results=[]
+    # Production payload, actual engine/full UI, elected no completion actions.
+    results.append(ui.run(exact_installer,exact_directory,'exact-install',selection='cli'))
+    results.append(ui.run(exact_installer,exact_directory,'exact-remove',operation='remove',selection='cli'))
+    try:
+        results.append(ui.run(old,directory,'before-cancel',cancel='before',expected=1602))
+        results.append(ui.run(stage/'ui-scaled.msi',directory,'enlarged-font-cancel',cancel='ready',expected=1602))
+        if (directory/m.OWNERSHIP).exists():raise RuntimeError('pre-execution cancellation installed files')
+        # Completion election matrix below is also the initial fresh-install UI
+        # proof; all three feature choices use the same production launcher.
+        with association(stage,token) as renderer:
+            for selection in ('desktop','cli','both'):
+                for launch,docs in ((False,False),(True,False),(False,True),(True,True)):
+                    name=selection+'-'+str(int(launch))+str(int(docs));nonce=uuid.uuid4().hex
+                    receipt=stage/'native'/('context.docs-'+name+'.json')
+                    renderer.update(directory=str(directory),version=config['version'],output=str(receipt),nonce=nonce)
+                    (directory.parent/'documentation-handler.json').write_text(json.dumps(renderer),encoding='utf-8',newline='\n')
+                    results.append(ui.run(old,directory,name,selection=selection,launch=launch,docs=docs))
+                    deadline=time.monotonic()+25
+                    client=directory/('insonic.exe.token.json' if selection=='cli' else 'insonic-desktop.exe.token.json')
+                    while (launch and not client.is_file()) or (docs and not receipt.is_file()):
+                        if time.monotonic()>deadline:raise RuntimeError('elected completion did not finish: '+name)
+                        time.sleep(.025)
+                    if client.exists()!=launch or receipt.exists()!=docs:raise RuntimeError('independent completion election mismatch')
+                    if launch:
+                        observed=json.loads(client.read_text(encoding='utf-8'))
+                        if observed['elevated'] or observed['administrator_enabled'] or observed['user_sid_sha256']!=token['user_sid_sha256']:raise RuntimeError('client completion changed user/elevation')
+                    if docs:
+                        proof=json.loads(receipt.read_text(encoding='utf-8'))
+                        if proof.get('nonce')!=nonce or proof.get('state')!='passed':raise RuntimeError('actual OS HTML association/rendering proof differs')
+                    # Token/diagnostic receipts are fixture-owned, not MSI bytes.
+                    for extra in directory.glob('*.json'):
+                        if extra.name.endswith(('.token.json','.diagnostic.json')):extra.unlink()
+                    quiet_install(['/x',config['old_product']],stage/'native'/('context.ui-'+name+'-remove.log'))
+        missing=ui.run(old,directory,'missing-documentation',docs=True,before_finish=lambda:(directory/'help/offline-manifest.json').unlink())
+        if not missing.get('documentation_warning'):raise RuntimeError('elected missing help did not report its correction')
+        results.append(missing)
+        quiet_install(['/x',config['old_product']],stage/'native'/'context.ui-missing-remove.log')
+        results.append(ui.run(old,directory,'maintenance-install'))
+        results.append(ui.run(old,directory,'change',operation='change',selection='cli'))
+        expected={f['path']:m.sha(directory/f['path']) for f in config['payload'] if (directory/f['path']).is_file()}
+        (directory/'insonic-session.cmd').unlink()
+        results.append(ui.run(old,directory,'repair',operation='repair',selection='cli'))
+        for name in expected:
+            if m.sha(directory/name)!=expected[name]:raise RuntimeError('full-UI repair did not restore exact bytes')
+        results.append(ui.run(new,directory,'execution-cancel',operation='upgrade',selection='cli',cancel='execution',expected=1602))
+        results.append(ui.run(bad,directory,'failed-upgrade',operation='upgrade',selection='cli',expected=1603))
+        for name in expected:
+            if m.sha(directory/name)!=expected[name]:raise RuntimeError('full-UI cancellation/failure did not roll back old bytes')
+        results.append(ui.run(new,directory,'upgrade',operation='upgrade',selection='cli'))
+        results.append(ui.run(new,directory,'remove',operation='remove',selection='cli'))
+        if any((directory/f['path']).exists() for f in config['payload']):raise RuntimeError('full-UI removal retained owned payload')
+        return {'state':'passed','token':token,'transactions':results,'completion_cases':12,'exact_payload_full_ui':['install','remove'],'instrumented_clients':'owned native token reporters, production launcher and MSI model','outcomes':[0,1602,1603]}
+    finally:
+        for product in (config['old_product'],config['new_product']):
+            # Only this explicitly generated owned family can be cleaned here.
+            if (directory/m.OWNERSHIP).exists():quiet_install(['/x',product],stage/'native'/'context.ui-cleanup.log',False)
+
+
+def association(stage,token):
+    from contextlib import contextmanager
+    @contextmanager
+    def owned():
+        import winreg
+        m.disposable_runner();key=r'Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.html\UserChoice'
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER,key):raise RuntimeError('owned fresh profile unexpectedly has HTML UserChoice')
+        except FileNotFoundError:pass
+        prog='insonic.CI.'+uuid.uuid4().hex;html=r'Software\Classes\.html';program='Software\\Classes\\'+prog
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER,html):raise RuntimeError('owned fresh profile unexpectedly has HTML class')
+        except FileNotFoundError:pass
+        handler=stage/'documentation-handler.exe';shutil.copyfile(stage/'launcher-context-fixture/insonic-desktop.exe',handler)
+        shutil.copyfile(stage/'launcher-context-fixture/owned-ci-fixture.json',stage/'owned-ci-fixture.json')
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER,html) as k:winreg.SetValueEx(k,'',0,winreg.REG_SZ,prog)
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER,program+r'\shell\open\command') as k:winreg.SetValueEx(k,'',0,winreg.REG_SZ,'"'+str(handler)+'" "%1"')
+        shell=C.WinDLL('shell32');shell.SHChangeNotify(0x08000000,0,None,None)
+        query=C.WinDLL('shlwapi').AssocQueryStringW;query.argtypes=[W.DWORD,C.c_int,W.LPCWSTR,W.LPCWSTR,W.LPWSTR,C.POINTER(W.DWORD)];query.restype=C.c_long
+        executable=C.create_unicode_buffer(32768);size=W.DWORD(32768)
+        try:
+            if query(0,2,'.html','open',executable,C.byref(size)) or Path(executable.value).resolve()!=handler.resolve():raise RuntimeError('ordinary HTML association did not resolve to owned handler')
+            renderer=json.loads((stage/'ui-renderer.json').read_text(encoding='utf-8'));yield renderer
+            report=json.loads((stage/'documentation-handler.exe.token.json').read_text(encoding='utf-8'))
+            if report['elevated'] or report['administrator_enabled'] or report['user_sid_sha256']!=token['user_sid_sha256']:raise RuntimeError('documentation association changed user/elevation')
+        finally:
+            winreg.DeleteKey(winreg.HKEY_CURRENT_USER,program+r'\shell\open\command');winreg.DeleteKey(winreg.HKEY_CURRENT_USER,program+r'\shell\open');winreg.DeleteKey(winreg.HKEY_CURRENT_USER,program+r'\shell');winreg.DeleteKey(winreg.HKEY_CURRENT_USER,program);winreg.DeleteKey(winreg.HKEY_CURRENT_USER,html);shell.SHChangeNotify(0x08000000,0,None,None)
+    return owned()

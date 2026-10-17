@@ -17,6 +17,9 @@ import (
 
 func SystemDirectory() (string, error) { return windows.GetSystemDirectory() }
 func Launch(p Plan) error {
+	if p.Mode == "documentation" {
+		return OpenDocumentation(filepath.Dir(p.Executable))
+	}
 	if handled, e := launchLimited(p); handled || e != nil {
 		return e
 	}

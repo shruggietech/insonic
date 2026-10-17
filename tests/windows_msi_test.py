@@ -37,6 +37,35 @@ class InstallerModelTests(unittest.TestCase):
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory(prefix='s027-msi-test-');self.path=Path(self.temp.name);self.inv,self.model=fixture(self.path)
     def tearDown(self):self.temp.cleanup()
+    def test_execution_progress_is_native_and_terminal_controls_match_outcome(self):
+        tables=self.model['tables']
+        sequence={r[0]:r[2] for r in tables['InstallUISequence']}
+        self.assertLess(sequence['Progress'],sequence['ExecuteAction'])
+        self.assertIn(['Progress','Bar','SetProgress','Progress'],tables['EventMapping'])
+        self.assertIn(['Progress','Action','ActionText','Text'],tables['EventMapping'])
+        dialog=next(r for r in tables['Dialog'] if r[0]=='Progress')
+        self.assertFalse(dialog[5]&2)
+        for name in ['Finish','Cancelled','FatalError']:
+            controls=[r for r in tables['Control'] if r[0]==name and r[2]=='PushButton']
+            self.assertEqual(len(controls),1)
+            self.assertNotIn(controls[0][9],['Cancel','Next >'])
+            row=next(r for r in tables['Dialog'] if r[0]==name)
+            self.assertEqual(row[8],row[9])
+            self.assertTrue(any(row[:5]==[name,controls[0][1],'EndDialog','Return','1'] for row in tables['ControlEvent']))
+        for action in ['Rollback','RollbackCleanup','GenerateScript']:
+            self.assertEqual(next(r for r in tables['ActionText'] if r[0]==action)[2],'[1]')
+
+    def test_documentation_completion_election_is_independent_and_fresh_only(self):
+        tables=self.model['tables'];props=dict(tables['Property'])
+        self.assertEqual(props['LAUNCH'],'1');self.assertNotIn('OPEN_DOCUMENTATION',props)
+        self.assertIn(['OPEN_DOCUMENTATION','1'],tables['CheckBox'])
+        action=next(r for r in tables['CustomAction'] if r[0]=='OpenDocumentation')
+        self.assertEqual(action[1],82);self.assertEqual(action[3],'--documentation --interactive')
+        events=[r for r in tables['ControlEvent'] if r[2]=='DoAction' and r[3]=='OpenDocumentation']
+        self.assertEqual(len(events),1)
+        for clause in ['OPEN_DOCUMENTATION=1','UILevel=5','NOT Installed','NOT OLDPRODUCTS']:
+            self.assertIn(clause,events[0][4])
+
     def test_client_dependency_and_owned_marker(self):
         items={x['path']:x for x in self.model['payload']}
         self.assertEqual(items['insonic-desktop.exe']['feature'],'Desktop');self.assertEqual(items['insonic.exe']['feature'],'Core');self.assertIn(m.OWNERSHIP,items);self.assertNotIn(m.OWNERSHIP,{x['path'] for x in self.inv['files']})
@@ -199,8 +228,8 @@ class InstallerModelTests(unittest.TestCase):
         (stage/'owned-ci-account.json').write_text(json.dumps({'account':name,'sid_sha256':m.digest(sid.encode())}),encoding='utf-8');calls=[];records=[]
         def bridge(command,**options):
             self.assertNotIn(password,repr(command));self.assertNotIn(password,repr(options.get('env')))
-            self.assertEqual(options['creationflags'],0x08000000);self.assertEqual(options['timeout'],110)
-            script=base64.b64decode(command[-1]).decode('utf-16le');self.assertIn("ExecutionTimeLimit='PT90S'",script);self.assertIn('RegisterTaskDefinition($inputObject.task_name,$definition,2,',script);self.assertIn("$definition.Principal.UserId='SYSTEM';$definition.Principal.LogonType=5;",script);self.assertIn("'SYSTEM',$null,5,$null)",script);self.assertIn('$result.logon_type=5',script)
+            self.assertEqual(options['creationflags'],0x08000000);self.assertEqual(options['timeout'],260)
+            script=base64.b64decode(command[-1]).decode('utf-16le');self.assertIn("ExecutionTimeLimit='PT240S'",script);self.assertIn('RegisterTaskDefinition($inputObject.task_name,$definition,2,',script);self.assertIn("$definition.Principal.UserId='SYSTEM';$definition.Principal.LogonType=5;",script);self.assertIn("'SYSTEM',$null,5,$null)",script);self.assertIn('$result.logon_type=5',script)
             request=json.loads(options['input']);calls.append(request)
             if request['mode']=='run':
                 self.assertEqual(request['password'],password);self.assertNotIn('provider-secret',request['arguments']);self.assertNotIn('owner-private',request['arguments']);self.assertIn('os.environ.clear()',request['arguments'])
@@ -531,7 +560,7 @@ class InstallerModelTests(unittest.TestCase):
         def release(initial,install,remove,task,sid,deadline):
             self.assertEqual(initial,ownership);self.assertEqual(sid,actor_sid);self.assertEqual(task['exit_code'],0);self.assertEqual(json.loads(install.read_text())['action'],'/i');self.assertEqual(json.loads(remove.read_text())['action'],'/x');events.append('owned-service-restored');return {'restored_initial_stopped_state':True,'process_terminated':False,'registry_hive_forced':False}
         def lease(sid,profile,deadline):events.append('profile-lease-observed');return {'machine_state_modified':False}
-        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'qualifier_profile_privileges',side_effect=lambda:nullcontext({'ordinary_actor_token_changed':False})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch.object(module,'disposable_server_installer_policy',return_value=nullcontext({'restored':True,'always_install_elevated_unchanged':True})),patch.object(module,'profile_cleanup_observation',return_value={'machine_state_modified':False}),patch.object(module,'profile_lease_observation',side_effect=lease),patch.object(module,'release_owned_installer_service',side_effect=release),patch.object(module,'delete_owned_profile_provider',return_value={'complete_absence':False}),patch.object(C,'get_last_error',return_value=32,create=True),patch.object(module.time,'sleep'):
+        with patch.dict(os.environ,env),patch.object(m,'disposable_runner',return_value=None),patch.object(C,'WinDLL',side_effect=lambda name,**kwargs:dlls[name],create=True),patch.object(module,'account_sid',side_effect=[actor_sid,'S-1-5-21-1-2-3-1000']),patch.object(module,'grant_owned_account_stage'),patch.object(module,'qualifier_profile_privileges',side_effect=lambda:nullcontext({'ordinary_actor_token_changed':False})),patch.object(module,'owned_batch_right',side_effect=right),patch.object(module,'scheduler_ordinary',side_effect=scheduled),patch('qualify_installer_ui.prepare'),patch.object(module,'disposable_server_installer_policy',return_value=nullcontext({'restored':True,'always_install_elevated_unchanged':True})),patch.object(module,'profile_cleanup_observation',return_value={'machine_state_modified':False}),patch.object(module,'profile_lease_observation',side_effect=lease),patch.object(module,'release_owned_installer_service',side_effect=release),patch.object(module,'delete_owned_profile_provider',return_value={'complete_absence':False}),patch.object(C,'get_last_error',return_value=32,create=True),patch.object(module.time,'sleep'):
             proof=module.ordinary_context(installer,self.path/'installation',output,self.model,ownership)
         self.assertEqual(events,['account-created','profile-created-by-native-load','ordinary-task-completed','profile-handle-unloaded','profile-lease-observed','owned-service-restored','profile-lease-observed','profile-deleted','account-deleted']);self.assertEqual(len(deletions),3);self.assertEqual(rights,[])
         self.assertTrue(all(item.get('deleted',item.get('restored',item.get('unloaded'))) for item in proof['cleanup']));self.assertEqual((original/'owner-data').read_bytes(),b'keep');self.assertEqual((programdata/'owner-data').read_bytes(),b'keep')
@@ -716,7 +745,7 @@ class InstallerModelTests(unittest.TestCase):
         log.write_text('Read and accept Apache License 2.0\nAction ended 3:12:57: LaunchConditions. Return value 3.\n',encoding='utf-16')
         self.assertEqual(module.assert_rejection(log,'Read and accept Apache License 2.0'),'Read and accept Apache License 2.0')
     def test_required_empty_search_table_definitions_are_authored(self):
-        for table in ('Signature','CompLocator','IniLocator','DrLocator','ActionText'):
+        for table in ('Signature','CompLocator','IniLocator','DrLocator'):
             self.assertIn(table,self.model['tables']);self.assertEqual(self.model['tables'][table],[])
     def test_alternate_directory_proof_rejects_registry_override(self):
         spec=importlib.util.spec_from_file_location('qualify_directory_proof',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)

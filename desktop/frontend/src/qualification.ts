@@ -498,9 +498,47 @@ async function qualifyJourney(
   button('Library').focus();
   if (
     document.activeElement !== button('Library') ||
-    !document.querySelector('a[href="/assets/help/index.html"]')
+    !button('Offline help')
   )
     throw new Error('Keyboard/help controls missing.');
+  await qualifyOfflineHelp(click,wait,button,String(result(await bridge.OpenHelp!()).version));
   flags.ui_keyboard_help = 'passed';
+  flags.ui_offline_help_activation='passed';
   return flags;
+}
+
+export async function qualifyOfflineHelp(click:(label:string)=>Promise<void>,wait:(condition:()=>boolean|Promise<boolean>,message:string,timeout?:number)=>Promise<void>,button:(label:string)=>HTMLButtonElement,version:string){
+  await click('Offline help');
+  const frame=()=>document.querySelector('iframe[title="Installed offline documentation"]') as HTMLIFrameElement|null;
+  await wait(()=>!!frame()?.contentDocument?.querySelector('h1'),'Installed help did not render in the native view.');
+  const doc=frame()!.contentDocument!;
+  if(!doc.querySelector('h1')?.textContent?.includes('insonic v'+version))throw new Error('Installed documentation heading missing.');
+  if(!doc.styleSheets.length)throw new Error('Installed help has no local styles.');
+  if([...doc.images].some(image=>!image.complete||image.naturalWidth===0))throw new Error('Installed help image failed.');
+  await doc.fonts?.ready;
+  const view=frame()!.contentWindow!;
+  let blocked=false;
+  const violation=(event:SecurityPolicyViolationEvent)=>{if(event.effectiveDirective==='connect-src')blocked=true;};
+  doc.addEventListener('securitypolicyviolation',violation);
+  try{await view.fetch('https://offline.invalid/help-probe');}catch{}
+  await wait(()=>blocked,'Help did not enforce its network-unavailable policy.');
+  doc.removeEventListener('securitypolicyviolation',violation);
+  const link=[...doc.querySelectorAll('a')].find(a=>a.textContent?.trim()==='CLI invocation and results');
+  if(!link||!link.href.includes('/assets/help/'))throw new Error('Installed help local navigation missing.');
+  link.click();
+  await wait(()=>frame()?.contentDocument?.querySelector('h1')?.textContent?.includes('CLI invocation and results')??false,'Installed help local navigation failed.');
+  await click('Close documentation');
+  if(document.activeElement!==button('Offline help'))throw new Error('Help close lost keyboard focus.');
+}
+
+export async function qualifyHelpOnly(version:string){
+ const wait=async(condition:()=>boolean|Promise<boolean>,message:string,timeout=15000)=>{const end=Date.now()+timeout;while(!await condition()){if(Date.now()>end)throw new Error(message);await qualificationTurn();}};
+ const button=(label:string)=>{const found=[...document.querySelectorAll("button")].find(b=>b.textContent?.trim()===label);if(!found)throw new Error("Missing help button.");return found;};
+ const click=async(label:string)=>{qualificationAction(()=>button(label).click());await qualificationTurn();};
+ await wait(()=>!!document.querySelector(".help-action button"),"Help control did not mount.");
+ const control=button("Offline help"),rect=control.getBoundingClientRect();
+ control.focus();
+ if(document.activeElement!==control||rect.width>=300||control.tabIndex<0||control.closest("a"))throw new Error("Help control is not compact and keyboard focusable.");
+ await qualifyOfflineHelp(click,wait,button,version);
+ return {ui_offline_help_activation:"passed"};
 }

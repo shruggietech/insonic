@@ -341,6 +341,8 @@ import (
  "encoding/json"
  "fmt"
  "os"
+ "os/exec"
+ "syscall"
  "path/filepath"
  "runtime"
  "unsafe"
@@ -385,12 +387,24 @@ func main() {
  data,e:=json.Marshal(observed);if e!=nil {fatal("MarshalToken",e)}
  if e:=os.WriteFile(filepath.Join(directory,filepath.Base(exe)+".token.json"),append(data,'\n'),0600);e!=nil {fatal("WriteTokenReceipt",e)}
  diagnostic("token-recorded",nil)
+ if filepath.Base(exe)=="documentation-handler.exe" {
+  var config struct { Node string; Script string }
+  configFile:=filepath.Join(directory,"documentation-handler.json")
+  data,e:=os.ReadFile(configFile);if e!=nil {fatal("ReadRenderer",e)}
+  if e=json.Unmarshal(data,&config);e!=nil {fatal("ParseRenderer",e)}
+  if len(os.Args)!=2 {fatal("AssociationArgument",fmt.Errorf("expected exact HTML filename"))}
+  command:=exec.Command(config.Node,config.Script,configFile,os.Args[1]);command.SysProcAttr=&syscall.SysProcAttr{HideWindow:true,CreationFlags:0x08000000}
+  output,e:=command.CombinedOutput();if e!=nil {fatal("OfflineRenderer",fmt.Errorf("%v: %.2000s",e,output))}
+ }
 }
 '''
 
 def prepare_launcher_fixture(installed,directory):
     m.disposable_runner();directory.mkdir(parents=True,exist_ok=False)
     shutil.copyfile(installed/'insonic-launcher.exe',directory/'insonic-launcher.exe')
+    for name in ('LICENSE','NOTICE','insonic-companions.json'):
+        shutil.copyfile(installed/name,directory/name)
+    shutil.copytree(installed/'help',directory/'help')
     session=(installed/'insonic-session.cmd').read_bytes()
     # Run the production session prefix and close this owned CI console after the
     # token recorder returns. Installed production bytes are never modified.
@@ -532,6 +546,8 @@ def ordinary_worker(installer,directory,output):
     if observed['administrator_enabled'] or observed['enabled_privileges']>1 or observed['elevated'] or observed['integrity_rid']!=8192:raise RuntimeError('ordinary worker retained administrator membership/privileges/elevation or did not run at medium integrity')
     if os.environ.get('INSONIC_CI_ORDINARY_SCHEDULER')=='1' and (not observed['interactive_logon'] or observed['session_id']!=0):raise RuntimeError('ordinary worker did not retain its isolated session with an interactive logon')
     product=dict(m.table_rows(m.CompoundFile(installer).streams,'Property'))['ProductCode']
+    from qualify_installer_ui import qualify as qualify_ui
+    ui_evidence=qualify_ui(directory.parent,installer,directory,output,observed,run_installer)
     installed=False
     try:
         run_installer(['/i',installer,'INSTALLDIR='+str(directory),'LICENSE_ACCEPTED=1','ADDLOCAL=Core,CLI'],output.with_suffix('.install.log'));installed=True
@@ -545,7 +561,7 @@ def ordinary_worker(installer,directory,output):
         record('elected-launch-observed')
         run_installer(['/x',product],output.with_suffix('.remove.log'));installed=False
         if marker.exists():raise RuntimeError('ordinary per-user removal retained owned marker')
-        evidence={'kind':'ordinary-disposable-ci-user','token':observed,'install_exit':0,'remove_exit':0,'payload_hashes_verified':True,'separate_user_account':True,'os_policy_mutations':{'worker_changed_global_policy':False,'product_changes_endpoint_policy':False,'owned_account_batch_logon_right':False,'ci_actor_broker':'SYSTEM service-account task'},'profile_loaded':True,'user_profile':os.environ['USERPROFILE'],'elected_launcher':launch_evidence}
+        evidence={'kind':'ordinary-disposable-ci-user','token':observed,'install_exit':0,'remove_exit':0,'payload_hashes_verified':True,'separate_user_account':True,'os_policy_mutations':{'worker_changed_global_policy':False,'product_changes_endpoint_policy':False,'owned_account_batch_logon_right':False,'ci_actor_broker':'SYSTEM service-account task'},'profile_loaded':True,'user_profile':os.environ['USERPROFILE'],'elected_launcher':launch_evidence,'interactive':ui_evidence}
         output.write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
         record('completed')
     finally:
@@ -703,12 +719,12 @@ try {
     $definition=$service.NewTask(0)
     $definition.RegistrationInfo.Description=$inputObject.description
     $definition.Principal.UserId='SYSTEM';$definition.Principal.LogonType=5;$definition.Principal.RunLevel=0
-    $definition.Settings.Enabled=$true;$definition.Settings.Hidden=$true;$definition.Settings.ExecutionTimeLimit='PT90S'
+    $definition.Settings.Enabled=$true;$definition.Settings.Hidden=$true;$definition.Settings.ExecutionTimeLimit='PT240S'
     $definition.Settings.DisallowStartIfOnBatteries=$false;$definition.Settings.StopIfGoingOnBatteries=$false
     $action=$definition.Actions.Create(0);$action.Path=$inputObject.executable;$action.Arguments=$inputObject.arguments;$action.WorkingDirectory=$inputObject.directory
     $registered=$folder.RegisterTaskDefinition($inputObject.task_name,$definition,2,'SYSTEM',$null,5,$null)
     $created=$true;$result.phase='registered';$result.requested_run_level=0;$result.logon_type=5;$result.broker_role='SYSTEM';$result.target_task_profile_loaded=$false
-    $running=$registered.Run($null);$result.engine_pid=$running.EnginePID;$deadline=[DateTime]::UtcNow.AddSeconds(95)
+    $running=$registered.Run($null);$result.engine_pid=$running.EnginePID;$deadline=[DateTime]::UtcNow.AddSeconds(245)
     $result.phase='private-pipe-connect'
     if (-not $connection.AsyncWaitHandle.WaitOne(15000)) { throw 'owned credential pipe connection timed out' }
     $pipe.EndWaitForConnection($connection)
@@ -746,7 +762,7 @@ def scheduler_ordinary(stage,name,sid,password,args,record,profile):
     request={**metadata,'mode':'run','account':os.environ['COMPUTERNAME']+'\\'+name,'password':password,'pipe_name':pipe,'executable':sys.executable,'arguments':subprocess.list2cmdline(['-c',code]),'directory':str(stage)}
     outcome=None
     def invoke(value):
-        completed=subprocess.run(command,input=json.dumps(value).encode('utf-8'),stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=110)
+        completed=subprocess.run(command,input=json.dumps(value).encode('utf-8'),stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=260)
         if completed.returncode:raise RuntimeError('hidden ordinary scheduler bridge failed '+str(completed.returncode))
         return json.loads(completed.stdout.decode('utf-8-sig'))
     record('TaskScheduler-ordinary-before-register',task_name=task,password_published=False,requested_run_level=0,logon_type=5,broker_role='SYSTEM')
@@ -1192,7 +1208,7 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
         if not profile.is_dir():raise RuntimeError('native profile load did not create the observed ordinary-user directory')
         record('ordinary-profile-observed',profile=str(profile),method='owned LoadUserProfileW handle, GetUserProfileDirectoryW',privilege_scope=privilege_scope)
         record('Copy-exact-owned-worker-inputs');scripts=stage/'scripts';scripts.mkdir();(stage/'temp').mkdir();native=stage/'native';native.mkdir()
-        for filename in ('qualify-windows-msi.py','windows_msi.py'):
+        for filename in ('qualify-windows-msi.py','windows_msi.py','qualify_installer_ui.py','render-installed-help.mjs'):
             shutil.copyfile(m.ROOT/'scripts'/filename,scripts/filename)
             if m.sha(scripts/filename)!=m.sha(m.ROOT/'scripts'/filename):raise RuntimeError('ordinary staged script identity differs')
         target=stage/'fixture.msi';shutil.copyfile(installer,target)
@@ -1200,6 +1216,8 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
         fixture=Path(directory).parent/'launcher-context-fixture';shutil.copytree(fixture,stage/'launcher-context-fixture')
         for original in fixture.iterdir():
             if original.is_file() and m.sha(original)!=m.sha(stage/'launcher-context-fixture'/original.name):raise RuntimeError('ordinary launcher fixture copy differs')
+        from qualify_installer_ui import prepare
+        prepare(stage,fixture,clone)
         (stage/'context-model.json').write_text(json.dumps(model),encoding='utf-8',newline='\n')
         install=stage/'installed program é with spaces';worker_output=native/'context.json'
         args=[str(scripts/'qualify-windows-msi.py'),'--ordinary-worker',str(target),'--context-dir',str(install),'--output',str(worker_output)]
@@ -1390,7 +1408,7 @@ def qualify(path,receipt):
             assert_removal_sentinels(integration_sentinels)
             result['user_data_preserved']='passed'
             phase('ordinary-user-install-remove-and-elected-launch')
-            context_evidence=ordinary_context(old,tmp/'ordinary per-user installation',logs/'ordinary-context.json',model,service_ownership);result['user_context']='passed'
+            context_evidence=ordinary_context(old,tmp/'ordinary per-user installation',logs/'ordinary-context.json',model,service_ownership);result['user_context']='passed';result['interactive_transactions']='passed';result['documentation_completion']='passed'
             proof={'artifact_sha256':receipt['artifact_sha256'],'revision':receipt['revision'],'windows_build':str(__import__('sys').getwindowsversion().build),'fixture_upgrade_code':upgrade,'checks':result,'elapsed_seconds':round(time.monotonic()-started,3),'active_work_fixture':{'process':'running owned ping image, no process shutdown','rejected_actions':['alternate-install-directory upgrade','uninstall'],'alternate_directory_absent':True,'old_payload_hashes_preserved':True},'exact_shortcut_collision':{'fresh_cli_exact_name':'rejected before installation changes','unrelated_bytes':'preserved','failed_action':'CheckCliMenu'},'unrelated_integrations':{'start_menu_sibling':'preserved','desktop_sibling':'preserved','product_key_sibling_value':'preserved','sentinel_content_sha256':m.digest(integration_sentinels['content'])},'shortcut_migration':{'fresh_unchecked_properties':'empty values normalized to zero','upgrade_overrides':False,'saved_elections':final_shortcut_elections},'policy_prompts':'not-observed','signing':'unsigned','cancellation':cancellation_evidence,'installer_service_initial':service_ownership,'user_context':{'original_elevated_token':original_token,'ordinary_process':context_evidence},'elected_launcher':{'fixture':fixture_evidence,'elevated_caller':elevated_launch_evidence,'ordinary_caller':context_evidence['elected_launcher']}}
             phase('completed')
         except BaseException as error:

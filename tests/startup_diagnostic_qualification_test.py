@@ -25,15 +25,15 @@ class StartupDiagnosticQualificationTests(unittest.TestCase):
                     patch.object(package.qualify, 'write_receipt') as receipt:
                 package.qualify_package_gui(Path('fixture-desktop'), Path('fixture-directory'), original)
             self.assertEqual(original, {'PATH': 'controlled-system-tools'})
-            self.assertEqual(len(child.call_args_list), 2)
+            self.assertEqual(len(child.call_args_list), 3)
             for call in child.call_args_list:
                 expected = dict(original)
                 if ci == 'true': expected['INSONIC_PROCESS_STARTUP_DIAGNOSTICS'] = '1'
                 self.assertEqual(call.kwargs['env'], expected)
                 self.assertIsNot(call.kwargs['env'], original)
                 self.assertIs(call.kwargs['allow_detached'], True)
-            self.assertEqual([call.kwargs['timeout'] for call in child.call_args_list], [30, 90])
-            self.assertEqual(receipt.call_count, 2)
+            self.assertEqual([call.kwargs['timeout'] for call in child.call_args_list], [30, 35, 90])
+            self.assertEqual(receipt.call_count, 3)
             self.assertTrue(all(call.args[1] == b'actual receipt bytes' for call in receipt.call_args_list))
 
     def test_native_group_keeps_all_packages_and_default_deadline_with_streamed_events(self):
@@ -60,7 +60,7 @@ class StartupDiagnosticQualificationTests(unittest.TestCase):
                     patch.object(qualify, 'write_receipt'):
                 qualify.desktop()
                 build.assert_called_once_with(True, {})
-                self.assertEqual(len(child.call_args_list), 4)
+                self.assertEqual(len(child.call_args_list), 5)
                 for call in child.call_args_list[:2]:
                     self.assertEqual(call.kwargs['env'], {})
                     self.assertNotIn('allow_detached', call.kwargs)

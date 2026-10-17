@@ -11,7 +11,12 @@ import (
 
 func main() { os.Exit(run(os.Args[1:])) }
 func run(args []string) int {
+	mode := ""
+	interactive := false
 	fail := func(e error) int {
+		if interactive && mode == "documentation" {
+			launcher.ReportDocumentationError()
+		}
 		json.NewEncoder(os.Stderr).Encode(map[string]any{"status": "failed", "message": e.Error()})
 		return 1
 	}
@@ -30,9 +35,15 @@ func run(args []string) int {
 		return 0
 	}
 	describe := false
-	mode := ""
 	for _, a := range args {
 		switch a {
+		case "--documentation":
+			if mode != "" {
+				return fail(fmt.Errorf("choose one action"))
+			}
+			mode = "documentation"
+		case "--interactive":
+			interactive = true
 		case "--describe":
 			describe = true
 		case "--desktop":
@@ -46,8 +57,11 @@ func run(args []string) int {
 			}
 			mode = "cli"
 		default:
-			return fail(fmt.Errorf("use --desktop, --cli, --describe, --preflight DIRECTORY SELECTION or --check-shortcut FILE COMPONENT"))
+			return fail(fmt.Errorf("use --desktop, --cli, --documentation, --describe, --preflight DIRECTORY SELECTION or --check-shortcut FILE COMPONENT"))
 		}
+	}
+	if interactive && mode != "documentation" {
+		return fail(fmt.Errorf("interactive warnings require documentation mode"))
 	}
 	exe, e := os.Executable()
 	if e != nil {

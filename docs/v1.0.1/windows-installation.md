@@ -12,8 +12,10 @@ The Windows MSI and application are initially unsigned, with no verified publish
 4. Choose Desktop application, CLI or both. Desktop-only retains the shared runtime and command executable required by the application, while omitting exposed CLI launch integrations. CLI-only omits the desktop application and its WebView2 requirement. At least one client is required.
 5. Keep the per-user program location under `%LOCALAPPDATA%\Programs\insonic`, or browse to a suitable writable program directory. Keep libraries, recordings, models and settings outside it. Spaces and non-ASCII names are supported. No user data is stored in installer-owned program files. An explicitly chosen directory is retained when saved installation metadata is read back.
 6. Choose the optional desktop icon and Start menu integrations. The Start menu folder is **insonic**; the application shortcut is **insonic** and the command shortcut is **insonic CLI**. The desktop shortcut is **insonic**. Integrations follow the selected clients. If an existing shortcut with the exact optional name belongs to another installation or to you, the MSI refuses to overwrite it. Deselect that integration or move your existing shortcut, then retry.
-7. Install, then keep the checked **Launch insonic** option to open the desktop when selected. For CLI-only, **Open insonic CLI** opens a persistent command session with useful help/setup guidance. Clear the option to open the selected client later. Cancellation, failure, unattended installation and maintenance do not launch clients.
-8. Use [optional first-run setup](setup.md), open an existing library or choose **Set up later**. Local filesystem/SQLite/LadybugDB defaults need no service account or API key. Installing insonic does not download inference models or elect connected routes.
+7. Choose **Install** to commit the fresh installation. The execution page shows Windows Installer progress and the current phase. **Cancel** asks for confirmation while cancellation remains available; allow rollback to finish before closing the result. The final page distinguishes success, cancellation and failure.
+8. After successful fresh installation, keep the checked **Launch insonic** option to open the desktop when selected. For CLI-only, **Open insonic CLI** opens a persistent command session with useful help/setup guidance. **Open documentation** is a separate, initially unchecked option. Choose either, both or neither, then select **Finish**. Documentation opens the installed version’s local HTML in the configured Windows HTML/browser association. If it cannot open, the correction explains how to open `help/index.html`, configure an HTML browser or use installer **Repair**; the committed installation remains available.
+9. Neither completion action runs after unattended installation, upgrade, change, repair, removal, cancellation or failure. Those operations have their own result heading and one **Finish** or **Close** action.
+10. Use [optional first-run setup](setup.md), open an existing library or choose **Set up later**. Local filesystem/SQLite/LadybugDB defaults need no service account or API key. Installing insonic does not download inference models or elect connected routes.
 
 ### Optional checksum comparison
 
@@ -88,35 +90,7 @@ Per-user configuration uses `%APPDATA%\insonic`; local data/cache/runtime coordi
 
 ## Installer page walkthrough
 
-These are actual authored MSI pages rendered by native Windows Installer on a disposable Windows Server 2022 runner, build 20348, in English (United States). A restricted installer session elected the illustrated clients, integrations, program path and Launch option, then read back their actual native control values before capture. The images show those fixture choices; they do not prove fresh-install defaults or a completed installation transaction. The normal steps above describe default behavior. No browser reputation, SmartScreen, UAC or other Windows policy prompt was captured.
-
-![Native installer welcome page explains per-user installation and no prerequisite downloads](../screenshots/v1.0.1/installer-01-welcome.png)
-
-Figure 1. Welcome to per-user installation. Select Next to read the license before choosing clients and integrations.
-
-![Native license page shows Apache 2.0 text and an initially unchecked acceptance control](../screenshots/v1.0.1/installer-02-license.png)
-
-Figure 2. Read the Apache License 2.0. Select I accept the Apache License 2.0 to enable Next.
-
-![Native client page shows Desktop application and CLI integrations selected with optional shortcuts](../screenshots/v1.0.1/installer-03-choices.png)
-
-Figure 3. The fixture elects both clients and optional integrations. Choose the clients you want; Desktop-only retains shared runtime bytes, while CLI-only omits the GUI.
-
-![Native location page shows a generic writable program path and Browse control](../screenshots/v1.0.1/installer-04-location.png)
-
-Figure 4. The fixture shows a generic per-user program directory. Keep the default or enter your selected writable program directory; Browse opens directory selection. Keep library data outside this directory.
-
-![Native ready page explains prerequisite verification and offers Install](../screenshots/v1.0.1/installer-05-ready.png)
-
-Figure 5. Check your choices, install missing official prerequisites if requested, then select Install.
-
-![Native maintenance page offers change, repair and removal while preserving user data](../screenshots/v1.0.1/installer-06-maintenance.png)
-
-Figure 6. Close affected clients and finish/cancel work before changing features, repairing or removing this installation.
-
-![Native completion page shows the selected Launch insonic checkbox and Finish control](../screenshots/v1.0.1/installer-07-finish.png)
-
-Figure 7. This authored completion-page fixture elects Launch insonic. Successful interactive fresh installation offers desktop launch, or Open insonic CLI for CLI-only. Clear the option to defer first launch, then select Finish.
+Setup proceeds through license acceptance, client and shortcut choices, program location and an explicit commit page. Execution displays native Installer progress; the final page reports the completed operation or cancellation/failure. Only successful fresh interactive installation offers the independent client and documentation choices.
 
 ## Application walkthrough
 

@@ -848,6 +848,12 @@ def qualify_package_gui(gui, directory, env):
     qualification_output = child([gui, '--qualification'], directory=directory, env=runtime_env, timeout=30, allow_detached=True)
     qualify.write_receipt(ROOT / 'build/native/package-desktop-bridge-receipt.json', qualification_output,
                           {'desktop_bridge': 'passed', 'offline_help': 'packaged', 'schema_version': VERSION})
+    help_args = [gui, '--help-qualification']
+    if platform.system() == 'Linux':
+        help_args = ['/usr/bin/xvfb-run', '-a', *help_args]
+    help_output = child(help_args, directory=directory, env=runtime_env, timeout=35, allow_detached=True)
+    qualify.write_receipt(ROOT / 'build/native/package-help-receipt.json', help_output,
+                          {'offline_help_activation': 'passed', 'workspace': 'not-selected', 'network_policy': 'local-assets-only', 'schema_version': VERSION})
     args = [gui, '--webview-qualification']
     if platform.system() == 'Linux':
         args = ['/usr/bin/xvfb-run', '-a', *args]
@@ -951,7 +957,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
     verify_archive_receipt(archive, receipt)
     started = time.monotonic()
     with tempfile.TemporaryDirectory(prefix='insonic package relocation ') as temporary, ExitStack() as managed_checks:
-        location = Path(temporary) / 'extracted with spaces'
+        location = Path(temporary) / 'extracted é with spaces'
         extract_package(archive, location)
         root = path_inside(location, receipt['inventory_root'])
         inventory_file = path_inside(location, receipt['inventory_path'])
