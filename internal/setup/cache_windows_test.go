@@ -7,6 +7,7 @@ import (
 	"github.com/shruggietech/insonic/internal/workspace"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -71,5 +72,38 @@ func TestAtomicStateRefusesRedirectedTarget(t *testing.T) {
 	data, err := os.ReadFile(target)
 	if err != nil || string(data) != "retain" {
 		t.Fatal("redirected state changed target", err)
+	}
+}
+
+func TestProgramDirectoryAliasRetainsLogicalLocationAndPinsCanonicalFiles(t *testing.T) {
+	dir := t.TempDir()
+	physical := filepath.Join(dir, "physical")
+	alias := filepath.Join(dir, "selected alias")
+	if err := os.Mkdir(physical, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(physical, alias); err != nil {
+		t.Skip("fixture directory alias capability unavailable")
+	}
+	name := filepath.Join(physical, "owned.bin")
+	if err := os.WriteFile(name, []byte("owned"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	c := testChoices
+	c.Directory = alias
+	target, err := filePath(c, File{Path: "owned.bin", SHA256: strings.Repeat("a", 64), Size: 5})
+	expected, resolveErr := filepath.EvalSymlinks(name)
+	if err != nil || resolveErr != nil || target != expected || c.Directory != alias {
+		t.Fatal(target, err, expected, resolveErr)
+	}
+	external := filepath.Join(dir, "external.bin")
+	if err := os.WriteFile(external, []byte("unrelated"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(external, filepath.Join(physical, "outside.bin")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := filePath(c, File{Path: "outside.bin", SHA256: strings.Repeat("a", 64), Size: 9}); err == nil {
+		t.Fatal("accepted a file outside the program tree")
 	}
 }

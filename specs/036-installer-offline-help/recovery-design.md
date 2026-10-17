@@ -1,4 +1,4 @@
-# S036 recovery architecture proposal
+# S036 recovery architecture
 
 Status: owner approved on 2026-10-17 ("Add setup EXE; retain raw MSI (Recommended)"); production implementation is integrated on the branch; complete product qualification remains pending. The earlier recovery expansion and this entry-point selection authorize the additional recommended setup EXE with retained raw-MSI limits. The native direct-coordinator controls pass in actual full UI and silent mode; the embedded variants fail. Focused production source-loss, quiet and actual full-UI failure/cancellation traces pass; they remain separate from complete product qualification.
 

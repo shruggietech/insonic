@@ -25,8 +25,8 @@ type cache struct {
 
 func noReparse(name string) error {
 	name = filepath.Clean(name)
-	if !filepath.IsAbs(name) || len(filepath.VolumeName(name)) != 2 {
-		return errors.New("setup requires an absolute local path")
+	if !filepath.IsAbs(name) || filepath.VolumeName(name) == "" {
+		return errors.New("setup requires an absolute Windows path")
 	}
 	for current := name; ; current = filepath.Dir(current) {
 		p, err := windows.UTF16PtrFromString(current)
@@ -153,6 +153,10 @@ func openCache(takeLock bool) (*cache, error) {
 		return nil, errors.New("setup recovery sources must be processed by the ordinary invoking user")
 	}
 	base, err := windows.KnownFolderPath(windows.FOLDERID_LocalAppData, 0)
+	if err != nil {
+		return nil, err
+	}
+	base, err = filepath.EvalSymlinks(base)
 	if err != nil {
 		return nil, err
 	}

@@ -1094,6 +1094,26 @@ def _smoke(archive=None, dirname=None, receipt=None):
             idle_started = time.monotonic()
             if replacement['state'] != 'succeeded' or recording['recording']['state'] != 'untranscribed' or retained['revision'] != roster['revision'] or retained['members']:
                 raise ValueError('packaged replacement/declared-empty roster authority changed')
+        except BaseException:
+            # Preserve bounded execution metadata before the owned disposable
+            # workspace is removed. Never dump payloads or result documents.
+            import sqlite3
+            try:
+                database=workspace/'.insonic/catalog.sqlite'
+                with sqlite3.connect(database.as_uri()+'?mode=ro',uri=True,timeout=1) as connection:
+                    state={}
+                    for name,query in {
+                        'revision':'SELECT revision FROM workspace',
+                        'graph':'SELECT next_sequence,checkpoint,generation,lease_until FROM graph_target LIMIT 4',
+                        'work':'SELECT kind,state,phase,error,generation,lease_until FROM work_operation LIMIT 8',
+                    }.items():
+                        try:
+                            rows=connection.execute(query)
+                            state[name]=[dict(zip([column[0] for column in rows.description],row)) for row in rows]
+                        except sqlite3.Error:state[name]='unavailable'
+                print('Package fixture execution state: '+json.dumps(state,sort_keys=True),file=sys.stderr,flush=True)
+            except (OSError,sqlite3.Error):pass
+            raise
         finally:
             # Join both activity paths before allowing every detached owner its
             # idle exit; an image still held afterward remains a hard failure.

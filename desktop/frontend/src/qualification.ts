@@ -205,12 +205,20 @@ async function qualifyJourney(
     );
     await click('Import');
     stage(`Wait for ${kind} import job`);
+    let importState = 'not observed';
     await wait(async () => {
       const jobs = await call('work.list', '', { limit: 100 });
-      return jobs.items
-        .filter((j: Obj) => j.kind === 'media.import')
-        .every((j: Obj) => j.state === 'succeeded');
-    }, 'Media import fixture did not succeed.');
+      const imports = jobs.items.filter((j: Obj) => j.kind === 'media.import');
+      // These fields describe controlled fixture execution without logging its
+      // source paths, payloads, result documents or credentials.
+      importState = JSON.stringify(imports.slice(0, 4).map((j: Obj) => ({
+        state: j.state, phase: j.phase, error: j.error,
+        generation: j.generation, lease_until: j.lease_until,
+      })));
+      if (imports.some((j: Obj) => ['failed', 'cancelled'].includes(j.state)))
+        throw new Error(`Media import fixture terminated: ${importState}`);
+      return imports.length > 0 && imports.every((j: Obj) => j.state === 'succeeded');
+    }, () => `Media import fixture did not succeed: ${importState}`);
     await click('Refresh library');
     await click(`Open Desktop qualification ${kind}`);
     await bridge.QualificationStep?.(`${kind}-playback`);

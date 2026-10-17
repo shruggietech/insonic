@@ -273,8 +273,12 @@ func snapshot(product string) (Choices, error) {
 		return c, err
 	}
 	c.Directory = filepath.Clean(c.Directory)
-	if !filepath.IsAbs(c.Directory) || len(filepath.VolumeName(c.Directory)) != 2 || noReparse(c.Directory) != nil {
-		return c, errors.New("previous program directory is unavailable or redirected")
+	if !filepath.IsAbs(c.Directory) {
+		return c, errors.New("previous program directory is not absolute")
+	}
+	resolvedDirectory, err := filepath.EvalSymlinks(c.Directory)
+	if err != nil {
+		return c, errors.New("previous program directory is unavailable")
 	}
 	for name, target := range map[string]*bool{"StartMenu": &c.StartMenu, "DesktopShortcut": &c.DesktopShortcut} {
 		v, _, err := key.GetStringValue(name)
@@ -286,11 +290,11 @@ func snapshot(product string) (Choices, error) {
 	if _, err := choiceProperties(c); err != nil {
 		return c, err
 	}
-	marker, err := readBounded(filepath.Join(c.Directory, "insonic-msi-ownership.json"), 1024)
+	marker, err := readBounded(filepath.Join(resolvedDirectory, "insonic-msi-ownership.json"), 1024)
 	if err != nil || string(marker) != "{\"family\":\"insonic\",\"kind\":\"windows-msi-installation\"}\n" {
 		return c, errors.New("previous program ownership marker differs")
 	}
-	data, err := readBounded(filepath.Join(c.Directory, "package-inventory.json"), 32<<20)
+	data, err := readBounded(filepath.Join(resolvedDirectory, "package-inventory.json"), 32<<20)
 	if err != nil {
 		return c, err
 	}
@@ -323,7 +327,18 @@ func filePath(c Choices, f File) (string, error) {
 	if filepath.Clean(rel) != rel || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 		return "", errors.New("installed inventory escapes program directory")
 	}
-	target := filepath.Join(c.Directory, rel)
+	root, err := filepath.EvalSymlinks(c.Directory)
+	if err != nil {
+		return "", err
+	}
+	target, err := filepath.EvalSymlinks(filepath.Join(c.Directory, rel))
+	if err != nil {
+		return "", err
+	}
+	actual, err := filepath.Rel(root, target)
+	if err != nil || !strings.EqualFold(actual, rel) {
+		return "", errors.New("installed inventory points outside its canonical program tree")
+	}
 	if err := noReparse(target); err != nil {
 		return "", err
 	}

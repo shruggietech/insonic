@@ -156,6 +156,8 @@ class NativeUI:
         self.u.GetWindowRect.argtypes=[W.HWND,C.POINTER(W.RECT)]
         self.u.GetWindowLongW.argtypes=[W.HWND,C.c_int];self.u.GetWindowLongW.restype=W.LONG
         self.u.GetDlgItem.argtypes=[W.HWND,C.c_int];self.u.GetDlgItem.restype=W.HWND
+        self.u.SetForegroundWindow.argtypes=[W.HWND];self.u.SetForegroundWindow.restype=W.BOOL
+        self.u.GetForegroundWindow.restype=W.HWND
         self.dll.MsiSetInternalUI.argtypes=[W.UINT,C.POINTER(W.HWND)];self.dll.MsiSetInternalUI.restype=W.UINT
         self.dll.MsiInstallProductW.argtypes=[W.LPCWSTR,W.LPCWSTR];self.dll.MsiInstallProductW.restype=W.UINT
         self.dll.MsiQueryProductStateW.argtypes=[W.LPCWSTR];self.dll.MsiQueryProductStateW.restype=C.c_int
@@ -217,6 +219,27 @@ class NativeUI:
         button=self.button(controls,label)
         if not self.u.IsWindowEnabled(button):raise RuntimeError('native control is disabled: '+label)
         if not self.u.PostMessageW(button,0xf5,0,0):raise C.WinError(C.get_last_error())
+
+    def escape(self,hwnd):
+        # Exercise Windows keyboard routing, including Installer's dialog key
+        # handling. Posting WM_KEYDOWN directly to the dialog skips that route.
+        # This driver operates only on the disposable runner's exact owned UI.
+        if hwnd not in self.windows():raise RuntimeError('keyboard target is not an owned native dialog')
+        self.u.SetForegroundWindow(hwnd)
+        deadline=time.monotonic()+2
+        while self.u.GetForegroundWindow()!=hwnd and time.monotonic()<deadline:time.sleep(.01)
+        if self.u.GetForegroundWindow()!=hwnd:raise RuntimeError('owned native dialog did not acquire keyboard input')
+        class Keyboard(C.Structure):
+            _fields_=[('key',W.WORD),('scan',W.WORD),('flags',W.DWORD),('time',W.DWORD),('extra',C.c_size_t)]
+        class Mouse(C.Structure):
+            _fields_=[('x',W.LONG),('y',W.LONG),('data',W.DWORD),('flags',W.DWORD),('time',W.DWORD),('extra',C.c_size_t)]
+        class Payload(C.Union):_fields_=[('keyboard',Keyboard),('mouse',Mouse)]
+        class Input(C.Structure):_fields_=[('type',W.DWORD),('payload',Payload)]
+        events=(Input*2)()
+        for event,flags in zip(events,(0,2)):
+            event.type=1;event.payload.keyboard=Keyboard(0x1b,0,flags,0,0)
+        self.u.SendInput.argtypes=[W.UINT,C.POINTER(Input),C.c_int];self.u.SendInput.restype=W.UINT
+        if self.u.SendInput(2,events,C.sizeof(Input))!=2:raise RuntimeError('owned native keyboard input was not delivered')
 
     def check(self,controls,label,value):
         hwnd=self.button(controls,label)
@@ -422,7 +445,7 @@ class NativeUI:
                         if name=='remove':
                             # Escape uses the authored terminal cancel/default
                             # control and must retain the committed success code.
-                            self.u.PostMessageW(hwnd,0x0100,0x1b,0);self.u.PostMessageW(hwnd,0x0101,0x1b,0)
+                            self.escape(hwnd)
                             state['terminal_keyboard']='Escape'
                         else:self.click(controls,'Finish' if page=='Finish' else 'Close')
                         terminal_closed=True

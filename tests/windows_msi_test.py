@@ -292,7 +292,7 @@ class InstallerModelTests(unittest.TestCase):
         token={'user_sid_sha256':'owned','elevated':False}
         def state(product):return 1 if product=='old' else -1
         dll=SimpleNamespace(MsiQueryProductStateW=state)
-        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'qualifier',return_value=SimpleNamespace(diagnostic_mode=lambda stage:'rollback-reused')),patch.object(module,'rollback_case',side_effect=lambda stage,name:{'name':name,'token':token}),patch.object(module.C,'WinDLL',return_value=dll),patch.object(m,'CompoundFile',side_effect=lambda path:SimpleNamespace(streams=Path(path).name)),patch.object(m,'table_rows',side_effect=lambda stream,table:[['ProductCode','old' if stream=='ui-old.msi' else 'new']]):
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'qualifier',return_value=SimpleNamespace(diagnostic_mode=lambda stage:'rollback-reused')),patch.object(module,'rollback_case',side_effect=lambda stage,name:{'name':name,'token':token}),patch.object(module.C,'WinDLL',return_value=dll,create=True),patch.object(m,'CompoundFile',side_effect=lambda path:SimpleNamespace(streams=Path(path).name)),patch.object(m,'table_rows',side_effect=lambda stream,table:[['ProductCode','old' if stream=='ui-old.msi' else 'new']]):
             result=module.observe_rollback(stage,token,lambda *args:(_ for _ in ()).throw(RuntimeError('native cleanup1603')))
         self.assertEqual(result['transactions'][-1]['registered_states'],{'old':1,'new':-1})
         self.assertTrue(result['restored_old_payload']);self.assertFalse(result['feature_qualification'])

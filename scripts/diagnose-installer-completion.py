@@ -63,6 +63,21 @@ def observe_invocation(stage,token,quiet_install):
     return result
 
 
+def observe_keyboard(stage,token,quiet_install):
+    m.disposable_runner();stage=Path(stage)
+    if qualifier().diagnostic_mode(stage)!='keyboard':raise RuntimeError('keyboard diagnostic is not elected')
+    from qualify_installer_ui import NativeUI
+    installer=stage/'ui-old.msi';directory=stage/'UI program é & spaces'
+    product=dict(m.table_rows(m.CompoundFile(installer).streams,'Property'))['ProductCode']
+    try:
+        quiet_install(['/i',str(installer),'INSTALLDIR='+str(directory),'ADDLOCAL=Core,CLI','REMOVE=Desktop','START_MENU=0','DESKTOP_SHORTCUT=0','LICENSE_ACCEPTED=1','LAUNCH=0'],stage/'native/context.keyboard-install.log')
+        transaction=NativeUI(stage/'native/context.keyboard.json').run(installer,directory,'remove',operation='remove',selection='cli')
+        return {'feature_qualification':False,'state':'passed','token':token,'transaction':transaction}
+    finally:
+        dll=C.WinDLL('msi');dll.MsiQueryProductStateW.argtypes=[W.LPCWSTR];dll.MsiQueryProductStateW.restype=C.c_int
+        if dll.MsiQueryProductStateW(product) in (1,5):quiet_install(['/x',product],stage/'native/context.keyboard-remove.log')
+
+
 
 def reinstall_advertised_probe(dll,product,source,properties):
     """Diagnostic only: public removal followed by the original full package."""
@@ -323,9 +338,10 @@ def main():
     model=m.installer_model(inventory,m.digest(raw),(fixture/'LICENSE').read_text(encoding='utf-8'),upgrade=m.guid('invocation-diagnostic/'+__import__('uuid').uuid4().hex))
     installer=work/'diagnostic.msi';m.author(installer,fixture,model)
     kind=os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_KIND','completion')
-    if kind not in ('completion','rollback','msiexec','recovery','exit','container','container-independent','standalone','standalone-full','setup','setup-full'):raise RuntimeError('unknown diagnostic kind')
-    modes=['completion'] if kind=='completion' else ['rollback-msiexec'] if kind=='msiexec' else ['rollback-recovery'] if kind=='recovery' else ['rollback-exit-quiet','rollback-exit-full'] if kind=='exit' else ['rollback-standalone-full'] if kind=='standalone-full' else ['rollback-standalone'] if kind=='standalone' else ['rollback-container-independent'] if kind=='container-independent' else ['rollback-container'] if kind=='container' else [mode for mode in q.DIAGNOSTIC_MODES[1:] if mode not in ('rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container','rollback-container-independent','rollback-standalone','rollback-standalone-full')]
+    if kind not in ('completion','keyboard','rollback','msiexec','recovery','exit','container','container-independent','standalone','standalone-full','setup','setup-full'):raise RuntimeError('unknown diagnostic kind')
+    modes=['completion'] if kind=='completion' else ['rollback-msiexec'] if kind=='msiexec' else ['rollback-recovery'] if kind=='recovery' else ['rollback-exit-quiet','rollback-exit-full'] if kind=='exit' else ['rollback-standalone-full'] if kind=='standalone-full' else ['rollback-standalone'] if kind=='standalone' else ['rollback-container-independent'] if kind=='container-independent' else ['rollback-container'] if kind=='container' else [mode for mode in q.DIAGNOSTIC_MODES[1:] if mode not in ('rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet','rollback-container','rollback-container-independent','rollback-standalone','rollback-standalone-full','keyboard')]
     if kind in ('setup','setup-full'):modes=['rollback-'+kind]
+    if kind=='keyboard':modes=['keyboard']
     results=[]
     for mode in modes:
         os.environ['INSONIC_INSTALLER_DIAGNOSTIC_MODE']=mode

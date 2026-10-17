@@ -1,6 +1,6 @@
 # Upgrade rollback decision
 
-Status: expansion authorized by the owner on 2026-10-17 ("Expand S036 recovery scope"). No product recovery or source-retention behavior is implemented yet. S036 remains draft in PR #151.
+Status: expansion authorized by the owner on 2026-10-17 ("Expand S036 recovery scope"). Production recovery and source retention are integrated on the S036 branch. Complete product qualification and the reserved second review remain pending; PR #151 is draft.
 
 ## Established evidence
 
