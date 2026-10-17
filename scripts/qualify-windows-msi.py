@@ -660,8 +660,13 @@ def ordinary_ui_worker(stage):
     directory=[row for row in before['directories']['objects'] if row['path']==target and row['requested_access']==15]
     absent=[row for row in before['mutex']['objects'] if 'insonic-absent-' in row['name']]
     if len(directory)!=1 or not directory[0]['opened'] or not absent or any(row['opened'] or row['error']!=2 for row in absent):raise RuntimeError('ordinary native object namespace still denies exact directory access or absent mutex lookup')
-    from qualify_installer_ui import qualify as qualify_ui
-    proof=qualify_ui(stage,stage/'fixture.msi',stage/'installed program é with spaces',stage/'native/context.json',observed,run_installer)
+    if (stage/'completion-invocation-diagnostic.json').is_file():
+        import runpy
+        diagnostic=runpy.run_path(str(stage/'scripts/diagnose-installer-completion.py'),run_name='owned_invocation_diagnostic')
+        proof=diagnostic['observe_invocation'](stage,observed,run_installer)
+    else:
+        from qualify_installer_ui import qualify as qualify_ui
+        proof=qualify_ui(stage,stage/'fixture.msi',stage/'installed program é with spaces',stage/'native/context.json',observed,run_installer)
     output.write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
 
 def interactive_ordinary(stage,name,sid,password,profile,desktop,record,probe_only=False):
@@ -1403,7 +1408,7 @@ def qualifier_profile_privileges(names=('SeBackupPrivilege','SeRestorePrivilege'
                 if not security.AdjustTokenPrivileges(token,False,C.byref(previous),0,None,None) or C.get_last_error():raise C.WinError(C.get_last_error())
         finally:kernel.CloseHandle(token)
 
-def ordinary_context(installer,directory,output,model=None,service_ownership=None):
+def ordinary_context(installer,directory,output,model=None,service_ownership=None,diagnostic_only=False):
     """Qualify an actual ordinary account, exclusively on a disposable runner."""
     m.disposable_runner()
     import secrets
@@ -1463,7 +1468,10 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
         for original in fixture.iterdir():
             if original.is_file() and m.sha(original)!=m.sha(stage/'launcher-context-fixture'/original.name):raise RuntimeError('ordinary launcher fixture copy differs')
         from qualify_installer_ui import prepare
-        prepare(stage,fixture,clone)
+        prepare(stage,fixture,clone,diagnostic_only=diagnostic_only)
+        if diagnostic_only:
+            shutil.copyfile(m.ROOT/'scripts/diagnose-installer-completion.py',scripts/'diagnose-installer-completion.py')
+            (stage/'completion-invocation-diagnostic.json').write_text('{"qualification":false}',encoding='utf-8',newline='\n')
         (stage/'context-model.json').write_text(json.dumps(model),encoding='utf-8',newline='\n')
         install=stage/'installed program é with spaces';worker_output=native/'context.json'
         args=[str(scripts/'qualify-windows-msi.py'),'--ordinary-worker',str(target),'--context-dir',str(install),'--output',str(worker_output)]
@@ -1475,7 +1483,11 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
                     probe=interactive_ordinary(stage,name,sid,password,profile,ui_desktop,record,probe_only=True)
                     with interactive_context_namespace(stage,sid,caller_sid,ui_desktop,probe) as namespace:
                         interactive_ordinary(stage,name,sid,password,profile,ui_desktop,record)
-                scheduler=scheduler_ordinary(stage,name,sid,password,args,record,profile)
+                if diagnostic_only:
+                    scheduler={'skipped':'invocation diagnostic only, no feature qualification'}
+                    invocation=json.loads((native/'context.ui.json').read_text(encoding='utf-8'))
+                    worker_output.write_text(json.dumps({'token':invocation['token'],'user_profile':str(profile),'os_policy_mutations':{},'diagnostic':invocation,'feature_qualification':False}),encoding='utf-8',newline='\n')
+                else:scheduler=scheduler_ordinary(stage,name,sid,password,args,record,profile)
         finally:
             if namespace:record('owned-session-namespace-restoration',namespace=namespace)
             if ui_desktop:record('inactive-full-UI-desktop-restoration',desktop=ui_desktop)

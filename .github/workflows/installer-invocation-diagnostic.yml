@@ -1,0 +1,35 @@
+name: Installer invocation diagnostic
+on:
+  pull_request:
+    paths:
+      - scripts/diagnose-installer-completion.py
+      - .github/workflows/installer-invocation-diagnostic.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  invocation:
+    name: diagnostic only (does not qualify MSI)
+    runs-on: windows-2022
+    timeout-minutes: 5
+    env:
+      INSONIC_DISPOSABLE_INSTALLER_TEST: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - run: python scripts/bootstrap-actions.py setup-go --output build/actions/setup-go
+      - uses: ./build/actions/setup-go
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Trace one documentation completion invocation
+        run: python scripts/diagnose-installer-completion.py
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          archive: true
+          name: installer-invocation-diagnostic-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/completion-invocation-diagnostic/evidence
+          if-no-files-found: warn
+          retention-days: 7

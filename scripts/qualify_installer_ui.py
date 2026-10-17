@@ -18,7 +18,7 @@ import uuid
 import windows_msi as m
 
 
-def prepare(stage, fixture, clone):
+def prepare(stage, fixture, clone, diagnostic_only=False):
     """Build a small instrumented package with the production MSI author/model.
 
     The separate exact-payload lifecycle and full-UI install remain mandatory.
@@ -50,6 +50,7 @@ def prepare(stage, fixture, clone):
     finally:db.close()
     config={'version':version,'old_product':model['product_code'],'new_product':m.product_code(new_version,family),'payload':model['payload'],'family':family}
     (stage/'ui-model.json').write_text(json.dumps(config),encoding='utf-8',newline='\n')
+    if diagnostic_only:return
     # A system browser is readable by the new ordinary account. Do not use the
     # elevated runner's private Playwright cache or change a machine association.
     browsers=[Path(os.environ.get('ProgramFiles(x86)','C:/Program Files (x86)'))/'Microsoft/Edge/Application/msedge.exe',Path(os.environ.get('ProgramFiles','C:/Program Files'))/'Google/Chrome/Application/chrome.exe']
