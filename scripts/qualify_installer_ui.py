@@ -387,7 +387,26 @@ def qualify(stage,exact_installer,exact_directory,output,token,quiet_install):
                     deadline=time.monotonic()+25
                     client=directory/('insonic.exe.token.json' if selection=='cli' else 'insonic-desktop.exe.token.json')
                     while (launch and not client.is_file()) or (docs and not receipt.is_file()):
-                        if time.monotonic()>deadline:raise RuntimeError('elected completion did not finish: '+name)
+                        if time.monotonic()>deadline:
+                            # A failed election never becomes passing proof after
+                            # this direct diagnostic. Keep MSI and direct paths distinct.
+                            diagnostic={'kind':'failed-completion-direct-launch-diagnostic','case':name,'elected_completion_passed':False,'probes':[]}
+                            for arguments in (['--describe','--documentation'],['--documentation']):
+                                try:
+                                    child=subprocess.run([str(directory/'insonic-launcher.exe'),*arguments],cwd=directory,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=10)
+                                    diagnostic['probes'].append({'arguments':arguments,'exit_code':child.returncode,'stdout':child.stdout.decode(errors='replace')[:4000],'stderr':child.stderr.decode(errors='replace')[:4000]})
+                                except subprocess.TimeoutExpired:diagnostic['probes'].append({'arguments':arguments,'timed_out':True})
+                            settle=time.monotonic()+15
+                            while time.monotonic()<settle:
+                                helper=stage/'documentation-handler.exe.diagnostic.json'
+                                if helper.is_file():
+                                    observed=json.loads(helper.read_text(encoding='utf-8'));diagnostic['post_direct_handler']=observed
+                                    if observed.get('error') or observed.get('stage')=='offline-renderer-completed':break
+                                if receipt.is_file():diagnostic['post_direct_receipt_present']=True;break
+                                time.sleep(.05)
+                            (stage/'native/context.association-direct-launch.json').write_text(json.dumps(diagnostic,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+                            raise RuntimeError('elected completion did not finish: '+name)
+
                         time.sleep(.025)
                     if client.exists()!=launch or receipt.exists()!=docs:raise RuntimeError('independent completion election mismatch')
                     if launch:
