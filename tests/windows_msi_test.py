@@ -229,6 +229,11 @@ class InstallerModelTests(unittest.TestCase):
                 target.write_text(json.dumps(invalid),encoding='utf-8')
                 with self.assertRaisesRegex(RuntimeError,'diagnostic mode'):module.diagnostic_mode(self.path)
 
+    def test_native_client_preparation_is_not_an_error_dialog(self):
+        import qualify_installer_ui as ui
+        self.assertFalse(ui.native_client_error_dialog(['','Preparing to install...','Cancel','']))
+        self.assertTrue(ui.native_client_error_dialog(['Invalid command line argument.','OK']))
+
     def test_msiexec_diagnostic_has_hidden_explicit_owned_launch(self):
         from types import SimpleNamespace
         import qualify_installer_ui as ui

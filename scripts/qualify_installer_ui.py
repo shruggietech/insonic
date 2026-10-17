@@ -75,6 +75,9 @@ class ProgressInspection:
         if self.deadline is not None and not self.event.is_set():self.event.wait(min(.02,max(0,self.deadline-self.clock())))
 
 
+def native_client_error_dialog(labels):
+    return 'OK' in labels and 'Preparing to install...' not in labels
+
 def launch_msiexec_diagnostic(msi,directory,log):
     m.disposable_runner();msi=Path(msi);stage=msi.resolve().parent;log=Path(log)
     if stage.parent!=Path(os.environ['ProgramData']).resolve() or not __import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name) or msi.name not in ('ui-old.msi','ui-bad.msi') or (stage/'completion-invocation-diagnostic.json').read_text(encoding='utf-8')!='{"qualification":false}' or Path(directory).resolve()!=stage/'UI program é & spaces' or log.resolve().parent!=stage/'native' or not __import__('re').fullmatch('context.ui-rollback-(install|failed-upgrade).log',log.name):raise RuntimeError('native msiexec diagnostic is outside its owned stage')
@@ -265,7 +268,7 @@ class NativeUI:
                         self.click(controls,'OK');time.sleep(.03);continue
                     state['last_native_window']={'title':self.text(hwnd)[:120],'controls':[label[:160] for label in labels[:24]]}
                     if self.text(hwnd)!='insonic Setup':
-                        if native_process and self.text(hwnd)=='Windows Installer':
+                        if native_process and self.text(hwnd)=='Windows Installer' and native_client_error_dialog(labels):
                             state['native_client_dialog']={'title':self.text(hwnd),'text':joined,'classes':[self.klass(c) for c in controls]}
                             state['captures'].append(self.capture(hwnd,name+'-native-client-error'))
                             self.click(controls,'OK')
