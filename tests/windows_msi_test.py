@@ -193,7 +193,7 @@ class InstallerModelTests(unittest.TestCase):
     def test_invocation_diagnostic_refuses_owner_host_before_native_calls(self):
         spec=importlib.util.spec_from_file_location('invocation_guard',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with patch.dict(os.environ,{},clear=True),patch.object(module,'qualifier') as native:
-            for function,args in [(module.main,()),(module.observe_invocation,(None,None,None))]:
+            for function,args in [(module.main,()),(module.observe_invocation,(None,None,None)),(module.observe_rollback,(None,None,None)),(module.rollback_case,(None,None))]:
                 with self.assertRaisesRegex(RuntimeError,'disposable'):function(*args)
             native.assert_not_called()
 

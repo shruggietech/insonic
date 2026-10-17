@@ -1,6 +1,12 @@
 name: Installer invocation diagnostic
 on:
   workflow_dispatch:
+    inputs:
+      kind:
+        description: Focused diagnostic boundary (never product qualification)
+        type: choice
+        default: completion
+        options: [completion, rollback]
 permissions:
   contents: read
 jobs:
@@ -10,6 +16,7 @@ jobs:
     timeout-minutes: 5
     env:
       INSONIC_DISPOSABLE_INSTALLER_TEST: '1'
+      INSONIC_INSTALLER_DIAGNOSTIC_KIND: ${{ inputs.kind }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:

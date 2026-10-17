@@ -9,7 +9,7 @@ Add native modeless engine progress and outcome-specific MSI pages; use a shared
 ## Technical Context
 
 Language: pinned Go, Python 3 and TypeScript/React. Dependencies: native MSI tables via ctypes, pinned Wails v2.16, existing Windows user-token launcher and package/browser qualification. No new runtime framework or storage migration.
-Targets: Windows x86-64 MSI/CLI/desktop and Linux x86-64 desktop help. Existing SQLite/PostgreSQL, filesystem/S3 and LadybugDB/ArcadeDB behavior remains shared and unchanged.
+Targets: Windows x86-64 MSI/CLI/desktop and Linux x86-64 desktop help. Existing SQLite/PostgreSQL, filesystem/S3 and LadybugDB/ArcadeDB contracts remain shared.
 Constraints: 660-second CI budget, no visible local consoles, actual native evidence separated from static/dialog fixtures, installed-version offline help, non-elevated same-user launch, no inference or owner media.
 
 ## Constitution Check
@@ -34,3 +34,7 @@ Regressions precede changes. Shared help resolution first; independent MSI progr
 ## Complexity Tracking
 
 No constitution exceptions. Two read-only research agents inspect MSI and help boundaries under the planning command; primary agent owns implementation.
+
+## Qualification corrections (2026-10-17)
+
+A focused invocation trace replaces repeated inference from ignored MSI action status: actual arguments, startup desktop, UI-library initialization and delegate exit identify the boundary before changing dispatch. The disposable actor uses the CI Default desktop selected by MSI, with exact-account grants and complete restoration. The manual diagnostic cannot publish feature proof. Maintenance Repair uses standard omus without recaching its open package; native0 and exact restored bytes remain required. Deterministic writer-held regressions also correct single-table catalog lists and named model lookups to avoid unnecessary immediate writer reservations, retaining multi-table snapshots. These proportional corrections unblock the mandatory existing package journeys without reducing their assertions.

@@ -60,6 +60,47 @@ def observe_invocation(stage,token,quiet_install):
     return result
 
 
+
+def rollback_case(stage,name):
+    m.disposable_runner();stage=Path(stage);q=qualifier()
+    from qualify_installer_ui import NativeUI
+    marker=json.loads((stage/'owned-ci-account.json').read_text(encoding='utf-8'))
+    token=q.token_info()
+    if stage.resolve().parent!=Path(os.environ['ProgramData']).resolve() or not (stage/'completion-invocation-diagnostic.json').is_file() or marker.get('sid_sha256')!=token['user_sid_sha256'] or token['administrator_enabled'] or token['elevated']:raise RuntimeError('rollback diagnostic is not the exact owned ordinary account')
+    if name not in ('install','failed-upgrade'):raise RuntimeError('unknown owned rollback diagnostic case')
+    installer=stage/('ui-old.msi' if name=='install' else 'ui-bad.msi')
+    row=NativeUI(stage/'native/context.json').run(installer,stage/'UI program é & spaces','rollback-'+name,selection='cli',operation='install' if name=='install' else 'upgrade',expected=0 if name=='install' else 1603)
+    row['token']=token
+    (stage/'native'/('context.rollback-'+name+'.json')).write_text(json.dumps(row,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+    return row
+
+
+def observe_rollback(stage,token,quiet_install):
+    m.disposable_runner();stage=Path(stage)
+    isolated=os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_MODE')=='rollback-isolated'
+    result={'kind':'owned-native-rollback-comparison','feature_qualification':False,'token':token,'isolated_transaction_processes':isolated,'transactions':[]}
+    products=[dict(m.table_rows(m.CompoundFile(stage/name).streams,'Property'))['ProductCode'] for name in ('ui-old.msi','ui-bad.msi')]
+    dll=C.WinDLL('msi');dll.MsiQueryProductStateW.argtypes=[W.LPCWSTR];dll.MsiQueryProductStateW.restype=C.c_int
+    try:
+        for name in ('install','failed-upgrade'):
+            if isolated:
+                command=[str(Path(sys.executable).with_name('python.exe')),str(Path(__file__)), '--rollback-case',str(stage),name]
+                done=subprocess.run(command,cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=75)
+                (stage/'native'/('context.rollback-'+name+'-stream.log')).write_bytes(done.stdout+done.stderr)
+                if done.returncode:raise RuntimeError('isolated rollback diagnostic child failed '+str(done.returncode))
+                row=json.loads((stage/'native'/('context.rollback-'+name+'.json')).read_text(encoding='utf-8'))
+            else:row=rollback_case(stage,name)
+            if row['token']!=token:raise RuntimeError('rollback comparison changed the ordinary token')
+            row['registered_states']={product:int(dll.MsiQueryProductStateW(product)) for product in products};result['transactions'].append(row)
+        directory=stage/'UI program é & spaces';model=json.loads((stage/'ui-model.json').read_text(encoding='utf-8'))
+        result['restored_old_payload']=all((directory/item['path']).is_file() and m.sha(directory/item['path'])==item['sha256'] for item in model['payload'] if item['feature']!='Desktop')
+        result['state']='passed'
+        return result
+    finally:
+        for product in products:
+            if dll.MsiQueryProductStateW(product) in (1,5):quiet_install(['/x',product],stage/'native'/('context.rollback-cleanup-'+product.strip('{}')+'.log'))
+
+
 WRAPPER=r''' if filepath.Base(exe)=="insonic-launcher.exe" {
   marker,e:=os.ReadFile(filepath.Join(filepath.Dir(directory),"completion-invocation-diagnostic.json"));if e!=nil||string(marker)!="{\"qualification\":false}" {fatal("DiagnosticScope",fmt.Errorf("not the owned invocation fixture"))}
   cwd,_:=os.Getwd()
@@ -118,8 +159,18 @@ def main():
     (fixture/'package-inventory.json').write_bytes(raw)
     model=m.installer_model(inventory,m.digest(raw),(fixture/'LICENSE').read_text(encoding='utf-8'),upgrade=m.guid('invocation-diagnostic/'+__import__('uuid').uuid4().hex))
     installer=work/'diagnostic.msi';m.author(installer,fixture,model)
-    result=q.ordinary_context(installer,work/'installed',evidence/'ordinary-context.json',model,diagnostic_only=True)
-    print(json.dumps({'diagnostic_trace_complete':True,'feature_qualification':False,'invocation':result['diagnostic']['invocation']},indent=2))
+    kind=os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_KIND','completion')
+    if kind not in ('completion','rollback'):raise RuntimeError('unknown diagnostic kind')
+    modes=['completion'] if kind=='completion' else ['rollback-reused','rollback-isolated']
+    results=[]
+    for mode in modes:
+        os.environ['INSONIC_INSTALLER_DIAGNOSTIC_MODE']=mode
+        folder=evidence/mode;folder.mkdir()
+        result=q.ordinary_context(installer,work/'installed',folder/'ordinary-context.json',model,diagnostic_only=True)
+        results.append({'mode':mode,'diagnostic':result['diagnostic']})
+    print(json.dumps({'diagnostic_trace_complete':True,'feature_qualification':False,'results':results},indent=2))
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    if len(sys.argv)==4 and sys.argv[1]=='--rollback-case':rollback_case(sys.argv[2],sys.argv[3])
+    else:main()

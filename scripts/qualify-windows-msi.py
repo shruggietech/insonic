@@ -663,7 +663,9 @@ def ordinary_ui_worker(stage):
     if (stage/'completion-invocation-diagnostic.json').is_file():
         import runpy
         diagnostic=runpy.run_path(str(stage/'scripts/diagnose-installer-completion.py'),run_name='owned_invocation_diagnostic')
-        proof=diagnostic['observe_invocation'](stage,observed,run_installer)
+        mode=os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_MODE','completion')
+        if mode not in ('completion','rollback-reused','rollback-isolated'):raise RuntimeError('unknown owned MSI diagnostic mode')
+        proof=diagnostic['observe_invocation' if mode=='completion' else 'observe_rollback'](stage,observed,run_installer)
     else:
         from qualify_installer_ui import qualify as qualify_ui
         proof=qualify_ui(stage,stage/'fixture.msi',stage/'installed program é with spaces',stage/'native/context.json',observed,run_installer)
