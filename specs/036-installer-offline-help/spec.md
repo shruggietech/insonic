@@ -3,7 +3,7 @@
 **Feature Branch**: codex/036-installer-offline-help
 **Created**: 2026-10-17
 **Status**: Clarified
-**Input**: S036 autopilot for #109, #110 and #111; publish PR, up to two review rounds, stop before owner merge. On 2026-10-17 the owner explicitly expanded S036 to include the reproduced native upgrade rollback and recovery defect.
+**Input**: S036 autopilot for #109, #110 and #111 plus owner-approved recovery issue #152; publish PR, up to two review rounds, stop before owner merge. On 2026-10-17 the owner explicitly expanded S036 to include the reproduced native upgrade rollback and recovery defect.
 
 ## User Scenarios & Testing
 
@@ -107,7 +107,7 @@ A failed or cancelled upgrade leaves the previous installed version usable and r
 
 ## Assumptions and Clarifications
 
-- Scope is #109/#110/#111 plus the owner-approved native upgrade recovery expansion; desktop-wide density #112 and File/Exit #113 remain separate.
+- Scope is #109/#110/#111 plus the owner-approved native upgrade recovery expansion #152; desktop-wide density #112 and File/Exit #113 remain separate.
 - Documentation defaults unchecked. Upgrade/change/repair/removal do not offer fresh-install post-actions.
 - Prefer a shared supported native help opener; an internal GUI help view is allowed if needed.
 - Interactive transactions/capture run only on acknowledged disposable hosted runners; no attended owner gate.

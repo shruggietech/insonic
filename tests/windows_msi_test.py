@@ -210,6 +210,27 @@ class InstallerModelTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'source'):module.reinstall_advertised_probe(dll,'old',self.path/'missing.msi','ADDLOCAL=Core,CLI')
         self.assertEqual(calls,[])
 
+    def test_recovery_exit_probe_retains_startup_and_uses_failure_termination(self):
+        import ast
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('recovery_exit_author',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        stage=self.path/'owned-exit-probe';(stage/'scripts').mkdir(parents=True);(stage/'native').mkdir();(stage/'ui-model.json').write_text(json.dumps({'old_product':'owned-old-product'}),encoding='utf-8');rows=[]
+        db=SimpleNamespace(execute=lambda sql,args:rows.append(args),check=lambda code:None,handle=1,dll=SimpleNamespace(MsiDatabaseCommit=lambda handle:0),close=lambda:None)
+        with patch.object(m,'disposable_runner',return_value=None),patch.object(module,'qualifier',return_value=SimpleNamespace(diagnostic_mode=lambda path:'rollback-exit-quiet')),patch.object(m,'NativeDatabase',return_value=db),patch.dict(os.environ,{'GITHUB_ACTIONS':'true','RUNNER_ENVIRONMENT':'github-hosted','INSONIC_DISPOSABLE_INSTALLER_TEST':'1'}):module.author_recovery_exit_probe(stage)
+        self.assertIn(['OwnedRecoveryFailure','OLDPRODUCTS',-3],rows)
+        action=next(row for row in rows if row[0]=='OwnedRecoveryFailure' and len(row)==4)
+        self.assertEqual(action[1:3],[114,'OWNED_RECOVERY_PYTHON']);self.assertTrue(action[3].startswith('-I "'))
+        source=(stage/'scripts/recovery-exit-bootstrap.py').read_text(encoding='utf-8');ast.parse(source)
+        self.assertIn('environment_before',source);self.assertIn('context.recovery-exit-stream.log',source);self.assertIn('--recover-registration',source)
+
+    def test_recovery_reinstall_probe_does_not_install_after_failed_unregister(self):
+        from types import SimpleNamespace
+        spec=importlib.util.spec_from_file_location('recovery_reinstall_failure',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        source=self.path/'old.msi';source.write_bytes(b'original owned MSI');calls=[]
+        dll=SimpleNamespace(MsiQueryProductStateW=lambda product:1,MsiConfigureProductExW=lambda *args:1603,MsiInstallProductW=lambda *args:calls.append(args))
+        with patch.object(m,'disposable_runner',return_value=None):result=module.reinstall_advertised_probe(dll,'old',source,'ADDLOCAL=Core,CLI LAUNCH=0')
+        self.assertEqual(calls,[]);self.assertEqual(result['uninstall_code'],1603);self.assertNotIn('install_code',result)
+
     def test_recovery_reinstall_probe_uses_public_absent_then_original_package(self):
         from types import SimpleNamespace
         spec=importlib.util.spec_from_file_location('recovery_reinstall_order',ROOT/'scripts/diagnose-installer-completion.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)

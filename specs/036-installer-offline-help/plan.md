@@ -14,7 +14,7 @@ Constraints: 660-second CI budget, no visible local consoles, actual native evid
 
 ## Constitution Check
 
-Before and after design: PASS. Original #109/#110/#111 scope plus owner-approved upgrade recovery; CLI/GUI share native help mechanisms; no media/data ownership change; no routing/policy expansion; native user boundaries preserved; public contracts separate from numbered planning; current version unchanged; no kit byte edits; explicit push/PR authorization honored and owner retains merge. No exceptions.
+Before and after design: PASS. Original #109/#110/#111 scope plus owner-approved upgrade recovery #152; CLI/GUI share native help mechanisms; no media/data ownership change; no routing/policy expansion; native user boundaries preserved; public contracts separate from numbered planning; current version unchanged; no kit byte edits; explicit push/PR authorization honored and owner retains merge. No exceptions.
 
 ## Project Structure
 

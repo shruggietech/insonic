@@ -143,12 +143,21 @@ def author_recovery_exit_probe(stage):
     m.disposable_runner();stage=Path(stage)
     if qualifier().diagnostic_mode(stage) not in ('rollback-exit-full','rollback-exit-quiet'):raise RuntimeError('recovery exit sequence is not elected')
     product=json.loads((stage/'ui-model.json').read_text(encoding='utf-8'))['old_product']
-    target='"'+str(stage/'scripts/diagnose-installer-completion.py')+'" --recover-registration "'+str(stage)+'" "'+product+'" available-source'
+    bootstrap=stage/'scripts/recovery-exit-bootstrap.py'
+    environment={key:os.environ[key] for key in ('GITHUB_ACTIONS','RUNNER_ENVIRONMENT','INSONIC_DISPOSABLE_INSTALLER_TEST')}
+    command=[str(stage/'scripts/diagnose-installer-completion.py'),'--recover-registration',str(stage),product,'available-source']
+    code='import json,os,runpy,sys,traceback\nfrom pathlib import Path\n'
+    code+='stage=Path('+repr(str(stage))+')\nsys.stdout=sys.stderr=open(stage/"native/context.recovery-exit-stream.log","w",encoding="utf-8",buffering=1)\n'
+    code+='trace={"feature_qualification":False,"environment_before":{key:os.environ.get(key) for key in '+repr(tuple(environment))+'}}\n'
+    code+='(stage/"native/context.recovery-exit-startup.json").write_text(json.dumps(trace),encoding="utf-8")\n'
+    code+='os.environ.update('+repr(environment)+')\nsys.argv='+repr(command)+'\nsys.path.insert(0,str(stage/"scripts"))\nrunpy.run_path(sys.argv[0],run_name="__main__")\n'
+    bootstrap.write_text(code,encoding='utf-8',newline='\n')
+    target='-I "'+str(bootstrap)+'"'
     db=m.NativeDatabase(stage/'ui-bad.msi',write=True)
     try:
         q=m.quote
         db.execute('INSERT INTO '+q('Property')+' ('+q('Property')+','+q('Value')+') VALUES (?,?)',['OWNED_RECOVERY_PYTHON',str(Path(sys.executable).with_name('pythonw.exe'))])
-        db.execute('INSERT INTO '+q('CustomAction')+' ('+','.join(q(c[0]) for c in m.SCHEMA['CustomAction'])+') VALUES (?,?,?,?)',['OwnedRecoveryFailure',50,'OWNED_RECOVERY_PYTHON',target])
+        db.execute('INSERT INTO '+q('CustomAction')+' ('+','.join(q(c[0]) for c in m.SCHEMA['CustomAction'])+') VALUES (?,?,?,?)',['OwnedRecoveryFailure',114,'OWNED_RECOVERY_PYTHON',target])
         db.execute('INSERT INTO '+q('InstallExecuteSequence')+' ('+','.join(q(c[0]) for c in m.SCHEMA['InstallExecuteSequence'])+') VALUES (?,?,?)',['OwnedRecoveryFailure','OLDPRODUCTS',-3])
         db.check(db.dll.MsiDatabaseCommit(db.handle))
     finally:db.close()
@@ -260,7 +269,7 @@ def main():
     installer=work/'diagnostic.msi';m.author(installer,fixture,model)
     kind=os.environ.get('INSONIC_INSTALLER_DIAGNOSTIC_KIND','completion')
     if kind not in ('completion','rollback','msiexec','recovery','exit'):raise RuntimeError('unknown diagnostic kind')
-    modes=['completion'] if kind=='completion' else ['rollback-msiexec'] if kind=='msiexec' else ['rollback-recovery'] if kind=='recovery' else ['rollback-exit-full','rollback-exit-quiet'] if kind=='exit' else [mode for mode in q.DIAGNOSTIC_MODES[1:] if mode not in ('rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet')]
+    modes=['completion'] if kind=='completion' else ['rollback-msiexec'] if kind=='msiexec' else ['rollback-recovery'] if kind=='recovery' else ['rollback-exit-quiet','rollback-exit-full'] if kind=='exit' else [mode for mode in q.DIAGNOSTIC_MODES[1:] if mode not in ('rollback-msiexec','rollback-recovery','rollback-exit-full','rollback-exit-quiet')]
     results=[]
     for mode in modes:
         os.environ['INSONIC_INSTALLER_DIAGNOSTIC_MODE']=mode
