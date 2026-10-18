@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-17
 
-**Status**: Specified
+**Status**: Implemented in PR #153; awaiting owner final review and merge
 
 **Input**: Owner-approved autopilot for #112 and #113, including push, PR creation and at most two review rounds; stop before owner final review and merge.
 

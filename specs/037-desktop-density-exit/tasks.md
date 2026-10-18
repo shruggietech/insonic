@@ -30,8 +30,8 @@ Independent test: actual owned native menu activation quits without/with a works
 ## Phase 5: Delivery
 
 - [x] T012 Document the actual density/menu/shutdown behavior and approved consumer adaptation in docs/v1.0.1/desktop.md, development.md and CHANGELOG.md; publish representative clean-source images and original receipt in docs/screenshots/v1.0.1 (FR-005/FR-009).
-- [ ] T013 Run required root/frontend/Python/Go/site checks, rendered/native proofs and convergence; record exact evidence and limits in specs/037-desktop-density-exit/verification.md (FR-008/FR-009, SC-001..SC-005).
-- [ ] T014 Commit/push, open the two-issue PR, maintain milestone/Project tracking, resolve at most two code/security review rounds, verify exact-head CI/all threads and stop unmerged for owner final review (SC-005).
+- [x] T013 Run required root/frontend/Python/Go/site checks, rendered/native proofs and convergence; record exact evidence and limits in specs/037-desktop-density-exit/verification.md (FR-008/FR-009, SC-001..SC-005).
+- [x] T014 Commit/push, open the two-issue PR, maintain milestone/Project tracking, resolve at most two code/security review rounds, verify exact-head CI/all threads and stop unmerged for owner final review (SC-005).
 
 ## Dependencies and execution
 
@@ -43,4 +43,4 @@ T001 -> T002 -> T003 -> T004 -> T005 -> T006/T007; independently T008 -> T009 ->
 
 ## Phase 7: Convergence
 
-- [ ] T016 Correct desktop dependency-cache identity and add an opt-in concise verified candidate log summary, preserving full manifests/default output/all qualification gates; rerun the complete pipeline within660seconds per SC-005 (partial, HIGH). The first fully green run took669seconds including final cleanup.
+- [x] T016 Correct desktop dependency-cache identity and add an opt-in concise verified candidate log summary, preserving full manifests/default output/all qualification gates; rerun the complete pipeline within660seconds per SC-005 (partial, HIGH). The first fully green run took669seconds including final cleanup.
