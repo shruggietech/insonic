@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"syscall"
 	"time"
 	"unsafe"
@@ -86,10 +87,7 @@ func activateNativeExit(action string) error {
 	case "close":
 		return post(0x10, 0, 0)
 	case "alt-f4":
-		if err = post(0x104, 0x73, 0x203e0001); err != nil {
-			return err
-		}
-		return post(0x105, 0x73, 0xe03e0001)
+		return sendNativeAltF4(hwnd)
 	case "menu":
 		// The normal system keyboard-menu route opens File with Alt+F. No direct
 		// command ID or callback fallback may satisfy this qualification.
@@ -118,4 +116,47 @@ func activateNativeExit(action string) error {
 		return fmt.Errorf("Alt+F did not enter the owned native menu (query=%t, flags=%d, active=%t, owner=%t)", queried, flags, active, owner)
 	}
 	return fmt.Errorf("unknown native Exit action")
+}
+
+// INPUT/KEYBDINPUT use the Windows amd64 ABI (40-byte INPUT, union at byte8).
+type exitKeyboardInput struct {
+	Kind        uint32
+	_           uint32
+	Key, Scan   uint16
+	Flags, Time uint32
+	_           uint32
+	Extra       uintptr
+	_           [8]byte
+}
+
+func requireNativeInputTarget(hwnd uintptr) error {
+	var pid uint32
+	exitWinCall("GetWindowThreadProcessId", hwnd, uintptr(unsafe.Pointer(&pid)))
+	if hwnd == 0 || pid != uint32(os.Getpid()) || exitWinCall("GetForegroundWindow") != hwnd || exitWinCall("IsWindowVisible", hwnd) == 0 || exitWinCall("IsWindowEnabled", hwnd) == 0 {
+		return fmt.Errorf("native input requires this process's visible foreground fixture window")
+	}
+	return nil
+}
+
+// This explicit disposable-UI probe uses the real input system. Posted messages
+// alone cannot establish the system keyboard processing used by Alt+F4.
+func sendNativeAltF4(hwnd uintptr) error {
+	if err := requireNativeInputTarget(hwnd); err != nil {
+		return err
+	}
+	keys := []exitKeyboardInput{{Kind: 1, Key: 0x12}, {Kind: 1, Key: 0x73}, {Kind: 1, Key: 0x73, Flags: 2}, {Kind: 1, Key: 0x12, Flags: 2}}
+	sent, _, nativeError := exitUser32.NewProc("SendInput").Call(uintptr(len(keys)), uintptr(unsafe.Pointer(&keys[0])), unsafe.Sizeof(keys[0]))
+	runtime.KeepAlive(keys)
+	if sent != uintptr(len(keys)) {
+		// Release modifiers even if the system accepted only part of the chord.
+		releases := []exitKeyboardInput{{Kind: 1, Key: 0x73, Flags: 2}, {Kind: 1, Key: 0x12, Flags: 2}}
+		exitWinCall("SendInput", uintptr(len(releases)), uintptr(unsafe.Pointer(&releases[0])), unsafe.Sizeof(releases[0]))
+		runtime.KeepAlive(releases)
+		var code uintptr
+		if typed, ok := nativeError.(syscall.Errno); ok {
+			code = uintptr(typed)
+		}
+		return fmt.Errorf("native Alt+F4 input rejected (sent=%d, error=%d)", sent, code)
+	}
+	return nil
 }
