@@ -456,7 +456,7 @@ def document_archives(output, revision, root=ROOT, runner=child):
                     if path.is_file(): archive.add(path, arcname=path.relative_to(directory).as_posix())
 
 
-def collect(input_directory, output, revision, root=ROOT, verifier=verify_package, runner=child):
+def collect(input_directory, output, revision, root=ROOT, verifier=verify_package, runner=child, *, summary=False):
     receipts = [path for path in input_directory.rglob('package-*-receipt.json') if path.name in ('package-cli-receipt.json', 'package-desktop-receipt.json') and read_json(path).get('kind') == 'native-package-receipt']
     receipts += [path for path in input_directory.rglob('windows-installer-receipt.json') if read_json(path).get('kind') == 'windows-installer-receipt']
     with tempfile.TemporaryDirectory(prefix='insonic release aggregation ') as temporary:
@@ -475,7 +475,12 @@ def collect(input_directory, output, revision, root=ROOT, verifier=verify_packag
             matches = list(input_directory.rglob(filename))
             if len(matches) != 1: raise ValueError('downloaded documentation is missing or ambiguous')
             shutil.copyfile(matches[0], assets / filename)
-        return candidate(receipts, assets, output, revision, root, verifier, runner)
+        value = candidate(receipts, assets, output, revision, root, verifier, runner)
+        if not summary:
+            return value
+        return {'kind': 'release-candidate-summary', 'version': value['version'], 'revision': value['revision'],
+                'package_count': len(value['packages']), 'asset_count': len(value['assets']),
+                'manifest': file_entry(output / 'release-manifest.json')}
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -987,7 +992,7 @@ def main():
     p = sub.add_parser('validate'); p.add_argument('--revision', required=True); p.add_argument('--tag')
     p = sub.add_parser('docs'); p.add_argument('--revision', required=True); p.add_argument('--output', type=Path, required=True)
     p = sub.add_parser('candidate'); p.add_argument('--revision', required=True); p.add_argument('--assets', type=Path, required=True); p.add_argument('--output', type=Path, required=True); p.add_argument('receipts', nargs='+', type=Path)
-    p = sub.add_parser('collect'); p.add_argument('--revision', required=True); p.add_argument('--input', type=Path, required=True); p.add_argument('--output', type=Path, required=True)
+    p = sub.add_parser('collect'); p.add_argument('--revision', required=True); p.add_argument('--input', type=Path, required=True); p.add_argument('--output', type=Path, required=True); p.add_argument('--summary', action='store_true', help='Print concise completion metadata; retain the complete verified manifest in the output directory')
     p = sub.add_parser('trusted'); p.add_argument('--revision', required=True)
     p = sub.add_parser('publish'); p.add_argument('--candidate', type=Path, required=True); p.add_argument('--highlights', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT)
     p = sub.add_parser('published'); p.add_argument('--revision', required=True); p.add_argument('--output', type=Path, required=True); p.add_argument('--source-root', type=Path, default=ROOT)
@@ -1001,7 +1006,7 @@ def main():
     elif options.command == 'validate': result = {'version': versions(), 'revision': options.revision}; exact_source(options.revision, tag=options.tag)
     elif options.command == 'docs': document_archives(options.output, options.revision); result = {'documentation': 'packaged'}
     elif options.command == 'candidate': result = candidate(options.receipts, options.assets, options.output, options.revision)
-    elif options.command == 'collect': result = collect(options.input, options.output, options.revision)
+    elif options.command == 'collect': result = collect(options.input, options.output, options.revision, summary=options.summary)
     elif options.command == 'trusted': result = trusted_history(options.revision, GitHub(os.environ.get('GH_TOKEN', '')))
     elif options.command == 'publish': result = publish(options.candidate, options.highlights.read_text(encoding='utf-8'), GitHub(os.environ.get('GH_TOKEN', '')), root=options.source_root, trusted_root=ROOT)
     elif options.command == 'published': result = published_candidate(options.output, options.revision, GitHub(os.environ.get('GH_TOKEN', '')), root=options.source_root, trusted_root=ROOT)
