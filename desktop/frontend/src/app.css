@@ -189,3 +189,87 @@ html[data-reduced-motion='true'] *::after {
   block-size: 70vh;
   border: var(--bb-border-strong) solid var(--bb-text-muted);
 }
+
+/* Desktop compact composition uses the pinned consuming-host extension contract.
+   Keep the governed target minimum: selection labels own the full target while
+   native glyphs use a proportional token-sized visual. No kit bytes change. */
+[data-bb-host="wails"] {
+  font-size: var(--in-body-md);
+}
+[data-bb-host="wails"] .app-header {
+  gap: var(--in-space-1);
+  padding: var(--in-space-2);
+}
+[data-bb-host="wails"] .desktop-content {
+  gap: var(--in-space-3);
+  padding: var(--in-space-3);
+}
+[data-bb-host="wails"] :is(section, form, fieldset, .bb-card, .bb-field) {
+  min-inline-size: 0;
+  gap: var(--in-space-2);
+}
+[data-bb-host="wails"] :is(h1, h2, h3, p) {
+  margin-block: var(--in-space-1);
+}
+[data-bb-host="wails"] :is(.app-header, nav, .actions) {
+  min-inline-size: 0;
+  gap: var(--in-space-1);
+}
+[data-bb-host="wails"] .bb-button {
+  justify-self: start;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  box-sizing: border-box;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding: var(--in-space-1) var(--in-space-2);
+}
+[data-bb-host="wails"] .bb-field__control {
+  padding: var(--in-space-2);
+}
+[data-bb-host="wails"] .desktop-selection {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: var(--in-space-2);
+  min-block-size: var(--bb-interaction-target-minimum);
+  min-inline-size: var(--bb-interaction-target-minimum);
+  max-inline-size: 100%;
+  box-sizing: border-box;
+  padding: var(--in-space-1);
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+[data-bb-host="wails"] .desktop-selection > .bb-field__control:is([type="checkbox"], [type="radio"]) {
+  appearance: auto;
+  flex: none;
+  inline-size: var(--in-space-4);
+  block-size: var(--in-space-4);
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding: 0;
+  margin: 0;
+}
+[data-bb-host="wails"] .desktop-selection:has(:disabled) {
+  cursor: default;
+  opacity: var(--bb-state-disabled-opacity);
+}
+[data-bb-host="wails"] .table-scroll {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+[data-bb-host="wails"] :is(th, td) {
+  padding: var(--in-space-1) var(--in-space-2);
+}
+
+/* Bound fixed chrome so enlarged navigation remains scrollable and the main
+   region keeps usable height. AppFrame continues to own root scrolling. */
+[data-bb-host="wails"] .app-header {
+  max-block-size: 50dvh;
+  min-block-size: 0;
+  overflow: auto;
+  box-sizing: border-box;
+}
+[data-bb-host="wails"] .desktop-selection > span {
+  min-inline-size: 0;
+}

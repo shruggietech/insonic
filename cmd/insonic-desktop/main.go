@@ -12,9 +12,6 @@ import (
 	"github.com/shruggietech/insonic/internal/contracts"
 	local "github.com/shruggietech/insonic/internal/runtime"
 	"github.com/shruggietech/insonic/internal/workspace"
-	"github.com/wailsapp/wails/v2"
-	"github.com/wailsapp/wails/v2/pkg/options"
-	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"os"
 	"sync/atomic"
@@ -30,6 +27,12 @@ func main() {
 }
 
 func run() (exitCode int) {
+	if len(os.Args) == 2 && os.Args[1] == "--exit-qualification" {
+		return qualifyNativeExit()
+	}
+	if len(os.Args) == 3 && os.Args[1] == "--exit-qualification-child" {
+		return qualifyNativeExitChild(os.Args[2])
+	}
 	if len(os.Args) == 2 && os.Args[1] == "--help-qualification" {
 		return qualifyHelpOnly()
 	}
@@ -40,7 +43,7 @@ func run() (exitCode int) {
 		// returned, including runtime cancellation and fixture removal.
 		defer func() {
 			if exitCode == 0 && smokePassed.Load() {
-				json.NewEncoder(os.Stdout).Encode(map[string]any{"schema_version": contracts.Version, "native_webview": "passed", "frontend_bridge_ipc": "passed", "desktop_journeys": "passed", "ui_model_references": "passed", "audio_video_playback": "passed", "model_execution": "not-run"})
+				json.NewEncoder(os.Stdout).Encode(map[string]any{"schema_version": contracts.Version, "native_webview": "passed", "frontend_bridge_ipc": "passed", "desktop_journeys": "passed", "ui_model_references": "passed", "audio_video_playback": "passed", "model_execution": "not-run", "ui_compact_density": "passed"})
 			}
 		}()
 	}
@@ -58,20 +61,6 @@ func run() (exitCode int) {
 		return 0
 	}
 	bridge := &desktop.Bridge{CLIExecutable: desktop.SiblingCLI()}
-	closePlayback, err := desktop.StartPlaybackTransport(bridge)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Desktop playback transport unavailable.")
-		return 1
-	}
-	defer func() {
-		if smoke {
-			fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: playback")
-		}
-		closePlayback()
-		if smoke {
-			fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: playback complete")
-		}
-	}()
 	var startup func(context.Context)
 	var domReady func(context.Context)
 	var smokeContext context.Context
@@ -147,30 +136,11 @@ func run() (exitCode int) {
 			raw, _ := json.Marshal(response.Result)
 			var result map[string]any
 			json.Unmarshal(raw, &result)
-			for _, name := range []string{"ui_library_import", "ui_metadata_date", "ui_current_assembly", "ui_audio_playback", "ui_video_source_audio_playback", "ui_cue_seek", "ui_terms", "ui_speakers", "ui_pipelines", "ui_jobs", "ui_settings", "ui_model_references", "ui_keyboard_help", "ui_offline_help_activation", "ui_explore_calendar", "ui_explore_query", "ui_explore_graph", "ui_query_assistance"} {
+			for _, name := range []string{"ui_library_import", "ui_metadata_date", "ui_current_assembly", "ui_audio_playback", "ui_video_source_audio_playback", "ui_cue_seek", "ui_terms", "ui_speakers", "ui_pipelines", "ui_jobs", "ui_settings", "ui_model_references", "ui_keyboard_help", "ui_offline_help_activation", "ui_explore_calendar", "ui_explore_query", "ui_explore_graph", "ui_query_assistance", "ui_compact_density"} {
 				passed = passed && result[name] == "passed"
 			}
 			smokePassed.Store(passed)
 			wailsruntime.Quit(smokeContext)
-		}
-	}
-	previousStartup := startup
-	startup = func(ctx context.Context) {
-		desktop.SetPicker(bridge, func(kind string) (string, error) {
-			switch kind {
-			case "workspace":
-				return wailsruntime.OpenDirectoryDialog(ctx, wailsruntime.OpenDialogOptions{Title: "Choose workspace"})
-			case "media":
-				return wailsruntime.OpenFileDialog(ctx, wailsruntime.OpenDialogOptions{Title: "Choose audio or video"})
-			case "subtitle":
-				return wailsruntime.OpenFileDialog(ctx, wailsruntime.OpenDialogOptions{Title: "Choose subtitles", Filters: []wailsruntime.FileFilter{{DisplayName: "Subtitles", Pattern: "*.srt;*.vtt;*.ass;*.ssa;*.cueson;*.json"}}})
-			case "output":
-				return wailsruntime.SaveFileDialog(ctx, wailsruntime.SaveDialogOptions{Title: "Export subtitles"})
-			}
-			return "", contracts.Fail("invalid_request")
-		})
-		if previousStartup != nil {
-			previousStartup(ctx)
 		}
 	}
 	if len(os.Args) == 3 && os.Args[1] == "--workspace" {
@@ -181,7 +151,7 @@ func run() (exitCode int) {
 		}
 		bridge.Workspace = w
 	}
-	if err := wails.Run(&options.App{Title: "insonic", Width: 1200, Height: 800, MinWidth: 720, MinHeight: 600, StartHidden: desktop.QualificationStartsHidden(smoke), OnStartup: startup, OnDomReady: domReady, OnShutdown: func(context.Context) { desktop.ClosePlaybackHandles(bridge) }, AssetServer: &assetserver.Options{Assets: desktop.Assets, Middleware: desktop.HelpAssetPolicy, Handler: desktop.PlaybackServer{Bridge: bridge}}, Bind: []any{bridge}}); err != nil {
+	if err := runDesktopApplication(bridge, startup, domReady, desktop.QualificationStartsHidden(smoke)); err != nil {
 		fmt.Fprintln(os.Stderr, "Desktop startup failed.")
 		return 1
 	}

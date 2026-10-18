@@ -94,7 +94,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: site/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            desktop/frontend/package-lock.json
+            site/package-lock.json
       - name: Linux webview dependencies
         if: runner.os == 'Linux' && inputs.native && matrix.runtime_lane == 'desktop'
         run: |
@@ -288,7 +291,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: site/package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            desktop/frontend/package-lock.json
+            site/package-lock.json
       - name: Linux webview dependencies
         if: runner.os == 'Linux' && inputs.native && matrix.variant == 'desktop'
         run: |

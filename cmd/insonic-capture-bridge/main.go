@@ -192,7 +192,7 @@ func authorize(c call, library string) error {
 		if decode(c.Args[0], &req) != nil || !contracts.ValidID(req.RequestID) {
 			return fmt.Errorf("request boundary")
 		}
-		allowed := map[string]bool{"workspace.show": true, "settings.show": true, "setup.show": true, "setup.save": true, "pipelines.list": true, "media.list": true, "work.list": true, "import-presets.list": true, "models.list": true, "models.alias.list": true}
+		allowed := map[string]bool{"workspace.show": true, "settings.show": true, "setup.show": true, "setup.save": true, "pipelines.list": true, "media.list": true, "work.list": true, "import-presets.list": true, "models.list": true, "models.alias.list": true, "models.speaker.list": true, "models.source.list": true, "workers.catalog": true, "models.defaults": true}
 		if !allowed[req.Operation] {
 			return fmt.Errorf("operation is not in capture inventory: %.60s", req.Operation)
 		}

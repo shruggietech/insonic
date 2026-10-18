@@ -207,6 +207,34 @@ class ReleaseDeliveryTests(unittest.TestCase):
         release.candidate(receipts or self.receipts, self.assets, target, REVISION, self.root, verify_fixture, runner)
         return target
 
+    def test_collect_summary_keeps_complete_manifest_and_rejects_tampering(self):
+        source = self.root / 'downloads'
+        source.mkdir()
+        for receipt in self.receipts:
+            value = release.read_json(receipt)
+            installer = value['kind'] == 'windows-installer-receipt'
+            directory = source / ('installer' if installer else value['platform'] + '-' + value['variant'])
+            directory.mkdir()
+            shutil.copyfile(receipt, directory / ('windows-installer-receipt.json' if installer else 'package-' + value['variant'] + '-receipt.json'))
+        shutil.copytree(self.assets, source / 'assets')
+        target = self.root / 'summary-candidate'
+        summary = release.collect(source, target, REVISION, self.root, verify_fixture, runner, summary=True)
+        full = release.read_json(target / 'release-manifest.json')
+        self.assertEqual(summary['kind'], 'release-candidate-summary')
+        self.assertEqual(summary['manifest'], release.file_entry(target / 'release-manifest.json'))
+        self.assertEqual(summary['package_count'], 4)
+        self.assertEqual(summary['asset_count'], len(full['assets']))
+        self.assertEqual(len(full['packages']), 4)
+        self.assertIn('payload_receipt', full['installers'][0])
+        self.assertLess(len(json.dumps(summary)), 1024)
+        ordinary = release.collect(source, self.root / 'full-candidate', REVISION, self.root, verify_fixture, runner)
+        self.assertEqual(ordinary, full)
+        archive = source / 'assets' / full['packages'][0]['archive']
+        archive.write_bytes(b'changed')
+        with self.assertRaisesRegex(ValueError, 'archive differs'):
+            release.collect(source, self.root / 'rejected-summary', REVISION, self.root, verify_fixture, runner, summary=True)
+        self.assertFalse((self.root / 'rejected-summary').exists())
+
     def test_public_release_metadata_is_get_only_and_exact(self):
         value = {'tag': 'v' + VERSION, 'revision': REVISION}
         published = {'id': 1, 'tag_name': value['tag'], 'target_commitish': REVISION,

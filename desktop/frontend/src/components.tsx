@@ -114,24 +114,24 @@ export function Check({
   label,
   value,
   onChange,
+  disabled = false,
 }: {
   label: string;
   value: boolean;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
 }) {
   const id = useId();
   return (
-    <Field
-      id={id}
-      label={label}
-      layout="inline"
-      control={
-        <FormControls.Checkbox
-          checked={value}
-          onChange={(e) => onChange(e.target.checked)}
-        />
-      }
-    />
+    <label className="desktop-selection" htmlFor={id}>
+      <FormControls.Checkbox
+        id={id}
+        checked={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <span>{label}</span>
+    </label>
   );
 }
 export function Actions({ children }: { children: ReactNode }) {

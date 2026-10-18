@@ -7,6 +7,7 @@ import http from 'node:http';
 import {spawn} from 'node:child_process';
 import {createHash,randomBytes} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
+import {runDensityMatrix} from './desktop-density-capture.mjs';
 
 export const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 export const VERSION=JSON.parse(await readFile(path.join(ROOT,'package.json'),'utf8')).version;
@@ -56,7 +57,7 @@ async function run(executable,args,options={}) {
   });
 }
 
-const captureInputs=['desktop','cmd/insonic','cmd/insonic-capture-bridge','internal','schemas','brand','go.mod','go.sum','package.json','package-lock.json','scripts/capture-application-ui.mjs'];
+const captureInputs=['desktop','cmd/insonic','cmd/insonic-capture-bridge','internal','schemas','brand','go.mod','go.sum','package.json','package-lock.json','scripts/capture-application-ui.mjs','scripts/desktop-density-capture.mjs'];
 export async function sourceSnapshot(repository=ROOT) {
   const revision=(await run('git',['rev-parse','HEAD'],{cwd:repository})).trim();
   const files=[...new Set((await run('git',['ls-files','--cached','--others','--exclude-standard','-z',...captureInputs],{cwd:repository})).split('\0').filter(Boolean))].sort();
@@ -105,7 +106,7 @@ export async function capture(options) {
   if(source.dirty){await progress('source.identity','failed');throw Error('Capture requires clean tracked source and no untracked capture inputs.');}
   const cliBytes=await readFile(options.cli),bridgeBytes=await readFile(options.bridge);
   const cliSource=assertBinarySource(cliBytes,source.revision),bridgeSource=assertBinarySource(bridgeBytes,source.revision);
-  await checkpoint('frontend.build',()=>run(process.execPath,[path.join(ROOT,'desktop/frontend/build.mjs')]),30000);
+  await checkpoint('frontend.build',()=>run(process.execPath,[path.join(ROOT,'desktop/frontend/build.mjs'),'--tests']),30000);
   const fixtureBase=os.platform()==='win32'?path.parse(os.tmpdir()).root:os.tmpdir();
   const fixture=await mkdtemp(path.join(fixtureBase,'insonic-capture-'));
   const library=path.join(fixture,'My voice archive');
@@ -115,6 +116,7 @@ export async function capture(options) {
   for(const dir of [env.APPDATA,env.LOCALAPPDATA,env.XDG_CONFIG_HOME])await mkdir(dir,{recursive:true});
   let helper,browser,server,endpoint,helperToken,exitPromise,helperStderr='',failure,capturedReceipt;
   const capturedImages=new Map();
+  const densityImages=[];let densityResult;
   try {
     await progress('helper.start');
     helper=spawn(options.bridge,['--library',library,'--cli',options.cli],{cwd:fixture,env,windowsHide:true,stdio:['pipe','pipe','pipe']});helper.stdin.end();
@@ -200,6 +202,12 @@ export async function capture(options) {
     await screenshot('setup-processing.png','Optional local processing (Step 3 of 5)','Figure 3. Optional processing follows successful library creation; import and supplied subtitles need no model download.');
     await page.getByRole('button',{name:'Set up later',exact:true}).click();
     await screenshot('library-ready.png','Library','Figure 4. Deferring setup leaves the ordinary Library controls available.');
+    densityResult=await runDensityMatrix(page,context,{checkpoint,image:async(name,landmark,caption)=>{
+      const bytes=await page.screenshot({animations:'disabled',caret:'hide'});
+      capturedImages.set(name,bytes);
+      densityImages.push({path:name,sha256:sha(bytes),width:bytes.readUInt32BE(16),height:bytes.readUInt32BE(20),landmark,caption});
+    }});
+    await page.setViewportSize({width:viewport.width,height:viewport.height});
     await page.getByRole('button',{name:'Set up library',exact:true}).click();
     await page.getByRole('heading',{name:'Optional local processing (Step 3 of 5)',exact:true}).waitFor();
     if(errors.length||blocked.length)throw Error('Capture had browser errors or attempted an external request: '+errors.slice(0,8).join('; ')+' '+transportErrors.join('; ')+' '+helperStderr.slice(-1000));
@@ -212,7 +220,7 @@ export async function capture(options) {
     failure=error;await progress('capture','failed');throw error;
   } finally {
     const cleanupErrors=[];
-    const cleanup=async(name,operation,timeout=5000)=>{try{return await checkpoint('cleanup.'+name,operation,timeout)}catch(error){cleanupErrors.push(error.code||'cleanup_failed');return null}};
+    const cleanup=async(name,operation,timeout=5000)=>{try{return await checkpoint('cleanup.'+name,operation,timeout)}catch(error){cleanupErrors.push(error.code||'cleanup_failed');console.error(JSON.stringify({phase:'cleanup.'+name,event:'error',code:error.code||'cleanup_failed'}));return null}};
     if(browser)await cleanup('browser',()=>browser.close(),8000);
     if(server)await cleanup('server',()=>new Promise(resolve=>{server.closeAllConnections();server.close(resolve)}));
     if(endpoint&&helperToken)try{await checkpoint('cleanup.helper.shutdown',()=>fetch(endpoint+'/shutdown',{method:'POST',headers:{'X-Capture-Token':helperToken,Origin:endpoint},signal:AbortSignal.timeout(4000)}),5000)}catch{await progress('cleanup.helper.shutdown','connection_closed')}
@@ -222,7 +230,9 @@ export async function capture(options) {
     if(!failure&&cleanupErrors.length)throw Error('Capture cleanup did not complete within its bounds.');
   }
   capturedReceipt.verification.cleanup_complete=true;
-  await checkpoint('publish',async()=>{await mkdir(options.output,{recursive:true});for(const image of capturedReceipt.images)await writeFile(path.join(options.output,image.path),capturedImages.get(image.path));await writeFile(path.join(options.output,'application-capture.json'),JSON.stringify(capturedReceipt,null,2)+'\n','utf8')});
+  const densityReceipt={...capturedReceipt,kind:'desktop-density-capture',images:densityImages,viewport:{matrix:true},verification:{...capturedReceipt.verification,compact_density:densityResult}};
+  if(densityImages.length!==7||densityResult?.state!=='passed')throw Error('Density capture is incomplete.');
+  await checkpoint('publish',async()=>{await mkdir(options.output,{recursive:true});for(const image of [...capturedReceipt.images,...densityImages])await writeFile(path.join(options.output,image.path),capturedImages.get(image.path));await writeFile(path.join(options.output,'application-capture.json'),JSON.stringify(capturedReceipt,null,2)+'\n','utf8');await writeFile(path.join(options.output,'density-capture.json'),JSON.stringify(densityReceipt,null,2)+'\n','utf8')});
   return capturedReceipt;
 }
 

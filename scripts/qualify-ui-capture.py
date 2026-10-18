@@ -30,6 +30,18 @@ def main():
     output = qualify.child(['node', ROOT / 'scripts/capture-application-ui.mjs', '--cli', cli, '--bridge', helper, '--browser', browser, '--output', options.output], env=values, timeout=150)
     print(output.decode('utf-8'))
     receipt = json.loads((options.output / 'application-capture.json').read_text(encoding='utf-8'))
+    density = json.loads((options.output / 'density-capture.json').read_text(encoding='utf-8'))
+    matrix = density.get('verification', {}).get('compact_density', {})
+    scenarios = matrix.get('scenarios', [])
+    expected = {(view, width, scale, text) for view in ['Setup', 'Library', 'Jobs', 'Pipelines', 'Models', 'Settings']
+                for width in [1200, 720] for scale in [1, 1.25, 1.5, 2] for text in [1, 2]}
+    observed = {(item['view'], item['width'], item['device_scale_factor'], item['text_scale']) for item in scenarios}
+    if any(item.get('keyboard_focus') != 'passed' or item.get('selection_activation') not in ['not-present', 'label-padding-and-space-passed'] for item in scenarios):
+        raise ValueError('Mounted workflow interaction proof is incomplete')
+    if matrix.get('state') != 'passed' or len(scenarios) != 96 or observed != expected or len(density.get('images', [])) != 7:
+        raise ValueError('Desktop density matrix is incomplete')
+    if density['source'] != receipt['source'] or density['verification'].get('cleanup_complete') is not True:
+        raise ValueError('Density capture source or cleanup differs')
     if receipt['source']['dirty'] or receipt['source']['revision'] != os.environ.get('SOURCE_REVISION'):
         raise ValueError('CI capture requires clean exact source identity')
 

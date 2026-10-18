@@ -256,7 +256,7 @@ jobs:
           name: candidate-documentation-${{ github.sha }}-${{ github.run_attempt }}
           path: build/release/downloads/documentation
       - name: Verify the complete exact-source candidate
-        run: python scripts/release.py collect --revision "$SOURCE_REVISION" --input build/release/downloads --output build/release/candidate
+        run: python scripts/release.py collect --revision "$SOURCE_REVISION" --input build/release/downloads --output build/release/candidate --summary
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           archive: true

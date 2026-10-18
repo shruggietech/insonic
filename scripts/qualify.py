@@ -281,7 +281,15 @@ def desktop():
         args = ['xvfb-run', '-a', *args]
     output = child(args, env=runtime_env, timeout=90, allow_detached=True)
     write_receipt(BUILD / 'webview-receipt.json', output,
-                  {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'schema_version': VERSION})
+                  {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'ui_compact_density': 'passed', 'schema_version': VERSION})
+    exit_args = [executable, '--exit-qualification']
+    if platform.system() == 'Linux':
+        exit_args = ['xvfb-run', '-a', *exit_args]
+    exit_output = child(exit_args, env=runtime_env, timeout=100, allow_detached=True)
+    write_receipt(BUILD / 'exit-receipt.json', exit_output,
+                  {'native_exit': 'passed', 'no_workspace_exit': 'passed', 'workspace_exit': 'passed',
+                   'ordinary_close': 'passed', 'playback_cleanup': 'passed', 'runtime_work_survival': 'passed', 'schema_version': VERSION})
+
 
 def secrets():
     BUILD.mkdir(parents=True, exist_ok=True)
