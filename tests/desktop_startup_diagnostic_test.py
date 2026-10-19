@@ -196,4 +196,65 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
             with self.assertRaises((ValueError,RuntimeError)):diagnostic.run()
             source.assert_not_called()
 
+
+    def test_cold_start_probe_uses_fresh_profiles_and_stops_at_first_failure(self):
+        calls=[]
+        def child(args,cwd,env,timeout,**options):
+            fixture=Path(args[-1]);calls.append(fixture)
+            self.assertEqual(json.loads(fixture.read_text()),{'action':'close'})
+            self.assertEqual(args[1],'--exit-qualification-child')
+            self.assertEqual(timeout,18);self.assertEqual(options,{'require_release':True})
+            return {'exit_code':0 if len(calls)==1 else 1,'timed_out':False,'truncated':False,'capture_incomplete':False,'owned_release':len(calls)==1,'stdout':json.dumps({'action':'close','native_exit':'passed','playback':'not-selected'}),'stderr':'native-startup-progress retained'}
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'capture',side_effect=child),patch('builtins.print'):
+            root=Path(temporary);summary={'observations':[]}
+            with self.assertRaisesRegex(RuntimeError,'cold startup'):
+                diagnostic.observe_cold_start(root/'gui.exe',root,root,{},root/'evidence',summary)
+            self.assertEqual(len(calls),2)
+            self.assertNotEqual(calls[0].parent,calls[1].parent)
+            self.assertEqual(summary['result'],'cold-start-failure-observed')
+            self.assertIn('native-startup-progress',json.loads((root/'evidence/cold-001.json').read_text())['stderr'])
+
+    def test_cold_start_probe_rejects_root_exit_without_natural_release_or_native_result(self):
+        valid={'exit_code':0,'timed_out':False,'truncated':False,'capture_incomplete':False,'owned_release':True,'stdout':json.dumps({'action':'close','native_exit':'passed','playback':'not-selected'})}
+        for update in [{'owned_release':False},{'stdout':'{}'},{'stdout':'[]'},{'stdout':'broken'},{'truncated':True},{'capture_incomplete':True}]:
+            with self.subTest(update=update),tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'capture',return_value=dict(valid,**update)),patch('builtins.print'):
+                root=Path(temporary);summary={'observations':[]}
+                with self.assertRaisesRegex(RuntimeError,'cold startup'):
+                    diagnostic.observe_cold_start(root/'gui.exe',root,root,{},root/'evidence',summary)
+                self.assertEqual(len(summary['observations']),1)
+
+    def test_cold_start_probe_sampling_is_bounded_and_never_claims_a_repair(self):
+        valid={'exit_code':0,'timed_out':False,'truncated':False,'capture_incomplete':False,'owned_release':True,'stdout':json.dumps({'action':'close','native_exit':'passed','playback':'not-selected'})}
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'capture',return_value=valid) as child,patch.object(diagnostic.time,'monotonic',return_value=0),patch('builtins.print'):
+            root=Path(temporary);summary={'observations':[]}
+            diagnostic.observe_cold_start(root/'gui.exe',root,root,{},root/'evidence',summary)
+            self.assertEqual(child.call_count,240)
+            self.assertEqual(summary['result'],'cold-start-no-failure-observed-not-a-cause-proof')
+            self.assertEqual(summary['sample_limit'],240)
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'capture') as child,patch.object(diagnostic.time,'monotonic',side_effect=[0,290]),patch('builtins.print'):
+            root=Path(temporary);summary={'observations':[]}
+            diagnostic.observe_cold_start(root/'gui.exe',root,root,{},root/'evidence',summary)
+            child.assert_not_called()
+            self.assertEqual(summary['result'],'cold-start-sampling-budget-exhausted-not-a-cause-proof')
+
+    def test_explicit_direct_child_capture_observes_release_before_job_cleanup(self):
+        import io
+        from types import SimpleNamespace
+        for released in [True,False]:
+            calls=[]
+            class Tree:
+                job=1
+                process=SimpleNamespace(stdout=io.BytesIO(),stderr=io.BytesIO(),returncode=0,wait=lambda **kwargs:None,poll=lambda:0)
+                def __init__(self,*args,**kwargs):pass
+                def __enter__(self):return self
+                def __exit__(self,*args):calls.append('close')
+                def wait_for_descendants(self,timeout):calls.append('wait');return released
+                def kill(self):calls.append('kill')
+            with patch.object(diagnostic,'ProcessTree',Tree),patch.object(diagnostic,'job_processes',return_value={'available':True,'assigned':0,'pids':[]}):
+                result=diagnostic.capture(['gui.exe','--exit-qualification-child','fixture.json'],ROOT,{},18,require_release=True)
+            self.assertEqual(result['owned_release'],released)
+            self.assertEqual(result['timed_out'],not released)
+            self.assertLess(calls.index('wait'),calls.index('close'))
+            self.assertEqual('kill' in calls,not released)
+
 if __name__=='__main__':unittest.main()
