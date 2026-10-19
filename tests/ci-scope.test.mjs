@@ -86,7 +86,14 @@ test('platform qualification waits only for its own exact same-run source build'
 test('Windows delivery joins every isolated scope before exposing candidate artifacts', () => {
  const workflow = parse(readFileSync(new URL('../.github/workflows/windows-desktop-qualification.yml', import.meta.url), 'utf8'));
  const {assemble, proofs, finalize} = workflow.jobs;
- assert.deepEqual(proofs.needs, ['assemble']);
+ assert.equal(proofs.needs, undefined);
+ const proofWait = proofs.steps.findIndex(s => s.run?.includes('wait-ci-artifact.mjs windows-desktop-input'));
+ const proofDownload = proofs.steps.findIndex(s => s.name === 'Restore the same immutable Windows delivery');
+ assert.ok(proofWait > proofs.steps.findIndex(s => s.uses === './build/actions/setup-go'));
+ assert.ok(proofWait > proofs.steps.findIndex(s => s.uses === './build/actions/setup-node'));
+ assert.ok(proofDownload > proofWait);
+ assert.equal(proofs.steps[proofWait].env.GH_TOKEN, '${{ github.token }}');
+ assert.ok(proofs.steps[proofWait].run.includes("'${{ inputs.revision }}'"));
  assert.deepEqual(proofs.strategy.matrix.scope, ['archive', 'interactive', 'maintenance', 'setup']);
  assert.equal(proofs.strategy['fail-fast'], false);
  assert.deepEqual(finalize.needs, ['assemble']);

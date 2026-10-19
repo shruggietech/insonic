@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { waitForArtifact, waitForDesktopProofs } from '../scripts/wait-ci-artifact.mjs';
+import { waitForArtifact, waitForDesktopProofs, waitForDesktopInput } from '../scripts/wait-ci-artifact.mjs';
 
 const options = { repository: 'shruggietech/insonic', run: '123', attempt: '2', os: 'windows-2022', token: 'fixture' };
 const artifact = { id: 42, name: 'media-source-windows-2022-2', expired: false, digest: 'sha256:' + 'a'.repeat(64), workflow_run: { id: 123 } };
@@ -104,4 +104,59 @@ test('failed Windows producer retains exact bounded identity before refusing the
 test('a diagnostic sink error cannot replace the failed Windows producer',async()=>{
  const jobs=structuredClone(proofGates);jobs.jobs[0].conclusion='failure';
  await assert.rejects(waitForDesktopProofs({...proofOptions,request:proofApi(proofArtifacts,jobs),observeFailure:async()=>{throw new Error('diagnostic write denied');}}),/Required Windows proof failed: archive/);
+});
+
+const inputArtifact = { ...artifact, name: `windows-desktop-input-${proofOptions.revision}-2` };
+const inputGate = { id: 24, name: 'package-windows / windows-desktop / Assemble Windows desktop delivery', status: 'completed', conclusion: 'success' };
+const inputApi = (artifacts = [inputArtifact], jobs = [inputGate]) => async url => url.includes('/jobs?') ? { total_count: jobs.length, jobs } : response(artifacts);
+
+test('early desktop input setup waits for successful assembly and exact artifact authority', async () => {
+  let elapsed = 0;
+  const result = await waitForDesktopInput({ ...proofOptions, now: () => elapsed, sleep: async ms => { elapsed += ms; }, request: async url => {
+    if (url.includes('/jobs?')) {
+      assert.match(url, /attempts\/2\/jobs/);
+      return { total_count: elapsed ? 1 : 0, jobs: elapsed ? [{ ...inputGate, status: elapsed >= 10000 ? 'completed' : 'in_progress', conclusion: elapsed >= 10000 ? 'success' : null }] : [] };
+    }
+    return response([inputArtifact]);
+  } });
+  assert.equal(result, 42);
+  assert.equal(elapsed, 10000);
+});
+
+test('an uploaded input cannot override failed or cancelled assembly and retains its primary cause', async () => {
+  for (const conclusion of ['failure', 'cancelled', 'skipped', 'timed_out']) {
+    const observations = [];
+    await assert.rejects(waitForDesktopInput({ ...proofOptions, request: inputApi([inputArtifact], [{ ...inputGate, conclusion }]),
+      observeFailure: async value => observations.push(value) }), /input failed: assembly/);
+    assert.equal(observations.length, 1);
+    assert.equal(observations[0].kind, 'windows-input-producer-failure');
+    assert.equal(observations[0].job_id, 24);
+    assert.equal(observations[0].conclusion, conclusion);
+    assert.ok(!JSON.stringify(observations).includes(options.token));
+  }
+  await assert.rejects(waitForDesktopInput({ ...proofOptions, request: inputApi([], [{ ...inputGate, conclusion: 'failure' }]),
+    observeFailure: async () => { throw new Error('diagnostic failure'); } }), /input failed: assembly/);
+});
+
+test('desktop input rejects ambiguous producers, expired or foreign artifacts and partial inventories', async () => {
+  for (const change of [item => ({ ...item, expired: true }), item => ({ ...item, workflow_run: { id: 999 } }),
+    item => ({ ...item, digest: null }), item => ({ ...item, id: -1 })]) {
+    await assert.rejects(waitForDesktopInput({ ...proofOptions, request: inputApi([change(inputArtifact)]) }), /authority/);
+  }
+  await assert.rejects(waitForDesktopInput({ ...proofOptions, request: inputApi([inputArtifact, inputArtifact]) }), /Ambiguous/);
+  await assert.rejects(waitForDesktopInput({ ...proofOptions, request: inputApi([inputArtifact], [inputGate, inputGate]) }), /Ambiguous/);
+  await assert.rejects(waitForDesktopInput({ ...proofOptions, request: async () => ({ total_count: 101, artifacts: [], jobs: [] }) }), /Incomplete/);
+});
+
+test('desktop input cannot reuse another revision or attempt and has one bounded deadline', async () => {
+  for (const artifacts of [[], [{ ...inputArtifact, name: inputArtifact.name.replace('-2', '-1') }],
+    [{ ...inputArtifact, name: inputArtifact.name.replace(proofOptions.revision, 'b'.repeat(40)) }]]) {
+    let elapsed = 0;
+    await assert.rejects(waitForDesktopInput({ ...proofOptions, deadlineMs: 10000, now: () => elapsed,
+      sleep: async ms => { elapsed += ms; }, request: inputApi(artifacts) }), /deadline/);
+    assert.equal(elapsed, 10000);
+  }
+  for (const override of [{ revision: '../other' }, { attempt: '0' }, { deadlineMs: 400001 }]) {
+    await assert.rejects(waitForDesktopInput({ ...proofOptions, ...override, request: async () => { throw new Error('must not request'); } }), /identity/);
+  }
 });

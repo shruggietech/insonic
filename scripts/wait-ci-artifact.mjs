@@ -51,48 +51,64 @@ export async function waitForArtifact({ repository, run, attempt, os, token, dea
   throw new Error('Same-run source artifact deadline exceeded.');
 }
 
-export async function waitForDesktopProofs({ repository, run, attempt, revision, token, deadlineMs = 400000,
+export async function waitForDesktopProofs(options) {
+  return waitForWindowsProducers({ ...options, role: 'proof' });
+}
+
+export async function waitForDesktopInput(options) {
+  const ready = await waitForWindowsProducers({ ...options, role: 'input' });
+  return ready.assembly;
+}
+
+async function waitForWindowsProducers({ role, repository, run, attempt, revision, token, deadlineMs = 400000,
   now = Date.now, sleep: pause = sleep, request = inventory, observeFailure = async () => {} }) {
   if (repository !== 'shruggietech/insonic' || !/^[1-9][0-9]*$/.test(run ?? '') || !/^[1-9][0-9]*$/.test(attempt ?? '')
-      || !/^[a-f0-9]{40}$/.test(revision ?? '') || !token || deadlineMs < 1 || deadlineMs > 400000) throw new Error('Invalid Windows proof identity.');
-  const scopes = ['archive', 'interactive', 'maintenance', 'setup'], deadline = now() + deadlineMs;
+      || !['input', 'proof'].includes(role) || !/^[a-f0-9]{40}$/.test(revision ?? '') || !token || deadlineMs < 1 || deadlineMs > 400000) throw new Error(`Invalid Windows ${role} identity.`);
+  const scopes = role === 'input' ? ['assembly'] : ['archive', 'interactive', 'maintenance', 'setup'], deadline = now() + deadlineMs;
   const url = `https://api.github.com/repos/${repository}/actions/runs/${run}/artifacts?per_page=100`;
   const jobsUrl = `https://api.github.com/repos/${repository}/actions/runs/${run}/attempts/${attempt}/jobs?per_page=100`;
   while (now() < deadline) {
     const signal = AbortSignal.timeout(Math.max(1, Math.min(15000, deadline - now())));
     const [value, gates] = await Promise.all([request(url, token, signal), request(jobsUrl, token, signal)]);
     if (!Array.isArray(value?.artifacts) || value.total_count !== value.artifacts.length || value.total_count > 100
-        || !Array.isArray(gates?.jobs) || gates.total_count !== gates.jobs.length || gates.total_count > 100) throw new Error('Incomplete Windows proof inventory.');
+        || !Array.isArray(gates?.jobs) || gates.total_count !== gates.jobs.length || gates.total_count > 100) throw new Error(`Incomplete Windows ${role} inventory.`);
     const ready = {};
     for (const scope of scopes) {
-      const jobName = `Qualify Windows desktop (${scope})`;
+      const jobName = role === 'input' ? 'Assemble Windows desktop delivery' : `Qualify Windows desktop (${scope})`;
       const jobs = gates.jobs.filter(item => item.name === jobName || item.name?.endsWith('/ ' + jobName));
-      if (jobs.length > 1) throw new Error('Ambiguous Windows proof producer.');
+      if (jobs.length > 1) throw new Error(`Ambiguous Windows ${role} producer.`);
       const job = jobs[0];
       if (job?.status === 'completed' && job.conclusion !== 'success') {
-        try { await observeFailure({ kind: 'windows-proof-producer-failure', repository, run, attempt, revision,
+        try { await observeFailure({ kind: `windows-${role}-producer-failure`, repository, run, attempt, revision,
           scope, job_id: Number.isSafeInteger(job.id) ? job.id : null, status: 'completed',
           conclusion: ['failure','cancelled','skipped','timed_out','action_required','stale','neutral'].includes(job.conclusion) ? job.conclusion : 'unknown' }); } catch { /* Diagnostics cannot replace the failed producer. */ }
-        throw new Error('Required Windows proof failed: ' + scope);
+        throw new Error(`Required Windows ${role} failed: ${scope}`);
       }
-      const name = `windows-desktop-proof-${scope}-${revision}-${attempt}`;
+      const name = role === 'input' ? `windows-desktop-input-${revision}-${attempt}` : `windows-desktop-proof-${scope}-${revision}-${attempt}`;
       const matches = value.artifacts.filter(item => item.name === name);
-      if (matches.length > 1) throw new Error('Ambiguous Windows proof artifact.');
+      if (matches.length > 1) throw new Error(`Ambiguous Windows ${role} artifact.`);
       const item = matches[0];
       if (item && (item.expired !== false || !Number.isSafeInteger(item.id) || item.id < 1 || String(item.workflow_run?.id) !== run
-          || !/^sha256:[a-f0-9]{64}$/.test(item.digest ?? ''))) throw new Error('Invalid Windows proof artifact authority.');
+          || !/^sha256:[a-f0-9]{64}$/.test(item.digest ?? ''))) throw new Error(`Invalid Windows ${role} artifact authority.`);
       if (item && job?.status === 'completed' && job.conclusion === 'success') ready[scope] = item.id;
     }
     if (Object.keys(ready).length === scopes.length) return ready;
     await pause(Math.max(0, Math.min(5000, deadline - now())));
   }
-  throw new Error('Same-run Windows proof deadline exceeded.');
+  throw new Error(`Same-run Windows ${role} deadline exceeded.`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const identity = { repository: process.env.GITHUB_REPOSITORY, run: process.env.GITHUB_RUN_ID,
     attempt: process.env.GITHUB_RUN_ATTEMPT, token: process.env.GH_TOKEN };
-  if (process.argv[2] === 'windows-desktop-proofs') {
+  if (process.argv[2] === 'windows-desktop-input') {
+    await waitForDesktopInput({ ...identity, revision: process.argv[3], observeFailure: async observation => {
+      const directory = path.resolve('build/native');
+      await fs.mkdir(directory, { recursive: true });
+      await fs.writeFile(path.join(directory, 'windows-input-failure.json'), JSON.stringify(observation) + '\n', { encoding: 'utf8', flag: 'wx' });
+    } });
+    console.log('Exact-run Windows assembly passed; digest and independent package checks follow.');
+  } else if (process.argv[2] === 'windows-desktop-proofs') {
     await waitForDesktopProofs({ ...identity, revision: process.argv[3], observeFailure: async observation => {
       const directory = path.resolve('build/native');
       await fs.mkdir(directory, { recursive: true });

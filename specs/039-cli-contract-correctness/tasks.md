@@ -59,3 +59,5 @@ US1 example: command-registry regressions and catalog migration regressions run 
 - [ ] T023 Separate cold native compilation from full native acceptance in scripts/qualify.py, retain both 180-second child allowances and all six package/tag assertions, verify failure cannot publish a receipt and keep the elected hosted path within 660 seconds (FR-018; SC-005).
 
 - [x] T024 Preserve non-missing workspace-open failures, classify only genuinely missing roots/configs as workspace_missing and add real CLI/installed damaged-configuration regressions for review finding PRRT_kwDOU8_K3s6t1dFK (FR-005/006/015).
+
+- [ ] T025 Overlap Windows proof-consumer setup with assembly, await the successful exact-run/revision/attempt assembly and immutable artifact before download, retain all four proof scopes and final verification, and measure the complete elected path within 660 seconds (FR-018; SC-005).
