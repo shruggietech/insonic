@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
+import hashlib
 import importlib.util
 import json
 import os
@@ -39,20 +40,85 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
         self.assertIn('before timeout',observation['stdout'])
         self.assertLessEqual(len(observation['stdout'].encode()),65536)
 
+    def test_output_flood_is_drained_and_retention_is_bounded_before_exit(self):
+        result=diagnostic.capture([sys.executable,'-c',"import os;os.write(1,b'x'*4000000);os.write(2,b'y'*4000000)"],ROOT,dict(os.environ),5)
+        self.assertEqual(result['exit_code'],0)
+        self.assertTrue(result['truncated'])
+        self.assertFalse(result['capture_incomplete'])
+        for name in ['stdout','stderr']:
+            self.assertEqual(len(result[name]),diagnostic.LIMIT)
+            self.assertEqual(result[name+'_bytes'],4000000)
+        stream=diagnostic.BoundedStream()
+        class Flood:
+            def read(self,count):
+                self.count=getattr(self,'count',0)+1
+                if self.count==100:return b''
+                return b'x'*count
+            def close(self):pass
+        stream.drain(Flood())
+        self.assertEqual(len(stream.data),diagnostic.LIMIT)
+        self.assertEqual(stream.total,99*16384)
+
+    def test_derived_gui_never_overwrites_the_historical_executable(self):
+        package=MagicMock();package.package_directories.side_effect=lambda root,*args:(root,root)
+        def build(package,gui,root):
+            gui.write_bytes(b'derived GUI');return hashlib.sha256(gui.read_bytes()).hexdigest()
+        with tempfile.TemporaryDirectory() as temporary:
+            location=Path(temporary);original=location/'original';original.mkdir()
+            (original/'insonic-desktop.exe').write_bytes(b'incident GUI')
+            (original/'insonic.exe').write_bytes(b'incident CLI')
+            with patch.object(diagnostic,'build_probe_gui',side_effect=build):
+                gui,root,digest=diagnostic.derive_gui(package,original,location)
+            self.assertEqual((original/'insonic-desktop.exe').read_bytes(),b'incident GUI')
+            self.assertEqual(gui.read_bytes(),b'derived GUI')
+            self.assertEqual((root/'insonic.exe').read_bytes(),b'incident CLI')
+            self.assertNotEqual(gui,original/'insonic-desktop.exe')
+
+    def test_source_observation_runs_both_distinct_production_parents(self):
+        result={'exit_code':0,'timed_out':False,'truncated':False}
+        summary={'observations':[]}
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'observe_predecessors') as preceding,patch.object(diagnostic,'capture',side_effect=lambda *args:dict(result)) as capture,patch('builtins.print'):
+            root=Path(temporary);old=root/'old.exe';new=root/'new.exe'
+            diagnostic.observe_native(new,root,root,{},root/'evidence',summary,True,(old,root/'old'))
+        self.assertEqual(capture.call_args_list[0].args[0],[old,'--exit-qualification'])
+        self.assertEqual(capture.call_args_list[1].args[0],[new,'--exit-qualification'])
+        self.assertEqual(len(capture.call_args_list),13)
+        self.assertEqual([call.args[-1] for call in preceding.call_args_list],['incident','source'])
+        self.assertEqual(summary['observations'][0]['file'],'incident-parent.json')
+        self.assertEqual(summary['observations'][1]['file'],'source-parent.json')
+
+    def test_historical_source_authority_must_be_present_in_owned_checkout(self):
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'ROOT',Path(temporary)):
+            with self.assertRaisesRegex(ValueError,'incident source'):diagnostic.historical_source()
+            source=Path(temporary)/'build/incident-source'
+            (source/'internal/qualification').mkdir(parents=True)
+            (source/'internal/qualification/dependencies.json').write_text('{}')
+            with patch.object(diagnostic,'source_child',side_effect=[{'stdout':diagnostic.INCIDENT_REVISION},{'stdout':''}]):
+                self.assertEqual(diagnostic.historical_source(),source)
+            for outputs in [[{'stdout':'0'*40},{'stdout':''}],[{'stdout':diagnostic.INCIDENT_REVISION},{'stdout':' M scripts/processing-worker.py'}]]:
+                with patch.object(diagnostic,'source_child',side_effect=outputs):
+                    with self.assertRaisesRegex(ValueError,'revision or tracked bytes'):diagnostic.historical_source()
+
     def test_source_compiler_receives_selected_inputs_without_ci_credentials(self):
         package=MagicMock();package.qualify.native_env.return_value={'PATH':'selected-path','CGO_ENABLED':'1'}
         package.sha.return_value='a'*64
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary);(root/'help').mkdir();node=root/'node.exe';node.write_bytes(b'fixture')
-            with patch.dict(os.environ,{'GITHUB_TOKEN':'protected-fixture-token','GOFLAGS':'unselected-override'}),patch.object(diagnostic.shutil,'copytree'),patch.object(diagnostic.shutil,'which',return_value=str(node)):
+            with patch.dict(os.environ,{'GITHUB_TOKEN':'protected-fixture-token','GOFLAGS':'unselected-override'}),patch.object(diagnostic.shutil,'copytree'),patch.object(diagnostic.shutil,'which',return_value=str(node)),patch.object(diagnostic,'source_child') as build_child:
                 self.assertEqual(diagnostic.build_probe_gui(package,root/'insonic-desktop.exe',root),'a'*64)
-        for call in package.child.call_args_list:
-            env=call.kwargs['env']
+        for call in build_child.call_args_list:
+            env=call.args[1]
             self.assertNotIn('GITHUB_TOKEN',env)
             self.assertEqual(env['GOFLAGS'],'')
             self.assertEqual(env['GOTOOLCHAIN'],'local')
             self.assertEqual(env['CGO_ENABLED'],'1')
-        self.assertEqual(package.child.call_args_list[-1].args[0][1:5],['build','-tags','desktop,production,system_ladybug','-ldflags'])
+        self.assertEqual(build_child.call_args_list[-1].args[0][1:5],['build','-tags','desktop,production,system_ladybug','-ldflags'])
+
+    def test_source_child_uses_exact_environment_without_parent_credentials(self):
+        selected={name:value for name,value in os.environ.items() if name.upper() in {'PATH','SYSTEMROOT','WINDIR','TEMP','TMP'}}
+        with patch.dict(os.environ,{'GITHUB_TOKEN':'protected-fixture-token','GOFLAGS':'unselected-override'}):
+            result=diagnostic.source_child([sys.executable,'-c',"import json,os;print(json.dumps({name:os.getenv(name) for name in ['GITHUB_TOKEN','GOFLAGS']}))"],selected)
+        self.assertEqual(json.loads(result['stdout']),{'GITHUB_TOKEN':None,'GOFLAGS':None})
 
     def test_concurrent_load_joins_and_idles_without_masking_native_failure(self):
         future=MagicMock();future.result.side_effect=RuntimeError('CLI failure');idle=MagicMock()

@@ -31,3 +31,17 @@ The next focused comparison overlaps the maintained installed CLI contract workl
 ### Current local verification (2026-10-19)
 
 Required root check and 127 Node tests passed. All 356 Python maintainer tests passed in 34.786 seconds, including concurrent-work failure/cleanup, source-compiler credential isolation and existing package refusal checks. Go desktop race and native command tests passed (4.156 and 4.266 seconds). Documentation check, 16 tests and build passed. These source tests launch no native GUI or installer on the owner's desktop and cannot establish installed startup reliability.
+
+### Concurrent source probe (2026-10-19)
+
+[Run 39208515434](https://github.com/shruggietech/insonic/actions/runs/39208515434), tool revision 6d4e281e8d79a7bacf74dd7a4a8043ada5735ddb, completed successfully. Twelve production Exit parents (48 native children) passed while the maintained installed CLI contract and documented workflows ran concurrently. The source GUI SHA256 was ebb29c9231037c2ed5ef8c064e97f61f3e9ba92fa922a547ca4f9146911f358f. The original controller failure/HRESULT remains unreproduced; concurrency is not established as its cause.
+
+Draft PR155 now exercises the new diagnostics in the complete source/package workflow. The initial lost-error regression is repaired, but T007-T009 remain incomplete and #154 stays open. The owner has been asked whether to accept a diagnostic checkpoint or retain the original full startup-repair scope; no scope reduction has been assumed. Review rounds requested: zero of two.
+
+### First PR delivery qualification and review (2026-10-19)
+
+[CI run 39208879699](https://github.com/shruggietech/insonic/actions/runs/39208879699) at b04569fbb3ec8ab9a60d491150a367549234c3c6 completed with 25 successful elected jobs and 18 expected skips. Windows source, ZIP, interactive MSI, maintenance/recovery, setup EXE, exact-byte join and candidate assembly all passed. Scope-job start to final candidate-log completion spans approximately 632 seconds; actual main execution remains unverified. No controller failure or native HRESULT was recovered.
+
+Review round 1 identified three diagnostic-tool gaps: historical GUI overwrite/mislabelled comparison, unbounded pre-truncation stream buffering, and current-checkout rather than historical-source validation. Corrections preserve the incident GUI in its verified tree, build a separate companion-complete source copy, retain distinct incident/source observations, drain each stream through a bounded 64 KiB reader, and select a clean exact incident checkout with its own worker/recipe/compiler pins. A local review also found that package.child merges the parent environment; source compilation now uses the exact-environment ProcessTree path, with a real hidden-child credential-exclusion regression.
+
+All 362 Python tests and required root checks/127 Node tests passed after the corrections; the final exact-revision/dirty-source refinement additionally passed the focused 12-test suite. The first source probes' original-production-parent filename represented the source-built production Go parent, not a preserved historical binary comparison. Their explicit derived-GUI hashes remain valid; no historical/source comparison or native cause is inferred from those labels.

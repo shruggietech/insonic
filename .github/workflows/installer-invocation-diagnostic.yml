@@ -71,6 +71,13 @@ jobs:
       - name: Install selected frontend inputs
         if: matrix.kind == 'desktop-startup' && inputs.startup_source
         run: npm --prefix desktop/frontend ci --ignore-scripts
+      - name: Restore immutable incident source authority
+        if: matrix.kind == 'desktop-startup'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: d44d95b6e97d741a32cbf87323bf78c824c3155b
+          path: build/incident-source
+          persist-credentials: false
       - name: Restore exact failed-main desktop for startup diagnosis
         if: matrix.kind == 'desktop-startup'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
