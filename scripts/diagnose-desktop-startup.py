@@ -100,16 +100,26 @@ def source_child(args,env):
     return result
 
 
+def probe_build_env(package):
+    selected=package.qualify.native_env()
+    allowed={'PATH','SYSTEMROOT','WINDIR','TEMP','TMP','USERPROFILE','APPDATA','LOCALAPPDATA','GOPATH','GOMODCACHE','GOCACHE'}
+    env={name:value for name,value in os.environ.items() if name.upper() in allowed}
+    env.update(selected,GOTOOLCHAIN='local',GOWORK='off',GOENV='off',GOFLAGS='')
+    return env
+
+
+def build_probe_cli(package,cli):
+    source_child(['go','build','-tags','system_ladybug','-o',cli,'./cmd/insonic'],probe_build_env(package))
+    return package.sha(cli)
+
+
 def build_probe_gui(package,gui,root):
     # Derive one diagnostic GUI from selected source; the verified incident CLI,
     # dependencies and assets remain explicit inputs. This is no longer an exact
     # incident archive and can never confer package/publication qualification.
     shutil.copytree(root/'help',ROOT/'site/offline',dirs_exist_ok=True)
     package.qualify.assets()
-    selected=package.qualify.native_env()
-    allowed={'PATH','SYSTEMROOT','WINDIR','TEMP','TMP','USERPROFILE','APPDATA','LOCALAPPDATA','GOPATH','GOMODCACHE','GOCACHE'}
-    env={name:value for name,value in os.environ.items() if name.upper() in allowed}
-    env.update(selected,GOTOOLCHAIN='local',GOWORK='off',GOENV='off',GOFLAGS='')
+    env=probe_build_env(package)
     node=Path(shutil.which('node',path=env['PATH']) or '')
     if not node.is_file():raise ValueError('selected diagnostic Node executable is missing')
     source_child([node,node.parent/'node_modules/npm/bin/npm-cli.js','--prefix','desktop/frontend','run','build'],env)
@@ -182,15 +192,20 @@ def run():
         idle=lambda:wait_owned_clis(package,[binaries/'insonic.exe',gui.with_name('insonic.exe')])
         if os.environ.get('INSONIC_STARTUP_LOAD')=='true':
             from cli_contract_qualification import qualify as qualify_contract
-            cli=binaries/'insonic.exe';workspace=location/'concurrent CLI workspace'
+            if not rebuilt:raise ValueError('maintained concurrent CLI load requires current source rebuild')
+            cli=gui.with_name('insonic.exe');workspace=location/'concurrent CLI workspace'
+            summary['derived_cli_sha256']=build_probe_cli(package,cli)
+            summary['derived_cli_source_revision']=tool
+            summary['boundary']='source-built-gui-and-cli-with-verified-incident-companions-not-a-qualified-package'
+            save(evidence,'diagnostic.json',summary)
             for args in [[cli,'workspace','init',workspace,'--json'],[cli,'--workspace',workspace,'credentials','select','session','--json']]:
-                initial=capture(args,archive_root,env,30)
+                initial=capture(args,root,env,30)
                 if initial['exit_code'] or initial['timed_out'] or initial['truncated']:
                     save(evidence,'cli-initialization.json',initial)
                     raise RuntimeError('concurrent CLI workspace preparation failed')
             summary['concurrent_cli_contract']=True
             with ThreadPoolExecutor(max_workers=1) as workers:
-                future=workers.submit(qualify_contract,cli,workspace,env=env,cwd=archive_root,documentation=True)
+                future=workers.submit(qualify_contract,cli,workspace,env=env,cwd=root,documentation=True)
                 observe_with_load(lambda:observe_native(gui,root,location,env,evidence,summary,rebuilt,incident),future,
                                   idle,evidence)
         else:

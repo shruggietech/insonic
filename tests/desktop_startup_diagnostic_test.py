@@ -114,6 +114,14 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
             self.assertEqual(env['CGO_ENABLED'],'1')
         self.assertEqual(build_child.call_args_list[-1].args[0][1:5],['build','-tags','desktop,production,system_ladybug','-ldflags'])
 
+    def test_load_compiles_current_cli_with_selected_credential_free_environment(self):
+        package=MagicMock();package.qualify.native_env.return_value={'PATH':'selected-path','CGO_ENABLED':'1'};package.sha.return_value='b'*64
+        with tempfile.TemporaryDirectory() as temporary,patch.dict(os.environ,{'GITHUB_TOKEN':'protected-fixture-token','GOFLAGS':'unselected-override'}),patch.object(diagnostic,'source_child') as build:
+            cli=Path(temporary)/'insonic.exe'
+            self.assertEqual(diagnostic.build_probe_cli(package,cli),'b'*64)
+        self.assertEqual(build.call_args.args[0],['go','build','-tags','system_ladybug','-o',cli,'./cmd/insonic'])
+        self.assertNotIn('GITHUB_TOKEN',build.call_args.args[1]);self.assertEqual(build.call_args.args[1]['GOFLAGS'],'')
+
     def test_source_child_uses_exact_environment_without_parent_credentials(self):
         selected={name:value for name,value in os.environ.items() if name.upper() in {'PATH','SYSTEMROOT','WINDIR','TEMP','TMP'}}
         with patch.dict(os.environ,{'GITHUB_TOKEN':'protected-fixture-token','GOFLAGS':'unselected-override'}):
