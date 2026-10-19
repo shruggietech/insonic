@@ -46,7 +46,7 @@
 
 - [x] T020 Integrate installed regressions for all eleven issues, semantic example coverage, UTF-8/LF/no-BOM/mojibake checks and owned cleanup in scripts/ and specs/039-cli-contract-correctness/verification.md (FR-004/015/016; SC-001..004).
 - [x] T021 Update authoritative CLI/model/ingestion/catalog/schema docs, CHANGELOG.md and GitHub milestone/Project mapping for eleven issues; retain #114/#147 open in docs/v1.0.1/, CHANGELOG.md and GitHub (FR-017/018).
-- [ ] T022 Run required root, Go/vet/native/backend, Python, frontend/site and installed-package checks; converge, commit, push and open/attach official PR; satisfy exact-head CI <=660 seconds and at most two review rounds with every thread resolved; stop unmerged and record final evidence in specs/039-cli-contract-correctness/verification.md (FR-018; SC-005).
+- [x] T022 Run required root, Go/vet/native/backend, Python, frontend/site and installed-package checks; converge, commit, push and open/attach official PR; satisfy exact-head CI <=660 seconds and at most two review rounds with every thread resolved; stop unmerged and record final evidence in specs/039-cli-contract-correctness/verification.md (FR-018; SC-005).
 
 ## Dependencies and parallel execution
 
@@ -56,10 +56,10 @@ US1 example: command-registry regressions and catalog migration regressions run 
 
 ## Phase 7: CI remediation
 
-- [ ] T023 Separate cold native compilation from full native acceptance in scripts/qualify.py, retain both 180-second child allowances and all six package/tag assertions, verify failure cannot publish a receipt and keep the elected hosted path within 660 seconds (FR-018; SC-005).
+- [x] T023 Separate cold native compilation from full native acceptance in scripts/qualify.py, retain both 180-second child allowances and all six package/tag assertions, verify failure cannot publish a receipt and keep the elected hosted path within 660 seconds (FR-018; SC-005).
 
 - [x] T024 Preserve non-missing workspace-open failures, classify only genuinely missing roots/configs as workspace_missing and add real CLI/installed damaged-configuration regressions for review finding PRRT_kwDOU8_K3s6t1dFK (FR-005/006/015).
 
-- [ ] T025 Overlap Windows proof-consumer setup with assembly, await the successful exact-run/revision/attempt assembly and immutable artifact before download, retain all four proof scopes and final verification, and measure the complete elected path within 660 seconds (FR-018; SC-005).
+- [x] T025 Overlap Windows proof-consumer setup with assembly, await the successful exact-run/revision/attempt assembly and immutable artifact before download, retain all four proof scopes and final verification, and measure the complete elected path within 660 seconds (FR-018; SC-005).
 
-- [ ] T026 Overlap candidate tool preparation and qualified Linux/docs downloads with Windows completion, require both successful exact-run Windows package producers and matching artifacts before collection, and retain the complete exact-source candidate checks (FR-018; SC-005).
+- [x] T026 Overlap candidate tool preparation and qualified Linux/docs downloads with Windows completion, require both successful exact-run Windows package producers and matching artifacts before collection, and retain the complete exact-source candidate checks (FR-018; SC-005).
