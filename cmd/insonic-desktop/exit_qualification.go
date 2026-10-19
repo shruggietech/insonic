@@ -68,7 +68,6 @@ func readExitFixture(path string) (exitFixture, error) {
 // Only this child owns Wails. Its parent owns the real shared runtime and
 // verifies survival through direct IPC after the GUI process has returned.
 func qualifyNativeExitChild(path string) int {
-	defer stopNativeExitInputTrace()
 	fixture, err := readExitFixture(path)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -99,7 +98,6 @@ func qualifyNativeExitChild(path string) int {
 				fmt.Fprintln(os.Stderr, "native-exit-stage=watchdog-timeout")
 				logNativeUIFunctionStacks()
 				logNativeExitMenuState()
-				probeNativeExitInputAfterFailure(ctx)
 				dismissFailedNativeMenu()
 				wailsruntime.Quit(ctx)
 			}
@@ -503,7 +501,7 @@ func interpretExitChild(fixture exitFixture, report process.CaptureResult, captu
 		return observation, nil
 	}
 	stage, last := "native-exit", -1
-	for _, candidate := range []string{"controller-startup", "window-prepared", "dom-ready", "frontend-ready", "native-action", "menu-mnemonic", "menu-native-system-key", "menu-open", "menu-selected", "menu-request", "shutdown", "watchdog-timeout"} {
+	for _, candidate := range []string{"controller-startup", "window-prepared", "dom-ready", "frontend-ready", "native-action", "menu-mnemonic", "menu-native-system-key", "menu-open", "menu-cancel-restored", "menu-selected", "menu-request", "shutdown", "watchdog-timeout"} {
 		if index := strings.LastIndex(string(report.Stderr), "native-exit-stage="+candidate); index > last {
 			stage, last = candidate, index
 		}

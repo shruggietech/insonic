@@ -36,35 +36,60 @@ func activateNativeExit(action string) error {
 	case "alt-f4":
 		return sendNativeAltF4(hwnd)
 	case "menu":
-		if os.Getenv("INSONIC_EXIT_INPUT_DIAGNOSTICS") == "1" {
-			if err := startNativeExitInputTrace(hwnd); err != nil {
-				return err
-			}
-		}
-		// Real Alt+F enters the system menu input loop. A posted WM_CHAR can
-		// reach the owner window without selecting its modal menu item.
-		if err = sendNativeKeyboard(hwnd, "Alt+F", []exitKeyboardInput{{Kind: 1, Key: 0x12}, {Kind: 1, Key: 0x46}, {Kind: 1, Key: 0x46, Flags: 2}, {Kind: 1, Key: 0x12, Flags: 2}}); err != nil {
+		if err := openNativeExitMenu(hwnd, root); err != nil {
 			return err
 		}
-		thread := exitWinCall("GetWindowThreadProcessId", hwnd, 0)
+		// Cancellation must return input to the browser before another native menu.
+		if err := sendNativeKeyboard(hwnd, "File menu cancellation", []exitKeyboardInput{{Kind: 1, Key: 0x1b}, {Kind: 1, Key: 0x1b, Flags: 2}, {Kind: 1, Key: 0x1b}, {Kind: 1, Key: 0x1b, Flags: 2}}); err != nil {
+			return err
+		}
 		deadline := time.Now().Add(2 * time.Second)
-		var state exitMenuState
+		restored := false
 		for time.Now().Before(deadline) {
-			state = observeExitMenu(hwnd, root, thread)
-			if state.ready() {
-				fmt.Fprintf(os.Stderr, "native-menu-popup %s\n", state)
-				fmt.Fprintln(os.Stderr, "native-exit-stage=menu-open")
-				if err = sendNativeKeyboard(hwnd, "File/Exit X", []exitKeyboardInput{{Kind: 1, Key: 0x58}, {Kind: 1, Key: 0x58, Flags: 2}}); err != nil {
-					return err
-				}
-				fmt.Fprintln(os.Stderr, "native-exit-stage=menu-selected")
-				return nil
+			state := observeExitMenu(hwnd, root, threadID)
+			if state.queried && state.flags&4 == 0 && !state.owner && state.focus != 0 && exitWinCall("IsChild", hwnd, state.focus) != 0 {
+				restored = true
+				break
 			}
 			time.Sleep(20 * time.Millisecond)
 		}
-		return fmt.Errorf("Alt+F did not open the owned File submenu (%s)", state)
+		if !restored {
+			return fmt.Errorf("native menu cancellation did not restore browser focus")
+		}
+		fmt.Fprintln(os.Stderr, "native-exit-stage=menu-cancel-restored")
+		if err := openNativeExitMenu(hwnd, root); err != nil {
+			return err
+		}
+		if err := sendNativeKeyboard(hwnd, "File/Exit X", []exitKeyboardInput{{Kind: 1, Key: 0x58}, {Kind: 1, Key: 0x58, Flags: 2}}); err != nil {
+			return err
+		}
+		fmt.Fprintln(os.Stderr, "native-exit-stage=menu-selected")
+		return nil
 	}
 	return fmt.Errorf("unknown native Exit action")
+}
+
+func openNativeExitMenu(hwnd, root uintptr) error {
+	nativeSystemMenuRequested.Store(false)
+	if err := sendNativeKeyboard(hwnd, "Alt+F", []exitKeyboardInput{{Kind: 1, Key: 0x12}, {Kind: 1, Key: 0x46}, {Kind: 1, Key: 0x46, Flags: 2}, {Kind: 1, Key: 0x12, Flags: 2}}); err != nil {
+		return err
+	}
+	thread := exitWinCall("GetWindowThreadProcessId", hwnd, 0)
+	deadline := time.Now().Add(2 * time.Second)
+	var state exitMenuState
+	for time.Now().Before(deadline) {
+		state = observeExitMenu(hwnd, root, thread)
+		if state.ready() && state.focus == hwnd {
+			if err := verifyNativeMenuRoute("menu"); err != nil {
+				return err
+			}
+			fmt.Fprintf(os.Stderr, "native-menu-popup %s\n", state)
+			fmt.Fprintln(os.Stderr, "native-exit-stage=menu-open")
+			return nil
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	return fmt.Errorf("Alt+F did not open the owned keyboard-focused File submenu (%s)", state)
 }
 
 // MENUBARINFO uses the native pointer alignment of the supported Windows amd64 ABI.

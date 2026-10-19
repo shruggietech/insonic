@@ -271,3 +271,18 @@ func TestExitOwnerFailureRetainsItsProfileForDiagnosis(t *testing.T) {
 		t.Fatal("failed fixture authority was not retained", err)
 	}
 }
+
+func TestNativeMenuFailureRetainsCancellationAndReopenOrder(t *testing.T) {
+	for _, tail := range []string{"", "native-exit-stage=menu-open\n"} {
+		var out bytes.Buffer
+		_, err := interpretExitChild(exitFixture{Action: "menu"}, process.CaptureResult{ExitCode: 1, Stderr: []byte("native-exit-stage=menu-open\nnative-exit-stage=menu-cancel-restored\n" + tail)}, contracts.Fail("operation_failed"), nil, &out)
+		want := "menu-cancel-restored"
+		if tail != "" {
+			want = "menu-open"
+		}
+		var evidence nativeExitFailure
+		if err == nil || json.Unmarshal(out.Bytes(), &evidence) != nil || evidence.Stage != want {
+			t.Fatal("menu cycle checkpoint lost", out.String())
+		}
+	}
+}

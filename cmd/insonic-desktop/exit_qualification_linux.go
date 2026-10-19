@@ -95,6 +95,3 @@ func dismissFailedNativeMenu() {}
 func prepareNativeExitWindow(context.Context) error { return nil }
 
 func logNativeExitMenuState() {}
-
-func stopNativeExitInputTrace() error                  { return nil }
-func probeNativeExitInputAfterFailure(context.Context) {}

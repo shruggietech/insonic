@@ -17,5 +17,9 @@ The maintained cleanup also balances owned COM interface references and the orig
 
 The native system-key extension copies original accelerator context on the
 owned window UI thread. Claimed keys retain one handled disposition; the host
-posts native menu work after the synchronous callback returns. Other
+posts native menu work instead of directly entering modal UI in the callback. Other
 accelerators retain their existing callback route.
+
+While an owned native menu is active, the parent retains keyboard focus and
+does not forward WM_SETFOCUS back into the browser. Menu exit restores the
+previous owned child only while the same parent still owns foreground input.

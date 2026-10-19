@@ -18,7 +18,7 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
-- Windows Alt+F forwards its original native system-key context to the File menu while the WebView owns focus, including inside offline help. Claimed keys retain their handled disposition.
+- Windows Alt+F forwards its original native system-key context to the File menu while the WebView owns focus, including inside offline help. Claimed keys retain their handled disposition. The native menu keeps keyboard input in its host while active and restores the prior child focus on cancellation.
 
 - Windows native desktop qualification uses disposable WebView profiles and observes normal owned-browser shutdown before reuse or removal. Failed fixtures retain their profiles for diagnosis. Cold and warm menu, close and Alt+F4 checks retain playback cleanup, background-work survival and exact-package proof gates.
 

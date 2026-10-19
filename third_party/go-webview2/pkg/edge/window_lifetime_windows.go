@@ -18,6 +18,10 @@ var lifetimeSetSubclass = lifetimeComctl.NewProc("SetWindowSubclass")
 var lifetimeRemoveSubclass = lifetimeComctl.NewProc("RemoveWindowSubclass")
 var lifetimeDefSubclass = lifetimeComctl.NewProc("DefSubclassProc")
 var lifetimeGetOwner = windows.NewLazySystemDLL("user32.dll").NewProc("GetWindowThreadProcessId")
+var lifetimeGetFocus = windows.NewLazySystemDLL("user32.dll").NewProc("GetFocus")
+var lifetimeSetFocus = windows.NewLazySystemDLL("user32.dll").NewProc("SetFocus")
+var lifetimeGetForeground = windows.NewLazySystemDLL("user32.dll").NewProc("GetForegroundWindow")
+var lifetimeIsChild = windows.NewLazySystemDLL("user32.dll").NewProc("IsChild")
 
 // NativeSystemKeyEvent copies accelerator metadata; no borrowed COM pointer escapes.
 type NativeSystemKeyEvent struct {
@@ -46,9 +50,11 @@ func (e *Chromium) nativeSystemKeyHandler() func(uintptr, NativeSystemKeyEvent) 
 }
 
 type windowLifetime struct {
-	chromium *Chromium
-	thread   uint32
-	closed   bool
+	chromium  *Chromium
+	thread    uint32
+	closed    bool
+	menuDepth uint32
+	menuFocus uintptr
 }
 
 // Native code retains only HWNDs and a static callback, never a Go object pointer.
@@ -66,7 +72,77 @@ var lifetimeSubclass uintptr
 
 func init() { lifetimeSubclass = syscall.NewCallback(lifetimeWindowProc) }
 
+// Native menus must own the host thread's keyboard input while the out-of-process
+// WebView is focused. Do not let the framework's WM_SETFOCUS handler immediately
+// move it back into the browser. Restore the actual child after the menu closes.
+func beginNativeMenuFocus(hwnd uintptr) {
+	foreground, _, _ := lifetimeGetForeground.Call()
+	if foreground != hwnd {
+		return
+	}
+	focus, _, _ := lifetimeGetFocus.Call()
+	child, _, _ := lifetimeIsChild.Call(hwnd, focus)
+	if focus != 0 && focus != hwnd && child == 0 {
+		return
+	}
+	ownedWindows.Lock()
+	entry := ownedWindows.values[hwnd]
+	if entry == nil || entry.closed || entry.thread != windows.GetCurrentThreadId() {
+		ownedWindows.Unlock()
+		return
+	}
+	entry.menuDepth++
+	first := entry.menuDepth == 1
+	if first {
+		entry.menuFocus = focus
+	}
+	ownedWindows.Unlock()
+	if first {
+		lifetimeSetFocus.Call(hwnd)
+	}
+}
+func endNativeMenuFocus(hwnd uintptr) {
+	ownedWindows.Lock()
+	entry := ownedWindows.values[hwnd]
+	if entry == nil || entry.closed || entry.thread != windows.GetCurrentThreadId() || entry.menuDepth == 0 {
+		ownedWindows.Unlock()
+		return
+	}
+	entry.menuDepth--
+	if entry.menuDepth != 0 {
+		ownedWindows.Unlock()
+		return
+	}
+	previous := entry.menuFocus
+	entry.menuFocus = 0
+	ownedWindows.Unlock()
+	foreground, _, _ := lifetimeGetForeground.Call()
+	focus, _, _ := lifetimeGetFocus.Call()
+	if foreground != hwnd || focus != hwnd || previous == hwnd {
+		return
+	}
+	child, _, _ := lifetimeIsChild.Call(hwnd, previous)
+	if previous == 0 || child != 0 {
+		lifetimeSetFocus.Call(previous)
+	}
+}
+func nativeMenuOwnsFocus(hwnd uintptr) bool {
+	ownedWindows.Lock()
+	defer ownedWindows.Unlock()
+	entry := ownedWindows.values[hwnd]
+	return entry != nil && entry.thread == windows.GetCurrentThreadId() && (entry.closed || entry.menuDepth > 0)
+}
+
 func lifetimeWindowProc(hwnd, message, wparam, lparam, id, data uintptr) uintptr {
+	if message == 0x211 {
+		beginNativeMenuFocus(hwnd)
+	}
+	if message == 0x212 {
+		endNativeMenuFocus(hwnd)
+	}
+	if message == 7 && nativeMenuOwnsFocus(hwnd) {
+		return 0
+	}
 	if message == 0x0002 || message == 0x0082 { // WM_DESTROY / WM_NCDESTROY
 		ownedWindows.Lock()
 		entry := ownedWindows.values[hwnd]

@@ -5,6 +5,7 @@ package edge
 
 import (
 	"runtime"
+	"syscall"
 	"testing"
 	"unsafe"
 
@@ -78,6 +79,49 @@ func TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread(t *testing.T) {
 	if WindowCloseError() != nil {
 		t.Fatal("successful Close retained an error")
 	}
+	t.Run("native menu focus does not reenter browser focus", func(t *testing.T) {
+		handle, _, _ := user.NewProc("CreateWindowExW").Call(0, uintptr(unsafe.Pointer(class)), uintptr(unsafe.Pointer(title)), 0, 0, 0, 0, 0, ^uintptr(2), 0, 0, 0)
+		if handle == 0 {
+			t.Fatal("message-only menu fixture unavailable")
+		}
+		defer user.NewProc("DestroyWindow").Call(handle)
+		forwarded := 0
+		observer := syscall.NewCallback(func(hwnd, message, wparam, lparam, id, data uintptr) uintptr {
+			if message == 7 {
+				forwarded++
+			}
+			value, _, _ := lifetimeDefSubclass.Call(hwnd, message, wparam, lparam)
+			return value
+		})
+		if ok, _, _ := lifetimeSetSubclass.Call(handle, observer, observer, 0); ok == 0 {
+			t.Fatal("native focus observer unavailable")
+		}
+		view := &Chromium{hwnd: handle, globalErrorCallback: func(err error) { t.Error(err) }}
+		if err := view.attachWindowLifetime(handle); err != nil {
+			t.Fatal(err)
+		}
+		user.NewProc("SendMessageW").Call(handle, 7, 0, 0)
+		if forwarded != 1 {
+			t.Fatal("ordinary native focus was suppressed")
+		}
+		ownedWindows.Lock()
+		ownedWindows.values[handle].menuDepth = 2
+		ownedWindows.Unlock()
+		user.NewProc("SendMessageW").Call(handle, 7, 0, 0)
+		if forwarded != 1 {
+			t.Fatal("native menu focus was forwarded back into the browser")
+		}
+		user.NewProc("SendMessageW").Call(handle, 0x212, 0, 0)
+		user.NewProc("SendMessageW").Call(handle, 7, 0, 0)
+		if forwarded != 1 {
+			t.Fatal("nested native menu released browser focus early")
+		}
+		user.NewProc("SendMessageW").Call(handle, 0x212, 0, 0)
+		user.NewProc("SendMessageW").Call(handle, 7, 0, 0)
+		if forwarded != 2 {
+			t.Fatal("ordinary focus forwarding was not restored after menu exit")
+		}
+	})
 	t.Run("a claimed accelerator stays handled", func(t *testing.T) {
 		var handled []uintptr
 		args := &ICoreWebView2AcceleratorKeyPressedEventArgs{vtbl: &_ICoreWebView2AcceleratorKeyPressedEventArgsVtbl{

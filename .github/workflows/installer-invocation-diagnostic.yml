@@ -94,7 +94,6 @@ jobs:
           SOURCE_REVISION: d44d95b6e97d741a32cbf87323bf78c824c3155b
           INSONIC_STARTUP_SOURCE: ${{ inputs.startup_source }}
           INSONIC_STARTUP_LOAD: ${{ inputs.startup_load }}
-          INSONIC_EXIT_INPUT_DIAGNOSTICS: '1'
         run: python scripts/diagnose-desktop-startup.py
       - name: Trace one documentation completion invocation
         if: matrix.kind != 'desktop-startup'
