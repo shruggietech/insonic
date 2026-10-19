@@ -61,11 +61,13 @@ class BoundedStream:
             pipe.close()
 
 
-def capture(args,directory,env,timeout,*,require_release=False):
+def capture(args,directory,env,timeout,*,require_release=False,startup_hide=False):
     started=time.monotonic();timed_out=False;readers=[]
     output,error=BoundedStream(),BoundedStream()
     try:
-        with ProcessTree([str(arg) for arg in args],cwd=directory,env=env) as tree:
+        selected=[str(arg) for arg in args]
+        if startup_hide:selected=[sys.executable,str(Path(__file__).with_name('diagnose-native-launch.py')),*selected]
+        with ProcessTree(selected,cwd=directory,env=env) as tree:
             for stream,pipe in [(output,tree.process.stdout),(error,tree.process.stderr)]:
                 reader=Thread(target=stream.drain,args=(pipe,),daemon=True);reader.start();readers.append(reader)
             try:
@@ -167,6 +169,8 @@ def run():
     tool=os.environ.get('GITHUB_SHA','')
     if not re.fullmatch('[a-f0-9]{40}',tool):raise ValueError('exact diagnostic tool revision is required')
     cold=os.environ.get('INSONIC_STARTUP_COLD')=='true'
+    startup_hide=os.environ.get('INSONIC_STARTUP_HIDE')=='true'
+    if startup_hide and not cold:raise ValueError('startup hide comparison requires cold startup observation')
     if cold and os.environ.get('INSONIC_STARTUP_SOURCE')!='true':raise ValueError('cold startup observation requires current source')
     archive,receipt=incident_archive()
     package=pipeline.load('desktop_startup_package','package-desktop.py')
@@ -197,7 +201,7 @@ def run():
             summary['boundary']='source-built-gui-with-verified-incident-companions-not-a-qualified-package'
             save(evidence,'diagnostic.json',summary)
         idle=lambda:wait_owned_clis(package,[binaries/'insonic.exe',gui.with_name('insonic.exe')])
-        observe=lambda:observe_cold_start(gui,root,location,env,evidence,summary) if cold else observe_native(gui,root,location,env,evidence,summary,rebuilt,incident)
+        observe=lambda:observe_cold_start(gui,root,location,env,evidence,summary,startup_hide=startup_hide) if cold else observe_native(gui,root,location,env,evidence,summary,rebuilt,incident)
         if os.environ.get('INSONIC_STARTUP_LOAD')=='true':
             from cli_contract_qualification import qualify as qualify_contract
             if not rebuilt:raise ValueError('maintained concurrent CLI load requires current source rebuild')
@@ -259,10 +263,10 @@ def observe_predecessors(gui,root,env,evidence,label):
         name=label+'-'+flag[2:]+'.json';save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
 
 
-def observe_cold_start(gui,root,location,env,evidence,summary):
+def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=False):
     # Diagnostic sampling only. Each real close child owns a fresh profile and
     # must naturally release its job before another launch. Stop on first failure.
-    summary.update(boundary='source-cold-close-startup-not-package-qualification',sample_limit=240,sampling_seconds=300)
+    summary.update(boundary='source-cold-close-startup-not-package-qualification',sample_limit=240,sampling_seconds=300,startup_hide=startup_hide)
     deadline=time.monotonic()+300
     summary['result']='cold-start-no-failure-observed-not-a-cause-proof'
     for index in range(240):
@@ -272,8 +276,8 @@ def observe_cold_start(gui,root,location,env,evidence,summary):
         directory=location/f'cold-{index:03d}';directory.mkdir()
         fixture=directory/'native-exit.json'
         fixture.write_text(json.dumps({'action':'close'})+'\n',encoding='utf-8',newline='\n')
-        observation=capture([gui,'--exit-qualification-child',fixture],root,env,18,require_release=True)
-        observation.update(boundary=summary['boundary'],action='close',profile='cold',index=index)
+        observation=capture([gui,'--exit-qualification-child',fixture],root,env,18,require_release=True,**({'startup_hide':True} if startup_hide else {}))
+        observation.update(boundary=summary['boundary'],action='close',profile='cold',index=index,startup_hide=startup_hide)
         try:
             result=json.loads(observation['stdout'])
         except (ValueError,TypeError):

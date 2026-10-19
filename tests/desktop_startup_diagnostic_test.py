@@ -257,4 +257,15 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
             self.assertLess(calls.index('wait'),calls.index('close'))
             self.assertEqual('kill' in calls,not released)
 
+
+    def test_cold_start_hide_counterfactual_is_explicit_in_launch_and_evidence(self):
+        value={'exit_code':1,'timed_out':False,'truncated':False,'capture_incomplete':False,'owned_release':False,'stdout':'{}'}
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'capture',return_value=value) as child,patch('builtins.print'):
+            root=Path(temporary);summary={'observations':[]}
+            with self.assertRaisesRegex(RuntimeError,'cold startup'):
+                diagnostic.observe_cold_start(root/'gui.exe',root,root,{},root/'evidence',summary,startup_hide=True)
+            self.assertIs(child.call_args.kwargs['startup_hide'],True)
+            self.assertIs(summary['startup_hide'],True)
+            self.assertIs(json.loads((root/'evidence/cold-000.json').read_text())['startup_hide'],True)
+
 if __name__=='__main__':unittest.main()
