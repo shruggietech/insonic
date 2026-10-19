@@ -16,6 +16,10 @@ import (
 
 var exitUser32 = windows.NewLazySystemDLL("user32.dll")
 
+// Go can relocate a growing stack. Preserve pointer-valued uintptr arguments
+// across this wrapper, including work performed before LazyProc.Call.
+//
+//go:uintptrescapes
 func exitWinCall(name string, args ...uintptr) uintptr {
 	value, _, _ := exitUser32.NewProc(name).Call(args...)
 	return value

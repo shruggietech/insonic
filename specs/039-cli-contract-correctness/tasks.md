@@ -97,3 +97,7 @@ US1 example: command-registry regressions and catalog migration regressions run 
 ## Phase 14: Complete native fixture ownership
 
 - [ ] T038 Give help-only/full-WebView qualification parent-owned fresh profiles and observe normal owned-job release within each original child deadline before cleanup; retain normal desktop defaults, all native assertions and exact-byte gates; compare retained historical failures separately from current repair observations and repeat concurrent-load/package CI (FR-019..022; SC-006).
+
+## Phase 15: Native pointer convergence
+
+- [ ] T039 Correct the demonstrated empty Win32 menu label across Go stack growth with pointer-aware native call boundaries, stabilize owned-job information buffers and apply equivalent pinning to typed MSI output buffers, preserve underlying MSI inspection errors and repeat real native/menu/MSI regressions plus full exact-head CI (FR-020..022; SC-006).

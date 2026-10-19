@@ -4,6 +4,9 @@
 package main
 
 import (
+	"golang.org/x/sys/windows"
+	"runtime"
+	"sync"
 	"testing"
 	"unsafe"
 )
@@ -30,5 +33,47 @@ func TestNativeMenuInputCannotTargetAnUnownedWindow(t *testing.T) {
 	}
 	if err := sendNativeKeyboard(0, "File/Exit X", []exitKeyboardInput{{Kind: 1, Key: 0x58}}); err == nil {
 		t.Fatal("menu selection input accepted without the owned foreground target")
+	}
+}
+
+//go:noinline
+func menuLabelOnNewStack(depth int, menu uintptr) string {
+	var frame [127]byte
+	frame[depth%len(frame)] = byte(depth)
+	var value string
+	if depth == 0 {
+		value = exitWinLabel(menu, 0)
+	} else {
+		value = menuLabelOnNewStack(depth-1, menu)
+	}
+	runtime.KeepAlive(frame)
+	return value
+}
+
+func TestNativeMenuLabelsSurviveGoStackGrowth(t *testing.T) {
+	menu := exitWinCall("CreateMenu")
+	if menu == 0 {
+		t.Fatal("fixture menu creation failed")
+	}
+	defer exitWinCall("DestroyMenu", menu)
+	label, _ := windows.UTF16PtrFromString("&File")
+	if exitWinCall("AppendMenuW", menu, 0, 1, uintptr(unsafe.Pointer(label))) == 0 {
+		t.Fatal("fixture menu append failed")
+	}
+	var workers sync.WaitGroup
+	failures := make(chan string, 128)
+	for depth := 0; depth < 128; depth++ {
+		workers.Add(1)
+		go func(depth int) {
+			defer workers.Done()
+			if value := menuLabelOnNewStack(depth, menu); value != "&File" {
+				failures <- value
+			}
+		}(depth)
+	}
+	workers.Wait()
+	close(failures)
+	for value := range failures {
+		t.Errorf("native menu label corrupted across stack growth: %q", value)
 	}
 }

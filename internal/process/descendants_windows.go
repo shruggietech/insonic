@@ -26,7 +26,7 @@ func waitDescendants(ctx context.Context, tree *processTree) (DescendantReport, 
 	defer ticker.Stop()
 	for {
 		var info jobAccounting
-		err := windows.QueryInformationJobObject(tree.job, windows.JobObjectBasicAccountingInformation, uintptr(unsafe.Pointer(&info)), uint32(unsafe.Sizeof(info)), nil)
+		err := queryJobInformation(tree.job, windows.JobObjectBasicAccountingInformation, uintptr(unsafe.Pointer(&info)), uint32(unsafe.Sizeof(info)))
 		if err != nil {
 			return report, err
 		}
@@ -54,7 +54,7 @@ func inspectDescendants(tree *processTree) []DescendantProcess {
 		IDs              [128]uintptr
 	}
 	var list processList
-	if windows.QueryInformationJobObject(tree.job, windows.JobObjectBasicProcessIdList, uintptr(unsafe.Pointer(&list)), uint32(unsafe.Sizeof(list)), nil) != nil || list.Listed > 128 {
+	if queryJobInformation(tree.job, windows.JobObjectBasicProcessIdList, uintptr(unsafe.Pointer(&list)), uint32(unsafe.Sizeof(list))) != nil || list.Listed > 128 {
 		return nil
 	}
 	values := make([]DescendantProcess, 0, list.Listed)

@@ -22,7 +22,8 @@ import (
 
 var installer = windows.NewLazySystemDLL("msi.dll")
 
-// Keep UTF-16 allocations and typed output pointers alive across each syscall.
+// Keep UTF-16 allocations and typed output pointers pinned across each syscall.
+// KeepAlive alone cannot prevent a Go stack from moving after conversion to uintptr.
 func native(name string, args ...any) (uint32, error) {
 	proc := installer.NewProc(name)
 	if err := proc.Find(); err != nil {
@@ -30,6 +31,8 @@ func native(name string, args ...any) (uint32, error) {
 	}
 	values := make([]uintptr, len(args))
 	var strings16 []*uint16
+	var pins runtime.Pinner
+	defer pins.Unpin()
 	for i, arg := range args {
 		switch v := arg.(type) {
 		case string:
@@ -38,16 +41,20 @@ func native(name string, args ...any) (uint32, error) {
 				return 0, err
 			}
 			strings16 = append(strings16, p)
+			pins.Pin(p)
 			values[i] = uintptr(unsafe.Pointer(p))
 		case uint32:
 			values[i] = uintptr(v)
 		case int:
 			values[i] = uintptr(v)
 		case *byte:
+			pins.Pin(v)
 			values[i] = uintptr(unsafe.Pointer(v))
 		case *uint32:
+			pins.Pin(v)
 			values[i] = uintptr(unsafe.Pointer(v))
 		case *uint16:
+			pins.Pin(v)
 			values[i] = uintptr(unsafe.Pointer(v))
 		default:
 			return 0, errors.New("invalid native MSI argument")
@@ -194,7 +201,11 @@ func (e *nativeEngine) ValidateSource(source Source) error {
 		return err
 	}
 	actual, err := inspectMSI(source.Path)
-	if err != nil || actual.Product != source.Package.Product || actual.Version != source.Package.Version || actual.Upgrade != source.Package.Upgrade {
+	if err != nil {
+		f.Close()
+		return fmt.Errorf("inspect retained full MSI: %w", err)
+	}
+	if actual.Product != source.Package.Product || actual.Version != source.Package.Version || actual.Upgrade != source.Package.Upgrade {
 		f.Close()
 		return errors.New("local full MSI identity differs from retained source record")
 	}
