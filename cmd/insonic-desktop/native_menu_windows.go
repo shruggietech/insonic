@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/shruggietech/insonic/desktop"
 	"github.com/wailsapp/go-webview2/pkg/edge"
@@ -86,8 +87,20 @@ func awaitNativeWindowOperation(ctx context.Context, hwnd uintptr, operation fun
 	if hwnd == 0 || thread == 0 || pid != uint32(os.Getpid()) || operation == nil {
 		return fmt.Errorf("native UI join requires this process's owned window")
 	}
+	started := time.Now()
 	deadline, stop := context.WithTimeout(ctx, 2*time.Second)
 	defer stop()
+	var entered, returned atomic.Int64
+	defer func() {
+		if err != nil {
+			at, _ := deadline.Deadline()
+			begin, end := entered.Load(), returned.Load()
+			raw, _ := json.Marshal(map[string]any{"kind": "native-ui-join-failure", "budget_ns": at.Sub(started).Nanoseconds(), "entered_ns": begin, "returned_ns": end, "observed_ns": time.Since(started).Nanoseconds()})
+			fmt.Fprintln(os.Stderr, string(raw))
+			logNativeUIFunctionStacks()
+			logNativeStartupProgress()
+		}
+	}()
 	ready := make(chan struct{})
 	var once sync.Once
 	token := uintptr(0x5330333900000000) | uintptr(nativeWindowJoinSequence.Add(1))
@@ -96,7 +109,9 @@ func awaitNativeWindowOperation(ctx context.Context, hwnd uintptr, operation fun
 		if int32(code) >= 0 && kind == 1 && message != nil && message.Window == hwnd && message.Message == 0 && message.WParam == token {
 			once.Do(func() {
 				if deadline.Err() == nil {
+					entered.Store(time.Since(started).Nanoseconds())
 					operation()
+					returned.Store(time.Since(started).Nanoseconds())
 				}
 				close(ready)
 			})
