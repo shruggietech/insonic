@@ -129,6 +129,14 @@ func qualifyNativeExitChild(path string) int {
 				return
 			}
 			fmt.Fprintln(os.Stderr, "native-exit-stage=frontend-ready")
+			// Navigation completion hides/shows the controller. Rejoin the full
+			// framework activation after frontend readiness before any keys.
+			if err := prepareNativeExitWindow(ctx); err != nil {
+				activated <- err
+				fmt.Fprintln(os.Stderr, err)
+				wailsruntime.Quit(ctx)
+				return
+			}
 			fmt.Fprintln(os.Stderr, "native-exit-stage=native-action")
 			err := activateNativeExit(fixture.Action)
 			activated <- err
