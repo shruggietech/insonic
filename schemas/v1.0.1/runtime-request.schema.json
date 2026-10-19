@@ -182,7 +182,7 @@
     "duration_ms": {
       "type": "integer",
       "minimum": 1,
-      "maximum": 60000,
+      "maximum": 600000,
       "description": "Bounded qualification attempt duration in integer milliseconds."
     },
     "publication_id": {
@@ -1765,7 +1765,7 @@
             "properties": {
               "after_id": {
                 "$ref": "common.schema.json#/$defs/uuid",
-                "description": "Exclusive local speaker identity cursor."
+                "description": "Exclusive mapping-row UUID cursor. Reuse the preceding mapping page next_id, not a local speaker identity."
               },
               "limit": {
                 "type": "integer",
@@ -7330,12 +7330,12 @@
           "id": "pyannote-profile",
           "contract_version": "1",
           "mode": "local",
-          "architecture": "speaker-embedding",
+          "architecture": "pyannote",
           "output_kinds": [
-            "speaker-profile"
+            "voice-embedding"
           ],
           "consumers": [
-            "pyannote"
+            "voice-matching"
           ]
         }
       ]

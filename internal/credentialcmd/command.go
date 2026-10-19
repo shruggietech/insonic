@@ -46,18 +46,21 @@ func ReadInput(reader io.Reader) (*Input, error) {
 	}
 	raw, e := io.ReadAll(io.LimitReader(reader, MaxInputBytes+1))
 	defer clear(raw)
-	if e != nil || len(raw) > MaxInputBytes {
-		return nil, contracts.Fail("invalid_request")
+	if e != nil {
+		return nil, contracts.Condition("unavailable", "input_missing")
+	}
+	if len(raw) > MaxInputBytes {
+		return nil, contracts.InputFailure("input_bytes", contracts.InputViolation{Constraint: "maxBytes", Bound: MaxInputBytes})
 	}
 	if len(bytes.TrimSpace(raw)) == 0 {
 		return &Input{}, nil
 	}
-	if validate(raw) != nil {
-		return nil, contracts.Fail("invalid_request")
+	if err := contracts.ValidateJSON(raw); err != nil {
+		return nil, err
 	}
 	var fields map[string]json.RawMessage
 	if json.Unmarshal(raw, &fields) != nil || fields == nil {
-		return nil, contracts.Fail("invalid_request")
+		return nil, contracts.Condition("invalid_request", "credential_input_shape")
 	}
 	defer func() {
 		for _, value := range fields {
@@ -81,16 +84,21 @@ func ReadInput(reader io.Reader) (*Input, error) {
 			if e == nil {
 				in.Passphrase = []byte(pass)
 				if len(in.Passphrase) == 0 || len(in.Passphrase) > secrets.MaxValueBytes {
-					e = contracts.Fail("invalid_request")
+					e = contracts.Condition("invalid_request", "credential_value_limit")
+				}
+			}
+			if e != nil {
+				if _, ok := e.(*contracts.Error); !ok {
+					e = contracts.InputFailure("input_type", contracts.InputViolation{Pointer: "/passphrase", Expected: "string"})
 				}
 			}
 		case "session":
 			in.Session, e = sessionValues(value)
 		default:
-			e = contracts.Fail("invalid_request")
+			e = contracts.Condition("invalid_request", "credential_input_shape")
 		}
 		if e != nil {
-			return nil, contracts.Fail("invalid_request")
+			return nil, e
 		}
 	}
 	valid = true
@@ -120,7 +128,7 @@ func credentialValue(raw []byte) ([]byte, error) {
 	}
 	if len(value) == 0 || len(value) > secrets.MaxValueBytes {
 		clear(value)
-		return nil, contracts.Fail("invalid_request")
+		return nil, contracts.Condition("invalid_request", "credential_value_limit")
 	}
 	return value, nil
 }
@@ -289,56 +297,5 @@ func ExecuteWithManager(ctx context.Context, manager *secrets.Manager, args []st
 	return manager.Inspect(ctx, id)
 }
 
-// validate rejects duplicate JSON keys before unmarshalling a protected input.
-func validate(raw []byte) error {
-	d := json.NewDecoder(bytes.NewReader(raw))
-	d.UseNumber()
-	if e := unique(d, 0); e != nil {
-		return e
-	}
-	if _, e := d.Token(); e != io.EOF {
-		return contracts.Fail("invalid_request")
-	}
-	return nil
-}
-func unique(d *json.Decoder, depth int) error {
-	if depth > 64 {
-		return contracts.Fail("invalid_request")
-	}
-	token, e := d.Token()
-	if e != nil {
-		return e
-	}
-	delimiter, compound := token.(json.Delim)
-	if !compound {
-		return nil
-	}
-	if delimiter != '{' && delimiter != '[' {
-		return contracts.Fail("invalid_request")
-	}
-	seen := map[string]bool{}
-	for d.More() {
-		if delimiter == '{' {
-			token, e := d.Token()
-			if e != nil {
-				return e
-			}
-			name, ok := token.(string)
-			if !ok || seen[name] {
-				return contracts.Fail("invalid_request")
-			}
-			seen[name] = true
-		}
-		if e := unique(d, depth+1); e != nil {
-			return e
-		}
-	}
-	token, e = d.Token()
-	if e != nil {
-		return e
-	}
-	if delimiter == '{' && token != json.Delim('}') || delimiter == '[' && token != json.Delim(']') {
-		return contracts.Fail("invalid_request")
-	}
-	return nil
-}
+// validate shares strict non-disclosing JSON causes with all input boundaries.
+func validate(raw []byte) error { return contracts.ValidateJSON(raw) }

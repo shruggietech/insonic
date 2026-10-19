@@ -87,7 +87,7 @@ func Normalize(c Config) (Config, error) {
 	if c.MaxResponseBytes == 0 {
 		c.MaxResponseBytes = 524288
 	}
-	if c.ContractVersion != "1" || (c.Adapter != "cue-statement" && c.Adapter != "insonic-http") || c.WindowCues < 1 || c.WindowCues > 128 || c.OverlapCues < 0 || c.OverlapCues >= c.WindowCues || c.MaxChunkBytes < 1 || c.MaxChunkBytes > 1<<20 || c.TimeoutMS < 1 || c.TimeoutMS > 600000 || c.MaxResponseBytes < 1 || c.MaxResponseBytes > 1<<20 || len(c.Model) > 256 {
+	if c.ContractVersion != "1" || (c.Adapter != "cue-statement" && c.Adapter != "insonic-http") || c.WindowCues < 1 || c.WindowCues > 128 || c.OverlapCues < 0 || c.OverlapCues >= c.WindowCues || c.MaxChunkBytes < 1 || c.MaxChunkBytes > 1<<20 || c.TimeoutMS < 1 || c.TimeoutMS > 600000 || c.MaxResponseBytes < 1 || c.MaxResponseBytes > 1<<20 || !contracts.ValidTextLength(c.Model, 0, 256) {
 		return c, contracts.Fail("invalid_request")
 	}
 	if c.Adapter == "cue-statement" && (c.Endpoint != "" || c.CredentialID != "" || c.Model != "") {

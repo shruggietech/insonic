@@ -109,7 +109,7 @@ func (s *Store) Restore(ctx context.Context, snap Snapshot) error {
 }
 
 func (s *Store) restoreSnapshot(ctx context.Context, snap Snapshot, activate func(*sql.Tx) error) error {
-	if !contracts.SupportedDocumentVersion(snap.Version) || (snap.CatalogSchema != SchemaVersion && snap.CatalogSchema != 1 && snap.CatalogSchema != 2 && snap.CatalogSchema != 5 && snap.CatalogSchema != 6 && snap.CatalogSchema != 7 && snap.CatalogSchema != 8) {
+	if !contracts.SupportedDocumentVersion(snap.Version) || (snap.CatalogSchema != SchemaVersion && snap.CatalogSchema != 1 && snap.CatalogSchema != 2 && snap.CatalogSchema != 5 && snap.CatalogSchema != 6 && snap.CatalogSchema != 7 && snap.CatalogSchema != 8 && snap.CatalogSchema != 9) {
 		return contracts.Fail("incompatible_version")
 	}
 	if snap.CatalogSchema < 8 && len(snap.Records.ModelAliases)+len(snap.Records.ModelSources) > 0 {

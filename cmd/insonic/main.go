@@ -92,7 +92,7 @@ func execute(args []string) int {
 		w, err = workspace.Discover(cwd)
 	}
 	if err != nil {
-		return output(nil, err, machine)
+		return output(nil, contracts.Condition("unavailable", "workspace_missing"), machine)
 	}
 	operatorContext.Root = w.Root
 	responseContext.WorkspaceID = w.Config.WorkspaceID
@@ -218,8 +218,11 @@ func execute(args []string) int {
 		return output(nil, contracts.Fail("invalid_request"), machine)
 	}
 	encoded, encodeErr := json.Marshal(req)
-	if encodeErr != nil || schemas.ValidateRequest(encoded) != nil {
-		return output(nil, contracts.Fail("invalid_request"), machine)
+	if encodeErr != nil {
+		return output(nil, contracts.Condition("invalid_request", "input_invalid"), machine)
+	}
+	if err := schemas.ValidateRequest(encoded); err != nil {
+		return output(nil, err, machine)
 	}
 	if err := local.Ensure(ctx, w, ""); err != nil {
 		return output(nil, err, machine)
@@ -284,21 +287,8 @@ func catalogCommand(ctx context.Context, w *workspace.Workspace, args []string, 
 	if err != nil {
 		return output(nil, err, machine)
 	}
-	file, err := os.OpenFile(args[1], os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
-	if err != nil {
-		return output(nil, contracts.Fail("conflict"), machine)
-	}
-	err = json.NewEncoder(file).Encode(snap)
-	if err == nil {
-		err = file.Sync()
-	}
-	closeErr := file.Close()
-	if err == nil {
-		err = closeErr
-	}
-	if err != nil {
-		os.Remove(args[1])
-		return output(nil, contracts.Fail("unavailable"), machine)
+	if err := exportCatalogFile(args[1], snap); err != nil {
+		return output(nil, err, machine)
 	}
 	return output(map[string]any{"exported": true, "workspace_id": snap.WorkspaceID, "revision": snap.Revision, "digest": snap.Digest}, nil, machine)
 }
@@ -386,6 +376,9 @@ func outputTo(result any, err error, machine bool, context contracts.Response, s
 	if response.Error != nil {
 		typed = response.Error
 	}
+	if typed != nil {
+		response.Result = contracts.ObservedResult(response.Result, typed)
+	}
 	writer := stdout
 	if typed != nil {
 		writer = stderr
@@ -446,11 +439,14 @@ func credentialCommand(ctx context.Context, w *workspace.Workspace, args []strin
 	input.Close()
 	if action == "unlock" || action == "load" {
 		e = local.EnsureInput(ctx, w, "", raw)
+		if e != nil {
+			return output(nil, e, machine)
+		}
 		state := "unlocked"
 		if mode == "session" {
 			state = "loaded"
 		}
-		return output(map[string]any{"backend": mode, "state": state, "lifetime": "runtime-owner"}, e, machine)
+		return output(map[string]any{"backend": mode, "state": state, "lifetime": "runtime-owner"}, nil, machine)
 	}
 	data, _ := json.Marshal(map[string]any{"arguments": args, "input": json.RawMessage(raw)})
 	defer clear(data)

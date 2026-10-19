@@ -2,13 +2,11 @@
 package models
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
-	"io"
+	"github.com/shruggietech/insonic/schemas"
 	"net"
 	"net/url"
 	"regexp"
@@ -53,12 +51,12 @@ func (m Manifest) Validate() error {
 	if m.Compatibility != nil && m.Compatibility.Validate() != nil {
 		return contracts.Fail("invalid_request")
 	}
-	if m.Kind != "base-model-manifest" || !contracts.SupportedDocumentVersion(m.Version) || len(m.Name) == 0 || len(m.Name) > 256 || len(m.ModelVersion) == 0 || len(m.ModelVersion) > 256 || len(m.Revision) == 0 || len(m.Revision) > 512 || len(m.License) == 0 || len(m.Files) == 0 || len(m.Files) > 64 || len(m.Capabilities) == 0 || len(m.Capabilities) > 32 {
+	if m.Kind != "base-model-manifest" || !contracts.SupportedDocumentVersion(m.Version) || !contracts.ValidTextLength(m.Name, 1, 256) || !contracts.ValidTextLength(m.ModelVersion, 1, 256) || !contracts.ValidTextLength(m.Revision, 1, 512) || !contracts.ValidTextLength(m.License, 1, -1) || len(m.Files) == 0 || len(m.Files) > 64 || len(m.Capabilities) == 0 || len(m.Capabilities) > 32 {
 		return contracts.Fail("invalid_request")
 	}
 	roles := map[string]bool{}
 	for _, f := range m.Files {
-		if f.Role == "" || len(f.Role) > 128 || roles[f.Role] || !digestPattern.MatchString(f.SHA256) || f.Size < 0 || f.CredentialID != "" && !contracts.ValidID(f.CredentialID) {
+		if !contracts.ValidTextLength(f.Role, 1, 128) || roles[f.Role] || !digestPattern.MatchString(f.SHA256) || f.Size < 0 || f.CredentialID != "" && !contracts.ValidID(f.CredentialID) {
 			return contracts.Fail("invalid_request")
 		}
 		if _, e := sourceURL(f.URL, f.LocalHTTP); e != nil {
@@ -67,20 +65,21 @@ func (m Manifest) Validate() error {
 		roles[f.Role] = true
 	}
 	for _, c := range m.Capabilities {
-		if c == "" || len(c) > 128 {
+		if !contracts.ValidTextLength(c, 1, 128) {
 			return contracts.Fail("invalid_request")
 		}
 	}
 	return nil
 }
 func DecodeManifest(raw []byte, out *Manifest) error {
-	if len(raw) > 1<<20 || catalog.ValidateJSON(raw) != nil {
-		return contracts.Fail("invalid_request")
+	if len(raw) > 1<<20 {
+		return contracts.InputFailure("input_bytes", contracts.InputViolation{Constraint: "maxBytes", Bound: 1 << 20})
 	}
-	d := json.NewDecoder(bytes.NewReader(raw))
-	d.DisallowUnknownFields()
-	if d.Decode(out) != nil || d.Decode(new(any)) != io.EOF {
-		return contracts.Fail("invalid_request")
+	if err := schemas.ValidateBaseModelManifest(raw); err != nil {
+		return err
+	}
+	if err := contracts.DecodeInput(raw, out); err != nil {
+		return err
 	}
 	return out.Validate()
 }

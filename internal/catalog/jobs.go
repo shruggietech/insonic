@@ -55,7 +55,7 @@ func (s *Store) newAttempt(ctx context.Context, tx *sql.Tx, job, owner, reason s
 	return a, e
 }
 func (s *Store) StartJob(ctx context.Context, op, owner string, duration int, ttl time.Duration) (Attempt, error) {
-	if !contracts.ValidID(op) || !contracts.ValidID(owner) || duration < 1 || duration > 60000 {
+	if !contracts.ValidID(op) || !contracts.ValidID(owner) || duration < 1 || duration > contracts.MaxJobDurationMS {
 		return Attempt{}, contracts.Fail("invalid_request")
 	}
 	if _, e := expiry(0, ttl); e != nil {
@@ -104,7 +104,7 @@ func (s *Store) ReconcileJob(ctx context.Context, op, operation, job string, dur
 	var value any
 	switch operation {
 	case "start":
-		if duration < 1 || duration > 60000 || job != "" {
+		if duration < 1 || duration > contracts.MaxJobDurationMS || job != "" {
 			return out, contracts.Fail("invalid_request")
 		}
 		value = []any{"start", duration}

@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 
 	"github.com/shruggietech/insonic/internal/contracts"
 )
@@ -31,7 +30,7 @@ func ValidateQuality(c QualityConfig) error {
 	return nil
 }
 func validTurn(t Turn, durationUS int64) bool {
-	return t.Label != "" && len(t.Label) <= 256 && utf8.ValidString(t.Label) && !strings.ContainsFunc(t.Label, unicode.IsControl) && t.StartUS >= 0 && t.EndUS > t.StartUS && t.EndUS <= durationUS
+	return contracts.ValidTextLength(t.Label, 1, 256) && !strings.ContainsFunc(t.Label, unicode.IsControl) && t.StartUS >= 0 && t.EndUS > t.StartUS && t.EndUS <= durationUS
 }
 
 // Quality measures distinct active voices, so duplicate same-voice intervals

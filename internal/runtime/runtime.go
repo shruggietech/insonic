@@ -3,13 +3,11 @@ package runtime
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"github.com/shruggietech/insonic/internal/app"
 	"github.com/shruggietech/insonic/internal/assistance"
-	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/credentialcmd"
 	"github.com/shruggietech/insonic/internal/process"
@@ -50,20 +48,7 @@ func frameLimit(reader io.Reader, limit int) ([]byte, error) {
 	return data, nil
 }
 func decode(data []byte, target any) error {
-	if catalog.ValidateJSON(data) != nil {
-		return contracts.Fail("invalid_request")
-	}
-	decoder := json.NewDecoder(bytes.NewReader(data))
-	decoder.UseNumber()
-	decoder.DisallowUnknownFields()
-	if decoder.Decode(target) != nil {
-		return contracts.Fail("invalid_request")
-	}
-	var extra any
-	if decoder.Decode(&extra) != io.EOF {
-		return contracts.Fail("invalid_request")
-	}
-	return nil
+	return contracts.DecodeInput(data, target)
 }
 
 func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
@@ -165,10 +150,15 @@ func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
 			data, readErr := frameLimit(conn, MaxRequestFrame)
 			var request contracts.Request
 			var response contracts.Response
-			if readErr != nil || decode(data, &request) != nil {
-				response = contracts.Response{Kind: "runtime-response", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, SessionID: application.Session, Error: contracts.Fail("invalid_request")}
-			} else if request.Version == contracts.Version && schemas.ValidateRequest(data) != nil {
-				response = contracts.Response{Kind: "runtime-response", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, SessionID: application.Session, Error: contracts.Fail("invalid_request")}
+			admissionErr := readErr
+			if admissionErr == nil {
+				admissionErr = decode(data, &request)
+			}
+			if admissionErr == nil && request.Version == contracts.Version {
+				admissionErr = schemas.ValidateRequest(data)
+			}
+			if admissionErr != nil {
+				response = contracts.Response{Kind: "runtime-response", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, SessionID: application.Session, Error: contracts.SafeError(admissionErr)}
 				if contracts.ValidID(request.RequestID) {
 					response.RequestID = request.RequestID
 				}

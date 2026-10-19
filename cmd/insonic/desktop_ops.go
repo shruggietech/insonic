@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/shruggietech/insonic/internal/app"
-	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	local "github.com/shruggietech/insonic/internal/runtime"
 	"github.com/shruggietech/insonic/internal/workspace"
@@ -48,13 +47,16 @@ func parseDesktopOperation(args []string) (string, string, json.RawMessage, erro
 		}
 		defer file.Close()
 		raw, e = io.ReadAll(io.LimitReader(file, (1<<20)+1))
-		if e != nil || len(raw) > 1<<20 || catalog.ValidateJSON(raw) != nil {
-			return fail()
+		if err := checkedInput(raw, 1<<20, e); err != nil {
+			return "", "", nil, err
 		}
 	}
 	req := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: contracts.ID(), RequestID: contracts.ID(), Operation: op, ItemID: item, Data: raw}
 	bytes, _ := json.Marshal(req)
-	if !contracts.DesktopRequestValid(req) || schemas.ValidateRequest(bytes) != nil {
+	if err := schemas.ValidateRequest(bytes); err != nil {
+		return "", "", nil, err
+	}
+	if !contracts.DesktopRequestValid(req) {
 		return fail()
 	}
 	return op, item, raw, nil

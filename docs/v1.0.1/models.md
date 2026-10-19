@@ -10,6 +10,13 @@ size. Name and version identify one immutable installation. A conflicting
 manifest for that pair is rejected; changed files require another version.
 Registration does not imply its bytes are available.
 
+Names, model versions and upstream revisions preserve their exact registered
+Unicode text, including whitespace-only values and line breaks. Registration
+does not trim or normalize these immutable identities. Human CLI output quotes
+these fields and escapes control characters, so a space or line break remains
+visible; JSON retains the original string. Use the installation UUID when an
+identity is inconvenient to enter.
+
 Model references accept an installation UUID, `base:UUID`, `speaker:VERSION_UUID`,
 a workspace alias, or `source:NAME/SELECTOR`. Aliases use lowercase ASCII names
 of 1-64 characters, beginning with a letter and containing letters, digits,

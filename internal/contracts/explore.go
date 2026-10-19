@@ -78,7 +78,7 @@ func DecodeExplore(raw []byte, v any) error {
 }
 func (q QueryInput) Validate() error {
 	d := q.Definition
-	if len(q.Title) > 512 || len(d.Text) > 65536 || len(q.Parameters) > 128 {
+	if !ValidTextLength(q.Title, 0, 512) || !ValidTextLength(d.Text, 0, 65536) || len(q.Parameters) > 128 {
 		return Fail("input_limit")
 	}
 	if d.Mode == "native" {
@@ -89,18 +89,18 @@ func (q QueryInput) Validate() error {
 		if !strings.Contains("|media-list|speaker-search|model-list|text-search|time-range|evidence-traverse|graph-view|", "|"+d.Operation+"|") || d.Text != "" || d.Dialect != "" || len(q.Parameters) > 0 {
 			return Fail("invalid_request")
 		}
-		if d.Pagination != nil && (d.Pagination.Limit < 1 || d.Pagination.Limit > 500 || len(d.Pagination.Cursor) > 2048) {
+		if d.Pagination != nil && (d.Pagination.Limit < 1 || d.Pagination.Limit > 500 || !ValidTextLength(d.Pagination.Cursor, 0, 2048)) {
 			return Fail("invalid_request")
 		}
 		if len(d.Filters.EntityIDs) > 500 {
 			return Fail("input_limit")
 		}
 		for _, id := range d.Filters.EntityIDs {
-			if id == "" || len(id) > 1024 {
+			if !ValidTextLength(id, 1, 1024) {
 				return Fail("invalid_request")
 			}
 		}
-		if len(d.OrderBy) > 8 || len(d.Filters.Text) > 4096 {
+		if len(d.OrderBy) > 8 || !ValidTextLength(d.Filters.Text, 0, 4096) {
 			return Fail("input_limit")
 		}
 		for _, o := range d.OrderBy {
@@ -145,7 +145,7 @@ func (q QueryInput) Validate() error {
 		return Fail("invalid_request")
 	}
 	for name, p := range q.Parameters {
-		if name == "" || len(name) > 128 || strings.HasPrefix(name, "$") || strings.HasPrefix(name, "_") {
+		if !ValidTextLength(name, 1, 128) || strings.HasPrefix(name, "$") || strings.HasPrefix(name, "_") {
 			return Fail("invalid_request")
 		}
 		var value any

@@ -3,7 +3,6 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/schemas"
 	"io"
@@ -17,8 +16,14 @@ func parseImportPresets(args []string) (string, string, json.RawMessage, error) 
 	}
 	request := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: contracts.ID(), RequestID: contracts.ID(), Operation: op, ItemID: id, Data: raw}
 	encoded, e := json.Marshal(request)
-	if e != nil || !contracts.ConfigurationRequestValid(request) || schemas.ValidateRequest(encoded) != nil {
+	if e != nil {
 		return "", "", nil, contracts.Fail("invalid_request")
+	}
+	if err := schemas.ValidateRequest(encoded); err != nil {
+		return "", "", nil, err
+	}
+	if !contracts.ConfigurationRequestValid(request) {
+		return "", "", nil, contracts.Condition("invalid_request", "input_constraint")
 	}
 	return op, id, raw, nil
 }
@@ -69,11 +74,8 @@ func readStructuredInput(path string) (json.RawMessage, error) {
 	}
 	defer f.Close()
 	raw, e := io.ReadAll(io.LimitReader(f, (1<<20)+1))
-	if e != nil || len(raw) > 1<<20 {
-		return nil, contracts.Fail("output_limit")
-	}
-	if catalog.ValidateJSON(raw) != nil {
-		return nil, contracts.Fail("invalid_request")
+	if inputErr := checkedInput(raw, 1<<20, e); inputErr != nil {
+		return nil, inputErr
 	}
 	return raw, nil
 }

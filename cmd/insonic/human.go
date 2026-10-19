@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"runtime"
-	"sort"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -18,7 +17,8 @@ var operatorContext invocation
 
 type humanBuffer struct {
 	bytes.Buffer
-	lines int
+	lines     int
+	truncated bool
 }
 
 func safeText(s string) string {
@@ -39,9 +39,14 @@ func safeText(s string) string {
 }
 func (b *humanBuffer) line(format string, values ...any) {
 	if b.lines >= 128 || b.Len() >= 65536-1024 {
+		b.truncated = true
 		return
 	}
-	s := safeText(fmt.Sprintf(format, values...))
+	raw := fmt.Sprintf(format, values...)
+	s := safeText(raw)
+	if len(s) < len(raw) {
+		b.truncated = true
+	}
 	b.WriteString(s)
 	b.WriteByte('\n')
 	b.lines++
@@ -88,11 +93,7 @@ func humanFields(b *humanBuffer, v any, depth int) {
 	}
 	switch x := v.(type) {
 	case map[string]any:
-		keys := make([]string, 0, len(x))
-		for k := range x {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
+		keys := humanOrderedKeys(x)
 		for _, k := range keys {
 			if hiddenHumanField(x, k) {
 				b.line("%s%s: omitted from human output.", strings.Repeat("  ", depth), humanLabel(k))
@@ -101,13 +102,17 @@ func humanFields(b *humanBuffer, v any, depth int) {
 			value := x[k]
 			switch item := value.(type) {
 			case map[string]any:
+				if embeddedRecordingDocument(x, k) {
+					b.line("%sDocument: embedded transcript; retrieve complete JSON for cues and provenance.", strings.Repeat("  ", depth))
+					continue
+				}
 				b.line("%s%s:", strings.Repeat("  ", depth), humanLabel(k))
 				humanFields(b, item, depth+1)
 			case []any:
 				b.line("%s%s: %d", strings.Repeat("  ", depth), humanLabel(k), len(item))
 				humanFields(b, item, depth+1)
 			default:
-				b.line("%s%s: %s", strings.Repeat("  ", depth), humanLabel(k), humanValue(value))
+				b.line("%s%s: %s", strings.Repeat("  ", depth), humanLabel(k), humanFieldValue(k, value))
 			}
 		}
 	case []any:
@@ -116,7 +121,7 @@ func humanFields(b *humanBuffer, v any, depth int) {
 		}
 		for i, item := range x {
 			if i >= 64 {
-				b.line("Additional items omitted. Use --json or the next page for complete results.")
+				b.line("Additional items omitted; use the complete JSON command above for this result.")
 				break
 			}
 			if _, ok := item.(map[string]any); ok {
@@ -128,13 +133,32 @@ func humanFields(b *humanBuffer, v any, depth int) {
 		b.line("%s%s", strings.Repeat("  ", depth), humanValue(x))
 	}
 }
+
+// Summarize only an application's recording envelope. A read-only query may
+// return any public column name, including a map named document.
+func embeddedRecordingDocument(fields map[string]any, key string) bool {
+	if key != "document" {
+		return false
+	}
+	op := strings.Join(operatorContext.Path, " ")
+	if !strings.HasPrefix(op, "recordings ") && !strings.HasPrefix(op, "media ") && !strings.HasPrefix(op, "work ") {
+		return false
+	}
+	id, _ := fields["id"].(string)
+	if id == "" {
+		id, _ = fields["recording_id"].(string)
+	}
+	digest, _ := fields["document_digest"].(string)
+	return contracts.ValidID(id) && len(digest) == 64 && fields["state"] != nil
+}
+
 func hiddenHumanField(fields map[string]any, key string) bool {
 	op := strings.Join(operatorContext.Path, " ")
 	// Query fields are user-selected public result columns, not credential input.
 	if strings.HasPrefix(op, "query ") {
 		return false
 	}
-	if op == "recordings document" && fields["encoding"] == "base64" && key == "data" {
+	if (op == "recordings document" || op == "media capture") && fields["encoding"] == "base64" && key == "data" {
 		return true
 	}
 	// Durable work is a known runtime structure; omit its internal input/owner
@@ -192,7 +216,7 @@ func humanActions(b *humanBuffer, root map[string]any) {
 		b.line("Reopen: %s", commandFor("setup show"))
 		b.line("Task prerequisites: %s", commandFor("setup readiness"))
 		if operatorContext.Root != "" {
-			b.line("First import: %s", commandFor("media import \"MEDIA_FILE\""))
+			b.line("First import: %s", commandFor("media import "+quoteCLI("MEDIA_FILE")))
 		}
 	}
 	if op == "workspace init" || op == "workspace show" || op == "doctor" {
@@ -200,7 +224,7 @@ func humanActions(b *humanBuffer, root map[string]any) {
 		if operatorContext.Root != "" {
 			b.line("Workspace: %s", operatorContext.Root)
 		}
-		b.line("Next import: %s", commandFor("media import \"MEDIA_FILE\""))
+		b.line("Next import: %s", commandFor("media import "+quoteCLI("MEDIA_FILE")))
 		b.line("Readiness: configured resources are not authenticated or inference-tested by startup.")
 	}
 	if strings.HasPrefix(op, "credentials ") {
@@ -308,31 +332,68 @@ func selectedItem() string {
 	}
 	return "RECORDING_UUID"
 }
+
+// Human text previews exact machine byte pages, whose boundaries may bisect UTF-8.
+func humanTextPage(raw []byte) (string, int, int, bool) {
+	start := 0
+	for start < len(raw) && raw[start]&0xc0 == 0x80 && start < 3 {
+		start++
+	}
+	data := raw[start:]
+	end := len(data)
+	if !utf8.Valid(data) && end > 0 {
+		boundary := end - 1
+		for boundary > 0 && data[boundary]&0xc0 == 0x80 {
+			boundary--
+		}
+		if !utf8.FullRune(data[boundary:]) {
+			end = boundary
+		}
+	}
+	if !utf8.Valid(data[:end]) {
+		return "", 0, 0, false
+	}
+	return string(data[:end]), start, len(data) - end, true
+}
+
 func humanDocuments(b *humanBuffer, v any) {
 	root, ok := v.(map[string]any)
 	if !ok {
 		return
 	}
-	if strings.Join(operatorContext.Path, " ") == "recordings document" && root["encoding"] == "base64" {
+	op := strings.Join(operatorContext.Path, " ")
+	if (op == "recordings document" || op == "media capture") && root["encoding"] == "base64" {
 		data, ok := root["data"].(string)
 		if !ok {
 			return
 		}
-		decoded, e := base64.StdEncoding.DecodeString(data)
-		if e == nil && utf8.Valid(decoded) {
-			b.line("Document page (bytes %s to %s):", humanValue(root["offset"]), humanValue(root["next_offset"]))
-			for i, line := range strings.Split(string(decoded), "\n") {
-				if i >= 64 {
-					b.line("Additional document text omitted; use --json for exact page bytes.")
-					break
+		decoded, err := base64.StdEncoding.DecodeString(data)
+		label := "Document"
+		if op == "media capture" {
+			label = "Capture " + humanValue(root["section"])
+		}
+		b.line("%s page (bytes %s to %s):", label, humanValue(root["offset"]), humanValue(root["next_offset"]))
+		if root["complete"] != true {
+			humanPageInput(b, op, root, "page.json")
+		}
+		if err == nil {
+			text, leading, trailing, valid := humanTextPage(decoded)
+			if valid {
+				if leading > 0 || trailing > 0 {
+					b.line("UTF-8 boundary: %d leading and %d trailing bytes belong to split characters; concatenate exact JSON page bytes to reconstruct them.", leading, trailing)
 				}
-				b.line("%s", line)
+				for i, line := range strings.Split(text, "\n") {
+					if i >= 64 {
+						b.line("Additional page text omitted; exact page bytes: %s", invocationJSONCommand())
+						break
+					}
+					b.line("%s", line)
+				}
+			} else {
+				b.line("Page contains non-UTF-8 bytes. Exact base64 page: %s", invocationJSONCommand())
 			}
 		} else {
-			b.line("Document page contains binary bytes. Use --json to retrieve the exact base64 page.")
-		}
-		if root["complete"] != true {
-			b.line("Next page: %s; set offset to %s and retain document_digest.", commandFor("recordings document "+selectedItem()+" --input page.json"), humanValue(root["next_offset"]))
+			b.line("Page could not be decoded. Exact base64 page: %s", invocationJSONCommand())
 		}
 	}
 	if root["document_inline"] == false {
@@ -375,6 +436,9 @@ func humanMaterializations(b *humanBuffer, v any, depth int) {
 
 // Query metadata must precede details that can exhaust the human display bound.
 func humanQueryPaging(b *humanBuffer, v any) {
+	if root, ok := v.(map[string]any); ok {
+		humanOrdinaryPaging(b, root)
+	}
 	op := strings.Join(operatorContext.Path, " ")
 	if op != "search" && op != "query run" && op != "timeline calendar" && op != "timeline recording" {
 		return
@@ -388,7 +452,7 @@ func humanQueryPaging(b *humanBuffer, v any) {
 	}
 	b.line("Matching rows: %s; rows outside this page: %s.", humanValue(root["total"]), humanValue(root["omitted"]))
 	if cur, ok := root["next_cursor"].(string); ok && cur != "" {
-		b.line("Next cursor: %s", cur)
+		humanExactField(b, "next_cursor", cur)
 		if op == "search" {
 			b.line("Continue: repeat this search text and filters with --after NEXT_CURSOR (the complete value above).")
 		} else {
@@ -420,16 +484,25 @@ func renderHuman(response contracts.Response) (string, error) {
 	} else if !operatorContext.Quiet {
 		b.line("%s completed.", humanLabel(op))
 	}
-	if !operatorContext.Quiet || response.Error != nil {
-		humanQueryPaging(b, v)
+	if operatorContext.Verbose || operatorContext.Debug {
+		if response.RequestID != "" {
+			b.line("Request: %s", response.RequestID)
+		}
+		if response.WorkspaceID != "" {
+			b.line("Workspace ID: %s", response.WorkspaceID)
+		}
 	}
-	humanWarnings(b, v, 0)
-	if v == nil && response.Error != nil && strings.HasPrefix(op, "work ") {
-		humanActions(b, map[string]any{"id": selectedItem()})
-		b.line("No durable state was observed by this invocation.")
+	if !operatorContext.Quiet || response.Error != nil {
+		humanSummary(b, v, 0)
+		if root, ok := v.(map[string]any); ok {
+			humanActions(b, root)
+		}
+		humanQueryPaging(b, v)
+		if root, ok := v.(map[string]any); ok {
+			humanRetrieval(b, root)
+		}
 	}
 	if root, ok := v.(map[string]any); ok && (!operatorContext.Quiet || response.Error != nil) {
-		humanActions(b, root)
 		if state, ok := root["state"].(string); ok {
 			b.line("State: %s", humanLabel(state))
 		}
@@ -452,6 +525,12 @@ func renderHuman(response contracts.Response) (string, error) {
 			}
 		}
 	}
+	humanWarnings(b, v, 0)
+	if v == nil && response.Error != nil && strings.HasPrefix(op, "work ") {
+		humanActions(b, map[string]any{"id": selectedItem()})
+		b.line("No durable state was observed by this invocation.")
+	}
+
 	if !operatorContext.Quiet || response.Error != nil {
 		humanDocuments(b, v)
 		humanMaterializations(b, v, 0)
@@ -459,16 +538,8 @@ func renderHuman(response contracts.Response) (string, error) {
 			humanFields(b, v, 0)
 		}
 	}
-	if operatorContext.Verbose || operatorContext.Debug {
-		if response.RequestID != "" {
-			b.line("Request: %s", response.RequestID)
-		}
-		if response.WorkspaceID != "" {
-			b.line("Workspace ID: %s", response.WorkspaceID)
-		}
-	}
-	if b.lines >= 128 {
-		b.WriteString("Warning: Display limit reached. Use --json or result paging for complete detail.\n")
+	if b.lines >= 128 || b.truncated {
+		b.WriteString("Warning: Display limit reached. Use the complete JSON command above for full detail.\n")
 	}
 	return b.String(), nil
 }

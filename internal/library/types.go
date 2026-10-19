@@ -249,7 +249,7 @@ func validOptions(o Options) bool {
 		return false
 	}
 	for _, ref := range o.KnownSpeakers {
-		if strings.TrimSpace(ref) == "" || len(ref) > 512 {
+		if strings.TrimSpace(ref) == "" || !contracts.ValidTextLength(ref, 1, 512) {
 			return false
 		}
 	}

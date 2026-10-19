@@ -95,8 +95,11 @@ func (b *Bridge) operateContext(ctx context.Context, request contracts.Request) 
 		request.RequestID = contracts.ID()
 	}
 	data, e := json.Marshal(request)
-	if e != nil || schemas.ValidateRequest(data) != nil {
+	if e != nil {
 		return b.failed(contracts.Fail("invalid_request"))
+	}
+	if err := schemas.ValidateRequest(data); err != nil {
+		return b.failed(err)
 	}
 	if err := local.Ensure(ctx, b.Workspace, b.CLIExecutable); err != nil {
 		return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Error: contracts.SafeError(err)}
@@ -109,10 +112,7 @@ func (b *Bridge) operateContext(ctx context.Context, request contracts.Request) 
 }
 
 func (b *Bridge) failed(e error) contracts.Response {
-	typed, ok := e.(*contracts.Error)
-	if !ok {
-		typed = contracts.Fail("operation_failed")
-	}
+	typed := contracts.SafeError(e)
 	response := contracts.Response{Kind: "runtime-response", Version: contracts.Version, Error: typed}
 	if b.Workspace != nil {
 		response.WorkspaceID = b.Workspace.Config.WorkspaceID

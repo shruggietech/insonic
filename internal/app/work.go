@@ -2,11 +2,9 @@
 package app
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"strings"
 
 	"github.com/shruggietech/insonic/internal/catalog"
@@ -24,20 +22,7 @@ type realWorker struct {
 }
 
 func strictPayload(raw []byte, out any) error {
-	if catalog.ValidateJSON(raw) != nil {
-		return contracts.Fail("invalid_request")
-	}
-	d := json.NewDecoder(bytes.NewReader(raw))
-	d.UseNumber()
-	d.DisallowUnknownFields()
-	if d.Decode(out) != nil {
-		return contracts.Fail("invalid_request")
-	}
-	var extra any
-	if d.Decode(&extra) != io.EOF {
-		return contracts.Fail("invalid_request")
-	}
-	return nil
+	return contracts.DecodeInput(raw, out)
 }
 
 // Catalog operations and retirement consume stored authority and artifacts,
@@ -360,6 +345,10 @@ func (a *App) domainDispatch(req contracts.Request) (result any, err error) {
 	}
 	defer func() {
 		if w, ok := result.(catalog.Work); ok {
+			if err != nil && w.ID == "" {
+				result = nil
+				return
+			}
 			result = a.modelWorkView(w)
 		}
 		if entry, ok := result.(catalog.LibraryEntry); ok {

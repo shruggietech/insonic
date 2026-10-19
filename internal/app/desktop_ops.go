@@ -544,13 +544,16 @@ func validateSetting(section string, raw []byte) (any, error) {
 	switch section {
 	case "appearance":
 		var value appearanceSettings
-		if strictPayload(raw, &value) != nil || (value.Theme != "system" && value.Theme != "light" && value.Theme != "dark") {
-			return nil, contracts.Fail("invalid_request")
+		if err := strictPayload(raw, &value); err != nil {
+			return nil, err
+		}
+		if value.Theme != "system" && value.Theme != "light" && value.Theme != "dark" {
+			return nil, contracts.InputFailure("input_enum", contracts.InputViolation{Pointer: "/data/value/theme"})
 		}
 		return value, nil
 	case "media_tools":
-		if schemas.ValidateMediaTools(raw) != nil {
-			return nil, contracts.Fail("invalid_request")
+		if err := schemas.ValidateMediaTools(raw); err != nil {
+			return nil, err
 		}
 		var value library.Tools
 		if strictPayload(raw, &value) != nil {

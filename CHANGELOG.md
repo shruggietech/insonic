@@ -18,6 +18,16 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- CLI help describes command purpose, option and operand meaning, defaults, dependencies and executable examples. Positional JSON and protected-input templates, maintenance operands, cursor instructions and training examples agree with execution.
+
+- Malformed and unsupported inputs retain generated reasons, known field locations and constraint bounds without repeating private values. Credential bootstrap and failed inspections no longer emit invented success states or zero receipts. Export destination errors explain filesystem corrections separately from revision conflicts.
+
+- Human output leads with identities, revisions, digests, task conclusions and valid continuation before optional detail. Capture metadata, facts and dates display readable UTF-8 interiors with exact byte-page authority. Model identities retain their original text and display ambiguous whitespace/control content explicitly.
+
+- Public text limits count Unicode code points consistently. Synthetic jobs support the advertised 1..600000 millisecond interval throughout parser, schema and catalog; catalog schema 10 widens the constraint while preserving historical migration identities and schema-9 snapshots.
+
+- Documentation capture verification finds complete matching ancestral snapshots even when the first changed file was unchanged in the capture's squash merge. Original images and capture receipts retain their recorded identity.
+
 - Native desktop Exit qualification retains separate bounded output streams, native child results and startup/action checkpoints, preserving controller errors that previously disappeared from CI failures.
 
 - Desktop selection controls keep square native glyphs inside full label targets. Compact form/card spacing and content-sized buttons reduce wasted space; wrapped headers and wide tables retain contained scrolling at the minimum window size and enlarged text.
@@ -52,6 +62,10 @@ All notable changes to this project will be documented here. The format follows 
 
 - Release publication accepts documented main-workflow path forms and can supersede verified completed older release-workflow attempts for the same source while retaining every required CI/security gate and immutable tag/artifact checks.
 
+### Changed
+
+- Opening an older catalog with this source upgrades it to schema 10. Binaries limited to schema 9 cannot open the upgraded catalog; retain a prior backup when an older binary must remain usable. Current restoration still accepts schema-9 snapshots without changing their recorded identities.
+
 ### Decisions
 
 - 2026-10-19: Manual native-startup incident replay selects a statically pinned run/source/attempt and independently verifies its assets and ZIP inventory. This diagnostic cannot confer publication authority; production artifact attempts and all native gates remain mandatory.
@@ -70,6 +84,8 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-15: Move only Go/Node action acquisition out of runner preparation into a three-attempt, 60-second digest-locked bootstrap. Preserve upstream action/cache execution and exact historical-source qualification. Verify live documentation after exact Pages promotion using original published bytes; report public binary metadata proof separately from downloaded documentation content proof.
 - 2026-10-15: Verify landing choices in both publication states from the same product component, retaining candidate truth and all five official package destinations. Extend the isolated hosted-Linux browser verifier for full-page captures, target geometry, reflow and intercepted native link activation; do not launch an owner-desktop browser or claim these checks certify assistive technology.
 - 2026-10-15: Reuse catalog retirement rows and runtime sweeps for retained media reports. Mark only proven retention deferrals internally, preserve real conflict/storage failures, and carry transcript corrections in existing durable notices so published versioned schema bytes remain unchanged.
+
+- 2026-10-19: Preserve the advertised ten-minute synthetic-job capability with a forward catalog constraint migration, freezing historical schema-9 authority and retaining schema-9 snapshot restoration. Generate bounded input constraints from packaged contracts and preserve exact identity text without normalization.
 
 ## [1.0.1] - 2026-10-15
 

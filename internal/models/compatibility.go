@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 )
 
 type Compatibility struct {
@@ -20,7 +19,7 @@ type Compatibility struct {
 }
 
 func modelText(s string, n int) bool {
-	return len(s) > 0 && len(s) <= n && utf8.ValidString(s) && s == strings.TrimSpace(s) && !strings.ContainsFunc(s, unicode.IsControl)
+	return contracts.ValidTextLength(s, 1, n) && s == strings.TrimSpace(s) && !strings.ContainsFunc(s, unicode.IsControl)
 }
 func (c Compatibility) Validate() error {
 	if !modelText(c.Adapter, 128) || !modelText(c.ContractVersion, 64) || !modelText(c.Architecture, 128) || !modelText(c.RuntimeFormat, 128) || len(c.SampleRates) > 32 || len(c.Channels) > 32 {

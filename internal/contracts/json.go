@@ -4,6 +4,7 @@ package contracts
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"unicode/utf8"
 )
@@ -11,7 +12,10 @@ import (
 // ValidateJSON rejects ambiguous keys and damaged UTF-8 before lossless decoding.
 func ValidateJSON(data []byte) error {
 	if !utf8.Valid(data) {
-		return Fail("invalid_request")
+		return InputFailure("json_encoding", InputViolation{})
+	}
+	if len(bytes.TrimSpace(data)) == 0 {
+		return InputFailure("json_empty", InputViolation{})
 	}
 	return ValidateJSONDecoder(json.NewDecoder(bytes.NewReader(data)))
 }
@@ -38,7 +42,7 @@ func ValidateJSONDecoder(d *json.Decoder) error {
 				}
 				name, ok := key.(string)
 				if !ok || seen[name] {
-					return Fail("invalid_request")
+					return InputFailure("json_duplicate_key", InputViolation{Offset: d.InputOffset()})
 				}
 				seen[name] = true
 				if e = value(); e != nil {
@@ -57,11 +61,25 @@ func ValidateJSONDecoder(d *json.Decoder) error {
 		_, e = d.Token()
 		return e
 	}
-	if value() != nil {
-		return Fail("invalid_request")
+	if err := value(); err != nil {
+		if typed, ok := err.(*Error); ok {
+			return typed
+		}
+		return InputFailure("json_syntax", InputViolation{Offset: jsonErrorOffset(d, err)})
 	}
 	if _, e := d.Token(); e != io.EOF {
-		return Fail("invalid_request")
+		if e != nil {
+			return InputFailure("json_syntax", InputViolation{Offset: jsonErrorOffset(d, e)})
+		}
+		return InputFailure("json_extra_document", InputViolation{Offset: d.InputOffset()})
 	}
 	return nil
+}
+
+func jsonErrorOffset(d *json.Decoder, err error) int64 {
+	var syntax *json.SyntaxError
+	if errors.As(err, &syntax) {
+		return syntax.Offset
+	}
+	return d.InputOffset() + 1
 }

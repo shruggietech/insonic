@@ -28,7 +28,10 @@ func setupBootstrapCommand(args []string, id string, machine bool) int {
 			return output(nil, contracts.Fail("invalid_request"), machine)
 		}
 		v, e := firstsetup.Preview(path)
-		return output(v, e, machine)
+		if e != nil {
+			return output(nil, e, machine)
+		}
+		return output(v, nil, machine)
 	}
 	s, e := firstsetup.ProfileStore()
 	if e != nil {

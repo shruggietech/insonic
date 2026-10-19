@@ -4,6 +4,29 @@ package contracts
 import "errors"
 
 var operatorReasons = map[string]string{
+	"json_empty":                     "The JSON input is empty. Supply one JSON object using this command's contextual --help template.",
+	"json_syntax":                    "The JSON syntax is incomplete or invalid. Correct the reported byte position and supply exactly one JSON document.",
+	"json_encoding":                  "The JSON input is not valid UTF-8. Save the file as UTF-8 and retry.",
+	"json_duplicate_key":             "The JSON input repeats an object member. Keep each member name exactly once at every level.",
+	"json_extra_document":            "The input contains more than one JSON document. Supply exactly one complete document.",
+	"input_shape":                    "The JSON input has the wrong shape. Use the object or collection shown by contextual --help.",
+	"input_unknown_field":            "The JSON input contains an unsupported member. Remove members absent from this command's input contract.",
+	"input_required":                 "A required input field is missing. Supply the indicated field using contextual --help.",
+	"input_type":                     "An input field has the wrong type. Use the indicated JSON type and contextual --help.",
+	"input_enum":                     "An input field has an unsupported choice. Select one of the values listed in contextual --help.",
+	"input_range":                    "An input number is outside its supported interval. Use the indicated bound and contextual --help.",
+	"input_length":                   "An input string or collection exceeds or falls below its supported length. Use the indicated constraint.",
+	"input_version":                  "The input contract version is unsupported. Use a packaged supported version and contextual --help.",
+	"input_constraint":               "An input field does not meet its contract. Correct the indicated field using contextual --help.",
+	"input_bytes":                    "The input exceeds its UTF-8 byte budget. Supply a smaller input within the indicated maxBytes.",
+	"credential_value_limit":         "A protected credential value or passphrase must contain 1..2048 UTF-8 bytes. Supply it through protected stdin; no value was returned.",
+	"credential_input_shape":         "Protected input must be one object containing only value, passphrase or session as required by the selected backend. Use credentials help for the protected template.",
+	"output_exists":                  "The selected output destination already exists. Choose a new path; this operation does not overwrite existing files.",
+	"output_parent_missing":          "The output parent directory does not exist. Create it or choose an existing writable directory and retry.",
+	"output_permission":              "The output destination cannot be written with the current permissions. Choose a writable directory or correct its access permissions.",
+	"output_directory":               "The output operand names a directory. Choose a new file path inside a writable directory.",
+	"output_space":                   "The output could not be written because the destination has insufficient space. Free space or choose another destination and retry.",
+	"output_write":                   "The output could not be created, written, synchronized or closed. Check the destination and filesystem before retrying.",
 	"documentation_open":             "Installed offline documentation could not be opened. Open help/index.html in the program directory with your HTML browser, or use installer Repair to restore matching help files.",
 	"provider_auth":                  "The provider rejected authentication. Check the elected credential or server account.",
 	"provider_missing":               "The elected provider endpoint or model is unavailable. Verify the endpoint, model and adapter protocol.",
@@ -76,6 +99,9 @@ func Condition(code, reason string) *Error {
 func SafeError(err error) *Error {
 	var e *Error
 	if errors.As(err, &e) {
+		if e.Validation != nil && inputReason(e.Reason) {
+			return InputFailure(e.Reason, *e.Validation)
+		}
 		return Condition(e.Code, e.Reason)
 	}
 	return Fail("operation_failed")
