@@ -537,9 +537,8 @@ func runExitGUIChild(fixture exitFixture, config string) (exitObservation, error
 // Failure-only function names identify a blocked UI call without stack arguments,
 // local values, memory dumps, filenames, private data or unbounded diagnostics.
 func logNativeUIFunctionStacks() {
-	records := make([]runtime.StackRecord, 256)
-	count, ok := runtime.GoroutineProfile(records)
-	if !ok {
+	records, err := captureNativeFunctionNames()
+	if err != nil {
 		fmt.Fprintln(os.Stderr, "native-ui-functions=unavailable-over-limit")
 		return
 	}
@@ -548,24 +547,14 @@ func logNativeUIFunctionStacks() {
 		ui        bool
 	}
 	var selected []entry
-	for _, record := range records[:count] {
-		frames := runtime.CallersFrames(record.Stack())
-		var functions []string
+	for _, functions := range records {
 		ui, relevant := false, false
-		for {
-			frame, more := frames.Next()
-			name := frame.Function
+		for _, name := range functions {
 			if name == "main.runDesktopApplicationWithProfile" || strings.Contains(name, "/windows/winc.") {
 				ui = true
 			}
 			if strings.Contains(name, "github.com/wailsapp/") {
 				relevant = true
-			}
-			if name != "" && len(functions) < 32 {
-				functions = append(functions, name[:min(len(name), 240)])
-			}
-			if !more {
-				break
 			}
 		}
 		if ui || relevant {
@@ -573,13 +562,24 @@ func logNativeUIFunctionStacks() {
 		}
 	}
 	var stacks [][]string
+	remainingBytes, limited := 32<<10, false
 	for _, primary := range []bool{true, false} {
 		for _, entry := range selected {
 			if entry.ui == primary && len(stacks) < 4 {
+				size := 0
+				for _, name := range entry.functions {
+					size += len(name)
+				}
+				if size > remainingBytes {
+					limited = true
+					continue
+				}
+				remainingBytes -= size
+				limited = limited || len(entry.functions) >= 128
 				stacks = append(stacks, entry.functions)
 			}
 		}
 	}
-	raw, _ := json.Marshal(map[string]any{"kind": "native-ui-functions", "unix_millis": time.Now().UnixMilli(), "stacks": stacks})
+	raw, _ := json.Marshal(map[string]any{"kind": "native-ui-functions", "unix_millis": time.Now().UnixMilli(), "stacks": stacks, "limited": limited, "max_frames": 128})
 	fmt.Fprintln(os.Stderr, string(raw))
 }
