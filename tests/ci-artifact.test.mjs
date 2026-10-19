@@ -196,3 +196,58 @@ test('candidate package readiness rejects another run, revision, attempt or inco
     assert.equal(elapsed, 10000);
   }
 });
+
+const windowsReadinessCases = [
+  { wait: waitForDesktopInput, artifacts: [inputArtifact], jobs: [inputGate], expected: 42, scope: 'assembly' },
+  { wait: waitForDesktopProofs, artifacts: proofArtifacts, jobs: proofGates.jobs, expected: { archive: 51, interactive: 52, maintenance: 53, setup: 54 }, scope: 'archive' },
+  { wait: waitForWindowsPackages, artifacts: packageArtifacts, jobs: packageJobs, expected: { cli: 71, desktop: 72 }, scope: 'cli' },
+];
+
+test('Windows readiness waits for complete consistent inventories after scheduling and upload races', async () => {
+  for (const scenario of windowsReadinessCases) for (const dimension of ['jobs', 'artifacts']) for (const difference of [-1, 1]) {
+    let elapsed = 0;
+    const ready = await scenario.wait({ ...proofOptions, now: () => elapsed, sleep: async ms => { elapsed += ms; }, request: async url => {
+      const key = url.includes('/jobs?') ? 'jobs' : 'artifacts';
+      const items = scenario[key];
+      return { total_count: items.length + (!elapsed && key === dimension ? difference : 0), [key]: items };
+    } });
+    assert.deepEqual(ready, scenario.expected);
+    assert.equal(elapsed, 5000, dimension + ' inconsistency must not authorize consumption');
+  }
+});
+
+test('persistent partial inventories cannot authorize Windows consumption and retain the aggregate deadline', async () => {
+  for (const scenario of windowsReadinessCases) for (const dimension of ['jobs', 'artifacts']) {
+    let elapsed = 0;
+    await assert.rejects(scenario.wait({ ...proofOptions, deadlineMs: 10000, now: () => elapsed, sleep: async ms => { elapsed += ms; }, request: async url => {
+      const key = url.includes('/jobs?') ? 'jobs' : 'artifacts';
+      return { total_count: scenario[key].length + (key === dimension ? 1 : 0), [key]: scenario[key] };
+    } }), /deadline exceeded.*incomplete/i);
+    assert.equal(elapsed, 10000);
+  }
+});
+
+test('malformed or oversized Windows inventories fail immediately without a retry', async () => {
+  for (const scenario of windowsReadinessCases) for (const dimension of ['jobs', 'artifacts']) for (const count of [-1, 0.5, '1', null, 101]) {
+    await assert.rejects(scenario.wait({ ...proofOptions, sleep: async () => { assert.fail('malformed inventory must fail immediately'); }, request: async url => {
+      const key = url.includes('/jobs?') ? 'jobs' : 'artifacts';
+      return { total_count: key === dimension ? count : scenario[key].length, [key]: scenario[key] };
+    } }), /Incomplete Windows/);
+  }
+});
+
+test('a known failed Windows producer stays primary even in a partial inventory', async () => {
+  for (const scenario of windowsReadinessCases) {
+    const observations = [];
+    await assert.rejects(scenario.wait({ ...proofOptions, sleep: async () => { assert.fail('known producer failure must not wait'); },
+      observeFailure: async observation => observations.push(observation), request: async url => {
+        const key = url.includes('/jobs?') ? 'jobs' : 'artifacts';
+        const items = structuredClone(scenario[key]);
+        if (key === 'jobs') items[0].conclusion = 'failure';
+        return { total_count: items.length + 1, [key]: items };
+      } }), new RegExp('failed: ' + scenario.scope));
+    assert.equal(observations.length, 1);
+    assert.equal(observations[0].scope, scenario.scope);
+    assert.equal(observations[0].conclusion, 'failure');
+  }
+});

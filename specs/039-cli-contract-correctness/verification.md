@@ -116,3 +116,14 @@ Both authorized external review rounds are complete. The round-one workspace fin
 All eleven issues and PR #156 are tracked in milestone 23 and Project S039 with status In review. #114 and #147 remain open for broader fixture/audit work. The PR is official, non-draft and unmerged, with auto-merge disabled. These final planning/evidence edits require a subsequent exact-head CI audit; its immutable head, run and timing are recorded on the PR at handoff so evidence-only recording does not create another unchecked commit.
 
 No release, tag, website publication, owner-library modification or owner GUI/installer launch is included. Controlled CLI/native/packaged qualification does not establish acoustic inference behavior or repair #154.
+
+
+## 2026-10-19: incomplete hosted inventory coordination
+
+The evidence-only head 32291bf61620370dbedf9af0b76fcfab92e8eecc exposed a readiness-coordination failure in [run 39229953673, interactive job 117985296118](https://github.com/shruggietech/insonic/actions/runs/39229953673/job/117985296118). After approximately 42 seconds of assembly waiting, the metadata guard reported an incomplete Windows input inventory, before download or native GUI execution. The exact offending API response was not retained, so which response/count was inconsistent is unverified. A later full job inventory was consistent at 39/39. This is separate from WebView2 issue #154.
+
+Generated scheduling/upload snapshot regressions reproduce the premature refusal using temporarily overreported and underreported job/artifact counts for input, proof and package readiness. The shared waiter now keeps such snapshots untrusted and retries within its existing aggregate deadline; only a complete consistent inventory can authorize consumption. Malformed, negative, fractional or oversized counts still fail immediately. Known failed producers and ambiguous/invalid authority remain primary immediate failures, including in partial snapshots. Persistent inconsistency fails at the original deadline with bounded count diagnostics. No artifact, source, attempt, success or byte-integrity gate is removed.
+
+Three new behavioral regressions failed before the correction and pass afterward; the malformed-inventory regression passed throughout. All 21 artifact readiness tests now pass. T027 records this additional convergence remediation. Final CI and its timing on the resulting head remain the handoff gate, recorded on PR #156; the two-round review limit remains exhausted.
+
+Inventory-coordination local acceptance passes npm check, all 139 Node tests and all 370 Python tests. The final convergence recheck has no remaining build findings; malformed/oversized inventories, stale tuples and known failed producers remain refusals, and successful consumption still requires the full consistent inventory. File integrity and diff checks pass. The ensuing exact-head CI result remains required before owner handoff.

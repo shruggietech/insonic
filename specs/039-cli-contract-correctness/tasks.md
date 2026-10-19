@@ -63,3 +63,7 @@ US1 example: command-registry regressions and catalog migration regressions run 
 - [x] T025 Overlap Windows proof-consumer setup with assembly, await the successful exact-run/revision/attempt assembly and immutable artifact before download, retain all four proof scopes and final verification, and measure the complete elected path within 660 seconds (FR-018; SC-005).
 
 - [x] T026 Overlap candidate tool preparation and qualified Linux/docs downloads with Windows completion, require both successful exact-run Windows package producers and matching artifacts before collection, and retain the complete exact-source candidate checks (FR-018; SC-005).
+
+## Phase 8: Convergence
+
+- [x] T027 Retry bounded incomplete GitHub inventory snapshots without accepting them, retain hard failure for malformed/unbounded/ambiguous authority and known failed producers, add race/deadline regressions for all Windows readiness roles, and reverify exact-head CI (FR-018; SC-005, partial).

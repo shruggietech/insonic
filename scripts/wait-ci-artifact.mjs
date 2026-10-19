@@ -82,11 +82,19 @@ async function waitForWindowsProducers({ role, repository, run, attempt, revisio
   const producers = windowsProducers(role, revision, attempt), deadline = now() + deadlineMs;
   const url = `https://api.github.com/repos/${repository}/actions/runs/${run}/artifacts?per_page=100`;
   const jobsUrl = `https://api.github.com/repos/${repository}/actions/runs/${run}/attempts/${attempt}/jobs?per_page=100`;
+  let lastIncomplete = '';
   while (now() < deadline) {
     const signal = AbortSignal.timeout(Math.max(1, Math.min(15000, deadline - now())));
     const [value, gates] = await Promise.all([request(url, token, signal), request(jobsUrl, token, signal)]);
-    if (!Array.isArray(value?.artifacts) || value.total_count !== value.artifacts.length || value.total_count > 100
-        || !Array.isArray(gates?.jobs) || gates.total_count !== gates.jobs.length || gates.total_count > 100) throw new Error(`Incomplete Windows ${role} inventory.`);
+    for (const [items, count] of [[value?.artifacts, value?.total_count], [gates?.jobs, gates?.total_count]]) {
+      if (!Array.isArray(items) || items.length > 100 || !Number.isSafeInteger(count) || count < 0 || count > 100) {
+        throw new Error(`Incomplete Windows ${role} inventory.`);
+      }
+    }
+    // Scheduling and artifact uploads can race an API page's reported count.
+    // Inspect known failures immediately, but never consume an incomplete snapshot.
+    const complete = value.total_count === value.artifacts.length && gates.total_count === gates.jobs.length;
+    lastIncomplete = complete ? '' : `; incomplete inventory (artifacts ${value.artifacts.length}/${value.total_count}, jobs ${gates.jobs.length}/${gates.total_count})`;
     const ready = {};
     for (const { scope, jobName, name } of producers) {
       const jobs = gates.jobs.filter(item => item.name === jobName || item.name?.endsWith('/ ' + jobName));
@@ -105,10 +113,10 @@ async function waitForWindowsProducers({ role, repository, run, attempt, revisio
           || !/^sha256:[a-f0-9]{64}$/.test(item.digest ?? ''))) throw new Error(`Invalid Windows ${role} artifact authority.`);
       if (item && job?.status === 'completed' && job.conclusion === 'success') ready[scope] = item.id;
     }
-    if (Object.keys(ready).length === producers.length) return ready;
+    if (complete && Object.keys(ready).length === producers.length) return ready;
     await pause(Math.max(0, Math.min(5000, deadline - now())));
   }
-  throw new Error(`Same-run Windows ${role} deadline exceeded.`);
+  throw new Error(`Same-run Windows ${role} deadline exceeded${lastIncomplete}.`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
