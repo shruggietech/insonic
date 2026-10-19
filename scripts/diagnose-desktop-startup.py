@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 """Incident-bound disposable Windows observations; never delivery qualification."""
+from concurrent.futures import ThreadPoolExecutor
 import ctypes
 import json
 import os
@@ -110,39 +111,76 @@ def run():
             summary['derived_gui_source_revision']=tool
             summary['boundary']='source-built-gui-with-verified-incident-companions-not-a-qualified-package'
             save(evidence,'diagnostic.json',summary)
-            for flag,timeout in [('--qualification',30),('--help-qualification',35),('--webview-qualification',90)]:
-                observation=capture([gui,flag],root,env,timeout)
-                observation.update(boundary='archive-predecessor-gui',flag=flag)
-                name=flag[2:]+'.json';save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
-                if observation['exit_code'] or observation['timed_out'] or observation['truncated']:raise RuntimeError('archive predecessor failed; evidence retained')
-        # Observe the original production parent first. Old bytes may discard the
-        # controller's stdout; subsequent direct children are labelled separately.
-        parent=capture([gui,'--exit-qualification'],root,env,100)
-        parent.update(boundary='original-production-parent')
-        save(evidence,'original-parent.json',parent);print(json.dumps(parent,sort_keys=True),flush=True);summary['observations'].append({'file':'original-parent.json','exit_code':parent['exit_code']})
-        if rebuilt:
-            for index in range(11):
-                observation=capture([gui,'--exit-qualification'],root,env,100)
-                observation.update(boundary='source-built-production-parent',index=index)
-                name=f'parent-{index:02d}.json';save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
-                summary['observations'].append({'file':name,'exit_code':observation['exit_code']});save(evidence,'diagnostic.json',summary)
-                if observation['exit_code'] or observation['timed_out'] or observation['truncated']:raise RuntimeError('source-built native parent failed; inspect retained child evidence')
-        for index,action in enumerate([] if rebuilt else ['menu','close','alt-f4']*8):
-            fixture=location/'native-exit.json'
-            fixture.write_text(json.dumps({'action':action})+'\n',encoding='utf-8',newline='\n')
-            observation=capture([gui,'--exit-qualification-child',fixture],root,env,18)
-            observation.update(boundary='direct-child-python-job-not-production-go-parent',action=action,index=index)
-            name=f'child-{index:02d}-{action}.json';save(evidence,name,observation)
-            print(json.dumps(observation,sort_keys=True),flush=True)
-            summary['observations'].append({'file':name,'exit_code':observation['exit_code']})
-            save(evidence,'diagnostic.json',summary)
-            if observation['exit_code'] or observation['timed_out'] or observation['truncated']:
-                summary['result']='native-child-failure-observed';save(evidence,'diagnostic.json',summary)
-                raise RuntimeError('native child failed; inspect retained separate stdout/stderr')
-        summary['result']='bounded-observations-completed-not-a-cause-proof'
-        save(evidence,'diagnostic.json',summary)
-        if parent['exit_code']:raise RuntimeError('original production parent failed; boundary observations retained')
+        if os.environ.get('INSONIC_STARTUP_LOAD')=='true':
+            from cli_contract_qualification import qualify as qualify_contract
+            cli=binaries/'insonic.exe';workspace=location/'concurrent CLI workspace'
+            for args in [[cli,'workspace','init',workspace,'--json'],[cli,'--workspace',workspace,'credentials','select','session','--json']]:
+                initial=capture(args,root,env,30)
+                if initial['exit_code'] or initial['timed_out'] or initial['truncated']:
+                    save(evidence,'cli-initialization.json',initial)
+                    raise RuntimeError('concurrent CLI workspace preparation failed')
+            summary['concurrent_cli_contract']=True
+            with ThreadPoolExecutor(max_workers=1) as workers:
+                future=workers.submit(qualify_contract,cli,workspace,env=env,cwd=root,documentation=True)
+                observe_with_load(lambda:observe_native(package,gui,root,location,env,evidence,summary,rebuilt),future,
+                                  lambda:package.wait_for_detached_idle(None,cli),evidence)
+        else:
+            observe_native(package,gui,root,location,env,evidence,summary,rebuilt)
     return summary
+
+
+def observe_with_load(observe,future,idle,evidence):
+    failure=None
+    try:
+        observe()
+    except BaseException as error:
+        failure=error
+    try:
+        workload=future.result()
+        save(evidence,'concurrent-cli.json',{'feature_qualification':False,'result':workload})
+    except BaseException as error:
+        save(evidence,'concurrent-cli.json',{'feature_qualification':False,'error':str(error)})
+        if failure is None:failure=error
+    finally:
+        try:idle()
+        except BaseException as error:
+            if failure is None:failure=error
+    if failure is not None:raise failure
+
+
+def observe_native(package,gui,root,location,env,evidence,summary,rebuilt):
+    for flag,timeout in [('--qualification',30),('--help-qualification',35),('--webview-qualification',90)]:
+        observation=capture([gui,flag],root,env,timeout)
+        observation.update(boundary='archive-predecessor-gui',flag=flag)
+        name=flag[2:]+'.json';save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
+        if observation['exit_code'] or observation['timed_out'] or observation['truncated']:raise RuntimeError('archive predecessor failed; evidence retained')
+    # Observe the original production parent first. Old bytes may discard the
+    # controller's stdout; subsequent direct children are labelled separately.
+    parent=capture([gui,'--exit-qualification'],root,env,100)
+    parent.update(boundary='original-production-parent')
+    save(evidence,'original-parent.json',parent);print(json.dumps(parent,sort_keys=True),flush=True);summary['observations'].append({'file':'original-parent.json','exit_code':parent['exit_code']})
+    if rebuilt:
+        for index in range(11):
+            observation=capture([gui,'--exit-qualification'],root,env,100)
+            observation.update(boundary='source-built-production-parent',index=index)
+            name=f'parent-{index:02d}.json';save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
+            summary['observations'].append({'file':name,'exit_code':observation['exit_code']});save(evidence,'diagnostic.json',summary)
+            if observation['exit_code'] or observation['timed_out'] or observation['truncated']:raise RuntimeError('source-built native parent failed; inspect retained child evidence')
+    for index,action in enumerate([] if rebuilt else ['menu','close','alt-f4']*8):
+        fixture=location/'native-exit.json'
+        fixture.write_text(json.dumps({'action':action})+'\n',encoding='utf-8',newline='\n')
+        observation=capture([gui,'--exit-qualification-child',fixture],root,env,18)
+        observation.update(boundary='direct-child-python-job-not-production-go-parent',action=action,index=index)
+        name=f'child-{index:02d}-{action}.json';save(evidence,name,observation)
+        print(json.dumps(observation,sort_keys=True),flush=True)
+        summary['observations'].append({'file':name,'exit_code':observation['exit_code']})
+        save(evidence,'diagnostic.json',summary)
+        if observation['exit_code'] or observation['timed_out'] or observation['truncated']:
+            summary['result']='native-child-failure-observed';save(evidence,'diagnostic.json',summary)
+            raise RuntimeError('native child failed; inspect retained separate stdout/stderr')
+    summary['result']='bounded-observations-completed-not-a-cause-proof'
+    save(evidence,'diagnostic.json',summary)
+    if parent['exit_code']:raise RuntimeError('original production parent failed; boundary observations retained')
 
 
 if __name__=='__main__':print(json.dumps(run(),sort_keys=True))

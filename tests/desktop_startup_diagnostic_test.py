@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('desktop_startup_diagnostic',ROOT/'scripts/diagnose-desktop-startup.py')
@@ -38,6 +38,37 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
         self.assertNotEqual(observation['exit_code'],0)
         self.assertIn('before timeout',observation['stdout'])
         self.assertLessEqual(len(observation['stdout'].encode()),65536)
+
+    def test_source_compiler_receives_selected_inputs_without_ci_credentials(self):
+        package=MagicMock();package.qualify.native_env.return_value={'PATH':'selected-path','CGO_ENABLED':'1'}
+        package.sha.return_value='a'*64
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);(root/'help').mkdir();node=root/'node.exe';node.write_bytes(b'fixture')
+            with patch.dict(os.environ,{'GITHUB_TOKEN':'protected-fixture-token','GOFLAGS':'unselected-override'}),patch.object(diagnostic.shutil,'copytree'),patch.object(diagnostic.shutil,'which',return_value=str(node)):
+                self.assertEqual(diagnostic.build_probe_gui(package,root/'insonic-desktop.exe',root),'a'*64)
+        for call in package.child.call_args_list:
+            env=call.kwargs['env']
+            self.assertNotIn('GITHUB_TOKEN',env)
+            self.assertEqual(env['GOFLAGS'],'')
+            self.assertEqual(env['GOTOOLCHAIN'],'local')
+            self.assertEqual(env['CGO_ENABLED'],'1')
+        self.assertEqual(package.child.call_args_list[-1].args[0][1:5],['build','-tags','desktop,production,system_ladybug','-ldflags'])
+
+    def test_concurrent_load_joins_and_idles_without_masking_native_failure(self):
+        future=MagicMock();future.result.side_effect=RuntimeError('CLI failure');idle=MagicMock()
+        native=MagicMock(side_effect=RuntimeError('native failure'))
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaisesRegex(RuntimeError,'native failure'):
+                diagnostic.observe_with_load(native,future,idle,Path(temporary))
+            self.assertEqual(json.loads((Path(temporary)/'concurrent-cli.json').read_text())['error'],'CLI failure')
+        future.result.assert_called_once();idle.assert_called_once()
+
+    def test_concurrent_load_failure_is_not_a_success(self):
+        future=MagicMock();future.result.side_effect=RuntimeError('CLI failure');idle=MagicMock()
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaisesRegex(RuntimeError,'CLI failure'):
+                diagnostic.observe_with_load(MagicMock(),future,idle,Path(temporary))
+        idle.assert_called_once()
 
     def test_refuses_owner_host_before_any_payload_execution(self):
         with patch.dict(os.environ,{},clear=True),patch.object(diagnostic,'incident_archive') as source:
