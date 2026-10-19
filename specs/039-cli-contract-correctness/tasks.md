@@ -2,6 +2,8 @@
 
 **Input**: [Specification](spec.md), [plan](plan.md), research, data model and operator contract.
 
+**Owner-approved closeout**: 54 delivered tasks are accepted for S039. T053 remains explicitly deferred in open #154 and is excluded from this slice completion, not marked implemented. The final closeout commit must receive green configured CI before owner handoff; live final-head evidence is recorded in PR #156.
+
 ## Phase 1: Setup
 
 - [x] T001 Verify merged baseline, matching S039 branch/directory, constitution and issue mapping in specs/039-cli-contract-correctness/spec.md.
@@ -77,85 +79,89 @@ US1 example: command-registry regressions and catalog migration regressions run 
 - [x] T029 Update S039 spec/plan/research/contracts and twelve-issue GitHub mapping for the owner-approved #154 scope, then analyze new requirements before native edits (FR-019..022; SC-006).
 - [x] T030 Recover controlled owned-process/profile lifecycle evidence for the controller-busy and DOM-readiness signatures using existing bounded diagnostic tools; document the demonstrated failing boundary and remaining uncertainty (FR-019/020).
 - [x] T031 Add a failing regression or controlled before/after reproducer and implement the proportional correction to the implicated native/application/process boundary, preserving existing timeout and success rules (FR-020/021).
-- [ ] T032 Qualify repeated actual Windows cold/warm menu, close and Alt+F4 routes with/without workspaces, owned browser cleanup, playback release and durable-runtime/work survival, retaining all exact-byte scopes (FR-021; SC-006).
-- [ ] T033 Run all required affected checks, reconverge twelve-issue scope, push updated official PR and satisfy exact-head CI <=660 seconds; audit existing resolved reviews without a third round, retain unmerged/auto-merge-off state and record the post-merge-main limit (FR-022; SC-005/006).
+- [x] T032 Qualify repeated actual Windows cold/warm menu, close and Alt+F4 routes with/without workspaces, owned browser cleanup, playback release and durable-runtime/work survival, retaining all exact-byte scopes (FR-021; SC-006).
+- [x] T033 Run all required affected checks, reconverge twelve-issue scope, push updated official PR and satisfy exact-head CI <=660 seconds; audit existing resolved reviews without a third round, retain unmerged/auto-merge-off state and record the post-merge-main limit (FR-022; SC-005/006).
 
 ## Phase 11: Native convergence
 
-- [ ] T034 Replace the demonstrated unreliable posted menu-selection messages with actual owned-foreground Alt+F then X input, retain active-menu ownership, partial-input refusal, callback/action diagnostics and existing watchdogs; require the shared browser-release proof in source and all package routes, then repeat corrected native and full exact-head CI (FR-019..022; SC-005/006).
+- [x] T034 Replace the demonstrated unreliable posted menu-selection messages with actual owned-foreground Alt+F then X input, retain active-menu ownership, partial-input refusal, callback/action diagnostics and existing watchdogs; require the shared browser-release proof in source and all package routes, then repeat corrected native and full exact-head CI (FR-019..022; SC-005/006).
 
-- [ ] T035 Restore the specified native Alt+F menu route while the WebView owns focus, using only this application UI thread and owned native window; preserve real SendInput qualification, ordinary text/other shortcuts and callback/normal-exit proofs, then repeat all affected checks and exact-head CI (FR-020..022; SC-006).
+- [x] T035 Restore the specified native Alt+F menu route while the WebView owns focus, using only this application UI thread and owned native window; preserve real SendInput qualification, ordinary text/other shortcuts and callback/normal-exit proofs, then repeat all affected checks and exact-head CI (FR-020..022; SC-006).
 
 ## Phase 12: Final-check fixture convergence
 
-- [ ] T036 Keep the general available-artifact setup lease independent of one-second runner timing, retain explicit publication-expiry tests and product defaults, repeat retirement/admission race acceptance, and reverify complete exact-head CI (FR-022; SC-005).
+- [x] T036 Keep the general available-artifact setup lease independent of one-second runner timing, retain explicit publication-expiry tests and product defaults, repeat retirement/admission race acceptance, and reverify complete exact-head CI (FR-022; SC-005).
 
 ## Phase 13: Owned descendant convergence
 
-- [ ] T037 Identify the owned descendant still reported after normal Alt+F4 host exit with bounded process image class and actual kernel exit state; correct the demonstrated lifecycle/observation cause while preserving existing deadlines, failed cleanup refusal, actual native actions and all exact-head proof gates (FR-019..022; SC-006).
+- [x] T037 Identify the owned descendant still reported after normal Alt+F4 host exit with bounded process image class and actual kernel exit state; correct the demonstrated lifecycle/observation cause while preserving existing deadlines, failed cleanup refusal, actual native actions and all exact-head proof gates (FR-019..022; SC-006).
 
 ## Phase 14: Complete native fixture ownership
 
-- [ ] T038 Give help-only/full-WebView qualification parent-owned fresh profiles and observe normal owned-job release within each original child deadline before cleanup; retain normal desktop defaults, all native assertions and exact-byte gates; compare retained historical failures separately from current repair observations and repeat concurrent-load/package CI (FR-019..022; SC-006).
+- [x] T038 Give help-only/full-WebView qualification parent-owned fresh profiles and observe normal owned-job release within each original child deadline before cleanup; retain normal desktop defaults, all native assertions and exact-byte gates; compare retained historical failures separately from current repair observations and repeat concurrent-load/package CI (FR-019..022; SC-006).
 
 ## Phase 15: Native pointer convergence
 
-- [ ] T039 Correct the demonstrated empty Win32 menu label across Go stack growth with pointer-aware native call boundaries, stabilize owned-job information buffers and apply equivalent pinning to typed MSI output buffers, preserve underlying MSI inspection errors and repeat real native/menu/MSI regressions plus full exact-head CI (FR-020..022; SC-006).
+- [x] T039 Correct the demonstrated empty Win32 menu label across Go stack growth with pointer-aware native call boundaries, stabilize owned-job information buffers and apply equivalent pinning to typed MSI output buffers, preserve underlying MSI inspection errors and repeat real native/menu/MSI regressions plus full exact-head CI (FR-020..022; SC-006).
 
 ## Phase 16: Convergence
 
-- [ ] T040 Retain failed native Exit fixture/profile authority after joined runtime cleanup, preserve the original child failure, and require a real fixture regression proving removal cannot precede observed normal release per FR-021 (partial).
+- [x] T040 Retain failed native Exit fixture/profile authority after joined runtime cleanup, preserve the original child failure, and require a real fixture regression proving removal cannot precede observed normal release per FR-021 (partial).
 
 ## Phase 17: Convergence
 
-- [ ] T041 Require the owned active File popup state before injecting its mnemonic selection, retain bounded native flags for the pre-selection boundary, and repeat actual cold/warm menu routes under the unchanged two-second readiness and child deadlines per FR-021 (partial).
+- [x] T041 Require the owned active File popup state before injecting its mnemonic selection, retain bounded native flags for the pre-selection boundary, and repeat actual cold/warm menu routes under the unchanged two-second readiness and child deadlines per FR-021 (partial).
 
 ## Phase 18: Native shutdown convergence
 
-- [ ] T042 Close the pinned WebView controller once on its owning UI thread during parent-window destruction, preserve normal native dispatch and prove the lifetime with an unshown real-window/COM regression plus repeated actual native release per FR-020/021 (partial).
-- [ ] T043 Bind the exact maintained WebView source patch to upstream and patched-tree checksums, original licenses, explicit notices and clean revision; narrowly validate its sole local replacement while rejecting all others, then repeat full affected/exact-head package checks per FR-017/022 (partial).
+- [x] T042 Close the pinned WebView controller once on its owning UI thread during parent-window destruction, preserve normal native dispatch and prove the lifetime with an unshown real-window/COM regression plus repeated actual native release per FR-020/021 (partial).
+- [x] T043 Bind the exact maintained WebView source patch to upstream and patched-tree checksums, original licenses, explicit notices and clean revision; narrowly validate its sole local replacement while rejecting all others, then repeat full affected/exact-head package checks per FR-017/022 (partial).
 
 ## Phase 19: Verification fixture convergence
 
-- [ ] T044 Share the complete existing Exit-fixture environment between success/failure tests, including the prepared tool-configuration fallback, and repeat Linux/Windows native and exact-head gates without reducing retention assertions per FR-022 (partial).
+- [x] T044 Share the complete existing Exit-fixture environment between success/failure tests, including the prepared tool-configuration fallback, and repeat Linux/Windows native and exact-head gates without reducing retention assertions per FR-022 (partial).
 
 ## Phase 20: Native observation convergence
 
-- [ ] T045 Observe the actual visible owned File submenu using GetMenuBarInfo, retain native menu ownership and the unchanged readiness deadline, dismiss only an owned failed menu before normal failure cleanup, and atomically publish the asynchronous offline-help fixture receipt; repeat exact-head native and package gates per FR-021/022 (partial).
+- [x] T045 Observe the actual visible owned File submenu using GetMenuBarInfo, retain native menu ownership and the unchanged readiness deadline, dismiss only an owned failed menu before normal failure cleanup, and atomically publish the asynchronous offline-help fixture receipt; repeat exact-head native and package gates per FR-021/022 (partial).
 
 ## Phase 21: Convergence
 
-- [ ] T046 Trace the remaining acknowledged qualification-only menu selection stall with bounded same-owned-thread unchanged message observations, identify and correct the demonstrated ordering boundary, remove investigation-only instrumentation, and repeat real native/package checks under the original limits per FR-019..022 (partial).
+- [x] T046 Trace the remaining acknowledged qualification-only menu selection stall with bounded same-owned-thread unchanged message observations, identify and correct the demonstrated ordering boundary, remove investigation-only instrumentation, and repeat real native/package checks under the original limits per FR-019..022 (partial).
 
 ## Phase 22: Convergence
 
-- [ ] T047 Preserve Wails' controller-focus activation on its owning UI thread and observe completion before readiness, remove the temporary dispatcher before keyboard input, prove pending UI work cannot confer success with an actual unshown-window regression and prior-boundary comparison, then repeat original-limit native/load/exact-head checks per FR-020..022 (partial).
+- [x] T047 Preserve Wails' controller-focus activation on its owning UI thread and observe completion before readiness, remove the temporary dispatcher before keyboard input, prove pending UI work cannot confer success with an actual unshown-window regression and prior-boundary comparison, then repeat original-limit native/load/exact-head checks per FR-020..022 (partial).
 
 ## Phase 23: Convergence
 
-- [ ] T048 Force the disposable owned UI thread through a real focus transition before joined Wails activation, so an already-focused root cannot skip the controller-focus callback; retain bounded before/after focus diagnostics and repeat actual native/load/package checks per FR-019..022 (partial).
+- [x] T048 Force the disposable owned UI thread through a real focus transition before joined Wails activation, so an already-focused root cannot skip the controller-focus callback; retain bounded before/after focus diagnostics and repeat actual native/load/package checks per FR-019..022 (partial).
 
 ## Phase 24: Convergence
 
-- [ ] T049 Balance the binding's owned WebView/controller/environment references and existing COM apartment on the original UI thread, remove its redundant getter reference and release its controller-interface query; preserve Close errors and strict two-file source authority, prove native reference/apartment regressions before/after, and repeat all source/notice/native/package gates per FR-017/020..022 (partial).
+- [x] T049 Balance the binding's owned WebView/controller/environment references and existing COM apartment on the original UI thread, remove its redundant getter reference and release its controller-interface query; preserve Close errors and strict two-file source authority, prove native reference/apartment regressions before/after, and repeat all source/notice/native/package gates per FR-017/020..022 (partial).
 
 ## Phase 25: Convergence
 
-- [ ] T050 Identify the remaining post-popup native UI wait using a failure-only bounded function-name profile (no arguments or memory), correct the demonstrated dispatch boundary, and repeat unchanged-limit actual menu/shutdown/package acceptance per FR-019..022 (partial).
+- [x] T050 Identify the remaining post-popup native UI wait using a failure-only bounded function-name profile (no arguments or memory), correct the demonstrated dispatch boundary, and repeat unchanged-limit actual menu/shutdown/package acceptance per FR-019..022 (partial).
 
 ## Phase 26: Convergence
 
-- [ ] T051 Preserve actual owned-UI-thread system-key metadata before the pinned framework drops Alt context, keep one handled disposition, post native File-menu work after the synchronous callback and require that route in real qualification; retain the controlled prior-accelerator red comparison, normal/race tests, source/notice authority and all original native/package gates per FR-020..022 and SC-006 (partial).
+- [x] T051 Preserve actual owned-UI-thread system-key metadata before the pinned framework drops Alt context, keep one handled disposition, post native File-menu work after the synchronous callback and require that route in real qualification; retain the controlled prior-accelerator red comparison, normal/race tests, source/notice authority and all original native/package gates per FR-020..022 and SC-006 (partial).
 
 ## Phase 27: Convergence
 
-- [ ] T052 Reuse checksum-verified atomic native asset acquisition with bounded transient retries at the existing cache location, retain permanent-error and checksum/deadline failures, prove controlled HTTP 502 red/green behavior and complete exact-head source/package CI within the existing budget per FR-017/022 and SC-005/006 (partial).
-- [ ] T053 Identify the separate pre-DOM startup stall with bounded browser-version/navigation/resource and asset-handler evidence, distinguish native/browser progress from an idle Go UI loop, correct the demonstrated cause with a focused regression where practical, and repeat all actual native/package gates without changing watchdogs or treating later passing repetitions as a cause proof per FR-019..022 and SC-006 (partial).
+- [x] T052 Reuse checksum-verified atomic native asset acquisition with bounded transient retries at the existing cache location, retain permanent-error and checksum/deadline failures, prove controlled HTTP 502 red/green behavior and complete exact-head source/package CI within the existing budget per FR-017/022 and SC-005/006 (partial).
+- **T053 (deferred by owner, retained in open #154 outside S039 completion)**: Identify the separate pre-DOM startup stall with bounded browser-version/navigation/resource and asset-handler evidence, distinguish native/browser progress from an idle Go UI loop, correct the demonstrated cause with a focused regression where practical, and repeat all actual native/package gates without changing watchdogs or treating later passing repetitions as a cause proof per FR-019..022 and SC-006 (partial).
 
 ## Phase 28: Convergence
 
-- [ ] T054 CRITICAL: Bring measured complete CI below 660 seconds by overlapping independent immutable candidate verification and copy/hash checks with bounded workers, preserving source/variant/installer/documentation authority, deterministic manifest ordering, every failure and the final completion barrier; prove overlap and failure/tamper rejection, then measure exact-head hosted delivery per Constitution V, FR-018/022 and SC-005 (partial).
+- [x] T054 CRITICAL: Bring measured complete CI below 660 seconds by overlapping independent immutable candidate verification and copy/hash checks with bounded workers, preserving source/variant/installer/documentation authority, deterministic manifest ordering, every failure and the final completion barrier; prove overlap and failure/tamper rejection, then measure exact-head hosted delivery per Constitution V, FR-018/022 and SC-005 (partial).
 
 ## Phase 29: Convergence
 
 - [x] T055 Correct the demonstrated ICoreWebView2Deferral.Release AddRef dispatch with an unshown native reference-count regression, preserve Complete/error behavior, extend the exact maintained patch authority to this one additional upstream file with original hashes/notices intact, and pass affected local/source/notice checks; required ordinary exact-head CI remains in T033. Do not claim this establishes the pre-DOM stall cause or dispatch another diagnostic per FR-017/020/022 and SC-006 (contradicts).
+
+## Closeout disposition (2026-10-19)
+
+T032 and T034-T052 have their component regressions and actual native/package acceptance in the recorded verification history and CI 39315026478. T049's original two-file patch scope was subsequently extended to exactly three modified originals by T055; all 397 original identities and four additions remain bound. T054 has controlled overlap/failure/tamper regressions and observed complete CI at 641 and 649 seconds; no measured collection-phase speedup is claimed. T033 records the reconciled approved scope and existing CI/review evidence; the new planning-only head still requires fresh configured CI before handoff. T053 is the sole deferred task, with no further diagnostic authorization. No implementation work is hidden by that disposition.

@@ -4,7 +4,7 @@
 
 ## Summary
 
-Close #116, #117, #118, #119, #120, #121, #131, #132, #133, #134 and #144 through shared command guidance, validation and result contracts. Extend existing installed CLI qualification. #114 and #147 retain their broader open scope. The dated owner-approved extension adds #154 native startup/Exit repair as the twelfth target.
+Close #116, #117, #118, #119, #120, #121, #131, #132, #133, #134 and #144 through shared command guidance, validation and result contracts. Extend existing installed CLI qualification. #114 and #147 retain their broader open scope. The owner-approved native extension contributes proven lifecycle/input/reference fixes to #154; the subsequent closeout direction retains the unexplained startup investigation in that open issue outside S039 completion.
 
 ## Technical Context
 
@@ -14,7 +14,7 @@ Close #116, #117, #118, #119, #120, #121, #131, #132, #133, #134 and #144 throug
 - Testing: Go ordinary/native/race and vet, repository/schema Node tests, Python maintainer/installed fixtures, frontend/site checks/builds and existing Windows/Linux/backend CI.
 - Target: Windows/Linux x86-64 CLI and shared-runtime desktop consumers.
 - Constraints: Existing 128-line/64-item/6-depth/512-byte-value human bounds; complete elected CI <=660 seconds. Exact integers, private input exclusion and hidden owned Windows launches remain mandatory.
-- Scope: All accepted commands/groups/options and generated examples, eleven CLI defect closures plus the owner-approved native repair, additive generated diagnostics and compatible catalog evolution.
+- Scope: All accepted commands/groups/options and generated examples, eleven CLI defect closures plus the owner-approved proven native corrections, additive generated diagnostics and compatible catalog evolution.
 
 ## Constitution Check
 
@@ -129,3 +129,9 @@ The final authorized diagnostic reproduces the pre-DOM stall after the document 
 Correct the separately demonstrated deferral ownership bug: ICoreWebView2Deferral.Release calls AddRef. Prove the incorrect native dispatch with an unshown reference-count regression, change only that dispatch, preserve Complete/error semantics and extend the explicit checksum-bound allowlist to this third upstream file. Retain every original file identity and all four additions. Validate through local checks and one ordinary full CI for the concrete change; preserve the unresolved startup cause in T053 regardless of green validation.
 
 The preceding exact-head CI at fea2349 passed all 25 elected jobs in 641 seconds. Candidate collection took 25.69 seconds versus 23.98 previously, so that sample does not demonstrate a phase speedup or attribute the total-CI reduction to parallel scheduling.
+
+### 2026-10-19: owner-approved S039 closeout
+
+Finish S039 with the proven fixes and leave #154 open for the unexplained startup failures. This supersedes the earlier requirement to establish and repair that remaining cause within this slice. Preserve the retained evidence and deferred T053 without marking it implemented. No further diagnostic run, retry or instrumented investigation is elected. The eleven CLI closure issues and PR move to owner review; #154 returns to the available backlog outside the S039 milestone.
+
+Reconcile the delivered component tasks against the focused regressions, actual cold/warm native observations and complete 8cb8dc0 CI 39315026478 (25 elected jobs, 649 seconds). Candidate scheduling met the observed complete-run budget; the evidence does not attribute a collection-phase speedup to parallelism. Run the normal repository checks for this planning-only closeout and the configured exact-head PR CI after its commit. Do not alter CI scope, acceptance gates, product bytes or deadlines. Retain the two-review cap and leave the official PR unmerged with auto-merge disabled. The PR status is the live final-CI record; post-merge-main and owner-installed behavior remain unverified.
