@@ -53,7 +53,14 @@ export function validateYAML(file, text) {
         if (inputs['skip-decompress'] !== false && inputs['skip-decompress'] !== 'false') report('Artifact downloads require explicit skip-decompress: false');
       }
       const selector = actionName === 'upload-artifact' ? inputs.name : (inputs.name ?? inputs.pattern);
-      if (typeof selector !== 'string' || !/\$\{\{\s*github\.run_attempt\s*\}\}/.test(selector)) report('Artifact names/patterns must include github.run_attempt');
+      // Manual incident replay selects a fixed foreign run and attempt. It never
+      // produces package/publication authority; ordinary CI keeps same-attempt naming.
+      const incidentReplay = file === '.github/workflows/installer-invocation-diagnostic.yml'
+        && Object.keys(workflow.on ?? {}).length === 1 && Object.hasOwn(workflow.on ?? {}, 'workflow_dispatch')
+        && actionName === 'download-artifact' && step.if === "matrix.kind == 'desktop-startup'"
+        && Number.isSafeInteger(inputs['run-id']) && inputs['run-id'] > 0
+        && typeof selector === 'string' && /^windows-desktop-input-[a-f0-9]{40}-[1-9][0-9]*$/.test(selector);
+      if (!incidentReplay && (typeof selector !== 'string' || !/\$\{\{\s*github\.run_attempt\s*\}\}/.test(selector))) report('Artifact names/patterns must include github.run_attempt');
     }
   }
   return problems;

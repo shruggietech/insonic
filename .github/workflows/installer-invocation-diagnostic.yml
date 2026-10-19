@@ -6,9 +6,10 @@ on:
         description: Focused diagnostic boundary (never product qualification)
         type: choice
         default: completion
-        options: [completion, keyboard, rollback, msiexec, recovery, exit, container, container-independent, container-compare, standalone, standalone-full, recovery-compare, setup, setup-full, setup-compare]
+        options: [completion, keyboard, rollback, msiexec, recovery, exit, container, container-independent, container-compare, standalone, standalone-full, recovery-compare, setup, setup-full, setup-compare, desktop-startup]
 permissions:
   contents: read
+  actions: read
 jobs:
   invocation:
     name: diagnostic ${{ matrix.kind }} (does not qualify MSI)
@@ -30,13 +31,31 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Restore exact failed-main desktop for startup diagnosis
+        if: matrix.kind == 'desktop-startup'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          digest-mismatch: error
+          skip-decompress: false
+          github-token: ${{ github.token }}
+          run-id: 39097965060
+          name: windows-desktop-input-d44d95b6e97d741a32cbf87323bf78c824c3155b-1
+          path: build/windows-desktop-input
+      - name: Observe exact incident desktop startup without installer transactions
+        if: matrix.kind == 'desktop-startup'
+        env:
+          SOURCE_REVISION: d44d95b6e97d741a32cbf87323bf78c824c3155b
+        run: python scripts/diagnose-desktop-startup.py
       - name: Trace one documentation completion invocation
+        if: matrix.kind != 'desktop-startup'
         run: python scripts/diagnose-installer-completion.py
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
         with:
           archive: true
           name: installer-invocation-diagnostic-${{ matrix.kind }}-${{ github.sha }}-${{ github.run_attempt }}
-          path: build/completion-invocation-diagnostic/evidence
+          path: |
+            build/completion-invocation-diagnostic/evidence
+            build/desktop-startup-diagnostic/evidence
           if-no-files-found: warn
           retention-days: 7
