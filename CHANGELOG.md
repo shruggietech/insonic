@@ -18,6 +18,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Windows native Exit qualification isolates disposable WebView profiles and observes normal owned-browser shutdown before reuse. Cold and warm menu, close and Alt+F4 checks retain playback cleanup, background-work survival and exact-package proof gates.
+
 - CLI help describes command purpose, option and operand meaning, defaults, dependencies and executable examples. Positional JSON and protected-input templates, maintenance operands, cursor instructions and training examples agree with execution.
 
 - Malformed and unsupported inputs retain generated reasons, known field locations and constraint bounds without repeating private values. Credential bootstrap and failed inspections no longer emit invented success states or zero receipts. Export destination errors explain filesystem corrections separately from revision conflicts.

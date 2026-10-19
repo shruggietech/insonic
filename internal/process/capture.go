@@ -13,10 +13,18 @@ import (
 // CaptureResult retains partial reports even when the extractor fails. Callers
 // decide capture state and persist diagnostics separately from machine output.
 type CaptureResult struct {
-	Stdout    []byte
-	Stderr    []byte
-	ExitCode  int
-	Truncated bool
+	Stdout      []byte
+	Stderr      []byte
+	ExitCode    int
+	Truncated   bool
+	Descendants *DescendantReport
+}
+
+// DescendantReport records only this launch's owned Windows job, never ambient processes.
+type DescendantReport struct {
+	Initial   uint32 `json:"initial"`
+	Remaining uint32 `json:"remaining"`
+	Released  bool   `json:"released"`
 }
 
 func Capture(ctx context.Context, spec Spec) (CaptureResult, error) {
@@ -56,6 +64,18 @@ func Capture(ctx context.Context, spec Spec) (CaptureResult, error) {
 	err = command.Wait()
 	close(finished)
 	<-supervised
+	if err == nil && ctx.Err() == nil && spec.WaitForDescendants {
+		observation, waitErr := waitDescendants(ctx, tree)
+		result.Descendants = &observation
+		err = waitErr
+		if waitErr != nil {
+			// Failure cleanup cannot replace the natural-release observation.
+			tree.Kill()
+			cleanup, stop := context.WithTimeout(context.Background(), time.Second)
+			_, _ = waitDescendants(cleanup, tree)
+			stop()
+		}
+	}
 	result.Stdout = stdout.bytes
 	result.Stderr = stderr.bytes
 	result.Truncated = stdout.exceeded || stderr.exceeded

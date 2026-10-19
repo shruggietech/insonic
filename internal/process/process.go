@@ -21,6 +21,9 @@ type Spec struct {
 	CleanEnv  bool
 	Input     io.Reader
 	MaxOutput int
+	// WaitForDescendants requires normal Windows job completion before success.
+	// It does not extend the caller deadline or turn cleanup termination into success.
+	WaitForDescendants bool
 }
 type Result struct{ Output []byte }
 type bounded struct {

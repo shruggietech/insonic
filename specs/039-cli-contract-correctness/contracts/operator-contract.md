@@ -9,3 +9,7 @@ Generated rejections distinguish malformed input, constraint/version mismatch, s
 Unlock/load success follows bootstrap success. Failed inspections/publications omit unestablished results; real partial observations remain. Human bounds reserve every essential identity/task/correction/continuation and verbosity context. Unpaged omissions point to the same operation with --json.
 
 Capture text displays valid UTF-8 interior with explicit split-boundary notices and exact continuation input. JSON stays exact base64. Model identities preserve original content, visibly escaped when whitespace/control text would be ambiguous.
+
+## Owner-approved native startup/Exit contract
+
+S039 now includes #154. Bounded controlled diagnostics identify actual startup/DOM/controller and owned browser/profile lifecycle. Native success requires actual menu/close/Alt+F4 activation, normal host return, playback release and independently surviving durable work/runtime. A corrected lifecycle must have a failing regression or controlled before/after demonstration. Observed owned browser exit precedes fixture-profile reuse/removal. No forced-kill receipt, skipped native action, timeout inflation or weaker exact-byte proof qualifies. Ambient owner processes/profiles remain untouched. Final PR checks are distinct from post-merge-main and owner-installed observations.

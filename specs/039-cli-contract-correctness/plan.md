@@ -4,7 +4,7 @@
 
 ## Summary
 
-Close #116, #117, #118, #119, #120, #121, #131, #132, #133, #134 and #144 through shared command guidance, validation and result contracts. Extend existing installed CLI qualification. #114 and #147 retain their broader open scope.
+Close #116, #117, #118, #119, #120, #121, #131, #132, #133, #134 and #144 through shared command guidance, validation and result contracts. Extend existing installed CLI qualification. #114 and #147 retain their broader open scope. The dated owner-approved extension adds #154 native startup/Exit repair as the twelfth target.
 
 ## Technical Context
 
@@ -14,7 +14,7 @@ Close #116, #117, #118, #119, #120, #121, #131, #132, #133, #134 and #144 throug
 - Testing: Go ordinary/native/race and vet, repository/schema Node tests, Python maintainer/installed fixtures, frontend/site checks/builds and existing Windows/Linux/backend CI.
 - Target: Windows/Linux x86-64 CLI and shared-runtime desktop consumers.
 - Constraints: Existing 128-line/64-item/6-depth/512-byte-value human bounds; complete elected CI <=660 seconds. Exact integers, private input exclusion and hidden owned Windows launches remain mandatory.
-- Scope: All accepted commands/groups/options and generated examples, eleven complete defect closures, additive generated diagnostics and compatible catalog evolution.
+- Scope: All accepted commands/groups/options and generated examples, eleven CLI defect closures plus the owner-approved native repair, additive generated diagnostics and compatible catalog evolution.
 
 ## Constitution Check
 
@@ -47,3 +47,11 @@ Regression-first checks cover each issue and every generated example, privacy an
 ## Complexity Tracking
 
 No constitution exception or new framework. Forward catalog migration is a demonstrated necessity for approved ten-minute duration support.
+
+## 2026-10-19: owner-approved native startup extension
+
+Add #154 as the twelfth issue. Inspect exact WebView2 HRESULTs, startup/DOM checkpoints, profile ownership and Go/Python Win32 job boundaries before selecting a correction. Reuse the bounded disposable incident diagnostic; its observations confer no delivery authority. Isolate the demonstrated lifecycle with a regression or controlled before/after experiment, then correct only the necessary application/process/qualification boundary. Do not assume that shared profiles or resource pressure caused the failure.
+
+Potential touch-points are cmd/insonic-desktop/application.go, exit_qualification.go and platform helpers; internal/process/capture.go and tree_windows.go only if their owned-descendant contract is implicated; scripts/diagnose-desktop-startup.py, package-desktop.py and their existing workflow/tests. Keep production defaults unless a demonstrated necessity requires a change. Use fixture-owned profiles and observe owned descendant release if profile isolation is selected. Preserve actual native actions, playback cleanup, durable-work/session survival, all delivery scopes and exact-byte/source binding.
+
+Run focused regression-first checks, required root/Go/vet/native/race/Python/frontend/site checks as affected, repeated real Windows cold/warm native qualification and complete exact-head CI <=660 seconds. Existing external review rounds remain two of two; do not request another. Record post-merge-main as unverified until the owner merges.

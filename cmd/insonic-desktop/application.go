@@ -14,13 +14,14 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/windows"
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // Production and native qualification use one menu, startup and shutdown path.
-func applicationOptions(bridge *desktop.Bridge, startup, domReady func(context.Context), hidden bool) *options.App {
+func applicationOptions(bridge *desktop.Bridge, startup, domReady func(context.Context), hidden bool, profile string) *options.App {
 	quit := desktop.NewQuitLifecycle(wailsruntime.Quit)
-	return &options.App{
+	app := &options.App{
 		Title: "insonic", Width: 1200, Height: 800, MinWidth: 720, MinHeight: 600, StartHidden: hidden,
 		Menu: desktop.ApplicationMenu(runtime.GOOS, quit.Request),
 		OnStartup: func(ctx context.Context) {
@@ -47,9 +48,19 @@ func applicationOptions(bridge *desktop.Bridge, startup, domReady func(context.C
 		AssetServer: &assetserver.Options{Assets: desktop.Assets, Middleware: desktop.HelpAssetPolicy, Handler: desktop.PlaybackServer{Bridge: bridge}},
 		Bind:        []any{bridge},
 	}
+	if profile != "" {
+		app.Windows = &windows.Options{WebviewUserDataPath: profile}
+	}
+	return app
 }
 
 func runDesktopApplication(bridge *desktop.Bridge, startup, domReady func(context.Context), hidden bool) error {
+	return runDesktopApplicationWithProfile(bridge, startup, domReady, hidden, "")
+}
+
+// Disposable native qualification supplies its owned profile explicitly. Normal
+// application launches retain the persistent Wails default.
+func runDesktopApplicationWithProfile(bridge *desktop.Bridge, startup, domReady func(context.Context), hidden bool, profile string) error {
 	closePlayback, err := desktop.StartPlaybackTransport(bridge)
 	if err != nil {
 		return err
@@ -63,5 +74,5 @@ func runDesktopApplication(bridge *desktop.Bridge, startup, domReady func(contex
 			fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: playback complete")
 		}
 	}()
-	return wails.Run(applicationOptions(bridge, startup, domReady, hidden))
+	return wails.Run(applicationOptions(bridge, startup, domReady, hidden, profile))
 }

@@ -41,6 +41,16 @@ class StartupDiagnosticQualificationTests(unittest.TestCase):
             self.assertEqual(required['native_exit'], 'passed')
             self.assertTrue(all(call.args[1] == b'actual receipt bytes' for call in receipt.call_args_list))
 
+    def test_windows_exit_proof_requires_observed_browser_release(self):
+        for platform_name in ('Windows','Linux'):
+            with self.subTest(platform=platform_name), patch.object(package.platform,'system',return_value=platform_name), \
+                    patch.object(package,'child',return_value=b'actual receipt bytes'), \
+                    patch.object(package.qualify,'write_receipt') as receipt:
+                package.qualify_package_gui(Path('fixture-desktop'),Path('fixture-directory'),{})
+                required=receipt.call_args_list[-1].args[2]
+                if platform_name=='Windows': self.assertEqual(required['owned_browser_release'],'passed')
+                else: self.assertNotIn('owned_browser_release',required)
+
     def test_native_group_keeps_all_packages_and_default_deadline_with_streamed_events(self):
         with tempfile.TemporaryDirectory() as temporary, \
                 patch.object(qualify, 'BUILD', Path(temporary)), \

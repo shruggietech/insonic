@@ -71,3 +71,11 @@ US1 example: command-registry regressions and catalog migration regressions run 
 ## Phase 9: Convergence
 
 - [x] T028 Keep runtime-backed catalog inspection in the live example library, require exclusive-maintenance examples never elect a runtime owner, reproduce the isolation violation with the actual installed help corpus before fixing routing, and reverify all 168 examples plus exact-head CI (FR-004/016/018; SC-001/003/005, partial).
+
+## Phase 10: Owner-approved native startup repair
+
+- [x] T029 Update S039 spec/plan/research/contracts and twelve-issue GitHub mapping for the owner-approved #154 scope, then analyze new requirements before native edits (FR-019..022; SC-006).
+- [x] T030 Recover controlled owned-process/profile lifecycle evidence for the controller-busy and DOM-readiness signatures using existing bounded diagnostic tools; document the demonstrated failing boundary and remaining uncertainty (FR-019/020).
+- [x] T031 Add a failing regression or controlled before/after reproducer and implement the proportional correction to the implicated native/application/process boundary, preserving existing timeout and success rules (FR-020/021).
+- [ ] T032 Qualify repeated actual Windows cold/warm menu, close and Alt+F4 routes with/without workspaces, owned browser cleanup, playback release and durable-runtime/work survival, retaining all exact-byte scopes (FR-021; SC-006).
+- [ ] T033 Run all required affected checks, reconverge twelve-issue scope, push updated official PR and satisfy exact-head CI <=660 seconds; audit existing resolved reviews without a third round, retain unmerged/auto-merge-off state and record the post-merge-main limit (FR-022; SC-005/006).

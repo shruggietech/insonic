@@ -19,3 +19,7 @@ Public character limits count valid Unicode code points without normalization. P
 ## Observed result and human page
 
 No established result means absent result on failure. Legitimate partial/false/zero observations remain. Summaries prioritize identities/revisions/digests, states, all task conclusions/corrections and continuation. Capture authority retains section, revision/digest and byte offsets; human decoding never changes JSON bytes.
+
+## Native lifecycle observation (owner-approved extension)
+
+A disposable native launch owns its profile and Win32 job descendants. Evidence distinguishes environment/controller startup, DOM readiness, actual action, host return and observed browser release. Action receipts and descendant release are separate conditions; watchdog termination or cleanup kills never establish native success. Runtime session, held durable work and playback ownership retain their existing independent assertions.

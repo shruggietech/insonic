@@ -4,9 +4,9 @@
 
 **Created**: 2026-10-19
 
-**Status**: Implemented and automatically verified; unmerged for owner review
+**Status**: Original eleven-issue implementation verified; owner-approved #154 repair in progress
 
-**Input**: Run S039 end to end under autopilot, addressing #116, #117, #118, #119, #120, #121, #131, #132, #133, #134 and #144. Push and publish the PR automatically, address every review finding with at most two review rounds, verify the exact final head, and stop before owner review and merge.
+**Input**: Run S039 end to end under autopilot, addressing #116, #117, #118, #119, #120, #121, #131, #132, #133, #134, #144 and #154. Push and publish the PR automatically, address every review finding with at most two review rounds, verify the exact final head, and stop before owner review and merge.
 
 ## User Scenarios & Testing
 
@@ -108,7 +108,7 @@ An operator can distinguish failed inspection or bootstrap from observed state a
 ## Assumptions
 
 - Baseline is merged main `1ab36def9dc9cb700e9dcb192c3ff49cbc4c35e5`; S039 uses its own matching branch/directory and eleven-issue mapping.
-- #115, #126, #135-#139 and #154 remain separate defects. Their required existing checks still apply; no known failure is converted into a successful receipt.
+- #115, #126 and #135-#139 remain separate defects. Owner approval adds #154 native startup/Exit repair to S039. Their required existing checks still apply; no known failure is converted into a successful receipt.
 - This slice contributes targeted maintained fixtures to #114 and updates #147 evidence without claiming either broad tracker complete.
 - This is a source correction, not a new product release, installation into an owner library, or website publication.
 
@@ -121,3 +121,33 @@ An operator can distinguish failed inspection or bootstrap from observed state a
 - Q: Should existing model identities be trimmed or rejected on read? A: No. Preserve exact identities and document intentional preservation; quote/escape whitespace and control characters in human identity displays.
 - Q: What is the publication boundary? A: Push/open the official PR automatically and handle at most two review rounds; stop with green exact-head CI and resolved reviews before owner merge.
 - Q: Does partial fixture coverage close #114/#147? A: No. Preserve complete per-defect acceptance and record the broader trackers as still open.
+
+## Owner-approved scope extension (2026-10-19)
+
+The owner explicitly selected "Include #154 repair in S039." The twelve-issue slice now includes the native startup/lifecycle repair deferred by S038. Push/PR authorization and the exhausted two-round external review cap persist. Stop before owner merge; post-merge main verification remains unavailable until that merge occurs and must be reported explicitly.
+
+### User Story 4 - Start and exit the native Windows desktop reliably (Priority: P1)
+
+An operator and the disposable qualification runner can create the native WebView, reach DOM readiness, activate the actual File/Exit, window-close and Alt+F4 routes, and observe normal host/browser cleanup without disrupting the independently owned runtime or durable work.
+
+**Acceptance scenarios**:
+
+1. Given retained controller-busy and startup-watchdog failures, when bounded owned-process/profile diagnostics run, then they identify the failing resource/lifecycle boundary and distinguish demonstrated facts from hypotheses.
+2. Given the demonstrated failing lifecycle, when its correction runs, then a regression reproduces the old failure or invariant violation before the fix and verifies the corrected boundary; success cannot be manufactured by skipped native actions, forced-kill receipts or larger timeouts.
+3. Given cold/warm native launches with and without a workspace, when actual menu, close and Alt+F4 qualification completes, then owned playback is released, held durable work and runtime session survive, and owned WebView descendants have exited before profile reuse/removal.
+4. Given every ZIP/MSI/setup/recovery proof, when final qualification joins them, then the original exact-source/byte and failed-producer gates still apply and complete exact-head CI remains within 660 seconds.
+
+### Additional functional requirements
+
+- **FR-019**: Native investigation MUST retain bounded action/stage/HRESULT and owned browser/profile lifecycle evidence without exposing protected inputs or modifying ambient owner profiles/processes.
+- **FR-020**: The demonstrated native startup/lifecycle defect MUST be corrected proportionally, with a failing regression and an explicit causal explanation; profile contention, resource pressure and different timeout signatures MUST NOT be conflated without evidence.
+- **FR-021**: Real Windows cold/warm menu, close and Alt+F4 checks MUST retain workspace/playback/durable-runtime assertions and observe owned browser release before fixture profile reuse/removal. No skipped action, forced-kill success, longer watchdog or weaker proof may confer acceptance.
+- **FR-022**: All twelve issue mappings, affected source/product/site checks, exact-head CI within 660 seconds, resolved existing reviews and the two-round cap MUST be preserved before the unmerged owner handoff. Post-merge main remains an explicit later observation.
+
+### Additional success criterion
+
+- **SC-006**: The native failing boundary is explained and regression-tested, repeated real Windows startup/Exit succeeds on the repaired head, and all delivery proofs remain enforced. A green PR does not claim post-merge-main or owner-installed behavior.
+
+### Scope clarification
+
+- Q: Should the native cause repair remain separate after repeated final-head failures? A: No. The owner explicitly includes #154 repair in S039. The two-review cap is unchanged.

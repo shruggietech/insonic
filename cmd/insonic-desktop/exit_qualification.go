@@ -130,7 +130,7 @@ func qualifyNativeExitChild(path string) int {
 		}()
 	}
 	fmt.Fprintln(os.Stderr, "native-exit-stage=controller-startup")
-	err = runDesktopApplication(bridge, startup, domReady, false)
+	err = runDesktopApplicationWithProfile(bridge, startup, domReady, false, filepath.Join(filepath.Dir(path), "webview"))
 	fmt.Fprintln(os.Stderr, "native-exit-stage=shutdown")
 	close(finished)
 	if timedOut.Load() {
@@ -358,32 +358,49 @@ func runExitQualificationWith(runChild func(exitFixture, string) (exitObservatio
 	}
 	cases := []exitFixture{{Action: "menu"}, {Action: "menu", Workspace: directory, MediaID: imported.Items[0].MediaID, Revision: entry.Revision}, {Action: "close", Workspace: directory, MediaID: imported.Items[0].MediaID, Revision: entry.Revision}}
 	if runtime.GOOS == "windows" {
-		cases = append(cases, exitFixture{Action: "alt-f4"})
+		cases = []exitFixture{{Action: "menu"}, {Action: "close"}, {Action: "alt-f4"}, {Action: "menu", Workspace: directory, MediaID: imported.Items[0].MediaID, Revision: entry.Revision}, {Action: "close", Workspace: directory, MediaID: imported.Items[0].MediaID, Revision: entry.Revision}, {Action: "alt-f4", Workspace: directory, MediaID: imported.Items[0].MediaID, Revision: entry.Revision}}
 	}
-	for _, fixture := range cases {
-		config := filepath.Join(directory, "native-exit.json")
+	for caseIndex, fixture := range cases {
+		// Each case begins with a cold owned profile. Its second launch reuses that
+		// exact profile only after the first launch's descendants exit normally.
+		caseDirectory := filepath.Join(directory, fmt.Sprintf("native-case-%d", caseIndex))
+		if err = os.Mkdir(caseDirectory, 0700); err != nil {
+			return err
+		}
+		config := filepath.Join(caseDirectory, "native-exit.json")
 		raw, _ := json.Marshal(fixture)
 		if err = os.WriteFile(config, raw, 0600); err != nil {
 			return err
 		}
-		observation, childErr := runChild(fixture, config)
-		if childErr != nil {
-			return childErr
+		repeats := 1
+		if runtime.GOOS == "windows" {
+			repeats = 2
 		}
-		if observation.NativeExit != "passed" || observation.Action != fixture.Action {
-			return fmt.Errorf("native action receipt invalid")
-		}
-		if fixture.Workspace != "" {
-			if observation.Playback != "released" || !contracts.ValidID(observation.PlaybackID) {
-				return fmt.Errorf("playback cleanup receipt invalid")
+		for launch := 0; launch < repeats; launch++ {
+			temperature := "cold"
+			if launch > 0 {
+				temperature = "warm"
 			}
-			checked, checkErr := r.call("media.playback-check", fixture.MediaID, map[string]any{"playback_id": observation.PlaybackID})
-			if checkErr == nil || checked.Error == nil || checked.Error.Code != "not_found" || checked.SessionID != r.session {
-				return fmt.Errorf("runtime playback handle survived GUI shutdown")
+			fmt.Fprintf(os.Stderr, "native-exit-case action=%s workspace=%t profile=%s\n", fixture.Action, fixture.Workspace != "", temperature)
+			observation, childErr := runChild(fixture, config)
+			if childErr != nil {
+				return childErr
 			}
-		}
-		if err = r.assertHeld(acquired.ID, acquired.Acquisitions[0]); err != nil {
-			return err
+			if observation.NativeExit != "passed" || observation.Action != fixture.Action {
+				return fmt.Errorf("native action receipt invalid")
+			}
+			if fixture.Workspace != "" {
+				if observation.Playback != "released" || !contracts.ValidID(observation.PlaybackID) {
+					return fmt.Errorf("playback cleanup receipt invalid")
+				}
+				checked, checkErr := r.call("media.playback-check", fixture.MediaID, map[string]any{"playback_id": observation.PlaybackID})
+				if checkErr == nil || checked.Error == nil || checked.Error.Code != "not_found" || checked.SessionID != r.session {
+					return fmt.Errorf("runtime playback handle survived GUI shutdown")
+				}
+			}
+			if err = r.assertHeld(acquired.ID, acquired.Acquisitions[0]); err != nil {
+				return err
+			}
 		}
 	}
 	release()
@@ -400,25 +417,30 @@ func qualifyNativeExit() int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	json.NewEncoder(os.Stdout).Encode(map[string]any{"schema_version": contracts.Version, "native_exit": "passed", "no_workspace_exit": "passed", "workspace_exit": "passed", "ordinary_close": "passed", "playback_cleanup": "passed", "runtime_work_survival": "passed"})
+	proof := map[string]any{"schema_version": contracts.Version, "native_exit": "passed", "no_workspace_exit": "passed", "workspace_exit": "passed", "ordinary_close": "passed", "playback_cleanup": "passed", "runtime_work_survival": "passed"}
+	if runtime.GOOS == "windows" {
+		proof["owned_browser_release"] = "passed"
+	}
+	json.NewEncoder(os.Stdout).Encode(proof)
 	return 0
 }
 
 type nativeExitFailure struct {
-	Kind      string `json:"kind"`
-	Stage     string `json:"stage"`
-	Action    string `json:"action"`
-	Stdout    string `json:"stdout"`
-	Stderr    string `json:"stderr"`
-	ExitCode  int    `json:"exit_code"`
-	Truncated bool   `json:"truncated"`
-	TimedOut  bool   `json:"timed_out"`
-	Cancelled bool   `json:"cancelled"`
+	Kind        string                    `json:"kind"`
+	Stage       string                    `json:"stage"`
+	Action      string                    `json:"action"`
+	Stdout      string                    `json:"stdout"`
+	Stderr      string                    `json:"stderr"`
+	ExitCode    int                       `json:"exit_code"`
+	Truncated   bool                      `json:"truncated"`
+	TimedOut    bool                      `json:"timed_out"`
+	Cancelled   bool                      `json:"cancelled"`
+	Descendants *process.DescendantReport `json:"owned_descendants,omitempty"`
 }
 
 var nativeExitFailureSequence atomic.Uint32
 
-func retainNativeExitFailure(raw []byte) {
+func retainNativeExitEvidence(raw []byte) {
 	if os.Getenv("GITHUB_ACTIONS") != "true" || os.Getenv("INSONIC_PROCESS_STARTUP_DIAGNOSTICS") != "1" {
 		return
 	}
@@ -456,9 +478,9 @@ func interpretExitChild(fixture exitFixture, report process.CaptureResult, captu
 	}
 	const limit = 65536
 	truncated := report.Truncated || len(report.Stdout) > limit || len(report.Stderr) > limit
-	evidence := nativeExitFailure{Kind: "native-exit-child-failure", Stage: stage, Action: fixture.Action, Stdout: string(report.Stdout[:min(len(report.Stdout), limit)]), Stderr: string(report.Stderr[:min(len(report.Stderr), limit)]), ExitCode: report.ExitCode, Truncated: truncated, TimedOut: contextErr == context.DeadlineExceeded || strings.Contains(string(report.Stderr), "native-exit-stage=watchdog-timeout"), Cancelled: contextErr == context.Canceled}
+	evidence := nativeExitFailure{Kind: "native-exit-child-failure", Stage: stage, Action: fixture.Action, Stdout: string(report.Stdout[:min(len(report.Stdout), limit)]), Stderr: string(report.Stderr[:min(len(report.Stderr), limit)]), ExitCode: report.ExitCode, Truncated: truncated, TimedOut: contextErr == context.DeadlineExceeded || strings.Contains(string(report.Stderr), "native-exit-stage=watchdog-timeout"), Cancelled: contextErr == context.Canceled, Descendants: report.Descendants}
 	raw, _ := json.Marshal(evidence)
-	retainNativeExitFailure(raw)
+	retainNativeExitEvidence(raw)
 	fmt.Fprintln(diagnostic, string(raw))
 	if captureErr == nil {
 		captureErr = fmt.Errorf("native action receipt invalid")
@@ -473,6 +495,11 @@ func runExitGUIChild(fixture exitFixture, config string) (exitObservation, error
 	}
 	ctx, stop := context.WithTimeout(context.Background(), 18*time.Second)
 	defer stop()
-	report, err := process.Capture(ctx, process.Spec{Executable: executable, Args: []string{"--exit-qualification-child", config}, MaxOutput: 64 << 10})
+	report, err := process.Capture(ctx, process.Spec{Executable: executable, Args: []string{"--exit-qualification-child", config}, MaxOutput: 64 << 10, WaitForDescendants: runtime.GOOS == "windows"})
+	if report.Descendants != nil {
+		lifecycle, _ := json.Marshal(map[string]any{"kind": "native-exit-owned-lifecycle", "action": fixture.Action, "descendants": report.Descendants})
+		retainNativeExitEvidence(lifecycle)
+		fmt.Fprintln(os.Stderr, string(lifecycle))
+	}
 	return interpretExitChild(fixture, report, err, ctx.Err(), os.Stderr)
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/shruggietech/insonic/internal/process"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -93,8 +94,12 @@ func TestExitOwnerFixtureReleasesWorkAfterClientCleanup(t *testing.T) {
 		t.Setenv("INSONIC_LIBRARY_TOOLS_FILE", filepath.Join(root, "build", "native", "media-tools.json"))
 	}
 	calls := 0
-	err = runExitQualificationWith(func(fixture exitFixture, _ string) (exitObservation, error) {
+	profiles := map[string]int{}
+	combinations := map[string]int{}
+	err = runExitQualificationWith(func(fixture exitFixture, config string) (exitObservation, error) {
 		calls++
+		profiles[config]++
+		combinations[fmt.Sprintf("%s:%t", fixture.Action, fixture.Workspace != "")]++
 		observation := exitObservation{Action: fixture.Action, NativeExit: "passed", Playback: "not-selected"}
 		if fixture.Workspace == "" {
 			return observation, nil
@@ -125,7 +130,16 @@ func TestExitOwnerFixtureReleasesWorkAfterClientCleanup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if calls < 3 {
+	if runtime.GOOS == "windows" {
+		if calls != 12 || len(profiles) != 6 || len(combinations) != 6 {
+			t.Fatalf("cold/warm native matrix incomplete: %d %v %v", calls, profiles, combinations)
+		}
+		for _, count := range profiles {
+			if count != 2 {
+				t.Fatal("profile was not reused exactly once after cold launch")
+			}
+		}
+	} else if calls != 3 {
 		t.Fatal("fixture cases were skipped")
 	}
 }
