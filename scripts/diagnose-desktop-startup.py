@@ -269,7 +269,16 @@ def observe_native(gui,root,location,env,evidence,summary,rebuilt,incident=None)
         save(evidence,'incident-parent.json',historical);print(json.dumps(historical,sort_keys=True),flush=True)
         summary['observations'].append({'file':'incident-parent.json','exit_code':historical['exit_code']})
     label='source' if rebuilt else 'incident'
-    observe_predecessors(gui,root,env,evidence,label)
+    predecessor_failure=None
+    try:
+        observe_predecessors(gui,root,env,evidence,label)
+    except PredecessorFailure as error:
+        if not rebuilt:raise
+        # This workflow is diagnostic only. Retain the failed prerequisite and
+        # still observe actual Exit; later passing observations cannot clear it.
+        predecessor_failure=error
+        summary[label+'_predecessor']='failed-evidence-retained'
+        save(evidence,'diagnostic.json',summary)
     # Observe the selected production parent. Historical and source-built
     # executables keep separate identities and evidence names.
     parent=capture([gui,'--exit-qualification'],root,env,100)
@@ -281,7 +290,7 @@ def observe_native(gui,root,location,env,evidence,summary,rebuilt,incident=None)
             observation.update(boundary='source-built-production-parent',index=index)
             name=f'parent-{index:02d}.json';save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
             summary['observations'].append({'file':name,'exit_code':observation['exit_code']});save(evidence,'diagnostic.json',summary)
-            if observation['exit_code'] or observation['timed_out'] or observation['truncated']:raise RuntimeError('source-built native parent failed; inspect retained child evidence')
+            if observation['exit_code'] or observation['timed_out'] or observation['truncated']:raise RuntimeError('source-built native parent failed; inspect retained child evidence') from predecessor_failure
     for index,action in enumerate([] if rebuilt else ['menu','close','alt-f4']*8):
         fixture=location/'native-exit.json'
         fixture.write_text(json.dumps({'action':action})+'\n',encoding='utf-8',newline='\n')
@@ -299,7 +308,11 @@ def observe_native(gui,root,location,env,evidence,summary,rebuilt,incident=None)
     if historical:
         summary['historical_parent']='failed-baseline-evidence-retained' if historical['exit_code'] or historical['timed_out'] or historical['truncated'] else 'passed-baseline'
         save(evidence,'diagnostic.json',summary)
-    if parent['exit_code'] or parent['timed_out'] or parent['truncated']:raise RuntimeError('production parent failed; boundary observations retained')
+    if parent['exit_code'] or parent['timed_out'] or parent['truncated']:raise RuntimeError('production parent failed; boundary observations retained') from predecessor_failure
+    if predecessor_failure is not None:
+        summary['result']='predecessor-failure-observed'
+        save(evidence,'diagnostic.json',summary)
+        raise predecessor_failure
 
 
 if __name__=='__main__':print(json.dumps(run(),sort_keys=True))
