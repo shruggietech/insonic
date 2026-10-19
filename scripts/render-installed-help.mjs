@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Disposable OS-association fixture. Never shipped in application packages.
-import {readFile,writeFile} from 'node:fs/promises';
+import {readFile,writeFile,rename} from 'node:fs/promises';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
@@ -31,4 +31,7 @@ try{
   await context.close();
   config.result={state:'passed',version:manifest.version,entry_sha256:createHash('sha256').update(await readFile(target)).digest('hex'),offline:true,local_navigation:true,local_styles:rendered.styles,images:rendered.images,external_requests:external.length};
 }finally{await browser.close();}
-await writeFile(config.output,JSON.stringify({nonce:config.nonce,...config.result})+'\n','utf8');
+// Publish only complete JSON. The ordinary UI actor observes existence concurrently.
+const pending=config.output+'.pending-'+config.nonce;
+await writeFile(pending,JSON.stringify({nonce:config.nonce,...config.result})+'\n',{encoding:'utf8',flag:'wx'});
+await rename(pending,config.output);

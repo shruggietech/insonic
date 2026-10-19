@@ -88,3 +88,5 @@ func activateNativeExit(action string) error {
 	// until this bounded qualification process exits rather than freeing live data.
 	return fmt.Errorf("native GTK action timed out")
 }
+
+func dismissFailedNativeMenu() {}

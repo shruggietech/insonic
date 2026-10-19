@@ -96,6 +96,7 @@ func qualifyNativeExitChild(path string) int {
 			case <-finished:
 			case <-time.After(12 * time.Second):
 				timedOut.Store(true)
+				dismissFailedNativeMenu()
 				wailsruntime.Quit(ctx)
 			}
 		}()
@@ -134,6 +135,8 @@ func qualifyNativeExitChild(path string) int {
 			err := activateNativeExit(fixture.Action)
 			activated <- err
 			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				dismissFailedNativeMenu()
 				wailsruntime.Quit(ctx)
 			}
 		}()

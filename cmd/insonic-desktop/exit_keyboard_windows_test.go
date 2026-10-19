@@ -12,6 +12,13 @@ import (
 )
 
 func TestNativeInputABIAndInvalidOwnershipGuard(t *testing.T) {
+	var bar exitMenuBarInfo
+	if unsafe.Sizeof(bar) != 48 || unsafe.Offsetof(bar.Menu) != 24 || unsafe.Offsetof(bar.Window) != 32 || unsafe.Offsetof(bar.Flags) != 40 {
+		t.Fatal("native MENUBARINFO layout differs from Windows amd64 ABI")
+	}
+	if observeExitMenu(0, 0, 0).ready() {
+		t.Fatal("invalid menu owner admitted as a ready File submenu")
+	}
 	var input exitKeyboardInput
 	if unsafe.Sizeof(input) != 40 || unsafe.Offsetof(input.Key) != 8 || unsafe.Offsetof(input.Flags) != 12 || unsafe.Offsetof(input.Extra) != 24 {
 		t.Fatal("native INPUT/KEYBDINPUT layout differs from Windows amd64 ABI")

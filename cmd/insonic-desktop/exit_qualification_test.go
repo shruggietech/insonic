@@ -81,7 +81,8 @@ func TestExitObserverRejectsRuntimeReplacementWithoutRestart(t *testing.T) {
 
 // This checks the actual media/acquisition/IPC fixture without launching Wails.
 // It cannot satisfy the source/package native activation receipt.
-func TestExitOwnerFixtureReleasesWorkAfterClientCleanup(t *testing.T) {
+func prepareExitOwnerFixture(t *testing.T) {
+	t.Helper()
 	if os.Getenv("CUESON_EXECUTABLE") == "" {
 		t.Skip("native qualification companions not prepared")
 	}
@@ -93,10 +94,14 @@ func TestExitOwnerFixtureReleasesWorkAfterClientCleanup(t *testing.T) {
 	if os.Getenv("INSONIC_LIBRARY_TOOLS_FILE") == "" {
 		t.Setenv("INSONIC_LIBRARY_TOOLS_FILE", filepath.Join(root, "build", "native", "media-tools.json"))
 	}
+}
+
+func TestExitOwnerFixtureReleasesWorkAfterClientCleanup(t *testing.T) {
+	prepareExitOwnerFixture(t)
 	calls := 0
 	profiles := map[string]int{}
 	combinations := map[string]int{}
-	err = runExitQualificationWith(func(fixture exitFixture, config string) (exitObservation, error) {
+	err := runExitQualificationWith(func(fixture exitFixture, config string) (exitObservation, error) {
 		calls++
 		profiles[config]++
 		combinations[fmt.Sprintf("%s:%t", fixture.Action, fixture.Workspace != "")]++
@@ -240,17 +245,10 @@ func TestExitChildOwnWatchdogIsReportedAsTimeout(t *testing.T) {
 }
 
 func TestExitOwnerFailureRetainsItsProfileForDiagnosis(t *testing.T) {
-	if os.Getenv("CUESON_EXECUTABLE") == "" {
-		t.Skip("native qualification companions not prepared")
-	}
-	root, err := filepath.Abs(filepath.Join("..", ".."))
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("INSONIC_DESKTOP_FIXTURE_DIRECTORY", filepath.Join(root, "tests", "fixtures", "media"))
+	prepareExitOwnerFixture(t)
 	var retained, marker string
 	failure := fmt.Errorf("synthetic native child failure")
-	err = runExitQualificationWith(func(_ exitFixture, config string) (exitObservation, error) {
+	err := runExitQualificationWith(func(_ exitFixture, config string) (exitObservation, error) {
 		retained = filepath.Dir(filepath.Dir(config))
 		t.Cleanup(func() { os.RemoveAll(retained) })
 		profile := filepath.Join(filepath.Dir(config), "webview")

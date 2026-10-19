@@ -114,3 +114,11 @@ US1 example: command-registry regressions and catalog migration regressions run 
 
 - [ ] T042 Close the pinned WebView controller once on its owning UI thread during parent-window destruction, preserve normal native dispatch and prove the lifetime with an unshown real-window/COM regression plus repeated actual native release per FR-020/021 (partial).
 - [ ] T043 Bind the exact maintained WebView source patch to upstream and patched-tree checksums, original licenses, explicit notices and clean revision; narrowly validate its sole local replacement while rejecting all others, then repeat full affected/exact-head package checks per FR-017/022 (partial).
+
+## Phase 19: Verification fixture convergence
+
+- [ ] T044 Share the complete existing Exit-fixture environment between success/failure tests, including the prepared tool-configuration fallback, and repeat Linux/Windows native and exact-head gates without reducing retention assertions per FR-022 (partial).
+
+## Phase 20: Native observation convergence
+
+- [ ] T045 Observe the actual visible owned File submenu using GetMenuBarInfo, retain native menu ownership and the unchanged readiness deadline, dismiss only an owned failed menu before normal failure cleanup, and atomically publish the asynchronous offline-help fixture receipt; repeat exact-head native and package gates per FR-021/022 (partial).

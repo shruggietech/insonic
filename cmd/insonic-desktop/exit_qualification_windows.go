@@ -41,24 +41,13 @@ func activateNativeExit(action string) error {
 		if err = sendNativeKeyboard(hwnd, "Alt+F", []exitKeyboardInput{{Kind: 1, Key: 0x12}, {Kind: 1, Key: 0x46}, {Kind: 1, Key: 0x46, Flags: 2}, {Kind: 1, Key: 0x12, Flags: 2}}); err != nil {
 			return err
 		}
-		type guiThreadInfo struct {
-			Size, Flags                                        uint32
-			Active, Focus, Capture, MenuOwner, MoveSize, Caret uintptr
-			CaretRect                                          struct{ Left, Top, Right, Bottom int32 }
-		}
 		thread := exitWinCall("GetWindowThreadProcessId", hwnd, 0)
 		deadline := time.Now().Add(2 * time.Second)
-		var queried, active, owner bool
-		var flags uint32
+		var state exitMenuState
 		for time.Now().Before(deadline) {
-			info := guiThreadInfo{}
-			info.Size = uint32(unsafe.Sizeof(info))
-			queried = exitWinCall("GetGUIThreadInfo", thread, uintptr(unsafe.Pointer(&info))) != 0
-			active, owner, flags = info.Active == hwnd, info.MenuOwner == hwnd, info.Flags
-			if queried && active && owner && flags&0x14 == 0x14 && flags&0x08 == 0 {
-				// General menu mode also covers the bar before its popup is active.
-				// Select X only after GUI_POPUPMENUMODE confirms the owned File popup.
-				fmt.Fprintf(os.Stderr, "native-menu-popup flags=%d focus=%x owner=%x\n", flags, info.Focus, info.MenuOwner)
+			state = observeExitMenu(hwnd, root, thread)
+			if state.ready() {
+				fmt.Fprintf(os.Stderr, "native-menu-popup %s\n", state)
 				fmt.Fprintln(os.Stderr, "native-exit-stage=menu-open")
 				if err = sendNativeKeyboard(hwnd, "File/Exit X", []exitKeyboardInput{{Kind: 1, Key: 0x58}, {Kind: 1, Key: 0x58, Flags: 2}}); err != nil {
 					return err
@@ -68,9 +57,65 @@ func activateNativeExit(action string) error {
 			}
 			time.Sleep(20 * time.Millisecond)
 		}
-		return fmt.Errorf("Alt+F did not enter the active owned native menu (query=%t, flags=%d, active=%t, owner=%t)", queried, flags, active, owner)
+		return fmt.Errorf("Alt+F did not open the owned File submenu (%s)", state)
 	}
 	return fmt.Errorf("unknown native Exit action")
+}
+
+// MENUBARINFO uses the native pointer alignment of the supported Windows amd64 ABI.
+type exitMenuBarInfo struct {
+	Size         uint32
+	Rect         struct{ Left, Top, Right, Bottom int32 }
+	Menu, Window uintptr
+	Flags        uint32
+}
+
+type exitGUIThreadInfo struct {
+	Size, Flags                                        uint32
+	Active, Focus, Capture, MenuOwner, MoveSize, Caret uintptr
+	CaretRect                                          struct{ Left, Top, Right, Bottom int32 }
+}
+
+type exitMenuState struct {
+	queried, active, owner, barQueried, barMatches, popupVisible, popupOwned bool
+	flags                                                                    uint32
+	popup                                                                    uintptr
+}
+
+func (s exitMenuState) ready() bool {
+	return s.queried && s.active && s.owner && s.flags&4 != 0 && s.barQueried && s.barMatches && s.popupVisible && s.popupOwned
+}
+
+func (s exitMenuState) String() string {
+	return fmt.Sprintf("query=%t flags=%d active=%t owner=%t bar-query=%t bar-match=%t popup=%x visible=%t owned=%t", s.queried, s.flags, s.active, s.owner, s.barQueried, s.barMatches, s.popup, s.popupVisible, s.popupOwned)
+}
+
+func observeExitMenu(hwnd, root, thread uintptr) exitMenuState {
+	info := exitGUIThreadInfo{Size: uint32(unsafe.Sizeof(exitGUIThreadInfo{}))}
+	queried := exitWinCall("GetGUIThreadInfo", thread, uintptr(unsafe.Pointer(&info))) != 0
+	bar := exitMenuBarInfo{Size: uint32(unsafe.Sizeof(exitMenuBarInfo{}))}
+	// OBJID_MENU, first item: hwndMenu identifies File's actual submenu window.
+	// GUI_POPUPMENUMODE alone does not describe an attached menu bar's popup.
+	barQueried := exitWinCall("GetMenuBarInfo", hwnd, 0xfffffffd, 1, uintptr(unsafe.Pointer(&bar))) != 0
+	var pid uint32
+	popupThread := exitWinCall("GetWindowThreadProcessId", bar.Window, uintptr(unsafe.Pointer(&pid)))
+	return exitMenuState{queried: queried, active: info.Active == hwnd, owner: info.MenuOwner == hwnd, flags: info.Flags, barQueried: barQueried, barMatches: bar.Menu == root, popup: bar.Window, popupVisible: bar.Window != 0 && exitWinCall("IsWindowVisible", bar.Window) != 0, popupOwned: popupThread == thread && pid == uint32(os.Getpid())}
+}
+
+// Failure-only dismissal lets the normal Quit path leave a modal menu loop.
+// It never selects Exit, invokes a callback, or changes the failed outcome.
+func dismissFailedNativeMenu() {
+	hwnd := exitWinCall("GetForegroundWindow")
+	if requireNativeInputTarget(hwnd) != nil {
+		return
+	}
+	thread := exitWinCall("GetWindowThreadProcessId", hwnd, 0)
+	info := exitGUIThreadInfo{Size: uint32(unsafe.Sizeof(exitGUIThreadInfo{}))}
+	if exitWinCall("GetGUIThreadInfo", thread, uintptr(unsafe.Pointer(&info))) != 0 && info.MenuOwner == hwnd && info.Flags&4 != 0 {
+		if err := sendNativeKeyboard(hwnd, "failed menu Escape", []exitKeyboardInput{{Kind: 1, Key: 0x1b}, {Kind: 1, Key: 0x1b, Flags: 2}}); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	}
 }
 
 // INPUT/KEYBDINPUT use the Windows amd64 ABI (40-byte INPUT, union at byte8).
