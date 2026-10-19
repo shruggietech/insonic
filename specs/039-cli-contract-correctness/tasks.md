@@ -130,3 +130,7 @@ US1 example: command-registry regressions and catalog migration regressions run 
 ## Phase 22: Convergence
 
 - [ ] T047 Preserve Wails' controller-focus activation on its owning UI thread and observe completion before readiness, remove the temporary dispatcher before keyboard input, prove pending UI work cannot confer success with an actual unshown-window regression and prior-boundary comparison, then repeat original-limit native/load/exact-head checks per FR-020..022 (partial).
+
+## Phase 23: Convergence
+
+- [ ] T048 Force the disposable owned UI thread through a real focus transition before joined Wails activation, so an already-focused root cannot skip the controller-focus callback; retain bounded before/after focus diagnostics and repeat actual native/load/package checks per FR-019..022 (partial).

@@ -40,10 +40,16 @@ func prepareNativeExitWindow(ctx context.Context) error {
 		return err
 	}
 	err = awaitNativeWindowOperation(ctx, hwnd, func() {
+		before := exitWinCall("GetFocus")
+		// A root that already owns Win32 focus would receive no new WM_SETFOCUS,
+		// leaving Wails' controller focus unchanged after navigation Hide/Show.
+		// This is only the fixture's owned UI thread, before any input.
+		exitWinCall("SetFocus", 0)
 		// The first show may consume STARTUPINFO's hide flag. Keep Wails' own
 		// visibility/focus/controller behavior and complete both calls inline.
 		wailsruntime.WindowShow(ctx)
 		wailsruntime.WindowShow(ctx)
+		fmt.Fprintf(os.Stderr, "native-exit-focus before=%x after=%x root=%x\n", before, exitWinCall("GetFocus"), hwnd)
 	})
 	if err != nil {
 		return err
