@@ -12,7 +12,7 @@ The initially attempted import of unused pkg/webview2 fails at package initializ
 
 An initial local lifetime-test command used the nested module filesystem path, which Go correctly rejected; the selected test is rerun through its actual module import path. This is a command-selection failure, not a product test failure.
 
-Native incident causality and S040 final qualification remain unproved. No new hosted experiment has yet run.
+Native incident causality and S040 final qualification remain unproved. E002 dispatch and its result are recorded in experiments.md.
 
 The selected existing unshown native lifetime suite passes through its actual module import path, including Close/reference/apartment, menu focus, claimed accelerator, bootstrap observation and deferral release cases.
 
@@ -37,3 +37,27 @@ Three actual native-vtable tests verify enabled/disabled behavior, operation ord
 Current local checks: root check and145Node tests pass; full394Python tests pass before four additional paired-control cases, and all28 targeted startup-diagnostic tests pass afterward. Production-tagged desktop, host, process and ABI packages pass, with vet clean. Site17tests and build pass; a subsequent export check validates111pages. Initial sandbox-only workspace/directory creation errors disappear on the authorized unsandboxed path; no product logic changed for them.
 
 The observer reads native thread identity; it adds no WebView2 COM calls. Both paired arms use the same observers.
+
+## 2026-10-19: complete Python regression after paired-control additions
+
+The complete Python discovery suite passes398tests in41.5seconds through the verified hidden launcher. No local GUI or native browser is launched. E002 remains the only hosted diagnostic dispatched.
+
+## 2026-10-19: actual callback COM regressions before correction
+
+An ignored test overlay calls the actual9NewChromium callback vtables at31f3959 with official own-interface, IUnknown, IAgileObject, IMarshal and unsupported IIDs. All9claim S_OK without supplying supported interfaces, fail to reject/null unsupported outputs, and claim success for a null output. Actual native AddRef/AddRef/Release/Release returns1/1/1/1. A separate forced-GC probe drops Go owner cycles after actual native AddRef and observes the controller callback implementation finalize, demonstrating absent native retention. Expected-failure test command exits1 in0.797seconds; test source SHA256d25e38d9e4236d7556415aa95d837be637b5e1f72824aa2111f722db415424fe. No window/browser is created and no tracked source is changed by that baseline probe.
+
+The final regression will allow COM's separate canonical IUnknown pointer and test its roundtrip identity, then prove sole-native-reference survival followed by final-release collection. The initial probe's S_OK-with-null failure remains invalid regardless of that identity refinement. The active-window lifetime registry already roots Chromium, so this experiment does not by itself explain cold028.
+
+## 2026-10-19: E002 and E003 native outcome
+
+E00239329500568 retained120historical-ABI and120corrected idle passing fresh close cases; it provides no incident-cause differential. E00339330500115 reproduced watchdog failure on child029 at the identical corrected GUI hash, with all7first-response operations successful on the owning thread. Script middleware ran,6native resource callbacks returned, and navigation completion remained0. Later response completion/browser consumption/event delivery remain unresolved. Full immutable artifact/source/counter identities and comparison limits are in experiments.md. No retry was dispatched. The ABI fix is independently valid and demonstrably insufficient as the complete #154 repair.
+
+## 2026-10-19: callback correction and loader compatibility
+
+The9active callbacks now use the existing native-allocated combridge with real native references, supported-interface queries and canonical IUnknown roundtrips. Creation occurs after owned-window attachment, creator leases close once after native Close/interface cleanup, default-loader completion captures its Go target, and late callbacks cannot notify application code or install a controller after shutdown.
+
+Final selected native suite passes3repetitions in all4configurations: default normal0.906s/race3.203s; native-loader normal0.719s/race2.656s. It covers all9actual callback identities, failed queries/null outputs, native-only retention after every creator lease closes, final-release collection, never-embedded collection, partial/repeated cleanup, live native dispatch and canceled/late completions. Existing unshown window/response tests are included. Initial test-fixture/channel-declaration mistakes were corrected and both configurations rerun; no product workaround was added.
+
+Exact source scope is now7modified upstream originals/7additions,404maintained files, with397original hashes verified against v1.0.23. Maintained sum h1:Wm8ws8VPkT1XHXhf5T8qk0gsrJ3XF+QPeY3++ew840g=. Root check and145Node tests, full398Python tests, affected production Go tests/vet, site17tests/check/build all pass after this refresh. No local browser/application GUI is executed. Callback-native regressions establish contracts, not the private cause of E003.
+
+The corrected GUI was compiled locally without execution and all50actual linked-module notice inventories verified against the refreshed source authority. The binary records v1.0.23 with the exact repository-local replacement; no checksum is falsely attributed to that replacement. The rebuilt site export verifies111pages.

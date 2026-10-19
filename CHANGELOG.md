@@ -18,6 +18,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Windows WebView callbacks return valid COM interfaces, retain native-owned targets until their final release and reject delivery into a closed desktop. Unused desktop objects remain collectible; late controllers close without reopening the destroyed owner.
+
 - Windows WebView controller initialization passes its monitor-scale setting as a native Boolean value instead of a pointer, adopting the upstream binding correction while retaining the maintained ownership and native-input fixes.
 
 - Windows WebView resource deferrals release their acquired COM references after completion instead of incrementing the reference count.

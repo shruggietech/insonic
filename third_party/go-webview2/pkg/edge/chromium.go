@@ -67,6 +67,7 @@ type Chromium struct {
 	acceleratorKeyPressed            *ICoreWebView2AcceleratorKeyPressedEventHandler
 	navigationCompleted              *ICoreWebView2NavigationCompletedEventHandler
 	processFailed                    *ICoreWebView2ProcessFailedEventHandler
+	callbackLeases                   []nativeCallbackLease
 
 	environment            *ICoreWebView2Environment
 	webview2RuntimeVersion string
@@ -102,42 +103,6 @@ type Chromium struct {
 
 func NewChromium() *Chromium {
 	e := &Chromium{}
-	/*
-	 All these handlers are passed to native code through syscalls with 'uintptr(unsafe.Pointer(handler))' and we know
-	 that a pointer to those will be kept in the native code. Furthermore these handlers als contain pointer to other Go
-	 structs like the vtable.
-	 This violates the unsafe.Pointer rule '(4) Conversion of a Pointer to a uintptr when calling syscall.Syscall.' because
-	 theres no guarantee that Go doesn't move these objects.
-	 AFAIK currently the Go runtime doesn't move HEAP objects, so we should be safe with these handlers. But they don't
-	 guarantee it, because in the future Go might use a compacting GC.
-	 There's a proposal to add a runtime.Pin function, to prevent moving pinned objects, which would allow to easily fix
-	 this issue by just pinning the handlers. The https://go-review.googlesource.com/c/go/+/367296/ should land in Go 1.19.
-	*/
-	e.envCompleted = newICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler(e)
-	e.controllerCompleted = newICoreWebView2CreateCoreWebView2ControllerCompletedHandler(e)
-	e.webMessageReceived = newICoreWebView2WebMessageReceivedEventHandler(e)
-	e.permissionRequested = newICoreWebView2PermissionRequestedEventHandler(e)
-	e.webResourceRequested = newICoreWebView2WebResourceRequestedEventHandler(e)
-	e.acceleratorKeyPressed = newICoreWebView2AcceleratorKeyPressedEventHandler(e)
-	e.navigationCompleted = newICoreWebView2NavigationCompletedEventHandler(e)
-	e.processFailed = newICoreWebView2ProcessFailedEventHandler(e)
-	e.containsFullScreenElementChanged = newICoreWebView2ContainsFullScreenElementChangedEventHandler(e)
-	/*
-		// Pinner seems to panic in some cases as reported on Discord, maybe during shutdown when GC detects pinned objects
-		// to be released that have not been unpinned.
-		// It would also be better to use our ComBridge for this event handlers implementation instead of pinning them.
-		// So all COM Implementations on the go-side use the same code.
-		var pinner runtime.Pinner
-		pinner.Pin(e.envCompleted)
-		pinner.Pin(e.controllerCompleted)
-		pinner.Pin(e.webMessageReceived)
-		pinner.Pin(e.permissionRequested)
-		pinner.Pin(e.webResourceRequested)
-		pinner.Pin(e.acceleratorKeyPressed)
-		pinner.Pin(e.navigationCompleted)
-		pinner.Pin(e.processFailed)
-		pinner.Pin(e.containsFullScreenElementChanged)
-	*/
 	e.permissions = make(map[CoreWebView2PermissionKind]CoreWebView2PermissionState)
 	e.globalErrorCallback = globalErrorHandler
 	return e
@@ -166,6 +131,7 @@ func (e *Chromium) Embed(hwnd uintptr) bool {
 	if err = e.attachWindowLifetime(hwnd); err != nil {
 		e.errorCallback(err)
 	}
+	e.prepareOwnedCallbacks()
 
 	dataPath := e.DataPath
 	if dataPath == "" {
@@ -313,6 +279,9 @@ func (e *Chromium) Release() uintptr {
 }
 
 func (e *Chromium) EnvironmentCompleted(res uintptr, env *ICoreWebView2Environment) uintptr {
+	if e.shuttingDown {
+		return 0
+	}
 	if env == nil {
 		err := syscall.Errno(res)
 		log.Printf("[WebView2] Environment creation failed with error code %v: %v\n", res, err)
@@ -335,6 +304,14 @@ func (e *Chromium) EnvironmentCompleted(res uintptr, env *ICoreWebView2Environme
 }
 
 func (e *Chromium) CreateCoreWebView2ControllerCompleted(res uintptr, controller *ICoreWebView2Controller) uintptr {
+	if e.shuttingDown {
+		if controller != nil {
+			if err := controller.Close(); err != nil {
+				e.recordControllerCloseFailure(err)
+			}
+		}
+		return 0
+	}
 	if int32(res) < 0 {
 		e.errorCallback(fmt.Errorf("error creating controller with %08x: %s", res, syscall.Errno(res)))
 	}

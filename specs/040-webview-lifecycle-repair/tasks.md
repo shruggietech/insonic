@@ -23,7 +23,7 @@
 - [x] T008 [US1] Run the native ABI regression and existing unshown lifetime normal/race tests; verify version/source rejection tests in tests/webview-source.test.mjs and tests/go_module_notices_test.py. (FR-005, FR-008, FR-013, SC-002)
 - [x] T009 [US1] Cover successful/failed final native response observation with actual fake vtables and content ownership, if the unresolved-boundary experiment requires it, in internal/webviewabi/ and third_party/go-webview2/pkg/edge/window_lifetime_windows_test.go. Record any demonstrated non-need in specs/040-webview-lifecycle-repair/experiments.md instead of adding unused machinery. (FR-005, FR-006, FR-007)
 - [x] T010 [US1] Implement the minimum needed qualified response-completion/actual-runtime observations in third_party/go-webview2/pkg/edge/ and cmd/insonic-desktop/startup_diagnostics.go, preserving calls, HRESULTs, disabled behavior and bounds; update authority if bytes change. (FR-006, FR-007, FR-008, FR-013)
-- [ ] T011 [US1] Execute the written bounded source experiment through scripts/diagnose-desktop-startup.py and the disposable workflow; classify the first failed boundary and record native startup outcomes in specs/040-webview-lifecycle-repair/experiments.md. (FR-004, FR-009, SC-003)
+- [x] T011 [US1] Execute the written bounded source experiment through scripts/diagnose-desktop-startup.py and the disposable workflow; classify the first failed boundary and record native startup outcomes in specs/040-webview-lifecycle-repair/experiments.md. (FR-004, FR-009, SC-003)
 - [ ] T012 [US1] If a distinct startup failure persists, reproduce and repair its demonstrated boundary with a failing native/product regression in cmd/insonic-desktop/ or third_party/go-webview2/pkg/edge/ before qualification. (FR-005, FR-006, SC-002, SC-003)
 
 ## Phase 4: US2 - Close and release owned resources
@@ -41,7 +41,7 @@
 
 - [x] T017 [US3] Record each experiment's prediction, control, bounds, result and next decision before another dispatch in specs/040-webview-lifecycle-repair/experiments.md. (FR-009, SC-005)
 - [ ] T018 [US3] Update issue #154 with the upstream ABI finding, new observations, proven/rejected/unresolved distinctions and exact verification identities, mirrored in specs/040-webview-lifecycle-repair/verification.md. (FR-002, FR-012, FR-016, SC-001, SC-005)
-- [ ] T019 [US3] Run root npm run check/npm test, affected Python/native/product and site checks; retain results in specs/040-webview-lifecycle-repair/verification.md. (FR-007, FR-008, FR-013, FR-014)
+- [x] T019 [US3] Run root npm run check/npm test, affected Python/native/product and site checks; retain results in specs/040-webview-lifecycle-repair/verification.md. (FR-007, FR-008, FR-013, FR-014)
 - [ ] T020 [US3] Run ordinary final exact-head source/package/candidate CI within 660 seconds and retain complete check/run/attempt/artifact identities in specs/040-webview-lifecycle-repair/verification.md. (FR-004, FR-013, FR-014, SC-004)
 
 ## Phase 6: Polish and convergence
@@ -61,3 +61,9 @@ Read-only response/lifetime/harness audits execute independently under the plan 
 ## Implementation strategy
 
 The first increment proves and corrects the exact upstream native BOOL violation. Response and release observations are added only to answer remaining incident questions; they are not substitutes for cause repair. All three stories and final gates are required for a completed repair. Failed cases remain failed after cleanup; inherited S039 exceptions do not satisfy S040.
+
+## Phase 7: Demonstrated callback ownership repair
+
+- [x] T024 Reproduce the actual9callback QueryInterface/native-reference violations without a browser and verify their IIDs against the official SDK; record the independent causality limit in research.md and verification.md. (FR-003, FR-005, SC-002)
+- [x] T025 Adopt existing combridge for the actual callbacks, lazy owned creation, exactly-once creator cleanup and late-completion/event rejection in third_party/go-webview2/pkg/edge/callback_bridge_windows.go, chromium.go, create_env_go.go and window_lifetime_windows.go; cover meaningful native identity/reference/GC/late-callback cases. (FR-005, FR-008, FR-010, SC-002)
+- [x] T026 Reconcile precise source/notice authority for callback changes and run selected unshown native normal/race/product checks before actual final qualification. (FR-007, FR-008, FR-013, FR-014)

@@ -67,3 +67,7 @@ No architecture expansion or constitution exception is elected. A maintained SDK
 ### Pre-dispatch refinement (2026-10-19)
 
 E002 uses a checksum-bound historical one-file Go overlay as a diagnostic control beside the corrected build. Each arm has its own150-second/120-child bound and first-failure stop; total sampling remains300seconds/240children. Payload layout and executable basename are retained. No source mutation or package qualification uses the control. This comparison adds causal information within the planned one-job budget; source/observer behavior, native deadlines and completion gates remain unchanged.
+
+### Post-comparison refinement (2026-10-19)
+
+E002 completed120historical and120corrected idle launches without failure; no incident-cause attribution is established. E003 restores the elected historical concurrent CLI contract on the same immutable runtime source, with its prewritten bounds and overlap/confound limits in experiments.md. Independent actual-vtable/GC failures now justify a focused9callback adoption of the existing combridge. Lazy creator ownership, canonical COM identity, balanced native retention and late completion/event rejection are required; the unused generated API, unrelated settings queries and runtime selection remain outside this correction. This follows the initial ABI comparison rather than mixing the two behavior variables.

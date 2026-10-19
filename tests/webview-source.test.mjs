@@ -20,7 +20,7 @@ async function fixture(run) {
 test('maintained WebView source preserves the exact upstream and explicit patch scope', async () => {
   const authority = await verifyWebviewSource(root);
   assert.equal(Object.keys(authority.upstream_files).length, 397);
-  assert.deepEqual(authority.modified, ['pkg/edge/ICoreWebView2Deferral.go', 'pkg/edge/ICoreWebView2WebResourceRequestedEventArgs.go', 'pkg/edge/ICoreWebView2WebResourceResponse.go', 'pkg/edge/chromium.go', 'pkg/edge/corewebview2.go']);
+  assert.deepEqual(authority.modified, ['pkg/combridge/iunknown.go', 'pkg/edge/ICoreWebView2Deferral.go', 'pkg/edge/ICoreWebView2WebResourceRequestedEventArgs.go', 'pkg/edge/ICoreWebView2WebResourceResponse.go', 'pkg/edge/chromium.go', 'pkg/edge/corewebview2.go', 'pkg/edge/create_env_go.go']);
   assert.notEqual(authority.upstream_sum, authority.patched_sum);
 });
 

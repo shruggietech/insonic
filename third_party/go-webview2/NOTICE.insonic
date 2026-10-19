@@ -1,4 +1,4 @@
-insonic maintained WebView lifetime and native-key patch
+insonic maintained WebView lifetime, callback and native-key patch
 
 Upstream: github.com/wailsapp/go-webview2 v1.0.23
 https://github.com/wailsapp/go-webview2/tree/v1.0.23
@@ -38,3 +38,10 @@ addresses. Internal borrowed identities are retired with their corresponding
 acquisition/Release and window owner. No WebView2 COM call is added or reordered; observation reads native thread identity.
 The runtime_version diagnostic field remains an available-loader lookup, not
 independently verified created-environment identity.
+
+The nine active Chromium callbacks use the existing native-allocated combridge
+with canonical IUnknown identity, supported-interface queries and real retained
+references. Creator leases are allocated only for an attached owned window and
+closed after controller/interface cleanup. Late events are ignored; a late
+controller is closed rather than installed into a destroyed owner. The default
+Go loader captures its completion target before asynchronous scheduling.

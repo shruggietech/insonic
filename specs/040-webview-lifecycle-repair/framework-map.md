@@ -2,7 +2,7 @@
 
 ## 2026-10-19 source identities
 
-Product baseline: S039 squash c9ed48d682e255f9e03f9d4ffd1ebbb9801f9c20, tree identical to accepted 8d2f1c7. Go 1.27.1, Wails v2.16.0, maintained go-webview2 v1.0.22. Proposed source correction: authoritative v1.0.23, whose complete upstream delta is two BOOL wrappers. Do not equate the loader's available runtime string with the created environment's identity.
+Product baseline: S039 squash c9ed48d682e255f9e03f9d4ffd1ebbb9801f9c20, tree identical to accepted 8d2f1c7. Go 1.27.1, Wails v2.16.0, maintained go-webview2 v1.0.22. Current upstream baseline: authoritative v1.0.23, whose complete upstream delta is two BOOL wrappers, with the explicitly maintained response/window/callback corrections. Do not equate the loader's available runtime string with the created environment's identity.
 
 ## Responsibility map
 
@@ -11,10 +11,11 @@ Product baseline: S039 squash c9ed48d682e255f9e03f9d4ffd1ebbb9801f9c20, tree ide
 | Launch | internal/process/hide_windows.go:9-14; tree_windows.go:12-65 | Hidden suspended root, assigned owned job before resume. |
 | COM/UI thread | edge/corewebview2.go:18-26; Wails internal/frontend/desktop/windows/winc/app.go:22-23 | Locked initialization/UI thread, STA apartment. |
 | Host creation | Wails windows/frontend.go:161-184; window.go:50-152 | One owned native host; controller setup precedes normal main loop. |
-| Environment | edge/chromium.go:161-215,315-334 | Default loader uses installed runtime; retained borrowed environment. |
-| Controller | edge/chromium.go:337-399 | Retain controller, query Controller3, configure raw bounds and monitor scale, get WebView, register callbacks. |
-| Native BOOL defect | edge/ICoreWebView2Controller3.go:111-120 | v1.0.22 passes address of bool to BOOL-by-value setter. Initialization invokes false at chromium.go:356. Upstream v1.0.23 replaces it with 0/1. |
-| Navigate | Wails windows/frontend.go:603-614; edge/chromium.go:259-268 | Register all-resource filter, request initial navigation; acceptance is not completion. |
+| Environment | edge/chromium.go:126-182,281-304 | Default loader uses installed runtime; retained borrowed environment. |
+| Controller | edge/chromium.go:306-377 | Retain controller, query Controller3, configure raw bounds and monitor scale, get WebView, register callbacks. |
+| Active callbacks | edge/callback_bridge_windows.go:47-174; edge/create_env_go.go:11-35 | Native-allocated bridge, canonical identity and retained native targets; creator leases close after owned cleanup, canceled/late events do not reopen the owner. |
+| Native BOOL defect | edge/ICoreWebView2Controller3.go:111-120 | v1.0.22 passes address of bool to BOOL-by-value setter. Initialization invokes false at chromium.go:333. Upstream v1.0.23 replaces it with 0/1. |
+| Navigate | Wails windows/frontend.go:603-614; edge/chromium.go:225-234 | Register all-resource filter, request initial navigation; acceptance is not completion. |
 | Deferred resource | Wails windows/frontend.go:635-690; pkg/assetserver/webview/request_windows.go:17-56 | On UI thread, create empty response, assign it, acquire deferral, snapshot metadata and dispatch asynchronous work. |
 | Handler | Wails pkg/assetserver/assetserver_webview.go:26-58,65-149; app startup_diagnostics.go:25-40 | Middleware return is before HTML transformation and native Finish. |
 | HTML | Wails pkg/assetserver/assetserver.go:140-172,187-220; common.go:45-55 | Inject IPC/runtime scripts and replace Content-Length with final byte length. |
@@ -22,11 +23,34 @@ Product baseline: S039 squash c9ed48d682e255f9e03f9d4ffd1ebbb9801f9c20, tree ide
 | Complete | Wails pkg/assetserver/webview/request_windows.go:123-141 | Release caller response reference, Complete deferral, release acquired deferral reference. |
 | Ready | edge/chromium.go NavigationCompleted; Wails windows/frontend.go:952-1004 | Navigation callback starts OnDomReady, controller Hide/Show and application showing. Frontend listener is another readiness boundary. |
 | Native input | cmd/insonic-desktop/exit_qualification_windows.go; native_menu_windows.go | Actual owned foreground target, original native key route, menu cancellation/focus restoration, reopen and callback. |
-| Close | Wails internal/app/app_production.go:17-24; edge/window_lifetime_windows.go:220-248 | Loop exit followed by native parent destruction; subclass invokes Close once and releases retained interfaces before forwarding destruction. |
-| Apartment | cmd/insonic-desktop/webview_lifetime_windows.go; edge/window_lifetime_windows.go:334-355 | Balance original thread's COM initialization after owned windows disappear. |
+| Close | Wails internal/app/app_production.go:17-24; edge/window_lifetime_windows.go:374-415,460-493 | Loop exit followed by native parent destruction; subclass invokes Close once and releases retained interfaces before forwarding destruction. |
+| Apartment | cmd/insonic-desktop/webview_lifetime_windows.go; edge/window_lifetime_windows.go:495-525 | Balance original thread's COM initialization after owned windows disappear. |
 | Process group | internal/process/capture.go:73-85; descendants_windows.go:22-100 | After root exit, observe owned job active count and actual process handles; forced cleanup never passes. |
 
 Wails paths above are relative to the exact pinned Wails v2.16.0 module; edge paths are relative to third_party/go-webview2/pkg/. This map is version-bound.
+
+## Asynchronous document boundary
+
+```mermaid
+flowchart TD
+    A[Owned UI thread and host] --> B[Environment and controller]
+    B --> C[Request initial navigation]
+    C --> D[Native resource callback]
+    D --> E[Assign placeholder response and acquire deferral]
+    E --> F[Schedule asynchronous asset handler]
+    F --> G[Native resource callback returns]
+    G --> H[UI message pump continues]
+    F --> I[Application handler returns]
+    I --> J[Wails injects HTML scripts and final length]
+    J --> K[Post final response work to UI thread]
+    H --> K
+    K --> L[Set headers, status, reason and copied content]
+    L --> M[Complete and release deferral]
+    M --> N[Browser consumes response]
+    N --> O[Navigation completion and frontend readiness]
+```
+
+Handler return and native callback return are earlier than final response publication. A successful Complete is earlier than demonstrated browser consumption. S040 observes the seven native response operations without adding WebView2 COM calls.
 
 ## Retained signatures
 
@@ -47,8 +71,16 @@ Wails paths above are relative to the exact pinned Wails v2.16.0 module; edge pa
 - Warm profiles are reused only after observed natural release. No evidence establishes profile overlap as the cause.
 - The nonempty CreateWebResourceResponse stream-shadow defect is outside this Wails path, which initially passes nil content.
 - Existing process observations inspect owned handles; they cannot be dismissed as ambient PID counts.
-- Additional settings/controller query leaks and invalid legacy callback QueryInterface are real independent source concerns. Explicit successful Close should release the WebView and event cycles; those concerns do not by themselves explain surviving browser processes.
+- Additional settings/controller query leaks are real independent source concerns. The9active callback QueryInterface/retention contracts are now corrected with the existing bridge, while unused legacy helpers remain upstream bytes. Explicit successful Close should release the WebView and event cycles; those concerns do not by themselves explain surviving browser processes.
 
 ## Experiment decision boundary
 
 First prove/correct the native BOOL argument independently. Then observe the first unresolved response/release boundary in a bounded source experiment. If status/content/Complete succeed on the owning thread before a pre-DOM stall, move to browser consumption/runtime identity rather than adding another host response theory. If release fails, use stage timing and actual process roles before changing shutdown integration. Keep each result separate and retain every failed occurrence.
+
+## E003 post-response deconstruction (2026-10-19)
+
+The expected6initial resources are the document, Wails IPC/runtime scripts,2stylesheets and the deferred app bundle. Wails assetserver.go:127-136 serves the2runtime routes before product middleware; assetserver.go:200-205 and common.go:58-68,85-96 prepend classic IPC then runtime scripts. The observed middleware document1/script1/other2 and native6counts fit this set, but do not identify the5later response completions. A script handler return establishes neither script execution nor parsing completion.
+
+Product desktop/index.html:7-12 supplies both stylesheets and the deferred bundle. main.tsx:10-24 starts React synchronously; its qualification IIFE at64-83 is unawaited. App.tsx effects issue bridge promises after render. Wails desktop runtime/main.js:49-100 initializes synchronously and sends runtime:ready at221; frontend.go:732-743 processes it without gating navigation. No initial API-fetch/top-level-await cycle was found. Native NavigationCompleted precedes Wails frontend.go:952-954 OnDomReady. A script exception alone would ordinarily prevent frontend readiness without itself preventing page load.
+
+Thus E003 narrows the remaining alternatives to later native response completion, browser load progress and native navigation event delivery. The native callback contract correction is independently justified and is the next changed behavior. If failure persists afterward, observe all6initial responses and a fixed runtime-ready receipt rather than extrapolating from the first. [Primary navigation model](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/navigation-events), [NavigationCompleted](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2#add_navigationcompleted), [HTML script processing](https://html.spec.whatwg.org/multipage/scripting.html#the-script-element).

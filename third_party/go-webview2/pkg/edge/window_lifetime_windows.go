@@ -396,13 +396,7 @@ func lifetimeWindowProc(hwnd, message, wparam, lparam, id, data uintptr) uintptr
 			entry.chromium.ShuttingDown()
 			if controller := entry.chromium.controller; controller != nil {
 				if err := controller.Close(); err != nil {
-					failure := fmt.Errorf("close WebView controller: %w", err)
-					ownedWindows.Lock()
-					if ownedWindows.failure == nil {
-						ownedWindows.failure = failure
-					}
-					ownedWindows.Unlock()
-					entry.chromium.globalErrorCallback(failure)
+					entry.chromium.recordControllerCloseFailure(err)
 				} else {
 					ownedWindows.Lock()
 					ownedWindows.closedControllers++
@@ -485,6 +479,17 @@ func (e *Chromium) releaseOwnedInterfaces() {
 		e.environment = nil
 		value.vtbl.Release.Call(uintptr(unsafe.Pointer(value)))
 	}
+	e.releaseOwnedCallbacks()
+}
+
+func (e *Chromium) recordControllerCloseFailure(err error) {
+	failure := fmt.Errorf("close WebView controller: %w", err)
+	ownedWindows.Lock()
+	if ownedWindows.failure == nil {
+		ownedWindows.failure = failure
+	}
+	ownedWindows.Unlock()
+	e.globalErrorCallback(failure)
 }
 
 func recordOwnedCOMApartment() {
