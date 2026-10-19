@@ -36,6 +36,11 @@ func activateNativeExit(action string) error {
 	case "alt-f4":
 		return sendNativeAltF4(hwnd)
 	case "menu":
+		if os.Getenv("INSONIC_EXIT_INPUT_DIAGNOSTICS") == "1" {
+			if err := startNativeExitInputTrace(hwnd); err != nil {
+				return err
+			}
+		}
 		// Real Alt+F enters the system menu input loop. A posted WM_CHAR can
 		// reach the owner window without selecting its modal menu item.
 		if err = sendNativeKeyboard(hwnd, "Alt+F", []exitKeyboardInput{{Kind: 1, Key: 0x12}, {Kind: 1, Key: 0x46}, {Kind: 1, Key: 0x46, Flags: 2}, {Kind: 1, Key: 0x12, Flags: 2}}); err != nil {
