@@ -90,3 +90,18 @@ test('Windows proof wait has one deadline and cannot reuse another revision or a
   for (const override of [{ revision: '../other' }, { attempt: '0' }, { deadlineMs: 400001 }])
     await assert.rejects(waitForDesktopProofs({ ...proofOptions, ...override, request: async () => { throw new Error('must not request'); } }), /identity/);
 });
+
+
+test('failed Windows producer retains exact bounded identity before refusing the join',async()=>{
+ const jobs=structuredClone(proofGates);jobs.jobs[0]={...jobs.jobs[0],id:1234,conclusion:'failure'};
+ const observations=[];
+ await assert.rejects(waitForDesktopProofs({...proofOptions,request:proofApi(proofArtifacts,jobs),observeFailure:async value=>observations.push(value)}),/proof failed: archive/);
+ assert.deepEqual(observations,[{kind:'windows-proof-producer-failure',repository:options.repository,run:'123',attempt:'2',revision:proofOptions.revision,scope:'archive',job_id:1234,status:'completed',conclusion:'failure'}]);
+ assert.equal(JSON.stringify(observations).includes(options.token),false);
+});
+
+
+test('a diagnostic sink error cannot replace the failed Windows producer',async()=>{
+ const jobs=structuredClone(proofGates);jobs.jobs[0].conclusion='failure';
+ await assert.rejects(waitForDesktopProofs({...proofOptions,request:proofApi(proofArtifacts,jobs),observeFailure:async()=>{throw new Error('diagnostic write denied');}}),/Required Windows proof failed: archive/);
+});

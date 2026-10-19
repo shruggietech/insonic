@@ -2,6 +2,10 @@ name: Installer invocation diagnostic
 on:
   workflow_dispatch:
     inputs:
+      startup_source:
+        description: Build the current diagnostic GUI and observe the full archive GUI launch order
+        type: boolean
+        default: false
       kind:
         description: Focused diagnostic boundary (never product qualification)
         type: choice
@@ -18,7 +22,7 @@ jobs:
       matrix:
         kind: ${{ fromJSON(inputs.kind == 'setup-compare' && '["setup","setup-full"]' || inputs.kind == 'recovery-compare' && '["container","container-independent","standalone","standalone-full"]' || inputs.kind == 'container-compare' && '["container","container-independent"]' || format('["{0}"]', inputs.kind)) }}
     runs-on: windows-2022
-    timeout-minutes: 5
+    timeout-minutes: ${{ matrix.kind == 'desktop-startup' && inputs.startup_source && 11 || 5 }}
     env:
       INSONIC_DISPOSABLE_INSTALLER_TEST: '1'
       INSONIC_INSTALLER_DIAGNOSTIC_KIND: ${{ matrix.kind }}
@@ -31,6 +35,34 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Prepare production-matching Windows compiler for source diagnosis
+        if: matrix.kind == 'desktop-startup' && inputs.startup_source
+        id: msys2
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
+        with:
+          msystem: UCRT64
+          update: false
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-openssl make diffutils
+      - name: Bind the diagnostic compiler
+        if: matrix.kind == 'desktop-startup' && inputs.startup_source
+        env:
+          SELECTED_MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
+        run: python -c "import os; assert os.environ['SELECTED_MSYS2_ROOT']; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+os.environ['SELECTED_MSYS2_ROOT']+'\n')"
+      - name: Prepare pinned native inputs for source diagnosis
+        if: matrix.kind == 'desktop-startup' && inputs.startup_source
+        run: python scripts/qualify.py prepare
+      - name: Acquire pinned Node setup for source diagnosis
+        if: matrix.kind == 'desktop-startup' && inputs.startup_source
+        run: python scripts/bootstrap-actions.py setup-node --output build/actions/setup-node
+      - if: matrix.kind == 'desktop-startup' && inputs.startup_source
+        uses: ./build/actions/setup-node
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/frontend/package-lock.json
+      - name: Install selected frontend inputs
+        if: matrix.kind == 'desktop-startup' && inputs.startup_source
+        run: npm --prefix desktop/frontend ci --ignore-scripts
       - name: Restore exact failed-main desktop for startup diagnosis
         if: matrix.kind == 'desktop-startup'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
@@ -45,6 +77,7 @@ jobs:
         if: matrix.kind == 'desktop-startup'
         env:
           SOURCE_REVISION: d44d95b6e97d741a32cbf87323bf78c824c3155b
+          INSONIC_STARTUP_SOURCE: ${{ inputs.startup_source }}
         run: python scripts/diagnose-desktop-startup.py
       - name: Trace one documentation completion invocation
         if: matrix.kind != 'desktop-startup'

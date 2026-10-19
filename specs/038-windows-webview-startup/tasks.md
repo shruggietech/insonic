@@ -31,7 +31,7 @@ Independent test: incident-bound diagnostic observes actual native error; repeat
 
 Independent test: failed producer retains its primary error and still blocks every exact-byte join/publication gate.
 
-- [ ] T010 [P] [US3] Add failed-producer evidence regressions and implementation in tests/ci-artifact.test.mjs, scripts/wait-ci-artifact.mjs and .github/workflows/windows-desktop-qualification.yml; retain existing tests/windows_package_pipeline_test.py refusal gates (FR-006, SC-004).
+- [x] T010 [P] [US3] Add failed-producer evidence regressions and implementation in tests/ci-artifact.test.mjs, scripts/wait-ci-artifact.mjs and .github/workflows/windows-desktop-qualification.yml; retain existing tests/windows_package_pipeline_test.py refusal gates (FR-006, SC-004).
 - [ ] T011 [US3] Run required root/affected suites and complete exact-head native/package delivery; record all gates and elapsed time at most 660 seconds in verification.md (FR-006/FR-007, SC-005).
 
 ## Phase 6: Convergence and delivery

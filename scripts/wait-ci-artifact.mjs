@@ -2,6 +2,7 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import fs from 'node:fs/promises';
 
 async function inventory(url, token, signal) {
   const response = await fetch(url, { signal, redirect: 'error', headers: {
@@ -51,7 +52,7 @@ export async function waitForArtifact({ repository, run, attempt, os, token, dea
 }
 
 export async function waitForDesktopProofs({ repository, run, attempt, revision, token, deadlineMs = 400000,
-  now = Date.now, sleep: pause = sleep, request = inventory }) {
+  now = Date.now, sleep: pause = sleep, request = inventory, observeFailure = async () => {} }) {
   if (repository !== 'shruggietech/insonic' || !/^[1-9][0-9]*$/.test(run ?? '') || !/^[1-9][0-9]*$/.test(attempt ?? '')
       || !/^[a-f0-9]{40}$/.test(revision ?? '') || !token || deadlineMs < 1 || deadlineMs > 400000) throw new Error('Invalid Windows proof identity.');
   const scopes = ['archive', 'interactive', 'maintenance', 'setup'], deadline = now() + deadlineMs;
@@ -68,7 +69,12 @@ export async function waitForDesktopProofs({ repository, run, attempt, revision,
       const jobs = gates.jobs.filter(item => item.name === jobName || item.name?.endsWith('/ ' + jobName));
       if (jobs.length > 1) throw new Error('Ambiguous Windows proof producer.');
       const job = jobs[0];
-      if (job?.status === 'completed' && job.conclusion !== 'success') throw new Error('Required Windows proof failed: ' + scope);
+      if (job?.status === 'completed' && job.conclusion !== 'success') {
+        try { await observeFailure({ kind: 'windows-proof-producer-failure', repository, run, attempt, revision,
+          scope, job_id: Number.isSafeInteger(job.id) ? job.id : null, status: 'completed',
+          conclusion: ['failure','cancelled','skipped','timed_out','action_required','stale','neutral'].includes(job.conclusion) ? job.conclusion : 'unknown' }); } catch { /* Diagnostics cannot replace the failed producer. */ }
+        throw new Error('Required Windows proof failed: ' + scope);
+      }
       const name = `windows-desktop-proof-${scope}-${revision}-${attempt}`;
       const matches = value.artifacts.filter(item => item.name === name);
       if (matches.length > 1) throw new Error('Ambiguous Windows proof artifact.');
@@ -87,7 +93,11 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   const identity = { repository: process.env.GITHUB_REPOSITORY, run: process.env.GITHUB_RUN_ID,
     attempt: process.env.GITHUB_RUN_ATTEMPT, token: process.env.GH_TOKEN };
   if (process.argv[2] === 'windows-desktop-proofs') {
-    await waitForDesktopProofs({ ...identity, revision: process.argv[3] });
+    await waitForDesktopProofs({ ...identity, revision: process.argv[3], observeFailure: async observation => {
+      const directory = path.resolve('build/native');
+      await fs.mkdir(directory, { recursive: true });
+      await fs.writeFile(path.join(directory, 'windows-proof-failure.json'), JSON.stringify(observation) + '\n', { encoding: 'utf8', flag: 'wx' });
+    } });
     console.log('All four exact-run Windows proof producers passed; independent artifact verification follows.');
   } else {
     await waitForArtifact({ ...identity, os: process.argv[2] });

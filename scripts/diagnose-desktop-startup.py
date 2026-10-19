@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -63,6 +64,23 @@ def save(directory,name,value):
     (directory/name).write_text(json.dumps(value,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
 
 
+def build_probe_gui(package,gui,root):
+    # Derive one diagnostic GUI from selected source; the verified incident CLI,
+    # dependencies and assets remain explicit inputs. This is no longer an exact
+    # incident archive and can never confer package/publication qualification.
+    shutil.copytree(root/'help',ROOT/'site/offline',dirs_exist_ok=True)
+    package.qualify.assets()
+    selected=package.qualify.native_env()
+    allowed={'PATH','SYSTEMROOT','WINDIR','TEMP','TMP','USERPROFILE','APPDATA','LOCALAPPDATA','GOPATH','GOMODCACHE','GOCACHE'}
+    env={name:value for name,value in os.environ.items() if name.upper() in allowed}
+    env.update(selected,GOTOOLCHAIN='local',GOWORK='off',GOENV='off',GOFLAGS='')
+    node=Path(shutil.which('node',path=env['PATH']) or '')
+    if not node.is_file():raise ValueError('selected diagnostic Node executable is missing')
+    package.child([node,node.parent/'node_modules/npm/bin/npm-cli.js','--prefix','desktop/frontend','run','build'],env=env)
+    package.child(['go','build','-tags','desktop,production,system_ladybug','-ldflags','-H windowsgui','-o',gui,'./cmd/insonic-desktop'],env=env)
+    return package.sha(gui)
+
+
 def run():
     pipeline.m.disposable_runner()
     if os.name!='nt':raise RuntimeError('native startup diagnosis requires disposable Windows')
@@ -86,12 +104,30 @@ def run():
         env=dict(os.environ,**package.package_environment())
         env['INSONIC_DESKTOP_FIXTURE_DIRECTORY']=str(ROOT/'tests/fixtures/media')
         env['INSONIC_PROCESS_STARTUP_DIAGNOSTICS']='1'
+        rebuilt=os.environ.get('INSONIC_STARTUP_SOURCE')=='true'
+        if rebuilt:
+            summary['derived_gui_sha256']=build_probe_gui(package,gui,root)
+            summary['derived_gui_source_revision']=tool
+            summary['boundary']='source-built-gui-with-verified-incident-companions-not-a-qualified-package'
+            save(evidence,'diagnostic.json',summary)
+            for flag,timeout in [('--qualification',30),('--help-qualification',35),('--webview-qualification',90)]:
+                observation=capture([gui,flag],root,env,timeout)
+                observation.update(boundary='archive-predecessor-gui',flag=flag)
+                name=flag[2:]+'.json';save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
+                if observation['exit_code'] or observation['timed_out'] or observation['truncated']:raise RuntimeError('archive predecessor failed; evidence retained')
         # Observe the original production parent first. Old bytes may discard the
         # controller's stdout; subsequent direct children are labelled separately.
         parent=capture([gui,'--exit-qualification'],root,env,100)
         parent.update(boundary='original-production-parent')
         save(evidence,'original-parent.json',parent);print(json.dumps(parent,sort_keys=True),flush=True);summary['observations'].append({'file':'original-parent.json','exit_code':parent['exit_code']})
-        for index,action in enumerate(['menu','close','alt-f4']*8):
+        if rebuilt:
+            for index in range(11):
+                observation=capture([gui,'--exit-qualification'],root,env,100)
+                observation.update(boundary='source-built-production-parent',index=index)
+                name=f'parent-{index:02d}.json';save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
+                summary['observations'].append({'file':name,'exit_code':observation['exit_code']});save(evidence,'diagnostic.json',summary)
+                if observation['exit_code'] or observation['timed_out'] or observation['truncated']:raise RuntimeError('source-built native parent failed; inspect retained child evidence')
+        for index,action in enumerate([] if rebuilt else ['menu','close','alt-f4']*8):
             fixture=location/'native-exit.json'
             fixture.write_text(json.dumps({'action':action})+'\n',encoding='utf-8',newline='\n')
             observation=capture([gui,'--exit-qualification-child',fixture],root,env,18)
