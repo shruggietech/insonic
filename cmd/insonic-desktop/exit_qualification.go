@@ -90,15 +90,23 @@ func qualifyNativeExitChild(path string) int {
 		if bridge.Workspace != nil {
 			playbackID, verify, prepareErr = desktop.ObserveExitPlaybackQualification(bridge, fixture.MediaID, fixture.Revision)
 		}
-		close(ready)
 		go func() {
 			select {
 			case <-finished:
 			case <-time.After(12 * time.Second):
 				timedOut.Store(true)
+				fmt.Fprintln(os.Stderr, "native-exit-stage=watchdog-timeout")
+				logNativeUIFunctionStacks()
+				logNativeStartupProgress()
+				logNativeExitMenuState()
+				dismissFailedNativeMenu()
 				wailsruntime.Quit(ctx)
 			}
 		}()
+		if prepareErr == nil {
+			prepareErr = prepareNativeExitWindow(ctx)
+		}
+		close(ready)
 	}
 	domReady := func(ctx context.Context) {
 		fmt.Fprintln(os.Stderr, "native-exit-stage=dom-ready")
@@ -115,22 +123,39 @@ func qualifyNativeExitChild(path string) int {
 				wailsruntime.Quit(ctx)
 				return
 			}
-			// CREATE_NO_WINDOW remains mandatory for the console launcher. Its
-			// STARTUPINFO hide flag can suppress the first native show call, so this
-			// explicit disposable-UI probe requests the normal Wails show/activate path.
-			if runtime.GOOS == "windows" {
-				wailsruntime.WindowShow(ctx)
+			menuReady, stopMenuReady := context.WithTimeout(ctx, 8*time.Second)
+			menuErr := waitNativeMenuReady(menuReady, bridge)
+			stopMenuReady()
+			if menuErr != nil {
+				activated <- fmt.Errorf("frontend menu listener did not become ready")
+				wailsruntime.Quit(ctx)
+				return
+			}
+			fmt.Fprintln(os.Stderr, "native-exit-stage=frontend-ready")
+			// Navigation completion hides/shows the controller. Rejoin the full
+			// framework activation after frontend readiness before any keys.
+			if err := prepareNativeExitWindow(ctx); err != nil {
+				activated <- err
+				fmt.Fprintln(os.Stderr, err)
+				wailsruntime.Quit(ctx)
+				return
+			}
+			if timedOut.Load() {
+				activated <- fmt.Errorf("native readiness arrived after watchdog")
+				return
 			}
 			fmt.Fprintln(os.Stderr, "native-exit-stage=native-action")
 			err := activateNativeExit(fixture.Action)
 			activated <- err
 			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				dismissFailedNativeMenu()
 				wailsruntime.Quit(ctx)
 			}
 		}()
 	}
 	fmt.Fprintln(os.Stderr, "native-exit-stage=controller-startup")
-	err = runDesktopApplication(bridge, startup, domReady, false)
+	err = runDesktopApplicationWithProfile(bridge, startup, domReady, false, filepath.Join(filepath.Dir(path), "webview"))
 	fmt.Fprintln(os.Stderr, "native-exit-stage=shutdown")
 	close(finished)
 	if timedOut.Load() {
@@ -146,6 +171,10 @@ func qualifyNativeExitChild(path string) int {
 		err = fmt.Errorf("native action was not observed")
 	}
 	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
+	if err = verifyNativeMenuRoute(fixture.Action); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
@@ -236,7 +265,10 @@ func (r *exitRuntime) assertHeld(parent, acquisition string) error {
 
 // The outer fixture owns a disposable workspace, a loopback byte barrier and
 // child GUI processes. It joins its runtime only after the durable job finishes.
-func runExitQualification() error { return runExitQualificationWith(runExitGUIChild) }
+func runExitQualification() error {
+	logNativeBrowserRuntimeVersion()
+	return runExitQualificationWith(runExitGUIChild)
+}
 
 func runExitQualificationWith(runChild func(exitFixture, string) (exitObservation, error)) (err error) {
 	directory, err := os.MkdirTemp("", "insonic-exit-*")
@@ -244,6 +276,12 @@ func runExitQualificationWith(runChild func(exitFixture, string) (exitObservatio
 		return err
 	}
 	defer func() {
+		if err != nil {
+			// The child/job cleanup is a failure boundary, not proof of natural release.
+			// Keep its owned profile and workspace authority for diagnosis.
+			fmt.Fprintln(os.Stderr, "native-exit-stage=failed-fixture-retained")
+			return
+		}
 		if cleanup := os.RemoveAll(directory); cleanup != nil && err == nil {
 			err = cleanup
 		}
@@ -358,32 +396,49 @@ func runExitQualificationWith(runChild func(exitFixture, string) (exitObservatio
 	}
 	cases := []exitFixture{{Action: "menu"}, {Action: "menu", Workspace: directory, MediaID: imported.Items[0].MediaID, Revision: entry.Revision}, {Action: "close", Workspace: directory, MediaID: imported.Items[0].MediaID, Revision: entry.Revision}}
 	if runtime.GOOS == "windows" {
-		cases = append(cases, exitFixture{Action: "alt-f4"})
+		cases = []exitFixture{{Action: "menu"}, {Action: "close"}, {Action: "alt-f4"}, {Action: "menu", Workspace: directory, MediaID: imported.Items[0].MediaID, Revision: entry.Revision}, {Action: "close", Workspace: directory, MediaID: imported.Items[0].MediaID, Revision: entry.Revision}, {Action: "alt-f4", Workspace: directory, MediaID: imported.Items[0].MediaID, Revision: entry.Revision}}
 	}
-	for _, fixture := range cases {
-		config := filepath.Join(directory, "native-exit.json")
+	for caseIndex, fixture := range cases {
+		// Each case begins with a cold owned profile. Its second launch reuses that
+		// exact profile only after the first launch's descendants exit normally.
+		caseDirectory := filepath.Join(directory, fmt.Sprintf("native-case-%d", caseIndex))
+		if err = os.Mkdir(caseDirectory, 0700); err != nil {
+			return err
+		}
+		config := filepath.Join(caseDirectory, "native-exit.json")
 		raw, _ := json.Marshal(fixture)
 		if err = os.WriteFile(config, raw, 0600); err != nil {
 			return err
 		}
-		observation, childErr := runChild(fixture, config)
-		if childErr != nil {
-			return childErr
+		repeats := 1
+		if runtime.GOOS == "windows" {
+			repeats = 2
 		}
-		if observation.NativeExit != "passed" || observation.Action != fixture.Action {
-			return fmt.Errorf("native action receipt invalid")
-		}
-		if fixture.Workspace != "" {
-			if observation.Playback != "released" || !contracts.ValidID(observation.PlaybackID) {
-				return fmt.Errorf("playback cleanup receipt invalid")
+		for launch := 0; launch < repeats; launch++ {
+			temperature := "cold"
+			if launch > 0 {
+				temperature = "warm"
 			}
-			checked, checkErr := r.call("media.playback-check", fixture.MediaID, map[string]any{"playback_id": observation.PlaybackID})
-			if checkErr == nil || checked.Error == nil || checked.Error.Code != "not_found" || checked.SessionID != r.session {
-				return fmt.Errorf("runtime playback handle survived GUI shutdown")
+			fmt.Fprintf(os.Stderr, "native-exit-case action=%s workspace=%t profile=%s\n", fixture.Action, fixture.Workspace != "", temperature)
+			observation, childErr := runChild(fixture, config)
+			if childErr != nil {
+				return childErr
 			}
-		}
-		if err = r.assertHeld(acquired.ID, acquired.Acquisitions[0]); err != nil {
-			return err
+			if observation.NativeExit != "passed" || observation.Action != fixture.Action {
+				return fmt.Errorf("native action receipt invalid")
+			}
+			if fixture.Workspace != "" {
+				if observation.Playback != "released" || !contracts.ValidID(observation.PlaybackID) {
+					return fmt.Errorf("playback cleanup receipt invalid")
+				}
+				checked, checkErr := r.call("media.playback-check", fixture.MediaID, map[string]any{"playback_id": observation.PlaybackID})
+				if checkErr == nil || checked.Error == nil || checked.Error.Code != "not_found" || checked.SessionID != r.session {
+					return fmt.Errorf("runtime playback handle survived GUI shutdown")
+				}
+			}
+			if err = r.assertHeld(acquired.ID, acquired.Acquisitions[0]); err != nil {
+				return err
+			}
 		}
 	}
 	release()
@@ -400,25 +455,30 @@ func qualifyNativeExit() int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	json.NewEncoder(os.Stdout).Encode(map[string]any{"schema_version": contracts.Version, "native_exit": "passed", "no_workspace_exit": "passed", "workspace_exit": "passed", "ordinary_close": "passed", "playback_cleanup": "passed", "runtime_work_survival": "passed"})
+	proof := map[string]any{"schema_version": contracts.Version, "native_exit": "passed", "no_workspace_exit": "passed", "workspace_exit": "passed", "ordinary_close": "passed", "playback_cleanup": "passed", "runtime_work_survival": "passed"}
+	if runtime.GOOS == "windows" {
+		proof["owned_browser_release"] = "passed"
+	}
+	json.NewEncoder(os.Stdout).Encode(proof)
 	return 0
 }
 
 type nativeExitFailure struct {
-	Kind      string `json:"kind"`
-	Stage     string `json:"stage"`
-	Action    string `json:"action"`
-	Stdout    string `json:"stdout"`
-	Stderr    string `json:"stderr"`
-	ExitCode  int    `json:"exit_code"`
-	Truncated bool   `json:"truncated"`
-	TimedOut  bool   `json:"timed_out"`
-	Cancelled bool   `json:"cancelled"`
+	Kind        string                    `json:"kind"`
+	Stage       string                    `json:"stage"`
+	Action      string                    `json:"action"`
+	Stdout      string                    `json:"stdout"`
+	Stderr      string                    `json:"stderr"`
+	ExitCode    int                       `json:"exit_code"`
+	Truncated   bool                      `json:"truncated"`
+	TimedOut    bool                      `json:"timed_out"`
+	Cancelled   bool                      `json:"cancelled"`
+	Descendants *process.DescendantReport `json:"owned_descendants,omitempty"`
 }
 
 var nativeExitFailureSequence atomic.Uint32
 
-func retainNativeExitFailure(raw []byte) {
+func retainNativeExitEvidence(raw []byte) {
 	if os.Getenv("GITHUB_ACTIONS") != "true" || os.Getenv("INSONIC_PROCESS_STARTUP_DIAGNOSTICS") != "1" {
 		return
 	}
@@ -449,16 +509,16 @@ func interpretExitChild(fixture exitFixture, report process.CaptureResult, captu
 		return observation, nil
 	}
 	stage, last := "native-exit", -1
-	for _, candidate := range []string{"controller-startup", "dom-ready", "native-action", "shutdown", "watchdog-timeout"} {
+	for _, candidate := range []string{"controller-startup", "window-prepared", "dom-ready", "frontend-ready", "native-action", "menu-mnemonic", "menu-native-system-key", "menu-open", "menu-cancel-restored", "menu-selected", "menu-request", "shutdown", "watchdog-timeout"} {
 		if index := strings.LastIndex(string(report.Stderr), "native-exit-stage="+candidate); index > last {
 			stage, last = candidate, index
 		}
 	}
 	const limit = 65536
 	truncated := report.Truncated || len(report.Stdout) > limit || len(report.Stderr) > limit
-	evidence := nativeExitFailure{Kind: "native-exit-child-failure", Stage: stage, Action: fixture.Action, Stdout: string(report.Stdout[:min(len(report.Stdout), limit)]), Stderr: string(report.Stderr[:min(len(report.Stderr), limit)]), ExitCode: report.ExitCode, Truncated: truncated, TimedOut: contextErr == context.DeadlineExceeded || strings.Contains(string(report.Stderr), "native-exit-stage=watchdog-timeout"), Cancelled: contextErr == context.Canceled}
+	evidence := nativeExitFailure{Kind: "native-exit-child-failure", Stage: stage, Action: fixture.Action, Stdout: string(report.Stdout[:min(len(report.Stdout), limit)]), Stderr: string(report.Stderr[:min(len(report.Stderr), limit)]), ExitCode: report.ExitCode, Truncated: truncated, TimedOut: contextErr == context.DeadlineExceeded || strings.Contains(string(report.Stderr), "native-exit-stage=watchdog-timeout"), Cancelled: contextErr == context.Canceled, Descendants: report.Descendants}
 	raw, _ := json.Marshal(evidence)
-	retainNativeExitFailure(raw)
+	retainNativeExitEvidence(raw)
 	fmt.Fprintln(diagnostic, string(raw))
 	if captureErr == nil {
 		captureErr = fmt.Errorf("native action receipt invalid")
@@ -473,6 +533,61 @@ func runExitGUIChild(fixture exitFixture, config string) (exitObservation, error
 	}
 	ctx, stop := context.WithTimeout(context.Background(), 18*time.Second)
 	defer stop()
-	report, err := process.Capture(ctx, process.Spec{Executable: executable, Args: []string{"--exit-qualification-child", config}, MaxOutput: 64 << 10})
+	report, err := process.Capture(ctx, process.Spec{Executable: executable, Args: []string{"--exit-qualification-child", config}, MaxOutput: 64 << 10, WaitForDescendants: runtime.GOOS == "windows"})
+	if report.Descendants != nil {
+		lifecycle, _ := json.Marshal(map[string]any{"kind": "native-exit-owned-lifecycle", "action": fixture.Action, "descendants": report.Descendants})
+		retainNativeExitEvidence(lifecycle)
+		fmt.Fprintln(os.Stderr, string(lifecycle))
+	}
 	return interpretExitChild(fixture, report, err, ctx.Err(), os.Stderr)
+}
+
+// Failure-only function names identify a blocked UI call without stack arguments,
+// local values, memory dumps, filenames, private data or unbounded diagnostics.
+func logNativeUIFunctionStacks() {
+	records, err := captureNativeFunctionNames()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "native-ui-functions=unavailable-over-limit")
+		return
+	}
+	type entry struct {
+		functions []string
+		ui        bool
+	}
+	var selected []entry
+	for _, functions := range records {
+		ui, relevant := false, false
+		for _, name := range functions {
+			if name == "main.runDesktopApplicationWithProfile" || strings.Contains(name, "/windows/winc.") {
+				ui = true
+			}
+			if strings.Contains(name, "github.com/wailsapp/") {
+				relevant = true
+			}
+		}
+		if ui || relevant {
+			selected = append(selected, entry{functions, ui})
+		}
+	}
+	var stacks [][]string
+	remainingBytes, limited := 32<<10, false
+	for _, primary := range []bool{true, false} {
+		for _, entry := range selected {
+			if entry.ui == primary && len(stacks) < 4 {
+				size := 0
+				for _, name := range entry.functions {
+					size += len(name)
+				}
+				if size > remainingBytes {
+					limited = true
+					continue
+				}
+				remainingBytes -= size
+				limited = limited || len(entry.functions) >= 128
+				stacks = append(stacks, entry.functions)
+			}
+		}
+	}
+	raw, _ := json.Marshal(map[string]any{"kind": "native-ui-functions", "unix_millis": time.Now().UnixMilli(), "stacks": stacks, "limited": limited, "max_frames": 128})
+	fmt.Fprintln(os.Stderr, string(raw))
 }

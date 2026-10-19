@@ -33,7 +33,7 @@ func (b *Bridge) Choose(kind string) (string, error) {
 // SelectWorkspace uses the same workspace contract as the CLI. Selecting a
 // workspace changes the client view, not durable jobs in the previously selected one.
 func (b *Bridge) SelectWorkspace(path, name string, create bool) contracts.Response {
-	if !filepath.IsAbs(path) || len(path) > 4096 || create && (strings.TrimSpace(name) == "" || len(name) > 256) {
+	if !filepath.IsAbs(path) || len(path) > 4096 || create && (strings.TrimSpace(name) == "" || !contracts.ValidTextLength(name, 1, 256)) {
 		return (&Bridge{}).failed(contracts.Fail("invalid_request"))
 	}
 	var w *workspace.Workspace

@@ -1,0 +1,69 @@
+# Research and decisions
+
+## 2026-10-19
+
+- Decision: Explicit registry guidance/example metadata. Rationale: commands.go derives examples from display operands and uses input.json for enum options. Alternatives: duplicated prose or a new parser framework.
+- Decision: Execute emitted examples in the existing installed harness with a coverage ledger. Rationale: #119 requires semantic execution. Update root-help consumers and aliases together.
+- Decision: Structured fixed validation causes and known constraint/location messages. Rationale: the schema validator retains details discarded by main.go. Never serialize raw validation errors, which can echo values or unknown property names.
+- Decision: Preserve 1..600000 durations through schema/catalog forward migration. Rationale: parser/help promise ten minutes; request, catalog and DDL cap at one minute. Freeze historical schema-9 authority and retain old snapshot restoration.
+- Decision: Unicode code points for public character limits; separate byte budgets unchanged. No normalization.
+- Decision: Preserve exact model identities and quote/escape them in human output. Rationale: manifest validation is reused for retained installs/snapshots and identities hash original bytes. Global tightening can strand history.
+- Decision: Suppress only unestablished failed results before zero work/publication converters manufacture maps. Never delete valid false/zero fields globally.
+- Decision: Reserve summaries for identity, every task conclusion/correction, continuation and verbosity before optional details. Raising limits would leave ordering defective.
+- Decision: Display valid UTF-8 interior and label incomplete byte boundaries in capture pages. Preserve exact runtime offsets/base64 and authority.
+
+Three read-only Spec Kit research agents examined help/qualification, renderer/receipt and validator/catalog seams. Recommendations were compared with approved scope before adoption.
+
+## 2026-10-19: native repair scope and demonstrated failures
+
+Owner approval adds #154 repair. S038 already retained exact child streams and ran more than one hundred focused native launches without recovering the original HRESULT; its checkpoint explicitly deferred root repair. S039 now captures 800700aa (resource in use) during controller startup in Alt+F4, close and menu fixtures. A separate menu attempt reached its 12-second startup watchdog with no DOM-ready/native-action checkpoint or HRESULT. Its shutdown marker follows fallback Quit and does not prove a native action. These signatures remain distinct until evidence links them.
+
+Microsoft documents that WebView creation can fail and recommends re-creating the environment when retrying (except invalid-state), while its user-data-folder guidance requires observing browser/child exit before deletion and notes that files may remain in use after host exit. These are investigation constraints, not proof that profile ownership is the cause here. Primary sources: https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2environment and https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/user-data-folder .
+
+Inspect the existing Go Capture and Python ProcessTree job-close semantics, browser membership at root exit, and profile selection. Compare a controlled old boundary with the corrected owned lifecycle before adopting a fix. Preserve all real native qualification and proof gates.
+
+### Demonstrated owned-job boundary
+
+A real Windows helper regression failed in 0.15 seconds before implementation: the root returned zero, Capture closed its KILL_ON_JOB_CLOSE job, and the still-running owned child never wrote its natural-release marker. The new explicit Windows Capture wait mode observes job ActiveProcesses until zero under the original caller deadline; timeout remains failure and cleanup termination cannot establish release. The same regression then passed, along with a held-child deadline regression. This proves the defective ownership transition, not the private WebView2 implementation cause of HRESULT 800700aa. The normal desktop keeps its existing Wails profile defaults; native Exit fixtures use per-case owned profiles and reuse them only after observed release. Each of six Windows action/workspace cases runs cold and warm. All original native/playback/durable assertions and package byte/source gates remain.
+
+The SDK accounting ABI and query contract are verified against [Microsoft job accounting](https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-jobobject_basic_accounting_information) and [QueryInformationJobObject](https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-queryinformationjobobject). Current-source diagnostic 39237018511 remained non-reproducing (48 Exit children, historical companions), and therefore does not prove the correction. Real corrected-package Windows qualification and full CI remain pending.
+
+### Native menu activation convergence
+
+The corrected-profile archive run observed six owned descendants exit naturally before warm reuse. Its next menu child reached DOM readiness and action injection but never completed Exit before the watchdog. Posted WM_CHAR delivery to the owner window is insufficient evidence that its modal menu selected Exit. Use actual Alt+F and X through SendInput, observe the active owned menu, and retain a real callback checkpoint plus normal-return assertions. This follows [Microsoft keyboard input routing](https://learn.microsoft.com/en-us/windows/win32/inputdev/about-keyboard-input) and [SendInput](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendinput); callback alone still cannot qualify success. The pre-DOM watchdog and controller-busy signatures remain separately recorded.
+
+### Demonstrated focused-WebView mnemonic defect
+
+Diagnostic 39240418386 at c59d5e3 fails twice on the first cold menu, after DOM readiness. Real Alt+F input is accepted and the owned root is active, but GetGUIThreadInfo reports flags=0 and no menu owner after the existing two-second allowance. The pinned Wails v2.16.0 frontend.go AcceleratorKeyCallback forwards keys using WM_KEYDOWN and a zero lParam, losing WM_SYSKEYDOWN/Alt context. Its winc init locks the main UI thread. A thread-local WH_GETMESSAGE adapter can preserve the existing product mnemonic by translating the actual owned Alt+F system-key message before the WebView consumes it. The [Microsoft thread-hook contract](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowshookexw) allows a same-process callback with nonzero thread ID and NULL module; [GetMsgProc](https://learn.microsoft.com/en-us/windows/win32/winmsg/getmsgproc) permits modifying the retrieved message. Restrict the route to the owned foreground native menu root and uninstall it when Run returns. No global shortcut or dependency fork is needed.
+
+### Exact accelerator evidence and focused-document correction
+
+Diagnostic 39242791034 at 47c9b9f captures the same hook/target thread (4484, then 2060) and actual Alt/F reaching that thread only as message 0x100 with flags=0. Artifact 12181879007 retains both failures. This directly shows that a thread-message hook cannot recover the already-discarded system-key context. Remove it rather than infer missing state. Use the focused document KeyboardEvent.altKey to request the native File menu through a configured same-application bridge; bind offline help as well. This preserves the actual modifier before Wails transforms the forwarded accelerator. Native qualification remains entirely driven by SendInput and observed native menu/callback/exit, with an explicit frontend-listener readiness acknowledgment and unchanged outer/watchdog limits. No global hook remains.
+
+### Controller Close and complete COM teardown
+
+The e778f51 load run 39271219409 passed 144 actual Exit children with natural job release, but archive job 118123826826 on run 39271227843 observed a successful real File/Exit callback, zero-exit host, successful controller Close and three owned running WebView processes at the original deadline. This establishes that Close alone did not complete every hosted teardown. The pinned source separately demonstrates retained environment/controller references, an extra AddRef after an owned getter result, an unreleased controller3 QueryInterface and a successful pinned-thread CoInitializeEx without matching CoUninitialize. Microsoft's controller sample closes the controller and clears its WebView/controller/environment COM pointers: <https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2controller>. COM ownership requires releasing every acquired interface pointer: <https://learn.microsoft.com/en-us/windows/win32/com/implementing-reference-counting>. Correct these demonstrated ownership gaps and verify actual browser release; do not infer the private origin of every earlier HRESULT from this evidence.
+
+### Native accelerator disposition and original context
+
+The exact prior accelerator function calls PutHandled(true) for a claimed key and then resets it with PutHandled(false). A typed fake-COM callback regression observes [1, 0] before correction. The same prior-function overlay misses the new owned native event route (native calls 0, legacy calls 1, dispositions [0, 0]); the corrected binding preserves original copied lParam/Alt metadata and one handled disposition. Corrected normal and three race-detection repetitions pass. The first race attempt caught unsafe output-pointer casts in the new fake callbacks; typed callback output pointers correct the fixture without disabling pointer or race checks.
+
+[Microsoft's controller accelerator contract](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2controller) documents the synchronous windowed callback and recommends asynchronously scheduling actions after claiming the event. [The threading model](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/threading-model) prohibits nested modal UI inside callbacks. The application now posts the original owned native system key, consumes it once and avoids DOM/Go reconstruction for ordinary Alt+F. Actual hosted repetition is still required; this does not explain every historical controller-busy or pre-DOM signature.
+
+### Owner-directed reassessment and diagnostic depth
+
+bfaf303 diagnostic 39284836144 still failed twice after observing the native system-key route, an owned visible File popup, highlighted Exit, accepted X and released physical Alt. A complete parent also passed; 24 children released naturally before the diagnostic stopped. The latest accelerator change is not a demonstrated resolution. See native-investigation.md for the cross-component hypothesis audit.
+
+The old runtime.GoroutineProfile record and emitted output both stop at 32 frames. The visible native menu wait does not exclude an enclosing WebView callback or COM call. A controlled 48-frame outer-caller test fails with that capture and passes with a deeper, bounded, function-only pprof capture. Use that failure-only evidence before another behavior change. No callback substitution, input observer, timeout increase or success-rule change is introduced.
+
+### Native menu owns keyboard input
+
+The explicitly instrumented 4dbd8a1 diagnostic captured a cold no-workspace failure after 60 successful releases. Accepted X did not reach the native queue/menu filter; a posted marker still executed on the owned UI thread. Clearing descendant browser focus changed subsequent Escape delivery to that thread/filter but did not complete shutdown. Thus missing native input is established while null focus alone is insufficient. The owned native host must retain focus throughout its menu and restore the prior child afterward. The parent subclass suppresses its normal browser-refocus forwarding only during native menus (and during destruction), preserving ordinary focus outside that lifetime. A real unshown-subclass test fails before this correction and passes afterward, including nested menu exit and three selected SDK race repetitions. Actual qualification strengthens cancellation/restoration/reopening/input proofs; hosted verification remains necessary. See native-investigation.md.
+
+## 2026-10-19: owner-approved completion boundary
+
+The owner explicitly directed S039 to finish with its proven fixes while #154 remains open for the unexplained startup failure, with no more diagnostics and PR #156 left unmerged for final review. This supersedes the earlier cause-repair completion condition. T053 is explicitly deferred outside the accepted slice; it is not marked implemented. The original eleven issue closures and proven native process/controller/COM/input/deferral corrections remain delivered.
+
+The last product implementation head 8cb8dc0d6d2793cff074c01be08985ccfa2586ba passed CI 39315026478 attempt 1 in 649 seconds (43 jobs: 25 success, 18 conditional skips), including all four Windows scopes, exact-byte join and candidate. Its source/merge is 07bc391dd827d97075988edf6bff2783f15c85b1. Local root check/145 Node tests, 393 Python tests, affected production desktop tests/vet, selected unshown native normal/race checks, site check/17 tests/build and compiled-but-unexecuted 50-module notices pass. The closeout changes only internal planning; the configured CI must validate its final commit before handoff, with live evidence in PR #156.
+
+The existing review thread is replied to and resolved; two external rounds are used and no third is requested. #154 stays open outside the S039 completion milestone. No cause repair is claimed for the retained pre-DOM or two-second UI-join signatures. No merge, release, site publication, owner installation or additional diagnostic is performed.

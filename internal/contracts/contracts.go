@@ -64,10 +64,11 @@ func ValidLocalSpeakerID(s string) bool {
 }
 
 type Error struct {
-	Code        string       `json:"code"`
-	Reason      string       `json:"reason,omitempty"`
-	Message     string       `json:"message"`
-	Diagnostics []Diagnostic `json:"diagnostics,omitempty"`
+	Code        string          `json:"code"`
+	Reason      string          `json:"reason,omitempty"`
+	Message     string          `json:"message"`
+	Diagnostics []Diagnostic    `json:"diagnostics,omitempty"`
+	Validation  *InputViolation `json:"validation,omitempty"`
 }
 
 func (e *Error) Error() string { return e.Code + ": " + e.Message }

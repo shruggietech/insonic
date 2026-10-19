@@ -209,8 +209,9 @@ insonic media set-origin MEDIA_ID --revision CURRENT_REVISION --originated-earli
 Installed bundles discover their pinned extractors automatically. An explicit workspace override can configure exact extractor files using
 `insonic media tools media-tools.json`. The rendered tools contract declares
 absolute executable paths, SHA-256 values, emitted versions, delegated support
-files and an explicit pinned interpreter when needed. Configure while the runtime
-is stopped. Missing or mismatched tools yield a visible partial/unsupported
+files and an explicit pinned interpreter when needed. The command starts or reuses the
+shared runtime and saves the override for the next operation. Already running
+operations retain their previous configuration. Missing or mismatched tools yield a visible partial/unsupported
 capture and preserve usable media for retry. The controlled native qualification
 uses ExifTool 13.59 and platform-specific ffprobe distribution binaries; installed
 product bundles and their notices remain part of release assembly.

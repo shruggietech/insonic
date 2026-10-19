@@ -23,6 +23,10 @@ func (a *App) artifactService() (*artifact.Service, error) {
 func (a *App) artifactDispatch(req contracts.Request) (result any, err error) {
 	defer func() {
 		if publication, ok := result.(catalog.Publication); ok {
+			if err != nil && publication.ID == "" {
+				result = nil
+				return
+			}
 			result = artifact.ReceiptOf(publication)
 		}
 	}()

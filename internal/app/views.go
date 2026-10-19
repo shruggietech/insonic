@@ -60,6 +60,9 @@ func idFromLast[T any](all []T, p listPage, id func(T) string) string {
 	return ""
 }
 func workView(w catalog.Work) any {
+	if w.ID == "" {
+		return nil
+	}
 	var result any
 	if len(w.Result) <= 16<<10 {
 		strictPayload(w.Result, &result)

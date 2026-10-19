@@ -13,7 +13,7 @@ func nativeTokens(text string) ([]string, error) {
 }
 
 func nativeScan(text string) ([]string, int, error) {
-	if len(text) == 0 || len(text) > 65536 {
+	if !contracts.ValidTextLength(text, 1, 65536) {
 		return nil, -1, contracts.Condition("invalid_request", "native_syntax")
 	}
 	tokens := []string{}

@@ -40,7 +40,7 @@ var optionDefinitions = func() map[string]cliOption {
 	for _, key := range strings.Fields("--no-pipeline --json --verbose --debug --quiet --copy --reference --local-http --new-entry --replace-audio --transcript-applies --replace-transcript --legacy-sidecar --secret-input --help -h --version") {
 		out[key] = cliOption{}
 	}
-	enums := map[string]string{"--dst-fold": "earlier|later", "--dst-gap": "shift-forward", "--date-precedence": "owner-first|embedded-first|filesystem-fallback", "--attribution": "auto|native|off|diarize", "--transcript-format": "cueson|srt|vtt|ass|ssa", "--existing-transcript": "keep|clear|replace", "--existing-roster": "retain|clear", "--mode": "self-contained|reference-only", "--operation": "transcription|diarization|voice-matching|speaker-model-training", "--dialect": "ladybug-cypher|arcade-opencypher|arcade-sql"}
+	enums := map[string]string{"--dst-fold": "earlier|later", "--dst-gap": "shift-forward", "--date-precedence": "owner-first|embedded-first|filesystem-fallback", "--attribution": "auto|native|off|diarize", "--transcript-format": "cueson|srt|vtt|ass|ssa", "--existing-transcript": "keep|clear|replace", "--existing-roster": "retain|clear", "--mode": "self-contained|reference-only", "--operation": "transcription|diarization|voice-matching|speaker-model-training", "--dialect": "ladybug-cypher|arcade-opencypher|arcade-sql", "--credential-backend": "native|vault|session"}
 	for key, values := range enums {
 		o := out[key]
 		o.Values = values
@@ -119,7 +119,11 @@ var commandDefinitions = func() []commandDefinition {
 		if a == "create" {
 			opts = "--mode"
 		}
-		add("backup "+a, "DIRECTORY_OR_BACKUP_UUID", 1, 1, opts, "")
+		operand := "DIRECTORY"
+		if a == "release" {
+			operand = "DIRECTORY_OR_BACKUP_UUID"
+		}
+		add("backup "+a, operand, 1, 1, opts, "")
 	}
 	for _, g := range strings.Fields("pipelines speakers terms") {
 		actions := "list show set"
@@ -301,7 +305,7 @@ var commandDefinitions = func() []commandDefinition {
 		if a == "show" || a == "save" {
 			n, operand = 1, "QUERY_UUID"
 		}
-		if a == "assistance-show" {
+		if a == "assistance-show" || a == "list" {
 			opts = ""
 		}
 		if a == "run" || a == "explain" {
@@ -316,7 +320,7 @@ var commandDefinitions = func() []commandDefinition {
 	add("search", "TEXT", 1, 1, "--speaker --media --limit --after", "")
 	add("timeline calendar", "", 0, 0, "--input", "")
 	add("timeline recording", "MEDIA_UUID", 1, 1, "--input", "")
-	add("views show", "VIEW_UUID", 1, 1, "--input", "")
+	add("views show", "VIEW_UUID", 1, 1, "", "")
 	add("views save", "VIEW_UUID", 1, 1, "--input", "--input")
 	return out
 }()
@@ -514,8 +518,12 @@ func parseInvocation(args []string) (invocation, error) {
 				if key == "--limit" && out.Path[0] == "search" {
 					max = 500
 				}
-				if e != nil || n < spec.Min || n > max {
-					return out, argumentError(fmt.Sprintf("%s requires an integer from %d to %d.", key, spec.Min, max))
+				min := spec.Min
+				if key == "--expected-revision" && (strings.Join(out.Path, " ") == "models alias remove" || strings.Join(out.Path, " ") == "models source remove") {
+					min = 1
+				}
+				if e != nil || n < min || n > max {
+					return out, argumentError(fmt.Sprintf("%s requires an integer from %d to %d.", key, min, max))
 				}
 			}
 		}
@@ -609,6 +617,13 @@ func commandHelp(path []string) string {
 		p := strings.Join(c.Path, " ")
 		if p == prefix {
 			fmt.Fprintf(&b, "Usage: insonic %s %s [--workspace DIRECTORY] [--request-id UUID] [--json]\n", p, c.Operands)
+			writeTaskGuidance(&b, c)
+			b.WriteString("Global options:\n")
+			for _, key := range strings.Fields("--workspace --request-id --json --verbose --debug --quiet --log-level --log-file --help -h") {
+				meta := guidance.Options[key]
+				fmt.Fprintf(&b, "  %s; Meaning: %s Default: %s. Status: optional global. Repeat: once. Conditions: %s\n", key, meta.Meaning, meta.Default, meta.Conditions)
+			}
+			b.WriteString("Command options:\n")
 			for _, key := range c.Options {
 				o := optionDefinitions[key]
 				suffix := ""
@@ -618,7 +633,16 @@ func commandHelp(path []string) string {
 				if key == "--input" {
 					suffix = " FILE (JSON file, not inline JSON)"
 				}
-				fmt.Fprintf(&b, "  %s%s", key, suffix)
+				meta := guidance.Options[key]
+				status := "optional"
+				if containsOption(c.Required, key) {
+					status = "required"
+				}
+				repeat := "once"
+				if key == "--known-speaker" || key == "--speaker" && strings.HasPrefix(p, "recordings roster ") {
+					repeat = "repeatable"
+				}
+				fmt.Fprintf(&b, "  %s%s; Meaning: %s Default: %s. Status: %s. Repeat: %s. Conditions: %s", key, suffix, meta.Meaning, meta.Default, status, repeat, meta.Conditions)
 				if o.Values != "" {
 					fmt.Fprintf(&b, "; values: %s", o.Values)
 				}
@@ -627,7 +651,11 @@ func commandHelp(path []string) string {
 					if p == "search" && key == "--limit" {
 						max = 500
 					}
-					fmt.Fprintf(&b, "; range: %d..%d", o.Min, max)
+					min := o.Min
+					if key == "--expected-revision" && (p == "models alias remove" || p == "models source remove") {
+						min = 1
+					}
+					fmt.Fprintf(&b, "; range: %d..%d", min, max)
 				}
 				if containsOption(c.Required, key) {
 					b.WriteString("; required")
@@ -638,7 +666,11 @@ func commandHelp(path []string) string {
 				b.WriteByte('\n')
 			}
 			if containsOption(c.Options, "--limit") {
-				b.WriteString("Default page limit: 100. Omit --after for the initial page.\n")
+				if containsOption(c.Options, "--after-ordinal") {
+					b.WriteString("Default page limit: 100. Omit --after-ordinal for the initial page; continue with the returned numeric ordinal.\n")
+				} else {
+					b.WriteString("Default page limit: 100. Omit --after for the initial page.\n")
+				}
 			}
 			if p == "search" {
 				b.WriteString("Continue with the same search text and filters plus --after NEXT_CURSOR from the preceding page. A page can contain only relationships; follow next_cursor until absent.\n")
@@ -653,7 +685,11 @@ func commandHelp(path []string) string {
 				b.WriteString("Vault add/replace/delete/unlock/load use bounded protected stdin JSON; never pass secrets in arguments. Native/session delete needs no stdin.\n")
 			}
 			if strings.HasPrefix(p, "backup ") || strings.HasPrefix(p, "catalog ") {
-				b.WriteString("Offline maintenance: restore/migrate requires exclusive ownership.\n")
+				if p == "backup show" {
+					b.WriteString("Maintenance: show only reads the backup manifest and does not require exclusive ownership.\n")
+				} else if strings.HasPrefix(p, "backup ") || p == "catalog restore" || p == "catalog migrate" {
+					b.WriteString("Maintenance: exclusive ownership is required; stop clients and wait for the runtime owner to exit before this operation.\n")
+				}
 			}
 			if p == "runtime serve" {
 				b.WriteString("Internal shared-runtime host. Noninteractive; normally started by clients.\n")
@@ -672,8 +708,12 @@ func commandHelp(path []string) string {
 				operation = "media.import"
 				b.WriteString("Single transcript: PATH_OR_URL --record UUID_OR_TITLE. Batch: --manifest FILE uses per-item recording targets without --record, a positional path or --legacy-sidecar.\n")
 			}
-			if containsOption(c.Options, "--input") {
-				template, schema := schemas.InputHelp(operation)
+			if containsOption(c.Options, "--input") || p == "media tools" || p == "processing tools" || strings.HasSuffix(p, " register") || strings.HasSuffix(p, " acquire") || strings.HasSuffix(p, " download") {
+				helpOperation := operation
+				if strings.HasSuffix(p, " register") || strings.HasSuffix(p, " acquire") || strings.HasSuffix(p, " download") {
+					helpOperation = "models.manifest"
+				}
+				template, schema := schemas.InputHelp(helpOperation)
 				if template != nil {
 					fmt.Fprintf(&b, "JSON file template (replace illustrative IDs/revisions with current records):\n%s\nInput contract, including optional fields, defaults and enums:\n%s\n", template, schema)
 				}
@@ -683,22 +723,21 @@ func commandHelp(path []string) string {
 			}
 			b.WriteString("Diagnostic controls: --verbose adds request/workspace identifiers; --debug adds generated progress detail; --quiet suppresses informational human output and progress. Warnings/errors remain visible. --log-level error|warn|info|debug selects diagnostic severity (default info, debug with --debug). --log-file FILE elects private rotating JSONL logs (1 MiB plus two predecessors); its directory must exist. No arguments, input documents, credentials, endpoints or environment values are logged. These controls do not change --json result envelopes.\n")
 			b.WriteString("Global options may precede or follow command options. Scalar options appear once; value options accept --name=value. -- ends option and help recognition. Machine success uses stdout; machine failure uses stderr.\n")
-			example := c.Operands
-			if p == "transcript import" {
-				example = "--manifest transcripts.json"
-			}
-			for _, key := range c.Required {
-				value := "input.json"
-				if key == "--revision" || key == "--expected-revision" {
-					value = "1"
-				}
-				if key == "--record" {
-					value = "11111111-1111-4111-8111-111111111111"
-				}
-				example += " " + key + " " + value
-			}
-			fmt.Fprintf(&b, "Example: insonic %s %s\n", p, example)
 			return b.String()
+		}
+	}
+	fmt.Fprintf(&b, "Purpose: %s\n", guidance.Groups[prefix])
+	if prefix == "" {
+		b.WriteString("Task groups:\n")
+		var groups []string
+		for group := range guidance.Groups {
+			if group != "" && !strings.Contains(group, " ") {
+				groups = append(groups, group)
+			}
+		}
+		sort.Strings(groups)
+		for _, group := range groups {
+			fmt.Fprintf(&b, "- %s: %s\n", group, guidance.Groups[group])
 		}
 	}
 	b.WriteString("Commands:\n")
@@ -713,6 +752,6 @@ func commandHelp(path []string) string {
 	for _, p := range paths {
 		fmt.Fprintf(&b, "  %s\n", p)
 	}
-	b.WriteString("Use help COMMAND, COMMAND --help or -h for syntax, defaults and input contracts.\nAliases: --version/version; models base; models download/acquire; models list --speaker/models speaker list; search/query run; query native/query run.\n")
+	b.WriteString("Use help COMMAND, COMMAND --help or -h for task guidance, syntax, defaults and input contracts.\nAliases: --version/version; models base; models download/acquire; models list --speaker/models speaker list; search/query run; query native/query run.\n")
 	return b.String()
 }

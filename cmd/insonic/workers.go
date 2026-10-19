@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 
-	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/schemas"
 )
@@ -32,14 +31,14 @@ func parseWorkers(args []string) (string, string, json.RawMessage, error) {
 		}
 		defer f.Close()
 		raw, e = io.ReadAll(io.LimitReader(f, (1<<20)+1))
-		if e != nil || len(raw) > 1<<20 || catalog.ValidateJSON(raw) != nil {
-			return fail()
+		if err := checkedInput(raw, 1<<20, e); err != nil {
+			return "", "", nil, err
 		}
 	}
 	req := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: contracts.ID(), RequestID: contracts.ID(), Operation: op, Data: raw}
 	b, _ := json.Marshal(req)
-	if schemas.ValidateRequest(b) != nil {
-		return fail()
+	if err := schemas.ValidateRequest(b); err != nil {
+		return "", "", nil, err
 	}
 	return op, "", raw, nil
 }

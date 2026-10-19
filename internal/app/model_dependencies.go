@@ -393,6 +393,9 @@ func localModelSelectionError(selection models.Resolution) error {
 }
 
 func (a *App) modelWorkView(work catalog.Work) any {
+	if work.ID == "" {
+		return nil
+	}
 	view := workView(work).(map[string]any)
 	if work.Kind == "media.import" {
 		var input library.ImportRequest

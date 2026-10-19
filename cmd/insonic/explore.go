@@ -3,7 +3,6 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"io"
 	"os"
@@ -56,8 +55,8 @@ func parseExplore(args []string) (string, string, json.RawMessage, error) {
 		}
 		defer f.Close()
 		raw, e = io.ReadAll(io.LimitReader(f, (1<<20)+1))
-		if e != nil || len(raw) > 1<<20 || catalog.ValidateJSON(raw) != nil {
-			return fail()
+		if err := checkedInput(raw, 1<<20, e); err != nil {
+			return "", "", nil, err
 		}
 	}
 	if op == "timeline.calendar" && len(raw) == 0 {

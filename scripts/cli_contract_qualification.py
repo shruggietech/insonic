@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Exercise installed CLI contracts with disposable, nonsecret fixtures."""
 import copy
+from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -27,6 +28,7 @@ def qualify_read_only(invoke, paths, help_workspace, missing_workspace):
     """Keep all help/parser assertions in one bounded, joined worker pool."""
     before = sorted(str(p.relative_to(help_workspace)) for p in help_workspace.rglob('*'))
     groups = sorted({tuple(path[:n]) for path in paths for n in range(1, len(path))})
+    help_pages = {}
     checks = [('context', path) for path in paths]
     checks += [('group', list(group)) for group in groups]
     checks += [('rejection', args) for args in PARSER_REJECTIONS]
@@ -39,6 +41,7 @@ def qualify_read_only(invoke, paths, help_workspace, missing_workspace):
             prefixed = invoke(['help', *args], scoped=False)['result']['help']
             if inside != outside or inside != prefixed or 'Usage:' not in inside:
                 raise ValueError('Contextual help differs: ' + ' '.join(args))
+            help_pages[' '.join(args)] = inside
         elif kind == 'group':
             if 'Commands:' not in invoke(args, scoped=False)['result']['help']:
                 raise ValueError('No-argument group help differs')
@@ -52,7 +55,47 @@ def qualify_read_only(invoke, paths, help_workspace, missing_workspace):
     after = sorted(str(p.relative_to(help_workspace)) for p in help_workspace.rglob('*'))
     if before != after:
         raise ValueError('Help created workspace files')
+    return help_pages
 
+
+
+def isolated_invoker(invoke, workspace):
+    """Keep one helper's defaults local while preserving explicit overrides."""
+    def run(args, **kwargs):
+        kwargs.setdefault('workspace_path', workspace)
+        return invoke(args, **kwargs)
+    return run
+
+
+@contextmanager
+def parallel_regressions(invoke, workspace, version, documentation, help_pages, executable, environment):
+    """Join every owned regression even when another branch raises."""
+    from cli_operator_qualification import qualify as qualify_operator
+    from cli_input_qualification import qualify as qualify_inputs
+    from cli_text_duration_qualification import qualify as qualify_text_duration
+    jobs = [('operator', qualify_operator, {'media': documentation}),
+            ('input', qualify_inputs, {'media': documentation}),
+            ('text_duration', qualify_text_duration, {})]
+    if documentation:
+        from cli_help_examples import qualify as qualify_examples
+        jobs.append(('examples', qualify_examples, {}))
+    prepared = []
+    for name, function, keywords in jobs:
+        root = workspace / ('isolated ' + name + ' qualification')
+        invoke(['workspace', 'init', root], scoped=False)
+        scoped = isolated_invoker(invoke, root)
+        args = (scoped, root, version)
+        if name == 'examples':
+            args = (scoped, None, root, version, help_pages)
+            keywords = {'executable': executable, 'environment': environment}
+        prepared.append((name, function, args, keywords))
+    # Four independent libraries prevent credential, settings, model and
+    # revision interference. Joining all workers leaves the existing package
+    # idle allowance and image-release check after every library's activity.
+    with ThreadPoolExecutor(max_workers=4) as workers:
+        futures = {name: workers.submit(function, *args, **keywords)
+                   for name, function, args, keywords in prepared}
+        yield futures
 
 def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
     executable, workspace = Path(executable), Path(workspace)
@@ -72,15 +115,16 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
                          allow_detached=scoped, input_pipe=input is not None) as tree:
             stdout, stderr = tree.process.communicate(input=input, timeout=35)
             code = tree.process.returncode
-        if code != expected or (stderr if expected == 0 else stdout):
+        accepted = expected if isinstance(expected, tuple) else (expected,)
+        if code not in accepted or (stderr if code == 0 else stdout):
             raise ValueError('CLI stream/exit contract differs: ' + ' '.join(map(str, args[:3]))
                              + ' (exit ' + str(code) + ', response ' + (stderr if code else stdout).decode('utf-8')[:2000] + ')')
         if not machine:
-            text = (stderr if expected else stdout).decode("utf-8")
+            text = (stderr if code else stdout).decode("utf-8")
             if "\x1b" in text or len(text.encode("utf-8")) > 65536:
                 raise ValueError("Human display control/size contract differs")
             return text
-        result = json.loads(stderr if expected else stdout)
+        result = json.loads(stderr if code else stdout)
         if result.get('kind') != 'runtime-response' or result.get('schema_version') != version or (result.get('request_id') != correlation_id and '--request-id' not in args):
             raise ValueError('CLI envelope/correlation differs')
         return result
@@ -89,7 +133,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
     paths = [line.strip().split() for line in root_help.splitlines() if line.startswith('  ')]
     help_workspace = workspace / 'isolated help workspace'
     invoke(['workspace', 'init', help_workspace], scoped=False)
-    qualify_read_only(invoke, paths, help_workspace, workspace / 'absent-help-workspace')
+    help_pages = qualify_read_only(invoke, paths, help_workspace, workspace / 'absent-help-workspace')
 
     # Human display, clean redirected waits and elected log preflight are part
     # of the same installed CLI contract, rather than source-only rendering.
@@ -237,44 +281,51 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
-    lifecycle = {'state': 'not-included', 'reason': 'exact companions required in extracted packages'}
-    if documentation:
-        from cli_media_qualification import qualify as qualify_media
-        lifecycle = qualify_media(invoke, supplied, workspace, executable, environment, version)
-    query_contracts = {'state': 'not-included', 'reason': 'exact companions required in extracted packages'}
-    if documentation:
-        from cli_query_qualification import qualify as qualify_queries
-        query_contracts = qualify_queries(invoke, supplied, workspace)
-    provider_contracts = {'state': 'not-included', 'reason': 'required in extracted packages'}
-    documented = {'state': 'not-included', 'reason': 'source CLI lane; required in extracted packages'}
-    if documentation:
-        from documented_workflows import qualify as qualify_documentation
-        # Exercise a post-install workspace against owned loopback adapter fixtures.
-        # The main qualification runtime keeps CI markers and all production refusal
-        # gates; no inference engine is selected or initialized in this workspace.
-        documented_workspace = workspace / 'isolated documented workflows'
-        fixture_environment = dict(environment)
-        for marker in ['CI', 'GITHUB_ACTIONS', 'TF_BUILD', 'BUILD_BUILDID', 'JENKINS_URL']:
-            fixture_environment.pop(marker, None)
-        invoke(['workspace', 'init', documented_workspace], scoped=False)
-        def documented_invoke(args, **kwargs):
-            return invoke(args, workspace_path=documented_workspace,
-                          execution_environment=fixture_environment, **kwargs)
-        def documented_supplied(args, value):
-            path = documented_workspace / 'documented request.json'
-            path.write_text(json.dumps(value) + '\n', encoding='utf-8', newline='\n')
-            return documented_invoke([*args, '--input', path])
-        documented = qualify_documentation(documented_invoke, documented_supplied, documented_workspace, version)
-        from cli_provider_qualification import qualify as qualify_providers
-        provider_contracts = qualify_providers(documented_invoke, documented_supplied, documented_workspace)
-        # Package smoke's existing bounded idle-owner cleanup covers this workspace too.
+    with parallel_regressions(invoke, workspace, version, documentation, help_pages, executable, environment) as regressions:
+        lifecycle = {'state': 'not-included', 'reason': 'exact companions required in extracted packages'}
+        if documentation:
+            from cli_media_qualification import qualify as qualify_media
+            lifecycle = qualify_media(invoke, supplied, workspace, executable, environment, version)
+        query_contracts = {'state': 'not-included', 'reason': 'exact companions required in extracted packages'}
+        if documentation:
+            from cli_query_qualification import qualify as qualify_queries
+            query_contracts = qualify_queries(invoke, supplied, workspace)
+        provider_contracts = {'state': 'not-included', 'reason': 'required in extracted packages'}
+        documented = {'state': 'not-included', 'reason': 'source CLI lane; required in extracted packages'}
+        examples = {'state': 'not-included', 'reason': 'requires exact installed companions'}
+        if documentation:
+            from documented_workflows import qualify as qualify_documentation
+            # Exercise a post-install workspace against owned loopback adapter fixtures.
+            # The main qualification runtime keeps CI markers and all production refusal
+            # gates; no inference engine is selected or initialized in this workspace.
+            documented_workspace = workspace / 'isolated documented workflows'
+            fixture_environment = dict(environment)
+            for marker in ['CI', 'GITHUB_ACTIONS', 'TF_BUILD', 'BUILD_BUILDID', 'JENKINS_URL']:
+                fixture_environment.pop(marker, None)
+            invoke(['workspace', 'init', documented_workspace], scoped=False)
+            def documented_invoke(args, **kwargs):
+                return invoke(args, workspace_path=documented_workspace,
+                              execution_environment=fixture_environment, **kwargs)
+            def documented_supplied(args, value):
+                path = documented_workspace / 'documented request.json'
+                path.write_text(json.dumps(value) + '\n', encoding='utf-8', newline='\n')
+                return documented_invoke([*args, '--input', path])
+            documented = qualify_documentation(documented_invoke, documented_supplied, documented_workspace, version)
+            from cli_provider_qualification import qualify as qualify_providers
+            provider_contracts = qualify_providers(documented_invoke, documented_supplied, documented_workspace)
+            # Package smoke's existing bounded idle-owner cleanup covers this workspace too.
+        operator_contracts = regressions['operator'].result()
+        input_contracts = regressions['input'].result()
+        text_duration_contracts = regressions['text_duration'].result()
+        if documentation:
+            examples = regressions['examples'].result()
     input_file.unlink(missing_ok=True)
     for path in [logfile, Path(str(logfile) + '.1'), Path(str(logfile) + '.2')]:
         if path.exists():
             logged = path.read_text(encoding='utf-8')
             if len(logged.encode('utf-8')) > 1 << 20 or any(value in logged for value in [secret['passphrase'], secret['value'], 'wrong-fixture-passphrase', str(workspace)]):
                 raise ValueError('Diagnostic log retained protected or arbitrary input')
-    return {'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
+    return {'operator_contracts': operator_contracts, 'input_contracts': input_contracts, 'text_duration_contracts': text_duration_contracts, 'actual_help_examples': examples, 'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
             'protected_vault_delete': 'passed', 'typed_failures': failures,
             'operator_feedback': 'passed', 'cold_startup_failure': 'passed', 'detached_owner': 'passed',
             'model_roles_leases': 'passed', 'diagnostic_redaction': 'passed'}

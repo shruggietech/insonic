@@ -294,7 +294,7 @@ func decodeDiarization(raw []byte, durationUS int64) (DiarizationResult, error) 
 		return DiarizationResult{}, contracts.Fail("invalid_engine_output")
 	}
 	for _, turn := range output.Turns {
-		if turn.Label == "" || len(turn.Label) > 256 || strings.ContainsAny(turn.Label, "\r\n\x00") || turn.StartUS < 0 || turn.EndUS <= turn.StartUS || turn.EndUS > durationUS {
+		if !contracts.ValidTextLength(turn.Label, 1, 256) || strings.ContainsAny(turn.Label, "\r\n\x00") || turn.StartUS < 0 || turn.EndUS <= turn.StartUS || turn.EndUS > durationUS {
 			return DiarizationResult{}, contracts.Fail("invalid_engine_output")
 		}
 	}

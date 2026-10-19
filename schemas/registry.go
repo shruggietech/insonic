@@ -25,6 +25,7 @@ var processingToolsSchema *jsonschema.Schema
 var pipelineConfigurationSchema *jsonschema.Schema
 var mediaToolsSchema *jsonschema.Schema
 var graphQuerySchema *jsonschema.Schema
+var baseModelManifestSchema *jsonschema.Schema
 var compileErr error
 var historicalMu sync.Mutex
 var historicalSchemas = map[string]*jsonschema.Schema{}
@@ -32,17 +33,20 @@ var historicalSchemas = map[string]*jsonschema.Schema{}
 // validateDocument selects the declared, packaged immutable release contract.
 // Transport envelopes deliberately continue to use the current-only validators.
 func validateDocument(current *jsonschema.Schema, filename string, data []byte) error {
+	if err := contracts.ValidateJSON(data); err != nil {
+		return err
+	}
 	var header struct {
 		Version string `json:"schema_version"`
 	}
 	if json.Unmarshal(data, &header) != nil {
-		return errors.New("invalid document")
+		return contracts.InputFailure("input_shape", contracts.InputViolation{Expected: "object"})
 	}
 	if header.Version == "" || header.Version == contracts.Version {
 		return validate(current, data)
 	}
 	if !contracts.SupportedDocumentVersion(header.Version) {
-		return errors.New("unsupported document version")
+		return contracts.InputFailure("input_version", contracts.InputViolation{Pointer: "/schema_version"})
 	}
 	key := header.Version + "/" + filename
 	historicalMu.Lock()
@@ -135,6 +139,9 @@ func initialize() {
 			graphQuerySchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/graph-query.schema.json")
 		}
 		if compileErr == nil {
+			baseModelManifestSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/base-model-manifest.schema.json")
+		}
+		if compileErr == nil {
 			mediaToolsSchema, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/media-tools.schema.json")
 		}
 		if compileErr == nil {
@@ -166,6 +173,11 @@ func ValidateSpeakerDocument(data []byte) error {
 }
 
 func ValidateGraphQuery(data []byte) error { initialize(); return validate(graphQuerySchema, data) }
+
+func ValidateBaseModelManifest(data []byte) error {
+	initialize()
+	return validateDocument(baseModelManifestSchema, "base-model-manifest.schema.json", data)
+}
 func ValidateWorkspace(data []byte) error {
 	initialize()
 	return validateDocument(compiled, "workspace-config.schema.json", data)
@@ -206,11 +218,14 @@ func validate(schema *jsonschema.Schema, data []byte) error {
 	if compileErr != nil {
 		return compileErr
 	}
-	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(data))
-	if err != nil {
+	if err := contracts.ValidateJSON(data); err != nil {
 		return err
 	}
-	return schema.Validate(doc)
+	doc, err := jsonschema.UnmarshalJSON(bytes.NewReader(data))
+	if err != nil {
+		return inputError(err)
+	}
+	return inputError(schema.Validate(doc))
 }
 
 // QuerySchemaBytes expands the packaged bare QueryInput using local definitions.

@@ -11,6 +11,7 @@ import (
 	"github.com/shruggietech/insonic/internal/process"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -80,7 +81,8 @@ func TestExitObserverRejectsRuntimeReplacementWithoutRestart(t *testing.T) {
 
 // This checks the actual media/acquisition/IPC fixture without launching Wails.
 // It cannot satisfy the source/package native activation receipt.
-func TestExitOwnerFixtureReleasesWorkAfterClientCleanup(t *testing.T) {
+func prepareExitOwnerFixture(t *testing.T) {
+	t.Helper()
 	if os.Getenv("CUESON_EXECUTABLE") == "" {
 		t.Skip("native qualification companions not prepared")
 	}
@@ -92,9 +94,17 @@ func TestExitOwnerFixtureReleasesWorkAfterClientCleanup(t *testing.T) {
 	if os.Getenv("INSONIC_LIBRARY_TOOLS_FILE") == "" {
 		t.Setenv("INSONIC_LIBRARY_TOOLS_FILE", filepath.Join(root, "build", "native", "media-tools.json"))
 	}
+}
+
+func TestExitOwnerFixtureReleasesWorkAfterClientCleanup(t *testing.T) {
+	prepareExitOwnerFixture(t)
 	calls := 0
-	err = runExitQualificationWith(func(fixture exitFixture, _ string) (exitObservation, error) {
+	profiles := map[string]int{}
+	combinations := map[string]int{}
+	err := runExitQualificationWith(func(fixture exitFixture, config string) (exitObservation, error) {
 		calls++
+		profiles[config]++
+		combinations[fmt.Sprintf("%s:%t", fixture.Action, fixture.Workspace != "")]++
 		observation := exitObservation{Action: fixture.Action, NativeExit: "passed", Playback: "not-selected"}
 		if fixture.Workspace == "" {
 			return observation, nil
@@ -125,7 +135,16 @@ func TestExitOwnerFixtureReleasesWorkAfterClientCleanup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if calls < 3 {
+	if runtime.GOOS == "windows" {
+		if calls != 12 || len(profiles) != 6 || len(combinations) != 6 {
+			t.Fatalf("cold/warm native matrix incomplete: %d %v %v", calls, profiles, combinations)
+		}
+		for _, count := range profiles {
+			if count != 2 {
+				t.Fatal("profile was not reused exactly once after cold launch")
+			}
+		}
+	} else if calls != 3 {
 		t.Fatal("fixture cases were skipped")
 	}
 }
@@ -222,5 +241,48 @@ func TestExitChildOwnWatchdogIsReportedAsTimeout(t *testing.T) {
 	var evidence nativeExitFailure
 	if err == nil || json.Unmarshal(output.Bytes(), &evidence) != nil || !evidence.TimedOut || evidence.Cancelled || evidence.Stage != "watchdog-timeout" {
 		t.Fatalf("lost fixture timeout: %v %s", err, output.String())
+	}
+}
+
+func TestExitOwnerFailureRetainsItsProfileForDiagnosis(t *testing.T) {
+	prepareExitOwnerFixture(t)
+	var retained, marker string
+	failure := fmt.Errorf("synthetic native child failure")
+	err := runExitQualificationWith(func(_ exitFixture, config string) (exitObservation, error) {
+		retained = filepath.Dir(filepath.Dir(config))
+		t.Cleanup(func() { os.RemoveAll(retained) })
+		profile := filepath.Join(filepath.Dir(config), "webview")
+		if err := os.Mkdir(profile, 0700); err != nil {
+			return exitObservation{}, err
+		}
+		marker = filepath.Join(profile, "retained.txt")
+		if err := os.WriteFile(marker, []byte("owned failed profile"), 0600); err != nil {
+			return exitObservation{}, err
+		}
+		return exitObservation{}, failure
+	})
+	if err != failure {
+		t.Fatal("native failure was replaced", err)
+	}
+	if _, err := os.Stat(marker); err != nil {
+		t.Fatal("failed native profile was removed before observed release", err)
+	}
+	if _, err := os.Stat(filepath.Join(retained, ".insonic", "workspace.json")); err != nil {
+		t.Fatal("failed fixture authority was not retained", err)
+	}
+}
+
+func TestNativeMenuFailureRetainsCancellationAndReopenOrder(t *testing.T) {
+	for _, tail := range []string{"", "native-exit-stage=menu-open\n"} {
+		var out bytes.Buffer
+		_, err := interpretExitChild(exitFixture{Action: "menu"}, process.CaptureResult{ExitCode: 1, Stderr: []byte("native-exit-stage=menu-open\nnative-exit-stage=menu-cancel-restored\n" + tail)}, contracts.Fail("operation_failed"), nil, &out)
+		want := "menu-cancel-restored"
+		if tail != "" {
+			want = "menu-open"
+		}
+		var evidence nativeExitFailure
+		if err == nil || json.Unmarshal(out.Bytes(), &evidence) != nil || evidence.Stage != want {
+			t.Fatal("menu cycle checkpoint lost", out.String())
+		}
 	}
 }

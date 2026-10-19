@@ -37,7 +37,7 @@ func Build(raw []byte) (workspace.Config, error) {
 		return c, contracts.Fail("invalid_request")
 	}
 	c.Kind = "workspace-config"
-	if strings.TrimSpace(c.DisplayName) == "" || len(c.DisplayName) > 256 {
+	if strings.TrimSpace(c.DisplayName) == "" || !contracts.ValidTextLength(c.DisplayName, 1, 256) {
 		return c, contracts.Fail("invalid_request")
 	}
 	if c.WorkspaceID == "" {

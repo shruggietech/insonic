@@ -51,8 +51,8 @@ def write_json(path, value):
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + '\n', encoding='utf-8', newline='\n')
 
 
-def fetch_pin(pin):
-    cache = ROOT / 'build/media-source-pins'
+def fetch_pin(pin, *, cache=None):
+    cache = ROOT / 'build/media-source-pins' if cache is None else Path(cache)
     cache.mkdir(parents=True, exist_ok=True)
     target = cache / pin['name']
     if not target.is_file() or sha(target) != pin['sha256']:

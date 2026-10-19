@@ -432,7 +432,7 @@ func (a *App) DispatchContext(ctx context.Context, req contracts.Request) contra
 			result, err = a.artifactDispatch(req)
 		}
 	}
-	response.Result = result
+	response.Result = contracts.ObservedResult(result, err)
 	if err != nil {
 		var typed *contracts.Error
 		if errors.As(err, &typed) {

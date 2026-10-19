@@ -16,12 +16,18 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/windows"
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // This fixture has no workspace, runtime, provider or model configuration. Its
 // help document is subject to the production local-assets-only response policy.
 func qualifyHelpOnly() int {
+	profile, err := qualificationWebviewProfile()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
 	bridge := &desktop.Bridge{}
 	desktop.ConfigureHelpQualification(bridge)
 	var passed atomic.Bool
@@ -36,7 +42,7 @@ func qualifyHelpOnly() int {
 		}
 		wailsruntime.Quit(current)
 	}
-	err := wails.Run(&options.App{Title: "insonic", Width: 1200, Height: 800, MinWidth: 720, MinHeight: 600, StartHidden: true,
+	app := &options.App{Title: "insonic", Width: 1200, Height: 800, MinWidth: 720, MinHeight: 600, StartHidden: true,
 		OnStartup: func(ctx context.Context) {
 			current = ctx
 			go func() {
@@ -48,7 +54,14 @@ func qualifyHelpOnly() int {
 			}()
 		},
 		OnDomReady:  func(ctx context.Context) { wailsruntime.EventsEmit(ctx, "qualification") },
-		AssetServer: &assetserver.Options{Assets: desktop.Assets, Middleware: desktop.HelpAssetPolicy}, Bind: []any{bridge}})
+		AssetServer: &assetserver.Options{Assets: desktop.Assets, Middleware: desktop.HelpAssetPolicy}, Bind: []any{bridge}}
+	if profile != "" {
+		app.Windows = &windows.Options{WebviewUserDataPath: profile}
+	}
+	err = wails.Run(app)
+	if err == nil {
+		err = nativeWebviewCloseError()
+	}
 	if err != nil || !passed.Load() {
 		fmt.Fprintln(os.Stderr, "Installed help qualification failed.")
 		return 1

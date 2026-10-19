@@ -1,0 +1,1637 @@
+{
+  "state": "passed",
+  "executed": 168,
+  "elapsed_seconds": 55.812,
+  "ledger": [
+    {
+      "command": "artifacts abort",
+      "example": [
+        "artifacts",
+        "abort",
+        "PUBLICATION_UUID"
+      ],
+      "outcome": "conflict",
+      "scenario": "The publication is already committed."
+    },
+    {
+      "command": "artifacts cache-prune",
+      "example": [
+        "artifacts",
+        "cache-prune",
+        "PUBLICATION_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "artifacts lease-release",
+      "example": [
+        "artifacts",
+        "lease-release",
+        "PUBLICATION_UUID",
+        "REFERENCE_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "artifacts lease-renew",
+      "example": [
+        "artifacts",
+        "lease-renew",
+        "PUBLICATION_UUID",
+        "REFERENCE_UUID"
+      ],
+      "outcome": "conflict",
+      "scenario": "The returned materialization lease was released or expired."
+    },
+    {
+      "command": "artifacts materialize",
+      "example": [
+        "artifacts",
+        "materialize",
+        "PUBLICATION_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "artifacts publish",
+      "example": [
+        "artifacts",
+        "publish",
+        "FILE",
+        "derived"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "artifacts reconcile",
+      "example": [
+        "artifacts",
+        "reconcile",
+        "PUBLICATION_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "artifacts release-reference",
+      "example": [
+        "artifacts",
+        "release-reference",
+        "PUBLICATION_UUID",
+        "REFERENCE_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "artifacts retain",
+      "example": [
+        "artifacts",
+        "retain",
+        "PUBLICATION_UUID",
+        "REFERENCE_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "artifacts retire",
+      "example": [
+        "artifacts",
+        "retire",
+        "PUBLICATION_UUID"
+      ],
+      "outcome": "conflict",
+      "scenario": "A retained publication or active lease fences retirement."
+    },
+    {
+      "command": "artifacts show",
+      "example": [
+        "artifacts",
+        "show",
+        "PUBLICATION_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "artifacts verify",
+      "example": [
+        "artifacts",
+        "verify",
+        "PUBLICATION_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "backup create",
+      "example": [
+        "backup",
+        "create",
+        "DIRECTORY"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "backup restore",
+      "example": [
+        "backup",
+        "restore",
+        "DIRECTORY"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "backup show",
+      "example": [
+        "backup",
+        "show",
+        "DIRECTORY"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "backup verify",
+      "example": [
+        "backup",
+        "verify",
+        "DIRECTORY"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "catalog export",
+      "example": [
+        "catalog",
+        "export",
+        "FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "catalog migrate",
+      "example": [
+        "catalog",
+        "migrate"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "catalog restore",
+      "example": [
+        "catalog",
+        "restore",
+        "FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "catalog show",
+      "example": [
+        "catalog",
+        "show"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "credentials add",
+      "example": [
+        "credentials",
+        "add",
+        "UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "credentials load",
+      "example": [
+        "credentials",
+        "load"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "credentials replace",
+      "example": [
+        "credentials",
+        "replace",
+        "UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "credentials select",
+      "example": [
+        "credentials",
+        "select",
+        "session"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "credentials status",
+      "example": [
+        "credentials",
+        "status",
+        "UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "credentials unlock",
+      "example": [
+        "credentials",
+        "unlock"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "doctor",
+      "example": [
+        "doctor"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "evidence extract",
+      "example": [
+        "evidence",
+        "extract",
+        "MEDIA_UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "completed"
+    },
+    {
+      "command": "evidence show",
+      "example": [
+        "evidence",
+        "show",
+        "MEDIA_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "graph capabilities",
+      "example": [
+        "graph",
+        "capabilities"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "graph publish",
+      "example": [
+        "graph",
+        "publish"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "graph rebuild",
+      "example": [
+        "graph",
+        "rebuild"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "graph status",
+      "example": [
+        "graph",
+        "status"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "import-presets create",
+      "example": [
+        "import-presets",
+        "create",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "import-presets list",
+      "example": [
+        "import-presets",
+        "list"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "import-presets show",
+      "example": [
+        "import-presets",
+        "show",
+        "UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "import-presets update",
+      "example": [
+        "import-presets",
+        "update",
+        "UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "jobs cancel",
+      "example": [
+        "jobs",
+        "cancel",
+        "JOB_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "jobs history",
+      "example": [
+        "jobs",
+        "history",
+        "JOB_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "jobs retry",
+      "example": [
+        "jobs",
+        "retry",
+        "JOB_UUID"
+      ],
+      "outcome": "conflict",
+      "scenario": "A completed successful synthetic attempt is not retryable.",
+      "observed": {
+        "job_id": "0bc30e32-9753-4c00-a177-f16948ea4a28",
+        "claim_generation": 1,
+        "state": "succeeded"
+      }
+    },
+    {
+      "command": "jobs show",
+      "example": [
+        "jobs",
+        "show",
+        "JOB_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "jobs start",
+      "example": [
+        "jobs",
+        "start",
+        "1"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "media capture",
+      "example": [
+        "media",
+        "capture",
+        "MEDIA_UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "media import",
+      "example": [
+        "media",
+        "import",
+        "FILE",
+        "--no-pipeline"
+      ],
+      "outcome": "completed"
+    },
+    {
+      "command": "media list",
+      "example": [
+        "media",
+        "list"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "media metadata",
+      "example": [
+        "media",
+        "metadata",
+        "MEDIA_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "media playback",
+      "example": [
+        "media",
+        "playback",
+        "MEDIA_UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "media playback-check",
+      "example": [
+        "media",
+        "playback-check",
+        "MEDIA_UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "media playback-close",
+      "example": [
+        "media",
+        "playback-close",
+        "MEDIA_UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "media raw",
+      "example": [
+        "media",
+        "raw",
+        "MEDIA_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "media refresh",
+      "example": [
+        "media",
+        "refresh",
+        "MEDIA_UUID"
+      ],
+      "outcome": "completed"
+    },
+    {
+      "command": "media relocate",
+      "example": [
+        "media",
+        "relocate",
+        "MEDIA_UUID",
+        "FILE",
+        "--revision",
+        "CURRENT_REVISION"
+      ],
+      "outcome": "invalid_request",
+      "scenario": "Managed canonical audio has no relocatable legacy source.",
+      "observed": {
+        "mode": "copy",
+        "digest": "21cd5b219e3d16b353486d3f3c60c77630006443d4cfb50e65b598d8dd38462a",
+        "revision": 115
+      }
+    },
+    {
+      "command": "media set-origin",
+      "example": [
+        "media",
+        "set-origin",
+        "MEDIA_UUID",
+        "--originated-on",
+        "2026-10-04",
+        "--revision",
+        "CURRENT_REVISION"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "media show",
+      "example": [
+        "media",
+        "show",
+        "MEDIA_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "media tools",
+      "example": [
+        "media",
+        "tools",
+        "FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models acquire",
+      "example": [
+        "models",
+        "acquire",
+        "MANIFEST_FILE"
+      ],
+      "outcome": "completed"
+    },
+    {
+      "command": "models alias list",
+      "example": [
+        "models",
+        "alias",
+        "list"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models alias set",
+      "example": [
+        "models",
+        "alias",
+        "set",
+        "UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models alias show",
+      "example": [
+        "models",
+        "alias",
+        "show",
+        "UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models base acquire",
+      "example": [
+        "models",
+        "base",
+        "acquire",
+        "MANIFEST_FILE"
+      ],
+      "outcome": "completed"
+    },
+    {
+      "command": "models base download",
+      "example": [
+        "models",
+        "base",
+        "download",
+        "MANIFEST_FILE"
+      ],
+      "outcome": "completed"
+    },
+    {
+      "command": "models base list",
+      "example": [
+        "models",
+        "base",
+        "list"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models base materialize",
+      "example": [
+        "models",
+        "base",
+        "materialize",
+        "MODEL_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models base register",
+      "example": [
+        "models",
+        "base",
+        "register",
+        "MANIFEST_FILE"
+      ],
+      "outcome": "completed"
+    },
+    {
+      "command": "models base show",
+      "example": [
+        "models",
+        "base",
+        "show",
+        "MODEL_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models base verify",
+      "example": [
+        "models",
+        "base",
+        "verify",
+        "MODEL_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models dataset create",
+      "example": [
+        "models",
+        "dataset",
+        "create",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models dataset list",
+      "example": [
+        "models",
+        "dataset",
+        "list"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models dataset show",
+      "example": [
+        "models",
+        "dataset",
+        "show",
+        "UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models defaults",
+      "example": [
+        "models",
+        "defaults"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models discover",
+      "example": [
+        "models",
+        "discover",
+        "SOURCE_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models download",
+      "example": [
+        "models",
+        "download",
+        "MANIFEST_FILE"
+      ],
+      "outcome": "completed"
+    },
+    {
+      "command": "models list",
+      "example": [
+        "models",
+        "list"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models materialize",
+      "example": [
+        "models",
+        "materialize",
+        "MODEL_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models prepare",
+      "example": [
+        "models",
+        "prepare",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models profile set",
+      "example": [
+        "models",
+        "profile",
+        "set",
+        "SPEAKER_UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "not_found",
+      "scenario": "No compatible trained version exists in this fixture library."
+    },
+    {
+      "command": "models register",
+      "example": [
+        "models",
+        "register",
+        "MANIFEST_FILE"
+      ],
+      "outcome": "completed"
+    },
+    {
+      "command": "models resolve",
+      "example": [
+        "models",
+        "resolve",
+        "REFERENCE",
+        "--operation",
+        "transcription"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models show",
+      "example": [
+        "models",
+        "show",
+        "MODEL_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models source list",
+      "example": [
+        "models",
+        "source",
+        "list"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models source set",
+      "example": [
+        "models",
+        "source",
+        "set",
+        "UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models source show",
+      "example": [
+        "models",
+        "source",
+        "show",
+        "UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models speaker fetch",
+      "example": [
+        "models",
+        "speaker",
+        "fetch",
+        "VERSION_UUID",
+        "--destination",
+        "DIRECTORY"
+      ],
+      "outcome": "not_found",
+      "scenario": "No trained speaker output exists in this fixture library."
+    },
+    {
+      "command": "models speaker list",
+      "example": [
+        "models",
+        "speaker",
+        "list"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models speaker show",
+      "example": [
+        "models",
+        "speaker",
+        "show",
+        "UUID"
+      ],
+      "outcome": "not_found",
+      "scenario": "No trained speaker output exists in this fixture library."
+    },
+    {
+      "command": "models train",
+      "example": [
+        "models",
+        "train",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "conflict",
+      "scenario": "The selected fixture pipeline has no speaker-training stage."
+    },
+    {
+      "command": "models verify",
+      "example": [
+        "models",
+        "verify",
+        "MODEL_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "pipelines inspect",
+      "example": [
+        "pipelines",
+        "inspect",
+        "UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "pipelines list",
+      "example": [
+        "pipelines",
+        "list"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "pipelines set",
+      "example": [
+        "pipelines",
+        "set",
+        "UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "pipelines show",
+      "example": [
+        "pipelines",
+        "show",
+        "UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "processing readiness",
+      "example": [
+        "processing",
+        "readiness"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "processing tools",
+      "example": [
+        "processing",
+        "tools",
+        "FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "query assist",
+      "example": [
+        "query",
+        "assist",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "unavailable",
+      "scenario": "No query-assistance route has been elected."
+    },
+    {
+      "command": "query assistance-set",
+      "example": [
+        "query",
+        "assistance-set",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "query assistance-show",
+      "example": [
+        "query",
+        "assistance-show"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "query assistance-test",
+      "example": [
+        "query",
+        "assistance-test",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "conflict",
+      "scenario": "A current elected assistance route and settings revision are required."
+    },
+    {
+      "command": "query explain",
+      "example": [
+        "query",
+        "explain",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "query list",
+      "example": [
+        "query",
+        "list"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "query native",
+      "example": [
+        "query",
+        "native",
+        "--dialect",
+        "ladybug-cypher",
+        "--file",
+        "FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "query run",
+      "example": [
+        "query",
+        "run",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "query save",
+      "example": [
+        "query",
+        "save",
+        "QUERY_UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "query services",
+      "example": [
+        "query",
+        "services"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "query show",
+      "example": [
+        "query",
+        "show",
+        "QUERY_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "query validate",
+      "example": [
+        "query",
+        "validate",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "recordings assemble",
+      "example": [
+        "recordings",
+        "assemble",
+        "MEDIA_UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "recordings cues",
+      "example": [
+        "recordings",
+        "cues",
+        "MEDIA_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "recordings document",
+      "example": [
+        "recordings",
+        "document",
+        "MEDIA_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "recordings export",
+      "example": [
+        "recordings",
+        "export",
+        "MEDIA_UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "recordings map-speaker",
+      "example": [
+        "recordings",
+        "map-speaker",
+        "MEDIA_UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "recordings mappings",
+      "example": [
+        "recordings",
+        "mappings",
+        "MEDIA_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "recordings match",
+      "example": [
+        "recordings",
+        "match",
+        "MEDIA_UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "unsupported_capability",
+      "scenario": "No compatible voice-matching model/profile is configured."
+    },
+    {
+      "command": "recordings process",
+      "example": [
+        "recordings",
+        "process",
+        "MEDIA_UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "not_found",
+      "scenario": "No inference environment or selected compatible diarization model is configured."
+    },
+    {
+      "command": "recordings resolve-segment",
+      "example": [
+        "recordings",
+        "resolve-segment",
+        "MEDIA_UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "not_found",
+      "scenario": "No segment with the elected fixture UUID exists."
+    },
+    {
+      "command": "recordings roster add",
+      "example": [
+        "recordings",
+        "roster",
+        "add",
+        "MEDIA_UUID",
+        "--expected-revision",
+        "CURRENT_REVISION",
+        "--speaker",
+        "SPEAKER_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "recordings roster clear",
+      "example": [
+        "recordings",
+        "roster",
+        "clear",
+        "MEDIA_UUID",
+        "--expected-revision",
+        "CURRENT_REVISION"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "recordings roster replace",
+      "example": [
+        "recordings",
+        "roster",
+        "replace",
+        "MEDIA_UUID",
+        "--expected-revision",
+        "CURRENT_REVISION"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "recordings roster show",
+      "example": [
+        "recordings",
+        "roster",
+        "show",
+        "MEDIA_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "recordings show",
+      "example": [
+        "recordings",
+        "show",
+        "MEDIA_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "runtime serve",
+      "example": [
+        "runtime",
+        "serve"
+      ],
+      "outcome": "running-owner-observed"
+    },
+    {
+      "command": "search",
+      "example": [
+        "search",
+        "fixture"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "settings set",
+      "example": [
+        "settings",
+        "set",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "settings setup",
+      "example": [
+        "settings",
+        "setup"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "settings show",
+      "example": [
+        "settings",
+        "show"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "setup draft save",
+      "example": [
+        "setup",
+        "draft",
+        "save",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "setup draft show",
+      "example": [
+        "setup",
+        "draft",
+        "show"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "setup location",
+      "example": [
+        "setup",
+        "location",
+        "ABSOLUTE_DIRECTORY"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "setup provision",
+      "example": [
+        "setup",
+        "provision"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "setup readiness",
+      "example": [
+        "setup",
+        "readiness"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "setup save",
+      "example": [
+        "setup",
+        "save",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "setup show",
+      "example": [
+        "setup",
+        "show"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "speakers aliases",
+      "example": [
+        "speakers",
+        "aliases",
+        "UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "speakers diagnostics",
+      "example": [
+        "speakers",
+        "diagnostics",
+        "UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "speakers list",
+      "example": [
+        "speakers",
+        "list"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "speakers select",
+      "example": [
+        "speakers",
+        "select",
+        "UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "speakers set",
+      "example": [
+        "speakers",
+        "set",
+        "UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "speakers show",
+      "example": [
+        "speakers",
+        "show",
+        "UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "terms compile",
+      "example": [
+        "terms",
+        "compile"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "terms list",
+      "example": [
+        "terms",
+        "list"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "terms set",
+      "example": [
+        "terms",
+        "set",
+        "UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "terms show",
+      "example": [
+        "terms",
+        "show",
+        "UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "timeline calendar",
+      "example": [
+        "timeline",
+        "calendar"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "timeline recording",
+      "example": [
+        "timeline",
+        "recording",
+        "MEDIA_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "transcript import",
+      "example": [
+        "transcript",
+        "import",
+        "FILE",
+        "--record",
+        "MEDIA_UUID"
+      ],
+      "outcome": "completed"
+    },
+    {
+      "command": "version",
+      "example": [
+        "version"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "views save",
+      "example": [
+        "views",
+        "save",
+        "VIEW_UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "views show",
+      "example": [
+        "views",
+        "show",
+        "VIEW_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "work cancel",
+      "example": [
+        "work",
+        "cancel",
+        "WORK_UUID"
+      ],
+      "outcome": "conflict",
+      "scenario": "The accepted refresh already completed.",
+      "observed": "succeeded"
+    },
+    {
+      "command": "work list",
+      "example": [
+        "work",
+        "list"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "work results",
+      "example": [
+        "work",
+        "results",
+        "WORK_UUID"
+      ],
+      "outcome": "completed"
+    },
+    {
+      "command": "work retry",
+      "example": [
+        "work",
+        "retry",
+        "WORK_UUID"
+      ],
+      "outcome": "conflict",
+      "scenario": "Successful durable work is not retryable.",
+      "observed": "succeeded"
+    },
+    {
+      "command": "work show",
+      "example": [
+        "work",
+        "show",
+        "WORK_UUID"
+      ],
+      "outcome": "completed"
+    },
+    {
+      "command": "work wait",
+      "example": [
+        "work",
+        "wait",
+        "WORK_UUID"
+      ],
+      "outcome": "completed"
+    },
+    {
+      "command": "workers catalog",
+      "example": [
+        "workers",
+        "catalog"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "workers inspect",
+      "example": [
+        "workers",
+        "inspect",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "workers plan",
+      "example": [
+        "workers",
+        "plan",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "workers setup",
+      "example": [
+        "workers",
+        "setup",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "engine_unavailable",
+      "scenario": "The explicitly elected offline asset directory contains no runtime/wheels."
+    },
+    {
+      "command": "workspace init",
+      "example": [
+        "workspace",
+        "init",
+        "DIRECTORY"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "workspace plan",
+      "example": [
+        "workspace",
+        "plan",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "workspace preflight",
+      "example": [
+        "workspace",
+        "preflight",
+        "DIRECTORY",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "workspace provision",
+      "example": [
+        "workspace",
+        "provision",
+        "DIRECTORY",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "workspace show",
+      "example": [
+        "workspace",
+        "show"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "credentials delete",
+      "example": [
+        "credentials",
+        "delete",
+        "UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "import-presets delete",
+      "example": [
+        "import-presets",
+        "delete",
+        "UUID",
+        "--input",
+        "INPUT_FILE"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models alias remove",
+      "example": [
+        "models",
+        "alias",
+        "remove",
+        "UUID",
+        "--expected-revision",
+        "CURRENT_REVISION"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "models source remove",
+      "example": [
+        "models",
+        "source",
+        "remove",
+        "UUID",
+        "--expected-revision",
+        "CURRENT_REVISION"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "recordings roster remove",
+      "example": [
+        "recordings",
+        "roster",
+        "remove",
+        "MEDIA_UUID",
+        "--expected-revision",
+        "CURRENT_REVISION",
+        "--speaker",
+        "SPEAKER_UUID"
+      ],
+      "outcome": "succeeded"
+    },
+    {
+      "command": "backup release",
+      "example": [
+        "backup",
+        "release",
+        "DIRECTORY"
+      ],
+      "outcome": "succeeded"
+    }
+  ]
+}

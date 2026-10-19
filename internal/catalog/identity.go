@@ -13,11 +13,10 @@ import (
 	"sort"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 )
 
 func identityText(text string, max int) bool {
-	return strings.TrimSpace(text) != "" && len(text) <= max && utf8.ValidString(text) && strings.IndexFunc(text, unicode.IsControl) < 0
+	return strings.TrimSpace(text) != "" && contracts.ValidTextLength(text, 1, max) && strings.IndexFunc(text, unicode.IsControl) < 0
 }
 func identityState(state string) bool        { return state == "active" || state == "inactive" }
 func optionalText(text string, max int) bool { return text == "" || identityText(text, max) }
@@ -296,7 +295,7 @@ func (s *Store) identityCAS(ctx context.Context, tx *sql.Tx, table, id string, e
 		return e
 	}
 	if e == sql.ErrNoRows || revision != expected {
-		return contracts.Fail("conflict")
+		return contracts.Condition("conflict", "revision_stale")
 	}
 	return nil
 }

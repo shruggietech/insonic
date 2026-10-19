@@ -1,0 +1,565 @@
+{
+  "commands": {
+    "version": "Print the installed software and contract version.",
+    "doctor": "Inspect local runtime, catalog, storage and graph prerequisites.",
+    "search": "Search indexed recording text and relationships using a normalized query.",
+    "workspace init": "Create a fresh library using local filesystem, SQLite and LadybugDB defaults.",
+    "workspace plan": "Normalize explicit nonsecret backend selections without creating a library.",
+    "workspace preflight": "Probe an elected backend plan without provisioning its target directory.",
+    "workspace provision": "Create a fresh library from a backend plan and reconcile an immutable retry.",
+    "workspace show": "Read the selected library configuration and current runtime identity.",
+    "runtime serve": "Host the shared noninteractive runtime for local clients.",
+    "credentials select": "Select the native, encrypted vault or runtime-session credential backend.",
+    "credentials add": "Store a new credential without replacing an existing identity.",
+    "credentials replace": "Replace the value of an existing credential.",
+    "credentials delete": "Delete an existing credential from the selected backend.",
+    "credentials status": "Inspect stored and unlocked state without revealing a credential value.",
+    "credentials unlock": "Unlock an encrypted vault for the current runtime owner.",
+    "credentials load": "Load protected vault or session credentials for the current runtime owner.",
+    "catalog show": "Read the catalog identity, schema and revision state.",
+    "catalog migrate": "Migrate an existing catalog under exclusive library ownership.",
+    "catalog export": "Write a portable catalog snapshot to a new file.",
+    "catalog restore": "Restore a portable catalog snapshot under exclusive ownership.",
+    "jobs start": "Start a cancellable synthetic job for a duration in milliseconds.",
+    "jobs show": "Read a durable job and its current attempt.",
+    "jobs history": "Read job attempt generations after an optional generation number.",
+    "jobs cancel": "Request cancellation of a durable job.",
+    "jobs retry": "Retry an eligible failed or cancelled job.",
+    "artifacts publish": "Publish immutable file bytes through the selected artifact store.",
+    "artifacts show": "Read an artifact publication receipt and lifecycle state.",
+    "artifacts verify": "Verify the stored bytes against the immutable publication receipt.",
+    "artifacts materialize": "Acquire a local materialization and its returned lease identity.",
+    "artifacts reconcile": "Resume or reconcile an interrupted publication.",
+    "artifacts abort": "Abort an incomplete publication.",
+    "artifacts retire": "Retire a publication after its references and leases allow it.",
+    "artifacts cache-prune": "Prune an eligible local cached materialization.",
+    "artifacts lease-renew": "Renew the returned materialization lease.",
+    "artifacts lease-release": "Release the returned materialization lease.",
+    "artifacts retain": "Add an explicit caller-owned publication reference.",
+    "artifacts release-reference": "Remove an explicit caller-owned publication reference.",
+    "backup create": "Create a portable backup and retain its referenced publications.",
+    "backup show": "Inspect a backup directory without opening its catalog.",
+    "backup verify": "Verify a backup directory and its referenced bytes.",
+    "backup restore": "Restore a backup directory into the selected compatible library.",
+    "backup release": "Release a backup retention reference using its directory or backup identity.",
+    "pipelines list": "List configured processing pipelines.",
+    "pipelines show": "Read one processing pipeline and its revision.",
+    "pipelines set": "Create or update a revision-checked processing pipeline.",
+    "pipelines inspect": "Inspect a pipeline against current recording and processing prerequisites.",
+    "speakers list": "List library-wide speaker identities.",
+    "speakers show": "Read a speaker identity and revision.",
+    "speakers set": "Create or update a revision-checked speaker identity.",
+    "speakers aliases": "Read the aliases belonging to one speaker.",
+    "speakers select": "Select timed speaker audio evidence from across the library.",
+    "speakers diagnostics": "Inspect available speaker evidence and matching diagnostics.",
+    "terms list": "List controlled vocabulary terms.",
+    "terms show": "Read a controlled vocabulary term and revision.",
+    "terms set": "Create or update a revision-checked controlled vocabulary term.",
+    "terms compile": "Compile the selected vocabulary into its runtime representation.",
+    "import-presets create": "Create a reusable import policy with a unique identity and name.",
+    "import-presets list": "List reusable import presets.",
+    "import-presets show": "Read a preset by UUID or exact saved name.",
+    "import-presets update": "Update a preset using its current revision.",
+    "import-presets delete": "Delete a preset using its current revision.",
+    "setup location": "Preview an absolute library directory without creating it.",
+    "setup provision": "Provision the saved pre-library draft and its selected credential backend.",
+    "setup show": "Read the optional setup journey and command-line next actions.",
+    "setup save": "Save optional setup progress with the current revision and observation proofs.",
+    "setup readiness": "Probe current task prerequisites independently of saved setup progress.",
+    "setup draft show": "Read the private pre-library setup draft.",
+    "setup draft save": "Save an absolute target and backend plan before library creation.",
+    "settings setup": "Reopen the optional setup journey for the selected library.",
+    "settings show": "Read settings sections, values and revision tokens.",
+    "settings set": "Save a settings section using its exact current revision token.",
+    "media tools": "Import a pinned media-tools JSON configuration effective on the next operation.",
+    "media import": "Admit source media or a manifest and enqueue the elected processing.",
+    "media list": "List accepted media entries using recording identities.",
+    "media show": "Read the current media authority and revision.",
+    "media metadata": "Read the captured source metadata summary.",
+    "media raw": "Read original captured metadata observations.",
+    "media refresh": "Refresh captured observations and elected processing for accepted media.",
+    "media set-origin": "Correct recording date provenance with an explicit current revision.",
+    "media relocate": "Change a legacy referenced source location with its current revision.",
+    "media capture": "Read a bounded metadata, facts or dates byte page.",
+    "media playback": "Acquire a bounded playback descriptor and lease.",
+    "media playback-check": "Check whether a playback descriptor still names current bytes.",
+    "media playback-close": "Release an acquired playback descriptor and lease.",
+    "processing tools": "Import a pinned processing-tools JSON configuration effective on the next operation.",
+    "processing readiness": "Probe elected processing prerequisites without starting inference.",
+    "workers catalog": "List the bundled worker environment recipes.",
+    "workers inspect": "Inspect a worker environment against its exact recipe.",
+    "workers plan": "Plan an elected worker environment without creating it.",
+    "workers setup": "Create an explicitly elected pinned worker environment as durable work.",
+    "transcript import": "Attach one transcript or a per-item transcript manifest to existing recordings.",
+    "recordings show": "Read recording authority, transcript identity and attribution state.",
+    "recordings document": "Read a bounded page of the current transcript document.",
+    "recordings mappings": "List speaker-mapping rows using their returned row UUID cursor.",
+    "recordings process": "Enqueue elected recording processing through its selected pipeline.",
+    "recordings assemble": "Assemble the current recording transcript and speaker attribution.",
+    "recordings map-speaker": "Correct one native/local speaker mapping using current authority.",
+    "recordings match": "Elect voice matching against configured speaker profiles.",
+    "recordings export": "Export the selected recording transcript to a new destination.",
+    "recordings resolve-segment": "Resolve a current cue or speaker segment into timed media.",
+    "recordings cues": "Read current transcript cues after a returned cue identity.",
+    "recordings roster show": "Read the recording known-speaker roster and revision.",
+    "recordings roster add": "Add repeatable known speakers to a revision-checked roster.",
+    "recordings roster remove": "Remove repeatable known speakers from a revision-checked roster.",
+    "recordings roster replace": "Replace the known-speaker roster with the elected speaker list.",
+    "recordings roster clear": "Clear the known-speaker roster using its current revision.",
+    "work list": "List durable work acceptance and completion states.",
+    "work show": "Read one durable work item and its current state.",
+    "work results": "Read durable work results after a returned numeric ordinal.",
+    "work wait": "Wait for durable work completion for a bounded interval.",
+    "work cancel": "Request cancellation of durable work.",
+    "work retry": "Retry eligible failed or cancelled durable work.",
+    "models register": "Register immutable base-model identity and manifest as durable work.",
+    "models acquire": "Acquire and verify an immutable model manifest as durable work.",
+    "models download": "Acquire and verify an immutable model manifest (alias of acquire).",
+    "models list": "List registered base-model identities and readiness.",
+    "models show": "Read a registered model and immutable manifest.",
+    "models verify": "Verify acquired model files and current readiness.",
+    "models materialize": "Materialize acquired model files and return explicit leases.",
+    "models base register": "Register immutable base-model identity and manifest as durable work.",
+    "models base acquire": "Acquire and verify an immutable model manifest as durable work.",
+    "models base download": "Acquire and verify an immutable model manifest (alias of acquire).",
+    "models base list": "List registered base-model identities and readiness.",
+    "models base show": "Read a registered model and immutable manifest.",
+    "models base verify": "Verify acquired model files and current readiness.",
+    "models base materialize": "Materialize acquired model files and return explicit leases.",
+    "models defaults": "Read default model selections without starting acquisition.",
+    "models prepare": "Enqueue an elected model preparation plan.",
+    "models resolve": "Resolve a model UUID, immutable name/version or alias for an operation.",
+    "models discover": "Read a configured model source catalog without adopting a new route.",
+    "models train": "Enqueue optional speaker-associated model training against an immutable dataset.",
+    "models alias list": "List configured model alias records and revisions.",
+    "models alias show": "Read one configured model alias record.",
+    "models alias set": "Create or update a model alias with an explicit expected revision.",
+    "models alias remove": "Remove an existing model alias using its positive current revision.",
+    "models source list": "List configured model source records and revisions.",
+    "models source show": "Read one configured model source record.",
+    "models source set": "Create or update a model source with an explicit expected revision.",
+    "models source remove": "Remove an existing model source using its positive current revision.",
+    "models dataset list": "List immutable training datasets with an optional JSON cursor.",
+    "models dataset show": "Read one immutable training dataset.",
+    "models speaker list": "List speaker-associated model versions with an optional JSON cursor.",
+    "models speaker show": "Read one speaker-associated model version.",
+    "models dataset create": "Capture a new immutable speaker training dataset from elected evidence.",
+    "models speaker fetch": "Fetch verified speaker-model bytes to a new elected directory.",
+    "models profile set": "Select a compatible speaker-model version using the current profile revision.",
+    "graph capabilities": "Read the selected graph backend query capabilities.",
+    "graph status": "Read graph publication revisions and pending state.",
+    "graph publish": "Publish current catalog evidence to the selected graph backend.",
+    "graph rebuild": "Rebuild derived graph evidence from retained catalog authority.",
+    "evidence extract": "Extract retained evidence for one recording using elected limits.",
+    "evidence show": "Read retained evidence for one recording.",
+    "query services": "Inspect candidate query-assistance services without adopting routes or loading models.",
+    "query assistance-test": "Run an elected synthetic query-assistance task for exact saved settings.",
+    "query assist": "Request a normalized query suggestion using the selected assistance route.",
+    "query assistance-show": "Read selected query-assistance settings and revision.",
+    "query assistance-set": "Save query-assistance settings with their current revision.",
+    "query run": "Execute an explicit normalized/native definition or saved query.",
+    "query explain": "Explain an explicit definition or saved query without mutation.",
+    "query list": "List saved query identities.",
+    "query show": "Read one saved query and revision.",
+    "query save": "Create or update a saved query with its current revision.",
+    "query validate": "Validate a query definition without executing it.",
+    "query native": "Execute a read-only native query file in the selected backend dialect.",
+    "timeline calendar": "Read recording dates grouped by an elected timezone and filter.",
+    "timeline recording": "Read the evidence timeline of one recording.",
+    "views show": "Read one saved view and revision.",
+    "views save": "Create or update a revision-checked saved view."
+  },
+  "groups": {
+    "": "Choose a library, admit media, process recordings and inspect retained evidence.",
+    "workspace": "Plan, create and inspect libraries and their backend selections.",
+    "runtime": "Manage the shared local runtime host.",
+    "credentials": "Select credential storage and manage protected values.",
+    "catalog": "Inspect and maintain the portable catalog.",
+    "jobs": "Inspect and control durable synthetic jobs.",
+    "artifacts": "Publish, verify and manage immutable bytes, references and leases.",
+    "backup": "Create, inspect, verify, restore and release portable backups.",
+    "pipelines": "Configure and inspect revision-aware processing pipelines.",
+    "speakers": "Manage library-wide speaker identities and timed audio evidence.",
+    "terms": "Manage and compile controlled vocabulary.",
+    "import-presets": "Manage reusable import selections and destinations.",
+    "setup": "Preview or save optional setup choices and inspect current readiness.",
+    "setup draft": "Save private pre-library location and backend choices.",
+    "settings": "Inspect and change revision-checked settings.",
+    "media": "Admit media and inspect retained source/canonical authority.",
+    "processing": "Configure processing tools and inspect task readiness.",
+    "workers": "Inspect and prepare explicitly elected pinned worker environments.",
+    "transcript": "Attach transcript sources to existing recording identities.",
+    "recordings": "Inspect and process current recording transcripts and speaker evidence.",
+    "recordings roster": "Read or correct the known-speaker roster.",
+    "work": "Inspect, wait for and control durable accepted operations.",
+    "models": "Prepare and inspect base models and optional speaker-associated models.",
+    "models base": "Manage immutable base-model manifests and acquisition.",
+    "models alias": "Manage readable revision-checked base-model references.",
+    "models source": "Manage elected model catalog sources.",
+    "models dataset": "Capture and inspect immutable speaker training datasets.",
+    "models speaker": "Inspect and fetch speaker-associated model versions.",
+    "models profile": "Select current compatible speaker-model profiles.",
+    "graph": "Inspect and publish derived graph evidence.",
+    "evidence": "Extract and inspect retained recording evidence.",
+    "query": "Validate, save, explain and execute read-only queries.",
+    "timeline": "Explore retained recording dates and timed evidence.",
+    "views": "Read and save revision-checked query views."
+  },
+  "options": {
+    "--workspace": {
+      "meaning": "Select the library directory; relative paths resolve from the process working directory.",
+      "default": "discover from the working directory unless supplied",
+      "conditions": "global; not required by pre-library operations"
+    },
+    "--request-id": {
+      "meaning": "Correlation UUID; preserve it with immutable input to reconcile an unknown mutation outcome.",
+      "default": "fresh UUID per invocation",
+      "conditions": "global"
+    },
+    "--startup-id": {
+      "meaning": "Internal runtime-start correlation UUID.",
+      "default": "unset",
+      "conditions": "runtime serve only"
+    },
+    "--json": {
+      "meaning": "Emit the complete versioned response envelope.",
+      "default": "human output",
+      "conditions": "global; success stdout, failure stderr"
+    },
+    "--verbose": {
+      "meaning": "Add request and library identifiers to human output.",
+      "default": "off",
+      "conditions": "excludes --quiet"
+    },
+    "--debug": {
+      "meaning": "Add generated diagnostic progress detail.",
+      "default": "off",
+      "conditions": "excludes --quiet"
+    },
+    "--quiet": {
+      "meaning": "Suppress informational human output and progress; preserve warnings and errors.",
+      "default": "off",
+      "conditions": "excludes --verbose and --debug"
+    },
+    "--log-level": {
+      "meaning": "Select generated diagnostic severity.",
+      "default": "info; debug with --debug",
+      "conditions": "error|warn|info|debug"
+    },
+    "--log-file": {
+      "meaning": "Elect private rotating JSONL diagnostics, at most 1 MiB and two predecessors.",
+      "default": "no file logging",
+      "conditions": "parent directory must exist; excludes private input values"
+    },
+    "--help": {
+      "meaning": "Describe this command without reading input, discovering a library or starting work.",
+      "default": "off",
+      "conditions": "global; -- ends help recognition"
+    },
+    "-h": {
+      "meaning": "Describe this command before performing work.",
+      "default": "off",
+      "conditions": "alias of --help"
+    },
+    "--version": {
+      "meaning": "Print the software and contract version.",
+      "default": "off",
+      "conditions": "alias of version"
+    },
+    "--input": {
+      "meaning": "Read a complete JSON document from a file, without a runtime-request envelope.",
+      "default": "operation-specific empty/default input when optional",
+      "conditions": "never inline JSON; see the template and complete input contract"
+    },
+    "--manifest": {
+      "meaning": "Read per-item media/transcript selections from a JSON or CSV manifest.",
+      "default": "positional source input",
+      "conditions": "transcript batch excludes a positional transcript, --record and --legacy-sidecar"
+    },
+    "--title": {
+      "meaning": "Set the admitted recording display title.",
+      "default": "derived from source metadata/name",
+      "conditions": "one title per invocation; per-item manifest titles can differ"
+    },
+    "--record": {
+      "meaning": "Select an existing recording by UUID or exact title for transcript attachment.",
+      "default": "new media admission for media import",
+      "conditions": "required for single transcript import; excludes transcript --manifest"
+    },
+    "--transcript": {
+      "meaning": "Attach the elected transcript source path or URL.",
+      "default": "no external transcript",
+      "conditions": "alias --subtitle; mutually exclusive with --subtitle"
+    },
+    "--subtitle": {
+      "meaning": "Attach the elected transcript source path or URL.",
+      "default": "no external transcript",
+      "conditions": "alias --transcript; mutually exclusive with --transcript"
+    },
+    "--credential-id": {
+      "meaning": "Use the selected source-acquisition credential UUID without placing its value in arguments.",
+      "default": "no credential",
+      "conditions": "must exist in the selected credential backend"
+    },
+    "--acquisition-adapter": {
+      "meaning": "Choose the configured acquisition adapter identity.",
+      "default": "direct HTTP acquisition for a URL",
+      "conditions": "applies to remote media acquisition"
+    },
+    "--acquisition-max-bytes": {
+      "meaning": "Bound remote source acquisition in bytes.",
+      "default": "68719476736 bytes (64 GiB), unless overridden by the elected policy",
+      "conditions": "positive byte count; applies to remote media"
+    },
+    "--acquisition-timeout-ms": {
+      "meaning": "Bound source acquisition in milliseconds.",
+      "default": "600000 milliseconds (10 minutes), unless overridden by the elected policy",
+      "conditions": "positive duration; applies to remote media"
+    },
+    "--originated-at": {
+      "meaning": "Record an owner-provided RFC3339 instant, preserving explicit provenance.",
+      "default": "metadata/date precedence policy",
+      "conditions": "excludes --originated-on and date bounds"
+    },
+    "--originated-on": {
+      "meaning": "Record an owner-provided YYYY-MM-DD calendar date without inventing a time.",
+      "default": "metadata/date precedence policy",
+      "conditions": "excludes --originated-at and date bounds"
+    },
+    "--originated-earliest": {
+      "meaning": "Set the earliest RFC3339 instant of an uncertain date range.",
+      "default": "open lower bound",
+      "conditions": "excludes exact/date-only forms; must not follow latest bound"
+    },
+    "--originated-latest": {
+      "meaning": "Set the latest RFC3339 instant of an uncertain date range.",
+      "default": "open upper bound",
+      "conditions": "excludes exact/date-only forms; must not precede earliest bound"
+    },
+    "--timezone": {
+      "meaning": "Interpret local recording dates in an IANA zone, local zone or explicit offset.",
+      "default": "selected policy or source zone",
+      "conditions": "use local, UTC, America/New_York or +02:00; ambiguity needs an explicit fold/gap policy"
+    },
+    "--dst-fold": {
+      "meaning": "Select the earlier or later instant in a repeated local clock interval.",
+      "default": "no ambiguity assumption",
+      "conditions": "applies only to an ambiguous local timestamp"
+    },
+    "--dst-gap": {
+      "meaning": "Shift a nonexistent local clock time forward by the gap.",
+      "default": "no gap assumption",
+      "conditions": "applies only to a nonexistent local timestamp"
+    },
+    "--date-precedence": {
+      "meaning": "Choose which retained date observations establish recording authority.",
+      "default": "owner-first",
+      "conditions": "owner, embedded and filesystem observations retain their provenance"
+    },
+    "--preset": {
+      "meaning": "Apply an import preset by UUID or exact saved name.",
+      "default": "configured default preset, otherwise explicit options",
+      "conditions": "CLI values override per-item values, which override manifest defaults and preset choices"
+    },
+    "--pipeline-id": {
+      "meaning": "Elect a saved processing pipeline UUID after admission.",
+      "default": "preset or library policy",
+      "conditions": "excludes --no-pipeline"
+    },
+    "--no-pipeline": {
+      "meaning": "Admit media without enqueuing a processing pipeline.",
+      "default": "preset or library policy",
+      "conditions": "excludes --pipeline-id"
+    },
+    "--destination-profile": {
+      "meaning": "Elect a configured canonical-storage destination profile UUID.",
+      "default": "selected preset/library storage",
+      "conditions": "the configured route is reused without repeated review"
+    },
+    "--attribution": {
+      "meaning": "Choose native attribution, diarization, automatic selection or off.",
+      "default": "auto",
+      "conditions": "diarize requires an elected diarization route/model"
+    },
+    "--transcript-format": {
+      "meaning": "Declare the external transcript format when it cannot be inferred.",
+      "default": "infer from source format",
+      "conditions": "cueson|srt|vtt|ass|ssa"
+    },
+    "--transcript-credential-id": {
+      "meaning": "Use a selected credential UUID for transcript acquisition.",
+      "default": "no credential",
+      "conditions": "credential values remain in the credential backend"
+    },
+    "--transcript-adapter": {
+      "meaning": "Choose the configured transcript acquisition adapter.",
+      "default": "direct source acquisition",
+      "conditions": "applies to remote transcript input"
+    },
+    "--transcript-max-bytes": {
+      "meaning": "Bound acquired transcript bytes.",
+      "default": "16777216 bytes",
+      "conditions": "positive byte count, at most 16 MiB"
+    },
+    "--transcript-timeout-ms": {
+      "meaning": "Bound transcript acquisition in milliseconds.",
+      "default": "120000 milliseconds (2 minutes), unless overridden by the elected policy",
+      "conditions": "1..600000 milliseconds"
+    },
+    "--subtitle-stream-index": {
+      "meaning": "Select an embedded subtitle stream by zero-based index.",
+      "default": "automatic compatible stream selection",
+      "conditions": "0 is an explicit selection; applies to embedded subtitles"
+    },
+    "--subtitle-language": {
+      "meaning": "Select an embedded subtitle language tag.",
+      "default": "automatic compatible stream selection",
+      "conditions": "use the source stream language; explicit stream index takes the exact stream"
+    },
+    "--diarization-model-id": {
+      "meaning": "Elect the diarization model reference.",
+      "default": "selected pipeline/default model",
+      "conditions": "required when no compatible diarization default is configured"
+    },
+    "--known-speaker": {
+      "meaning": "Add a known-speaker UUID to the elected recording roster.",
+      "default": "retain configured/current roster policy",
+      "conditions": "repeatable; each value is a library speaker identity"
+    },
+    "--existing-transcript": {
+      "meaning": "Retain, clear or replace the current transcript during audio replacement.",
+      "default": "keep",
+      "conditions": "replacement requires the elected transcript and applicability decision"
+    },
+    "--existing-roster": {
+      "meaning": "Retain or clear the current known-speaker roster during audio replacement.",
+      "default": "retain",
+      "conditions": "applies to an existing recording"
+    },
+    "--revision": {
+      "meaning": "Select the exact current revision or saved-query revision.",
+      "default": "current authority for reads",
+      "conditions": "required by revision-checked media changes; positive integer"
+    },
+    "--after": {
+      "meaning": "Continue after the preceding page cursor.",
+      "default": "initial page",
+      "conditions": "reuse unchanged filters; UUID for media/work/base-model lists, opaque cursor for search"
+    },
+    "--after-ordinal": {
+      "meaning": "Continue work results after the returned numeric result ordinal.",
+      "default": "initial page (ordinal 0)",
+      "conditions": "nonnegative integer; use this option rather than --after"
+    },
+    "--limit": {
+      "meaning": "Bound the number of returned page items.",
+      "default": "100 items",
+      "conditions": "1..100 items; search accepts up to 500"
+    },
+    "--speaker": {
+      "meaning": "Filter by a library speaker UUID, or elect roster members.",
+      "default": "no speaker filter/members",
+      "conditions": "repeatable only for recording roster mutations"
+    },
+    "--media": {
+      "meaning": "Filter results by a recording/media UUID.",
+      "default": "all eligible media",
+      "conditions": "library recording identity, not a source file path"
+    },
+    "--dialect": {
+      "meaning": "Select the exact backend-native read-only query dialect.",
+      "default": "none; required",
+      "conditions": "ladybug-cypher|arcade-opencypher|arcade-sql; match the selected graph backend"
+    },
+    "--file": {
+      "meaning": "Read the native query statement from a UTF-8 file.",
+      "default": "none; required",
+      "conditions": "one supported read statement; relative path resolves from the working directory"
+    },
+    "--parameters": {
+      "meaning": "Read typed native query parameters from a JSON file.",
+      "default": "empty parameter map",
+      "conditions": "unique object members; exact integers are preserved"
+    },
+    "--saved": {
+      "meaning": "Execute a saved query UUID.",
+      "default": "explicit --input definition",
+      "conditions": "excludes --input; optional --revision selects the saved revision"
+    },
+    "--operation": {
+      "meaning": "Resolve a model for the elected operation.",
+      "default": "none; required",
+      "conditions": "transcription|diarization|voice-matching|speaker-model-training"
+    },
+    "--expected-revision": {
+      "meaning": "Apply a change against the observed current revision.",
+      "default": "none; required when accepted",
+      "conditions": "0 creates an absent record only where supported; deletion requires a positive current revision"
+    },
+    "--destination": {
+      "meaning": "Write fetched speaker-model bytes to a new elected directory.",
+      "default": "none; required",
+      "conditions": "destination must not overwrite existing bytes"
+    },
+    "--mode": {
+      "meaning": "Choose a self-contained or reference-only backup.",
+      "default": "self-contained",
+      "conditions": "reference-only retains source store dependencies"
+    },
+    "--credential-backend": {
+      "meaning": "Select the credential provider for new provisioning.",
+      "default": "saved setup draft choice, otherwise native",
+      "conditions": "native|vault|session; immutable retries reuse the same selection"
+    },
+    "--timeout-ms": {
+      "meaning": "Wait for completion for this many milliseconds.",
+      "default": "30000 milliseconds",
+      "conditions": "timeout leaves work running; inspect, wait again or cancel"
+    },
+    "--copy": {
+      "meaning": "Admit canonical bytes using managed storage.",
+      "default": "managed canonical admission",
+      "conditions": "excludes --reference; source inputs remain immutable"
+    },
+    "--reference": {
+      "meaning": "Request legacy reference behavior.",
+      "default": "managed canonical admission",
+      "conditions": "excludes --copy; new admission requires managed canonical audio and does not retain original paths as authority"
+    },
+    "--local-http": {
+      "meaning": "Explicitly allow the elected loopback HTTP fixture/service source.",
+      "default": "HTTPS for remote sources",
+      "conditions": "does not elect an unconfigured external route"
+    },
+    "--new-entry": {
+      "meaning": "Create a distinct recording even when source identity matches an existing entry.",
+      "default": "deduplicate by source identity",
+      "conditions": "intentional new library identity"
+    },
+    "--replace-audio": {
+      "meaning": "Replace accepted audio after verifying the new canonical authority.",
+      "default": "no audio replacement",
+      "conditions": "requires an existing recording target and preserves accepted authority until commit"
+    },
+    "--transcript-applies": {
+      "meaning": "Confirm that the retained/elected transcript applies to replacement audio.",
+      "default": "no applicability assumption",
+      "conditions": "used with audio replacement and transcript-retention policy"
+    },
+    "--replace-transcript": {
+      "meaning": "Replace the existing accepted transcript with the elected input.",
+      "default": "preserve existing transcript",
+      "conditions": "requires an existing recording and new transcript input"
+    },
+    "--legacy-sidecar": {
+      "meaning": "Read a supported historical sidecar for an existing recording.",
+      "default": "explicit transcript source",
+      "conditions": "requires --record; excludes a positional transcript and --manifest"
+    },
+    "--secret-input": {
+      "meaning": "Read a bounded protected credential object from stdin.",
+      "default": "no protected input read",
+      "conditions": "required when the elected backend plan needs secrets; never put secret values in arguments"
+    }
+  }
+}

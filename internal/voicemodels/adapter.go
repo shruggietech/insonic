@@ -17,7 +17,6 @@ import (
 	"strings"
 	"time"
 	"unicode"
-	"unicode/utf8"
 
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
@@ -29,7 +28,7 @@ import (
 var digestPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
 
 func text(v string, n int) bool {
-	return v != "" && len(v) <= n && utf8.ValidString(v) && v == strings.TrimSpace(v) && !strings.ContainsFunc(v, unicode.IsControl)
+	return contracts.ValidTextLength(v, 1, n) && v == strings.TrimSpace(v) && !strings.ContainsFunc(v, unicode.IsControl)
 }
 func normalizeLimits(v Limits) (Limits, error) {
 	if v.MaxInputBytes == 0 {
@@ -47,7 +46,7 @@ func normalizeLimits(v Limits) (Limits, error) {
 	return v, nil
 }
 func ValidateAdapter(a Adapter) error {
-	if a.ContractVersion != "1" || !text(a.Architecture, 128) || len(a.OutputKinds) == 0 || len(a.OutputKinds) > 32 || len(a.Consumers) > 32 || len(a.Arguments) > 32 || len(a.SupportFiles) > 64 || len(a.License) > 1024 {
+	if a.ContractVersion != "1" || !text(a.Architecture, 128) || len(a.OutputKinds) == 0 || len(a.OutputKinds) > 32 || len(a.Consumers) > 32 || len(a.Arguments) > 32 || len(a.SupportFiles) > 64 || !contracts.ValidTextLength(a.License, 0, 1024) {
 		return contracts.Fail("invalid_request")
 	}
 	if _, err := normalizeLimits(a.Limits); err != nil {

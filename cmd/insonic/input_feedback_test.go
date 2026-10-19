@@ -19,7 +19,7 @@ func TestMissingAndMalformedInputHaveSupportedCorrections(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = modelInput(malformed)
-	if typed, ok := err.(*contracts.Error); !ok || typed.Code != "invalid_request" || typed.Reason != "input_invalid" {
+	if typed, ok := err.(*contracts.Error); !ok || typed.Code != "invalid_request" || typed.Reason != "json_syntax" || typed.Validation == nil || typed.Validation.Offset < 1 {
 		t.Fatal(err)
 	}
 }

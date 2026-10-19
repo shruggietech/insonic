@@ -3,7 +3,6 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"github.com/shruggietech/insonic/schemas"
@@ -38,13 +37,13 @@ func parseRecording(args []string) (string, string, json.RawMessage, error) {
 	}
 	defer file.Close()
 	raw, e = io.ReadAll(io.LimitReader(file, contracts.MaxWorkPayload+1))
-	if e != nil || len(raw) > contracts.MaxWorkPayload || catalog.ValidateJSON(raw) != nil {
-		return fail()
+	if err := checkedInput(raw, contracts.MaxWorkPayload, e); err != nil {
+		return "", "", nil, err
 	}
 	request := contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: contracts.ID(), RequestID: contracts.ID(), Operation: operation, ItemID: args[2], Data: raw}
 	encoded, _ := json.Marshal(request)
-	if schemas.ValidateRequest(encoded) != nil {
-		return fail()
+	if err := schemas.ValidateRequest(encoded); err != nil {
+		return "", "", nil, err
 	}
 	return operation, args[2], raw, nil
 }

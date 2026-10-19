@@ -17,6 +17,57 @@ qualify = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(qualify)
 
 class QualificationArchiveTests(unittest.TestCase):
+    def test_prepare_retries_transient_asset_failure_before_extracting_verified_bytes(self):
+        payload = b'controlled pinned native archive'
+        import hashlib
+        import urllib.error
+        pin = {'version': '1', 'assets': {'linux_amd64': ['fixture.zip', hashlib.sha256(payload).hexdigest()]}}
+        failure = urllib.error.HTTPError('https://github.com/controlled/asset', 502, 'Bad Gateway', {}, None)
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(qualify, 'BUILD', Path(directory)), \
+                patch.object(qualify, 'LOCK', {'go': '1', 'wails': '2', 'ladybug': pin}), \
+                patch.object(qualify.platform, 'system', return_value='Linux'), \
+                patch.object(qualify.platform, 'machine', return_value='x86_64'), \
+                patch('urllib.request.urlopen', side_effect=[failure, io.BytesIO(payload)]) as download, \
+                patch.object(qualify.time, 'sleep'), \
+                patch.object(qualify, 'extract', side_effect=RuntimeError('stop after verified extraction')) as extract:
+            with self.assertRaisesRegex(RuntimeError, 'stop after verified extraction'):
+                qualify.prepare()
+            self.assertEqual(download.call_count, 2)
+            self.assertEqual((Path(directory) / 'fixture.zip').read_bytes(), payload)
+            extract.assert_called_once_with(Path(directory) / 'fixture.zip', Path(directory) / 'ladybug')
+            self.assertFalse((Path(directory) / 'fixture.download').exists())
+
+
+    def test_prepare_does_not_retry_permanent_failure_or_publish_bad_checksum(self):
+        import hashlib
+        import urllib.error
+        payload = b'verified fixture'
+        for mode in ['not-found', 'wrong-checksum', 'expired-budget']:
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                pin = {'version': '1', 'assets': {'linux_amd64': ['fixture.zip', hashlib.sha256(payload).hexdigest()]}}
+                failure = urllib.error.HTTPError('https://github.com/controlled/asset', 404 if mode == 'not-found' else 502, 'controlled failure', {}, None)
+                result = io.BytesIO(b'unverified bytes') if mode == 'wrong-checksum' else failure
+                with patch.object(qualify, 'BUILD', Path(directory)), \
+                        patch.object(qualify, 'LOCK', {'go': '1', 'wails': '2', 'ladybug': pin}), \
+                        patch.object(qualify.platform, 'system', return_value='Linux'), \
+                        patch.object(qualify.platform, 'machine', return_value='x86_64'), \
+                        patch('urllib.request.urlopen', side_effect=[result]) as download, \
+                        patch.object(qualify.time, 'sleep'), \
+                        patch.object(qualify.time, 'monotonic', side_effect=[0, 0, 61] if mode == 'expired-budget' else [0] * 10), \
+                        patch.object(qualify, 'extract') as extract:
+                    expected = ValueError if mode == 'wrong-checksum' else RuntimeError
+                    with self.assertRaises(expected) as caught:
+                        qualify.prepare()
+                    if mode == 'not-found':
+                        self.assertIsInstance(caught.exception.__cause__, urllib.error.HTTPError)
+                        self.assertEqual(caught.exception.__cause__.code, 404)
+                    self.assertEqual(download.call_count, 1)
+                    self.assertLessEqual(download.call_args.kwargs['timeout'], 20)
+                    extract.assert_not_called()
+                    self.assertFalse((Path(directory) / 'fixture.zip').exists())
+                    self.assertFalse((Path(directory) / 'fixture.download').exists())
+
     def test_native_cli_builder_passes_the_selected_environment(self):
         selected = {'CC': 'selected', 'INSONIC_NATIVE_LIBRARY': 'isolated'}
         with patch.object(qualify, 'child') as build:
@@ -37,6 +88,46 @@ class QualificationArchiveTests(unittest.TestCase):
                 build.assert_called_once_with(True, selected_native_env)
                 acceptance.assert_not_called()
         self.assertEqual(selected_native_env, {'CC': 'selected'})
+
+    def test_native_acceptance_runs_every_package_after_separate_compilation(self):
+        selected = {'CC': 'selected-compiler'}
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(qualify, 'BUILD', Path(directory)), \
+                patch.object(qualify, 'native_env', return_value=selected), \
+                patch.object(qualify, 'cueson_probe', return_value={'state': 'passed'}), \
+                patch.object(qualify, 'child', return_value=b'') as run:
+            qualify.native()
+            go = [call for call in run.call_args_list if call.args[0][0] == 'go']
+            self.assertEqual(len(go), 2)
+            compile_args, acceptance_args = [call.args[0] for call in go]
+            self.assertIn('-run', compile_args)
+            self.assertEqual(compile_args[compile_args.index('-run') + 1], '^$')
+            self.assertNotIn('-run', acceptance_args)
+            self.assertIn('-json', acceptance_args)
+            expected = {'./internal/qualification', './internal/backendsetup', './internal/subtitles',
+                        './internal/graph', './internal/app', './internal/backup'}
+            for call in go:
+                args = call.args[0]
+                self.assertEqual({arg for arg in args if arg.startswith('./')}, expected)
+                self.assertEqual(args[args.index('-tags') + 1], 'native_ladybug,system_ladybug')
+                self.assertIs(call.kwargs['env'], selected)
+                self.assertNotIn('timeout', call.kwargs, 'retain the default bounded child allowance')
+            self.assertTrue((Path(directory) / 'native-receipt.json').is_file())
+
+    def test_failed_native_compilation_cannot_publish_an_acceptance_receipt(self):
+        def child(args, **kwargs):
+            if args[0] == 'go':
+                raise subprocess.TimeoutExpired(args, 180)
+            return b''
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(qualify, 'BUILD', Path(directory)), \
+                patch.object(qualify, 'native_env', return_value={}), \
+                patch.object(qualify, 'cueson_probe', return_value={'state': 'passed'}), \
+                patch.object(qualify, 'child', side_effect=child) as run:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                qualify.native()
+            self.assertFalse((Path(directory) / 'native-receipt.json').exists())
+            self.assertFalse(any('-json' in call.args[0] for call in run.call_args_list))
 
     def test_generic_cli_lane_does_not_require_native_assets(self):
         with patch.object(qualify, 'native_env', side_effect=AssertionError('generic lane must not require native assets')), patch.object(qualify, 'qualify_cli') as run:

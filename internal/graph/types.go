@@ -276,7 +276,7 @@ func validateChange(c catalog.OutboxClaim) (Change, error) {
 	}
 	ids := map[string]bool{}
 	for _, n := range change.Nodes {
-		if n.ID == "" || len(n.ID) > 1024 || n.Kind == "" || ids[n.ID] || len(n.Reference) > 8192 || !json.Valid(n.Reference) {
+		if !contracts.ValidTextLength(n.ID, 1, 1024) || n.Kind == "" || ids[n.ID] || len(n.Reference) > 8192 || !json.Valid(n.Reference) {
 			return Change{}, contracts.Fail("invalid_request")
 		}
 		ids[n.ID] = true

@@ -63,7 +63,7 @@ func Normalize(c Config) (Config, error) {
 			return c, contracts.Fail("invalid_request")
 		}
 	}
-	if (c.Adapter != "insonic-http" && c.Adapter != "ollama") || c.ContractVersion != "1" || (c.Route != "local" && c.Route != "hosted") || (c.Mode != "suggest" && c.Mode != "auto-run") || len(c.Model) > 512 {
+	if (c.Adapter != "insonic-http" && c.Adapter != "ollama") || c.ContractVersion != "1" || (c.Route != "local" && c.Route != "hosted") || (c.Mode != "suggest" && c.Mode != "auto-run") || !contracts.ValidTextLength(c.Model, 0, 512) {
 		return c, contracts.Fail("invalid_request")
 	}
 	if c.CredentialID != "" && !contracts.ValidID(c.CredentialID) {
@@ -73,7 +73,7 @@ func Normalize(c Config) (Config, error) {
 		return c, nil
 	}
 	u, e := url.Parse(c.Endpoint)
-	if e != nil || !u.IsAbs() || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || (u.Scheme != "http" && u.Scheme != "https") || len(c.Endpoint) > 2048 || strings.TrimSpace(c.Model) == "" {
+	if e != nil || !u.IsAbs() || u.Hostname() == "" || u.User != nil || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || (u.Scheme != "http" && u.Scheme != "https") || !contracts.ValidTextLength(c.Endpoint, 1, 2048) || strings.TrimSpace(c.Model) == "" {
 		return c, contracts.Fail("invalid_request")
 	}
 	ip := net.ParseIP(u.Hostname())

@@ -135,7 +135,7 @@ func PreviewAt(path, installation string) (Location, error) {
 	if path == "" {
 		path = filepath.Join(paths.Data, "libraries", "My voice archive")
 	}
-	if !filepath.IsAbs(path) || len(path) > 4096 {
+	if !filepath.IsAbs(path) || !contracts.ValidTextLength(path, 1, 4096) {
 		return Location{}, contracts.Fail("invalid_request")
 	}
 	path = filepath.Clean(path)

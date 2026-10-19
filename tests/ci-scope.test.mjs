@@ -86,7 +86,14 @@ test('platform qualification waits only for its own exact same-run source build'
 test('Windows delivery joins every isolated scope before exposing candidate artifacts', () => {
  const workflow = parse(readFileSync(new URL('../.github/workflows/windows-desktop-qualification.yml', import.meta.url), 'utf8'));
  const {assemble, proofs, finalize} = workflow.jobs;
- assert.deepEqual(proofs.needs, ['assemble']);
+ assert.equal(proofs.needs, undefined);
+ const proofWait = proofs.steps.findIndex(s => s.run?.includes('wait-ci-artifact.mjs windows-desktop-input'));
+ const proofDownload = proofs.steps.findIndex(s => s.name === 'Restore the same immutable Windows delivery');
+ assert.ok(proofWait > proofs.steps.findIndex(s => s.uses === './build/actions/setup-go'));
+ assert.ok(proofWait > proofs.steps.findIndex(s => s.uses === './build/actions/setup-node'));
+ assert.ok(proofDownload > proofWait);
+ assert.equal(proofs.steps[proofWait].env.GH_TOKEN, '${{ github.token }}');
+ assert.ok(proofs.steps[proofWait].run.includes("'${{ inputs.revision }}'"));
  assert.deepEqual(proofs.strategy.matrix.scope, ['archive', 'interactive', 'maintenance', 'setup']);
  assert.equal(proofs.strategy['fail-fast'], false);
  assert.deepEqual(finalize.needs, ['assemble']);
@@ -277,4 +284,22 @@ test('focused native source diagnosis keeps production compiler and decoder prer
  assert.ok(steps.some(step=>step.run==='npm --prefix desktop/frontend ci --ignore-scripts'));
  assert.equal(workflow.permissions.actions,'read');
  assert.match(workflow.jobs.invocation['timeout-minutes'],/11 \|\| 5/);
+});
+
+test('candidate tools and Linux/docs downloads overlap the explicit Windows package gate', () => {
+ const workflow=parse(readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8'));
+ const job=workflow.jobs.candidate, steps=job.steps;
+ assert.ok(!job.needs.includes('package-windows'));
+ for(const gate of ['foundation','docs','package-linux','media-windows'])assert.ok(job.needs.includes(gate));
+ assert.equal(job.permissions.actions,'read');
+ const wait=steps.findIndex(s=>s.run?.includes('wait-ci-artifact.mjs windows-packages'));
+ const linux=steps.findIndex(s=>s.with?.pattern==='candidate-package-ubuntu-24.04-*-${{ github.sha }}-${{ github.run_attempt }}');
+ const docs=steps.findIndex(s=>s.with?.name==='candidate-documentation-${{ github.sha }}-${{ github.run_attempt }}');
+ const windows=steps.findIndex(s=>s.with?.pattern==='candidate-package-windows-2022-*-${{ github.sha }}-${{ github.run_attempt }}');
+ const collect=steps.findIndex(s=>s.run?.includes('scripts/release.py collect'));
+ assert.ok(wait>steps.findIndex(s=>s.uses==='./build/actions/setup-go'));
+ assert.ok(linux>=0&&linux<wait&&docs>=0&&docs<wait);
+ assert.ok(windows>wait&&collect>windows);
+ assert.equal(steps[wait].env.GH_TOKEN,'${{ github.token }}');
+ for(const index of [linux,docs,windows])assert.equal(steps[index].with['digest-mismatch'],'error');
 });

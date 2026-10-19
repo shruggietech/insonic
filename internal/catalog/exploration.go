@@ -70,11 +70,11 @@ func validLayout(v GraphLayout) bool {
 		return false
 	}
 	for id, p := range input.Positions {
-		if len(id) < 1 || len(id) > 1024 || math.IsNaN(p.X) || math.IsNaN(p.Y) || math.IsInf(p.X, 0) || math.IsInf(p.Y, 0) || math.Abs(p.X) > 1000000 || math.Abs(p.Y) > 1000000 {
+		if !contracts.ValidTextLength(id, 1, 1024) || math.IsNaN(p.X) || math.IsNaN(p.Y) || math.IsInf(p.X, 0) || math.IsInf(p.Y, 0) || math.Abs(p.X) > 1000000 || math.Abs(p.Y) > 1000000 {
 			return false
 		}
 	}
-	return contracts.ValidID(v.ID) && contracts.ValidID(v.QueryID) && v.Revision > 0 && nonsecret(v.Layout) && referenceMetadata(v.Layout) && strict(v.Layout, &input) == nil && len(input.Positions) <= 1000 && len(input.Filter) <= 512 && input.Limit >= 0 && input.Limit <= 500
+	return contracts.ValidID(v.ID) && contracts.ValidID(v.QueryID) && v.Revision > 0 && nonsecret(v.Layout) && referenceMetadata(v.Layout) && strict(v.Layout, &input) == nil && len(input.Positions) <= 1000 && contracts.ValidTextLength(input.Filter, 0, 512) && input.Limit >= 0 && input.Limit <= 500
 }
 func validExtraction(v Extraction) bool {
 	return contracts.ValidID(v.ID) && v.Revision > 0 && v.RecordingRevision > 0 && digestPattern.MatchString(v.DocumentDigest) && len(v.Assertions) <= 512<<10 && referenceMetadata(v.Assertions) && referenceMetadata(v.Provenance) && referenceMetadata(v.Diagnostics)

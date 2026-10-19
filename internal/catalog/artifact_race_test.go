@@ -21,7 +21,9 @@ func availableArtifact(t *testing.T, s *Store) Publication {
 		t.Fatal(e)
 	}
 	p := Publication{ID: contracts.ID(), ArtifactID: contracts.ID(), LocationID: contracts.ID(), ProfileID: profile.ID, ProfileRevision: 1, Digest: strings.Repeat("b", 64), Size: 1, Kind: "other", Key: "objects/" + contracts.ID(), Owner: contracts.ID()}
-	p, e = s.BeginPublication(ctx, p, time.Second)
+	// This fixture establishes available data; publication expiry has its own tests.
+	// A one-second lease can expire during setup on a busy Windows runner.
+	p, e = s.BeginPublication(ctx, p, time.Minute)
 	if e != nil {
 		t.Fatal(e)
 	}

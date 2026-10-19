@@ -20,6 +20,12 @@ import (
 
 func main() {
 	code := run()
+	if err := nativeCOMCleanup(); err != nil {
+		fmt.Fprintln(os.Stderr, "Desktop COM cleanup failed:", err)
+		if code == 0 {
+			code = 1
+		}
+	}
 	if len(os.Args) == 2 && os.Args[1] == "--webview-qualification" {
 		fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: process exit")
 	}
@@ -37,6 +43,15 @@ func run() (exitCode int) {
 		return qualifyHelpOnly()
 	}
 	smoke := len(os.Args) == 2 && os.Args[1] == "--webview-qualification"
+	profile := ""
+	if smoke {
+		var err error
+		profile, err = qualificationWebviewProfile()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			return 1
+		}
+	}
 	var smokePassed atomic.Bool
 	if smoke {
 		// Register first: success is emitted only after every later cleanup has
@@ -151,8 +166,8 @@ func run() (exitCode int) {
 		}
 		bridge.Workspace = w
 	}
-	if err := runDesktopApplication(bridge, startup, domReady, desktop.QualificationStartsHidden(smoke)); err != nil {
-		fmt.Fprintln(os.Stderr, "Desktop startup failed.")
+	if err := runDesktopApplicationWithProfile(bridge, startup, domReady, desktop.QualificationStartsHidden(smoke), profile); err != nil {
+		fmt.Fprintln(os.Stderr, "Desktop lifecycle failed.")
 		return 1
 	}
 	if smoke {

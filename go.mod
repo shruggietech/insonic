@@ -68,3 +68,6 @@ require (
 	golang.org/x/text v0.43.0 // indirect
 	gopkg.in/ini.v1 v1.67.3 // indirect
 )
+
+// The pinned Windows binding includes the audited owned-window shutdown patch.
+replace github.com/wailsapp/go-webview2 => ./third_party/go-webview2

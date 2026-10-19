@@ -177,8 +177,6 @@ jobs:
           retention-days: 14
   proofs:
     name: Qualify Windows desktop (${{ matrix.scope }})
-    needs:
-      - assemble
     runs-on: windows-2022
     timeout-minutes: 11
     strategy:
@@ -235,6 +233,10 @@ jobs:
       - name: Install the owned HTML renderer dependency
         if: matrix.scope == 'interactive'
         run: npm ci --ignore-scripts
+      - name: Await exact assembly after overlapping consumer setup
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/wait-ci-artifact.mjs windows-desktop-input '${{ inputs.revision }}'
       - name: Restore the same immutable Windows delivery
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:

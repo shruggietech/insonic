@@ -17,7 +17,7 @@ func startTree(command *exec.Cmd) (*processTree, error) {
 	tree := &processTree{job}
 	limits := windows.JOBOBJECT_EXTENDED_LIMIT_INFORMATION{}
 	limits.BasicLimitInformation.LimitFlags = windows.JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-	if _, err := windows.SetInformationJobObject(job, windows.JobObjectExtendedLimitInformation, uintptr(unsafe.Pointer(&limits)), uint32(unsafe.Sizeof(limits))); err != nil {
+	if _, err := setJobInformation(job, windows.JobObjectExtendedLimitInformation, uintptr(unsafe.Pointer(&limits)), uint32(unsafe.Sizeof(limits))); err != nil {
 		tree.Close()
 		return nil, err
 	}
@@ -68,3 +68,16 @@ func startTree(command *exec.Cmd) (*processTree, error) {
 
 func (tree *processTree) Kill()  { _ = windows.TerminateJobObject(tree.job, 1) }
 func (tree *processTree) Close() { _ = windows.CloseHandle(tree.job) }
+
+// Pointer-valued uintptr arguments must remain stable through the generated
+// Windows wrapper's lazy resolution as well as its eventual syscall.
+//
+//go:uintptrescapes
+func setJobInformation(job windows.Handle, class uint32, data uintptr, size uint32) (int, error) {
+	return windows.SetInformationJobObject(job, class, data, size)
+}
+
+//go:uintptrescapes
+func queryJobInformation(job windows.Handle, class int32, data uintptr, size uint32) error {
+	return windows.QueryInformationJobObject(job, class, data, size, nil)
+}

@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 
 	"github.com/shruggietech/insonic/internal/contracts"
 )
@@ -69,7 +68,7 @@ func RecognitionFromSegments(segments []RecognitionSegment, noSpeech bool, m Sou
 	ds := []Diagnostic{}
 	count := 0
 	for _, s := range segments {
-		if s.StartUS < 0 || s.EndUS <= s.StartUS || s.EndUS > duration || !utf8.ValidString(s.Text) || len(s.Text) > 65536 || strings.ContainsFunc(s.Text, func(r rune) bool { return unicode.IsControl(r) && r != '\r' && r != '\n' && r != '\t' }) {
+		if s.StartUS < 0 || s.EndUS <= s.StartUS || s.EndUS > duration || !contracts.ValidTextLength(s.Text, 0, 65536) || strings.ContainsFunc(s.Text, func(r rune) bool { return unicode.IsControl(r) && r != '\r' && r != '\n' && r != '\t' }) {
 			return RecognitionResult{}, contracts.Fail("invalid_engine_output")
 		}
 		text := strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(s.Text, "\r\n", "\n"), "\r", "\n"))

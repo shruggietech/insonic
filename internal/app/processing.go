@@ -281,7 +281,7 @@ func localTurns(recordingID, workID string, turns []processing.Turn) ([]subtitle
 		return nil, contracts.Fail("output_limit")
 	}
 	for _, t := range turns {
-		if strings.TrimSpace(t.Label) == "" || len(t.Label) > 256 || t.StartUS < 0 || t.EndUS <= t.StartUS || t.EndUS > math.MaxInt64/1000 {
+		if strings.TrimSpace(t.Label) == "" || !contracts.ValidTextLength(t.Label, 1, 256) || t.StartUS < 0 || t.EndUS <= t.StartUS || t.EndUS > math.MaxInt64/1000 {
 			return nil, contracts.Fail("invalid_request")
 		}
 		out = append(out, subtitles.Turn{SpeakerID: library.DerivedID(recordingID, workID+"/speaker/"+t.Label), StartNS: t.StartUS * 1000, EndNS: t.EndUS * 1000})
@@ -623,7 +623,7 @@ func (a *App) assembleClaim(ctx context.Context, claim catalog.Work, entry catal
 	}
 	participation := []subtitles.Participation{}
 	for _, p := range input.Participation {
-		if p.CueID == "" || strings.TrimSpace(p.Label) == "" || len(p.Label) > 256 {
+		if !contracts.ValidTextLength(p.CueID, 1, 256) || strings.TrimSpace(p.Label) == "" || !contracts.ValidTextLength(p.Label, 1, 256) {
 			return nil, contracts.Fail("invalid_request")
 		}
 		participation = append(participation, subtitles.Participation{CueID: p.CueID, SpeakerID: library.DerivedID(entry.ID, claim.ID+"/speaker/"+p.Label)})
@@ -886,7 +886,7 @@ func (a *App) exportRecording(req contracts.Request) (any, error) {
 	}
 	if e = os.Link(temp, input.Destination); e != nil {
 		if os.IsExist(e) {
-			return nil, contracts.Fail("conflict")
+			return nil, contracts.Condition("conflict", "output_exists")
 		}
 		return nil, contracts.Fail("unavailable")
 	}

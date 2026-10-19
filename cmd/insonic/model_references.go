@@ -18,8 +18,8 @@ func modelInput(path string) (json.RawMessage, error) {
 	}
 	defer f.Close()
 	raw, err := io.ReadAll(io.LimitReader(f, contracts.MaxWorkPayload+1))
-	if err != nil || len(raw) > contracts.MaxWorkPayload || catalog.ValidateJSON(raw) != nil {
-		return nil, contracts.Condition("invalid_request", "input_invalid")
+	if inputErr := checkedInput(raw, contracts.MaxWorkPayload, err); inputErr != nil {
+		return nil, inputErr
 	}
 	return raw, nil
 }

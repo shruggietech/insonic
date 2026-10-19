@@ -1,6 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 """Hidden qualification children with descendant lifetime ownership."""
+from contextlib import contextmanager
 import os
+from pathlib import Path
+import shutil
+import tempfile
+import time
 import signal
 import subprocess
 
@@ -23,6 +28,32 @@ def selected_executable(args, cwd, env):
                 argv[0] = candidate
                 return argv
     raise FileNotFoundError('selected child executable is unavailable: ' + program)
+
+
+NATIVE_PROFILE = 'INSONIC_NATIVE_WEBVIEW_PROFILE'
+
+
+def native_webview_probe(args, env):
+    return os.name == 'nt' and bool(env.get(NATIVE_PROFILE)) and any(
+        flag in args for flag in ['--help-qualification', '--webview-qualification'])
+
+
+@contextmanager
+def native_webview_environment(env):
+    selected = dict(env)
+    if os.name != 'nt':
+        yield selected
+        return
+    # The caller must observe the owned job reaching zero before returning.
+    # Preserve failures for diagnosis; never remove a profile still in use.
+    root = Path(tempfile.mkdtemp(prefix='insonic-native-webview-'))
+    selected[NATIVE_PROFILE] = str(root / 'webview')
+    try:
+        yield selected
+    except BaseException:
+        raise
+    else:
+        shutil.rmtree(root)
 
 
 class ProcessTree:
@@ -71,6 +102,7 @@ class ProcessTree:
         signatures = {
             'CreateJobObjectW': ([ctypes.c_void_p, wintypes.LPCWSTR], wintypes.HANDLE),
             'SetInformationJobObject': ([wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD], wintypes.BOOL),
+            'QueryInformationJobObject': ([wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD, ctypes.c_void_p], wintypes.BOOL),
             'AssignProcessToJobObject': ([wintypes.HANDLE, wintypes.HANDLE], wintypes.BOOL),
             'OpenProcess': ([wintypes.DWORD, wintypes.BOOL, wintypes.DWORD], wintypes.HANDLE),
             'CreateToolhelp32Snapshot': ([wintypes.DWORD, wintypes.DWORD], wintypes.HANDLE),
@@ -128,6 +160,26 @@ class ProcessTree:
             raise RuntimeError('suspended process thread is unavailable')
         finally:
             self.api.CloseHandle(snapshot)
+
+    def wait_for_descendants(self, timeout):
+        if not self.job:
+            return True
+        c = self.ctypes
+        from ctypes import wintypes
+        class Accounting(c.Structure):
+            _fields_ = [(name, c.c_int64) for name in ['user', 'kernel', 'period_user', 'period_kernel']] + [
+                (name, wintypes.DWORD) for name in ['faults', 'total', 'active', 'terminated']]
+        deadline = time.monotonic() + max(0, timeout)
+        while True:
+            value = Accounting()
+            if not self.api.QueryInformationJobObject(self.job, 1, c.byref(value), c.sizeof(value), None):
+                raise c.WinError(c.get_last_error())
+            if value.active == 0:
+                return True
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return False
+            time.sleep(min(0.02, remaining))
 
     def kill(self):
         if self.job:

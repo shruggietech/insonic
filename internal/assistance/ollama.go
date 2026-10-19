@@ -53,7 +53,7 @@ func endpointScope(endpoint string) string {
 }
 func validEndpoint(endpoint string) bool {
 	u, e := url.Parse(endpoint)
-	return e == nil && len(endpoint) <= 2048 && u.IsAbs() && u.Hostname() != "" && u.User == nil && u.RawQuery == "" && !u.ForceQuery && u.Fragment == "" && (u.Scheme == "http" || u.Scheme == "https") && (u.Path == "" || u.Path == "/")
+	return e == nil && contracts.ValidTextLength(endpoint, 1, 2048) && u.IsAbs() && u.Hostname() != "" && u.User == nil && u.RawQuery == "" && !u.ForceQuery && u.Fragment == "" && (u.Scheme == "http" || u.Scheme == "https") && (u.Path == "" || u.Path == "/")
 }
 func (a Ollama) call(ctx context.Context, endpoint, route, id string, body any, cap int, out any) error {
 	if err := ProviderContextError(ctx); err != nil {
@@ -140,7 +140,7 @@ func (a Ollama) model(ctx context.Context, endpoint, id, name string) (OllamaMod
 			Format string `json:"format"`
 		} `json:"details"`
 	}
-	if strings.TrimSpace(name) == "" || len(name) > 512 {
+	if strings.TrimSpace(name) == "" || !contracts.ValidTextLength(name, 1, 512) {
 		return m, contracts.Fail("invalid_request")
 	}
 	if e := a.call(ctx, endpoint, "/api/show", id, map[string]any{"model": name, "verbose": false}, 1<<20, &meta); e != nil {
@@ -151,7 +151,7 @@ func (a Ollama) model(ctx context.Context, endpoint, id, name string) (OllamaMod
 		return m, contracts.Condition("output_limit", "provider_response_limit")
 	}
 	for _, c := range meta.Capabilities {
-		if len(c) > 128 {
+		if !contracts.ValidTextLength(c, 0, 128) {
 			return m, contracts.Condition("output_limit", "provider_response_limit")
 		}
 		if c == "completion" {
@@ -179,7 +179,7 @@ func (a Ollama) Inspect(ctx context.Context, endpoint, id, selected string) (Oll
 	if e := a.call(ctx, endpoint, "/api/version", id, nil, 1<<20, &version); e != nil {
 		return out, e
 	}
-	if version.Version == "" || len(version.Version) > 128 {
+	if version.Version == "" || !contracts.ValidTextLength(version.Version, 1, 128) {
 		return out, contracts.Condition("operation_failed", "ollama_protocol")
 	}
 	out.Version = version.Version
@@ -200,7 +200,7 @@ func (a Ollama) Inspect(ctx context.Context, endpoint, id, selected string) (Oll
 	details := 0
 	var selectedError error
 	for _, tag := range tags.Models {
-		if tag.Name == "" || len(tag.Name) > 512 || len(tag.Digest) > 512 || tag.Size < 0 {
+		if tag.Name == "" || !contracts.ValidTextLength(tag.Name, 1, 512) || !contracts.ValidTextLength(tag.Digest, 0, 512) || tag.Size < 0 {
 			return out, contracts.Condition("operation_failed", "ollama_protocol")
 		}
 		m := OllamaModel{Name: tag.Name, Digest: tag.Digest, Size: tag.Size, InferenceRoute: "unknown", DetailState: "untested"}
