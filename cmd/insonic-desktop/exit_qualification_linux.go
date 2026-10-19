@@ -90,3 +90,5 @@ func activateNativeExit(action string) error {
 }
 
 func dismissFailedNativeMenu() {}
+
+func stopNativeMenuTrace() {}

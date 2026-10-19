@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"sync/atomic"
 	"syscall"
 	"time"
 	"unsafe"
@@ -36,6 +37,7 @@ func activateNativeExit(action string) error {
 	case "alt-f4":
 		return sendNativeAltF4(hwnd)
 	case "menu":
+		startNativeMenuTrace(hwnd, threadID)
 		// Real Alt+F enters the system menu input loop. A posted WM_CHAR can
 		// reach the owner window without selecting its modal menu item.
 		if err = sendNativeKeyboard(hwnd, "Alt+F", []exitKeyboardInput{{Kind: 1, Key: 0x12}, {Kind: 1, Key: 0x46}, {Kind: 1, Key: 0x46, Flags: 2}, {Kind: 1, Key: 0x12, Flags: 2}}); err != nil {
@@ -107,13 +109,65 @@ func observeExitMenu(hwnd, root, thread uintptr) exitMenuState {
 func dismissFailedNativeMenu() {
 	hwnd := exitWinCall("GetForegroundWindow")
 	if requireNativeInputTarget(hwnd) != nil {
+		fmt.Fprintln(os.Stderr, "native-menu-dismiss owned-foreground=false")
 		return
 	}
 	thread := exitWinCall("GetWindowThreadProcessId", hwnd, 0)
 	info := exitGUIThreadInfo{Size: uint32(unsafe.Sizeof(exitGUIThreadInfo{}))}
+	fmt.Fprintln(os.Stderr, "native-menu-dismiss owned-foreground=true")
 	if exitWinCall("GetGUIThreadInfo", thread, uintptr(unsafe.Pointer(&info))) != 0 && info.MenuOwner == hwnd && info.Flags&4 != 0 {
 		if err := sendNativeKeyboard(hwnd, "failed menu Escape", []exitKeyboardInput{{Kind: 1, Key: 0x1b}, {Kind: 1, Key: 0x1b, Flags: 2}}); err != nil {
 			fmt.Fprintln(os.Stderr, err)
+		}
+	}
+}
+
+// This diagnostic is confined to an acknowledged qualification child's UI thread.
+// It observes messages unchanged and never hooks the desktop or another process.
+type exitTraceMessage struct {
+	Window         uintptr
+	Message        uint32
+	WParam, LParam uintptr
+	Time           uint32
+	Point          struct{ X, Y int32 }
+	Private        uint32
+}
+
+var exitTraceGetHook, exitTraceMenuHook atomic.Uintptr
+var exitTraceCount atomic.Uint32
+var exitTraceGetCallback = syscall.NewCallback(func(code, kind uintptr, message *exitTraceMessage) uintptr {
+	return traceNativeMenuMessage("queue", code, kind, message)
+})
+var exitTraceMenuCallback = syscall.NewCallback(func(code, kind uintptr, message *exitTraceMessage) uintptr {
+	return traceNativeMenuMessage("menu", code, kind, message)
+})
+
+func traceNativeMenuMessage(source string, code, kind uintptr, message *exitTraceMessage) uintptr {
+	if int32(code) >= 0 && message != nil {
+		if message.Message >= 0x100 && message.Message <= 0x109 && exitTraceCount.Add(1) <= 64 {
+			// Only the qualification's intended keys are recorded, never text content.
+			if message.WParam == 0x12 || message.WParam == 0x46 || message.WParam == 0x58 || message.WParam == 0x1b {
+				fmt.Fprintf(os.Stderr, "native-menu-input source=%s code=%d kind=%d window=%x message=%x key=%x flags=%x\n", source, int32(code), kind, message.Window, message.Message, message.WParam, message.LParam)
+			}
+		}
+	}
+	return exitWinCall("CallNextHookEx", 0, code, kind, uintptr(unsafe.Pointer(message)))
+}
+
+func startNativeMenuTrace(hwnd, thread uintptr) {
+	if os.Getenv("GITHUB_ACTIONS") != "true" || os.Getenv("INSONIC_PROCESS_STARTUP_DIAGNOSTICS") != "1" || requireNativeInputTarget(hwnd) != nil {
+		return
+	}
+	// WH_GETMESSAGE and WH_MSGFILTER callbacks retain only this static function.
+	exitTraceGetHook.Store(exitWinCall("SetWindowsHookExW", 3, exitTraceGetCallback, 0, thread))
+	exitTraceMenuHook.Store(exitWinCall("SetWindowsHookExW", ^uintptr(0), exitTraceMenuCallback, 0, thread))
+	fmt.Fprintf(os.Stderr, "native-menu-trace queue=%t menu=%t\n", exitTraceGetHook.Load() != 0, exitTraceMenuHook.Load() != 0)
+}
+
+func stopNativeMenuTrace() {
+	for _, hook := range []*atomic.Uintptr{&exitTraceGetHook, &exitTraceMenuHook} {
+		if handle := hook.Swap(0); handle != 0 {
+			exitWinCall("UnhookWindowsHookEx", handle)
 		}
 	}
 }

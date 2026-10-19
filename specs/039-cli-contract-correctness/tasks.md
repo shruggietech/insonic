@@ -122,3 +122,7 @@ US1 example: command-registry regressions and catalog migration regressions run 
 ## Phase 20: Native observation convergence
 
 - [ ] T045 Observe the actual visible owned File submenu using GetMenuBarInfo, retain native menu ownership and the unchanged readiness deadline, dismiss only an owned failed menu before normal failure cleanup, and atomically publish the asynchronous offline-help fixture receipt; repeat exact-head native and package gates per FR-021/022 (partial).
+
+## Phase 21: Convergence
+
+- [ ] T046 Trace the remaining acknowledged qualification-only menu selection stall with bounded same-owned-thread unchanged message observations, identify and correct the demonstrated ordering boundary, remove investigation-only instrumentation, and repeat real native/package checks under the original limits per FR-019..022 (partial).

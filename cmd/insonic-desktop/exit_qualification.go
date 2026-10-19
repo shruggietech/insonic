@@ -68,6 +68,7 @@ func readExitFixture(path string) (exitFixture, error) {
 // Only this child owns Wails. Its parent owns the real shared runtime and
 // verifies survival through direct IPC after the GUI process has returned.
 func qualifyNativeExitChild(path string) int {
+	defer stopNativeMenuTrace()
 	fixture, err := readExitFixture(path)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -96,6 +97,7 @@ func qualifyNativeExitChild(path string) int {
 			case <-finished:
 			case <-time.After(12 * time.Second):
 				timedOut.Store(true)
+				fmt.Fprintln(os.Stderr, "native-exit-stage=watchdog-timeout")
 				dismissFailedNativeMenu()
 				wailsruntime.Quit(ctx)
 			}
