@@ -12,3 +12,5 @@ The insonic source tree contains third_party/go-webview2.source.json with
 exact upstream and maintained source checksums. The main product source
 revision binds this repository-local replacement; Go binary metadata records
 the relative replacement path rather than an upstream checksum for the patch.
+
+The maintained cleanup also balances owned COM interface references and the original UI-thread apartment initialization. The manifest lists both modified upstream files and every added file.

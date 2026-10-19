@@ -342,6 +342,7 @@ func (e *Chromium) CreateCoreWebView2ControllerCompleted(res uintptr, controller
 
 	// Try to get ICoreWebView2Controller3 interface for better performance
 	if controller3 := e.controller.GetICoreWebView2Controller3(); controller3 != nil {
+		defer controller3.Vtbl.Release.Call(uintptr(unsafe.Pointer(controller3)))
 		// Use raw pixels mode for better performance during resize
 		if err := controller3.PutBoundsMode(COREWEBVIEW2_BOUNDS_MODE_USE_RAW_PIXELS); err != nil {
 			e.errorCallback(err)
@@ -358,7 +359,7 @@ func (e *Chromium) CreateCoreWebView2ControllerCompleted(res uintptr, controller
 		e.errorCallback(err)
 	}
 
-	e.webview.vtbl.AddRef.Call(uintptr(unsafe.Pointer(e.webview)))
+	// GetCoreWebView2 already returns one owned COM reference.
 	err = e.webview.AddWebMessageReceived(e.webMessageReceived, &token)
 	if err != nil {
 		e.errorCallback(err)

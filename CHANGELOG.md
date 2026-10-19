@@ -22,7 +22,7 @@ All notable changes to this project will be documented here. The format follows 
 
 - Windows native desktop qualification uses disposable WebView profiles and observes normal owned-browser shutdown before reuse or removal. Failed fixtures retain their profiles for diagnosis. Cold and warm menu, close and Alt+F4 checks retain playback cleanup, background-work survival and exact-package proof gates.
 
-- Windows closes its WebView controller during owned-window destruction. The pinned browser binding includes a maintained source patch with verified upstream and patched-tree checksums and explicit license notices. Native menu, process-job and installer calls retain pointer buffers for their complete native lifetime; installer source inspection errors preserve their original cause.
+- Windows closes its WebView controller during owned-window destruction, releases retained COM interfaces and finalizes its owning COM apartment on normal exit. The pinned browser binding includes a maintained source patch with verified upstream and patched-tree checksums and explicit license notices. Native menu, process-job and installer calls retain pointer buffers for their complete native lifetime; installer source inspection errors preserve their original cause.
 
 - CLI help describes command purpose, option and operand meaning, defaults, dependencies and executable examples. Positional JSON and protected-input templates, maintenance operands, cursor instructions and training examples agree with execution.
 

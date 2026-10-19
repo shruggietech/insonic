@@ -27,9 +27,11 @@ type windowLifetime struct {
 // Native code retains only HWNDs and a static callback, never a Go object pointer.
 var ownedWindows = struct {
 	sync.Mutex
-	values            map[uintptr]*windowLifetime
-	failure           error
-	closedControllers uint32
+	values                             map[uintptr]*windowLifetime
+	failure                            error
+	closedControllers                  uint32
+	apartmentThread                    uint32
+	apartmentOwned, apartmentFinalized bool
 }{values: make(map[uintptr]*windowLifetime)}
 
 var lifetimeSubclass uintptr
@@ -65,6 +67,7 @@ func lifetimeWindowProc(hwnd, message, wparam, lparam, id, data uintptr) uintptr
 					ownedWindows.Unlock()
 				}
 			}
+			entry.chromium.releaseOwnedInterfaces()
 		}
 		if message == 0x0082 {
 			lifetimeRemoveSubclass.Call(hwnd, lifetimeSubclass, id)
@@ -123,5 +126,53 @@ func (i *ICoreWebView2Controller) Close() error {
 	if windows.Handle(hr) != windows.S_OK {
 		return windows.Errno(hr)
 	}
+	return nil
+}
+
+// Close stops the WebView; Release balances the interfaces retained by Embed.
+func (e *Chromium) releaseOwnedInterfaces() {
+	if value := e.webview; value != nil {
+		e.webview = nil
+		value.vtbl.Release.Call(uintptr(unsafe.Pointer(value)))
+	}
+	if value := e.controller; value != nil {
+		e.controller = nil
+		value.Release()
+	}
+	if value := e.environment; value != nil {
+		e.environment = nil
+		value.vtbl.Release.Call(uintptr(unsafe.Pointer(value)))
+	}
+}
+
+func recordOwnedCOMApartment() {
+	ownedWindows.Lock()
+	defer ownedWindows.Unlock()
+	ownedWindows.apartmentThread = windows.GetCurrentThreadId()
+	ownedWindows.apartmentOwned = true
+	ownedWindows.apartmentFinalized = false
+}
+
+// FinalizeCOMApartment balances the binding's existing successful CoInitializeEx
+// after all owned windows are destroyed. It must run on that original UI thread.
+// Close errors remain separate; failure cleanup must still release its apartment.
+func FinalizeCOMApartment() error {
+	ownedWindows.Lock()
+	if len(ownedWindows.values) != 0 {
+		ownedWindows.Unlock()
+		return fmt.Errorf("WebView windows remain before COM apartment cleanup")
+	}
+	if ownedWindows.apartmentFinalized {
+		ownedWindows.Unlock()
+		return nil
+	}
+	if !ownedWindows.apartmentOwned || ownedWindows.apartmentThread != windows.GetCurrentThreadId() {
+		ownedWindows.Unlock()
+		return fmt.Errorf("WebView COM cleanup requires its initialized owning UI thread")
+	}
+	ownedWindows.apartmentOwned = false
+	ownedWindows.apartmentFinalized = true
+	ownedWindows.Unlock()
+	windows.CoUninitialize()
 	return nil
 }

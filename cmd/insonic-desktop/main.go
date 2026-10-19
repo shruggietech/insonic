@@ -20,6 +20,12 @@ import (
 
 func main() {
 	code := run()
+	if err := nativeCOMCleanup(); err != nil {
+		fmt.Fprintln(os.Stderr, "Desktop COM cleanup failed:", err)
+		if code == 0 {
+			code = 1
+		}
+	}
 	if len(os.Args) == 2 && os.Args[1] == "--webview-qualification" {
 		fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: process exit")
 	}

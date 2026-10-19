@@ -4,3 +4,5 @@
 package main
 
 func nativeWebviewCloseError() error { return nil }
+
+func nativeCOMCleanup() error { return nil }

@@ -9,11 +9,17 @@ import (
 )
 
 func nativeWebviewCloseError() error {
+	cleanup := nativeCOMCleanup()
 	if err := edge.WindowCloseError(); err != nil {
 		return err
+	}
+	if cleanup != nil {
+		return cleanup
 	}
 	if edge.ClosedControllerCount() != 1 {
 		return fmt.Errorf("owned WebView controller close was not observed")
 	}
 	return nil
 }
+
+func nativeCOMCleanup() error { return edge.FinalizeCOMApartment() }

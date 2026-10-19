@@ -19,8 +19,10 @@ func init() {
 	runtime.LockOSThread()
 
 	r, _, _ := w32.Ole32CoInitializeEx.Call(0, uintptr(w32.COINIT_APARTMENTTHREADED))
-	if int(r) < 0 {
+	if int32(r) < 0 {
 		log.Printf("Warning: CoInitializeEx call failed: E=%08x", r)
+	} else {
+		recordOwnedCOMApartment()
 	}
 }
 
