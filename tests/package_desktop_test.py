@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
+import hashlib
 import importlib.util
 import io
 import json
@@ -20,6 +21,35 @@ spec.loader.exec_module(package)
 
 
 class NativePackageIntegrityTests(unittest.TestCase):
+    def test_archive_compiler_authority_comes_from_selected_historical_sources(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);historical=root/'historical'
+            (historical/'scripts').mkdir(parents=True)
+            (historical/'internal/qualification').mkdir(parents=True)
+            (historical/'scripts/processing-worker.py').write_bytes(b'worker')
+            pins=historical/'internal/qualification/dependencies.json'
+            pins.write_text(json.dumps({'go':'1.26.2'}))
+            archive=root/'fixture.zip';archive.write_bytes(b'archive')
+            manifest=b'{}';media=json.dumps({'binaries':{}}).encode()
+            files={'companions/processing/processing-worker.py':b'worker','sources/source-manifest.json':manifest,'sources/ffmpeg-build.json':media}
+            receipt={'archive_sha256':package.sha(archive),'archive_size_bytes':archive.stat().st_size,
+                     'inventory_root':'program','inventory_path':'program/package-inventory.json','dirname':'program',
+                     'revision':'a'*40,'platform':'windows_amd64','variant':'desktop','schema_version':package.VERSION,
+                     'source_dirty':False,'distribution':{'source_manifest_sha256':hashlib.sha256(manifest).hexdigest()},'signing':{'configured':False}}
+            value={key:receipt[key] for key in ['revision','platform','variant','schema_version','source_dirty','distribution','signing']}
+            value.update(dependencies={'go':'1.26.2','modules':[]},files=[{'path':name} for name in files])
+            raw=json.dumps(value).encode();receipt['inventory_sha256']=__import__('hashlib').sha256(raw).hexdigest()
+            def extract(archive,location):
+                for name,data in dict(files,**{'package-inventory.json':raw}).items():
+                    target=location/'program'/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(data)
+            with patch.object(package,'extract_package',side_effect=extract),patch.object(package,'verify_inventory'),patch.object(package,'product_binaries',return_value=[]),patch.object(package,'verify_corresponding_sources',return_value={}) as sources,patch.object(package.go_module_notices,'verify_notices') as notices:
+                package.verify_archive_receipt(archive,receipt,expected_source_root=historical)
+                self.assertEqual(notices.call_args.args[-1],'1.26.2')
+                self.assertEqual(sources.call_args.kwargs['expected_source_root'],historical)
+                pins.write_text(json.dumps({'go':'1.25.0'}))
+                with self.assertRaisesRegex(ValueError,'compiler inventory'):
+                    package.verify_archive_receipt(archive,receipt,expected_source_root=historical)
+
     def test_native_timeout_retains_bounded_checkpoints_and_original_deadline(self):
         for cleanup_timeout in (False, True):
             with self.subTest(cleanup_timeout=cleanup_timeout), tempfile.TemporaryDirectory() as temporary:

@@ -18,6 +18,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Native desktop Exit qualification retains separate bounded output streams, native child results and startup/action checkpoints, preserving controller errors that previously disappeared from CI failures.
+
 - Desktop selection controls keep square native glyphs inside full label targets. Compact form/card spacing and content-sized buttons reduce wasted space; wrapped headers and wide tables retain contained scrolling at the minimum window size and enlarged text.
 
 - Windows Installer repair restores files, registry and shortcuts without unnecessarily recaching its open package. Removal can also clean an advertised product without repeating the fresh-install license requirement. Windows Installer displays engine-driven execution progress, confirms cancellation and reports operation-specific success, cancellation and failure with terminal Finish/Close controls. Desktop Offline help uses one compact button and a controlled local documentation view, with actual native activation and local navigation checks on Windows and Linux.
@@ -51,6 +53,8 @@ All notable changes to this project will be documented here. The format follows 
 - Release publication accepts documented main-workflow path forms and can supersede verified completed older release-workflow attempts for the same source while retaining every required CI/security gate and immutable tag/artifact checks.
 
 ### Decisions
+
+- 2026-10-19: Manual native-startup incident replay selects a statically pinned run/source/attempt and independently verifies its assets and ZIP inventory. This diagnostic cannot confer publication authority; production artifact attempts and all native gates remain mandatory.
 
 - 2026-10-17: Use native Windows Installer progress subscriptions and operation-specific terminal dialogs. Share installed-help manifest validation between a controlled local-only desktop view and same-user Windows HTML association dispatch. Exercise real full-UI transactions and independent completion elections in a disposable ordinary-user Windows CI session; retain all silent, inventory and ownership gates within the 660-second job budget. Assemble the Windows ZIP/MSI/setup tuple once, qualify archive, interactive, maintenance and setup behavior on isolated hosts, then join exact asset hashes and complete evidence before candidate eligibility.
 

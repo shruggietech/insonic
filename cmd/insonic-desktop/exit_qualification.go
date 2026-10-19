@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -100,6 +101,7 @@ func qualifyNativeExitChild(path string) int {
 		}()
 	}
 	domReady := func(ctx context.Context) {
+		fmt.Fprintln(os.Stderr, "native-exit-stage=dom-ready")
 		go func() {
 			select {
 			case <-ready:
@@ -119,6 +121,7 @@ func qualifyNativeExitChild(path string) int {
 			if runtime.GOOS == "windows" {
 				wailsruntime.WindowShow(ctx)
 			}
+			fmt.Fprintln(os.Stderr, "native-exit-stage=native-action")
 			err := activateNativeExit(fixture.Action)
 			activated <- err
 			if err != nil {
@@ -126,8 +129,13 @@ func qualifyNativeExitChild(path string) int {
 			}
 		}()
 	}
+	fmt.Fprintln(os.Stderr, "native-exit-stage=controller-startup")
 	err = runDesktopApplication(bridge, startup, domReady, false)
+	fmt.Fprintln(os.Stderr, "native-exit-stage=shutdown")
 	close(finished)
+	if timedOut.Load() {
+		fmt.Fprintln(os.Stderr, "native-exit-stage=watchdog-timeout")
+	}
 	if err != nil || timedOut.Load() {
 		fmt.Fprintln(os.Stderr, "Native Exit did not finish normally.")
 		return 1
@@ -396,21 +404,75 @@ func qualifyNativeExit() int {
 	return 0
 }
 
-func runExitGUIChild(fixture exitFixture, config string) (exitObservation, error) {
+type nativeExitFailure struct {
+	Kind      string `json:"kind"`
+	Stage     string `json:"stage"`
+	Action    string `json:"action"`
+	Stdout    string `json:"stdout"`
+	Stderr    string `json:"stderr"`
+	ExitCode  int    `json:"exit_code"`
+	Truncated bool   `json:"truncated"`
+	TimedOut  bool   `json:"timed_out"`
+	Cancelled bool   `json:"cancelled"`
+}
+
+var nativeExitFailureSequence atomic.Uint32
+
+func retainNativeExitFailure(raw []byte) {
+	if os.Getenv("GITHUB_ACTIONS") != "true" || os.Getenv("INSONIC_PROCESS_STARTUP_DIAGNOSTICS") != "1" {
+		return
+	}
+	root := os.Getenv("GITHUB_WORKSPACE")
+	if !filepath.IsAbs(root) {
+		return
+	}
+	sequence := nativeExitFailureSequence.Add(1)
+	if sequence > 16 {
+		return
+	}
+	directory := filepath.Join(root, "build", "native")
+	if os.MkdirAll(directory, 0700) != nil {
+		return
+	}
+	name := filepath.Join(directory, fmt.Sprintf("native-exit-child-%d-%d-receipt.json", os.Getpid(), sequence))
+	file, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+	file.Write(append(raw, '\n'))
+}
+
+func interpretExitChild(fixture exitFixture, report process.CaptureResult, captureErr, contextErr error, diagnostic io.Writer) (exitObservation, error) {
 	var observation exitObservation
+	if captureErr == nil && contextErr == nil && report.ExitCode == 0 && !report.Truncated && json.Unmarshal(report.Stdout, &observation) == nil && observation.NativeExit == "passed" && observation.Action == fixture.Action {
+		return observation, nil
+	}
+	stage, last := "native-exit", -1
+	for _, candidate := range []string{"controller-startup", "dom-ready", "native-action", "shutdown", "watchdog-timeout"} {
+		if index := strings.LastIndex(string(report.Stderr), "native-exit-stage="+candidate); index > last {
+			stage, last = candidate, index
+		}
+	}
+	const limit = 65536
+	truncated := report.Truncated || len(report.Stdout) > limit || len(report.Stderr) > limit
+	evidence := nativeExitFailure{Kind: "native-exit-child-failure", Stage: stage, Action: fixture.Action, Stdout: string(report.Stdout[:min(len(report.Stdout), limit)]), Stderr: string(report.Stderr[:min(len(report.Stderr), limit)]), ExitCode: report.ExitCode, Truncated: truncated, TimedOut: contextErr == context.DeadlineExceeded || strings.Contains(string(report.Stderr), "native-exit-stage=watchdog-timeout"), Cancelled: contextErr == context.Canceled}
+	raw, _ := json.Marshal(evidence)
+	retainNativeExitFailure(raw)
+	fmt.Fprintln(diagnostic, string(raw))
+	if captureErr == nil {
+		captureErr = fmt.Errorf("native action receipt invalid")
+	}
+	return exitObservation{}, fmt.Errorf("native %s child failed: %w", fixture.Action, captureErr)
+}
+
+func runExitGUIChild(fixture exitFixture, config string) (exitObservation, error) {
 	executable, err := os.Executable()
 	if err != nil {
-		return observation, err
+		return exitObservation{}, err
 	}
 	ctx, stop := context.WithTimeout(context.Background(), 18*time.Second)
 	defer stop()
 	report, err := process.Capture(ctx, process.Spec{Executable: executable, Args: []string{"--exit-qualification-child", config}, MaxOutput: 64 << 10})
-	if err != nil {
-		fmt.Fprint(os.Stderr, string(report.Stderr))
-		return observation, fmt.Errorf("native %s child failed: %w", fixture.Action, err)
-	}
-	if json.Unmarshal(report.Stdout, &observation) != nil {
-		return observation, fmt.Errorf("native action receipt invalid")
-	}
-	return observation, nil
+	return interpretExitChild(fixture, report, err, ctx.Err(), os.Stderr)
 }

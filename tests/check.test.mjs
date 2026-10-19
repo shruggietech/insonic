@@ -138,3 +138,14 @@ test('artifact workflows require immutable pins and explicit archive, digest and
   assert.deepEqual(validate([{ ...upload, with: { ...upload.with, archive: 'true' } }, { ...download, with: { ...download.with, 'skip-decompress': 'false' } }]), []);
   assert.deepEqual(validateYAML('configuration.yml', JSON.stringify({ jobs: { fixture: { steps: [{ uses: 'actions/upload-artifact@v8' }] } } })), []);
 });
+
+
+test('only the manual native diagnostic may replay a statically pinned incident artifact',()=>{
+ const download={uses:'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333',if:"matrix.kind == 'desktop-startup'",with:{'digest-mismatch':'error','skip-decompress':false,'run-id':39097965060,name:'windows-desktop-input-d44d95b6e97d741a32cbf87323bf78c824c3155b-1'}};
+ const workflow=step=>JSON.stringify({on:{workflow_dispatch:{}},jobs:{diagnostic:{steps:[step]}}});
+ assert.deepEqual(validateYAML('.github/workflows/installer-invocation-diagnostic.yml',workflow(download)),[]);
+ assert.match(validateYAML('.github/workflows/ci.yml',workflow(download)).join('\n'),/run_attempt/);
+ for(const changed of [{...download,if:undefined},{...download,with:{...download.with,'run-id':'dynamic'}},{...download,with:{...download.with,name:'windows-desktop-input-main-1'}}])assert.match(validateYAML('.github/workflows/installer-invocation-diagnostic.yml',workflow(changed)).join('\n'),/run_attempt/);
+ const automatic=JSON.stringify({on:{push:{}},jobs:{diagnostic:{steps:[download]}}});
+ assert.match(validateYAML('.github/workflows/installer-invocation-diagnostic.yml',automatic).join('\n'),/run_attempt/);
+});

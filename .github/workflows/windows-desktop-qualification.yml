@@ -346,6 +346,7 @@ jobs:
           archive: true
           name: installer-receipts-windows-2022-${{ inputs.revision }}-${{ github.run_attempt }}
           path: |
+            build/native/windows-proof-failure.json
             build/native/windows-installer-receipt.json
             build/native/msi-lifecycle.json
             build/native/installer-capture

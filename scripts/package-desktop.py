@@ -776,11 +776,12 @@ def verify_archive_receipt(archive, receipt, expected_source_root=ROOT):
         # Historical published inventories retain their original semantics.
         # Current candidate evidence must independently match its own binaries.
         if value.get('schema_version') == VERSION:
-            if value.get('dependencies', {}).get('go') != qualify.LOCK['go']:
+            selected_go = json.loads((expected_source_root / 'internal/qualification/dependencies.json').read_text(encoding='utf-8'))['go']
+            if value.get('dependencies', {}).get('go') != selected_go:
                 raise ValueError('package compiler inventory differs from elected toolchain')
             go_module_notices.verify_notices(
                 resources / 'notices', value.get('dependencies', {}).get('modules'),
-                product_binaries(binaries, receipt['platform'], receipt['variant']), child, qualify.LOCK['go'])
+                product_binaries(binaries, receipt['platform'], receipt['variant']), child, selected_go)
         if sha(resources / 'companions/processing/processing-worker.py') != sha(expected_source_root / 'scripts/processing-worker.py'):
             raise ValueError('package processing worker differs from selected source')
         worker_assets = expected_source_root / 'internal/workers/assets'

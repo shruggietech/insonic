@@ -4,9 +4,14 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"github.com/shruggietech/insonic/internal/process"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -122,5 +127,100 @@ func TestExitOwnerFixtureReleasesWorkAfterClientCleanup(t *testing.T) {
 	}
 	if calls < 3 {
 		t.Fatal("fixture cases were skipped")
+	}
+}
+
+func TestExitFailureFixtureProcess(t *testing.T) {
+	if os.Getenv("INSONIC_EXIT_FAILURE_FIXTURE") != "1" {
+		return
+	}
+	fmt.Fprintln(os.Stdout, "[WebView2 Error] synthetic controller HRESULT 8007139f")
+	fmt.Fprintln(os.Stderr, "synthetic controller stack")
+	os.Exit(23)
+}
+
+func TestExitChildFailureRetainsBothActualStreams(t *testing.T) {
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	report, captureErr := process.Capture(ctx, process.Spec{Executable: executable, Args: []string{"-test.run=^TestExitFailureFixtureProcess$"}, Env: append(os.Environ(), "INSONIC_EXIT_FAILURE_FIXTURE=1"), MaxOutput: 65536})
+	var output bytes.Buffer
+	_, err = interpretExitChild(exitFixture{Action: "menu"}, report, captureErr, ctx.Err(), &output)
+	if err == nil {
+		t.Fatal("failed native child accepted")
+	}
+	var evidence nativeExitFailure
+	if err = json.Unmarshal(output.Bytes(), &evidence); err != nil {
+		t.Fatal(err, output.String())
+	}
+	if !strings.Contains(evidence.Stdout, "synthetic controller HRESULT 8007139f") || !strings.Contains(evidence.Stderr, "synthetic controller stack") || evidence.ExitCode != 23 || evidence.Action != "menu" || evidence.Kind != "native-exit-child-failure" {
+		t.Fatalf("lost native error: %+v", evidence)
+	}
+}
+
+func TestExitChildFailureClassificationsAndBounds(t *testing.T) {
+	for _, tc := range []struct {
+		name                string
+		context             error
+		truncated           bool
+		timedOut, cancelled bool
+	}{
+		{"failed", nil, false, false, false}, {"deadline", context.DeadlineExceeded, false, true, false}, {"cancelled", context.Canceled, false, false, true}, {"truncated", nil, true, false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var output bytes.Buffer
+			report := process.CaptureResult{Stdout: []byte(strings.Repeat("x", 65537)), Stderr: []byte("native-exit-stage=controller-startup\nstack"), ExitCode: 7, Truncated: tc.truncated}
+			_, err := interpretExitChild(exitFixture{Action: "close"}, report, contracts.Fail("operation_failed"), tc.context, &output)
+			var evidence nativeExitFailure
+			if err == nil || json.Unmarshal(output.Bytes(), &evidence) != nil || len(evidence.Stdout) != 65536 || !evidence.Truncated || evidence.TimedOut != tc.timedOut || evidence.Cancelled != tc.cancelled || evidence.Stage != "controller-startup" {
+				t.Fatalf("wrong failure classification: %v %s", err, output.String())
+			}
+		})
+	}
+}
+
+func TestExitChildSuccessIsUnchangedAndInvalidSuccessFails(t *testing.T) {
+	for _, raw := range []string{`{"action":"menu","native_exit":"passed","playback":"not-selected"}`, "not JSON", `{"action":"close","native_exit":"passed"}`} {
+		var output bytes.Buffer
+		observation, err := interpretExitChild(exitFixture{Action: "menu"}, process.CaptureResult{Stdout: []byte(raw), ExitCode: 0}, nil, nil, &output)
+		if strings.HasPrefix(raw, `{"action":"menu"`) {
+			if err != nil || output.Len() != 0 || observation.NativeExit != "passed" {
+				t.Fatal(err, output.String())
+			}
+		} else if err == nil || output.Len() == 0 {
+			t.Fatal("invalid success receipt accepted")
+		}
+	}
+}
+
+func TestExitFailureArtifactRetainsBothStreamsWithoutSuccessOutput(t *testing.T) {
+	root := t.TempDir()
+	t.Setenv("GITHUB_ACTIONS", "true")
+	t.Setenv("INSONIC_PROCESS_STARTUP_DIAGNOSTICS", "1")
+	t.Setenv("GITHUB_WORKSPACE", root)
+	var output bytes.Buffer
+	_, err := interpretExitChild(exitFixture{Action: "menu"}, process.CaptureResult{Stdout: []byte("native HRESULT"), Stderr: []byte("stack"), ExitCode: 7}, contracts.Fail("operation_failed"), nil, &output)
+	if err == nil {
+		t.Fatal("failure became success")
+	}
+	files, err := filepath.Glob(filepath.Join(root, "build", "native", "native-exit-child-*-receipt.json"))
+	if err != nil || len(files) != 1 {
+		t.Fatal(files, err)
+	}
+	raw, err := os.ReadFile(files[0])
+	if err != nil || !bytes.Equal(raw, output.Bytes()) {
+		t.Fatal("artifact differs from emitted evidence", err)
+	}
+}
+
+func TestExitChildOwnWatchdogIsReportedAsTimeout(t *testing.T) {
+	var output bytes.Buffer
+	_, err := interpretExitChild(exitFixture{Action: "menu"}, process.CaptureResult{Stderr: []byte("native-exit-stage=controller-startup\nnative-exit-stage=watchdog-timeout\n"), ExitCode: 1}, contracts.Fail("operation_failed"), nil, &output)
+	var evidence nativeExitFailure
+	if err == nil || json.Unmarshal(output.Bytes(), &evidence) != nil || !evidence.TimedOut || evidence.Cancelled || evidence.Stage != "watchdog-timeout" {
+		t.Fatalf("lost fixture timeout: %v %s", err, output.String())
 	}
 }
