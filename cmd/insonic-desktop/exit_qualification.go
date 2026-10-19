@@ -471,7 +471,7 @@ func interpretExitChild(fixture exitFixture, report process.CaptureResult, captu
 		return observation, nil
 	}
 	stage, last := "native-exit", -1
-	for _, candidate := range []string{"controller-startup", "dom-ready", "native-action", "menu-open", "menu-selected", "menu-request", "shutdown", "watchdog-timeout"} {
+	for _, candidate := range []string{"controller-startup", "dom-ready", "native-action", "menu-mnemonic", "menu-open", "menu-selected", "menu-request", "shutdown", "watchdog-timeout"} {
 		if index := strings.LastIndex(string(report.Stderr), "native-exit-stage="+candidate); index > last {
 			stage, last = candidate, index
 		}

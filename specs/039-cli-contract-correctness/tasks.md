@@ -83,3 +83,5 @@ US1 example: command-registry regressions and catalog migration regressions run 
 ## Phase 11: Native convergence
 
 - [ ] T034 Replace the demonstrated unreliable posted menu-selection messages with actual owned-foreground Alt+F then X input, retain active-menu ownership, partial-input refusal, callback/action diagnostics and existing watchdogs; require the shared browser-release proof in source and all package routes, then repeat corrected native and full exact-head CI (FR-019..022; SC-005/006).
+
+- [ ] T035 Restore the specified native Alt+F menu route while the WebView owns focus, using only this application UI thread and owned native window; preserve real SendInput qualification, ordinary text/other shortcuts and callback/normal-exit proofs, then repeat all affected checks and exact-head CI (FR-020..022; SC-006).
