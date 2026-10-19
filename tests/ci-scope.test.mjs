@@ -263,3 +263,18 @@ test('Windows package setup overlaps source work but publication still requires 
  assert.ok(ci.jobs.candidate.needs.includes('media-windows'));
  assert.ok(ci.jobs.candidate.if.includes("needs.media-windows.result == 'success'"));
 });
+
+
+test('focused native source diagnosis keeps production compiler and decoder prerequisites',()=>{
+ const workflow=parse(readFileSync(new URL('../.github/workflows/installer-invocation-diagnostic.yml',import.meta.url),'utf8'));
+ const steps=workflow.jobs.invocation.steps;
+ const decoder=steps.findIndex(step=>step.run?.includes('zstandard==0.25.0'));
+ const prepare=steps.findIndex(step=>step.run==='python scripts/qualify.py prepare');
+ assert.ok(decoder>=0 && decoder<prepare);
+ assert.match(steps[decoder].run,/--no-input --only-binary=:all: --target build\/native\/python/);
+ assert.equal(steps[decoder].if,"matrix.kind == 'desktop-startup' && inputs.startup_source");
+ assert.ok(steps.findIndex(step=>step.uses?.startsWith('msys2/setup-msys2@'))<prepare);
+ assert.ok(steps.some(step=>step.run==='npm --prefix desktop/frontend ci --ignore-scripts'));
+ assert.equal(workflow.permissions.actions,'read');
+ assert.match(workflow.jobs.invocation['timeout-minutes'],/11 \|\| 5/);
+});
