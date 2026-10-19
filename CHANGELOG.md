@@ -18,6 +18,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Windows WebView resource deferrals release their acquired COM references after completion instead of incrementing the reference count.
+
 - Release candidate collection verifies independent archives and copied bytes with bounded parallel workers, retaining every integrity check and writing its completion manifest only after all checks succeed.
 
 - Windows Alt+F forwards its original native system-key context to the File menu while the WebView owns focus, including inside offline help. Claimed keys retain their handled disposition. The native menu keeps keyboard input in its host while active and restores the prior child focus on cancellation.
@@ -103,6 +105,8 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-19: Maintain the pinned Windows WebView binding as verified repository source so owned-window destruction explicitly closes its controller. Preserve original upstream checksums and licenses, verify the exact patch tree and allow only its declared local replacement through package notice verification. Real native release, original deadlines and every exact-source delivery gate remain required.
 
 - 2026-10-19: Native asset preparation reuses checksum-verified atomic acquisition with bounded transient retries. Candidate collection overlaps independent verification and copy/hash work with four workers while retaining deterministic metadata, private verifier scratch directories, all producer/proof gates and final completion authority.
+
+- 2026-10-19: Correct the pinned WebView resource-deferral Release dispatch with a native reference-count regression and checksum-bound source allowlist. Keep unresolved startup observations separate from demonstrated ownership corrections.
 
 ## [1.0.1] - 2026-10-15
 

@@ -121,3 +121,11 @@ After the 240-child cold-start observation without failure, compare the same sou
 ### 2026-10-19: bounded independent candidate verification
 
 The complete delivery run passed all 25 elected jobs but required 675 seconds. Its final collection step spent 24 seconds verifying and copying immutable inputs serially after Windows producers completed. Overlap independent package, installer and documentation verification with at most four workers, preserving metadata order. Validate distinct output names before dispatch. Join every verifier before creating output, then join every copy and hash comparison before writing checksums and the final completion manifest. Trusted verifiers retain private extraction directories and read-only source inputs. No producer, source/receipt, package, signature, checksum or native gate is removed. Measure the next exact-head run against the unchanged 660-second budget.
+
+### 2026-10-19: owner-capped evidence and deferral reference release
+
+The final authorized diagnostic reproduces the pre-DOM stall after the document handler returns but before script/navigation completion. Inspect the framework HTML/response/deferral boundary rather than infer that handler return proves browser receipt. The native wait snapshot covers only two UI threads and proves no general absence of native faults. The run exhausts the one-run diagnostic cap; no further diagnostic workflow or rerun is elected.
+
+Correct the separately demonstrated deferral ownership bug: ICoreWebView2Deferral.Release calls AddRef. Prove the incorrect native dispatch with an unshown reference-count regression, change only that dispatch, preserve Complete/error semantics and extend the explicit checksum-bound allowlist to this third upstream file. Retain every original file identity and all four additions. Validate through local checks and one ordinary full CI for the concrete change; preserve the unresolved startup cause in T053 regardless of green validation.
+
+The preceding exact-head CI at fea2349 passed all 25 elected jobs in 641 seconds. Candidate collection took 25.69 seconds versus 23.98 previously, so that sample does not demonstrate a phase speedup or attribute the total-CI reduction to parallel scheduling.

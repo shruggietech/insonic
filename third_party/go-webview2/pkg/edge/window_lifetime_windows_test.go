@@ -278,6 +278,41 @@ func TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread(t *testing.T) {
 			t.Fatal("failed Close stranded the window owner")
 		}
 	})
+	t.Run("resource deferral release balances its owned reference", func(t *testing.T) {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+		owner := windows.GetCurrentThreadId()
+		refs, addCalls, releaseCalls, completeCalls := 1, 0, 0, 0
+		checkThread := func() {
+			if windows.GetCurrentThreadId() != owner {
+				t.Error("resource deferral ran outside its owning UI thread")
+			}
+		}
+		table := &ICoreWebView2DeferralVtbl{
+			_IUnknownVtbl: _IUnknownVtbl{
+				AddRef:  NewComProc(func(uintptr) uintptr { checkThread(); addCalls++; refs++; return uintptr(refs) }),
+				Release: NewComProc(func(uintptr) uintptr { checkThread(); releaseCalls++; refs--; return uintptr(refs) }),
+			},
+			Complete: NewComProc(func(uintptr) uintptr { checkThread(); completeCalls++; return 0 }),
+		}
+		deferral := &ICoreWebView2Deferral{Vtbl: table}
+		if err := deferral.AddRef(); err != nil {
+			t.Fatal(err)
+		}
+		if err := deferral.Complete(); err != nil {
+			t.Fatal(err)
+		}
+		if err := deferral.Release(); err != nil {
+			t.Fatal(err)
+		}
+		if err := deferral.Release(); err != nil {
+			t.Fatal(err)
+		}
+		if refs != 0 || addCalls != 1 || releaseCalls != 2 || completeCalls != 1 {
+			t.Fatalf("completed deferral retained references: refs=%d add=%d release=%d complete=%d", refs, addCalls, releaseCalls, completeCalls)
+		}
+		runtime.KeepAlive(deferral)
+	})
 	t.Run("owned COM apartment is balanced on its original thread", func(t *testing.T) {
 		runtime.LockOSThread()
 		defer runtime.UnlockOSThread()

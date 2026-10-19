@@ -155,3 +155,7 @@ US1 example: command-registry regressions and catalog migration regressions run 
 ## Phase 28: Convergence
 
 - [ ] T054 CRITICAL: Bring measured complete CI below 660 seconds by overlapping independent immutable candidate verification and copy/hash checks with bounded workers, preserving source/variant/installer/documentation authority, deterministic manifest ordering, every failure and the final completion barrier; prove overlap and failure/tamper rejection, then measure exact-head hosted delivery per Constitution V, FR-018/022 and SC-005 (partial).
+
+## Phase 29: Convergence
+
+- [x] T055 Correct the demonstrated ICoreWebView2Deferral.Release AddRef dispatch with an unshown native reference-count regression, preserve Complete/error behavior, extend the exact maintained patch authority to this one additional upstream file with original hashes/notices intact, and pass affected local/source/notice checks; required ordinary exact-head CI remains in T033. Do not claim this establishes the pre-DOM stall cause or dispatch another diagnostic per FR-017/020/022 and SC-006 (contradicts).

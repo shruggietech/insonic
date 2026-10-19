@@ -1,5 +1,8 @@
 //go:build windows
 
+// insonic maintained change: release the owned deferral reference instead of adding one.
+// See NOTICE.insonic and the repository source manifest for patch authority.
+
 package edge
 
 import (
@@ -31,7 +34,7 @@ func (i *ICoreWebView2Deferral) AddRef() error {
 
 // Release decrements the reference count of ICoreWebView2Deferral interface
 func (i *ICoreWebView2Deferral) Release() error {
-	_, _, err := i.Vtbl.AddRef.Call(uintptr(unsafe.Pointer(i)))
+	_, _, err := i.Vtbl.Release.Call(uintptr(unsafe.Pointer(i)))
 	if err != nil && !errors.Is(err, windows.ERROR_SUCCESS) {
 		return err
 	}

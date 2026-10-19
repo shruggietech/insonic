@@ -409,7 +409,7 @@
     "go.sum": "dd11e9e216a039f5f898a6c5223cb52cfe4b7a468b2b03a80ba2cee38a29427f",
     "LICENSE": "3f10f3374cf30076196eb239667ce6063c64e4275afd2b397f6343f69676bb79",
     "LICENSE.insonic": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
-    "NOTICE.insonic": "2c428903e3d81c3647bfdf4060fd190c4d71b7ba781a40db7182dd3e3c3f02d0",
+    "NOTICE.insonic": "05a0921d784569c72e36289e81b56d3b54a5174b8ceba808ba06d5c223964fbb",
     "README.md": "ba63d931c3298a6739ed6631d5d0dcf31cf74a66c67db041a71a7de3db97a26e",
     "Taskfile.yml": "540c24f999784c9571d1024330dde3b1911d40540b27955c207a907f3d3b00af",
     "webviewloader/env_create.go": "d4d684e52fb7247a6a77e83c5d9ccb40aae0c48305689a8df0b0378b3c0cf93e",
@@ -767,7 +767,7 @@
     "pkg/edge/ICoreWebView2CookieList.go": "d9769856b90da3249fb89e38d2573d4b0813651ff1161d8c10d0959014b1e2a8",
     "pkg/edge/ICoreWebView2CookieManager.go": "b691564a7566032b9ce509f9e58aaa0ca8394068c333b00adadc2659333925ae",
     "pkg/edge/ICoreWebView2CreateCoreWebView2ControllerCompletedHandler.go": "97e153e1ae7da5821bd371395c8d4be93a8d9160cab8d3dc7913a8f59666ae49",
-    "pkg/edge/ICoreWebView2Deferral.go": "9a7d1603b9e995e0cc805deb19f30388d457575c817c7cad288d1686b0c8aee0",
+    "pkg/edge/ICoreWebView2Deferral.go": "c238e58c111e652da13fe7b15229691521cca8c26b0184bb80cda038bea1dc03",
     "pkg/edge/ICoreWebView2ExecuteScriptCompletedHandler.go": "9ac66b56c62153d93a3aea88c2b2e31985b434b4117863ac46dd12d1d8c5c01e",
     "pkg/edge/ICoreWebView2File.go": "099ad5dc6f1fda92a3e71a55ea4fb48fb0275fbc930bd22a06cddf86732bf8ac",
     "pkg/edge/ICoreWebView2HttpHeadersCollectionIterator.go": "74d398ad403eb25c6ea1850d7f9d1f949ef5e91f9c4717aa6f95170674a11eda",
@@ -797,7 +797,7 @@
     "pkg/edge/IStream.go": "7d514fcb17784757c36adac30edeaa73301ee3037ed4a1a3e3522798d8fc1e5a",
     "pkg/edge/version_map.go": "6af24de64d1095dbd04247b2417ecd698d87a8de996684cb18bac436103ba7e7",
     "pkg/edge/window_lifetime_windows.go": "979560385f9f0e1b15f5269b3e6d83ddc1c62457192acdf692d2bb40c6a1a0cf",
-    "pkg/edge/window_lifetime_windows_test.go": "7aa0a06d4861d5f8c2fd09cbcf5681eb14c114da23bf1a4a75d87889e96b8ce2",
+    "pkg/edge/window_lifetime_windows_test.go": "b49820cf057e2522c8a729d4d249f54e1b071c8a49ceb044da59cfc9d6f07c2c",
     "pkg/combridge/bridge.go": "7624f925a08376123b0e06f70a8e398c0a02d8e084e3ae81f7d248939680c58a",
     "pkg/combridge/iunknown.go": "20a46decc58228afa73b693caaa4eead51b9a4966bef9f68b83666c7f0986d36",
     "pkg/combridge/iunknown_impl.go": "f4ced0d5e8f64ae3c524b08149ed8c4bc52d29260d615065a3307bd6b9d0b3e9",
@@ -805,8 +805,9 @@
     "pkg/combridge/vtables.go": "068e49113d50685fd82bf5dc0041f9d0bb60187296e657596ab57c92957006e0",
     "internal/w32/w32.go": "1fb79500ac8da0dffe518eb3965c1f7bf51b2e8103cac3d9a3dc0821ef6779ad"
   },
-  "patched_sum": "h1:fssZjKfLNf2P65Fv3RYCGxNt8jBEP7xTOJkChqBtgZM=",
+  "patched_sum": "h1:kTYZQVqQHPK7UwLeu1HM5H2ioRpOKTlprmJBuPTLy0k=",
   "modified": [
+    "pkg/edge/ICoreWebView2Deferral.go",
     "pkg/edge/chromium.go",
     "pkg/edge/corewebview2.go"
   ],

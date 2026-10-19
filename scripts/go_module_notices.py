@@ -47,7 +47,7 @@ def repository_patch_source():
     modified = sorted(name for name in upstream if current.get(name) != upstream[name])
     added = sorted(set(current) - set(upstream))
     expected_added = ['LICENSE.insonic', 'NOTICE.insonic', 'pkg/edge/window_lifetime_windows.go', 'pkg/edge/window_lifetime_windows_test.go']
-    if (not set(upstream) <= set(current) or modified != ['pkg/edge/chromium.go', 'pkg/edge/corewebview2.go'] or added != expected_added
+    if (not set(upstream) <= set(current) or modified != ['pkg/edge/ICoreWebView2Deferral.go', 'pkg/edge/chromium.go', 'pkg/edge/corewebview2.go'] or added != expected_added
             or sorted(authority.get('modified', [])) != modified or sorted(authority.get('added', [])) != added):
         raise ValueError('repository module patch scope differs')
     directory = ROOT / PATCH_DIRECTORY
