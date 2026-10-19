@@ -4,7 +4,7 @@ import { readFile, readdir, lstat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 export const webviewModule = 'github.com/wailsapp/go-webview2';
-export const webviewVersion = 'v1.0.22';
+export const webviewVersion = 'v1.0.23';
 const directory = 'third_party/go-webview2';
 const addedFiles = ['LICENSE.insonic', 'NOTICE.insonic', 'pkg/edge/window_lifetime_windows.go', 'pkg/edge/window_lifetime_windows_test.go'];
 
@@ -33,7 +33,7 @@ export async function verifyWebviewSource(root) {
   if (!new RegExp(`^replace ${webviewModule.replaceAll('.', '\\.')} => \\./${directory}$`, 'm').test(mod)) throw new Error('WebView maintained source replacement is absent');
   const changed = upstream.filter(name => authority.files[name] !== authority.upstream_files[name]);
   const added = current.filter(name => !Object.hasOwn(authority.upstream_files, name));
-  if (upstream.some(name => !Object.hasOwn(authority.files, name)) || JSON.stringify(changed) !== JSON.stringify(['pkg/edge/ICoreWebView2Deferral.go', 'pkg/edge/chromium.go', 'pkg/edge/corewebview2.go']) || JSON.stringify(added) !== JSON.stringify(addedFiles) || JSON.stringify([...authority.modified].sort()) !== JSON.stringify(changed) || JSON.stringify([...authority.added].sort()) !== JSON.stringify(added)) throw new Error('WebView maintained patch scope differs');
+  if (upstream.some(name => !Object.hasOwn(authority.files, name)) || JSON.stringify(changed) !== JSON.stringify(['pkg/edge/ICoreWebView2Deferral.go', 'pkg/edge/ICoreWebView2WebResourceRequestedEventArgs.go', 'pkg/edge/ICoreWebView2WebResourceResponse.go', 'pkg/edge/chromium.go', 'pkg/edge/corewebview2.go']) || JSON.stringify(added) !== JSON.stringify(addedFiles) || JSON.stringify([...authority.modified].sort()) !== JSON.stringify(changed) || JSON.stringify([...authority.added].sort()) !== JSON.stringify(added)) throw new Error('WebView maintained patch scope differs');
   const actual = [];
   async function inspect(prefix = '') {
     const path = join(root, directory, prefix);

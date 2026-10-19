@@ -227,7 +227,7 @@ class GoModuleNoticesTests(unittest.TestCase):
             self.selected = [dict(logical, Replace=dict(logical['Replace'], Dir=str(self.root)))]
             with self.assertRaisesRegex(ValueError, 'directory'):
                 self.collect()
-        for value in [dict(logical, Path='example.test/unapproved'), dict(logical, Version='v1.0.23'),
+        for value in [dict(logical, Path='example.test/unapproved'), dict(logical, Version='v99.99.99'),
                       dict(logical, Replace={'Path': '../unapproved'}),
                       dict(logical, Replace=dict(logical['Replace'], Version='v1.0.22'))]:
             with self.subTest(value=value), self.assertRaises(ValueError):

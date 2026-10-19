@@ -36,12 +36,13 @@ func (i *ICoreWebView2WebResourceRequestedEventArgs) Release() uint32 {
 }
 
 func (i *ICoreWebView2WebResourceRequestedEventArgs) PutResponse(response *ICoreWebView2WebResourceResponse) error {
-	
 
+	recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseAssignment, false, 0, uintptr(unsafe.Pointer(response)))
 	hr, _, _ := i.vtbl.PutResponse.Call(
 		uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(response)),
 	)
+	recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseAssignment, true, hr, 0)
 	if windows.Handle(hr) != windows.S_OK {
 		return windows.Errno(hr)
 	}
@@ -49,7 +50,7 @@ func (i *ICoreWebView2WebResourceRequestedEventArgs) PutResponse(response *ICore
 }
 
 func (i *ICoreWebView2WebResourceRequestedEventArgs) GetRequest() (*ICoreWebView2WebResourceRequest, error) {
-	
+
 	var request *ICoreWebView2WebResourceRequest
 	hr, _, _ := i.vtbl.GetRequest.Call(
 		uintptr(unsafe.Pointer(i)),
@@ -64,10 +65,12 @@ func (i *ICoreWebView2WebResourceRequestedEventArgs) GetRequest() (*ICoreWebView
 func (i *ICoreWebView2WebResourceRequestedEventArgs) GetDeferral() (*ICoreWebView2Deferral, error) {
 	var deferral *ICoreWebView2Deferral
 
+	recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseDeferral, false, 0, 0)
 	hr, _, _ := i.vtbl.GetDeferral.Call(
 		uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(&deferral)),
 	)
+	recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseDeferral, true, hr, uintptr(unsafe.Pointer(deferral)))
 	if windows.Handle(hr) != windows.S_OK {
 		return nil, syscall.Errno(hr)
 	}

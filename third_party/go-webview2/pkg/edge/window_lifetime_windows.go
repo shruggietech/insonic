@@ -53,14 +53,177 @@ func (e *Chromium) nativeSystemKeyHandler() func(uintptr, NativeSystemKeyEvent) 
 // WindowBootstrapSnapshot contains only fixed counters and the browser version,
 // never request URLs, script contents or application data.
 type WindowBootstrapSnapshot struct {
-	OffThreadEvents       uint64 `json:"off_thread_events"`
-	RuntimeVersion        string `json:"runtime_version"`
-	NavigationRequested   uint64 `json:"navigation_requested"`
-	NavigationAccepted    uint64 `json:"navigation_accepted"`
-	ResourceEntered       uint64 `json:"resource_entered"`
-	ResourceReturned      uint64 `json:"resource_returned"`
-	NavigationCompleted   uint64 `json:"navigation_completed"`
-	CompletionWithoutHost uint64 `json:"completion_without_host"`
+	OffThreadEvents       uint64                          `json:"off_thread_events"`
+	RuntimeVersion        string                          `json:"runtime_version"` // Available-loader lookup, not created-environment identity.
+	NavigationRequested   uint64                          `json:"navigation_requested"`
+	NavigationAccepted    uint64                          `json:"navigation_accepted"`
+	ResourceEntered       uint64                          `json:"resource_entered"`
+	ResourceReturned      uint64                          `json:"resource_returned"`
+	NavigationCompleted   uint64                          `json:"navigation_completed"`
+	CompletionWithoutHost uint64                          `json:"completion_without_host"`
+	FirstResponse         WindowBootstrapResponseSnapshot `json:"first_response"`
+}
+
+// WindowBootstrapCallSnapshot records actual native call boundaries. A zero
+// HRESULT is meaningful only when Returned is nonzero. No native address escapes.
+type WindowBootstrapCallSnapshot struct {
+	Entered        uint64 `json:"entered"`
+	Returned       uint64 `json:"returned"`
+	OffThreadCalls uint64 `json:"off_thread_calls"`
+	LastHRESULT    uint32 `json:"last_hresult"`
+}
+
+// WindowBootstrapResponseSnapshot observes only the first native resource request.
+// These counters establish publication calls, not browser consumption or rendering.
+type WindowBootstrapResponseSnapshot struct {
+	Assignment      WindowBootstrapCallSnapshot `json:"assignment"`
+	Headers         WindowBootstrapCallSnapshot `json:"headers"`
+	Status          WindowBootstrapCallSnapshot `json:"status"`
+	Reason          WindowBootstrapCallSnapshot `json:"reason"`
+	Content         WindowBootstrapCallSnapshot `json:"content"`
+	Deferral        WindowBootstrapCallSnapshot `json:"deferral"`
+	Completion      WindowBootstrapCallSnapshot `json:"completion"`
+	StatusCode      int                         `json:"status_code"`
+	ContentAttempts uint64                      `json:"content_attempts"`
+	ContentBytes    uint64                      `json:"content_bytes"`
+	StreamsCreated  uint64                      `json:"streams_created"`
+	StreamFailures  uint64                      `json:"stream_failures"`
+}
+
+const (
+	bootstrapResponseAssignment uint8 = iota
+	bootstrapResponseHeaders
+	bootstrapResponseStatus
+	bootstrapResponseReason
+	bootstrapResponseContent
+	bootstrapResponseDeferral
+	bootstrapResponseCompletion
+	bootstrapResponseContentAttempt
+	bootstrapResponseStreamCreated
+	bootstrapResponseStreamFailed
+)
+
+// Borrowed native identities are used only for equality, never dereferenced or
+// retained as COM references. They are retired on their owned Release or after
+// acquiring the deferral, and the fixed state disappears with its window owner.
+type windowBootstrapResponse struct {
+	seen                     bool
+	args, response, deferral uintptr
+}
+
+func recordWindowBootstrapRequest(e *Chromium, args *ICoreWebView2WebResourceRequestedEventArgs) {
+	if !bootstrapDiagnosticsEnabled.Load() {
+		return
+	}
+	ownedWindows.Lock()
+	defer ownedWindows.Unlock()
+	entry := ownedWindows.values[e.hwnd]
+	if entry == nil || entry.chromium != e || entry.closed || entry.firstRequest.seen {
+		return
+	}
+	if entry.thread != windows.GetCurrentThreadId() {
+		return
+	}
+	entry.firstRequest = windowBootstrapResponse{seen: true, args: uintptr(unsafe.Pointer(args))}
+}
+
+// Never hold the ownership lock across a native call: COM may pump callbacks.
+// value is an internal identity for assignment/deferral and a byte count for the
+// content attempt. Native calls and their HRESULT handling remain in the wrappers.
+func recordBootstrapResponseCall(identity uintptr, event uint8, returned bool, hr, value uintptr) {
+	if !bootstrapDiagnosticsEnabled.Load() || identity == 0 {
+		return
+	}
+	ownedWindows.Lock()
+	defer ownedWindows.Unlock()
+	for _, entry := range ownedWindows.values {
+		if entry.closed {
+			continue
+		}
+		first := &entry.firstRequest
+		var expected uintptr
+		switch event {
+		case bootstrapResponseAssignment, bootstrapResponseDeferral:
+			expected = first.args
+		case bootstrapResponseCompletion:
+			expected = first.deferral
+		default:
+			expected = first.response
+		}
+		if identity != expected {
+			continue
+		}
+		snapshot := &entry.bootstrap.FirstResponse
+		var call *WindowBootstrapCallSnapshot
+		switch event {
+		case bootstrapResponseAssignment:
+			call = &snapshot.Assignment
+			if !returned {
+				first.response = value
+			} else if hr != 0 {
+				first.args = 0
+			}
+		case bootstrapResponseHeaders:
+			call = &snapshot.Headers
+		case bootstrapResponseStatus:
+			call = &snapshot.Status
+			if !returned {
+				snapshot.StatusCode = int(value)
+			}
+		case bootstrapResponseReason:
+			call = &snapshot.Reason
+		case bootstrapResponseContent:
+			call = &snapshot.Content
+		case bootstrapResponseDeferral:
+			call = &snapshot.Deferral
+			if returned {
+				if hr == 0 {
+					first.deferral = value
+				}
+				first.args = 0
+			}
+		case bootstrapResponseCompletion:
+			call = &snapshot.Completion
+		case bootstrapResponseContentAttempt:
+			snapshot.ContentAttempts++
+			snapshot.ContentBytes = uint64(value)
+			return
+		case bootstrapResponseStreamCreated:
+			snapshot.StreamsCreated++
+			return
+		case bootstrapResponseStreamFailed:
+			snapshot.StreamFailures++
+			return
+		default:
+			return
+		}
+		if returned {
+			call.Returned++
+			call.LastHRESULT = uint32(hr)
+		} else {
+			call.Entered++
+			if entry.thread != windows.GetCurrentThreadId() {
+				call.OffThreadCalls++
+			}
+		}
+		return
+	}
+}
+
+func retireBootstrapResponse(identity uintptr, deferral bool) {
+	if !bootstrapDiagnosticsEnabled.Load() || identity == 0 {
+		return
+	}
+	ownedWindows.Lock()
+	defer ownedWindows.Unlock()
+	for _, entry := range ownedWindows.values {
+		if deferral && entry.firstRequest.deferral == identity {
+			entry.firstRequest.deferral = 0
+		}
+		if !deferral && entry.firstRequest.response == identity {
+			entry.firstRequest.response = 0
+		}
+	}
 }
 
 var bootstrapDiagnosticsEnabled atomic.Bool
@@ -123,12 +286,13 @@ func OwnedWindowBootstrapSnapshots() []WindowBootstrapSnapshot {
 }
 
 type windowLifetime struct {
-	bootstrap WindowBootstrapSnapshot
-	chromium  *Chromium
-	thread    uint32
-	closed    bool
-	menuDepth uint32
-	menuFocus uintptr
+	bootstrap    WindowBootstrapSnapshot
+	firstRequest windowBootstrapResponse
+	chromium     *Chromium
+	thread       uint32
+	closed       bool
+	menuDepth    uint32
+	menuFocus    uintptr
 }
 
 // Native code retains only HWNDs and a static callback, never a Go object pointer.

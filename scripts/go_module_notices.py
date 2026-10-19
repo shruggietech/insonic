@@ -9,7 +9,7 @@ import shutil
 
 ROOT = Path(__file__).resolve().parents[1]
 PATCH_MODULE = 'github.com/wailsapp/go-webview2'
-PATCH_VERSION = 'v1.0.22'
+PATCH_VERSION = 'v1.0.23'
 PATCH_DIRECTORY = 'third_party/go-webview2'
 PATCH_SOURCE = 'repository-local:' + PATCH_DIRECTORY
 
@@ -47,7 +47,7 @@ def repository_patch_source():
     modified = sorted(name for name in upstream if current.get(name) != upstream[name])
     added = sorted(set(current) - set(upstream))
     expected_added = ['LICENSE.insonic', 'NOTICE.insonic', 'pkg/edge/window_lifetime_windows.go', 'pkg/edge/window_lifetime_windows_test.go']
-    if (not set(upstream) <= set(current) or modified != ['pkg/edge/ICoreWebView2Deferral.go', 'pkg/edge/chromium.go', 'pkg/edge/corewebview2.go'] or added != expected_added
+    if (not set(upstream) <= set(current) or modified != ['pkg/edge/ICoreWebView2Deferral.go', 'pkg/edge/ICoreWebView2WebResourceRequestedEventArgs.go', 'pkg/edge/ICoreWebView2WebResourceResponse.go', 'pkg/edge/chromium.go', 'pkg/edge/corewebview2.go'] or added != expected_added
             or sorted(authority.get('modified', [])) != modified or sorted(authority.get('added', [])) != added):
         raise ValueError('repository module patch scope differs')
     directory = ROOT / PATCH_DIRECTORY

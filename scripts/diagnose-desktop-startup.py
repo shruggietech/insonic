@@ -4,6 +4,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from threading import Thread
 import ctypes
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -22,6 +23,7 @@ ROOT=pipeline.ROOT
 INCIDENT_REVISION='d44d95b6e97d741a32cbf87323bf78c824c3155b'
 INCIDENT_RUN=39097965060
 LIMIT=65536
+ABI_CONTROL_FILE_SHA256='788ed4d41dc722f387c67e0ba873608ae5ec5debd338316ba1e81440021782c5'
 
 
 def incident_archive():
@@ -63,6 +65,7 @@ class BoundedStream:
 
 def capture(args,directory,env,timeout,*,require_release=False,startup_hide=False):
     started=time.monotonic();timed_out=False;readers=[]
+    timing={}
     output,error=BoundedStream(),BoundedStream()
     try:
         selected=[str(arg) for arg in args]
@@ -72,8 +75,14 @@ def capture(args,directory,env,timeout,*,require_release=False,startup_hide=Fals
                 reader=Thread(target=stream.drain,args=(pipe,),daemon=True);reader.start();readers.append(reader)
             try:
                 tree.process.wait(timeout=timeout)
+                timing['root_exit_elapsed_seconds']=round(time.monotonic()-started,6)
                 if tree.process.returncode == 0 and (require_release or native_webview_probe(args,env)):
-                    if not tree.wait_for_descendants(timeout-(time.monotonic()-started)):
+                    release_started=time.monotonic()
+                    remaining=max(0,timeout-(release_started-started))
+                    timing['release_budget_seconds']=round(remaining,6)
+                    released=tree.wait_for_descendants(remaining)
+                    timing['release_wait_elapsed_seconds']=round(time.monotonic()-release_started,6)
+                    if not released:
                         raise subprocess.TimeoutExpired(args,timeout)
             except subprocess.TimeoutExpired:
                 timed_out=True;tree.kill()
@@ -90,6 +99,7 @@ def capture(args,directory,env,timeout,*,require_release=False,startup_hide=Fals
             'stdout':bytes(output.data).decode('utf-8',errors='replace'),'stderr':bytes(error.data).decode('utf-8',errors='replace'),
             'stdout_bytes':output.total,'stderr_bytes':error.total,'capture_incomplete':incomplete,
             'truncated':output.total>LIMIT or error.total>LIMIT or incomplete,'job_before_close':members,
+            'timing':timing,
             'owned_release':bool(require_release and not timed_out and code==0 and members.get('available') and members.get('assigned')==0 and not members.get('pids'))}
 
 
@@ -120,7 +130,7 @@ def build_probe_cli(package,cli):
     return package.sha(cli)
 
 
-def build_probe_gui(package,gui,root):
+def build_probe_gui(package,gui,root,*,overlay=None):
     # Derive one diagnostic GUI from selected source; the verified incident CLI,
     # dependencies and assets remain explicit inputs. This is no longer an exact
     # incident archive and can never confer package/publication qualification.
@@ -130,8 +140,63 @@ def build_probe_gui(package,gui,root):
     node=Path(shutil.which('node',path=env['PATH']) or '')
     if not node.is_file():raise ValueError('selected diagnostic Node executable is missing')
     source_child([node,node.parent/'node_modules/npm/bin/npm-cli.js','--prefix','desktop/frontend','run','build'],env)
-    source_child(['go','build','-tags','desktop,production,system_ladybug','-ldflags','-H windowsgui','-o',gui,'./cmd/insonic-desktop'],env)
+    args=['go','build','-tags','desktop,production,system_ladybug','-ldflags','-H windowsgui','-o',gui,'./cmd/insonic-desktop']
+    if overlay is not None:args[2:2]=['-overlay',overlay]
+    source_child(args,env)
     return package.sha(gui)
+
+
+def historical_abi_overlay(location):
+    # A diagnostic-only Go overlay supplies the exact historical upstream file.
+    # The working source remains corrected; no arbitrary overlay is accepted.
+    selected=ROOT/'third_party/go-webview2/pkg/edge/ICoreWebView2Controller3.go'
+    fixed=selected.read_bytes()
+    after=b'uintptr(boolToInt(value))'
+    before=b'uintptr(unsafe.Pointer(&value))'
+    if fixed.count(after)!=1:raise ValueError('corrected BOOL source differs from the selected upstream method')
+    historical=fixed.replace(after,before)
+    if hashlib.sha256(historical).hexdigest()!=ABI_CONTROL_FILE_SHA256:
+        raise ValueError('historical BOOL control source checksum differs')
+    location.mkdir(parents=True,exist_ok=True)
+    control=location/'ICoreWebView2Controller3.go'
+    control.write_bytes(historical)
+    overlay=location/'overlay.json'
+    overlay.write_text(json.dumps({'Replace':{str(selected.resolve()):str(control.resolve())}})+'\n',encoding='utf-8',newline='\n')
+    return overlay
+
+
+def observe_abi_comparison(package,gui,root,location,env,evidence,summary,*,startup_hide):
+    # Two predeclared arms, each with its own fixed budget. Stop each arm at its
+    # first failure; a failed corrected arm remains a failed workflow. The old
+    # ABI control is never used in a product package or qualification claim.
+    overlay=historical_abi_overlay(location/'abi-control-source')
+    control_root=location/'abi-control-payload'
+    if control_root.resolve().is_relative_to(root.resolve()):raise ValueError('ABI control payload overlaps selected source payload')
+    shutil.copytree(root,control_root)
+    control_binaries,_=package.package_directories(control_root,'windows_amd64','desktop')
+    control_gui=control_binaries/gui.name
+    digest=build_probe_gui(package,control_gui,control_root,overlay=overlay)
+    summary['abi_control']={'historical_file_sha256':ABI_CONTROL_FILE_SHA256,
+                            'overlay_sha256':package.sha(overlay),'gui_sha256':digest,
+                            'source_revision':summary['derived_gui_source_revision'],
+                            'feature_qualification':False,'difference':'one historical native BOOL argument'}
+    summary['arms']=[]
+    for label,image,cwd in [('old-ABI-control',control_gui,control_root),('corrected',gui,root)]:
+        arm={'arm':label,'observations':[],'feature_qualification':False}
+        summary['arms'].append(arm)
+        owned=location/label;owned.mkdir()
+        try:
+            observe_cold_start(image,cwd,owned,env,evidence/label,arm,
+                               startup_hide=startup_hide,sample_seconds=150,sample_limit=120)
+        except RuntimeError:
+            if arm.get('result')!='cold-start-failure-observed':raise
+        save(evidence,'diagnostic.json',summary)
+        if label=='corrected' and arm.get('result')=='cold-start-failure-observed':
+            summary['result']='corrected-startup-failure-observed'
+            save(evidence,'diagnostic.json',summary)
+            raise RuntimeError('corrected startup failed; comparison and first failure retained')
+    summary['result']='bounded-ABI-comparison-not-a-cause-proof'
+    save(evidence,'diagnostic.json',summary)
 
 
 def historical_source():
@@ -170,8 +235,11 @@ def run():
     if not re.fullmatch('[a-f0-9]{40}',tool):raise ValueError('exact diagnostic tool revision is required')
     cold=os.environ.get('INSONIC_STARTUP_COLD')=='true'
     startup_hide=os.environ.get('INSONIC_STARTUP_HIDE')=='true'
+    abi_control=os.environ.get('INSONIC_STARTUP_ABI_CONTROL')=='true'
     if startup_hide and not cold:raise ValueError('startup hide comparison requires cold startup observation')
     if cold and os.environ.get('INSONIC_STARTUP_SOURCE')!='true':raise ValueError('cold startup observation requires current source')
+    if abi_control and (not cold or not startup_hide or os.environ.get('INSONIC_STARTUP_LOAD')=='true'):
+        raise ValueError('ABI comparison requires current cold source, startup hide and no concurrent CLI load')
     archive,receipt=incident_archive()
     package=pipeline.load('desktop_startup_package','package-desktop.py')
     package.verify_archive_receipt(archive,receipt,expected_source_root=historical_source())
@@ -202,6 +270,8 @@ def run():
             save(evidence,'diagnostic.json',summary)
         idle=lambda:wait_owned_clis(package,[binaries/'insonic.exe',gui.with_name('insonic.exe')])
         observe=lambda:observe_cold_start(gui,root,location,env,evidence,summary,startup_hide=startup_hide) if cold else observe_native(gui,root,location,env,evidence,summary,rebuilt,incident)
+        if abi_control:
+            observe=lambda:observe_abi_comparison(package,gui,root,location,env,evidence,summary,startup_hide=startup_hide)
         if os.environ.get('INSONIC_STARTUP_LOAD')=='true':
             from cli_contract_qualification import qualify as qualify_contract
             if not rebuilt:raise ValueError('maintained concurrent CLI load requires current source rebuild')
@@ -263,13 +333,13 @@ def observe_predecessors(gui,root,env,evidence,label):
         name=label+'-'+flag[2:]+'.json';save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
 
 
-def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=False):
+def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=False,sample_seconds=300,sample_limit=240):
     # Diagnostic sampling only. Each real close child owns a fresh profile and
     # must naturally release its job before another launch. Stop on first failure.
-    summary.update(boundary='source-cold-close-startup-not-package-qualification',sample_limit=240,sampling_seconds=300,startup_hide=startup_hide)
-    deadline=time.monotonic()+300
+    summary.update(boundary='source-cold-close-startup-not-package-qualification',sample_limit=sample_limit,sampling_seconds=sample_seconds,startup_hide=startup_hide)
+    deadline=time.monotonic()+sample_seconds
     summary['result']='cold-start-no-failure-observed-not-a-cause-proof'
-    for index in range(240):
+    for index in range(sample_limit):
         if deadline-time.monotonic()<18:
             summary['result']='cold-start-sampling-budget-exhausted-not-a-cause-proof'
             break
@@ -277,7 +347,7 @@ def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=Fal
         fixture=directory/'native-exit.json'
         fixture.write_text(json.dumps({'action':'close'})+'\n',encoding='utf-8',newline='\n')
         observation=capture([gui,'--exit-qualification-child',fixture],root,env,18,require_release=True,**({'startup_hide':True} if startup_hide else {}))
-        observation.update(boundary=summary['boundary'],action='close',profile='cold',index=index,startup_hide=startup_hide)
+        observation.update(boundary=summary['boundary'],action='close',profile='cold',index=index,startup_hide=startup_hide,arm=summary.get('arm','selected-source'))
         try:
             result=json.loads(observation['stdout'])
         except (ValueError,TypeError):

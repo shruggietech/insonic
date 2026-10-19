@@ -4,7 +4,13 @@
 package edge
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
+	"io"
+	"reflect"
 	"runtime"
+	"strings"
 	"syscall"
 	"testing"
 	"unsafe"
@@ -356,4 +362,312 @@ func TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread(t *testing.T) {
 		}
 	})
 
+}
+
+// Only fake WebView interfaces and a native memory stream are used here. No
+// browser, actual controller, visible window or input destination is created.
+type firstResponseFixture struct {
+	t        *testing.T
+	entry    *windowLifetime
+	view     *Chromium
+	args     *ICoreWebView2WebResourceRequestedEventArgs
+	response *ICoreWebView2WebResourceResponse
+	deferral *ICoreWebView2Deferral
+	headers  *ICoreWebView2HttpResponseHeaders
+	stream   *IStream
+	fail     string
+	calls    []string
+	threads  []uint32
+}
+
+func newFirstResponseFixture(t *testing.T, enabled bool, fail string) *firstResponseFixture {
+	t.Helper()
+	previous := bootstrapDiagnosticsEnabled.Load()
+	EnableWindowBootstrapDiagnostics(enabled)
+	f := &firstResponseFixture{t: t, fail: fail}
+	f.view = &Chromium{hwnd: 0x534040}
+	f.entry = &windowLifetime{chromium: f.view, thread: windows.GetCurrentThreadId()}
+	ownedWindows.Lock()
+	prior := ownedWindows.values[f.view.hwnd]
+	ownedWindows.values[f.view.hwnd] = f.entry
+	ownedWindows.Unlock()
+	t.Cleanup(func() {
+		if f.stream != nil {
+			f.stream.Release()
+		}
+		ownedWindows.Lock()
+		if prior == nil {
+			delete(ownedWindows.values, f.view.hwnd)
+		} else {
+			ownedWindows.values[f.view.hwnd] = prior
+		}
+		ownedWindows.Unlock()
+		EnableWindowBootstrapDiagnostics(previous)
+		runtime.KeepAlive(f)
+	})
+	record := func(name string) uintptr {
+		f.calls = append(f.calls, name)
+		f.threads = append(f.threads, windows.GetCurrentThreadId())
+		if fail == name {
+			return 0x80004005
+		}
+		return 0
+	}
+	f.headers = &ICoreWebView2HttpResponseHeaders{vtbl: &_ICoreWebView2HttpResponseHeadersVtbl{
+		_IUnknownVtbl: _IUnknownVtbl{Release: NewComProc(func(uintptr) uintptr { return record("headers.release") })},
+	}}
+	f.response = &ICoreWebView2WebResourceResponse{vtbl: &_ICoreWebView2WebResourceResponseVtbl{
+		_IUnknownVtbl: _IUnknownVtbl{Release: NewComProc(func(uintptr) uintptr { return record("response.release") })},
+		GetHeaders: NewComProc(func(this uintptr, output **ICoreWebView2HttpResponseHeaders) uintptr {
+			hr := record("headers")
+			if hr == 0 {
+				*output = f.headers
+			}
+			return hr
+		}),
+		PutStatusCode: NewComProc(func(this, status uintptr) uintptr {
+			if status != 200 {
+				t.Errorf("native status changed: %d", status)
+			}
+			return record("status")
+		}),
+		PutReasonPhrase: NewComProc(func(this uintptr, reason *uint16) uintptr {
+			if windows.UTF16PtrToString(reason) != "OK" {
+				t.Error("native reason changed")
+			}
+			return record("reason")
+		}),
+		PutContent: NewComProc(func(this uintptr, stream *IStream) uintptr {
+			hr := record("content")
+			if hr == 0 && stream != nil {
+				if err := stream.AddRef(); err != nil {
+					t.Error(err)
+				}
+				f.stream = stream
+			}
+			return hr
+		}),
+	}}
+	f.deferral = &ICoreWebView2Deferral{Vtbl: &ICoreWebView2DeferralVtbl{
+		_IUnknownVtbl: _IUnknownVtbl{Release: NewComProc(func(uintptr) uintptr { return record("deferral.release") })},
+		Complete: NewComProc(func(uintptr) uintptr {
+			// Snapshotting inside a native callback also proves observation does not
+			// hold the owner mutex across a reentrant COM boundary.
+			snapshot := f.snapshot()
+			if enabled && (snapshot.Completion.Entered != 1 || snapshot.Completion.Returned != 0) {
+				t.Error("native completion entry was not distinguished from return")
+			}
+			return record("complete")
+		}),
+	}}
+	f.args = &ICoreWebView2WebResourceRequestedEventArgs{vtbl: &_ICoreWebView2WebResourceRequestedEventArgsVtbl{
+		PutResponse: NewComProc(func(this uintptr, response *ICoreWebView2WebResourceResponse) uintptr {
+			if response != f.response {
+				t.Error("native response identity changed")
+			}
+			return record("assign")
+		}),
+		GetDeferral: NewComProc(func(this uintptr, output **ICoreWebView2Deferral) uintptr {
+			hr := record("deferral")
+			if hr == 0 {
+				*output = f.deferral
+			}
+			return hr
+		}),
+	}}
+	recordWindowBootstrapRequest(f.view, f.args)
+	return f
+}
+
+func (f *firstResponseFixture) snapshot() WindowBootstrapResponseSnapshot {
+	ownedWindows.Lock()
+	defer ownedWindows.Unlock()
+	return f.entry.bootstrap.FirstResponse
+}
+
+func (f *firstResponseFixture) assign() {
+	f.t.Helper()
+	if err := f.args.PutResponse(f.response); err != nil {
+		f.t.Fatal(err)
+	}
+	if got, err := f.args.GetDeferral(); err != nil || got != f.deferral {
+		f.t.Fatal("native deferral changed", err)
+	}
+}
+
+func TestFirstNativeResponseObservationPreservesPublicationContract(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		name := "disabled"
+		if enabled {
+			name = "enabled"
+		}
+		t.Run(name, func(t *testing.T) {
+			runtime.LockOSThread()
+			defer runtime.UnlockOSThread()
+			f := newFirstResponseFixture(t, enabled, "")
+			f.assign()
+			headers, err := f.response.GetHeaders()
+			if err != nil || headers != f.headers {
+				t.Fatal("native headers changed", err)
+			}
+			headers.Release()
+			if err := f.response.PutStatusCode(200); err != nil {
+				t.Fatal(err)
+			}
+			body := []byte("<html>private fixture body: \u03c0</html>")
+			want := bytes.Clone(body)
+			if err := f.response.PutByteContent(body); err != nil {
+				t.Fatal(err)
+			}
+			for i := range body {
+				body[i] = 'x'
+			}
+			runtime.GC()
+			got := make([]byte, len(want))
+			if f.stream == nil {
+				t.Fatal("native response did not retain its content stream")
+			}
+			if n, err := f.stream.Read(got); n != len(want) || err != nil || !bytes.Equal(got, want) {
+				t.Fatal("published content was not independently retained", n, err)
+			}
+			if n, err := f.stream.Read(make([]byte, 1)); n != 0 || !errors.Is(err, io.EOF) {
+				t.Fatal("native stream EOF changed", n, err)
+			}
+			if err := f.response.Release(); err != nil {
+				t.Fatal(err)
+			}
+			if err := f.deferral.Complete(); err != nil {
+				t.Fatal(err)
+			}
+			if err := f.deferral.Release(); err != nil {
+				t.Fatal(err)
+			}
+			wantCalls := []string{"assign", "deferral", "headers", "headers.release", "status", "reason", "content", "response.release", "complete", "deferral.release"}
+			if !reflect.DeepEqual(f.calls, wantCalls) {
+				t.Fatal("observation changed native call order/count", f.calls)
+			}
+			for _, thread := range f.threads {
+				if thread != f.entry.thread {
+					t.Fatal("observation rerouted a native call")
+				}
+			}
+			snapshot := f.snapshot()
+			if !enabled {
+				if snapshot != (WindowBootstrapResponseSnapshot{}) || f.entry.firstRequest != (windowBootstrapResponse{}) {
+					t.Fatal("disabled observation retained response state")
+				}
+				return
+			}
+			one := WindowBootstrapCallSnapshot{Entered: 1, Returned: 1}
+			for _, got := range []WindowBootstrapCallSnapshot{snapshot.Assignment, snapshot.Deferral, snapshot.Headers, snapshot.Status, snapshot.Reason, snapshot.Content, snapshot.Completion} {
+				if got != one {
+					t.Fatal("native publication boundary changed", got)
+				}
+			}
+			if snapshot.StatusCode != 200 || snapshot.ContentAttempts != 1 || snapshot.ContentBytes != uint64(len(want)) || snapshot.StreamsCreated != 1 || snapshot.StreamFailures != 0 {
+				t.Fatal("content preparation was not distinguished", snapshot)
+			}
+			if f.entry.firstRequest.args != 0 || f.entry.firstRequest.response != 0 || f.entry.firstRequest.deferral != 0 || !f.entry.firstRequest.seen {
+				t.Fatal("retired native identities survived")
+			}
+			// A later request and recycled native identity cannot overwrite the first response.
+			recordWindowBootstrapRequest(f.view, f.args)
+			if err := f.response.PutStatusCode(200); err != nil {
+				t.Fatal(err)
+			}
+			if f.snapshot() != snapshot {
+				t.Fatal("a retired response identity changed the first receipt")
+			}
+			raw, err := json.Marshal(f.entry.bootstrap)
+			if err != nil || strings.Contains(string(raw), "private") || strings.Contains(string(raw), "fixture") || strings.Contains(string(raw), "args") || strings.Contains(string(raw), "pointer") {
+				t.Fatal("response observation retained content or identities")
+			}
+			runtime.KeepAlive(f)
+		})
+	}
+}
+
+func TestFirstNativeResponseObservationPreservesFailedHRESULTs(t *testing.T) {
+	for _, point := range []string{"assign", "deferral", "headers", "status", "reason", "content", "complete"} {
+		t.Run(point, func(t *testing.T) {
+			runtime.LockOSThread()
+			defer runtime.UnlockOSThread()
+			f := newFirstResponseFixture(t, true, point)
+			var err error
+			switch point {
+			case "assign":
+				err = f.args.PutResponse(f.response)
+			case "deferral":
+				if err = f.args.PutResponse(f.response); err != nil {
+					t.Fatal(err)
+				}
+				_, err = f.args.GetDeferral()
+			default:
+				f.assign()
+				switch point {
+				case "headers":
+					_, err = f.response.GetHeaders()
+				case "status", "reason":
+					err = f.response.PutStatusCode(200)
+				case "content":
+					err = f.response.PutByteContent([]byte("private failure body"))
+				case "complete":
+					err = f.deferral.Complete()
+				}
+			}
+			if !errors.Is(err, syscall.Errno(0x80004005)) {
+				t.Fatal("native HRESULT was replaced", err)
+			}
+			snapshot := f.snapshot()
+			calls := map[string]WindowBootstrapCallSnapshot{"assign": snapshot.Assignment, "deferral": snapshot.Deferral, "headers": snapshot.Headers, "status": snapshot.Status, "reason": snapshot.Reason, "content": snapshot.Content, "complete": snapshot.Completion}
+			if got := calls[point]; got.Entered != 1 || got.Returned != 1 || got.LastHRESULT != 0x80004005 || got.OffThreadCalls != 0 {
+				t.Fatal("failed native boundary was not retained", got)
+			}
+			if point == "status" && snapshot.Reason.Entered != 0 {
+				t.Fatal("a failed status setter gained a reason call")
+			}
+			if (point == "assign" || point == "deferral") && f.entry.firstRequest.args != 0 {
+				t.Fatal("failed preparation retained its borrowed event identity")
+			}
+			if point == "content" && f.stream != nil {
+				t.Fatal("failed setter acquired a native stream reference")
+			}
+			runtime.KeepAlive(f)
+		})
+	}
+}
+
+func TestFirstNativeResponseObservationFlagsThreadWithoutRerouting(t *testing.T) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	f := newFirstResponseFixture(t, true, "")
+	f.assign()
+	completed := make(chan error, 1)
+	go func() {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+		if err := f.response.PutStatusCode(200); err != nil {
+			completed <- err
+			return
+		}
+		completed <- f.deferral.Complete()
+	}()
+	if err := <-completed; err != nil {
+		t.Fatal(err)
+	}
+	snapshot := f.snapshot()
+	for _, call := range []WindowBootstrapCallSnapshot{snapshot.Status, snapshot.Reason, snapshot.Completion} {
+		if call.Entered != 1 || call.Returned != 1 || call.OffThreadCalls != 1 || call.LastHRESULT != 0 {
+			t.Fatal("foreign-thread call was hidden or altered", call)
+		}
+	}
+	if len(f.calls) != 5 {
+		t.Fatal("foreign-thread call count changed", f.calls)
+	}
+	for i, thread := range f.threads {
+		if i >= 2 && thread == f.entry.thread {
+			t.Fatal("observation rerouted a foreign-thread native call")
+		}
+	}
+	runtime.KeepAlive(f)
 }

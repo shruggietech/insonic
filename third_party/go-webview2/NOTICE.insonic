@@ -1,7 +1,7 @@
 insonic maintained WebView lifetime and native-key patch
 
-Upstream: github.com/wailsapp/go-webview2 v1.0.22
-https://github.com/wailsapp/go-webview2/tree/v1.0.22
+Upstream: github.com/wailsapp/go-webview2 v1.0.23
+https://github.com/wailsapp/go-webview2/tree/v1.0.23
 
 Original upstream files and MIT license are retained. The insonic additions
 use Apache-2.0 (LICENSE.insonic). A native parent-window lifetime subclass
@@ -30,3 +30,11 @@ request URLs, script contents or application data, or add browser calls.
 
 The resource deferral Release method dispatches to IUnknown.Release, balancing
 the acquired reference after completion instead of increasing its count.
+
+Disposable qualification also observes first-request native response assignment,
+headers, status/reason, content publication and deferral completion. Fixed
+entered/returned/HRESULT/thread counters contain no request content or native
+addresses. Internal borrowed identities are retired with their corresponding
+acquisition/Release and window owner. No WebView2 COM call is added or reordered; observation reads native thread identity.
+The runtime_version diagnostic field remains an available-loader lookup, not
+independently verified created-environment identity.

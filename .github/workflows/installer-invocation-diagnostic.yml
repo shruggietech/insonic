@@ -18,6 +18,10 @@ on:
         description: Build the current diagnostic GUI and observe the full archive GUI launch order
         type: boolean
         default: false
+      startup_abi_control:
+        description: Compare the corrected source with the checksum-bound historical BOOL call (diagnostic only)
+        type: boolean
+        default: false
       kind:
         description: Focused diagnostic boundary (never product qualification)
         type: choice
@@ -104,6 +108,7 @@ jobs:
           INSONIC_STARTUP_COLD: ${{ inputs.startup_cold }}
           INSONIC_STARTUP_HIDE: ${{ inputs.startup_hide }}
           INSONIC_STARTUP_LOAD: ${{ inputs.startup_load }}
+          INSONIC_STARTUP_ABI_CONTROL: ${{ inputs.startup_abi_control }}
         run: python scripts/diagnose-desktop-startup.py
       - name: Trace one documentation completion invocation
         if: matrix.kind != 'desktop-startup'

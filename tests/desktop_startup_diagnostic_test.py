@@ -15,6 +15,67 @@ diagnostic=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(diagnostic)
 
 class DesktopStartupDiagnosticTests(unittest.TestCase):
+    def test_abi_overlay_is_exact_historical_source_without_editing_production(self):
+        selected=Path('third_party/go-webview2/pkg/edge/ICoreWebView2Controller3.go')
+        corrected=(ROOT/selected).read_bytes()
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);source=root/selected;source.parent.mkdir(parents=True);source.write_bytes(corrected)
+            with patch.object(diagnostic,'ROOT',root):
+                overlay=diagnostic.historical_abi_overlay(root/'control')
+                replacement=json.loads(overlay.read_text())['Replace']
+                self.assertEqual(set(replacement),{str(source.resolve())})
+                historical=Path(replacement[str(source.resolve())]).read_bytes()
+                self.assertEqual(hashlib.sha256(historical).hexdigest(),diagnostic.ABI_CONTROL_FILE_SHA256)
+                self.assertEqual(source.read_bytes(),corrected)
+                self.assertIn(b'uintptr(unsafe.Pointer(&value))',historical)
+                source.write_bytes(corrected+b'\nchanged\n')
+                with self.assertRaisesRegex(ValueError,'checksum'):diagnostic.historical_abi_overlay(root/'bad-control')
+
+    def test_abi_comparison_bounds_each_arm_and_retains_expected_control_failure(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);payload=root/'payload';payload.mkdir();gui=payload/'insonic-desktop.exe';summary={'derived_gui_source_revision':'a'*40,'observations':[]}
+            calls=[]
+            def observe(image,cwd,location,env,evidence,arm,**options):
+                calls.append((image,location,evidence,dict(options)))
+                arm['observations'].append({'observed_pass':image==gui})
+                arm['result']='cold-start-failure-observed' if image!=gui else 'cold-start-sampling-budget-exhausted-not-a-cause-proof'
+                if image!=gui:raise RuntimeError('expected old ABI failure')
+            package=MagicMock();package.sha.return_value='b'*64
+            package.package_directories.side_effect=lambda root,*args:(root,root)
+            with patch.object(diagnostic,'historical_abi_overlay',return_value=root/'overlay.json'),patch.object(diagnostic,'build_probe_gui',return_value='c'*64) as build,patch.object(diagnostic,'observe_cold_start',side_effect=observe):
+                diagnostic.observe_abi_comparison(package,gui,payload,root,{},root/'evidence',summary,startup_hide=True)
+            self.assertEqual(len(calls),2)
+            self.assertEqual([arm['arm'] for arm in summary['arms']],['old-ABI-control','corrected'])
+            self.assertNotEqual(calls[0][1],calls[1][1])
+            for call in calls:self.assertEqual(call[3],{'startup_hide':True,'sample_seconds':150,'sample_limit':120})
+            self.assertEqual(build.call_args.kwargs,{'overlay':root/'overlay.json'})
+            self.assertFalse(summary['abi_control']['feature_qualification'])
+            self.assertEqual(summary['result'],'bounded-ABI-comparison-not-a-cause-proof')
+
+    def test_abi_comparison_corrected_failure_is_not_masked_by_the_control(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);payload=root/'payload';payload.mkdir();summary={'derived_gui_source_revision':'a'*40,'observations':[]}
+            def fail(image,cwd,location,env,evidence,arm,**options):
+                arm['result']='cold-start-failure-observed';raise RuntimeError('retained native failure')
+            package=MagicMock();package.sha.return_value='b'*64
+            package.package_directories.side_effect=lambda root,*args:(root,root)
+            with patch.object(diagnostic,'historical_abi_overlay',return_value=root/'overlay.json'),patch.object(diagnostic,'build_probe_gui',return_value='c'*64),patch.object(diagnostic,'observe_cold_start',side_effect=fail):
+                with self.assertRaisesRegex(RuntimeError,'corrected startup failed'):
+                    diagnostic.observe_abi_comparison(package,payload/'gui.exe',payload,root,{},root/'evidence',summary,startup_hide=True)
+            self.assertEqual(summary['result'],'corrected-startup-failure-observed')
+            self.assertEqual(len(summary['arms']),2)
+
+    def test_control_overlay_is_an_explicit_build_only_input(self):
+        package=MagicMock();package.qualify.native_env.return_value={'PATH':'selected-path','CGO_ENABLED':'1'}
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);(root/'help').mkdir();node=root/'node.exe';node.write_bytes(b'fixture')
+            with patch.object(diagnostic.shutil,'copytree'),patch.object(diagnostic.shutil,'which',return_value=str(node)),patch.object(diagnostic,'source_child') as child:
+                diagnostic.build_probe_gui(package,root/'control.exe',root,overlay=root/'pinned-overlay.json')
+            args,env=child.call_args.args
+            self.assertEqual(args[1:4],['build','-overlay',root/'pinned-overlay.json'])
+            self.assertEqual(env['GOFLAGS'],'')
+            self.assertNotIn('GITHUB_TOKEN',env)
+
     def test_requires_the_exact_incident_payload(self):
         receipt={'revision':diagnostic.INCIDENT_REVISION,'platform':'windows_amd64','variant':'desktop','source_dirty':False,'archive':'fixture.zip'}
         with patch.object(diagnostic.pipeline,'read_inputs',return_value=({},receipt,{'revision':diagnostic.INCIDENT_REVISION})):
@@ -256,6 +317,27 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
             self.assertEqual(result['timed_out'],not released)
             self.assertLess(calls.index('wait'),calls.index('close'))
             self.assertEqual('kill' in calls,not released)
+
+    def test_release_timing_keeps_the_original_combined_budget(self):
+        import io
+        from types import SimpleNamespace
+        for root_seconds in [5,17]:
+            waits=[]
+            class Tree:
+                job=1
+                process=SimpleNamespace(stdout=io.BytesIO(),stderr=io.BytesIO(),returncode=0,wait=lambda **kwargs:None,poll=lambda:0)
+                def __init__(self,*args,**kwargs):pass
+                def __enter__(self):return self
+                def __exit__(self,*args):pass
+                def wait_for_descendants(self,timeout):waits.append(timeout);return False
+                def kill(self):pass
+            with self.subTest(root_seconds=root_seconds),patch.object(diagnostic,'ProcessTree',Tree),patch.object(diagnostic,'job_processes',return_value={'available':True,'assigned':2,'pids':[11,12]}),patch.object(diagnostic.time,'monotonic',side_effect=[0,root_seconds,root_seconds,18,18]):
+                result=diagnostic.capture(['gui.exe','--exit-qualification-child','fixture.json'],ROOT,{},18,require_release=True)
+            self.assertEqual(waits,[18-root_seconds])
+            self.assertEqual(result['timing'],{'root_exit_elapsed_seconds':root_seconds,'release_budget_seconds':18-root_seconds,'release_wait_elapsed_seconds':18-root_seconds})
+            self.assertTrue(result['timed_out'])
+            self.assertFalse(result['owned_release'])
+            self.assertEqual(result['job_before_close']['assigned'],2)
 
 
     def test_cold_start_hide_counterfactual_is_explicit_in_launch_and_evidence(self):

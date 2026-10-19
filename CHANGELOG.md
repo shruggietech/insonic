@@ -18,6 +18,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Windows WebView controller initialization passes its monitor-scale setting as a native Boolean value instead of a pointer, adopting the upstream binding correction while retaining the maintained ownership and native-input fixes.
+
 - Windows WebView resource deferrals release their acquired COM references after completion instead of incrementing the reference count.
 
 - Release candidate collection verifies independent archives and copied bytes with bounded parallel workers, retaining every integrity check and writing its completion manifest only after all checks succeed.
@@ -107,6 +109,8 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-19: Native asset preparation reuses checksum-verified atomic acquisition with bounded transient retries. Candidate collection overlaps independent verification and copy/hash work with four workers while retaining deterministic metadata, private verifier scratch directories, all producer/proof gates and final completion authority.
 
 - 2026-10-19: Correct the pinned WebView resource-deferral Release dispatch with a native reference-count regression and checksum-bound source allowlist. Keep unresolved startup observations separate from demonstrated ownership corrections.
+
+- 2026-10-19: Adopt the verified go-webview2 v1.0.23 native Boolean ABI correction, preserve the explicit maintained lifecycle patch and checksum-bound corresponding source, and keep unresolved startup/process-release observations separate from the demonstrated argument correction.
 
 ## [1.0.1] - 2026-10-15
 
