@@ -18,6 +18,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Release candidate collection verifies independent archives and copied bytes with bounded parallel workers, retaining every integrity check and writing its completion manifest only after all checks succeed.
+
 - Windows Alt+F forwards its original native system-key context to the File menu while the WebView owns focus, including inside offline help. Claimed keys retain their handled disposition. The native menu keeps keyboard input in its host while active and restores the prior child focus on cancellation.
 
 - Windows native desktop qualification uses disposable WebView profiles and observes normal owned-browser shutdown before reuse or removal. Failed fixtures retain their profiles for diagnosis. Cold and warm menu, close and Alt+F4 checks retain playback cleanup, background-work survival and exact-package proof gates.
@@ -99,6 +101,8 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-19: Preserve the advertised ten-minute synthetic-job capability with a forward catalog constraint migration, freezing historical schema-9 authority and retaining schema-9 snapshot restoration. Generate bounded input constraints from packaged contracts and preserve exact identity text without normalization. Separate cold native compilation from full acceptance while retaining the complete package/tag matrix, 180-second child bounds and eleven-minute hosted job cap. Prepare independent Windows proof consumers alongside assembly, then require its successful exact-run artifact before consumption and retain every final proof gate. Prepare the candidate reader and qualified Linux/docs inputs while Windows finishes, then require both successful Windows package producers before final collection.
 
 - 2026-10-19: Maintain the pinned Windows WebView binding as verified repository source so owned-window destruction explicitly closes its controller. Preserve original upstream checksums and licenses, verify the exact patch tree and allow only its declared local replacement through package notice verification. Real native release, original deadlines and every exact-source delivery gate remain required.
+
+- 2026-10-19: Native asset preparation reuses checksum-verified atomic acquisition with bounded transient retries. Candidate collection overlaps independent verification and copy/hash work with four workers while retaining deterministic metadata, private verifier scratch directories, all producer/proof gates and final completion authority.
 
 ## [1.0.1] - 2026-10-15
 
