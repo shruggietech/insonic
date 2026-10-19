@@ -4,90 +4,89 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"os"
-	"runtime"
-	"syscall"
-	"unsafe"
-
+	"github.com/shruggietech/insonic/desktop"
 	"golang.org/x/sys/windows"
+	"os"
+	"syscall"
+	"time"
+	"unsafe"
 )
 
-// MSG from winuser.h on Windows amd64. Native callbacks receive the pointer
-// directly, avoiding an integer-to-Go-pointer conversion.
-type nativeMenuMessage struct {
-	Window         uintptr
-	Message        uint32
-	_              uint32
-	WParam, LParam uintptr
-	Time           uint32
-	X, Y           int32
-	Private        uint32
-}
+var exitUser32 = windows.NewLazySystemDLL("user32.dll")
 
-func nativeFileMnemonic(message uint32, key, flags uintptr) bool {
-	return message == 0x104 && key == 0x46 && flags&(1<<29) != 0 && flags&(1<<30) == 0
+func exitWinCall(name string, args ...uintptr) uintptr {
+	value, _, _ := exitUser32.NewProc(name).Call(args...)
+	return value
 }
-
-// Wails forwards WebView accelerator keys as WM_KEYDOWN, dropping their Alt
-// system-key context. Route the actual Alt+F on this UI thread before that
-// conversion. No desktop-wide hotkey or other-process hook is installed.
-func installNativeMenuRouting(diagnostic bool) (func() error, error) {
-	runtime.LockOSThread()
-	thread := windows.GetCurrentThreadId()
-	if thread == 0 {
-		runtime.UnlockOSThread()
-		return nil, fmt.Errorf("native menu UI thread unavailable")
-	}
-	api := windows.NewLazySystemDLL("user32.dll")
-	next := api.NewProc("CallNextHookEx")
-	ancestor := api.NewProc("GetAncestor")
-	owner := api.NewProc("GetWindowThreadProcessId")
-	foreground := api.NewProc("GetForegroundWindow")
-	getMenu := api.NewProc("GetMenu")
-	keyState := api.NewProc("GetKeyState")
-	if diagnostic {
-		fmt.Fprintf(os.Stderr, "native-menu-thread=%d\n", thread)
-	}
-	debugCount := 0
-	callbackFunction := func(code int32, remove uintptr, msg *nativeMenuMessage) uintptr {
-		if diagnostic && code >= 0 && remove&1 != 0 && msg != nil && debugCount < 32 && (msg.Message == 0x100 || msg.Message == 0x101 || msg.Message == 0x104 || msg.Message == 0x105) && (msg.WParam == 0x12 || msg.WParam == 0x46 || msg.WParam == 0x58 || msg.WParam == 0x73) {
-			debugCount++
-			fmt.Fprintf(os.Stderr, "native-menu-input message=%x key=%x flags=%x window=%x\n", msg.Message, msg.WParam, msg.LParam, msg.Window)
+func exitWinLabel(handle uintptr, index uintptr) string {
+	var label [64]uint16
+	length := exitWinCall("GetMenuStringW", handle, index, uintptr(unsafe.Pointer(&label[0])), uintptr(len(label)), 0x400)
+	return windows.UTF16ToString(label[:min(int(length), len(label))])
+}
+func exitOwnedWindow() (uintptr, error) {
+	deadline := time.Now().Add(5 * time.Second)
+	var handles []uintptr
+	var owned, visible, active int
+	callback := syscall.NewCallback(func(hwnd, unused uintptr) uintptr {
+		var pid uint32
+		exitWinCall("GetWindowThreadProcessId", hwnd, uintptr(unsafe.Pointer(&pid)))
+		if pid != uint32(os.Getpid()) || exitWinCall("GetMenu", hwnd) == 0 {
+			return 1
 		}
-		if code >= 0 && remove&1 != 0 && msg != nil && nativeFileMnemonic(msg.Message, msg.WParam, msg.LParam) {
-			root, _, _ := ancestor.Call(msg.Window, 2)
-			var pid uint32
-			owner.Call(root, uintptr(unsafe.Pointer(&pid)))
-			active, _, _ := foreground.Call()
-			menu, _, _ := getMenu.Call(root)
-			control, _, _ := keyState.Call(0x11)
-			if root != 0 && pid == uint32(os.Getpid()) && active == root && menu != 0 && control&0x8000 == 0 {
-				msg.Window = root
-				msg.Message = 0x112 // WM_SYSCOMMAND
-				msg.WParam = 0xf100 // SC_KEYMENU
-				msg.LParam = 'f'
-				if diagnostic {
-					fmt.Fprintln(os.Stderr, "native-exit-stage=menu-mnemonic")
-				}
+		var title [64]uint16
+		exitWinCall("GetWindowTextW", hwnd, uintptr(unsafe.Pointer(&title[0])), uintptr(len(title)))
+		if windows.UTF16ToString(title[:]) == "insonic" {
+			owned++
+			shown := exitWinCall("IsWindowVisible", hwnd) != 0
+			foreground := exitWinCall("GetForegroundWindow") == hwnd
+			if shown {
+				visible++
+			}
+			if foreground {
+				active++
+			}
+			if shown && exitWinCall("IsWindowEnabled", hwnd) != 0 {
+				handles = append(handles, hwnd)
 			}
 		}
-		value, _, _ := next.Call(0, uintptr(code), remove, uintptr(unsafe.Pointer(msg)))
-		return value
+		return 1
+	})
+	for time.Now().Before(deadline) {
+		handles = nil
+		owned, visible, active = 0, 0, 0
+		exitWinCall("EnumWindows", callback, 0)
+		if len(handles) > 1 {
+			return 0, fmt.Errorf("ambiguous owned native window")
+		}
+		if len(handles) == 1 {
+			return handles[0], nil
+		}
+		time.Sleep(20 * time.Millisecond)
 	}
-	callback := syscall.NewCallback(callbackFunction)
-	hook, _, nativeError := api.NewProc("SetWindowsHookExW").Call(3, callback, 0, uintptr(thread))
-	if hook == 0 {
-		runtime.UnlockOSThread()
-		return nil, fmt.Errorf("native menu thread routing unavailable: %v", nativeError)
-	}
-	return func() error {
-		removed, _, err := api.NewProc("UnhookWindowsHookEx").Call(hook)
-		runtime.KeepAlive(callbackFunction)
-		runtime.UnlockOSThread()
-		if removed == 0 {
-			return fmt.Errorf("native menu thread routing cleanup failed: %v", err)
+	return 0, fmt.Errorf("owned native window unavailable (owned=%d, visible=%d, active=%d)", owned, visible, active)
+}
+
+func configureNativeMenu(bridge *desktop.Bridge, diagnostic bool) {
+	desktop.SetNativeFileMenu(bridge, func() error {
+		hwnd, err := exitOwnedWindow()
+		if err != nil {
+			return err
+		}
+		if err = requireNativeInputTarget(hwnd); err != nil {
+			return err
+		}
+		if exitWinCall("PostMessageW", hwnd, 0x112, 0xf100, 'f') == 0 {
+			return fmt.Errorf("native File menu request rejected")
+		}
+		if diagnostic {
+			fmt.Fprintln(os.Stderr, "native-exit-stage=menu-mnemonic")
 		}
 		return nil
-	}, nil
+	})
+}
+
+func waitNativeMenuReady(ctx context.Context, bridge *desktop.Bridge) error {
+	return desktop.WaitNativeFileMenuReady(ctx, bridge)
 }

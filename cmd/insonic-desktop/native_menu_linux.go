@@ -3,4 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 package main
 
-func installNativeMenuRouting(bool) (func() error, error) { return func() error { return nil }, nil }
+import (
+	"context"
+	"github.com/shruggietech/insonic/desktop"
+)
+
+func configureNativeMenu(*desktop.Bridge, bool)                  {}
+func waitNativeMenuReady(context.Context, *desktop.Bridge) error { return nil }

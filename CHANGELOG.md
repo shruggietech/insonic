@@ -18,7 +18,7 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
-- Windows Alt+F reaches the native File menu while the WebView owns focus. The route remains local to the application UI thread.
+- Windows Alt+F reaches the native File menu while the WebView owns focus. The focused document routes the mnemonic to the owned native menu, including inside offline help.
 
 - Windows native Exit qualification isolates disposable WebView profiles and observes normal owned-browser shutdown before reuse. Cold and warm menu, close and Alt+F4 checks retain playback cleanup, background-work survival and exact-package proof gates.
 

@@ -115,6 +115,15 @@ func qualifyNativeExitChild(path string) int {
 				wailsruntime.Quit(ctx)
 				return
 			}
+			menuReady, stopMenuReady := context.WithTimeout(ctx, 8*time.Second)
+			menuErr := waitNativeMenuReady(menuReady, bridge)
+			stopMenuReady()
+			if menuErr != nil {
+				activated <- fmt.Errorf("frontend menu listener did not become ready")
+				wailsruntime.Quit(ctx)
+				return
+			}
+			fmt.Fprintln(os.Stderr, "native-exit-stage=frontend-ready")
 			// CREATE_NO_WINDOW remains mandatory for the console launcher. Its
 			// STARTUPINFO hide flag can suppress the first native show call, so this
 			// explicit disposable-UI probe requests the normal Wails show/activate path.
@@ -471,7 +480,7 @@ func interpretExitChild(fixture exitFixture, report process.CaptureResult, captu
 		return observation, nil
 	}
 	stage, last := "native-exit", -1
-	for _, candidate := range []string{"controller-startup", "dom-ready", "native-action", "menu-mnemonic", "menu-open", "menu-selected", "menu-request", "shutdown", "watchdog-timeout"} {
+	for _, candidate := range []string{"controller-startup", "dom-ready", "frontend-ready", "native-action", "menu-mnemonic", "menu-open", "menu-selected", "menu-request", "shutdown", "watchdog-timeout"} {
 		if index := strings.LastIndex(string(report.Stderr), "native-exit-stage="+candidate); index > last {
 			stage, last = candidate, index
 		}

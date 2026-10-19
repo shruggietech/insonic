@@ -25,8 +25,11 @@ import (
 var Assets embed.FS
 
 type Bridge struct {
-	helpAssets    fs.FS              // package-test fixture only, never a native binding
-	referenceOpen func(string) error // package-test fixture only
+	helpAssets       fs.FS              // package-test fixture only, never a native binding
+	referenceOpen    func(string) error // package-test fixture only
+	nativeMenuOpener func() error
+	nativeMenuReady  chan struct{}
+	nativeMenuBound  bool
 
 	backendGraphFactory graph.Factory // explicit deterministic bootstrap fixtures only
 	operations          map[string]context.CancelFunc

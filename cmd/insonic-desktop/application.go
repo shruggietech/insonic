@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"runtime"
@@ -65,12 +64,8 @@ func runDesktopApplication(bridge *desktop.Bridge, startup, domReady func(contex
 
 // Disposable native qualification supplies its owned profile explicitly. Normal
 // application launches retain the persistent Wails default.
-func runDesktopApplicationWithProfile(bridge *desktop.Bridge, startup, domReady func(context.Context), hidden bool, profile string) (err error) {
-	stopMenu, err := installNativeMenuRouting(profile != "")
-	if err != nil {
-		return err
-	}
-	defer func() { err = errors.Join(err, stopMenu()) }()
+func runDesktopApplicationWithProfile(bridge *desktop.Bridge, startup, domReady func(context.Context), hidden bool, profile string) error {
+	configureNativeMenu(bridge, profile != "")
 	closePlayback, err := desktop.StartPlaybackTransport(bridge)
 	if err != nil {
 		return err
