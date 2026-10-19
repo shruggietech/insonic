@@ -23,3 +23,12 @@ func TestNativeInputABIAndInvalidOwnershipGuard(t *testing.T) {
 		}
 	}
 }
+
+func TestNativeMenuInputCannotTargetAnUnownedWindow(t *testing.T) {
+	if err := sendNativeKeyboard(0, "Alt+F", []exitKeyboardInput{{Kind: 1, Key: 0x12}, {Kind: 1, Key: 0x46}}); err == nil {
+		t.Fatal("menu opening input accepted without the owned foreground target")
+	}
+	if err := sendNativeKeyboard(0, "File/Exit X", []exitKeyboardInput{{Kind: 1, Key: 0x58}}); err == nil {
+		t.Fatal("menu selection input accepted without the owned foreground target")
+	}
+}

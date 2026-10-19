@@ -79,3 +79,7 @@ US1 example: command-registry regressions and catalog migration regressions run 
 - [x] T031 Add a failing regression or controlled before/after reproducer and implement the proportional correction to the implicated native/application/process boundary, preserving existing timeout and success rules (FR-020/021).
 - [ ] T032 Qualify repeated actual Windows cold/warm menu, close and Alt+F4 routes with/without workspaces, owned browser cleanup, playback release and durable-runtime/work survival, retaining all exact-byte scopes (FR-021; SC-006).
 - [ ] T033 Run all required affected checks, reconverge twelve-issue scope, push updated official PR and satisfy exact-head CI <=660 seconds; audit existing resolved reviews without a third round, retain unmerged/auto-merge-off state and record the post-merge-main limit (FR-022; SC-005/006).
+
+## Phase 11: Native convergence
+
+- [ ] T034 Replace the demonstrated unreliable posted menu-selection messages with actual owned-foreground Alt+F then X input, retain active-menu ownership, partial-input refusal, callback/action diagnostics and existing watchdogs; require the shared browser-release proof in source and all package routes, then repeat corrected native and full exact-head CI (FR-019..022; SC-005/006).

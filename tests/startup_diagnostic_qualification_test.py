@@ -72,8 +72,10 @@ class StartupDiagnosticQualificationTests(unittest.TestCase):
                     patch.object(qualify, 'native_env', return_value={}), \
                     patch.object(qualify, 'build_cli', return_value=Path('fixture-cli')) as build, \
                     patch.object(qualify, 'child', return_value=b'') as child, \
-                    patch.object(qualify, 'write_receipt'):
+                    patch.object(qualify, 'write_receipt') as receipt, \
+                    patch.object(qualify.platform, 'system', return_value='Windows'):
                 qualify.desktop()
+                self.assertEqual(receipt.call_args_list[-1].args[2]['owned_browser_release'], 'passed')
                 build.assert_called_once_with(True, {})
                 self.assertEqual(len(child.call_args_list), 6)
                 for call in child.call_args_list[:2]:

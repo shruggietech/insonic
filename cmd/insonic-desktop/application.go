@@ -21,9 +21,13 @@ import (
 // Production and native qualification use one menu, startup and shutdown path.
 func applicationOptions(bridge *desktop.Bridge, startup, domReady func(context.Context), hidden bool, profile string) *options.App {
 	quit := desktop.NewQuitLifecycle(wailsruntime.Quit)
+	requestQuit := quit.Request
+	if profile != "" {
+		requestQuit = func() { fmt.Fprintln(os.Stderr, "native-exit-stage=menu-request"); quit.Request() }
+	}
 	app := &options.App{
 		Title: "insonic", Width: 1200, Height: 800, MinWidth: 720, MinHeight: 600, StartHidden: hidden,
-		Menu: desktop.ApplicationMenu(runtime.GOOS, quit.Request),
+		Menu: desktop.ApplicationMenu(runtime.GOOS, requestQuit),
 		OnStartup: func(ctx context.Context) {
 			desktop.SetPicker(bridge, func(kind string) (string, error) {
 				switch kind {

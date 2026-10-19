@@ -260,6 +260,14 @@ def write_receipt(path, output, expected):
     path.write_text(json.dumps(values[0], sort_keys=True) + '\n', encoding='utf-8')
 
 
+def native_exit_contract():
+    required = {'native_exit': 'passed', 'no_workspace_exit': 'passed', 'workspace_exit': 'passed',
+                'ordinary_close': 'passed', 'playback_cleanup': 'passed', 'runtime_work_survival': 'passed', 'schema_version': VERSION}
+    if platform.system() == 'Windows':
+        required['owned_browser_release'] = 'passed'
+    return required
+
+
 def desktop():
     env = native_env()
     sibling = build_cli(True, env)
@@ -292,9 +300,7 @@ def desktop():
     if platform.system() == 'Linux':
         exit_args = ['xvfb-run', '-a', *exit_args]
     exit_output = child(exit_args, env=runtime_env, timeout=100, allow_detached=True)
-    write_receipt(BUILD / 'exit-receipt.json', exit_output,
-                  {'native_exit': 'passed', 'no_workspace_exit': 'passed', 'workspace_exit': 'passed',
-                   'ordinary_close': 'passed', 'playback_cleanup': 'passed', 'runtime_work_survival': 'passed', 'schema_version': VERSION})
+    write_receipt(BUILD / 'exit-receipt.json', exit_output, native_exit_contract())
 
 
 def secrets():

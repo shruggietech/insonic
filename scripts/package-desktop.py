@@ -869,11 +869,7 @@ def qualify_package_gui(gui, directory, env):
     if platform.system() == 'Linux':
         exit_args = ['/usr/bin/xvfb-run', '-a', *exit_args]
     exit_output = child(exit_args, directory=directory, env=runtime_env, timeout=100, allow_detached=True)
-    exit_required = {'native_exit': 'passed', 'no_workspace_exit': 'passed', 'workspace_exit': 'passed',
-                     'ordinary_close': 'passed', 'playback_cleanup': 'passed', 'runtime_work_survival': 'passed', 'schema_version': VERSION}
-    if platform.system() == 'Windows':
-        exit_required['owned_browser_release'] = 'passed'
-    qualify.write_receipt(ROOT / 'build/native/package-exit-receipt.json', exit_output, exit_required)
+    qualify.write_receipt(ROOT / 'build/native/package-exit-receipt.json', exit_output, qualify.native_exit_contract())
 
 
 
