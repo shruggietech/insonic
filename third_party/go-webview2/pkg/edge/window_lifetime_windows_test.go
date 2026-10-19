@@ -80,6 +80,8 @@ func TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread(t *testing.T) {
 		t.Fatal("successful Close retained an error")
 	}
 	t.Run("native menu focus does not reenter browser focus", func(t *testing.T) {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
 		handle, _, _ := user.NewProc("CreateWindowExW").Call(0, uintptr(unsafe.Pointer(class)), uintptr(unsafe.Pointer(title)), 0, 0, 0, 0, 0, ^uintptr(2), 0, 0, 0)
 		if handle == 0 {
 			t.Fatal("message-only menu fixture unavailable")
@@ -120,6 +122,40 @@ func TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread(t *testing.T) {
 		user.NewProc("SendMessageW").Call(handle, 7, 0, 0)
 		if forwarded != 2 {
 			t.Fatal("ordinary focus forwarding was not restored after menu exit")
+		}
+	})
+	t.Run("bootstrap diagnostics retain only owned fixed progress", func(t *testing.T) {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+		previous := bootstrapDiagnosticsEnabled.Load()
+		EnableWindowBootstrapDiagnostics(true)
+		defer EnableWindowBootstrapDiagnostics(previous)
+		handle, _, _ := user.NewProc("CreateWindowExW").Call(0, uintptr(unsafe.Pointer(class)), uintptr(unsafe.Pointer(title)), 0, 0, 0, 0, 0, ^uintptr(2), 0, 0, 0)
+		if handle == 0 {
+			t.Fatal("bootstrap message-only fixture unavailable")
+		}
+		defer user.NewProc("DestroyWindow").Call(handle)
+		view := &Chromium{hwnd: handle, webview2RuntimeVersion: "152.0.4191.66", globalErrorCallback: func(err error) { t.Error(err) }}
+		if err := view.attachWindowLifetime(handle); err != nil {
+			t.Fatal(err)
+		}
+		recordWindowBootstrap(view, bootstrapNavigateRequested)
+		recordWindowBootstrap(view, bootstrapNavigateAccepted)
+		recordWindowBootstrap(view, bootstrapResourceEntered)
+		recordWindowBootstrap(view, bootstrapNavigationCompleted)
+		other := make(chan struct{})
+		go func() { recordWindowBootstrap(view, bootstrapResourceReturned); close(other) }()
+		<-other
+		rows := OwnedWindowBootstrapSnapshots()
+		if len(rows) != 1 || rows[0].RuntimeVersion != "152.0.4191.66" || rows[0].NavigationRequested != 1 || rows[0].NavigationAccepted != 1 || rows[0].ResourceEntered != 1 || rows[0].ResourceReturned != 0 || rows[0].NavigationCompleted != 1 || rows[0].CompletionWithoutHost != 1 || rows[0].OffThreadEvents != 1 {
+			t.Fatal("bootstrap boundary lost ownership or fixed progress", rows)
+		}
+		recordWindowBootstrap(view, bootstrapResourceReturned)
+		EnableWindowBootstrapDiagnostics(false)
+		recordWindowBootstrap(view, bootstrapNavigateRequested)
+		rows = OwnedWindowBootstrapSnapshots()
+		if rows[0].ResourceReturned != 1 || rows[0].NavigationRequested != 1 {
+			t.Fatal("disabled bootstrap observation changed state", rows)
 		}
 	})
 	t.Run("a claimed accelerator stays handled", func(t *testing.T) {
@@ -207,6 +243,8 @@ func TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread(t *testing.T) {
 		runtime.KeepAlive(args)
 	})
 	t.Run("failed Close preserves destruction and error", func(t *testing.T) {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
 		ownedWindows.Lock()
 		original := ownedWindows.failure
 		ownedWindows.Unlock()

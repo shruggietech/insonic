@@ -25,6 +25,10 @@ func applicationOptions(bridge *desktop.Bridge, startup, domReady func(context.C
 	if profile != "" {
 		requestQuit = func() { fmt.Fprintln(os.Stderr, "native-exit-stage=menu-request"); quit.Request() }
 	}
+	middleware := desktop.HelpAssetPolicy
+	if profile != "" {
+		middleware = observeQualificationAssets(middleware)
+	}
 	app := &options.App{
 		Title: "insonic", Width: 1200, Height: 800, MinWidth: 720, MinHeight: 600, StartHidden: hidden,
 		Menu: desktop.ApplicationMenu(runtime.GOOS, requestQuit),
@@ -49,7 +53,7 @@ func applicationOptions(bridge *desktop.Bridge, startup, domReady func(context.C
 		},
 		OnDomReady:  domReady,
 		OnShutdown:  func(context.Context) { desktop.ClosePlaybackHandles(bridge) },
-		AssetServer: &assetserver.Options{Assets: desktop.Assets, Middleware: desktop.HelpAssetPolicy, Handler: desktop.PlaybackServer{Bridge: bridge}},
+		AssetServer: &assetserver.Options{Assets: desktop.Assets, Middleware: middleware, Handler: desktop.PlaybackServer{Bridge: bridge}},
 		Bind:        []any{bridge},
 	}
 	if profile != "" {

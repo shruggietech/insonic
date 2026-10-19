@@ -17,6 +17,57 @@ qualify = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(qualify)
 
 class QualificationArchiveTests(unittest.TestCase):
+    def test_prepare_retries_transient_asset_failure_before_extracting_verified_bytes(self):
+        payload = b'controlled pinned native archive'
+        import hashlib
+        import urllib.error
+        pin = {'version': '1', 'assets': {'linux_amd64': ['fixture.zip', hashlib.sha256(payload).hexdigest()]}}
+        failure = urllib.error.HTTPError('https://github.com/controlled/asset', 502, 'Bad Gateway', {}, None)
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(qualify, 'BUILD', Path(directory)), \
+                patch.object(qualify, 'LOCK', {'go': '1', 'wails': '2', 'ladybug': pin}), \
+                patch.object(qualify.platform, 'system', return_value='Linux'), \
+                patch.object(qualify.platform, 'machine', return_value='x86_64'), \
+                patch('urllib.request.urlopen', side_effect=[failure, io.BytesIO(payload)]) as download, \
+                patch.object(qualify.time, 'sleep'), \
+                patch.object(qualify, 'extract', side_effect=RuntimeError('stop after verified extraction')) as extract:
+            with self.assertRaisesRegex(RuntimeError, 'stop after verified extraction'):
+                qualify.prepare()
+            self.assertEqual(download.call_count, 2)
+            self.assertEqual((Path(directory) / 'fixture.zip').read_bytes(), payload)
+            extract.assert_called_once_with(Path(directory) / 'fixture.zip', Path(directory) / 'ladybug')
+            self.assertFalse((Path(directory) / 'fixture.download').exists())
+
+
+    def test_prepare_does_not_retry_permanent_failure_or_publish_bad_checksum(self):
+        import hashlib
+        import urllib.error
+        payload = b'verified fixture'
+        for mode in ['not-found', 'wrong-checksum', 'expired-budget']:
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                pin = {'version': '1', 'assets': {'linux_amd64': ['fixture.zip', hashlib.sha256(payload).hexdigest()]}}
+                failure = urllib.error.HTTPError('https://github.com/controlled/asset', 404 if mode == 'not-found' else 502, 'controlled failure', {}, None)
+                result = io.BytesIO(b'unverified bytes') if mode == 'wrong-checksum' else failure
+                with patch.object(qualify, 'BUILD', Path(directory)), \
+                        patch.object(qualify, 'LOCK', {'go': '1', 'wails': '2', 'ladybug': pin}), \
+                        patch.object(qualify.platform, 'system', return_value='Linux'), \
+                        patch.object(qualify.platform, 'machine', return_value='x86_64'), \
+                        patch('urllib.request.urlopen', side_effect=[result]) as download, \
+                        patch.object(qualify.time, 'sleep'), \
+                        patch.object(qualify.time, 'monotonic', side_effect=[0, 0, 61] if mode == 'expired-budget' else [0] * 10), \
+                        patch.object(qualify, 'extract') as extract:
+                    expected = ValueError if mode == 'wrong-checksum' else RuntimeError
+                    with self.assertRaises(expected) as caught:
+                        qualify.prepare()
+                    if mode == 'not-found':
+                        self.assertIsInstance(caught.exception.__cause__, urllib.error.HTTPError)
+                        self.assertEqual(caught.exception.__cause__.code, 404)
+                    self.assertEqual(download.call_count, 1)
+                    self.assertLessEqual(download.call_args.kwargs['timeout'], 20)
+                    extract.assert_not_called()
+                    self.assertFalse((Path(directory) / 'fixture.zip').exists())
+                    self.assertFalse((Path(directory) / 'fixture.download').exists())
+
     def test_native_cli_builder_passes_the_selected_environment(self):
         selected = {'CC': 'selected', 'INSONIC_NATIVE_LIBRARY': 'isolated'}
         with patch.object(qualify, 'child') as build:

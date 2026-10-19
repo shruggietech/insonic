@@ -257,7 +257,11 @@ func (e *Chromium) Resize() {
 }
 
 func (e *Chromium) Navigate(url string) {
+	recordWindowBootstrap(e, bootstrapNavigateRequested)
 	err := e.webview.Navigate(url)
+	if err == nil {
+		recordWindowBootstrap(e, bootstrapNavigateAccepted)
+	}
 	if err != nil {
 		e.errorCallback(err)
 	}
@@ -484,6 +488,8 @@ func (e *Chromium) PermissionRequested(_ *ICoreWebView2, args *iCoreWebView2Perm
 }
 
 func (e *Chromium) WebResourceRequested(sender *ICoreWebView2, args *ICoreWebView2WebResourceRequestedEventArgs) uintptr {
+	recordWindowBootstrap(e, bootstrapResourceEntered)
+	defer recordWindowBootstrap(e, bootstrapResourceReturned)
 	req, err := args.GetRequest()
 	if err != nil {
 		log.Fatal(err)
@@ -576,6 +582,7 @@ func boolToInt(input bool) int {
 }
 
 func (e *Chromium) NavigationCompleted(sender *ICoreWebView2, args *ICoreWebView2NavigationCompletedEventArgs) uintptr {
+	recordWindowBootstrap(e, bootstrapNavigationCompleted)
 	if e.NavigationCompletedCallback != nil {
 		e.NavigationCompletedCallback(sender, args)
 	}

@@ -23,3 +23,7 @@ accelerators retain their existing callback route.
 While an owned native menu is active, the parent retains keyboard focus and
 does not forward WM_SETFOCUS back into the browser. Menu exit restores the
 previous owned child only while the same parent still owns foreground input.
+
+Explicit disposable qualification can retain fixed navigation/resource callback
+counts and the browser version for bounded failure evidence. It does not retain
+request URLs, script contents or application data, or add browser calls.

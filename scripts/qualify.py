@@ -15,7 +15,6 @@ import sys
 import tarfile
 import tempfile
 import time
-import urllib.request
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -127,17 +126,14 @@ def prepare():
     if key not in ('windows_amd64', 'linux_amd64'):
         raise ValueError('unsupported package architecture')
     BUILD.mkdir(parents=True, exist_ok=True)
+    from media_source_build import fetch_pin
     receipt = {'platform': key, 'go': LOCK['go'], 'wails': LOCK['wails'], 'assets': []}
     for name, repo in [('ladybug', 'LadybugDB/ladybug'), ('cueson', 'shruggietech/cueson')]:
         filename, digest = LOCK[name]['assets'][key]
-        archive = BUILD / filename
-        if not archive.exists() or hashlib.sha256(archive.read_bytes()).hexdigest() != digest:
-            url = f'https://github.com/{repo}/releases/download/v{LOCK[name]["version"]}/{filename}'
-            request = urllib.request.Request(url, headers={'User-Agent': 'insonic-native-qualification'})
-            with urllib.request.urlopen(request, timeout=120) as data, archive.open('wb') as output:
-                shutil.copyfileobj(data, output)
-        if hashlib.sha256(archive.read_bytes()).hexdigest() != digest:
-            raise ValueError('upstream asset checksum mismatch')
+        # Reuse the existing three-attempt, verified/atomic source acquisition.
+        # Its 60-second scheduling budget is below the old 120-second socket wait.
+        url = f'https://github.com/{repo}/releases/download/v{LOCK[name]["version"]}/{filename}'
+        archive = fetch_pin({'name': filename, 'url': url, 'sha256': digest}, cache=BUILD)
         destination = BUILD / name
         extract(archive, destination)
         receipt['assets'].append({'name': filename, 'sha256': digest})

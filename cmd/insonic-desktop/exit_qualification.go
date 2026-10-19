@@ -97,6 +97,7 @@ func qualifyNativeExitChild(path string) int {
 				timedOut.Store(true)
 				fmt.Fprintln(os.Stderr, "native-exit-stage=watchdog-timeout")
 				logNativeUIFunctionStacks()
+				logNativeStartupProgress()
 				logNativeExitMenuState()
 				dismissFailedNativeMenu()
 				wailsruntime.Quit(ctx)
@@ -137,6 +138,10 @@ func qualifyNativeExitChild(path string) int {
 				activated <- err
 				fmt.Fprintln(os.Stderr, err)
 				wailsruntime.Quit(ctx)
+				return
+			}
+			if timedOut.Load() {
+				activated <- fmt.Errorf("native readiness arrived after watchdog")
 				return
 			}
 			fmt.Fprintln(os.Stderr, "native-exit-stage=native-action")
@@ -260,7 +265,10 @@ func (r *exitRuntime) assertHeld(parent, acquisition string) error {
 
 // The outer fixture owns a disposable workspace, a loopback byte barrier and
 // child GUI processes. It joins its runtime only after the durable job finishes.
-func runExitQualification() error { return runExitQualificationWith(runExitGUIChild) }
+func runExitQualification() error {
+	logNativeBrowserRuntimeVersion()
+	return runExitQualificationWith(runExitGUIChild)
+}
 
 func runExitQualificationWith(runChild func(exitFixture, string) (exitObservation, error)) (err error) {
 	directory, err := os.MkdirTemp("", "insonic-exit-*")

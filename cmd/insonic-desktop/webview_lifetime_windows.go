@@ -6,6 +6,8 @@ package main
 import (
 	"fmt"
 	"github.com/wailsapp/go-webview2/pkg/edge"
+	"github.com/wailsapp/go-webview2/webviewloader"
+	"os"
 )
 
 func nativeWebviewCloseError() error {
@@ -23,3 +25,14 @@ func nativeWebviewCloseError() error {
 }
 
 func nativeCOMCleanup() error { return edge.FinalizeCOMApartment() }
+
+func nativeWebviewBootstrapSnapshot() any { return edge.OwnedWindowBootstrapSnapshots() }
+
+func logNativeBrowserRuntimeVersion() {
+	version, err := webviewloader.GetAvailableCoreWebView2BrowserVersionString("")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "native-browser-runtime=unavailable")
+		return
+	}
+	fmt.Fprintf(os.Stderr, "native-browser-runtime=%q\n", version[:min(len(version), 64)])
+}

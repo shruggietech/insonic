@@ -146,3 +146,8 @@ US1 example: command-registry regressions and catalog migration regressions run 
 ## Phase 26: Convergence
 
 - [ ] T051 Preserve actual owned-UI-thread system-key metadata before the pinned framework drops Alt context, keep one handled disposition, post native File-menu work after the synchronous callback and require that route in real qualification; retain the controlled prior-accelerator red comparison, normal/race tests, source/notice authority and all original native/package gates per FR-020..022 and SC-006 (partial).
+
+## Phase 27: Convergence
+
+- [ ] T052 Reuse checksum-verified atomic native asset acquisition with bounded transient retries at the existing cache location, retain permanent-error and checksum/deadline failures, prove controlled HTTP 502 red/green behavior and complete exact-head source/package CI within the existing budget per FR-017/022 and SC-005/006 (partial).
+- [ ] T053 Identify the separate pre-DOM startup stall with bounded browser-version/navigation/resource and asset-handler evidence, distinguish native/browser progress from an idle Go UI loop, correct the demonstrated cause with a focused regression where practical, and repeat all actual native/package gates without changing watchdogs or treating later passing repetitions as a cause proof per FR-019..022 and SC-006 (partial).

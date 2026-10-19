@@ -6,3 +6,9 @@ package main
 func nativeWebviewCloseError() error { return nil }
 
 func nativeCOMCleanup() error { return nil }
+
+func nativeWebviewBootstrapSnapshot() any { return nil }
+
+func logNativeBrowserRuntimeVersion() {}
+
+func nativeStartupWaitSnapshot() any { return nil }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"sync/atomic"
 	"syscall"
 	"unsafe"
 
@@ -49,7 +50,80 @@ func (e *Chromium) nativeSystemKeyHandler() func(uintptr, NativeSystemKeyEvent) 
 	return ownedWindows.systemKeyHandler
 }
 
+// WindowBootstrapSnapshot contains only fixed counters and the browser version,
+// never request URLs, script contents or application data.
+type WindowBootstrapSnapshot struct {
+	OffThreadEvents       uint64 `json:"off_thread_events"`
+	RuntimeVersion        string `json:"runtime_version"`
+	NavigationRequested   uint64 `json:"navigation_requested"`
+	NavigationAccepted    uint64 `json:"navigation_accepted"`
+	ResourceEntered       uint64 `json:"resource_entered"`
+	ResourceReturned      uint64 `json:"resource_returned"`
+	NavigationCompleted   uint64 `json:"navigation_completed"`
+	CompletionWithoutHost uint64 `json:"completion_without_host"`
+}
+
+var bootstrapDiagnosticsEnabled atomic.Bool
+
+func EnableWindowBootstrapDiagnostics(enabled bool) { bootstrapDiagnosticsEnabled.Store(enabled) }
+
+const (
+	bootstrapNavigateRequested uint8 = iota
+	bootstrapNavigateAccepted
+	bootstrapResourceEntered
+	bootstrapResourceReturned
+	bootstrapNavigationCompleted
+)
+
+func recordWindowBootstrap(e *Chromium, event uint8) {
+	if !bootstrapDiagnosticsEnabled.Load() {
+		return
+	}
+	ownedWindows.Lock()
+	defer ownedWindows.Unlock()
+	entry := ownedWindows.values[e.hwnd]
+	if entry == nil || entry.chromium != e || entry.closed {
+		return
+	}
+	value := &entry.bootstrap
+	if entry.thread != windows.GetCurrentThreadId() {
+		value.OffThreadEvents++
+		return
+	}
+	value.RuntimeVersion = e.webview2RuntimeVersion
+	if len(value.RuntimeVersion) > 64 {
+		value.RuntimeVersion = value.RuntimeVersion[:64]
+	}
+	switch event {
+	case bootstrapNavigateRequested:
+		value.NavigationRequested++
+	case bootstrapNavigateAccepted:
+		value.NavigationAccepted++
+	case bootstrapResourceEntered:
+		value.ResourceEntered++
+	case bootstrapResourceReturned:
+		value.ResourceReturned++
+	case bootstrapNavigationCompleted:
+		value.NavigationCompleted++
+		if e.NavigationCompletedCallback == nil {
+			value.CompletionWithoutHost++
+		}
+	}
+}
+func OwnedWindowBootstrapSnapshots() []WindowBootstrapSnapshot {
+	ownedWindows.Lock()
+	defer ownedWindows.Unlock()
+	var result []WindowBootstrapSnapshot
+	for _, entry := range ownedWindows.values {
+		if len(result) < 4 {
+			result = append(result, entry.bootstrap)
+		}
+	}
+	return result
+}
+
 type windowLifetime struct {
+	bootstrap WindowBootstrapSnapshot
 	chromium  *Chromium
 	thread    uint32
 	closed    bool
