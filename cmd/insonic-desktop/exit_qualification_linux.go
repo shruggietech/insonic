@@ -93,3 +93,5 @@ func activateNativeExit(action string) error {
 func dismissFailedNativeMenu() {}
 
 func prepareNativeExitWindow(context.Context) error { return nil }
+
+func logNativeExitMenuState() {}

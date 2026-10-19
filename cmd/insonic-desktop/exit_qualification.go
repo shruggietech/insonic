@@ -97,6 +97,7 @@ func qualifyNativeExitChild(path string) int {
 				timedOut.Store(true)
 				fmt.Fprintln(os.Stderr, "native-exit-stage=watchdog-timeout")
 				logNativeUIFunctionStacks()
+				logNativeExitMenuState()
 				dismissFailedNativeMenu()
 				wailsruntime.Quit(ctx)
 			}

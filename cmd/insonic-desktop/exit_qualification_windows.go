@@ -79,7 +79,9 @@ type exitGUIThreadInfo struct {
 type exitMenuState struct {
 	queried, active, owner, barQueried, barMatches, popupVisible, popupOwned bool
 	flags                                                                    uint32
-	popup                                                                    uintptr
+	popup, focus                                                             uintptr
+	barFlags, exitFlags                                                      uint32
+	focusOwned, altDown                                                      bool
 }
 
 func (s exitMenuState) ready() bool {
@@ -87,7 +89,7 @@ func (s exitMenuState) ready() bool {
 }
 
 func (s exitMenuState) String() string {
-	return fmt.Sprintf("query=%t flags=%d active=%t owner=%t bar-query=%t bar-match=%t popup=%x visible=%t owned=%t", s.queried, s.flags, s.active, s.owner, s.barQueried, s.barMatches, s.popup, s.popupVisible, s.popupOwned)
+	return fmt.Sprintf("query=%t flags=%d active=%t owner=%t bar-query=%t bar-match=%t popup=%x visible=%t owned=%t bar-flags=%d exit-flags=%d focus=%x focus-owned=%t alt-down=%t", s.queried, s.flags, s.active, s.owner, s.barQueried, s.barMatches, s.popup, s.popupVisible, s.popupOwned, s.barFlags, s.exitFlags, s.focus, s.focusOwned, s.altDown)
 }
 
 func observeExitMenu(hwnd, root, thread uintptr) exitMenuState {
@@ -99,7 +101,11 @@ func observeExitMenu(hwnd, root, thread uintptr) exitMenuState {
 	barQueried := exitWinCall("GetMenuBarInfo", hwnd, 0xfffffffd, 1, uintptr(unsafe.Pointer(&bar))) != 0
 	var pid uint32
 	popupThread := exitWinCall("GetWindowThreadProcessId", bar.Window, uintptr(unsafe.Pointer(&pid)))
-	return exitMenuState{queried: queried, active: info.Active == hwnd, owner: info.MenuOwner == hwnd, flags: info.Flags, barQueried: barQueried, barMatches: bar.Menu == root, popup: bar.Window, popupVisible: bar.Window != 0 && exitWinCall("IsWindowVisible", bar.Window) != 0, popupOwned: popupThread == thread && pid == uint32(os.Getpid())}
+	var focusPID uint32
+	exitWinCall("GetWindowThreadProcessId", info.Focus, uintptr(unsafe.Pointer(&focusPID)))
+	file := exitWinCall("GetSubMenu", root, 0)
+	exitFlags := uint32(exitWinCall("GetMenuState", file, 0, 0x400))
+	return exitMenuState{queried: queried, active: info.Active == hwnd, owner: info.MenuOwner == hwnd, flags: info.Flags, barQueried: barQueried, barMatches: bar.Menu == root, popup: bar.Window, popupVisible: bar.Window != 0 && exitWinCall("IsWindowVisible", bar.Window) != 0, popupOwned: popupThread == thread && pid == uint32(os.Getpid()), barFlags: bar.Flags, exitFlags: exitFlags, focus: info.Focus, focusOwned: info.Focus != 0 && focusPID == uint32(os.Getpid()), altDown: exitWinCall("GetAsyncKeyState", 0x12)&0x8000 != 0}
 }
 
 // Failure-only dismissal lets the normal Quit path leave a modal menu loop.
@@ -175,4 +181,17 @@ func sendNativeKeyboard(hwnd uintptr, label string, keys []exitKeyboardInput) er
 		return fmt.Errorf("native %s input rejected (sent=%d, error=%d)", label, sent, code)
 	}
 	return nil
+}
+
+// Failure-only snapshot distinguishes a modal menu wait from lost focus or an
+// unprocessed accelerator. The original watchdog and failed outcome remain.
+func logNativeExitMenuState() {
+	hwnd := exitWinCall("GetForegroundWindow")
+	if requireNativeInputTarget(hwnd) != nil {
+		fmt.Fprintln(os.Stderr, "native-menu-timeout owned-foreground=false")
+		return
+	}
+	root := exitWinCall("GetMenu", hwnd)
+	thread := exitWinCall("GetWindowThreadProcessId", hwnd, 0)
+	fmt.Fprintf(os.Stderr, "native-menu-timeout %s\n", observeExitMenu(hwnd, root, thread))
 }
