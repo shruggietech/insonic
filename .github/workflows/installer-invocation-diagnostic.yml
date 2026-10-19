@@ -50,7 +50,8 @@ jobs:
         run: python -c "import os; assert os.environ['SELECTED_MSYS2_ROOT']; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+os.environ['SELECTED_MSYS2_ROOT']+'\n')"
       - name: Pinned archive decoder for source diagnosis
         if: matrix.kind == 'desktop-startup' && inputs.startup_source
-        run: python -m pip install --disable-pip-version-check --no-input --only-binary=:all: --target build/native/python zstandard==0.25.0
+        run: |
+          python -m pip install --disable-pip-version-check --no-input --only-binary=:all: --target build/native/python zstandard==0.25.0
       - name: Prepare pinned native inputs for source diagnosis
         if: matrix.kind == 'desktop-startup' && inputs.startup_source
         run: python scripts/qualify.py prepare
