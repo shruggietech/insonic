@@ -1,4 +1,4 @@
-insonic maintained WebView lifetime patch
+insonic maintained WebView lifetime and native-key patch
 
 Upstream: github.com/wailsapp/go-webview2 v1.0.22
 https://github.com/wailsapp/go-webview2/tree/v1.0.22
@@ -14,3 +14,8 @@ revision binds this repository-local replacement; Go binary metadata records
 the relative replacement path rather than an upstream checksum for the patch.
 
 The maintained cleanup also balances owned COM interface references and the original UI-thread apartment initialization. The manifest lists both modified upstream files and every added file.
+
+The native system-key extension copies original accelerator context on the
+owned window UI thread. Claimed keys retain one handled disposition; the host
+posts native menu work after the synchronous callback returns. Other
+accelerators retain their existing callback route.

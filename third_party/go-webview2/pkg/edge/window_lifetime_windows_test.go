@@ -78,6 +78,90 @@ func TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread(t *testing.T) {
 	if WindowCloseError() != nil {
 		t.Fatal("successful Close retained an error")
 	}
+	t.Run("a claimed accelerator stays handled", func(t *testing.T) {
+		var handled []uintptr
+		args := &ICoreWebView2AcceleratorKeyPressedEventArgs{vtbl: &_ICoreWebView2AcceleratorKeyPressedEventArgsVtbl{
+			GetKeyEventKind: NewComProc(func(this uintptr, output *COREWEBVIEW2_KEY_EVENT_KIND) uintptr {
+				*output = COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN
+				return 0
+			}),
+			GetVirtualKey: NewComProc(func(this uintptr, output *uint32) uintptr { *output = 0x46; return 0 }),
+			GetPhysicalKeyStatus: NewComProc(func(this uintptr, output *internal_COREWEBVIEW2_PHYSICAL_KEY_STATUS) uintptr {
+				*output = internal_COREWEBVIEW2_PHYSICAL_KEY_STATUS{}
+				return 0
+			}),
+			PutHandled: NewComProc(func(this, value uintptr) uintptr { handled = append(handled, value); return 0 }),
+		}}
+		view := &Chromium{AcceleratorKeyCallback: func(key uint) bool { return key == 0x46 }, globalErrorCallback: func(err error) { t.Error(err) }}
+		view.AcceleratorKeyPressed(nil, args)
+		if len(handled) != 1 || handled[0] != 1 {
+			t.Fatalf("claimed native accelerator was reset: %v", handled)
+		}
+		runtime.KeepAlive(args)
+	})
+	t.Run("native system key keeps its owned UI context and copied flags", func(t *testing.T) {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+		owner := windows.GetCurrentThreadId()
+		handle, _, _ := user.NewProc("CreateWindowExW").Call(0, uintptr(unsafe.Pointer(class)), uintptr(unsafe.Pointer(title)), 0, 0, 0, 0, 0, ^uintptr(2), 0, 0, 0)
+		if handle == 0 {
+			t.Fatal("system-key message-only fixture unavailable")
+		}
+		defer user.NewProc("DestroyWindow").Call(handle)
+		view := &Chromium{hwnd: handle, globalErrorCallback: func(err error) { t.Error(err) }}
+		if err := view.attachWindowLifetime(handle); err != nil {
+			t.Fatal(err)
+		}
+		ownedWindows.Lock()
+		previous := ownedWindows.systemKeyHandler
+		ownedWindows.Unlock()
+		defer SetNativeSystemKeyHandler(previous)
+		const flags = 0x20210001
+		var dispositions []uintptr
+		args := &ICoreWebView2AcceleratorKeyPressedEventArgs{vtbl: &_ICoreWebView2AcceleratorKeyPressedEventArgsVtbl{
+			GetKeyEventKind: NewComProc(func(this uintptr, output *COREWEBVIEW2_KEY_EVENT_KIND) uintptr {
+				*output = COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN
+				return 0
+			}),
+			GetVirtualKey:     NewComProc(func(this uintptr, output *uint32) uintptr { *output = 0x46; return 0 }),
+			GetKeyEventLParam: NewComProc(func(this uintptr, output *uint32) uintptr { *output = flags; return 0 }),
+			GetPhysicalKeyStatus: NewComProc(func(this uintptr, output *internal_COREWEBVIEW2_PHYSICAL_KEY_STATUS) uintptr {
+				*output = internal_COREWEBVIEW2_PHYSICAL_KEY_STATUS{IsMenuKeyDown: 1}
+				return 0
+			}),
+			PutHandled: NewComProc(func(this, value uintptr) uintptr { dispositions = append(dispositions, value); return 0 }),
+		}}
+		nativeCalls, legacyCalls := 0, 0
+		view.AcceleratorKeyCallback = func(uint) bool { legacyCalls++; return false }
+		SetNativeSystemKeyHandler(func(hwnd uintptr, event NativeSystemKeyEvent) bool {
+			nativeCalls++
+			if hwnd != handle || windows.GetCurrentThreadId() != owner || event.VirtualKey != 0x46 || event.LParam != flags || !event.PhysicalKeyStatus.IsMenuKeyDown {
+				t.Error("native system-key metadata or UI ownership changed", event)
+			}
+			return true
+		})
+		view.AcceleratorKeyPressed(nil, args)
+		if nativeCalls != 1 || legacyCalls != 0 || len(dispositions) != 1 || dispositions[0] != 1 {
+			t.Fatal("native claimed event was duplicated or reset", nativeCalls, legacyCalls, dispositions)
+		}
+		SetNativeSystemKeyHandler(func(uintptr, NativeSystemKeyEvent) bool { return false })
+		dispositions = nil
+		view.AcceleratorKeyPressed(nil, args)
+		if legacyCalls != 1 || len(dispositions) != 1 || dispositions[0] != 0 {
+			t.Fatal("unclaimed event lost its existing handler", legacyCalls, dispositions)
+		}
+		other := make(chan bool, 1)
+		go func() { other <- view.nativeSystemKeyHandler() == nil }()
+		if !<-other {
+			t.Fatal("another thread acquired the native system-key handler")
+		}
+		view.hwnd = 0
+		if view.nativeSystemKeyHandler() != nil {
+			t.Fatal("unowned native window acquired the system-key handler")
+		}
+		view.hwnd = handle
+		runtime.KeepAlive(args)
+	})
 	t.Run("failed Close preserves destruction and error", func(t *testing.T) {
 		ownedWindows.Lock()
 		original := ownedWindows.failure

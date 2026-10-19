@@ -142,3 +142,7 @@ US1 example: command-registry regressions and catalog migration regressions run 
 ## Phase 25: Convergence
 
 - [ ] T050 Identify the remaining post-popup native UI wait using a failure-only bounded function-name profile (no arguments or memory), correct the demonstrated dispatch boundary, and repeat unchanged-limit actual menu/shutdown/package acceptance per FR-019..022 (partial).
+
+## Phase 26: Convergence
+
+- [ ] T051 Preserve actual owned-UI-thread system-key metadata before the pinned framework drops Alt context, keep one handled disposition, post native File-menu work after the synchronous callback and require that route in real qualification; retain the controlled prior-accelerator red comparison, normal/race tests, source/notice authority and all original native/package gates per FR-020..022 and SC-006 (partial).

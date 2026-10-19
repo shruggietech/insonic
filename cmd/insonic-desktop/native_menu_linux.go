@@ -8,5 +8,7 @@ import (
 	"github.com/shruggietech/insonic/desktop"
 )
 
-func configureNativeMenu(*desktop.Bridge, bool)                  {}
+func configureNativeMenu(*desktop.Bridge, bool) func()           { return func() {} }
 func waitNativeMenuReady(context.Context, *desktop.Bridge) error { return nil }
+
+func verifyNativeMenuRoute(string) error { return nil }

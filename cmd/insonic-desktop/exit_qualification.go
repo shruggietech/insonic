@@ -169,6 +169,10 @@ func qualifyNativeExitChild(path string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
+	if err = verifyNativeMenuRoute(fixture.Action); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return 1
+	}
 	playback := "not-selected"
 	if verify != nil {
 		if err = verify(); err != nil {
@@ -497,7 +501,7 @@ func interpretExitChild(fixture exitFixture, report process.CaptureResult, captu
 		return observation, nil
 	}
 	stage, last := "native-exit", -1
-	for _, candidate := range []string{"controller-startup", "window-prepared", "dom-ready", "frontend-ready", "native-action", "menu-mnemonic", "menu-open", "menu-selected", "menu-request", "shutdown", "watchdog-timeout"} {
+	for _, candidate := range []string{"controller-startup", "window-prepared", "dom-ready", "frontend-ready", "native-action", "menu-mnemonic", "menu-native-system-key", "menu-open", "menu-selected", "menu-request", "shutdown", "watchdog-timeout"} {
 		if index := strings.LastIndex(string(report.Stderr), "native-exit-stage="+candidate); index > last {
 			stage, last = candidate, index
 		}

@@ -511,25 +511,50 @@ func (e *Chromium) Environment() *ICoreWebView2Environment {
 // If the AcceleratorKeyCallback method has been set, it will defer handling of the keypress
 // to the callback. That callback returns a bool indicating if the event was handled.
 func (e *Chromium) AcceleratorKeyPressed(sender *ICoreWebView2Controller, args *ICoreWebView2AcceleratorKeyPressedEventArgs) uintptr {
-	if e.AcceleratorKeyCallback == nil {
+	native := e.nativeSystemKeyHandler()
+	if e.AcceleratorKeyCallback == nil && native == nil {
 		return 0
 	}
-	eventKind, _ := args.GetKeyEventKind()
+	eventKind, err := args.GetKeyEventKind()
+	if err != nil {
+		e.errorCallback(err)
+		return 0
+	}
 	if eventKind == COREWEBVIEW2_KEY_EVENT_KIND_KEY_DOWN ||
 		eventKind == COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN {
-		virtualKey, _ := args.GetVirtualKey()
-		status, _ := args.GetPhysicalKeyStatus()
-		if !status.WasKeyDown {
-			err := args.PutHandled(e.AcceleratorKeyCallback(virtualKey))
-			if err != nil {
-				e.errorCallback(err)
-			}
-		} else {
+		virtualKey, err := args.GetVirtualKey()
+		if err != nil {
+			e.errorCallback(err)
 			return 0
 		}
+		status, err := args.GetPhysicalKeyStatus()
+		if err != nil {
+			e.errorCallback(err)
+			return 0
+		}
+		if !status.WasKeyDown {
+			handled := false
+			if native != nil && eventKind == COREWEBVIEW2_KEY_EVENT_KIND_SYSTEM_KEY_DOWN {
+				var lparam uint32
+				hr, _, _ := args.vtbl.GetKeyEventLParam.Call(uintptr(unsafe.Pointer(args)), uintptr(unsafe.Pointer(&lparam)))
+				if windows.Handle(hr) != windows.S_OK {
+					e.errorCallback(windows.Errno(hr))
+					return 0
+				}
+				handled = native(e.hwnd, NativeSystemKeyEvent{VirtualKey: virtualKey, LParam: lparam, PhysicalKeyStatus: status})
+			}
+			if !handled && e.AcceleratorKeyCallback != nil {
+				handled = e.AcceleratorKeyCallback(virtualKey)
+			}
+			if err := args.PutHandled(handled); err != nil {
+				e.errorCallback(err)
+			}
+			// Preserve the chosen disposition; a claimed key must not reach the document.
+			return 0
+		}
+		return 0
 	}
-	err := args.PutHandled(false)
-	if err != nil {
+	if err := args.PutHandled(false); err != nil {
 		e.errorCallback(err)
 	}
 	return 0

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/shruggietech/insonic/desktop"
+	"github.com/wailsapp/go-webview2/pkg/edge"
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.org/x/sys/windows"
 	"os"
@@ -170,18 +171,47 @@ func findNativeExitWindow(requireVisible bool) (uintptr, error) {
 	return 0, fmt.Errorf("owned native window unavailable (owned=%d, visible=%d, active=%d)", owned, visible, active)
 }
 
-func configureNativeMenu(bridge *desktop.Bridge, diagnostic bool) {
+var nativeSystemMenuRequested atomic.Bool
+
+func validateNativeFileMenu(hwnd uintptr) error {
+	if err := requireNativeInputTarget(hwnd); err != nil {
+		return err
+	}
+	root := exitWinCall("GetMenu", hwnd)
+	file := exitWinCall("GetSubMenu", root, 0)
+	if root == 0 || file == 0 || exitWinLabel(root, 0) != "&File" || exitWinLabel(file, 0) != "E&xit" {
+		return fmt.Errorf("owned native File menu unavailable")
+	}
+	return nil
+}
+
+func configureNativeMenu(bridge *desktop.Bridge, diagnostic bool) func() {
+	nativeSystemMenuRequested.Store(false)
+	edge.SetNativeSystemKeyHandler(func(hwnd uintptr, event edge.NativeSystemKeyEvent) bool {
+		if event.VirtualKey != 0x46 || !event.PhysicalKeyStatus.IsMenuKeyDown || event.LParam&(1<<29) == 0 ||
+			exitWinCall("GetKeyState", 0x11)&0x8000 != 0 || exitWinCall("GetKeyState", 0x5b)&0x8000 != 0 || exitWinCall("GetKeyState", 0x5c)&0x8000 != 0 {
+			return false
+		}
+		if validateNativeFileMenu(hwnd) != nil {
+			return false
+		}
+		// Post the actual WM_SYSKEYDOWN after this synchronous WebView callback
+		// returns. Preserve Alt/scan/repeat context and avoid a DOM/Go modal request.
+		if exitWinCall("PostMessageW", hwnd, 0x104, uintptr(event.VirtualKey), uintptr(event.LParam)) == 0 {
+			return false
+		}
+		nativeSystemMenuRequested.Store(true)
+		if diagnostic {
+			fmt.Fprintln(os.Stderr, "native-exit-stage=menu-native-system-key")
+		}
+		return true
+	})
 	desktop.SetNativeFileMenu(bridge, func() error {
 		// The focused document supplies the intent; select only its owned
 		// foreground native menu, without allocating an EnumWindows callback.
 		hwnd := exitWinCall("GetForegroundWindow")
-		if err := requireNativeInputTarget(hwnd); err != nil {
+		if err := validateNativeFileMenu(hwnd); err != nil {
 			return err
-		}
-		root := exitWinCall("GetMenu", hwnd)
-		file := exitWinCall("GetSubMenu", root, 0)
-		if root == 0 || file == 0 || exitWinLabel(root, 0) != "&File" || exitWinLabel(file, 0) != "E&xit" {
-			return fmt.Errorf("owned native File menu unavailable")
 		}
 		if exitWinCall("PostMessageW", hwnd, 0x112, 0xf100, 'f') == 0 {
 			return fmt.Errorf("native File menu request rejected")
@@ -191,6 +221,14 @@ func configureNativeMenu(bridge *desktop.Bridge, diagnostic bool) {
 		}
 		return nil
 	})
+	return func() { edge.SetNativeSystemKeyHandler(nil) }
+}
+
+func verifyNativeMenuRoute(action string) error {
+	if action == "menu" && !nativeSystemMenuRequested.Load() {
+		return fmt.Errorf("native system-key File menu route was not observed")
+	}
+	return nil
 }
 
 func waitNativeMenuReady(ctx context.Context, bridge *desktop.Bridge) error {

@@ -409,7 +409,7 @@
     "go.sum": "dd11e9e216a039f5f898a6c5223cb52cfe4b7a468b2b03a80ba2cee38a29427f",
     "LICENSE": "3f10f3374cf30076196eb239667ce6063c64e4275afd2b397f6343f69676bb79",
     "LICENSE.insonic": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
-    "NOTICE.insonic": "7a5e92afb77c32c01347897a218dfdb138ddd0b2272f0c819f5d97ad0d625570",
+    "NOTICE.insonic": "e695a8d04d84a7f706595a87f6db5af24f070fcf491b116c97acf4b83356bc44",
     "README.md": "ba63d931c3298a6739ed6631d5d0dcf31cf74a66c67db041a71a7de3db97a26e",
     "Taskfile.yml": "540c24f999784c9571d1024330dde3b1911d40540b27955c207a907f3d3b00af",
     "webviewloader/env_create.go": "d4d684e52fb7247a6a77e83c5d9ccb40aae0c48305689a8df0b0378b3c0cf93e",
@@ -736,7 +736,7 @@
     "pkg/webview2/ICoreWebView2_9.go": "40678bd1f20bd1c6b0d08697671ab4507207194fc06ac5f8571ca63f23a63281",
     "pkg/edge/capabilities.go": "d8bf2f6aeee2e263f313fcac2b519fbae127e632c2d6e35fd9010f17325c92c2",
     "pkg/edge/capabilities_test.go": "086a8e8b63c698a2e93ab71348ae9aab1e368f3bfe504dea8ea7abb9973064ae",
-    "pkg/edge/chromium.go": "90f848c091822d332578bca6a1af1d01fa119a9b71aadc5664903a7a50ec0b10",
+    "pkg/edge/chromium.go": "6ab087a1d39e0f55f1c5a428ca857dc1677ca41a972b7f651c7843c6a971226e",
     "pkg/edge/chromium_386.go": "ca192b38628fafd006ad11a32eeb927310024fb108d99e7b7ef702e91d3ddf97",
     "pkg/edge/chromium_amd64.go": "94ce6d15a0af9c08d23b2ef56a88e78424cedbe2d858b7c32c6326210617a99c",
     "pkg/edge/chromium_arm64.go": "f3988997a4b42d0c7fa0d80c70234f9d3a482f7a8177f121007809ea8002b866",
@@ -796,8 +796,8 @@
     "pkg/edge/ICoreWebViewSettings.go": "8fcb7d27ed4f8e2b1690b6b7030cffc43c33be325be370967ab3e56a240c5aa2",
     "pkg/edge/IStream.go": "7d514fcb17784757c36adac30edeaa73301ee3037ed4a1a3e3522798d8fc1e5a",
     "pkg/edge/version_map.go": "6af24de64d1095dbd04247b2417ecd698d87a8de996684cb18bac436103ba7e7",
-    "pkg/edge/window_lifetime_windows.go": "53adae8433f447cd2925994e2285db19725889d63877622bcdc931ffcf07066e",
-    "pkg/edge/window_lifetime_windows_test.go": "6d5d1f0a57f7fc19d782a1882ba96584020c30b618de8068116073fec2d5a7fc",
+    "pkg/edge/window_lifetime_windows.go": "b6f0e5b9b4a35e2631fed4374a9290bb615667288a34356c1ed503c7de419a18",
+    "pkg/edge/window_lifetime_windows_test.go": "e6dd56ac62741246eec6a2393ce1709efe746a55372d1714132c023dba95866b",
     "pkg/combridge/bridge.go": "7624f925a08376123b0e06f70a8e398c0a02d8e084e3ae81f7d248939680c58a",
     "pkg/combridge/iunknown.go": "20a46decc58228afa73b693caaa4eead51b9a4966bef9f68b83666c7f0986d36",
     "pkg/combridge/iunknown_impl.go": "f4ced0d5e8f64ae3c524b08149ed8c4bc52d29260d615065a3307bd6b9d0b3e9",
@@ -805,7 +805,7 @@
     "pkg/combridge/vtables.go": "068e49113d50685fd82bf5dc0041f9d0bb60187296e657596ab57c92957006e0",
     "internal/w32/w32.go": "1fb79500ac8da0dffe518eb3965c1f7bf51b2e8103cac3d9a3dc0821ef6779ad"
   },
-  "patched_sum": "h1:SMhk2IA7C/oZTn6SVB1J1rdnfxpggxWZlAf8BFXX+BI=",
+  "patched_sum": "h1:+lDsgyIMzmIOmIhmAY0zEgBM3uoYeb50iexRQjC8MN8=",
   "modified": [
     "pkg/edge/chromium.go",
     "pkg/edge/corewebview2.go"

@@ -19,8 +19,35 @@ var lifetimeRemoveSubclass = lifetimeComctl.NewProc("RemoveWindowSubclass")
 var lifetimeDefSubclass = lifetimeComctl.NewProc("DefSubclassProc")
 var lifetimeGetOwner = windows.NewLazySystemDLL("user32.dll").NewProc("GetWindowThreadProcessId")
 
+// NativeSystemKeyEvent copies accelerator metadata; no borrowed COM pointer escapes.
+type NativeSystemKeyEvent struct {
+	VirtualKey        uint
+	LParam            uint32
+	PhysicalKeyStatus COREWEBVIEW2_PHYSICAL_KEY_STATUS
+}
+
+// SetNativeSystemKeyHandler configures the single host application's native
+// system-key route. Call before running the UI and clear after its run returns.
+// Handlers must only post native work, never enter modal UI inside a COM callback.
+func SetNativeSystemKeyHandler(handler func(uintptr, NativeSystemKeyEvent) bool) {
+	ownedWindows.Lock()
+	ownedWindows.systemKeyHandler = handler
+	ownedWindows.Unlock()
+}
+
+func (e *Chromium) nativeSystemKeyHandler() func(uintptr, NativeSystemKeyEvent) bool {
+	ownedWindows.Lock()
+	defer ownedWindows.Unlock()
+	entry := ownedWindows.values[e.hwnd]
+	if entry == nil || entry.chromium != e || entry.closed || entry.thread != windows.GetCurrentThreadId() {
+		return nil
+	}
+	return ownedWindows.systemKeyHandler
+}
+
 type windowLifetime struct {
 	chromium *Chromium
+	thread   uint32
 	closed   bool
 }
 
@@ -32,6 +59,7 @@ var ownedWindows = struct {
 	closedControllers                  uint32
 	apartmentThread                    uint32
 	apartmentOwned, apartmentFinalized bool
+	systemKeyHandler                   func(uintptr, NativeSystemKeyEvent) bool
 }{values: make(map[uintptr]*windowLifetime)}
 
 var lifetimeSubclass uintptr
@@ -108,7 +136,7 @@ func (e *Chromium) attachWindowLifetime(hwnd uintptr) error {
 		ownedWindows.Unlock()
 		return fmt.Errorf("WebView window lifetime already registered")
 	}
-	ownedWindows.values[hwnd] = &windowLifetime{chromium: e}
+	ownedWindows.values[hwnd] = &windowLifetime{chromium: e, thread: uint32(thread)}
 	ownedWindows.Unlock()
 	if accepted, _, _ := lifetimeSetSubclass.Call(hwnd, lifetimeSubclass, lifetimeSubclass, 0); accepted == 0 {
 		ownedWindows.Lock()
