@@ -59,6 +59,9 @@ func qualifyHelpOnly() int {
 		app.Windows = &windows.Options{WebviewUserDataPath: profile}
 	}
 	err = wails.Run(app)
+	if err == nil {
+		err = nativeWebviewCloseError()
+	}
 	if err != nil || !passed.Load() {
 		fmt.Fprintln(os.Stderr, "Installed help qualification failed.")
 		return 1

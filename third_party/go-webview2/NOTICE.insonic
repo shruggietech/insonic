@@ -1,0 +1,14 @@
+insonic maintained WebView lifetime patch
+
+Upstream: github.com/wailsapp/go-webview2 v1.0.22
+https://github.com/wailsapp/go-webview2/tree/v1.0.22
+
+Original upstream files and MIT license are retained. The insonic additions
+use Apache-2.0 (LICENSE.insonic). A native parent-window lifetime subclass
+closes the WebView controller once on its owning UI thread during destruction.
+The ordinary window procedure continues normally.
+
+The insonic source tree contains third_party/go-webview2.source.json with
+exact upstream and maintained source checksums. The main product source
+revision binds this repository-local replacement; Go binary metadata records
+the relative replacement path rather than an upstream checksum for the patch.

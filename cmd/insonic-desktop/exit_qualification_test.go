@@ -238,3 +238,38 @@ func TestExitChildOwnWatchdogIsReportedAsTimeout(t *testing.T) {
 		t.Fatalf("lost fixture timeout: %v %s", err, output.String())
 	}
 }
+
+func TestExitOwnerFailureRetainsItsProfileForDiagnosis(t *testing.T) {
+	if os.Getenv("CUESON_EXECUTABLE") == "" {
+		t.Skip("native qualification companions not prepared")
+	}
+	root, err := filepath.Abs(filepath.Join("..", ".."))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("INSONIC_DESKTOP_FIXTURE_DIRECTORY", filepath.Join(root, "tests", "fixtures", "media"))
+	var retained, marker string
+	failure := fmt.Errorf("synthetic native child failure")
+	err = runExitQualificationWith(func(_ exitFixture, config string) (exitObservation, error) {
+		retained = filepath.Dir(filepath.Dir(config))
+		t.Cleanup(func() { os.RemoveAll(retained) })
+		profile := filepath.Join(filepath.Dir(config), "webview")
+		if err := os.Mkdir(profile, 0700); err != nil {
+			return exitObservation{}, err
+		}
+		marker = filepath.Join(profile, "retained.txt")
+		if err := os.WriteFile(marker, []byte("owned failed profile"), 0600); err != nil {
+			return exitObservation{}, err
+		}
+		return exitObservation{}, failure
+	})
+	if err != failure {
+		t.Fatal("native failure was replaced", err)
+	}
+	if _, err := os.Stat(marker); err != nil {
+		t.Fatal("failed native profile was removed before observed release", err)
+	}
+	if _, err := os.Stat(filepath.Join(retained, ".insonic", "workspace.json")); err != nil {
+		t.Fatal("failed fixture authority was not retained", err)
+	}
+}

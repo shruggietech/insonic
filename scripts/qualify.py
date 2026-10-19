@@ -279,6 +279,9 @@ def desktop():
     tags = 'desktop,production,system_ladybug'
     if platform.system() == 'Linux':
         tags += ',webkit2_41'
+    if platform.system() == 'Windows':
+        child(['go', 'test', '-timeout=15s', '-run', '^TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread$',
+               'github.com/wailsapp/go-webview2/pkg/edge'], env=env)
     output = child(['go', 'test', '-v', '-tags', tags, './desktop', './cmd/insonic-desktop'], env=env)
     sys.stdout.buffer.write(output)
     executable = ROOT / ('build/insonic-desktop.exe' if os.name == 'nt' else 'build/insonic-desktop')

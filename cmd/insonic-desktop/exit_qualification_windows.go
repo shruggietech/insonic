@@ -55,7 +55,10 @@ func activateNativeExit(action string) error {
 			info.Size = uint32(unsafe.Sizeof(info))
 			queried = exitWinCall("GetGUIThreadInfo", thread, uintptr(unsafe.Pointer(&info))) != 0
 			active, owner, flags = info.Active == hwnd, info.MenuOwner == hwnd, info.Flags
-			if queried && active && owner && flags&4 != 0 {
+			if queried && active && owner && flags&0x14 == 0x14 && flags&0x08 == 0 {
+				// General menu mode also covers the bar before its popup is active.
+				// Select X only after GUI_POPUPMENUMODE confirms the owned File popup.
+				fmt.Fprintf(os.Stderr, "native-menu-popup flags=%d focus=%x owner=%x\n", flags, info.Focus, info.MenuOwner)
 				fmt.Fprintln(os.Stderr, "native-exit-stage=menu-open")
 				if err = sendNativeKeyboard(hwnd, "File/Exit X", []exitKeyboardInput{{Kind: 1, Key: 0x58}, {Kind: 1, Key: 0x58, Flags: 2}}); err != nil {
 					return err

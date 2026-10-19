@@ -101,3 +101,16 @@ US1 example: command-registry regressions and catalog migration regressions run 
 ## Phase 15: Native pointer convergence
 
 - [ ] T039 Correct the demonstrated empty Win32 menu label across Go stack growth with pointer-aware native call boundaries, stabilize owned-job information buffers and apply equivalent pinning to typed MSI output buffers, preserve underlying MSI inspection errors and repeat real native/menu/MSI regressions plus full exact-head CI (FR-020..022; SC-006).
+
+## Phase 16: Convergence
+
+- [ ] T040 Retain failed native Exit fixture/profile authority after joined runtime cleanup, preserve the original child failure, and require a real fixture regression proving removal cannot precede observed normal release per FR-021 (partial).
+
+## Phase 17: Convergence
+
+- [ ] T041 Require the owned active File popup state before injecting its mnemonic selection, retain bounded native flags for the pre-selection boundary, and repeat actual cold/warm menu routes under the unchanged two-second readiness and child deadlines per FR-021 (partial).
+
+## Phase 18: Native shutdown convergence
+
+- [ ] T042 Close the pinned WebView controller once on its owning UI thread during parent-window destruction, preserve normal native dispatch and prove the lifetime with an unshown real-window/COM regression plus repeated actual native release per FR-020/021 (partial).
+- [ ] T043 Bind the exact maintained WebView source patch to upstream and patched-tree checksums, original licenses, explicit notices and clean revision; narrowly validate its sole local replacement while rejecting all others, then repeat full affected/exact-head package checks per FR-017/022 (partial).

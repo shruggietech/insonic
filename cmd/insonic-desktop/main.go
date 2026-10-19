@@ -161,7 +161,7 @@ func run() (exitCode int) {
 		bridge.Workspace = w
 	}
 	if err := runDesktopApplicationWithProfile(bridge, startup, domReady, desktop.QualificationStartsHidden(smoke), profile); err != nil {
-		fmt.Fprintln(os.Stderr, "Desktop startup failed.")
+		fmt.Fprintln(os.Stderr, "Desktop lifecycle failed.")
 		return 1
 	}
 	if smoke {

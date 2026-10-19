@@ -79,5 +79,8 @@ func runDesktopApplicationWithProfile(bridge *desktop.Bridge, startup, domReady 
 			fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: playback complete")
 		}
 	}()
-	return wails.Run(applicationOptions(bridge, startup, domReady, hidden, profile))
+	if err := wails.Run(applicationOptions(bridge, startup, domReady, hidden, profile)); err != nil {
+		return err
+	}
+	return nativeWebviewCloseError()
 }

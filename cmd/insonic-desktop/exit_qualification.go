@@ -253,6 +253,12 @@ func runExitQualificationWith(runChild func(exitFixture, string) (exitObservatio
 		return err
 	}
 	defer func() {
+		if err != nil {
+			// The child/job cleanup is a failure boundary, not proof of natural release.
+			// Keep its owned profile and workspace authority for diagnosis.
+			fmt.Fprintln(os.Stderr, "native-exit-stage=failed-fixture-retained")
+			return
+		}
 		if cleanup := os.RemoveAll(directory); cleanup != nil && err == nil {
 			err = cleanup
 		}

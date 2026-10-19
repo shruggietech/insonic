@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import shutil
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('go_module_notices', ROOT / 'scripts/go_module_notices.py')
@@ -191,5 +193,44 @@ class GoModuleNoticesTests(unittest.TestCase):
         self.assertEqual(before,run(['go','list','-mod=readonly','-m','-json','example.test/library']))
         with self.assertRaisesRegex(ValueError,'checksum|source bytes'):
             notices.collect_notices(self.target,selected,run,'1.27.1')
+
+    def prepare_repository_patch(self):
+        source = self.root / notices.PATCH_DIRECTORY
+        shutil.copytree(ROOT / notices.PATCH_DIRECTORY, source)
+        manifest = self.root / 'third_party/go-webview2.source.json'
+        shutil.copyfile(ROOT / 'third_party/go-webview2.source.json', manifest)
+        shutil.copyfile(ROOT / 'go.sum', self.root / 'go.sum')
+        logical = {'Path': notices.PATCH_MODULE, 'Version': notices.PATCH_VERSION,
+                   'Replace': {'Path': './' + notices.PATCH_DIRECTORY, 'Dir': str(source)}}
+        self.infos[0]['Deps'] = [dict(logical, Replace=dict(logical['Replace'], Version='(devel)'))]
+        self.selected = [logical]
+        return source, logical
+
+    def test_sole_repository_patch_has_verified_bytes_and_explicit_notices(self):
+        source, logical = self.prepare_repository_patch()
+        with patch.object(notices, 'ROOT', self.root):
+            rows = self.collect()
+            notices.verify_notices(self.target, rows, self.binary, self.fake_run, '1.27.1')
+            names = {Path(name).name for name in rows[0]['notices']}
+            self.assertTrue({'LICENSE', 'LICENSE.insonic', 'NOTICE.insonic'} <= names)
+            self.assertIn(b'repository-local replacement', (self.target / next(name for name in rows[0]['notices'] if name.endswith('/NOTICE.insonic'))).read_bytes())
+            bad = [dict(rows[0], notices=[name for name in rows[0]['notices'] if not name.endswith('/NOTICE.insonic')])]
+            with self.assertRaisesRegex(ValueError, 'patch notices'):
+                notices.verify_notices(self.target, bad, self.binary, self.fake_run, '1.27.1')
+            (source / 'pkg/edge/window_lifetime_windows.go').write_bytes(b'tampered maintained source')
+            with self.assertRaisesRegex(ValueError, 'source bytes|checksum'):
+                self.collect()
+
+    def test_repository_patch_cannot_redirect_source_or_spoof_another_module(self):
+        source, logical = self.prepare_repository_patch()
+        with patch.object(notices, 'ROOT', self.root):
+            self.selected = [dict(logical, Replace=dict(logical['Replace'], Dir=str(self.root)))]
+            with self.assertRaisesRegex(ValueError, 'directory'):
+                self.collect()
+        for value in [dict(logical, Path='example.test/unapproved'), dict(logical, Version='v1.0.23'),
+                      dict(logical, Replace={'Path': '../unapproved'}),
+                      dict(logical, Replace=dict(logical['Replace'], Version='v1.0.22'))]:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                notices.logical_identity(value)
 
 if __name__=='__main__': unittest.main()

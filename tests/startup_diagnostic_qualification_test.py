@@ -87,14 +87,15 @@ class StartupDiagnosticQualificationTests(unittest.TestCase):
                 qualify.desktop()
                 self.assertEqual(receipt.call_args_list[-1].args[2]['owned_browser_release'], 'passed')
                 build.assert_called_once_with(True, {})
-                self.assertEqual(len(child.call_args_list), 6)
-                for call in child.call_args_list[:2]:
+                self.assertEqual(len(child.call_args_list), 7)
+                self.assertEqual(child.call_args_list[0].args[0], ['go', 'test', '-timeout=15s', '-run', '^TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread$', 'github.com/wailsapp/go-webview2/pkg/edge'])
+                for call in child.call_args_list[:3]:
                     self.assertEqual(call.kwargs['env'], {})
                     self.assertNotIn('allow_detached', call.kwargs)
-                for call in child.call_args_list[2:]:
+                for call in child.call_args_list[3:]:
                     self.assert_probe_environment(call, {'INSONIC_PROCESS_STARTUP_DIAGNOSTICS': '1'} if ci == 'true' else {})
                     self.assertIs(call.kwargs['allow_detached'], True)
-                self.assertIsNot(child.call_args_list[0].kwargs['env'], child.call_args_list[2].kwargs['env'])
+                self.assertIsNot(child.call_args_list[0].kwargs['env'], child.call_args_list[3].kwargs['env'])
 
 
 if __name__ == '__main__':
