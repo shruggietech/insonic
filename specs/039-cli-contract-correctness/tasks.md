@@ -61,3 +61,5 @@ US1 example: command-registry regressions and catalog migration regressions run 
 - [x] T024 Preserve non-missing workspace-open failures, classify only genuinely missing roots/configs as workspace_missing and add real CLI/installed damaged-configuration regressions for review finding PRRT_kwDOU8_K3s6t1dFK (FR-005/006/015).
 
 - [ ] T025 Overlap Windows proof-consumer setup with assembly, await the successful exact-run/revision/attempt assembly and immutable artifact before download, retain all four proof scopes and final verification, and measure the complete elected path within 660 seconds (FR-018; SC-005).
+
+- [ ] T026 Overlap candidate tool preparation and qualified Linux/docs downloads with Windows completion, require both successful exact-run Windows package producers and matching artifacts before collection, and retain the complete exact-source candidate checks (FR-018; SC-005).

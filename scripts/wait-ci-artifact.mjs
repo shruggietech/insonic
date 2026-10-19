@@ -60,11 +60,26 @@ export async function waitForDesktopInput(options) {
   return ready.assembly;
 }
 
+export async function waitForWindowsPackages(options) {
+  return waitForWindowsProducers({ ...options, role: 'packages' });
+}
+
+function windowsProducers(role, revision, attempt) {
+  if (role === 'input') return [{ scope: 'assembly', jobName: 'Assemble Windows desktop delivery',
+    name: `windows-desktop-input-${revision}-${attempt}` }];
+  if (role === 'packages') return [
+    { scope: 'cli', jobName: 'package (windows-2022, cli)', name: `candidate-package-windows-2022-cli-${revision}-${attempt}` },
+    { scope: 'desktop', jobName: 'Join exact-byte Windows desktop qualification', name: `candidate-package-windows-2022-desktop-${revision}-${attempt}` },
+  ];
+  return ['archive', 'interactive', 'maintenance', 'setup'].map(scope => ({ scope,
+    jobName: `Qualify Windows desktop (${scope})`, name: `windows-desktop-proof-${scope}-${revision}-${attempt}` }));
+}
+
 async function waitForWindowsProducers({ role, repository, run, attempt, revision, token, deadlineMs = 400000,
   now = Date.now, sleep: pause = sleep, request = inventory, observeFailure = async () => {} }) {
   if (repository !== 'shruggietech/insonic' || !/^[1-9][0-9]*$/.test(run ?? '') || !/^[1-9][0-9]*$/.test(attempt ?? '')
-      || !['input', 'proof'].includes(role) || !/^[a-f0-9]{40}$/.test(revision ?? '') || !token || deadlineMs < 1 || deadlineMs > 400000) throw new Error(`Invalid Windows ${role} identity.`);
-  const scopes = role === 'input' ? ['assembly'] : ['archive', 'interactive', 'maintenance', 'setup'], deadline = now() + deadlineMs;
+      || !['input', 'proof', 'packages'].includes(role) || !/^[a-f0-9]{40}$/.test(revision ?? '') || !token || deadlineMs < 1 || deadlineMs > 400000) throw new Error(`Invalid Windows ${role} identity.`);
+  const producers = windowsProducers(role, revision, attempt), deadline = now() + deadlineMs;
   const url = `https://api.github.com/repos/${repository}/actions/runs/${run}/artifacts?per_page=100`;
   const jobsUrl = `https://api.github.com/repos/${repository}/actions/runs/${run}/attempts/${attempt}/jobs?per_page=100`;
   while (now() < deadline) {
@@ -73,8 +88,7 @@ async function waitForWindowsProducers({ role, repository, run, attempt, revisio
     if (!Array.isArray(value?.artifacts) || value.total_count !== value.artifacts.length || value.total_count > 100
         || !Array.isArray(gates?.jobs) || gates.total_count !== gates.jobs.length || gates.total_count > 100) throw new Error(`Incomplete Windows ${role} inventory.`);
     const ready = {};
-    for (const scope of scopes) {
-      const jobName = role === 'input' ? 'Assemble Windows desktop delivery' : `Qualify Windows desktop (${scope})`;
+    for (const { scope, jobName, name } of producers) {
       const jobs = gates.jobs.filter(item => item.name === jobName || item.name?.endsWith('/ ' + jobName));
       if (jobs.length > 1) throw new Error(`Ambiguous Windows ${role} producer.`);
       const job = jobs[0];
@@ -84,7 +98,6 @@ async function waitForWindowsProducers({ role, repository, run, attempt, revisio
           conclusion: ['failure','cancelled','skipped','timed_out','action_required','stale','neutral'].includes(job.conclusion) ? job.conclusion : 'unknown' }); } catch { /* Diagnostics cannot replace the failed producer. */ }
         throw new Error(`Required Windows ${role} failed: ${scope}`);
       }
-      const name = role === 'input' ? `windows-desktop-input-${revision}-${attempt}` : `windows-desktop-proof-${scope}-${revision}-${attempt}`;
       const matches = value.artifacts.filter(item => item.name === name);
       if (matches.length > 1) throw new Error(`Ambiguous Windows ${role} artifact.`);
       const item = matches[0];
@@ -92,7 +105,7 @@ async function waitForWindowsProducers({ role, repository, run, attempt, revisio
           || !/^sha256:[a-f0-9]{64}$/.test(item.digest ?? ''))) throw new Error(`Invalid Windows ${role} artifact authority.`);
       if (item && job?.status === 'completed' && job.conclusion === 'success') ready[scope] = item.id;
     }
-    if (Object.keys(ready).length === scopes.length) return ready;
+    if (Object.keys(ready).length === producers.length) return ready;
     await pause(Math.max(0, Math.min(5000, deadline - now())));
   }
   throw new Error(`Same-run Windows ${role} deadline exceeded.`);
@@ -101,7 +114,14 @@ async function waitForWindowsProducers({ role, repository, run, attempt, revisio
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const identity = { repository: process.env.GITHUB_REPOSITORY, run: process.env.GITHUB_RUN_ID,
     attempt: process.env.GITHUB_RUN_ATTEMPT, token: process.env.GH_TOKEN };
-  if (process.argv[2] === 'windows-desktop-input') {
+  if (process.argv[2] === 'windows-packages') {
+    await waitForWindowsPackages({ ...identity, revision: process.argv[3], observeFailure: async observation => {
+      const directory = path.resolve('build/native');
+      await fs.mkdir(directory, { recursive: true });
+      await fs.writeFile(path.join(directory, 'windows-package-failure.json'), JSON.stringify(observation) + '\n', { encoding: 'utf8', flag: 'wx' });
+    } });
+    console.log('Both exact-run Windows package producers passed; independent candidate verification follows.');
+  } else if (process.argv[2] === 'windows-desktop-input') {
     await waitForDesktopInput({ ...identity, revision: process.argv[3], observeFailure: async observation => {
       const directory = path.resolve('build/native');
       await fs.mkdir(directory, { recursive: true });

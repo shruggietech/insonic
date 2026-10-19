@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { waitForArtifact, waitForDesktopProofs, waitForDesktopInput } from '../scripts/wait-ci-artifact.mjs';
+import { waitForArtifact, waitForDesktopProofs, waitForDesktopInput, waitForWindowsPackages } from '../scripts/wait-ci-artifact.mjs';
 
 const options = { repository: 'shruggietech/insonic', run: '123', attempt: '2', os: 'windows-2022', token: 'fixture' };
 const artifact = { id: 42, name: 'media-source-windows-2022-2', expired: false, digest: 'sha256:' + 'a'.repeat(64), workflow_run: { id: 123 } };
@@ -158,5 +158,41 @@ test('desktop input cannot reuse another revision or attempt and has one bounded
   }
   for (const override of [{ revision: '../other' }, { attempt: '0' }, { deadlineMs: 400001 }]) {
     await assert.rejects(waitForDesktopInput({ ...proofOptions, ...override, request: async () => { throw new Error('must not request'); } }), /identity/);
+  }
+});
+
+const packageScopes = ['cli', 'desktop'];
+const packageArtifacts = packageScopes.map((scope, index) => ({ ...artifact, id: 71 + index, name: `candidate-package-windows-2022-${scope}-${proofOptions.revision}-2` }));
+const packageJobs = [{ id: 31, name: 'package-windows / package (windows-2022, cli)', status: 'completed', conclusion: 'success' },
+  { id: 32, name: 'package-windows / windows-desktop / Join exact-byte Windows desktop qualification', status: 'completed', conclusion: 'success' }];
+const packageApi = (artifacts = packageArtifacts, jobs = packageJobs) => async url => url.includes('/jobs?') ? { total_count: jobs.length, jobs } : response(artifacts);
+
+test('candidate preparation awaits both successful Windows package producers and exact artifacts', async () => {
+  let elapsed = 0;
+  const pending = structuredClone(packageJobs); pending[1].status = 'in_progress'; pending[1].conclusion = null;
+  const ready = await waitForWindowsPackages({ ...proofOptions, now: () => elapsed, sleep: async ms => { elapsed += ms; },
+    request: async url => url.includes('/jobs?') ? { total_count: 2, jobs: elapsed ? packageJobs : pending } : response(packageArtifacts) });
+  assert.deepEqual(ready, { cli: 71, desktop: 72 });
+  assert.equal(elapsed, 5000);
+});
+
+test('candidate preparation cannot consume a failed Windows CLI or desktop join', async () => {
+  for (const index of [0, 1]) for (const conclusion of ['failure', 'cancelled', 'skipped']) {
+    const jobs = structuredClone(packageJobs); jobs[index].conclusion = conclusion;
+    const observations = [];
+    await assert.rejects(waitForWindowsPackages({ ...proofOptions, request: packageApi(packageArtifacts, jobs), observeFailure: async value => observations.push(value) }),
+      new RegExp('packages failed: ' + packageScopes[index]));
+    assert.equal(observations[0].kind, 'windows-packages-producer-failure');
+    assert.equal(observations[0].scope, packageScopes[index]);
+  }
+});
+
+test('candidate package readiness rejects another run, revision, attempt or incomplete tuple', async () => {
+  await assert.rejects(waitForWindowsPackages({ ...proofOptions, request: packageApi([{ ...packageArtifacts[0], workflow_run: { id: 999 } }, packageArtifacts[1]]) }), /authority/);
+  for (const artifacts of [packageArtifacts.slice(0, 1), packageArtifacts.map(item => ({ ...item, name: item.name.replace('-2', '-1') })),
+    packageArtifacts.map(item => ({ ...item, name: item.name.replace(proofOptions.revision, 'b'.repeat(40)) }))]) {
+    let elapsed = 0;
+    await assert.rejects(waitForWindowsPackages({ ...proofOptions, deadlineMs: 10000, now: () => elapsed, sleep: async ms => { elapsed += ms; }, request: packageApi(artifacts) }), /deadline/);
+    assert.equal(elapsed, 10000);
   }
 });
