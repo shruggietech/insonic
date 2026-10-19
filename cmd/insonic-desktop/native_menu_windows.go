@@ -7,8 +7,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/shruggietech/insonic/desktop"
+	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.org/x/sys/windows"
 	"os"
+	"sync"
+	"sync/atomic"
 	"syscall"
 	"time"
 	"unsafe"
@@ -31,22 +34,91 @@ func exitWinLabel(handle uintptr, index uintptr) string {
 }
 func exitOwnedWindow() (uintptr, error) { return findNativeExitWindow(true) }
 
-func prepareNativeExitWindow() error {
+func prepareNativeExitWindow(ctx context.Context) error {
 	hwnd, err := findNativeExitWindow(false)
 	if err != nil {
 		return err
 	}
-	// These calls complete on the owned window before startup becomes ready.
-	// Consume the launcher's first-show hide flag, then show normally. A later
-	// asynchronous Wails ShowWindow must not reset focus during menu selection.
-	exitWinCall("ShowWindow", hwnd, 5)
-	exitWinCall("ShowWindow", hwnd, 5)
-	exitWinCall("SetForegroundWindow", hwnd)
+	err = awaitNativeWindowOperation(ctx, hwnd, func() {
+		// The first show may consume STARTUPINFO's hide flag. Keep Wails' own
+		// visibility/focus/controller behavior and complete both calls inline.
+		wailsruntime.WindowShow(ctx)
+		wailsruntime.WindowShow(ctx)
+	})
+	if err != nil {
+		return err
+	}
 	if exitWinCall("IsWindowVisible", hwnd) == 0 {
 		return fmt.Errorf("owned native fixture could not be shown before readiness")
 	}
 	fmt.Fprintln(os.Stderr, "native-exit-stage=window-prepared")
 	return nil
+}
+
+// MSG is borrowed only while Windows invokes the owned thread's queue hook.
+type nativeWindowMessage struct {
+	Window         uintptr
+	Message        uint32
+	WParam, LParam uintptr
+	Time           uint32
+	Point          struct{ X, Y int32 }
+	Private        uint32
+}
+
+var nativeWindowJoinSequence atomic.Uint32
+
+// Execute the fixture operation on its owning UI thread. Wails Invoke then
+// executes inline, including its controller focus, before readiness is signaled.
+// The short-lived hook is removed before any native keyboard input begins.
+func awaitNativeWindowOperation(ctx context.Context, hwnd uintptr, operation func()) (err error) {
+	if err = ctx.Err(); err != nil {
+		return err
+	}
+	var pid uint32
+	thread := exitWinCall("GetWindowThreadProcessId", hwnd, uintptr(unsafe.Pointer(&pid)))
+	if hwnd == 0 || thread == 0 || pid != uint32(os.Getpid()) || operation == nil {
+		return fmt.Errorf("native UI join requires this process's owned window")
+	}
+	deadline, stop := context.WithTimeout(ctx, 2*time.Second)
+	defer stop()
+	ready := make(chan struct{})
+	var once sync.Once
+	token := uintptr(0x5330333900000000) | uintptr(nativeWindowJoinSequence.Add(1))
+	callback := syscall.NewCallback(func(code, kind uintptr, message *nativeWindowMessage) uintptr {
+		result := exitWinCall("CallNextHookEx", 0, code, kind, uintptr(unsafe.Pointer(message)))
+		if int32(code) >= 0 && kind == 1 && message != nil && message.Window == hwnd && message.Message == 0 && message.WParam == token {
+			once.Do(func() {
+				if deadline.Err() == nil {
+					operation()
+				}
+				close(ready)
+			})
+		}
+		return result
+	})
+	// WH_GETMESSAGE is confined to this process's specific owned UI thread.
+	// Only our unique marker runs an operation; every message stays unchanged.
+	hook := exitWinCall("SetWindowsHookExW", 3, callback, 0, thread)
+	if hook == 0 {
+		return fmt.Errorf("owned native UI completion observation unavailable")
+	}
+	defer func() {
+		if exitWinCall("UnhookWindowsHookEx", hook) == 0 && err == nil {
+			err = fmt.Errorf("owned native UI completion observer was not removed")
+		}
+	}()
+	if exitWinCall("PostMessageW", hwnd, 0, token, 0) == 0 {
+		return fmt.Errorf("owned native UI completion marker rejected")
+	}
+	select {
+	case <-ready:
+		if err = deadline.Err(); err != nil {
+			return fmt.Errorf("owned native UI operation did not finish: %w", err)
+		}
+		return nil
+	case <-deadline.Done():
+		return fmt.Errorf("owned native UI operation did not finish: %w", deadline.Err())
+	}
 }
 
 func findNativeExitWindow(requireVisible bool) (uintptr, error) {

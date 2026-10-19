@@ -101,7 +101,7 @@ func qualifyNativeExitChild(path string) int {
 			}
 		}()
 		if prepareErr == nil {
-			prepareErr = prepareNativeExitWindow()
+			prepareErr = prepareNativeExitWindow(ctx)
 		}
 		close(ready)
 	}

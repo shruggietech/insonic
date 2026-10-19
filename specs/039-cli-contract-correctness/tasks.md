@@ -126,3 +126,7 @@ US1 example: command-registry regressions and catalog migration regressions run 
 ## Phase 21: Convergence
 
 - [ ] T046 Trace the remaining acknowledged qualification-only menu selection stall with bounded same-owned-thread unchanged message observations, identify and correct the demonstrated ordering boundary, remove investigation-only instrumentation, and repeat real native/package checks under the original limits per FR-019..022 (partial).
+
+## Phase 22: Convergence
+
+- [ ] T047 Preserve Wails' controller-focus activation on its owning UI thread and observe completion before readiness, remove the temporary dispatcher before keyboard input, prove pending UI work cannot confer success with an actual unshown-window regression and prior-boundary comparison, then repeat original-limit native/load/exact-head checks per FR-020..022 (partial).

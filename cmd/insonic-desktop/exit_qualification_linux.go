@@ -59,6 +59,7 @@ static void insonic_exit_free(InsonicExitProbe *probe) {g_free(probe);}
 import "C"
 
 import (
+	"context"
 	"fmt"
 	"time"
 )
@@ -91,4 +92,4 @@ func activateNativeExit(action string) error {
 
 func dismissFailedNativeMenu() {}
 
-func prepareNativeExitWindow() error { return nil }
+func prepareNativeExitWindow(context.Context) error { return nil }
