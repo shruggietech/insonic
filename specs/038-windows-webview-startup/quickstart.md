@@ -1,7 +1,7 @@
-# Validation: Windows desktop startup and Exit reliability
+# Validation: native startup diagnostic checkpoint
 
-1. Run required root and affected Go/Python/Node suites through hidden noninteractive launchers. The stdout-only failure regression must fail against the old wrapper and pass after correction.
-2. Push clean diagnostic source and elect focused disposable Windows diagnosis. Validate payload identity and retain both streams/result metadata before selecting a correction.
-3. Run cause/correction comparisons and repeated cold/warm native menu/close/Alt+F4, keeping diagnostic observations separate from product proof.
-4. Qualify the repaired exact source through the complete Windows/Linux matrix, including ZIP/MSI/setup/recovery, proof refusal and 660 seconds.
-5. Converge, push final evidence, resolve up to two reviews and verify final-head checks/threads. Stop unmerged; actual main confirmation follows owner merge.
+1. Run root and affected Go/Python/Node/documentation suites through hidden noninteractive launchers. Check lost-stdout classifications, real output flooding, compiler environment exclusion, distinct historical/source executables and exact historical authority.
+2. Elect the manual focused desktop-startup diagnostic on disposable Windows. Validate original assets and a clean exact incident source checkout. Keep historical bytes intact; identify any separately built source GUI and repeat actual native fixtures with the maintained CLI workload.
+3. Record observed native errors and outcomes. A successful bounded replay leaves an unreproduced startup cause unknown; #154 remains open for cause recovery, supported correction and new cold/warm profile lifecycle proof.
+4. Qualify the checkpoint's exact final source through the complete Windows/Linux matrix, including ZIP/MSI/setup/recovery and proof refusal within 660 seconds.
+5. Converge against the approved checkpoint, resolve at most two review rounds and verify every final-head check/thread. Stop unmerged for owner review; actual main confirmation follows owner merge.

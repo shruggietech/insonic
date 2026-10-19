@@ -4,7 +4,7 @@
 
 ## Summary
 
-Repair #154 by preserving the existing child capture result, diagnosing the native startup boundary on disposable Windows, then implementing only the demonstrated correction. Reuse package/source qualification and retain native actions and delivery authority.
+Deliver the owner-approved diagnostic checkpoint for #154: preserve native failure evidence, validate bounded historical/source observations on disposable Windows, retain the primary failed delivery producer and qualify the complete checkpoint. Keep #154 open for the unreproduced startup cause and its supported correction.
 
 ## Technical Context
 
@@ -38,8 +38,8 @@ Two read-only research agents independently confirmed stdout loss and shared-pro
 
 1. Extract child-result interpretation from runExitGUIChild; preserve both streams and result metadata. A synthetic failed child proves stdout retention before hosted diagnosis.
 2. Add a focused option to the existing manual Windows diagnostic workflow. Restore exact incident assets with source/size/hash/inventory checks. Observe original parent behavior separately from direct native-child probes where old parent bytes discard stdout. Diagnostics confer no publication authority.
-3. Recover the native error before selecting a proportional correction. Profile isolation and release are candidates, not assumed fixes. Record actual cause and rejected alternatives.
-4. Extend cold/warm native action coverage and owned cleanup after diagnosis, preserving normal exit, playback release and independently owned durable work.
+3. Record bounded reproduction outcomes without promoting hypotheses into a startup fix. The owner deferred actual HRESULT/cause recovery and correction under open #154.
+4. Preserve complete existing native action qualification and use repeated diagnostic observations. Separate historical/source GUIs, exact historical source/compiler authority, bounded readers and exact compiler environments form the implemented diagnostic boundary. New cold/warm profile lifecycle qualification is deferred under #154.
 5. Persist bounded failed-producer evidence before the exact-byte join aborts, without accepting failed/missing/foreign proof or fabricating completed installer receipts.
 
 See [data model](data-model.md), [internal contracts](contracts/native-diagnostics.md) and [validation guide](quickstart.md). No public runtime API change is planned.
@@ -60,3 +60,7 @@ Prefer error-preserving diagnosis to speculative profile changes. Reuse the manu
 ## Complexity Tracking
 
 No constitution violations or new runtime framework.
+
+## Owner-approved checkpoint scope (2026-10-19)
+
+The owner explicitly accepted a diagnostic checkpoint with #154 left open. No actual startup cause or correction has been demonstrated. The initial high convergence findings for original cause repair/cold-warm lifecycle work are deferred issue work, not checkpoint completion claims. Complete root/affected tests, exact-head ZIP/MSI/setup/recovery qualification within 660 seconds, at most two review rounds and the unmerged owner handoff remain required.

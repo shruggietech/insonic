@@ -139,6 +139,13 @@ def derive_gui(package,root,location):
     return gui,derived,build_probe_gui(package,gui,derived)
 
 
+def wait_owned_clis(package,images):
+    # All observers have joined. Share one full idle lease, then check every
+    # distinct copied image before removing its containing temporary tree.
+    last_activity=time.monotonic()
+    for image in dict.fromkeys(images):package.wait_for_detached_idle(last_activity,image)
+
+
 def run():
     pipeline.m.disposable_runner()
     if os.name!='nt':raise RuntimeError('native startup diagnosis requires disposable Windows')
@@ -172,6 +179,7 @@ def run():
             summary['derived_gui_source_revision']=tool
             summary['boundary']='source-built-gui-with-verified-incident-companions-not-a-qualified-package'
             save(evidence,'diagnostic.json',summary)
+        idle=lambda:wait_owned_clis(package,[binaries/'insonic.exe',gui.with_name('insonic.exe')])
         if os.environ.get('INSONIC_STARTUP_LOAD')=='true':
             from cli_contract_qualification import qualify as qualify_contract
             cli=binaries/'insonic.exe';workspace=location/'concurrent CLI workspace'
@@ -184,9 +192,9 @@ def run():
             with ThreadPoolExecutor(max_workers=1) as workers:
                 future=workers.submit(qualify_contract,cli,workspace,env=env,cwd=archive_root,documentation=True)
                 observe_with_load(lambda:observe_native(gui,root,location,env,evidence,summary,rebuilt,incident),future,
-                                  lambda:package.wait_for_detached_idle(None,cli),evidence)
+                                  idle,evidence)
         else:
-            observe_native(gui,root,location,env,evidence,summary,rebuilt,incident)
+            observe_with_load(lambda:observe_native(gui,root,location,env,evidence,summary,rebuilt,incident),None,idle,evidence)
     return summary
 
 
@@ -197,8 +205,9 @@ def observe_with_load(observe,future,idle,evidence):
     except BaseException as error:
         failure=error
     try:
-        workload=future.result()
-        save(evidence,'concurrent-cli.json',{'feature_qualification':False,'result':workload})
+        if future is not None:
+            workload=future.result()
+            save(evidence,'concurrent-cli.json',{'feature_qualification':False,'result':workload})
     except BaseException as error:
         save(evidence,'concurrent-cli.json',{'feature_qualification':False,'error':str(error)[:LIMIT]})
         if failure is None:failure=error

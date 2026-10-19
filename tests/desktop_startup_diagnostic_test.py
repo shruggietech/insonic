@@ -120,6 +120,19 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
             result=diagnostic.source_child([sys.executable,'-c',"import json,os;print(json.dumps({name:os.getenv(name) for name in ['GITHUB_TOKEN','GOFLAGS']}))"],selected)
         self.assertEqual(json.loads(result['stdout']),{'GITHUB_TOKEN':None,'GOFLAGS':None})
 
+    def test_all_owned_cli_images_share_one_idle_lease(self):
+        package=MagicMock();old=Path('old.exe');new=Path('new.exe')
+        with patch.object(diagnostic.time,'monotonic',return_value=42):
+            diagnostic.wait_owned_clis(package,[old,new,old])
+        self.assertEqual(package.wait_for_detached_idle.call_args_list,[unittest.mock.call(42,old),unittest.mock.call(42,new)])
+
+    def test_no_load_native_failure_still_checks_owned_release(self):
+        idle=MagicMock(side_effect=RuntimeError('cleanup failure'))
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaisesRegex(RuntimeError,'native failure'):
+                diagnostic.observe_with_load(MagicMock(side_effect=RuntimeError('native failure')),None,idle,Path(temporary))
+        idle.assert_called_once()
+
     def test_concurrent_load_joins_and_idles_without_masking_native_failure(self):
         future=MagicMock();future.result.side_effect=RuntimeError('CLI failure');idle=MagicMock()
         native=MagicMock(side_effect=RuntimeError('native failure'))

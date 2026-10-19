@@ -42,3 +42,19 @@ Independent test: failed producer retains its primary error and still blocks eve
 ## Dependencies
 
 T001-T003 precede implementation. T004 precedes T005; T006/T005 precede T007; T007 precedes T008/T009. T010 is independent of native diagnosis after foundation. T011 requires T008-T010; T012/T013 require final verification. US1 is the first independently testable delivery; diagnostic success alone does not complete US2 or US3. No parallel agents edit product code.
+
+## Phase 7: Convergence
+
+Assessment checked 20 requirement/success/acceptance criteria, six plan decisions and five core constitution principles. Three partial high-priority gaps remain under the original approved intent. No scope reduction or clean convergence is claimed.
+
+- [ ] T014 Demonstrate the actual native startup error/cause and implement its supported correction with a relevant regression per FR-003, SC-002 and US2/AC1 (partial; HIGH; T007/T008 remain open).
+- [ ] T015 Complete real packaged cold/warm native action and owned release/reuse proof per FR-004/FR-005, SC-003 and US2/AC2 (partial; HIGH; T009 remains open).
+- [ ] T016 Complete exact-final-head delivery/660-second verification and the agreed review/scope boundary per SC-005, FR-008 and US3/AC2 (partial; HIGH; T011-T013 remain open).
+
+## Phase 8: Owner-approved diagnostic checkpoint
+
+On 2026-10-19 the owner selected "Deliver diagnostic checkpoint; keep #154 open." This supersedes the original cause-repair scope. T007-T009 and convergence T014-T015 remain unchecked as explicitly deferred #154 work. They are excluded from checkpoint convergence and must not be presented as implemented. T011-T013/T016 remain active checkpoint verification/delivery obligations.
+
+- [x] T017 Align spec.md, plan.md, contracts, data model and quickstart with the approved diagnostic checkpoint; preserve the original deferred tasks and open #154.
+- [ ] T018 Verify corrected historical/source identity, bounded streaming, compiler environment isolation and concurrent cleanup on disposable Windows; converge against the approved checkpoint.
+- [ ] T019 Finish final exact-head delivery, resolve the remaining permitted review round, verify all threads and hand off unmerged for owner review.

@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-19
 
-**Status**: Draft
+**Status**: Owner-approved diagnostic checkpoint; final validation in progress
 
 **Input**: Run S038 under autopilot for #154, push/open a PR, resolve up to two review rounds, and stop before owner review and merge.
 
@@ -23,19 +23,19 @@ A maintainer receives the actual native startup error and enough bounded evidenc
 1. **Given** a native child fails before its action, **When** qualification reports it, **Then** both output streams, the stage/action, exit code and truncation/deadline state remain available in bounded fixture diagnostics while successful machine output stays valid.
 2. **Given** cancellation, timeout or excess output, **When** the parent returns, **Then** its failure classification and retained evidence describe that condition without reporting successful qualification.
 
-### User Story 2 - Start and exit repeatedly (Priority: P1)
+### User Story 2 - Observe startup accurately (Priority: P1)
 
-The desktop starts reliably across repeated automated cold and warm launches, then responds to its real menu, window close and Windows Alt+F4 while preserving independently owned work and releasing GUI playback resources.
+A maintainer can repeat real native launches on disposable Windows, compare retained historical bytes with a separately identified source GUI, and distinguish observed failures from an unreproduced historical cause.
 
-**Why this priority**: A controller startup failure currently blocks delivery before the Exit action can be tested.
+**Why this priority**: The historical controller error was discarded. Bounded observations and retained evidence are needed before a supported startup correction can be selected.
 
-**Independent Test**: Disposable Windows qualification observes repeated actual packaged launches, native actions, normal process completion, playback release and surviving durable work.
+**Independent Test**: Disposable Windows observations use distinct historical/source executables and actual native menu, close and Alt+F4 fixtures. Synthetic source tests cover output flooding, exact compiler environments, historical source authority and cleanup failure propagation.
 
 **Acceptance Scenarios**:
 
-1. **Given** the failing native boundary, **When** a focused diagnostic reproduces it, **Then** the native error and a demonstrated cause are recorded before selecting the correction; assumptions remain explicitly unproven.
-2. **Given** repeated cold and warm fixture launches with and without a workspace, **When** the actual menu, ordinary close and Windows Alt+F4 routes run, **Then** each GUI terminates normally and required playback/durable-work assertions pass without a callback substitute or forced-kill success.
-3. **Given** a fixture-specific profile or child process, **When** cleanup runs, **Then** it affects only owned resources and cannot overwrite or remove an operator profile or unrelated process.
+1. **Given** an intermittent historical startup failure, **When** bounded focused comparisons do not reproduce it, **Then** record the actual outcomes and unknown cause without claiming a startup repair; #154 remains open.
+2. **Given** repeated actual native fixtures with and without a workspace, **When** diagnostics and complete delivery qualification run, **Then** preserve native actions, normal GUI completion, playback release and durable-work assertions, keeping diagnostic success separate from package authority.
+3. **Given** historical and derived diagnostic inputs, **When** source builds, child capture and cleanup run, **Then** preserve historical bytes, select exact source/compiler identity, bound streams while reading, exclude parent credentials from compiler children and confine cleanup to owned resources.
 
 ### User Story 3 - Preserve trustworthy delivery (Priority: P2)
 
@@ -63,9 +63,9 @@ A maintainer can accept a fully qualified repair without reducing installer reco
 
 - **FR-001**: Retain bounded failed-child stdout and stderr plus stage/action, exit code, truncation and cancellation/timeout state in fixture diagnostics; preserve successful JSON and exclude protected inputs.
 - **FR-002**: Cover the lost-stdout defect and result classifications with meaningful failing-first regressions.
-- **FR-003**: Recover the native controller error, demonstrate the cause of the startup failure, and apply a proportional correction supported by that evidence.
-- **FR-004**: Exercise actual repeated cold/warm Windows native menu, close and Alt+F4 launches, including no-workspace and workspace/playback cases; preserve normal exit and durable-work survival assertions.
-- **FR-005**: Confine any profile/process lifecycle changes to demonstrably owned resources, observe release before reuse/removal, keep console children hidden/noninteractive, and preserve production security configuration.
+- **FR-003**: Provide bounded focused disposable Windows observations with distinct exact incident/source identities; record demonstrated facts and unreproduced cause explicitly. Keep #154 open for actual HRESULT/cause recovery and its supported correction.
+- **FR-004**: Exercise bounded repeated actual Windows native menu, close and Alt+F4 diagnostics and preserve complete existing no-workspace/workspace/playback qualification, normal GUI exit and durable-work assertions. New cold/warm profile lifecycle qualification remains deferred under #154.
+- **FR-005**: Confine diagnostic files/processes to owned disposable resources, join concurrent workers before removal, bound retained streams during reads and use exact compiler environments without parent credentials. Keep console children hidden/noninteractive and preserve production startup/profile/security behavior.
 - **FR-006**: Preserve source/asset binding, ZIP/MSI/setup/recovery gates, complete evidence inventories, and rejection of failed/missing/foreign proof.
 - **FR-007**: Keep CI within 660 seconds through targeted diagnosis and efficient existing checks; do not bypass native actions, retry blindly, or inflate deadlines to claim a fix.
 - **FR-008**: Keep source diagnostics, packaged execution, PR results and actual post-merge main results distinct. Stop before merge; actual main confirmation belongs to authorized post-merge follow-up.
@@ -81,7 +81,7 @@ A maintainer can accept a fully qualified repair without reducing installer reco
 ### Measurable Outcomes
 
 - **SC-001**: A failed child with error-only stdout and stack-only stderr retains both, and all classified negative cases remain failures.
-- **SC-002**: Focused disposable Windows evidence identifies the native error and cause; its correction passes a relevant regression and repeated cold/warm native launch routes.
+- **SC-002**: Focused disposable Windows evidence identifies actual input/tool revisions and repeat outcomes; historical bytes remain untouched, source observations use a separate GUI, and bounded-reader/compiler/source-authority regressions pass. Unreproduced startup cause remains explicit.
 - **SC-003**: Every elected native Exit scenario preserves independently owned work and releases GUI playback resources with no fallback success.
 - **SC-004**: No operator profile, unrelated process or publication integrity gate is changed by qualification.
 - **SC-005**: Required repository/affected checks and complete exact-head hosted delivery pass in at most 660 seconds; up to two review rounds are handled with every finding resolved before unmerged owner handoff.
@@ -99,3 +99,7 @@ A maintainer can accept a fully qualified repair without reducing installer reco
 - Q: Is profile collision the required fix? A: No. Preserve the native error and demonstrate the cause first; select the correction from evidence.
 - Q: How does post-merge confirmation fit the stop boundary? A: Verify the exact PR head now, document actual main verification as a post-merge follow-up, and do not merge autonomously.
 - Q: Are extra full-CI reruns a diagnostic strategy? A: No. Use a focused disposable Windows probe before complete qualification.
+
+### Owner scope decision (2026-10-19)
+
+After 124 focused native Exit child launches passed without recovering the controller error, the owner selected: "Deliver diagnostic checkpoint; keep #154 open." This supersedes the original requirement to demonstrate/correct the startup cause within S038. The checkpoint repairs lost diagnostics and validates the investigation boundary. Actual HRESULT/cause recovery, its supported startup correction and new cold/warm owned-profile lifecycle qualification remain tracked in #154. Passing PR diagnostics or delivery is not proof that the original intermittent defect is repaired.

@@ -10,7 +10,7 @@ Tool and payload revisions are separate exact commits. Asset filenames, sizes, h
 
 ## Owned launch resources
 
-A fixture root/profile and exact PIDs belong to one owner. Lifecycle advances from created to started/ready/action/root-exited/resources-released/cleanup. Forced cleanup cannot satisfy native Exit. Unrelated paths/PIDs are excluded.
+A diagnostic root and exact job/process identities belong to one disposable owner. Historical and derived executable trees are separate. Stream readers retain at most 65536 bytes each while draining output, with total-byte/truncation/incomplete-capture observations. Concurrent CLI workers join and idle before removal. Compiler children receive an exact selected environment. Existing native GUI completion remains authoritative; diagnostic cleanup cannot grant native Exit success. New profile isolation/release design is deferred under #154.
 
 ## Join failure observation
 
