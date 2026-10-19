@@ -93,3 +93,7 @@ US1 example: command-registry regressions and catalog migration regressions run 
 ## Phase 13: Owned descendant convergence
 
 - [ ] T037 Identify the owned descendant still reported after normal Alt+F4 host exit with bounded process image class and actual kernel exit state; correct the demonstrated lifecycle/observation cause while preserving existing deadlines, failed cleanup refusal, actual native actions and all exact-head proof gates (FR-019..022; SC-006).
+
+## Phase 14: Complete native fixture ownership
+
+- [ ] T038 Give help-only/full-WebView qualification parent-owned fresh profiles and observe normal owned-job release within each original child deadline before cleanup; retain normal desktop defaults, all native assertions and exact-byte gates; compare retained historical failures separately from current repair observations and repeat concurrent-load/package CI (FR-019..022; SC-006).

@@ -17,6 +17,16 @@ package_spec.loader.exec_module(package)
 
 
 class StartupDiagnosticQualificationTests(unittest.TestCase):
+    def assert_probe_environment(self, call, expected):
+        selected = dict(call.kwargs['env'])
+        profile = selected.pop('INSONIC_NATIVE_WEBVIEW_PROFILE', None)
+        self.assertEqual(selected, expected)
+        if os.name == 'nt' and any(flag in call.args[0] for flag in ('--help-qualification', '--webview-qualification')):
+            self.assertTrue(Path(profile).is_absolute())
+            self.assertFalse(Path(profile).parent.exists(), 'successful owned fixture was not removed')
+        else:
+            self.assertIsNone(profile)
+
     def test_packaged_gui_elects_existing_diagnostic_only_in_its_runtime_copy(self):
         for ci in ['true', 'false']:
             original = {'PATH': 'controlled-system-tools'}
@@ -29,7 +39,7 @@ class StartupDiagnosticQualificationTests(unittest.TestCase):
             for call in child.call_args_list:
                 expected = dict(original)
                 if ci == 'true': expected['INSONIC_PROCESS_STARTUP_DIAGNOSTICS'] = '1'
-                self.assertEqual(call.kwargs['env'], expected)
+                self.assert_probe_environment(call, expected)
                 self.assertIsNot(call.kwargs['env'], original)
                 self.assertIs(call.kwargs['allow_detached'], True)
             self.assertEqual([call.kwargs['timeout'] for call in child.call_args_list], [30, 35, 90, 100])
@@ -82,8 +92,7 @@ class StartupDiagnosticQualificationTests(unittest.TestCase):
                     self.assertEqual(call.kwargs['env'], {})
                     self.assertNotIn('allow_detached', call.kwargs)
                 for call in child.call_args_list[2:]:
-                    self.assertEqual(call.kwargs['env'],
-                                     {'INSONIC_PROCESS_STARTUP_DIAGNOSTICS': '1'} if ci == 'true' else {})
+                    self.assert_probe_environment(call, {'INSONIC_PROCESS_STARTUP_DIAGNOSTICS': '1'} if ci == 'true' else {})
                     self.assertIs(call.kwargs['allow_detached'], True)
                 self.assertIsNot(child.call_args_list[0].kwargs['env'], child.call_args_list[2].kwargs['env'])
 

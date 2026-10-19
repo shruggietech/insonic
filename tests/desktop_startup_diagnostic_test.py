@@ -87,6 +87,22 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
         self.assertEqual(summary['observations'][0]['file'],'incident-parent.json')
         self.assertEqual(summary['observations'][1]['file'],'source-parent.json')
 
+    def test_historical_runtime_failure_remains_evidence_and_current_probes_still_run(self):
+        result={'exit_code':0,'timed_out':False,'truncated':False}
+        summary={'observations':[]}
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'observe_predecessors',side_effect=[diagnostic.PredecessorFailure('baseline controller failure'),None]) as preceding,patch.object(diagnostic,'capture',side_effect=lambda *args:dict(result)) as capture,patch('builtins.print'):
+            root=Path(temporary)
+            diagnostic.observe_native(root/'new.exe',root,root,{},root/'evidence',summary,True,(root/'old.exe',root/'old'))
+        self.assertEqual(summary['historical_predecessor'],'failed-baseline-evidence-retained')
+        self.assertEqual(len(capture.call_args_list),13)
+        self.assertEqual(preceding.call_args_list[-1].args[-1],'source')
+
+    def test_current_predecessor_failure_still_fails_the_diagnostic(self):
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'observe_predecessors',side_effect=diagnostic.PredecessorFailure('current controller failure')):
+            root=Path(temporary)
+            with self.assertRaisesRegex(diagnostic.PredecessorFailure,'current controller'):
+                diagnostic.observe_native(root/'new.exe',root,root,{},root/'evidence',{'observations':[]},True)
+
     def test_historical_source_authority_must_be_present_in_owned_checkout(self):
         with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'ROOT',Path(temporary)):
             with self.assertRaisesRegex(ValueError,'incident source'):diagnostic.historical_source()

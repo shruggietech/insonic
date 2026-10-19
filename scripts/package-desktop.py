@@ -25,7 +25,7 @@ import uuid
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from process_tree import ProcessTree
+from process_tree import ProcessTree, native_webview_environment, native_webview_probe
 import qualify
 import go_module_notices
 
@@ -72,8 +72,12 @@ def child(args, *, directory=ROOT, env=None, timeout=180, allow_detached=False):
     if env:
         selected.update(env)
     with ProcessTree([str(arg) for arg in args], cwd=directory, env=selected, allow_detached=allow_detached) as tree:
+        started = time.monotonic()
         try:
             output, error = tree.process.communicate(timeout=timeout)
+            if tree.process.returncode == 0 and native_webview_probe(args, selected):
+                if not tree.wait_for_descendants(timeout - (time.monotonic() - started)):
+                    raise subprocess.TimeoutExpired(args, timeout)
         except subprocess.TimeoutExpired as expired:
             before = tree.process.poll()
             tree.kill()
@@ -856,13 +860,15 @@ def qualify_package_gui(gui, directory, env):
     help_args = [gui, '--help-qualification']
     if platform.system() == 'Linux':
         help_args = ['/usr/bin/xvfb-run', '-a', *help_args]
-    help_output = child(help_args, directory=directory, env=runtime_env, timeout=35, allow_detached=True)
+    with native_webview_environment(runtime_env) as profile_env:
+        help_output = child(help_args, directory=directory, env=profile_env, timeout=35, allow_detached=True)
     qualify.write_receipt(ROOT / 'build/native/package-help-receipt.json', help_output,
                           {'offline_help_activation': 'passed', 'workspace': 'not-selected', 'network_policy': 'local-assets-only', 'schema_version': VERSION})
     args = [gui, '--webview-qualification']
     if platform.system() == 'Linux':
         args = ['/usr/bin/xvfb-run', '-a', *args]
-    qualification_output = child(args, directory=directory, env=runtime_env, timeout=90, allow_detached=True)
+    with native_webview_environment(runtime_env) as profile_env:
+        qualification_output = child(args, directory=directory, env=profile_env, timeout=90, allow_detached=True)
     qualify.write_receipt(ROOT / 'build/native/package-webview-receipt.json', qualification_output,
                           {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'ui_compact_density': 'passed', 'schema_version': VERSION})
     exit_args = [gui, '--exit-qualification']

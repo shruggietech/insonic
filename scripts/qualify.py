@@ -14,11 +14,12 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 import urllib.request
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from process_tree import ProcessTree
+from process_tree import ProcessTree, native_webview_environment, native_webview_probe
 
 ROOT = Path(__file__).resolve().parent.parent
 LOCK = json.loads((ROOT / 'internal/qualification/dependencies.json').read_text(encoding='utf-8'))
@@ -41,8 +42,12 @@ def child(args, *, env=None, timeout=180, allow_detached=False):
     if env:
         merged.update(env)
     with ProcessTree([str(arg) for arg in args], cwd=ROOT, env=merged, allow_detached=allow_detached) as tree:
+        started = time.monotonic()
         try:
             stdout, stderr = tree.process.communicate(timeout=timeout)
+            if tree.process.returncode == 0 and native_webview_probe(args, merged):
+                if not tree.wait_for_descendants(timeout - (time.monotonic() - started)):
+                    raise subprocess.TimeoutExpired(args, timeout)
         except subprocess.TimeoutExpired:
             tree.kill()
             stdout, stderr = tree.process.communicate(timeout=5)
@@ -287,13 +292,15 @@ def desktop():
     help_args = [executable, '--help-qualification']
     if platform.system() == 'Linux':
         help_args = ['xvfb-run', '-a', *help_args]
-    help_output = child(help_args, env=runtime_env, timeout=35, allow_detached=True)
+    with native_webview_environment(runtime_env) as profile_env:
+        help_output = child(help_args, env=profile_env, timeout=35, allow_detached=True)
     write_receipt(BUILD / 'help-webview-receipt.json', help_output,
                   {'offline_help_activation': 'passed', 'workspace': 'not-selected', 'network_policy': 'local-assets-only', 'schema_version': VERSION})
     args = [executable, '--webview-qualification']
     if platform.system() == 'Linux':
         args = ['xvfb-run', '-a', *args]
-    output = child(args, env=runtime_env, timeout=90, allow_detached=True)
+    with native_webview_environment(runtime_env) as profile_env:
+        output = child(args, env=profile_env, timeout=90, allow_detached=True)
     write_receipt(BUILD / 'webview-receipt.json', output,
                   {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'ui_compact_density': 'passed', 'schema_version': VERSION})
     exit_args = [executable, '--exit-qualification']

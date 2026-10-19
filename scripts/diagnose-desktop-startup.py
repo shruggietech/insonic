@@ -16,7 +16,7 @@ import time
 
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 import windows_package_pipeline as pipeline
-from process_tree import ProcessTree
+from process_tree import ProcessTree, native_webview_environment, native_webview_probe
 
 ROOT=pipeline.ROOT
 INCIDENT_REVISION='d44d95b6e97d741a32cbf87323bf78c824c3155b'
@@ -68,7 +68,11 @@ def capture(args,directory,env,timeout):
         with ProcessTree([str(arg) for arg in args],cwd=directory,env=env) as tree:
             for stream,pipe in [(output,tree.process.stdout),(error,tree.process.stderr)]:
                 reader=Thread(target=stream.drain,args=(pipe,),daemon=True);reader.start();readers.append(reader)
-            try:tree.process.wait(timeout=timeout)
+            try:
+                tree.process.wait(timeout=timeout)
+                if tree.process.returncode == 0 and native_webview_probe(args,env):
+                    if not tree.wait_for_descendants(timeout-(time.monotonic()-started)):
+                        raise subprocess.TimeoutExpired(args,timeout)
             except subprocess.TimeoutExpired:
                 timed_out=True;tree.kill()
                 try:tree.process.wait(timeout=5)
@@ -233,19 +237,33 @@ def observe_with_load(observe,future,idle,evidence):
     if failure is not None:raise failure
 
 
+class PredecessorFailure(RuntimeError):
+    pass
+
+
 def observe_predecessors(gui,root,env,evidence,label):
     for flag,timeout in [('--qualification',30),('--help-qualification',35),('--webview-qualification',90)]:
-        observation=capture([gui,flag],root,env,timeout)
+        with native_webview_environment(env) as profile_env:
+            observation=capture([gui,flag],root,profile_env,timeout)
+            if observation['exit_code'] or observation['timed_out'] or observation['truncated']:
+                # Preserve failed profiles as well as both output streams.
+                observation.update(boundary=label+'-archive-predecessor-gui',flag=flag,profile_retained=os.name=='nt')
+                print(json.dumps(observation,sort_keys=True),flush=True)
+                save(evidence,label+'-'+flag[2:]+'.json',observation)
+                raise PredecessorFailure('archive predecessor failed; evidence retained')
         observation.update(boundary=label+'-archive-predecessor-gui',flag=flag)
         name=label+'-'+flag[2:]+'.json';save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
-        if observation['exit_code'] or observation['timed_out'] or observation['truncated']:raise RuntimeError('archive predecessor failed; evidence retained')
 
 
 def observe_native(gui,root,location,env,evidence,summary,rebuilt,incident=None):
     historical=None
     if incident:
         original,original_root=incident
-        observe_predecessors(original,original_root,env,evidence,'incident')
+        try:
+            observe_predecessors(original,original_root,env,evidence,'incident')
+        except PredecessorFailure:
+            summary['historical_predecessor']='failed-baseline-evidence-retained'
+            save(evidence,'diagnostic.json',summary)
         historical=capture([original,'--exit-qualification'],original_root,env,100)
         historical.update(boundary='incident-production-parent')
         save(evidence,'incident-parent.json',historical);print(json.dumps(historical,sort_keys=True),flush=True)
@@ -278,7 +296,10 @@ def observe_native(gui,root,location,env,evidence,summary,rebuilt,incident=None)
             raise RuntimeError('native child failed; inspect retained separate stdout/stderr')
     summary['result']='bounded-observations-completed-not-a-cause-proof'
     save(evidence,'diagnostic.json',summary)
-    if any(value and (value['exit_code'] or value['timed_out'] or value['truncated']) for value in [parent,historical]):raise RuntimeError('production parent failed; boundary observations retained')
+    if historical:
+        summary['historical_parent']='failed-baseline-evidence-retained' if historical['exit_code'] or historical['timed_out'] or historical['truncated'] else 'passed-baseline'
+        save(evidence,'diagnostic.json',summary)
+    if parent['exit_code'] or parent['timed_out'] or parent['truncated']:raise RuntimeError('production parent failed; boundary observations retained')
 
 
 if __name__=='__main__':print(json.dumps(run(),sort_keys=True))
