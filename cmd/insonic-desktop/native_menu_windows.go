@@ -46,7 +46,15 @@ func installNativeMenuRouting(diagnostic bool) (func() error, error) {
 	foreground := api.NewProc("GetForegroundWindow")
 	getMenu := api.NewProc("GetMenu")
 	keyState := api.NewProc("GetKeyState")
+	if diagnostic {
+		fmt.Fprintf(os.Stderr, "native-menu-thread=%d\n", thread)
+	}
+	debugCount := 0
 	callbackFunction := func(code int32, remove uintptr, msg *nativeMenuMessage) uintptr {
+		if diagnostic && code >= 0 && remove&1 != 0 && msg != nil && debugCount < 32 && (msg.Message == 0x100 || msg.Message == 0x101 || msg.Message == 0x104 || msg.Message == 0x105) && (msg.WParam == 0x12 || msg.WParam == 0x46 || msg.WParam == 0x58 || msg.WParam == 0x73) {
+			debugCount++
+			fmt.Fprintf(os.Stderr, "native-menu-input message=%x key=%x flags=%x window=%x\n", msg.Message, msg.WParam, msg.LParam, msg.Window)
+		}
 		if code >= 0 && remove&1 != 0 && msg != nil && nativeFileMnemonic(msg.Message, msg.WParam, msg.LParam) {
 			root, _, _ := ancestor.Call(msg.Window, 2)
 			var pid uint32

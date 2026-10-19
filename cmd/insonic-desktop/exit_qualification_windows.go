@@ -72,6 +72,8 @@ func activateNativeExit(action string) error {
 	if err != nil {
 		return err
 	}
+	threadID := exitWinCall("GetWindowThreadProcessId", hwnd, 0)
+	fmt.Fprintf(os.Stderr, "native-input-target thread=%d window=%x foreground=%x\n", threadID, hwnd, exitWinCall("GetForegroundWindow"))
 	root := exitWinCall("GetMenu", hwnd)
 	file := exitWinCall("GetSubMenu", root, 0)
 	if exitWinLabel(root, 0) != "&File" || file == 0 || exitWinLabel(file, 0) != "E&xit" || exitWinCall("GetMenuState", file, 0, 0x400)&3 != 0 {
