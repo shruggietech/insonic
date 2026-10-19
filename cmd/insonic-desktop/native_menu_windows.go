@@ -70,12 +70,16 @@ func exitOwnedWindow() (uintptr, error) {
 
 func configureNativeMenu(bridge *desktop.Bridge, diagnostic bool) {
 	desktop.SetNativeFileMenu(bridge, func() error {
-		hwnd, err := exitOwnedWindow()
-		if err != nil {
+		// The focused document supplies the intent; select only its owned
+		// foreground native menu, without allocating an EnumWindows callback.
+		hwnd := exitWinCall("GetForegroundWindow")
+		if err := requireNativeInputTarget(hwnd); err != nil {
 			return err
 		}
-		if err = requireNativeInputTarget(hwnd); err != nil {
-			return err
+		root := exitWinCall("GetMenu", hwnd)
+		file := exitWinCall("GetSubMenu", root, 0)
+		if root == 0 || file == 0 || exitWinLabel(root, 0) != "&File" || exitWinLabel(file, 0) != "E&xit" {
+			return fmt.Errorf("owned native File menu unavailable")
 		}
 		if exitWinCall("PostMessageW", hwnd, 0x112, 0xf100, 'f') == 0 {
 			return fmt.Errorf("native File menu request rejected")

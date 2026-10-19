@@ -3,9 +3,11 @@ package process
 
 import (
 	"context"
+	"golang.org/x/sys/windows"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -17,7 +19,7 @@ func TestCaptureDescendantHelper(t *testing.T) {
 		return
 	}
 	if mode == "child" {
-		os.WriteFile(filepath.Join(root, "ready"), []byte("ready"), 0600)
+		os.WriteFile(filepath.Join(root, "ready"), []byte(strconv.Itoa(os.Getpid())), 0600)
 		delay := 500 * time.Millisecond
 		if os.Getenv("INSONIC_CAPTURE_HOLD") == "1" {
 			delay = 10 * time.Second
@@ -69,7 +71,58 @@ func TestCaptureDescendantDeadlineCannotQualifyCleanupKill(t *testing.T) {
 	if err == nil || ctx.Err() != context.DeadlineExceeded || report.ExitCode != 0 || report.Descendants == nil || report.Descendants.Released {
 		t.Fatalf("cleanup termination became success: %+v %v", report, err)
 	}
+	foundLiveTest := false
+	for _, member := range report.Descendants.Processes {
+		if member.Observed && member.Running && member.Image == "test" {
+			foundLiveTest = true
+		}
+	}
+	if !foundLiveTest {
+		t.Fatalf("missing owned live-process identity: %+v", report.Descendants)
+	}
 	if _, err := os.Stat(filepath.Join(root, "released")); err == nil {
 		t.Fatal("deadline did not stop the owned descendant")
+	}
+}
+
+func TestCaptureNaturalExitRemainsObservedWithExternalProcessHandle(t *testing.T) {
+	root := t.TempDir()
+	executable, _ := os.Executable()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	type result struct {
+		report CaptureResult
+		err    error
+	}
+	done := make(chan result, 1)
+	go func() {
+		report, err := Capture(ctx, Spec{Executable: executable, Args: []string{"-test.run=^TestCaptureDescendantHelper$"}, Env: append(os.Environ(), "INSONIC_CAPTURE_DESCENDANT=parent", "INSONIC_CAPTURE_DIRECTORY="+root), MaxOutput: 1024, WaitForDescendants: true})
+		done <- result{report, err}
+	}()
+	var pid int
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		raw, _ := os.ReadFile(filepath.Join(root, "ready"))
+		pid, _ = strconv.Atoi(string(raw))
+		if pid > 0 {
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if pid == 0 {
+		t.Fatal("owned descendant did not start")
+	}
+	handle, err := windows.OpenProcess(windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(pid))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer windows.CloseHandle(handle)
+	state, err := windows.WaitForSingleObject(handle, 3000)
+	if err != nil || state != windows.WAIT_OBJECT_0 {
+		t.Fatal("descendant did not exit naturally", state, err)
+	}
+	got := <-done
+	if got.err != nil || got.report.Descendants == nil || !got.report.Descendants.Released {
+		t.Fatalf("held handle hid actual process exit: %+v %v", got.report, got.err)
 	}
 }

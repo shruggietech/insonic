@@ -22,9 +22,18 @@ type CaptureResult struct {
 
 // DescendantReport records only this launch's owned Windows job, never ambient processes.
 type DescendantReport struct {
-	Initial   uint32 `json:"initial"`
-	Remaining uint32 `json:"remaining"`
-	Released  bool   `json:"released"`
+	Initial   uint32              `json:"initial"`
+	Remaining uint32              `json:"remaining"`
+	Released  bool                `json:"released"`
+	Processes []DescendantProcess `json:"processes,omitempty"`
+}
+
+// DescendantProcess exposes only a fixed image class and kernel exit observation.
+type DescendantProcess struct {
+	PID      uint32 `json:"pid"`
+	Image    string `json:"image"`
+	Observed bool   `json:"observed"`
+	Running  bool   `json:"running"`
 }
 
 func Capture(ctx context.Context, spec Spec) (CaptureResult, error) {

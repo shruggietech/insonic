@@ -21,10 +21,10 @@ func (b *Bridge) OpenFileMenu() contracts.Response {
 	open := b.nativeMenuOpener
 	b.mu.RUnlock()
 	if open == nil {
-		return b.failed(contracts.Fail("unavailable"))
+		return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Error: contracts.Fail("unavailable")}
 	}
 	if err := open(); err != nil {
-		return b.failed(err)
+		return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Error: contracts.SafeError(err)}
 	}
 	return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Result: map[string]any{"native_file_menu": "requested"}}
 }

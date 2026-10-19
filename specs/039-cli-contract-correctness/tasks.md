@@ -89,3 +89,7 @@ US1 example: command-registry regressions and catalog migration regressions run 
 ## Phase 12: Final-check fixture convergence
 
 - [ ] T036 Keep the general available-artifact setup lease independent of one-second runner timing, retain explicit publication-expiry tests and product defaults, repeat retirement/admission race acceptance, and reverify complete exact-head CI (FR-022; SC-005).
+
+## Phase 13: Owned descendant convergence
+
+- [ ] T037 Identify the owned descendant still reported after normal Alt+F4 host exit with bounded process image class and actual kernel exit state; correct the demonstrated lifecycle/observation cause while preserving existing deadlines, failed cleanup refusal, actual native actions and all exact-head proof gates (FR-019..022; SC-006).

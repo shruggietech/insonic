@@ -4,6 +4,8 @@ package process
 import (
 	"context"
 	"golang.org/x/sys/windows"
+	"path/filepath"
+	"strings"
 	"time"
 	"unsafe"
 )
@@ -39,8 +41,61 @@ func waitDescendants(ctx context.Context, tree *processTree) (DescendantReport, 
 		}
 		select {
 		case <-ctx.Done():
+			report.Processes = inspectDescendants(tree)
 			return report, ctx.Err()
 		case <-ticker.C:
 		}
 	}
+}
+
+func inspectDescendants(tree *processTree) []DescendantProcess {
+	type processList struct {
+		Assigned, Listed uint32
+		IDs              [128]uintptr
+	}
+	var list processList
+	if windows.QueryInformationJobObject(tree.job, windows.JobObjectBasicProcessIdList, uintptr(unsafe.Pointer(&list)), uint32(unsafe.Sizeof(list)), nil) != nil || list.Listed > 128 {
+		return nil
+	}
+	values := make([]DescendantProcess, 0, list.Listed)
+	isInJob := windows.NewLazySystemDLL("kernel32.dll").NewProc("IsProcessInJob")
+	for _, id := range list.IDs[:list.Listed] {
+		entry := DescendantProcess{PID: uint32(id), Image: "unknown"}
+		handle, err := windows.OpenProcess(windows.SYNCHRONIZE|windows.PROCESS_QUERY_LIMITED_INFORMATION, false, uint32(id))
+		if err == nil {
+			var owned uint32
+			ok, _, _ := isInJob.Call(uintptr(handle), uintptr(tree.job), uintptr(unsafe.Pointer(&owned)))
+			if ok != 0 && owned != 0 {
+				state, waitErr := windows.WaitForSingleObject(handle, 0)
+				entry.Observed = waitErr == nil
+				entry.Running = waitErr == nil && state == uint32(windows.WAIT_TIMEOUT)
+				var name [1024]uint16
+				length := uint32(len(name))
+				if windows.QueryFullProcessImageName(handle, 0, &name[0], &length) == nil {
+					image := strings.ToLower(filepath.Base(windows.UTF16ToString(name[:length])))
+					switch image {
+					case "msedgewebview2.exe":
+						entry.Image = "webview"
+					case "insonic.exe":
+						entry.Image = "cli"
+					case "insonic-desktop.exe":
+						entry.Image = "desktop"
+					case "werfault.exe", "wermgr.exe":
+						entry.Image = "windows-error-reporting"
+					case "conhost.exe":
+						entry.Image = "console-host"
+					default:
+						if strings.HasSuffix(image, ".test.exe") {
+							entry.Image = "test"
+						} else {
+							entry.Image = "other"
+						}
+					}
+				}
+			}
+			windows.CloseHandle(handle)
+		}
+		values = append(values, entry)
+	}
+	return values
 }
