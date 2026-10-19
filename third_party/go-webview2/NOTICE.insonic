@@ -54,3 +54,10 @@ Eight fixed active-request slots retain unique publication/completion and sticky
 failed-call totals across initial responses. Slot overflow and retirement remain
 explicit. Only the exact runtime-ready message receives a fixed counter, with
 existing message forwarding unchanged and no message content retained.
+
+A separately elected disposable browser observer queries the created environment
+version and registers seven CDP receivers with four acknowledged setup commands
+before diagnostic navigation. It retains only bounded fixed asset classes, numeric
+fetch/header/exception summaries and matching document loader/frame milestones.
+Receivers and callback leases close on the owning thread. Ordinary launches
+add no observer COM calls; observed fetch completion is not script execution.

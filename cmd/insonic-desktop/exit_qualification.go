@@ -132,6 +132,7 @@ func qualifyNativeExitChild(path string) int {
 				return
 			}
 			fmt.Fprintln(os.Stderr, "native-exit-stage=frontend-ready")
+			logNativeBrowserReadyProgress()
 			// Navigation completion hides/shows the controller. Rejoin the full
 			// framework activation after frontend readiness before any keys.
 			if err := prepareNativeExitWindow(ctx); err != nil {

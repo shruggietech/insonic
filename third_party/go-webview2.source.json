@@ -407,7 +407,7 @@
     "CHANGELOG.md": "f8d9d8fd57921600e0414af60fac45d990fb8a3ffb0d6b650fd0fb965e3fc48b",
     "LICENSE": "3f10f3374cf30076196eb239667ce6063c64e4275afd2b397f6343f69676bb79",
     "LICENSE.insonic": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
-    "NOTICE.insonic": "7485a96c346c42bd7d660921769e8e925f80b9e09b91dbe126f51e931d60cd02",
+    "NOTICE.insonic": "7cf7dc1cda77e96581ece9df411184d6e16bbfe6d16a6c810e2486c775f80ec1",
     "README.md": "ba63d931c3298a6739ed6631d5d0dcf31cf74a66c67db041a71a7de3db97a26e",
     "Taskfile.yml": "540c24f999784c9571d1024330dde3b1911d40540b27955c207a907f3d3b00af",
     "go.mod": "4fedf1f25fe5dc9bb6d07a6b1630cb01c379dc7130f6237d427d79e8737e0346",
@@ -472,7 +472,7 @@
     "pkg/edge/callback_loader_go_windows_test.go": "149a8ceaf6b20085ddafba63e3b7bba5418f0ad980de5df4ef3c7ebdae0d501d",
     "pkg/edge/capabilities.go": "d8bf2f6aeee2e263f313fcac2b519fbae127e632c2d6e35fd9010f17325c92c2",
     "pkg/edge/capabilities_test.go": "086a8e8b63c698a2e93ab71348ae9aab1e368f3bfe504dea8ea7abb9973064ae",
-    "pkg/edge/chromium.go": "ed158af9b735728b19e931b2abf0e6c8bc9c3353d3693c13f27625e4314d4a9f",
+    "pkg/edge/chromium.go": "546a92905b17890764af1daefa3a475b9182d397a92a60722d774f2bc355cf73",
     "pkg/edge/chromium_386.go": "ca192b38628fafd006ad11a32eeb927310024fb108d99e7b7ef702e91d3ddf97",
     "pkg/edge/chromium_amd64.go": "94ce6d15a0af9c08d23b2ef56a88e78424cedbe2d858b7c32c6326210617a99c",
     "pkg/edge/chromium_arm64.go": "f3988997a4b42d0c7fa0d80c70234f9d3a482f7a8177f121007809ea8002b866",
@@ -806,9 +806,11 @@
     "webviewloader/syscall.go": "529b0e2f1fc278fb88a1b4fc179d33c98e6287b0f5f35b125b2ff2bd2e7557b4",
     "webviewloader/version.go": "fce8148cab62b2da0a22f1dab69ff7f3e08c6b8a08db18a34cc886835966b3ba",
     "webviewloader/x64/WebView2Loader.dll": "c4674acf95f0800793a4a6d61132adf5dfa694c218e482d86093494c4e84100a",
-    "webviewloader/x86/WebView2Loader.dll": "758f4003d91b3b81951d95de28e0e03f96e23922a73d7fe0abf6f607e2a89f2b"
+    "webviewloader/x86/WebView2Loader.dll": "758f4003d91b3b81951d95de28e0e03f96e23922a73d7fe0abf6f607e2a89f2b",
+    "pkg/edge/browser_bootstrap_windows.go": "677daff1951d3d1061fa0c537498a32435b7950187f98ff241426fd57902bba9",
+    "pkg/edge/browser_bootstrap_windows_test.go": "91313ff36be2be6bdfa840bc373406a9ec5d1533a7a2e334f5d17e054d5dc68b"
   },
-  "patched_sum": "h1:eIa/vUbVD3JkciCJbnDxigl0flivs0IvI0gERjFowdQ=",
+  "patched_sum": "h1:ELA08j/sI5oMpkNpU4dxSi7y5TMJk0RPICYkMe8UWv0=",
   "modified": [
     "pkg/combridge/iunknown.go",
     "pkg/edge/ICoreWebView2Controller.go",
@@ -822,6 +824,8 @@
   "added": [
     "LICENSE.insonic",
     "NOTICE.insonic",
+    "pkg/edge/browser_bootstrap_windows.go",
+    "pkg/edge/browser_bootstrap_windows_test.go",
     "pkg/edge/callback_bridge_windows.go",
     "pkg/edge/callback_bridge_windows_test.go",
     "pkg/edge/callback_loader_go_windows_test.go",

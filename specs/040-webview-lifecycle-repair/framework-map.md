@@ -23,8 +23,8 @@ Product baseline: S039 squash c9ed48d682e255f9e03f9d4ffd1ebbb9801f9c20, tree ide
 | Complete | Wails pkg/assetserver/webview/request_windows.go:123-141 | Release caller response reference, Complete deferral, release acquired deferral reference. |
 | Ready | edge/chromium.go NavigationCompleted; Wails windows/frontend.go:952-1004 | Navigation callback starts OnDomReady, controller Hide/Show and application showing. Frontend listener is another readiness boundary. |
 | Native input | cmd/insonic-desktop/exit_qualification_windows.go; native_menu_windows.go | Actual owned foreground target, original native key route, menu cancellation/focus restoration, reopen and callback. |
-| Close | Wails internal/app/app_production.go:17-24; edge/window_lifetime_windows.go:374-415,460-493 | Loop exit followed by native parent destruction; subclass invokes Close once and releases retained interfaces before forwarding destruction. |
-| Apartment | cmd/insonic-desktop/webview_lifetime_windows.go; edge/window_lifetime_windows.go:495-525 | Balance original thread's COM initialization after owned windows disappear. |
+| Close | Wails internal/app/app_production.go:17-24; edge/window_lifetime_windows.go:535-565,609-644 | Loop exit followed by native parent destruction; subclass invokes Close once and releases retained interfaces before forwarding destruction. |
+| Apartment | cmd/insonic-desktop/webview_lifetime_windows.go; edge/window_lifetime_windows.go:646-675 | Balance original thread's COM initialization after owned windows disappear. |
 | Process group | internal/process/capture.go:73-85; descendants_windows.go:22-100 | After root exit, observe owned job active count and actual process handles; forced cleanup never passes. |
 
 Wails paths above are relative to the exact pinned Wails v2.16.0 module; edge paths are relative to third_party/go-webview2/pkg/. This map is version-bound.
@@ -50,17 +50,17 @@ flowchart TD
     N --> O[Navigation completion and frontend readiness]
 ```
 
-Handler return and native callback return are earlier than final response publication. A successful Complete is earlier than demonstrated browser consumption. S040 observes the seven native response operations without adding WebView2 COM calls.
+Handler return and native callback return are earlier than final response publication. A successful Complete is earlier than demonstrated browser consumption. S040 observes seven native response-call boundaries without adding WebView2 COM calls. The headers boundary is GetHeaders acquisition; individual AppendHeader writes remain unobserved. E006 adds unique all-response completion and runtime-ready counters.
 
 ## Retained signatures
 
 | Signature | Established evidence | Current status/limit |
 | --- | --- | --- |
 | Controller creation | Earlier failure before native input, recovered HRESULT800700aa | Private runtime condition unproved. The upstream BOOL error is executed during controller completion, distinct from a failing CreateController result. |
-| Pre-DOM | cold028 and final-head CI attempt1: navigation1/1, resource1/1, document1/1, scripts0/completion0, live Go UI pump | Final response publication and browser consumption unobserved. Upstream ABI correction is not yet a demonstrated explanation. |
+| Pre-DOM | cold028 and final-head CI attempt1: navigation1/1, resource1/1, document1/1, scripts0/completion0, live Go UI pump | E003 observes successful first-response operations/Complete with6returned callbacks and no navigation completion; later responses remain unknown. E004 recurs before its optional diagnostic crash. None of the proven ABI/callback fixes fully explains the stall. |
 | UI join | Earlier two-second owned-UI operation timeout | Not captured by cold028; do not conflate with its prepared window and idle GetMessage. |
 | Menu consumption | Captured missing X despite visible popup; owned queue responded | Native focus correction has actual cancellation/reopen regressions and two 144-case samples. Historical browser internals unproved; retain those limits. |
-| Browser release | Final-head CI attempt2: action passed, host exit0, two actual owned live WebView processes at deadline | No stage durations reveal remaining release budget; Close is not a full process-exit receipt. |
+| Browser release | Final-head CI attempt2: action passed, host exit0, two actual owned live WebView processes at deadline | Historical attempt lacks stage durations; S040 now observes original remaining budget on new cases. Close is not a full process-exit receipt. |
 
 ## Rejected or separated explanations
 
@@ -84,3 +84,32 @@ The expected6initial resources are the document, Wails IPC/runtime scripts,2styl
 Product desktop/index.html:7-12 supplies both stylesheets and the deferred bundle. main.tsx:10-24 starts React synchronously; its qualification IIFE at64-83 is unawaited. App.tsx effects issue bridge promises after render. Wails desktop runtime/main.js:49-100 initializes synchronously and sends runtime:ready at221; frontend.go:732-743 processes it without gating navigation. No initial API-fetch/top-level-await cycle was found. Native NavigationCompleted precedes Wails frontend.go:952-954 OnDomReady. A script exception alone would ordinarily prevent frontend readiness without itself preventing page load.
 
 Thus E003 narrows the remaining alternatives to later native response completion, browser load progress and native navigation event delivery. The native callback contract correction is independently justified and is the next changed behavior. If failure persists afterward, observe all6initial responses and a fixed runtime-ready receipt rather than extrapolating from the first. [Primary navigation model](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/navigation-events), [NavigationCompleted](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2#add_navigationcompleted), [HTML script processing](https://html.spec.whatwg.org/multipage/scripting.html#the-script-element).
+
+## Process model cross-check (2026-10-19)
+
+Microsoft documents all WebView calls/callbacks on a pumped STA and serial callback delivery. Deferrals postpone event completion; missing Complete can block rendering. The retained idle GetMessage profiles differ from a host thread blocked waiting inside an event or synchronous UI join. This distinction is observational, not proof that the browser renderer is responsive. [Threading model](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/threading-model).
+
+A user-data folder selects a browser process group, potentially including several renderers plus GPU/utility processes. Each fresh qualification profile requests a separate group. Native Close releases handler cycles and closes the control, while BrowserProcessExited is the explicit browser-resource release event. Existing owned-job observation still provides independent actual process-release evidence. A host exiting successfully and a synchronous Close result cannot replace that observation. [Process model](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-model), [controller Close](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/icorewebview2controller#close), [process events](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/process-related-events).
+
+ProcessFailed covers crashes and unresponsive renderers, but the documented unresponsive notification can repeat on a roughly15-second interval. Absence of its log before the existing12-second watchdog cannot establish renderer health, and increasing that watchdog solely to await the notification is not elected. No browser/GPU failure or runtime regression has been demonstrated by E003/E004.
+
+## E006 native-to-browser boundary (2026-10-19)
+
+At child027, all5observed response/deferral paths finish and retire with no failures/overflow. The product app-script middleware stays0 and runtime-ready stays0. This is consistent with the document,2internally served Wails scripts and2stylesheets, but the existing counters do not identify each resource. Wails OnDomReady is derived from native NavigationCompleted, so its absence cannot independently establish that Chromium never parsed DOM. E007 will observe browser fetch completion, fixed response metadata, exceptions and page milestones before deciding which bootstrap line failed.
+
+The concurrent audit finds no demonstrated cross-process environment or workspace collision. The Python parent freezes the child environment; CLI helpers copy it, and Go WEBVIEW2_* mutation is local to each GUI. Cold fixtures have no Workspace and do not join a CLI runtime endpoint. GUI profiles are unique cold-NNN/webview paths, retained through child observation and workload cleanup. Runtime IPC/locks include a canonical workspace hash and the Windows identity; ProcessTree jobs are unnamed per-launch handles. These facts disfavor a source-controlled global mutation, while shared CPU/memory/storage/OS/browser behavior remain unclassified. Nearly repeated failure ordinals27-29 require actual worker/phase timestamps before any workload attribution.
+
+## Bootstrap dependency detail (2026-10-19)
+
+| Boundary | Dependency and allowed inference | Remaining distinction |
+| --- | --- | --- |
+| Initial HTML | Wails parses and prepends classic IPC then runtime scripts before original head content. | A returned document/Complete does not prove Chromium consumed its stream. |
+| IPC script | Finite platform lookup installs WailsInvoke from chrome.webview.postMessage. | Requested/returned content is not executed code. |
+| Runtime script | Synchronous runtime/binding/listener initialization ends with WailsInvoke(runtime:ready). | No runtime-ready could be incomplete fetch, script exception/execution or message delivery. |
+| CSS and app bundle | Original head has2stylesheets; body has deferred app.js. Browser speculative fetches can overlap parsing. | Do not infer a serialized fetch order from aggregate counts. |
+| App bootstrap | main.tsx starts React, installs the qualification listener and starts an unawaited bridge IIFE. | Bridge promises do not create a discovered top-level-await load cycle. |
+| Actual DOM milestone | Chromium DOMContentLoaded follows parsing and deferred script execution. | Wails OnDomReady is a different callback. |
+| Native navigation completion | WebView2 fires after load or a stopped navigation error; Wails forwards to OnDomReady. | Callback arrival alone is not successful app initialization. |
+| Frontend-ready qualification | Native code separately waits for the actual app menu listener before native actions. | A ready JSON/action still does not prove natural owned-browser release. |
+
+The selected CDP lifecycle event must match the initial document loader/frame; about:blank and unassociated page milestones cannot qualify application DOM/load. Network encoded transfer length is not a body-size receipt. Exact numeric Content-Length comparisons require complete observed decoded data and known identity encoding.

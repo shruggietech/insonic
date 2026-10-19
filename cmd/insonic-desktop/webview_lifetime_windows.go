@@ -28,6 +28,8 @@ func nativeCOMCleanup() error { return edge.FinalizeCOMApartment() }
 
 func nativeWebviewBootstrapSnapshot() any { return edge.OwnedWindowBootstrapSnapshots() }
 
+func nativeWebviewBrowserSnapshot() any { return edge.OwnedWindowBrowserSnapshots() }
+
 func logNativeBrowserRuntimeVersion() {
 	version, err := webviewloader.GetAvailableCoreWebView2BrowserVersionString("")
 	if err != nil {

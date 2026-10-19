@@ -15,6 +15,19 @@ diagnostic=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(diagnostic)
 
 class DesktopStartupDiagnosticTests(unittest.TestCase):
+    def test_browser_observer_rejects_stale_or_incompatible_source_before_acquisition(self):
+        for cold,source,control in [('true','false','false'),('false','true','false'),('true','true','true')]:
+            with self.subTest(cold=cold,source=source,control=control), \
+                 patch.dict(os.environ,{'GITHUB_SHA':'a'*40,'INSONIC_STARTUP_BROWSER':'true',
+                    'INSONIC_STARTUP_COLD':cold,'INSONIC_STARTUP_SOURCE':source,
+                    'INSONIC_STARTUP_ABI_CONTROL':control},clear=True), \
+                 patch.object(diagnostic.os,'name','nt'), \
+                 patch.object(diagnostic.pipeline.m,'disposable_runner'), \
+                 patch.object(diagnostic,'incident_archive') as acquire:
+                with self.assertRaisesRegex(ValueError,'browser observation requires current cold source'):
+                    diagnostic.run()
+                acquire.assert_not_called()
+
     def test_abi_overlay_is_exact_historical_source_without_editing_production(self):
         selected=Path('third_party/go-webview2/pkg/edge/ICoreWebView2Controller3.go')
         corrected=(ROOT/selected).read_bytes()
@@ -349,5 +362,91 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
             self.assertIs(child.call_args.kwargs['startup_hide'],True)
             self.assertIs(summary['startup_hide'],True)
             self.assertIs(json.loads((root/'evidence/cold-000.json').read_text())['startup_hide'],True)
+
+
+    def test_load_timeline_distinguishes_submission_actual_overlap_and_finished_work(self):
+        now=[100.0]
+        timeline=diagnostic.LoadTimeline(clock=lambda:now[0])
+        now[0]=101;pending=timeline.case_begin(0)
+        now[0]=102;pending=timeline.case_end(pending)
+        now[0]=103;timeline.worker_start();timeline.phase('help')
+        now[0]=104;active=timeline.case_begin(1)
+        now[0]=106;timeline.phase('credentials')
+        now[0]=108;active=timeline.case_end(active)
+        now[0]=109;timeline.worker_end(True)
+        now[0]=110;finished=timeline.case_begin(2)
+        now[0]=112;finished=timeline.case_end(finished)
+        self.assertEqual(pending['begin'],{'elapsed_seconds':1,'phase':'not-started','worker_state':'pending'})
+        self.assertEqual(pending['overlap_seconds'],0)
+        self.assertEqual(active['begin'],{'elapsed_seconds':4,'phase':'help','worker_state':'running'})
+        self.assertEqual(active['end'],{'elapsed_seconds':8,'phase':'credentials','worker_state':'running'})
+        self.assertEqual(active['overlap_seconds'],4)
+        self.assertEqual(finished['overlap_seconds'],0)
+        self.assertEqual(finished['begin']['worker_state'],'passed')
+        receipt=timeline.receipt()
+        self.assertEqual(receipt['worker'],{'start_elapsed_seconds':3,'end_elapsed_seconds':9,'state':'passed'})
+        self.assertEqual(receipt['cases'],[pending,active,finished])
+        self.assertFalse(receipt['feature_qualification'])
+
+    def test_load_timeline_worker_interval_can_start_and_end_inside_one_case(self):
+        now=[20.0];timeline=diagnostic.LoadTimeline(clock=lambda:now[0])
+        now[0]=21;case=timeline.case_begin(0)
+        def workload(*args,**options):
+            self.assertEqual(args,('fixed-input',));self.assertEqual(options['documentation'],True)
+            now[0]=23;options['progress']('operator-feedback')
+            now[0]=24;raise RuntimeError('private fixture details')
+        now[0]=22
+        with self.assertRaisesRegex(RuntimeError,'private fixture details'):
+            diagnostic.run_load(timeline,workload,'fixed-input',documentation=True)
+        now[0]=25;case=timeline.case_end(case)
+        self.assertEqual(case['overlap_seconds'],2)
+        self.assertEqual(case['begin']['worker_state'],'pending')
+        self.assertEqual(case['end']['worker_state'],'failed')
+        encoded=json.dumps(timeline.receipt())
+        self.assertNotIn('private',encoded);self.assertNotIn('fixed-input',encoded)
+
+    def test_load_timeline_bounds_threaded_phases_cases_and_rejects_unfixed_labels(self):
+        from concurrent.futures import ThreadPoolExecutor
+        timeline=diagnostic.LoadTimeline();timeline.worker_start()
+        with ThreadPoolExecutor(max_workers=2) as workers:
+            list(workers.map(timeline.phase,['help','credentials']*40))
+        for index in range(240):timeline.case_end(timeline.case_begin(index))
+        with self.assertRaises(ValueError):timeline.case_begin(240)
+        with self.assertRaises(ValueError):timeline.phase('private arbitrary argv')
+        timeline.worker_end(True)
+        receipt=timeline.receipt()
+        self.assertEqual(len(receipt['phase_events']),16)
+        self.assertEqual(receipt['dropped_phase_events'],64)
+        self.assertEqual(len(receipt['cases']),240)
+        self.assertNotIn('private',json.dumps(receipt))
+        self.assertTrue(all(case['overlap_seconds']>=0 for case in receipt['cases']))
+
+    def test_native_failure_still_exports_actual_load_timeline_before_owned_idle(self):
+        timeline=diagnostic.LoadTimeline()
+        with self.assertRaisesRegex(RuntimeError,'CLI failure'):
+            diagnostic.run_load(timeline,MagicMock(side_effect=RuntimeError('CLI failure')))
+        future=MagicMock();future.result.side_effect=RuntimeError('CLI failure')
+        with tempfile.TemporaryDirectory() as temporary:
+            evidence=Path(temporary)
+            def idle():
+                receipt=json.loads((evidence/'concurrent-load-timeline.json').read_text())
+                self.assertEqual(receipt['worker']['state'],'failed')
+            with self.assertRaisesRegex(RuntimeError,'native failure'):
+                diagnostic.observe_with_load(MagicMock(side_effect=RuntimeError('native failure')),future,idle,evidence,timeline=timeline)
+
+    def test_cold_case_retains_begin_end_phases_and_original_launch_contract(self):
+        now=[0.0];timeline=diagnostic.LoadTimeline(clock=lambda:now[0]);timeline.worker_start();timeline.phase('help')
+        def child(args,cwd,env,timeout,**options):
+            self.assertEqual(timeout,18);self.assertEqual(options,{'require_release':True,'startup_hide':True})
+            now[0]=3;timeline.phase('credentials');now[0]=4
+            return {'exit_code':1,'timed_out':False,'truncated':False,'capture_incomplete':False,'owned_release':False,'stdout':'{}'}
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'capture',side_effect=child),patch('builtins.print'):
+            root=Path(temporary);summary={'observations':[]}
+            with self.assertRaisesRegex(RuntimeError,'cold startup'):
+                diagnostic.observe_cold_start(root/'gui.exe',root,root,{},root/'evidence',summary,startup_hide=True,timeline=timeline)
+            result=json.loads((root/'evidence/cold-000.json').read_text())
+        self.assertEqual(result['concurrent_load']['begin']['phase'],'help')
+        self.assertEqual(result['concurrent_load']['end']['phase'],'credentials')
+        self.assertEqual(result['concurrent_load']['overlap_seconds'],4)
 
 if __name__=='__main__':unittest.main()

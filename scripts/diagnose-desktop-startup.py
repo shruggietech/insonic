@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Incident-bound disposable Windows observations; never delivery qualification."""
 from concurrent.futures import ThreadPoolExecutor
-from threading import Thread
+from threading import Lock, Thread
 import ctypes
 import hashlib
 import json
@@ -228,6 +228,86 @@ def wait_owned_clis(package,images):
     for image in dict.fromkeys(images):package.wait_for_detached_idle(last_activity,image)
 
 
+class LoadTimeline:
+    """Bounded metadata from actual worker/capture entry and exit, with one clock."""
+    PHASES=frozenset({'help','operator-feedback','credentials','model-acquisition',
+                     'parallel-regressions','media-lifecycle','query-contracts',
+                     'documented-workflows','provider-contracts','join-regressions','complete'})
+
+    def __init__(self,*,clock=time.monotonic):
+        self._clock=clock;self._origin=clock();self._lock=Lock()
+        self._start=None;self._end=None;self._state='pending';self._phase='not-started'
+        self._events=[];self._dropped=0;self._cases=[]
+
+    def _elapsed(self):return round(self._clock()-self._origin,6)
+
+    def _snapshot(self):
+        return {'elapsed_seconds':self._elapsed(),'phase':self._phase,'worker_state':self._state}
+
+    def worker_start(self):
+        with self._lock:
+            if self._state!='pending':raise ValueError('load worker already started')
+            self._start=self._elapsed();self._state='running';self._phase='starting'
+
+    def worker_end(self,passed):
+        with self._lock:
+            if self._state!='running':raise ValueError('load worker is not running')
+            self._end=self._elapsed();self._state='passed' if passed else 'failed'
+
+    def phase(self,label):
+        if label not in self.PHASES:raise ValueError('unknown load phase label')
+        with self._lock:
+            if self._state!='running':raise ValueError('load phase outside running worker')
+            self._phase=label
+            if len(self._events)<16:self._events.append({'phase':label,'elapsed_seconds':self._elapsed()})
+            else:self._dropped+=1
+
+    def case_begin(self,index):
+        with self._lock:
+            if index!=len(self._cases) or not 0<=index<240:raise ValueError('load timeline case bound/order differs')
+            self._cases.append({'index':index,'begin':self._snapshot(),'end':None})
+            return index
+
+    def _case_record(self,case):
+        value={'index':case['index'],'begin':dict(case['begin']),
+               'end':dict(case['end']) if case['end'] is not None else None}
+        overlap=0
+        if self._start is not None and case['end'] is not None:
+            end=case['end']['elapsed_seconds']
+            overlap=max(0,min(end,self._end if self._end is not None else end)
+                        -max(case['begin']['elapsed_seconds'],self._start))
+        value['overlap_seconds']=round(overlap,6)
+        return value
+
+    def case_end(self,index):
+        with self._lock:
+            case=self._cases[index]
+            if case['end'] is not None:raise ValueError('load timeline case already ended')
+            case['end']=self._snapshot()
+            return self._case_record(case)
+
+    def receipt(self):
+        with self._lock:
+            return {'kind':'desktop-startup-load-timeline','feature_qualification':False,
+                    'clock':'monotonic-seconds-since-observer-origin',
+                    'phase_scope':'contract-main-thread-with-joined-parallel-regressions',
+                    'worker':{'start_elapsed_seconds':self._start,'end_elapsed_seconds':self._end,'state':self._state},
+                    'phase_events':[dict(event) for event in self._events],'dropped_phase_events':self._dropped,
+                    'cases':[self._case_record(case) for case in self._cases]}
+
+
+def run_load(timeline,qualify,*args,**kwargs):
+    # Record real thread entry, rather than assuming submit means active overlap.
+    timeline.worker_start()
+    try:
+        result=qualify(*args,**kwargs,progress=timeline.phase)
+    except BaseException:
+        timeline.worker_end(False)
+        raise
+    timeline.worker_end(True)
+    return result
+
+
 def run():
     pipeline.m.disposable_runner()
     if os.name!='nt':raise RuntimeError('native startup diagnosis requires disposable Windows')
@@ -236,6 +316,9 @@ def run():
     cold=os.environ.get('INSONIC_STARTUP_COLD')=='true'
     startup_hide=os.environ.get('INSONIC_STARTUP_HIDE')=='true'
     abi_control=os.environ.get('INSONIC_STARTUP_ABI_CONTROL')=='true'
+    browser_observer=os.environ.get('INSONIC_STARTUP_BROWSER')=='true'
+    if browser_observer and (not cold or os.environ.get('INSONIC_STARTUP_SOURCE')!='true' or abi_control):
+        raise ValueError('browser observation requires current cold source without historical ABI control')
     if startup_hide and not cold:raise ValueError('startup hide comparison requires cold startup observation')
     if cold and os.environ.get('INSONIC_STARTUP_SOURCE')!='true':raise ValueError('cold startup observation requires current source')
     if abi_control and (not cold or not startup_hide or os.environ.get('INSONIC_STARTUP_LOAD')=='true'):
@@ -258,6 +341,7 @@ def run():
         env=dict(os.environ,**package.package_environment())
         env['INSONIC_DESKTOP_FIXTURE_DIRECTORY']=str(ROOT/'tests/fixtures/media')
         env['INSONIC_PROCESS_STARTUP_DIAGNOSTICS']='1'
+        env['INSONIC_STARTUP_BROWSER']='true' if browser_observer else 'false'
         archive_root=root
         incident=None
         rebuilt=os.environ.get('INSONIC_STARTUP_SOURCE')=='true'
@@ -269,7 +353,8 @@ def run():
             summary['boundary']='source-built-gui-with-verified-incident-companions-not-a-qualified-package'
             save(evidence,'diagnostic.json',summary)
         idle=lambda:wait_owned_clis(package,[binaries/'insonic.exe',gui.with_name('insonic.exe')])
-        observe=lambda:observe_cold_start(gui,root,location,env,evidence,summary,startup_hide=startup_hide) if cold else observe_native(gui,root,location,env,evidence,summary,rebuilt,incident)
+        timeline=None
+        observe=lambda:observe_cold_start(gui,root,location,env,evidence,summary,startup_hide=startup_hide,timeline=timeline) if cold else observe_native(gui,root,location,env,evidence,summary,rebuilt,incident)
         if abi_control:
             observe=lambda:observe_abi_comparison(package,gui,root,location,env,evidence,summary,startup_hide=startup_hide)
         if os.environ.get('INSONIC_STARTUP_LOAD')=='true':
@@ -286,16 +371,16 @@ def run():
                     save(evidence,'cli-initialization.json',initial)
                     raise RuntimeError('concurrent CLI workspace preparation failed')
             summary['concurrent_cli_contract']=True
+            timeline=LoadTimeline()
             with ThreadPoolExecutor(max_workers=1) as workers:
-                future=workers.submit(qualify_contract,cli,workspace,env=env,cwd=root,documentation=True)
-                observe_with_load(observe,future,
-                                  idle,evidence)
+                future=workers.submit(run_load,timeline,qualify_contract,cli,workspace,env=env,cwd=root,documentation=True)
+                observe_with_load(observe,future,idle,evidence,timeline=timeline)
         else:
             observe_with_load(observe,None,idle,evidence)
     return summary
 
 
-def observe_with_load(observe,future,idle,evidence):
+def observe_with_load(observe,future,idle,evidence,*,timeline=None):
     failure=None
     try:
         observe()
@@ -309,6 +394,10 @@ def observe_with_load(observe,future,idle,evidence):
         save(evidence,'concurrent-cli.json',{'feature_qualification':False,'error':str(error)[:LIMIT]})
         if failure is None:failure=error
     finally:
+        if timeline is not None:
+            try:save(evidence,'concurrent-load-timeline.json',timeline.receipt())
+            except BaseException as error:
+                if failure is None:failure=error
         try:idle()
         except BaseException as error:
             if failure is None:failure=error
@@ -333,7 +422,7 @@ def observe_predecessors(gui,root,env,evidence,label):
         name=label+'-'+flag[2:]+'.json';save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
 
 
-def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=False,sample_seconds=300,sample_limit=240):
+def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=False,sample_seconds=300,sample_limit=240,timeline=None):
     # Diagnostic sampling only. Each real close child owns a fresh profile and
     # must naturally release its job before another launch. Stop on first failure.
     summary.update(boundary='source-cold-close-startup-not-package-qualification',sample_limit=sample_limit,sampling_seconds=sample_seconds,startup_hide=startup_hide)
@@ -346,7 +435,12 @@ def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=Fal
         directory=location/f'cold-{index:03d}';directory.mkdir()
         fixture=directory/'native-exit.json'
         fixture.write_text(json.dumps({'action':'close'})+'\n',encoding='utf-8',newline='\n')
-        observation=capture([gui,'--exit-qualification-child',fixture],root,env,18,require_release=True,**({'startup_hide':True} if startup_hide else {}))
+        case=timeline.case_begin(index) if timeline is not None else None
+        try:
+            observation=capture([gui,'--exit-qualification-child',fixture],root,env,18,require_release=True,**({'startup_hide':True} if startup_hide else {}))
+        finally:
+            if timeline is not None:load_case=timeline.case_end(case)
+        if timeline is not None:observation['concurrent_load']=load_case
         observation.update(boundary=summary['boundary'],action='close',profile='cold',index=index,startup_hide=startup_hide,arm=summary.get('arm','selected-source'))
         try:
             result=json.loads(observation['stdout'])

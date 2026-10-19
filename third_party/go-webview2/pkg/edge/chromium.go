@@ -47,8 +47,9 @@ func globalErrorHandler(err error) {
 }
 
 type Chromium struct {
-	hwnd    uintptr
-	padding struct {
+	browserDiagnostics *windowBrowserDiagnostics
+	hwnd               uintptr
+	padding            struct {
 		Left   int32
 		Top    int32
 		Right  int32
@@ -110,6 +111,7 @@ func NewChromium() *Chromium {
 
 func (e *Chromium) ShuttingDown() {
 	e.shuttingDown = true
+	e.closeBrowserDiagnostics()
 }
 
 func (e *Chromium) errorCallback(err error) {
@@ -224,6 +226,13 @@ func (e *Chromium) Resize() {
 
 func (e *Chromium) Navigate(url string) {
 	recordWindowBootstrap(e, bootstrapNavigateRequested)
+	if e.deferBrowserDiagnosticNavigation(url) {
+		return
+	}
+	e.navigateWithoutBrowserDiagnostics(url)
+}
+
+func (e *Chromium) navigateWithoutBrowserDiagnostics(url string) {
 	err := e.webview.Navigate(url)
 	if err == nil {
 		recordWindowBootstrap(e, bootstrapNavigateAccepted)
@@ -295,6 +304,7 @@ func (e *Chromium) EnvironmentCompleted(res uintptr, env *ICoreWebView2Environme
 
 	env.vtbl.AddRef.Call(uintptr(unsafe.Pointer(env)))
 	e.environment = env
+	e.observeBrowserEnvironment(res, env)
 
 	err := env.CreateCoreWebView2Controller(e.hwnd, e.controllerCompleted)
 	if err != nil {

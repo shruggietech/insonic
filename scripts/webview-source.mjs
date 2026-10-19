@@ -6,7 +6,7 @@ import { join } from 'node:path';
 export const webviewModule = 'github.com/wailsapp/go-webview2';
 export const webviewVersion = 'v1.0.23';
 const directory = 'third_party/go-webview2';
-const addedFiles = ['LICENSE.insonic', 'NOTICE.insonic', 'pkg/edge/callback_bridge_windows.go', 'pkg/edge/callback_bridge_windows_test.go', 'pkg/edge/callback_loader_go_windows_test.go', 'pkg/edge/window_lifetime_windows.go', 'pkg/edge/window_lifetime_windows_test.go'];
+const addedFiles = ['LICENSE.insonic', 'NOTICE.insonic', 'pkg/edge/browser_bootstrap_windows.go', 'pkg/edge/browser_bootstrap_windows_test.go', 'pkg/edge/callback_bridge_windows.go', 'pkg/edge/callback_bridge_windows_test.go', 'pkg/edge/callback_loader_go_windows_test.go', 'pkg/edge/window_lifetime_windows.go', 'pkg/edge/window_lifetime_windows_test.go'];
 
 function names(files) {
   if (!files || typeof files !== 'object' || Array.isArray(files)) throw new Error('WebView source file authority is invalid');

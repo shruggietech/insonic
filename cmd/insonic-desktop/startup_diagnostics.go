@@ -58,11 +58,20 @@ func logNativeStartupProgress() {
 }
 
 func writeNativeStartupProgress(out io.Writer, observeWaits func() any) {
-	snapshot := map[string]any{"kind": "native-startup-progress", "unix_millis": time.Now().UnixMilli(), "assets": startupAssetSnapshot(), "windows": nativeWebviewBootstrapSnapshot()}
+	snapshot := map[string]any{"kind": "native-startup-progress", "unix_millis": time.Now().UnixMilli(), "assets": startupAssetSnapshot(), "windows": nativeWebviewBootstrapSnapshot(), "browser": nativeWebviewBrowserSnapshot()}
 	raw, _ := json.Marshal(snapshot)
 	fmt.Fprintln(out, string(raw))
 	// Optional native diagnostics cannot delay or erase the primary counters.
 	waits := observeWaits()
 	raw, _ = json.Marshal(map[string]any{"kind": "native-startup-waits", "unix_millis": time.Now().UnixMilli(), "waits": waits})
 	fmt.Fprintln(out, string(raw))
+}
+
+// Elected browser diagnosis retains a passing reference without native queries.
+func logNativeBrowserReadyProgress() {
+	if os.Getenv("INSONIC_STARTUP_BROWSER") != "true" {
+		return
+	}
+	raw, _ := json.Marshal(map[string]any{"kind": "native-browser-ready-progress", "unix_millis": time.Now().UnixMilli(), "browser": nativeWebviewBrowserSnapshot()})
+	fmt.Fprintln(os.Stderr, string(raw))
 }

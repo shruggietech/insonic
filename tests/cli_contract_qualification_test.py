@@ -7,6 +7,7 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parents[1] / 'scripts'
 sys.path.insert(0, str(SCRIPTS))
@@ -113,6 +114,25 @@ class CliReadOnlyQualificationTests(unittest.TestCase):
                 qualification.qualify_read_only(invoke, self.paths, workspace, workspace / 'absent')
             self.assertEqual(model.active, 0)
 
+
+
+    def test_optional_phase_observer_runs_before_launch_and_receives_no_command_data(self):
+        class StopLaunch(RuntimeError):pass
+        phases=[]
+        def launch(*args,**kwargs):
+            self.assertEqual(phases,['help'])
+            self.assertIn('--help',args[0])
+            raise StopLaunch('bounded fixture stop')
+        with tempfile.TemporaryDirectory() as temporary,patch.object(qualification,'ProcessTree',side_effect=launch):
+            with self.assertRaises(StopLaunch):
+                qualification.qualify('fixed-cli.exe',Path(temporary),progress=phases.append)
+        self.assertEqual(phases,['help'])
+
+    def test_phase_observation_is_optional_and_preserves_launch_failure(self):
+        with tempfile.TemporaryDirectory() as temporary,patch.object(qualification,'ProcessTree',side_effect=RuntimeError('original launch failure')) as launch:
+            with self.assertRaisesRegex(RuntimeError,'original launch failure'):
+                qualification.qualify('fixed-cli.exe',Path(temporary))
+            launch.assert_called_once()
 
 if __name__ == '__main__':
     unittest.main()
