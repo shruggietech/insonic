@@ -31,8 +31,9 @@ request URLs, script contents or application data, or add browser calls.
 The resource deferral Release method dispatches to IUnknown.Release, balancing
 the acquired reference after completion instead of increasing its count.
 
-Disposable qualification also observes first-request native response assignment,
-headers, status/reason, content publication and deferral completion. Fixed
+Disposable qualification also observes native response assignment, header-interface
+acquisition, status/reason, content publication and deferral completion. Individual
+AppendHeader calls and browser consumption are not observed. Fixed
 entered/returned/HRESULT/thread counters contain no request content or native
 addresses. Internal borrowed identities are retired with their corresponding
 acquisition/Release and window owner. No WebView2 COM call is added or reordered; observation reads native thread identity.
@@ -45,3 +46,11 @@ references. Creator leases are allocated only for an attached owned window and
 closed after controller/interface cleanup. Late events are ignored; a late
 controller is closed rather than installed into a destroyed owner. The default
 Go loader captures its completion target before asynchronous scheduling.
+
+Accelerator registration passes the caller-owned EventRegistrationToken output
+pointer at its native ABI level, preserving registration and HRESULT behavior.
+
+Eight fixed active-request slots retain unique publication/completion and sticky
+failed-call totals across initial responses. Slot overflow and retirement remain
+explicit. Only the exact runtime-ready message receives a fixed counter, with
+existing message forwarding unchanged and no message content retained.

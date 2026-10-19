@@ -381,12 +381,20 @@ type firstResponseFixture struct {
 }
 
 func newFirstResponseFixture(t *testing.T, enabled bool, fail string) *firstResponseFixture {
+	return newSharedResponseFixture(t, enabled, fail, nil)
+}
+
+func newSharedResponseFixture(t *testing.T, enabled bool, fail string, owner *firstResponseFixture) *firstResponseFixture {
 	t.Helper()
 	previous := bootstrapDiagnosticsEnabled.Load()
 	EnableWindowBootstrapDiagnostics(enabled)
 	f := &firstResponseFixture{t: t, fail: fail}
 	f.view = &Chromium{hwnd: 0x534040}
 	f.entry = &windowLifetime{chromium: f.view, thread: windows.GetCurrentThreadId()}
+	if owner != nil {
+		f.view = owner.view
+		f.entry = owner.entry
+	}
 	ownedWindows.Lock()
 	prior := ownedWindows.values[f.view.hwnd]
 	ownedWindows.values[f.view.hwnd] = f.entry
@@ -453,8 +461,8 @@ func newFirstResponseFixture(t *testing.T, enabled bool, fail string) *firstResp
 		Complete: NewComProc(func(uintptr) uintptr {
 			// Snapshotting inside a native callback also proves observation does not
 			// hold the owner mutex across a reentrant COM boundary.
-			snapshot := f.snapshot()
-			if enabled && (snapshot.Completion.Entered != 1 || snapshot.Completion.Returned != 0) {
+			snapshot := f.responses()
+			if enabled && owner == nil && (snapshot.Completion.Entered != snapshot.Completion.Returned+1) {
 				t.Error("native completion entry was not distinguished from return")
 			}
 			return record("complete")
@@ -493,6 +501,7 @@ func (f *firstResponseFixture) assign() {
 	if got, err := f.args.GetDeferral(); err != nil || got != f.deferral {
 		f.t.Fatal("native deferral changed", err)
 	}
+	recordWindowBootstrapRequestReturned(f.view, f.args)
 }
 
 func TestFirstNativeResponseObservationPreservesPublicationContract(t *testing.T) {
@@ -553,7 +562,7 @@ func TestFirstNativeResponseObservationPreservesPublicationContract(t *testing.T
 			}
 			snapshot := f.snapshot()
 			if !enabled {
-				if snapshot != (WindowBootstrapResponseSnapshot{}) || f.entry.firstRequest != (windowBootstrapResponse{}) {
+				if snapshot != (WindowBootstrapResponseSnapshot{}) || f.entry.requests != ([bootstrapResponseCapacity]windowBootstrapResponse{}) || f.responses() != (WindowBootstrapResponsesSnapshot{}) {
 					t.Fatal("disabled observation retained response state")
 				}
 				return
@@ -567,7 +576,7 @@ func TestFirstNativeResponseObservationPreservesPublicationContract(t *testing.T
 			if snapshot.StatusCode != 200 || snapshot.ContentAttempts != 1 || snapshot.ContentBytes != uint64(len(want)) || snapshot.StreamsCreated != 1 || snapshot.StreamFailures != 0 {
 				t.Fatal("content preparation was not distinguished", snapshot)
 			}
-			if f.entry.firstRequest.args != 0 || f.entry.firstRequest.response != 0 || f.entry.firstRequest.deferral != 0 || !f.entry.firstRequest.seen {
+			if f.entry.requests != ([bootstrapResponseCapacity]windowBootstrapResponse{}) {
 				t.Fatal("retired native identities survived")
 			}
 			// A later request and recycled native identity cannot overwrite the first response.
@@ -620,13 +629,13 @@ func TestFirstNativeResponseObservationPreservesFailedHRESULTs(t *testing.T) {
 			}
 			snapshot := f.snapshot()
 			calls := map[string]WindowBootstrapCallSnapshot{"assign": snapshot.Assignment, "deferral": snapshot.Deferral, "headers": snapshot.Headers, "status": snapshot.Status, "reason": snapshot.Reason, "content": snapshot.Content, "complete": snapshot.Completion}
-			if got := calls[point]; got.Entered != 1 || got.Returned != 1 || got.LastHRESULT != 0x80004005 || got.OffThreadCalls != 0 {
+			if got := calls[point]; got.Entered != 1 || got.Returned != 1 || got.Failed != 1 || got.LastHRESULT != 0x80004005 || got.OffThreadCalls != 0 {
 				t.Fatal("failed native boundary was not retained", got)
 			}
 			if point == "status" && snapshot.Reason.Entered != 0 {
 				t.Fatal("a failed status setter gained a reason call")
 			}
-			if (point == "assign" || point == "deferral") && f.entry.firstRequest.args != 0 {
+			if (point == "assign" || point == "deferral") && f.entry.requests[0].args != 0 {
 				t.Fatal("failed preparation retained its borrowed event identity")
 			}
 			if point == "content" && f.stream != nil {
@@ -670,4 +679,289 @@ func TestFirstNativeResponseObservationFlagsThreadWithoutRerouting(t *testing.T)
 		}
 	}
 	runtime.KeepAlive(f)
+}
+
+func (f *firstResponseFixture) responses() WindowBootstrapResponsesSnapshot {
+	ownedWindows.Lock()
+	defer ownedWindows.Unlock()
+	return f.entry.bootstrap.Responses
+}
+
+func (f *firstResponseFixture) publish() error {
+	headers, err := f.response.GetHeaders()
+	if err != nil {
+		return err
+	}
+	headers.Release()
+	if err := f.response.PutStatusCode(200); err != nil {
+		return err
+	}
+	return f.response.PutByteContent([]byte("private native resource fixture"))
+}
+
+func (f *firstResponseFixture) release() {
+	f.t.Helper()
+	if err := f.response.Release(); err != nil {
+		f.t.Fatal(err)
+	}
+	if err := f.deferral.Release(); err != nil {
+		f.t.Fatal(err)
+	}
+}
+
+func TestNativeResponseAggregateDistinguishesSixInterleavedRequests(t *testing.T) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	requests := []*firstResponseFixture{newFirstResponseFixture(t, true, "")}
+	for i := 1; i < 6; i++ {
+		requests = append(requests, newSharedResponseFixture(t, true, "", requests[0]))
+	}
+	for _, request := range requests {
+		request.assign()
+	}
+	for _, index := range []int{5, 1, 4, 0, 3, 2} {
+		if err := requests[index].publish(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, index := range []int{2, 4, 0, 1, 5} {
+		if err := requests[index].deferral.Complete(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Completing one request twice must not conceal the still-incomplete fourth.
+	if err := requests[0].deferral.Complete(); err != nil {
+		t.Fatal(err)
+	}
+	before := requests[0].responses()
+	if before.Tracked != 6 || before.Published != 6 || before.Completed != 5 || before.Completion.Returned != 6 || before.Active != 6 || before.Overflow != 0 {
+		t.Fatal("aggregate hid an unfinished interleaved request", before)
+	}
+	for _, index := range []int{2, 4, 0, 1, 5} {
+		requests[index].release()
+	}
+	pending := requests[0].responses()
+	if pending.Active != 1 || pending.Retired != 5 || pending.RetiredIncomplete != 0 {
+		t.Fatal("active request ownership changed", pending)
+	}
+	if err := requests[3].deferral.Complete(); err != nil {
+		t.Fatal(err)
+	}
+	requests[3].release()
+	after := requests[0].responses()
+	if after.Completed != 6 || after.Published != 6 || after.Active != 0 || after.Retired != 6 || after.Completion.Entered != 7 || after.Completion.Returned != 7 || after.Completion.Failed != 0 || after.WithoutDeferral != 0 {
+		t.Fatal("unique request completion or retirement changed", after)
+	}
+	first := requests[0].snapshot()
+	if first.ContentAttempts != 1 || first.Completion.Returned != 2 || first.Status.Returned != 1 {
+		t.Fatal("later requests overwrote first-response detail", first)
+	}
+	if requests[0].entry.requests != ([bootstrapResponseCapacity]windowBootstrapResponse{}) {
+		t.Fatal("retired aggregate retained native identities")
+	}
+	raw, err := json.Marshal(requests[0].entry.bootstrap)
+	if err != nil || strings.Contains(string(raw), "private") || strings.Contains(string(raw), "fixture") || strings.Contains(string(raw), "callback") || strings.Contains(string(raw), "ordinal") {
+		t.Fatal("aggregate retained content or internal identities")
+	}
+}
+
+func TestNativeResponseAggregateRetainsLaterFailures(t *testing.T) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	owner := newFirstResponseFixture(t, true, "")
+	requests := []*firstResponseFixture{owner}
+	for _, failure := range []string{"content", "complete", "", "", ""} {
+		requests = append(requests, newSharedResponseFixture(t, true, failure, owner))
+	}
+	for _, request := range requests {
+		request.assign()
+		err := request.publish()
+		if request.fail == "content" {
+			if !errors.Is(err, syscall.Errno(0x80004005)) {
+				t.Fatal("later content HRESULT changed", err)
+			}
+		} else if err != nil {
+			t.Fatal(err)
+		}
+		err = request.deferral.Complete()
+		if request.fail == "complete" {
+			if !errors.Is(err, syscall.Errno(0x80004005)) {
+				t.Fatal("later completion HRESULT changed", err)
+			}
+		} else if err != nil {
+			t.Fatal(err)
+		}
+		request.release()
+	}
+	snapshot := owner.responses()
+	if snapshot.Tracked != 6 || snapshot.Published != 5 || snapshot.Completed != 5 || snapshot.Content.Failed != 1 || snapshot.Completion.Failed != 1 || snapshot.Content.LastHRESULT != 0 || snapshot.Completion.LastHRESULT != 0 || snapshot.RetiredIncomplete != 1 || snapshot.Active != 0 {
+		t.Fatal("later success concealed an earlier native failure", snapshot)
+	}
+	if owner.snapshot().Completion.Failed != 0 || owner.snapshot().Content.Failed != 0 {
+		t.Fatal("later failure overwrote the first response")
+	}
+}
+
+func TestNativeResponseAggregateBoundsAndReusesActiveSlots(t *testing.T) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	owner := newFirstResponseFixture(t, true, "")
+	requests := []*firstResponseFixture{owner}
+	for i := 1; i < bootstrapResponseCapacity+1; i++ {
+		requests = append(requests, newSharedResponseFixture(t, true, "", owner))
+	}
+	for _, request := range requests {
+		request.assign()
+	}
+	full := owner.responses()
+	if full.Tracked != 8 || full.Active != 8 || full.Overflow != 1 || full.Assignment.Returned != 8 || full.Deferral.Returned != 8 {
+		t.Fatal("active capacity was exceeded or overflow was hidden", full)
+	}
+	for _, request := range requests {
+		if err := request.deferral.Complete(); err != nil {
+			t.Fatal(err)
+		}
+		request.release()
+	}
+	first := owner.snapshot()
+	// Recycle the exact same fake native pointers after Release, like a native
+	// allocator can. They must belong to a new ordinal, never the first receipt.
+	recordWindowBootstrapRequest(owner.view, owner.args)
+	owner.assign()
+	if err := owner.deferral.Complete(); err != nil {
+		t.Fatal(err)
+	}
+	owner.release()
+	reused := owner.responses()
+	if reused.Tracked != 9 || reused.Completed != 9 || reused.Active != 0 || reused.Overflow != 1 || owner.snapshot() != first {
+		t.Fatal("retired identity was not scoped to its new request", reused)
+	}
+	unhandled := newSharedResponseFixture(t, true, "", owner)
+	recordWindowBootstrapRequestReturned(unhandled.view, unhandled.args)
+	after := owner.responses()
+	if after.Active != 0 || after.WithoutDeferral != 1 || after.Retired != 10 || after.RetiredIncomplete != 0 {
+		t.Fatal("request without a deferral retained an active slot", after)
+	}
+	if owner.entry.requests != ([bootstrapResponseCapacity]windowBootstrapResponse{}) {
+		t.Fatal("fixed slots retained retired native identities")
+	}
+	for _, request := range requests {
+		if len(request.calls) < 5 || request.calls[0] != "assign" || request.calls[1] != "deferral" {
+			t.Fatal("overflow or recycling suppressed native calls", request.calls)
+		}
+	}
+}
+
+func TestNativeRuntimeReadyObservationPreservesMessageFlow(t *testing.T) {
+	for _, enabled := range []bool{false, true} {
+		name := "disabled"
+		if enabled {
+			name = "enabled"
+		}
+		t.Run(name, func(t *testing.T) {
+			runtime.LockOSThread()
+			defer runtime.UnlockOSThread()
+			f := newFirstResponseFixture(t, enabled, "")
+			f.view.webview2RuntimeVersion = "131.0.2903.86"
+			f.view.globalErrorCallback = func(err error) { t.Error(err) }
+			var calls []string
+			input := ""
+			alloc := windows.NewLazySystemDLL("ole32.dll").NewProc("CoTaskMemAlloc")
+			args := &ICoreWebView2WebMessageReceivedEventArgs{vtbl: &iCoreWebView2WebMessageReceivedEventArgsVtbl{
+				TryGetWebMessageAsString: NewComProc(func(this uintptr, output **uint16) uintptr {
+					calls = append(calls, "extract")
+					data, err := windows.UTF16FromString(input)
+					if err != nil {
+						t.Fatal(err)
+					}
+					memory, _, _ := alloc.Call(uintptr(len(data) * 2))
+					if memory == 0 {
+						t.Fatal("native message allocation failed")
+					}
+					copy(unsafe.Slice((*uint16)(unsafe.Pointer(memory)), len(data)), data)
+					*output = (*uint16)(unsafe.Pointer(memory))
+					return 0
+				}),
+				GetAdditionalObjects: NewComProc(func(this uintptr, output **ICoreWebView2ObjectCollectionView) uintptr {
+					calls = append(calls, "additional")
+					*output = nil
+					return 0
+				}),
+			}}
+			sender := &ICoreWebView2{vtbl: &iCoreWebView2Vtbl{PostWebMessageAsString: NewComProc(func(this uintptr, message *uint16) uintptr {
+				calls = append(calls, "echo")
+				if windows.UTF16PtrToString(message) != input {
+					t.Error("native message echo changed")
+				}
+				return 0
+			})}}
+			f.view.MessageCallback = func(message string, _ *ICoreWebView2, _ *ICoreWebView2WebMessageReceivedEventArgs) {
+				calls = append(calls, "forward")
+				if message != input {
+					t.Error("native message forwarding changed")
+				}
+			}
+			for _, message := range []string{"private message with credential-value", "runtime:ready-private", "runtime:ready"} {
+				input = message
+				if hr := f.view.MessageReceived(sender, args); hr != 0 {
+					t.Fatal("native message return changed", hr)
+				}
+			}
+			want := []string{"extract", "additional", "forward", "echo", "extract", "additional", "forward", "echo", "extract", "additional", "forward", "echo"}
+			if !reflect.DeepEqual(calls, want) {
+				t.Fatal("readiness observation changed native message calls", calls)
+			}
+			count := uint64(0)
+			if enabled {
+				count = 1
+			}
+			if f.entry.bootstrap.RuntimeReadyReceived != count {
+				t.Fatal("readiness message was not matched exactly", f.entry.bootstrap.RuntimeReadyReceived)
+			}
+			if enabled {
+				completed := make(chan struct{})
+				go func() {
+					runtime.LockOSThread()
+					defer runtime.UnlockOSThread()
+					f.view.MessageReceived(sender, args)
+					close(completed)
+				}()
+				<-completed
+				if f.entry.bootstrap.RuntimeReadyReceived != 1 || f.entry.bootstrap.OffThreadEvents != 1 {
+					t.Fatal("foreign-thread readiness was counted as an owned receipt")
+				}
+			}
+			raw, err := json.Marshal(f.entry.bootstrap)
+			if err != nil || strings.Contains(string(raw), "private") || strings.Contains(string(raw), "credential") || strings.Contains(string(raw), "runtime:ready") {
+				t.Fatal("readiness observation retained message text")
+			}
+			runtime.KeepAlive(args)
+			runtime.KeepAlive(sender)
+		})
+	}
+}
+
+func TestNativeResponseAggregateAllowsSynchronousResponseWithoutDeferral(t *testing.T) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	f := newFirstResponseFixture(t, true, "")
+	if err := f.args.PutResponse(f.response); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.publish(); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.response.Release(); err != nil {
+		t.Fatal(err)
+	}
+	recordWindowBootstrapRequestReturned(f.view, f.args)
+	snapshot := f.responses()
+	if snapshot.Tracked != 1 || snapshot.Published != 1 || snapshot.Completed != 0 || snapshot.WithoutDeferral != 1 || snapshot.Retired != 1 || snapshot.RetiredIncomplete != 0 || snapshot.Active != 0 {
+		t.Fatal("valid synchronous response was classified as failed", snapshot)
+	}
+	for _, call := range f.calls {
+		if call == "deferral" || call == "complete" {
+			t.Fatal("observation added an asynchronous native call")
+		}
+	}
 }

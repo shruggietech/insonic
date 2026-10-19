@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -53,8 +54,15 @@ func startupAssetSnapshot() map[string]uint64 {
 	return result
 }
 func logNativeStartupProgress() {
+	writeNativeStartupProgress(os.Stderr, nativeStartupWaitSnapshot)
+}
+
+func writeNativeStartupProgress(out io.Writer, observeWaits func() any) {
 	snapshot := map[string]any{"kind": "native-startup-progress", "unix_millis": time.Now().UnixMilli(), "assets": startupAssetSnapshot(), "windows": nativeWebviewBootstrapSnapshot()}
-	snapshot["waits"] = nativeStartupWaitSnapshot()
 	raw, _ := json.Marshal(snapshot)
-	fmt.Fprintln(os.Stderr, string(raw))
+	fmt.Fprintln(out, string(raw))
+	// Optional native diagnostics cannot delay or erase the primary counters.
+	waits := observeWaits()
+	raw, _ = json.Marshal(map[string]any{"kind": "native-startup-waits", "unix_millis": time.Now().UnixMilli(), "waits": waits})
+	fmt.Fprintln(out, string(raw))
 }

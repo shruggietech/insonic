@@ -12,3 +12,5 @@ func nativeWebviewBootstrapSnapshot() any { return nil }
 func logNativeBrowserRuntimeVersion() {}
 
 func nativeStartupWaitSnapshot() any { return nil }
+
+func qualifyNativeWait() int { return 1 }

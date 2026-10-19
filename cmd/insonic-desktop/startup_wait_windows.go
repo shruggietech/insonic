@@ -4,11 +4,18 @@
 package main
 
 import (
-	"golang.org/x/sys/windows"
+	"bytes"
+	"context"
+	"encoding/json"
+	"io"
+	"os"
 	"runtime"
 	"syscall"
 	"time"
 	"unsafe"
+
+	"github.com/shruggietech/insonic/internal/process"
+	"golang.org/x/sys/windows"
 )
 
 // Windows amd64 WAITCHAIN_NODE_INFO: two DWORD enums and a 272-byte union.
@@ -24,13 +31,14 @@ type nativeWaitItem struct {
 	Thread uint32 `json:"thread,omitempty"`
 }
 type nativeWaitObservation struct {
-	Role     string           `json:"role"`
-	Thread   uint32           `json:"thread"`
-	Complete bool             `json:"complete"`
-	Cycle    bool             `json:"cycle"`
-	Error    uint32           `json:"error,omitempty"`
-	Reason   string           `json:"reason,omitempty"`
-	Nodes    []nativeWaitItem `json:"nodes,omitempty"`
+	Role             string           `json:"role"`
+	Thread           uint32           `json:"thread"`
+	Complete         bool             `json:"complete"`
+	Cycle            bool             `json:"cycle"`
+	Error            uint32           `json:"error,omitempty"`
+	Reason           string           `json:"reason,omitempty"`
+	Nodes            []nativeWaitItem `json:"nodes,omitempty"`
+	ObserverExitCode int              `json:"observer_exit_code,omitempty"`
 }
 
 func nativeWaitItems(nodes []nativeWaitNode) []nativeWaitItem {
@@ -90,47 +98,142 @@ func queryNativeWait(thread uint32) nativeWaitObservation {
 	}
 	return result
 }
-func collectNativeWaits(targets []nativeWaitObservation, query func(uint32) nativeWaitObservation, limit time.Duration) []nativeWaitObservation {
-	targets = targets[:min(len(targets), 2)]
-	results := append([]nativeWaitObservation(nil), targets...)
-	type item struct {
-		index int
-		value nativeWaitObservation
+
+const nativeWaitOutputLimit = 8 << 10
+
+type nativeWaitTarget struct {
+	Role   string `json:"role"`
+	Thread uint32 `json:"thread"`
+}
+
+type nativeWaitCapture func(context.Context, []byte) (process.CaptureResult, error)
+
+func validNativeWaitTargets(targets []nativeWaitTarget) bool {
+	if len(targets) < 1 || len(targets) > 2 || targets[0].Role != "host" || targets[0].Thread == 0 {
+		return false
 	}
-	done := make(chan item, len(targets))
-	for index, target := range targets {
-		go func() { value := query(target.Thread); value.Role = target.Role; done <- item{index, value} }()
+	return len(targets) == 1 || targets[1].Role == "browser" && targets[1].Thread != 0 && targets[1].Thread != targets[0].Thread
+}
+
+func decodeNativeWaitJSON(input io.Reader, limit int64, target any) bool {
+	raw, err := io.ReadAll(io.LimitReader(input, limit+1))
+	if err != nil || int64(len(raw)) > limit {
+		return false
 	}
-	timer := time.NewTimer(limit)
-	defer timer.Stop()
-	for received := 0; received < len(targets); received++ {
-		select {
-		case item := <-done:
-			results[item.index] = item.value
-		case <-timer.C:
-			for i := range results {
-				if results[i].Reason == "" && results[i].Nodes == nil && !results[i].Complete {
-					results[i].Reason = "observation-deadline"
-				}
-			}
-			return results
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if decoder.Decode(target) != nil {
+		return false
+	}
+	var extra any
+	return decoder.Decode(&extra) == io.EOF
+}
+
+func validNativeWaitResult(value nativeWaitObservation, target nativeWaitTarget) bool {
+	if value.Role != target.Role || value.Thread != target.Thread || value.ObserverExitCode != 0 || len(value.Nodes) > 16 {
+		return false
+	}
+	switch value.Reason {
+	case "", "api-unavailable", "session-unavailable", "query-unavailable":
+	default:
+		return false
+	}
+	if value.Complete && (value.Reason != "" || value.Error != 0 || len(value.Nodes) == 0) {
+		return false
+	}
+	if !value.Complete && value.Reason == "" && len(value.Nodes) == 0 {
+		return false
+	}
+	for _, node := range value.Nodes {
+		if node.Kind < 1 || node.Kind > 12 || node.Status < 1 || node.Status > 10 || node.Kind != 8 && (node.PID != 0 || node.Thread != 0) {
+			return false
 		}
 	}
-	return results
+	return true
 }
+
+// This mode never starts Wails or native input. Native WCT faults and stuck
+// synchronous queries remain inside the supervisor-owned hidden process.
+func writeNativeWaitQuery(input io.Reader, output io.Writer, query func(uint32) nativeWaitObservation) int {
+	var targets []nativeWaitTarget
+	if !decodeNativeWaitJSON(input, 1024, &targets) || !validNativeWaitTargets(targets) {
+		return 1
+	}
+	rows := make([]nativeWaitObservation, 0, len(targets))
+	for _, target := range targets {
+		value := query(target.Thread)
+		value.Role = target.Role
+		if !validNativeWaitResult(value, target) {
+			return 1
+		}
+		rows = append(rows, value)
+	}
+	if json.NewEncoder(output).Encode(rows) != nil {
+		return 1
+	}
+	return 0
+}
+
+func qualifyNativeWait() int { return writeNativeWaitQuery(os.Stdin, os.Stdout, queryNativeWait) }
+
+func captureNativeWait(ctx context.Context, input []byte) (process.CaptureResult, error) {
+	executable, err := os.Executable()
+	if err != nil {
+		return process.CaptureResult{ExitCode: -1}, err
+	}
+	return process.Capture(ctx, process.Spec{Executable: executable, Args: []string{"--native-wait-query"}, Input: bytes.NewReader(input), MaxOutput: nativeWaitOutputLimit})
+}
+
+func unavailableNativeWaits(targets []nativeWaitTarget, reason string, exitCode int) []nativeWaitObservation {
+	rows := make([]nativeWaitObservation, 0, len(targets))
+	for _, target := range targets {
+		rows = append(rows, nativeWaitObservation{Role: target.Role, Thread: target.Thread, Reason: reason, ObserverExitCode: exitCode})
+	}
+	return rows
+}
+
+func collectNativeWaits(targets []nativeWaitTarget, capture nativeWaitCapture, limit time.Duration) []nativeWaitObservation {
+	if !validNativeWaitTargets(targets) {
+		return nil
+	}
+	input, _ := json.Marshal(targets)
+	ctx, cancel := context.WithTimeout(context.Background(), limit)
+	defer cancel()
+	report, err := capture(ctx, input)
+	if report.Truncated {
+		return unavailableNativeWaits(targets, "observer-output-limit", report.ExitCode)
+	}
+	if ctx.Err() != nil {
+		return unavailableNativeWaits(targets, "observation-deadline", report.ExitCode)
+	}
+	if err != nil || report.ExitCode != 0 {
+		return unavailableNativeWaits(targets, "observer-failed", report.ExitCode)
+	}
+	var rows []nativeWaitObservation
+	if !decodeNativeWaitJSON(bytes.NewReader(report.Stdout), nativeWaitOutputLimit, &rows) || len(rows) != len(targets) {
+		return unavailableNativeWaits(targets, "observer-output-invalid", report.ExitCode)
+	}
+	for i, row := range rows {
+		if !validNativeWaitResult(row, targets[i]) {
+			return unavailableNativeWaits(targets, "observer-output-invalid", report.ExitCode)
+		}
+	}
+	return rows
+}
+
 func nativeStartupWaitSnapshot() any {
 	hwnd := exitWinCall("GetForegroundWindow")
 	if requireNativeInputTarget(hwnd) != nil {
 		return nil
 	}
 	thread := exitWinCall("GetWindowThreadProcessId", hwnd, 0)
-	targets := []nativeWaitObservation{{Role: "host", Thread: uint32(thread)}}
+	targets := []nativeWaitTarget{{Role: "host", Thread: uint32(thread)}}
 	info := exitGUIThreadInfo{Size: uint32(unsafe.Sizeof(exitGUIThreadInfo{}))}
 	if exitWinCall("GetGUIThreadInfo", thread, uintptr(unsafe.Pointer(&info))) != 0 && info.Focus != 0 && exitWinCall("IsChild", hwnd, info.Focus) != 0 {
 		browser := uint32(exitWinCall("GetWindowThreadProcessId", info.Focus, 0))
 		if browser != 0 && browser != uint32(thread) {
-			targets = append(targets, nativeWaitObservation{Role: "browser", Thread: browser})
+			targets = append(targets, nativeWaitTarget{Role: "browser", Thread: browser})
 		}
 	}
-	return collectNativeWaits(targets, queryNativeWait, 500*time.Millisecond)
+	return collectNativeWaits(targets, captureNativeWait, 500*time.Millisecond)
 }

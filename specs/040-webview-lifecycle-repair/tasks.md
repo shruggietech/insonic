@@ -67,3 +67,14 @@ The first increment proves and corrects the exact upstream native BOOL violation
 - [x] T024 Reproduce the actual9callback QueryInterface/native-reference violations without a browser and verify their IIDs against the official SDK; record the independent causality limit in research.md and verification.md. (FR-003, FR-005, SC-002)
 - [x] T025 Adopt existing combridge for the actual callbacks, lazy owned creation, exactly-once creator cleanup and late-completion/event rejection in third_party/go-webview2/pkg/edge/callback_bridge_windows.go, chromium.go, create_env_go.go and window_lifetime_windows.go; cover meaningful native identity/reference/GC/late-callback cases. (FR-005, FR-008, FR-010, SC-002)
 - [x] T026 Reconcile precise source/notice authority for callback changes and run selected unshown native normal/race/product checks before actual final qualification. (FR-007, FR-008, FR-013, FR-014)
+
+## Phase 8: Active registration output ABI
+
+- [x] T027 Reproduce the caller-output pointer violation in actual AddAcceleratorKeyPressed native-vtable calls without writing through the wrong pointer, preserving handler/HRESULT evidence in verification.md. (FR-003, FR-005, SC-002)
+- [x] T028 Correct only the active registration output argument in third_party/go-webview2/pkg/edge/ICoreWebView2Controller.go; verify native output/HRESULT regressions, exact authority/notices and affected source/product checks. Keep E004's immutable comparison separate. (FR-005, FR-008, FR-013, FR-014)
+
+## Phase 9: Failed-boundary observation and containment
+
+- [x] T029 Preserve primary progress before optional wait observation and isolate WCT in one hidden bounded query process in cmd/insonic-desktop/startup_diagnostics.go, startup_wait_windows.go and early helper routing; retain native ABI/redaction and prove native-fault/timeout/invalid-output containment without a GUI. (FR-005, FR-007, FR-008, FR-009)
+- [x] T030 Observe uniquely completed native responses with8fixed active slots and a fixed runtime-ready receipt through existing hooks in third_party/go-webview2/pkg/edge/window_lifetime_windows.go and chromium.go; verify interleaving/duplicates/overflow/failures/retirement/privacy/disabled behavior without extra native COM calls. (FR-006, FR-007, FR-008)
+- [x] T031 Reconcile exact source authority/notices and write the next discriminating experiment after T029/T030 verification, before any further hosted dispatch. (FR-003, FR-009, FR-013, FR-014)

@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -46,5 +47,30 @@ func TestStartupAssetProgressTracksPendingHandlerWithoutRetainingRequests(t *tes
 	<-done
 	if startupAssetSnapshot()["script_returned"] != 1 || writer.Code != http.StatusNoContent {
 		t.Fatal("handler return or status changed")
+	}
+}
+
+func TestStartupPrimaryProgressPrecedesOptionalNativeObservation(t *testing.T) {
+	var out bytes.Buffer
+	writeNativeStartupProgress(&out, func() any {
+		var primary map[string]any
+		if json.Unmarshal(bytes.TrimSpace(out.Bytes()), &primary) != nil || primary["kind"] != "native-startup-progress" {
+			t.Error("optional native work began before the primary counters were written")
+		}
+		return []any{map[string]any{"role": "host", "thread": 42, "complete": false, "reason": "observer-failed"}}
+	})
+	lines := bytes.Split(bytes.TrimSpace(out.Bytes()), []byte{'\n'})
+	if len(lines) != 2 {
+		t.Fatalf("primary and optional observation were not separate records: %s", out.Bytes())
+	}
+	var primary, optional map[string]any
+	if json.Unmarshal(lines[0], &primary) != nil || primary["kind"] != "native-startup-progress" {
+		t.Fatal("primary record lost", out.String())
+	}
+	if _, exists := primary["waits"]; exists {
+		t.Fatal("primary record depends on optional native work", out.String())
+	}
+	if json.Unmarshal(lines[1], &optional) != nil || optional["kind"] != "native-startup-waits" {
+		t.Fatal("optional record lost", out.String())
 	}
 }

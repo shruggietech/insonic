@@ -106,7 +106,7 @@ func (i *ICoreWebView2Controller) AddAcceleratorKeyPressed(eventHandler *ICoreWe
 	hr, _, _ := i.vtbl.AddAcceleratorKeyPressed.Call(
 		uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(eventHandler)),
-		uintptr(unsafe.Pointer(&token)),
+		uintptr(unsafe.Pointer(token)),
 	)
 	if windows.Handle(hr) != windows.S_OK {
 		return windows.Errno(hr)

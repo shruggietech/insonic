@@ -385,6 +385,9 @@ func (e *Chromium) ContainsFullScreenElementChanged(sender *ICoreWebView2, args 
 
 func (e *Chromium) MessageReceived(sender *ICoreWebView2, args *ICoreWebView2WebMessageReceivedEventArgs) uintptr {
 	message, err := args.TryGetWebMessageAsString()
+	if err == nil && message == "runtime:ready" {
+		recordWindowBootstrap(e, bootstrapRuntimeReadyReceived)
+	}
 	if err != nil {
 		e.errorCallback(err)
 	}
@@ -467,6 +470,7 @@ func (e *Chromium) PermissionRequested(_ *ICoreWebView2, args *iCoreWebView2Perm
 func (e *Chromium) WebResourceRequested(sender *ICoreWebView2, args *ICoreWebView2WebResourceRequestedEventArgs) uintptr {
 	recordWindowBootstrap(e, bootstrapResourceEntered)
 	recordWindowBootstrapRequest(e, args)
+	defer recordWindowBootstrapRequestReturned(e, args)
 	defer recordWindowBootstrap(e, bootstrapResourceReturned)
 	req, err := args.GetRequest()
 	if err != nil {

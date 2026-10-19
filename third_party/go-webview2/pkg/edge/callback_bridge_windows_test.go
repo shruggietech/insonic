@@ -4,6 +4,7 @@
 package edge
 
 import (
+	"errors"
 	"runtime"
 	"sync/atomic"
 	"testing"
@@ -361,4 +362,54 @@ func TestNativeCallbackBridgeDispatchesLiveCreation(t *testing.T) {
 		t.Fatal("native Close/interface/creator cleanup did not balance ownership", closes, envReferences, controllerReferences, webviewReferences)
 	}
 	runtime.KeepAlive([]any{environment, controller, view, e})
+}
+
+func TestNativeCallbackBridgeAcceleratorRegistrationOutput(t *testing.T) {
+	e := NewChromium()
+	e.prepareOwnedCallbacks()
+	defer e.releaseOwnedCallbacks()
+	token := &_EventRegistrationToken{value: 17}
+	handler := e.acceleratorKeyPressed
+	handlerIdentity := uintptr(unsafe.Pointer(handler))
+	const nativeToken int64 = 0x1234567890abcdef
+	calls, writes := 0, 0
+	wrongOutput, wrongHandler, wrongController, fail := false, false, false, false
+	var controller *ICoreWebView2Controller
+	controller = &ICoreWebView2Controller{vtbl: &_ICoreWebView2ControllerVtbl{
+		AddAcceleratorKeyPressed: NewComProc(func(receiver, receivedHandler uintptr, output *_EventRegistrationToken) uintptr {
+			calls++
+			wrongController = wrongController || receiver != uintptr(unsafe.Pointer(controller))
+			wrongHandler = wrongHandler || receivedHandler != handlerIdentity
+			if uintptr(unsafe.Pointer(output)) != uintptr(unsafe.Pointer(token)) {
+				// The old wrapper passes the address of its own pointer variable.
+				// Do not write through that incorrect address on the red run.
+				wrongOutput = true
+				return 0
+			}
+			if fail {
+				return uintptr(windows.E_FAIL)
+			}
+			*output = _EventRegistrationToken{value: nativeToken}
+			writes++
+			return 0
+		}),
+	}}
+	if err := controller.AddAcceleratorKeyPressed(handler, token); err != nil {
+		t.Fatal(err)
+	}
+	if wrongOutput {
+		t.Fatal("native token output address differs from the caller's token; no write attempted")
+	}
+	if wrongHandler || wrongController || calls != 1 || writes != 1 || token.value != nativeToken {
+		t.Fatal("native registration changed its receiver/handler or failed to return the token", wrongController, wrongHandler, calls, writes, token.value)
+	}
+	fail = true
+	token.value = 23
+	err := controller.AddAcceleratorKeyPressed(handler, token)
+	if !errors.Is(err, windows.Errno(windows.E_FAIL)) || calls != 2 || writes != 1 || token.value != 23 {
+		t.Fatal("native registration HRESULT or failed-call output was changed", err, calls, writes, token.value)
+	}
+	runtime.KeepAlive(controller)
+	runtime.KeepAlive(token)
+	runtime.KeepAlive(handler)
 }
