@@ -91,6 +91,9 @@ func canonical(root string) (string, error) {
 	}
 	resolved, err := filepath.EvalSymlinks(absolute)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return "", contracts.Condition("not_found", "workspace_missing")
+		}
 		return "", contracts.Fail("unavailable")
 	}
 	return resolved, nil

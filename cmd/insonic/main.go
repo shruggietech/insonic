@@ -92,7 +92,11 @@ func execute(args []string) int {
 		w, err = workspace.Discover(cwd)
 	}
 	if err != nil {
-		return output(nil, contracts.Condition("unavailable", "workspace_missing"), machine)
+		var typed *contracts.Error
+		if errors.As(err, &typed) && typed.Reason == "workspace_missing" {
+			err = contracts.Condition("unavailable", "workspace_missing")
+		}
+		return output(nil, err, machine)
 	}
 	operatorContext.Root = w.Root
 	responseContext.WorkspaceID = w.Config.WorkspaceID

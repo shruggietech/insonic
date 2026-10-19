@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/workspace"
 )
 
 func TestSettingsParserRetainsGeneratedInputCauses(t *testing.T) {
@@ -60,6 +61,84 @@ func TestSettingsParserRetainsGeneratedInputCauses(t *testing.T) {
 						t.Fatal("machine cause lost")
 					}
 				}
+			}
+		})
+	}
+}
+
+func TestWorkspaceOpenFailuresRetainTheirActualCause(t *testing.T) {
+	for _, mode := range []string{"absent-root", "absent-config", "malformed", "unsupported-version", "invalid-config"} {
+		t.Run(mode, func(t *testing.T) {
+			root := t.TempDir()
+			wantCode, wantReason := "invalid_request", ""
+			switch mode {
+			case "absent-root":
+				root = filepath.Join(root, "absent")
+				wantCode, wantReason = "unavailable", "workspace_missing"
+			case "absent-config":
+				wantCode, wantReason = "unavailable", "workspace_missing"
+			default:
+				w, err := workspace.Init(root, "Fixture")
+				if err != nil {
+					t.Fatal(err)
+				}
+				file := filepath.Join(w.Control, "workspace.json")
+				raw := []byte("{broken PRIVATE_WORKSPACE_VALUE")
+				if mode != "malformed" {
+					raw, err = os.ReadFile(file)
+					if err != nil {
+						t.Fatal(err)
+					}
+					var config map[string]any
+					if err = json.Unmarshal(raw, &config); err != nil {
+						t.Fatal(err)
+					}
+					if mode == "unsupported-version" {
+						config["schema_version"] = "999.0.0"
+						wantCode = "incompatible_version"
+					} else {
+						config["display_name"] = nil
+					}
+					raw, err = json.Marshal(config)
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+				if err = os.WriteFile(file, raw, 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			stdout, err := os.CreateTemp(t.TempDir(), "stdout")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer stdout.Close()
+			stderr, err := os.CreateTemp(t.TempDir(), "stderr")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer stderr.Close()
+			previousOut, previousErr, previousContext := os.Stdout, os.Stderr, operatorContext
+			defer func() { os.Stdout, os.Stderr, operatorContext = previousOut, previousErr, previousContext }()
+			os.Stdout, os.Stderr = stdout, stderr
+			code := execute([]string{"--workspace", root, "--json", "workspace", "show"})
+			os.Stdout, os.Stderr = previousOut, previousErr
+			if _, err = stderr.Seek(0, 0); err != nil {
+				t.Fatal(err)
+			}
+			var response contracts.Response
+			if err = json.NewDecoder(stderr).Decode(&response); err != nil {
+				t.Fatal(err)
+			}
+			if response.Error == nil || response.Error.Code != wantCode || response.Error.Reason != wantReason || response.Result != nil || code != exitCode(contracts.Fail(wantCode)) {
+				t.Fatalf("%s lost its actual cause: code=%d response=%+v", mode, code, response)
+			}
+			if info, _ := stdout.Stat(); info.Size() != 0 {
+				t.Fatal("failed workspace open wrote success output")
+			}
+			encoded, _ := json.Marshal(response)
+			if strings.Contains(string(encoded), "PRIVATE_WORKSPACE_VALUE") {
+				t.Fatal("workspace contents escaped into diagnostics")
 			}
 		})
 	}

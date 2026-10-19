@@ -79,6 +79,39 @@ def qualify(invoke, workspace, version, *, media=False):
     if missing.exists():
         raise ValueError('Failed explicit workspace lookup initialized a directory')
 
+    workspace_failures = []
+    for damage, code, expected in [('malformed', 'invalid_request', 2),
+                                   ('invalid-config', 'invalid_request', 2),
+                                   ('unsupported-version', 'incompatible_version', 3)]:
+        damaged = directory / (damage + ' workspace')
+        invoke(['workspace', 'init', damaged], scoped=False)
+        config_file = damaged / '.insonic' / 'workspace.json'
+        config = json.loads(config_file.read_text(encoding='utf-8'))
+        if damage == 'malformed':
+            raw = '{"' + private_member + '":'
+        else:
+            if damage == 'unsupported-version':
+                config['schema_version'] = '999.0.0'
+            else:
+                config['display_name'] = None
+            raw = json.dumps(config)
+        config_file.write_text(raw + '\n', encoding='utf-8', newline='\n')
+        for mode, flags, machine in MODES:
+            response = invoke([*flags, 'workspace', 'show'], expected=expected,
+                              machine=machine, workspace_path=damaged)
+            if machine:
+                error = response.get('error', {})
+                if error.get('code') != code or error.get('reason') == 'workspace_missing' or response.get('result') is not None:
+                    raise ValueError('Existing damaged workspace lost its actual open failure')
+                encoded = json.dumps(response)
+            else:
+                encoded = response
+                if 'No workspace was found' in encoded:
+                    raise ValueError('Existing damaged workspace was reported missing in ' + mode)
+            if sentinel in encoded or private_member in encoded:
+                raise ValueError('Workspace failure disclosed private configuration')
+        workspace_failures.append(damage)
+
     existing = directory / 'existing catalog.json'
     preserved = b'synthetic existing catalog destination\n'
     existing.write_bytes(preserved)
@@ -126,5 +159,5 @@ def qualify(invoke, workspace, version, *, media=False):
         recording_export = {'state': 'passed', 'preserved_existing_bytes': True, 'new_destination': True}
     return {'state': 'passed', 'issues': [117, 131], 'input_cases': [case[0] for case in invalid],
             'modes': [mode[0] for mode in MODES], 'credential_byte_cases': ['value-2049', 'passphrase-2049'],
-            'missing_workspace': 'passed', 'catalog_destinations': ['existing-file', 'directory', 'missing-parent', 'new-file'],
+            'missing_workspace': 'passed', 'workspace_open_failures': workspace_failures, 'catalog_destinations': ['existing-file', 'directory', 'missing-parent', 'new-file'],
             'recording_export': recording_export, 'elapsed_seconds': round(time.monotonic() - started, 3)}

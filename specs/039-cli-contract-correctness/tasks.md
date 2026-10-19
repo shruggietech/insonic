@@ -53,3 +53,9 @@
 T001-T004 precede product edits. Story regressions precede their corresponding implementation. After foundation, help/example metadata, catalog/Unicode work and rendering/observed-results work can run in disjoint files. Parent owns generated diagnostics/export classification and integration. Coordinate main.go and current runtime-request schema edits sequentially; never overwrite another worker's changes. T020-T022 require all stories.
 
 US1 example: command-registry regressions and catalog migration regressions run in parallel; implementation follows each failing regression. US2 example: schema-diagnostic and catalog/model Unicode tests use disjoint files. US3 example: typed-observation tests and human-page tests are disjoint. All three independently testable stories are required for this approved slice; an MVP subset is not completion.
+
+## Phase 7: CI remediation
+
+- [ ] T023 Separate cold native compilation from full native acceptance in scripts/qualify.py, retain both 180-second child allowances and all six package/tag assertions, verify failure cannot publish a receipt and keep the elected hosted path within 660 seconds (FR-018; SC-005).
+
+- [x] T024 Preserve non-missing workspace-open failures, classify only genuinely missing roots/configs as workspace_missing and add real CLI/installed damaged-configuration regressions for review finding PRRT_kwDOU8_K3s6t1dFK (FR-005/006/015).

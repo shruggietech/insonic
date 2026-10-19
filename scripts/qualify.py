@@ -222,9 +222,15 @@ def native():
     sys.stdout.buffer.write(child([sys.executable, ROOT / "scripts/media-fixtures.py", "--native"]))
     env = native_env()
     cueson = cueson_probe(env)
+    packages = ['./internal/qualification', './internal/backendsetup', './internal/subtitles',
+                './internal/graph', './internal/app', './internal/backup']
+    tags = 'native_ladybug,system_ladybug'
+    # Cold compilation and actual acceptance each retain the bounded child
+    # allowance. The second invocation runs every test, without a -run filter.
+    sys.stdout.buffer.write(child(['go', 'test', '-run', '^$', '-tags', tags, *packages], env=env))
     # JSON emits package/test start events immediately; verbose text can buffer
     # an entire unfinished package and hide its active test on an outer timeout.
-    output = child(['go', 'test', '-json', '-v', '-tags', 'native_ladybug,system_ladybug', './internal/qualification', './internal/backendsetup', './internal/subtitles', './internal/graph', './internal/app', './internal/backup'], env=env)
+    output = child(['go', 'test', '-json', '-v', '-tags', tags, *packages], env=env)
     sys.stdout.buffer.write(output)
     (BUILD / 'native-receipt.json').write_text(json.dumps({'cueson': cueson, 'native_pair': 'passed'}, indent=2) + '\n', encoding='utf-8')
 

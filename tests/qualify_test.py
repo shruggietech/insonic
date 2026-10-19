@@ -38,6 +38,46 @@ class QualificationArchiveTests(unittest.TestCase):
                 acceptance.assert_not_called()
         self.assertEqual(selected_native_env, {'CC': 'selected'})
 
+    def test_native_acceptance_runs_every_package_after_separate_compilation(self):
+        selected = {'CC': 'selected-compiler'}
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(qualify, 'BUILD', Path(directory)), \
+                patch.object(qualify, 'native_env', return_value=selected), \
+                patch.object(qualify, 'cueson_probe', return_value={'state': 'passed'}), \
+                patch.object(qualify, 'child', return_value=b'') as run:
+            qualify.native()
+            go = [call for call in run.call_args_list if call.args[0][0] == 'go']
+            self.assertEqual(len(go), 2)
+            compile_args, acceptance_args = [call.args[0] for call in go]
+            self.assertIn('-run', compile_args)
+            self.assertEqual(compile_args[compile_args.index('-run') + 1], '^$')
+            self.assertNotIn('-run', acceptance_args)
+            self.assertIn('-json', acceptance_args)
+            expected = {'./internal/qualification', './internal/backendsetup', './internal/subtitles',
+                        './internal/graph', './internal/app', './internal/backup'}
+            for call in go:
+                args = call.args[0]
+                self.assertEqual({arg for arg in args if arg.startswith('./')}, expected)
+                self.assertEqual(args[args.index('-tags') + 1], 'native_ladybug,system_ladybug')
+                self.assertIs(call.kwargs['env'], selected)
+                self.assertNotIn('timeout', call.kwargs, 'retain the default bounded child allowance')
+            self.assertTrue((Path(directory) / 'native-receipt.json').is_file())
+
+    def test_failed_native_compilation_cannot_publish_an_acceptance_receipt(self):
+        def child(args, **kwargs):
+            if args[0] == 'go':
+                raise subprocess.TimeoutExpired(args, 180)
+            return b''
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(qualify, 'BUILD', Path(directory)), \
+                patch.object(qualify, 'native_env', return_value={}), \
+                patch.object(qualify, 'cueson_probe', return_value={'state': 'passed'}), \
+                patch.object(qualify, 'child', side_effect=child) as run:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                qualify.native()
+            self.assertFalse((Path(directory) / 'native-receipt.json').exists())
+            self.assertFalse(any('-json' in call.args[0] for call in run.call_args_list))
+
     def test_generic_cli_lane_does_not_require_native_assets(self):
         with patch.object(qualify, 'native_env', side_effect=AssertionError('generic lane must not require native assets')), patch.object(qualify, 'qualify_cli') as run:
             qualify.cli()
