@@ -91,4 +91,4 @@ func activateNativeExit(action string) error {
 
 func dismissFailedNativeMenu() {}
 
-func stopNativeMenuTrace() {}
+func prepareNativeExitWindow() error { return nil }

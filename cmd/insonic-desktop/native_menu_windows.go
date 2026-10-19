@@ -29,7 +29,27 @@ func exitWinLabel(handle uintptr, index uintptr) string {
 	length := exitWinCall("GetMenuStringW", handle, index, uintptr(unsafe.Pointer(&label[0])), uintptr(len(label)), 0x400)
 	return windows.UTF16ToString(label[:min(int(length), len(label))])
 }
-func exitOwnedWindow() (uintptr, error) {
+func exitOwnedWindow() (uintptr, error) { return findNativeExitWindow(true) }
+
+func prepareNativeExitWindow() error {
+	hwnd, err := findNativeExitWindow(false)
+	if err != nil {
+		return err
+	}
+	// These calls complete on the owned window before startup becomes ready.
+	// Consume the launcher's first-show hide flag, then show normally. A later
+	// asynchronous Wails ShowWindow must not reset focus during menu selection.
+	exitWinCall("ShowWindow", hwnd, 5)
+	exitWinCall("ShowWindow", hwnd, 5)
+	exitWinCall("SetForegroundWindow", hwnd)
+	if exitWinCall("IsWindowVisible", hwnd) == 0 {
+		return fmt.Errorf("owned native fixture could not be shown before readiness")
+	}
+	fmt.Fprintln(os.Stderr, "native-exit-stage=window-prepared")
+	return nil
+}
+
+func findNativeExitWindow(requireVisible bool) (uintptr, error) {
 	deadline := time.Now().Add(5 * time.Second)
 	var handles []uintptr
 	var owned, visible, active int
@@ -51,7 +71,7 @@ func exitOwnedWindow() (uintptr, error) {
 			if foreground {
 				active++
 			}
-			if shown && exitWinCall("IsWindowEnabled", hwnd) != 0 {
+			if (!requireVisible || shown) && exitWinCall("IsWindowEnabled", hwnd) != 0 {
 				handles = append(handles, hwnd)
 			}
 		}

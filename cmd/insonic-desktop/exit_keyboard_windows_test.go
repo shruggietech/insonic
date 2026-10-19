@@ -12,10 +12,6 @@ import (
 )
 
 func TestNativeInputABIAndInvalidOwnershipGuard(t *testing.T) {
-	var message exitTraceMessage
-	if unsafe.Sizeof(message) != 48 || unsafe.Offsetof(message.WParam) != 16 || unsafe.Offsetof(message.LParam) != 24 {
-		t.Fatal("native MSG layout differs from Windows amd64 ABI")
-	}
 	var bar exitMenuBarInfo
 	if unsafe.Sizeof(bar) != 48 || unsafe.Offsetof(bar.Menu) != 24 || unsafe.Offsetof(bar.Window) != 32 || unsafe.Offsetof(bar.Flags) != 40 {
 		t.Fatal("native MENUBARINFO layout differs from Windows amd64 ABI")

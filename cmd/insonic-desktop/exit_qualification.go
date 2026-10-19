@@ -68,7 +68,6 @@ func readExitFixture(path string) (exitFixture, error) {
 // Only this child owns Wails. Its parent owns the real shared runtime and
 // verifies survival through direct IPC after the GUI process has returned.
 func qualifyNativeExitChild(path string) int {
-	defer stopNativeMenuTrace()
 	fixture, err := readExitFixture(path)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -91,7 +90,6 @@ func qualifyNativeExitChild(path string) int {
 		if bridge.Workspace != nil {
 			playbackID, verify, prepareErr = desktop.ObserveExitPlaybackQualification(bridge, fixture.MediaID, fixture.Revision)
 		}
-		close(ready)
 		go func() {
 			select {
 			case <-finished:
@@ -102,6 +100,10 @@ func qualifyNativeExitChild(path string) int {
 				wailsruntime.Quit(ctx)
 			}
 		}()
+		if prepareErr == nil {
+			prepareErr = prepareNativeExitWindow()
+		}
+		close(ready)
 	}
 	domReady := func(ctx context.Context) {
 		fmt.Fprintln(os.Stderr, "native-exit-stage=dom-ready")
@@ -127,12 +129,6 @@ func qualifyNativeExitChild(path string) int {
 				return
 			}
 			fmt.Fprintln(os.Stderr, "native-exit-stage=frontend-ready")
-			// CREATE_NO_WINDOW remains mandatory for the console launcher. Its
-			// STARTUPINFO hide flag can suppress the first native show call, so this
-			// explicit disposable-UI probe requests the normal Wails show/activate path.
-			if runtime.GOOS == "windows" {
-				wailsruntime.WindowShow(ctx)
-			}
 			fmt.Fprintln(os.Stderr, "native-exit-stage=native-action")
 			err := activateNativeExit(fixture.Action)
 			activated <- err
@@ -491,7 +487,7 @@ func interpretExitChild(fixture exitFixture, report process.CaptureResult, captu
 		return observation, nil
 	}
 	stage, last := "native-exit", -1
-	for _, candidate := range []string{"controller-startup", "dom-ready", "frontend-ready", "native-action", "menu-mnemonic", "menu-open", "menu-selected", "menu-request", "shutdown", "watchdog-timeout"} {
+	for _, candidate := range []string{"controller-startup", "window-prepared", "dom-ready", "frontend-ready", "native-action", "menu-mnemonic", "menu-open", "menu-selected", "menu-request", "shutdown", "watchdog-timeout"} {
 		if index := strings.LastIndex(string(report.Stderr), "native-exit-stage="+candidate); index > last {
 			stage, last = candidate, index
 		}
