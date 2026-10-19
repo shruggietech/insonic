@@ -133,6 +133,9 @@ func qualifyNativeExitChild(path string) int {
 	err = runDesktopApplication(bridge, startup, domReady, false)
 	fmt.Fprintln(os.Stderr, "native-exit-stage=shutdown")
 	close(finished)
+	if timedOut.Load() {
+		fmt.Fprintln(os.Stderr, "native-exit-stage=watchdog-timeout")
+	}
 	if err != nil || timedOut.Load() {
 		fmt.Fprintln(os.Stderr, "Native Exit did not finish normally.")
 		return 1
@@ -446,14 +449,14 @@ func interpretExitChild(fixture exitFixture, report process.CaptureResult, captu
 		return observation, nil
 	}
 	stage, last := "native-exit", -1
-	for _, candidate := range []string{"controller-startup", "dom-ready", "native-action", "shutdown"} {
+	for _, candidate := range []string{"controller-startup", "dom-ready", "native-action", "shutdown", "watchdog-timeout"} {
 		if index := strings.LastIndex(string(report.Stderr), "native-exit-stage="+candidate); index > last {
 			stage, last = candidate, index
 		}
 	}
 	const limit = 65536
 	truncated := report.Truncated || len(report.Stdout) > limit || len(report.Stderr) > limit
-	evidence := nativeExitFailure{Kind: "native-exit-child-failure", Stage: stage, Action: fixture.Action, Stdout: string(report.Stdout[:min(len(report.Stdout), limit)]), Stderr: string(report.Stderr[:min(len(report.Stderr), limit)]), ExitCode: report.ExitCode, Truncated: truncated, TimedOut: contextErr == context.DeadlineExceeded, Cancelled: contextErr == context.Canceled}
+	evidence := nativeExitFailure{Kind: "native-exit-child-failure", Stage: stage, Action: fixture.Action, Stdout: string(report.Stdout[:min(len(report.Stdout), limit)]), Stderr: string(report.Stderr[:min(len(report.Stderr), limit)]), ExitCode: report.ExitCode, Truncated: truncated, TimedOut: contextErr == context.DeadlineExceeded || strings.Contains(string(report.Stderr), "native-exit-stage=watchdog-timeout"), Cancelled: contextErr == context.Canceled}
 	raw, _ := json.Marshal(evidence)
 	retainNativeExitFailure(raw)
 	fmt.Fprintln(diagnostic, string(raw))

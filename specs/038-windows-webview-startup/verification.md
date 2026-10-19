@@ -27,3 +27,7 @@ Source diagnostic run39207231226/job117912615849 atfe9df6d stops before any GUI 
 [Run 39207471186](https://github.com/shruggietech/insonic/actions/runs/39207471186), tool revision e59e041b65a1054c74e380994a39e9701c2fadc5, completed successfully. The diagnostic GUI used the production build tags and verified incident companions. Native bridge, help and WebView checks passed, followed by 12 production Exit parents (48 native children). No controller failure or actual incident HRESULT was recovered. This is bounded observation, not cause proof or package qualification.
 
 The next focused comparison overlaps the maintained installed CLI contract workload, including documented flows, with the GUI sequence. Normal archive qualification contains this overlap; the preceding isolated probes did not. Concurrent-work errors remain failures, and owned CLI workers finish and idle before temporary files are removed.
+
+### Current local verification (2026-10-19)
+
+Required root check and 127 Node tests passed. All 356 Python maintainer tests passed in 34.786 seconds, including concurrent-work failure/cleanup, source-compiler credential isolation and existing package refusal checks. Go desktop race and native command tests passed (4.156 and 4.266 seconds). Documentation check, 16 tests and build passed. These source tests launch no native GUI or installer on the owner's desktop and cannot establish installed startup reliability.

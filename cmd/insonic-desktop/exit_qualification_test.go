@@ -215,3 +215,12 @@ func TestExitFailureArtifactRetainsBothStreamsWithoutSuccessOutput(t *testing.T)
 		t.Fatal("artifact differs from emitted evidence", err)
 	}
 }
+
+func TestExitChildOwnWatchdogIsReportedAsTimeout(t *testing.T) {
+	var output bytes.Buffer
+	_, err := interpretExitChild(exitFixture{Action: "menu"}, process.CaptureResult{Stderr: []byte("native-exit-stage=controller-startup\nnative-exit-stage=watchdog-timeout\n"), ExitCode: 1}, contracts.Fail("operation_failed"), nil, &output)
+	var evidence nativeExitFailure
+	if err == nil || json.Unmarshal(output.Bytes(), &evidence) != nil || !evidence.TimedOut || evidence.Cancelled || evidence.Stage != "watchdog-timeout" {
+		t.Fatalf("lost fixture timeout: %v %s", err, output.String())
+	}
+}
