@@ -138,3 +138,7 @@ US1 example: command-registry regressions and catalog migration regressions run 
 ## Phase 24: Convergence
 
 - [ ] T049 Balance the binding's owned WebView/controller/environment references and existing COM apartment on the original UI thread, remove its redundant getter reference and release its controller-interface query; preserve Close errors and strict two-file source authority, prove native reference/apartment regressions before/after, and repeat all source/notice/native/package gates per FR-017/020..022 (partial).
+
+## Phase 25: Convergence
+
+- [ ] T050 Identify the remaining post-popup native UI wait using a failure-only bounded function-name profile (no arguments or memory), correct the demonstrated dispatch boundary, and repeat unchanged-limit actual menu/shutdown/package acceptance per FR-019..022 (partial).

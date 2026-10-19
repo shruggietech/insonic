@@ -96,6 +96,7 @@ func qualifyNativeExitChild(path string) int {
 			case <-time.After(12 * time.Second):
 				timedOut.Store(true)
 				fmt.Fprintln(os.Stderr, "native-exit-stage=watchdog-timeout")
+				logNativeUIFunctionStacks()
 				dismissFailedNativeMenu()
 				wailsruntime.Quit(ctx)
 			}
@@ -526,4 +527,54 @@ func runExitGUIChild(fixture exitFixture, config string) (exitObservation, error
 		fmt.Fprintln(os.Stderr, string(lifecycle))
 	}
 	return interpretExitChild(fixture, report, err, ctx.Err(), os.Stderr)
+}
+
+// Failure-only function names identify a blocked UI call without stack arguments,
+// local values, memory dumps, filenames, private data or unbounded diagnostics.
+func logNativeUIFunctionStacks() {
+	records := make([]runtime.StackRecord, 256)
+	count, ok := runtime.GoroutineProfile(records)
+	if !ok {
+		fmt.Fprintln(os.Stderr, "native-ui-functions=unavailable-over-limit")
+		return
+	}
+	type entry struct {
+		functions []string
+		ui        bool
+	}
+	var selected []entry
+	for _, record := range records[:count] {
+		frames := runtime.CallersFrames(record.Stack())
+		var functions []string
+		ui, relevant := false, false
+		for {
+			frame, more := frames.Next()
+			name := frame.Function
+			if name == "main.runDesktopApplicationWithProfile" || strings.Contains(name, "/windows/winc.") {
+				ui = true
+			}
+			if strings.Contains(name, "github.com/wailsapp/") {
+				relevant = true
+			}
+			if name != "" && len(functions) < 32 {
+				functions = append(functions, name[:min(len(name), 240)])
+			}
+			if !more {
+				break
+			}
+		}
+		if ui || relevant {
+			selected = append(selected, entry{functions, ui})
+		}
+	}
+	var stacks [][]string
+	for _, primary := range []bool{true, false} {
+		for _, entry := range selected {
+			if entry.ui == primary && len(stacks) < 4 {
+				stacks = append(stacks, entry.functions)
+			}
+		}
+	}
+	raw, _ := json.Marshal(map[string]any{"kind": "native-ui-functions", "unix_millis": time.Now().UnixMilli(), "stacks": stacks})
+	fmt.Fprintln(os.Stderr, string(raw))
 }
