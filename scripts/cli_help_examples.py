@@ -235,7 +235,9 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
                 if name != 'backup restore':
                     kwargs['workspace_path'] = maintenance
             elif name.startswith('catalog '):
-                if name != 'catalog restore':
+                # catalog show is runtime-backed inspection. Keep its owner in
+                # the live library, away from exclusive backup/catalog examples.
+                if name not in ['catalog restore', 'catalog show']:
                     kwargs['workspace_path'] = maintenance
                 replacements['FILE'] = snapshot
                 if name == 'catalog restore':
@@ -391,6 +393,8 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
             argv = substitute(actual, replacements)
             target = kwargs.pop('workspace_path', library)
             response = invoke(argv, workspace_path=target, **kwargs)
+            if target == maintenance and response.get('runtime_session_id'):
+                raise ValueError('Exclusive maintenance fixture elected a runtime owner: ' + name)
             error = response.get('error')
             if error and error['code'] not in expected.get(name, set()):
                 raise ValueError('Unreviewed semantic help example failure: ' + name + ': ' + json.dumps(error))

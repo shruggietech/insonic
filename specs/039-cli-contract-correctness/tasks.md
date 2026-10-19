@@ -67,3 +67,7 @@ US1 example: command-registry regressions and catalog migration regressions run 
 ## Phase 8: Convergence
 
 - [x] T027 Retry bounded incomplete GitHub inventory snapshots without accepting them, retain hard failure for malformed/unbounded/ambiguous authority and known failed producers, add race/deadline regressions for all Windows readiness roles, and reverify exact-head CI (FR-018; SC-005, partial).
+
+## Phase 9: Convergence
+
+- [x] T028 Keep runtime-backed catalog inspection in the live example library, require exclusive-maintenance examples never elect a runtime owner, reproduce the isolation violation with the actual installed help corpus before fixing routing, and reverify all 168 examples plus exact-head CI (FR-004/016/018; SC-001/003/005, partial).
