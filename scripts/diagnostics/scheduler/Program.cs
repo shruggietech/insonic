@@ -10,6 +10,7 @@ record Owned(int pid, long query_begin_unix_micros, long query_end_unix_micros, 
 record Anchor(long unix_micros, double begin_elapsed_seconds, double end_elapsed_seconds);
 record Input(long begin_unix_micros, long end_unix_micros, Owned[] owned, int gui_pid, int wrapper_pid, Anchor start_anchor, Anchor end_anchor);
 record Span(string kind, long begin, long end, int? reason = null);
+record Partition(Span[] spans, long conflict_unknown_ns, int conflict_intervals, object? first_conflict);
 record Ready(long time, bool resolved, bool resident);
 sealed class ProjectionFailure(string code, object? witness = null) : Exception
 {
@@ -60,6 +61,48 @@ static class Projection
         long split = ready.Select(r => r.time).DefaultIfEmpty(end).Min();
         return split == end ? new[] { new Span("waiting", begin, end, reason) } :
             new[] { new Span("waiting", begin, split, reason), new Span("ready", split, end) };
+    }
+
+    // ReadyThread can precede the preceding switch-out (E018). Neither
+    // category owns that conflicting portion. Keep it unknown, without a
+    // tolerance or precedence rule; other overlapping states still reject.
+    internal static Partition Unambiguous(IEnumerable<Span> source, long begin, long end)
+    {
+        var raw = source.ToArray();
+        if (end <= begin || raw.Any(s => s.end < s.begin || !new[] { "scheduled", "ready", "waiting" }.Contains(s.kind)))
+            throw new ProjectionFailure("Invalid span");
+        var spans = raw.Select(s => s with { begin = Math.Max(begin, s.begin), end = Math.Min(end, s.end) })
+            .Where(s => s.end > s.begin).ToArray();
+        var events = spans.SelectMany((s, i) => new[] { (time: s.begin, id: i, add: true), (time: s.end, id: i, add: false) })
+            .GroupBy(e => e.time).OrderBy(g => g.Key).ToArray();
+        var active = new SortedSet<int>(); var known = new List<Span>();
+        long conflict = 0; int conflicts = 0, previousId = -1; object? witness = null;
+        for (int i = 0; i < events.Length - 1; i++)
+        {
+            foreach (var e in events[i]) { if (e.add) active.Add(e.id); else active.Remove(e.id); }
+            long left = events[i].Key, right = events[i + 1].Key;
+            if (active.Count == 1)
+            {
+                int id = active.Min;
+                if (previousId == id && known.Count > 0 && known[^1].end == left)
+                    known[^1] = known[^1] with { end = right };
+                else known.Add(spans[id] with { begin = left, end = right });
+                previousId = id;
+            }
+            else
+            {
+                previousId = -1;
+                if (active.Count == 0) continue;
+                var pair = active.Select(id => spans[id]).ToArray();
+                if (pair.Length != 2 || !pair.Any(s => s.kind == "scheduled") || !pair.Any(s => s.kind == "ready"))
+                    throw new ProjectionFailure("Invalid interval projection", new { previous = pair[0], current = pair[1],
+                        overlap_ns = right - left, window_begin_ns = begin, window_end_ns = end });
+                conflict += right - left; conflicts++;
+                witness ??= new { previous = pair[0], current = pair[1], overlap_ns = right - left,
+                    begin_ns = left, end_ns = right };
+            }
+        }
+        return new Partition(known.ToArray(), conflict, conflicts, witness);
     }
 
     internal static object Summary(IEnumerable<Span> spans, long begin, long end)
@@ -116,6 +159,42 @@ static class Projection
                 witness.RootElement.GetProperty("current").GetProperty("kind").GetString() == "scheduled";
         }
         if (!rejected) throw new Exception("Overlapping interval regression");
+        // Exact E018 witness: discard only the 200ns disputed portion from
+        // both categories, never choose ready or scheduled as the winner.
+        var conflict = Unambiguous(new[] { new Span("scheduled", 362484300, 378039500),
+            new Span("ready", 378039300, 378042300) }, 362484300, 378042300);
+        using var conflictSummary = JsonDocument.Parse(JsonSerializer.Serialize(Summary(conflict.spans, 362484300, 378042300)));
+        var cr = conflictSummary.RootElement;
+        if (conflict.conflict_unknown_ns != 200 || conflict.conflict_intervals != 1 || conflict.first_conflict == null ||
+            cr.GetProperty("unknown_ns").GetInt64() != 200 || cr.GetProperty("ready").GetProperty("total_ns").GetInt64() != 2800 ||
+            cr.GetProperty("scheduled").GetProperty("total_ns").GetInt64() != 15555000)
+            throw new Exception("E018 conflict uncertainty regression");
+        var largeConflict = Unambiguous(new[] { new Span("scheduled", 0, 100), new Span("ready", 0, 100) }, 0, 100);
+        if (largeConflict.spans.Length != 0 || largeConflict.conflict_unknown_ns != 100)
+            throw new Exception("Large conflict must stay entirely unknown");
+        var boundaryConflict = Unambiguous(new[] { new Span("scheduled", 0, 20), new Span("ready", 12, 30) }, 10, 25);
+        if (boundaryConflict.conflict_unknown_ns != 8 || boundaryConflict.spans.Sum(s => s.end - s.begin) != 7)
+            throw new Exception("Conflict clipping regression");
+        var containedConflict = Unambiguous(new[] { new Span("scheduled", 0, 30), new Span("ready", 10, 20) }, 0, 30);
+        if (containedConflict.conflict_unknown_ns != 10 || containedConflict.spans.Length != 2 ||
+            containedConflict.spans.Max(s => s.end - s.begin) != 10)
+            throw new Exception("Unknown must split contiguous maxima");
+        var touching = Unambiguous(new[] { new Span("scheduled", 0, 10), new Span("ready", 10, 20) }, 0, 20);
+        if (touching.conflict_unknown_ns != 0 || touching.spans.Length != 2)
+            throw new Exception("Touching boundaries are not overlap");
+        var beforeWindow = Unambiguous(new[] { new Span("scheduled", 0, 10), new Span("ready", 5, 20) }, 10, 20);
+        var afterWindow = Unambiguous(new[] { new Span("scheduled", 0, 15), new Span("ready", 10, 20) }, 0, 10);
+        if (beforeWindow.conflict_unknown_ns != 0 || afterWindow.conflict_unknown_ns != 0)
+            throw new Exception("Outside-window conflicts must not contaminate known time");
+        foreach (var invalid in new[] {
+            new[] { new Span("scheduled", 0, 20), new Span("scheduled", 12, 30) },
+            new[] { new Span("waiting", 0, 20), new Span("ready", 12, 30) },
+            new[] { new Span("scheduled", 0, 20), new Span("ready", 12, 30), new Span("ready", 15, 25) } })
+        {
+            rejected = false;
+            try { Unambiguous(invalid, 0, 30); } catch (ProjectionFailure) { rejected = true; }
+            if (!rejected) throw new Exception("Structural overlap must remain rejected");
+        }
         var owned = new Owned(5, 200_000, 210_000, 100_000);
         if (!Lifetime(owned, 100_100, 220_000) || Lifetime(owned, 100_100, 205_000) || Lifetime(owned, 199_000, 220_000) || Lifetime(owned, 10_000, 150_000)) throw new Exception("Process incarnation regression");
         var aligned = new Input(1_000_000, 2_000_000, new[] { owned }, 5, 6, new Anchor(1_000_000, 0, 0), new Anchor(2_000_000, 1, 1));
@@ -263,12 +342,15 @@ class Program
                         ready.Select(r => new Ready(Ns(r.Timestamp), r.ReadiedThread == thread, r.IsKernelStackResident && r.IsProcessResident)).ToArray(),
                         tail, lifeEnd, final.SwitchOut.WaitReason.HasValue ? (int)final.SwitchOut.WaitReason.Value : null));
                 }
-                var summary = Projection.Summary(spans, lifeBegin, lifeEnd);
-                long maxReady = spans.Where(s => s.kind == "ready").Select(s => Projection.Clip(s.begin, s.end, lifeBegin, lifeEnd)).DefaultIfEmpty(0).Max();
-                long maxWait = spans.Where(s => s.kind == "waiting").Select(s => Projection.Clip(s.begin, s.end, lifeBegin, lifeEnd)).DefaultIfEmpty(0).Max();
+                var partition = Projection.Unambiguous(spans, lifeBegin, lifeEnd);
+                var summary = Projection.Summary(partition.spans, lifeBegin, lifeEnd);
+                long maxReady = partition.spans.Where(s => s.kind == "ready").Select(s => s.end - s.begin).DefaultIfEmpty(0).Max();
+                long maxWait = partition.spans.Where(s => s.kind == "waiting").Select(s => s.end - s.begin).DefaultIfEmpty(0).Max();
                 long born = thread.CreateTime.HasValue && Known(thread.CreateTime.Value) ? Ns(thread.CreateTime.Value) : long.MaxValue;
                 threads.Add((thread.Id, born, maxReady, maxWait, new { tid = thread.Id, observation_begin_ns = lifeBegin - begin, observation_end_ns = lifeEnd - begin,
-                    birth_observed = thread.CreateTime.HasValue && Known(thread.CreateTime.Value), exit_observed = thread.ExitTime.HasValue && Known(thread.ExitTime.Value), wait_reason_coverage = "known-tail-switch-out-only", summary }));
+                    birth_observed = thread.CreateTime.HasValue && Known(thread.CreateTime.Value), exit_observed = thread.ExitTime.HasValue && Known(thread.ExitTime.Value),
+                    conflict_unknown_ns = partition.conflict_unknown_ns, conflict_intervals = partition.conflict_intervals, first_conflict = partition.first_conflict,
+                    wait_reason_coverage = "known-tail-switch-out-only", summary }));
             }
             var chosen = threads.OrderBy(t => t.start).Take(1).Concat(threads.OrderByDescending(t => t.maxReady).Take(4)).Concat(threads.OrderByDescending(t => t.maxWait).Take(4)).DistinctBy(t => (t.id, t.start)).ToArray();
             processes.Add(new { pid = owned.pid, role = Projection.Role(process.ImageName ?? "", process.CommandLine ?? "", owned.pid, input.gui_pid, input.wrapper_pid),
@@ -279,7 +361,9 @@ class Program
         }
         return new { kind = "owned-scheduler-observation", available = true, feature_qualification = false, lost_events = metadata.LostEventCount,
             lost_buffers = metadata.LostBufferCount, coverage = "bounded-sequential-no-loss-context-switch-range-and-owned-lifetimes", time_projection = "supported-relative-and-clock-time-without-raw-clock-value", clock_tolerance_us = Projection.ClockToleranceUs, window_begin_unix_micros = input.begin_unix_micros,
-            window_end_unix_micros = input.end_unix_micros, scheduled_interpretation = "scheduled-not-exact-executed-cpu", counters = Evidence, processes };
+            window_end_unix_micros = input.end_unix_micros, scheduled_interpretation = "unambiguous-scheduled-lower-bound-not-exact-executed-cpu",
+            overlap_policy = "scheduled-ready-conflicts-unknown-without-tolerance-other-overlaps-reject",
+            state_accounting = "known-fragment-totals-and-contiguous-maxima-lower-bounds-unknown-explicit", counters = Evidence, processes };
     }
 
     static int Main(string[] args)

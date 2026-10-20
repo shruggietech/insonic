@@ -145,3 +145,7 @@ The final independent review's unavailable-control classification finding is cor
 ## E011 result (2026-10-20 UTC)
 
 The onlyfreshGUI in39353609715/attempt1/job118403277238 fails the original18-second limit despite a validNormalhostcontrol beforestartup andat15s. It advances throughCDPsetup/navigation, thenretains5completedhostresponses, fullIPC/runtimebodydata without loadingFinished, appscriptrequestedwithout hostentry, readiness/DOM/load0. Thewatchdogfires12.000167s afterarming. Exactidentities, bounds, timing/resourceinterpretation and [publicresult](https://github.com/shruggietech/insonic/issues/154#issuecomment-6281265089) are retained in experiments.md. This rejects an initialhostNormal change as a sufficientrepair; it does notresolve waitingversusrunnable scheduling. No productpriority change, qualification or incidentrepair is claimed.
+
+### E018 console-only overlap witness (2026-10-20 UTC)
+
+Exactsource7fa392557ae8d4138a4263f8a8551c88efb63542, run39362252300/attempt1/job118430877769, failed strict decoder in1m03s. Zero product build/GUI/CLI workload. Trace2614CSwitch/1383ReadyThread, zero loss, valid ownership/range/clock. PID7452/TID1932 scheduled[362484300,378039500)ns conflicts with ready[378039300,378042300)ns by200ns. Scheduler interpretation remains unavailable. Cleanup/raw-directory removal confirmed. Artifact12237788151,1205B,SHA25622b02365c6c46c4f690dbe80c49c157ab5b10cf53b52e57dbbfdec0fdc53d1b8. This is an offline-testable tool case, not product-cause evidence. No next run selected.

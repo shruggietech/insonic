@@ -117,4 +117,8 @@ E016 completes the real console prerequisite for T039/T040; E012-E015 failures a
 
 ## Phase18: Reproduce the rejected interval projection cheaply
 
-- [ ] T042 Add bounded owned interval-conflict witnesses without weakening rejection, validate the opt-in four-thread console fixture locally, and retain E018 before selecting any further native observation. (FR-004, FR-007, FR-008, FR-009, FR-011)
+- [x] T042 Add bounded owned interval-conflict witnesses without weakening rejection, validate the opt-in four-thread console fixture locally, and retain E018 before selecting any further native observation. (FR-004, FR-007, FR-008, FR-009, FR-011)
+
+## Phase19: Preserve unknown time in reproduced mixed-state conflicts
+
+- [ ] T043 Verify conservative disjoint known fragments for E018's reproduced scheduled/ready intersection, retain conflicting portions explicitly unknown with no precedence/tolerance and hard structural rejection, then retain one E019 console-only validation before any further native choice. (FR-004, FR-005, FR-007, FR-008, FR-009, FR-011)
