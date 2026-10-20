@@ -114,12 +114,13 @@ class SchedulerTests(unittest.TestCase):
              'processes':[{'pid':10,'matched_lifetime':True,'threads':[{'tid':11,
                  'summary':{'unknown_ns':1000,'waiting':{'total_ns':200_000_000},'scheduled':{'total_ns':2_000_000}},
                  'conflict_unknown_ns':200,'conflict_intervals':1,
-                 'first_conflict':{'overlap_ns':200},'private_path':'not-for-retention'}]}]}
+                 'first_conflict':{'overlap_ns':200},'closed_inputs':{'unproved-closed-gap':2},'private_path':'not-for-retention'}]}]}
         receipt=scheduler.preflight_receipt(row,10,11,True)
         self.assertEqual(receipt['main_thread']['summary']['unknown_ns'],1000)
         self.assertEqual(receipt['main_thread']['conflict_unknown_ns'],200)
         self.assertEqual(receipt['main_thread']['conflict_intervals'],1)
         self.assertEqual(receipt['main_thread']['first_conflict'],{'overlap_ns':200})
+        self.assertEqual(receipt['main_thread']['closed_inputs'],{'unproved-closed-gap':2})
         self.assertEqual(receipt['state_accounting'],'known-lower-bounds');self.assertEqual(receipt['stress_threads'],4)
         self.assertNotIn('private_path',json.dumps(receipt));self.assertNotIn('not-for-retention',json.dumps(receipt))
         row['processes'][0]['threads'][0]['summary']['waiting']['total_ns']=0

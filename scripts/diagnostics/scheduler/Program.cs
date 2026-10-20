@@ -9,9 +9,34 @@ using SchedulerState = Microsoft.Windows.EventTracing.Cpu.ThreadState;
 record Owned(int pid, long query_begin_unix_micros, long query_end_unix_micros, long created_unix_micros);
 record Anchor(long unix_micros, double begin_elapsed_seconds, double end_elapsed_seconds);
 record Input(long begin_unix_micros, long end_unix_micros, Owned[] owned, int gui_pid, int wrapper_pid, Anchor start_anchor, Anchor end_anchor);
-record Span(string kind, long begin, long end, int? reason = null);
+record Span(string kind, long begin, long end, int? reason = null, string source = "unspecified");
 record Partition(Span[] spans, long conflict_unknown_ns, int conflict_intervals, object? first_conflict);
 record Ready(long time, bool resolved, bool resident);
+record ClosedProjection(Span[] spans, string provenance);
+record ReadyPoint(long time, IReadyThreadEvent value);
+sealed class ReadyIndex
+{
+    readonly Dictionary<int, ReadyPoint[]> events;
+    readonly HashSet<int> unknown;
+    internal ReadyIndex(IEnumerable<IReadyThreadEvent> source)
+    {
+        var rows = source.ToArray();
+        unknown = rows.Where(r => !r.Timestamp.HasValue).Select(r => r.ReadiedThreadId).ToHashSet();
+        events = rows.Where(r => r.Timestamp.HasValue).GroupBy(r => r.ReadiedThreadId)
+            .ToDictionary(g => g.Key, g => g.Select(r => new ReadyPoint(r.Timestamp.Nanoseconds, r)).OrderBy(r => r.time).ToArray());
+    }
+    internal bool Complete(int tid) => !unknown.Contains(tid);
+    internal ReadyPoint[] Between(int tid, long begin, long end, bool includeEnd = false)
+    {
+        if (!events.TryGetValue(tid, out var rows)) return Array.Empty<ReadyPoint>();
+        int left = 0, right = rows.Length;
+        while (left < right) { int mid = left + (right - left) / 2; if (rows[mid].time < begin) left = mid + 1; else right = mid; }
+        int stop = left; while (stop < rows.Length && (rows[stop].time < end || (includeEnd && rows[stop].time == end))) stop++;
+        return rows[left..stop];
+    }
+    internal static bool Valid(IReadyThreadEvent r, IThread thread) =>
+        r.Timestamp.HasValue && r.ReadiedThreadId == thread.Id && r.ReadiedThread == thread && r.IsKernelStackResident && r.IsProcessResident;
+}
 sealed class ProjectionFailure(string code, object? witness = null) : Exception
 {
     internal string Code { get; } = code;
@@ -56,11 +81,15 @@ static class Projection
     internal static Span[] Tail(bool occupied, SchedulerState? state, Ready[] ready, long begin, long end, int? reason)
     {
         if (occupied || ready.Any(r => !r.resolved || !r.resident || r.time < begin || r.time >= end)) return Array.Empty<Span>();
-        if (state == SchedulerState.Ready) return new[] { new Span("ready", begin, end) };
+        if (state == SchedulerState.Ready)
+            return ready.Length == 0 ? new[] { new Span("ready", begin, end, source: "tail-switch-out-ready") } :
+                new[] { new Span("ready", ready.Max(r => r.time), end, source: "tail-last-ready-event") };
         if (state != SchedulerState.Waiting) return Array.Empty<Span>();
+        if (ready.Select(r => r.time).Distinct().Skip(1).Any())
+            return new[] { new Span("ready", ready.Max(r => r.time), end, source: "tail-last-ready-event") };
         long split = ready.Select(r => r.time).DefaultIfEmpty(end).Min();
-        return split == end ? new[] { new Span("waiting", begin, end, reason) } :
-            new[] { new Span("waiting", begin, split, reason), new Span("ready", split, end) };
+        return split == end ? new[] { new Span("waiting", begin, end, reason, "tail-switch-out-waiting") } :
+            new[] { new Span("waiting", begin, split, reason, "tail-wait-to-ready"), new Span("ready", split, end, source: "tail-ready-event") };
     }
 
     // ReadyThread can precede the preceding switch-out (E018). Neither
@@ -109,7 +138,7 @@ static class Projection
     {
         var raw = spans.ToArray();
         if (end <= begin || raw.Any(s => s.end < s.begin || !new[] { "scheduled", "ready", "waiting" }.Contains(s.kind))) throw new ProjectionFailure("Invalid span");
-        var selected = raw.Select(s => new Span(s.kind, Math.Max(begin, s.begin), Math.Min(end, s.end), s.reason))
+        var selected = raw.Select(s => s with { begin = Math.Max(begin, s.begin), end = Math.Min(end, s.end) })
             .Where(s => s.end > s.begin).OrderBy(s => s.begin).ThenBy(s => s.end).ToList();
         long covered = 0, previous = begin; Span? previousSpan = null;
         foreach (var s in selected)
@@ -122,10 +151,14 @@ static class Projection
         object Kind(string kind)
         {
             var rows = selected.Where(s => s.kind == kind).ToList();
-            return new { intervals = rows.Count, total_ns = rows.Sum(s => s.end - s.begin), max_ns = rows.Select(s => s.end - s.begin).DefaultIfEmpty(0).Max() };
+            var longest = rows.OrderByDescending(s => s.end - s.begin).FirstOrDefault();
+            return new { intervals = rows.Count, total_ns = rows.Sum(s => s.end - s.begin), max_ns = rows.Select(s => s.end - s.begin).DefaultIfEmpty(0).Max(),
+                maximum = longest == null ? null : new { begin_ns = longest.begin - begin, end_ns = longest.end - begin, source = longest.source } };
         }
         return new { observed_ns = end - begin, covered_ns = covered, unknown_ns = end - begin - covered,
+            maximum_origin = "thread-observation-begin",
             scheduled = Kind("scheduled"), ready = Kind("ready"), waiting = Kind("waiting"),
+            provenance = selected.GroupBy(s => s.source).OrderBy(g => g.Key).Select(g => new { source = g.Key, intervals = g.Count(), total_ns = g.Sum(s => s.end - s.begin) }).ToArray(),
             wait_reasons = selected.Where(s => s.kind == "waiting" && s.reason.HasValue).GroupBy(s => s.reason!.Value)
                 .OrderBy(g => g.Key).Select(g => new { reason = g.Key, intervals = g.Count(), total_ns = g.Sum(s => s.end - s.begin) }).ToArray() };
     }
@@ -143,10 +176,13 @@ static class Projection
     internal static void SelfTest()
     {
         if (Clip(0, 30, 10, 20) != 10 || Clip(0, 5, 10, 20) != 0) throw new Exception("Clipping regression");
-        var encoded = JsonSerializer.Serialize(Summary(new[] { new Span("waiting", 0, 12, 13), new Span("ready", 12, 17), new Span("scheduled", 17, 25) }, 10, 20));
+        var encoded = JsonSerializer.Serialize(Summary(new[] { new Span("waiting", 0, 12, 13, "test-wait"), new Span("ready", 12, 17), new Span("scheduled", 17, 25) }, 10, 20));
         using var result = JsonDocument.Parse(encoded);
         var r = result.RootElement;
         if (r.GetProperty("waiting").GetProperty("total_ns").GetInt64() != 2 || r.GetProperty("ready").GetProperty("total_ns").GetInt64() != 5 || r.GetProperty("scheduled").GetProperty("total_ns").GetInt64() != 3 || r.GetProperty("unknown_ns").GetInt64() != 0) throw new Exception("State accounting regression");
+        var maximum = r.GetProperty("waiting").GetProperty("maximum");
+        if (maximum.GetProperty("begin_ns").GetInt64() != 0 || maximum.GetProperty("end_ns").GetInt64() != 2 ||
+            maximum.GetProperty("source").GetString() != "test-wait") throw new Exception("Bounded maximum provenance regression");
         using var censored = JsonDocument.Parse(JsonSerializer.Serialize(Summary(new[] { new Span("scheduled", 12, 14) }, 10, 20)));
         if (censored.RootElement.GetProperty("unknown_ns").GetInt64() != 8) throw new Exception("Unknown interval regression");
         bool rejected = false;
@@ -210,6 +246,9 @@ static class Projection
             Tail(false, SchedulerState.Waiting, new[] { new Ready(17, false, true) }, 10, 20, null).Length != 0 ||
             Tail(false, SchedulerState.Waiting, new[] { new Ready(17, true, false) }, 10, 20, null).Length != 0)
             throw new Exception("Unknown tail regression");
+        if (Tail(false, SchedulerState.Ready, new[] { new Ready(17, true, true) }, 10, 20, null).Single().begin != 17 ||
+            Tail(false, SchedulerState.Waiting, new[] { new Ready(12, true, true), new Ready(17, true, true) }, 10, 20, 13).Single().begin != 17)
+            throw new Exception("Intervening readiness must not fabricate earlier tail states");
         if (Role("msedgewebview2.exe", "--type=renderer", 3, 1, 2) != "renderer" || Role("other.exe", "--type=renderer", 3, 1, 2) != "other-owned" || Role("msedgewebview2.exe", "--type=renderer-extra", 3, 1, 2) != "other-owned") throw new Exception("Role projection regression");
     }
 }
@@ -223,6 +262,57 @@ class Program
     static long Ns(TraceTimestamp value) => value.Nanoseconds;
     static bool Known(TraceTimestamp value) => value.HasValue;
     static bool Known(TraceDuration? value) => value.HasValue && value.Value.HasValue && value.Value.Nanoseconds >= 0;
+
+    internal static ClosedProjection Closed(ICpuThreadActivity activity, IThread thread, IProcess process, ReadyIndex index)
+    {
+        if (activity.Thread != thread || activity.Process != process || thread.Process != process ||
+            !Known(activity.StartTime) || !index.Complete(thread.Id)) return new(Array.Empty<Span>(), "missing-identity-endpoint-or-event-time");
+        long start = Ns(activity.StartTime);
+        var previous = activity.PreviousActivity;
+        bool matched = previous != null && previous.Thread == thread && previous.Process == process &&
+            previous.SwitchOut != null && previous.SwitchOut.Thread == thread && previous.SwitchOut.Process == process && Known(previous.StopTime);
+        var previousOut = matched ? previous!.SwitchOut : null;
+        long? stop = matched ? Ns(previous!.StopTime) : null;
+        if (stop > start) throw new ProjectionFailure("Reversed previous activity");
+        var r = activity.ReadyThreadEvent;
+        if (r != null)
+        {
+            if (!ReadyIndex.Valid(r, thread) || Ns(r.Timestamp) > start ||
+                (thread.CreateTime.HasValue && Known(thread.CreateTime.Value) && Ns(r.Timestamp) < Ns(thread.CreateTime.Value)))
+                return new(Array.Empty<Span>(), "incompatible-ready-event");
+            long ready = Ns(r.Timestamp);
+            var observed = index.Between(thread.Id, ready, start, includeEnd: true);
+            if (!observed.Any(p => p.time == ready && ReadyIndex.Valid(p.value, thread)) ||
+                observed.Any(p => p.time != ready || !ReadyIndex.Valid(p.value, thread)))
+                return new(Array.Empty<Span>(), "incompatible-ready-event-history");
+            var spans = new List<Span> { new("ready", ready, start, source: "explicit-ready-event") };
+            if (stop.HasValue && previousOut != null && previousOut.ThreadState == SchedulerState.Waiting && ready >= stop.Value &&
+                index.Between(thread.Id, stop.Value, ready).Length == 0)
+            {
+                spans.Add(new("waiting", stop.Value, ready,
+                    previousOut.WaitReason.HasValue ? (int)previousOut.WaitReason.Value : null, "waiting-switch-out-to-ready-event"));
+                return new(spans.ToArray(), "waiting-and-explicit-ready");
+            }
+            return new(spans.ToArray(), "explicit-ready-only");
+        }
+        if (stop.HasValue && previousOut != null && previousOut.ThreadState == SchedulerState.Ready && index.Between(thread.Id, stop.Value, start).Length == 0)
+            return new(new[] { new Span("ready", stop.Value, start, source: "ready-switch-out-no-intervening-event") }, "ready-switch-out");
+        return new(Array.Empty<Span>(), "unproved-closed-gap");
+    }
+
+    internal static Span[] FinalTail(ICpuThreadActivity final, IThread thread, IProcess process, ReadyIndex index, long end, bool occupied)
+    {
+        if (final.Thread != thread || final.Process != process || thread.Process != process || final.SwitchOut == null ||
+            final.SwitchOut.Thread != thread || final.SwitchOut.Process != process || !Known(final.StopTime) || !index.Complete(thread.Id))
+            return Array.Empty<Span>();
+        // Query from the actual switch-out, before observation-window clipping.
+        // Otherwise a ready event before the window could be lost.
+        long tail = Ns(final.StopTime);
+        var ready = index.Between(thread.Id, tail, end).Select(p => p.value).ToArray();
+        return Projection.Tail(occupied, final.SwitchOut.ThreadState,
+            ready.Select(r => new Ready(Ns(r.Timestamp), r.ReadiedThread == thread, r.IsKernelStackResident && r.IsProcessResident)).ToArray(),
+            tail, end, final.SwitchOut.WaitReason.HasValue ? (int)final.SwitchOut.WaitReason.Value : null);
+    }
 
     static void ClockProjectionTest()
     {
@@ -258,6 +348,7 @@ class Program
         trace.Process(Stream.Null, Stream.Null);
         Stage = "validate-coverage";
         var cpu = pending.Result;
+        var readyIndex = new ReadyIndex(cpu.ReadyThreadEvents);
         Evidence["lost_events"] = metadata.LostEventCount; Evidence["lost_buffers"] = metadata.LostBufferCount;
         Evidence["context_switch_count"] = cpu.ContextSwitches.Count; Evidence["ready_event_count"] = cpu.ReadyThreadEvents.Count;
         if (metadata.LostEventCount != 0 || metadata.LostBufferCount != 0 || cpu.ContextSwitches.Count == 0 || cpu.ReadyThreadEvents.Count == 0) throw new ProjectionFailure("Missing complete scheduler trace");
@@ -316,31 +407,25 @@ class Program
                 if (thread.ExitTime.HasValue && Known(thread.ExitTime.Value)) lifeEnd = Math.Min(lifeEnd, Ns(thread.ExitTime.Value));
                 if (lifeEnd <= lifeBegin) continue;
                 var spans = new List<Span>();
+                var closedSources = new Dictionary<string, int>();
                 foreach (var activity in group)
                 {
                     if (!Known(activity.StartTime)) continue;
                     long start = Ns(activity.StartTime);
-                    if (Known(activity.StopTime)) spans.Add(new Span("scheduled", start, Ns(activity.StopTime)));
-                    if (Known(activity.ReadyDuration))
-                    {
-                        long ready = activity.ReadyDuration!.Value.Nanoseconds;
-                        spans.Add(new Span("ready", start - ready, start));
-                        if (Known(activity.WaitingDuration))
-                            spans.Add(new Span("waiting", start - ready - activity.WaitingDuration!.Value.Nanoseconds, start - ready));
-                    }
+                    if (Known(activity.StopTime)) spans.Add(new Span("scheduled", start, Ns(activity.StopTime), source: "context-switch-endpoints"));
+                    var closed = Closed(activity, thread, process, readyIndex);
+                    spans.AddRange(closed.spans);
+                    closedSources[closed.provenance] = closedSources.GetValueOrDefault(closed.provenance) + 1;
                 }
                 // A final off-CPU interval is not reported as zero. Only a known
                 // switch-out state plus complete readiness coverage can fill it.
                 var final = group.Where(a => Known(a.StopTime) && Ns(a.StopTime) < lifeEnd).OrderBy(a => Ns(a.StopTime)).LastOrDefault();
                 if (final?.SwitchOut != null && !group.Any(a => Known(a.StartTime) && Ns(a.StartTime) >= Ns(final.StopTime) && Ns(a.StartTime) < lifeEnd))
                 {
-                    long tail = Math.Max(lifeBegin, Ns(final.StopTime));
-                    var ready = cpu.ReadyThreadEvents.Where(r => r.ReadiedThreadId == thread.Id && Known(r.Timestamp) && Ns(r.Timestamp) >= tail && Ns(r.Timestamp) < lifeEnd).OrderBy(r => Ns(r.Timestamp)).ToArray();
+                    long tail = Ns(final.StopTime);
                     // Swapped-out readiness can include transition time; leave
                     // this tail unknown rather than equating it with ready time.
-                    spans.AddRange(Projection.Tail(spans.Any(s => s.end > tail && s.begin < lifeEnd), final.SwitchOut.ThreadState,
-                        ready.Select(r => new Ready(Ns(r.Timestamp), r.ReadiedThread == thread, r.IsKernelStackResident && r.IsProcessResident)).ToArray(),
-                        tail, lifeEnd, final.SwitchOut.WaitReason.HasValue ? (int)final.SwitchOut.WaitReason.Value : null));
+                    spans.AddRange(FinalTail(final, thread, process, readyIndex, lifeEnd, spans.Any(s => s.end > tail && s.begin < lifeEnd)));
                 }
                 var partition = Projection.Unambiguous(spans, lifeBegin, lifeEnd);
                 var summary = Projection.Summary(partition.spans, lifeBegin, lifeEnd);
@@ -350,13 +435,13 @@ class Program
                 threads.Add((thread.Id, born, maxReady, maxWait, new { tid = thread.Id, observation_begin_ns = lifeBegin - begin, observation_end_ns = lifeEnd - begin,
                     birth_observed = thread.CreateTime.HasValue && Known(thread.CreateTime.Value), exit_observed = thread.ExitTime.HasValue && Known(thread.ExitTime.Value),
                     conflict_unknown_ns = partition.conflict_unknown_ns, conflict_intervals = partition.conflict_intervals, first_conflict = partition.first_conflict,
-                    wait_reason_coverage = "known-tail-switch-out-only", summary }));
+                    closed_inputs = closedSources, wait_reason_coverage = "validated-switch-out-to-ready-and-tail", summary }));
             }
-            var chosen = threads.OrderBy(t => t.start).Take(1).Concat(threads.OrderByDescending(t => t.maxReady).Take(4)).Concat(threads.OrderByDescending(t => t.maxWait).Take(4)).DistinctBy(t => (t.id, t.start)).ToArray();
+            var chosen = threads.OrderBy(t => t.start).Take(1).Concat(threads.OrderByDescending(t => t.maxReady).Take(1)).Concat(threads.OrderByDescending(t => t.maxWait).Take(1)).DistinctBy(t => (t.id, t.start)).ToArray();
             processes.Add(new { pid = owned.pid, role = Projection.Role(process.ImageName ?? "", process.CommandLine ?? "", owned.pid, input.gui_pid, input.wrapper_pid),
                 role_source = "verified-owned-lifetime-and-fixed-command-switch", matched_lifetime = true,
                 native_created_unix_micros = owned.created_unix_micros, trace_created_unix_micros = Us(process.CreateTime!.Value.DateTimeOffset),
-                thread_count = threads.Count, selected_thread_count = chosen.Length, selection = "oldest-plus-four-longest-ready-and-four-longest-waiting",
+                thread_count = threads.Count, selected_thread_count = chosen.Length, selection = "oldest-plus-longest-known-ready-and-longest-known-waiting",
                 threads = chosen.Select(t => t.row).ToArray() });
         }
         return new { kind = "owned-scheduler-observation", available = true, feature_qualification = false, lost_events = metadata.LostEventCount,
@@ -368,7 +453,7 @@ class Program
 
     static int Main(string[] args)
     {
-        if (args.Length == 1 && args[0] == "--self-test") { Projection.SelfTest(); ClockProjectionTest(); Console.WriteLine("{\"projection_self_test\":\"passed\",\"recording_started\":false}"); return 0; }
+        if (args.Length == 1 && args[0] == "--self-test") { Projection.SelfTest(); ClockProjectionTest(); SchedulerFixtures.Run(); Console.WriteLine("{\"projection_self_test\":\"passed\",\"recording_started\":false}"); return 0; }
         if (args.Length != 3) return 78;
         object result; int code = 0;
         try

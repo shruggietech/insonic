@@ -81,7 +81,7 @@ def preflight_receipt(result,pid,tid,stress):
             'state_accounting':result.get('state_accounting'),
             'overlap_policy':result.get('overlap_policy'),
             'main_thread':{'pid':pid,'tid':tid,'summary':thread['summary'],
-                **{key:thread.get(key) for key in ['conflict_unknown_ns','conflict_intervals','first_conflict']}}}
+                **{key:thread.get(key) for key in ['conflict_unknown_ns','conflict_intervals','first_conflict','closed_inputs']}}}
 
 
 class Scheduler:

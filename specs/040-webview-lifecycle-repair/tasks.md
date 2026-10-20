@@ -125,4 +125,12 @@ E016 completes the real console prerequisite for T039/T040; E012-E015 failures a
 
 ## Phase20: Interpret one native failure using conservative accounting
 
-- [ ] T044 Preserve compact preflight uncertainty fields and verify one E020 native observation or explicit unavailability using E019's real-console-validated decoder, unchanged product/E011 controls and original deadlines; report known lower bounds and all interpretation limits. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)
+- [x] T044 Preserve compact preflight uncertainty fields and verify one E020 native observation or explicit unavailability using E019's real-console-validated decoder, unchanged product/E011 controls and original deadlines; report known lower bounds and all interpretation limits. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)
+
+## Phase21: Validate scheduler state provenance before further attribution
+
+- [x] T045 Reproduce the misleading duration getters with actual pinned activity objects, replace unsupported closed/tail state inference with validated canonical event/state endpoints and explicit unknowns, retain bounded provenance/maxima witnesses, and complete independent review before selecting any further hosted run. (FR-003, FR-004, FR-005, FR-007, FR-008, FR-009, FR-011)
+
+## Phase22: Validate the corrected observer with one real console trace
+
+- [ ] T046 Retain one E021 console-only state-provenance integration result or explicit unavailability, including known/unknown portions, maxima/provenance/dispositions and cleanup, before selecting any further native run. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)
