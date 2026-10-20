@@ -420,6 +420,8 @@ def run():
     css_control=os.environ.get('INSONIC_STARTUP_CSS_CONTROL')=='true'
     load_gate=os.environ.get('INSONIC_STARTUP_LOAD_GATE')=='true'
     live_observer=os.environ.get('INSONIC_STARTUP_LIVE')=='true'
+    normal_control=os.environ.get('INSONIC_STARTUP_NORMAL')=='true'
+    if normal_control and not live_observer:raise ValueError('normal priority control requires the live single-child experiment')
     if live_observer and not load_gate:raise ValueError('live endpoint requires the single load gate')
     if load_gate and not css_control:
         raise ValueError('load phase gate requires the exact E008 CSS control')
@@ -439,6 +441,7 @@ def run():
     summary={'kind':'desktop-startup-diagnostic','feature_qualification':False,'tool_revision':tool,
              'payload_revision':INCIDENT_REVISION,'payload_run':INCIDENT_RUN,'archive_sha256':receipt['archive_sha256'],
              'observations':[]}
+    if normal_control:summary['normal_gui_priority_control']=True
     save(evidence,'diagnostic.json',summary)
     with tempfile.TemporaryDirectory(prefix='insonic startup diagnosis ',dir=ROOT/'build') as temporary:
         location=Path(temporary);package.extract_package(archive,location)
@@ -538,6 +541,23 @@ def observe_predecessors(gui,root,env,evidence,label):
         name=label+'-'+flag[2:]+'.json';save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
 
 
+def normal_priority_control(observation):
+    unavailable={'available':False,'reason':'missing-invalid-or-incomplete-priority-receipt'}
+    if observation['truncated'] or observation['capture_incomplete']:return unavailable
+    lines=[line for line in observation.get('stderr','').splitlines() if 'native-priority-control' in line]
+    if len(lines)!=1:return unavailable
+    try:row=json.loads(lines[0])
+    except (ValueError,TypeError):return unavailable
+    if not isinstance(row,dict):return unavailable
+    expected={'kind':'native-priority-control','wrapper_priority_available':True,'wrapper_priority_class':16384,
+              'requested_gui_priority_class':32,'gui_priority_available':True,'gui_priority_class':32,'valid':True}
+    if any(type(row.get(key)) is not type(value) or row[key]!=value for key,value in expected.items()):return unavailable
+    integers=['wrapper_pid','gui_pid','probe_begin_unix_micros','probe_end_unix_micros']
+    if any(type(row.get(key)) is not int or row[key]<=0 for key in integers):return unavailable
+    if row['wrapper_pid']==row['gui_pid'] or row['probe_end_unix_micros']<row['probe_begin_unix_micros']:return unavailable
+    return {'available':True,**{key:row[key] for key in [*expected,*integers]}}
+
+
 def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=False,sample_seconds=300,sample_limit=240,timeline=None,observe_resources=False,observe_live=False):
     # Diagnostic sampling only. Each real close child owns a fresh profile and
     # must naturally release its job before another launch. Stop on first failure.
@@ -571,11 +591,17 @@ def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=Fal
         passed=(not observation['exit_code'] and not observation['timed_out'] and not observation['truncated']
                 and not observation['capture_incomplete'] and observation['owned_release'] is True
                 and result.get('native_exit')=='passed' and result.get('action')=='close' and result.get('playback')=='not-selected')
+        control=normal_priority_control(observation) if env.get('INSONIC_STARTUP_NORMAL')=='true' else None
+        if control is not None:
+            observation['priority_control']=control
+            passed=passed and control['available']
         name=f'cold-{index:03d}.json'
         save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
         summary['observations'].append({'file':name,'exit_code':observation['exit_code'],'observed_pass':passed})
-        if not passed:summary['result']='cold-start-failure-observed'
+        if control is not None and not control['available']:summary['result']='normal-priority-control-unavailable'
+        elif not passed:summary['result']='cold-start-failure-observed'
         save(evidence,'diagnostic.json',summary)
+        if control is not None and not control['available']:raise RuntimeError('normal priority control unavailable; original process evidence retained')
         if not passed:raise RuntimeError('cold startup failed; first failure evidence retained')
     save(evidence,'diagnostic.json',summary)
 

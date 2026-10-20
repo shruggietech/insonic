@@ -34,6 +34,10 @@ on:
         description: One live owned-process endpoint and native-stage timing in the single gated control
         type: boolean
         default: false
+      startup_normal:
+        description: Control actual GUI creation at verified Normal priority (single live gated experiment only)
+        type: boolean
+        default: false
       startup_abi_control:
         description: Compare the corrected source with the checksum-bound historical BOOL call (diagnostic only)
         type: boolean
@@ -128,6 +132,7 @@ jobs:
           INSONIC_STARTUP_CSS_CONTROL: ${{ inputs.startup_css_control }}
           INSONIC_STARTUP_LOAD_GATE: ${{ inputs.startup_load_gate }}
           INSONIC_STARTUP_LIVE: ${{ inputs.startup_live }}
+          INSONIC_STARTUP_NORMAL: ${{ inputs.startup_normal }}
           INSONIC_STARTUP_ABI_CONTROL: ${{ inputs.startup_abi_control }}
         run: python scripts/diagnose-desktop-startup.py
       - name: Trace one documentation completion invocation

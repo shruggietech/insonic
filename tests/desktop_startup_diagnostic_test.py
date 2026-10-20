@@ -17,6 +17,13 @@ diagnostic=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(diagnostic)
 
 class DesktopStartupDiagnosticTests(unittest.TestCase):
+    def test_normal_control_rejects_unbound_election_before_acquisition(self):
+        with patch.dict(os.environ,{'GITHUB_SHA':'a'*40,'INSONIC_STARTUP_NORMAL':'true'},clear=True), \
+             patch.object(diagnostic.os,'name','nt'),patch.object(diagnostic.pipeline.m,'disposable_runner'), \
+             patch.object(diagnostic,'incident_archive') as acquire:
+            with self.assertRaisesRegex(ValueError,'live single-child'):diagnostic.run()
+        acquire.assert_not_called()
+
     def test_live_election_rejects_missing_gate_before_acquisition(self):
         with patch.dict(os.environ,{'GITHUB_SHA':'a'*40,'INSONIC_STARTUP_LIVE':'true'},clear=True), \
              patch.object(diagnostic.os,'name','nt'),patch.object(diagnostic.pipeline.m,'disposable_runner'), \
@@ -480,6 +487,42 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
             with self.assertRaises((ValueError,RuntimeError)):diagnostic.run()
             source.assert_not_called()
 
+
+    def test_normal_control_requires_one_complete_effective_receipt_before_comparison(self):
+        receipt={'kind':'native-priority-control','wrapper_pid':101,'gui_pid':102,
+                 'wrapper_priority_available':True,'wrapper_priority_class':16384,
+                 'requested_gui_priority_class':32,'gui_priority_available':True,
+                 'gui_priority_class':32,'valid':True,
+                 'probe_begin_unix_micros':1000,'probe_end_unix_micros':1001}
+        encoded=json.dumps(receipt)
+        valid={'exit_code':0,'timed_out':False,'truncated':False,'capture_incomplete':False,'owned_release':True,
+               'stdout':json.dumps({'action':'close','native_exit':'passed','playback':'not-selected'}),'stderr':encoded}
+        cases=[({'exit_code':78,'stdout':'','stderr':json.dumps({'kind':'native-priority-control','valid':False,
+                    'reason':'expected-below-normal-wrapper-unavailable'})},False),
+               ({'stderr':''},False),({'stderr':encoded+'\n'+encoded},False),
+               ({'stderr':'{"kind":"native-priority-control"'},False),
+               ({'stderr':json.dumps(dict(receipt,gui_priority_class=16384))},False),
+               ({'stderr':json.dumps(dict(receipt,wrapper_priority_available=False))},False),
+               ({'stderr':json.dumps(dict(receipt,gui_pid=True))},False),
+               ({'stderr':json.dumps(dict(receipt,probe_end_unix_micros=999))},False),
+               ({'capture_incomplete':True},False),({'truncated':True},False),
+               ({'exit_code':23,'stdout':''},True),({},True)]
+        for update,available in cases:
+            with self.subTest(update=update),tempfile.TemporaryDirectory() as temporary, \
+                 patch.object(diagnostic,'capture',return_value=dict(valid,**update)) as child,patch('builtins.print'):
+                root=Path(temporary);summary={'observations':[]}
+                if available and not update:
+                    diagnostic.observe_cold_start(root/'gui.exe',root,root,{'INSONIC_STARTUP_NORMAL':'true'},root/'evidence',summary,sample_limit=1)
+                    expected='cold-start-no-failure-observed-not-a-cause-proof'
+                else:
+                    expected='cold-start-failure-observed' if available else 'normal-priority-control-unavailable'
+                    with self.assertRaisesRegex(RuntimeError,'cold startup' if available else 'priority control unavailable'):
+                        diagnostic.observe_cold_start(root/'gui.exe',root,root,{'INSONIC_STARTUP_NORMAL':'true'},root/'evidence',summary,sample_limit=1)
+                self.assertEqual(summary['result'],expected);child.assert_called_once()
+                retained=json.loads((root/'evidence/cold-000.json').read_text())
+                self.assertEqual(retained['exit_code'],update.get('exit_code',0))
+                self.assertEqual(retained['priority_control']['available'],available)
+                self.assertEqual(summary['observations'][0]['observed_pass'],available and not update)
 
     def test_cold_start_probe_uses_fresh_profiles_and_stops_at_first_failure(self):
         calls=[]

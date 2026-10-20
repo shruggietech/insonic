@@ -96,3 +96,7 @@ The first increment proves and corrects the exact upstream native BOOL violation
 ## Phase 13: Startup timing and live ownership observation
 
 - [x] T037 Verify fixed existing-stage monotonic timing and unchanged watchdog-arm brackets in cmd/insonic-desktop/, plus one off-path live owned-resource endpoint in scripts/windows_native_resources.py and the single-child harness; preserve duplicate-handle cleanup, original deadlines and unavailable semantics, and record E010 before dispatch. (FR-004, FR-007, FR-008, FR-009, FR-011)
+
+## Phase 14: Verify a launch-priority contribution
+
+- [x] T038 Prove the actual hidden Windows inheritance/control mechanism without a GUI, then verify the explicit disposable Normal-host-only treatment and effective class receipt in scripts/diagnose-native-launch.py; preserve default behavior, ownership, source/assets/deadlines, native failures and unavailable classification, and write E011 before dispatch. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)
