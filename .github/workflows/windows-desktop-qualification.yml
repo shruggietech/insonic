@@ -190,6 +190,7 @@ jobs:
     env:
       SOURCE_REVISION: ${{ inputs.revision }}
       INSONIC_DISPOSABLE_INSTALLER_TEST: "1"
+      INSONIC_PACKAGE_WORKLOAD_CPU_CONTROL: ${{ matrix.scope == 'archive' && 'true' || 'false' }}
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

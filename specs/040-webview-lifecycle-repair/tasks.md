@@ -154,4 +154,8 @@ E016 completes the real console prerequisite for T039/T040; E012-E015 failures a
 
 ## Phase27: Flag-free CPU-allocation comparison
 
-- [ ] T052 Verify CPU control independently retains the complete scheduler gate while allowing renderer election false; retain one E025 comparison using unchanged E024 SDK/product bytes and original deadlines before choosing qualification or further repair. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)
+- [x] T052 Verify CPU control independently retains the complete scheduler gate while allowing renderer election false; retain one E025 comparison using unchanged E024 SDK/product bytes and original deadlines before choosing qualification or further repair. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)
+
+## Phase28: Ordinary CI workload allocation
+
+- [ ] T053 Elect three-of-four CPU allocation only for disposable Windows desktop archive workload roots, covering installed first use and the whole CLI journey while leaving parent/GUI jobs unchanged; prove routing/failure/default behavior and qualify the combined repaired candidate through ordinary exact-head CI without diagnostic browser controls. (FR-004, FR-005, FR-007, FR-008, FR-009, FR-011, FR-014)

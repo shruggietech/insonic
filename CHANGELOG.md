@@ -18,6 +18,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Windows archive CI allocates concurrent CLI workload trees to three of its four CPUs, preserving the complete workload, native Exit cases and existing deadlines while keeping one CPU outside that workload's affinity mask.
+
 - Windows WebView convenience calls release their temporary settings and controller interfaces on success and failure, preserving caller-owned getter results and native error values.
 
 - Windows accelerator registration writes its event token into the caller's output value while preserving native error results.
