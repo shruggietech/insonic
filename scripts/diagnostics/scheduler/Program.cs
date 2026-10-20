@@ -11,7 +11,11 @@ record Anchor(long unix_micros, double begin_elapsed_seconds, double end_elapsed
 record Input(long begin_unix_micros, long end_unix_micros, Owned[] owned, int gui_pid, int wrapper_pid, Anchor start_anchor, Anchor end_anchor);
 record Span(string kind, long begin, long end, int? reason = null);
 record Ready(long time, bool resolved, bool resident);
-sealed class ProjectionFailure(string code) : Exception { internal string Code { get; } = code; }
+sealed class ProjectionFailure(string code, object? witness = null) : Exception
+{
+    internal string Code { get; } = code;
+    internal object? Witness { get; } = witness;
+}
 sealed class ClockFixture : ITraceTimestampContext
 {
     public TraceClockType ClockType => (TraceClockType)0;
@@ -64,12 +68,13 @@ static class Projection
         if (end <= begin || raw.Any(s => s.end < s.begin || !new[] { "scheduled", "ready", "waiting" }.Contains(s.kind))) throw new ProjectionFailure("Invalid span");
         var selected = raw.Select(s => new Span(s.kind, Math.Max(begin, s.begin), Math.Min(end, s.end), s.reason))
             .Where(s => s.end > s.begin).OrderBy(s => s.begin).ThenBy(s => s.end).ToList();
-        long covered = 0, previous = begin;
+        long covered = 0, previous = begin; Span? previousSpan = null;
         foreach (var s in selected)
         {
             if (s.begin < previous || !new[] { "scheduled", "ready", "waiting" }.Contains(s.kind))
-                throw new ProjectionFailure("Invalid interval projection");
-            covered += s.end - s.begin; previous = s.end;
+                throw new ProjectionFailure("Invalid interval projection", new { previous = previousSpan, current = s,
+                    overlap_ns = Math.Max(0, Math.Min(previous, s.end) - s.begin), window_begin_ns = begin, window_end_ns = end });
+            covered += s.end - s.begin; previous = s.end; previousSpan = s;
         }
         object Kind(string kind)
         {
@@ -102,7 +107,14 @@ static class Projection
         using var censored = JsonDocument.Parse(JsonSerializer.Serialize(Summary(new[] { new Span("scheduled", 12, 14) }, 10, 20)));
         if (censored.RootElement.GetProperty("unknown_ns").GetInt64() != 8) throw new Exception("Unknown interval regression");
         bool rejected = false;
-        try { Summary(new[] { new Span("ready", 0, 15), new Span("scheduled", 12, 20) }, 10, 20); } catch (ProjectionFailure) { rejected = true; }
+        try { Summary(new[] { new Span("ready", 0, 15), new Span("scheduled", 12, 20) }, 10, 20); }
+        catch (ProjectionFailure error)
+        {
+            using var witness = JsonDocument.Parse(JsonSerializer.Serialize(error.Witness));
+            rejected = witness.RootElement.GetProperty("overlap_ns").GetInt64() == 3 &&
+                witness.RootElement.GetProperty("previous").GetProperty("kind").GetString() == "ready" &&
+                witness.RootElement.GetProperty("current").GetProperty("kind").GetString() == "scheduled";
+        }
         if (!rejected) throw new Exception("Overlapping interval regression");
         var owned = new Owned(5, 200_000, 210_000, 100_000);
         if (!Lifetime(owned, 100_100, 220_000) || Lifetime(owned, 100_100, 205_000) || Lifetime(owned, 199_000, 220_000) || Lifetime(owned, 10_000, 150_000)) throw new Exception("Process incarnation regression");
@@ -210,6 +222,7 @@ class Program
             if (matches.Length != 1) throw new ProjectionFailure("Ambiguous owned process lifetime");
             var process = matches[0]!;
             Stage = "project-owned-threads";
+            Evidence["projection_pid"] = owned.pid;
             Evidence["same_pid_activity_count"] = cpu.ThreadActivity.Count(a => a.Process?.Id == owned.pid);
             Evidence["matched_process_activity_count"] = cpu.ThreadActivity.Count(a => a.Process == process);
             var groups = cpu.ThreadActivity.Where(a => a.Process == process && a.Thread != null).GroupBy(a => a.Thread!).ToArray();
@@ -285,7 +298,8 @@ class Program
             code = 78;
             result = new { kind = "owned-scheduler-observation", available = false, feature_qualification = false,
                 reason = "trace-decoder-unavailable", stage = Stage, validation = error is ProjectionFailure rejection ? rejection.Code : null,
-                hresult = error.HResult, inner_hresult = error.InnerException?.HResult, counters = Evidence };
+                hresult = error.HResult, inner_hresult = error.InnerException?.HResult, counters = Evidence,
+                witness = error is ProjectionFailure projection ? projection.Witness : null };
         }
         var encoded = JsonSerializer.Serialize(result, Json) + "\n";
         if (Encoding.UTF8.GetByteCount(encoded) > 65536) return 78;

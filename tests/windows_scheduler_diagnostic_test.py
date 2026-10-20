@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import time
 import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
@@ -76,6 +77,28 @@ class SchedulerTests(unittest.TestCase):
         self.assertEqual(rows['preflight.json']['reason'],'observer-initialization-not-completed')
         self.assertFalse(rows['cleanup.json']['confirmed']);self.assertFalse(rows['cleanup.json']['session_started'])
         self.assertNotIn('private path',json.dumps(rows));tools.capture.assert_not_called()
+
+    def test_stress_fixture_is_a_single_hidden_bounded_console_child(self):
+        started=time.monotonic()
+        with scheduler.ProcessTree([sys.executable,'-c',scheduler.STRESS_FIXTURE],cwd=ROOT,env=dict(os.environ),input_pipe=True) as tree:
+            output,error=tree.process.communicate(input=b'G',timeout=5)
+            self.assertEqual(tree.process.returncode,0,error.decode('utf-8',errors='replace'))
+            row=json.loads(output)
+            self.assertEqual(row['pid'],tree.process.pid);self.assertGreater(row['tid'],0)
+            self.assertTrue(tree.wait_for_descendants(max(0,5-(time.monotonic()-started))))
+        self.assertLess(time.monotonic()-started,5)
+
+    def test_console_stress_requires_explicit_election(self):
+        for elected in ['false','true']:
+            tools=MagicMock();observer=MagicMock();observer.__enter__.return_value=observer
+            observer.prepare.side_effect=RuntimeError('stop before tools')
+            observer.failure.return_value={'available':False};observer.cleanup_confirmed=True
+            observer.private=ROOT/'build/nonexistent-scheduler-stress-test'
+            with patch.dict(os.environ,{'INSONIC_SCHEDULER_STRESS':elected}),patch.object(preflight,'Scheduler',return_value=observer):
+                self.assertEqual(preflight.run(tools),78)
+            if elected=='true':observer.prepare.assert_called_once_with(stress=True)
+            else:observer.prepare.assert_called_once_with()
+            tools.capture.assert_not_called()
 
     def test_real_preflight_requires_correlated_main_thread_with_known_wait_and_scheduled_work(self):
         row={'available':True,'processes':[{'pid':10,'matched_lifetime':True,'threads':[

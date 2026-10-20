@@ -42,6 +42,10 @@ on:
         description: Bounded disposable scheduler trace after an owned console decoder preflight (Normal live control only)
         type: boolean
         default: false
+      scheduler_stress:
+        description: Add four bounded console worker threads only in scheduler-preflight (never product launches)
+        type: boolean
+        default: false
       startup_abi_control:
         description: Compare the corrected source with the checksum-bound historical BOOL call (diagnostic only)
         type: boolean
@@ -62,6 +66,7 @@ jobs:
     timeout-minutes: 4
     env:
       INSONIC_DISPOSABLE_INSTALLER_TEST: '1'
+      INSONIC_SCHEDULER_STRESS: ${{ inputs.scheduler_stress }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:

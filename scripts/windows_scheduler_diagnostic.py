@@ -23,6 +23,21 @@ time.sleep(.2)
 end=time.perf_counter()+.15
 while time.perf_counter()<end:pass
 """
+STRESS_FIXTURE="""import json,os,threading,time,sys
+print(json.dumps({'pid':os.getpid(),'tid':threading.get_native_id()}),flush=True)
+if sys.stdin.buffer.read(1)!=b'G':sys.exit(78)
+time.sleep(.2)
+sys.setswitchinterval(.001)
+def worker():
+    for _ in range(120):
+        sum(range(500))
+        time.sleep(.001)
+threads=[threading.Thread(target=worker) for _ in range(4)]
+for thread in threads:thread.start()
+end=time.perf_counter()+.15
+while time.perf_counter()<end:pass
+for thread in threads:thread.join()
+"""
 
 
 class Unavailable(RuntimeError):
@@ -101,7 +116,7 @@ class Scheduler:
             raise Unavailable('scheduler-tool-unavailable')
         return result
 
-    def prepare(self):
+    def prepare(self,*,stress=False):
         self.stage='build'
         if not self.dotnet or not self.wpr.is_file():raise Unavailable('scheduler-tools-missing')
         self.tool([self.dotnet,'build',self.project/'SchedulerDecoder.csproj','--no-self-contained',
@@ -114,7 +129,7 @@ class Scheduler:
             self.stage='preflight-child'
             origin=time.monotonic();start=resources.clock_anchor(origin);header=[];ready=Event()
             deadline=time.monotonic()+5
-            with ProcessTree([sys.executable,'-c',FIXTURE],cwd=self.root,env=self.env,input_pipe=True) as tree:
+            with ProcessTree([sys.executable,'-c',STRESS_FIXTURE if stress else FIXTURE],cwd=self.root,env=self.env,input_pipe=True) as tree:
                 def read_header():
                     try:header.append(tree.process.stdout.readline(1024))
                     finally:ready.set()
@@ -145,6 +160,7 @@ class Scheduler:
             if not preflight_valid(result,value['pid'],value['tid']):raise Unavailable('preflight-scheduler-validation-failed')
             self.preflight={'available':True,'known_wait_and_scheduled_activity':True,
                             'owned_lifetime_matched':True,'console_only':True,'gui_launches':0,
+                            'stress_threads':4 if stress else 0,
                             'main_thread':{'pid':value['pid'],'tid':value['tid'],
                                 'summary':next(thread['summary'] for process in result['processes'] for thread in process['threads']
                                                if process['pid']==value['pid'] and thread['tid']==value['tid'])}}

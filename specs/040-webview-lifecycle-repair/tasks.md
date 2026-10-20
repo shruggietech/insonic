@@ -103,8 +103,18 @@ The first increment proves and corrects the exact upstream native BOOL violation
 
 ## Phase 15: Separate scheduled, ready and waiting intervals
 
-- [ ] T039 Prepare and validate an explicitly elected disposable-only scheduler observer with a locked stable Microsoft decoder, small owned WPR session, real console preflight, verified process/thread lifetime projection, bounded fixed output, loss/coverage/unknown semantics and raw scratch cleanup; retain E011 controls and native deadlines, and complete E012 prediction/review before dispatch. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)
+- [x] T039 Prepare and validate an explicitly elected disposable-only scheduler observer with a locked stable Microsoft decoder, small owned WPR session, real console preflight, verified process/thread lifetime projection, bounded fixed output, loss/coverage/unknown semantics and raw scratch cleanup; retain E011 controls and native deadlines, and complete E012 prediction/review before dispatch. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)
 
 ## Phase16: Resolve decoder preflight unavailability
 
-- [ ] T040 Add fixed-code decoder rejection evidence and a bounded console-only disposable validation path after E012's zero-GUI failure; retain all gates and raw scratch deletion, and document E013 before dispatch. (FR-004, FR-007, FR-008, FR-009, FR-011)
+- [x] T040 Add fixed-code decoder rejection evidence and a bounded console-only disposable validation path after E012's zero-GUI failure; retain all gates and raw scratch deletion, and document E013 before dispatch. (FR-004, FR-007, FR-008, FR-009, FR-011)
+
+E016 completes the real console prerequisite for T039/T040; E012-E015 failures and the local representation correction remain in experiments.md. No incident repair is inferred.
+
+## Phase17: Observe native scheduling with validated tooling
+
+- [x] T041 Retain and interpret one E017 native failure or explicitly unavailable observation using the E016-validated exact tool, original E011 controls/deadlines, verified owned lifetimes and no raw trace publication. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)
+
+## Phase18: Reproduce the rejected interval projection cheaply
+
+- [ ] T042 Add bounded owned interval-conflict witnesses without weakening rejection, validate the opt-in four-thread console fixture locally, and retain E018 before selecting any further native observation. (FR-004, FR-007, FR-008, FR-009, FR-011)

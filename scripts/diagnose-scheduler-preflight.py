@@ -3,6 +3,7 @@
 """One disposable console-only decoder preflight; never starts product code."""
 import importlib.util
 import json
+import os
 from pathlib import Path
 
 from windows_scheduler_diagnostic import Scheduler
@@ -25,7 +26,8 @@ def run(tools=None):
         return 78
     with created as observer:
         try:
-            observer.prepare()
+            if os.environ.get('INSONIC_SCHEDULER_STRESS')=='true':observer.prepare(stress=True)
+            else:observer.prepare()
             result={'available':True,'preflight':observer.preflight,'feature_qualification':False,'gui_launches':0,
                     'raw_trace_retained':False,'cleanup_confirmed':observer.cleanup_confirmed}
         except Exception:

@@ -10,6 +10,7 @@ Deconstruct #154 across the application, Wails, the maintained native binding an
 
 **Language/Version**: Go 1.27.1; Python 3.12; Node 22+; existing TypeScript frontend.
 **Primary Dependencies**: Wails v2.16.0, maintained go-webview2 v1.0.22 moving to authoritative v1.0.23 with prior owned-lifetime patches retained, Windows COM/User32, installed WebView2 runtime.
+**Diagnostic-only tooling**: Optional x64 .NET 9 helper with locked stable Microsoft TraceProcessing Cpu/Metadata/OutputRedirection 1.12.10 and Toolkit 1.11.0; disposable WPR recording, fixed owned numeric output and private raw scratch deletion. It is not a product runtime or package dependency.
 **Storage**: Existing local/remote backend contracts unchanged; disposable profile/evidence files only.
 **Testing**: Actual native fake-COM vtable regressions with message-only or unshown windows; normal and race Go tests; Python process/harness tests; Node source-authority tests; root and site checks; disposable hosted native source and package qualification.
 **Target Platform**: Repair targets Windows x86-64; Linux compilation and existing desktop behavior remain required.
