@@ -50,12 +50,35 @@ on:
         description: Focused diagnostic boundary (never product qualification)
         type: choice
         default: completion
-        options: [completion, keyboard, rollback, msiexec, recovery, exit, container, container-independent, container-compare, standalone, standalone-full, recovery-compare, setup, setup-full, setup-compare, desktop-startup]
+        options: [completion, keyboard, rollback, msiexec, recovery, exit, container, container-independent, container-compare, standalone, standalone-full, recovery-compare, setup, setup-full, setup-compare, desktop-startup, scheduler-preflight]
 permissions:
   contents: read
   actions: read
 jobs:
+  scheduler-preflight:
+    if: inputs.kind == 'scheduler-preflight'
+    name: Console-only scheduler decoder preflight
+    runs-on: windows-2022
+    timeout-minutes: 4
+    env:
+      INSONIC_DISPOSABLE_INSTALLER_TEST: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Validate one owned console wait/work trace without product launches
+        run: python scripts/diagnose-scheduler-preflight.py
+      - name: Retain only bounded preflight metadata
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          archive: true
+          name: scheduler-preflight-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/scheduler-preflight/evidence
+          if-no-files-found: error
+          retention-days: 14
   invocation:
+    if: inputs.kind != 'scheduler-preflight'
     name: diagnostic ${{ matrix.kind }} (does not qualify MSI)
     strategy:
       fail-fast: false

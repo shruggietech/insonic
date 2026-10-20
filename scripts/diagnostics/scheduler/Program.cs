@@ -11,6 +11,7 @@ record Anchor(long unix_micros, double begin_elapsed_seconds, double end_elapsed
 record Input(long begin_unix_micros, long end_unix_micros, Owned[] owned, int gui_pid, int wrapper_pid, Anchor start_anchor, Anchor end_anchor);
 record Span(string kind, long begin, long end, int? reason = null);
 record Ready(long time, bool resolved, bool resident);
+sealed class ProjectionFailure(string code) : Exception { internal string Code { get; } = code; }
 
 static class Projection
 {
@@ -33,7 +34,7 @@ static class Projection
             Math.Abs((b.unix_micros - a.unix_micros) -
                 ((b.begin_elapsed_seconds + b.end_elapsed_seconds - a.begin_elapsed_seconds - a.end_elapsed_seconds) * 500_000)) > ClockToleranceUs ||
             input.begin_unix_micros < a.unix_micros || input.end_unix_micros > b.unix_micros)
-            throw new InvalidDataException("Unavailable clock alignment");
+            throw new ProjectionFailure("Unavailable clock alignment");
     }
     internal static long Clip(long a, long b, long begin, long end) => Math.Max(0, Math.Min(b, end) - Math.Max(a, begin));
 
@@ -50,14 +51,14 @@ static class Projection
     internal static object Summary(IEnumerable<Span> spans, long begin, long end)
     {
         var raw = spans.ToArray();
-        if (end <= begin || raw.Any(s => s.end < s.begin || !new[] { "scheduled", "ready", "waiting" }.Contains(s.kind))) throw new InvalidDataException("Invalid span");
+        if (end <= begin || raw.Any(s => s.end < s.begin || !new[] { "scheduled", "ready", "waiting" }.Contains(s.kind))) throw new ProjectionFailure("Invalid span");
         var selected = raw.Select(s => new Span(s.kind, Math.Max(begin, s.begin), Math.Min(end, s.end), s.reason))
             .Where(s => s.end > s.begin).OrderBy(s => s.begin).ThenBy(s => s.end).ToList();
         long covered = 0, previous = begin;
         foreach (var s in selected)
         {
             if (s.begin < previous || !new[] { "scheduled", "ready", "waiting" }.Contains(s.kind))
-                throw new InvalidDataException("Invalid interval projection");
+                throw new ProjectionFailure("Invalid interval projection");
             covered += s.end - s.begin; previous = s.end;
         }
         object Kind(string kind)
@@ -91,14 +92,14 @@ static class Projection
         using var censored = JsonDocument.Parse(JsonSerializer.Serialize(Summary(new[] { new Span("scheduled", 12, 14) }, 10, 20)));
         if (censored.RootElement.GetProperty("unknown_ns").GetInt64() != 8) throw new Exception("Unknown interval regression");
         bool rejected = false;
-        try { Summary(new[] { new Span("ready", 0, 15), new Span("scheduled", 12, 20) }, 10, 20); } catch (InvalidDataException) { rejected = true; }
+        try { Summary(new[] { new Span("ready", 0, 15), new Span("scheduled", 12, 20) }, 10, 20); } catch (ProjectionFailure) { rejected = true; }
         if (!rejected) throw new Exception("Overlapping interval regression");
         var owned = new Owned(5, 200_000, 210_000, 100_000);
         if (!Lifetime(owned, 100_100, 220_000) || Lifetime(owned, 100_100, 205_000) || Lifetime(owned, 199_000, 220_000) || Lifetime(owned, 10_000, 150_000)) throw new Exception("Process incarnation regression");
         var aligned = new Input(1_000_000, 2_000_000, new[] { owned }, 5, 6, new Anchor(1_000_000, 0, 0), new Anchor(2_000_000, 1, 1));
         Alignment(aligned);
         rejected = false;
-        try { Alignment(aligned with { end_anchor = new Anchor(2_100_000, 1, 1) }); } catch (InvalidDataException) { rejected = true; }
+        try { Alignment(aligned with { end_anchor = new Anchor(2_100_000, 1, 1) }); } catch (ProjectionFailure) { rejected = true; }
         if (!rejected) throw new Exception("Clock discontinuity regression");
         var tail = Tail(false, SchedulerState.Waiting, new[] { new Ready(17, true, true) }, 10, 20, 13);
         if (tail.Length != 2 || tail[0].kind != "waiting" || tail[0].end != 17 || tail[1].kind != "ready" || tail[1].begin != 17) throw new Exception("Censored tail split regression");
@@ -115,6 +116,8 @@ static class Projection
 class Program
 {
     static readonly JsonSerializerOptions Json = new() { WriteIndented = false };
+    static string Stage = "validate-input";
+    static readonly Dictionary<string, long> Evidence = new();
     static long Us(DateTimeOffset value) => (value.UtcTicks - DateTimeOffset.UnixEpoch.UtcTicks) / 10;
     static long Ns(TraceTimestamp value) => value.Nanoseconds;
     static bool Full(TraceTimestamp value) => value.HasValue && !value.IsPartial;
@@ -124,42 +127,62 @@ class Program
     {
         Projection.Alignment(input);
         if (input.owned.Length is < 1 or > 16 || input.begin_unix_micros <= 0 || input.end_unix_micros <= input.begin_unix_micros || input.end_unix_micros - input.begin_unix_micros > 20_000_000 || input.owned.Select(o => o.pid).Distinct().Count() != input.owned.Length)
-            throw new InvalidDataException("Invalid owned observation");
+            throw new ProjectionFailure("Invalid owned observation");
+        Stage = "open-trace";
         using var trace = TraceProcessor.Create(tracePath, new TraceProcessorSettings { AllowLostEvents = false, AllowTimeInversion = false, SuppressFirstTimeSetupMessage = true });
+        Stage = "configure-consumers";
         var pending = trace.UseCpuSchedulingData();
         var metadata = trace.UseMetadata();
+        Stage = "process-trace";
         trace.Process(Stream.Null, Stream.Null);
+        Stage = "validate-coverage";
         var cpu = pending.Result;
-        if (metadata.LostEventCount != 0 || metadata.LostBufferCount != 0 || cpu.ContextSwitches.Count == 0 || cpu.ReadyThreadEvents.Count == 0) throw new InvalidDataException("Missing complete scheduler trace");
+        Evidence["lost_events"] = metadata.LostEventCount; Evidence["lost_buffers"] = metadata.LostBufferCount;
+        Evidence["context_switch_count"] = cpu.ContextSwitches.Count; Evidence["ready_event_count"] = cpu.ReadyThreadEvents.Count;
+        if (metadata.LostEventCount != 0 || metadata.LostBufferCount != 0 || cpu.ContextSwitches.Count == 0 || cpu.ReadyThreadEvents.Count == 0) throw new ProjectionFailure("Missing complete scheduler trace");
         long traceStart = Us(metadata.StartTime);
         long begin = checked((input.begin_unix_micros - traceStart) * 1000), end = checked((input.end_unix_micros - traceStart) * 1000);
         var first = cpu.ContextSwitches.Min(c => Ns(c.Timestamp)); var last = cpu.ContextSwitches.Max(c => Ns(c.Timestamp));
-        if (first > begin || last < end) throw new InvalidDataException("Incomplete case coverage");
+        if (first > begin || last < end) {
+            Evidence["trace_start_unix_micros"] = traceStart; Evidence["window_begin_ns"] = begin; Evidence["window_end_ns"] = end;
+            Evidence["first_context_switch_ns"] = first; Evidence["last_context_switch_ns"] = last;
+            throw new ProjectionFailure("Incomplete case coverage");
+        }
+        Evidence["trace_start_unix_micros"] = traceStart;
+        Evidence["window_begin_ns"] = begin; Evidence["window_end_ns"] = end;
+        Evidence["first_context_switch_ns"] = first; Evidence["last_context_switch_ns"] = last;
         var candidates = cpu.ThreadActivity.Select(a => a.Process).Where(p => p != null).Distinct().ToArray();
         var processes = new List<object>();
         foreach (var owned in input.owned)
         {
+            Stage = "validate-owned-lifetime";
             if (owned.pid <= 0 || owned.created_unix_micros <= 0 || owned.query_end_unix_micros < owned.query_begin_unix_micros || owned.created_unix_micros > owned.query_begin_unix_micros ||
                 owned.query_begin_unix_micros < input.begin_unix_micros || owned.query_end_unix_micros > input.end_unix_micros || owned.created_unix_micros < traceStart)
-                throw new InvalidDataException("Invalid ownership identity");
+                throw new ProjectionFailure("Invalid ownership identity");
             var incarnations = candidates.Where(p => p!.Id == owned.pid).ToArray();
             var matches = incarnations.Where(p => p!.CreateTime.HasValue && Full(p.CreateTime.Value)
                 && (!p.ExitTime.HasValue || Full(p.ExitTime.Value))
                 && Projection.Lifetime(owned, Us(p.CreateTime.Value.DateTimeOffset), p.ExitTime.HasValue ? Us(p.ExitTime.Value.DateTimeOffset) : null)).ToArray();
+            Evidence["incarnation_count"] = incarnations.Length; Evidence["matched_incarnation_count"] = matches.Length;
+            Evidence["native_birth_unix_micros"] = owned.created_unix_micros;
+            Evidence["nearest_birth_delta_us"] = incarnations.Where(p => p!.CreateTime.HasValue && Full(p.CreateTime.Value))
+                .Select(p => Us(p!.CreateTime!.Value.DateTimeOffset) - owned.created_unix_micros).OrderBy(Math.Abs).DefaultIfEmpty(long.MaxValue).First();
             // A second incarnation touching the ownership bracket is ambiguous,
             // even if only one passes the stricter native-birth check.
             if (incarnations.Count(p => !p!.CreateTime.HasValue || !Full(p.CreateTime.Value) ||
                 (Us(p.CreateTime.Value.DateTimeOffset) <= owned.query_end_unix_micros &&
                  (!p.ExitTime.HasValue || !Full(p.ExitTime.Value) || Us(p.ExitTime.Value.DateTimeOffset) >= owned.query_begin_unix_micros))) != 1)
-                throw new InvalidDataException("Conflicting process incarnation");
-            if (matches.Length != 1) throw new InvalidDataException("Ambiguous owned process lifetime");
+                throw new ProjectionFailure("Conflicting process incarnation");
+            if (matches.Length != 1) throw new ProjectionFailure("Ambiguous owned process lifetime");
             var process = matches[0]!;
+            Stage = "project-owned-threads";
             var groups = cpu.ThreadActivity.Where(a => a.Process == process && a.Thread != null).GroupBy(a => a.Thread!).ToArray();
-            if (groups.Length > 256) throw new InvalidDataException("Thread bound exceeded");
+            if (groups.Length > 256) throw new ProjectionFailure("Thread bound exceeded");
             var threads = new List<(int id, long start, long maxReady, long maxWait, object row)>();
             foreach (var group in groups)
             {
                 var thread = group.Key;
+                Evidence["projection_tid"] = thread.Id;
                 long lifeBegin = begin, lifeEnd = end;
                 if (thread.CreateTime.HasValue && Full(thread.CreateTime.Value)) lifeBegin = Math.Max(lifeBegin, Ns(thread.CreateTime.Value));
                 if (thread.ExitTime.HasValue && Full(thread.ExitTime.Value)) lifeEnd = Math.Min(lifeEnd, Ns(thread.ExitTime.Value));
@@ -217,15 +240,16 @@ class Program
         object result; int code = 0;
         try
         {
-            if (new FileInfo(args[0]).Length >= 256L * 1024 * 1024 || new FileInfo(args[1]).Length > 65536) throw new InvalidDataException("Input bound exceeded");
-            var input = JsonSerializer.Deserialize<Input>(File.ReadAllText(args[1])) ?? throw new InvalidDataException("Missing input");
+            if (new FileInfo(args[0]).Length >= 256L * 1024 * 1024 || new FileInfo(args[1]).Length > 65536) throw new ProjectionFailure("Input bound exceeded");
+            var input = JsonSerializer.Deserialize<Input>(File.ReadAllText(args[1])) ?? throw new ProjectionFailure("Missing input");
             result = Decode(args[0], input);
         }
         catch (Exception error)
         {
             code = 78;
             result = new { kind = "owned-scheduler-observation", available = false, feature_qualification = false,
-                reason = "trace-decoder-unavailable", hresult = error.HResult };
+                reason = "trace-decoder-unavailable", stage = Stage, validation = error is ProjectionFailure rejection ? rejection.Code : null,
+                hresult = error.HResult, inner_hresult = error.InnerException?.HResult, counters = Evidence };
         }
         var encoded = JsonSerializer.Serialize(result, Json) + "\n";
         if (Encoding.UTF8.GetByteCount(encoded) > 65536) return 78;

@@ -104,3 +104,7 @@ The first increment proves and corrects the exact upstream native BOOL violation
 ## Phase 15: Separate scheduled, ready and waiting intervals
 
 - [ ] T039 Prepare and validate an explicitly elected disposable-only scheduler observer with a locked stable Microsoft decoder, small owned WPR session, real console preflight, verified process/thread lifetime projection, bounded fixed output, loss/coverage/unknown semantics and raw scratch cleanup; retain E011 controls and native deadlines, and complete E012 prediction/review before dispatch. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)
+
+## Phase16: Resolve decoder preflight unavailability
+
+- [ ] T040 Add fixed-code decoder rejection evidence and a bounded console-only disposable validation path after E012's zero-GUI failure; retain all gates and raw scratch deletion, and document E013 before dispatch. (FR-004, FR-007, FR-008, FR-009, FR-011)

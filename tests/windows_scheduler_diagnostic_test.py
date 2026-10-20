@@ -14,6 +14,8 @@ sys.path.insert(0,str(ROOT/'scripts'))
 import windows_scheduler_diagnostic as scheduler
 spec=importlib.util.spec_from_file_location('scheduler_startup_diagnostic',ROOT/'scripts/diagnose-desktop-startup.py')
 diagnostic=importlib.util.module_from_spec(spec);spec.loader.exec_module(diagnostic)
+preflight_spec=importlib.util.spec_from_file_location('console_scheduler_preflight',ROOT/'scripts/diagnose-scheduler-preflight.py')
+preflight=importlib.util.module_from_spec(preflight_spec);preflight_spec.loader.exec_module(preflight)
 
 
 class SchedulerTests(unittest.TestCase):
@@ -32,6 +34,25 @@ class SchedulerTests(unittest.TestCase):
             variants.append(value)
         for row in variants:
             with self.subTest(row=row),self.assertRaises(scheduler.Unavailable):scheduler.observation_input(start,end,row)
+
+    def test_console_entry_checks_disposable_guard_before_any_tool_creation(self):
+        tools=MagicMock();tools.pipeline.m.disposable_runner.side_effect=RuntimeError('not disposable')
+        with patch.object(preflight,'Scheduler') as create:
+            with self.assertRaisesRegex(RuntimeError,'not disposable'):preflight.run(tools)
+        create.assert_not_called();tools.capture.assert_not_called()
+
+    def test_console_failure_is_unavailable_with_zero_product_launches_and_cleanup_receipt(self):
+        tools=MagicMock();observer=MagicMock();observer.__enter__.return_value=observer
+        observer.prepare.side_effect=RuntimeError('private detail')
+        observer.failure.return_value={'available':False,'reason':'fixed-rejection','cleanup_confirmed':True}
+        observer.cleanup_confirmed=True;observer.private=ROOT/'build/nonexistent-scheduler-test-private'
+        rows={};tools.save.side_effect=lambda directory,name,row:rows.update({name:copy.deepcopy(row)})
+        with patch.object(preflight,'Scheduler',return_value=observer):self.assertEqual(preflight.run(tools),78)
+        observer.prepare.assert_called_once();observer.cancel.assert_called_once()
+        tools.capture.assert_not_called()
+        self.assertEqual(rows['preflight.json']['gui_launches'],0)
+        self.assertFalse(rows['preflight.json']['available']);self.assertTrue(rows['cleanup.json']['confirmed'])
+        self.assertNotIn('private detail',json.dumps(rows))
 
     def test_real_preflight_requires_correlated_main_thread_with_known_wait_and_scheduled_work(self):
         row={'available':True,'processes':[{'pid':10,'matched_lifetime':True,'threads':[
@@ -57,6 +78,7 @@ class SchedulerTests(unittest.TestCase):
             instance.stop=MagicMock(return_value=raw);instance.decode=MagicMock(side_effect=ValueError('private error'))
             instance.active=False;instance.cleanup_confirmed=True;instance.preflight={'available':True}
             instance.stage='';instance.last_tool=None;instance.decoder_hresult=None
+            instance.decoder_rejection=None;instance.preflight_input=None
             native={'exit_code':23,'timed_out':True,'stderr':'original','timing':{'start_clock_anchor':{'unix_micros':95},
                 'end_clock_anchor':{'unix_micros':120}},'resources':{'live':{'available':True,'owned':self.owned()}}}
             original=copy.deepcopy(native)

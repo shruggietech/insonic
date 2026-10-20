@@ -73,7 +73,7 @@ class Scheduler:
         self.project=self.root/'scripts/diagnostics/scheduler'
         self.dll=self.private/'decoder/SchedulerDecoder.dll'
         self.preflight=None
-        self.stage='not-started';self.last_tool=None;self.decoder_hresult=None
+        self.stage='not-started';self.last_tool=None;self.decoder_hresult=None;self.decoder_rejection=None;self.preflight_input=None
 
     def __enter__(self):return self
 
@@ -135,7 +135,8 @@ class Scheduler:
                     raise
             self.stage='preflight-stop';trace=self.stop()
             self.stage='preflight-decode'
-            result=self.decode(trace,observation_input(start,end,owned))
+            self.preflight_input=observation_input(start,end,owned)
+            result=self.decode(trace,self.preflight_input)
             self.stage='preflight-validation'
             if not preflight_valid(result,value['pid'],value['tid']):raise Unavailable('preflight-scheduler-validation-failed')
             self.preflight={'available':True,'known_wait_and_scheduled_activity':True,
@@ -180,6 +181,9 @@ class Scheduler:
                     row=json.loads(output.read_text(encoding='utf-8'))
                     if row.get('kind')=='owned-scheduler-observation' and type(row.get('hresult')) is int:
                         self.decoder_hresult=row['hresult']
+                        # This helper emits only fixed stage/rejection strings
+                        # and numeric counters, never native exception text.
+                        self.decoder_rejection=row
                 except (ValueError,OSError):pass
             raise
         if not output.is_file() or output.stat().st_size>LIMIT:raise Unavailable('scheduler-output-bound')
@@ -214,4 +218,5 @@ class Scheduler:
     def failure(self):
         return {'available':False,'feature_qualification':False,'reason':'scheduler-observation-unavailable',
                 'stage':self.stage,'tool':self.last_tool,'decoder_hresult':self.decoder_hresult,
+                'decoder_rejection':self.decoder_rejection,'console_preflight_input':self.preflight_input,
                 'raw_trace_retained':False,'cleanup_confirmed':self.cleanup_confirmed}
