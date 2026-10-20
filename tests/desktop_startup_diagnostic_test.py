@@ -363,12 +363,26 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
                 with self.assertRaises(ValueError):diagnostic.run()
                 acquire.assert_not_called()
 
-    def test_workload_cpu_control_requires_the_full_renderer_control(self):
-        with patch.dict(os.environ,{'GITHUB_SHA':'a'*40,'INSONIC_STARTUP_WORKLOAD_CPU_CONTROL':'true'},clear=True), \
-             patch.object(diagnostic.os,'name','nt'),patch.object(diagnostic.pipeline.m,'disposable_runner'), \
-             patch.object(diagnostic,'incident_archive') as acquire:
-            with self.assertRaisesRegex(ValueError,'exact E023'):diagnostic.run()
-            acquire.assert_not_called()
+    def test_workload_cpu_control_requires_full_scheduler_chain_without_renderer_flag(self):
+        env={'GITHUB_SHA':'a'*40,'INSONIC_STARTUP_WORKLOAD_CPU_CONTROL':'true',
+             'INSONIC_STARTUP_RENDERER_CONTROL':'false','INSONIC_STARTUP_SCHEDULER':'true',
+             'INSONIC_STARTUP_NORMAL':'true','INSONIC_STARTUP_LIVE':'true',
+             'INSONIC_STARTUP_LOAD_GATE':'true','INSONIC_STARTUP_CSS_CONTROL':'true',
+             'INSONIC_STARTUP_BROWSER':'true','INSONIC_STARTUP_COLD':'true','INSONIC_STARTUP_HIDE':'true',
+             'INSONIC_STARTUP_SOURCE':'true','INSONIC_STARTUP_LOAD':'true','INSONIC_STARTUP_ABI_CONTROL':'false'}
+        for field in [None]+[key for key in env if key.startswith('INSONIC_') and
+                             key not in ('INSONIC_STARTUP_WORKLOAD_CPU_CONTROL','INSONIC_STARTUP_RENDERER_CONTROL')]:
+            selected=dict(env)
+            if field is not None:selected[field]='true' if field=='INSONIC_STARTUP_ABI_CONTROL' else 'false'
+            with self.subTest(field=field),patch.dict(os.environ,selected,clear=True), \
+                 patch.object(diagnostic.os,'name','nt'),patch.object(diagnostic.pipeline.m,'disposable_runner'), \
+                 patch.object(diagnostic,'incident_archive',side_effect=RuntimeError('acquisition reached')) as acquire:
+                if field is None:
+                    with self.assertRaisesRegex(RuntimeError,'acquisition reached'):diagnostic.run()
+                    acquire.assert_called_once()
+                else:
+                    with self.assertRaises(ValueError):diagnostic.run()
+                    acquire.assert_not_called()
 
     def test_workload_receipt_covers_initial_launch_and_preflight_failures(self):
         for phase in ['initial-launch','scheduler-preflight']:

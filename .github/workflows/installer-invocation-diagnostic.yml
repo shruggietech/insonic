@@ -47,7 +47,7 @@ on:
         type: boolean
         default: false
       startup_workload_cpu_control:
-        description: Reserve one of four CPUs from concurrent CLI work only (exact E023 diagnostic controls required)
+        description: Exclude one of four CPUs from launched CLI work (exact single-child scheduler controls required)
         type: boolean
         default: false
       scheduler_stress:

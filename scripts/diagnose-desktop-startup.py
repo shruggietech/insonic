@@ -461,8 +461,8 @@ def run():
     scheduler_elected=os.environ.get('INSONIC_STARTUP_SCHEDULER')=='true'
     renderer_control=os.environ.get('INSONIC_STARTUP_RENDERER_CONTROL')=='true'
     workload_cpu_control=os.environ.get('INSONIC_STARTUP_WORKLOAD_CPU_CONTROL')=='true'
-    if workload_cpu_control and not renderer_control:
-        raise ValueError('workload CPU control requires the exact E023 renderer policy control')
+    if workload_cpu_control and not scheduler_elected:
+        raise ValueError('workload CPU control requires the exact single-child scheduler control')
     if renderer_control and not scheduler_elected:
         raise ValueError('renderer backgrounding control requires the exact single-child scheduler control')
     if scheduler_elected and not normal_control:raise ValueError('scheduler observation requires the exact Normal live control')
