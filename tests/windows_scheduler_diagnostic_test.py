@@ -109,6 +109,22 @@ class SchedulerTests(unittest.TestCase):
             invalid=copy.deepcopy(row);invalid['processes'][0]['threads'][0]['summary'][state]['total_ns']=0
             self.assertFalse(scheduler.preflight_valid(invalid,10,11))
 
+    def test_preflight_receipt_keeps_conflict_uncertainty_without_private_fields_or_weaker_work_gate(self):
+        row={'available':True,'state_accounting':'known-lower-bounds','overlap_policy':'conflicts-unknown',
+             'processes':[{'pid':10,'matched_lifetime':True,'threads':[{'tid':11,
+                 'summary':{'unknown_ns':1000,'waiting':{'total_ns':200_000_000},'scheduled':{'total_ns':2_000_000}},
+                 'conflict_unknown_ns':200,'conflict_intervals':1,
+                 'first_conflict':{'overlap_ns':200},'private_path':'not-for-retention'}]}]}
+        receipt=scheduler.preflight_receipt(row,10,11,True)
+        self.assertEqual(receipt['main_thread']['summary']['unknown_ns'],1000)
+        self.assertEqual(receipt['main_thread']['conflict_unknown_ns'],200)
+        self.assertEqual(receipt['main_thread']['conflict_intervals'],1)
+        self.assertEqual(receipt['main_thread']['first_conflict'],{'overlap_ns':200})
+        self.assertEqual(receipt['state_accounting'],'known-lower-bounds');self.assertEqual(receipt['stress_threads'],4)
+        self.assertNotIn('private_path',json.dumps(receipt));self.assertNotIn('not-for-retention',json.dumps(receipt))
+        row['processes'][0]['threads'][0]['summary']['waiting']['total_ns']=0
+        with self.assertRaises(scheduler.Unavailable):scheduler.preflight_receipt(row,10,11,True)
+
     def test_cancel_targets_only_the_unique_owned_session_and_does_not_retry(self):
         instance=scheduler.Scheduler.__new__(scheduler.Scheduler)
         instance.wpr='wpr.exe';instance.instance='insonic-s040-owned';instance.active=True;instance.cleanup_confirmed=True

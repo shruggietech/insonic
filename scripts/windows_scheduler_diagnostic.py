@@ -71,6 +71,19 @@ def preflight_valid(result,pid,tid):
             summary.get('scheduled',{}).get('total_ns',0)>1_000_000)
 
 
+def preflight_receipt(result,pid,tid,stress):
+    if not preflight_valid(result,pid,tid):raise Unavailable('preflight-scheduler-validation-failed')
+    thread=next(thread for process in result['processes'] for thread in process['threads']
+                if process['pid']==pid and thread['tid']==tid)
+    return {'available':True,'known_wait_and_scheduled_activity':True,
+            'owned_lifetime_matched':True,'console_only':True,'gui_launches':0,
+            'stress_threads':4 if stress else 0,
+            'state_accounting':result.get('state_accounting'),
+            'overlap_policy':result.get('overlap_policy'),
+            'main_thread':{'pid':pid,'tid':tid,'summary':thread['summary'],
+                **{key:thread.get(key) for key in ['conflict_unknown_ns','conflict_intervals','first_conflict']}}}
+
+
 class Scheduler:
     def __init__(self,root,capture,disposable):
         disposable()
@@ -157,13 +170,7 @@ class Scheduler:
             result=self.decode(trace,self.preflight_input)
             self.preflight_projection=result
             self.stage='preflight-validation'
-            if not preflight_valid(result,value['pid'],value['tid']):raise Unavailable('preflight-scheduler-validation-failed')
-            self.preflight={'available':True,'known_wait_and_scheduled_activity':True,
-                            'owned_lifetime_matched':True,'console_only':True,'gui_launches':0,
-                            'stress_threads':4 if stress else 0,
-                            'main_thread':{'pid':value['pid'],'tid':value['tid'],
-                                'summary':next(thread['summary'] for process in result['processes'] for thread in process['threads']
-                                               if process['pid']==value['pid'] and thread['tid']==value['tid'])}}
+            self.preflight=preflight_receipt(result,value['pid'],value['tid'],stress)
         finally:
             if self.active:self.cancel()
             # Discard the preflight raw trace before the separate actual session.

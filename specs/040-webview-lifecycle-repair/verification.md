@@ -149,3 +149,10 @@ The onlyfreshGUI in39353609715/attempt1/job118403277238 fails the original18-sec
 ### E018 console-only overlap witness (2026-10-20 UTC)
 
 Exactsource7fa392557ae8d4138a4263f8a8551c88efb63542, run39362252300/attempt1/job118430877769, failed strict decoder in1m03s. Zero product build/GUI/CLI workload. Trace2614CSwitch/1383ReadyThread, zero loss, valid ownership/range/clock. PID7452/TID1932 scheduled[362484300,378039500)ns conflicts with ready[378039300,378042300)ns by200ns. Scheduler interpretation remains unavailable. Cleanup/raw-directory removal confirmed. Artifact12237788151,1205B,SHA25622b02365c6c46c4f690dbe80c49c157ab5b10cf53b52e57dbbfdec0fdc53d1b8. This is an offline-testable tool case, not product-cause evidence. No next run selected.
+
+
+### S040 E019 result: console tool passes with explicit unknown time
+
+[Run39362821471](https://github.com/shruggietech/insonic/actions/runs/39362821471), attempt1/job118432700679, exactsource649a90aded9785d720db86bc1e8ce8796cd5149c, passes in44s. Zero product build/GUI/CLI workload. Owned console PID2864/mainTID6384 meets unchanged known wait/work thresholds: observed522869300ns, waiting348271700ns(max200053200), scheduled174162300ns(max15745100), ready434300ns(max37000), unknown1000ns. Cleanup/raw-directory removal confirmed. Artifact12238271258,711B,SHA2569aac7ca3630af11c72d413ea4ce52d338df5850a95ea24a7d71cd48e47925330.
+
+The compact success receipt retained the main summary but omitted its conflict counters/witness. Therefore the1000ns unknown cannot be attributed specifically to the overlap branch. The exact local E018 regression exercises that arithmetic; this integration pass validates only the real console known lower bounds. Preserve those existing fixed decoder fields in future compact receipts with an offline regression; no repeated console dispatch is needed for that receipt-only correction. #154 remains open; no next native run selected by this result alone.
