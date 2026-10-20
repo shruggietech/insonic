@@ -102,6 +102,7 @@ class SchedulerTests(unittest.TestCase):
             instance.active=False;instance.cleanup_confirmed=True;instance.preflight={'available':True}
             instance.stage='';instance.last_tool=None;instance.decoder_hresult=None
             instance.decoder_rejection=None;instance.preflight_input=None
+            instance.preflight_projection=None
             native={'exit_code':23,'timed_out':True,'stderr':'original','timing':{'start_clock_anchor':{'unix_micros':95},
                 'end_clock_anchor':{'unix_micros':120}},'resources':{'live':{'available':True,'owned':self.owned()}}}
             original=copy.deepcopy(native)

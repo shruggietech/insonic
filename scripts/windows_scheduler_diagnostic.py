@@ -76,7 +76,7 @@ class Scheduler:
         self.project=self.root/'scripts/diagnostics/scheduler'
         self.dll=self.private/'decoder/SchedulerDecoder.dll'
         self.preflight=None
-        self.stage='not-started';self.last_tool=None;self.decoder_hresult=None;self.decoder_rejection=None;self.preflight_input=None
+        self.stage='not-started';self.last_tool=None;self.decoder_hresult=None;self.decoder_rejection=None;self.preflight_input=None;self.preflight_projection=None
 
     def __enter__(self):return self
 
@@ -140,10 +140,14 @@ class Scheduler:
             self.stage='preflight-decode'
             self.preflight_input=observation_input(start,end,owned)
             result=self.decode(trace,self.preflight_input)
+            self.preflight_projection=result
             self.stage='preflight-validation'
             if not preflight_valid(result,value['pid'],value['tid']):raise Unavailable('preflight-scheduler-validation-failed')
             self.preflight={'available':True,'known_wait_and_scheduled_activity':True,
-                            'owned_lifetime_matched':True,'console_only':True,'gui_launches':0}
+                            'owned_lifetime_matched':True,'console_only':True,'gui_launches':0,
+                            'main_thread':{'pid':value['pid'],'tid':value['tid'],
+                                'summary':next(thread['summary'] for process in result['processes'] for thread in process['threads']
+                                               if process['pid']==value['pid'] and thread['tid']==value['tid'])}}
         finally:
             if self.active:self.cancel()
             # Discard the preflight raw trace before the separate actual session.
@@ -222,4 +226,5 @@ class Scheduler:
         return {'available':False,'feature_qualification':False,'reason':'scheduler-observation-unavailable',
                 'stage':self.stage,'tool':self.last_tool,'decoder_hresult':self.decoder_hresult,
                 'decoder_rejection':self.decoder_rejection,'console_preflight_input':self.preflight_input,
+                'console_preflight_projection':self.preflight_projection,
                 'raw_trace_retained':False,'cleanup_confirmed':self.cleanup_confirmed}

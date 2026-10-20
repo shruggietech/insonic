@@ -117,7 +117,7 @@ class Program
 {
     static readonly JsonSerializerOptions Json = new() { WriteIndented = false };
     static string Stage = "validate-input";
-    static readonly Dictionary<string, long> Evidence = new();
+    static readonly Dictionary<string, long?> Evidence = new();
     static long Us(DateTimeOffset value) => (value.UtcTicks - DateTimeOffset.UnixEpoch.UtcTicks) / 10;
     static long Ns(TraceTimestamp value) => value.Nanoseconds;
     static bool Full(TraceTimestamp value) => value.HasValue && !value.IsPartial;
@@ -132,6 +132,8 @@ class Program
         using var trace = TraceProcessor.Create(tracePath, new TraceProcessorSettings { AllowLostEvents = false, AllowTimeInversion = false, SuppressFirstTimeSetupMessage = true });
         Stage = "configure-consumers";
         var pending = trace.UseCpuSchedulingData();
+        var pendingProcesses = trace.UseProcesses();
+        trace.UseThreads();
         var metadata = trace.UseMetadata();
         Stage = "process-trace";
         trace.Process(Stream.Null, Stream.Null);
@@ -151,7 +153,7 @@ class Program
         Evidence["trace_start_unix_micros"] = traceStart;
         Evidence["window_begin_ns"] = begin; Evidence["window_end_ns"] = end;
         Evidence["first_context_switch_ns"] = first; Evidence["last_context_switch_ns"] = last;
-        var candidates = cpu.ThreadActivity.Select(a => a.Process).Where(p => p != null).Distinct().ToArray();
+        var candidates = pendingProcesses.Result.Processes.ToArray();
         var processes = new List<object>();
         foreach (var owned in input.owned)
         {
@@ -164,9 +166,12 @@ class Program
                 && (!p.ExitTime.HasValue || Full(p.ExitTime.Value))
                 && Projection.Lifetime(owned, Us(p.CreateTime.Value.DateTimeOffset), p.ExitTime.HasValue ? Us(p.ExitTime.Value.DateTimeOffset) : null)).ToArray();
             Evidence["incarnation_count"] = incarnations.Length; Evidence["matched_incarnation_count"] = matches.Length;
+            Evidence["full_birth_count"] = incarnations.Count(p => p!.CreateTime.HasValue && Full(p.CreateTime.Value));
+            Evidence["partial_birth_count"] = incarnations.Count(p => p!.CreateTime.HasValue && p.CreateTime.Value.HasValue && p.CreateTime.Value.IsPartial);
+            Evidence["missing_birth_count"] = incarnations.Count(p => !p!.CreateTime.HasValue || !p.CreateTime.Value.HasValue);
             Evidence["native_birth_unix_micros"] = owned.created_unix_micros;
             Evidence["nearest_birth_delta_us"] = incarnations.Where(p => p!.CreateTime.HasValue && Full(p.CreateTime.Value))
-                .Select(p => Us(p!.CreateTime!.Value.DateTimeOffset) - owned.created_unix_micros).OrderBy(Math.Abs).DefaultIfEmpty(long.MaxValue).First();
+                .Select(p => (long?)(Us(p!.CreateTime!.Value.DateTimeOffset) - owned.created_unix_micros)).OrderBy(value => Math.Abs(value!.Value)).FirstOrDefault();
             // A second incarnation touching the ownership bracket is ambiguous,
             // even if only one passes the stricter native-birth check.
             if (incarnations.Count(p => !p!.CreateTime.HasValue || !Full(p.CreateTime.Value) ||
@@ -176,6 +181,8 @@ class Program
             if (matches.Length != 1) throw new ProjectionFailure("Ambiguous owned process lifetime");
             var process = matches[0]!;
             Stage = "project-owned-threads";
+            Evidence["same_pid_activity_count"] = cpu.ThreadActivity.Count(a => a.Process?.Id == owned.pid);
+            Evidence["matched_process_activity_count"] = cpu.ThreadActivity.Count(a => a.Process == process);
             var groups = cpu.ThreadActivity.Where(a => a.Process == process && a.Thread != null).GroupBy(a => a.Thread!).ToArray();
             if (groups.Length > 256) throw new ProjectionFailure("Thread bound exceeded");
             var threads = new List<(int id, long start, long maxReady, long maxWait, object row)>();
@@ -230,7 +237,7 @@ class Program
         }
         return new { kind = "owned-scheduler-observation", available = true, feature_qualification = false, lost_events = metadata.LostEventCount,
             lost_buffers = metadata.LostBufferCount, coverage = "bounded-sequential-no-loss-context-switch-range-and-owned-lifetimes", clock_tolerance_us = Projection.ClockToleranceUs, window_begin_unix_micros = input.begin_unix_micros,
-            window_end_unix_micros = input.end_unix_micros, scheduled_interpretation = "scheduled-not-exact-executed-cpu", processes };
+            window_end_unix_micros = input.end_unix_micros, scheduled_interpretation = "scheduled-not-exact-executed-cpu", counters = Evidence, processes };
     }
 
     static int Main(string[] args)
