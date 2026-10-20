@@ -19,6 +19,7 @@ resources=importlib.util.module_from_spec(spec);spec.loader.exec_module(resource
 class NativeResourcesTests(unittest.TestCase):
     def test_creation_identity_uses_verified_handle_and_integral_time(self):
         selected=MagicMock();selected.QueryInformationJobObject.return_value=0;selected.OpenProcess.return_value=77
+        selected.WaitForSingleObject.return_value=258
         def owned(handle,job,out):out._obj.value=1;return 1
         selected.IsProcessInJob.side_effect=owned
         created_micros=1792454400123456
@@ -29,7 +30,7 @@ class NativeResourcesTests(unittest.TestCase):
         selected.GetProcessTimes.side_effect=times
         with patch.object(resources.os,'name','nt'),patch.object(resources,'api',return_value=selected), \
              patch.object(resources,'native_failed',return_value={'available':False,'error':5}), \
-             patch.object(resources.time,'time_ns',side_effect=[(created_micros+1000)*1000,(created_micros+1001)*1000]):
+             patch.object(resources,'utc_micros',side_effect=[created_micros+1000,created_micros+1001]):
             row=resources.owned_snapshot(99,[123],identity=True)['processes'][0]
         self.assertEqual(row['identity'],{'available':True,'created_unix_micros':created_micros,
             'query_begin_unix_micros':created_micros+1000,'query_end_unix_micros':created_micros+1001})
@@ -38,6 +39,7 @@ class NativeResourcesTests(unittest.TestCase):
     def test_creation_identity_never_turns_failed_exited_or_reversed_queries_into_live_proof(self):
         for failure,exited,reversed_clock in [(True,False,False),(False,True,False),(False,False,True)]:
             selected=MagicMock();selected.QueryInformationJobObject.return_value=0;selected.OpenProcess.return_value=77
+            selected.WaitForSingleObject.return_value=0 if exited else 258
             def owned(handle,job,out):out._obj.value=1;return 1
             def times(handle,created,exit_time,kernel,user):
                 value=116444736000000000+10000
@@ -48,9 +50,53 @@ class NativeResourcesTests(unittest.TestCase):
             with self.subTest(failure=failure,exited=exited,reversed_clock=reversed_clock), \
                  patch.object(resources.os,'name','nt'),patch.object(resources,'api',return_value=selected), \
                  patch.object(resources,'native_failed',return_value={'available':False,'error':5}), \
-                 patch.object(resources.time,'time_ns',side_effect=[2000000,1999000 if reversed_clock else 2001000]):
+                 patch.object(resources,'utc_micros',side_effect=[2000,1999 if reversed_clock else 2001]):
                 row=resources.owned_snapshot(99,[123],identity=True)['processes'][0]
             self.assertFalse(row['identity']['available']);self.assertNotIn('created_unix_micros',row['identity'])
+
+    def test_live_identity_requires_unsignaled_handle_not_undefined_exit_time(self):
+        for wait_result,exit_bits,available in [(258,1,True),(0,0,False),(0xffffffff,0,False),(128,0,False)]:
+            selected=MagicMock();selected.QueryInformationJobObject.return_value=0;selected.OpenProcess.return_value=77
+            selected.WaitForSingleObject.return_value=wait_result
+            def owned(handle,job,out):out._obj.value=1;return 1
+            def times(handle,created,exited,kernel,user):
+                value=116444736000000000+10000
+                created._obj.low=value&0xffffffff;created._obj.high=value>>32
+                exited._obj.low=exit_bits
+                return 1
+            selected.IsProcessInJob.side_effect=owned;selected.GetProcessTimes.side_effect=times
+            with self.subTest(wait_result=wait_result,exit_bits=exit_bits), \
+                 patch.object(resources.os,'name','nt'),patch.object(resources,'api',return_value=selected), \
+                 patch.object(resources,'native_failed',return_value={'available':False,'error':5}), \
+                 patch.object(resources,'utc_micros',side_effect=[2000,2001]):
+                row=resources.owned_snapshot(99,[123],identity=True)['processes'][0]
+            self.assertEqual(row['identity']['available'],available)
+            selected.OpenProcess.assert_called_once_with(0x101000,False,123)
+            selected.WaitForSingleObject.assert_called_once_with(77,0)
+            selected.CloseHandle.assert_called_once_with(77)
+
+    def test_creation_identity_uses_precise_integral_utc_instead_of_python_coarse_clock(self):
+        selected=MagicMock();micros=1792454400123456
+        selected.QueryInformationJobObject.return_value=0;selected.OpenProcess.return_value=77
+        selected.WaitForSingleObject.return_value=258
+        def owned(handle,job,out):out._obj.value=1;return 1
+        def times(handle,created,exited,kernel,user):
+            value=116444736000000000+micros*10
+            created._obj.low=value&0xffffffff;created._obj.high=value>>32
+            return 1
+        def precise(out):
+            value=116444736000000000+(micros+1000)*10+7
+            out._obj.low=value&0xffffffff;out._obj.high=value>>32
+        selected.IsProcessInJob.side_effect=owned;selected.GetProcessTimes.side_effect=times
+        selected.GetSystemTimePreciseAsFileTime.side_effect=precise
+        with patch.object(resources.os,'name','nt'),patch.object(resources,'api',return_value=selected), \
+             patch.object(resources,'native_failed',return_value={'available':False,'error':5}), \
+             patch.object(resources.time,'time_ns',side_effect=AssertionError('coarse Python clock')):
+            result=resources.owned_snapshot(99,[123],identity=True)['processes'][0]['identity']
+        self.assertEqual(result,{'available':True,'created_unix_micros':micros,
+            'query_begin_unix_micros':micros+1000,'query_end_unix_micros':micros+1000})
+        self.assertIs(type(result['query_begin_unix_micros']),int)
+        self.assertEqual(selected.GetSystemTimePreciseAsFileTime.call_count,2)
 
     def test_windows_x64_layouts(self):
         self.assertEqual(ctypes.sizeof(resources.FileTime),8)
@@ -107,7 +153,7 @@ class NativeResourcesTests(unittest.TestCase):
     def test_clock_anchor_brackets_utc_integers_without_float_roundtrip(self):
         value=1792454400123456789
         with patch.object(resources.time,'monotonic',side_effect=[10.0,10.001]), \
-             patch.object(resources.time,'time_ns',return_value=value):
+             patch.object(resources,'utc_micros',return_value=value//1000):
             row=resources.clock_anchor(9.0)
         self.assertEqual(row,{'unix_micros':value//1000,'begin_elapsed_seconds':1.0,'end_elapsed_seconds':1.001})
         self.assertIs(type(row['unix_micros']),int);self.assertLess(row['unix_micros'],2**53)
@@ -180,19 +226,21 @@ class NativeResourcesTests(unittest.TestCase):
     @unittest.skipUnless(os.name=='nt','actual Windows owned job endpoint')
     def test_actual_owned_job_counters_with_hidden_noninteractive_child(self):
         from process_tree import ProcessTree
-        with ProcessTree([sys.executable,'-c','import time;time.sleep(30)'],cwd=ROOT,env=dict(os.environ)) as tree:
-            result=resources.owned_snapshot(tree.job,[tree.process.pid])
-            self.assertTrue(result['available']);self.assertTrue(result['job']['available'])
-            self.assertGreaterEqual(result['job']['active_processes'],1)
-            row=result['processes'][0]
-            self.assertTrue(row['owned']);self.assertTrue(row['cpu']['available'])
-            self.assertTrue(row['memory']['available']);self.assertTrue(row['priority']['available'])
-            self.assertNotIn('identity',row)
-            identity=resources.owned_snapshot(tree.job,[tree.process.pid],identity=True)['processes'][0]['identity']
-            self.assertTrue(identity['available'])
-            self.assertLessEqual(identity['created_unix_micros'],identity['query_begin_unix_micros'])
-            self.assertLessEqual(identity['query_begin_unix_micros'],identity['query_end_unix_micros'])
-        tree.process.communicate(timeout=5)
+        tree=ProcessTree([sys.executable,'-c','import time;time.sleep(30)'],cwd=ROOT,env=dict(os.environ))
+        try:
+            with tree:
+                result=resources.owned_snapshot(tree.job,[tree.process.pid])
+                self.assertTrue(result['available']);self.assertTrue(result['job']['available'])
+                self.assertGreaterEqual(result['job']['active_processes'],1)
+                row=result['processes'][0]
+                self.assertTrue(row['owned']);self.assertTrue(row['cpu']['available'])
+                self.assertTrue(row['memory']['available']);self.assertTrue(row['priority']['available'])
+                self.assertNotIn('identity',row)
+                identity=resources.owned_snapshot(tree.job,[tree.process.pid],identity=True)['processes'][0]['identity']
+                self.assertTrue(identity['available'],identity)
+                self.assertLessEqual(identity['created_unix_micros'],identity['query_begin_unix_micros'])
+                self.assertLessEqual(identity['query_begin_unix_micros'],identity['query_end_unix_micros'])
+        finally:tree.process.communicate(timeout=5)
 
 
 if __name__=='__main__':unittest.main()

@@ -42,6 +42,8 @@ def api():
         'OpenProcess':([C.c_uint32,C.c_int,C.c_uint32],C.c_void_p),
         'IsProcessInJob':([C.c_void_p,C.c_void_p,C.POINTER(C.c_int)],C.c_int),
         'GetPriorityClass':([C.c_void_p],C.c_uint32),
+        'WaitForSingleObject':([C.c_void_p,C.c_uint32],C.c_uint32),
+        'GetSystemTimePreciseAsFileTime':([C.POINTER(FileTime)],None),
         'GetProcessTimes':([C.c_void_p]+[C.POINTER(FileTime)]*4,C.c_int),
         'K32GetProcessMemoryInfo':([C.c_void_p,C.POINTER(ProcessMemory),C.c_uint32],C.c_int),
         'GetCurrentProcess':([],C.c_void_p),
@@ -94,6 +96,14 @@ def cpu_interval(before,after):
             'busy_percent':round(100*(total-differences['idle_ticks'])/total,3),**differences}
 
 
+def utc_micros():
+    # Python before 3.13 uses the coarser Windows system clock. Keep FILETIME
+    # creation/query brackets on the precise native UTC clock, without floats.
+    if os.name!='nt':return time.time_ns()//1000
+    value=FileTime();api().GetSystemTimePreciseAsFileTime(C.byref(value))
+    return (ticks(value)-116444736000000000)//10
+
+
 def owned_snapshot(job,pids,*,identity=False):
     # PID enumeration belongs to the existing job observer. Verify membership
     # again on each opened handle before querying it, including PID reuse races.
@@ -111,11 +121,12 @@ def owned_snapshot(job,pids,*,identity=False):
         else:result['job']=native_failed()
         for pid in sorted(set(pids))[:16]:
             row={'pid':pid};result['processes'].append(row)
-            handle=selected.OpenProcess(0x1000,False,pid)  # QUERY_LIMITED_INFORMATION only.
+            # Synchronize is needed only for the zero-time live identity check.
+            handle=selected.OpenProcess(0x1000|(0x100000 if identity else 0),False,pid)
             if not handle:
                 row.update(native_failed());continue
             try:
-                identity_begin=time.time_ns()//1000 if identity else None
+                identity_begin=utc_micros() if identity else None
                 owned=C.c_int()
                 if not selected.IsProcessInJob(handle,job,C.byref(owned)):
                     row.update(native_failed());continue
@@ -128,12 +139,17 @@ def owned_snapshot(job,pids,*,identity=False):
                 row['cpu']=({'available':True,'scope':'process-lifetime','tick_unit':'100ns','kernel_ticks':ticks(kernel),'user_ticks':ticks(user)}
                     if selected.GetProcessTimes(handle,C.byref(created),C.byref(exited),C.byref(kernel),C.byref(user)) else native_failed())
                 if identity:
-                    identity_end=time.time_ns()//1000
+                    # GetProcessTimes exit output is undefined while the process lives.
+                    live=selected.WaitForSingleObject(handle,0)==258  # WAIT_TIMEOUT.
+                    identity_end=utc_micros()
                     created_micros=(ticks(created)-116444736000000000)//10
                     row['identity']=({'available':True,'created_unix_micros':created_micros,
                         'query_begin_unix_micros':identity_begin,'query_end_unix_micros':identity_end}
-                        if row['cpu']['available'] and not ticks(exited) and 0<created_micros<=identity_begin<=identity_end
-                        else failed('live-creation-identity-unavailable'))
+                        if row['cpu']['available'] and live and 0<created_micros<=identity_begin<=identity_end
+                        else failed('process-times-unavailable' if not row['cpu']['available'] else
+                            'live-process-unverified' if not live else
+                            'reversed-identity-clock' if identity_begin>identity_end else
+                            'creation-outside-identity-clock'))
                 memory=ProcessMemory();memory.cb=C.sizeof(memory)
                 row['memory']=({'available':True,'working_set_bytes':memory.working,
                     'peak_working_set_bytes':memory.peak_working,'private_commit_bytes':memory.private}
@@ -207,7 +223,7 @@ class LiveEndpoint:
 
 def clock_anchor(origin):
     before=time.monotonic()
-    utc_micros=time.time_ns()//1000
+    value=utc_micros()
     after=time.monotonic()
-    return {'unix_micros':utc_micros,'begin_elapsed_seconds':round(before-origin,6),
+    return {'unix_micros':value,'begin_elapsed_seconds':round(before-origin,6),
             'end_elapsed_seconds':round(after-origin,6)}

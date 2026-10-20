@@ -171,3 +171,7 @@ These markers are the committed preparation checkpoint. The linked hosted execut
 ## Phase30: Preserve source-build cache identity
 
 - [x] T055 Isolate elected affinity in scripts/windows_workload_affinity.py while restoring the shared source-build launcher bytes, preserve source cache/verifier identity, and prove before-resume ordering, all setup/assignment failure cleanup and real inherited masks without GUI/recording; retain the initial cold-key failure and qualification limits in verification.md. (FR-004, FR-005, FR-008, FR-013, FR-014)
+
+## Phase31: Precise native observer identity
+
+- [x] T056 Reproduce the undefined live exit-time and coarse Windows clock assumptions in scripts/windows_native_resources.py, use an owned-handle zero-time liveness check and integral precise Windows UTC, preserve unavailable/ownership/clock-order rejection and original deadlines, and validate hidden regressions without GUI/recording. Record that the hosted aggregate identity failure does not identify its exact branch. (FR-003, FR-004, FR-005, FR-007, FR-008, FR-011, FR-014)
