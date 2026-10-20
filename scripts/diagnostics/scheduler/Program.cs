@@ -12,6 +12,16 @@ record Input(long begin_unix_micros, long end_unix_micros, Owned[] owned, int gu
 record Span(string kind, long begin, long end, int? reason = null);
 record Ready(long time, bool resolved, bool resident);
 sealed class ProjectionFailure(string code) : Exception { internal string Code { get; } = code; }
+sealed class ClockFixture : ITraceTimestampContext
+{
+    public TraceClockType ClockType => (TraceClockType)0;
+    public TraceTimestampValue ReferenceValue => default;
+    public DateTimeOffset ReferenceTime => DateTimeOffset.UnixEpoch;
+    public bool IsPartial => false;
+    public DateTimeOffset GetDateTimeOffset(TraceTimestampValue value) => throw new NotSupportedException();
+    public Timestamp GetRelativeTimestamp(TraceTimestampValue value) => throw new NotSupportedException();
+    public TraceTimestampValue GetApproximateValue(Timestamp value) => throw new NotSupportedException();
+}
 
 static class Projection
 {
@@ -120,8 +130,26 @@ class Program
     static readonly Dictionary<string, long?> Evidence = new();
     static long Us(DateTimeOffset value) => (value.UtcTicks - DateTimeOffset.UnixEpoch.UtcTicks) / 10;
     static long Ns(TraceTimestamp value) => value.Nanoseconds;
-    static bool Full(TraceTimestamp value) => value.HasValue && !value.IsPartial;
-    static bool Full(TraceDuration? value) => value.HasValue && value.Value.HasValue && !value.Value.IsPartial && value.Value.Nanoseconds >= 0;
+    static bool Known(TraceTimestamp value) => value.HasValue;
+    static bool Known(TraceDuration? value) => value.HasValue && value.Value.HasValue && value.Value.Nanoseconds >= 0;
+
+    static void ClockProjectionTest()
+    {
+        // Exercise the actual pinned adapter used by legacy process/thread data.
+        // Its partial flag concerns raw clock Value, not interval coverage.
+        var type = typeof(TraceTimestamp).Assembly.GetType("Microsoft.Windows.EventTracing.PartialTraceTimestampContext", true)!;
+        var context = Activator.CreateInstance(type, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic,
+            null, new object[] { new ClockFixture() }, null)!;
+        var timestamp = (TraceTimestamp)type.GetMethod("Create", new[] { typeof(Timestamp) })!.Invoke(context, new object[] { new Timestamp(123_456_700) })!;
+        var duration = (TraceDuration)type.GetMethod("Create", new[] { typeof(Duration) })!.Invoke(context, new object[] { new Duration(100_000_000) })!;
+        if (!timestamp.IsPartial || !duration.IsPartial || timestamp.Nanoseconds != 123_456_700 || duration.Nanoseconds != 100_000_000 ||
+            timestamp.DateTimeOffset != DateTimeOffset.UnixEpoch.AddTicks(1_234_567)) throw new Exception("Pinned timestamp projection regression");
+        if (!Known(timestamp) || !Known(duration) || Known(default(TraceTimestamp)) || Known((TraceDuration?)null))
+            throw new Exception("Usable normalized clock projection rejected");
+        bool rejected = false;
+        try { _ = timestamp.Value; } catch (InvalidOperationException) { rejected = true; }
+        if (!rejected) throw new Exception("Raw clock value must remain unavailable");
+    }
 
     static object Decode(string tracePath, Input input)
     {
@@ -162,21 +190,22 @@ class Program
                 owned.query_begin_unix_micros < input.begin_unix_micros || owned.query_end_unix_micros > input.end_unix_micros || owned.created_unix_micros < traceStart)
                 throw new ProjectionFailure("Invalid ownership identity");
             var incarnations = candidates.Where(p => p!.Id == owned.pid).ToArray();
-            var matches = incarnations.Where(p => p!.CreateTime.HasValue && Full(p.CreateTime.Value)
-                && (!p.ExitTime.HasValue || Full(p.ExitTime.Value))
+            var matches = incarnations.Where(p => p!.CreateTime.HasValue && Known(p.CreateTime.Value)
+                && (!p.ExitTime.HasValue || Known(p.ExitTime.Value))
                 && Projection.Lifetime(owned, Us(p.CreateTime.Value.DateTimeOffset), p.ExitTime.HasValue ? Us(p.ExitTime.Value.DateTimeOffset) : null)).ToArray();
             Evidence["incarnation_count"] = incarnations.Length; Evidence["matched_incarnation_count"] = matches.Length;
-            Evidence["full_birth_count"] = incarnations.Count(p => p!.CreateTime.HasValue && Full(p.CreateTime.Value));
-            Evidence["partial_birth_count"] = incarnations.Count(p => p!.CreateTime.HasValue && p.CreateTime.Value.HasValue && p.CreateTime.Value.IsPartial);
+            Evidence["usable_birth_count"] = incarnations.Count(p => p!.CreateTime.HasValue && Known(p.CreateTime.Value));
+            Evidence["raw_clock_birth_count"] = incarnations.Count(p => p!.CreateTime.HasValue && Known(p.CreateTime.Value) && !p.CreateTime.Value.IsPartial);
+            Evidence["normalized_birth_count"] = incarnations.Count(p => p!.CreateTime.HasValue && p.CreateTime.Value.HasValue && p.CreateTime.Value.IsPartial);
             Evidence["missing_birth_count"] = incarnations.Count(p => !p!.CreateTime.HasValue || !p.CreateTime.Value.HasValue);
             Evidence["native_birth_unix_micros"] = owned.created_unix_micros;
-            Evidence["nearest_birth_delta_us"] = incarnations.Where(p => p!.CreateTime.HasValue && Full(p.CreateTime.Value))
+            Evidence["nearest_birth_delta_us"] = incarnations.Where(p => p!.CreateTime.HasValue && Known(p.CreateTime.Value))
                 .Select(p => (long?)(Us(p!.CreateTime!.Value.DateTimeOffset) - owned.created_unix_micros)).OrderBy(value => Math.Abs(value!.Value)).FirstOrDefault();
             // A second incarnation touching the ownership bracket is ambiguous,
             // even if only one passes the stricter native-birth check.
-            if (incarnations.Count(p => !p!.CreateTime.HasValue || !Full(p.CreateTime.Value) ||
+            if (incarnations.Count(p => !p!.CreateTime.HasValue || !Known(p.CreateTime.Value) ||
                 (Us(p.CreateTime.Value.DateTimeOffset) <= owned.query_end_unix_micros &&
-                 (!p.ExitTime.HasValue || !Full(p.ExitTime.Value) || Us(p.ExitTime.Value.DateTimeOffset) >= owned.query_begin_unix_micros))) != 1)
+                 (!p.ExitTime.HasValue || !Known(p.ExitTime.Value) || Us(p.ExitTime.Value.DateTimeOffset) >= owned.query_begin_unix_micros))) != 1)
                 throw new ProjectionFailure("Conflicting process incarnation");
             if (matches.Length != 1) throw new ProjectionFailure("Ambiguous owned process lifetime");
             var process = matches[0]!;
@@ -191,30 +220,30 @@ class Program
                 var thread = group.Key;
                 Evidence["projection_tid"] = thread.Id;
                 long lifeBegin = begin, lifeEnd = end;
-                if (thread.CreateTime.HasValue && Full(thread.CreateTime.Value)) lifeBegin = Math.Max(lifeBegin, Ns(thread.CreateTime.Value));
-                if (thread.ExitTime.HasValue && Full(thread.ExitTime.Value)) lifeEnd = Math.Min(lifeEnd, Ns(thread.ExitTime.Value));
+                if (thread.CreateTime.HasValue && Known(thread.CreateTime.Value)) lifeBegin = Math.Max(lifeBegin, Ns(thread.CreateTime.Value));
+                if (thread.ExitTime.HasValue && Known(thread.ExitTime.Value)) lifeEnd = Math.Min(lifeEnd, Ns(thread.ExitTime.Value));
                 if (lifeEnd <= lifeBegin) continue;
                 var spans = new List<Span>();
                 foreach (var activity in group)
                 {
-                    if (!Full(activity.StartTime)) continue;
+                    if (!Known(activity.StartTime)) continue;
                     long start = Ns(activity.StartTime);
-                    if (Full(activity.StopTime)) spans.Add(new Span("scheduled", start, Ns(activity.StopTime)));
-                    if (Full(activity.ReadyDuration))
+                    if (Known(activity.StopTime)) spans.Add(new Span("scheduled", start, Ns(activity.StopTime)));
+                    if (Known(activity.ReadyDuration))
                     {
                         long ready = activity.ReadyDuration!.Value.Nanoseconds;
                         spans.Add(new Span("ready", start - ready, start));
-                        if (Full(activity.WaitingDuration))
+                        if (Known(activity.WaitingDuration))
                             spans.Add(new Span("waiting", start - ready - activity.WaitingDuration!.Value.Nanoseconds, start - ready));
                     }
                 }
                 // A final off-CPU interval is not reported as zero. Only a known
                 // switch-out state plus complete readiness coverage can fill it.
-                var final = group.Where(a => Full(a.StopTime) && Ns(a.StopTime) < lifeEnd).OrderBy(a => Ns(a.StopTime)).LastOrDefault();
-                if (final?.SwitchOut != null && !group.Any(a => Full(a.StartTime) && Ns(a.StartTime) >= Ns(final.StopTime) && Ns(a.StartTime) < lifeEnd))
+                var final = group.Where(a => Known(a.StopTime) && Ns(a.StopTime) < lifeEnd).OrderBy(a => Ns(a.StopTime)).LastOrDefault();
+                if (final?.SwitchOut != null && !group.Any(a => Known(a.StartTime) && Ns(a.StartTime) >= Ns(final.StopTime) && Ns(a.StartTime) < lifeEnd))
                 {
                     long tail = Math.Max(lifeBegin, Ns(final.StopTime));
-                    var ready = cpu.ReadyThreadEvents.Where(r => r.ReadiedThreadId == thread.Id && Full(r.Timestamp) && Ns(r.Timestamp) >= tail && Ns(r.Timestamp) < lifeEnd).OrderBy(r => Ns(r.Timestamp)).ToArray();
+                    var ready = cpu.ReadyThreadEvents.Where(r => r.ReadiedThreadId == thread.Id && Known(r.Timestamp) && Ns(r.Timestamp) >= tail && Ns(r.Timestamp) < lifeEnd).OrderBy(r => Ns(r.Timestamp)).ToArray();
                     // Swapped-out readiness can include transition time; leave
                     // this tail unknown rather than equating it with ready time.
                     spans.AddRange(Projection.Tail(spans.Any(s => s.end > tail && s.begin < lifeEnd), final.SwitchOut.ThreadState,
@@ -224,9 +253,9 @@ class Program
                 var summary = Projection.Summary(spans, lifeBegin, lifeEnd);
                 long maxReady = spans.Where(s => s.kind == "ready").Select(s => Projection.Clip(s.begin, s.end, lifeBegin, lifeEnd)).DefaultIfEmpty(0).Max();
                 long maxWait = spans.Where(s => s.kind == "waiting").Select(s => Projection.Clip(s.begin, s.end, lifeBegin, lifeEnd)).DefaultIfEmpty(0).Max();
-                long born = thread.CreateTime.HasValue && Full(thread.CreateTime.Value) ? Ns(thread.CreateTime.Value) : long.MaxValue;
+                long born = thread.CreateTime.HasValue && Known(thread.CreateTime.Value) ? Ns(thread.CreateTime.Value) : long.MaxValue;
                 threads.Add((thread.Id, born, maxReady, maxWait, new { tid = thread.Id, observation_begin_ns = lifeBegin - begin, observation_end_ns = lifeEnd - begin,
-                    birth_observed = thread.CreateTime.HasValue && Full(thread.CreateTime.Value), exit_observed = thread.ExitTime.HasValue && Full(thread.ExitTime.Value), wait_reason_coverage = "known-tail-switch-out-only", summary }));
+                    birth_observed = thread.CreateTime.HasValue && Known(thread.CreateTime.Value), exit_observed = thread.ExitTime.HasValue && Known(thread.ExitTime.Value), wait_reason_coverage = "known-tail-switch-out-only", summary }));
             }
             var chosen = threads.OrderBy(t => t.start).Take(1).Concat(threads.OrderByDescending(t => t.maxReady).Take(4)).Concat(threads.OrderByDescending(t => t.maxWait).Take(4)).DistinctBy(t => (t.id, t.start)).ToArray();
             processes.Add(new { pid = owned.pid, role = Projection.Role(process.ImageName ?? "", process.CommandLine ?? "", owned.pid, input.gui_pid, input.wrapper_pid),
@@ -236,13 +265,13 @@ class Program
                 threads = chosen.Select(t => t.row).ToArray() });
         }
         return new { kind = "owned-scheduler-observation", available = true, feature_qualification = false, lost_events = metadata.LostEventCount,
-            lost_buffers = metadata.LostBufferCount, coverage = "bounded-sequential-no-loss-context-switch-range-and-owned-lifetimes", clock_tolerance_us = Projection.ClockToleranceUs, window_begin_unix_micros = input.begin_unix_micros,
+            lost_buffers = metadata.LostBufferCount, coverage = "bounded-sequential-no-loss-context-switch-range-and-owned-lifetimes", time_projection = "supported-relative-and-clock-time-without-raw-clock-value", clock_tolerance_us = Projection.ClockToleranceUs, window_begin_unix_micros = input.begin_unix_micros,
             window_end_unix_micros = input.end_unix_micros, scheduled_interpretation = "scheduled-not-exact-executed-cpu", counters = Evidence, processes };
     }
 
     static int Main(string[] args)
     {
-        if (args.Length == 1 && args[0] == "--self-test") { Projection.SelfTest(); Console.WriteLine("{\"projection_self_test\":\"passed\",\"recording_started\":false}"); return 0; }
+        if (args.Length == 1 && args[0] == "--self-test") { Projection.SelfTest(); ClockProjectionTest(); Console.WriteLine("{\"projection_self_test\":\"passed\",\"recording_started\":false}"); return 0; }
         if (args.Length != 3) return 78;
         object result; int code = 0;
         try
