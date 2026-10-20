@@ -21,7 +21,11 @@ func init() {
 type IUnknown interface{}
 
 func iUnknownQueryInterface(this uintptr, refiid *windows.GUID, ppvObject *uintptr) uintptr {
-	if refiid == nil || ppvObject == nil {
+	if ppvObject == nil {
+		return uintptr(windows.E_POINTER)
+	}
+	*ppvObject = 0
+	if refiid == nil {
 		return uintptr(windows.E_INVALIDARG)
 	}
 

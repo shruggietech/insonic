@@ -18,6 +18,18 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Windows startup diagnostics verify live process identity through the owned process handle and precise integral UTC timestamps, rejecting failed or inconsistent observations without relying on undefined exit-time data. The private wait-query helper authenticates the inherited input pipe and its live parent executable before accepting diagnostic targets.
+
+- Windows archive CI allocates concurrent CLI workload trees to three of its four CPUs, preserving the complete workload, native Exit cases and existing deadlines while keeping one CPU outside that workload's affinity mask.
+
+- Windows WebView convenience calls release their temporary settings and controller interfaces on success and failure, preserving caller-owned getter results and native error values.
+
+- Windows accelerator registration writes its event token into the caller's output value while preserving native error results.
+
+- Windows WebView callbacks return valid COM interfaces, retain native-owned targets until their final release and reject delivery into a closed desktop. Unused desktop objects remain collectible; late controllers close without reopening the destroyed owner.
+
+- Windows WebView controller initialization passes its monitor-scale setting as a native Boolean value instead of a pointer, adopting the upstream binding correction while retaining the maintained ownership and native-input fixes.
+
 - Windows WebView resource deferrals release their acquired COM references after completion instead of incrementing the reference count.
 
 - Release candidate collection verifies independent archives and copied bytes with bounded parallel workers, retaining every integrity check and writing its completion manifest only after all checks succeed.
@@ -107,6 +119,8 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-19: Native asset preparation reuses checksum-verified atomic acquisition with bounded transient retries. Candidate collection overlaps independent verification and copy/hash work with four workers while retaining deterministic metadata, private verifier scratch directories, all producer/proof gates and final completion authority.
 
 - 2026-10-19: Correct the pinned WebView resource-deferral Release dispatch with a native reference-count regression and checksum-bound source allowlist. Keep unresolved startup observations separate from demonstrated ownership corrections.
+
+- 2026-10-19: Adopt the verified go-webview2 v1.0.23 native Boolean ABI correction, preserve the explicit maintained lifecycle patch and checksum-bound corresponding source, and keep unresolved startup/process-release observations separate from the demonstrated argument correction.
 
 ## [1.0.1] - 2026-10-15
 

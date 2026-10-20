@@ -68,7 +68,7 @@ def isolated_invoker(invoke, workspace):
 
 
 @contextmanager
-def parallel_regressions(invoke, workspace, version, documentation, help_pages, executable, environment):
+def parallel_regressions(invoke, workspace, version, documentation, help_pages, executable, environment, *, process_factory=None):
     """Join every owned regression even when another branch raises."""
     from cli_operator_qualification import qualify as qualify_operator
     from cli_input_qualification import qualify as qualify_inputs
@@ -88,6 +88,7 @@ def parallel_regressions(invoke, workspace, version, documentation, help_pages, 
         if name == 'examples':
             args = (scoped, None, root, version, help_pages)
             keywords = {'executable': executable, 'environment': environment}
+            if process_factory is not None:keywords['process_factory'] = process_factory
         prepared.append((name, function, args, keywords))
     # Four independent libraries prevent credential, settings, model and
     # revision interference. Joining all workers leaves the existing package
@@ -97,7 +98,7 @@ def parallel_regressions(invoke, workspace, version, documentation, help_pages, 
                    for name, function, args, keywords in prepared}
         yield futures
 
-def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
+def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, progress=None, process_factory=None):
     executable, workspace = Path(executable), Path(workspace)
     environment = os.environ.copy()
     environment.update(env or {})
@@ -111,7 +112,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
         if scoped:
             argv += ['--workspace', str(workspace_path or workspace)]
         argv += [str(a) for a in args]
-        with ProcessTree(argv, cwd=cwd or workspace, env=execution_environment if execution_environment is not None else environment,
+        with (process_factory or ProcessTree)(argv, cwd=cwd or workspace, env=execution_environment if execution_environment is not None else environment,
                          allow_detached=scoped, input_pipe=input is not None) as tree:
             stdout, stderr = tree.process.communicate(input=input, timeout=35)
             code = tree.process.returncode
@@ -129,6 +130,10 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
             raise ValueError('CLI envelope/correlation differs')
         return result
 
+    def phase(label):
+        if progress is not None:progress(label)
+
+    phase('help')
     root_help = invoke(['--help'], scoped=False)['result']['help']
     paths = [line.strip().split() for line in root_help.splitlines() if line.startswith('  ')]
     help_workspace = workspace / 'isolated help workspace'
@@ -137,6 +142,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
 
     # Human display, clean redirected waits and elected log preflight are part
     # of the same installed CLI contract, rather than source-only rendering.
+    phase('operator-feedback')
     human = invoke(['workspace', 'show'], machine=False)
     if human.lstrip().startswith('{') or version not in human or 'Next import:' not in human:
         raise ValueError('Human workspace result is not actionable')
@@ -179,6 +185,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
         raise ValueError('Initial speaker model cursor alias differs')
 
     # The same protected input must work while the existing runtime is locked.
+    phase('credentials')
     credential = str(uuid.uuid4())
     secret = {'passphrase': 'synthetic-cli-fixture-passphrase', 'value': 'synthetic-cli-fixture-value'}
     invoke(['credentials', 'select', 'vault'])
@@ -216,6 +223,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
     second = invoke(['workspace', 'show'], workspace_path=cold)
     if not first.get('runtime_session_id') or first['runtime_session_id'] != second['runtime_session_id']:
         raise ValueError('Detached runtime did not survive launching-client exit')
+    phase('model-acquisition')
     body = b'synthetic CLI model bytes'
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
@@ -281,14 +289,18 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
         server.shutdown()
         server.server_close()
         thread.join(timeout=5)
-    with parallel_regressions(invoke, workspace, version, documentation, help_pages, executable, environment) as regressions:
+    phase('parallel-regressions')
+    process_options = {'process_factory': process_factory} if process_factory is not None else {}
+    with parallel_regressions(invoke, workspace, version, documentation, help_pages, executable, environment, **process_options) as regressions:
         lifecycle = {'state': 'not-included', 'reason': 'exact companions required in extracted packages'}
         if documentation:
             from cli_media_qualification import qualify as qualify_media
-            lifecycle = qualify_media(invoke, supplied, workspace, executable, environment, version)
+            phase('media-lifecycle')
+            lifecycle = qualify_media(invoke, supplied, workspace, executable, environment, version, **process_options)
         query_contracts = {'state': 'not-included', 'reason': 'exact companions required in extracted packages'}
         if documentation:
             from cli_query_qualification import qualify as qualify_queries
+            phase('query-contracts')
             query_contracts = qualify_queries(invoke, supplied, workspace)
         provider_contracts = {'state': 'not-included', 'reason': 'required in extracted packages'}
         documented = {'state': 'not-included', 'reason': 'source CLI lane; required in extracted packages'}
@@ -310,10 +322,13 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
                 path = documented_workspace / 'documented request.json'
                 path.write_text(json.dumps(value) + '\n', encoding='utf-8', newline='\n')
                 return documented_invoke([*args, '--input', path])
+            phase('documented-workflows')
             documented = qualify_documentation(documented_invoke, documented_supplied, documented_workspace, version)
             from cli_provider_qualification import qualify as qualify_providers
+            phase('provider-contracts')
             provider_contracts = qualify_providers(documented_invoke, documented_supplied, documented_workspace)
             # Package smoke's existing bounded idle-owner cleanup covers this workspace too.
+        phase('join-regressions')
         operator_contracts = regressions['operator'].result()
         input_contracts = regressions['input'].result()
         text_duration_contracts = regressions['text_duration'].result()
@@ -325,6 +340,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False):
             logged = path.read_text(encoding='utf-8')
             if len(logged.encode('utf-8')) > 1 << 20 or any(value in logged for value in [secret['passphrase'], secret['value'], 'wrong-fixture-passphrase', str(workspace)]):
                 raise ValueError('Diagnostic log retained protected or arbitrary input')
+    phase('complete')
     return {'operator_contracts': operator_contracts, 'input_contracts': input_contracts, 'text_duration_contracts': text_duration_contracts, 'actual_help_examples': examples, 'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
             'protected_vault_delete': 'passed', 'typed_failures': failures,
             'operator_feedback': 'passed', 'cold_startup_failure': 'passed', 'detached_owner': 'passed',

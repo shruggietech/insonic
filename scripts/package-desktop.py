@@ -26,6 +26,7 @@ import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from process_tree import ProcessTree, native_webview_environment, native_webview_probe
+from windows_workload_affinity import WorkloadAffinity
 import qualify
 import go_module_notices
 
@@ -67,11 +68,12 @@ def path_inside(root, name):
     return target
 
 
-def child(args, *, directory=ROOT, env=None, timeout=180, allow_detached=False):
+def child(args, *, directory=ROOT, env=None, timeout=180, allow_detached=False, process_factory=None):
     selected = os.environ.copy()
     if env:
         selected.update(env)
-    with ProcessTree([str(arg) for arg in args], cwd=directory, env=selected, allow_detached=allow_detached) as tree:
+    factory = ProcessTree if process_factory is None else process_factory
+    with factory([str(arg) for arg in args], cwd=directory, env=selected, allow_detached=allow_detached) as tree:
         started = time.monotonic()
         try:
             output, error = tree.process.communicate(timeout=timeout)
@@ -807,7 +809,7 @@ def verify_archive_receipt(archive, receipt, expected_source_root=ROOT):
         return {'inventory': value, 'sources': manifest}
 
 
-def qualify_windows_install(extracted, temporary, env):
+def qualify_windows_install(extracted, temporary, env, *, process_factory=None):
     """Execute the documented copy and first-use commands in Windows PowerShell."""
     installed = Path(temporary) / 'installed program with spaces'
     library = Path(temporary) / 'first-use library with spaces'
@@ -835,8 +837,9 @@ def qualify_windows_install(extracted, temporary, env):
         "$show = Invoke-FixtureCli ('--workspace ' + [char]34 + $library + [char]34 + ' workspace show'); "
         "@{version=$version; help=$help; init=$init; doctor=$doctor; show=$show} | ConvertTo-Json -Compress"
     )
+    options = {} if process_factory is None else {'process_factory': process_factory}
     output = child([powershell, '-NoProfile', '-NonInteractive', '-Command', script],
-                   directory=extracted, env=env, timeout=60, allow_detached=True)
+                   directory=extracted, env=env, timeout=60, allow_detached=True, **options)
     # The helper emits one operator status line before the final JSON object.
     first_use = json.loads(output.decode('utf-8-sig').splitlines()[-1])
     if first_use.get('version') != VERSION or any(not first_use.get(key) for key in ['help', 'init', 'doctor', 'show']):
@@ -984,6 +987,30 @@ def finish_package_checks(gui_future, last_completed_at, executable):
         wait_for_detached_idle(None if gui_future is not None else last_completed_at, executable)
 
 
+@contextmanager
+def package_workload_allocation(receipt):
+    if os.environ.get('INSONIC_PACKAGE_WORKLOAD_CPU_CONTROL') != 'true':
+        yield None
+        return
+    if receipt.get('platform') != 'windows_amd64' or receipt.get('variant') != 'desktop':
+        raise ValueError('package workload allocation requires Windows desktop qualification')
+    from windows_msi import disposable_runner
+    disposable_runner()
+    factory = WorkloadAffinity()  # Explicitly requires the configured four-CPU runner.
+    failed = False
+    try:
+        yield factory
+    except BaseException:
+        failed = True
+        raise
+    finally:
+        try:
+            write_json(ROOT / 'build/native/package-workload-cpu-receipt.json', factory.receipt())
+        except Exception:
+            if not failed:
+                raise
+
+
 def _smoke(archive=None, dirname=None, receipt=None):
     if archive is None:
         receipt = json.loads((ROOT / 'build/native/package-receipt.json').read_text())
@@ -993,7 +1020,11 @@ def _smoke(archive=None, dirname=None, receipt=None):
         raise ValueError('package archive differs from qualified identity')
     verify_archive_receipt(archive, receipt)
     started = time.monotonic()
-    with tempfile.TemporaryDirectory(prefix='insonic package relocation ') as temporary, ExitStack() as managed_checks:
+    with package_workload_allocation(receipt) as workload_factory, \
+            tempfile.TemporaryDirectory(prefix='insonic package relocation ') as temporary, ExitStack() as managed_checks:
+        workload_options = {} if workload_factory is None else {'process_factory': workload_factory}
+        def cli_child(*args, **options):
+            return child(*args, **options, **workload_options)
         location = Path(temporary) / 'extracted é with spaces'
         extract_package(archive, location)
         root = path_inside(location, receipt['inventory_root'])
@@ -1008,7 +1039,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
             raise ValueError('extracted inventory identity differs')
         installation = 'not-applicable'
         if receipt['platform'] == 'windows_amd64':
-            root = qualify_windows_install(root, temporary, package_environment())
+            root = qualify_windows_install(root, temporary, package_environment(), **workload_options)
             installation = 'passed'
         executables, _ = package_directories(root, receipt['platform'], receipt['variant'])
         verify_loader_paths(executables, receipt['platform'], receipt['variant'])
@@ -1017,13 +1048,13 @@ def _smoke(archive=None, dirname=None, receipt=None):
         suffix = '.exe' if os.name == 'nt' else ''
         cli = executables / ('insonic' + suffix)
         gui = executables / ('insonic-desktop' + suffix)
-        if child([cli, 'version'], directory=root, env=env).decode().strip() != VERSION:
+        if cli_child([cli, 'version'], directory=root, env=env).decode().strip() != VERSION:
             raise ValueError('packaged CLI version differs')
         workspace = Path(temporary) / 'workspace with spaces'
-        child([cli, 'workspace', 'init', workspace, '--json'], directory=root, env=env)
-        child([cli, '--workspace', workspace, 'credentials', 'select', 'session', '--json'], directory=root, env=env)
+        cli_child([cli, 'workspace', 'init', workspace, '--json'], directory=root, env=env)
+        cli_child([cli, '--workspace', workspace, 'credentials', 'select', 'session', '--json'], directory=root, env=env)
         def call(*args, allow_detached=True):
-            response = json.loads(child([cli, '--workspace', workspace, *args, '--json'], directory=root, env=env, allow_detached=allow_detached))
+            response = json.loads(cli_child([cli, '--workspace', workspace, *args, '--json'], directory=root, env=env, allow_detached=allow_detached))
             if response.get('error'):
                 raise ValueError('packaged shared operation failed: ' + response['error']['code'])
             return response.get('result', response)
@@ -1064,14 +1095,14 @@ def _smoke(archive=None, dirname=None, receipt=None):
             items = current['result']['items']
             if not current['result']['partial'] or not items[1].get('date_unresolved'):
                 raise ValueError('Ambiguous date incorrectly failed work or lost uncertainty')
-            human_wait = child([cli, '--workspace', workspace, 'work', 'wait', job_id], directory=root, env=env).decode('utf-8')
-            quiet_wait = child([cli, '--workspace', workspace, '--quiet', 'work', 'wait', job_id], directory=root, env=env).decode('utf-8')
+            human_wait = cli_child([cli, '--workspace', workspace, 'work', 'wait', job_id], directory=root, env=env).decode('utf-8')
+            quiet_wait = cli_child([cli, '--workspace', workspace, '--quiet', 'work', 'wait', job_id], directory=root, env=env).decode('utf-8')
             if any('Warning:' not in text or items[1]['media_id'] not in text or '--originated-on' not in text or '\x1b' in text for text in [human_wait, quiet_wait]):
                 raise ValueError('Accepted partial date did not reach readable operator output')
             if len(items) != 2 or any(item.get('state') != 'admitted' or item.get('capture_state') not in ['captured', 'no-embedded-metadata'] for item in items):
                 raise ValueError('packaged import did not complete both licensed fixtures')
             from cli_contract_qualification import qualify as qualify_contract
-            contract_receipt = qualify_contract(cli, workspace, env=env, cwd=root, documentation=True)
+            contract_receipt = qualify_contract(cli, workspace, env=env, cwd=root, documentation=True, **workload_options)
             entry = call('media', 'show', items[0]['media_id'])
             if entry['dates']['selected']['resolved'] != {'iso': '2020-01-01T00:00:00.123456789Z', 'unix_ns': 1577836800123456789}:
                 raise ValueError('Packaged timestamp or numeric fidelity differs')

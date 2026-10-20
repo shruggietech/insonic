@@ -33,6 +33,9 @@ func main() {
 }
 
 func run() (exitCode int) {
+	if len(os.Args) == 2 && os.Args[1] == "--native-wait-query" {
+		return qualifyNativeWait()
+	}
 	if len(os.Args) == 2 && os.Args[1] == "--exit-qualification" {
 		return qualifyNativeExit()
 	}

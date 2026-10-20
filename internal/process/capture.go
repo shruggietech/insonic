@@ -26,6 +26,20 @@ type DescendantReport struct {
 	Remaining uint32              `json:"remaining"`
 	Released  bool                `json:"released"`
 	Processes []DescendantProcess `json:"processes,omitempty"`
+	Timing    *DescendantTiming   `json:"timing,omitempty"`
+}
+
+// DescendantTiming uses only elapsed monotonic nanoseconds from this launch.
+// Root exit is observed when exec.Cmd.Wait returns, including its output joins;
+// it does not claim the exact kernel exit instant. Release timing stops before
+// any failure cleanup. ReleaseBudgetNS is zero when no caller deadline exists.
+type DescendantTiming struct {
+	LaunchElapsedNS      int64 `json:"launch_elapsed_ns"`
+	RootWaitElapsedNS    int64 `json:"root_wait_elapsed_ns"`
+	RootExitElapsedNS    int64 `json:"root_exit_elapsed_ns"`
+	ReleaseDeadline      bool  `json:"release_deadline"`
+	ReleaseBudgetNS      int64 `json:"release_budget_ns"`
+	ReleaseWaitElapsedNS int64 `json:"release_wait_elapsed_ns"`
 }
 
 // DescendantProcess exposes only a fixed image class and kernel exit observation.
@@ -56,10 +70,12 @@ func Capture(ctx context.Context, spec Spec) (CaptureResult, error) {
 	stderr := &bounded{limit: spec.MaxOutput, cancel: cancel}
 	command.Stdout = stdout
 	command.Stderr = stderr
+	launchStarted := time.Now()
 	tree, err := startTree(command)
 	if err != nil {
 		return result, contracts.Fail("operation_failed")
 	}
+	launched := time.Now()
 	defer tree.Close()
 	finished, supervised := make(chan struct{}), make(chan struct{})
 	go func() {
@@ -71,10 +87,23 @@ func Capture(ctx context.Context, spec Spec) (CaptureResult, error) {
 		}
 	}()
 	err = command.Wait()
+	rootExited := time.Now()
 	close(finished)
 	<-supervised
 	if err == nil && ctx.Err() == nil && spec.WaitForDescendants {
+		releaseStarted := time.Now()
+		timing := &DescendantTiming{
+			LaunchElapsedNS:   launched.Sub(launchStarted).Nanoseconds(),
+			RootWaitElapsedNS: rootExited.Sub(launched).Nanoseconds(),
+			RootExitElapsedNS: rootExited.Sub(launchStarted).Nanoseconds(),
+		}
+		if deadline, ok := ctx.Deadline(); ok {
+			timing.ReleaseDeadline = true
+			timing.ReleaseBudgetNS = max(int64(0), deadline.Sub(releaseStarted).Nanoseconds())
+		}
 		observation, waitErr := waitDescendants(ctx, tree)
+		timing.ReleaseWaitElapsedNS = time.Since(releaseStarted).Nanoseconds()
+		observation.Timing = timing
 		result.Descendants = &observation
 		err = waitErr
 		if waitErr != nil {

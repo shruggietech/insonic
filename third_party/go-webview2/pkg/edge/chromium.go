@@ -47,8 +47,9 @@ func globalErrorHandler(err error) {
 }
 
 type Chromium struct {
-	hwnd    uintptr
-	padding struct {
+	browserDiagnostics *windowBrowserDiagnostics
+	hwnd               uintptr
+	padding            struct {
 		Left   int32
 		Top    int32
 		Right  int32
@@ -67,6 +68,7 @@ type Chromium struct {
 	acceleratorKeyPressed            *ICoreWebView2AcceleratorKeyPressedEventHandler
 	navigationCompleted              *ICoreWebView2NavigationCompletedEventHandler
 	processFailed                    *ICoreWebView2ProcessFailedEventHandler
+	callbackLeases                   []nativeCallbackLease
 
 	environment            *ICoreWebView2Environment
 	webview2RuntimeVersion string
@@ -102,42 +104,6 @@ type Chromium struct {
 
 func NewChromium() *Chromium {
 	e := &Chromium{}
-	/*
-	 All these handlers are passed to native code through syscalls with 'uintptr(unsafe.Pointer(handler))' and we know
-	 that a pointer to those will be kept in the native code. Furthermore these handlers als contain pointer to other Go
-	 structs like the vtable.
-	 This violates the unsafe.Pointer rule '(4) Conversion of a Pointer to a uintptr when calling syscall.Syscall.' because
-	 theres no guarantee that Go doesn't move these objects.
-	 AFAIK currently the Go runtime doesn't move HEAP objects, so we should be safe with these handlers. But they don't
-	 guarantee it, because in the future Go might use a compacting GC.
-	 There's a proposal to add a runtime.Pin function, to prevent moving pinned objects, which would allow to easily fix
-	 this issue by just pinning the handlers. The https://go-review.googlesource.com/c/go/+/367296/ should land in Go 1.19.
-	*/
-	e.envCompleted = newICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler(e)
-	e.controllerCompleted = newICoreWebView2CreateCoreWebView2ControllerCompletedHandler(e)
-	e.webMessageReceived = newICoreWebView2WebMessageReceivedEventHandler(e)
-	e.permissionRequested = newICoreWebView2PermissionRequestedEventHandler(e)
-	e.webResourceRequested = newICoreWebView2WebResourceRequestedEventHandler(e)
-	e.acceleratorKeyPressed = newICoreWebView2AcceleratorKeyPressedEventHandler(e)
-	e.navigationCompleted = newICoreWebView2NavigationCompletedEventHandler(e)
-	e.processFailed = newICoreWebView2ProcessFailedEventHandler(e)
-	e.containsFullScreenElementChanged = newICoreWebView2ContainsFullScreenElementChangedEventHandler(e)
-	/*
-		// Pinner seems to panic in some cases as reported on Discord, maybe during shutdown when GC detects pinned objects
-		// to be released that have not been unpinned.
-		// It would also be better to use our ComBridge for this event handlers implementation instead of pinning them.
-		// So all COM Implementations on the go-side use the same code.
-		var pinner runtime.Pinner
-		pinner.Pin(e.envCompleted)
-		pinner.Pin(e.controllerCompleted)
-		pinner.Pin(e.webMessageReceived)
-		pinner.Pin(e.permissionRequested)
-		pinner.Pin(e.webResourceRequested)
-		pinner.Pin(e.acceleratorKeyPressed)
-		pinner.Pin(e.navigationCompleted)
-		pinner.Pin(e.processFailed)
-		pinner.Pin(e.containsFullScreenElementChanged)
-	*/
 	e.permissions = make(map[CoreWebView2PermissionKind]CoreWebView2PermissionState)
 	e.globalErrorCallback = globalErrorHandler
 	return e
@@ -145,6 +111,7 @@ func NewChromium() *Chromium {
 
 func (e *Chromium) ShuttingDown() {
 	e.shuttingDown = true
+	e.closeBrowserDiagnostics()
 }
 
 func (e *Chromium) errorCallback(err error) {
@@ -166,6 +133,7 @@ func (e *Chromium) Embed(hwnd uintptr) bool {
 	if err = e.attachWindowLifetime(hwnd); err != nil {
 		e.errorCallback(err)
 	}
+	e.prepareOwnedCallbacks()
 
 	dataPath := e.DataPath
 	if dataPath == "" {
@@ -258,6 +226,13 @@ func (e *Chromium) Resize() {
 
 func (e *Chromium) Navigate(url string) {
 	recordWindowBootstrap(e, bootstrapNavigateRequested)
+	if e.deferBrowserDiagnosticNavigation(url) {
+		return
+	}
+	e.navigateWithoutBrowserDiagnostics(url)
+}
+
+func (e *Chromium) navigateWithoutBrowserDiagnostics(url string) {
 	err := e.webview.Navigate(url)
 	if err == nil {
 		recordWindowBootstrap(e, bootstrapNavigateAccepted)
@@ -313,6 +288,9 @@ func (e *Chromium) Release() uintptr {
 }
 
 func (e *Chromium) EnvironmentCompleted(res uintptr, env *ICoreWebView2Environment) uintptr {
+	if e.shuttingDown {
+		return 0
+	}
 	if env == nil {
 		err := syscall.Errno(res)
 		log.Printf("[WebView2] Environment creation failed with error code %v: %v\n", res, err)
@@ -326,6 +304,7 @@ func (e *Chromium) EnvironmentCompleted(res uintptr, env *ICoreWebView2Environme
 
 	env.vtbl.AddRef.Call(uintptr(unsafe.Pointer(env)))
 	e.environment = env
+	e.observeBrowserEnvironment(res, env)
 
 	err := env.CreateCoreWebView2Controller(e.hwnd, e.controllerCompleted)
 	if err != nil {
@@ -335,6 +314,14 @@ func (e *Chromium) EnvironmentCompleted(res uintptr, env *ICoreWebView2Environme
 }
 
 func (e *Chromium) CreateCoreWebView2ControllerCompleted(res uintptr, controller *ICoreWebView2Controller) uintptr {
+	if e.shuttingDown {
+		if controller != nil {
+			if err := controller.Close(); err != nil {
+				e.recordControllerCloseFailure(err)
+			}
+		}
+		return 0
+	}
 	if int32(res) < 0 {
 		e.errorCallback(fmt.Errorf("error creating controller with %08x: %s", res, syscall.Errno(res)))
 	}
@@ -408,6 +395,9 @@ func (e *Chromium) ContainsFullScreenElementChanged(sender *ICoreWebView2, args 
 
 func (e *Chromium) MessageReceived(sender *ICoreWebView2, args *ICoreWebView2WebMessageReceivedEventArgs) uintptr {
 	message, err := args.TryGetWebMessageAsString()
+	if err == nil && message == "runtime:ready" {
+		recordWindowBootstrap(e, bootstrapRuntimeReadyReceived)
+	}
 	if err != nil {
 		e.errorCallback(err)
 	}
@@ -441,7 +431,11 @@ func (e *Chromium) SetPermission(kind CoreWebView2PermissionKind, state CoreWebV
 
 func (e *Chromium) SetBackgroundColour(R, G, B, A uint8) {
 	controller := e.GetController()
-	controller2 := controller.GetICoreWebView2Controller2()
+	controller2, err := queryTemporaryInterface[ICoreWebView2Controller2](unsafe.Pointer(controller), "{c979903e-d4ca-4228-92eb-47ee3fa96eab}")
+	if err != nil {
+		e.errorCallback(err)
+		return
+	}
 
 	backgroundCol := COREWEBVIEW2_COLOR{
 		A: A,
@@ -455,7 +449,9 @@ func (e *Chromium) SetBackgroundColour(R, G, B, A uint8) {
 		backgroundCol.A = 255
 	}
 
-	err := controller2.PutDefaultBackgroundColor(backgroundCol)
+	err = controller2.PutDefaultBackgroundColor(backgroundCol)
+	// errorCallback exits the process, so release before invoking it.
+	releaseTemporaryInterface(controller2)
 	if err != nil {
 		e.errorCallback(err)
 	}
@@ -489,6 +485,8 @@ func (e *Chromium) PermissionRequested(_ *ICoreWebView2, args *iCoreWebView2Perm
 
 func (e *Chromium) WebResourceRequested(sender *ICoreWebView2, args *ICoreWebView2WebResourceRequestedEventArgs) uintptr {
 	recordWindowBootstrap(e, bootstrapResourceEntered)
+	recordWindowBootstrapRequest(e, args)
+	defer recordWindowBootstrapRequestReturned(e, args)
 	defer recordWindowBootstrap(e, bootstrapResourceReturned)
 	req, err := args.GetRequest()
 	if err != nil {
@@ -634,11 +632,11 @@ func (e *Chromium) GetIsSwipeNavigationEnabled() (bool, error) {
 	if !HasCapability(e.webview2RuntimeVersion, SwipeNavigation) {
 		return false, UnsupportedCapabilityError
 	}
-	webview2Settings, err := e.webview.GetSettings()
+	webview2Settings6, err := queryTemporarySettings[ICoreWebView2Settings6](e, "{11cb3acd-9bc8-43b8-83bf-f40753714f87}")
 	if err != nil {
 		return false, err
 	}
-	webview2Settings6 := webview2Settings.GetICoreWebView2Settings6()
+	defer releaseTemporaryInterface(webview2Settings6)
 	var result bool
 	result, err = webview2Settings6.GetIsSwipeNavigationEnabled()
 	if err != nil {
@@ -659,11 +657,11 @@ func (e *Chromium) PutIsGeneralAutofillEnabled(value bool) error {
 	if !HasCapability(e.webview2RuntimeVersion, GeneralAutofillEnabled) {
 		return UnsupportedCapabilityError
 	}
-	webview2Settings, err := e.webview.GetSettings()
+	webview2Settings4, err := queryTemporarySettings[ICoreWebView2Settings4](e, "{cb56846c-4168-4d53-b04f-03b6d6796ff2}")
 	if err != nil {
 		return err
 	}
-	webview2Settings4 := webview2Settings.GetICoreWebView2Settings4()
+	defer releaseTemporaryInterface(webview2Settings4)
 	return webview2Settings4.PutIsGeneralAutofillEnabled(value)
 }
 
@@ -674,11 +672,11 @@ func (e *Chromium) PutIsPasswordAutosaveEnabled(value bool) error {
 	if !HasCapability(e.webview2RuntimeVersion, PasswordAutosaveEnabled) {
 		return UnsupportedCapabilityError
 	}
-	webview2Settings, err := e.webview.GetSettings()
+	webview2Settings4, err := queryTemporarySettings[ICoreWebView2Settings4](e, "{cb56846c-4168-4d53-b04f-03b6d6796ff2}")
 	if err != nil {
 		return err
 	}
-	webview2Settings4 := webview2Settings.GetICoreWebView2Settings4()
+	defer releaseTemporaryInterface(webview2Settings4)
 	return webview2Settings4.PutIsPasswordAutosaveEnabled(value)
 }
 
@@ -686,11 +684,11 @@ func (e *Chromium) PutIsSwipeNavigationEnabled(enabled bool) error {
 	if !HasCapability(e.webview2RuntimeVersion, SwipeNavigation) {
 		return UnsupportedCapabilityError
 	}
-	webview2Settings, err := e.webview.GetSettings()
+	webview2Settings6, err := queryTemporarySettings[ICoreWebView2Settings6](e, "{11cb3acd-9bc8-43b8-83bf-f40753714f87}")
 	if err != nil {
 		return err
 	}
-	webview2Settings6 := webview2Settings.GetICoreWebView2Settings6()
+	defer releaseTemporaryInterface(webview2Settings6)
 	err = webview2Settings6.PutIsSwipeNavigationEnabled(enabled)
 	if err != nil {
 		return err
@@ -703,8 +701,12 @@ func (e *Chromium) AllowExternalDrag(allow bool) error {
 		return UnsupportedCapabilityError
 	}
 	controller := e.GetController()
-	controller4 := controller.GetICoreWebView2Controller4()
-	err := controller4.PutAllowExternalDrop(allow)
+	controller4, err := queryTemporaryInterface[ICoreWebView2Controller4](unsafe.Pointer(controller), "{97d418d5-a426-4e49-a151-e1a10f327d9e}")
+	if err != nil {
+		return err
+	}
+	defer releaseTemporaryInterface(controller4)
+	err = controller4.PutAllowExternalDrop(allow)
 	if err != nil {
 		return err
 	}
@@ -716,7 +718,11 @@ func (e *Chromium) GetAllowExternalDrag() (bool, error) {
 		return false, UnsupportedCapabilityError
 	}
 	controller := e.GetController()
-	controller4 := controller.GetICoreWebView2Controller4()
+	controller4, err := queryTemporaryInterface[ICoreWebView2Controller4](unsafe.Pointer(controller), "{97d418d5-a426-4e49-a151-e1a10f327d9e}")
+	if err != nil {
+		return false, err
+	}
+	defer releaseTemporaryInterface(controller4)
 	result, err := controller4.GetAllowExternalDrop()
 	if err != nil {
 		return false, err

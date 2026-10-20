@@ -9,7 +9,7 @@ import shutil
 
 ROOT = Path(__file__).resolve().parents[1]
 PATCH_MODULE = 'github.com/wailsapp/go-webview2'
-PATCH_VERSION = 'v1.0.22'
+PATCH_VERSION = 'v1.0.23'
 PATCH_DIRECTORY = 'third_party/go-webview2'
 PATCH_SOURCE = 'repository-local:' + PATCH_DIRECTORY
 
@@ -46,8 +46,8 @@ def repository_patch_source():
         raise ValueError('repository module upstream differs from go.sum')
     modified = sorted(name for name in upstream if current.get(name) != upstream[name])
     added = sorted(set(current) - set(upstream))
-    expected_added = ['LICENSE.insonic', 'NOTICE.insonic', 'pkg/edge/window_lifetime_windows.go', 'pkg/edge/window_lifetime_windows_test.go']
-    if (not set(upstream) <= set(current) or modified != ['pkg/edge/ICoreWebView2Deferral.go', 'pkg/edge/chromium.go', 'pkg/edge/corewebview2.go'] or added != expected_added
+    expected_added = ['LICENSE.insonic', 'NOTICE.insonic', 'pkg/edge/browser_bootstrap_windows.go', 'pkg/edge/browser_bootstrap_windows_test.go', 'pkg/edge/callback_bridge_windows.go', 'pkg/edge/callback_bridge_windows_test.go', 'pkg/edge/callback_loader_go_windows_test.go', 'pkg/edge/window_lifetime_windows.go', 'pkg/edge/window_lifetime_windows_test.go']
+    if (not set(upstream) <= set(current) or modified != ['pkg/combridge/iunknown.go', 'pkg/edge/ICoreWebView2Controller.go', 'pkg/edge/ICoreWebView2Deferral.go', 'pkg/edge/ICoreWebView2WebResourceRequestedEventArgs.go', 'pkg/edge/ICoreWebView2WebResourceResponse.go', 'pkg/edge/chromium.go', 'pkg/edge/corewebview2.go', 'pkg/edge/create_env_go.go'] or added != expected_added
             or sorted(authority.get('modified', [])) != modified or sorted(authority.get('added', [])) != added):
         raise ValueError('repository module patch scope differs')
     directory = ROOT / PATCH_DIRECTORY

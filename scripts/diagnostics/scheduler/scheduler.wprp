@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WindowsPerformanceRecorder Version="1.0">
+  <Profiles>
+    <SystemCollector Id="SchedulerCollector" Name="insonic disposable scheduler">
+      <BufferSize Value="256" />
+      <Buffers Value="256" />
+      <MaximumFileSize Value="256" FileMode="Sequential" />
+    </SystemCollector>
+    <SystemProvider Id="SchedulerProvider">
+      <Keywords>
+        <Keyword Value="ProcessThread" />
+        <Keyword Value="CSwitch" />
+        <Keyword Value="ReadyThread" />
+      </Keywords>
+    </SystemProvider>
+    <Profile Id="Scheduler.Light.File" Name="Scheduler" Description="Disposable owned-thread scheduler observation" LoggingMode="File" DetailLevel="Light">
+      <Collectors>
+        <SystemCollectorId Value="SchedulerCollector">
+          <SystemProviderId Value="SchedulerProvider" />
+        </SystemCollectorId>
+      </Collectors>
+    </Profile>
+  </Profiles>
+</WindowsPerformanceRecorder>

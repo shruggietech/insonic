@@ -53,14 +53,325 @@ func (e *Chromium) nativeSystemKeyHandler() func(uintptr, NativeSystemKeyEvent) 
 // WindowBootstrapSnapshot contains only fixed counters and the browser version,
 // never request URLs, script contents or application data.
 type WindowBootstrapSnapshot struct {
-	OffThreadEvents       uint64 `json:"off_thread_events"`
-	RuntimeVersion        string `json:"runtime_version"`
-	NavigationRequested   uint64 `json:"navigation_requested"`
-	NavigationAccepted    uint64 `json:"navigation_accepted"`
-	ResourceEntered       uint64 `json:"resource_entered"`
-	ResourceReturned      uint64 `json:"resource_returned"`
-	NavigationCompleted   uint64 `json:"navigation_completed"`
-	CompletionWithoutHost uint64 `json:"completion_without_host"`
+	OffThreadEvents       uint64                           `json:"off_thread_events"`
+	RuntimeVersion        string                           `json:"runtime_version"` // Available-loader lookup, not created-environment identity.
+	NavigationRequested   uint64                           `json:"navigation_requested"`
+	NavigationAccepted    uint64                           `json:"navigation_accepted"`
+	ResourceEntered       uint64                           `json:"resource_entered"`
+	ResourceReturned      uint64                           `json:"resource_returned"`
+	NavigationCompleted   uint64                           `json:"navigation_completed"`
+	CompletionWithoutHost uint64                           `json:"completion_without_host"`
+	FirstResponse         WindowBootstrapResponseSnapshot  `json:"first_response"`
+	Responses             WindowBootstrapResponsesSnapshot `json:"responses"`
+	RuntimeReadyReceived  uint64                           `json:"runtime_ready_received"`
+}
+
+// WindowBootstrapCallSnapshot records actual native call boundaries. A zero
+// HRESULT is meaningful only when Returned is nonzero. No native address escapes.
+type WindowBootstrapCallSnapshot struct {
+	Entered        uint64 `json:"entered"`
+	Returned       uint64 `json:"returned"`
+	Failed         uint64 `json:"failed"`
+	OffThreadCalls uint64 `json:"off_thread_calls"`
+	LastHRESULT    uint32 `json:"last_hresult"`
+}
+
+// WindowBootstrapResponseCalls contains fixed native response-call boundaries.
+// Headers observes GetHeaders acquisition, not individual AppendHeader calls.
+type WindowBootstrapResponseCalls struct {
+	Assignment WindowBootstrapCallSnapshot `json:"assignment"`
+	Headers    WindowBootstrapCallSnapshot `json:"headers"`
+	Status     WindowBootstrapCallSnapshot `json:"status"`
+	Reason     WindowBootstrapCallSnapshot `json:"reason"`
+	Content    WindowBootstrapCallSnapshot `json:"content"`
+	Deferral   WindowBootstrapCallSnapshot `json:"deferral"`
+	Completion WindowBootstrapCallSnapshot `json:"completion"`
+}
+
+// WindowBootstrapResponseSnapshot preserves detail for the first request only.
+// These counters establish publication calls, not browser consumption or rendering.
+type WindowBootstrapResponseSnapshot struct {
+	WindowBootstrapResponseCalls
+	StatusCode      int    `json:"status_code"`
+	ContentAttempts uint64 `json:"content_attempts"`
+	ContentBytes    uint64 `json:"content_bytes"`
+	StreamsCreated  uint64 `json:"streams_created"`
+	StreamFailures  uint64 `json:"stream_failures"`
+}
+
+// WindowBootstrapResponsesSnapshot aggregates requests using eight active slots.
+// Overflow and requests without deferrals make coverage limits explicit. Published and
+// Completed count unique requests, so repeated setters/Complete cannot hide one
+// unfinished request. Published means assignment, GetHeaders, status, reason and
+// content all returned successfully; it does not attest individual header writes.
+// Retired means metadata retired, not a native Release result.
+type WindowBootstrapResponsesSnapshot struct {
+	WindowBootstrapResponseCalls
+	Tracked           uint64 `json:"tracked"`
+	Active            uint64 `json:"active"`
+	Overflow          uint64 `json:"overflow"`
+	WithoutDeferral   uint64 `json:"without_deferral"`
+	Published         uint64 `json:"published"`
+	Completed         uint64 `json:"completed"`
+	Retired           uint64 `json:"retired"`
+	RetiredIncomplete uint64 `json:"retired_incomplete"`
+	StreamFailures    uint64 `json:"stream_failures"`
+}
+
+const (
+	bootstrapResponseAssignment uint8 = iota
+	bootstrapResponseHeaders
+	bootstrapResponseStatus
+	bootstrapResponseReason
+	bootstrapResponseContent
+	bootstrapResponseDeferral
+	bootstrapResponseCompletion
+	bootstrapResponseContentAttempt
+	bootstrapResponseStreamCreated
+	bootstrapResponseStreamFailed
+)
+
+// Borrowed native identities are equality tokens only, never dereferenced or
+// retained as COM references. The fixed slots disappear with their window owner.
+const bootstrapResponseCapacity = 8
+
+type windowBootstrapResponse struct {
+	ordinal                                        uint64
+	callback, args, response, deferral             uintptr
+	assignmentOK, headers, status, reason, content bool
+	deferred                                       bool
+	published, completed                           bool
+}
+
+func recordWindowBootstrapRequest(e *Chromium, args *ICoreWebView2WebResourceRequestedEventArgs) {
+	if !bootstrapDiagnosticsEnabled.Load() {
+		return
+	}
+	ownedWindows.Lock()
+	defer ownedWindows.Unlock()
+	entry := ownedWindows.values[e.hwnd]
+	if entry == nil || entry.chromium != e || entry.closed || entry.thread != windows.GetCurrentThreadId() {
+		return
+	}
+	for index := range entry.requests {
+		request := &entry.requests[index]
+		if request.ordinal != 0 {
+			continue
+		}
+		entry.bootstrap.Responses.Tracked++
+		entry.bootstrap.Responses.Active++
+		identity := uintptr(unsafe.Pointer(args))
+		*request = windowBootstrapResponse{ordinal: entry.bootstrap.Responses.Tracked, callback: identity, args: identity}
+		return
+	}
+	entry.bootstrap.Responses.Overflow++
+}
+
+func recordWindowBootstrapRequestReturned(e *Chromium, args *ICoreWebView2WebResourceRequestedEventArgs) {
+	if !bootstrapDiagnosticsEnabled.Load() {
+		return
+	}
+	ownedWindows.Lock()
+	defer ownedWindows.Unlock()
+	entry := ownedWindows.values[e.hwnd]
+	if entry == nil || entry.chromium != e || entry.closed {
+		return
+	}
+	identity := uintptr(unsafe.Pointer(args))
+	for index := range entry.requests {
+		request := &entry.requests[index]
+		if request.ordinal == 0 || request.callback != identity {
+			continue
+		}
+		request.callback = 0
+		// Synchronous responses and default native handling need no deferral.
+		// Record that coverage distinction without treating it as failure.
+		if !request.deferred {
+			entry.bootstrap.Responses.WithoutDeferral++
+		}
+		request.args = 0
+		retireBootstrapRequest(entry, request)
+		return
+	}
+}
+
+func retireBootstrapRequest(entry *windowLifetime, request *windowBootstrapResponse) {
+	if request.ordinal == 0 || request.callback != 0 || request.args != 0 || request.response != 0 || request.deferral != 0 {
+		return
+	}
+	entry.bootstrap.Responses.Active--
+	entry.bootstrap.Responses.Retired++
+	if request.deferred && !request.completed {
+		entry.bootstrap.Responses.RetiredIncomplete++
+	}
+	*request = windowBootstrapResponse{}
+}
+
+func bootstrapResponseStage(calls *WindowBootstrapResponseCalls, event uint8) *WindowBootstrapCallSnapshot {
+	switch event {
+	case bootstrapResponseAssignment:
+		return &calls.Assignment
+	case bootstrapResponseHeaders:
+		return &calls.Headers
+	case bootstrapResponseStatus:
+		return &calls.Status
+	case bootstrapResponseReason:
+		return &calls.Reason
+	case bootstrapResponseContent:
+		return &calls.Content
+	case bootstrapResponseDeferral:
+		return &calls.Deferral
+	case bootstrapResponseCompletion:
+		return &calls.Completion
+	}
+	return nil
+}
+
+func observeBootstrapCall(call *WindowBootstrapCallSnapshot, returned bool, hr uintptr, offThread bool) {
+	if returned {
+		call.Returned++
+		call.LastHRESULT = uint32(hr)
+		if hr != 0 {
+			call.Failed++
+		}
+	} else {
+		call.Entered++
+		if offThread {
+			call.OffThreadCalls++
+		}
+	}
+}
+
+// Never hold the ownership lock across a native call: COM may pump callbacks.
+// value is an internal identity, HTTP status, or content byte count. The wrappers
+// retain their original native calls and HRESULT handling.
+func recordBootstrapResponseCall(identity uintptr, event uint8, returned bool, hr, value uintptr) {
+	if !bootstrapDiagnosticsEnabled.Load() || identity == 0 {
+		return
+	}
+	ownedWindows.Lock()
+	defer ownedWindows.Unlock()
+	for _, entry := range ownedWindows.values {
+		if entry.closed {
+			continue
+		}
+		for index := range entry.requests {
+			request := &entry.requests[index]
+			if request.ordinal == 0 {
+				continue
+			}
+			var expected uintptr
+			switch event {
+			case bootstrapResponseAssignment, bootstrapResponseDeferral:
+				expected = request.args
+			case bootstrapResponseCompletion:
+				expected = request.deferral
+			default:
+				expected = request.response
+			}
+			if identity != expected {
+				continue
+			}
+			first := &entry.bootstrap.FirstResponse
+			aggregate := &entry.bootstrap.Responses
+			isFirst := request.ordinal == 1
+			switch event {
+			case bootstrapResponseAssignment:
+				if !returned {
+					request.response = value
+				} else {
+					request.assignmentOK = hr == 0
+					if hr != 0 {
+						request.args = 0
+					}
+				}
+			case bootstrapResponseHeaders:
+				if returned {
+					request.headers = hr == 0
+				}
+			case bootstrapResponseStatus:
+				if !returned && isFirst {
+					first.StatusCode = int(value)
+				}
+				if returned {
+					request.status = hr == 0
+				}
+			case bootstrapResponseReason:
+				if returned {
+					request.reason = hr == 0
+				}
+			case bootstrapResponseContent:
+				if returned {
+					request.content = hr == 0
+				}
+			case bootstrapResponseDeferral:
+				if returned {
+					if hr == 0 && value != 0 {
+						request.deferral = value
+						request.deferred = true
+					}
+					request.args = 0
+				}
+			case bootstrapResponseCompletion:
+				if returned && hr == 0 && !request.completed {
+					request.completed = true
+					aggregate.Completed++
+				}
+			case bootstrapResponseContentAttempt:
+				if isFirst {
+					first.ContentAttempts++
+					first.ContentBytes = uint64(value)
+				}
+				return
+			case bootstrapResponseStreamCreated:
+				if isFirst {
+					first.StreamsCreated++
+				}
+				return
+			case bootstrapResponseStreamFailed:
+				aggregate.StreamFailures++
+				if isFirst {
+					first.StreamFailures++
+				}
+				return
+			default:
+				return
+			}
+			offThread := entry.thread != windows.GetCurrentThreadId()
+			observeBootstrapCall(bootstrapResponseStage(&aggregate.WindowBootstrapResponseCalls, event), returned, hr, offThread)
+			if isFirst {
+				observeBootstrapCall(bootstrapResponseStage(&first.WindowBootstrapResponseCalls, event), returned, hr, offThread)
+			}
+			if !request.published && request.assignmentOK && request.headers && request.status && request.reason && request.content {
+				request.published = true
+				aggregate.Published++
+			}
+			return
+		}
+	}
+}
+
+func retireBootstrapResponse(identity uintptr, deferral bool) {
+	if !bootstrapDiagnosticsEnabled.Load() || identity == 0 {
+		return
+	}
+	ownedWindows.Lock()
+	defer ownedWindows.Unlock()
+	for _, entry := range ownedWindows.values {
+		for index := range entry.requests {
+			request := &entry.requests[index]
+			if request.ordinal == 0 {
+				continue
+			}
+			if deferral && request.deferral == identity {
+				request.deferral = 0
+			}
+			if !deferral && request.response == identity {
+				request.response = 0
+			}
+			retireBootstrapRequest(entry, request)
+		}
+	}
 }
 
 var bootstrapDiagnosticsEnabled atomic.Bool
@@ -73,6 +384,7 @@ const (
 	bootstrapResourceEntered
 	bootstrapResourceReturned
 	bootstrapNavigationCompleted
+	bootstrapRuntimeReadyReceived
 )
 
 func recordWindowBootstrap(e *Chromium, event uint8) {
@@ -103,6 +415,8 @@ func recordWindowBootstrap(e *Chromium, event uint8) {
 		value.ResourceEntered++
 	case bootstrapResourceReturned:
 		value.ResourceReturned++
+	case bootstrapRuntimeReadyReceived:
+		value.RuntimeReadyReceived++
 	case bootstrapNavigationCompleted:
 		value.NavigationCompleted++
 		if e.NavigationCompletedCallback == nil {
@@ -124,6 +438,7 @@ func OwnedWindowBootstrapSnapshots() []WindowBootstrapSnapshot {
 
 type windowLifetime struct {
 	bootstrap WindowBootstrapSnapshot
+	requests  [bootstrapResponseCapacity]windowBootstrapResponse
 	chromium  *Chromium
 	thread    uint32
 	closed    bool
@@ -232,13 +547,7 @@ func lifetimeWindowProc(hwnd, message, wparam, lparam, id, data uintptr) uintptr
 			entry.chromium.ShuttingDown()
 			if controller := entry.chromium.controller; controller != nil {
 				if err := controller.Close(); err != nil {
-					failure := fmt.Errorf("close WebView controller: %w", err)
-					ownedWindows.Lock()
-					if ownedWindows.failure == nil {
-						ownedWindows.failure = failure
-					}
-					ownedWindows.Unlock()
-					entry.chromium.globalErrorCallback(failure)
+					entry.chromium.recordControllerCloseFailure(err)
 				} else {
 					ownedWindows.Lock()
 					ownedWindows.closedControllers++
@@ -307,6 +616,43 @@ func (i *ICoreWebView2Controller) Close() error {
 	return nil
 }
 
+// These helpers balance only references acquired inside SDK convenience calls.
+// Public getters keep their existing caller-owned reference contract.
+func queryTemporaryInterface[T any](value unsafe.Pointer, iid string) (*T, error) {
+	if value == nil {
+		return nil, windows.Errno(0x80004003) // E_POINTER
+	}
+	var result *T
+	guid := NewGUID(iid)
+	hr, _, _ := (*IUnknown)(value).Vtbl.QueryInterface.Call(uintptr(value), uintptr(unsafe.Pointer(guid)), uintptr(unsafe.Pointer(&result)))
+	if windows.Handle(hr) != windows.S_OK {
+		return nil, windows.Errno(hr)
+	}
+	if result == nil {
+		return nil, windows.Errno(0x80004003)
+	}
+	return result, nil
+}
+
+func releaseTemporaryInterface[T any](value *T) {
+	if value != nil {
+		pointer := unsafe.Pointer(value)
+		(*IUnknown)(pointer).Vtbl.CallRelease(pointer)
+	}
+}
+
+func queryTemporarySettings[T any](e *Chromium, iid string) (*T, error) {
+	settings, err := e.webview.GetSettings()
+	if err != nil {
+		return nil, err
+	}
+	if settings == nil {
+		return nil, windows.Errno(0x80004003)
+	}
+	defer settings.Release()
+	return queryTemporaryInterface[T](unsafe.Pointer(settings), iid)
+}
+
 // Close stops the WebView; Release balances the interfaces retained by Embed.
 func (e *Chromium) releaseOwnedInterfaces() {
 	if value := e.webview; value != nil {
@@ -321,6 +667,17 @@ func (e *Chromium) releaseOwnedInterfaces() {
 		e.environment = nil
 		value.vtbl.Release.Call(uintptr(unsafe.Pointer(value)))
 	}
+	e.releaseOwnedCallbacks()
+}
+
+func (e *Chromium) recordControllerCloseFailure(err error) {
+	failure := fmt.Errorf("close WebView controller: %w", err)
+	ownedWindows.Lock()
+	if ownedWindows.failure == nil {
+		ownedWindows.failure = failure
+	}
+	ownedWindows.Unlock()
+	e.globalErrorCallback(failure)
 }
 
 func recordOwnedCOMApartment() {

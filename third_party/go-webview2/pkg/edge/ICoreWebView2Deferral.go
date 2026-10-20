@@ -34,6 +34,7 @@ func (i *ICoreWebView2Deferral) AddRef() error {
 
 // Release decrements the reference count of ICoreWebView2Deferral interface
 func (i *ICoreWebView2Deferral) Release() error {
+	retireBootstrapResponse(uintptr(unsafe.Pointer(i)), true)
 	_, _, err := i.Vtbl.Release.Call(uintptr(unsafe.Pointer(i)))
 	if err != nil && !errors.Is(err, windows.ERROR_SUCCESS) {
 		return err
@@ -43,9 +44,11 @@ func (i *ICoreWebView2Deferral) Release() error {
 }
 
 func (i *ICoreWebView2Deferral) Complete() error {
+	recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseCompletion, false, 0, 0)
 	hr, _, _ := i.Vtbl.Complete.Call(
 		uintptr(unsafe.Pointer(i)),
 	)
+	recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseCompletion, true, hr, 0)
 	if windows.Handle(hr) != windows.S_OK {
 		return syscall.Errno(hr)
 	}

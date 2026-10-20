@@ -52,7 +52,7 @@ def template(text):
     return json.JSONDecoder().raw_decode(text.split(TEMPLATE_MARKER, 1)[1])[0]
 
 
-def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None, environment=None):
+def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None, environment=None, process_factory=None):
     """Run every emitted argv in explicit fixtures; fail on unreviewed outcomes."""
     started = time.monotonic()
     workspace = Path(workspace)
@@ -380,7 +380,7 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
                 serve = directory / 'explicit owner'
                 invoke(['workspace', 'init', serve], scoped=False)
                 argv = substitute(actual, replacements)
-                with ProcessTree([str(executable), '--workspace', str(serve), '--json', *argv],
+                with (process_factory or ProcessTree)([str(executable), '--workspace', str(serve), '--json', *argv],
                                  cwd=directory, env=environment) as tree:
                     time.sleep(.2)
                     if tree.process.poll() is not None:

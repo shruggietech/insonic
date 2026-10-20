@@ -202,6 +202,7 @@ func validateNativeFileMenu(hwnd uintptr) error {
 
 func configureNativeMenu(bridge *desktop.Bridge, diagnostic bool) func() {
 	edge.EnableWindowBootstrapDiagnostics(diagnostic)
+	edge.EnableWindowBrowserDiagnostics(diagnostic && os.Getenv("INSONIC_STARTUP_BROWSER") == "true")
 	nativeSystemMenuRequested.Store(false)
 	edge.SetNativeSystemKeyHandler(func(hwnd uintptr, event edge.NativeSystemKeyEvent) bool {
 		if event.VirtualKey != 0x46 || !event.PhysicalKeyStatus.IsMenuKeyDown || event.LParam&(1<<29) == 0 ||
@@ -237,7 +238,11 @@ func configureNativeMenu(bridge *desktop.Bridge, diagnostic bool) func() {
 		}
 		return nil
 	})
-	return func() { edge.SetNativeSystemKeyHandler(nil); edge.EnableWindowBootstrapDiagnostics(false) }
+	return func() {
+		edge.SetNativeSystemKeyHandler(nil)
+		edge.EnableWindowBootstrapDiagnostics(false)
+		edge.EnableWindowBrowserDiagnostics(false)
+	}
 }
 
 func verifyNativeMenuRoute(action string) error {

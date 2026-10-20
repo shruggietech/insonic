@@ -1,7 +1,7 @@
-insonic maintained WebView lifetime and native-key patch
+insonic maintained WebView lifetime, callback and native-key patch
 
-Upstream: github.com/wailsapp/go-webview2 v1.0.22
-https://github.com/wailsapp/go-webview2/tree/v1.0.22
+Upstream: github.com/wailsapp/go-webview2 v1.0.23
+https://github.com/wailsapp/go-webview2/tree/v1.0.23
 
 Original upstream files and MIT license are retained. The insonic additions
 use Apache-2.0 (LICENSE.insonic). A native parent-window lifetime subclass
@@ -30,3 +30,39 @@ request URLs, script contents or application data, or add browser calls.
 
 The resource deferral Release method dispatches to IUnknown.Release, balancing
 the acquired reference after completion instead of increasing its count.
+
+Disposable qualification also observes native response assignment, header-interface
+acquisition, status/reason, content publication and deferral completion. Individual
+AppendHeader calls and browser consumption are not observed. Fixed
+entered/returned/HRESULT/thread counters contain no request content or native
+addresses. Internal borrowed identities are retired with their corresponding
+acquisition/Release and window owner. No WebView2 COM call is added or reordered; observation reads native thread identity.
+The runtime_version diagnostic field remains an available-loader lookup, not
+independently verified created-environment identity.
+
+The nine active Chromium callbacks use the existing native-allocated combridge
+with canonical IUnknown identity, supported-interface queries and real retained
+references. Creator leases are allocated only for an attached owned window and
+closed after controller/interface cleanup. Late events are ignored; a late
+controller is closed rather than installed into a destroyed owner. The default
+Go loader captures its completion target before asynchronous scheduling.
+
+Accelerator registration passes the caller-owned EventRegistrationToken output
+pointer at its native ABI level, preserving registration and HRESULT behavior.
+
+Eight fixed active-request slots retain unique publication/completion and sticky
+failed-call totals across initial responses. Slot overflow and retirement remain
+explicit. Only the exact runtime-ready message receives a fixed counter, with
+existing message forwarding unchanged and no message content retained.
+
+A separately elected disposable browser observer queries the created environment
+version and registers seven CDP receivers with four acknowledged setup commands
+before diagnostic navigation. It retains only bounded fixed asset classes, numeric
+fetch/header/exception summaries and matching document loader/frame milestones.
+Receivers and callback leases close on the owning thread. Ordinary launches
+add no observer COM calls; observed fetch completion is not script execution.
+
+SDK convenience calls balance internally acquired settings and queried controller
+references on success and failure. Public getter outputs remain caller-owned.
+Native query errors are preserved and null successful outputs are rejected. The
+background-colour temporary is released before its existing fatal error callback.

@@ -38,6 +38,7 @@ func (i *ICoreWebView2WebResourceResponse) AddRef() error {
 }
 
 func (i *ICoreWebView2WebResourceResponse) Release() error {
+	retireBootstrapResponse(uintptr(unsafe.Pointer(i)), false)
 	_, _, err := i.vtbl.Release.Call(uintptr(unsafe.Pointer(i)))
 	if err != nil && !errors.Is(err, windows.ERROR_SUCCESS) {
 		return err
@@ -50,10 +51,12 @@ func (i *ICoreWebView2WebResourceResponse) Release() error {
 // Release on the returned Object after finished using it.
 func (i *ICoreWebView2WebResourceResponse) GetHeaders() (*ICoreWebView2HttpResponseHeaders, error) {
 	var headers *ICoreWebView2HttpResponseHeaders
+	recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseHeaders, false, 0, 0)
 	hr, _, _ := i.vtbl.GetHeaders.Call(
 		uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(&headers)),
 	)
+	recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseHeaders, true, hr, 0)
 	if windows.Handle(hr) != windows.S_OK {
 		return nil, syscall.Errno(hr)
 	}
@@ -65,11 +68,12 @@ func (i *ICoreWebView2WebResourceResponse) GetHeaders() (*ICoreWebView2HttpRespo
 }
 
 func (i *ICoreWebView2WebResourceResponse) PutStatusCode(statusCode int) error {
+	recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseStatus, false, 0, uintptr(statusCode))
 	hr, _, _ := i.vtbl.PutStatusCode.Call(
 		uintptr(unsafe.Pointer(i)),
 		uintptr(statusCode),
 	)
-
+	recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseStatus, true, hr, 0)
 	if windows.Handle(hr) != windows.S_OK {
 		return syscall.Errno(hr)
 	}
@@ -80,10 +84,12 @@ func (i *ICoreWebView2WebResourceResponse) PutStatusCode(statusCode int) error {
 		return err
 	}
 
+	recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseReason, false, 0, 0)
 	hr, _, _ = i.vtbl.PutReasonPhrase.Call(
 		uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(_reasonPhrase)),
 	)
+	recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseReason, true, hr, 0)
 	if windows.Handle(hr) != windows.S_OK {
 		return syscall.Errno(hr)
 	}
@@ -91,10 +97,12 @@ func (i *ICoreWebView2WebResourceResponse) PutStatusCode(statusCode int) error {
 }
 
 func (i *ICoreWebView2WebResourceResponse) PutContent(content *IStream) error {
+	recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseContent, false, 0, 0)
 	hr, _, _ := i.vtbl.PutContent.Call(
 		uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(content)),
 	)
+	recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseContent, true, hr, 0)
 	if windows.Handle(hr) != windows.S_OK {
 		return syscall.Errno(hr)
 	}
@@ -103,13 +111,16 @@ func (i *ICoreWebView2WebResourceResponse) PutContent(content *IStream) error {
 }
 
 func (i *ICoreWebView2WebResourceResponse) PutByteContent(content []byte) error {
+	recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseContentAttempt, false, 0, uintptr(len(content)))
 	var stream *IStream
 	if len(content) > 0 {
 		// Create stream for response
 		str, err := w32.SHCreateMemStream(content)
 		if err != nil {
+			recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseStreamFailed, false, 0, 0)
 			return err
 		}
+		recordBootstrapResponseCall(uintptr(unsafe.Pointer(i)), bootstrapResponseStreamCreated, false, 0, 0)
 		stream = (*IStream)(unsafe.Pointer(str))
 		defer stream.Release()
 	}
