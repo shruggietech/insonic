@@ -133,4 +133,12 @@ E016 completes the real console prerequisite for T039/T040; E012-E015 failures a
 
 ## Phase22: Validate the corrected observer with one real console trace
 
-- [ ] T046 Retain one E021 console-only state-provenance integration result or explicit unavailability, including known/unknown portions, maxima/provenance/dispositions and cleanup, before selecting any further native run. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)
+- [x] T046 Retain one E021 console-only state-provenance integration result or explicit unavailability, including known/unknown portions, maxima/provenance/dispositions and cleanup, before selecting any further native run. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)
+
+## Phase23: Native state observation with validated provenance
+
+- [x] T047 Retain one E022 native failure/state observation or explicit unavailability from the E021-validated exact checkpoint, align supported maxima with case/cleanup timing, and preserve all initial/unsupported/selection/runtime-identity limits before selecting a treatment. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)
+
+## Phase24: Renderer-backgrounding policy comparison
+
+- [ ] T048 Verify a checksum-bound diagnostic-only build overlay for the actual environment-options argument, preserve E022 controls/bounds and native outcomes, then retain one E023 comparison and its process-class/browser-policy/early-pass limits before choosing a repair. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)

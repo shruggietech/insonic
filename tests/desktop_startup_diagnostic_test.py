@@ -306,6 +306,63 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
             self.assertEqual(env['GOFLAGS'],'')
             self.assertNotIn('GITHUB_TOKEN',env)
 
+    def test_renderer_overlay_changes_only_actual_options_and_preserves_maintained_source(self):
+        selected=Path('third_party/go-webview2/pkg/edge/chromium.go')
+        original=(ROOT/selected).read_bytes()
+        before=b'browserArgs := strings.Join(e.AdditionalBrowserArgs, " ")'
+        after=b'browserArgs := strings.Join(append(append([]string{}, e.AdditionalBrowserArgs...), "--disable-renderer-backgrounding"), " ")'
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);source=root/selected;source.parent.mkdir(parents=True);source.write_bytes(original)
+            with patch.object(diagnostic,'ROOT',root):
+                receipt={};overlay=diagnostic.renderer_backgrounding_overlay(root/'control',receipt)
+                replacement=json.loads(overlay.read_text())['Replace']
+                self.assertEqual(set(replacement),{str(source.resolve())})
+                changed=Path(replacement[str(source.resolve())]).read_bytes()
+                self.assertEqual(changed,original.replace(before,after))
+                self.assertEqual(changed.count(b'--disable-renderer-backgrounding'),1)
+                self.assertEqual(source.read_bytes(),original)
+                self.assertEqual(receipt['source_sha256'],hashlib.sha256(original).hexdigest())
+                self.assertEqual(receipt['replacement_sha256'],hashlib.sha256(changed).hexdigest())
+                self.assertFalse(receipt['feature_qualification'])
+                self.assertNotIn(str(root),json.dumps(receipt))
+                source.write_bytes(original+b'\nchanged\n')
+                with self.assertRaisesRegex(ValueError,'checksum'):
+                    diagnostic.renderer_backgrounding_overlay(root/'bad-control',{})
+                self.assertFalse((root/'bad-control').exists())
+
+    def test_renderer_overlay_is_build_only_and_combines_with_existing_asset_control(self):
+        package=MagicMock();package.package_directories.side_effect=lambda root,*args:(root,root)
+        for elected in [False,True]:
+            with self.subTest(elected=elected),tempfile.TemporaryDirectory() as temporary:
+                location=Path(temporary);original=location/'original';original.mkdir()
+                (original/'insonic-desktop.exe').write_bytes(b'incident GUI')
+                receipt={};css={}
+                with patch.object(diagnostic,'build_probe_gui',return_value='a'*64) as build, \
+                     patch.object(diagnostic,'renderer_backgrounding_overlay',return_value=location/'overlay.json') as overlay:
+                    options={'renderer_control':receipt} if elected else {}
+                    diagnostic.derive_gui(package,original,location,css_control=css,**options)
+                self.assertEqual((original/'insonic-desktop.exe').read_bytes(),b'incident GUI')
+                expected={'css_control':css}
+                if elected:
+                    overlay.assert_called_once_with(location/'renderer-control-source',receipt)
+                    expected['overlay']=location/'overlay.json'
+                else:overlay.assert_not_called()
+                self.assertEqual(build.call_args.kwargs,expected)
+
+    def test_renderer_control_rejects_missing_control_chain_before_acquisition(self):
+        env={'GITHUB_SHA':'a'*40,'INSONIC_STARTUP_RENDERER_CONTROL':'true',
+             'INSONIC_STARTUP_SCHEDULER':'true','INSONIC_STARTUP_NORMAL':'true','INSONIC_STARTUP_LIVE':'true',
+             'INSONIC_STARTUP_LOAD_GATE':'true','INSONIC_STARTUP_CSS_CONTROL':'true',
+             'INSONIC_STARTUP_BROWSER':'true','INSONIC_STARTUP_COLD':'true','INSONIC_STARTUP_HIDE':'true',
+             'INSONIC_STARTUP_SOURCE':'true','INSONIC_STARTUP_LOAD':'true','INSONIC_STARTUP_ABI_CONTROL':'false'}
+        for field in [key for key in env if key.startswith('INSONIC_') and key!='INSONIC_STARTUP_RENDERER_CONTROL']:
+            selected={**env,field:'true' if field=='INSONIC_STARTUP_ABI_CONTROL' else 'false'}
+            with self.subTest(field=field),patch.dict(os.environ,selected,clear=True), \
+                 patch.object(diagnostic.os,'name','nt'),patch.object(diagnostic.pipeline.m,'disposable_runner'), \
+                 patch.object(diagnostic,'incident_archive') as acquire:
+                with self.assertRaises(ValueError):diagnostic.run()
+                acquire.assert_not_called()
+
     def test_requires_the_exact_incident_payload(self):
         receipt={'revision':diagnostic.INCIDENT_REVISION,'platform':'windows_amd64','variant':'desktop','source_dirty':False,'archive':'fixture.zip'}
         with patch.object(diagnostic.pipeline,'read_inputs',return_value=({},receipt,{'revision':diagnostic.INCIDENT_REVISION})):

@@ -25,6 +25,7 @@ INCIDENT_REVISION='d44d95b6e97d741a32cbf87323bf78c824c3155b'
 INCIDENT_RUN=39097965060
 LIMIT=65536
 ABI_CONTROL_FILE_SHA256='788ed4d41dc722f387c67e0ba873608ae5ec5debd338316ba1e81440021782c5'
+RENDERER_CONTROL_FILE_SHA256='546a92905b17890764af1daefa3a475b9182d397a92a60722d774f2bc355cf73'
 CSS_CONTROL_SHA256='b737892a3b91fec94430eb9d779b0abba6b8b71e0daa8f5419f126179d00bc0b'
 SCRIPT_CONTROL_SHA256='fce52dc675bb0a1fd360324d143a8ed48824e29f5d92fdaf6fadf55e39a35f79'
 CSS_CONTROL_BYTES=402310
@@ -246,6 +247,27 @@ def historical_abi_overlay(location):
     return overlay
 
 
+def renderer_backgrounding_overlay(location,receipt):
+    # Browser flags are diagnostic only. The pinned loader clears environment
+    # overrides, so alter only the actual options argument in this elected build.
+    selected=ROOT/'third_party/go-webview2/pkg/edge/chromium.go'
+    original=selected.read_bytes()
+    before=b'browserArgs := strings.Join(e.AdditionalBrowserArgs, " ")'
+    after=b'browserArgs := strings.Join(append(append([]string{}, e.AdditionalBrowserArgs...), "--disable-renderer-backgrounding"), " ")'
+    if hashlib.sha256(original).hexdigest()!=RENDERER_CONTROL_FILE_SHA256 or original.count(before)!=1:
+        raise ValueError('renderer backgrounding control source checksum or options boundary differs')
+    changed=original.replace(before,after)
+    location.mkdir(parents=True,exist_ok=True)
+    control=location/'chromium.go';control.write_bytes(changed)
+    overlay=location/'overlay.json'
+    overlay.write_text(json.dumps({'Replace':{str(selected.resolve()):str(control.resolve())}})+'\n',encoding='utf-8',newline='\n')
+    receipt.update(kind='renderer-backgrounding-policy-control',feature_qualification=False,
+        flag='--disable-renderer-backgrounding',source_sha256=RENDERER_CONTROL_FILE_SHA256,
+        replacement_sha256=hashlib.sha256(changed).hexdigest(),
+        scope='one-build-actual-environment-options-not-a-pure-process-priority-control')
+    return overlay
+
+
 def observe_abi_comparison(package,gui,root,location,env,evidence,summary,*,startup_hide):
     # Two predeclared arms, each with its own fixed budget. Stop each arm at its
     # first failure; a failed corrected arm remains a failed workflow. The old
@@ -293,13 +315,17 @@ def historical_source():
     return source
 
 
-def derive_gui(package,root,location,*,css_control=None):
+def derive_gui(package,root,location,*,css_control=None,renderer_control=None):
     derived=location/'derived-source'
     if derived.resolve().is_relative_to(root.resolve()):raise ValueError('derived source destination overlaps incident package')
     shutil.copytree(root,derived)
     binaries,_=package.package_directories(derived,'windows_amd64','desktop')
     gui=binaries/'insonic-desktop.exe'
-    digest=build_probe_gui(package,gui,derived) if css_control is None else build_probe_gui(package,gui,derived,css_control=css_control)
+    options={}
+    if css_control is not None:options['css_control']=css_control
+    if renderer_control is not None:
+        options['overlay']=renderer_backgrounding_overlay(location/'renderer-control-source',renderer_control)
+    digest=build_probe_gui(package,gui,derived,**options)
     return gui,derived,digest
 
 
@@ -423,6 +449,9 @@ def run():
     live_observer=os.environ.get('INSONIC_STARTUP_LIVE')=='true'
     normal_control=os.environ.get('INSONIC_STARTUP_NORMAL')=='true'
     scheduler_elected=os.environ.get('INSONIC_STARTUP_SCHEDULER')=='true'
+    renderer_control=os.environ.get('INSONIC_STARTUP_RENDERER_CONTROL')=='true'
+    if renderer_control and not scheduler_elected:
+        raise ValueError('renderer backgrounding control requires the exact single-child scheduler control')
     if scheduler_elected and not normal_control:raise ValueError('scheduler observation requires the exact Normal live control')
     if normal_control and not live_observer:raise ValueError('normal priority control requires the live single-child experiment')
     if live_observer and not load_gate:raise ValueError('live endpoint requires the single load gate')
@@ -463,8 +492,13 @@ def run():
         if rebuilt:
             incident=(gui,root)
             control_receipt={} if css_control else None
-            gui,root,digest=derive_gui(package,root,location) if control_receipt is None else derive_gui(package,root,location,css_control=control_receipt)
+            derive_options={}
+            if control_receipt is not None:derive_options['css_control']=control_receipt
+            renderer_receipt={} if renderer_control else None
+            if renderer_receipt is not None:derive_options['renderer_control']=renderer_receipt
+            gui,root,digest=derive_gui(package,root,location,**derive_options)
             if control_receipt is not None:summary['css_size_control']=control_receipt
+            if renderer_receipt is not None:summary['renderer_backgrounding_control']=renderer_receipt
             summary['derived_gui_sha256']=digest
             summary['derived_gui_source_revision']=tool
             summary['boundary']='source-built-gui-with-verified-incident-companions-not-a-qualified-package'
