@@ -10,6 +10,10 @@ on:
         description: Qualified native runner for this independent source chain
         required: true
         type: string
+    outputs:
+      ready:
+        description: Successful verified warm or cold same-run source handoff
+        value: ${{ jobs.ready.outputs.ready }}
 permissions:
   contents: read
 jobs:
@@ -29,6 +33,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.revision }}
+      - name: Check out exact workflow observation tooling
+        if: inputs.revision != job.workflow_sha
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: build/automation
+          sparse-checkout: |
+            scripts/source-toolchain.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
       - if: runner.os == 'Linux'
         name: Linux source compiler prerequisites
         run: |
@@ -47,6 +62,15 @@ jobs:
           MSYS2_ACTION_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
         run: |
           python -c "import os; from pathlib import Path; value=os.environ['MSYS2_ACTION_LOCATION']; assert value and '\n' not in value and '\r' not in value, 'invalid MSYS2 action location'; root=Path(value); assert root.is_absolute() and all((root/name).is_file() for name in ['usr/bin/bash.exe','ucrt64/bin/gcc.exe','ucrt64/bin/nasm.exe']), 'installed MSYS2 source toolkit is incomplete'; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+str(root)+'\n')"
+      - name: Record resolved source toolchain packages
+        run: python "${{ inputs.revision == job.workflow_sha && '.' || 'build/automation' }}/scripts/source-toolchain.py" --output build/source-toolchain.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          archive: true
+          name: source-toolchain-${{ inputs.os }}-probe-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/source-toolchain.json
+          if-no-files-found: error
+          retention-days: 3
       - name: Pinned source build coordinator
         run: python -m pip install --disable-pip-version-check --no-input meson==1.8.3
       - name: Exact compiler, source pins and owned recipe cache identity
@@ -136,6 +160,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.revision }}
+      - name: Check out exact workflow observation tooling
+        if: inputs.revision != job.workflow_sha
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: build/automation
+          sparse-checkout: |
+            scripts/source-toolchain.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
       - if: runner.os == 'Linux'
         name: Linux source compiler prerequisites
         run: |
@@ -154,6 +189,15 @@ jobs:
           MSYS2_ACTION_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
         run: |
           python -c "import os; from pathlib import Path; value=os.environ['MSYS2_ACTION_LOCATION']; assert value and '\n' not in value and '\r' not in value, 'invalid MSYS2 action location'; root=Path(value); assert root.is_absolute() and all((root/name).is_file() for name in ['usr/bin/bash.exe','ucrt64/bin/gcc.exe','ucrt64/bin/nasm.exe']), 'installed MSYS2 source toolkit is incomplete'; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+str(root)+'\n')"
+      - name: Record resolved source toolchain packages
+        run: python "${{ inputs.revision == job.workflow_sha && '.' || 'build/automation' }}/scripts/source-toolchain.py" --output build/source-toolchain.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          archive: true
+          name: source-toolchain-${{ inputs.os }}-groups-${{ matrix.group }}-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/source-toolchain.json
+          if-no-files-found: error
+          retention-days: 3
       - name: Pinned source build coordinator
         run: python -m pip install --disable-pip-version-check --no-input meson==1.8.3
       - name: Exact compiler, source pins and owned recipe cache identity
@@ -200,6 +244,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.revision }}
+      - name: Check out exact workflow observation tooling
+        if: inputs.revision != job.workflow_sha
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: build/automation
+          sparse-checkout: |
+            scripts/source-toolchain.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
       - if: runner.os == 'Linux'
         name: Linux source compiler prerequisites
         run: |
@@ -218,6 +273,15 @@ jobs:
           MSYS2_ACTION_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
         run: |
           python -c "import os; from pathlib import Path; value=os.environ['MSYS2_ACTION_LOCATION']; assert value and '\n' not in value and '\r' not in value, 'invalid MSYS2 action location'; root=Path(value); assert root.is_absolute() and all((root/name).is_file() for name in ['usr/bin/bash.exe','ucrt64/bin/gcc.exe','ucrt64/bin/nasm.exe']), 'installed MSYS2 source toolkit is incomplete'; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+str(root)+'\n')"
+      - name: Record resolved source toolchain packages
+        run: python "${{ inputs.revision == job.workflow_sha && '.' || 'build/automation' }}/scripts/source-toolchain.py" --output build/source-toolchain.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          archive: true
+          name: source-toolchain-${{ inputs.os }}-formats-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/source-toolchain.json
+          if-no-files-found: error
+          retention-days: 3
       - name: Pinned source build coordinator
         run: python -m pip install --disable-pip-version-check --no-input meson==1.8.3
       - name: Exact compiler, source pins and owned recipe cache identity
@@ -280,6 +344,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.revision }}
+      - name: Check out exact workflow observation tooling
+        if: inputs.revision != job.workflow_sha
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: build/automation
+          sparse-checkout: |
+            scripts/source-toolchain.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
       - if: runner.os == 'Linux'
         name: Linux source compiler prerequisites
         run: |
@@ -298,6 +373,15 @@ jobs:
           MSYS2_ACTION_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
         run: |
           python -c "import os; from pathlib import Path; value=os.environ['MSYS2_ACTION_LOCATION']; assert value and '\n' not in value and '\r' not in value, 'invalid MSYS2 action location'; root=Path(value); assert root.is_absolute() and all((root/name).is_file() for name in ['usr/bin/bash.exe','ucrt64/bin/gcc.exe','ucrt64/bin/nasm.exe']), 'installed MSYS2 source toolkit is incomplete'; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+str(root)+'\n')"
+      - name: Record resolved source toolchain packages
+        run: python "${{ inputs.revision == job.workflow_sha && '.' || 'build/automation' }}/scripts/source-toolchain.py" --output build/source-toolchain.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          archive: true
+          name: source-toolchain-${{ inputs.os }}-codec-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/source-toolchain.json
+          if-no-files-found: error
+          retention-days: 3
       - name: Pinned source build coordinator
         run: python -m pip install --disable-pip-version-check --no-input meson==1.8.3
       - name: Exact compiler, source pins and owned recipe cache identity
@@ -347,6 +431,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.revision }}
+      - name: Check out exact workflow observation tooling
+        if: inputs.revision != job.workflow_sha
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          path: build/automation
+          sparse-checkout: |
+            scripts/source-toolchain.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
       - if: runner.os == 'Linux'
         name: Linux source compiler prerequisites
         run: |
@@ -365,6 +460,15 @@ jobs:
           MSYS2_ACTION_LOCATION: ${{ steps.msys2.outputs.msys2-location }}
         run: |
           python -c "import os; from pathlib import Path; value=os.environ['MSYS2_ACTION_LOCATION']; assert value and '\n' not in value and '\r' not in value, 'invalid MSYS2 action location'; root=Path(value); assert root.is_absolute() and all((root/name).is_file() for name in ['usr/bin/bash.exe','ucrt64/bin/gcc.exe','ucrt64/bin/nasm.exe']), 'installed MSYS2 source toolkit is incomplete'; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+str(root)+'\n')"
+      - name: Record resolved source toolchain packages
+        run: python "${{ inputs.revision == job.workflow_sha && '.' || 'build/automation' }}/scripts/source-toolchain.py" --output build/source-toolchain.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          archive: true
+          name: source-toolchain-${{ inputs.os }}-ffmpeg-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/source-toolchain.json
+          if-no-files-found: error
+          retention-days: 3
       - name: Pinned source build coordinator
         run: python -m pip install --disable-pip-version-check --no-input meson==1.8.3
       - name: Exact compiler, source pins and owned recipe cache identity
@@ -453,3 +557,25 @@ jobs:
           path: build/transfer/media-source.tar.gz
           if-no-files-found: error
           retention-days: 3
+  ready:
+    env:
+      SOURCE_REVISION: ${{ inputs.revision }}
+    name: Verified source readiness
+    needs: [probe, groups, formats, codec, ffmpeg]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 11
+    outputs:
+      ready: ${{ steps.ready.outputs.ready }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ job.workflow_repository }}
+          ref: ${{ job.workflow_sha }}
+          persist-credentials: false
+      - name: Validate sourceReadiness after all warm or cold producers
+        id: ready
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          SOURCE_RUNNER: ${{ inputs.os }}
+        run: node scripts/ci-acceptance.mjs source

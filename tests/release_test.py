@@ -84,7 +84,7 @@ class GitHubFixture:
     def __init__(self, fail_upload=False):
         self.release = None; self.assets = []; self.calls = []; self.fail_upload = fail_upload
         self.asset_bytes = {}; self.downloads = []
-        self.checks = [{'name': name, 'status': 'completed', 'conclusion': 'success', 'check_suite': {'id': 11}} for name in ('foundation', 'docs')]
+        self.checks = [{'name': name, 'status': 'completed', 'conclusion': 'success', 'check_suite': {'id': 11}} for name in ('foundation', 'docs', 'elected acceptance')]
         self.workflow = {'id': 77, 'repository': {'full_name': release.REPOSITORY},
                          'path': '.github/workflows/release.yml@main', 'event': 'workflow_dispatch',
                          'head_sha': REVISION, 'check_suite_id': 42, 'head_branch': 'main', 'workflow_id': 9}
@@ -800,6 +800,13 @@ class ReleaseDeliveryTests(unittest.TestCase):
         historical.workflow['head_sha'] = 'b' * 40
         with patch.dict(os.environ, dict(context, GITHUB_SHA='b' * 40)):
             self.assertTrue(release.publish(target, 'Highlights.', historical, self.root, runner, verify_fixture)['published'])
+
+    def test_publication_rejects_missing_elected_aggregate_before_any_writes(self):
+        target = self.candidate(); api = GitHubFixture()
+        api.checks = [item for item in api.checks if item['name'] != 'elected acceptance']
+        with self.assertRaisesRegex(ValueError, 'not green'):
+            release.publish(target, 'Highlights.', api, self.root, runner, verify_fixture)
+        self.assertFalse(any(method in ('POST', 'PATCH') for method, _, _ in api.calls))
 
     def test_publication_reads_required_checks_after_the_first_hundred(self):
         target = self.candidate(); api = GitHubFixture()

@@ -35,7 +35,7 @@ test('PR candidate collection uses complete independent package lanes with no pu
     assert.equal(runtime.with.lane, 'runtime');
     assert.equal(packages.with.lane, 'packages');
     assert.equal(packages.with.revision, '${{ github.sha }}');
-    assert.deepEqual(packages.needs, platform === 'windows' ? ['scope'] : runtime.needs);
+    assert.deepEqual(packages.needs, runtime.needs);
   }
   const assets = native.jobs.packages.steps.find(step => step.with?.name?.startsWith('candidate-package-'));
   assert.ok(assets.if.includes('success()'));
@@ -104,7 +104,7 @@ test('publication and promotion execute trusted tools and isolate deployment cre
 
 test('media jobs select the toolkit installed by the pinned MSYS2 action', () => {
   const media = parse(readFileSync(new URL('.github/workflows/media-source.yml', source), 'utf8'));
-  for (const job of Object.values(media.jobs)) {
+  for (const job of ['probe', 'groups', 'formats', 'codec', 'ffmpeg'].map(id => media.jobs[id])) {
     const setup = job.steps.find(step => step.uses?.startsWith('msys2/setup-msys2@'));
     const selection = job.steps.find(step => step.env?.MSYS2_ACTION_LOCATION);
     assert.equal(setup.id, 'msys2');

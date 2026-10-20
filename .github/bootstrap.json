@@ -15,7 +15,8 @@
   },
   "required_checks": [
     "foundation",
-    "docs"
+    "docs",
+    "elected acceptance"
   ],
   "project": {
     "title": "insonic",

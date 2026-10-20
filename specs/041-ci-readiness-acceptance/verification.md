@@ -1,0 +1,39 @@
+# Verification: CI readiness and elected acceptance
+
+## Scope and identity
+
+Local S041 repair of [#161](https://github.com/shruggietech/insonic/issues/161), based on main `68394966cac5377a9d7fd4eada9b630215803a7f`. Native incident #154 remains open and outside this first slice's implementation. No owner-desktop GUI/input or native campaign was executed.
+
+## Spec Kit evidence (2026-10-20)
+
+Specify, one owner timing clarification, plan, tasks, read-only analyze, implementation and converge used the installed project procedures and Python setup/prerequisite helpers. No extension hooks are configured. Analysis covered nine functional requirements and four success criteria, with full task mapping and no unresolved constitution conflicts after the explicit 3.1.0 timing amendment. Requirements checklist: six of six satisfied.
+
+Independent planning research confirmed explicit source readiness, real phase accounting, the remaining documentation wait assumption and terminal timestamp limits. Convergence leaves three hosted evidence/enforcement tasks; no local code gap remains.
+
+## Demonstrated regressions
+
+The old graph failed five of six initial readiness cases. The real transfer helper characterization passed while expiring at exactly 180,000 ms; its declared bound is unchanged. The repaired actual graph waits for both a 5-second warm producer and the report's 1,342-second cold producer. The real helper then consumes the ready same-run transfer without polling. Source failure/cancellation prevents downstream consumers; a documentation producer exceeding 180 seconds is also respected through explicit dependencies.
+
+Aggregate tests reject every elected unsuccessful/missing result, invalid flags, unexpected non-election, incomplete API inventories, wrong attempt identity, invalid timestamps and work beginning before readiness. Warm/cold OS-specific joins are explicit. Provisional timing rejects beyond 645 seconds, including its visible 15-second finalization reserve; terminal timing rejects beyond 660 seconds and includes actual final job cleanup. A later audit invocation does not extend recorded elapsed time. PR workflow head and checked-out merge source remain distinct identities.
+
+Release qualification initially rejected the old two-check success fixture after the bootstrap began requiring the aggregate. The fixture now includes all three real required checks; an explicit missing-aggregate regression confirms refusal before any hosted write.
+
+## Performed checks
+
+- `npm run check`: repository links/encoding/JSON/YAML/brand/source authority and 25 schemas, 22 contracts, 30 examples passed.
+- `npm test`: all 158 Node tests passed.
+- Python media transfer: 16 tests passed; source build: 21 tests passed.
+- Python release: 61 tests passed, including missing required aggregate refusal.
+- Site: 17 tests, export check and complete public/offline build passed; 111 documentation pages and local links/anchors validated.
+- Focused readiness, aggregate, scope and release-version suite passed after historical-source helper binding.
+- Final diff/encoding sanity checked before local commit. Headless Windows launchers used hidden creation and redirected noninteractive I/O.
+
+Raw local command receipts are retained under ignored `build/s041/`, including failing-before readiness output. No source build, native browser case, hosted package experiment, hosted protection update, push, PR, merge, release or issue closure is claimed.
+
+## Remaining evidence and limitations
+
+Qualification's hosted critical path and its 660-second compliance are unverified. Removing speculative Windows setup overlap improves prerequisite correctness but may require measured optimization after the first authorized run. The aggregate receipt is provisional; the exact-attempt terminal audit must include finalization. The 15-second reserve cannot guarantee external provider scheduling/finalization latency.
+
+The terminal audit requires a digest-verified gate receipt downloaded from the exact run; it re-reads attempt/job identity and timing. It does not independently authenticate an arbitrary local receipt file. Run metadata `updated_at` is reported separately and included only as a conservative terminal envelope, not described as a documented completion timestamp.
+
+The local bootstrap declaration is ready; live branch protection has not changed. #161 currently has no milestone and an existing project item; reconcile those alongside authorized hosted enforcement. Exact cold/warm and post-merge main evidence remain required before closure. Native baseline, startup error propagation/recovery and remaining incident discrimination follow separately in the agreed diagnosis sequence.
