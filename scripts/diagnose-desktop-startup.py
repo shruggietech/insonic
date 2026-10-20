@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Incident-bound disposable Windows observations; never delivery qualification."""
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 from threading import Event, Lock, Thread
 import ctypes
 import hashlib
@@ -67,7 +67,8 @@ class BoundedStream:
             pipe.close()
 
 
-def capture(args,directory,env,timeout,*,require_release=False,startup_hide=False,observe_resources=False,resource_origin=None,observe_live=False):
+def capture(args,directory,env,timeout,*,require_release=False,startup_hide=False,observe_resources=False,resource_origin=None,observe_live=False,scheduler_identity=False):
+    if scheduler_identity and not observe_live:raise ValueError('scheduler identity requires the live owned endpoint')
     if observe_live and (not observe_resources or not require_release):raise ValueError('live endpoint requires owned-release resource observation')
     started=time.monotonic();timed_out=False;readers=[]
     timing={}
@@ -91,7 +92,7 @@ def capture(args,directory,env,timeout,*,require_release=False,startup_hide=Fals
         if startup_hide:selected=[sys.executable,str(Path(__file__).with_name('diagnose-native-launch.py')),*selected]
         with ProcessTree(selected,cwd=directory,env=env) as tree:
             if observe_live and resource_api is not None:
-                try:live=resource_api.LiveEndpoint(tree.job,started,resource_origin)
+                try:live=resource_api.LiveEndpoint(tree.job,started,resource_origin,**({'identity':True} if scheduler_identity else {}))
                 except Exception:resources['live']={'available':False,'reason':'observer-unavailable'}
             try:
                 for stream,pipe in [(output,tree.process.stdout),(error,tree.process.stderr)]:
@@ -421,6 +422,8 @@ def run():
     load_gate=os.environ.get('INSONIC_STARTUP_LOAD_GATE')=='true'
     live_observer=os.environ.get('INSONIC_STARTUP_LIVE')=='true'
     normal_control=os.environ.get('INSONIC_STARTUP_NORMAL')=='true'
+    scheduler_elected=os.environ.get('INSONIC_STARTUP_SCHEDULER')=='true'
+    if scheduler_elected and not normal_control:raise ValueError('scheduler observation requires the exact Normal live control')
     if normal_control and not live_observer:raise ValueError('normal priority control requires the live single-child experiment')
     if live_observer and not load_gate:raise ValueError('live endpoint requires the single load gate')
     if load_gate and not css_control:
@@ -443,7 +446,7 @@ def run():
              'observations':[]}
     if normal_control:summary['normal_gui_priority_control']=True
     save(evidence,'diagnostic.json',summary)
-    with tempfile.TemporaryDirectory(prefix='insonic startup diagnosis ',dir=ROOT/'build') as temporary:
+    with tempfile.TemporaryDirectory(prefix='insonic startup diagnosis ',dir=ROOT/'build') as temporary, ExitStack() as stack:
         location=Path(temporary);package.extract_package(archive,location)
         root=package.path_inside(location,receipt['inventory_root'])
         inventory=package.path_inside(location,receipt['inventory_path'])
@@ -467,11 +470,12 @@ def run():
             summary['boundary']='source-built-gui-with-verified-incident-companions-not-a-qualified-package'
             save(evidence,'diagnostic.json',summary)
         idle=lambda:wait_owned_clis(package,[binaries/'insonic.exe',gui.with_name('insonic.exe')])
-        timeline=None
+        timeline=None;scheduler=None
         def observe():
             if load_gate:timeline.wait_gate()
             if cold:
                 return observe_cold_start(gui,root,location,env,evidence,summary,startup_hide=startup_hide,timeline=timeline,
+                    **({'scheduler':scheduler} if scheduler is not None else {}),
                     **({'sample_limit':1,'observe_resources':True,**({'observe_live':True} if live_observer else {})} if load_gate else {}))
             return observe_native(gui,root,location,env,evidence,summary,rebuilt,incident)
         if abi_control:
@@ -490,21 +494,41 @@ def run():
                     save(evidence,'cli-initialization.json',initial)
                     raise RuntimeError('concurrent CLI workspace preparation failed')
             summary['concurrent_cli_contract']=True
+            if scheduler_elected:
+                from windows_scheduler_diagnostic import Scheduler
+                scheduler=stack.enter_context(Scheduler(ROOT,capture,pipeline.m.disposable_runner))
+                try:
+                    scheduler.prepare()
+                    save(evidence,'scheduler-preflight.json',scheduler.preflight)
+                    scheduler.stage='actual-start';scheduler.start()
+                except Exception:
+                    failed_scheduler=scheduler.failure()
+                    scheduler.cancel()
+                    summary['result']='scheduler-preflight-unavailable-zero-gui'
+                    save(evidence,'diagnostic.json',summary)
+                    save(evidence,'scheduler-preflight.json',{**failed_scheduler,'gui_launches':0,'cleanup_confirmed':scheduler.cleanup_confirmed})
+                    raise RuntimeError('scheduler preflight unavailable; no workload or GUI launched') from None
             timeline=LoadTimeline(gate=load_gate)
             with ThreadPoolExecutor(max_workers=1) as workers:
                 future=workers.submit(run_load,timeline,qualify_contract,cli,workspace,env=env,cwd=root,documentation=True)
-                observe_with_load(observe,future,idle,evidence,timeline=timeline)
+                observe_with_load(observe,future,idle,evidence,timeline=timeline,
+                    **({'abandon':scheduler.cancel} if scheduler is not None else {}))
         else:
             observe_with_load(observe,None,idle,evidence)
     return summary
 
 
-def observe_with_load(observe,future,idle,evidence,*,timeline=None):
+def observe_with_load(observe,future,idle,evidence,*,timeline=None,abandon=None):
     failure=None
     try:
         observe()
     except BaseException as error:
         failure=error
+        if abandon is not None:
+            # Gate/capture/save failures must stop the owned trace before the
+            # unrelated CLI join and idle lease. Preserve the original failure.
+            try:abandon()
+            except Exception:pass
     try:
         if future is not None:
             workload=future.result()
@@ -558,11 +582,12 @@ def normal_priority_control(observation):
     return {'available':True,**{key:row[key] for key in [*expected,*integers]}}
 
 
-def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=False,sample_seconds=300,sample_limit=240,timeline=None,observe_resources=False,observe_live=False):
+def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=False,sample_seconds=300,sample_limit=240,timeline=None,observe_resources=False,observe_live=False,scheduler=None):
     # Diagnostic sampling only. Each real close child owns a fresh profile and
     # must naturally release its job before another launch. Stop on first failure.
     if observe_resources and (timeline is None or sample_limit!=1):
         raise ValueError('resource endpoints require the single load-gated case timeline')
+    if scheduler is not None and (not observe_live or sample_limit!=1):raise ValueError('scheduler requires the single live owned case')
     summary.update(boundary='source-cold-close-startup-not-package-qualification',sample_limit=sample_limit,sampling_seconds=sample_seconds,startup_hide=startup_hide)
     deadline=time.monotonic()+sample_seconds
     summary['result']='cold-start-no-failure-observed-not-a-cause-proof'
@@ -578,6 +603,7 @@ def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=Fal
             options={'startup_hide':True} if startup_hide else {}
             if observe_resources:options.update(observe_resources=True,resource_origin=timeline.origin)
             if observe_live:options['observe_live']=True
+            if scheduler is not None:options['scheduler_identity']=True
             observation=capture([gui,'--exit-qualification-child',fixture],root,env,18,require_release=True,**options)
         finally:
             if timeline is not None:load_case=timeline.case_end(case)
@@ -601,6 +627,15 @@ def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=Fal
         if control is not None and not control['available']:summary['result']='normal-priority-control-unavailable'
         elif not passed:summary['result']='cold-start-failure-observed'
         save(evidence,'diagnostic.json',summary)
+        if scheduler is not None:
+            # Original native status and streams are retained before trace stop
+            # or decoding. Neither operation participates in native cleanup.
+            scheduled=scheduler.finish(observation,control)
+            save(evidence,'scheduler.json',scheduled)
+            summary['scheduler_available']=scheduled['available']
+            if passed and not scheduled['available']:summary['result']='scheduler-observation-unavailable'
+            save(evidence,'diagnostic.json',summary)
+            if passed and not scheduled['available']:raise RuntimeError('scheduler observation unavailable; original native evidence retained')
         if control is not None and not control['available']:raise RuntimeError('normal priority control unavailable; original process evidence retained')
         if not passed:raise RuntimeError('cold startup failed; first failure evidence retained')
     save(evidence,'diagnostic.json',summary)

@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net9.0": {
+      "Microsoft.Windows.EventTracing.Cpu": {
+        "type": "Direct",
+        "requested": "[1.12.10, 1.12.10]",
+        "resolved": "1.12.10",
+        "contentHash": "XImupM0xLKA7bgCjSzw7Qb34s/KghTcLiuQV9tEmFQNLkPZJoxIt6B0ojsuixN3LLt1PKkDNUtZQ0nlb03lYGA==",
+        "dependencies": {
+          "Microsoft.Windows.EventTracing.Metadata": "1.12.10",
+          "Microsoft.Windows.EventTracing.Processes": "1.12.10",
+          "Microsoft.Windows.EventTracing.Processing": "1.12.10",
+          "System.Memory": "4.5.3"
+        }
+      },
+      "Microsoft.Windows.EventTracing.Metadata": {
+        "type": "Direct",
+        "requested": "[1.12.10, 1.12.10]",
+        "resolved": "1.12.10",
+        "contentHash": "xSWE1HxljjlI4sdC09k2NOXNX6pdwcNx76rDEHuXyfTTrKuTIxpHia7k8lRcenPy8dRz2/eY+ZLK6gcYLwEiIQ==",
+        "dependencies": {
+          "Microsoft.Windows.EventTracing.Processes": "1.12.10",
+          "Microsoft.Windows.EventTracing.Processing": "1.12.10"
+        }
+      },
+      "Microsoft.Windows.EventTracing.Processing.OutputRedirection": {
+        "type": "Direct",
+        "requested": "[1.12.10, 1.12.10]",
+        "resolved": "1.12.10",
+        "contentHash": "nqzw+jVhY5ezI5099WD4jCqDTqMGmIViePBABqqZOX4P65jquRWkz2CZ4xOnGeA2vprrSYCpxC2LZPJ5PCGhog==",
+        "dependencies": {
+          "Microsoft.Windows.EventTracing.Processing": "1.12.10"
+        }
+      },
+      "Microsoft.Windows.EventTracing.Processing.Toolkit": {
+        "type": "Direct",
+        "requested": "[1.11.0, 1.11.0]",
+        "resolved": "1.11.0",
+        "contentHash": "I3AdOlbTG1E1/VlYPVlaxsuFstln6v3AM7miVXqjKLfl1vPbFnTqyGADD8mGRKIH/0VUYGtvrqeX33dn74P6Ww=="
+      },
+      "Microsoft.Windows.EventTracing.Processes": {
+        "type": "Transitive",
+        "resolved": "1.12.10",
+        "contentHash": "p2vZBrcZSoXDHAuwbx6f18wTrBxfB4sQ1dbov+DadrdM3Me0hGfVgrXtIiJLU6eyhQh9B5nuMLmTwddLSPi0CA==",
+        "dependencies": {
+          "Microsoft.Windows.EventTracing.Processing": "1.12.10"
+        }
+      },
+      "Microsoft.Windows.EventTracing.Processing": {
+        "type": "Transitive",
+        "resolved": "1.12.10",
+        "contentHash": "wXEVCFySPKQLFPJiJWY09lBVNmM+PUTqTCZWLi34FPVrHV61XI1pw91TJzUib25vj7QbagqTAqZsovtRAwNjCg==",
+        "dependencies": {
+          "System.Memory": "4.5.3",
+          "System.Security.Principal.Windows": "4.6.0"
+        }
+      },
+      "System.Memory": {
+        "type": "Transitive",
+        "resolved": "4.5.3",
+        "contentHash": "3oDzvc/zzetpTKWMShs1AADwZjQ/36HnsufHRPcOjyRAAMLDlu2iD33MBI2opxnezcVUtXyqDXXjoFMOU9c7SA=="
+      },
+      "System.Security.Principal.Windows": {
+        "type": "Transitive",
+        "resolved": "4.6.0",
+        "contentHash": "Mdukseovp0YIGaz16FMH6nbfgZkrCFOJbtXQptv0aeBO9h775Ilb9+TDwLVTKikoW7y7CY7lpoXl9zmZ5G3ndA=="
+      }
+    }
+  }
+}

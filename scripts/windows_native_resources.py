@@ -94,7 +94,7 @@ def cpu_interval(before,after):
             'busy_percent':round(100*(total-differences['idle_ticks'])/total,3),**differences}
 
 
-def owned_snapshot(job,pids):
+def owned_snapshot(job,pids,*,identity=False):
     # PID enumeration belongs to the existing job observer. Verify membership
     # again on each opened handle before querying it, including PID reuse races.
     if os.name!='nt':return failed('platform-unavailable')
@@ -115,6 +115,7 @@ def owned_snapshot(job,pids):
             if not handle:
                 row.update(native_failed());continue
             try:
+                identity_begin=time.time_ns()//1000 if identity else None
                 owned=C.c_int()
                 if not selected.IsProcessInJob(handle,job,C.byref(owned)):
                     row.update(native_failed());continue
@@ -126,6 +127,13 @@ def owned_snapshot(job,pids):
                 created,exited,kernel,user=FileTime(),FileTime(),FileTime(),FileTime()
                 row['cpu']=({'available':True,'scope':'process-lifetime','tick_unit':'100ns','kernel_ticks':ticks(kernel),'user_ticks':ticks(user)}
                     if selected.GetProcessTimes(handle,C.byref(created),C.byref(exited),C.byref(kernel),C.byref(user)) else native_failed())
+                if identity:
+                    identity_end=time.time_ns()//1000
+                    created_micros=(ticks(created)-116444736000000000)//10
+                    row['identity']=({'available':True,'created_unix_micros':created_micros,
+                        'query_begin_unix_micros':identity_begin,'query_end_unix_micros':identity_end}
+                        if row['cpu']['available'] and not ticks(exited) and 0<created_micros<=identity_begin<=identity_end
+                        else failed('live-creation-identity-unavailable'))
                 memory=ProcessMemory();memory.cb=C.sizeof(memory)
                 row['memory']=({'available':True,'working_set_bytes':memory.working,
                     'peak_working_set_bytes':memory.peak_working,'private_commit_bytes':memory.private}
@@ -156,8 +164,8 @@ class LiveEndpoint:
     pending observer may still hold this duplicate. Successful release has already
     proved the job empty. The worker always closes its own duplicate.
     """
-    def __init__(self,job,native_origin,origin,*,delay=15):
-        self._lock=Lock();self._stop=Event();self._origin=origin
+    def __init__(self,job,native_origin,origin,*,delay=15,identity=False):
+        self._lock=Lock();self._stop=Event();self._origin=origin;self._identity=identity
         self._row={'available':False,'reason':'not-started-before-capture-end','scheduled_native_seconds':delay}
         selected=api();current=selected.GetCurrentProcess();duplicate=C.c_void_p()
         if not selected.DuplicateHandle(current,job,current,C.byref(duplicate),0,False,2):
@@ -178,7 +186,8 @@ class LiveEndpoint:
             elif not members['pids']:
                 row=failed('no-live-owned-members')
             else:
-                row={'available':True,'system':system_snapshot(self._origin),'owned':owned_snapshot(job,members['pids'])}
+                row={'available':True,'system':system_snapshot(self._origin),
+                     'owned':owned_snapshot(job,members['pids'],**({'identity':True} if self._identity else {}))}
             row.update(scheduled_native_seconds=delay,start_elapsed_seconds=started,
                        end_elapsed_seconds=round(time.monotonic()-self._origin,6))
             with self._lock:self._row=row
