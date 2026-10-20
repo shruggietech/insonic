@@ -117,3 +117,36 @@ test('cold Windows dependency preparation gates qualification and restores a ver
     assert.ok(consumer[download].with.name.endsWith('-${{ github.run_attempt }}'));
   }
 });
+
+test('cold media campaign isolates every compiled cache and keeps the namespace across attempts', () => {
+  const ci = workflow('ci'), media = workflow('media-source');
+  assert.equal(ci.on.workflow_dispatch.inputs.cold_media_source.default, false);
+  assert.equal(media.on.workflow_call.inputs['cold-cache'].default, false);
+  for (const os of ['linux', 'windows']) {
+    assert.equal(ci.jobs[`media-${os}`].with['cold-cache'], '${{ github.event_name == \'workflow_dispatch\' && inputs.cold_media_source }}');
+  }
+  const compiled = [], originals = [];
+  for (const job of Object.values(media.jobs)) for (const step of job.steps ?? []) {
+    if (!step.with?.key?.startsWith('media-')) continue;
+    (step.with.key.startsWith('media-original-sources-') ? originals : compiled).push(step);
+  }
+  assert.equal(compiled.length, 4);
+  const ordinaryKeys = [];
+  for (const step of compiled) {
+    assert.ok(step.with.key.endsWith('${{ inputs.cold-cache && format(\'-campaign-{0}\', github.run_id) || \'\' }}'));
+    assert.equal(step.with['restore-keys'], undefined);
+    assert.ok(!step.with.key.includes('github.run_attempt'));
+    const ordinary = step.with.key.replace('${{ inputs.cold-cache && format(\'-campaign-{0}\', github.run_id) || \'\' }}', '');
+    ordinaryKeys.push(ordinary);
+  }
+  assert.deepEqual(ordinaryKeys.sort(), [
+    'media-complete-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}',
+    'media-complete-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}',
+    'media-dependency-${{ matrix.group }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}',
+    'media-formats-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}',
+  ].sort());
+  assert.equal(originals.length, 5);
+  assert.ok(originals.every(step => !step.with.key.includes('campaign')));
+  assert.equal(media.on.workflow_call.outputs.path.value, '${{ jobs.ready.outputs.path }}');
+  assert.equal(media.jobs.ready.steps.find(step => step.id === 'ready').env.MEDIA_COLD_CACHE, '${{ inputs.cold-cache }}');
+});

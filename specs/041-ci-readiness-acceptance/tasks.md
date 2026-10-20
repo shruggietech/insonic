@@ -49,6 +49,10 @@ Setup -> foundation -> US1 -> US2 -> verification. Different test files may be a
 - [x] T017 Record first hosted failure and analyze dependency-only preparation against the approved timing contract in plan.md, research.md and verification.md.
 - [x] T018 Add failing-before preparation, identity, archive and consumer-graph regressions; implement scripts/go-dependency-transfer.py and the Windows preparation job.
 - [x] T019 Wire verified package consumers and readiness/aggregate; preserve product builds and all acceptance; run root, site and affected checks.
-- [ ] T020 Push the verified repair and monitor exact-head CI to terminal; retain final timing and package evidence, stop before merge.
+- [x] T020 Push the verified repair and monitor exact-head CI to terminal; retain final timing and package evidence, stop before merge.
 
 - [x] T021 Analyze the second measured budget failure; add setup compiler dependencies, shared-deadline input gate and joined independent CI setup work; preserve every product and native check.
+
+## Phase 8: Convergence
+
+- [x] T022 Add an opt-in isolated compiled-media cache campaign to .github/workflows/ci.yml and .github/workflows/media-source.yml, retain cold/warm path outputs, and verify ordinary cache keys and all acceptance checks remain unchanged per SC-004 and FR-002/003/009 (missing).

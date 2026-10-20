@@ -4,12 +4,15 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as sleep } from 'node:timers/promises';
 
-export function sourceReadiness(needs, os) {
+export function sourceReadiness(needs, os, { campaign = false, attempt = '1' } = {}) {
   if (!['windows-2022', 'ubuntu-24.04'].includes(os)) throw new Error('Unknown source platform.');
   if (needs.probe?.result !== 'success') throw new Error('Source probe did not succeed.');
   const complete = needs.probe.outputs?.complete;
   if (!['true', 'false'].includes(complete)) throw new Error('Source probe complete output is missing.');
   const warm = complete === 'true';
+  if (campaign && (!/^[1-9]\d*$/.test(attempt) || (attempt === '1' && warm))) {
+    throw new Error('The first isolated campaign attempt must demonstrate cold source preparation.');
+  }
   for (const id of ['groups', 'formats', 'codec', 'ffmpeg']) {
     const expected = warm || (id === 'codec' && os === 'ubuntu-24.04') ? 'skipped' : 'success';
     if (needs[id]?.result !== expected) throw new Error(`Source ${id} must be ${expected}.`);
@@ -178,7 +181,8 @@ async function main() {
   const mode = process.argv[2];
   const needs = () => JSON.parse(process.env.NEEDS_JSON ?? '{}');
   if (mode === 'source') {
-    const readiness = sourceReadiness(needs(), process.env.SOURCE_RUNNER);
+    const readiness = sourceReadiness(needs(), process.env.SOURCE_RUNNER,
+      { campaign: process.env.MEDIA_COLD_CACHE === 'true', attempt: process.env.GITHUB_RUN_ATTEMPT });
     await fs.appendFile(process.env.GITHUB_OUTPUT, `ready=true\npath=${readiness}\n`);
     console.log(`Verified ${readiness} source producers succeeded.`);
     return;

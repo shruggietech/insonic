@@ -2,6 +2,10 @@ name: Verified source media stages
 on:
   workflow_call:
     inputs:
+      cold-cache:
+        description: Use a run-specific compiled cache namespace, retained across rerun attempts
+        type: boolean
+        default: false
       revision:
         description: Exact source commit qualified by the calling workflow
         required: true
@@ -14,6 +18,9 @@ on:
       ready:
         description: Successful verified warm or cold same-run source handoff
         value: ${{ jobs.ready.outputs.ready }}
+      path:
+        description: Verified source preparation path, warm or cold
+        value: ${{ jobs.ready.outputs.path }}
 permissions:
   contents: read
 jobs:
@@ -123,7 +130,7 @@ jobs:
             build/native/source-media/*/ffmpeg.exe
             build/native/source-media/*/ffprobe.exe
             build/native/source-media/*/compiler-notices
-          key: media-complete-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}
+          key: media-complete-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}${{ inputs.cold-cache && format('-campaign-{0}', github.run_id) || '' }}
       - name: Verify complete binaries, static closure and all original source pins
         id: ready
         shell: bash
@@ -218,7 +225,7 @@ jobs:
           path: |
             build/native/source-media/*/install
             build/native/source-media/*/dependency-${{ matrix.group }}-receipt.json
-          key: media-dependency-${{ matrix.group }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}
+          key: media-dependency-${{ matrix.group }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}${{ inputs.cold-cache && format('-campaign-{0}', github.run_id) || '' }}
       - name: Build or fully verify the independent private static dependency group
         run: python scripts/build-media-source.py --stage ${{ matrix.group }}
       - name: Transfer exact dependency headers, archives and original sources
@@ -302,7 +309,7 @@ jobs:
             build/native/source-media/*/install
             build/native/source-media/*/dependency-receipt.json
             build/native/source-media/*/dependency-*-receipt.json
-          key: media-formats-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}
+          key: media-formats-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}${{ inputs.cold-cache && format('-campaign-{0}', github.run_id) || '' }}
       - name: Verify every cached dependent format, private header and static archive
         id: formats_ready
         shell: bash
@@ -496,7 +503,7 @@ jobs:
             build/native/source-media/*/ffmpeg.exe
             build/native/source-media/*/ffprobe.exe
             build/native/source-media/*/compiler-notices
-          key: media-complete-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}
+          key: media-complete-${{ runner.os }}-${{ runner.arch }}-${{ steps.identity.outputs.key }}${{ inputs.cold-cache && format('-campaign-{0}', github.run_id) || '' }}
       - name: Verify any completed source cache that became available after the initial probe
         id: complete_ready
         shell: bash
@@ -567,6 +574,7 @@ jobs:
     timeout-minutes: 11
     outputs:
       ready: ${{ steps.ready.outputs.ready }}
+      path: ${{ steps.ready.outputs.path }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -578,4 +586,5 @@ jobs:
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
           SOURCE_RUNNER: ${{ inputs.os }}
+          MEDIA_COLD_CACHE: ${{ inputs.cold-cache }}
         run: node scripts/ci-acceptance.mjs source

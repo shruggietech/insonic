@@ -18,9 +18,12 @@ function results(full = true, smoke = false) {
 test('source readiness accepts only complete successful warm and OS-specific cold paths', () => {
   const warm = { probe: { result: 'success', outputs: { complete: 'true' } }, groups: { result: 'skipped' }, formats: { result: 'skipped' }, codec: { result: 'skipped' }, ffmpeg: { result: 'skipped' } };
   assert.equal(sourceReadiness(warm, 'windows-2022'), 'warm');
+  assert.throws(() => sourceReadiness(warm, 'windows-2022', { campaign: true, attempt: '1' }), /cold source/);
+  assert.equal(sourceReadiness(warm, 'windows-2022', { campaign: true, attempt: '2' }), 'warm');
   const cold = structuredClone(warm); cold.probe.outputs.complete = 'false';
   for (const id of ['groups', 'formats', 'codec', 'ffmpeg']) cold[id].result = 'success';
   assert.equal(sourceReadiness(cold, 'windows-2022'), 'cold');
+  assert.equal(sourceReadiness(cold, 'windows-2022', { campaign: true, attempt: '1' }), 'cold');
   cold.codec.result = 'skipped'; assert.equal(sourceReadiness(cold, 'ubuntu-24.04'), 'cold');
   assert.throws(() => sourceReadiness(cold, 'windows-2022'), /codec/);
   for (const input of [warm, cold]) for (const result of ['failure', 'cancelled', 'neutral', undefined]) {

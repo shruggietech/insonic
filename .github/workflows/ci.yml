@@ -5,6 +5,10 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      cold_media_source:
+        description: Isolate compiled media caches for a cold campaign; full reruns reuse its namespace
+        type: boolean
+        default: false
       site_smoke:
         description: Read-only production byte, download and browser verification
         type: boolean
@@ -211,6 +215,7 @@ jobs:
     if: needs.scope.outputs.core == 'true' || needs.scope.outputs.native == 'true' || needs.scope.outputs.adapters == 'true'
     uses: ./.github/workflows/media-source.yml
     with:
+      cold-cache: ${{ github.event_name == 'workflow_dispatch' && inputs.cold_media_source }}
       revision: ${{ github.sha }}
       os: ubuntu-24.04
   qualify-linux:
@@ -250,6 +255,7 @@ jobs:
     if: needs.scope.outputs.core == 'true' || needs.scope.outputs.native == 'true' || needs.scope.outputs.adapters == 'true'
     uses: ./.github/workflows/media-source.yml
     with:
+      cold-cache: ${{ github.event_name == 'workflow_dispatch' && inputs.cold_media_source }}
       revision: ${{ github.sha }}
       os: windows-2022
   qualify-windows:
