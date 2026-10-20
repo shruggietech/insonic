@@ -88,3 +88,7 @@ A maintainer receives one required acceptance result that rejects any elected fa
 - This first bounded slice addresses readiness/acceptance. Native baseline, terminal startup recovery and remaining incident discrimination follow separately in the diagnosis sequence.
 - Existing verified source stages and same-run transfers provide the smallest mechanism; cross-run artifact import is unnecessary.
 - No publication, hosted experiment, merge, release or incident closure is inferred from session guidance.
+
+## Hosted convergence clarification (2026-10-20)
+
+The owner authorized pushing S041, opening its PR, monitoring and fixing CI, stopping before merge. Separately timed preparation may compile standard and external Go library dependencies under the exact consumer environment. It must exclude every main-module package, executable and test. Optional cache warming cannot replace a verified same-run/attempt handoff. Qualification retains all original product builds, native cases and timing allowances.

@@ -35,9 +35,54 @@ jobs:
         run: node scripts/ci-scope.mjs
         env:
           INSONIC_CI_SITE_SMOKE: ${{ github.event_name == 'workflow_dispatch' && inputs.site_smoke }}
+  dependencies-windows:
+    name: Windows Go dependency preparation
+    needs: scope
+    if: needs.scope.outputs.native == 'true'
+    runs-on: windows-2022
+    timeout-minutes: 11
+    env:
+      SOURCE_REVISION: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Acquire verified setup-go action with bounded retries
+        run: python scripts/bootstrap-actions.py setup-go --output build/actions/setup-go
+      - uses: ./build/actions/setup-go
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Windows native compiler and loader dependencies
+        id: msys2
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
+        with:
+          msystem: UCRT64
+          update: false
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-openssl make diffutils
+      - name: Bind the installed Windows toolchain
+        env:
+          SELECTED_MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
+        run: python -c "import os; assert os.environ['SELECTED_MSYS2_ROOT']; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+os.environ['SELECTED_MSYS2_ROOT']+'\n')"
+      - name: Pinned Windows archive decoder
+        run: |
+          python -m pip install --disable-pip-version-check --no-input --only-binary=:all: --target build/native/python zstandard==0.25.0
+      - name: Pinned native dependency inputs
+        run: python scripts/qualify.py prepare
+      - name: Compile only external and standard Go dependency libraries
+        run: python scripts/go-dependency-transfer.py prepare
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          archive: true
+          name: go-dependencies-windows-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/dependency-transfer
+          compression-level: 1
+          if-no-files-found: error
+          retention-days: 14
   readiness:
     name: prerequisite readiness
-    needs: [scope, media-linux, media-windows]
+    needs: [scope, media-linux, media-windows, dependencies-windows]
     if: always() && needs.scope.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 11
@@ -233,6 +278,7 @@ jobs:
     uses: ./.github/workflows/native-qualification.yml
     with:
       reuse-ci-offline-help: true
+      reuse-ci-go-dependencies: true
       revision: ${{ github.sha }}
       os: windows-2022
       core: true
@@ -479,7 +525,7 @@ jobs:
   acceptance:
     name: elected acceptance
     if: always()
-    needs: [scope, readiness, foundation, docs-build, docs, media-linux, media-windows, core, core-windows, qualify-linux, qualify-windows, package-linux, package-windows, adapters, candidate, live-site]
+    needs: [scope, readiness, foundation, docs-build, docs, media-linux, media-windows, dependencies-windows, core, core-windows, qualify-linux, qualify-windows, package-linux, package-windows, adapters, candidate, live-site]
     runs-on: ubuntu-24.04
     timeout-minutes: 11
     permissions:

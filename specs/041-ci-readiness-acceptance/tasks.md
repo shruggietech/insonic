@@ -43,3 +43,10 @@ Setup -> foundation -> US1 -> US2 -> verification. Different test files may be a
 - [ ] T014 After authorized publication, retain exact cold/warm hosted preparation, qualification and terminal timing receipts per SC-004 (partial).
 - [ ] T015 After the aggregate is published, apply/read back the existing bootstrap required check and reconcile #161 milestone/project tracking per plan: hosted enforcement (partial).
 - [ ] T016 Verify exact owner-authorized squash main package acceptance and terminal timing before closing #161 per plan: post-merge evidence and SC-004 (partial).
+
+## Phase 7: Measured hosted timing repair
+
+- [x] T017 Record first hosted failure and analyze dependency-only preparation against the approved timing contract in plan.md, research.md and verification.md.
+- [x] T018 Add failing-before preparation, identity, archive and consumer-graph regressions; implement scripts/go-dependency-transfer.py and the Windows preparation job.
+- [x] T019 Wire verified package consumers and readiness/aggregate; preserve product builds and all acceptance; run root, site and affected checks.
+- [ ] T020 Push the verified repair and monitor exact-head CI to terminal; retain final timing and package evidence, stop before merge.

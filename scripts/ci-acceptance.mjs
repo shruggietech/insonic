@@ -32,7 +32,7 @@ function scopeOf(needs) {
 export function evaluateResults(needs, siteSmoke = false) {
   const scope = scopeOf(needs), prepare = scope.core || scope.native || scope.adapters;
   const election = { scope: true, readiness: true, foundation: true, 'docs-build': true, docs: true,
-    'media-linux': prepare, 'media-windows': prepare, core: scope.core, 'core-windows': scope.core,
+    'media-linux': prepare, 'media-windows': prepare, 'dependencies-windows': scope.native, core: scope.core, 'core-windows': scope.core,
     'qualify-linux': scope.core, 'qualify-windows': scope.core,
     'package-linux': scope.native, 'package-windows': scope.native, adapters: scope.adapters,
     candidate: scope.native, 'live-site': siteSmoke };
@@ -60,7 +60,7 @@ function timestamp(value) {
   return Date.parse(value);
 }
 
-export function inspectAttempt(identity, run, jobs, { terminal = false, now = Date.now() } = {}) {
+export function inspectAttempt(identity, run, jobs, { terminal = false, now = Date.now(), reportFailures = false } = {}) {
   if (identity.repository !== 'shruggietech/insonic' || !/^[1-9]\d*$/.test(identity.run ?? '')
       || !/^[1-9]\d*$/.test(identity.attempt ?? '') || !/^[a-f0-9]{40}$/.test(identity.head ?? '')
       || !/^[a-f0-9]{40}$/.test(identity.revision ?? '')
@@ -74,7 +74,7 @@ export function inspectAttempt(identity, run, jobs, { terminal = false, now = Da
   if (ready[0].status !== 'completed' || ready[0].conclusion !== 'success') throw new Error('Prerequisite readiness did not succeed.');
   if (!terminal && (run.status !== 'in_progress' || aggregate[0].status !== 'in_progress')) throw new Error('Provisional acceptance must evaluate its own running attempt.');
   const start = timestamp(run.run_started_at), boundary = timestamp(ready[0].completed_at);
-  const completed = [];
+  const completed = [], failures = [];
   for (const job of jobs) {
     if (!Number.isSafeInteger(job.id) || job.id < 1 || String(job.run_id) !== identity.run
         || String(job.run_attempt) !== identity.attempt) throw new Error('Job attempt identity differs.');
@@ -82,16 +82,23 @@ export function inspectAttempt(identity, run, jobs, { terminal = false, now = Da
       if (!terminal && job.id === aggregate[0].id && job.status === 'in_progress') continue;
       throw new Error('Required job is not terminal.');
     }
-    if (!['success', 'skipped'].includes(job.conclusion)) throw new Error(`Job ${job.name} did not succeed.`);
+    if (!['success', 'skipped'].includes(job.conclusion)) {
+      if (!reportFailures) throw new Error(`Job ${job.name} did not succeed.`);
+      failures.push(`Job ${job.name} did not succeed.`);
+    }
     if (job.conclusion === 'skipped') continue;
     const begin = timestamp(job.started_at), end = timestamp(job.completed_at);
     if (begin < start || end < begin) throw new Error('Invalid job timestamps.');
-    if (!['scope', 'prerequisite readiness'].includes(job.name) && !/^media-(linux|windows)\s*\//.test(job.name) && begin < boundary) {
+    if (!['scope', 'prerequisite readiness', 'Windows Go dependency preparation'].includes(job.name) && !/^media-(linux|windows)\s*\//.test(job.name) && begin < boundary) {
       throw new Error(`Qualification job ${job.name} began before readiness.`);
     }
     completed.push(end);
   }
-  if (terminal && (run.status !== 'completed' || run.conclusion !== 'success')) throw new Error('Workflow attempt is not terminal success.');
+  if (terminal && run.status !== 'completed') throw new Error('Workflow attempt is not terminal.');
+  if (terminal && run.conclusion !== 'success') {
+    if (!reportFailures) throw new Error('Workflow attempt is not terminal success.');
+    failures.push('Workflow attempt is not terminal success.');
+  }
   // updated_at is metadata, not a documented completion field. Include it only
   // as a conservative envelope after the attempt is terminal; also report it.
   const workerEnd = Math.max(...completed), metadataUpdated = timestamp(run.updated_at);
@@ -99,7 +106,7 @@ export function inspectAttempt(identity, run, jobs, { terminal = false, now = Da
   if (!terminal && workerEnd > end) throw new Error('Evaluation predates job completion.');
   const initialQueue = identity.attempt === '1' ? (start - timestamp(run.created_at)) / 1000 : null;
   if (initialQueue !== null && initialQueue < 0) throw new Error('Invalid initial queue timestamps.');
-  return { ...measureTiming(start, boundary, end, terminal), attempt_started_at: run.run_started_at,
+  return { ...measureTiming(start, boundary, end, terminal), failures, attempt_started_at: run.run_started_at,
     readiness_at: ready[0].completed_at, evaluated_through: new Date(end).toISOString(),
     worker_terminal_at: terminal ? new Date(workerEnd).toISOString() : null,
     metadata_updated_at: run.updated_at,
@@ -153,6 +160,8 @@ async function main() {
       const expected = prepare ? 'success' : 'skipped';
       if (input[id]?.result !== expected || (prepare && input[id].outputs?.ready !== 'true')) throw new Error(`${id} is not verified ready or explicitly unelected.`);
     }
+    const dependencies = input['dependencies-windows']?.result;
+    if (dependencies !== (scope.native ? 'success' : 'skipped')) throw new Error('Windows Go dependencies did not prepare successfully or explicitly remain unelected.');
     await fs.appendFile(process.env.GITHUB_OUTPUT, 'ready=true\n');
     return;
   }
@@ -167,7 +176,10 @@ async function main() {
   try { receipt.evaluation = evaluateResults(previous?.needs ?? needs(), previous?.site_smoke ?? process.env.SITE_SMOKE === 'true'); }
   catch (error) { failures.push(error.message); }
   const data = await attemptMetadata(identity, process.env.GH_TOKEN);
-  try { receipt.timing = inspectAttempt(identity, data.run, data.jobs, { terminal }); }
+  try {
+    receipt.timing = inspectAttempt(identity, data.run, data.jobs, { terminal, reportFailures: true });
+    failures.push(...receipt.timing.failures);
+  }
   catch (error) { failures.push(error.message); }
   if (receipt.timing && !receipt.timing.accepted) failures.push('Qualification exceeds its 660-second budget/finalization reserve.');
   receipt.needs = previous?.needs ?? needs();

@@ -88,3 +88,28 @@ test('source workflow publishes readiness only after the verified warm or cold p
   }
   assert.equal(media.jobs.ready.steps[0].with.ref, '${{ job.workflow_sha }}');
 });
+
+test('cold Windows dependency preparation gates qualification and restores a verified same-attempt handoff', () => {
+  const jobs = workflow('ci').jobs;
+  const durations = { 'dependencies-windows': 400000, 'media-linux': 5000, 'media-windows': 5000 };
+  for (const id of ['foundation', 'docs-build', 'package-windows']) {
+    assert.ok(earliest(jobs, id, durations) >= 400000);
+    assert.equal(earliest(jobs, id, durations, new Set(['dependencies-windows'])), Infinity);
+  }
+  const steps = jobs['dependencies-windows'].steps;
+  assert.equal(steps.find(s => s.uses === './build/actions/setup-go').with.cache, false);
+  assert.ok(steps.some(s => s.run === 'python scripts/go-dependency-transfer.py prepare'));
+  assert.ok(!steps.some(s => /go test|package-desktop.py all|windows_package_pipeline.py assemble|qualify.py (native|desktop|cli)/.test(s.run ?? '')));
+  assert.equal(jobs['package-windows'].with['reuse-ci-go-dependencies'], true);
+  for (const [file, id] of [['native-qualification','packages'], ['windows-desktop-qualification','assemble']]) {
+    const document = workflow(file);
+    assert.equal(document.on.workflow_call.inputs['reuse-ci-go-dependencies'].default, false);
+    const consumer = document.jobs[id].steps;
+    const download = consumer.findIndex(s => s.with?.name?.startsWith('go-dependencies-windows-'));
+    const restore = consumer.findIndex(s => s.run === 'python scripts/go-dependency-transfer.py restore');
+    const build = consumer.findIndex(s => /package-desktop.py all|windows_package_pipeline.py assemble/.test(s.run ?? ''));
+    assert.ok(download >= 0 && restore > download && build > restore);
+    assert.equal(consumer[download].with['digest-mismatch'], 'error');
+    assert.ok(consumer[download].with.name.endsWith('-${{ github.run_attempt }}'));
+  }
+});

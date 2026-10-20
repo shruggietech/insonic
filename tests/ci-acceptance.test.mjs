@@ -8,7 +8,7 @@ import { sourceReadiness, evaluateResults, measureTiming, inspectAttempt, attemp
 const flags = value => Object.fromEntries(['core', 'cli', 'native', 'adapters'].map(k => [k, String(value)]));
 function results(full = true, smoke = false) {
   const elected = ['scope', 'readiness', 'foundation', 'docs-build', 'docs'];
-  const conditional = ['media-linux', 'media-windows', 'core', 'core-windows', 'qualify-linux', 'qualify-windows', 'package-linux', 'package-windows', 'adapters', 'candidate'];
+  const conditional = ['media-linux', 'media-windows', 'dependencies-windows', 'core', 'core-windows', 'qualify-linux', 'qualify-windows', 'package-linux', 'package-windows', 'adapters', 'candidate'];
   const needs = Object.fromEntries([...elected, ...conditional, 'live-site'].map(k => [k, { result: elected.includes(k) || (full && conditional.includes(k)) || (k === 'live-site' && smoke) ? 'success' : 'skipped', outputs: {} }]));
   needs.scope.outputs = flags(full);
   needs.readiness.outputs.ready = 'true';
@@ -106,6 +106,15 @@ test('provisional evaluation permits only its own unique running aggregate', () 
   assert.equal(inspectAttempt(identity, data.run, data.jobs, { now }).accepted, true);
   data.jobs[1].status = 'in_progress';
   assert.throws(() => inspectAttempt(identity, data.run, data.jobs, { now }), /terminal/);
+});
+
+test('a rejected terminal attempt retains phase durations without becoming accepted', () => {
+  const data = metadata(); data.run.conclusion = 'failure'; data.jobs[1].conclusion = 'failure';
+  const got = inspectAttempt(identity, data.run, data.jobs, { terminal: true, reportFailures: true });
+  assert.equal(got.preparation_seconds, 1342);
+  assert.equal(got.qualification_seconds, 661);
+  assert.equal(got.combined_seconds, 2003);
+  assert.ok(got.failures.length >= 2);
 });
 
 test('metadata requests are read-only attempt-specific and reject incomplete pagination', async () => {

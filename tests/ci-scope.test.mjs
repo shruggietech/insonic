@@ -184,7 +184,7 @@ test('full workflow attempts preserve old artifacts and consume only their match
  });
  const matches = (selector, value) => new RegExp('^' + selector.split('*').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$').test(value);
  for (const documents of [[workflow('ci'), workflow('native-qualification'), workflow('media-source')], [workflow('release'), workflow('native-qualification'), workflow('media-source')]]) {
-  const steps = transfers(documents);
+  const steps = transfers(documents).filter(step => documents[0].name === 'CI' || !step.if?.includes('inputs.reuse-ci-go-dependencies'));
   for (const step of steps) {
    assert.ok((step.with.name ?? step.with.pattern).endsWith('-${{ github.run_attempt }}'));
    if (step.uses.includes('/upload-')) assert.ok(!step.with.overwrite); // Keep earlier attempt evidence immutable.

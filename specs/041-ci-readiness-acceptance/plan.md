@@ -53,3 +53,11 @@ Owner explicitly approved separate preparation/qualification timing on 2026-10-2
 ## Complexity Tracking
 
 No new service, paid runner, framework, product dependency or native policy. No constitution exception remains after the explicit timing amendment.
+
+## Hosted convergence repair (2026-10-20)
+
+The owner authorized PR publication and CI repair, stopping before merge. Run 39493137969 demonstrated successful warm source readiness but failed the qualification budget: Windows assembly spent 206 seconds in cold Go product building, interactive completion reached 666 seconds after readiness, and archive qualification hit its job timeout during the unchanged final idle allowance. A warm retry cannot establish a repair.
+
+Add a Windows dependency preparation job alongside source preparation. Discover the existing package build contexts, compile only standard library and explicitly non-main-module libraries into an empty isolated Go build cache, and transfer it plus the verified module download cache through a digest-bound exact-source/run/attempt artifact. Preparation must never compile product packages, executables or tests. Match package variant CGO flags and resolved compiler/native-library identities before restoring. Preserve every consumer build/check and all native deadlines. Only Windows package consumers require this additional handoff; independent runtime lanes remain unchanged. Record failed and successful hosted timing without treating a rejected run as accepted.
+
+Analysis gate: nine requirements remain covered; dependency-only preparation fits the owner-approved contract. No product work moves before readiness. No weaker integrity check, timeout increase or cache fallback is introduced.

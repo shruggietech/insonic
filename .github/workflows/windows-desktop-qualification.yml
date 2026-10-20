@@ -27,6 +27,9 @@ on:
       reuse-ci-offline-help:
         type: boolean
         default: false
+      reuse-ci-go-dependencies:
+        type: boolean
+        default: false
       overlap-source-setup:
         type: boolean
         default: false
@@ -123,6 +126,17 @@ jobs:
       - name: Pinned native artifacts
         if: inputs.native
         run: python scripts/qualify.py prepare
+      - name: Download exact same-attempt prepared Go dependencies
+        if: inputs.reuse-ci-go-dependencies && runner.os == 'Windows'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          digest-mismatch: error
+          skip-decompress: false
+          name: go-dependencies-windows-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/dependency-transfer
+      - name: Verify dependency source, compiler, native inputs and contexts before activation
+        if: inputs.reuse-ci-go-dependencies && runner.os == 'Windows'
+        run: python scripts/go-dependency-transfer.py restore
       - name: Download exact same-run source build
         if: inputs.core
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
