@@ -61,3 +61,8 @@ before diagnostic navigation. It retains only bounded fixed asset classes, numer
 fetch/header/exception summaries and matching document loader/frame milestones.
 Receivers and callback leases close on the owning thread. Ordinary launches
 add no observer COM calls; observed fetch completion is not script execution.
+
+SDK convenience calls balance internally acquired settings and queried controller
+references on success and failure. Public getter outputs remain caller-owned.
+Native query errors are preserved and null successful outputs are rejected. The
+background-colour temporary is released before its existing fatal error callback.

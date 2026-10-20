@@ -150,7 +150,7 @@ E016 completes the real console prerequisite for T039/T040; E012-E015 failures a
 
 ## Phase26: SDK-owned temporary interface references
 
-- [ ] T051 Reproduce the active swipe-helper temporary reference leak with actual fake native vtables, then balance SDK-owned temporary interfaces without taking ownership of public getter returns; reconcile exact source authority and retain causal limits. (FR-003, FR-005, FR-008, FR-010, FR-013)
+- [x] T051 Reproduce the active swipe-helper temporary reference leak with actual fake native vtables, then balance SDK-owned temporary interfaces without taking ownership of public getter returns; reconcile exact source authority and retain causal limits. (FR-003, FR-005, FR-008, FR-010, FR-013)
 
 ## Phase27: Flag-free CPU-allocation comparison
 

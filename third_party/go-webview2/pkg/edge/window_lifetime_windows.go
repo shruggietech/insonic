@@ -616,6 +616,43 @@ func (i *ICoreWebView2Controller) Close() error {
 	return nil
 }
 
+// These helpers balance only references acquired inside SDK convenience calls.
+// Public getters keep their existing caller-owned reference contract.
+func queryTemporaryInterface[T any](value unsafe.Pointer, iid string) (*T, error) {
+	if value == nil {
+		return nil, windows.Errno(0x80004003) // E_POINTER
+	}
+	var result *T
+	guid := NewGUID(iid)
+	hr, _, _ := (*IUnknown)(value).Vtbl.QueryInterface.Call(uintptr(value), uintptr(unsafe.Pointer(guid)), uintptr(unsafe.Pointer(&result)))
+	if windows.Handle(hr) != windows.S_OK {
+		return nil, windows.Errno(hr)
+	}
+	if result == nil {
+		return nil, windows.Errno(0x80004003)
+	}
+	return result, nil
+}
+
+func releaseTemporaryInterface[T any](value *T) {
+	if value != nil {
+		pointer := unsafe.Pointer(value)
+		(*IUnknown)(pointer).Vtbl.CallRelease(pointer)
+	}
+}
+
+func queryTemporarySettings[T any](e *Chromium, iid string) (*T, error) {
+	settings, err := e.webview.GetSettings()
+	if err != nil {
+		return nil, err
+	}
+	if settings == nil {
+		return nil, windows.Errno(0x80004003)
+	}
+	defer settings.Release()
+	return queryTemporaryInterface[T](unsafe.Pointer(settings), iid)
+}
+
 // Close stops the WebView; Release balances the interfaces retained by Embed.
 func (e *Chromium) releaseOwnedInterfaces() {
 	if value := e.webview; value != nil {

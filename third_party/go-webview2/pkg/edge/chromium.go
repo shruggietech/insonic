@@ -431,7 +431,11 @@ func (e *Chromium) SetPermission(kind CoreWebView2PermissionKind, state CoreWebV
 
 func (e *Chromium) SetBackgroundColour(R, G, B, A uint8) {
 	controller := e.GetController()
-	controller2 := controller.GetICoreWebView2Controller2()
+	controller2, err := queryTemporaryInterface[ICoreWebView2Controller2](unsafe.Pointer(controller), "{c979903e-d4ca-4228-92eb-47ee3fa96eab}")
+	if err != nil {
+		e.errorCallback(err)
+		return
+	}
 
 	backgroundCol := COREWEBVIEW2_COLOR{
 		A: A,
@@ -445,7 +449,9 @@ func (e *Chromium) SetBackgroundColour(R, G, B, A uint8) {
 		backgroundCol.A = 255
 	}
 
-	err := controller2.PutDefaultBackgroundColor(backgroundCol)
+	err = controller2.PutDefaultBackgroundColor(backgroundCol)
+	// errorCallback exits the process, so release before invoking it.
+	releaseTemporaryInterface(controller2)
 	if err != nil {
 		e.errorCallback(err)
 	}
@@ -626,11 +632,11 @@ func (e *Chromium) GetIsSwipeNavigationEnabled() (bool, error) {
 	if !HasCapability(e.webview2RuntimeVersion, SwipeNavigation) {
 		return false, UnsupportedCapabilityError
 	}
-	webview2Settings, err := e.webview.GetSettings()
+	webview2Settings6, err := queryTemporarySettings[ICoreWebView2Settings6](e, "{11cb3acd-9bc8-43b8-83bf-f40753714f87}")
 	if err != nil {
 		return false, err
 	}
-	webview2Settings6 := webview2Settings.GetICoreWebView2Settings6()
+	defer releaseTemporaryInterface(webview2Settings6)
 	var result bool
 	result, err = webview2Settings6.GetIsSwipeNavigationEnabled()
 	if err != nil {
@@ -651,11 +657,11 @@ func (e *Chromium) PutIsGeneralAutofillEnabled(value bool) error {
 	if !HasCapability(e.webview2RuntimeVersion, GeneralAutofillEnabled) {
 		return UnsupportedCapabilityError
 	}
-	webview2Settings, err := e.webview.GetSettings()
+	webview2Settings4, err := queryTemporarySettings[ICoreWebView2Settings4](e, "{cb56846c-4168-4d53-b04f-03b6d6796ff2}")
 	if err != nil {
 		return err
 	}
-	webview2Settings4 := webview2Settings.GetICoreWebView2Settings4()
+	defer releaseTemporaryInterface(webview2Settings4)
 	return webview2Settings4.PutIsGeneralAutofillEnabled(value)
 }
 
@@ -666,11 +672,11 @@ func (e *Chromium) PutIsPasswordAutosaveEnabled(value bool) error {
 	if !HasCapability(e.webview2RuntimeVersion, PasswordAutosaveEnabled) {
 		return UnsupportedCapabilityError
 	}
-	webview2Settings, err := e.webview.GetSettings()
+	webview2Settings4, err := queryTemporarySettings[ICoreWebView2Settings4](e, "{cb56846c-4168-4d53-b04f-03b6d6796ff2}")
 	if err != nil {
 		return err
 	}
-	webview2Settings4 := webview2Settings.GetICoreWebView2Settings4()
+	defer releaseTemporaryInterface(webview2Settings4)
 	return webview2Settings4.PutIsPasswordAutosaveEnabled(value)
 }
 
@@ -678,11 +684,11 @@ func (e *Chromium) PutIsSwipeNavigationEnabled(enabled bool) error {
 	if !HasCapability(e.webview2RuntimeVersion, SwipeNavigation) {
 		return UnsupportedCapabilityError
 	}
-	webview2Settings, err := e.webview.GetSettings()
+	webview2Settings6, err := queryTemporarySettings[ICoreWebView2Settings6](e, "{11cb3acd-9bc8-43b8-83bf-f40753714f87}")
 	if err != nil {
 		return err
 	}
-	webview2Settings6 := webview2Settings.GetICoreWebView2Settings6()
+	defer releaseTemporaryInterface(webview2Settings6)
 	err = webview2Settings6.PutIsSwipeNavigationEnabled(enabled)
 	if err != nil {
 		return err
@@ -695,8 +701,12 @@ func (e *Chromium) AllowExternalDrag(allow bool) error {
 		return UnsupportedCapabilityError
 	}
 	controller := e.GetController()
-	controller4 := controller.GetICoreWebView2Controller4()
-	err := controller4.PutAllowExternalDrop(allow)
+	controller4, err := queryTemporaryInterface[ICoreWebView2Controller4](unsafe.Pointer(controller), "{97d418d5-a426-4e49-a151-e1a10f327d9e}")
+	if err != nil {
+		return err
+	}
+	defer releaseTemporaryInterface(controller4)
+	err = controller4.PutAllowExternalDrop(allow)
 	if err != nil {
 		return err
 	}
@@ -708,7 +718,11 @@ func (e *Chromium) GetAllowExternalDrag() (bool, error) {
 		return false, UnsupportedCapabilityError
 	}
 	controller := e.GetController()
-	controller4 := controller.GetICoreWebView2Controller4()
+	controller4, err := queryTemporaryInterface[ICoreWebView2Controller4](unsafe.Pointer(controller), "{97d418d5-a426-4e49-a151-e1a10f327d9e}")
+	if err != nil {
+		return false, err
+	}
+	defer releaseTemporaryInterface(controller4)
 	result, err := controller4.GetAllowExternalDrop()
 	if err != nil {
 		return false, err

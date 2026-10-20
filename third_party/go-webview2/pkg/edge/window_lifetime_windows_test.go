@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"reflect"
 	"runtime"
@@ -962,6 +963,220 @@ func TestNativeResponseAggregateAllowsSynchronousResponseWithoutDeferral(t *test
 	for _, call := range f.calls {
 		if call == "deferral" || call == "complete" {
 			t.Fatal("observation added an asynchronous native call")
+		}
+	}
+}
+
+func TestSwipeTemporaryInterfacesAreReleased(t *testing.T) {
+	for _, tc := range []struct {
+		name                  string
+		getter, query, setter uintptr
+		nilSettings, nilQuery bool
+	}{{name: "success"}, {name: "setter-failure", setter: 0x80004005}, {name: "getter-failure", getter: 0x80004005},
+		{name: "query-failure", query: 0x80004002}, {name: "null-query", nilQuery: true}, {name: "null-settings", nilSettings: true}} {
+		t.Run(tc.name, func(t *testing.T) {
+			refs, baseReleases, queriedReleases := 1, 0, 0
+			var base ICoreWebViewSettings
+			var queried ICoreWebView2Settings6
+			baseVtbl := _ICoreWebViewSettingsVtbl{}
+			queriedVtbl := ICoreWebView2Settings6Vtbl{}
+			base.vtbl, queried.Vtbl = &baseVtbl, &queriedVtbl
+			baseVtbl.AddRef = NewComProc(func(this uintptr) uintptr { refs++; return uintptr(refs) })
+			baseVtbl.Release = NewComProc(func(this uintptr) uintptr { baseReleases++; refs--; return uintptr(refs) })
+			queriedVtbl.AddRef = NewComProc(func(this uintptr) uintptr { refs++; return uintptr(refs) })
+			queriedVtbl.Release = NewComProc(func(this uintptr) uintptr { queriedReleases++; refs--; return uintptr(refs) })
+			baseVtbl.QueryInterface = NewComProc(func(this, iid, output unsafe.Pointer) uintptr {
+				if *(*GUID)(iid) != *NewGUID("{11cb3acd-9bc8-43b8-83bf-f40753714f87}") {
+					t.Error("wrong settings IID")
+				}
+				if tc.query != 0 {
+					return tc.query
+				}
+				if tc.nilQuery {
+					return 0
+				}
+				queried.AddRef()
+				*(**ICoreWebView2Settings6)(output) = &queried
+				return 0
+			})
+			queriedVtbl.PutIsSwipeNavigationEnabled = NewComProc(func(this unsafe.Pointer, enabled uintptr) uintptr {
+				if this != unsafe.Pointer(&queried) || enabled != 1 {
+					t.Error("native setter arguments changed")
+				}
+				return tc.setter
+			})
+			viewVtbl := iCoreWebView2Vtbl{}
+			view := ICoreWebView2{vtbl: &viewVtbl}
+			viewVtbl.GetSettings = NewComProc(func(this, output unsafe.Pointer) uintptr {
+				if tc.getter != 0 {
+					return tc.getter
+				}
+				if tc.nilSettings {
+					return 0
+				}
+				base.AddRef()
+				*(**ICoreWebViewSettings)(output) = &base
+				return 0
+			})
+			chromium := Chromium{webview: &view, webview2RuntimeVersion: "131.0.2903.86"}
+			err := chromium.PutIsSwipeNavigationEnabled(true)
+			wantError := tc.getter
+			if wantError == 0 && tc.nilSettings {
+				wantError = 0x80004003
+			}
+			if wantError == 0 {
+				wantError = tc.query
+			}
+			if wantError == 0 && tc.nilQuery {
+				wantError = 0x80004003
+			}
+			if wantError == 0 {
+				wantError = tc.setter
+			}
+			if wantError == 0 && err != nil || wantError != 0 && !errors.Is(err, syscall.Errno(wantError)) {
+				t.Errorf("HRESULT changed: %v", err)
+			}
+			wantBase, wantQuery := 1, 1
+			if tc.getter != 0 || tc.nilSettings {
+				wantBase, wantQuery = 0, 0
+			} else if tc.query != 0 || tc.nilQuery {
+				wantQuery = 0
+			}
+			if refs != 1 || baseReleases != wantBase || queriedReleases != wantQuery {
+				t.Errorf("temporary references leaked: refs=%d baseReleases=%d queriedReleases=%d", refs, baseReleases, queriedReleases)
+			}
+			if tc.name == "success" {
+				public, publicErr := chromium.GetSettings()
+				if publicErr != nil || refs != 2 {
+					t.Fatalf("public caller-owned getter changed: refs=%d err=%v", refs, publicErr)
+				}
+				public.Release()
+				if refs != 1 {
+					t.Fatal("public caller could not balance its own reference")
+				}
+			}
+			runtime.KeepAlive([]any{&view, &base, &queried})
+		})
+	}
+}
+
+func TestSDKConvenienceCallsReleaseOnlyTheirTemporaryInterfaces(t *testing.T) {
+	trueResult := func(value bool, err error) error {
+		if err == nil && !value {
+			return errors.New("native getter value lost")
+		}
+		return err
+	}
+	for _, method := range []struct {
+		name, iid        string
+		settings, colour bool
+		run              func(*Chromium) error
+	}{
+		{"swipe-get", "{11cb3acd-9bc8-43b8-83bf-f40753714f87}", true, false, func(e *Chromium) error { return trueResult(e.GetIsSwipeNavigationEnabled()) }},
+		{"swipe-put", "{11cb3acd-9bc8-43b8-83bf-f40753714f87}", true, false, func(e *Chromium) error { return e.PutIsSwipeNavigationEnabled(true) }},
+		{"autofill", "{cb56846c-4168-4d53-b04f-03b6d6796ff2}", true, false, func(e *Chromium) error { return e.PutIsGeneralAutofillEnabled(true) }},
+		{"password", "{cb56846c-4168-4d53-b04f-03b6d6796ff2}", true, false, func(e *Chromium) error { return e.PutIsPasswordAutosaveEnabled(true) }},
+		{"colour", "{c979903e-d4ca-4228-92eb-47ee3fa96eab}", false, true, func(e *Chromium) error { e.SetBackgroundColour(1, 2, 3, 127); return nil }},
+		{"drag-put", "{97d418d5-a426-4e49-a151-e1a10f327d9e}", false, false, func(e *Chromium) error { return e.AllowExternalDrag(true) }},
+		{"drag-get", "{97d418d5-a426-4e49-a151-e1a10f327d9e}", false, false, func(e *Chromium) error { return trueResult(e.GetAllowExternalDrag()) }},
+	} {
+		for _, operationHR := range []uintptr{0, 0x80004005} {
+			t.Run(fmt.Sprintf("%s/%x", method.name, operationHR), func(t *testing.T) {
+				refs, baseReleases, queryReleases, calls := 1, 0, 0, 0
+				var callbackErr error
+				fatalSentinel := &struct{}{}
+				baseVtbl, querySettingsVtbl := _ICoreWebViewSettingsVtbl{}, _ICoreWebViewSettingsVtbl{}
+				base, querySettings := ICoreWebViewSettings{vtbl: &baseVtbl}, ICoreWebViewSettings{vtbl: &querySettingsVtbl}
+				queryControllerVtbl := ICoreWebView2Controller4Vtbl{}
+				queryController := ICoreWebView2Controller4{Vtbl: &queryControllerVtbl}
+				add := NewComProc(func(this uintptr) uintptr { refs++; return uintptr(refs) })
+				baseVtbl.AddRef = add
+				querySettingsVtbl.AddRef, queryControllerVtbl.AddRef = add, add
+				baseVtbl.Release = NewComProc(func(this uintptr) uintptr { baseReleases++; refs--; return uintptr(refs) })
+				release := NewComProc(func(this uintptr) uintptr { queryReleases++; refs--; return uintptr(refs) })
+				querySettingsVtbl.Release, queryControllerVtbl.Release = release, release
+				query := NewComProc(func(this, iid, output unsafe.Pointer) uintptr {
+					if *(*GUID)(iid) != *NewGUID(method.iid) {
+						t.Error("wrong native interface IID")
+					}
+					if method.settings {
+						querySettings.AddRef()
+						*(*unsafe.Pointer)(output) = unsafe.Pointer(&querySettings)
+					} else {
+						queryController.AddRef()
+						*(*unsafe.Pointer)(output) = unsafe.Pointer(&queryController)
+					}
+					return 0
+				})
+				baseVtbl.QueryInterface = query
+				controllerVtbl := _ICoreWebView2ControllerVtbl{_IUnknownVtbl: _IUnknownVtbl{QueryInterface: query}}
+				controller := ICoreWebView2Controller{vtbl: &controllerVtbl}
+				setter := NewComProc(func(this, value uintptr) uintptr {
+					calls++
+					want := uintptr(1)
+					if method.colour {
+						want = 0x030201ff
+					}
+					if value != want {
+						t.Errorf("native argument changed: %x", value)
+					}
+					return operationHR
+				})
+				getter := NewComProc(func(this, output unsafe.Pointer) uintptr {
+					calls++
+					*(*int32)(output) = 1
+					return operationHR
+				})
+				querySettingsVtbl.PutIsSwipeNavigationEnabled = setter
+				querySettingsVtbl.GetIsSwipeNavigationEnabled = getter
+				querySettingsVtbl.PutIsGeneralAutofillEnabled = setter
+				querySettingsVtbl.PutIsPasswordAutosaveEnabled = setter
+				queryControllerVtbl.PutDefaultBackgroundColor, queryControllerVtbl.PutAllowExternalDrop = setter, setter
+				queryControllerVtbl.GetAllowExternalDrop = getter
+				viewVtbl := iCoreWebView2Vtbl{}
+				view := ICoreWebView2{vtbl: &viewVtbl}
+				viewVtbl.GetSettings = NewComProc(func(this, output unsafe.Pointer) uintptr {
+					if !method.settings {
+						t.Error("controller helper acquired settings")
+					}
+					base.AddRef()
+					*(**ICoreWebViewSettings)(output) = &base
+					return 0
+				})
+				e := Chromium{webview: &view, controller: &controller, webview2RuntimeVersion: "131.0.2903.86",
+					globalErrorCallback: func(err error) {
+						callbackErr = err
+						if refs != 1 || queryReleases != 1 {
+							t.Error("temporary retained into fatal error callback")
+						}
+						panic(fatalSentinel) // Prevent the existing os.Exit after observing the callback.
+					}}
+				var err error
+				func() {
+					defer func() {
+						if value := recover(); value != nil && value != fatalSentinel {
+							panic(value)
+						}
+					}()
+					err = method.run(&e)
+				}()
+				if method.colour {
+					err = callbackErr
+				} else if callbackErr != nil {
+					t.Error("error callback changed")
+				}
+				if operationHR == 0 && err != nil || operationHR != 0 && !errors.Is(err, syscall.Errno(operationHR)) {
+					t.Errorf("operation HRESULT changed: %v", err)
+				}
+				wantBase := 0
+				if method.settings {
+					wantBase = 1
+				}
+				if refs != 1 || baseReleases != wantBase || queryReleases != 1 || calls != 1 {
+					t.Errorf("unbalanced temporary ownership: refs=%d base=%d query=%d calls=%d", refs, baseReleases, queryReleases, calls)
+				}
+				runtime.KeepAlive([]any{&view, &base, &querySettings, &controller, &queryController})
+			})
 		}
 	}
 }

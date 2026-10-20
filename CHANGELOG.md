@@ -18,6 +18,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Windows WebView convenience calls release their temporary settings and controller interfaces on success and failure, preserving caller-owned getter results and native error values.
+
 - Windows accelerator registration writes its event token into the caller's output value while preserving native error results.
 
 - Windows WebView callbacks return valid COM interfaces, retain native-owned targets until their final release and reject delivery into a closed desktop. Unused desktop objects remain collectible; late controllers close without reopening the destroyed owner.

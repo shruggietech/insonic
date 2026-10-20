@@ -252,3 +252,17 @@ GUI SHA2567aa95e1ee79c522d5c58a0a15232f066e099c4f5748662ce55d0a4b60a636ed7; CLId
 ### E025 local validation
 
 **Final E025 pre-dispatch validation**: All464Python tests pass in40.519s (41.125s launcher) and root npm check/145Node tests pass. The first restricted local attempt failed Windows fixture authorization/drive setup and dependency access, without a product GUI or trace; the same hidden suite passes with those local permissions. Independent actual gate/build/test review finds no blocker. Source comparison and checksum confirm unchanged E024 product/frontend/SDK/dependencies. UTF-8/no-BOM/LF/mojibake and diff checks pass.
+
+### SDK temporary interface ownership repair (2026-10-20 UTC)
+
+The actual fake-native regression TestSwipeTemporaryInterfacesAreReleased fails against the unchanged helper on both success and setter E_FAIL: reference count 3 instead of 1, base releases 0 and queried-interface releases 0. Wails invokes the swipe setter during ordinary startup on runtime 131. The defect is therefore an active acquisition leak, independently of the scheduling hypothesis.
+
+The repair balances only the convenience helper's GetSettings and QueryInterface references. The separately acquired query result keeps the COM object alive after releasing the base settings pointer. Seven helper paths are covered: colour, swipe getter/setter, general autofill, password autosave and external-drag getter/setter. Native query failures preserve their HRESULT, successful null outputs fail with E_POINTER, capability checks and operation values/errors are preserved. Public getter results remain caller-owned. SetBackgroundColour releases before errorCallback because that existing callback calls os.Exit; deferred cleanup cannot satisfy its failure path.
+
+Native regressions cover distinct settings/query pointers, all seven operations on success/failure, getter/query errors, null outputs, values/IIDs and unchanged public ownership. The first race run caught uintptr-to-pointer conversions inside the new fake callbacks. Pointer-typed callback parameters now model the same native pointer ABI and pass checkptr without disabling checks. This was a fixture correction, not a product failure.
+
+All selected native tests pass in four fresh processes (count 1 each): normal 0.859s, race 2.563s, native-loader normal 0.921s, native-loader race 3.282s. No browser or recording was launched. Root npm check and 145 Node tests pass; 56 startup/overlay Python tests pass in 2.431s. Affected desktop/process/ABI tests pass (19.781s launcher) and vet passes (0.891s). A compiled, unexecuted desktop independently verifies 50 module notices and exact v1.0.23 maintained replacement.
+
+Authority retains 397 upstream files, 406 maintained files, eight modified originals and nine additions; patched tree h1:DXt+QwMKFp9pypzfmYc8Na/VhHPbsg3KINwyq6bUYwU=. Original license/go.sum identity is unchanged. The diagnostic overlay checksum is reconciled to chromium.go 0f1747637d9670e6ee9624b936cc0ad67e0447741bbe9ee2fdbd93f55182eb2a. Independent actual source review finds no actionable defect.
+
+This proves balanced SDK-owned references, not the cause of pre-DOM or post-root browser-release delays. Wails' own unbalanced GetSettings/Controller2 caller acquisitions remain separately identified; silently changing the public getter ownership would break correct callers. E025 excludes this pending repair and uses immutable old SDK bytes. Actual repaired ordinary package qualification remains outstanding.
