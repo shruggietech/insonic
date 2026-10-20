@@ -3,7 +3,7 @@
 """Incident-bound disposable Windows observations; never delivery qualification."""
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
-from threading import Lock, Thread
+from threading import Event, Lock, Thread
 import ctypes
 import hashlib
 import json
@@ -67,9 +67,18 @@ class BoundedStream:
             pipe.close()
 
 
-def capture(args,directory,env,timeout,*,require_release=False,startup_hide=False):
+def capture(args,directory,env,timeout,*,require_release=False,startup_hide=False,observe_resources=False,resource_origin=None):
     started=time.monotonic();timed_out=False;readers=[]
     timing={}
+    resource_api=None;resources=None
+    if observe_resources:
+        resource_origin=started if resource_origin is None else resource_origin
+        try:
+            import windows_native_resources as resource_api
+            resources={'before':resource_api.system_snapshot(resource_origin)}
+        except Exception:resources={'available':False,'reason':'observer-unavailable'}
+    # Endpoint observation must not consume the original native release budget.
+    if observe_resources:started=time.monotonic()
     output,error=BoundedStream(),BoundedStream()
     try:
         selected=[str(arg) for arg in args]
@@ -94,17 +103,27 @@ def capture(args,directory,env,timeout,*,require_release=False,startup_hide=Fals
                 except subprocess.TimeoutExpired:pass
             members=job_processes(tree)
             code=tree.process.poll()
+            if observe_resources and resource_api is not None:
+                try:
+                    resources.update(after=resource_api.system_snapshot(resource_origin),
+                        owned=(resource_api.owned_snapshot(tree.job,members.get('pids',[])) if members.get('available')
+                               else {'available':False,'reason':'owned-enumeration-unavailable'}),
+                        point='after-timeout-kill' if timed_out else 'after-root-before-job-close')
+                    resources['cpu_interval']=resource_api.cpu_interval(resources['before'],resources['after'])
+                except Exception:resources.update(available=False,reason='observer-unavailable')
     finally:
         # Closing the owned job/group releases inherited pipe handles too.
         for reader in readers:reader.join(timeout=5)
     incomplete=any(reader.is_alive() for reader in readers) or output.failed or error.failed
-    return {'feature_qualification':False,'exit_code':code if code is not None else -1,'timed_out':timed_out,
+    result={'feature_qualification':False,'exit_code':code if code is not None else -1,'timed_out':timed_out,
             'elapsed_seconds':round(time.monotonic()-started,3),
             'stdout':bytes(output.data).decode('utf-8',errors='replace'),'stderr':bytes(error.data).decode('utf-8',errors='replace'),
             'stdout_bytes':output.total,'stderr_bytes':error.total,'capture_incomplete':incomplete,
             'truncated':output.total>LIMIT or error.total>LIMIT or incomplete,'job_before_close':members,
             'timing':timing,
             'owned_release':bool(require_release and not timed_out and code==0 and members.get('available') and members.get('assigned')==0 and not members.get('pids'))}
+    if observe_resources:result['resources']=resources
+    return result
 
 
 def save(directory,name,value):
@@ -269,10 +288,11 @@ class LoadTimeline:
                      'parallel-regressions','media-lifecycle','query-contracts',
                      'documented-workflows','provider-contracts','join-regressions','complete'})
 
-    def __init__(self,*,clock=time.monotonic):
+    def __init__(self,*,clock=time.monotonic,gate=False):
         self._clock=clock;self._origin=clock();self._lock=Lock()
         self._start=None;self._end=None;self._state='pending';self._phase='not-started'
         self._events=[];self._dropped=0;self._cases=[]
+        self._gate_enabled=gate;self._gate_event=Event();self._gate_signaled=None;self._gate_released=None
 
     def _elapsed(self):return round(self._clock()-self._origin,6)
 
@@ -288,14 +308,28 @@ class LoadTimeline:
         with self._lock:
             if self._state!='running':raise ValueError('load worker is not running')
             self._end=self._elapsed();self._state='passed' if passed else 'failed'
+            if self._gate_enabled:self._gate_event.set()
 
     def phase(self,label):
         if label not in self.PHASES:raise ValueError('unknown load phase label')
         with self._lock:
             if self._state!='running':raise ValueError('load phase outside running worker')
             self._phase=label
+            if self._gate_enabled and label=='media-lifecycle' and self._gate_signaled is None:
+                self._gate_signaled=self._elapsed();self._gate_event.set()
             if len(self._events)<16:self._events.append({'phase':label,'elapsed_seconds':self._elapsed()})
             else:self._dropped+=1
+
+    def wait_gate(self):
+        if not self._gate_enabled:raise ValueError('load gate was not elected')
+        if not self._gate_event.wait(90):raise RuntimeError('load phase gate deadline')
+        with self._lock:
+            if self._gate_signaled is None:raise RuntimeError('load worker ended before the phase gate')
+            if self._state!='running' or self._phase!='media-lifecycle':raise RuntimeError('load phase gate expired')
+            self._gate_released=self._elapsed()
+
+    @property
+    def origin(self):return self._origin
 
     def case_begin(self,index):
         with self._lock:
@@ -323,12 +357,16 @@ class LoadTimeline:
 
     def receipt(self):
         with self._lock:
-            return {'kind':'desktop-startup-load-timeline','feature_qualification':False,
+            result={'kind':'desktop-startup-load-timeline','feature_qualification':False,
                     'clock':'monotonic-seconds-since-observer-origin',
                     'phase_scope':'contract-main-thread-with-joined-parallel-regressions',
                     'worker':{'start_elapsed_seconds':self._start,'end_elapsed_seconds':self._end,'state':self._state},
                     'phase_events':[dict(event) for event in self._events],'dropped_phase_events':self._dropped,
                     'cases':[self._case_record(case) for case in self._cases]}
+            if self._gate_enabled:result['gate']={'phase':'media-lifecycle','wait_limit_seconds':90,
+                'signal_elapsed_seconds':self._gate_signaled,'released_elapsed_seconds':self._gate_released,
+                'prior_gui_launches':0,'child_limit':1}
+            return result
 
 
 def run_load(timeline,qualify,*args,**kwargs):
@@ -353,6 +391,9 @@ def run():
     abi_control=os.environ.get('INSONIC_STARTUP_ABI_CONTROL')=='true'
     browser_observer=os.environ.get('INSONIC_STARTUP_BROWSER')=='true'
     css_control=os.environ.get('INSONIC_STARTUP_CSS_CONTROL')=='true'
+    load_gate=os.environ.get('INSONIC_STARTUP_LOAD_GATE')=='true'
+    if load_gate and not css_control:
+        raise ValueError('load phase gate requires the exact E008 CSS control')
     if css_control and (not browser_observer or not cold or not startup_hide or os.environ.get('INSONIC_STARTUP_SOURCE')!='true'
                         or os.environ.get('INSONIC_STARTUP_LOAD')!='true' or abi_control):
         raise ValueError('CSS size control requires current cold hidden source, browser observation and concurrent load without ABI control')
@@ -395,7 +436,12 @@ def run():
             save(evidence,'diagnostic.json',summary)
         idle=lambda:wait_owned_clis(package,[binaries/'insonic.exe',gui.with_name('insonic.exe')])
         timeline=None
-        observe=lambda:observe_cold_start(gui,root,location,env,evidence,summary,startup_hide=startup_hide,timeline=timeline) if cold else observe_native(gui,root,location,env,evidence,summary,rebuilt,incident)
+        def observe():
+            if load_gate:timeline.wait_gate()
+            if cold:
+                return observe_cold_start(gui,root,location,env,evidence,summary,startup_hide=startup_hide,timeline=timeline,
+                    **({'sample_limit':1,'observe_resources':True} if load_gate else {}))
+            return observe_native(gui,root,location,env,evidence,summary,rebuilt,incident)
         if abi_control:
             observe=lambda:observe_abi_comparison(package,gui,root,location,env,evidence,summary,startup_hide=startup_hide)
         if os.environ.get('INSONIC_STARTUP_LOAD')=='true':
@@ -412,7 +458,7 @@ def run():
                     save(evidence,'cli-initialization.json',initial)
                     raise RuntimeError('concurrent CLI workspace preparation failed')
             summary['concurrent_cli_contract']=True
-            timeline=LoadTimeline()
+            timeline=LoadTimeline(gate=load_gate)
             with ThreadPoolExecutor(max_workers=1) as workers:
                 future=workers.submit(run_load,timeline,qualify_contract,cli,workspace,env=env,cwd=root,documentation=True)
                 observe_with_load(observe,future,idle,evidence,timeline=timeline)
@@ -463,9 +509,11 @@ def observe_predecessors(gui,root,env,evidence,label):
         name=label+'-'+flag[2:]+'.json';save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
 
 
-def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=False,sample_seconds=300,sample_limit=240,timeline=None):
+def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=False,sample_seconds=300,sample_limit=240,timeline=None,observe_resources=False):
     # Diagnostic sampling only. Each real close child owns a fresh profile and
     # must naturally release its job before another launch. Stop on first failure.
+    if observe_resources and (timeline is None or sample_limit!=1):
+        raise ValueError('resource endpoints require the single load-gated case timeline')
     summary.update(boundary='source-cold-close-startup-not-package-qualification',sample_limit=sample_limit,sampling_seconds=sample_seconds,startup_hide=startup_hide)
     deadline=time.monotonic()+sample_seconds
     summary['result']='cold-start-no-failure-observed-not-a-cause-proof'
@@ -478,7 +526,9 @@ def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=Fal
         fixture.write_text(json.dumps({'action':'close'})+'\n',encoding='utf-8',newline='\n')
         case=timeline.case_begin(index) if timeline is not None else None
         try:
-            observation=capture([gui,'--exit-qualification-child',fixture],root,env,18,require_release=True,**({'startup_hide':True} if startup_hide else {}))
+            options={'startup_hide':True} if startup_hide else {}
+            if observe_resources:options.update(observe_resources=True,resource_origin=timeline.origin)
+            observation=capture([gui,'--exit-qualification-child',fixture],root,env,18,require_release=True,**options)
         finally:
             if timeline is not None:load_case=timeline.case_end(case)
         if timeline is not None:observation['concurrent_load']=load_case

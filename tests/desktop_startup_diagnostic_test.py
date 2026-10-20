@@ -4,6 +4,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+from io import BytesIO
 import sys
 import tempfile
 import unittest
@@ -15,6 +16,101 @@ diagnostic=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(diagnostic)
 
 class DesktopStartupDiagnosticTests(unittest.TestCase):
+    def test_prelaunch_resource_observer_does_not_consume_native_release_budget(self):
+        import windows_native_resources
+        allowances=[]
+        for observe in [False,True]:
+            clock=[0.0];tree=MagicMock();tree.__enter__.return_value=tree;tree.job=99
+            tree.process.stdout=BytesIO();tree.process.stderr=BytesIO();tree.process.returncode=0
+            tree.process.poll.return_value=0
+            def wait(timeout):clock[0]+=17
+            def release(timeout):
+                allowances.append(timeout);clock[0]+=0.5
+                return timeout>=0.5
+            snapshots=[0]
+            def snapshot(origin):
+                if not snapshots[0]:clock[0]+=1
+                snapshots[0]+=1
+                return {'cpu':{'available':False}}
+            tree.process.wait.side_effect=wait;tree.wait_for_descendants.side_effect=release
+            with patch.object(diagnostic.time,'monotonic',side_effect=lambda:clock[0]), \
+                 patch.object(diagnostic,'ProcessTree',return_value=tree), \
+                 patch.object(diagnostic,'job_processes',return_value={'available':True,'assigned':0,'pids':[]}), \
+                 patch.object(windows_native_resources,'system_snapshot',side_effect=snapshot), \
+                 patch.object(windows_native_resources,'owned_snapshot',return_value={'available':True}):
+                result=diagnostic.capture(['fixture.exe'],ROOT,{},18,require_release=True,observe_resources=observe)
+            self.assertTrue(result['owned_release']);self.assertEqual(result['timing']['root_exit_elapsed_seconds'],17)
+        self.assertEqual(allowances,[1.0,1.0])
+
+    def test_resource_observer_failure_never_replaces_the_original_child_result(self):
+        import windows_native_resources
+        with patch.object(windows_native_resources,'system_snapshot',side_effect=RuntimeError('private observer detail')):
+            result=diagnostic.capture([sys.executable,'-c','import sys;sys.exit(23)'],ROOT,dict(os.environ),5,observe_resources=True)
+        self.assertEqual(result['exit_code'],23);self.assertFalse(result['timed_out'])
+        self.assertFalse(result['resources']['available'])
+        self.assertNotIn('private observer detail',json.dumps(result['resources']))
+
+    def test_resource_timeout_snapshot_is_explicitly_after_immediate_cleanup(self):
+        result=diagnostic.capture([sys.executable,'-c','import time;time.sleep(30)'],ROOT,dict(os.environ),0.1,observe_resources=True)
+        self.assertTrue(result['timed_out']);self.assertNotEqual(result['exit_code'],0)
+        self.assertEqual(result['resources']['point'],'after-timeout-kill')
+        self.assertFalse(result['feature_qualification'])
+
+    def test_load_gate_fires_after_worker_submission_without_blocking_cli(self):
+        values=[0.0]
+        timeline=diagnostic.LoadTimeline(clock=lambda:values[0],gate=True)
+        timeline.worker_start();timeline.phase('parallel-regressions')
+        self.assertIsNone(timeline.receipt()['gate']['signal_elapsed_seconds'])
+        values[0]=2.0;timeline.phase('media-lifecycle')
+        # CLI can continue before the observer accepts the one-shot gate.
+        values[0]=3.0;timeline.wait_gate()
+        gate=timeline.receipt()['gate']
+        self.assertEqual(gate['signal_elapsed_seconds'],2.0)
+        self.assertEqual(gate['released_elapsed_seconds'],3.0)
+        self.assertEqual(gate['prior_gui_launches'],0);self.assertEqual(gate['child_limit'],1)
+        timeline.phase('media-lifecycle')
+        self.assertEqual(timeline.receipt()['gate']['signal_elapsed_seconds'],2.0)
+
+    def test_expired_load_gate_does_not_launch_after_phase_or_worker_end(self):
+        for finished in [False,True]:
+            timeline=diagnostic.LoadTimeline(gate=True);timeline.worker_start();timeline.phase('media-lifecycle')
+            if finished:timeline.worker_end(True)
+            else:timeline.phase('query-contracts')
+            with self.assertRaisesRegex(RuntimeError,'phase gate expired'):timeline.wait_gate()
+            self.assertIsNone(timeline.receipt()['gate']['released_elapsed_seconds'])
+
+    def test_load_gate_wakes_on_early_worker_failure_and_has_a_fixed_wait(self):
+        timeline=diagnostic.LoadTimeline(gate=True);timeline.worker_start();timeline.worker_end(False)
+        with self.assertRaisesRegex(RuntimeError,'ended before'):timeline.wait_gate()
+        pending=diagnostic.LoadTimeline(gate=True)
+        with patch.object(pending._gate_event,'wait',return_value=False) as wait:
+            with self.assertRaisesRegex(RuntimeError,'gate deadline'):pending.wait_gate()
+        wait.assert_called_once_with(90)
+        with self.assertRaisesRegex(ValueError,'not elected'):diagnostic.LoadTimeline().wait_gate()
+
+    def test_load_gate_rejects_unbound_asset_control_before_acquisition(self):
+        with patch.dict(os.environ,{'GITHUB_SHA':'a'*40,'INSONIC_STARTUP_LOAD_GATE':'true'},clear=True), \
+             patch.object(diagnostic.os,'name','nt'),patch.object(diagnostic.pipeline.m,'disposable_runner'), \
+             patch.object(diagnostic,'incident_archive') as acquire:
+            with self.assertRaisesRegex(ValueError,'exact E008 CSS'):diagnostic.run()
+        acquire.assert_not_called()
+
+    def test_gated_observation_launches_exactly_one_child_with_original_deadline(self):
+        timeline=diagnostic.LoadTimeline(gate=True);timeline.worker_start();timeline.phase('media-lifecycle');timeline.wait_gate()
+        child=MagicMock(return_value={'exit_code':0,'timed_out':False,'truncated':False,
+            'capture_incomplete':False,'owned_release':True,'stdout':'{"native_exit":"passed","action":"close","playback":"not-selected"}'})
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'capture',child),patch('builtins.print'):
+            root=Path(temporary);summary={'observations':[]}
+            diagnostic.observe_cold_start(root/'gui.exe',root,root,{},root/'evidence',summary,
+                startup_hide=True,timeline=timeline,sample_limit=1,observe_resources=True)
+        self.assertEqual(child.call_count,1);self.assertEqual(child.call_args.args[3],18)
+        self.assertEqual(child.call_args.kwargs,{'require_release':True,'startup_hide':True,
+            'observe_resources':True,'resource_origin':timeline.origin})
+        self.assertEqual(len(summary['observations']),1);self.assertEqual(summary['sample_limit'],1)
+        self.assertEqual(timeline.receipt()['gate']['prior_gui_launches'],0)
+        with self.assertRaisesRegex(ValueError,'single load-gated'):
+            diagnostic.observe_cold_start(root/'gui.exe',root,root,{},root/'evidence',{},observe_resources=True)
+
     def test_css_size_control_preserves_prefix_and_restores_after_success_or_failure(self):
         original=(ROOT/'desktop/frontend/src/app.css').read_bytes()
         script=b'x'*(len(original)+100)

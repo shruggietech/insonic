@@ -26,6 +26,10 @@ on:
         description: Pad the fixed initial CSS to the E007 app-script size (disposable browser/load diagnosis only)
         type: boolean
         default: false
+      startup_load_gate:
+        description: One fresh E008-controlled GUI at the actual media workload phase, with endpoint resource counters
+        type: boolean
+        default: false
       startup_abi_control:
         description: Compare the corrected source with the checksum-bound historical BOOL call (diagnostic only)
         type: boolean
@@ -118,6 +122,7 @@ jobs:
           INSONIC_STARTUP_LOAD: ${{ inputs.startup_load }}
           INSONIC_STARTUP_BROWSER: ${{ inputs.startup_browser }}
           INSONIC_STARTUP_CSS_CONTROL: ${{ inputs.startup_css_control }}
+          INSONIC_STARTUP_LOAD_GATE: ${{ inputs.startup_load_gate }}
           INSONIC_STARTUP_ABI_CONTROL: ${{ inputs.startup_abi_control }}
         run: python scripts/diagnose-desktop-startup.py
       - name: Trace one documentation completion invocation
