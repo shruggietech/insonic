@@ -155,15 +155,30 @@ func validNativeWaitResult(value nativeWaitObservation, target nativeWaitTarget)
 // This mode never starts Wails or native input. Native WCT faults and stuck
 // synchronous queries remain inside the supervisor-owned hidden process.
 func writeNativeWaitQuery(input io.Reader, output io.Writer, query func(uint32) nativeWaitObservation) int {
+	owner, err := openNativeWaitParent(input)
+	if err != nil {
+		return 1
+	}
+	defer owner.Close()
+	return writeVerifiedNativeWaitQuery(input, output, query, owner)
+}
+
+func writeVerifiedNativeWaitQuery(input io.Reader, output io.Writer, query func(uint32) nativeWaitObservation, owner nativeWaitOwner) int {
 	var targets []nativeWaitTarget
 	if !decodeNativeWaitJSON(input, 1024, &targets) || !validNativeWaitTargets(targets) {
 		return 1
 	}
 	rows := make([]nativeWaitObservation, 0, len(targets))
 	for _, target := range targets {
+		if !owner.Live() {
+			return 1
+		}
 		value := query(target.Thread)
 		value.Role = target.Role
 		if !validNativeWaitResult(value, target) {
+			return 1
+		}
+		if !owner.Live() {
 			return 1
 		}
 		rows = append(rows, value)

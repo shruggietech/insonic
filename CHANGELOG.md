@@ -18,7 +18,7 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
-- Windows startup diagnostics verify live process identity through the owned process handle and precise integral UTC timestamps, rejecting failed or inconsistent observations without relying on undefined exit-time data.
+- Windows startup diagnostics verify live process identity through the owned process handle and precise integral UTC timestamps, rejecting failed or inconsistent observations without relying on undefined exit-time data. The private wait-query helper authenticates the inherited input pipe and its live parent executable before accepting diagnostic targets.
 
 - Windows archive CI allocates concurrent CLI workload trees to three of its four CPUs, preserving the complete workload, native Exit cases and existing deadlines while keeping one CPU outside that workload's affinity mask.
 

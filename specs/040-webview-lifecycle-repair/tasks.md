@@ -175,3 +175,7 @@ These markers are the committed preparation checkpoint. The linked hosted execut
 ## Phase31: Precise native observer identity
 
 - [x] T056 Reproduce the undefined live exit-time and coarse Windows clock assumptions in scripts/windows_native_resources.py, use an owned-handle zero-time liveness check and integral precise Windows UTC, preserve unavailable/ownership/clock-order rejection and original deadlines, and validate hidden regressions without GUI/recording. Record that the hosted aggregate identity failure does not identify its exact branch. (FR-003, FR-004, FR-005, FR-007, FR-008, FR-011, FR-014)
+
+## Phase32: Owning diagnostic wait channel
+
+- [x] T057 Reproduce direct unowned wait-query acceptance, bind the helper to its inherited pipe creator and live same-file parent in cmd/insonic-desktop/startup_wait_owner_windows.go, preserve the parent's verified target selection and500ms bound, and verify actual hidden parent/copy rejection, malformed input, parent loss and normal/race containment without GUI/recording. (FR-005, FR-007, FR-008, FR-011, FR-014)

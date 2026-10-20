@@ -8,7 +8,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -50,6 +52,11 @@ func TestNativeWaitObserverHelperProcess(t *testing.T) {
 		return
 	}
 	switch mode {
+	case "channel":
+		var pid uint32
+		ok, _, _ := windows.NewLazySystemDLL("kernel32.dll").NewProc("GetNamedPipeServerProcessId").Call(os.Stdin.Fd(), uintptr(unsafe.Pointer(&pid)))
+		json.NewEncoder(os.Stdout).Encode(map[string]any{"ok": ok != 0, "server_pid": pid, "parent_pid": os.Getppid()})
+		os.Exit(0)
 	case "crash":
 		_ = windows.TerminateProcess(windows.CurrentProcess(), 0xc0000005)
 		os.Exit(99)
@@ -176,7 +183,7 @@ func TestNativeWaitHelperRejectsUnboundedOrAmbiguousRequests(t *testing.T) {
 	} {
 		var output bytes.Buffer
 		called := false
-		code := writeNativeWaitQuery(strings.NewReader(input), &output, func(thread uint32) nativeWaitObservation { called = true; return nativeWaitObservation{} })
+		code := writeVerifiedNativeWaitQuery(strings.NewReader(input), &output, func(thread uint32) nativeWaitObservation { called = true; return nativeWaitObservation{} }, &nativeWaitTestOwner{live: true})
 		if code == 0 || called || output.Len() != 0 {
 			t.Fatal("invalid request reached native API or emitted output")
 		}
@@ -200,4 +207,97 @@ func TestNativeWaitQueryReportsCurrentOwnedThreadOrUnavailability(t *testing.T) 
 		t.Fatal("native wait unavailable without a reason", value)
 	}
 	t.Logf("isolated native wait result: complete=%t reason=%s error=%d nodes=%d", value.Complete, value.Reason, value.Error, len(value.Nodes))
+}
+
+func TestNativeWaitDefaultHelperRejectsUnownedTargets(t *testing.T) {
+	var output bytes.Buffer
+	called := false
+	code := writeNativeWaitQuery(strings.NewReader(`[{"role":"host","thread":42}]`), &output, func(thread uint32) nativeWaitObservation {
+		called = true
+		return nativeWaitObservation{Thread: thread, Complete: true, Nodes: []nativeWaitItem{{Kind: 8, Status: 2, PID: 123, Thread: thread}}}
+	})
+	if code == 0 || called || output.Len() != 0 {
+		t.Fatal("unowned direct invocation reached WCT or exposed metadata")
+	}
+}
+
+func TestNativeWaitInheritedInputIdentifiesActualParent(t *testing.T) {
+	ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
+	defer stop()
+	report, err := nativeWaitTestCapture("channel")(ctx, []byte("[]"))
+	var row struct {
+		OK        bool   `json:"ok"`
+		ServerPID uint32 `json:"server_pid"`
+		ParentPID uint32 `json:"parent_pid"`
+	}
+	if err != nil || report.ExitCode != 0 || json.Unmarshal(report.Stdout, &row) != nil || !row.OK || row.ServerPID != uint32(os.Getpid()) || row.ParentPID != uint32(os.Getpid()) {
+		t.Fatalf("inherited anonymous input did not authenticate its creator: %+v %v %s", row, err, report.Stdout)
+	}
+}
+
+type nativeWaitTestOwner struct {
+	live bool
+}
+
+func (owner *nativeWaitTestOwner) Live() bool { return owner.live }
+func (owner *nativeWaitTestOwner) Close()     {}
+
+func TestNativeWaitRejectsLostParentWithoutPartialMetadata(t *testing.T) {
+	for _, before := range []bool{true, false} {
+		owner := &nativeWaitTestOwner{live: !before}
+		var out bytes.Buffer
+		called := false
+		code := writeVerifiedNativeWaitQuery(strings.NewReader(`[{"role":"host","thread":42}]`), &out, func(tid uint32) nativeWaitObservation {
+			called = true
+			owner.live = false
+			return nativeWaitObservation{Thread: tid, Complete: true, Nodes: []nativeWaitItem{{Kind: 8, Status: 2, PID: 123, Thread: tid}}}
+		}, owner)
+		if code == 0 || out.Len() != 0 || called == before {
+			t.Fatal("lost parent allowed query or metadata", before, called, code, out.String())
+		}
+	}
+}
+
+func TestNativeWaitRejectsAChannelCreatedByTheHelper(t *testing.T) {
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+	defer writer.Close()
+	owner, err := openNativeWaitParent(reader)
+	if owner != nil {
+		owner.Close()
+	}
+	if err == nil || owner != nil {
+		t.Fatal("a local pipe was accepted as its parent channel")
+	}
+}
+
+func TestNativeWaitRejectsCopiedExecutableEvenWithAnInheritedPipe(t *testing.T) {
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	copied := filepath.Join(t.TempDir(), filepath.Base(executable))
+	source, err := os.Open(executable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.Close()
+	target, err := os.Create(copied)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, copyErr := io.Copy(target, source)
+	closeErr := target.Close()
+	if copyErr != nil || closeErr != nil {
+		t.Fatal(copyErr, closeErr)
+	}
+	ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
+	defer stop()
+	report, err := process.Capture(ctx, process.Spec{Executable: copied, Args: []string{"-test.run=^TestNativeWaitObserverHelperProcess$"}, Env: append(os.Environ(), "INSONIC_NATIVE_WAIT_HELPER_MODE=normal"), Input: strings.NewReader(`[{"role":"host","thread":42}]`), MaxOutput: nativeWaitOutputLimit})
+	if ctx.Err() != nil || report.ExitCode != 1 || len(report.Stdout) != 0 {
+		t.Fatalf("copied image accepted a caller's thread IDs: code=%d err=%v output=%s", report.ExitCode, err, report.Stdout)
+	}
 }
