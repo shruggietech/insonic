@@ -68,7 +68,7 @@ def isolated_invoker(invoke, workspace):
 
 
 @contextmanager
-def parallel_regressions(invoke, workspace, version, documentation, help_pages, executable, environment):
+def parallel_regressions(invoke, workspace, version, documentation, help_pages, executable, environment, *, process_factory=None):
     """Join every owned regression even when another branch raises."""
     from cli_operator_qualification import qualify as qualify_operator
     from cli_input_qualification import qualify as qualify_inputs
@@ -88,6 +88,7 @@ def parallel_regressions(invoke, workspace, version, documentation, help_pages, 
         if name == 'examples':
             args = (scoped, None, root, version, help_pages)
             keywords = {'executable': executable, 'environment': environment}
+            if process_factory is not None:keywords['process_factory'] = process_factory
         prepared.append((name, function, args, keywords))
     # Four independent libraries prevent credential, settings, model and
     # revision interference. Joining all workers leaves the existing package
@@ -97,7 +98,7 @@ def parallel_regressions(invoke, workspace, version, documentation, help_pages, 
                    for name, function, args, keywords in prepared}
         yield futures
 
-def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, progress=None):
+def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, progress=None, process_factory=None):
     executable, workspace = Path(executable), Path(workspace)
     environment = os.environ.copy()
     environment.update(env or {})
@@ -111,7 +112,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
         if scoped:
             argv += ['--workspace', str(workspace_path or workspace)]
         argv += [str(a) for a in args]
-        with ProcessTree(argv, cwd=cwd or workspace, env=execution_environment if execution_environment is not None else environment,
+        with (process_factory or ProcessTree)(argv, cwd=cwd or workspace, env=execution_environment if execution_environment is not None else environment,
                          allow_detached=scoped, input_pipe=input is not None) as tree:
             stdout, stderr = tree.process.communicate(input=input, timeout=35)
             code = tree.process.returncode
@@ -289,12 +290,13 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
         server.server_close()
         thread.join(timeout=5)
     phase('parallel-regressions')
-    with parallel_regressions(invoke, workspace, version, documentation, help_pages, executable, environment) as regressions:
+    process_options = {'process_factory': process_factory} if process_factory is not None else {}
+    with parallel_regressions(invoke, workspace, version, documentation, help_pages, executable, environment, **process_options) as regressions:
         lifecycle = {'state': 'not-included', 'reason': 'exact companions required in extracted packages'}
         if documentation:
             from cli_media_qualification import qualify as qualify_media
             phase('media-lifecycle')
-            lifecycle = qualify_media(invoke, supplied, workspace, executable, environment, version)
+            lifecycle = qualify_media(invoke, supplied, workspace, executable, environment, version, **process_options)
         query_contracts = {'state': 'not-included', 'reason': 'exact companions required in extracted packages'}
         if documentation:
             from cli_query_qualification import qualify as qualify_queries

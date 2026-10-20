@@ -332,6 +332,15 @@ class Program
         if (!rejected) throw new Exception("Raw clock value must remain unavailable");
     }
 
+    internal static (long begin, long end) ObservationWindow(IProcess process, IThread thread, long begin, long end)
+    {
+        if (process.CreateTime.HasValue && Known(process.CreateTime.Value)) begin = Math.Max(begin, Ns(process.CreateTime.Value));
+        if (process.ExitTime.HasValue && Known(process.ExitTime.Value)) end = Math.Min(end, Ns(process.ExitTime.Value));
+        if (thread.CreateTime.HasValue && Known(thread.CreateTime.Value)) begin = Math.Max(begin, Ns(thread.CreateTime.Value));
+        if (thread.ExitTime.HasValue && Known(thread.ExitTime.Value)) end = Math.Min(end, Ns(thread.ExitTime.Value));
+        return (begin, end);
+    }
+
     static object Decode(string tracePath, Input input)
     {
         Projection.Alignment(input);
@@ -402,9 +411,7 @@ class Program
             {
                 var thread = group.Key;
                 Evidence["projection_tid"] = thread.Id;
-                long lifeBegin = begin, lifeEnd = end;
-                if (thread.CreateTime.HasValue && Known(thread.CreateTime.Value)) lifeBegin = Math.Max(lifeBegin, Ns(thread.CreateTime.Value));
-                if (thread.ExitTime.HasValue && Known(thread.ExitTime.Value)) lifeEnd = Math.Min(lifeEnd, Ns(thread.ExitTime.Value));
+                var (lifeBegin, lifeEnd) = ObservationWindow(process, thread, begin, end);
                 if (lifeEnd <= lifeBegin) continue;
                 var spans = new List<Span>();
                 var closedSources = new Dictionary<string, int>();
@@ -441,6 +448,8 @@ class Program
             processes.Add(new { pid = owned.pid, role = Projection.Role(process.ImageName ?? "", process.CommandLine ?? "", owned.pid, input.gui_pid, input.wrapper_pid),
                 role_source = "verified-owned-lifetime-and-fixed-command-switch", matched_lifetime = true,
                 native_created_unix_micros = owned.created_unix_micros, trace_created_unix_micros = Us(process.CreateTime!.Value.DateTimeOffset),
+                exit_observed = process.ExitTime.HasValue && Known(process.ExitTime.Value),
+                exit_relative_window_ns = process.ExitTime.HasValue && Known(process.ExitTime.Value) ? (long?)(Ns(process.ExitTime.Value) - begin) : null,
                 thread_count = threads.Count, selected_thread_count = chosen.Length, selection = "oldest-plus-longest-known-ready-and-longest-known-waiting",
                 threads = chosen.Select(t => t.row).ToArray() });
         }

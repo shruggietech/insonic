@@ -141,4 +141,13 @@ E016 completes the real console prerequisite for T039/T040; E012-E015 failures a
 
 ## Phase24: Renderer-backgrounding policy comparison
 
-- [ ] T048 Verify a checksum-bound diagnostic-only build overlay for the actual environment-options argument, preserve E022 controls/bounds and native outcomes, then retain one E023 comparison and its process-class/browser-policy/early-pass limits before choosing a repair. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)
+- [x] T048 Verify a checksum-bound diagnostic-only build overlay for the actual environment-options argument, preserve E022 controls/bounds and native outcomes, then retain one E023 comparison and its process-class/browser-policy/early-pass limits before choosing a repair. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)
+
+## Phase25: Process lifetime and workload CPU isolation
+
+- [x] T049 Reproduce and correct the omitted canonical process lifetime bound in the scheduler adapter with offline pinned-interface fixtures; withdraw unsupported historical late tails and retain fixed process-exit metadata. (FR-003, FR-005, FR-007, FR-008, FR-011)
+- [ ] T050 Verify an explicit diagnostic-only owned-job affinity control covering all concurrent CLI/helper launch roots and inherited breakaway work, preserve GUI source/workload commands/parallelism/native deadlines, and record one E024 prediction/result before choosing further work. (FR-003, FR-004, FR-007, FR-008, FR-009, FR-011)
+
+## Phase26: SDK-owned temporary interface references
+
+- [ ] T051 Reproduce the active swipe-helper temporary reference leak with actual fake native vtables, then balance SDK-owned temporary interfaces without taking ownership of public getter returns; reconcile exact source authority and retain causal limits. (FR-003, FR-005, FR-008, FR-010, FR-013)

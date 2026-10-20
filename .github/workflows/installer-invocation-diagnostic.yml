@@ -46,6 +46,10 @@ on:
         description: Diagnostic-only renderer backgrounding flag in one checksum-bound source build (scheduler control only)
         type: boolean
         default: false
+      startup_workload_cpu_control:
+        description: Reserve one of four CPUs from concurrent CLI work only (exact E023 diagnostic controls required)
+        type: boolean
+        default: false
       scheduler_stress:
         description: Add four bounded console worker threads only in scheduler-preflight (never product launches)
         type: boolean
@@ -171,6 +175,7 @@ jobs:
           INSONIC_STARTUP_NORMAL: ${{ inputs.startup_normal }}
           INSONIC_STARTUP_SCHEDULER: ${{ inputs.startup_scheduler }}
           INSONIC_STARTUP_RENDERER_CONTROL: ${{ inputs.startup_renderer_control }}
+          INSONIC_STARTUP_WORKLOAD_CPU_CONTROL: ${{ inputs.startup_workload_cpu_control }}
           INSONIC_STARTUP_ABI_CONTROL: ${{ inputs.startup_abi_control }}
         run: python scripts/diagnose-desktop-startup.py
       - name: Trace one documentation completion invocation

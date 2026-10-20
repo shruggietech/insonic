@@ -26,7 +26,7 @@ def pcm_fixture(destination, channels):
                                    for frame in range(16000) for channel in range(channels)))
 
 
-def qualify(invoke, supplied, workspace, executable, environment, version):
+def qualify(invoke, supplied, workspace, executable, environment, version, *, process_factory=None):
     started = time.monotonic()
     directory = workspace / 'media lifecycle résumé'
     directory.mkdir()
@@ -37,7 +37,7 @@ def qualify(invoke, supplied, workspace, executable, environment, version):
         raise ValueError('Media lifecycle requires exact installed companions')
 
     def tool(exe, *args):
-        with ProcessTree([exe, *args], cwd=directory, env=environment) as tree:
+        with (process_factory or ProcessTree)([exe, *args], cwd=directory, env=environment) as tree:
             stdout, stderr = tree.process.communicate(timeout=20)
             if tree.process.returncode or len(stdout) > 1 << 20 or len(stderr) > 65536:
                 raise ValueError('Installed media lifecycle companion failed')

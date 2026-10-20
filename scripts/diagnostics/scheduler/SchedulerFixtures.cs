@@ -51,6 +51,26 @@ static class SchedulerFixtures
             Program.Closed(activity, thread, process, new ReadyIndex(events));
         void Require(bool condition, string message) { if (!condition) throw new Exception(message); }
 
+        var endedProcess = SchedulerPropertyFixture.Make<IProcess>(new()
+        { ["get_CreateTime"] = (TraceTimestamp?)At(200), ["get_ExitTime"] = (TraceTimestamp?)At(1300) });
+        var missingThreadEnd = SchedulerPropertyFixture.Make<IThread>(new()
+        { ["get_CreateTime"] = (TraceTimestamp?)At(100), ["get_ExitTime"] = (TraceTimestamp?)null });
+        Require(Program.ObservationWindow(endedProcess, missingThreadEnd, 0, 3000) == (200, 1300),
+            "Known process lifetime must bound a thread with no observed exit");
+        var endedThread = SchedulerPropertyFixture.Make<IThread>(new()
+        { ["get_CreateTime"] = (TraceTimestamp?)At(400), ["get_ExitTime"] = (TraceTimestamp?)At(1200) });
+        Require(Program.ObservationWindow(endedProcess, endedThread, 0, 3000) == (400, 1200) &&
+            Program.ObservationWindow(endedProcess, missingThreadEnd, 500, 1000) == (500, 1000),
+            "Process, thread and case bounds must intersect");
+        var noThreadMetadata = SchedulerPropertyFixture.Make<IThread>(new()
+        { ["get_CreateTime"] = (TraceTimestamp?)null, ["get_ExitTime"] = (TraceTimestamp?)null });
+        Require(Program.ObservationWindow(endedProcess, noThreadMetadata, 0, 3000) == (200, 1300),
+            "Missing thread lifetime must not erase known process bounds");
+        var lateThread = SchedulerPropertyFixture.Make<IThread>(new()
+        { ["get_CreateTime"] = (TraceTimestamp?)At(1500), ["get_ExitTime"] = (TraceTimestamp?)null });
+        Require(Program.ObservationWindow(endedProcess, lateThread, 0, 3000) == (1500, 1300),
+            "Disjoint lifetimes must stay empty rather than extending process death");
+
         var initial = Activity(1000, 1100);
         Require(initial.ReadyDuration?.Nanoseconds == 900 && Project(initial).spans.Length == 0,
             "Pinned birth fallback must remain unknown");

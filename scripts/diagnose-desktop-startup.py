@@ -68,7 +68,7 @@ class BoundedStream:
             pipe.close()
 
 
-def capture(args,directory,env,timeout,*,require_release=False,startup_hide=False,observe_resources=False,resource_origin=None,observe_live=False,scheduler_identity=False):
+def capture(args,directory,env,timeout,*,require_release=False,startup_hide=False,observe_resources=False,resource_origin=None,observe_live=False,scheduler_identity=False,process_factory=None):
     if scheduler_identity and not observe_live:raise ValueError('scheduler identity requires the live owned endpoint')
     if observe_live and (not observe_resources or not require_release):raise ValueError('live endpoint requires owned-release resource observation')
     started=time.monotonic();timed_out=False;readers=[]
@@ -91,7 +91,7 @@ def capture(args,directory,env,timeout,*,require_release=False,startup_hide=Fals
     try:
         selected=[str(arg) for arg in args]
         if startup_hide:selected=[sys.executable,str(Path(__file__).with_name('diagnose-native-launch.py')),*selected]
-        with ProcessTree(selected,cwd=directory,env=env) as tree:
+        with (process_factory or ProcessTree)(selected,cwd=directory,env=env) as tree:
             if observe_live and resource_api is not None:
                 try:live=resource_api.LiveEndpoint(tree.job,started,resource_origin,**({'identity':True} if scheduler_identity else {}))
                 except Exception:resources['live']={'available':False,'reason':'observer-unavailable'}
@@ -158,6 +158,16 @@ def capture(args,directory,env,timeout,*,require_release=False,startup_hide=Fals
 def save(directory,name,value):
     directory.mkdir(parents=True,exist_ok=True)
     (directory/name).write_text(json.dumps(value,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
+
+
+def retain_workload_receipt(stack,evidence,factory):
+    if factory is None:return
+    def retain(error_type,error,traceback):
+        try:save(evidence,'workload-cpu-control.json',factory.receipt())
+        except Exception:
+            if error_type is None:raise
+        return False  # A secondary receipt error must not replace a native failure.
+    stack.push(retain)
 
 
 def source_child(args,env):
@@ -450,6 +460,9 @@ def run():
     normal_control=os.environ.get('INSONIC_STARTUP_NORMAL')=='true'
     scheduler_elected=os.environ.get('INSONIC_STARTUP_SCHEDULER')=='true'
     renderer_control=os.environ.get('INSONIC_STARTUP_RENDERER_CONTROL')=='true'
+    workload_cpu_control=os.environ.get('INSONIC_STARTUP_WORKLOAD_CPU_CONTROL')=='true'
+    if workload_cpu_control and not renderer_control:
+        raise ValueError('workload CPU control requires the exact E023 renderer policy control')
     if renderer_control and not scheduler_elected:
         raise ValueError('renderer backgrounding control requires the exact single-child scheduler control')
     if scheduler_elected and not normal_control:raise ValueError('scheduler observation requires the exact Normal live control')
@@ -475,7 +488,17 @@ def run():
              'observations':[]}
     if normal_control:summary['normal_gui_priority_control']=True
     save(evidence,'diagnostic.json',summary)
+    workload_factory=None
+    if workload_cpu_control:
+        from windows_workload_affinity import WorkloadAffinity
+        try:workload_factory=WorkloadAffinity()
+        except Exception:
+            summary['result']='workload-cpu-control-unavailable-zero-gui'
+            save(evidence,'diagnostic.json',summary)
+            raise RuntimeError('workload CPU selection unavailable; no workload or GUI launched') from None
+        save(evidence,'workload-cpu-control.json',workload_factory.receipt())
     with tempfile.TemporaryDirectory(prefix='insonic startup diagnosis ',dir=ROOT/'build') as temporary, ExitStack() as stack:
+        retain_workload_receipt(stack,evidence,workload_factory)
         location=Path(temporary);package.extract_package(archive,location)
         root=package.path_inside(location,receipt['inventory_root'])
         inventory=package.path_inside(location,receipt['inventory_path'])
@@ -523,7 +546,9 @@ def run():
             summary['boundary']='source-built-gui-and-cli-with-verified-incident-companions-not-a-qualified-package'
             save(evidence,'diagnostic.json',summary)
             for args in [[cli,'workspace','init',workspace,'--json'],[cli,'--workspace',workspace,'credentials','select','session','--json']]:
-                initial=capture(args,root,env,30)
+                # Session credential selection can start the first detached
+                # owner. Its root must already carry the elected workload mask.
+                initial=capture(args,root,env,30,**({'process_factory':workload_factory} if workload_factory is not None else {}))
                 if initial['exit_code'] or initial['timed_out'] or initial['truncated']:
                     save(evidence,'cli-initialization.json',initial)
                     raise RuntimeError('concurrent CLI workspace preparation failed')
@@ -544,7 +569,8 @@ def run():
                     raise RuntimeError('scheduler preflight unavailable; no workload or GUI launched') from None
             timeline=LoadTimeline(gate=load_gate)
             with ThreadPoolExecutor(max_workers=1) as workers:
-                future=workers.submit(run_load,timeline,qualify_contract,cli,workspace,env=env,cwd=root,documentation=True)
+                future=workers.submit(run_load,timeline,qualify_contract,cli,workspace,env=env,cwd=root,documentation=True,
+                    **({'process_factory':workload_factory} if workload_factory is not None else {}))
                 observe_with_load(observe,future,idle,evidence,timeline=timeline,
                     **({'abandon':scheduler.cancel} if scheduler is not None else {}))
         else:

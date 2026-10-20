@@ -363,6 +363,31 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
                 with self.assertRaises(ValueError):diagnostic.run()
                 acquire.assert_not_called()
 
+    def test_workload_cpu_control_requires_the_full_renderer_control(self):
+        with patch.dict(os.environ,{'GITHUB_SHA':'a'*40,'INSONIC_STARTUP_WORKLOAD_CPU_CONTROL':'true'},clear=True), \
+             patch.object(diagnostic.os,'name','nt'),patch.object(diagnostic.pipeline.m,'disposable_runner'), \
+             patch.object(diagnostic,'incident_archive') as acquire:
+            with self.assertRaisesRegex(ValueError,'exact E023'):diagnostic.run()
+            acquire.assert_not_called()
+
+    def test_workload_receipt_covers_initial_launch_and_preflight_failures(self):
+        for phase in ['initial-launch','scheduler-preflight']:
+            with self.subTest(phase=phase),tempfile.TemporaryDirectory() as temporary:
+                evidence=Path(temporary);counts={'launches':0,'verified_before_resume':0,'failed_launches':0}
+                factory=MagicMock();factory.receipt.side_effect=lambda:dict(counts)
+                with self.assertRaisesRegex(RuntimeError,phase):
+                    with diagnostic.ExitStack() as stack:
+                        diagnostic.retain_workload_receipt(stack,evidence,factory)
+                        counts.update(launches=1,verified_before_resume=int(phase=='scheduler-preflight'),
+                                      failed_launches=int(phase=='initial-launch'))
+                        raise RuntimeError(phase)
+                self.assertEqual(json.loads((evidence/'workload-cpu-control.json').read_text()),counts)
+        with patch.object(diagnostic,'save',side_effect=OSError('secondary receipt error')):
+            with self.assertRaisesRegex(RuntimeError,'original native failure'):
+                with diagnostic.ExitStack() as stack:
+                    diagnostic.retain_workload_receipt(stack,Path('.'),factory)
+                    raise RuntimeError('original native failure')
+
     def test_requires_the_exact_incident_payload(self):
         receipt={'revision':diagnostic.INCIDENT_REVISION,'platform':'windows_amd64','variant':'desktop','source_dirty':False,'archive':'fixture.zip'}
         with patch.object(diagnostic.pipeline,'read_inputs',return_value=({},receipt,{'revision':diagnostic.INCIDENT_REVISION})):
