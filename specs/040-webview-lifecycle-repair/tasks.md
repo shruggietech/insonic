@@ -92,3 +92,7 @@ The first increment proves and corrects the exact upstream native BOOL violation
 ## Phase 12: Fresh-child workload control
 
 - [x] T036 Add and verify a single fresh-GUI media-lifecycle gate and bounded endpoint resource observation in scripts/diagnose-desktop-startup.py and scripts/windows_native_resources.py, preserving E008 assets, nonblocking CLI work, exact native deadlines and failure disposition; write E009 before dispatch. (FR-004, FR-007, FR-008, FR-009)
+
+## Phase 13: Startup timing and live ownership observation
+
+- [x] T037 Verify fixed existing-stage monotonic timing and unchanged watchdog-arm brackets in cmd/insonic-desktop/, plus one off-path live owned-resource endpoint in scripts/windows_native_resources.py and the single-child harness; preserve duplicate-handle cleanup, original deadlines and unavailable semantics, and record E010 before dispatch. (FR-004, FR-007, FR-008, FR-009, FR-011)

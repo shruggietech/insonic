@@ -4,6 +4,7 @@ import ctypes as C
 from functools import lru_cache
 import os
 import time
+from threading import Event, Lock, Thread
 
 
 class FileTime(C.Structure):
@@ -43,6 +44,8 @@ def api():
         'GetPriorityClass':([C.c_void_p],C.c_uint32),
         'GetProcessTimes':([C.c_void_p]+[C.POINTER(FileTime)]*4,C.c_int),
         'K32GetProcessMemoryInfo':([C.c_void_p,C.POINTER(ProcessMemory),C.c_uint32],C.c_int),
+        'GetCurrentProcess':([],C.c_void_p),
+        'DuplicateHandle':([C.c_void_p,C.c_void_p,C.c_void_p,C.POINTER(C.c_void_p),C.c_uint32,C.c_int,C.c_uint32],C.c_int),
         'CloseHandle':([C.c_void_p],C.c_int),
     }
     for name,(arguments,result) in signatures.items():
@@ -131,3 +134,71 @@ def owned_snapshot(job,pids):
     except Exception:
         result.update(failed('observer-unavailable'))
     return result
+
+
+class OwnedProcesses(C.Structure):
+    _fields_=[('assigned',C.c_uint32),('count',C.c_uint32),('pids',C.c_size_t*128)]
+
+
+def owned_members(job):
+    value=OwnedProcesses()
+    if not api().QueryInformationJobObject(job,3,C.byref(value),C.sizeof(value),None):
+        return native_failed()
+    if value.count>128 or value.assigned>128:return failed('owned-enumeration-overflow')
+    return {'available':True,'pids':list(value.pids[:value.count])}
+
+
+class LiveEndpoint:
+    """One optional off-path query; finish never waits for native observation.
+
+    The duplicate prevents handle reuse during a query. The caller must terminate
+    a failed owned job explicitly before closing its original handle, because a
+    pending observer may still hold this duplicate. Successful release has already
+    proved the job empty. The worker always closes its own duplicate.
+    """
+    def __init__(self,job,native_origin,origin,*,delay=15):
+        self._lock=Lock();self._stop=Event();self._origin=origin
+        self._row={'available':False,'reason':'not-started-before-capture-end','scheduled_native_seconds':delay}
+        selected=api();current=selected.GetCurrentProcess();duplicate=C.c_void_p()
+        if not selected.DuplicateHandle(current,job,current,C.byref(duplicate),0,False,2):
+            self._row.update(native_failed(),reason='query-handle-unavailable');self.thread=None;return
+        self.thread=Thread(target=self._collect,args=(duplicate.value,native_origin,delay),daemon=True,name='startup-live-endpoint')
+        try:self.thread.start()
+        except BaseException:
+            selected.CloseHandle(duplicate.value);raise
+
+    def _collect(self,job,native_origin,delay):
+        try:
+            if self._stop.wait(max(0,delay-(time.monotonic()-native_origin))):return
+            started=round(time.monotonic()-self._origin,6)
+            with self._lock:self._row.update(reason='collection-not-completed',start_elapsed_seconds=started)
+            members=owned_members(job)
+            if not members.get('available'):
+                row=failed('owned-enumeration-unavailable')
+            elif not members['pids']:
+                row=failed('no-live-owned-members')
+            else:
+                row={'available':True,'system':system_snapshot(self._origin),'owned':owned_snapshot(job,members['pids'])}
+            row.update(scheduled_native_seconds=delay,start_elapsed_seconds=started,
+                       end_elapsed_seconds=round(time.monotonic()-self._origin,6))
+            with self._lock:self._row=row
+        except Exception:
+            with self._lock:self._row.update(failed('observer-unavailable'))
+        finally:api().CloseHandle(job)
+
+    def finish(self,cleanup_elapsed_seconds=None):
+        self._stop.set()
+        with self._lock:row=dict(self._row)
+        row['capture_end_elapsed_seconds']=round(time.monotonic()-self._origin,6)
+        if cleanup_elapsed_seconds is not None:
+            row['cleanup_elapsed_seconds']=cleanup_elapsed_seconds
+            row['overlapped_cleanup']=row.get('end_elapsed_seconds',float('inf'))>=cleanup_elapsed_seconds
+        return row
+
+
+def clock_anchor(origin):
+    before=time.monotonic()
+    utc_micros=time.time_ns()//1000
+    after=time.monotonic()
+    return {'unix_micros':utc_micros,'begin_elapsed_seconds':round(before-origin,6),
+            'end_elapsed_seconds':round(after-origin,6)}

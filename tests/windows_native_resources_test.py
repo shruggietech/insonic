@@ -8,6 +8,7 @@ from pathlib import Path
 import time
 import unittest
 from unittest.mock import MagicMock,patch
+from threading import Event
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts'))
@@ -67,6 +68,68 @@ class NativeResourcesTests(unittest.TestCase):
             snapshots=[resources.system_snapshot(time.monotonic()),resources.owned_snapshot(99,[123])]
         self.assertTrue(all(not row['available'] for row in snapshots))
         self.assertNotIn('private value',json.dumps(snapshots))
+
+    def test_clock_anchor_brackets_utc_integers_without_float_roundtrip(self):
+        value=1792454400123456789
+        with patch.object(resources.time,'monotonic',side_effect=[10.0,10.001]), \
+             patch.object(resources.time,'time_ns',return_value=value):
+            row=resources.clock_anchor(9.0)
+        self.assertEqual(row,{'unix_micros':value//1000,'begin_elapsed_seconds':1.0,'end_elapsed_seconds':1.001})
+        self.assertIs(type(row['unix_micros']),int);self.assertLess(row['unix_micros'],2**53)
+
+    def test_live_duplicate_failure_is_unavailable_without_starting_worker(self):
+        selected=MagicMock();selected.DuplicateHandle.return_value=0
+        with patch.object(resources,'api',return_value=selected):
+            observer=resources.LiveEndpoint(99,time.monotonic(),time.monotonic());row=observer.finish()
+        self.assertIsNone(observer.thread);self.assertFalse(row['available'])
+        self.assertEqual(row['reason'],'query-handle-unavailable');selected.CloseHandle.assert_not_called()
+
+    def test_live_finish_does_not_wait_for_a_blocked_observer(self):
+        entered,release=Event(),Event()
+        selected=MagicMock();selected.GetCurrentProcess.return_value=1
+        def duplicate(source,job,target,out,*rest):out._obj.value=88;return 1
+        selected.DuplicateHandle.side_effect=duplicate
+        def collect(job):
+            entered.set();release.wait(2);return {'available':True,'pids':[123]}
+        with patch.object(resources,'api',return_value=selected),patch.object(resources,'owned_members',side_effect=collect), \
+             patch.object(resources,'system_snapshot',return_value={'available':True}), \
+             patch.object(resources,'owned_snapshot',return_value={'available':True}):
+            observer=resources.LiveEndpoint(99,time.monotonic(),time.monotonic(),delay=0)
+            try:
+                self.assertTrue(entered.wait(1))
+                started=time.monotonic();row=observer.finish(cleanup_elapsed_seconds=0.1)
+                self.assertLess(time.monotonic()-started,0.1)
+                self.assertFalse(row['available']);self.assertTrue(row['overlapped_cleanup'])
+                self.assertEqual(row['reason'],'collection-not-completed')
+            finally:release.set();observer.thread.join(2)
+        selected.CloseHandle.assert_called_once_with(88)
+
+    def test_live_cancel_before_endpoint_performs_no_process_queries(self):
+        selected=MagicMock();selected.GetCurrentProcess.return_value=1
+        def duplicate(source,job,target,out,*rest):out._obj.value=88;return 1
+        selected.DuplicateHandle.side_effect=duplicate
+        with patch.object(resources,'api',return_value=selected),patch.object(resources,'owned_members') as members:
+            observer=resources.LiveEndpoint(99,time.monotonic(),time.monotonic())
+            row=observer.finish();observer.thread.join(1)
+        self.assertFalse(observer.thread.is_alive());members.assert_not_called()
+        selected.CloseHandle.assert_called_once_with(88)
+        self.assertFalse(row['available']);self.assertEqual(row['scheduled_native_seconds'],15)
+
+    @unittest.skipUnless(os.name=='nt','actual Windows live owned endpoint')
+    def test_actual_live_owned_endpoint_uses_duplicate_and_bounded_members(self):
+        from process_tree import ProcessTree
+        with ProcessTree([sys.executable,'-c','import time;time.sleep(30)'],cwd=ROOT,env=dict(os.environ)) as tree:
+            observer=resources.LiveEndpoint(tree.job,time.monotonic(),time.monotonic(),delay=0)
+            try:
+                observer.thread.join(2);row=observer.finish()
+                self.assertFalse(observer.thread.is_alive());self.assertTrue(row['available'])
+                self.assertTrue(row['owned']['job']['available'])
+                self.assertGreaterEqual(row['owned']['selected_count'],1)
+                self.assertLessEqual(row['owned']['selected_count'],16)
+                self.assertIn(tree.process.pid,[item['pid'] for item in row['owned']['processes']])
+                self.assertTrue(all(item['owned'] and item['priority']['available'] for item in row['owned']['processes']))
+            finally:
+                tree.kill();tree.process.communicate(timeout=5)
 
     @unittest.skipUnless(os.name=='nt','actual Windows API endpoint')
     def test_actual_system_counter_endpoints_without_gui(self):

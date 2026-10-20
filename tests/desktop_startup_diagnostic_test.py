@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch, MagicMock
+from threading import Event
 
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('desktop_startup_diagnostic',ROOT/'scripts/diagnose-desktop-startup.py')
@@ -16,10 +17,64 @@ diagnostic=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(diagnostic)
 
 class DesktopStartupDiagnosticTests(unittest.TestCase):
+    def test_live_election_rejects_missing_gate_before_acquisition(self):
+        with patch.dict(os.environ,{'GITHUB_SHA':'a'*40,'INSONIC_STARTUP_LIVE':'true'},clear=True), \
+             patch.object(diagnostic.os,'name','nt'),patch.object(diagnostic.pipeline.m,'disposable_runner'), \
+             patch.object(diagnostic,'incident_archive') as acquire:
+            with self.assertRaisesRegex(ValueError,'single load gate'):diagnostic.run()
+        acquire.assert_not_called()
+        with self.assertRaisesRegex(ValueError,'owned-release'):
+            diagnostic.capture(['fixture.exe'],ROOT,{},18,observe_live=True)
+
+    def test_live_pending_query_does_not_postpone_actual_timeout_cleanup(self):
+        import windows_native_resources
+        entered,release=Event(),Event();created=[];original=windows_native_resources.LiveEndpoint
+        def observer(*args):
+            result=original(*args,delay=0);created.append(result);return result
+        def members(job):entered.set();release.wait(2);return {'available':True,'pids':[]}
+        try:
+            with patch.object(windows_native_resources,'LiveEndpoint',side_effect=observer), \
+                 patch.object(windows_native_resources,'owned_members',side_effect=members):
+                result=diagnostic.capture([sys.executable,'-c','import time;time.sleep(30)'],ROOT,dict(os.environ),0.1,
+                    require_release=True,observe_resources=True,observe_live=True)
+                self.assertTrue(entered.is_set());self.assertTrue(result['timed_out'])
+                self.assertLess(result['elapsed_seconds'],1)
+                self.assertEqual(result['job_before_close']['assigned'],0)
+                self.assertFalse(result['resources']['live']['available'])
+                self.assertTrue(result['resources']['live']['overlapped_cleanup'])
+        finally:
+            release.set()
+            for item in created:item.thread.join(2)
+
+    def test_live_duplicate_never_defers_failed_job_cleanup_to_last_handle_close(self):
+        import windows_native_resources
+        tree=MagicMock();tree.__enter__.return_value=tree;tree.job=99
+        tree.process.stdout=BytesIO();tree.process.stderr=BytesIO();tree.process.returncode=23;tree.process.poll.return_value=23
+        live=MagicMock();live.finish.return_value={'available':False,'reason':'collection-not-completed'}
+        with patch.object(diagnostic,'ProcessTree',return_value=tree), \
+             patch.object(diagnostic,'job_processes',return_value={'available':True,'assigned':2,'pids':[12,13]}), \
+             patch.object(windows_native_resources,'LiveEndpoint',return_value=live):
+            result=diagnostic.capture(['fixture.exe'],ROOT,{},18,require_release=True,observe_resources=True,observe_live=True)
+        tree.kill.assert_called_once();live.finish.assert_called_once()
+        self.assertEqual(result['exit_code'],23);self.assertFalse(result['owned_release']);self.assertFalse(result['timed_out'])
+        self.assertEqual(result['job_before_close']['assigned'],2)
+
+    def test_live_duplicate_cannot_defer_cleanup_after_unexpected_wait_failure(self):
+        import windows_native_resources
+        tree=MagicMock();tree.__enter__.return_value=tree;tree.job=99
+        tree.process.stdout=BytesIO();tree.process.stderr=BytesIO();tree.process.wait.side_effect=RuntimeError('original wait failure')
+        live=MagicMock();live.finish.return_value={'available':False}
+        with patch.object(diagnostic,'ProcessTree',return_value=tree), \
+             patch.object(windows_native_resources,'LiveEndpoint',return_value=live):
+            with self.assertRaisesRegex(RuntimeError,'original wait failure'):
+                diagnostic.capture(['fixture.exe'],ROOT,{},18,require_release=True,observe_resources=True,observe_live=True)
+        tree.kill.assert_called_once();live.finish.assert_called_once()
+
     def test_prelaunch_resource_observer_does_not_consume_native_release_budget(self):
         import windows_native_resources
         allowances=[]
-        for observe in [False,True]:
+        for mode in ['disabled','resources','live']:
+            observe=mode!='disabled';live=mode=='live'
             clock=[0.0];tree=MagicMock();tree.__enter__.return_value=tree;tree.job=99
             tree.process.stdout=BytesIO();tree.process.stderr=BytesIO();tree.process.returncode=0
             tree.process.poll.return_value=0
@@ -32,15 +87,22 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
                 if not snapshots[0]:clock[0]+=1
                 snapshots[0]+=1
                 return {'cpu':{'available':False}}
+            anchors=[0]
+            def anchor(origin):
+                if not anchors[0]:clock[0]+=2
+                anchors[0]+=1
+                return {'unix_micros':123}
             tree.process.wait.side_effect=wait;tree.wait_for_descendants.side_effect=release
             with patch.object(diagnostic.time,'monotonic',side_effect=lambda:clock[0]), \
                  patch.object(diagnostic,'ProcessTree',return_value=tree), \
                  patch.object(diagnostic,'job_processes',return_value={'available':True,'assigned':0,'pids':[]}), \
                  patch.object(windows_native_resources,'system_snapshot',side_effect=snapshot), \
-                 patch.object(windows_native_resources,'owned_snapshot',return_value={'available':True}):
-                result=diagnostic.capture(['fixture.exe'],ROOT,{},18,require_release=True,observe_resources=observe)
+                 patch.object(windows_native_resources,'owned_snapshot',return_value={'available':True}), \
+                 patch.object(windows_native_resources,'clock_anchor',side_effect=anchor), \
+                 patch.object(windows_native_resources,'LiveEndpoint',return_value=MagicMock()):
+                result=diagnostic.capture(['fixture.exe'],ROOT,{},18,require_release=True,observe_resources=observe,observe_live=live)
             self.assertTrue(result['owned_release']);self.assertEqual(result['timing']['root_exit_elapsed_seconds'],17)
-        self.assertEqual(allowances,[1.0,1.0])
+        self.assertEqual(allowances,[1.0,1.0,1.0])
 
     def test_resource_observer_failure_never_replaces_the_original_child_result(self):
         import windows_native_resources

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestStartupAssetProgressTracksPendingHandlerWithoutRetainingRequests(t *testing.T) {
@@ -72,5 +73,84 @@ func TestStartupPrimaryProgressPrecedesOptionalNativeObservation(t *testing.T) {
 	}
 	if json.Unmarshal(lines[1], &optional) != nil || optional["kind"] != "native-startup-waits" {
 		t.Fatal("optional record lost", out.String())
+	}
+}
+
+func TestNativeExitTimingIsFixedMonotonicAndDisabledWithoutClockOrOutput(t *testing.T) {
+	var out bytes.Buffer
+	calls := 0
+	clock := func() time.Time { calls++; return time.Unix(0, int64(calls)*int64(time.Millisecond)) }
+	disabled := nativeExitStageTimings(false, &out, clock)
+	disabled.record("startup-entered")
+	if calls != 0 || out.Len() != 0 {
+		t.Fatal("disabled timing performed work")
+	}
+	record := nativeExitStageTimings(true, &out, clock)
+	record.record("private-path-or-token")
+	record.record("startup-entered")
+	record.record("window-prepare-returned")
+	if calls != 3 {
+		t.Fatal("unknown stage queried clock", calls)
+	}
+	lines := bytes.Split(bytes.TrimSpace(out.Bytes()), []byte{10})
+	if len(lines) != 2 || strings.Contains(out.String(), "private") {
+		t.Fatal("unbounded stage retained", out.String())
+	}
+	for index, line := range lines {
+		var value map[string]any
+		if json.Unmarshal(line, &value) != nil || value["origin_unix_micros"] != float64(1000) || value["kind"] != "native-exit-stage-timing" || value["elapsed_ns"] != float64(index+1)*float64(time.Millisecond) {
+			t.Fatal("monotonic stage differs", string(line))
+		}
+	}
+}
+
+type nativeTimingWriter func([]byte) (int, error)
+
+func (f nativeTimingWriter) Write(value []byte) (int, error) { return f(value) }
+
+func TestNativeExitWatchdogArmsOriginalDeadlineBeforeObservation(t *testing.T) {
+	fired := make(chan time.Time, 1)
+	armed := false
+	var out bytes.Buffer
+	writer := nativeTimingWriter(func(value []byte) (int, error) {
+		if !armed || len(fired) != 1 {
+			t.Fatal("output preceded original timer arming")
+		}
+		return out.Write(value)
+	})
+	calls := 0
+	clock := func() time.Time { calls++; return time.Unix(0, int64(calls)*int64(time.Millisecond)) }
+	record := nativeExitStageTimings(true, writer, clock)
+	got := record.watchdog(func(duration time.Duration) <-chan time.Time {
+		if duration != 12*time.Second {
+			t.Fatal("native deadline changed", duration)
+		}
+		armed = true
+		fired <- time.Unix(0, 0)
+		return fired
+	})
+	if got != fired {
+		t.Fatal("original deadline channel replaced")
+	}
+	var value map[string]any
+	if json.Unmarshal(out.Bytes(), &value) != nil || value["arm_begin_ns"] != float64(time.Millisecond) || value["arm_end_ns"] != float64(2*time.Millisecond) {
+		t.Fatal("timer creation not bracketed", out.String())
+	}
+	select {
+	case <-got:
+	default:
+		t.Fatal("ready expiry lost")
+	}
+	out.Reset()
+	calls = 0
+	disabled := nativeExitStageTimings(false, &out, clock)
+	disabled.watchdog(func(duration time.Duration) <-chan time.Time {
+		if duration != 12*time.Second {
+			t.Fatal("disabled deadline changed")
+		}
+		return fired
+	})
+	if calls != 0 || out.Len() != 0 {
+		t.Fatal("disabled watchdog observation performed work")
 	}
 }

@@ -67,50 +67,77 @@ class BoundedStream:
             pipe.close()
 
 
-def capture(args,directory,env,timeout,*,require_release=False,startup_hide=False,observe_resources=False,resource_origin=None):
+def capture(args,directory,env,timeout,*,require_release=False,startup_hide=False,observe_resources=False,resource_origin=None,observe_live=False):
+    if observe_live and (not observe_resources or not require_release):raise ValueError('live endpoint requires owned-release resource observation')
     started=time.monotonic();timed_out=False;readers=[]
     timing={}
-    resource_api=None;resources=None
+    resource_api=None;resources=None;live=None;cleanup_elapsed=None;code=None;members={}
     if observe_resources:
         resource_origin=started if resource_origin is None else resource_origin
         try:
             import windows_native_resources as resource_api
             resources={'before':resource_api.system_snapshot(resource_origin)}
         except Exception:resources={'available':False,'reason':'observer-unavailable'}
-    # Endpoint observation must not consume the original native release budget.
+    if observe_live and resource_api is not None:
+        try:
+            timing['start_clock_anchor']=resource_api.clock_anchor(resource_origin)
+        except Exception:timing['start_clock_anchor']={'available':False}
+    # All optional prelaunch observation precedes the original native budget.
     if observe_resources:started=time.monotonic()
+    if observe_live:timing['native_budget_start_elapsed_seconds']=round(started-resource_origin,6)
     output,error=BoundedStream(),BoundedStream()
     try:
         selected=[str(arg) for arg in args]
         if startup_hide:selected=[sys.executable,str(Path(__file__).with_name('diagnose-native-launch.py')),*selected]
         with ProcessTree(selected,cwd=directory,env=env) as tree:
-            for stream,pipe in [(output,tree.process.stdout),(error,tree.process.stderr)]:
-                reader=Thread(target=stream.drain,args=(pipe,),daemon=True);reader.start();readers.append(reader)
+            if observe_live and resource_api is not None:
+                try:live=resource_api.LiveEndpoint(tree.job,started,resource_origin)
+                except Exception:resources['live']={'available':False,'reason':'observer-unavailable'}
             try:
-                tree.process.wait(timeout=timeout)
-                timing['root_exit_elapsed_seconds']=round(time.monotonic()-started,6)
-                if tree.process.returncode == 0 and (require_release or native_webview_probe(args,env)):
-                    release_started=time.monotonic()
-                    remaining=max(0,timeout-(release_started-started))
-                    timing['release_budget_seconds']=round(remaining,6)
-                    released=tree.wait_for_descendants(remaining)
-                    timing['release_wait_elapsed_seconds']=round(time.monotonic()-release_started,6)
-                    if not released:
-                        raise subprocess.TimeoutExpired(args,timeout)
-            except subprocess.TimeoutExpired:
-                timed_out=True;tree.kill()
-                try:tree.process.wait(timeout=5)
-                except subprocess.TimeoutExpired:pass
-            members=job_processes(tree)
-            code=tree.process.poll()
-            if observe_resources and resource_api is not None:
+                for stream,pipe in [(output,tree.process.stdout),(error,tree.process.stderr)]:
+                    reader=Thread(target=stream.drain,args=(pipe,),daemon=True);reader.start();readers.append(reader)
                 try:
-                    resources.update(after=resource_api.system_snapshot(resource_origin),
-                        owned=(resource_api.owned_snapshot(tree.job,members.get('pids',[])) if members.get('available')
-                               else {'available':False,'reason':'owned-enumeration-unavailable'}),
-                        point='after-timeout-kill' if timed_out else 'after-root-before-job-close')
-                    resources['cpu_interval']=resource_api.cpu_interval(resources['before'],resources['after'])
-                except Exception:resources.update(available=False,reason='observer-unavailable')
+                    tree.process.wait(timeout=timeout)
+                    timing['root_exit_elapsed_seconds']=round(time.monotonic()-started,6)
+                    if tree.process.returncode == 0 and (require_release or native_webview_probe(args,env)):
+                        release_started=time.monotonic()
+                        remaining=max(0,timeout-(release_started-started))
+                        timing['release_budget_seconds']=round(remaining,6)
+                        released=tree.wait_for_descendants(remaining)
+                        timing['release_wait_elapsed_seconds']=round(time.monotonic()-release_started,6)
+                        if not released:
+                            raise subprocess.TimeoutExpired(args,timeout)
+                except subprocess.TimeoutExpired:
+                    timed_out=True
+                    if observe_live:
+                        cleanup_elapsed=round(time.monotonic()-resource_origin,6)
+                        timing['cleanup_elapsed_seconds']=cleanup_elapsed
+                    tree.kill()
+                    try:tree.process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:pass
+                members=job_processes(tree)
+                code=tree.process.poll()
+                if observe_live and resource_api is not None:
+                    try:timing['end_clock_anchor']=resource_api.clock_anchor(resource_origin)
+                    except Exception:timing['end_clock_anchor']={'available':False}
+                if observe_resources and resource_api is not None:
+                    try:
+                        resources.update(after=resource_api.system_snapshot(resource_origin),
+                            owned=(resource_api.owned_snapshot(tree.job,members.get('pids',[])) if members.get('available')
+                                   else {'available':False,'reason':'owned-enumeration-unavailable'}),
+                            point='after-timeout-kill' if timed_out else 'after-root-before-job-close')
+                        resources['cpu_interval']=resource_api.cpu_interval(resources['before'],resources['after'])
+                    except Exception:resources.update(available=False,reason='observer-unavailable')
+            finally:
+                if live is not None:
+                    # A live query can retain a duplicate job handle. Keep failure
+                    # cleanup independent of its completion and KILL_ON_JOB_CLOSE.
+                    if cleanup_elapsed is None and (sys.exc_info()[0] is not None or code!=0 or not members.get('available') or members.get('assigned')!=0):
+                        cleanup_elapsed=round(time.monotonic()-resource_origin,6)
+                        timing['cleanup_elapsed_seconds']=cleanup_elapsed;tree.kill()
+                    try:resources['live']=live.finish(cleanup_elapsed)
+                    except Exception:resources['live']={'available':False,'reason':'observer-unavailable'}
+
     finally:
         # Closing the owned job/group releases inherited pipe handles too.
         for reader in readers:reader.join(timeout=5)
@@ -392,6 +419,8 @@ def run():
     browser_observer=os.environ.get('INSONIC_STARTUP_BROWSER')=='true'
     css_control=os.environ.get('INSONIC_STARTUP_CSS_CONTROL')=='true'
     load_gate=os.environ.get('INSONIC_STARTUP_LOAD_GATE')=='true'
+    live_observer=os.environ.get('INSONIC_STARTUP_LIVE')=='true'
+    if live_observer and not load_gate:raise ValueError('live endpoint requires the single load gate')
     if load_gate and not css_control:
         raise ValueError('load phase gate requires the exact E008 CSS control')
     if css_control and (not browser_observer or not cold or not startup_hide or os.environ.get('INSONIC_STARTUP_SOURCE')!='true'
@@ -440,7 +469,7 @@ def run():
             if load_gate:timeline.wait_gate()
             if cold:
                 return observe_cold_start(gui,root,location,env,evidence,summary,startup_hide=startup_hide,timeline=timeline,
-                    **({'sample_limit':1,'observe_resources':True} if load_gate else {}))
+                    **({'sample_limit':1,'observe_resources':True,**({'observe_live':True} if live_observer else {})} if load_gate else {}))
             return observe_native(gui,root,location,env,evidence,summary,rebuilt,incident)
         if abi_control:
             observe=lambda:observe_abi_comparison(package,gui,root,location,env,evidence,summary,startup_hide=startup_hide)
@@ -509,7 +538,7 @@ def observe_predecessors(gui,root,env,evidence,label):
         name=label+'-'+flag[2:]+'.json';save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
 
 
-def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=False,sample_seconds=300,sample_limit=240,timeline=None,observe_resources=False):
+def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=False,sample_seconds=300,sample_limit=240,timeline=None,observe_resources=False,observe_live=False):
     # Diagnostic sampling only. Each real close child owns a fresh profile and
     # must naturally release its job before another launch. Stop on first failure.
     if observe_resources and (timeline is None or sample_limit!=1):
@@ -528,6 +557,7 @@ def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=Fal
         try:
             options={'startup_hide':True} if startup_hide else {}
             if observe_resources:options.update(observe_resources=True,resource_origin=timeline.origin)
+            if observe_live:options['observe_live']=True
             observation=capture([gui,'--exit-qualification-child',fixture],root,env,18,require_release=True,**options)
         finally:
             if timeline is not None:load_case=timeline.case_end(case)

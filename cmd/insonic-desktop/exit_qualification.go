@@ -80,6 +80,7 @@ func qualifyNativeExitChild(path string) int {
 			return 1
 		}
 	}
+	stage := nativeExitStageTimings(os.Getenv("INSONIC_STARTUP_LIVE") == "true", os.Stderr, time.Now)
 	ready, finished := make(chan struct{}), make(chan struct{})
 	activated := make(chan error, 1)
 	var timedOut atomic.Bool
@@ -87,14 +88,17 @@ func qualifyNativeExitChild(path string) int {
 	var verify func() error
 	var playbackID string
 	startup := func(ctx context.Context) {
+		stage.record("startup-entered")
 		if bridge.Workspace != nil {
 			playbackID, verify, prepareErr = desktop.ObserveExitPlaybackQualification(bridge, fixture.MediaID, fixture.Revision)
 		}
 		go func() {
+			deadline := stage.watchdog(time.After)
 			select {
 			case <-finished:
-			case <-time.After(12 * time.Second):
+			case <-deadline:
 				timedOut.Store(true)
+				stage.record("watchdog-timeout")
 				fmt.Fprintln(os.Stderr, "native-exit-stage=watchdog-timeout")
 				logNativeUIFunctionStacks()
 				logNativeStartupProgress()
@@ -106,9 +110,11 @@ func qualifyNativeExitChild(path string) int {
 		if prepareErr == nil {
 			prepareErr = prepareNativeExitWindow(ctx)
 		}
+		stage.record("window-prepare-returned")
 		close(ready)
 	}
 	domReady := func(ctx context.Context) {
+		stage.record("dom-ready")
 		fmt.Fprintln(os.Stderr, "native-exit-stage=dom-ready")
 		go func() {
 			select {
@@ -155,8 +161,10 @@ func qualifyNativeExitChild(path string) int {
 			}
 		}()
 	}
+	stage.record("controller-startup")
 	fmt.Fprintln(os.Stderr, "native-exit-stage=controller-startup")
 	err = runDesktopApplicationWithProfile(bridge, startup, domReady, false, filepath.Join(filepath.Dir(path), "webview"))
+	stage.record("shutdown")
 	fmt.Fprintln(os.Stderr, "native-exit-stage=shutdown")
 	close(finished)
 	if timedOut.Load() {
