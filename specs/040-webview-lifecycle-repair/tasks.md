@@ -31,8 +31,8 @@
 **Independent test**: All three actual native actions reach their callbacks and natural owned process release while shared work survives.
 
 - [x] T013 [US2] Add and validate bounded launch/root-exit/release timing in internal/process/capture.go and internal/process/capture_windows_test.go if required to classify the combined-deadline signature, preserving its original deadline. (FR-005, FR-007, FR-011)
-- [ ] T014 [US2] Classify shutdown against owning-thread Close, interface/apartment lifetime and actual process group release in specs/040-webview-lifecycle-repair/framework-map.md and experiments.md. (FR-002, FR-003, FR-010, FR-011)
-- [ ] T015 [US2] Repair any reproduced remaining teardown violation in cmd/insonic-desktop/webview_lifetime_windows.go or third_party/go-webview2/pkg/edge/window_lifetime_windows.go with a failing-before/passing-after native regression. If no additional behavior change is demonstrated, retain and validate the existing corrected contract. (FR-005, FR-010, FR-011, SC-002)
+- [x] T014 [US2] Classify shutdown against owning-thread Close, interface/apartment lifetime and actual process group release in specs/040-webview-lifecycle-repair/framework-map.md and experiments.md. (FR-002, FR-003, FR-010, FR-011)
+- [x] T015 [US2] Repair any reproduced remaining teardown violation in cmd/insonic-desktop/webview_lifetime_windows.go or third_party/go-webview2/pkg/edge/window_lifetime_windows.go with a failing-before/passing-after native regression. If no additional behavior change is demonstrated, retain and validate the existing corrected contract. (FR-005, FR-010, FR-011, SC-002)
 - [ ] T016 [US2] Validate File/Exit cancellation/reopen/action, window close and actual Alt+F4 for cold/warm, with/without-library cases, natural owned-browser release, playback release and durable shared-work survival through cmd/insonic-desktop/exit_qualification.go. (FR-004, FR-008, FR-010, FR-011, SC-003)
 
 ## Phase 5: US3 - Evidence-backed repair
@@ -42,12 +42,12 @@
 - [x] T017 [US3] Record each experiment's prediction, control, bounds, result and next decision before another dispatch in specs/040-webview-lifecycle-repair/experiments.md. (FR-009, SC-005)
 - [ ] T018 [US3] Update issue #154 with the upstream ABI finding, new observations, proven/rejected/unresolved distinctions and exact verification identities, mirrored in specs/040-webview-lifecycle-repair/verification.md. (FR-002, FR-012, FR-016, SC-001, SC-005)
 - [x] T019 [US3] Run root npm run check/npm test, affected Python/native/product and site checks; retain results in specs/040-webview-lifecycle-repair/verification.md. (FR-007, FR-008, FR-013, FR-014)
-- [ ] T020 [US3] Run ordinary final exact-head source/package/candidate CI within 660 seconds and retain complete check/run/attempt/artifact identities in specs/040-webview-lifecycle-repair/verification.md. (FR-004, FR-013, FR-014, SC-004)
+- [ ] T020 [US3] Run ordinary final exact-head source/package/candidate CI within 660 seconds and retain preparation in specs/040-webview-lifecycle-repair/verification.md and final check/run/attempt/artifact identities in its linked public GitHub execution ledger without changing the tested source. (FR-004, FR-013, FR-014, SC-004)
 
 ## Phase 6: Polish and convergence
 
-- [ ] T021 Update CHANGELOG.md with demonstrated behavior and the dated upstream dependency decision; update affected authoritative docs/v1.0.1/ without internal planning links or changed release version. (FR-015)
-- [ ] T022 Verify UTF-8 without BOM, LF, no mojibake, source/package notices and git diff integrity for the complete repair. (FR-007, FR-013, FR-014, FR-015)
+- [x] T021 Update CHANGELOG.md with demonstrated behavior and the dated upstream dependency decision; update affected authoritative docs/v1.0.1/ without internal planning links or changed release version. (FR-015)
+- [x] T022 Verify UTF-8 without BOM, LF, no mojibake, source/package notices and git diff integrity for the complete repair. (FR-007, FR-013, FR-014, FR-015)
 - [ ] T023 Converge specs/040-webview-lifecycle-repair/tasks.md with implementation/evidence, preserve unresolved failures explicitly and prepare the separate repair review handoff without merge/release or a third #156 review. (FR-012, FR-016, SC-005)
 
 ## Dependencies and execution order
@@ -159,3 +159,15 @@ E016 completes the real console prerequisite for T039/T040; E012-E015 failures a
 ## Phase28: Ordinary CI workload allocation
 
 - [ ] T053 Elect three-of-four CPU allocation only for disposable Windows desktop archive workload roots, covering installed first use and the whole CLI journey while leaving parent/GUI jobs unchanged; prove routing/failure/default behavior and qualify the combined repaired candidate through ordinary exact-head CI without diagnostic browser controls. (FR-004, FR-005, FR-007, FR-008, FR-009, FR-011, FR-014)
+
+## Phase29: Portable diagnostic fixtures
+
+- [x] T054 Correct Linux execution of mocked Windows resource identity/error boundaries and guard the actual Windows Job Object timeout fixture; preserve all assertions and actual Windows coverage, retaining red CI/local capability-absence evidence in verification.md. (FR-005, FR-008, FR-014)
+
+## Final execution status
+
+These markers are the committed preparation checkpoint. The linked hosted execution ledger in verification.md records completed post-checkpoint task outcomes, exact-source native/CI checks, convergence and review-thread closure. GitHub is the live tracking authority; result-only reporting does not create a new untested source commit. Every pending required stage must actually complete before the owner review handoff.
+
+## Phase30: Preserve source-build cache identity
+
+- [x] T055 Isolate elected affinity in scripts/windows_workload_affinity.py while restoring the shared source-build launcher bytes, preserve source cache/verifier identity, and prove before-resume ordering, all setup/assignment failure cleanup and real inherited masks without GUI/recording; retain the initial cold-key failure and qualification limits in verification.md. (FR-004, FR-005, FR-008, FR-013, FR-014)

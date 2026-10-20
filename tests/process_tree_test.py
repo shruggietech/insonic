@@ -1,7 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 import os
-import ctypes
-import json
 from pathlib import Path
 import shutil
 import sys
@@ -16,48 +14,6 @@ from process_tree import ProcessTree, selected_executable, native_webview_enviro
 
 
 class SelectedChildEnvironment(unittest.TestCase):
-    def test_explicit_affinity_rejects_invalid_values_before_launch(self):
-        for mask in [0,-1,True,'3',1 << 64]:
-            with self.subTest(mask=mask),patch('process_tree.subprocess.Popen') as launch:
-                with self.assertRaises(ValueError):ProcessTree(['unused.exe'],cwd='.',env={},cpu_affinity=mask)
-                launch.assert_not_called()
-
-    @unittest.skipUnless(os.name == 'nt', 'actual owned Windows affinity inheritance')
-    def test_owned_affinity_precedes_execution_and_inherits_through_breakaway(self):
-        api=ctypes.WinDLL('kernel32',use_last_error=True)
-        api.GetCurrentProcess.restype=ctypes.c_void_p
-        api.GetProcessAffinityMask.argtypes=[ctypes.c_void_p,ctypes.POINTER(ctypes.c_size_t),ctypes.POINTER(ctypes.c_size_t)]
-        before,system=ctypes.c_size_t(),ctypes.c_size_t()
-        self.assertTrue(api.GetProcessAffinityMask(api.GetCurrentProcess(),ctypes.byref(before),ctypes.byref(system)))
-        mask=before.value & -before.value
-        common="""import ctypes as C,json
-api=C.WinDLL('kernel32',use_last_error=True)
-api.GetCurrentProcess.restype=C.c_void_p
-api.GetProcessAffinityMask.argtypes=[C.c_void_p,C.POINTER(C.c_size_t),C.POINTER(C.c_size_t)]
-def current_mask():
-    process,system=C.c_size_t(),C.c_size_t()
-    if not api.GetProcessAffinityMask(api.GetCurrentProcess(),C.byref(process),C.byref(system)):raise RuntimeError('query failed')
-    return process.value
-"""
-        probe=common+'print(json.dumps(current_mask()))'
-        parent=common+"\nimport subprocess,sys\nrows={'root':current_mask()}\n"
-        parent+=f"probe={probe!r}\n"
-        parent+="for name,flags in [('normal',0x08000000),('breakaway',0x09000000)]:\n"
-        parent+="    result=subprocess.run([sys.executable,'-c',probe],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=flags,timeout=5,check=True)\n    rows[name]=json.loads(result.stdout)\n"
-        # A fresh nested job without its own affinity must preserve inheritance.
-        parent+=f"sys.path.insert(0,{str(Path(__file__).resolve().parents[1]/'scripts')!r})\nfrom process_tree import ProcessTree\n"
-        parent+="with ProcessTree([sys.executable,'-c',probe],cwd='.',env=dict(__import__('os').environ)) as nested:\n    output,error=nested.process.communicate(timeout=5)\n    assert nested.process.returncode==0,error\n    rows['nested_job']=json.loads(output)\nprint(json.dumps(rows))\n"
-        with ProcessTree([sys.executable,'-c',parent],cwd=Path(__file__).resolve().parents[1],env=dict(os.environ),
-                         allow_detached=True,cpu_affinity=mask) as tree:
-            self.assertEqual(tree.cpu_affinity_verified,mask)
-            output,error=tree.process.communicate(timeout=15)
-            self.assertEqual(tree.process.returncode,0,error.decode(errors='replace'))
-            self.assertEqual(json.loads(output),dict.fromkeys(['root','normal','breakaway','nested_job'],mask))
-            self.assertTrue(tree.wait_for_descendants(5))
-        after,system=ctypes.c_size_t(),ctypes.c_size_t()
-        self.assertTrue(api.GetProcessAffinityMask(api.GetCurrentProcess(),ctypes.byref(after),ctypes.byref(system)))
-        self.assertEqual(after.value,before.value)
-
     def test_selected_path_owns_bare_program_and_missing_program_cannot_fall_back(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

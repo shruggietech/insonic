@@ -33,6 +33,7 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'owned-release'):
             diagnostic.capture(['fixture.exe'],ROOT,{},18,observe_live=True)
 
+    @unittest.skipUnless(os.name=='nt','actual Windows live owned-job cleanup')
     def test_live_pending_query_does_not_postpone_actual_timeout_cleanup(self):
         import windows_native_resources
         entered,release=Event(),Event();created=[];original=windows_native_resources.LiveEndpoint

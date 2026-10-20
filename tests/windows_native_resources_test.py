@@ -28,6 +28,7 @@ class NativeResourcesTests(unittest.TestCase):
             return 1
         selected.GetProcessTimes.side_effect=times
         with patch.object(resources.os,'name','nt'),patch.object(resources,'api',return_value=selected), \
+             patch.object(resources,'native_failed',return_value={'available':False,'error':5}), \
              patch.object(resources.time,'time_ns',side_effect=[(created_micros+1000)*1000,(created_micros+1001)*1000]):
             row=resources.owned_snapshot(99,[123],identity=True)['processes'][0]
         self.assertEqual(row['identity'],{'available':True,'created_unix_micros':created_micros,
@@ -46,6 +47,7 @@ class NativeResourcesTests(unittest.TestCase):
             selected.IsProcessInJob.side_effect=owned;selected.GetProcessTimes.side_effect=times
             with self.subTest(failure=failure,exited=exited,reversed_clock=reversed_clock), \
                  patch.object(resources.os,'name','nt'),patch.object(resources,'api',return_value=selected), \
+                 patch.object(resources,'native_failed',return_value={'available':False,'error':5}), \
                  patch.object(resources.time,'time_ns',side_effect=[2000000,1999000 if reversed_clock else 2001000]):
                 row=resources.owned_snapshot(99,[123],identity=True)['processes'][0]
             self.assertFalse(row['identity']['available']);self.assertNotIn('created_unix_micros',row['identity'])
@@ -112,7 +114,8 @@ class NativeResourcesTests(unittest.TestCase):
 
     def test_live_duplicate_failure_is_unavailable_without_starting_worker(self):
         selected=MagicMock();selected.DuplicateHandle.return_value=0
-        with patch.object(resources,'api',return_value=selected):
+        with patch.object(resources,'api',return_value=selected), \
+             patch.object(resources,'native_failed',return_value={'available':False,'error':5}):
             observer=resources.LiveEndpoint(99,time.monotonic(),time.monotonic());row=observer.finish()
         self.assertIsNone(observer.thread);self.assertFalse(row['available'])
         self.assertEqual(row['reason'],'query-handle-unavailable');selected.CloseHandle.assert_not_called()

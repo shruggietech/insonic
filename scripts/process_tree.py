@@ -57,13 +57,9 @@ def native_webview_environment(env):
 
 
 class ProcessTree:
-    def __init__(self, args, *, cwd, env, allow_detached=False, input_pipe=False, cpu_affinity=None):
+    def __init__(self, args, *, cwd, env, allow_detached=False, input_pipe=False):
         self.job = None
         self.process = None
-        self.cpu_affinity_requested = cpu_affinity
-        self.cpu_affinity_verified = None
-        if cpu_affinity is not None and (os.name != 'nt' or type(cpu_affinity) is not int or not 0 < cpu_affinity < 1 << 64):
-            raise ValueError('explicit Windows child affinity must be a positive 64-bit mask')
         args = selected_executable(args, cwd, env)
         if os.name == 'nt':
             self._windows_job(allow_detached)
@@ -109,8 +105,6 @@ class ProcessTree:
             'QueryInformationJobObject': ([wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD, ctypes.c_void_p], wintypes.BOOL),
             'AssignProcessToJobObject': ([wintypes.HANDLE, wintypes.HANDLE], wintypes.BOOL),
             'OpenProcess': ([wintypes.DWORD, wintypes.BOOL, wintypes.DWORD], wintypes.HANDLE),
-            'GetProcessAffinityMask': ([wintypes.HANDLE, ctypes.POINTER(size), ctypes.POINTER(size)], wintypes.BOOL),
-            'SetProcessAffinityMask': ([wintypes.HANDLE, size], wintypes.BOOL),
             'CreateToolhelp32Snapshot': ([wintypes.DWORD, wintypes.DWORD], wintypes.HANDLE),
             'Thread32First': ([wintypes.HANDLE, ctypes.POINTER(Thread)], wintypes.BOOL),
             'Thread32Next': ([wintypes.HANDLE, ctypes.POINTER(Thread)], wintypes.BOOL),
@@ -127,43 +121,21 @@ class ProcessTree:
             raise ctypes.WinError(ctypes.get_last_error())
         limits = Extended()
         limits.basic.flags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-        if self.cpu_affinity_requested is not None:
-            limits.basic.flags |= 0x0010  # JOB_OBJECT_LIMIT_AFFINITY
-            limits.basic.affinity = self.cpu_affinity_requested
         if allow_detached:
             # Only the owned runtime bootstrap elects an independent lifetime.
             limits.basic.flags |= 0x0800  # JOB_OBJECT_LIMIT_BREAKAWAY_OK
         if not self.api.SetInformationJobObject(self.job, 9, ctypes.byref(limits), ctypes.sizeof(limits)):
             self.close()
             raise ctypes.WinError(ctypes.get_last_error())
-        if self.cpu_affinity_requested is not None:
-            verified = Extended()
-            if (not self.api.QueryInformationJobObject(self.job, 9, ctypes.byref(verified), ctypes.sizeof(verified), None)
-                    or not verified.basic.flags & 0x0010 or verified.basic.affinity != self.cpu_affinity_requested):
-                self.close()
-                raise RuntimeError('owned job affinity was not applied')
 
     def _assign_and_resume(self):
         c = self.ctypes
-        access = 0x0100 | 0x0001 | (0x0600 if self.cpu_affinity_requested is not None else 0)
-        handle = self.api.OpenProcess(access, False, self.process.pid)
+        handle = self.api.OpenProcess(0x0100 | 0x0001, False, self.process.pid)
         if not handle:
             raise c.WinError(c.get_last_error())
         try:
-            if self.cpu_affinity_requested is not None:
-                # A job's effective restriction alone is not inherited by a
-                # breakaway child. Set this owned root's default mask while it
-                # is suspended, then enforce the same mask through the job.
-                if not self.api.SetProcessAffinityMask(handle, self.cpu_affinity_requested):
-                    raise c.WinError(c.get_last_error())
             if not self.api.AssignProcessToJobObject(self.job, handle):
                 raise c.WinError(c.get_last_error())
-            if self.cpu_affinity_requested is not None:
-                effective, system = c.c_size_t(), c.c_size_t()
-                if (not self.api.GetProcessAffinityMask(handle, c.byref(effective), c.byref(system))
-                        or effective.value != self.cpu_affinity_requested):
-                    raise RuntimeError('suspended owned root affinity was not applied')
-                self.cpu_affinity_verified = effective.value
         finally:
             self.api.CloseHandle(handle)
         snapshot = self.api.CreateToolhelp32Snapshot(4, 0)
