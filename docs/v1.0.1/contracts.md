@@ -22,7 +22,7 @@ Compatibility is a priority, not an absolute prohibition on useful change. When 
 
 ## Validation and documentation
 
-Speaker-work requests distinguish dataset creation/inspection, elected training, exact speaker-version retrieval, profile CAS updates and matching-only work. Public matching input cannot supply server-frozen recording/model digests or replace the declared roster with a cluster-count hint. Zero score thresholds and ambiguity margins are explicit values. Catalog schema 9 carries portable output/profile/checkpoint authority and origin-qualified mappings; model/dataset manifests validate against their exact child contracts.
+Speaker-work requests distinguish dataset creation/inspection, elected training, exact speaker-version retrieval, profile CAS updates and matching-only work. Public matching input cannot supply server-frozen recording/model digests or replace the declared roster with a cluster-count hint. Zero score thresholds and ambiguity margins are explicit values. Catalog schema 10 retains schema-9 portable output/profile/checkpoint authority and origin-qualified mappings, and supports synthetic jobs from 1 through 600000 milliseconds; model/dataset manifests validate against their exact child contracts.
 
 The repository checks master registration, matching release identities, schema validity, field descriptions and embedded examples. Every document example must validate both against its child schema and the master. Contract checks also reject malformed identities, contradictory inputs and mismatched kinds/versions. Structural validation is complemented by application checks for source ownership, time bounds, permissions, revision ordering and backend capabilities; JSON Schema cannot prove those relationships by itself.
 

@@ -6,6 +6,7 @@ Nothing is published by preparation or candidate validation. Publication and
 promotion require explicit commands; their transports are injectable for tests.
 """
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import datetime
 import hashlib
 import http.client
@@ -387,7 +388,10 @@ def verify_documentation(path, version, revision, require_release=False):
 def candidate(receipts, assets, output, revision, root=ROOT, verifier=verify_package, runner=child):
     version = versions(root); exact_source(revision, root, runner)
     if output.exists(): raise ValueError('candidate output must be new')
-    selected = set(); packages = []; installers = []; files = []
+    selected = set(); packages = []; installers = []; files = []; checks = []; names = set()
+    def queue(kind, path, receipt, entry):
+        if entry['name'] in names: raise ValueError('candidate asset names must be unique')
+        names.add(entry['name']); files.append(entry); checks.append((kind, path, receipt))
     for receipt_file in receipts:
         receipt = read_json(receipt_file)
         if receipt.get('kind') == 'windows-installer-receipt':
@@ -406,7 +410,7 @@ def candidate(receipts, assets, output, revision, root=ROOT, verifier=verify_pac
         name = asset_name(receipt.get('archive'))
         path = assets / name; entry = file_entry(path)
         if entry['sha256'] != receipt.get('archive_sha256') or entry['size_bytes'] != receipt.get('archive_size_bytes'): raise ValueError('package archive differs from receipt')
-        verify_selected_package(path, receipt, verifier, root); files.append(entry); packages.append(receipt)
+        queue('package', path, receipt, entry); packages.append(receipt)
     if selected != {(p, v) for p in PLATFORMS for v in VARIANTS}: raise ValueError('candidate requires all four Windows/Linux package variants')
     if len(installers) != selected_installer_count(root, version):
         raise ValueError('candidate requires exactly one MSI installer; missing or duplicate receipt')
@@ -415,23 +419,32 @@ def candidate(receipts, assets, output, revision, root=ROOT, verifier=verify_pac
         path = assets / asset_name(receipt['artifact']); entry = file_entry(path)
         if entry['sha256'] != receipt.get('artifact_sha256') or entry['size_bytes'] != receipt.get('artifact_size_bytes'):
             raise ValueError('installer artifact differs from receipt')
-        verify_selected_package(path, receipt, verifier, root); files.append(entry)
+        queue('package', path, receipt, entry)
         setup = receipt['setup']; setup_path = assets / asset_name(setup['artifact']); setup_entry = file_entry(setup_path)
         if setup_entry['sha256'] != setup.get('artifact_sha256') or setup_entry['size_bytes'] != setup.get('artifact_size_bytes'):
             raise ValueError('setup artifact differs from receipt')
-        files.append(setup_entry)
+        queue('file', setup_path, None, setup_entry)
     for filename in ('documentation.tar.gz', 'offline-help.tar.gz'):
-        files.append(file_entry(assets / filename))
-    for filename in ('documentation.tar.gz', 'offline-help.tar.gz'):
-        verify_documentation(assets / filename, version, revision)
+        path = assets / filename
+        queue('documentation', path, None, file_entry(path))
     value = {'kind': 'release-candidate', 'schema_version': version, 'version': version, 'revision': revision,
              'tag': 'v' + version, 'repository': REPOSITORY, 'packages': packages, 'assets': files,
              'capabilities': {'variants': list(VARIANTS), 'platforms': list(PLATFORMS), 'advanced_cli': ['backup'], 'inference_qualification': 'not-executed'}}
     if installers: value['installers'] = installers
-    output.mkdir(parents=True)
-    for entry in files:
+    def verify_check(item):
+        kind, path, receipt = item
+        if kind == 'package': verify_selected_package(path, receipt, verifier, root)
+        elif kind == 'documentation': verify_documentation(path, version, revision)
+    def copy_entry(entry):
         shutil.copyfile(assets / entry['name'], output / entry['name'])
         if file_entry(output / entry['name']) != entry: raise ValueError('candidate copy changed during preparation')
+    # Inputs and output names are independent. Preserve metadata order and join
+    # every verifier before creating output, then join every copy/hash check
+    # before writing completion authority, including on worker failure.
+    with ThreadPoolExecutor(max_workers=4) as workers:
+        list(workers.map(verify_check, checks))
+        output.mkdir(parents=True)
+        list(workers.map(copy_entry, files))
     manifest_bytes = (json.dumps(value, indent=2) + '\n').encode('utf-8')
     checksum_files = [*files, {'name': 'release-manifest.json', 'size_bytes': len(manifest_bytes), 'sha256': hashlib.sha256(manifest_bytes).hexdigest()}]
     (output / 'SHA256SUMS').write_text(''.join(f"{entry['sha256']}  {entry['name']}\n" for entry in sorted(checksum_files, key=lambda e: e['name'])), encoding='utf-8', newline='\n')

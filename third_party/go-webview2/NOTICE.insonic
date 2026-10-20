@@ -1,0 +1,32 @@
+insonic maintained WebView lifetime and native-key patch
+
+Upstream: github.com/wailsapp/go-webview2 v1.0.22
+https://github.com/wailsapp/go-webview2/tree/v1.0.22
+
+Original upstream files and MIT license are retained. The insonic additions
+use Apache-2.0 (LICENSE.insonic). A native parent-window lifetime subclass
+closes the WebView controller once on its owning UI thread during destruction.
+The ordinary window procedure continues normally.
+
+The insonic source tree contains third_party/go-webview2.source.json with
+exact upstream and maintained source checksums. The main product source
+revision binds this repository-local replacement; Go binary metadata records
+the relative replacement path rather than an upstream checksum for the patch.
+
+The maintained cleanup also balances owned COM interface references and the original UI-thread apartment initialization. The manifest lists all modified upstream files and every added file.
+
+The native system-key extension copies original accelerator context on the
+owned window UI thread. Claimed keys retain one handled disposition; the host
+posts native menu work instead of directly entering modal UI in the callback. Other
+accelerators retain their existing callback route.
+
+While an owned native menu is active, the parent retains keyboard focus and
+does not forward WM_SETFOCUS back into the browser. Menu exit restores the
+previous owned child only while the same parent still owns foreground input.
+
+Explicit disposable qualification can retain fixed navigation/resource callback
+counts and the browser version for bounded failure evidence. It does not retain
+request URLs, script contents or application data, or add browser calls.
+
+The resource deferral Release method dispatches to IUnknown.Release, balancing
+the acquired reference after completion instead of increasing its count.

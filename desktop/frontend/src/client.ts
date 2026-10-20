@@ -8,6 +8,8 @@ export interface Response {
   error?: { code: string; message: string; diagnostics?: Obj[] };
 }
 export interface NativeBridge {
+  OpenFileMenu?():Promise<Response>;
+  NativeMenuReady?():Promise<boolean>;
   OpenHelp?(): Promise<Response>;
   OpenHelpReference?(url:string):Promise<Response>;
   Show(): Promise<Response>;

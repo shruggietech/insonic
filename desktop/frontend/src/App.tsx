@@ -18,6 +18,7 @@ import { ImportPresets } from './import-presets';
 import { Explore } from './explore';
 import { SpeakerModels } from './speaker-models';
 import {bindHelpNavigation} from './help';
+import {bindNativeFileMenu} from './native-menu';
 export function App({ bridge }: { bridge: NativeBridge }) {
   const client = useMemo(() => new Client(bridge), [bridge]);
   const [workspace, setWorkspace] = useState<Obj>(),
@@ -28,6 +29,12 @@ export function App({ bridge }: { bridge: NativeBridge }) {
     [error, setError] = useState(''),
     [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(0);
+  useEffect(()=>{
+    if(!bridge.OpenFileMenu)return;
+    const unbind=bindNativeFileMenu(document,async()=>{result(await bridge.OpenFileMenu!());},setError);
+    void bridge.NativeMenuReady?.().catch(()=>setError('Native menu readiness could not be established.'));
+    return unbind;
+  },[bridge]);
   const [helpOpening,setHelpOpening]=useState(false);
   const [helpURL,setHelpURL]=useState('');
   const helpCleanup=useRef<(()=>void)|undefined>(undefined);
@@ -42,7 +49,9 @@ export function App({ bridge }: { bridge: NativeBridge }) {
     helpCleanup.current?.();
     const doc=frame.contentDocument;
     if(!doc||doc.URL==='about:blank')return;
-    helpCleanup.current=bindHelpNavigation(doc,url=>void openReference(url),()=>setError('This help link is not a web reference or installed help page.'));
+    const unbindLinks=bindHelpNavigation(doc,url=>void openReference(url),()=>setError('This help link is not a web reference or installed help page.'));
+    const unbindMenu=bindNativeFileMenu(doc,bridge.OpenFileMenu?async()=>{result(await bridge.OpenFileMenu!());}:undefined,setError);
+    helpCleanup.current=()=>{unbindLinks();unbindMenu();};
     setNotice('Offline documentation opened.');
   };
   const closeHelp=()=>{helpCleanup.current?.();helpCleanup.current=undefined;setHelpURL('');setNotice('');(document.querySelector('.help-action button') as HTMLElement)?.focus();};

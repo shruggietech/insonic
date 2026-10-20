@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/models"
@@ -159,7 +158,7 @@ func ValidateStage(s Stage, operation string) error {
 			return contracts.Fail("invalid_request")
 		}
 	} else {
-		if s.ModelID != "" || s.RemoteModel == "" || len(s.RemoteModel) > 256 || !utf8.ValidString(s.RemoteModel) || strings.ContainsFunc(s.RemoteModel, unicode.IsControl) || s.RemoteModel != strings.TrimSpace(s.RemoteModel) || endpoint(s.Endpoint, s.CredentialID) != nil || s.Recognition.Device != "" || s.Diarization.Device != "" {
+		if s.ModelID != "" || !contracts.ValidTextLength(s.RemoteModel, 1, 256) || strings.ContainsFunc(s.RemoteModel, unicode.IsControl) || s.RemoteModel != strings.TrimSpace(s.RemoteModel) || endpoint(s.Endpoint, s.CredentialID) != nil || s.Recognition.Device != "" || s.Diarization.Device != "" {
 			return contracts.Fail("invalid_request")
 		}
 	}

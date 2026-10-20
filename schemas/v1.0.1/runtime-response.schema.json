@@ -153,6 +153,55 @@
           },
           "maxItems": 64
         },
+        "validation": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Generated schema-owned input location and constraints; excludes submitted values and dynamic map keys.",
+          "properties": {
+            "pointer": {
+              "type": "string",
+              "maxLength": 256,
+              "description": "Known contract field path; dynamic map keys and array positions are represented by an asterisk."
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 8388609,
+              "description": "One-based JSON byte position where available; no input bytes are included."
+            },
+            "expected": {
+              "enum": [
+                "object",
+                "array",
+                "string",
+                "number",
+                "integer",
+                "boolean",
+                "null"
+              ],
+              "description": "Expected JSON type from the packaged contract."
+            },
+            "constraint": {
+              "enum": [
+                "minimum",
+                "maximum",
+                "minLength",
+                "maxLength",
+                "minItems",
+                "maxItems",
+                "minProperties",
+                "maxProperties",
+                "maxBytes",
+                "maxDepth"
+              ],
+              "description": "Packaged constraint keyword; byte ceilings remain distinct from character counts."
+            },
+            "bound": {
+              "type": "integer",
+              "description": "Exact integer bound declared by the packaged contract."
+            }
+          }
+        },
         "reason": {
           "type": "string",
           "enum": [
@@ -212,7 +261,30 @@
             "startup_timeout",
             "wait_timeout",
             "wait_interrupted",
-            "documentation_open"
+            "documentation_open",
+            "json_empty",
+            "json_syntax",
+            "json_encoding",
+            "json_duplicate_key",
+            "json_extra_document",
+            "input_shape",
+            "input_unknown_field",
+            "input_required",
+            "input_type",
+            "input_enum",
+            "input_range",
+            "input_length",
+            "input_version",
+            "input_constraint",
+            "input_bytes",
+            "credential_value_limit",
+            "credential_input_shape",
+            "output_exists",
+            "output_parent_missing",
+            "output_permission",
+            "output_directory",
+            "output_space",
+            "output_write"
           ],
           "description": "Allowlisted locally generated operation condition; never external text."
         }

@@ -9,9 +9,19 @@ function capturedSources(repositoryRoot, receipt, changed) {
   const revision = receipt.source.revision;
   const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^GIT_|TOKEN|SECRET|PASSWORD|CREDENTIAL|ASKPASS/i.test(name)));
   Object.assign(env, {GIT_TERMINAL_PROMPT:'0',GIT_CONFIG_NOSYSTEM:'1'});
-  const options = {cwd:repositoryRoot,env,windowsHide:true,shell:false,timeout:15000,maxBuffer:64 << 20};
+  const options = {cwd:repositoryRoot,env,windowsHide:true,shell:false,maxBuffer:64 << 20};
+  // All history observations share one deadline, rather than permitting each
+  // of up to 64 candidates to consume a separate command timeout.
+  const deadline=Date.now()+15000;
+  function observe(args,input) {
+    const timeout=deadline-Date.now();
+    if(timeout<1)throw new Error('Screenshot source differs; captured-history verification exceeded its time bound.');
+    const result=spawnSync('git',args,{...options,timeout,input});
+    if(result.error?.code==='ETIMEDOUT')throw new Error('Screenshot source differs; captured-history verification exceeded its time bound.');
+    return result;
+  }
   function blobs(references) {
-    const result=spawnSync('git',['cat-file','--batch'],{...options,input:references.join('\n')+'\n'});
+    const result=observe(['cat-file','--batch'],references.join('\n')+'\n');
     if(result.status!==0||!result.stdout)throw new Error('Screenshot source differs; captured Git objects are unavailable.');
     let offset=0;const files=[];
     for(const reference of references){
@@ -29,7 +39,7 @@ function capturedSources(repositoryRoot, receipt, changed) {
   }
   const paths=['VERSION',...receipt.source.files.map(item=>item.path)];
   const matches=files=>files[0]?.toString('utf8').trim()===receipt.schema_version&&receipt.source.files.every((item,index)=>files[index+1]&&hash(files[index+1])===item.sha256);
-  const ancestry=spawnSync('git',['merge-base','--is-ancestor',revision,'HEAD'],options);
+  const ancestry=observe(['merge-base','--is-ancestor',revision,'HEAD']);
   if(ancestry.status===0){
     const files=blobs(paths.map(name=>revision+':'+name));
     if(files[0]?.toString('utf8').trim()!==receipt.schema_version)throw new Error('Screenshot source differs from its captured version.');
@@ -39,15 +49,19 @@ function capturedSources(repositoryRoot, receipt, changed) {
   // Squash merges do not retain the CI test-merge commit in main's ancestry.
   // Accept only one coherent ancestral snapshot with every recorded byte hash
   // and version. Preserve the original capture revision and receipt unchanged.
-  const history=spawnSync('git',['log','--format=%H','--max-count=64','HEAD','--','VERSION',changed.path],options);
+  // A coherent capture can be newer than the last change to the anchor file.
+  // Search actual ancestors, including commits that changed only other files.
+  const history=observe(['log','--format=%H','--max-count=64','HEAD']);
   if(history.status!==0)throw new Error('Screenshot source differs; captured history is unavailable. Fetch complete history.');
-  const revisions=history.stdout.toString('ascii').trim().split('\n').filter(value=>/^[a-f0-9]{40}$/.test(value));
+  const revisions=history.stdout.toString('ascii').trim().split(/\r?\n/).filter(value=>/^[a-f0-9]{40}$/.test(value));
   if(revisions.length){
     const anchors=blobs(revisions.map(value=>value+':'+changed.path));
-    const candidates=revisions.filter((value,index)=>anchors[index]&&hash(anchors[index])===changed.sha256).slice(0,4);
-    if(candidates.length){
-      const files=blobs(candidates.flatMap(value=>paths.map(name=>value+':'+name)));
-      if(candidates.some((value,index)=>matches(files.slice(index*paths.length,(index+1)*paths.length))))return;
+    const candidates=revisions.filter((value,index)=>anchors[index]&&hash(anchors[index])===changed.sha256);
+    // One candidate per observation keeps complete snapshots within the byte
+    // bound even when several individually valid inventories total over it.
+    for(const candidate of candidates){
+      const files=blobs(paths.map(name=>candidate+':'+name));
+      if(matches(files))return;
     }
   }
   throw new Error('Screenshot source differs; no matching complete snapshot exists in bounded repository history. Refresh the capture or fetch complete history.');

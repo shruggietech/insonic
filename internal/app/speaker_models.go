@@ -199,6 +199,9 @@ func (a *App) speakerWorkDispatch(req contracts.Request) (any, error) {
 }
 
 func speakerDatasetView(dataset catalog.SpeakerDataset) any {
+	if dataset.Dataset.ID == "" {
+		return nil
+	}
 	view := speakerDatasetSummary(dataset).(map[string]any)
 	view["references_inline"] = len(dataset.References) <= 100
 	view["recipe_inline"] = len(dataset.Recipe) <= 16<<10

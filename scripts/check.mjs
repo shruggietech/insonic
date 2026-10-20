@@ -5,6 +5,7 @@ import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { verifyInstalled } from './sync-brand-kit.mjs';
 import { parseDocument } from 'yaml';
+import { verifyWebviewSource } from './webview-source.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ignoredDirectories = new Set(['.git', '.local', 'node_modules', '.next', 'out', 'offline', 'build', 'dist', 'coverage', 'test-results', 'playwright-report', '.bootstrap-spec-kit', '.brandbuilder']);
@@ -14,7 +15,7 @@ const textNames = new Set(['VERSION', 'LICENSE', 'NOTICE', '.editorconfig', '.gi
 const location = (file, line, message) => `${file}${line ? `:${line}` : ''}: ${message}`;
 
 function vendorStyle(file) {
-  return file.startsWith('brand/kit/') || file.startsWith('.agents/') || (file.startsWith('.specify/') && file !== '.specify/memory/constitution.md');
+  return file.startsWith('third_party/go-webview2/') || file.startsWith('brand/kit/') || file.startsWith('.agents/') || (file.startsWith('.specify/') && file !== '.specify/memory/constitution.md');
 }
 
 export function validateText(file, bytes) {
@@ -212,6 +213,10 @@ async function listProjectFiles(root, prefix = '', result = []) {
 
 export async function checkRepository(root = repositoryRoot, { verifyBrand = true } = {}) {
   const problems = []; let checked = 0;
+  try {
+    const mod = await readFile(join(root, 'go.mod'), 'utf8').catch(error => { if (error.code === 'ENOENT') return ''; throw error; });
+    if (mod.includes('github.com/wailsapp/go-webview2')) await verifyWebviewSource(root);
+  } catch (error) { problems.push(`third_party/go-webview2: ${error.message}`); }
   if (Number(process.versions.node.split('.')[0]) < 22) problems.push('Node.js 22 or newer is required');
   for (const { file, symlink } of await listProjectFiles(root)) {
     if (symlink) { if (!vendorStyle(file)) problems.push(`${file}: Project files must not be symlinks`); continue; }

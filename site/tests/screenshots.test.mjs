@@ -105,3 +105,43 @@ test('squashed CI capture sources require one coherent historical version and un
   receipt.source.files[1].sha256=digest(Buffer.from('before secondary'));await save();
   await assert.rejects(prepareScreenshots(root,out),/matching complete snapshot/);
 });
+
+
+test('squashed captures find coherent ancestors whose anchor was unchanged, beyond four matching anchors', async t => {
+  const root=await fs.mkdtemp(path.join(os.tmpdir(),'insonic-capture-stable-anchor-'));
+  t.after(()=>fs.rm(root,{recursive:true,force:true}));
+  const git=args=>execFileSync('git',args,{cwd:root,encoding:'utf8',windowsHide:true,timeout:10000,stdio:['ignore','pipe','pipe']}).trim();
+  const commit=message=>git(['-c','user.name=Fixture','-c','user.email=fixture@example.test','-c','commit.gpgsign=false','commit','--quiet','-am',message]);
+  git(['init','--quiet']);
+  const implementation=Buffer.from('captured implementation'),secondary=Buffer.from('captured secondary');
+  await fs.writeFile(path.join(root,'VERSION'),'1.0.1\n');
+  await fs.writeFile(path.join(root,'implementation.txt'),implementation);
+  await fs.writeFile(path.join(root,'secondary.txt'),'before secondary');
+  git(['add','VERSION','implementation.txt','secondary.txt']);commit('initial anchor');
+  const main=git(['branch','--show-current']);git(['checkout','--quiet','-b','ci-capture']);
+  // The later complete snapshot changes only the secondary file. A log limited
+  // to implementation.txt would return the older, incomplete initial snapshot.
+  await fs.writeFile(path.join(root,'secondary.txt'),secondary);commit('captured secondary');
+  const revision=git(['rev-parse','HEAD']);
+  git(['checkout','--quiet',main]);git(['merge','--squash','ci-capture']);commit('owner squash');
+  assert.throws(()=>git(['merge-base','--is-ancestor',revision,'HEAD']));
+  // All five newer ancestors retain the anchor, but none match the complete
+  // inventory. Candidate truncation would discard the valid owner squash.
+  for(let i=0;i<5;i++){
+    await fs.writeFile(path.join(root,'secondary.txt'),'later secondary '+i);commit('secondary update '+i);
+  }
+  await fs.writeFile(path.join(root,'implementation.txt'),'later implementation');commit('later anchor');
+  const directory=path.join(root,'docs/screenshots/v1.0.1');await fs.mkdir(directory,{recursive:true});
+  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a2uoAAAAASUVORK5CYII=','base64');
+  await fs.writeFile(path.join(directory,'fixture.png'),png);
+  const receipt={schema_version:'1.0.1',source:{revision,dirty:false,files:[{path:'implementation.txt',sha256:digest(implementation)},{path:'secondary.txt',sha256:digest(secondary)}]},renderer:{kind:'chromium-headless'},fixture:{isolated:true,private_inputs:false},locale:'en-US',images:[{path:'fixture.png',sha256:digest(png),width:1,height:1,landmark:'Fixture',caption:'Original captured surface.'}]};
+  const filename=path.join(directory,'application-capture.json');
+  const original=Buffer.from(JSON.stringify(receipt));await fs.writeFile(filename,original);
+  const out=path.join(root,'out');await prepareScreenshots(root,out);
+  assert.deepEqual(await fs.readFile(path.join(out,'screenshots/v1.0.1/application-capture.json')),original);
+  assert.deepEqual(await fs.readFile(path.join(out,'screenshots/v1.0.1/fixture.png')),png);
+  // Mixed historical bytes never become an acceptable coherent snapshot.
+  receipt.source.files[1].sha256=digest(Buffer.from('never committed secondary'));
+  await fs.writeFile(filename,JSON.stringify(receipt));
+  await assert.rejects(prepareScreenshots(root,out),/matching complete snapshot/);
+});

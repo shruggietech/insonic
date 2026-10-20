@@ -87,6 +87,40 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
         self.assertEqual(summary['observations'][0]['file'],'incident-parent.json')
         self.assertEqual(summary['observations'][1]['file'],'source-parent.json')
 
+    def test_historical_runtime_failure_remains_evidence_and_current_probes_still_run(self):
+        result={'exit_code':0,'timed_out':False,'truncated':False}
+        summary={'observations':[]}
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'observe_predecessors',side_effect=[diagnostic.PredecessorFailure('baseline controller failure'),None]) as preceding,patch.object(diagnostic,'capture',side_effect=lambda *args:dict(result)) as capture,patch('builtins.print'):
+            root=Path(temporary)
+            diagnostic.observe_native(root/'new.exe',root,root,{},root/'evidence',summary,True,(root/'old.exe',root/'old'))
+        self.assertEqual(summary['historical_predecessor'],'failed-baseline-evidence-retained')
+        self.assertEqual(len(capture.call_args_list),13)
+        self.assertEqual(preceding.call_args_list[-1].args[-1],'source')
+
+    def test_current_predecessor_failure_retains_exit_observations_and_still_fails(self):
+        result={'exit_code':0,'timed_out':False,'truncated':False}
+        summary={'observations':[]}
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'observe_predecessors',side_effect=diagnostic.PredecessorFailure('current controller failure')),patch.object(diagnostic,'capture',side_effect=lambda *args:dict(result)) as capture,patch('builtins.print'):
+            root=Path(temporary)
+            with self.assertRaisesRegex(diagnostic.PredecessorFailure,'current controller'):
+                diagnostic.observe_native(root/'new.exe',root,root,{},root/'evidence',summary,True)
+            self.assertEqual(capture.call_count,12,'a predecessor failure suppressed the actual Exit diagnosis')
+            self.assertTrue((root/'evidence/source-parent.json').is_file())
+            self.assertEqual(summary['source_predecessor'],'failed-evidence-retained')
+            self.assertEqual(summary['result'],'predecessor-failure-observed')
+
+    def test_exit_failure_keeps_the_failed_predecessor_as_its_cause(self):
+        predecessor=diagnostic.PredecessorFailure('current controller failure')
+        result={'exit_code':1,'timed_out':True,'truncated':False,'stderr':'native-exit-stage=watchdog-timeout'}
+        summary={'observations':[]}
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'observe_predecessors',side_effect=predecessor),patch.object(diagnostic,'capture',side_effect=lambda *args:dict(result)),patch('builtins.print'):
+            root=Path(temporary)
+            with self.assertRaisesRegex(RuntimeError,'source-built native parent failed') as caught:
+                diagnostic.observe_native(root/'new.exe',root,root,{},root/'evidence',summary,True)
+            self.assertIs(caught.exception.__cause__,predecessor)
+            self.assertEqual(json.loads((root/'evidence/source-parent.json').read_text())['stderr'],result['stderr'])
+            self.assertTrue((root/'evidence/parent-00.json').is_file())
+
     def test_historical_source_authority_must_be_present_in_owned_checkout(self):
         with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'ROOT',Path(temporary)):
             with self.assertRaisesRegex(ValueError,'incident source'):diagnostic.historical_source()
@@ -113,6 +147,14 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
             self.assertEqual(env['GOTOOLCHAIN'],'local')
             self.assertEqual(env['CGO_ENABLED'],'1')
         self.assertEqual(build_child.call_args_list[-1].args[0][1:5],['build','-tags','desktop,production,system_ladybug','-ldflags'])
+
+    def test_load_compiles_current_cli_with_selected_credential_free_environment(self):
+        package=MagicMock();package.qualify.native_env.return_value={'PATH':'selected-path','CGO_ENABLED':'1'};package.sha.return_value='b'*64
+        with tempfile.TemporaryDirectory() as temporary,patch.dict(os.environ,{'GITHUB_TOKEN':'protected-fixture-token','GOFLAGS':'unselected-override'}),patch.object(diagnostic,'source_child') as build:
+            cli=Path(temporary)/'insonic.exe'
+            self.assertEqual(diagnostic.build_probe_cli(package,cli),'b'*64)
+        self.assertEqual(build.call_args.args[0],['go','build','-tags','system_ladybug','-o',cli,'./cmd/insonic'])
+        self.assertNotIn('GITHUB_TOKEN',build.call_args.args[1]);self.assertEqual(build.call_args.args[1]['GOFLAGS'],'')
 
     def test_source_child_uses_exact_environment_without_parent_credentials(self):
         selected={name:value for name,value in os.environ.items() if name.upper() in {'PATH','SYSTEMROOT','WINDIR','TEMP','TMP'}}
@@ -153,5 +195,77 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
         with patch.dict(os.environ,{},clear=True),patch.object(diagnostic,'incident_archive') as source:
             with self.assertRaises((ValueError,RuntimeError)):diagnostic.run()
             source.assert_not_called()
+
+
+    def test_cold_start_probe_uses_fresh_profiles_and_stops_at_first_failure(self):
+        calls=[]
+        def child(args,cwd,env,timeout,**options):
+            fixture=Path(args[-1]);calls.append(fixture)
+            self.assertEqual(json.loads(fixture.read_text()),{'action':'close'})
+            self.assertEqual(args[1],'--exit-qualification-child')
+            self.assertEqual(timeout,18);self.assertEqual(options,{'require_release':True})
+            return {'exit_code':0 if len(calls)==1 else 1,'timed_out':False,'truncated':False,'capture_incomplete':False,'owned_release':len(calls)==1,'stdout':json.dumps({'action':'close','native_exit':'passed','playback':'not-selected'}),'stderr':'native-startup-progress retained'}
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'capture',side_effect=child),patch('builtins.print'):
+            root=Path(temporary);summary={'observations':[]}
+            with self.assertRaisesRegex(RuntimeError,'cold startup'):
+                diagnostic.observe_cold_start(root/'gui.exe',root,root,{},root/'evidence',summary)
+            self.assertEqual(len(calls),2)
+            self.assertNotEqual(calls[0].parent,calls[1].parent)
+            self.assertEqual(summary['result'],'cold-start-failure-observed')
+            self.assertIn('native-startup-progress',json.loads((root/'evidence/cold-001.json').read_text())['stderr'])
+
+    def test_cold_start_probe_rejects_root_exit_without_natural_release_or_native_result(self):
+        valid={'exit_code':0,'timed_out':False,'truncated':False,'capture_incomplete':False,'owned_release':True,'stdout':json.dumps({'action':'close','native_exit':'passed','playback':'not-selected'})}
+        for update in [{'owned_release':False},{'stdout':'{}'},{'stdout':'[]'},{'stdout':'broken'},{'truncated':True},{'capture_incomplete':True}]:
+            with self.subTest(update=update),tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'capture',return_value=dict(valid,**update)),patch('builtins.print'):
+                root=Path(temporary);summary={'observations':[]}
+                with self.assertRaisesRegex(RuntimeError,'cold startup'):
+                    diagnostic.observe_cold_start(root/'gui.exe',root,root,{},root/'evidence',summary)
+                self.assertEqual(len(summary['observations']),1)
+
+    def test_cold_start_probe_sampling_is_bounded_and_never_claims_a_repair(self):
+        valid={'exit_code':0,'timed_out':False,'truncated':False,'capture_incomplete':False,'owned_release':True,'stdout':json.dumps({'action':'close','native_exit':'passed','playback':'not-selected'})}
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'capture',return_value=valid) as child,patch.object(diagnostic.time,'monotonic',return_value=0),patch('builtins.print'):
+            root=Path(temporary);summary={'observations':[]}
+            diagnostic.observe_cold_start(root/'gui.exe',root,root,{},root/'evidence',summary)
+            self.assertEqual(child.call_count,240)
+            self.assertEqual(summary['result'],'cold-start-no-failure-observed-not-a-cause-proof')
+            self.assertEqual(summary['sample_limit'],240)
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'capture') as child,patch.object(diagnostic.time,'monotonic',side_effect=[0,290]),patch('builtins.print'):
+            root=Path(temporary);summary={'observations':[]}
+            diagnostic.observe_cold_start(root/'gui.exe',root,root,{},root/'evidence',summary)
+            child.assert_not_called()
+            self.assertEqual(summary['result'],'cold-start-sampling-budget-exhausted-not-a-cause-proof')
+
+    def test_explicit_direct_child_capture_observes_release_before_job_cleanup(self):
+        import io
+        from types import SimpleNamespace
+        for released in [True,False]:
+            calls=[]
+            class Tree:
+                job=1
+                process=SimpleNamespace(stdout=io.BytesIO(),stderr=io.BytesIO(),returncode=0,wait=lambda **kwargs:None,poll=lambda:0)
+                def __init__(self,*args,**kwargs):pass
+                def __enter__(self):return self
+                def __exit__(self,*args):calls.append('close')
+                def wait_for_descendants(self,timeout):calls.append('wait');return released
+                def kill(self):calls.append('kill')
+            with patch.object(diagnostic,'ProcessTree',Tree),patch.object(diagnostic,'job_processes',return_value={'available':True,'assigned':0,'pids':[]}):
+                result=diagnostic.capture(['gui.exe','--exit-qualification-child','fixture.json'],ROOT,{},18,require_release=True)
+            self.assertEqual(result['owned_release'],released)
+            self.assertEqual(result['timed_out'],not released)
+            self.assertLess(calls.index('wait'),calls.index('close'))
+            self.assertEqual('kill' in calls,not released)
+
+
+    def test_cold_start_hide_counterfactual_is_explicit_in_launch_and_evidence(self):
+        value={'exit_code':1,'timed_out':False,'truncated':False,'capture_incomplete':False,'owned_release':False,'stdout':'{}'}
+        with tempfile.TemporaryDirectory() as temporary,patch.object(diagnostic,'capture',return_value=value) as child,patch('builtins.print'):
+            root=Path(temporary);summary={'observations':[]}
+            with self.assertRaisesRegex(RuntimeError,'cold startup'):
+                diagnostic.observe_cold_start(root/'gui.exe',root,root,{},root/'evidence',summary,startup_hide=True)
+            self.assertIs(child.call_args.kwargs['startup_hide'],True)
+            self.assertIs(summary['startup_hide'],True)
+            self.assertIs(json.loads((root/'evidence/cold-000.json').read_text())['startup_hide'],True)
 
 if __name__=='__main__':unittest.main()

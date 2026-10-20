@@ -15,7 +15,14 @@ test('PR candidate collection uses complete independent package lanes with no pu
   assert.equal(candidate.permissions.contents, 'read');
   assert.equal(candidate.environment, undefined);
   assert.equal(candidate.env.SOURCE_REVISION, '${{ github.sha }}');
-  assert.deepEqual(candidate.needs, ['foundation', 'docs', 'package-linux', 'package-windows', 'media-windows']);
+  assert.deepEqual(candidate.needs, ['foundation', 'docs', 'package-linux', 'media-windows']);
+  assert.equal(candidate.permissions.actions, 'read');
+  const windowsGate = candidate.steps.findIndex(step => step.run?.includes('wait-ci-artifact.mjs windows-packages'));
+  const windowsDownload = candidate.steps.findIndex(step => step.with?.pattern?.startsWith('candidate-package-windows-2022-'));
+  const collection = candidate.steps.findIndex(step => step.run?.includes('scripts/release.py collect'));
+  assert.ok(windowsGate >= 0 && windowsDownload > windowsGate && collection > windowsDownload);
+  assert.equal(candidate.steps[windowsGate].env.GH_TOKEN, '${{ github.token }}');
+  assert.equal(candidate.steps[windowsDownload].with['digest-mismatch'], 'error');
   assert.ok(!JSON.stringify(candidate).includes('secrets.'));
   assert.ok(!JSON.stringify(candidate).includes('scripts/release.py publish'));
   assert.equal(candidate.steps[0].with['persist-credentials'], false);

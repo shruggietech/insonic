@@ -13,6 +13,23 @@ import (
 // InputHelp renders packaged contracts without opening a workspace or provider.
 // The template is illustrative: UUIDs and revisions must name current records.
 func InputHelp(operation string) (json.RawMessage, json.RawMessage) {
+	positional := map[string]string{"media.tools": "media-tools", "processing.tools": "processing-tools", "models.manifest": "base-model-manifest"}
+	if name, ok := positional[operation]; ok {
+		raw, err := registry.ReadFile("v" + contracts.Version + "/" + name + ".schema.json")
+		if err != nil {
+			return nil, nil
+		}
+		var document map[string]any
+		d := json.NewDecoder(bytes.NewReader(raw))
+		d.UseNumber()
+		if d.Decode(&document) != nil {
+			return nil, nil
+		}
+		expanded := expandHelp(document, document, 0).(map[string]any)
+		template, _ := json.MarshalIndent(helpExample(expanded), "", "  ")
+		schema, _ := json.MarshalIndent(expanded, "", "  ")
+		return template, schema
+	}
 	if operation == "setup.draft.save" {
 		_, backend := InputHelp("workspace.plan")
 		var plan map[string]any

@@ -2,6 +2,14 @@ name: Installer invocation diagnostic
 on:
   workflow_dispatch:
     inputs:
+      startup_hide:
+        description: Mirror the Go parent's explicit startup-hide flags in the cold-start comparison
+        type: boolean
+        default: false
+      startup_cold:
+        description: Observe only fresh no-workspace close startup, stopping at the first failure
+        type: boolean
+        default: false
       startup_load:
         description: Overlap the maintained installed CLI workload with native startup
         type: boolean
@@ -93,6 +101,8 @@ jobs:
         env:
           SOURCE_REVISION: d44d95b6e97d741a32cbf87323bf78c824c3155b
           INSONIC_STARTUP_SOURCE: ${{ inputs.startup_source }}
+          INSONIC_STARTUP_COLD: ${{ inputs.startup_cold }}
+          INSONIC_STARTUP_HIDE: ${{ inputs.startup_hide }}
           INSONIC_STARTUP_LOAD: ${{ inputs.startup_load }}
         run: python scripts/diagnose-desktop-startup.py
       - name: Trace one documentation completion invocation

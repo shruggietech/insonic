@@ -7,6 +7,54 @@ from pathlib import Path
 import re
 import shutil
 
+ROOT = Path(__file__).resolve().parents[1]
+PATCH_MODULE = 'github.com/wailsapp/go-webview2'
+PATCH_VERSION = 'v1.0.22'
+PATCH_DIRECTORY = 'third_party/go-webview2'
+PATCH_SOURCE = 'repository-local:' + PATCH_DIRECTORY
+
+
+def repository_patch(value):
+    replacement = value.get('Replace')
+    return (value.get('Path') == PATCH_MODULE and value.get('Version') == PATCH_VERSION
+            and isinstance(replacement, dict) and replacement.get('Path') == './' + PATCH_DIRECTORY
+            and replacement.get('Version') in (None, '', '(devel)') and not replacement.get('Sum'))
+
+
+def repository_patch_source():
+    manifest = ROOT / 'third_party/go-webview2.source.json'
+    if manifest.is_symlink() or manifest.is_junction():
+        raise ValueError('repository module authority is linked')
+    authority = json.loads(manifest.read_text(encoding='utf-8'))
+    if (authority.get('module'), authority.get('version'), authority.get('directory')) != (PATCH_MODULE, PATCH_VERSION, PATCH_DIRECTORY):
+        raise ValueError('repository module authority differs')
+    def tree_hash(files):
+        if not isinstance(files, dict) or not files:
+            raise ValueError('repository module file authority is invalid')
+        summary = hashlib.sha256()
+        for name, digest in sorted(files.items()):
+            if (not isinstance(name, str) or not re.fullmatch(r'[A-Za-z0-9._/-]+', name)
+                    or any(part in ('', '.', '..') for part in name.split('/'))
+                    or not isinstance(digest, str) or not re.fullmatch(r'[a-f0-9]{64}', digest)):
+                raise ValueError('repository module file identity is invalid')
+            summary.update((digest + '  ' + PATCH_MODULE + '@' + PATCH_VERSION + '/' + name + '\n').encode('utf-8'))
+        return 'h1:' + base64.b64encode(summary.digest()).decode('ascii')
+    upstream, current = authority.get('upstream_files'), authority.get('files')
+    if tree_hash(upstream) != authority.get('upstream_sum') or tree_hash(current) != authority.get('patched_sum'):
+        raise ValueError('repository module tree checksum differs')
+    if f"{PATCH_MODULE} {PATCH_VERSION} {authority['upstream_sum']}" not in (ROOT / 'go.sum').read_text(encoding='utf-8').splitlines():
+        raise ValueError('repository module upstream differs from go.sum')
+    modified = sorted(name for name in upstream if current.get(name) != upstream[name])
+    added = sorted(set(current) - set(upstream))
+    expected_added = ['LICENSE.insonic', 'NOTICE.insonic', 'pkg/edge/window_lifetime_windows.go', 'pkg/edge/window_lifetime_windows_test.go']
+    if (not set(upstream) <= set(current) or modified != ['pkg/edge/ICoreWebView2Deferral.go', 'pkg/edge/chromium.go', 'pkg/edge/corewebview2.go'] or added != expected_added
+            or sorted(authority.get('modified', [])) != modified or sorted(authority.get('added', [])) != added):
+        raise ValueError('repository module patch scope differs')
+    directory = ROOT / PATCH_DIRECTORY
+    if directory.is_symlink() or directory.is_junction() or directory.resolve() != ROOT.resolve() / PATCH_DIRECTORY:
+        raise ValueError('repository module source directory differs')
+    return directory, (PATCH_MODULE, PATCH_VERSION, authority['patched_sum'])
+
 
 def json_stream(raw):
     remaining = raw.decode('utf-8') if isinstance(raw, bytes) else raw
@@ -43,6 +91,10 @@ def effective_source(value):
 
 
 def logical_identity(value):
+    if repository_patch(value):
+        # Go records local replacements without an upstream Sum. These bytes
+        # are main-revision source, verified against their own manifest below.
+        return PATCH_MODULE, PATCH_VERSION, (PATCH_MODULE, PATCH_VERSION, PATCH_SOURCE)
     # A replaced logical module has no linked source checksum of its own.
     source = effective_source(value)
     effective = source_identity(source)
@@ -154,11 +206,16 @@ def collect_notices(target, binaries, run, go_version):
             raise ValueError('module source directory is absent or not absolute: ' + identity[0])
         directory = Path(directory_text)
         effective = identity[2]
-        expected = cache / (escaped(effective[0]) + '@' + escaped(effective[1]))
+        if repository_patch(value):
+            expected, verified_identity = repository_patch_source()
+            expected = expected.resolve()
+        else:
+            expected = cache / (escaped(effective[0]) + '@' + escaped(effective[1]))
+            verified_identity = effective
         if not directory.is_dir() or directory.resolve() != expected:
-            raise ValueError('module source directory does not match cache identity: ' + identity[0])
+            raise ValueError('module source directory does not match selected source identity: ' + identity[0])
         paths = source_notices(directory)
-        snapshot = verified_source_notices(directory, effective, paths)
+        snapshot = verified_source_notices(directory, verified_identity, paths)
         if effective[0] in resolved and resolved[effective[0]] != (directory, snapshot):
             raise ValueError('conflicting resolved source directory: ' + effective[0])
         resolved[effective[0]] = directory, snapshot
@@ -219,6 +276,8 @@ def verify_notices(target, modules, binaries, run, go_version):
             names.append(relative.name)
         if not any(name.upper().startswith(('LICENSE', 'LICENCE', 'COPYING')) for name in names):
             raise ValueError('module inventory license missing')
+        if sources[identity[0]][2] == PATCH_SOURCE and not {'LICENSE.insonic', 'NOTICE.insonic'} <= set(names):
+            raise ValueError('repository module patch notices are missing')
     if actual != expected:
         raise ValueError('module inventory membership differs from linked binary')
     compiler_notice = target / 'Go-LICENSE'

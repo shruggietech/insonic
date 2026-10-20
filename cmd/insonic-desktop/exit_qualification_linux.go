@@ -59,6 +59,7 @@ static void insonic_exit_free(InsonicExitProbe *probe) {g_free(probe);}
 import "C"
 
 import (
+	"context"
 	"fmt"
 	"time"
 )
@@ -88,3 +89,9 @@ func activateNativeExit(action string) error {
 	// until this bounded qualification process exits rather than freeing live data.
 	return fmt.Errorf("native GTK action timed out")
 }
+
+func dismissFailedNativeMenu() {}
+
+func prepareNativeExitWindow(context.Context) error { return nil }
+
+func logNativeExitMenuState() {}

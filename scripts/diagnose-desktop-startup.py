@@ -16,7 +16,7 @@ import time
 
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 import windows_package_pipeline as pipeline
-from process_tree import ProcessTree
+from process_tree import ProcessTree, native_webview_environment, native_webview_probe
 
 ROOT=pipeline.ROOT
 INCIDENT_REVISION='d44d95b6e97d741a32cbf87323bf78c824c3155b'
@@ -61,14 +61,20 @@ class BoundedStream:
             pipe.close()
 
 
-def capture(args,directory,env,timeout):
+def capture(args,directory,env,timeout,*,require_release=False,startup_hide=False):
     started=time.monotonic();timed_out=False;readers=[]
     output,error=BoundedStream(),BoundedStream()
     try:
-        with ProcessTree([str(arg) for arg in args],cwd=directory,env=env) as tree:
+        selected=[str(arg) for arg in args]
+        if startup_hide:selected=[sys.executable,str(Path(__file__).with_name('diagnose-native-launch.py')),*selected]
+        with ProcessTree(selected,cwd=directory,env=env) as tree:
             for stream,pipe in [(output,tree.process.stdout),(error,tree.process.stderr)]:
                 reader=Thread(target=stream.drain,args=(pipe,),daemon=True);reader.start();readers.append(reader)
-            try:tree.process.wait(timeout=timeout)
+            try:
+                tree.process.wait(timeout=timeout)
+                if tree.process.returncode == 0 and (require_release or native_webview_probe(args,env)):
+                    if not tree.wait_for_descendants(timeout-(time.monotonic()-started)):
+                        raise subprocess.TimeoutExpired(args,timeout)
             except subprocess.TimeoutExpired:
                 timed_out=True;tree.kill()
                 try:tree.process.wait(timeout=5)
@@ -83,7 +89,8 @@ def capture(args,directory,env,timeout):
             'elapsed_seconds':round(time.monotonic()-started,3),
             'stdout':bytes(output.data).decode('utf-8',errors='replace'),'stderr':bytes(error.data).decode('utf-8',errors='replace'),
             'stdout_bytes':output.total,'stderr_bytes':error.total,'capture_incomplete':incomplete,
-            'truncated':output.total>LIMIT or error.total>LIMIT or incomplete,'job_before_close':members}
+            'truncated':output.total>LIMIT or error.total>LIMIT or incomplete,'job_before_close':members,
+            'owned_release':bool(require_release and not timed_out and code==0 and members.get('available') and members.get('assigned')==0 and not members.get('pids'))}
 
 
 def save(directory,name,value):
@@ -100,16 +107,26 @@ def source_child(args,env):
     return result
 
 
+def probe_build_env(package):
+    selected=package.qualify.native_env()
+    allowed={'PATH','SYSTEMROOT','WINDIR','TEMP','TMP','USERPROFILE','APPDATA','LOCALAPPDATA','GOPATH','GOMODCACHE','GOCACHE'}
+    env={name:value for name,value in os.environ.items() if name.upper() in allowed}
+    env.update(selected,GOTOOLCHAIN='local',GOWORK='off',GOENV='off',GOFLAGS='')
+    return env
+
+
+def build_probe_cli(package,cli):
+    source_child(['go','build','-tags','system_ladybug','-o',cli,'./cmd/insonic'],probe_build_env(package))
+    return package.sha(cli)
+
+
 def build_probe_gui(package,gui,root):
     # Derive one diagnostic GUI from selected source; the verified incident CLI,
     # dependencies and assets remain explicit inputs. This is no longer an exact
     # incident archive and can never confer package/publication qualification.
     shutil.copytree(root/'help',ROOT/'site/offline',dirs_exist_ok=True)
     package.qualify.assets()
-    selected=package.qualify.native_env()
-    allowed={'PATH','SYSTEMROOT','WINDIR','TEMP','TMP','USERPROFILE','APPDATA','LOCALAPPDATA','GOPATH','GOMODCACHE','GOCACHE'}
-    env={name:value for name,value in os.environ.items() if name.upper() in allowed}
-    env.update(selected,GOTOOLCHAIN='local',GOWORK='off',GOENV='off',GOFLAGS='')
+    env=probe_build_env(package)
     node=Path(shutil.which('node',path=env['PATH']) or '')
     if not node.is_file():raise ValueError('selected diagnostic Node executable is missing')
     source_child([node,node.parent/'node_modules/npm/bin/npm-cli.js','--prefix','desktop/frontend','run','build'],env)
@@ -151,6 +168,10 @@ def run():
     if os.name!='nt':raise RuntimeError('native startup diagnosis requires disposable Windows')
     tool=os.environ.get('GITHUB_SHA','')
     if not re.fullmatch('[a-f0-9]{40}',tool):raise ValueError('exact diagnostic tool revision is required')
+    cold=os.environ.get('INSONIC_STARTUP_COLD')=='true'
+    startup_hide=os.environ.get('INSONIC_STARTUP_HIDE')=='true'
+    if startup_hide and not cold:raise ValueError('startup hide comparison requires cold startup observation')
+    if cold and os.environ.get('INSONIC_STARTUP_SOURCE')!='true':raise ValueError('cold startup observation requires current source')
     archive,receipt=incident_archive()
     package=pipeline.load('desktop_startup_package','package-desktop.py')
     package.verify_archive_receipt(archive,receipt,expected_source_root=historical_source())
@@ -180,21 +201,27 @@ def run():
             summary['boundary']='source-built-gui-with-verified-incident-companions-not-a-qualified-package'
             save(evidence,'diagnostic.json',summary)
         idle=lambda:wait_owned_clis(package,[binaries/'insonic.exe',gui.with_name('insonic.exe')])
+        observe=lambda:observe_cold_start(gui,root,location,env,evidence,summary,startup_hide=startup_hide) if cold else observe_native(gui,root,location,env,evidence,summary,rebuilt,incident)
         if os.environ.get('INSONIC_STARTUP_LOAD')=='true':
             from cli_contract_qualification import qualify as qualify_contract
-            cli=binaries/'insonic.exe';workspace=location/'concurrent CLI workspace'
+            if not rebuilt:raise ValueError('maintained concurrent CLI load requires current source rebuild')
+            cli=gui.with_name('insonic.exe');workspace=location/'concurrent CLI workspace'
+            summary['derived_cli_sha256']=build_probe_cli(package,cli)
+            summary['derived_cli_source_revision']=tool
+            summary['boundary']='source-built-gui-and-cli-with-verified-incident-companions-not-a-qualified-package'
+            save(evidence,'diagnostic.json',summary)
             for args in [[cli,'workspace','init',workspace,'--json'],[cli,'--workspace',workspace,'credentials','select','session','--json']]:
-                initial=capture(args,archive_root,env,30)
+                initial=capture(args,root,env,30)
                 if initial['exit_code'] or initial['timed_out'] or initial['truncated']:
                     save(evidence,'cli-initialization.json',initial)
                     raise RuntimeError('concurrent CLI workspace preparation failed')
             summary['concurrent_cli_contract']=True
             with ThreadPoolExecutor(max_workers=1) as workers:
-                future=workers.submit(qualify_contract,cli,workspace,env=env,cwd=archive_root,documentation=True)
-                observe_with_load(lambda:observe_native(gui,root,location,env,evidence,summary,rebuilt,incident),future,
+                future=workers.submit(qualify_contract,cli,workspace,env=env,cwd=root,documentation=True)
+                observe_with_load(observe,future,
                                   idle,evidence)
         else:
-            observe_with_load(lambda:observe_native(gui,root,location,env,evidence,summary,rebuilt,incident),None,idle,evidence)
+            observe_with_load(observe,None,idle,evidence)
     return summary
 
 
@@ -218,25 +245,80 @@ def observe_with_load(observe,future,idle,evidence):
     if failure is not None:raise failure
 
 
+class PredecessorFailure(RuntimeError):
+    pass
+
+
 def observe_predecessors(gui,root,env,evidence,label):
     for flag,timeout in [('--qualification',30),('--help-qualification',35),('--webview-qualification',90)]:
-        observation=capture([gui,flag],root,env,timeout)
+        with native_webview_environment(env) as profile_env:
+            observation=capture([gui,flag],root,profile_env,timeout)
+            if observation['exit_code'] or observation['timed_out'] or observation['truncated']:
+                # Preserve failed profiles as well as both output streams.
+                observation.update(boundary=label+'-archive-predecessor-gui',flag=flag,profile_retained=os.name=='nt')
+                print(json.dumps(observation,sort_keys=True),flush=True)
+                save(evidence,label+'-'+flag[2:]+'.json',observation)
+                raise PredecessorFailure('archive predecessor failed; evidence retained')
         observation.update(boundary=label+'-archive-predecessor-gui',flag=flag)
         name=label+'-'+flag[2:]+'.json';save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
-        if observation['exit_code'] or observation['timed_out'] or observation['truncated']:raise RuntimeError('archive predecessor failed; evidence retained')
+
+
+def observe_cold_start(gui,root,location,env,evidence,summary,*,startup_hide=False):
+    # Diagnostic sampling only. Each real close child owns a fresh profile and
+    # must naturally release its job before another launch. Stop on first failure.
+    summary.update(boundary='source-cold-close-startup-not-package-qualification',sample_limit=240,sampling_seconds=300,startup_hide=startup_hide)
+    deadline=time.monotonic()+300
+    summary['result']='cold-start-no-failure-observed-not-a-cause-proof'
+    for index in range(240):
+        if deadline-time.monotonic()<18:
+            summary['result']='cold-start-sampling-budget-exhausted-not-a-cause-proof'
+            break
+        directory=location/f'cold-{index:03d}';directory.mkdir()
+        fixture=directory/'native-exit.json'
+        fixture.write_text(json.dumps({'action':'close'})+'\n',encoding='utf-8',newline='\n')
+        observation=capture([gui,'--exit-qualification-child',fixture],root,env,18,require_release=True,**({'startup_hide':True} if startup_hide else {}))
+        observation.update(boundary=summary['boundary'],action='close',profile='cold',index=index,startup_hide=startup_hide)
+        try:
+            result=json.loads(observation['stdout'])
+        except (ValueError,TypeError):
+            result={}
+        if not isinstance(result,dict):result={}
+        passed=(not observation['exit_code'] and not observation['timed_out'] and not observation['truncated']
+                and not observation['capture_incomplete'] and observation['owned_release'] is True
+                and result.get('native_exit')=='passed' and result.get('action')=='close' and result.get('playback')=='not-selected')
+        name=f'cold-{index:03d}.json'
+        save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
+        summary['observations'].append({'file':name,'exit_code':observation['exit_code'],'observed_pass':passed})
+        if not passed:summary['result']='cold-start-failure-observed'
+        save(evidence,'diagnostic.json',summary)
+        if not passed:raise RuntimeError('cold startup failed; first failure evidence retained')
+    save(evidence,'diagnostic.json',summary)
 
 
 def observe_native(gui,root,location,env,evidence,summary,rebuilt,incident=None):
     historical=None
     if incident:
         original,original_root=incident
-        observe_predecessors(original,original_root,env,evidence,'incident')
+        try:
+            observe_predecessors(original,original_root,env,evidence,'incident')
+        except PredecessorFailure:
+            summary['historical_predecessor']='failed-baseline-evidence-retained'
+            save(evidence,'diagnostic.json',summary)
         historical=capture([original,'--exit-qualification'],original_root,env,100)
         historical.update(boundary='incident-production-parent')
         save(evidence,'incident-parent.json',historical);print(json.dumps(historical,sort_keys=True),flush=True)
         summary['observations'].append({'file':'incident-parent.json','exit_code':historical['exit_code']})
     label='source' if rebuilt else 'incident'
-    observe_predecessors(gui,root,env,evidence,label)
+    predecessor_failure=None
+    try:
+        observe_predecessors(gui,root,env,evidence,label)
+    except PredecessorFailure as error:
+        if not rebuilt:raise
+        # This workflow is diagnostic only. Retain the failed prerequisite and
+        # still observe actual Exit; later passing observations cannot clear it.
+        predecessor_failure=error
+        summary[label+'_predecessor']='failed-evidence-retained'
+        save(evidence,'diagnostic.json',summary)
     # Observe the selected production parent. Historical and source-built
     # executables keep separate identities and evidence names.
     parent=capture([gui,'--exit-qualification'],root,env,100)
@@ -248,7 +330,7 @@ def observe_native(gui,root,location,env,evidence,summary,rebuilt,incident=None)
             observation.update(boundary='source-built-production-parent',index=index)
             name=f'parent-{index:02d}.json';save(evidence,name,observation);print(json.dumps(observation,sort_keys=True),flush=True)
             summary['observations'].append({'file':name,'exit_code':observation['exit_code']});save(evidence,'diagnostic.json',summary)
-            if observation['exit_code'] or observation['timed_out'] or observation['truncated']:raise RuntimeError('source-built native parent failed; inspect retained child evidence')
+            if observation['exit_code'] or observation['timed_out'] or observation['truncated']:raise RuntimeError('source-built native parent failed; inspect retained child evidence') from predecessor_failure
     for index,action in enumerate([] if rebuilt else ['menu','close','alt-f4']*8):
         fixture=location/'native-exit.json'
         fixture.write_text(json.dumps({'action':action})+'\n',encoding='utf-8',newline='\n')
@@ -263,7 +345,14 @@ def observe_native(gui,root,location,env,evidence,summary,rebuilt,incident=None)
             raise RuntimeError('native child failed; inspect retained separate stdout/stderr')
     summary['result']='bounded-observations-completed-not-a-cause-proof'
     save(evidence,'diagnostic.json',summary)
-    if any(value and (value['exit_code'] or value['timed_out'] or value['truncated']) for value in [parent,historical]):raise RuntimeError('production parent failed; boundary observations retained')
+    if historical:
+        summary['historical_parent']='failed-baseline-evidence-retained' if historical['exit_code'] or historical['timed_out'] or historical['truncated'] else 'passed-baseline'
+        save(evidence,'diagnostic.json',summary)
+    if parent['exit_code'] or parent['timed_out'] or parent['truncated']:raise RuntimeError('production parent failed; boundary observations retained') from predecessor_failure
+    if predecessor_failure is not None:
+        summary['result']='predecessor-failure-observed'
+        save(evidence,'diagnostic.json',summary)
+        raise predecessor_failure
 
 
 if __name__=='__main__':print(json.dumps(run(),sort_keys=True))

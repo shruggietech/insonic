@@ -14,11 +14,11 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-import urllib.request
+import time
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from process_tree import ProcessTree
+from process_tree import ProcessTree, native_webview_environment, native_webview_probe
 
 ROOT = Path(__file__).resolve().parent.parent
 LOCK = json.loads((ROOT / 'internal/qualification/dependencies.json').read_text(encoding='utf-8'))
@@ -41,8 +41,12 @@ def child(args, *, env=None, timeout=180, allow_detached=False):
     if env:
         merged.update(env)
     with ProcessTree([str(arg) for arg in args], cwd=ROOT, env=merged, allow_detached=allow_detached) as tree:
+        started = time.monotonic()
         try:
             stdout, stderr = tree.process.communicate(timeout=timeout)
+            if tree.process.returncode == 0 and native_webview_probe(args, merged):
+                if not tree.wait_for_descendants(timeout - (time.monotonic() - started)):
+                    raise subprocess.TimeoutExpired(args, timeout)
         except subprocess.TimeoutExpired:
             tree.kill()
             stdout, stderr = tree.process.communicate(timeout=5)
@@ -122,17 +126,14 @@ def prepare():
     if key not in ('windows_amd64', 'linux_amd64'):
         raise ValueError('unsupported package architecture')
     BUILD.mkdir(parents=True, exist_ok=True)
+    from media_source_build import fetch_pin
     receipt = {'platform': key, 'go': LOCK['go'], 'wails': LOCK['wails'], 'assets': []}
     for name, repo in [('ladybug', 'LadybugDB/ladybug'), ('cueson', 'shruggietech/cueson')]:
         filename, digest = LOCK[name]['assets'][key]
-        archive = BUILD / filename
-        if not archive.exists() or hashlib.sha256(archive.read_bytes()).hexdigest() != digest:
-            url = f'https://github.com/{repo}/releases/download/v{LOCK[name]["version"]}/{filename}'
-            request = urllib.request.Request(url, headers={'User-Agent': 'insonic-native-qualification'})
-            with urllib.request.urlopen(request, timeout=120) as data, archive.open('wb') as output:
-                shutil.copyfileobj(data, output)
-        if hashlib.sha256(archive.read_bytes()).hexdigest() != digest:
-            raise ValueError('upstream asset checksum mismatch')
+        # Reuse the existing three-attempt, verified/atomic source acquisition.
+        # Its 60-second scheduling budget is below the old 120-second socket wait.
+        url = f'https://github.com/{repo}/releases/download/v{LOCK[name]["version"]}/{filename}'
+        archive = fetch_pin({'name': filename, 'url': url, 'sha256': digest}, cache=BUILD)
         destination = BUILD / name
         extract(archive, destination)
         receipt['assets'].append({'name': filename, 'sha256': digest})
@@ -222,9 +223,15 @@ def native():
     sys.stdout.buffer.write(child([sys.executable, ROOT / "scripts/media-fixtures.py", "--native"]))
     env = native_env()
     cueson = cueson_probe(env)
+    packages = ['./internal/qualification', './internal/backendsetup', './internal/subtitles',
+                './internal/graph', './internal/app', './internal/backup']
+    tags = 'native_ladybug,system_ladybug'
+    # Cold compilation and actual acceptance each retain the bounded child
+    # allowance. The second invocation runs every test, without a -run filter.
+    sys.stdout.buffer.write(child(['go', 'test', '-run', '^$', '-tags', tags, *packages], env=env))
     # JSON emits package/test start events immediately; verbose text can buffer
     # an entire unfinished package and hide its active test on an outer timeout.
-    output = child(['go', 'test', '-json', '-v', '-tags', 'native_ladybug,system_ladybug', './internal/qualification', './internal/backendsetup', './internal/subtitles', './internal/graph', './internal/app', './internal/backup'], env=env)
+    output = child(['go', 'test', '-json', '-v', '-tags', tags, *packages], env=env)
     sys.stdout.buffer.write(output)
     (BUILD / 'native-receipt.json').write_text(json.dumps({'cueson': cueson, 'native_pair': 'passed'}, indent=2) + '\n', encoding='utf-8')
 
@@ -254,12 +261,23 @@ def write_receipt(path, output, expected):
     path.write_text(json.dumps(values[0], sort_keys=True) + '\n', encoding='utf-8')
 
 
+def native_exit_contract():
+    required = {'native_exit': 'passed', 'no_workspace_exit': 'passed', 'workspace_exit': 'passed',
+                'ordinary_close': 'passed', 'playback_cleanup': 'passed', 'runtime_work_survival': 'passed', 'schema_version': VERSION}
+    if platform.system() == 'Windows':
+        required['owned_browser_release'] = 'passed'
+    return required
+
+
 def desktop():
     env = native_env()
     sibling = build_cli(True, env)
     tags = 'desktop,production,system_ladybug'
     if platform.system() == 'Linux':
         tags += ',webkit2_41'
+    if platform.system() == 'Windows':
+        child(['go', 'test', '-timeout=15s', '-run', '^TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread$',
+               'github.com/wailsapp/go-webview2/pkg/edge'], env=env)
     output = child(['go', 'test', '-v', '-tags', tags, './desktop', './cmd/insonic-desktop'], env=env)
     sys.stdout.buffer.write(output)
     executable = ROOT / ('build/insonic-desktop.exe' if os.name == 'nt' else 'build/insonic-desktop')
@@ -273,22 +291,22 @@ def desktop():
     help_args = [executable, '--help-qualification']
     if platform.system() == 'Linux':
         help_args = ['xvfb-run', '-a', *help_args]
-    help_output = child(help_args, env=runtime_env, timeout=35, allow_detached=True)
+    with native_webview_environment(runtime_env) as profile_env:
+        help_output = child(help_args, env=profile_env, timeout=35, allow_detached=True)
     write_receipt(BUILD / 'help-webview-receipt.json', help_output,
                   {'offline_help_activation': 'passed', 'workspace': 'not-selected', 'network_policy': 'local-assets-only', 'schema_version': VERSION})
     args = [executable, '--webview-qualification']
     if platform.system() == 'Linux':
         args = ['xvfb-run', '-a', *args]
-    output = child(args, env=runtime_env, timeout=90, allow_detached=True)
+    with native_webview_environment(runtime_env) as profile_env:
+        output = child(args, env=profile_env, timeout=90, allow_detached=True)
     write_receipt(BUILD / 'webview-receipt.json', output,
                   {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'ui_compact_density': 'passed', 'schema_version': VERSION})
     exit_args = [executable, '--exit-qualification']
     if platform.system() == 'Linux':
         exit_args = ['xvfb-run', '-a', *exit_args]
     exit_output = child(exit_args, env=runtime_env, timeout=100, allow_detached=True)
-    write_receipt(BUILD / 'exit-receipt.json', exit_output,
-                  {'native_exit': 'passed', 'no_workspace_exit': 'passed', 'workspace_exit': 'passed',
-                   'ordinary_close': 'passed', 'playback_cleanup': 'passed', 'runtime_work_survival': 'passed', 'schema_version': VERSION})
+    write_receipt(BUILD / 'exit-receipt.json', exit_output, native_exit_contract())
 
 
 def secrets():

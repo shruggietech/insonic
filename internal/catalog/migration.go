@@ -158,11 +158,13 @@ func (d domainTable) ddl() string {
 	return "CREATE TABLE IF NOT EXISTS " + d.name + " (" + strings.Join(parts, ",") + ")"
 }
 
+const jobDDL = `CREATE TABLE IF NOT EXISTS job (workspace_id TEXT NOT NULL, id TEXT NOT NULL, operation_id TEXT NOT NULL, duration_ms BIGINT NOT NULL CHECK(duration_ms BETWEEN 1 AND 600000), generation BIGINT NOT NULL CHECK(generation>0), state TEXT NOT NULL CHECK(state IN ('running','succeeded','failed','cancelled','interrupted')), PRIMARY KEY(workspace_id,id), UNIQUE(workspace_id,operation_id), FOREIGN KEY(workspace_id) REFERENCES workspace(id))`
+
 var operationalDDL = []string{
 	`CREATE TABLE IF NOT EXISTS workspace (id TEXT PRIMARY KEY, revision BIGINT NOT NULL CHECK (revision>=0), schema_version BIGINT NOT NULL)`,
 	`CREATE TABLE IF NOT EXISTS operation_receipt (workspace_id TEXT NOT NULL, id TEXT NOT NULL, digest TEXT NOT NULL, revision BIGINT NOT NULL CHECK (revision>0), result TEXT NOT NULL, PRIMARY KEY(workspace_id,id), UNIQUE(workspace_id,revision), FOREIGN KEY(workspace_id) REFERENCES workspace(id))`,
 	`CREATE TABLE IF NOT EXISTS setting_revision (workspace_id TEXT NOT NULL, name TEXT NOT NULL, revision BIGINT NOT NULL CHECK (revision>0), value TEXT NOT NULL, PRIMARY KEY(workspace_id,name,revision), FOREIGN KEY(workspace_id) REFERENCES workspace(id))`,
-	`CREATE TABLE IF NOT EXISTS job (workspace_id TEXT NOT NULL, id TEXT NOT NULL, operation_id TEXT NOT NULL, duration_ms BIGINT NOT NULL CHECK(duration_ms BETWEEN 1 AND 60000), generation BIGINT NOT NULL CHECK(generation>0), state TEXT NOT NULL CHECK(state IN ('running','succeeded','failed','cancelled','interrupted')), PRIMARY KEY(workspace_id,id), UNIQUE(workspace_id,operation_id), FOREIGN KEY(workspace_id) REFERENCES workspace(id))`,
+	jobDDL,
 	`CREATE TABLE IF NOT EXISTS job_attempt (workspace_id TEXT NOT NULL, id TEXT NOT NULL, job_id TEXT NOT NULL, owner_id TEXT NOT NULL, generation BIGINT NOT NULL CHECK(generation>0), state TEXT NOT NULL CHECK(state IN ('running','succeeded','failed','cancelled','interrupted')), lease_until BIGINT NOT NULL, started_ns BIGINT NOT NULL, ended_ns BIGINT, reason TEXT NOT NULL, PRIMARY KEY(workspace_id,id), UNIQUE(workspace_id,job_id,generation), FOREIGN KEY(workspace_id,job_id) REFERENCES job(workspace_id,id))`,
 	`CREATE TABLE IF NOT EXISTS workspace_lease (workspace_id TEXT NOT NULL, role TEXT NOT NULL, owner_id TEXT NOT NULL, generation BIGINT NOT NULL CHECK(generation>0), lease_until BIGINT NOT NULL, PRIMARY KEY(workspace_id,role), FOREIGN KEY(workspace_id) REFERENCES workspace(id))`,
 	`CREATE TABLE IF NOT EXISTS graph_target (workspace_id TEXT NOT NULL, id TEXT NOT NULL, next_sequence BIGINT NOT NULL CHECK(next_sequence>=0), checkpoint BIGINT NOT NULL CHECK(checkpoint>=0), owner_id TEXT, generation BIGINT NOT NULL CHECK(generation>=0), lease_until BIGINT NOT NULL, PRIMARY KEY(workspace_id,id), FOREIGN KEY(workspace_id) REFERENCES workspace(id))`,
@@ -237,6 +239,9 @@ func (s *Store) migrate(ctx context.Context) error {
 	var digest string
 	e = tx.QueryRowContext(ctx, "SELECT version,digest FROM catalog_schema WHERE singleton=1").Scan(&version, &digest)
 	if e == nil {
+		if version == 9 && digest == historicalV9Digest() {
+			return s.finishMigration(ctx, tx)
+		}
 		if version == 8 && digest == historicalV8Digest() {
 			for _, q := range migrationStatements() {
 				if _, e = tx.ExecContext(ctx, q); e != nil {
@@ -246,13 +251,7 @@ func (s *Store) migrate(ctx context.Context) error {
 			if e = s.migrateSpeakerAuthority(ctx, tx); e != nil {
 				return sanitize(e)
 			}
-			if _, e = s.exec(ctx, tx, "UPDATE catalog_schema SET version=?,digest=? WHERE singleton=1", SchemaVersion, migrationDigest()); e != nil {
-				return sanitize(e)
-			}
-			if _, e = s.exec(ctx, tx, "UPDATE workspace SET schema_version=?", SchemaVersion); e != nil {
-				return sanitize(e)
-			}
-			return sanitize(tx.Commit())
+			return s.finishMigration(ctx, tx)
 		}
 		if version == 7 && digest == historicalV7Digest() {
 			for _, q := range migrationStatements() {
@@ -263,13 +262,7 @@ func (s *Store) migrate(ctx context.Context) error {
 			if e = s.migrateSpeakerAuthority(ctx, tx); e != nil {
 				return sanitize(e)
 			}
-			if _, e = s.exec(ctx, tx, "UPDATE catalog_schema SET version=?,digest=? WHERE singleton=1", SchemaVersion, migrationDigest()); e != nil {
-				return sanitize(e)
-			}
-			if _, e = s.exec(ctx, tx, "UPDATE workspace SET schema_version=?", SchemaVersion); e != nil {
-				return sanitize(e)
-			}
-			return sanitize(tx.Commit())
+			return s.finishMigration(ctx, tx)
 		}
 		if (version == 5 && digest == historicalV5Digest()) || (version == 6 && digest == historicalV6Digest()) {
 			if e = s.migrateRecordingState(ctx, tx); e != nil {
@@ -283,13 +276,7 @@ func (s *Store) migrate(ctx context.Context) error {
 			if e = s.migrateSpeakerAuthority(ctx, tx); e != nil {
 				return sanitize(e)
 			}
-			if _, e = s.exec(ctx, tx, "UPDATE catalog_schema SET version=?,digest=? WHERE singleton=1", SchemaVersion, migrationDigest()); e != nil {
-				return sanitize(e)
-			}
-			if _, e = s.exec(ctx, tx, "UPDATE workspace SET schema_version=?", SchemaVersion); e != nil {
-				return sanitize(e)
-			}
-			return sanitize(tx.Commit())
+			return s.finishMigration(ctx, tx)
 		}
 		if (version == 1 && digest == legacyMigrationDigest()) || (version == 2 && digest == historicalV2Digest()) || (version == 3 && digest == historicalV3Digest()) || (version == 4 && digest == historicalV4Digest()) {
 			var legacy historicalEvidence
@@ -329,13 +316,7 @@ func (s *Store) migrate(ctx context.Context) error {
 			if e = s.migrateSpeakerAuthority(ctx, tx); e != nil {
 				return sanitize(e)
 			}
-			if _, e = s.exec(ctx, tx, "UPDATE catalog_schema SET version=?,digest=? WHERE singleton=1", SchemaVersion, migrationDigest()); e != nil {
-				return sanitize(e)
-			}
-			if _, e = s.exec(ctx, tx, "UPDATE workspace SET schema_version=?", SchemaVersion); e != nil {
-				return sanitize(e)
-			}
-			return sanitize(tx.Commit())
+			return s.finishMigration(ctx, tx)
 		}
 		if version != SchemaVersion || digest != migrationDigest() {
 			return contracts.Fail("incompatible_version")
@@ -480,7 +461,7 @@ func validateRecord(value any) error {
 			return contracts.Fail("invalid_request")
 		}
 	case Segment:
-		if !positive(r.Revision) || !digestPattern.MatchString(r.DocumentDigest) || r.CueID == "" || len(r.CueID) > 1024 {
+		if !positive(r.Revision) || !digestPattern.MatchString(r.DocumentDigest) || !contracts.ValidTextLength(r.CueID, 1, 1024) {
 			return contracts.Fail("invalid_request")
 		}
 	case Dataset:

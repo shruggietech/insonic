@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event, Lock
 import importlib.util
 import io
 import json
@@ -206,6 +208,74 @@ class ReleaseDeliveryTests(unittest.TestCase):
         target = self.root / output
         release.candidate(receipts or self.receipts, self.assets, target, REVISION, self.root, verify_fixture, runner)
         return target
+
+    def test_candidate_verification_overlaps_with_bounded_workers_and_stable_manifest_order(self):
+        unblock,overlap=Event(),Event();lock=Lock();state={'active':0,'peak':0};seen=[]
+        def verify(path,receipt):
+            with lock:
+                state['active']+=1;state['peak']=max(state['peak'],state['active']);seen.append(path.name)
+                if state['active']>=2:overlap.set()
+            try:
+                if not unblock.wait(3):raise AssertionError('verification was not released')
+                verify_fixture(path,receipt)
+            finally:
+                with lock:state['active']-=1
+        target=self.root/'parallel-candidate'
+        with ThreadPoolExecutor(max_workers=1) as control:
+            pending=control.submit(release.candidate,self.receipts,self.assets,target,REVISION,self.root,verify,runner)
+            try:observed=overlap.wait(.5)
+            finally:unblock.set()
+            value=pending.result(timeout=10)
+        self.assertTrue(observed,'independent verifiers still run serially')
+        self.assertLessEqual(state['peak'],4)
+        self.assertEqual(len(seen),5)
+        expected=[release.read_json(path)['archive'] for path in self.receipts if release.read_json(path)['kind']=='native-package-receipt']
+        self.assertEqual([entry['name'] for entry in value['assets'][:4]],expected)
+        self.assertEqual(release.read_json(target/'release-manifest.json'),value)
+
+    def test_candidate_verification_failure_joins_workers_without_completion_authority(self):
+        blocked,unblock=Event(),Event()
+        first=release.read_json(self.receipts[0])['archive']
+        def verify(path,receipt):
+            if path.name==first:raise ValueError('controlled verification failure')
+            blocked.set()
+            if not unblock.wait(3):raise AssertionError('verification was not released')
+            verify_fixture(path,receipt)
+        target=self.root/'failed-parallel-candidate'
+        with ThreadPoolExecutor(max_workers=1) as control:
+            pending=control.submit(release.candidate,self.receipts,self.assets,target,REVISION,self.root,verify,runner)
+            try:
+                observed=blocked.wait(.5)
+                running=not pending.done()
+                self.assertFalse((target/'release-manifest.json').exists())
+            finally:unblock.set()
+            with self.assertRaisesRegex(ValueError,'controlled verification failure'):pending.result(timeout=10)
+        self.assertTrue(observed,'later independent checks were not joined')
+        self.assertTrue(running,'failure returned while a verifier was still running')
+        self.assertFalse(target.exists())
+
+    def test_candidate_copy_tampering_never_writes_completion_authority(self):
+        target=self.root/'copy-tampering';original=shutil.copyfile
+        first=release.read_json(self.receipts[0])['archive']
+        def copying(source,destination,*args,**kwargs):
+            result=original(source,destination,*args,**kwargs)
+            if Path(destination).parent==target and Path(destination).name==first:Path(destination).write_bytes(b'changed during copy')
+            return result
+        with patch.object(release.shutil,'copyfile',side_effect=copying):
+            with self.assertRaisesRegex(ValueError,'candidate copy changed'):
+                release.candidate(self.receipts,self.assets,target,REVISION,self.root,verify_fixture,runner)
+        self.assertFalse((target/'release-manifest.json').exists())
+        self.assertFalse((target/'SHA256SUMS').exists())
+
+    def test_candidate_rejects_shared_output_names_before_parallel_work(self):
+        first=release.read_json(self.receipts[0]);second=release.read_json(self.receipts[1])
+        for field in ['archive','archive_sha256','archive_size_bytes']:second[field]=first[field]
+        release.write_json(self.receipts[1],second)
+        target=self.root/'duplicate-asset'
+        with patch.object(release,'verify_selected_package') as verify:
+            with self.assertRaisesRegex(ValueError,'candidate asset names must be unique'):
+                release.candidate(self.receipts,self.assets,target,REVISION,self.root,verify_fixture,runner)
+        verify.assert_not_called();self.assertFalse(target.exists())
 
     def test_collect_summary_keeps_complete_manifest_and_rejects_tampering(self):
         source = self.root / 'downloads'

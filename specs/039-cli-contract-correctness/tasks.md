@@ -1,0 +1,167 @@
+# Tasks: CLI contract and operator-feedback correctness
+
+**Input**: [Specification](spec.md), [plan](plan.md), research, data model and operator contract.
+
+**Owner-approved closeout**: 54 delivered tasks are accepted for S039. T053 remains explicitly deferred in open #154 and is excluded from this slice completion, not marked implemented. The final closeout commit must receive green configured CI before owner handoff; live final-head evidence is recorded in PR #156.
+
+## Phase 1: Setup
+
+- [x] T001 Verify merged baseline, matching S039 branch/directory, constitution and issue mapping in specs/039-cli-contract-correctness/spec.md.
+- [x] T002 Complete specify/clarify/checklist/plan research and design artifacts in specs/039-cli-contract-correctness/.
+
+## Phase 2: Foundation
+
+- [x] T003 Complete blocking cross-artifact analyze and read-only checklist status review in specs/039-cli-contract-correctness/verification.md before implementation (FR-001..018).
+- [x] T004 Establish hidden noninteractive test execution, existing ignore/toolchain checks and regression ownership in specs/039-cli-contract-correctness/verification.md (FR-015..018).
+
+## Phase 3: US1, choose and execute valid commands
+
+**Independent test**: Enumerate accepted registry/alias inventory and execute actual emitted examples against controlled prerequisites.
+
+- [x] T005 [P] [US1] Add failing command/option/operand completeness and actual-example parser/semantic tests in cmd/insonic/commands_test.go and tests/cli_help_examples_test.py (FR-001..004).
+- [x] T006 [US1] Add reviewed purposes, meanings/defaults/conditions/exclusions, enums/cursors, backup operands/ownership and valid example tokens in cmd/insonic/commands.go and command guidance metadata (FR-001..004).
+- [x] T007 [US1] Correct positional JSON/session/vault templates, unusable options, mapping cursor and pyannote example contracts in schemas/cli_help.go and schemas/v1.0.1/runtime-request.schema.json (FR-002..004).
+- [x] T008 [US1] Execute emitted examples with an explicit ledger and only documented substitutions using scripts/cli_contract_qualification.py and existing installed fixture modules (FR-004/016; SC-001/003).
+- [x] T009 [P] [US1] Add failing persisted migration/boundary/replay/restore tests for exactly 1..600000 milliseconds in internal/catalog/ and schemas/registry_test.go (FR-007/017).
+- [x] T010 [US1] Freeze schema-9 authority, migrate SQLite/PostgreSQL checks forward, preserve schema-9 snapshots and align request bounds in internal/catalog/, schemas/v1.0.1/catalog-snapshot.schema.json and runtime-request.schema.json (FR-007/017).
+
+## Phase 4: US2, understand and correct rejections
+
+**Independent test**: Installed malformed/Unicode/destination matrix distinguishes stable causes, preserves exits and discloses no private values.
+
+- [x] T011 [P] [US2] Add failing malformed/duplicate/shape/enum/version/protected-input diagnostics and destination tests in schemas/, internal/contracts/, internal/credentialcmd/ and cmd/insonic/ (FR-005/006/015).
+- [x] T012 [US2] Generate safe structured reasons/known constraints/locations across schema, parser, credential and runtime boundaries in schemas/registry.go, internal/contracts/, internal/credentialcmd/ and cmd/insonic/ (FR-005/015/017).
+- [x] T013 [US2] Classify missing workspace, existing recording destination and catalog output existence/parent/permission/directory/write failures in cmd/insonic/main.go and relevant runtime export handlers (FR-006).
+- [x] T014 [P] [US2] Add multilingual exact-boundary/invalid-UTF8 tests and use Unicode code point counts without normalization in internal/catalog/identity.go, internal/models/manifest.go and other public maxLength validators (FR-008/017).
+- [x] T015 [US2] Preserve blank/multiline model identity bytes and make identity displays visibly escaped in cmd/insonic/human.go; document intentional preservation in docs/v1.0.1/models.md (FR-009).
+
+## Phase 5: US3, trust observed results and bounded summaries
+
+**Independent test**: Warm/cold credential and typed-result failures, rich transcripts/readiness/search and capture byte pages retain all conclusions and exact machine authority.
+
+- [x] T016 [P] [US3] Add failing bootstrap/zero-receipt/legitimate-partial regressions in cmd/insonic/ and internal/app/ (FR-010/011/015).
+- [x] T017 [US3] Construct success only after bootstrap and omit only unestablished typed results before view conversion in cmd/insonic/main.go, setup.go and internal/app/ handlers (FR-010/011).
+- [x] T018 [P] [US3] Add failing bounded identity/task/correction/verbosity and all capture-section/multibyte-page tests in cmd/insonic/human_test.go (FR-012..015).
+- [x] T019 [US3] Prioritize complete observed summaries, exact retrieval commands, setup CLI follow-ups, quoted model identities and capture UTF-8 interior/authority in cmd/insonic/human.go (FR-009/012..015).
+
+## Phase 6: Integration and delivery
+
+- [x] T020 Integrate installed regressions for all eleven issues, semantic example coverage, UTF-8/LF/no-BOM/mojibake checks and owned cleanup in scripts/ and specs/039-cli-contract-correctness/verification.md (FR-004/015/016; SC-001..004).
+- [x] T021 Update authoritative CLI/model/ingestion/catalog/schema docs, CHANGELOG.md and GitHub milestone/Project mapping for eleven issues; retain #114/#147 open in docs/v1.0.1/, CHANGELOG.md and GitHub (FR-017/018).
+- [x] T022 Run required root, Go/vet/native/backend, Python, frontend/site and installed-package checks; converge, commit, push and open/attach official PR; satisfy exact-head CI <=660 seconds and at most two review rounds with every thread resolved; stop unmerged and record final evidence in specs/039-cli-contract-correctness/verification.md (FR-018; SC-005).
+
+## Dependencies and parallel execution
+
+T001-T004 precede product edits. Story regressions precede their corresponding implementation. After foundation, help/example metadata, catalog/Unicode work and rendering/observed-results work can run in disjoint files. Parent owns generated diagnostics/export classification and integration. Coordinate main.go and current runtime-request schema edits sequentially; never overwrite another worker's changes. T020-T022 require all stories.
+
+US1 example: command-registry regressions and catalog migration regressions run in parallel; implementation follows each failing regression. US2 example: schema-diagnostic and catalog/model Unicode tests use disjoint files. US3 example: typed-observation tests and human-page tests are disjoint. All three independently testable stories are required for this approved slice; an MVP subset is not completion.
+
+## Phase 7: CI remediation
+
+- [x] T023 Separate cold native compilation from full native acceptance in scripts/qualify.py, retain both 180-second child allowances and all six package/tag assertions, verify failure cannot publish a receipt and keep the elected hosted path within 660 seconds (FR-018; SC-005).
+
+- [x] T024 Preserve non-missing workspace-open failures, classify only genuinely missing roots/configs as workspace_missing and add real CLI/installed damaged-configuration regressions for review finding PRRT_kwDOU8_K3s6t1dFK (FR-005/006/015).
+
+- [x] T025 Overlap Windows proof-consumer setup with assembly, await the successful exact-run/revision/attempt assembly and immutable artifact before download, retain all four proof scopes and final verification, and measure the complete elected path within 660 seconds (FR-018; SC-005).
+
+- [x] T026 Overlap candidate tool preparation and qualified Linux/docs downloads with Windows completion, require both successful exact-run Windows package producers and matching artifacts before collection, and retain the complete exact-source candidate checks (FR-018; SC-005).
+
+## Phase 8: Convergence
+
+- [x] T027 Retry bounded incomplete GitHub inventory snapshots without accepting them, retain hard failure for malformed/unbounded/ambiguous authority and known failed producers, add race/deadline regressions for all Windows readiness roles, and reverify exact-head CI (FR-018; SC-005, partial).
+
+## Phase 9: Convergence
+
+- [x] T028 Keep runtime-backed catalog inspection in the live example library, require exclusive-maintenance examples never elect a runtime owner, reproduce the isolation violation with the actual installed help corpus before fixing routing, and reverify all 168 examples plus exact-head CI (FR-004/016/018; SC-001/003/005, partial).
+
+## Phase 10: Owner-approved native startup repair
+
+- [x] T029 Update S039 spec/plan/research/contracts and twelve-issue GitHub mapping for the owner-approved #154 scope, then analyze new requirements before native edits (FR-019..022; SC-006).
+- [x] T030 Recover controlled owned-process/profile lifecycle evidence for the controller-busy and DOM-readiness signatures using existing bounded diagnostic tools; document the demonstrated failing boundary and remaining uncertainty (FR-019/020).
+- [x] T031 Add a failing regression or controlled before/after reproducer and implement the proportional correction to the implicated native/application/process boundary, preserving existing timeout and success rules (FR-020/021).
+- [x] T032 Qualify repeated actual Windows cold/warm menu, close and Alt+F4 routes with/without workspaces, owned browser cleanup, playback release and durable-runtime/work survival, retaining all exact-byte scopes (FR-021; SC-006).
+- [x] T033 Run all required affected checks, reconverge twelve-issue scope, push updated official PR and satisfy exact-head CI <=660 seconds; audit existing resolved reviews without a third round, retain unmerged/auto-merge-off state and record the post-merge-main limit (FR-022; SC-005/006).
+
+## Phase 11: Native convergence
+
+- [x] T034 Replace the demonstrated unreliable posted menu-selection messages with actual owned-foreground Alt+F then X input, retain active-menu ownership, partial-input refusal, callback/action diagnostics and existing watchdogs; require the shared browser-release proof in source and all package routes, then repeat corrected native and full exact-head CI (FR-019..022; SC-005/006).
+
+- [x] T035 Restore the specified native Alt+F menu route while the WebView owns focus, using only this application UI thread and owned native window; preserve real SendInput qualification, ordinary text/other shortcuts and callback/normal-exit proofs, then repeat all affected checks and exact-head CI (FR-020..022; SC-006).
+
+## Phase 12: Final-check fixture convergence
+
+- [x] T036 Keep the general available-artifact setup lease independent of one-second runner timing, retain explicit publication-expiry tests and product defaults, repeat retirement/admission race acceptance, and reverify complete exact-head CI (FR-022; SC-005).
+
+## Phase 13: Owned descendant convergence
+
+- [x] T037 Identify the owned descendant still reported after normal Alt+F4 host exit with bounded process image class and actual kernel exit state; correct the demonstrated lifecycle/observation cause while preserving existing deadlines, failed cleanup refusal, actual native actions and all exact-head proof gates (FR-019..022; SC-006).
+
+## Phase 14: Complete native fixture ownership
+
+- [x] T038 Give help-only/full-WebView qualification parent-owned fresh profiles and observe normal owned-job release within each original child deadline before cleanup; retain normal desktop defaults, all native assertions and exact-byte gates; compare retained historical failures separately from current repair observations and repeat concurrent-load/package CI (FR-019..022; SC-006).
+
+## Phase 15: Native pointer convergence
+
+- [x] T039 Correct the demonstrated empty Win32 menu label across Go stack growth with pointer-aware native call boundaries, stabilize owned-job information buffers and apply equivalent pinning to typed MSI output buffers, preserve underlying MSI inspection errors and repeat real native/menu/MSI regressions plus full exact-head CI (FR-020..022; SC-006).
+
+## Phase 16: Convergence
+
+- [x] T040 Retain failed native Exit fixture/profile authority after joined runtime cleanup, preserve the original child failure, and require a real fixture regression proving removal cannot precede observed normal release per FR-021 (partial).
+
+## Phase 17: Convergence
+
+- [x] T041 Require the owned active File popup state before injecting its mnemonic selection, retain bounded native flags for the pre-selection boundary, and repeat actual cold/warm menu routes under the unchanged two-second readiness and child deadlines per FR-021 (partial).
+
+## Phase 18: Native shutdown convergence
+
+- [x] T042 Close the pinned WebView controller once on its owning UI thread during parent-window destruction, preserve normal native dispatch and prove the lifetime with an unshown real-window/COM regression plus repeated actual native release per FR-020/021 (partial).
+- [x] T043 Bind the exact maintained WebView source patch to upstream and patched-tree checksums, original licenses, explicit notices and clean revision; narrowly validate its sole local replacement while rejecting all others, then repeat full affected/exact-head package checks per FR-017/022 (partial).
+
+## Phase 19: Verification fixture convergence
+
+- [x] T044 Share the complete existing Exit-fixture environment between success/failure tests, including the prepared tool-configuration fallback, and repeat Linux/Windows native and exact-head gates without reducing retention assertions per FR-022 (partial).
+
+## Phase 20: Native observation convergence
+
+- [x] T045 Observe the actual visible owned File submenu using GetMenuBarInfo, retain native menu ownership and the unchanged readiness deadline, dismiss only an owned failed menu before normal failure cleanup, and atomically publish the asynchronous offline-help fixture receipt; repeat exact-head native and package gates per FR-021/022 (partial).
+
+## Phase 21: Convergence
+
+- [x] T046 Trace the remaining acknowledged qualification-only menu selection stall with bounded same-owned-thread unchanged message observations, identify and correct the demonstrated ordering boundary, remove investigation-only instrumentation, and repeat real native/package checks under the original limits per FR-019..022 (partial).
+
+## Phase 22: Convergence
+
+- [x] T047 Preserve Wails' controller-focus activation on its owning UI thread and observe completion before readiness, remove the temporary dispatcher before keyboard input, prove pending UI work cannot confer success with an actual unshown-window regression and prior-boundary comparison, then repeat original-limit native/load/exact-head checks per FR-020..022 (partial).
+
+## Phase 23: Convergence
+
+- [x] T048 Force the disposable owned UI thread through a real focus transition before joined Wails activation, so an already-focused root cannot skip the controller-focus callback; retain bounded before/after focus diagnostics and repeat actual native/load/package checks per FR-019..022 (partial).
+
+## Phase 24: Convergence
+
+- [x] T049 Balance the binding's owned WebView/controller/environment references and existing COM apartment on the original UI thread, remove its redundant getter reference and release its controller-interface query; preserve Close errors and strict two-file source authority, prove native reference/apartment regressions before/after, and repeat all source/notice/native/package gates per FR-017/020..022 (partial).
+
+## Phase 25: Convergence
+
+- [x] T050 Identify the remaining post-popup native UI wait using a failure-only bounded function-name profile (no arguments or memory), correct the demonstrated dispatch boundary, and repeat unchanged-limit actual menu/shutdown/package acceptance per FR-019..022 (partial).
+
+## Phase 26: Convergence
+
+- [x] T051 Preserve actual owned-UI-thread system-key metadata before the pinned framework drops Alt context, keep one handled disposition, post native File-menu work after the synchronous callback and require that route in real qualification; retain the controlled prior-accelerator red comparison, normal/race tests, source/notice authority and all original native/package gates per FR-020..022 and SC-006 (partial).
+
+## Phase 27: Convergence
+
+- [x] T052 Reuse checksum-verified atomic native asset acquisition with bounded transient retries at the existing cache location, retain permanent-error and checksum/deadline failures, prove controlled HTTP 502 red/green behavior and complete exact-head source/package CI within the existing budget per FR-017/022 and SC-005/006 (partial).
+- **T053 (deferred by owner, retained in open #154 outside S039 completion)**: Identify the separate pre-DOM startup stall with bounded browser-version/navigation/resource and asset-handler evidence, distinguish native/browser progress from an idle Go UI loop, correct the demonstrated cause with a focused regression where practical, and repeat all actual native/package gates without changing watchdogs or treating later passing repetitions as a cause proof per FR-019..022 and SC-006 (partial).
+
+## Phase 28: Convergence
+
+- [x] T054 CRITICAL: Bring measured complete CI below 660 seconds by overlapping independent immutable candidate verification and copy/hash checks with bounded workers, preserving source/variant/installer/documentation authority, deterministic manifest ordering, every failure and the final completion barrier; prove overlap and failure/tamper rejection, then measure exact-head hosted delivery per Constitution V, FR-018/022 and SC-005 (partial).
+
+## Phase 29: Convergence
+
+- [x] T055 Correct the demonstrated ICoreWebView2Deferral.Release AddRef dispatch with an unshown native reference-count regression, preserve Complete/error behavior, extend the exact maintained patch authority to this one additional upstream file with original hashes/notices intact, and pass affected local/source/notice checks; required ordinary exact-head CI remains in T033. Do not claim this establishes the pre-DOM stall cause or dispatch another diagnostic per FR-017/020/022 and SC-006 (contradicts).
+
+## Closeout disposition (2026-10-19)
+
+T032 and T034-T052 have their component regressions and actual native/package acceptance in the recorded verification history and CI 39315026478. T049's original two-file patch scope was subsequently extended to exactly three modified originals by T055; all 397 original identities and four additions remain bound. T054 has controlled overlap/failure/tamper regressions and observed complete CI at 641 and 649 seconds; no measured collection-phase speedup is claimed. T033 records the reconciled approved scope and existing CI/review evidence; the new planning-only head still requires fresh configured CI before handoff. T053 is the sole deferred task, with no further diagnostic authorization. No implementation work is hidden by that disposition.
