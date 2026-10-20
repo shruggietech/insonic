@@ -38,11 +38,12 @@ for (const preparationMs of [5000, 1342000]) {
       const start = earliest(jobs, id, durations) - (durations[id] ?? 0);
       assert.ok(start >= prepared, `${id} began before verified preparation`);
     }
-    for (const id of ['package-linux', 'package-windows']) {
+    for (const id of ['package-linux']) {
       assert.ok(earliest(jobs, id, durations) >= earliest(jobs, 'docs-build', durations), `${id} outran documentation`);
       assert.ok(earliest(jobs, id, durations) >= earliest(jobs, 'foundation', durations), `${id} outran foundation`);
     }
-    assert.notEqual(jobs['package-windows'].with['overlap-source-setup'], true);
+    assert.equal(jobs['package-windows'].with['overlap-source-setup'], true);
+    assert.deepEqual(jobs['package-windows'].needs, ['scope', 'readiness']);
     const start = earliest(jobs, 'package-windows', durations);
     const received = await waitForArtifact({ repository: 'shruggietech/insonic', run: '42', attempt: '1',
       os: 'windows-2022', token: 'test-only', now: () => start, sleep: async () => assert.fail('ready transfer must not poll'),
@@ -106,9 +107,12 @@ test('cold Windows dependency preparation gates qualification and restores a ver
     assert.equal(document.on.workflow_call.inputs['reuse-ci-go-dependencies'].default, false);
     const consumer = document.jobs[id].steps;
     const download = consumer.findIndex(s => s.with?.name?.startsWith('go-dependencies-windows-'));
-    const restore = consumer.findIndex(s => s.run === 'python scripts/go-dependency-transfer.py restore');
+    const restore = consumer.findIndex(s => s.run === 'python scripts/ci-package-inputs.py');
     const build = consumer.findIndex(s => /package-desktop.py all|windows_package_pipeline.py assemble/.test(s.run ?? ''));
-    assert.ok(download >= 0 && restore > download && build > restore);
+    const gate = consumer.findIndex(s => s.run === 'node scripts/ci-acceptance.mjs wait-inputs');
+    const sourceGate = consumer.findIndex(s => s.run?.includes('wait-ci-artifact.mjs'));
+    assert.ok(gate >= 0 && sourceGate > gate && download > sourceGate && restore > download && build > restore);
+    assert.match(consumer.find(s => s.uses === './build/actions/setup-go').with.cache, /!.*reuse-ci-go-dependencies/);
     assert.equal(consumer[download].with['digest-mismatch'], 'error');
     assert.ok(consumer[download].with.name.endsWith('-${{ github.run_attempt }}'));
   }

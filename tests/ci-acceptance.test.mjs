@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
-import { sourceReadiness, evaluateResults, measureTiming, inspectAttempt, attemptMetadata } from '../scripts/ci-acceptance.mjs';
+import { sourceReadiness, evaluateResults, measureTiming, inspectAttempt, attemptMetadata, waitForQualificationInputs } from '../scripts/ci-acceptance.mjs';
 
 const flags = value => Object.fromEntries(['core', 'cli', 'native', 'adapters'].map(k => [k, String(value)]));
 function results(full = true, smoke = false) {
@@ -131,4 +131,24 @@ test('metadata requests are read-only attempt-specific and reject incomplete pag
   }
   await assert.rejects(attemptMetadata({ ...identity, repository: 'other/repo' }, 'test-only'), /identity/);
   await assert.rejects(attemptMetadata(identity, 'test-only', async () => { throw new Error('network unavailable'); }), /network unavailable/);
+});
+
+test('overlapped setup waits for slow docs inside the original qualification deadline', async () => {
+  const data = metadata(); data.run.status = 'in_progress';
+  data.jobs = [data.jobs[0], data.jobs[1], { ...data.jobs[1], id: 4, name: 'docs-build' }];
+  const boundary = Date.parse(data.jobs[0].completed_at);
+  let clock = boundary + 5000;
+  const request = async url => {
+    if (!url.includes('/jobs?')) return data.run;
+    const jobs = structuredClone(data.jobs);
+    if (clock < boundary + 185000) jobs[2].status = 'in_progress';
+    return { total_count: jobs.length, jobs };
+  };
+  const deadline = await waitForQualificationInputs(identity, 'test-only', { request, now: () => clock, pause: async ms => { clock += ms; } });
+  assert.equal(deadline, boundary + 660000);
+  assert.ok(clock >= boundary + 185000);
+  clock = boundary + 660000;
+  await assert.rejects(waitForQualificationInputs(identity, 'test-only', { request, now: () => clock }), /deadline/);
+  clock = boundary + 5000; data.jobs[2].status = 'completed'; data.jobs[2].conclusion = 'failure';
+  await assert.rejects(waitForQualificationInputs(identity, 'test-only', { request: async url => url.includes('/jobs?') ? { total_count: data.jobs.length, jobs: data.jobs } : data.run, now: () => clock }), /failed/);
 });

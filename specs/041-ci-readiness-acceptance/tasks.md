@@ -50,3 +50,5 @@ Setup -> foundation -> US1 -> US2 -> verification. Different test files may be a
 - [x] T018 Add failing-before preparation, identity, archive and consumer-graph regressions; implement scripts/go-dependency-transfer.py and the Windows preparation job.
 - [x] T019 Wire verified package consumers and readiness/aggregate; preserve product builds and all acceptance; run root, site and affected checks.
 - [ ] T020 Push the verified repair and monitor exact-head CI to terminal; retain final timing and package evidence, stop before merge.
+
+- [x] T021 Analyze the second measured budget failure; add setup compiler dependencies, shared-deadline input gate and joined independent CI setup work; preserve every product and native check.

@@ -2,6 +2,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { setTimeout as sleep } from 'node:timers/promises';
 
 export function sourceReadiness(needs, os) {
   if (!['windows-2022', 'ubuntu-24.04'].includes(os)) throw new Error('Unknown source platform.');
@@ -145,6 +146,34 @@ export async function attemptMetadata(identity, token, request = requestJson) {
   throw new Error('Job inventory exceeds bound.');
 }
 
+export async function waitForQualificationInputs(identity, token, { request = requestJson, now = Date.now, pause = sleep } = {}) {
+  let deadline;
+  for (;;) {
+    const { run, jobs } = await attemptMetadata(identity, token, request);
+    if (run.head_sha !== identity.head || String(run.id) !== identity.run || String(run.run_attempt) !== identity.attempt
+        || run.repository?.full_name !== identity.repository || run.path !== '.github/workflows/ci.yml'
+        || run.status !== 'in_progress' || jobs.some(j => String(j.run_id) !== identity.run || String(j.run_attempt) !== identity.attempt)) {
+      throw new Error('Qualification input attempt identity differs.');
+    }
+    const ready = jobs.filter(j => j.name === 'prerequisite readiness');
+    if (ready.length !== 1 || ready[0].status !== 'completed' || ready[0].conclusion !== 'success') throw new Error('Setup must follow successful prerequisite readiness.');
+    const bound = timestamp(ready[0].completed_at) + 660000;
+    if (deadline !== undefined && bound !== deadline) throw new Error('Qualification readiness boundary changed.');
+    deadline = bound;
+    if (now() >= deadline) throw new Error('Original qualification deadline exceeded.');
+    let complete = true;
+    for (const name of ['foundation', 'docs-build']) {
+      const matches = jobs.filter(j => j.name === name);
+      if (matches.length > 1) throw new Error('Ambiguous qualification input.');
+      const job = matches[0];
+      if (job?.status === 'completed' && job.conclusion !== 'success') throw new Error('Required qualification input failed.');
+      complete &&= job?.status === 'completed' && job.conclusion === 'success';
+    }
+    if (complete) return deadline;
+    await pause(Math.max(0, Math.min(10000, deadline - now())));
+  }
+}
+
 async function main() {
   const mode = process.argv[2];
   const needs = () => JSON.parse(process.env.NEEDS_JSON ?? '{}');
@@ -163,6 +192,13 @@ async function main() {
     const dependencies = input['dependencies-windows']?.result;
     if (dependencies !== (scope.native ? 'success' : 'skipped')) throw new Error('Windows Go dependencies did not prepare successfully or explicitly remain unelected.');
     await fs.appendFile(process.env.GITHUB_OUTPUT, 'ready=true\n');
+    return;
+  }
+  if (mode === 'wait-inputs') {
+    const deadline = await waitForQualificationInputs({ repository: process.env.GITHUB_REPOSITORY,
+      run: process.env.GITHUB_RUN_ID, attempt: process.env.GITHUB_RUN_ATTEMPT,
+      head: process.env.EXPECTED_HEAD, revision: process.env.GITHUB_SHA }, process.env.GH_TOKEN);
+    await fs.appendFile(process.env.GITHUB_ENV, `INSONIC_QUALIFICATION_DEADLINE=${deadline}\n`);
     return;
   }
   const terminal = mode === '--audit';

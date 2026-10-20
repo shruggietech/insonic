@@ -81,10 +81,11 @@ def dependency_targets(packages):
 
 def compile_context(context, env):
     tags = ['-tags', context['tags']] if context['tags'] else []
-    packages = objects(run(['go', 'list', '-deps', '-e', '-json', *tags, context['package']], env))
+    flags = context.get('flags', [])
+    packages = objects(run(['go', 'list', '-deps', '-e', '-json', *flags, *tags, context['package']], env))
     targets = dependency_targets(packages)
     # These are named libraries, never ./cmd, ./..., executable or test targets.
-    run(['go', 'build', *tags, *targets], env)
+    run(['go', 'build', *flags, *tags, *targets], env)
     return targets
 
 
@@ -165,6 +166,10 @@ def contexts():
         if variant == 'desktop': targets.append(('./cmd/insonic-desktop', 'desktop,production,system_ladybug'))
         selected.extend(({'variant': variant, 'package': target, 'tags': tags, 'cgo_cflags': env['CGO_CFLAGS'],
                           'cgo_ldflags': env['CGO_LDFLAGS']}, env) for target, tags in targets)
+    import windows_setup
+    selected.append(({'variant': 'setup', 'package': './cmd/insonic-setup', 'tags': '',
+                      'flags': ['-mod=readonly', '-trimpath', '-buildvcs=false'], 'cgo_enabled': '0'},
+                     windows_setup.compiler_environment()))
     return selected
 
 
@@ -173,7 +178,7 @@ def identity(selected):
     if not re.fullmatch(r'[a-f0-9]{40}', revision) or any(not re.fullmatch(r'[1-9][0-9]*', x) for x in (run_id, attempt)):
         raise ValueError('dependency transfer identity is invalid')
     files = ['go.mod', 'go.sum', 'internal/qualification/dependencies.json', 'scripts/go-dependency-transfer.py',
-             'scripts/package-desktop.py', 'scripts/qualify.py']
+             'scripts/package-desktop.py', 'scripts/qualify.py', 'scripts/windows_setup.py']
     files.extend(p.relative_to(ROOT).as_posix() for p in (ROOT / 'third_party/go-webview2').rglob('*') if p.is_file())
     observation = toolchain.inventory()
     return {'revision': revision, 'run': run_id, 'attempt': attempt, 'platform': observation['platform'],

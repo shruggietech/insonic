@@ -269,16 +269,13 @@ jobs:
       native: ${{ needs.scope.outputs.native == 'true' }}
       lane: runtime
   package-windows:
-    needs:
-      - scope
-      - foundation
-      - docs-build
-      - media-windows
-    if: always() && needs.foundation.result == 'success' && needs.docs-build.result == 'success' && needs.scope.outputs.native == 'true' && needs.media-windows.result == 'success'
+    needs: [scope, readiness]
+    if: always() && needs.readiness.result == 'success' && needs.readiness.outputs.ready == 'true' && needs.scope.outputs.native == 'true'
     uses: ./.github/workflows/native-qualification.yml
     with:
       reuse-ci-offline-help: true
       reuse-ci-go-dependencies: true
+      overlap-source-setup: true
       revision: ${{ github.sha }}
       os: windows-2022
       core: true
