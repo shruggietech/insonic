@@ -16,7 +16,14 @@ def run(tools=None):
         tools=importlib.util.module_from_spec(spec);spec.loader.exec_module(tools)
     tools.pipeline.m.disposable_runner()
     evidence=ROOT/'build/scheduler-preflight/evidence'
-    with Scheduler(ROOT,tools.capture,tools.pipeline.m.disposable_runner) as observer:
+    tools.save(evidence,'preflight.json',{'available':False,'feature_qualification':False,'gui_launches':0,
+        'reason':'observer-initialization-not-completed','raw_trace_retained':False})
+    try:created=Scheduler(ROOT,tools.capture,tools.pipeline.m.disposable_runner)
+    except Exception:
+        tools.save(evidence,'cleanup.json',{'confirmed':False,'session_started':False,'raw_directory_removed':None,
+            'feature_qualification':False,'gui_launches':0})
+        return 78
+    with created as observer:
         try:
             observer.prepare()
             result={'available':True,'preflight':observer.preflight,'feature_qualification':False,'gui_launches':0,

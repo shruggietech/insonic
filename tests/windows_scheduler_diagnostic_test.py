@@ -41,6 +41,19 @@ class SchedulerTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'not disposable'):preflight.run(tools)
         create.assert_not_called();tools.capture.assert_not_called()
 
+    @unittest.skipUnless(os.name=='nt','Windows scratch initialization')
+    def test_fresh_workspace_initializes_private_scratch_without_tool_or_trace(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);self.assertFalse((root/'build').exists())
+            capture=MagicMock();guard=MagicMock()
+            with patch('builtins.print'):
+                with scheduler.Scheduler(root,capture,guard) as observer:
+                    private=observer.private
+                    self.assertEqual(private.parent,root.resolve()/'build')
+                    self.assertTrue(private.is_dir());self.assertFalse(observer.active)
+            self.assertFalse(private.exists());self.assertTrue(observer.cleanup_confirmed)
+            capture.assert_not_called();guard.assert_called_once()
+
     def test_console_failure_is_unavailable_with_zero_product_launches_and_cleanup_receipt(self):
         tools=MagicMock();observer=MagicMock();observer.__enter__.return_value=observer
         observer.prepare.side_effect=RuntimeError('private detail')
@@ -53,6 +66,16 @@ class SchedulerTests(unittest.TestCase):
         self.assertEqual(rows['preflight.json']['gui_launches'],0)
         self.assertFalse(rows['preflight.json']['available']);self.assertTrue(rows['cleanup.json']['confirmed'])
         self.assertNotIn('private detail',json.dumps(rows))
+
+    def test_console_initialization_failure_has_receipt_before_constructor(self):
+        tools=MagicMock();rows={};tools.save.side_effect=lambda directory,name,row:rows.update({name:copy.deepcopy(row)})
+        def fail(*args):
+            self.assertIn('preflight.json',rows)
+            raise OSError('private path')
+        with patch.object(preflight,'Scheduler',side_effect=fail):self.assertEqual(preflight.run(tools),78)
+        self.assertEqual(rows['preflight.json']['reason'],'observer-initialization-not-completed')
+        self.assertFalse(rows['cleanup.json']['confirmed']);self.assertFalse(rows['cleanup.json']['session_started'])
+        self.assertNotIn('private path',json.dumps(rows));tools.capture.assert_not_called()
 
     def test_real_preflight_requires_correlated_main_thread_with_known_wait_and_scheduled_work(self):
         row={'available':True,'processes':[{'pid':10,'matched_lifetime':True,'threads':[

@@ -61,8 +61,11 @@ class Scheduler:
         disposable()
         if os.name!='nt':raise Unavailable('scheduler-platform-unavailable')
         self.root=Path(root).resolve();self.capture=capture;self.active=False;self.cleanup_confirmed=True
+        build=self.root/'build'
+        build.mkdir(exist_ok=True)
+        if build.resolve().parent!=self.root:raise Unavailable('private-build-directory-redirected')
         self.instance='insonic-s040-'+uuid.uuid4().hex
-        self.temporary=tempfile.TemporaryDirectory(prefix='s040-private-scheduler-',dir=self.root/'build')
+        self.temporary=tempfile.TemporaryDirectory(prefix='s040-private-scheduler-',dir=build)
         self.private=Path(self.temporary.name).resolve()
         if not self.private.is_relative_to((self.root/'build').resolve()):raise Unavailable('private-directory-invalid')
         self.env=dict(os.environ,DOTNET_CLI_TELEMETRY_OPTOUT='1',DOTNET_SKIP_FIRST_TIME_EXPERIENCE='1',
