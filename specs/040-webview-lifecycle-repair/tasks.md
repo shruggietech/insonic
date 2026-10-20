@@ -84,3 +84,7 @@ The first increment proves and corrects the exact upstream native BOOL violation
 - [x] T032 Add an explicit disposable-only browser observation election, actual created-environment version and audited native CDP callbacks in third_party/go-webview2/pkg/edge/; preserve ordinary startup, bound/redact browser fetch/header/script/page summaries and prove native ABI/ownership/late/disabled behavior with unshown regressions. Setup acknowledgement precedes diagnostic navigation and its scheduling difference stays explicit. (FR-003, FR-005, FR-006, FR-007, FR-008)
 - [x] T033 Retain bounded monotonic worker/phase/case timelines in scripts/diagnose-desktop-startup.py and cli_contract_qualification.py without changing workload/commands/deadlines; test actual interval/phase/privacy/failure disposition. Use this to classify overlap rather than inferred election. (FR-004, FR-007, FR-009)
 - [x] T034 Reconcile precise source/notice authority and validate the browser observation checkpoint; write its prediction/control/bounds before any single next dispatch, retaining the scheduling and old-runtime identity limits. (FR-003, FR-009, FR-013, FR-014)
+
+## Phase 11: Separate resource size from script processing
+
+- [x] T035 Add and validate the explicit disposable CSS size control in scripts/diagnose-desktop-startup.py and its workflow, with exact original/padded asset authority, restoration on compilation failure, unchanged scripts/deadlines and a pre-dispatch experiment record. (FR-003, FR-004, FR-007, FR-009, FR-013)

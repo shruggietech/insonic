@@ -15,6 +15,58 @@ diagnostic=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(diagnostic)
 
 class DesktopStartupDiagnosticTests(unittest.TestCase):
+    def test_css_size_control_preserves_prefix_and_restores_after_success_or_failure(self):
+        original=(ROOT/'desktop/frontend/src/app.css').read_bytes()
+        script=b'x'*(len(original)+100)
+        for failed in [False,True]:
+            with self.subTest(failed=failed),tempfile.TemporaryDirectory() as temporary:
+                root=Path(temporary);bundle=root/'desktop/assets/bundle';bundle.mkdir(parents=True)
+                css=bundle/'product.css';css.write_bytes(original);(bundle/'app.js').write_bytes(script)
+                with patch.object(diagnostic,'ROOT',root), \
+                     patch.object(diagnostic,'SCRIPT_CONTROL_SHA256',hashlib.sha256(script).hexdigest()), \
+                     patch.object(diagnostic,'CSS_CONTROL_BYTES',len(script)):
+                    def compile_control():
+                        with diagnostic.css_size_control_assets() as receipt:
+                            padded=css.read_bytes()
+                            self.assertEqual(len(padded),len(script))
+                            self.assertTrue(padded.startswith(original+b'/*'))
+                            self.assertEqual(padded[len(original):],b'/*'+b' '*95+b'*/\n')
+                            self.assertEqual(receipt['padded_sha256'],hashlib.sha256(padded).hexdigest())
+                            self.assertEqual(receipt['unchanged_app_script_sha256'],hashlib.sha256(script).hexdigest())
+                            self.assertFalse(receipt['feature_qualification'])
+                            if failed:raise RuntimeError('compiler failed')
+                    if failed:
+                        with self.assertRaisesRegex(RuntimeError,'compiler failed'):compile_control()
+                    else:compile_control()
+                self.assertEqual(css.read_bytes(),original)
+                self.assertEqual((bundle/'app.js').read_bytes(),script)
+
+    def test_css_size_control_rejects_changed_assets_without_writing(self):
+        original=(ROOT/'desktop/frontend/src/app.css').read_bytes()
+        for changed in ['css','script']:
+            with self.subTest(changed=changed),tempfile.TemporaryDirectory() as temporary:
+                root=Path(temporary);bundle=root/'desktop/assets/bundle';bundle.mkdir(parents=True)
+                css=bundle/'product.css';css.write_bytes(original+(b'changed' if changed=='css' else b''))
+                script=b'x'*diagnostic.CSS_CONTROL_BYTES;(bundle/'app.js').write_bytes(script)
+                before=css.read_bytes()
+                with patch.object(diagnostic,'ROOT',root), \
+                     patch.object(diagnostic,'SCRIPT_CONTROL_SHA256',hashlib.sha256(script).hexdigest() if changed=='css' else '0'*64):
+                    with self.assertRaisesRegex(ValueError,'exact E007'):
+                        with diagnostic.css_size_control_assets():self.fail('changed assets accepted')
+                self.assertEqual(css.read_bytes(),before)
+
+    def test_css_size_control_rejects_incompatible_election_before_acquisition(self):
+        for field in ['INSONIC_STARTUP_BROWSER','INSONIC_STARTUP_COLD','INSONIC_STARTUP_HIDE','INSONIC_STARTUP_SOURCE','INSONIC_STARTUP_LOAD','INSONIC_STARTUP_ABI_CONTROL']:
+            env={'GITHUB_SHA':'a'*40,'INSONIC_STARTUP_CSS_CONTROL':'true','INSONIC_STARTUP_BROWSER':'true',
+                 'INSONIC_STARTUP_COLD':'true','INSONIC_STARTUP_HIDE':'true','INSONIC_STARTUP_SOURCE':'true','INSONIC_STARTUP_LOAD':'true',
+                 'INSONIC_STARTUP_ABI_CONTROL':'false'}
+            env[field]='true' if field=='INSONIC_STARTUP_ABI_CONTROL' else 'false'
+            with self.subTest(field=field),patch.dict(os.environ,env,clear=True), \
+                 patch.object(diagnostic.os,'name','nt'),patch.object(diagnostic.pipeline.m,'disposable_runner'), \
+                 patch.object(diagnostic,'incident_archive') as acquire:
+                with self.assertRaisesRegex(ValueError,'CSS size control requires'):diagnostic.run()
+                acquire.assert_not_called()
+
     def test_browser_observer_rejects_stale_or_incompatible_source_before_acquisition(self):
         for cold,source,control in [('true','false','false'),('false','true','false'),('true','true','true')]:
             with self.subTest(cold=cold,source=source,control=control), \
