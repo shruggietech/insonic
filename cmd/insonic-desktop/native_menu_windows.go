@@ -41,6 +41,7 @@ func prepareNativeExitWindow(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	logNativeDesktopObservation(hwnd, "window-preparation")
 	err = awaitNativeWindowOperation(ctx, hwnd, func() {
 		before := exitWinCall("GetFocus")
 		// A root that already owns Win32 focus would receive no new WM_SETFOCUS,
@@ -88,10 +89,17 @@ func awaitNativeWindowOperation(ctx context.Context, hwnd uintptr, operation fun
 		return fmt.Errorf("native UI join requires this process's owned window")
 	}
 	started := time.Now()
-	deadline, stop := context.WithTimeout(ctx, 2*time.Second)
+	deadline, stop := context.WithTimeout(ctx, nativeWindowJoinBudget(ctx))
 	defer stop()
-	var entered, returned atomic.Int64
+	var entered, returned, postBegin, postReturned atomic.Int64
+	operationID := nativeWindowJoinSequence.Add(1)
 	defer func() {
+		outcome := "completed"
+		if err != nil {
+			outcome = "failed"
+		}
+		raw, _ := json.Marshal(map[string]any{"kind": "native-ui-join", "operation": operationID, "origin_unix_micros": started.UnixMicro(), "budget_ns": nativeWindowJoinBudget(ctx).Nanoseconds(), "post_begin_ns": postBegin.Load(), "post_returned_ns": postReturned.Load(), "entered_ns": entered.Load(), "returned_ns": returned.Load(), "observed_ns": time.Since(started).Nanoseconds(), "result": outcome})
+		fmt.Fprintln(os.Stderr, string(raw))
 		if err != nil {
 			at, _ := deadline.Deadline()
 			begin, end := entered.Load(), returned.Load()
@@ -103,7 +111,7 @@ func awaitNativeWindowOperation(ctx context.Context, hwnd uintptr, operation fun
 	}()
 	ready := make(chan struct{})
 	var once sync.Once
-	token := uintptr(0x5330333900000000) | uintptr(nativeWindowJoinSequence.Add(1))
+	token := uintptr(0x5330333900000000) | uintptr(operationID)
 	callback := syscall.NewCallback(func(code, kind uintptr, message *nativeWindowMessage) uintptr {
 		result := exitWinCall("CallNextHookEx", 0, code, kind, uintptr(unsafe.Pointer(message)))
 		if int32(code) >= 0 && kind == 1 && message != nil && message.Window == hwnd && message.Message == 0 && message.WParam == token {
@@ -129,7 +137,10 @@ func awaitNativeWindowOperation(ctx context.Context, hwnd uintptr, operation fun
 			err = fmt.Errorf("owned native UI completion observer was not removed")
 		}
 	}()
-	if exitWinCall("PostMessageW", hwnd, 0, token, 0) == 0 {
+	postBegin.Store(time.Since(started).Nanoseconds())
+	posted := exitWinCall("PostMessageW", hwnd, 0, token, 0)
+	postReturned.Store(time.Since(started).Nanoseconds())
+	if posted == 0 {
 		return fmt.Errorf("owned native UI completion marker rejected")
 	}
 	select {

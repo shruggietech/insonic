@@ -276,7 +276,7 @@ def desktop():
     if platform.system() == 'Linux':
         tags += ',webkit2_41'
     if platform.system() == 'Windows':
-        child(['go', 'test', '-timeout=15s', '-run', '^TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread$',
+        child(['go', 'test', '-timeout=15s', '-run', '^(TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread|TestBootstrapOnlyEnvironmentVersionDoesNotEnableCDPOrGateNavigation|TestBrowserDiagnosticsEnvironmentHookKeepsNativeCreationOrder|TestBrowserDiagnosticsVersionOwnershipBoundsAndAllowlist|TestBrowserDiagnosticsDisabledAddsNoNativeCalls)$',
                'github.com/wailsapp/go-webview2/pkg/edge'], env=env)
     output = child(['go', 'test', '-v', '-tags', tags, './desktop', './cmd/insonic-desktop'], env=env)
     sys.stdout.buffer.write(output)

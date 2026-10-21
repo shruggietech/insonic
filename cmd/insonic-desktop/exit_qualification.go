@@ -32,10 +32,11 @@ import (
 )
 
 type exitFixture struct {
-	Action    string "json:\"action\""
-	Workspace string "json:\"workspace,omitempty\""
-	MediaID   string "json:\"media_id,omitempty\""
-	Revision  int64  `json:"revision,omitempty"`
+	WindowJoinSeconds int    `json:"window_join_seconds,omitempty"`
+	Action            string "json:\"action\""
+	Workspace         string "json:\"workspace,omitempty\""
+	MediaID           string "json:\"media_id,omitempty\""
+	Revision          int64  `json:"revision,omitempty"`
 }
 type exitObservation struct {
 	Action     string "json:\"action\""
@@ -59,6 +60,9 @@ func readExitFixture(path string) (exitFixture, error) {
 	if decoder.Decode(&extra) != io.EOF || fixture.Action != "menu" && fixture.Action != "close" && (fixture.Action != "alt-f4" || runtime.GOOS != "windows") {
 		return fixture, fmt.Errorf("invalid Exit action")
 	}
+	if fixture.WindowJoinSeconds != 0 && (runtime.GOOS != "windows" || fixture.WindowJoinSeconds != 2 && fixture.WindowJoinSeconds != 10) {
+		return fixture, fmt.Errorf("invalid native UI join allowance")
+	}
 	if fixture.Workspace != "" && (!filepath.IsAbs(fixture.Workspace) || !contracts.ValidID(fixture.MediaID) || fixture.Revision < 1) || fixture.Workspace == "" && (fixture.MediaID != "" || fixture.Revision != 0) {
 		return fixture, fmt.Errorf("invalid Exit workspace")
 	}
@@ -80,7 +84,7 @@ func qualifyNativeExitChild(path string) int {
 			return 1
 		}
 	}
-	stage := nativeExitStageTimings(os.Getenv("INSONIC_STARTUP_LIVE") == "true", os.Stderr, time.Now)
+	stage := nativeExitStageTimings(os.Getenv("INSONIC_STARTUP_LIVE") == "true" || os.Getenv("INSONIC_PROCESS_STARTUP_DIAGNOSTICS") == "1", os.Stderr, time.Now)
 	ready, finished := make(chan struct{}), make(chan struct{})
 	activated := make(chan error, 1)
 	var timedOut atomic.Bool
@@ -108,7 +112,7 @@ func qualifyNativeExitChild(path string) int {
 			}
 		}()
 		if prepareErr == nil {
-			prepareErr = prepareNativeExitWindow(ctx)
+			prepareErr = prepareNativeExitWindow(nativeWindowJoinContext(ctx, fixture.WindowJoinSeconds))
 		}
 		stage.record("window-prepare-returned")
 		close(ready)
@@ -137,11 +141,12 @@ func qualifyNativeExitChild(path string) int {
 				wailsruntime.Quit(ctx)
 				return
 			}
+			stage.record("frontend-ready")
 			fmt.Fprintln(os.Stderr, "native-exit-stage=frontend-ready")
 			logNativeBrowserReadyProgress()
 			// Navigation completion hides/shows the controller. Rejoin the full
 			// framework activation after frontend readiness before any keys.
-			if err := prepareNativeExitWindow(ctx); err != nil {
+			if err := prepareNativeExitWindow(nativeWindowJoinContext(ctx, fixture.WindowJoinSeconds)); err != nil {
 				activated <- err
 				fmt.Fprintln(os.Stderr, err)
 				wailsruntime.Quit(ctx)
@@ -151,6 +156,7 @@ func qualifyNativeExitChild(path string) int {
 				activated <- fmt.Errorf("native readiness arrived after watchdog")
 				return
 			}
+			stage.record("native-action")
 			fmt.Fprintln(os.Stderr, "native-exit-stage=native-action")
 			err := activateNativeExit(fixture.Action)
 			activated <- err
@@ -280,6 +286,10 @@ func runExitQualification() error {
 }
 
 func runExitQualificationWith(runChild func(exitFixture, string) (exitObservation, error)) (err error) {
+	joinSeconds, err := selectedNativeWindowJoinSeconds(os.Getenv("INSONIC_NATIVE_WINDOW_JOIN_SECONDS"))
+	if err != nil {
+		return err
+	}
 	directory, err := os.MkdirTemp("", "insonic-exit-*")
 	if err != nil {
 		return err
@@ -408,6 +418,9 @@ func runExitQualificationWith(runChild func(exitFixture, string) (exitObservatio
 		cases = []exitFixture{{Action: "menu"}, {Action: "close"}, {Action: "alt-f4"}, {Action: "menu", Workspace: directory, MediaID: imported.Items[0].MediaID, Revision: entry.Revision}, {Action: "close", Workspace: directory, MediaID: imported.Items[0].MediaID, Revision: entry.Revision}, {Action: "alt-f4", Workspace: directory, MediaID: imported.Items[0].MediaID, Revision: entry.Revision}}
 	}
 	for caseIndex, fixture := range cases {
+		if runtime.GOOS == "windows" {
+			fixture.WindowJoinSeconds = joinSeconds
+		}
 		// Each case begins with a cold owned profile. Its second launch reuses that
 		// exact profile only after the first launch's descendants exit normally.
 		caseDirectory := filepath.Join(directory, fmt.Sprintf("native-case-%d", caseIndex))
@@ -467,6 +480,7 @@ func qualifyNativeExit() int {
 	proof := map[string]any{"schema_version": contracts.Version, "native_exit": "passed", "no_workspace_exit": "passed", "workspace_exit": "passed", "ordinary_close": "passed", "playback_cleanup": "passed", "runtime_work_survival": "passed"}
 	if runtime.GOOS == "windows" {
 		proof["owned_browser_release"] = "passed"
+		proof["window_join_seconds"], _ = selectedNativeWindowJoinSeconds(os.Getenv("INSONIC_NATIVE_WINDOW_JOIN_SECONDS"))
 	}
 	json.NewEncoder(os.Stdout).Encode(proof)
 	return 0
@@ -544,7 +558,7 @@ func runExitGUIChild(fixture exitFixture, config string) (exitObservation, error
 	defer stop()
 	report, err := process.Capture(ctx, process.Spec{Executable: executable, Args: []string{"--exit-qualification-child", config}, MaxOutput: 64 << 10, WaitForDescendants: runtime.GOOS == "windows"})
 	if report.Descendants != nil {
-		lifecycle, _ := json.Marshal(map[string]any{"kind": "native-exit-owned-lifecycle", "action": fixture.Action, "descendants": report.Descendants})
+		lifecycle, _ := json.Marshal(map[string]any{"kind": "native-exit-owned-lifecycle", "action": fixture.Action, "workspace": fixture.Workspace != "", "window_join_seconds": fixture.WindowJoinSeconds, "descendants": report.Descendants, "stdout": string(report.Stdout[:min(len(report.Stdout), 65536)]), "stderr": string(report.Stderr[:min(len(report.Stderr), 65536)]), "exit_code": report.ExitCode, "truncated": report.Truncated})
 		retainNativeExitEvidence(lifecycle)
 		fmt.Fprintln(os.Stderr, string(lifecycle))
 	}

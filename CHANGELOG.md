@@ -6,6 +6,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Windows native qualification records owned desktop/input conditions, per-operation completion timings and created-environment runtime identity separately from loader availability. An explicit bounded diagnostic compares two- and ten-second fixture joins on the same packaged executable without replacing candidate acceptance.
+
 - Desktop File > Exit uses the normal window shutdown lifecycle, works before library selection and preserves independently owned background work. Windows retains Alt+F, X and Alt+F4 behavior.
 
 - Windows setup EXE coordinates the native per-user MSI and retains full local package sources for failed-upgrade recovery. The raw MSI remains available with explicit engine recovery limits. Trusted release verification independently rebuilds the setup executable from reviewed source and compares its complete code/resource prefix.

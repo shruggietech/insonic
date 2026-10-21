@@ -555,3 +555,59 @@ func TestBrowserDiagnosticsHTTPStatusFailureRemainsSticky(t *testing.T) {
 		t.Fatal("later successful status erased the earlier HTTP failure", a)
 	}
 }
+
+func TestBootstrapOnlyEnvironmentVersionDoesNotEnableCDPOrGateNavigation(t *testing.T) {
+	for _, sample := range []struct {
+		version  string
+		hr       uintptr
+		creation uintptr
+		present  bool
+	}{
+		{"152.0.4191.66", 0, 0, true},
+		{"152.0.4191.66", 0x80004005, 0, true},
+		{"private", 0, 0, true},
+		{"", 0, 0x80004005, false},
+	} {
+		t.Run(fmt.Sprint(sample.version, sample.hr, sample.creation), func(t *testing.T) {
+			f := newBrowserNativeFixture(t, false, "")
+			EnableWindowBootstrapDiagnostics(true)
+			defer EnableWindowBootstrapDiagnostics(false)
+			calls := 0
+			var environment *ICoreWebView2Environment
+			if sample.present {
+				environment = &ICoreWebView2Environment{vtbl: &iCoreWebView2EnvironmentVtbl{GetBrowserVersionString: NewComProc(func(_ uintptr, out **uint16) uintptr {
+					f.checkThread()
+					calls++
+					*out = browserTestString(t, sample.version)
+					return sample.hr
+				})}}
+			}
+			f.view.webview2RuntimeVersion = "131.0.2903.86"
+			f.view.observeBrowserEnvironment(sample.creation, environment)
+			f.view.observeBrowserEnvironment(sample.creation, environment)
+			f.view.Navigate("http://wails.localhost/")
+			snapshots := OwnedWindowBootstrapSnapshots()
+			if len(snapshots) != 1 {
+				t.Fatal("missing owned environment observation", snapshots)
+			}
+			value := snapshots[0].Environment
+			if !value.Observed || value.CreationHRESULT != uint32(sample.creation) || value.Created != sample.present {
+				t.Fatal("environment creation and version observation conflated", value)
+			}
+			if sample.present {
+				if calls != 1 || value.VersionCalls != 1 || !value.VersionReturned || value.VersionHRESULT != uint32(sample.hr) {
+					t.Fatal("getter not observed exactly once", value, calls)
+				}
+				valid := sample.hr == 0 && sample.version == "152.0.4191.66"
+				if value.VersionInvalid == valid || valid && value.ActualRuntimeVersion != sample.version || !valid && value.ActualRuntimeVersion != "" {
+					t.Fatal("available lookup substituted for actual getter", value)
+				}
+			} else if calls != 0 || value.VersionCalls != 0 || value.VersionReturned {
+				t.Fatal("creation failure called version getter", value)
+			}
+			if f.view.browserDiagnostics != nil || len(f.calls) != 1 || f.calls[0] != "navigate:http://wails.localhost/" {
+				t.Fatal("passive environment observation enabled CDP or gated navigation", f.calls)
+			}
+		})
+	}
+}

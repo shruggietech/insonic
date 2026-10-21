@@ -8,6 +8,7 @@ import (
 	"errors"
 	"golang.org/x/sys/windows"
 	"runtime"
+	"sync/atomic"
 	"testing"
 	"time"
 	"unsafe"
@@ -80,4 +81,58 @@ func TestNativeWindowOperationWaitsForItsOwnedUIDispatch(t *testing.T) {
 		}
 	}
 	t.Fatal("owned UI join test exceeded its deadline")
+}
+
+// The same queued operation must acknowledge actual UI-thread completion after
+// a delay beyond the historical two-second allowance. No GUI is shown.
+func TestNativeWindowOperationCalibratedAllowanceJoinsActualCompletion(t *testing.T) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	class, _ := windows.UTF16PtrFromString("STATIC")
+	hwnd := exitWinCall("CreateWindowExW", 0, uintptr(unsafe.Pointer(class)), 0, 0, 0, 0, 0, 0, ^uintptr(2), 0, 0, 0)
+	if hwnd == 0 {
+		t.Fatal("message-only fixture unavailable")
+	}
+	defer exitWinCall("DestroyWindow", hwnd)
+	completed := make(chan error, 1)
+	var calls atomic.Int32
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	go func() {
+		completed <- awaitNativeWindowOperation(nativeWindowJoinContext(ctx, 10), hwnd, func() { calls.Add(1) })
+	}()
+	time.Sleep(2200 * time.Millisecond)
+	if calls.Load() != 0 {
+		t.Fatal("queued work ran without the owning thread pump")
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		select {
+		case err := <-completed:
+			if err != nil || calls.Load() != 1 {
+				t.Fatalf("actual delayed completion was not joined: calls=%d err=%v", calls.Load(), err)
+			}
+			return
+		default:
+		}
+		var message nativeWindowMessage
+		if exitWinCall("PeekMessageW", uintptr(unsafe.Pointer(&message)), hwnd, 0, 0, 1) != 0 {
+			exitWinCall("TranslateMessage", uintptr(unsafe.Pointer(&message)))
+			exitWinCall("DispatchMessageW", uintptr(unsafe.Pointer(&message)))
+		} else {
+			time.Sleep(time.Millisecond)
+		}
+	}
+	t.Fatal("delayed owned completion unavailable")
+}
+
+func TestNativeDesktopObservationsPreserveUnknownAPIResults(t *testing.T) {
+	unknown := observeNativeUserObject(0, false)
+	if unknown.Name != "" || unknown.ReceivesInput != nil || unknown.Flags != nil || len(unknown.Errors) == 0 {
+		t.Fatal("failed desktop queries invented observed values", unknown)
+	}
+	snapshot := nativeDesktopSnapshot(0, "unshown-test")
+	if snapshot["owned"] != false || snapshot["errors"].(map[string]string)["ui_desktop"] == "" {
+		t.Fatal("missing owned UI desktop was not explicit", snapshot)
+	}
 }
