@@ -570,7 +570,10 @@ def qualify_cli(native):
         if replacement['state'] != 'succeeded' or replacement['result']['items'][0]['media_id'] != recording_id or retained['revision'] != roster['revision']:
             raise ValueError('CLI replacement/roster authority changed')
         request_id = '10000000-0000-4000-8000-000000000002'
-        start_args = [executable, '--workspace', directory, '--request-id', request_id, 'jobs', 'start', '1000', '--json']
+        # Replayed acceptance and two process launches must happen before this
+        # synthetic job can complete naturally. Both attempts are cancelled;
+        # their durable history, rather than a short startup race, is asserted.
+        start_args = [executable, '--workspace', directory, '--request-id', request_id, 'jobs', 'start', '10000', '--json']
         started = json.loads(child(start_args))
         replayed = json.loads(child(start_args))
         if replayed['result']['attempt_id'] != started['result']['attempt_id']:

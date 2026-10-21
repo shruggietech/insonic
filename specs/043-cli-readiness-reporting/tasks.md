@@ -49,7 +49,7 @@ Independent test: controlled context boundaries preserve last state, caller time
 
 ## Phase 7: Authorized publication and bounded review
 
-- [ ] T022 Commit and automatically push codex/043-cli-readiness-reporting, publish/attach the ordinary PR with exact issue mapping and validation (SC-005).
+- [x] T022 Commit and automatically push codex/043-cli-readiness-reporting, publish/attach the ordinary PR with exact issue mapping and validation (SC-005).
 - [ ] T023 Monitor exact-head complete CI and initial automatic Codex/security reviews; answer/resolve every finding, with at most one explicit second review round and no third round (SC-005).
 - [ ] T024 Verify final head/checks/review threads/Project state, remove temporary execution files and hand off the unmerged PR for owner review/merge (SC-005).
 
@@ -59,4 +59,4 @@ T001-T003 -> T004-T005 -> US1/US2/US3 -> T017-T021 -> T022-T024. T020 analysis r
 
 ## Phase 8: Convergence
 
-- [ ] T025 Preserve elected detached runtime ownership in scripts/qualify.py model-reference calls after isolated regressions outlive the owner's idle allowance; rerun the existing native source CLI journey and retain final owner/image checks per FR-008 (partial).
+- [ ] T025 Preserve elected detached runtime ownership in scripts/qualify.py model-reference calls after isolated regressions outlive the owner's idle allowance, and keep the cancellable synthetic job alive across replay/client startup; rerun the existing native source CLI journey and retain final owner/image/history checks per FR-008 (partial).
