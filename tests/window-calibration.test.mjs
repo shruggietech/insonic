@@ -13,6 +13,9 @@ test('window comparison restores one explicit immutable assembly and cannot run 
  assert.equal(download.with['digest-mismatch'],'error');
  assert.equal(download.with['run-id'],'${{ inputs.calibration_run }}');
  assert.equal(download.with.name,'windows-desktop-input-${{ inputs.calibration_revision }}-${{ inputs.calibration_attempt }}');
+ const source=job.steps.find(step=>step.name==='Restore exact calibration source');
+ assert.equal(source.with.path,'build/calibration-source');
+ assert.equal(source.with.ref,'${{ inputs.calibration_revision }}');
  const compare=job.steps.find(step=>step.run==='python scripts/diagnose-window-calibration.py');
  assert.equal(compare.env.SOURCE_REVISION,'${{ inputs.calibration_revision }}');
  assert.equal(compare.if,"matrix.kind == 'window-calibration'");

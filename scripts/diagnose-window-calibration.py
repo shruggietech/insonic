@@ -73,14 +73,21 @@ def compare(run_arm):
     return [run_arm(2, 'baseline'), run_arm(10, 'comparison')]
 
 
+def cohort_environment(base_env, temporary, seconds):
+    env = os.environ.copy()
+    env.update(base_env)  # package_environment is a delta, as in package.child.
+    env.update(TEMP=str(temporary), TMP=str(temporary),
+               INSONIC_NATIVE_WINDOW_JOIN_SECONDS=str(seconds),
+               INSONIC_PROCESS_STARTUP_DIAGNOSTICS='1')
+    return env
+
+
 def run_arm(package, gui, directory, base_env, seconds, label):
     evidence = EVIDENCE / label
     evidence.mkdir()
     temporary = evidence / 'fixture-temp'
     temporary.mkdir()
-    env = dict(base_env, TEMP=str(temporary), TMP=str(temporary),
-               INSONIC_NATIVE_WINDOW_JOIN_SECONDS=str(seconds),
-               INSONIC_PROCESS_STARTUP_DIAGNOSTICS='1')
+    env = cohort_environment(base_env, temporary, seconds)
     before = set((ROOT / 'build/native').glob('native-exit-child-*-receipt.json'))
     started = time.monotonic()
     timed_out = False
@@ -126,7 +133,11 @@ def main():
     base, receipt, identity = pipeline.restore_inputs()
     package = pipeline.load('window_calibration_package', 'package-desktop.py')
     archive = ROOT / 'build/windows-desktop-input' / receipt['archive']
-    package.verify_archive_receipt(archive, receipt)
+    selected_source = ROOT / 'build/calibration-source'
+    selected_revision = package.child(['git','-C',selected_source,'rev-parse','HEAD']).decode().strip()
+    if selected_revision != revision:
+        raise ValueError('candidate checkout differs from the selected assembly source')
+    package.verify_archive_receipt(archive, receipt, expected_source_root=selected_source)
     location = EVIDENCE.parent / 'relocated package with spaces'
     package.extract_package(archive, location)
     directory = package.path_inside(location, receipt['inventory_root'])
@@ -136,6 +147,8 @@ def main():
     metadata = {'kind': 'native-window-calibration', 'candidate_acceptance': False,
                 'source_run': run, 'source_attempt': attempt, 'revision': revision,
                 'workflow_revision': os.environ.get('GITHUB_WORKFLOW_SHA'),
+                'diagnostic_checkout_revision': package.child(['git','rev-parse','HEAD']).decode().strip(),
+                'candidate_checkout_revision': selected_revision,
                 'diagnostic_run': os.environ.get('GITHUB_RUN_ID'),
                 'diagnostic_attempt': os.environ.get('GITHUB_RUN_ATTEMPT'),
                 'runner': {key: os.environ.get(key) for key in ('RUNNER_OS','RUNNER_ARCH','ImageOS','ImageVersion')},

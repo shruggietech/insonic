@@ -55,4 +55,19 @@ class WindowCalibrationTests(unittest.TestCase):
         self.assertTrue(result['native_passed'])
         self.assertEqual(result['environments'][0]['windows'][0]['environment']['actual_runtime_version'],'')
 
+
+    def test_environment_delta_preserves_profile_and_isolates_each_cohort(self):
+        from unittest.mock import patch
+        with patch.dict(calibration.os.environ, {'APPDATA':'profile-config','USERPROFILE':'profile-home','SystemRoot':'windows','PATH':'ambient'}, clear=True):
+            delta={'PATH':'package-system-path'}
+            env=calibration.cohort_environment(delta,Path('owned-temp'),10)
+            self.assertEqual(env['APPDATA'],'profile-config')
+            self.assertEqual(env['USERPROFILE'],'profile-home')
+            self.assertEqual({key.upper():value for key,value in env.items()}['SYSTEMROOT'],'windows')
+            self.assertEqual(env['PATH'],'package-system-path')
+            self.assertEqual(env['TEMP'],str(Path('owned-temp')))
+            self.assertEqual(env['TMP'],str(Path('owned-temp')))
+            self.assertEqual(env['INSONIC_NATIVE_WINDOW_JOIN_SECONDS'],'10')
+            self.assertEqual(delta,{'PATH':'package-system-path'})
+
 if __name__=='__main__':unittest.main()

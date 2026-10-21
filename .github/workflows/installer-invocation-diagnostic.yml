@@ -123,6 +123,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ inputs.calibration_revision }}
+          path: build/calibration-source
           persist-credentials: false
           fetch-depth: 0
       - name: Restore exact instrumented Windows assembly for calibration
