@@ -6,6 +6,7 @@ package diagnostics
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"unsafe"
@@ -205,7 +206,7 @@ func TestDiagnosticCreationDeniedInReadOnlyDirectory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sd, err := windows.SecurityDescriptorFromString("D:P(A;OICI;FR;;;" + user.User.Sid.String() + ")")
+	sd, err := windows.SecurityDescriptorFromString("D:P(D;OICI;0x6;;;" + user.User.Sid.String() + ")(A;OICI;FR;;;" + user.User.Sid.String() + ")")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -230,10 +231,45 @@ func TestDiagnosticCreationDeniedInReadOnlyDirectory(t *testing.T) {
 			t.Error(e)
 		}
 	})
-	if log, err := Open(filepath.Join(directory, "denied.jsonl"), "info"); err == nil {
-		log.Close()
-		t.Fatal("read-only directory admitted")
-	} else if !strings.Contains(err.Error(), "opened or created") {
-		t.Fatal("creation guidance lost", err)
+	withoutFilePrivileges(t, func() {
+		if probe, err := os.OpenFile(filepath.Join(directory, "must-not-create"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600); err == nil {
+			probe.Close()
+			t.Fatal("denied-creation fixture does not deny ordinary creation")
+		}
+		if log, err := Open(filepath.Join(directory, "denied.jsonl"), "info"); err == nil {
+			log.Close()
+			t.Fatal("read-only directory admitted")
+		} else if !strings.Contains(err.Error(), "opened or created") {
+			t.Fatal("creation guidance lost", err)
+		}
+	})
+}
+
+// Elevated CI accounts may carry backup/restore privileges. Test an ordinary
+// access check on one locked OS thread without changing the process token.
+func withoutFilePrivileges(t *testing.T, check func()) {
+	t.Helper()
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	var source, restricted windows.Token
+	if err := windows.OpenProcessToken(windows.CurrentProcess(), windows.TOKEN_DUPLICATE|windows.TOKEN_QUERY, &source); err != nil {
+		t.Fatal(err)
 	}
+	defer source.Close()
+	if err := windows.DuplicateTokenEx(source, windows.TOKEN_IMPERSONATE|windows.TOKEN_QUERY|windows.TOKEN_ADJUST_PRIVILEGES, nil, windows.SecurityImpersonation, windows.TokenImpersonation, &restricted); err != nil {
+		t.Fatal(err)
+	}
+	defer restricted.Close()
+	if err := windows.AdjustTokenPrivileges(restricted, true, nil, 0, nil, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := windows.SetThreadToken(nil, restricted); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := windows.RevertToSelf(); err != nil {
+			t.Error(err)
+		}
+	}()
+	check()
 }
