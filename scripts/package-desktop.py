@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Assemble and qualify relocated native packages without inference or release."""
 import argparse
-from contextlib import contextmanager, ExitStack
+from contextlib import contextmanager, ExitStack, closing
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 import hashlib
@@ -1100,7 +1100,8 @@ def _smoke(archive=None, dirname=None, receipt=None):
             if any('Warning:' not in text or items[1]['media_id'] not in text or '--originated-on' not in text or '\x1b' in text for text in [human_wait, quiet_wait]):
                 raise ValueError('Accepted partial date did not reach readable operator output')
             if len(items) != 2 or any(item.get('state') != 'admitted' or item.get('capture_state') not in ['captured', 'no-embedded-metadata'] for item in items):
-                raise ValueError('packaged import did not complete both licensed fixtures')
+                raise ValueError('packaged import did not complete both licensed fixtures: ' + json.dumps([
+                    {key: item.get(key) for key in ['state', 'capture_state', 'subtitle_state']} for item in items]))
             from cli_contract_qualification import qualify as qualify_contract
             contract_receipt = qualify_contract(cli, workspace, env=env, cwd=root, documentation=True,
                 artifact_identity={'scope': 'package', 'archive_sha256': receipt['archive_sha256'],
@@ -1150,7 +1151,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
             import sqlite3
             try:
                 database=workspace/'.insonic/catalog.sqlite'
-                with sqlite3.connect(database.as_uri()+'?mode=ro',uri=True,timeout=1) as connection:
+                with closing(sqlite3.connect(database.as_uri()+'?mode=ro',uri=True,timeout=1)) as connection:
                     state={}
                     for name,query in {
                         'revision':'SELECT revision FROM workspace',

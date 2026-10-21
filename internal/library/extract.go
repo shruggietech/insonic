@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -176,19 +177,32 @@ func toolCommand(tool Tool, args []string) (string, []string) {
 	}
 	return tool.Path, args
 }
-func captureTool(ctx context.Context, name string, tool Tool, args []string, max int) Extraction {
+
+func extractorArguments(name string, args []string, windows bool) ([]string, []string, io.Reader) {
 	recorded := append([]string{}, args...)
 	if len(recorded) > 0 {
 		recorded[len(recorded)-1] = "<stable-original-bytes>"
 	}
+	if windows && name == "exiftool" && len(args) >= 2 && args[len(args)-2] == "--" {
+		// ExifTool's Windows argv passes through the active code page. Its UTF-8
+		// argument input uses wide filename I/O without losing non-Latin paths.
+		effective := append(append([]string{}, args[:len(args)-2]...), "-charset", "filename=UTF8", "-@", "-")
+		recorded = append(append([]string{}, effective[:len(effective)-1]...), "<stdin-utf8:stable-original-bytes>")
+		return effective, recorded, strings.NewReader("--\n" + args[len(args)-1] + "\n")
+	}
+	return args, recorded, nil
+}
+
+func captureTool(ctx context.Context, name string, tool Tool, args []string, max int) Extraction {
+	effective, recorded, input := extractorArguments(name, args, runtime.GOOS == "windows")
 	out := Extraction{Tool: name, Version: tool.Version, BinarySHA256: tool.SHA256, Options: recorded, State: "unsupported", ExitCode: -1}
 	timeout, stop := context.WithTimeout(ctx, 30*time.Second)
 	defer stop()
 	if verifyTool(timeout, tool, name) != nil {
 		return out
 	}
-	executable, effectiveArgs := toolCommand(tool, args)
-	result, e := process.Capture(timeout, process.Spec{Executable: executable, Args: effectiveArgs, MaxOutput: max, Env: toolEnvironment})
+	executable, effectiveArgs := toolCommand(tool, effective)
+	result, e := process.Capture(timeout, process.Spec{Executable: executable, Args: effectiveArgs, Input: input, MaxOutput: max, Env: toolEnvironment})
 	out.Stdout = result.Stdout
 	out.Stderr = result.Stderr
 	out.ExitCode = result.ExitCode

@@ -15,6 +15,17 @@ CATALOG = Path('tests/fixtures/cli-corpus.json')
 ID = re.compile(r'[a-z][a-z0-9-]{0,63}')
 FLAG = re.compile(r'(?:--[a-z][a-z0-9-]{0,63}|-h)')
 ASSERTIONS = {'materialized-bytes', 'durable-completion', 'owned-runtime-ready'}
+ERROR_FIELDS = json.loads((ROOT / 'schemas' / ('v' + (ROOT / 'VERSION').read_text().strip()) / 'runtime-response.schema.json').read_text(encoding='utf-8'))['properties']['error']['properties']
+
+
+def failure_class(error):
+    if error is None: return {'code': 'unclassified'}
+    result = {}
+    for key in ['code', 'reason']:
+        if key not in error and key == 'reason': continue
+        if error.get(key) not in ERROR_FIELDS[key]['enum']: raise ValueError('Unknown failure classification')
+        result[key] = error[key]
+    return result
 
 
 def unique_object(pairs):
@@ -127,15 +138,17 @@ def example_outcome(result, error, *, completed=None, materialized=False):
 
 
 def finish_server(server, thread):
-    try:
-        try: server.shutdown()
-        finally: server.server_close()
-    finally: thread.join(timeout=5)
-    if thread.is_alive(): raise ValueError('Owned fixture server did not stop')
+    primary = None
+    for cleanup in [server.shutdown, server.server_close, lambda: thread.join(timeout=5)]:
+        try: cleanup()
+        except BaseException as error:
+            if primary is None: primary = error
+    if thread.is_alive(): raise ValueError('Owned fixture server did not stop') from primary
+    if primary is not None: raise primary
 
 
 def observation_row(**fields):
-    return {**fields, 'invocations': 0, 'successful_exits': 0, 'failed_exits': 0, 'parser_rejections': 0, 'assertions': set(), 'scenarios': set()}
+    return {**fields, 'invocations': 0, 'successful_exits': 0, 'failed_exits': 0, 'parser_rejections': 0, 'help_checks': 0, 'failures': Counter(), 'assertions': set(), 'scenarios': set()}
 
 
 class Coverage:
@@ -162,10 +175,11 @@ class Coverage:
         if self.version_alias:
             self.arity['--version'] = False
             self.rows['version']['options']['--version'] = observation_row(value=False, required=False, repeatable=False, scope='alias')
-        self.controls = Counter({'help-only': 0, 'literal-separator': 0, 'equals-value': 0, 'repeated-option': 0})
+        self.controls = Counter({'help-only': 0, 'parser-rejections': 0, 'literal-separator': 0, 'equals-value': 0, 'repeated-option': 0})
+        self.failures = Counter()
         self.seen, self.total, self.lock = Counter(), 0, Lock()
 
-    def parse(self, argv, code):
+    def parse(self, argv, code, *, help_only=False):
         words, flags, literal, equals = [], [], False, False
         args = [str(a) for a in argv]; index = 0
         while index < len(args):
@@ -175,41 +189,57 @@ class Coverage:
             if not arg.startswith('-'): words.append(arg); continue
             key, sep, _ = arg.partition('=')
             if key not in self.arity:
-                if code == 2: return None
+                if code == 2: continue
                 raise ValueError('Observation uses an unknown accepted option')
             flags.append(key); equals |= bool(sep)
             if self.arity[key] and not sep: index += 1
             if key == '--version': words.append('version')
-        if words[:1] == ['help'] or any(k in flags for k in ['--help', '-h']): return ('help', [], literal, equals, False)
+        help_only |= words[:1] == ['help'] or any(k in flags for k in ['--help', '-h'])
+        if words[:1] == ['help']: words = words[1:]
         matches = [name for name in self.rows if words[:len(name.split())] == name.split()]
         if not matches:
+            if help_only: return '', sorted(set(flags)), literal, equals, False, True
             if code == 2: return None
             raise ValueError('Observation uses an unknown accepted command')
         command = max(matches, key=lambda name: len(name.split()))
         if any(key not in self.rows[command]['options'] for key in flags):
             if code == 2: return None
             raise ValueError('Observation option is not accepted by command')
-        return command, sorted(set(flags)), literal, equals, len(flags) != len(set(flags))
+        return command, sorted(set(flags)), literal, equals, len(flags) != len(set(flags)), help_only
 
-    def observe(self, argv, code, *, scenario='core'):
+    def observe(self, argv, code, *, scenario='core', failure=None, help_only=False):
         if scenario not in {s['id'] for s in self.corpus['scenarios']}: raise ValueError('Unknown observation scenario')
-        parsed = self.parse(argv, code)
-        if parsed is None: return
-        command, flags, literal, equals, repeated = parsed
+        category = tuple(sorted(failure_class(failure).items())) if code else None
+        parsed = self.parse(argv, code, help_only=help_only)
         with self.lock:
-            if command == 'help': self.controls['help-only'] += 1; return
+            if parsed is not None and parsed[-1]:
+                command, flags, *_ = parsed
+                self.controls['help-only'] += 1
+                if command:
+                    self.rows[command]['help_checks'] += 1
+                    self.rows[command]['scenarios'].add(scenario)
+                    for flag in flags:
+                        self.rows[command]['options'][flag]['help_checks'] += 1
+                        self.rows[command]['options'][flag]['scenarios'].add(scenario)
+                return
             if self.total >= 20000: raise ValueError('CLI coverage observation bound exceeded')
             self.total += 1
+            if code == 2: self.controls['parser-rejections'] += 1
+            if category is not None: self.failures[category] += 1
+            if parsed is None: return
+            command, flags, literal, equals, repeated, _ = parsed
             self.controls['literal-separator'] += int(literal)
             self.controls['equals-value'] += int(equals)
             self.controls['repeated-option'] += int(repeated)
             self.seen[(command, tuple(flags), code == 0, scenario)] += 1
             kind = 'successful_exits' if code == 0 else 'parser_rejections' if code == 2 else 'failed_exits'
             self.rows[command]['scenarios'].add(scenario)
+            if category is not None: self.rows[command]['failures'][category] += 1
             self.rows[command]['invocations'] += 1
             self.rows[command][kind] += 1
             for flag in flags:
                 self.rows[command]['options'][flag]['scenarios'].add(scenario)
+                if category is not None: self.rows[command]['options'][flag]['failures'][category] += 1
                 self.rows[command]['options'][flag]['invocations'] += 1
                 self.rows[command]['options'][flag][kind] += 1
 
@@ -229,8 +259,9 @@ class Coverage:
         scenarios = {s['id']: s for s in self.corpus['scenarios']}
         if set(completed) - scenarios.keys(): raise ValueError('Unknown completed corpus scenario')
         def rendered(row):
-            return {**{k: v for k, v in row.items() if k not in ('options', 'assertions', 'scenarios')},
-                    'status': 'asserted-success' if row['assertions'] else 'invocation-only' if row['successful_exits'] else 'refusal-observed' if row['failed_exits'] else 'parser-only' if row['parser_rejections'] else 'unverified',
+            return {**{k: v for k, v in row.items() if k not in ('options', 'assertions', 'scenarios', 'failures')},
+                    'status': 'asserted-success' if row['assertions'] else 'invocation-only' if row['successful_exits'] else 'refusal-observed' if row['failed_exits'] else 'parser-only' if row['parser_rejections'] else 'help-only' if row['help_checks'] else 'unverified',
+                    'failures': [{**dict(key), 'count': count} for key, count in sorted(row['failures'].items())],
                     'scenarios': sorted(row['scenarios']), 'assertions': sorted(row['assertions']), 'assertion_scenarios': ['examples'] if row['assertions'] else []}
         commands = []
         for row in self.rows.values():
@@ -238,6 +269,7 @@ class Coverage:
         value = {'kind': 'installed-cli-coverage', 'version': 1, 'identity': self.identity,
                  'corpus_sha256': hashlib.sha256((ROOT / CATALOG).read_bytes()).hexdigest(),
                  'controls': dict(self.controls), 'observations': self.total,
+                 'failures': [{**dict(key), 'count': count} for key, count in sorted(self.failures.items())],
                  'scenarios': [{'id': name, 'state': 'passed' if completed.get(name) else 'unverified', 'owner': scenario['owner'], 'fixtures': scenario['fixtures']} for name, scenario in scenarios.items()],
                  'commands': commands, 'limits': 'Synthetic contracts only; inference, external authorization and owner-installed behavior are unverified.'}
         if len(json.dumps(value, ensure_ascii=False).encode('utf-8')) > 1 << 20: raise ValueError('CLI coverage ledger bound exceeded')

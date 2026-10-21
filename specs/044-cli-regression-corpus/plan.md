@@ -30,6 +30,7 @@ Pre-research and post-design: PASS. Owner scope, shared CLI authority, source pr
 - Existing `scripts/cli_contract_qualification.py`, `cli_help_examples.py` and `package-desktop.py`: compose recorder, verified artifact identity and existing journeys.
 - Existing provider/documented workflow cleanup: assert bounded server threads actually stop.
 - `cmd/insonic/commands.go`: expose value arity from the existing global-option registry in contextual help, with a Go regression.
+- `internal/library/extract.go`: use ExifTool's UTF-8 stdin argument transport on Windows so non-Latin library paths do not depend on the system code page; preserve redacted extraction provenance and original deadlines.
 - `docs/v1.0.1/development.md` and `CHANGELOG.md`: maintainer contract and change record; no numbered-plan links in public docs.
 
 ## Design decisions

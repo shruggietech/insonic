@@ -2,7 +2,7 @@
 
 **Feature Branch**: `codex/044-cli-regression-corpus`
 **Created**: 2026-10-21
-**Status**: Specified
+**Status**: Implemented; hosted acceptance and review tracked in PR #167
 **Input**: S044 autopilot kickoff, following the recommended fixture inventory and coverage-ledger slice. Primary issue #114; audit reconciliation #147.
 
 ## User Scenarios & Testing

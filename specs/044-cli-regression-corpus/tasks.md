@@ -45,7 +45,7 @@
 
 ## Phase 7: Authorized publication and bounded review
 
-- [ ] T017 Track #114 in the S044 GitHub milestone/Project; commit and automatically push codex/044-cli-regression-corpus, open/attach an ordinary PR with #114 closure and #147 reconciliation scope.
+- [x] T017 Track #114 in the S044 GitHub milestone/Project; commit and automatically push codex/044-cli-regression-corpus, open/attach an ordinary PR with #114 closure and #147 reconciliation scope.
 - [ ] T018 Monitor exact-head complete CI to terminal acceptance using the current timing policy; fix failures and preserve canonical GitHub evidence.
 - [ ] T019 Address every received Codex finding/thread; allow initial automatic plus one explicit second round, never a third; retain actual reviewed-head identities.
 - [ ] T020 Reconcile #147 coverage/defect status with verified S044 results and explicit unverified service/inference/hardware/#154 limits; keep unrelated issue/dependency scopes unchanged.
@@ -62,3 +62,8 @@ Inventory first, then derive accepted coverage and separate observed/asserted ou
 ## Phase 8: Convergence
 
 - [x] T022 Link every command/option observation to its actual catalog scenario, including parallel helpers, and reject unknown scenario IDs per FR-003 and US2/AC1 (partial, HIGH).
+
+## Phase 9: Review and hosted failure corrections
+
+- [x] T023 Replay value-free authority-building observations, aggregate schema-owned failure categories and always check server liveness after cleanup exceptions per FR-003/FR-008 and first Codex review.
+- [x] T024 Preserve Windows Unicode extractor filenames through UTF-8 stdin, verify native extraction, and close the package failure diagnostic SQLite connection per FR-006/FR-008 and the initial hosted package failure.

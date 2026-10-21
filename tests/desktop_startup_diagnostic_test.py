@@ -50,7 +50,8 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
                 # Windows system thread enumeration in ProcessTree can exceed a
                 # second on a busy host before the observer even exists.
                 live_start=result['resources']['live']['start_elapsed_seconds']
-                self.assertLess(result['elapsed_seconds']-live_start,1)
+                observer_native_start=live_start-result['timing']['native_budget_start_elapsed_seconds']
+                self.assertLess(result['elapsed_seconds']-observer_native_start,1)
                 self.assertLess(result['timing']['cleanup_elapsed_seconds']-live_start,1)
                 self.assertEqual(result['job_before_close']['assigned'],0)
                 self.assertFalse(result['resources']['live']['available'])

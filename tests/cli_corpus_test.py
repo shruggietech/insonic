@@ -14,6 +14,7 @@ from cli_corpus import load_corpus, installed_authority, Coverage, example_outco
 HELP = '''Usage: insonic media list [--workspace DIRECTORY]
 Global options:
   --workspace VALUE; Meaning: Library. Status: optional global. Repeat: once.
+  --request-id VALUE; Meaning: Correlation. Status: optional global. Repeat: once.
   --json; Meaning: Machine. Status: optional global. Repeat: once.
   --help; Meaning: Help. Status: optional global. Repeat: once.
   -h; Meaning: Help. Status: optional global. Repeat: once.
@@ -95,6 +96,7 @@ class CoverageTests(unittest.TestCase):
     def test_unknown_accepted_options_fail_but_parser_rejections_are_separate(self):
         c=self.recorder()
         c.observe(['media','list','--unknown'],2)
+        self.assertEqual(c.finish({})['commands'][0]['parser_rejections'],1)
         with self.assertRaises(ValueError): c.observe(['media','list','--unknown'],0)
         c.observe(['media','list','--','--not-an-option'],0)
         self.assertEqual(c.finish({})['controls']['literal-separator'],1)
@@ -118,6 +120,31 @@ class CoverageTests(unittest.TestCase):
         identity['executable_sha256']='0'*64
         with self.assertRaises(ValueError):Coverage({'media list':HELP},self.exe,'1.0.1',identity)
 
+    def test_failed_observations_retain_only_schema_categories(self):
+        c=self.recorder()
+        c.observe(['media','list'],4,failure={'code':'unavailable','reason':'provider_timeout','message':'secret output'})
+        c.observe(['media','list'],4,failure={'code':'unavailable','reason':'provider_auth'})
+        value=c.finish({})
+        self.assertEqual({x['reason'] for x in value['commands'][0]['failures']},{'provider_timeout','provider_auth'})
+        self.assertNotIn('secret output',json.dumps(value))
+        with self.assertRaises(ValueError):c.observe(['media','list'],4,failure={'code':'owner-secret'})
+
+    def test_authority_building_observations_are_replayed(self):
+        from cli_contract_qualification import qualify_read_only, PARSER_REJECTIONS
+        observations=[]
+        def invoke(args,**kwargs):
+            if kwargs.get('expected')==2:return {'error':{'code':'invalid_request','message':'not retained'}}
+            return {'result':{'help':HELP if len(args)>1 else 'Commands: list'}}
+        pages=qualify_read_only(invoke,[['media','list']],self.exe.parent,self.exe.parent/'missing',observations=observations)
+        c=Coverage(pages,self.exe,'1.0.1')
+        for args,code,failure,help_only in observations:c.observe(args,code,failure=failure,help_only=help_only)
+        value=c.finish({});row=value['commands'][0]
+        self.assertEqual(value['controls']['help-only'],4)
+        self.assertEqual(value['controls']['parser-rejections'],len(PARSER_REJECTIONS))
+        self.assertEqual(row['options']['--help']['status'],'help-only')
+        self.assertEqual(row['options']['-h']['status'],'help-only')
+        self.assertNotIn(str(self.exe.parent),json.dumps(observations))
+
     def test_observation_bound(self):
         c=self.recorder();c.total=20000
         with self.assertRaises(ValueError):c.observe(['media','list'],0)
@@ -137,8 +164,11 @@ class OutcomeCleanupTests(unittest.TestCase):
         thread.is_alive.return_value=True
         with self.assertRaises(ValueError):finish_server(server,thread)
         server.shutdown.side_effect=RuntimeError('primary')
+        thread.is_alive.return_value=True
+        with self.assertRaisesRegex(ValueError,'did not stop') as caught:finish_server(server,thread)
+        self.assertIsInstance(caught.exception.__cause__,RuntimeError)
         thread.is_alive.return_value=False
         with self.assertRaises(RuntimeError):finish_server(server,thread)
-        self.assertEqual(server.server_close.call_count,3)
+        self.assertEqual(server.server_close.call_count,4)
 
 if __name__=='__main__':unittest.main()
