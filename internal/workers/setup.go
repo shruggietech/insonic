@@ -158,11 +158,18 @@ func (s Service) Prepare(ctx context.Context, election Election) (Prepared, erro
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Minute)
 	defer cancel()
-	if e = os.MkdirAll(s.Directory, 0700); e != nil {
+	if e = os.MkdirAll(filepath.Dir(s.Directory), 0700); e != nil {
 		return out, contracts.Fail("unavailable")
 	}
+	created := false
+	if e = os.Mkdir(s.Directory, 0700); e == nil {
+		created = true
+	} else if !os.IsExist(e) {
+		return out, contracts.Fail("unavailable")
+	}
+	// Only the successful creator may normalize Windows default ownership.
 	// Each attempt owns a fresh directory. Accepted environments are immutable.
-	if e = workspace.SecureDirectory(s.Directory, false); e != nil {
+	if e = workspace.SecureDirectory(s.Directory, created); e != nil {
 		return out, e
 	}
 	attempt, e := os.MkdirTemp(s.Directory, "environment-")

@@ -15,6 +15,7 @@ import (
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/library"
 	"github.com/shruggietech/insonic/internal/process"
+	"github.com/shruggietech/insonic/internal/workspace"
 )
 
 func TestProfileClosure(t *testing.T) {
@@ -222,5 +223,45 @@ func TestFailedOfflineAndCancelledSetupRemoveOnlyOwnedAttempt(t *testing.T) {
 		if string(body) != "accepted" {
 			t.Fatal("accepted environment changed")
 		}
+	}
+}
+
+func TestOfflineSetupCreatesPrivateWorkerDirectoryBeforeAssetVerification(t *testing.T) {
+	for _, existing := range []bool{false, true} {
+		t.Run(map[bool]string{false: "new", true: "existing"}[existing], func(t *testing.T) {
+			w, err := workspace.Init(t.TempDir(), "worker directory fixture")
+			if err != nil {
+				t.Fatal(err)
+			}
+			dir := filepath.Join(w.Control, "workers")
+			if existing {
+				if err := os.Mkdir(dir, 0700); err != nil {
+					t.Fatal(err)
+				}
+				if err := workspace.SecureDirectory(dir, true); err != nil {
+					t.Fatal(err)
+				}
+			}
+			service := Service{Directory: dir, Run: func(_ context.Context, spec process.Spec) (process.CaptureResult, error) {
+				if filepath.Base(spec.Executable) == "getconf" {
+					return process.CaptureResult{Stdout: []byte("glibc 2.42\n")}, nil
+				}
+				t.Fatal("installer ran without verified assets")
+				return process.CaptureResult{}, nil
+			}}
+			_, err = service.Prepare(context.Background(), Election{Role: "recognition", Mode: "managed", OfflineAssets: t.TempDir()})
+			observed, ok := err.(*contracts.Error)
+			profile, _ := Selected("recognition")
+			if !ok || observed.Reason != "asset_missing" || observed.Asset == nil || observed.Asset.Name != profile.Runtime.Name {
+				t.Fatalf("setup did not reach declared asset verification: %#v", err)
+			}
+			if err := workspace.PrivateDirectory(dir); err != nil {
+				t.Fatal("worker directory is not private", err)
+			}
+			entries, err := os.ReadDir(dir)
+			if err != nil || len(entries) != 0 {
+				t.Fatal("failed attempt retained", entries, err)
+			}
+		})
 	}
 }

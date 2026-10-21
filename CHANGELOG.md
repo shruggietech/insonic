@@ -22,6 +22,7 @@ All notable changes to this project will be documented here. The format follows 
 ### Fixed
 
 - Artifact corruption, truncation and missing stored objects report byte-integrity failures separately from revision conflicts. Trainer output must match its declared bytes before publication admission. Worker/model prerequisites retain bounded logical asset details through human, JSON and durable failure reporting.
+- Newly created worker directories normalize Windows default ownership before private-directory verification; existing directories retain their ownership checks.
 - Offline worker plans separate zero network transfer from nominal and verified local byte totals. Model previews check local protected-reference resolvability without contacting upstream services. Custom local trainer readiness verifies pinned files without invocation, and training-only pipelines check their elected tasks.
 - Work waiting retains one caller budget across readiness and polling. Caller expiry produces neutral continuation advice and preserves only observed work state, while independently reported startup failures retain their diagnosis.
 
