@@ -305,3 +305,46 @@ func TestReadOnlyExistingLockReportsCreationAccess(t *testing.T) {
 		t.Fatal("log created despite inaccessible lock", err)
 	}
 }
+
+func TestPrivateOwnerNormalizationSecuresDACLBeforeRequestingOwnership(t *testing.T) {
+	directory := modifyOnlyDirectory(t)
+	path := filepath.Join(directory, "new-private.jsonl")
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer file.Close()
+	access := uint32(windows.READ_CONTROL | windows.WRITE_DAC | windows.FILE_READ_ATTRIBUTES)
+	denied, err := privateHandle(file, access|windows.WRITE_OWNER)
+	if err == nil {
+		windows.CloseHandle(denied)
+		t.Fatal("fixture unexpectedly grants WRITE_OWNER before privacy ACL")
+	}
+	if err != windows.ERROR_ACCESS_DENIED {
+		t.Fatal("wrong initial ownership boundary", err)
+	}
+	handle, err := privateHandle(file, access)
+	if err != nil {
+		t.Fatal("ordinary owner DACL authority unavailable", err)
+	}
+	defer windows.CloseHandle(handle)
+	user, err := windows.GetCurrentProcessToken().GetTokenUser()
+	if err != nil {
+		t.Fatal(err)
+	}
+	descriptor, err := windows.SecurityDescriptorFromString("D:P(A;;FA;;;" + user.User.Sid.String() + ")")
+	if err != nil {
+		t.Fatal(err)
+	}
+	dacl, _, err := descriptor.DACL()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Exercise the required ownership-normalization operations without assigning
+	// a foreign owner or changing the process token. The existing decision tests
+	// separately preserve refusal for existing foreign-owned files.
+	if err = securePrivateOwner(file, handle, access, true, user.User.Sid, dacl); err != nil {
+		t.Fatal("new-file owner normalization preceded privacy ACL", err)
+	}
+	assertPrivateACL(t, path)
+}
