@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strconv"
 	"testing"
 )
@@ -30,15 +31,14 @@ func TestPhysicalIntegrityCategories(t *testing.T) {
 					data = []byte("abc")
 				}
 				if backend == "filesystem" {
-					s, e := NewFilesystem(t.TempDir())
+					if mode == "denied" {
+						t.Skip("access denial depends on host ACLs; S3 covers the deterministic denial")
+					}
+					s, e := NewFilesystem(filepath.Join(t.TempDir(), "objects"))
 					if e != nil {
 						t.Fatal(e)
 					}
 					store = s
-					if mode == "denied" {
-						s.Close()
-						t.Skip("access denial depends on host ACLs; S3 covers the deterministic denial")
-					}
 					if mode != "missing" {
 						if e = os.WriteFile(s.root.Name()+"/object", data, 0600); e != nil {
 							t.Fatal(e)
