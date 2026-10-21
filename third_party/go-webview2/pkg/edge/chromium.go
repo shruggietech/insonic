@@ -292,6 +292,7 @@ func (e *Chromium) EnvironmentCompleted(res uintptr, env *ICoreWebView2Environme
 		return 0
 	}
 	if env == nil {
+		e.observeBrowserEnvironment(res, env)
 		err := syscall.Errno(res)
 		log.Printf("[WebView2] Environment creation failed with error code %v: %v\n", res, err)
 		if e.globalErrorCallback != nil {

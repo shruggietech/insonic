@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 import importlib.util
 import os
+import re
 import io
 import tempfile
 from types import SimpleNamespace
@@ -88,7 +89,16 @@ class StartupDiagnosticQualificationTests(unittest.TestCase):
                 self.assertEqual(receipt.call_args_list[-1].args[2]['owned_browser_release'], 'passed')
                 build.assert_called_once_with(True, {})
                 self.assertEqual(len(child.call_args_list), 7)
-                self.assertEqual(child.call_args_list[0].args[0], ['go', 'test', '-timeout=15s', '-run', '^TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread$', 'github.com/wailsapp/go-webview2/pkg/edge'])
+                binding = child.call_args_list[0].args[0]
+                self.assertEqual(binding[:4], ['go', 'test', '-timeout=15s', '-run'])
+                self.assertEqual(binding[5:], ['github.com/wailsapp/go-webview2/pkg/edge'])
+                for name in ('TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread',
+                             'TestBootstrapOnlyEnvironmentVersionDoesNotEnableCDPOrGateNavigation',
+                             'TestBrowserDiagnosticsEnvironmentHookKeepsNativeCreationOrder',
+                             'TestBrowserDiagnosticsVersionOwnershipBoundsAndAllowlist',
+                             'TestBrowserDiagnosticsDisabledAddsNoNativeCalls'):
+                    self.assertIsNotNone(re.fullmatch(binding[4], name), name)
+                self.assertIsNone(re.fullmatch(binding[4], 'TestCookieManager'))
                 for call in child.call_args_list[:3]:
                     self.assertEqual(call.kwargs['env'], {})
                     self.assertNotIn('allow_detached', call.kwargs)

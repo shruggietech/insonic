@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"math/big"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -246,8 +247,54 @@ func browserVersionOnly(value string) bool {
 	}
 	return true
 }
+func (e *Chromium) observeWindowEnvironment(result uintptr, environment *ICoreWebView2Environment) WindowEnvironmentSnapshot {
+	if !bootstrapDiagnosticsEnabled.Load() && !browserDiagnosticsEnabled.Load() {
+		return WindowEnvironmentSnapshot{}
+	}
+	ownedWindows.Lock()
+	entry := ownedWindows.values[e.hwnd]
+	if entry == nil || entry.chromium != e || entry.closed || entry.thread != windows.GetCurrentThreadId() {
+		ownedWindows.Unlock()
+		return WindowEnvironmentSnapshot{}
+	}
+	if entry.bootstrap.Environment.Observed {
+		value := entry.bootstrap.Environment
+		ownedWindows.Unlock()
+		return value
+	}
+	value := WindowEnvironmentSnapshot{Observed: true, Created: result == 0 && environment != nil, CreationHRESULT: uint32(result),
+		ConfiguredBrowserPath: e.BrowserPath, BrowserFolderOverride: os.Getenv("WEBVIEW2_BROWSER_EXECUTABLE_FOLDER")}
+	if value.Created {
+		value.VersionCalls = 1
+	}
+	entry.bootstrap.Environment = value
+	ownedWindows.Unlock()
+	if !value.Created {
+		return value
+	}
+	// Borrow the environment only during its owning-thread completion callback.
+	// Never hold the owner lock across COM, which may pump callbacks.
+	var version *uint16
+	hr, _, _ := environment.vtbl.GetBrowserVersionString.Call(uintptr(unsafe.Pointer(environment)), uintptr(unsafe.Pointer(&version)))
+	text, valid := readBrowserOwnedString(version, 64, windows.CoTaskMemFree)
+	value.VersionReturned = true
+	value.VersionHRESULT = uint32(hr)
+	if hr == 0 && valid && browserVersionOnly(text) {
+		value.ActualRuntimeVersion = text
+	} else {
+		value.VersionInvalid = true
+	}
+	ownedWindows.Lock()
+	if current := ownedWindows.values[e.hwnd]; current == entry && !entry.closed {
+		entry.bootstrap.Environment = value
+	}
+	ownedWindows.Unlock()
+	return value
+}
+
 func (e *Chromium) observeBrowserEnvironment(result uintptr, environment *ICoreWebView2Environment) {
-	if result != 0 || environment == nil {
+	value := e.observeWindowEnvironment(result, environment)
+	if !value.Created {
 		return
 	}
 	state := e.browserDiagnosticState()
@@ -255,21 +302,11 @@ func (e *Chromium) observeBrowserEnvironment(result uintptr, environment *ICoreW
 		return
 	}
 	state.Lock()
-	if state.snapshot.VersionCalls != 0 {
-		state.Unlock()
-		return
-	}
-	state.snapshot.VersionCalls++
-	state.Unlock()
-	var version *uint16
-	hr, _, _ := environment.vtbl.GetBrowserVersionString.Call(uintptr(unsafe.Pointer(environment)), uintptr(unsafe.Pointer(&version)))
-	value, valid := readBrowserOwnedString(version, 64, windows.CoTaskMemFree)
-	state.Lock()
-	state.snapshot.VersionHRESULT = uint32(hr)
-	if hr == 0 && valid && browserVersionOnly(value) {
-		state.snapshot.ActualRuntimeVersion = value
-	} else {
-		state.snapshot.VersionInvalid = true
+	if state.snapshot.VersionCalls == 0 {
+		state.snapshot.VersionCalls = value.VersionCalls
+		state.snapshot.VersionHRESULT = value.VersionHRESULT
+		state.snapshot.VersionInvalid = value.VersionInvalid
+		state.snapshot.ActualRuntimeVersion = value.ActualRuntimeVersion
 	}
 	state.Unlock()
 }

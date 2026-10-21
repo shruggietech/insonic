@@ -6,6 +6,9 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Windows native qualification records owned desktop/input conditions, completion timings and created-environment runtime identity separately from loader availability. Its show/focus join now allows ten seconds within unchanged outer deadlines, with real input and natural release still required.
+- Initial CI queue accounting reads the verified workflow creation record separately from attempt-record creation, which can occur after attempt start.
+
 - Desktop File > Exit uses the normal window shutdown lifecycle, works before library selection and preserves independently owned background work. Windows retains Alt+F, X and Alt+F4 behavior.
 
 - Windows setup EXE coordinates the native per-user MSI and retains full local package sources for failed-upgrade recovery. The raw MSI remains available with explicit engine recovery limits. Trusted release verification independently rebuilds the setup executable from reviewed source and compares its complete code/resource prefix.
@@ -17,6 +20,8 @@ All notable changes to this project will be documented here. The format follows 
 - Read-only public release and documentation verification compares the selected published inventory and original documentation with live pages, schemas, aliases and referenced resources, then rechecks the elected Pages deployment identity.
 
 ### Fixed
+
+- Windows package consumers wait for explicit verified source, foundation and documentation readiness. Windows prepares dependency libraries through a verified same-attempt handoff before product builds and checks. Cold source preparation no longer races the 180-second transfer wait. Explicit cold-source campaigns isolate compiled caches without evicting ordinary CI inputs. An always-running elected acceptance aggregate rejects missing, failed, cancelled or unexpectedly skipped delivery results and over-budget qualification. First-attempt preparation and combined totals include initial queue time while qualification remains measured from verified readiness.
 
 - Windows startup diagnostics verify live process identity through the owned process handle and precise integral UTC timestamps, rejecting failed or inconsistent observations without relying on undefined exit-time data. The private wait-query helper authenticates the inherited input pipe and its live parent executable before accepting diagnostic targets.
 
@@ -74,7 +79,7 @@ All notable changes to this project will be documented here. The format follows 
 
 - Versioned screenshots retain their original capture-time provenance when backend source changes. Frozen-source verification uses bounded ancestral Git blobs, while image-byte checks and current native UI capture qualification remain mandatory.
 
-- CI overlaps conservative scope selection with foundation, shares source/run/attempt/hash-bound documentation exports across native jobs, and overlaps Windows package setup with its verified source producer. Documentation browser, native and installer checks remain mandatory; only restricted-session capture initialization can retry once after its exact startup timeout.
+- CI shares source/run/attempt/hash-bound documentation exports across native jobs after verified prerequisite readiness. Documentation browser, native and installer checks remain mandatory; only restricted-session capture initialization can retry once after its exact startup timeout.
 
 - Landing-page downloads separate Windows MSI installation, portable Windows ZIPs and Linux tar.gz choices with explicit client/format labels, accurate platform guidance and spaced subordinate actions.
 
@@ -121,6 +126,8 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-19: Correct the pinned WebView resource-deferral Release dispatch with a native reference-count regression and checksum-bound source allowlist. Keep unresolved startup observations separate from demonstrated ownership corrections.
 
 - 2026-10-19: Adopt the verified go-webview2 v1.0.23 native Boolean ABI correction, preserve the explicit maintained lifecycle patch and checksum-bound corresponding source, and keep unresolved startup/process-release observations separate from the demonstrated argument correction.
+
+- 2026-10-20: At the owner’s direction, constitution 3.1.0 separates verified source prerequisite preparation from the 660-second qualification phase, reports preparation/qualification/combined elapsed time and counts phase queue time. All elected checks start after readiness. A provisional aggregate retains fifteen seconds for finalization; terminal timestamps remain required for final timing claims. The bootstrap declares the elected acceptance check without implying live protection has already changed.
 
 ## [1.0.1] - 2026-10-15
 

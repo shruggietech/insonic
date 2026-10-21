@@ -50,20 +50,37 @@ func (e *Chromium) nativeSystemKeyHandler() func(uintptr, NativeSystemKeyEvent) 
 	return ownedWindows.systemKeyHandler
 }
 
+// WindowEnvironmentSnapshot observes the created environment independently of
+// the available-loader lookup and without registering CDP or gating navigation.
+type WindowEnvironmentSnapshot struct {
+	Observed              bool   `json:"observed"`
+	Created               bool   `json:"created"`
+	CreationHRESULT       uint32 `json:"creation_hresult"`
+	ConfiguredBrowserPath string `json:"configured_browser_path"`
+	BrowserFolderOverride string `json:"browser_folder_override"`
+	VersionCalls          uint64 `json:"version_calls"`
+	VersionReturned       bool   `json:"version_returned"`
+	ActualRuntimeVersion  string `json:"actual_runtime_version"`
+	VersionHRESULT        uint32 `json:"version_hresult"`
+	VersionInvalid        bool   `json:"version_invalid"`
+}
+
 // WindowBootstrapSnapshot contains only fixed counters and the browser version,
 // never request URLs, script contents or application data.
 type WindowBootstrapSnapshot struct {
-	OffThreadEvents       uint64                           `json:"off_thread_events"`
-	RuntimeVersion        string                           `json:"runtime_version"` // Available-loader lookup, not created-environment identity.
-	NavigationRequested   uint64                           `json:"navigation_requested"`
-	NavigationAccepted    uint64                           `json:"navigation_accepted"`
-	ResourceEntered       uint64                           `json:"resource_entered"`
-	ResourceReturned      uint64                           `json:"resource_returned"`
-	NavigationCompleted   uint64                           `json:"navigation_completed"`
-	CompletionWithoutHost uint64                           `json:"completion_without_host"`
-	FirstResponse         WindowBootstrapResponseSnapshot  `json:"first_response"`
-	Responses             WindowBootstrapResponsesSnapshot `json:"responses"`
-	RuntimeReadyReceived  uint64                           `json:"runtime_ready_received"`
+	AvailableRuntimeVersion string                           `json:"available_runtime_version"`
+	Environment             WindowEnvironmentSnapshot        `json:"environment"`
+	OffThreadEvents         uint64                           `json:"off_thread_events"`
+	RuntimeVersion          string                           `json:"runtime_version"` // Available-loader lookup, not created-environment identity.
+	NavigationRequested     uint64                           `json:"navigation_requested"`
+	NavigationAccepted      uint64                           `json:"navigation_accepted"`
+	ResourceEntered         uint64                           `json:"resource_entered"`
+	ResourceReturned        uint64                           `json:"resource_returned"`
+	NavigationCompleted     uint64                           `json:"navigation_completed"`
+	CompletionWithoutHost   uint64                           `json:"completion_without_host"`
+	FirstResponse           WindowBootstrapResponseSnapshot  `json:"first_response"`
+	Responses               WindowBootstrapResponsesSnapshot `json:"responses"`
+	RuntimeReadyReceived    uint64                           `json:"runtime_ready_received"`
 }
 
 // WindowBootstrapCallSnapshot records actual native call boundaries. A zero
@@ -406,6 +423,7 @@ func recordWindowBootstrap(e *Chromium, event uint8) {
 	if len(value.RuntimeVersion) > 64 {
 		value.RuntimeVersion = value.RuntimeVersion[:64]
 	}
+	value.AvailableRuntimeVersion = value.RuntimeVersion
 	switch event {
 	case bootstrapNavigateRequested:
 		value.NavigationRequested++

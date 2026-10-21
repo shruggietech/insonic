@@ -61,7 +61,12 @@ export function validateYAML(file, text) {
         && actionName === 'download-artifact' && step.if === "matrix.kind == 'desktop-startup'"
         && Number.isSafeInteger(inputs['run-id']) && inputs['run-id'] > 0
         && typeof selector === 'string' && /^windows-desktop-input-[a-f0-9]{40}-[1-9][0-9]*$/.test(selector);
-      if (!incidentReplay && (typeof selector !== 'string' || !/\$\{\{\s*github\.run_attempt\s*\}\}/.test(selector))) report('Artifact names/patterns must include github.run_attempt');
+      const windowCalibration = file === '.github/workflows/installer-invocation-diagnostic.yml'
+        && Object.keys(workflow.on ?? {}).length === 1 && Object.hasOwn(workflow.on ?? {}, 'workflow_dispatch')
+        && actionName === 'download-artifact' && step.if === "matrix.kind == 'window-calibration'"
+        && inputs['run-id'] === '${{ inputs.calibration_run }}'
+        && selector === 'windows-desktop-input-${{ inputs.calibration_revision }}-${{ inputs.calibration_attempt }}';
+      if (!incidentReplay && !windowCalibration && (typeof selector !== 'string' || !/\$\{\{\s*github\.run_attempt\s*\}\}/.test(selector))) report('Artifact names/patterns must include github.run_attempt');
     }
   }
   return problems;

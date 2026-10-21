@@ -157,6 +157,9 @@ func TestPortableProcessingAllKindsPreserveElectionAndHistory(t *testing.T) {
 		for _, state := range []string{"pending", "interrupted", "succeeded"} {
 			t.Run(kind+"/"+state, func(t *testing.T) {
 				ctx := context.Background()
+				// This fixture checks portable election/history, not lease expiry.
+				// Durable transactions on hosted Windows can exceed one second.
+				const fixtureLease = time.Minute
 				source := localStore(t, contracts.ID())
 				path := `C:\private-tools\worker.exe`
 				hint := "TransientRecognitionHint"
@@ -175,7 +178,7 @@ func TestPortableProcessingAllKindsPreserveElectionAndHistory(t *testing.T) {
 					t.Fatal(e)
 				}
 				if state != "pending" {
-					claim, e := source.ClaimWork(ctx, w.ID, contracts.ID(), time.Second)
+					claim, e := source.ClaimWork(ctx, w.ID, contracts.ID(), fixtureLease)
 					if e != nil {
 						t.Fatal(e)
 					}
@@ -183,7 +186,7 @@ func TestPortableProcessingAllKindsPreserveElectionAndHistory(t *testing.T) {
 					if state == "interrupted" {
 						checkpointState = "running"
 					}
-					w, e = source.CheckpointWork(ctx, claim, "fixture", checkpointState, json.RawMessage(`{"state":"accepted","version_id":"`+selected+`"}`), time.Second)
+					w, e = source.CheckpointWork(ctx, claim, "fixture", checkpointState, json.RawMessage(`{"state":"accepted","version_id":"`+selected+`"}`), fixtureLease)
 					if e != nil {
 						t.Fatal(e)
 					}
@@ -229,11 +232,11 @@ func TestPortableProcessingAllKindsPreserveElectionAndHistory(t *testing.T) {
 					t.Fatal("native portable input proof missing", e)
 				}
 				if state != "succeeded" {
-					claim, e := dest.ClaimWork(ctx, w.ID, contracts.ID(), time.Second)
+					claim, e := dest.ClaimWork(ctx, w.ID, contracts.ID(), fixtureLease)
 					if e != nil {
 						t.Fatal(e)
 					}
-					if _, e = dest.CheckpointWork(ctx, claim, "recovered", "succeeded", json.RawMessage(`{"state":"accepted"}`), time.Second); e != nil {
+					if _, e = dest.CheckpointWork(ctx, claim, "recovered", "succeeded", json.RawMessage(`{"state":"accepted"}`), fixtureLease); e != nil {
 						t.Fatal(e)
 					}
 					after, e := dest.Export(ctx)

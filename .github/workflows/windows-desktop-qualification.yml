@@ -27,6 +27,9 @@ on:
       reuse-ci-offline-help:
         type: boolean
         default: false
+      reuse-ci-go-dependencies:
+        type: boolean
+        default: false
       overlap-source-setup:
         type: boolean
         default: false
@@ -81,7 +84,7 @@ jobs:
         uses: ./build/actions/setup-go
         with:
           go-version-file: go.mod
-          cache: true
+          cache: ${{ !(inputs.reuse-ci-go-dependencies && runner.os == 'Windows') }}
           cache-dependency-path: |
             go.sum
             internal/qualification/dependencies.json
@@ -115,6 +118,12 @@ jobs:
         if: runner.os == 'Windows' && inputs.native
         run: |
           python -m pip install --disable-pip-version-check --no-input --only-binary=:all: --target build/native/python zstandard==0.25.0
+      - name: Await successful CI foundation and documentation within the original deadline
+        if: inputs.overlap-source-setup && inputs.reuse-ci-offline-help
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/ci-acceptance.mjs wait-inputs
       - name: Await exact same-run source after overlapping consumer setup
         if: inputs.overlap-source-setup && inputs.core
         env:
@@ -123,6 +132,14 @@ jobs:
       - name: Pinned native artifacts
         if: inputs.native
         run: python scripts/qualify.py prepare
+      - name: Download exact same-attempt prepared Go dependencies
+        if: inputs.reuse-ci-go-dependencies && runner.os == 'Windows'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          digest-mismatch: error
+          skip-decompress: false
+          name: go-dependencies-windows-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: build/dependency-transfer
       - name: Download exact same-run source build
         if: inputs.core
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
@@ -131,12 +148,15 @@ jobs:
           skip-decompress: false
           name: media-source-${{ inputs.os }}-${{ github.run_attempt }}
           path: build/transfer
+      - name: Join independent verified CI inputs and notice installations
+        if: inputs.reuse-ci-go-dependencies && runner.os == 'Windows'
+        run: python scripts/ci-package-inputs.py
       - name: Verify source build transfer before reuse
-        if: inputs.core
+        if: inputs.core && !(inputs.reuse-ci-go-dependencies && runner.os == 'Windows')
         shell: bash
         run: python scripts/media-transfer.py restore --stage complete --revision "$SOURCE_REVISION" build/transfer/media-source.tar.gz
       - name: Prepare pinned metadata extractors for package qualification
-        if: inputs.core
+        if: inputs.core && !(inputs.reuse-ci-go-dependencies && runner.os == 'Windows')
         run: python scripts/media-tools.py --prepare-only
       - name: Download exact same-run documentation export
         if: inputs.reuse-ci-offline-help && inputs.native
@@ -150,7 +170,7 @@ jobs:
         if: inputs.reuse-ci-offline-help && inputs.native
         run: python scripts/site-transfer.py restore --revision '${{ inputs.revision }}' --directory build/documentation-transfer
       - name: Install package notice inputs
-        if: inputs.native
+        if: inputs.native && !(inputs.reuse-ci-go-dependencies && runner.os == 'Windows')
         run: |
           npm --prefix desktop/frontend ci --ignore-scripts
           npm --prefix site ci --ignore-scripts

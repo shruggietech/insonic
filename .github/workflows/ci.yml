@@ -5,6 +5,10 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      cold_media_source:
+        description: Isolate compiled media caches for a cold campaign; full reruns reuse its namespace
+        type: boolean
+        default: false
       site_smoke:
         description: Read-only production byte, download and browser verification
         type: boolean
@@ -35,7 +39,70 @@ jobs:
         run: node scripts/ci-scope.mjs
         env:
           INSONIC_CI_SITE_SMOKE: ${{ github.event_name == 'workflow_dispatch' && inputs.site_smoke }}
+  dependencies-windows:
+    name: Windows Go dependency preparation
+    needs: scope
+    if: needs.scope.outputs.native == 'true'
+    runs-on: windows-2022
+    timeout-minutes: 11
+    env:
+      SOURCE_REVISION: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Acquire verified setup-go action with bounded retries
+        run: python scripts/bootstrap-actions.py setup-go --output build/actions/setup-go
+      - uses: ./build/actions/setup-go
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Windows native compiler and loader dependencies
+        id: msys2
+        uses: msys2/setup-msys2@ec48f7c5447b3140e2b088413ae3a55687bccb6e
+        with:
+          msystem: UCRT64
+          update: false
+          install: mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-openssl make diffutils
+      - name: Bind the installed Windows toolchain
+        env:
+          SELECTED_MSYS2_ROOT: ${{ steps.msys2.outputs.msys2-location }}
+        run: python -c "import os; assert os.environ['SELECTED_MSYS2_ROOT']; open(os.environ['GITHUB_ENV'],'a',encoding='utf-8',newline='\n').write('INSONIC_MSYS2_ROOT='+os.environ['SELECTED_MSYS2_ROOT']+'\n')"
+      - name: Pinned Windows archive decoder
+        run: |
+          python -m pip install --disable-pip-version-check --no-input --only-binary=:all: --target build/native/python zstandard==0.25.0
+      - name: Pinned native dependency inputs
+        run: python scripts/qualify.py prepare
+      - name: Compile only external and standard Go dependency libraries
+        run: python scripts/go-dependency-transfer.py prepare
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          archive: true
+          name: go-dependencies-windows-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/dependency-transfer
+          compression-level: 1
+          if-no-files-found: error
+          retention-days: 14
+  readiness:
+    name: prerequisite readiness
+    needs: [scope, media-linux, media-windows, dependencies-windows]
+    if: always() && needs.scope.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 11
+    outputs:
+      ready: ${{ steps.ready.outputs.ready }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Require successful verified preparation or explicit non-election
+        id: ready
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: node scripts/ci-acceptance.mjs ready
   foundation:
+    needs: readiness
     name: foundation
     runs-on: ubuntu-latest
     timeout-minutes: 11
@@ -53,6 +120,7 @@ jobs:
       - run: npm run check
       - run: npm test
   docs-build:
+    needs: readiness
     name: docs-build
     runs-on: ubuntu-latest
     timeout-minutes: 11
@@ -144,9 +212,10 @@ jobs:
           retention-days: 14
   media-linux:
     needs: scope
-    if: needs.scope.outputs.native == 'true' || needs.scope.outputs.adapters == 'true'
+    if: needs.scope.outputs.core == 'true' || needs.scope.outputs.native == 'true' || needs.scope.outputs.adapters == 'true'
     uses: ./.github/workflows/media-source.yml
     with:
+      cold-cache: ${{ github.event_name == 'workflow_dispatch' && inputs.cold_media_source }}
       revision: ${{ github.sha }}
       os: ubuntu-24.04
   qualify-linux:
@@ -183,9 +252,10 @@ jobs:
       lane: packages
   media-windows:
     needs: scope
-    if: needs.scope.outputs.native == 'true' || needs.scope.outputs.adapters == 'true'
+    if: needs.scope.outputs.core == 'true' || needs.scope.outputs.native == 'true' || needs.scope.outputs.adapters == 'true'
     uses: ./.github/workflows/media-source.yml
     with:
+      cold-cache: ${{ github.event_name == 'workflow_dispatch' && inputs.cold_media_source }}
       revision: ${{ github.sha }}
       os: windows-2022
   qualify-windows:
@@ -205,12 +275,12 @@ jobs:
       native: ${{ needs.scope.outputs.native == 'true' }}
       lane: runtime
   package-windows:
-    needs:
-      - scope
-    if: needs.scope.outputs.native == 'true'
+    needs: [scope, readiness]
+    if: always() && needs.readiness.result == 'success' && needs.readiness.outputs.ready == 'true' && needs.scope.outputs.native == 'true'
     uses: ./.github/workflows/native-qualification.yml
     with:
       reuse-ci-offline-help: true
+      reuse-ci-go-dependencies: true
       overlap-source-setup: true
       revision: ${{ github.sha }}
       os: windows-2022
@@ -414,6 +484,7 @@ jobs:
           python scripts/media-tools.py --prepare-only
           go test -v -p 1 -tags integration ./internal/qualification ./internal/backendsetup ./internal/catalog ./internal/artifact ./internal/models ./internal/library ./internal/graph ./internal/app ./internal/backup
   live-site:
+    needs: readiness
     if: github.event_name == 'workflow_dispatch' && inputs.site_smoke
     name: read-only live website
     runs-on: ubuntu-24.04
@@ -453,4 +524,32 @@ jobs:
           name: live-site-${{ github.sha }}-${{ github.run_attempt }}
           path: build/live-site
           if-no-files-found: warn
+          retention-days: 14
+  acceptance:
+    name: elected acceptance
+    if: always()
+    needs: [scope, readiness, foundation, docs-build, docs, media-linux, media-windows, dependencies-windows, core, core-windows, qualify-linux, qualify-windows, package-linux, package-windows, adapters, candidate, live-site]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 11
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Evaluate all elected results and measured qualification budget
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          SITE_SMOKE: ${{ github.event_name == 'workflow_dispatch' && inputs.site_smoke }}
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci-acceptance.mjs
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          archive: true
+          name: ci-acceptance-${{ github.sha }}-${{ github.run_attempt }}
+          path: build/ci-acceptance
+          if-no-files-found: error
           retention-days: 14

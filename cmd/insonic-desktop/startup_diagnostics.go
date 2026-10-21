@@ -96,7 +96,7 @@ func (e *nativeExitTimings) record(stage string) {
 		return
 	}
 	switch stage {
-	case "controller-startup", "startup-entered", "window-prepare-returned", "watchdog-timeout", "dom-ready", "shutdown":
+	case "controller-startup", "startup-entered", "window-prepare-returned", "watchdog-timeout", "dom-ready", "frontend-ready", "native-action", "shutdown":
 	default:
 		return
 	}

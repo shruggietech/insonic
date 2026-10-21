@@ -26,7 +26,7 @@ previous owned child only while the same parent still owns foreground input.
 
 Explicit disposable qualification can retain fixed navigation/resource callback
 counts and the browser version for bounded failure evidence. It does not retain
-request URLs, script contents or application data, or add browser calls.
+request URLs, script contents or application data.
 
 The resource deferral Release method dispatches to IUnknown.Release, balancing
 the acquired reference after completion instead of increasing its count.
@@ -36,7 +36,7 @@ acquisition, status/reason, content publication and deferral completion. Individ
 AppendHeader calls and browser consumption are not observed. Fixed
 entered/returned/HRESULT/thread counters contain no request content or native
 addresses. Internal borrowed identities are retired with their corresponding
-acquisition/Release and window owner. No WebView2 COM call is added or reordered; observation reads native thread identity.
+acquisition/Release and window owner. The response-call observer adds no WebView2 calls; observation reads native thread identity.
 The runtime_version diagnostic field remains an available-loader lookup, not
 independently verified created-environment identity.
 
@@ -55,7 +55,13 @@ failed-call totals across initial responses. Slot overflow and retirement remain
 explicit. Only the exact runtime-ready message receives a fixed counter, with
 existing message forwarding unchanged and no message content retained.
 
-A separately elected disposable browser observer queries the created environment
+Disposable qualification now queries BrowserVersionString exactly once through the
+created environment completion callback, records creation/getter HRESULT and
+explicit available versus actual version identity, and frees the returned string.
+This passive observation adds no CDP setup or navigation acknowledgement gate.
+Ordinary application launches do not elect this getter.
+
+A separately elected disposable browser observer reuses that created-environment
 version and registers seven CDP receivers with four acknowledged setup commands
 before diagnostic navigation. It retains only bounded fixed asset classes, numeric
 fetch/header/exception summaries and matching document loader/frame milestones.

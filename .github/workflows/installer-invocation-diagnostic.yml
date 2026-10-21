@@ -2,6 +2,18 @@ name: Installer invocation diagnostic
 on:
   workflow_dispatch:
     inputs:
+      calibration_run:
+        description: Exact ordinary CI run supplying the instrumented assembled archive
+        type: string
+        default: ""
+      calibration_attempt:
+        description: Exact assembly workflow attempt
+        type: string
+        default: "1"
+      calibration_revision:
+        description: Exact forty-character tested assembly source revision
+        type: string
+        default: ""
       startup_hide:
         description: Mirror the Go parent's explicit startup-hide flags in the cold-start comparison
         type: boolean
@@ -62,7 +74,7 @@ on:
         description: Focused diagnostic boundary (never product qualification)
         type: choice
         default: completion
-        options: [completion, keyboard, rollback, msiexec, recovery, exit, container, container-independent, container-compare, standalone, standalone-full, recovery-compare, setup, setup-full, setup-compare, desktop-startup, scheduler-preflight]
+        options: [completion, keyboard, rollback, msiexec, recovery, exit, container, container-independent, container-compare, standalone, standalone-full, recovery-compare, setup, setup-full, setup-compare, desktop-startup, scheduler-preflight, window-calibration]
 permissions:
   contents: read
   actions: read
@@ -98,7 +110,7 @@ jobs:
       matrix:
         kind: ${{ fromJSON(inputs.kind == 'setup-compare' && '["setup","setup-full"]' || inputs.kind == 'recovery-compare' && '["container","container-independent","standalone","standalone-full"]' || inputs.kind == 'container-compare' && '["container","container-independent"]' || format('["{0}"]', inputs.kind)) }}
     runs-on: windows-2022
-    timeout-minutes: ${{ matrix.kind == 'desktop-startup' && inputs.startup_source && 11 || 5 }}
+    timeout-minutes: ${{ matrix.kind == 'desktop-startup' && inputs.startup_source && 11 || matrix.kind == 'window-calibration' && 11 || 5 }}
     env:
       INSONIC_DISPOSABLE_INSTALLER_TEST: '1'
       INSONIC_INSTALLER_DIAGNOSTIC_KIND: ${{ matrix.kind }}
@@ -106,8 +118,35 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - name: Restore exact calibration source
+        if: matrix.kind == 'window-calibration'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.calibration_revision }}
+          path: build/calibration-source
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Restore exact instrumented Windows assembly for calibration
+        if: matrix.kind == 'window-calibration'
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          digest-mismatch: error
+          skip-decompress: false
+          github-token: ${{ github.token }}
+          run-id: ${{ inputs.calibration_run }}
+          name: windows-desktop-input-${{ inputs.calibration_revision }}-${{ inputs.calibration_attempt }}
+          path: build/windows-desktop-input
+      - name: Compare two and ten seconds on the same packaged executable
+        if: matrix.kind == 'window-calibration'
+        env:
+          SOURCE_REVISION: ${{ inputs.calibration_revision }}
+          CALIBRATION_RUN: ${{ inputs.calibration_run }}
+          CALIBRATION_ATTEMPT: ${{ inputs.calibration_attempt }}
+        run: python scripts/diagnose-window-calibration.py
       - run: python scripts/bootstrap-actions.py setup-go --output build/actions/setup-go
+        if: matrix.kind != 'window-calibration'
       - uses: ./build/actions/setup-go
+        if: matrix.kind != 'window-calibration'
         with:
           go-version-file: go.mod
           cache: true
@@ -179,7 +218,7 @@ jobs:
           INSONIC_STARTUP_ABI_CONTROL: ${{ inputs.startup_abi_control }}
         run: python scripts/diagnose-desktop-startup.py
       - name: Trace one documentation completion invocation
-        if: matrix.kind != 'desktop-startup'
+        if: matrix.kind != 'desktop-startup' && matrix.kind != 'window-calibration'
         run: python scripts/diagnose-installer-completion.py
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         if: always()
@@ -189,5 +228,6 @@ jobs:
           path: |
             build/completion-invocation-diagnostic/evidence
             build/desktop-startup-diagnostic/evidence
+            build/window-calibration/evidence
           if-no-files-found: warn
           retention-days: 7

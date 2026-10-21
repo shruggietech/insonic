@@ -170,7 +170,7 @@ test('cold source dependency formats and FFmpeg transfer independently verified 
  for (const job of Object.values(media.jobs)) {
   assert.equal(job['timeout-minutes'], 11);
   assert.equal(job.env.SOURCE_REVISION, '${{ inputs.revision }}');
-  assert.equal(job.steps.find(step => step.uses?.startsWith('actions/checkout@')).with.ref, '${{ inputs.revision }}');
+  assert.equal(job.steps.find(step => step.uses?.startsWith('actions/checkout@')).with.ref, job === media.jobs.ready ? '${{ job.workflow_sha }}' : '${{ inputs.revision }}');
  }
 });
 
@@ -184,7 +184,7 @@ test('full workflow attempts preserve old artifacts and consume only their match
  });
  const matches = (selector, value) => new RegExp('^' + selector.split('*').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$').test(value);
  for (const documents of [[workflow('ci'), workflow('native-qualification'), workflow('media-source')], [workflow('release'), workflow('native-qualification'), workflow('media-source')]]) {
-  const steps = transfers(documents);
+  const steps = transfers(documents).filter(step => documents[0].name === 'CI' || !step.if?.includes('inputs.reuse-ci-go-dependencies'));
   for (const step of steps) {
    assert.ok((step.with.name ?? step.with.pattern).endsWith('-${{ github.run_attempt }}'));
    if (step.uses.includes('/upload-')) assert.ok(!step.with.overwrite); // Keep earlier attempt evidence immutable.
@@ -248,21 +248,24 @@ test('known site presentation skips native work but mixed, new and dependency in
 test('same-run export reuse never removes later qualification gates or release builds', () => {
  const ci=parse(readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8'));
  const native=parse(readFileSync(new URL('../.github/workflows/native-qualification.yml',import.meta.url),'utf8'));
- assert.equal(ci.jobs.scope.needs,undefined);assert.equal(ci.jobs.foundation.needs,undefined);
- for(const label of ['linux','windows'])for(const lane of ['qualify','package']){const job=ci.jobs[lane+'-'+label];assert.equal(job.with['reuse-ci-offline-help'],true);if(label==='windows'&&lane==='package'){assert.deepEqual(job.needs,['scope']);assert.equal(job.with['overlap-source-setup'],true);}else{assert.ok(job.needs.includes('docs-build'));assert.ok(job.if.includes("needs.foundation.result == 'success'"));}}
+ assert.equal(ci.jobs.scope.needs,undefined);assert.equal(ci.jobs.foundation.needs,'readiness');
+ for(const label of ['linux','windows'])for(const lane of ['qualify','package']){const job=ci.jobs[lane+'-'+label];assert.equal(job.with['reuse-ci-offline-help'],true);if(lane==='package'&&label==='windows'){assert.ok(job.needs.includes('readiness'));assert.equal(job.with['overlap-source-setup'],true);}else{assert.ok(job.needs.includes('docs-build'));assert.ok(job.if.includes("needs.foundation.result == 'success'"));}}
  assert.equal(native.on.workflow_call.inputs['reuse-ci-offline-help'].default,false);
  for(const job of [native.jobs.runtime_checks,native.jobs.packages]){assert.ok(job.steps.some(s=>s.run?.includes('site-transfer.py restore')));assert.ok(job.steps.some(s=>s.run==='npm --prefix site run build'&&s.if.includes('!inputs.reuse-ci-offline-help')));}
  assert.ok(ci.jobs.candidate.needs.includes('foundation'));assert.ok(ci.jobs.candidate.needs.includes('docs'));
 });
 
-test('Windows package setup overlaps source work but publication still requires its producer', () => {
+test('Windows package setup follows readiness and product work follows the explicit qualification gate', () => {
  const ci=parse(readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8'));
  const native=parse(readFileSync(new URL('../.github/workflows/native-qualification.yml',import.meta.url),'utf8'));
- assert.ok(!ci.jobs['package-windows'].needs.includes('media-windows'));
+ assert.ok(ci.jobs['package-windows'].needs.includes('readiness'));
+ assert.ok(ci.jobs.readiness.needs.includes('media-windows'));
  assert.equal(ci.jobs['package-windows'].with['overlap-source-setup'],true);
  assert.equal(native.on.workflow_call.inputs['overlap-source-setup'].default,false);
  const steps=native.jobs.packages.steps;
+ const gate=steps.findIndex(s=>s.run==='node scripts/ci-acceptance.mjs wait-inputs');
  const wait=steps.findIndex(s=>s.run?.includes('wait-ci-artifact.mjs'));
+ assert.ok(gate>=0&&wait>gate);
  const download=steps.findIndex(s=>s.with?.name==='media-source-${{ inputs.os }}-${{ github.run_attempt }}');
  const verify=steps.findIndex(s=>s.run?.includes('media-transfer.py restore'));
  assert.ok(wait>steps.findIndex(s=>s.uses==='./build/actions/setup-go')&&download>wait&&verify>download);

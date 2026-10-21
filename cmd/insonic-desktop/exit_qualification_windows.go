@@ -4,6 +4,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"runtime"
@@ -17,6 +18,9 @@ func activateNativeExit(action string) error {
 	if err != nil {
 		return err
 	}
+	logNativeDesktopObservation(hwnd, "before-native-input")
+	raw, _ := json.Marshal(map[string]any{"kind": "native-window-environment", "windows": nativeWebviewBootstrapSnapshot()})
+	fmt.Fprintln(os.Stderr, string(raw))
 	threadID := exitWinCall("GetWindowThreadProcessId", hwnd, 0)
 	fmt.Fprintf(os.Stderr, "native-input-target thread=%d window=%x foreground=%x\n", threadID, hwnd, exitWinCall("GetForegroundWindow"))
 	root := exitWinCall("GetMenu", hwnd)

@@ -314,7 +314,9 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
         after=b'browserArgs := strings.Join(append(append([]string{}, e.AdditionalBrowserArgs...), "--disable-renderer-backgrounding"), " ")'
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary);source=root/selected;source.parent.mkdir(parents=True);source.write_bytes(original)
-            with patch.object(diagnostic,'ROOT',root):
+            # This unit fixture supplies its own pinned bytes. The production
+            # historical control checksum remains unchanged and rejects new source.
+            with patch.object(diagnostic,'ROOT',root), patch.object(diagnostic,'RENDERER_CONTROL_FILE_SHA256',hashlib.sha256(original).hexdigest()):
                 receipt={};overlay=diagnostic.renderer_backgrounding_overlay(root/'control',receipt)
                 replacement=json.loads(overlay.read_text())['Replace']
                 self.assertEqual(set(replacement),{str(source.resolve())})
