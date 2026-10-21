@@ -45,13 +45,13 @@ Independent test: controlled context boundaries preserve last state, caller time
 - [x] T018 Extend existing deterministic trainer/documented workflows and packaged regressions for training-only readiness, wrong-hash/truncated/unknown-field/success output and real artifact verify/materialize failures in scripts/documented_workflows.py and current qualification tests (FR-008, SC-001/003/004).
 - [x] T019 Update authoritative docs/v1.0.1 contracts, CHANGELOG.md and concise specs/043-cli-readiness-reporting/quickstart.md for changed fields/categories, preserving version and public/internal separation (FR-007).
 - [x] T020 Run blocking Spec Kit analysis before implementation and convergence after it; append only demonstrated gaps to this tasks.md (FR-001-009, SC-001-005).
-- [ ] T021 Run npm run check, npm test, affected Go/vet/Python/frontend/site checks and existing source/package qualification paths; remove owned temporary outputs and inspect UTF-8/LF/mojibake/diff (FR-007-009, SC-001-005).
+- [x] T021 Run npm run check, npm test, affected Go/vet/Python/frontend/site checks and existing source/package qualification paths; remove owned temporary outputs and inspect UTF-8/LF/mojibake/diff (FR-007-009, SC-001-005).
 
 ## Phase 7: Authorized publication and bounded review
 
 - [x] T022 Commit and automatically push codex/043-cli-readiness-reporting, publish/attach the ordinary PR with exact issue mapping and validation (SC-005).
-- [ ] T023 Monitor exact-head complete CI and initial automatic Codex/security reviews; answer/resolve every finding, with at most one explicit second review round and no third round (SC-005).
-- [ ] T024 Verify final head/checks/review threads/Project state, remove temporary execution files and hand off the unmerged PR for owner review/merge (SC-005).
+- [x] T023 Monitor exact-head complete CI and initial automatic Codex/security reviews; answer/resolve every finding, with at most one explicit second review round and no third round (SC-005).
+- [x] T024 Verify final head/checks/review threads/Project state, remove temporary execution files and hand off the unmerged PR for owner review/merge (SC-005).
 
 ## Dependencies and execution
 
@@ -61,6 +61,12 @@ T001-T003 -> T004-T005 -> US1/US2/US3 -> T017-T021 -> T022-T024. T020 analysis r
 
 - [x] T025 Preserve elected detached runtime ownership in scripts/qualify.py model-reference calls after isolated regressions outlive the owner's idle allowance, and keep the cancellable synthetic job alive across replay/client startup; rerun the existing native source CLI journey and retain final owner/image/history checks per FR-008 (partial).
 - [x] T026 Create the filesystem integrity fixture through the store's private-directory initialization, preserving permission checks, then rerun the Windows and hosted Linux matrix per FR-008 (partial).
-- [ ] T027 Elect a disposable session backend for the missing-reference CLI fixture, retain rejected/unavailable/failed-status-probe cases, and govern the generated acquisition prerequisite reason through the shared schema; rerun installed Linux/Windows paths per FR-004/007/008 (partial).
+- [x] T027 Elect a disposable session backend for the missing-reference CLI fixture, retain rejected/unavailable/failed-status-probe cases, and govern the generated acquisition prerequisite reason through the shared schema; rerun installed Linux/Windows paths per FR-004/007/008 (partial).
 
-- [ ] T028 Preserve the successful worker-directory creator identity on Windows before enforcing private ownership, assert setup reaches declared offline asset verification for new and existing private directories, and rerun source/package qualification per FR-002/008 (partial).
+- [x] T028 Preserve the successful worker-directory creator identity on Windows before enforcing private ownership, assert setup reaches declared offline asset verification for new and existing private directories, and rerun source/package qualification per FR-002/008 (partial).
+
+## Acceptance disposition
+
+Product commit `56128952cd2676ebb18ecf66f7efffcf28e8ef8d` passed [CI run 392](https://github.com/shruggietech/insonic/actions/runs/39660470712), including all 30 elected jobs and 18 planned skips. Local checks and disposable CLI/trainer regressions passed; owned temporary profiles, compiler cache and scratch outputs were deleted. The final checklist-only commit must also pass exact-head CI before owner handoff.
+
+Both permitted Codex code-review rounds completed without findings; the latest reviewed commit was `1dac2a669e98f72730cbf054e090747bc317f594`. The security request was routed as the second code review, and no separate security result was produced. Later CI fixes require the owner's final review. No third review request, merge or release is authorized by this closeout.
