@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 import importlib.util
 from pathlib import Path
 import sys
+from unittest.mock import patch
 import threading
 import unittest
 
@@ -13,6 +14,28 @@ inputs = importlib.util.module_from_spec(spec); spec.loader.exec_module(inputs)
 
 
 class ParallelInputTests(unittest.TestCase):
+    def test_original_deadline_accepts_above_target_without_extending_operation_limit(self):
+        for remaining in (700, 900, 12):
+            with self.subTest(remaining=remaining), patch.dict(inputs.os.environ, {
+                    'INSONIC_QUALIFICATION_DEADLINE': str((1000 + remaining) * 1000)}), \
+                    patch.object(inputs.time, 'time', return_value=1000), \
+                    patch.object(inputs, 'ProcessTree') as factory:
+                child = factory.return_value.__enter__.return_value
+                child.process.communicate.return_value = (b'verified', b'')
+                child.process.returncode = 0
+                self.assertEqual(inputs.run(['fake-verifier']), 'verified')
+                child.process.communicate.assert_called_once_with(timeout=min(180, remaining))
+
+    def test_expired_or_above_hard_limit_deadline_never_starts_child(self):
+        for remaining in (0, -1, 900.001):
+            with self.subTest(remaining=remaining), patch.dict(inputs.os.environ, {
+                    'INSONIC_QUALIFICATION_DEADLINE': str(round((1000 + remaining) * 1000))}), \
+                    patch.object(inputs.time, 'time', return_value=1000), \
+                    patch.object(inputs, 'ProcessTree') as factory:
+                with self.assertRaisesRegex(ValueError, 'original qualification deadline'):
+                    inputs.run(['fake-verifier'])
+                factory.assert_not_called()
+
     def test_independent_preparation_overlaps_and_every_result_joins(self):
         barrier = threading.Barrier(4, timeout=3)
         done = []

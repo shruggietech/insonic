@@ -9,6 +9,7 @@ import sys
 import time
 
 from process_tree import ProcessTree
+from ci_timing_policy import QUALIFICATION_LIMIT_SECONDS
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -21,7 +22,7 @@ def join_inputs(tasks):
 
 def run(arguments):
     remaining = (int(os.environ['INSONIC_QUALIFICATION_DEADLINE']) - time.time() * 1000) / 1000
-    if remaining <= 0 or remaining > 660: raise ValueError('invalid original qualification deadline')
+    if remaining <= 0 or remaining > QUALIFICATION_LIMIT_SECONDS: raise ValueError('invalid original qualification deadline')
     with ProcessTree([str(arg) for arg in arguments], cwd=ROOT, env=os.environ.copy()) as tree:
         try:
             output, error = tree.process.communicate(timeout=min(180, remaining))

@@ -8,12 +8,12 @@
 ## Isolated hosted campaign
 
 1. After the aggregate is published, verify main protection requires `foundation`, `docs` and `elected acceptance` from the GitHub Actions app, with strict mode and all other settings preserved. Retain before/after API records.
-2. Dispatch `ci.yml` on the reviewed feature branch with `cold_media_source=true`. Record the selected source commit and unique run ID before interpreting results. The first attempt must show cold mode on both source chains and absent complete/dependency/format compiled cache keys. Original archive caches may be reused only with existing pin rehashing.
-3. Monitor the complete attempt. Retain producer logs, source/toolchain artifacts, exact-attempt gate digest and terminal audit. Qualification still has its original 660-second budget after verified preparation.
+2. Dispatch `ci.yml` on the final S041 revision with `cold_media_source=true`. Record the selected source commit and unique run ID before interpreting results. The first attempt must show cold mode on both source chains and absent complete/dependency/format compiled cache keys. Original archive caches may be reused only with existing pin rehashing.
+3. Monitor the complete attempt. Retain producer logs, source/toolchain artifacts, exact-attempt gate digest and terminal audit. Qualification has a 660-second advisory target and a 900-second hard limit after verified preparation, with the original 15-second provisional finalization reserve.
 4. Rerun the entire successful campaign run with `gh run rerun RUN_ID` (not failed jobs only). The same namespace and source are retained, while current-attempt transfers are regenerated. Verify warm source mode on both platforms and repeat the terminal audit.
-5. Retain final-head PR merge-source CI separately. Leave PR #162 open and auto-merge disabled; post-merge main evidence remains pending.
+5. Retain final-head PR merge-source CI separately. PR #162 is historically merged; the timing-policy continuation has explicit squash-merge authorization after required checks pass. Verify exact-main acceptance separately. Cold/warm closure does not block the policy merge or subsequent product slice.
 
-## Bounded Windows window-join calibration
+## Historical bounded Windows window-join calibration (PR #162)
 
 1. Use the current instrumented ordinary CI assembly, retaining its run/attempt and tested merge revision. Do not treat this baseline as final acceptance.
 2. Dispatch the existing installer-invocation diagnostic workflow in window-calibration mode with that explicit run/attempt/revision. It verifies the immutable assembly and runs the same twelve-case native exit matrix with two seconds, then ten seconds, on one runner using separate equivalent fixture roots.

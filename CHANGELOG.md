@@ -21,6 +21,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- CI qualification uses an eleven-minute advisory target and fifteen-minute hard limit after verified readiness. Receipts report target overruns without rejecting otherwise valid delivery; fixed input deadlines and applicable watchdogs share the hard limit. Native operation allowances, prerequisite accounting and required integrity checks remain unchanged.
+
 - Windows package consumers wait for explicit verified source, foundation and documentation readiness. Windows prepares dependency libraries through a verified same-attempt handoff before product builds and checks. Cold source preparation no longer races the 180-second transfer wait. Explicit cold-source campaigns isolate compiled caches without evicting ordinary CI inputs. An always-running elected acceptance aggregate rejects missing, failed, cancelled or unexpectedly skipped delivery results and over-budget qualification. First-attempt preparation and combined totals include initial queue time while qualification remains measured from verified readiness.
 
 - Windows startup diagnostics verify live process identity through the owned process handle and precise integral UTC timestamps, rejecting failed or inconsistent observations without relying on undefined exit-time data. The private wait-query helper authenticates the inherited input pipe and its live parent executable before accepting diagnostic targets.
@@ -128,6 +130,8 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-19: Adopt the verified go-webview2 v1.0.23 native Boolean ABI correction, preserve the explicit maintained lifecycle patch and checksum-bound corresponding source, and keep unresolved startup/process-release observations separate from the demonstrated argument correction.
 
 - 2026-10-20: At the owner’s direction, constitution 3.1.0 separates verified source prerequisite preparation from the 660-second qualification phase, reports preparation/qualification/combined elapsed time and counts phase queue time. All elected checks start after readiness. A provisional aggregate retains fifteen seconds for finalization; terminal timestamps remain required for final timing claims. The bootstrap declares the elected acceptance check without implying live protection has already changed.
+
+- 2026-10-21: At the owner’s direction, constitution 4.0.0 changes qualification to a 660-second advisory target and 900-second hard limit, retaining verified readiness, phase/queue reporting, terminal timestamp authority, the fifteen-second provisional reserve and all mandatory elected checks. Align active qualification watchdogs and shared input validation; retain native operation and unrelated preparation/release/deployment limits. Preserve old-policy failed receipts and obtain fresh normal-workflow acceptance.
 
 ## [1.0.1] - 2026-10-15
 

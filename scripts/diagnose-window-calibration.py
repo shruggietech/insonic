@@ -4,6 +4,7 @@
 import json
 import os
 from pathlib import Path
+from ci_timing_policy import QUALIFICATION_TARGET_SECONDS, QUALIFICATION_LIMIT_SECONDS, FINALIZATION_RESERVE_SECONDS
 import re
 import subprocess
 import time
@@ -155,7 +156,8 @@ def main():
                 'identity': identity, 'executable_sha256': package.sha(gui),
                 'package_sha256': package.sha(archive), 'dependencies': inventory['dependencies'],
                 'outer_limits_seconds': {'window_search':5,'startup_readiness':8,'menu_readiness':8,
-                                         'watchdog':12,'child_capture_release':18,'matrix':100,'qualification':660},
+                                         'watchdog':12,'child_capture_release':18,'matrix':100,'qualification_target':QUALIFICATION_TARGET_SECONDS,
+                                         'qualification':QUALIFICATION_LIMIT_SECONDS,'finalization_reserve':FINALIZATION_RESERVE_SECONDS},
                 'differences_from_ordinary_archive': ['No concurrent CLI workload in either diagnostic arm; actual ordinary archive observations are retained separately.'],
                 'runtime_environment_selection': {key: os.environ.get(key) for key in
                     ('WEBVIEW2_BROWSER_EXECUTABLE_FOLDER','WEBVIEW2_RELEASE_CHANNEL_PREFERENCE','WEBVIEW2_RELEASE_CHANNELS')}}

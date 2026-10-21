@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 import fs from 'node:fs/promises';
+import policy from './ci-timing-policy.json' with { type: 'json' };
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -53,10 +54,13 @@ export function evaluateResults(needs, siteSmoke = false) {
 
 export function measureTiming(start, ready, end, terminal) {
   if (![start, ready, end].every(Number.isFinite) || start < 0 || ready < start || end < ready) throw new Error('Invalid phase timestamps.');
-  const qualification = (end - ready) / 1000, reserve = terminal ? 0 : 15;
+  const qualification = (end - ready) / 1000, reserve = terminal ? 0 : policy.finalization_reserve_seconds;
   return { preparation_seconds: (ready - start) / 1000, qualification_seconds: qualification,
-    combined_seconds: (end - start) / 1000, qualification_limit_seconds: 660,
-    finalization_reserve_seconds: reserve, terminal, accepted: qualification + reserve <= 660 };
+    combined_seconds: (end - start) / 1000, qualification_target_seconds: policy.qualification_target_seconds,
+    qualification_limit_seconds: policy.qualification_limit_seconds,
+    target_exceeded: qualification > policy.qualification_target_seconds,
+    target_overrun_seconds: Math.max(0, qualification - policy.qualification_target_seconds),
+    finalization_reserve_seconds: reserve, terminal, accepted: qualification + reserve <= policy.qualification_limit_seconds };
 }
 
 function timestamp(value) {
@@ -176,7 +180,7 @@ export async function waitForQualificationInputs(identity, token, { request = re
     }
     const ready = jobs.filter(j => j.name === 'prerequisite readiness');
     if (ready.length !== 1 || ready[0].status !== 'completed' || ready[0].conclusion !== 'success') throw new Error('Setup must follow successful prerequisite readiness.');
-    const bound = timestamp(ready[0].completed_at) + 660000;
+    const bound = timestamp(ready[0].completed_at) + policy.qualification_limit_seconds * 1000;
     if (deadline !== undefined && bound !== deadline) throw new Error('Qualification readiness boundary changed.');
     deadline = bound;
     if (now() >= deadline) throw new Error('Original qualification deadline exceeded.');
@@ -237,7 +241,9 @@ async function main() {
     failures.push(...receipt.timing.failures);
   }
   catch (error) { failures.push(error.message); }
-  if (receipt.timing && !receipt.timing.accepted) failures.push('Qualification exceeds its 660-second budget/finalization reserve.');
+  if (receipt.timing && !receipt.timing.accepted) failures.push(`Qualification exceeds its ${policy.qualification_limit_seconds}-second hard limit/finalization reserve.`);
+  receipt.advisories = receipt.timing?.target_exceeded
+    ? [`Qualification exceeded its ${policy.qualification_target_seconds}-second target by ${receipt.timing.target_overrun_seconds} seconds.`] : [];
   receipt.needs = previous?.needs ?? needs();
   receipt.site_smoke = previous?.site_smoke ?? process.env.SITE_SMOKE === 'true';
   receipt.failures = failures;

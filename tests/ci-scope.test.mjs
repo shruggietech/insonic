@@ -105,7 +105,7 @@ test('Windows delivery joins every isolated scope before exposing candidate arti
  assert.ok(finalize.steps[wait].run.includes("'${{ inputs.revision }}'"));
  for (const job of [assemble, proofs, finalize]) {
   assert.equal(job['runs-on'], 'windows-2022');
-  assert.equal(job['timeout-minutes'], 11);
+  assert.equal(job['timeout-minutes'], 15);
   assert.equal(job.env.SOURCE_REVISION, '${{ inputs.revision }}');
   assert.equal(job.steps[0].with.ref, '${{ inputs.revision }}');
  }
@@ -213,12 +213,16 @@ test('full workflow attempts preserve old artifacts and consume only their match
  }
 });
 
-test('active CI and release jobs retain the owner-approved eleven-minute ceiling', () => {
- for (const name of ['ci', 'native-qualification', 'media-source', 'release']) {
-  const workflow = parse(readFileSync(new URL(`../.github/workflows/${name}.yml`, import.meta.url), 'utf8'));
-  for (const [id, job] of Object.entries(workflow.jobs)) {
-   if (job.uses) continue; // Reusable calls inherit their implementation's bound.
-   assert.equal(job['timeout-minutes'], 11, `${name}/${id}`);
+test('qualification watchdogs agree with the shared policy while unrelated limits remain scoped', () => {
+ const policy=JSON.parse(readFileSync(new URL('../scripts/ci-timing-policy.json',import.meta.url),'utf8'));
+ assert.deepEqual(policy,{qualification_target_seconds:660,qualification_limit_seconds:900,finalization_reserve_seconds:15});
+ for (const name of ['ci','native-qualification','windows-desktop-qualification','media-source','release']) {
+  const workflow=parse(readFileSync(new URL('../.github/workflows/'+name+'.yml',import.meta.url),'utf8'));
+  for(const [id,job] of Object.entries(workflow.jobs)){
+   if(job.uses)continue;
+   const preparation=name==='media-source'||(name==='ci'&&['scope','dependencies-windows','readiness'].includes(id));
+   const independentRelease=name==='release';
+   assert.equal(job['timeout-minutes'],preparation||independentRelease?11:policy.qualification_limit_seconds/60,name+'/'+id);
   }
  }
 });

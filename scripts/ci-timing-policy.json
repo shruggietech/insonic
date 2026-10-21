@@ -1,0 +1,5 @@
+{
+  "qualification_target_seconds": 660,
+  "qualification_limit_seconds": 900,
+  "finalization_reserve_seconds": 15
+}
