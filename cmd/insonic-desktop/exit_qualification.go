@@ -282,7 +282,14 @@ func (r *exitRuntime) assertHeld(parent, acquisition string) error {
 // child GUI processes. It joins its runtime only after the durable job finishes.
 func runExitQualification() error {
 	logNativeBrowserRuntimeVersion()
-	return runExitQualificationWith(runExitGUIChild)
+	runChild, recovered := startupRecoveryRunner(runExitGUIChild)
+	if err := runExitQualificationWith(runChild); err != nil {
+		return err
+	}
+	if !recovered() {
+		return fmt.Errorf("startup recovery fixture did not complete")
+	}
+	return nil
 }
 
 func runExitQualificationWith(runChild func(exitFixture, string) (exitObservation, error)) (err error) {
@@ -480,6 +487,7 @@ func qualifyNativeExit() int {
 	proof := map[string]any{"schema_version": contracts.Version, "native_exit": "passed", "no_workspace_exit": "passed", "workspace_exit": "passed", "ordinary_close": "passed", "playback_cleanup": "passed", "runtime_work_survival": "passed"}
 	if runtime.GOOS == "windows" {
 		proof["owned_browser_release"] = "passed"
+		proof["startup_recovery"] = "passed"
 		proof["window_join_seconds"], _ = selectedNativeWindowJoinSeconds(os.Getenv("INSONIC_NATIVE_WINDOW_JOIN_SECONDS"))
 	}
 	json.NewEncoder(os.Stdout).Encode(proof)

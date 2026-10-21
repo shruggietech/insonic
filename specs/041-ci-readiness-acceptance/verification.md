@@ -131,3 +131,16 @@ Local verification passes: root check (1,503 project text files, 25 schemas, 22 
 ## Integrated timing policy and exact-main acceptance (2026-10-21)
 
 Policy correction PR #163 merged as 7463ff8cd2cae1a2c7097b3163fdeccdc927fcb1. PR run 39591714127 passed with 262s preparation, 660s qualification and 922s combined. Exact-main [39593989682](https://github.com/shruggietech/insonic/actions/runs/39593989682) passed all 48 terminal jobs/elected results with 257s preparation, 664s qualification and 921s combined. The 4s target overrun is advisory under the 900s hard limit. [External terminal evidence](https://github.com/shruggietech/insonic/issues/161#issuecomment-6315363109) completes T016/T036; T029 retains its existing PR #162 receipt. The old 701s failed main run remains failed under its original policy. T037 final-source cold/warm evidence remains separately tracked on this final S041 revision.
+
+## Final S041 source campaign completed (2026-10-21)
+
+Both complete attempts of [run 39596125235](https://github.com/shruggietech/insonic/actions/runs/39596125235) bind final S041 squash 7463ff8cd2cae1a2c7097b3163fdeccdc927fcb1, independently of later S042 source.
+
+| Attempt | Preparation | Qualification | Combined | Result |
+| --- | --- | --- | --- | --- |
+| 1, isolated compiled-media cold | 1655s | 666s | 2321s | All 52 jobs terminal, elected acceptance passed; 6s advisory overrun |
+| 2, planned complete warm comparison | 232s | 649s | 881s | All 48 jobs terminal, elected acceptance passed |
+
+Attempt 1 proves both exact run-specific compiled-media keys absent and rebuilt, with original archives separately reused and rehashed. Attempt 2 proves those exact compiled caches hit and reverified. Initial queue was zero on attempt 1; rerun initial queue is not applicable. Cold gate artifact 12345474028 SHA256 acd6475fa17ea28a7bff79ede8857ade7a1684213b66320a4b17ce1f3f99d465; warm gate 12346609359 SHA256 188d41a731e79f681198dc2142822d16737ae76e60eecbd747caa4b8b39c14de. Complete raw logs, metadata, toolchain receipts, gates and independently recomputed terminal audits remain in build/s041/final-source-cold-39596125235-attempt-1 and final-source-warm-39596125235-attempt-2. Their SHA256SUMS hashes are b2ebea11cd01c2f39a1de566bbdd9a86349770a51396045f3bfd98106bf0b41b and 0cec14b6e10b66ade7822f51e541a255766832a4579a3845ecbe3b03986f9bd1.
+
+[External closure evidence](https://github.com/shruggietech/insonic/issues/161#issuecomment-6316728408) closes #161 and milestone 25. The dedicated campaign ref was deleted only after exact-source verification. Main still requires foundation, docs and elected acceptance with strict source freshness and conversation resolution. Historical failed runs retain their original failed disposition. T037 is complete.

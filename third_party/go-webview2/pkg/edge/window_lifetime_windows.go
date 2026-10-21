@@ -562,17 +562,7 @@ func lifetimeWindowProc(hwnd, message, wparam, lparam, id, data uintptr) uintptr
 		}
 		ownedWindows.Unlock()
 		if closeController {
-			entry.chromium.ShuttingDown()
-			if controller := entry.chromium.controller; controller != nil {
-				if err := controller.Close(); err != nil {
-					entry.chromium.recordControllerCloseFailure(err)
-				} else {
-					ownedWindows.Lock()
-					ownedWindows.closedControllers++
-					ownedWindows.Unlock()
-				}
-			}
-			entry.chromium.releaseOwnedInterfaces()
+			entry.chromium.closeOwnedBrowser()
 		}
 		if message == 0x0082 {
 			lifetimeRemoveSubclass.Call(hwnd, lifetimeSubclass, id)
@@ -728,4 +718,45 @@ func FinalizeCOMApartment() error {
 	ownedWindows.Unlock()
 	windows.CoUninitialize()
 	return nil
+}
+
+// Close after startup callbacks return, or during ordinary owned destruction.
+func (e *Chromium) closeOwnedBrowser() {
+	if e.browserClosed {
+		return
+	}
+	cause := fmt.Errorf("owning window was destroyed during startup")
+	if e.startup != nil && !e.startup.succeeded && e.startup.failure == nil {
+		e.failStartup("window-destroyed", cause)
+	}
+	if e.callError != nil && *e.callError == nil {
+		*e.callError = &StartupError{Stage: "window-destroyed", Err: cause}
+	}
+	if e.startupCallbackDepth != 0 || e.callError != nil {
+		// Mark cancellation now; destructive COM cleanup waits until Embed's
+		// dispatch or the synchronous facade has fully unwound its native call.
+		e.shuttingDown = true
+		return
+	}
+	e.browserClosed = true
+	e.ShuttingDown()
+	if controller := e.controller; controller != nil {
+		e.closeOwnedController(controller)
+	}
+	for _, controller := range e.pendingControllers {
+		e.closeOwnedController(controller)
+		controller.Release()
+	}
+	e.pendingControllers = nil
+	e.releaseOwnedInterfaces()
+	atomic.StoreUintptr(&e.inited, 0)
+}
+func (e *Chromium) closeOwnedController(controller *ICoreWebView2Controller) {
+	if err := controller.Close(); err != nil {
+		e.recordControllerCloseFailure(err)
+	} else {
+		ownedWindows.Lock()
+		ownedWindows.closedControllers++
+		ownedWindows.Unlock()
+	}
 }

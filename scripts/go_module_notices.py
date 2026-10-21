@@ -12,48 +12,66 @@ PATCH_MODULE = 'github.com/wailsapp/go-webview2'
 PATCH_VERSION = 'v1.0.23'
 PATCH_DIRECTORY = 'third_party/go-webview2'
 PATCH_SOURCE = 'repository-local:' + PATCH_DIRECTORY
+PATCH_POLICIES = {
+    PATCH_MODULE: {
+        'version': PATCH_VERSION, 'directory': PATCH_DIRECTORY,
+        'modified': ['pkg/combridge/iunknown.go', 'pkg/edge/ICoreWebView2Controller.go', 'pkg/edge/ICoreWebView2Deferral.go', 'pkg/edge/ICoreWebView2WebResourceRequestedEventArgs.go', 'pkg/edge/ICoreWebView2WebResourceResponse.go', 'pkg/edge/chromium.go', 'pkg/edge/corewebview2.go', 'pkg/edge/create_env_go.go'],
+        'added': ['LICENSE.insonic', 'NOTICE.insonic', 'pkg/edge/browser_bootstrap_windows.go', 'pkg/edge/browser_bootstrap_windows_test.go', 'pkg/edge/callback_bridge_windows.go', 'pkg/edge/callback_bridge_windows_test.go', 'pkg/edge/callback_loader_go_windows_test.go', 'pkg/edge/startup_windows.go', 'pkg/edge/startup_windows_test.go', 'pkg/edge/window_lifetime_windows.go', 'pkg/edge/window_lifetime_windows_test.go'],
+    },
+    'github.com/wailsapp/wails/v2': {
+        'version': 'v2.16.0', 'directory': 'third_party/wails',
+        'modified': ['internal/app/app_dev.go', 'internal/app/app_production.go', 'internal/frontend/desktop/windows/frontend.go'],
+        'added': ['LICENSE.insonic', 'NOTICE.insonic', 'internal/app/app_lifecycle_test.go'],
+    },
+}
+PATCH_SOURCES = {'repository-local:' + policy['directory'] for policy in PATCH_POLICIES.values()}
 
 
 def repository_patch(value):
+    module = value.get('Path')
+    policy = PATCH_POLICIES.get(module) if isinstance(module, str) else None
     replacement = value.get('Replace')
-    return (value.get('Path') == PATCH_MODULE and value.get('Version') == PATCH_VERSION
-            and isinstance(replacement, dict) and replacement.get('Path') == './' + PATCH_DIRECTORY
+    return (policy is not None and value.get('Version') == policy['version']
+            and isinstance(replacement, dict) and replacement.get('Path') == './' + policy['directory']
             and replacement.get('Version') in (None, '', '(devel)') and not replacement.get('Sum'))
 
 
-def repository_patch_source():
-    manifest = ROOT / 'third_party/go-webview2.source.json'
+def repository_patch_source(module=PATCH_MODULE):
+    if module not in PATCH_POLICIES:
+        raise ValueError('unapproved repository module')
+    policy = PATCH_POLICIES[module]
+    version, relative = policy['version'], policy['directory']
+    manifest = ROOT / (relative + '.source.json')
     if manifest.is_symlink() or manifest.is_junction():
         raise ValueError('repository module authority is linked')
     authority = json.loads(manifest.read_text(encoding='utf-8'))
-    if (authority.get('module'), authority.get('version'), authority.get('directory')) != (PATCH_MODULE, PATCH_VERSION, PATCH_DIRECTORY):
+    if (authority.get('module'), authority.get('version'), authority.get('directory')) != (module, version, relative):
         raise ValueError('repository module authority differs')
     def tree_hash(files):
         if not isinstance(files, dict) or not files:
             raise ValueError('repository module file authority is invalid')
         summary = hashlib.sha256()
         for name, digest in sorted(files.items()):
-            if (not isinstance(name, str) or not re.fullmatch(r'[A-Za-z0-9._/-]+', name)
+            if (not isinstance(name, str) or not re.fullmatch(r'[A-Za-z0-9._/+-]+', name)
                     or any(part in ('', '.', '..') for part in name.split('/'))
                     or not isinstance(digest, str) or not re.fullmatch(r'[a-f0-9]{64}', digest)):
                 raise ValueError('repository module file identity is invalid')
-            summary.update((digest + '  ' + PATCH_MODULE + '@' + PATCH_VERSION + '/' + name + '\n').encode('utf-8'))
+            summary.update((digest + '  ' + module + '@' + version + '/' + name + '\n').encode('utf-8'))
         return 'h1:' + base64.b64encode(summary.digest()).decode('ascii')
     upstream, current = authority.get('upstream_files'), authority.get('files')
     if tree_hash(upstream) != authority.get('upstream_sum') or tree_hash(current) != authority.get('patched_sum'):
         raise ValueError('repository module tree checksum differs')
-    if f"{PATCH_MODULE} {PATCH_VERSION} {authority['upstream_sum']}" not in (ROOT / 'go.sum').read_text(encoding='utf-8').splitlines():
+    if f"{module} {version} {authority['upstream_sum']}" not in (ROOT / 'go.sum').read_text(encoding='utf-8').splitlines():
         raise ValueError('repository module upstream differs from go.sum')
     modified = sorted(name for name in upstream if current.get(name) != upstream[name])
     added = sorted(set(current) - set(upstream))
-    expected_added = ['LICENSE.insonic', 'NOTICE.insonic', 'pkg/edge/browser_bootstrap_windows.go', 'pkg/edge/browser_bootstrap_windows_test.go', 'pkg/edge/callback_bridge_windows.go', 'pkg/edge/callback_bridge_windows_test.go', 'pkg/edge/callback_loader_go_windows_test.go', 'pkg/edge/window_lifetime_windows.go', 'pkg/edge/window_lifetime_windows_test.go']
-    if (not set(upstream) <= set(current) or modified != ['pkg/combridge/iunknown.go', 'pkg/edge/ICoreWebView2Controller.go', 'pkg/edge/ICoreWebView2Deferral.go', 'pkg/edge/ICoreWebView2WebResourceRequestedEventArgs.go', 'pkg/edge/ICoreWebView2WebResourceResponse.go', 'pkg/edge/chromium.go', 'pkg/edge/corewebview2.go', 'pkg/edge/create_env_go.go'] or added != expected_added
+    if (not set(upstream) <= set(current) or modified != policy['modified'] or added != policy['added']
             or sorted(authority.get('modified', [])) != modified or sorted(authority.get('added', [])) != added):
         raise ValueError('repository module patch scope differs')
-    directory = ROOT / PATCH_DIRECTORY
-    if directory.is_symlink() or directory.is_junction() or directory.resolve() != ROOT.resolve() / PATCH_DIRECTORY:
+    directory = ROOT / relative
+    if directory.is_symlink() or directory.is_junction() or directory.resolve() != ROOT.resolve() / relative:
         raise ValueError('repository module source directory differs')
-    return directory, (PATCH_MODULE, PATCH_VERSION, authority['patched_sum'])
+    return directory, (module, version, authority['patched_sum'])
 
 
 def json_stream(raw):
@@ -94,7 +112,9 @@ def logical_identity(value):
     if repository_patch(value):
         # Go records local replacements without an upstream Sum. These bytes
         # are main-revision source, verified against their own manifest below.
-        return PATCH_MODULE, PATCH_VERSION, (PATCH_MODULE, PATCH_VERSION, PATCH_SOURCE)
+        module = value['Path']
+        policy = PATCH_POLICIES[module]
+        return module, policy['version'], (module, policy['version'], 'repository-local:' + policy['directory'])
     # A replaced logical module has no linked source checksum of its own.
     source = effective_source(value)
     effective = source_identity(source)
@@ -207,7 +227,7 @@ def collect_notices(target, binaries, run, go_version):
         directory = Path(directory_text)
         effective = identity[2]
         if repository_patch(value):
-            expected, verified_identity = repository_patch_source()
+            expected, verified_identity = repository_patch_source(value['Path'])
             expected = expected.resolve()
         else:
             expected = cache / (escaped(effective[0]) + '@' + escaped(effective[1]))
@@ -276,7 +296,7 @@ def verify_notices(target, modules, binaries, run, go_version):
             names.append(relative.name)
         if not any(name.upper().startswith(('LICENSE', 'LICENCE', 'COPYING')) for name in names):
             raise ValueError('module inventory license missing')
-        if sources[identity[0]][2] == PATCH_SOURCE and not {'LICENSE.insonic', 'NOTICE.insonic'} <= set(names):
+        if sources[identity[0]][2] in PATCH_SOURCES and not {'LICENSE.insonic', 'NOTICE.insonic'} <= set(names):
             raise ValueError('repository module patch notices are missing')
     if actual != expected:
         raise ValueError('module inventory membership differs from linked binary')

@@ -30,22 +30,22 @@
 
 - [x] T012 Update docs/v1.0.1/desktop.md, cli.md, development.md and CHANGELOG.md for reporting/private diagnostic behavior and dated decisions (FR-001-006/012).
 - [x] T013 Run required root, affected Go, site and file-integrity checks; record exact local evidence in specs/042-startup-diagnostics-recovery/verification.md (SC-001-003/005).
-- [ ] T014 Publish the frozen reporting/diagnostics PR, verify complete CI, squash merge and retain exact-main acceptance externally before the next increment (FR-011/012, SC-005).
+- [x] T014 Publish the frozen reporting/diagnostics PR, verify complete CI, squash merge and retain exact-main acceptance externally before the next increment (FR-011/012, SC-005).
 
 ## Phase 5: US3 concrete startup termination and recovery (P1)
 
 **Independent test**: Inject synchronous/asynchronous and partial-initialization failures; one failed outcome skips the ordinary loop, cleanup balances on the owner thread after callback unwinding, and a later valid launch succeeds.
 
-- [ ] T015 [US3] Add focused fake-COM/message-only failure, late-completion, partial-cleanup and fresh-instance regressions in third_party/go-webview2/pkg/edge startup tests (FR-007-009, SC-004).
-- [ ] T016 [US3] Add an error-returning Embed path and first-failure outcome in third_party/go-webview2/pkg/edge/chromium.go; reject failed/null outputs and interrupted initialization without success fall-through (FR-007).
-- [ ] T017 [US3] Reuse owner-thread destruction/release after callback unwinding and preserve late-callback refusal in third_party/go-webview2/pkg/edge/window_lifetime_windows.go (FR-008/009).
-- [ ] T018 [US3] Preserve a checksum-verified pinned Wails baseline and correct only startup return/setup and dev/production loop entry in third_party/wails, with focused failure/success lifecycle regressions and caller-owned settings release (FR-007/008/010).
-- [ ] T019 [US3] Extend exact maintained source, Go replacement and notice qualification to exactly the two approved modules through scripts/webview-source.mjs, scripts/check.mjs, scripts/go_module_notices.py, qualification metadata and affected tests (FR-010, SC-006).
-- [ ] T020 [US3] Add a bounded controlled failed-launch/subsequent-valid-process qualification to existing cmd/insonic-desktop native/package fixtures without changing any original case or operation allowance (FR-009/011, SC-004/005).
+- [x] T015 [US3] Add focused fake-COM/message-only failure, late-completion, partial-cleanup and fresh-instance regressions in third_party/go-webview2/pkg/edge startup tests (FR-007-009, SC-004).
+- [x] T016 [US3] Add an error-returning Embed path and first-failure outcome in third_party/go-webview2/pkg/edge/chromium.go; reject failed/null outputs and interrupted initialization without success fall-through (FR-007).
+- [x] T017 [US3] Reuse owner-thread destruction/release after callback unwinding and preserve late-callback refusal in third_party/go-webview2/pkg/edge/window_lifetime_windows.go (FR-008/009).
+- [x] T018 [US3] Preserve a checksum-verified pinned Wails baseline and correct only startup return/setup and dev/production loop entry in third_party/wails, with focused failure/success lifecycle regressions and caller-owned settings release (FR-007/008/010).
+- [x] T019 [US3] Extend exact maintained source, Go replacement and notice qualification to exactly the two approved modules through scripts/webview-source.mjs, scripts/check.mjs, scripts/go_module_notices.py, qualification metadata and affected tests (FR-010, SC-006).
+- [x] T020 [US3] Add a bounded controlled failed-launch/subsequent-valid-process qualification to existing cmd/insonic-desktop native/package fixtures without changing any original case or operation allowance (FR-009/011, SC-004/005).
 
 ## Phase 6: Recovery increment verification
 
-- [ ] T021 Update current recovery/provenance contracts and CHANGELOG.md, reconcile Spec Kit consistency, and run required affected/root/site/source-authority checks in specs/042-startup-diagnostics-recovery/verification.md (FR-007-012, SC-004-006).
+- [x] T021 Update current recovery/provenance contracts and CHANGELOG.md, reconcile Spec Kit consistency, and run required affected/root/site/source-authority checks in specs/042-startup-diagnostics-recovery/verification.md (FR-007-012, SC-004-006).
 - [ ] T022 Publish the frozen recovery PR, resolve concrete failures, qualify real Windows packages/native behavior, squash merge and retain exact-main acceptance externally (FR-011/012, SC-005/006).
 - [ ] T023 Reconcile #154/#115 criteria and milestone/project state individually, preserve unresolved historical causes and S041 revision-bound campaign evidence in specs/042-startup-diagnostics-recovery/verification.md (FR-012).
 

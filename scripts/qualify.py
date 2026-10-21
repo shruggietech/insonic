@@ -19,6 +19,7 @@ import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from process_tree import ProcessTree, native_webview_environment, native_webview_probe
+from go_module_notices import PATCH_POLICIES, repository_patch_source
 
 ROOT = Path(__file__).resolve().parent.parent
 LOCK = json.loads((ROOT / 'internal/qualification/dependencies.json').read_text(encoding='utf-8'))
@@ -35,6 +36,20 @@ def validate_pins(go_mod=None, lock=None):
         match = re.search(r'^\s*' + re.escape(dependency) + r'\s+(\S+)', source, re.MULTILINE)
         if not match or match.group(1) != version:
             raise ValueError('qualification dependency pin differs: ' + dependency)
+    validate_maintained_sources(selected)
+
+
+def validate_maintained_sources(selected=None):
+    selected = LOCK if selected is None else selected
+    expected = {}
+    for module, policy in PATCH_POLICIES.items():
+        _, identity = repository_patch_source(module)
+        manifest = policy['directory'] + '.source.json'
+        authority = json.loads((ROOT / manifest).read_text(encoding='utf-8'))
+        expected[module] = {'version': policy['version'], 'manifest': manifest,
+                            'upstream_sum': authority['upstream_sum'], 'patched_sum': identity[2]}
+    if selected.get('maintained_sources') != expected:
+        raise ValueError('qualification maintained source identities differ')
 
 def child(args, *, env=None, timeout=180, allow_detached=False):
     merged = os.environ.copy()
@@ -266,6 +281,7 @@ def native_exit_contract():
                 'ordinary_close': 'passed', 'playback_cleanup': 'passed', 'runtime_work_survival': 'passed', 'schema_version': VERSION}
     if platform.system() == 'Windows':
         required['owned_browser_release'] = 'passed'
+        required['startup_recovery'] = 'passed'
     return required
 
 
@@ -276,8 +292,12 @@ def desktop():
     if platform.system() == 'Linux':
         tags += ',webkit2_41'
     if platform.system() == 'Windows':
-        child(['go', 'test', '-timeout=15s', '-run', '^(TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread|TestBootstrapOnlyEnvironmentVersionDoesNotEnableCDPOrGateNavigation|TestBrowserDiagnosticsEnvironmentHookKeepsNativeCreationOrder|TestBrowserDiagnosticsVersionOwnershipBoundsAndAllowlist|TestBrowserDiagnosticsDisabledAddsNoNativeCalls)$',
+        child(['go', 'test', '-timeout=15s', '-run', '^(TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread|TestBootstrapOnlyEnvironmentVersionDoesNotEnableCDPOrGateNavigation|TestBrowserDiagnosticsEnvironmentHookKeepsNativeCreationOrder|TestBrowserDiagnosticsVersionOwnershipBoundsAndAllowlist|TestBrowserDiagnosticsDisabledAddsNoNativeCalls|TestStartup[^/]*)$',
                'github.com/wailsapp/go-webview2/pkg/edge'], env=env)
+    for mode in ['production', 'dev']:
+        framework_tags = mode + (',webkit2_41' if platform.system() == 'Linux' else '')
+        child(['go', 'test', '-timeout=15s', '-tags', framework_tags,
+               '-run=Startup|FreshFrontend', 'github.com/wailsapp/wails/v2/internal/app'], env=env)
     output = child(['go', 'test', '-v', '-tags', tags, './desktop', './cmd/insonic-desktop'], env=env)
     sys.stdout.buffer.write(output)
     executable = ROOT / ('build/insonic-desktop.exe' if os.name == 'nt' else 'build/insonic-desktop')

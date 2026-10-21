@@ -179,7 +179,9 @@ def identity(selected):
         raise ValueError('dependency transfer identity is invalid')
     files = ['go.mod', 'go.sum', 'internal/qualification/dependencies.json', 'scripts/go-dependency-transfer.py',
              'scripts/package-desktop.py', 'scripts/qualify.py', 'scripts/windows_setup.py']
-    files.extend(p.relative_to(ROOT).as_posix() for p in (ROOT / 'third_party/go-webview2').rglob('*') if p.is_file())
+    for directory in ['third_party/go-webview2', 'third_party/wails']:
+        files.append(directory + '.source.json')
+        files.extend(p.relative_to(ROOT).as_posix() for p in (ROOT / directory).rglob('*') if p.is_file())
     observation = toolchain.inventory()
     return {'revision': revision, 'run': run_id, 'attempt': attempt, 'platform': observation['platform'],
             'machine': observation['machine'], 'packages': observation['packages'],

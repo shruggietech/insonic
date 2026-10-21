@@ -5,3 +5,5 @@ brand/kit/** -text
 .specify/scripts/** -text
 .specify/templates/** -text
 .agents/skills/** -text
+third_party/go-webview2/** -text
+third_party/wails/** -text

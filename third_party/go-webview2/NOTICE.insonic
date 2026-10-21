@@ -72,3 +72,21 @@ SDK convenience calls balance internally acquired settings and queried controlle
 references on success and failure. Public getter outputs remain caller-owned.
 Native query errors are preserved and null successful outputs are rejected. The
 background-colour temporary is released before its existing fatal error callback.
+
+Startup now returns the first synchronous or asynchronous environment/controller
+failure instead of terminating the process or leaving initialization pending.
+Failed and null outputs, interrupted message waits, startup process failures and
+bootstrap-request rejection cannot publish successful embedding. Generated
+startup boundaries retain original native causes through Go error wrapping.
+
+Reentrant destruction marks startup cancelled and defers destructive controller,
+interface and callback-lease cleanup until completion callbacks and synchronous
+native startup/configuration calls unwind. Caller-owned windows still follow
+normal destruction, and a fresh Chromium/process can use its intended profile.
+The existing bool Embed API remains available. Error-returning startup facades
+reuse the architecture-specific SDK calls without changing their native ABI.
+
+The COM balance regression uses a fresh native thread and observes its actual
+apartment transition, including an implicit MTA, rather than assuming a reused
+Go worker thread has no apartment. Ordinary browser/document readiness and
+native qualification operation allowances remain separate and unchanged.

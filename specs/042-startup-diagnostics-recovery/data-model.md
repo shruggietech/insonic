@@ -1,6 +1,6 @@
 # Startup failure and private event model
 
-A startup failure retains a generated stage and original wrapped error. Known stages identify playback transport, desktop window startup and desktop window close. A numeric system code may be extracted from the error chain without persisting its arbitrary text.
+A startup failure retains a generated stage and original wrapped error. Application stages identify workspace selection, playback transport, desktop window startup and desktop window close. A wrapped typed native StartupError refines desktop-window only to one of fourteen generated binding boundaries, including environment-create/completion, controller-request/completion/configuration, webview, bootstrap-script, message-loop, window-destroyed and browser-process. Unknown native strings cannot enter persisted metadata. A numeric system code may be extracted from the error chain without persisting its arbitrary text.
 
 User feedback contains an actionable cause, corrective advice, diagnostic-save status and the saved diagnostic location when available. It is bounded and presented independently of browser initialization. Secondary failures cannot replace the primary cause.
 

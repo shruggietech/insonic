@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cp, mkdtemp, readFile, writeFile, rm, rename, symlink } from 'node:fs/promises';
+import { cp, mkdtemp, readFile, writeFile, rm, rename, symlink, mkdir, chmod } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { verifyWebviewSource } from '../scripts/webview-source.mjs';
+import { verifyWebviewSource, verifyWailsSource } from '../scripts/webview-source.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-async function fixture(run) {
+async function fixture(run, module = 'go-webview2') {
   const directory = await mkdtemp(join(tmpdir(), 'insonic-webview-source-'));
   try {
-    await cp(join(root, 'third_party'), join(directory, 'third_party'), { recursive: true });
+    await mkdir(join(directory, 'third_party'));
+    await cp(join(root, 'third_party', module), join(directory, 'third_party', module), { recursive: true });
+    await cp(join(root, 'third_party', module + '.source.json'), join(directory, 'third_party', module + '.source.json'));
     for (const file of ['go.mod', 'go.sum']) await cp(join(root, file), join(directory, file));
     await run(directory);
   } finally { await rm(directory, { recursive: true, force: true }); }
@@ -57,3 +59,24 @@ test('source authority rejects a linked module directory', async () => fixture(a
   await symlink(moved, original, 'junction');
   await assert.rejects(verifyWebviewSource(directory), /linked/);
 }));
+
+test('maintained Wails source keeps the complete pinned baseline and three behavioral files', async () => {
+  const authority = await verifyWailsSource(root);
+  assert.equal(Object.keys(authority.upstream_files).length, 956);
+  assert.equal(authority.upstream_sum, 'h1:hLYrSHUUq6hRXl3rWT9ZXiyFIgM94nVN9Ns6iEJzxyw=');
+  assert.deepEqual(authority.modified, ['internal/app/app_dev.go', 'internal/app/app_production.go', 'internal/frontend/desktop/windows/frontend.go']);
+  assert.deepEqual(authority.added, ['LICENSE.insonic', 'NOTICE.insonic', 'internal/app/app_lifecycle_test.go']);
+  assert.notEqual(authority.upstream_sum, authority.patched_sum);
+});
+
+test('Wails source authority rejects unchanged-file tampering and redirected replacements', async () => fixture(async directory => {
+  const file = join(directory, 'third_party/wails/internal/app/app.go');
+  const original = await readFile(file);
+  await chmod(file, 0o600);
+  await writeFile(file, Buffer.concat([original, Buffer.from('\nchanged\n')]));
+  await assert.rejects(verifyWailsSource(directory), /bytes differ/);
+  await writeFile(file, original);
+  const mod = join(directory, 'go.mod');
+  await writeFile(mod, (await readFile(mod, 'utf8')).replace('./third_party/wails', '../unapproved-framework'));
+  await assert.rejects(verifyWailsSource(directory), /replacement/);
+}, 'wails'));
