@@ -12,6 +12,20 @@ const catalog = loadSchemaCatalog();
 const { master, examples } = validateCatalog(catalog);
 const example = kind => structuredClone(catalog.contracts.find(item => item.schema.properties.kind.const === kind).schema.examples[0]);
 
+test('generated asset errors and local readiness facts remain bounded through the release master',()=>{
+  const response=example('runtime-response');
+  response.error={code:'checksum_mismatch',reason:'asset_hash',message:'Generated correction.',asset:{role:'model_file',name:'weights/model.bin'}};
+  assert.equal(master(response),true,JSON.stringify(master.errors));
+  for(const name of ['../secret','/owner/key','C:\\owner\\key','a//b','a/../b','NUL.txt','a/COM1','a\nsecret','a/é','a'.repeat(129)]){
+    response.error.asset.name=name;assert.equal(master(response),false,name);
+  }
+  response.error.asset.name='model.bin';response.error.asset.role='owner_path';assert.equal(master(response),false);
+  delete response.error;
+  response.result={profile_download_bytes:9,credential_state:'locked',upstream_authorization:'not_checked',local_assets:{required_bytes:9,verified_bytes:3,missing_bytes:6,failures:[]}};
+  assert.equal(master(response),true,JSON.stringify(master.errors));
+  response.result.credential_state='remote_authorized';assert.equal(master(response),false);
+});
+
 test('all documented contracts and local references validate through the release master', () => {
   assert.equal(catalog.contracts.length, 22);
   assert.equal(examples, 30);

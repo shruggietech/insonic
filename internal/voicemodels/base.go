@@ -96,7 +96,7 @@ func (s *Service) materializeBase(ctx context.Context, o TrainOptions, directory
 		if n != file.Size {
 			return "", nil, contracts.Fail("conflict")
 		}
-		if err = pinned(ctx, library.PinnedFile{Path: filepath.Join(base, filepath.FromSlash(file.Role)), SHA256: file.SHA256}); err != nil {
+		if err = pinnedAsset(ctx, library.PinnedFile{Path: filepath.Join(base, filepath.FromSlash(file.Role)), SHA256: file.SHA256}, "model_file", file.Role); err != nil {
 			return "", nil, err
 		}
 		inputs = append(inputs, PreparedInput{ID: file.Role, Path: filepath.Join(base, filepath.FromSlash(file.Role)), SHA256: file.SHA256, Size: file.Size})

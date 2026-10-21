@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"math"
 	"net"
@@ -124,25 +125,51 @@ func inCI() bool {
 	}
 	return false
 }
-func pinned(ctx context.Context, f library.PinnedFile) error {
+func pinnedAsset(ctx context.Context, f library.PinnedFile, role, name string) error {
 	if !filepath.IsAbs(f.Path) || !digestPattern.MatchString(f.SHA256) {
 		return contracts.Fail("invalid_request")
 	}
 	in, err := os.Open(f.Path)
 	if err != nil {
-		return contracts.Fail("unavailable")
+		return contracts.AssetOpenFailure(ctx, err, role, name)
 	}
 	defer in.Close()
 	info, err := in.Stat()
-	if err != nil || !info.Mode().IsRegular() {
-		return contracts.Fail("unavailable")
+	if err != nil {
+		return contracts.AssetFailure("asset_unreadable", role, name)
+	}
+	if !info.Mode().IsRegular() {
+		return contracts.AssetFailure("asset_not_regular", role, name)
 	}
 	h := sha256.New()
 	if _, err = io.Copy(h, &contextReader{ctx: ctx, reader: in}); err != nil {
-		return contracts.Fail("cancelled")
+		if ctx.Err() != nil {
+			return contracts.Fail("cancelled")
+		}
+		return contracts.AssetFailure("asset_unreadable", role, name)
 	}
 	if hex.EncodeToString(h.Sum(nil)) != f.SHA256 {
-		return contracts.Fail("incompatible_version")
+		return contracts.AssetFailure("asset_hash", role, name)
+	}
+	return nil
+}
+
+// VerifyLocalAdapter proves only elected executable/support bytes. It neither
+// executes the adapter nor establishes protocol or model-quality compatibility.
+func VerifyLocalAdapter(ctx context.Context, a Adapter) error {
+	if err := ValidateAdapter(a); err != nil {
+		return err
+	}
+	if a.Mode != "local" || a.ID != "insonic-speaker" {
+		return contracts.Fail("unsupported_capability")
+	}
+	if err := pinnedAsset(ctx, a.Executable, "trainer_executable", "executable"); err != nil {
+		return err
+	}
+	for i, f := range a.SupportFiles {
+		if err := pinnedAsset(ctx, f, "trainer_support", fmt.Sprintf("support-%d", i+1)); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -187,13 +214,8 @@ func (s *Service) invoke(ctx context.Context, a Adapter, req AdapterRequest) (ou
 		if inCI() {
 			return Output{}, contracts.Fail("engine_ci_forbidden")
 		}
-		if err := pinned(bounded, a.Executable); err != nil {
+		if err := VerifyLocalAdapter(bounded, a); err != nil {
 			return Output{}, err
-		}
-		for _, f := range a.SupportFiles {
-			if err := pinned(bounded, f); err != nil {
-				return Output{}, err
-			}
 		}
 		raw, err := json.Marshal(req)
 		if err != nil || int64(len(raw)) > limits.MaxInputBytes {

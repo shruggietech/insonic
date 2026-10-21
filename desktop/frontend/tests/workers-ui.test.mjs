@@ -24,9 +24,9 @@ test('rendered worker/model setup uses protected credentials and durable work co
    let result={};
    if(req.operation==='workers.catalog')result={platform:'windows_amd64',catalog:{profiles:[]}};
    if(req.operation==='models.defaults')result=[];
-   if(req.operation==='workers.plan'){await new Promise(resolve=>{release=resolve});result={destination:'owned',space_sufficient:true,election:{...req.data,expected_revision:'a'.repeat(64),profile_digest:'b'.repeat(64)}}}
+   if(req.operation==='workers.plan'){await new Promise(resolve=>{release=resolve});result={destination:'owned',space_sufficient:true,download_bytes:0,profile_download_bytes:9,local_assets:{required_bytes:9,verified_bytes:3,missing_bytes:6,failures:[]},election:{...req.data,expected_revision:'a'.repeat(64),profile_digest:'b'.repeat(64)}}}
    if(req.operation==='workers.setup'||req.operation==='work.cancel')result={work_id:wid,state:req.operation==='work.cancel'?'cancelled':'pending'};
-   if(req.operation==='models.prepare')result={model_id:wid,scratch_space_sufficient:true,...(req.data.acquire?{work:{work_id:wid,state:'pending'}}:{})};
+   if(req.operation==='models.prepare')result={model_id:wid,scratch_space_sufficient:true,credential_state:'locked',upstream_authorization:'not_checked',...(req.data.acquire?{work:{work_id:wid,state:'pending'}}:{})};
    return {workspace_id:wid,result};
   }
  });
@@ -39,6 +39,8 @@ test('rendered worker/model setup uses protected credentials and durable work co
   await act(async()=>button('Preview environment setup').click());
   assert.equal(field('Processing role').disabled,true);
   await act(async()=>release());
+  assert.match(document.body.textContent,/profile download bytes/i);
+  assert.match(document.body.textContent,/missing bytes/i);
   await act(async()=>button('Prepare verified environment').click());
   assert.equal(calls.find(c=>c.operation==='workers.setup').data.expected_revision,'a'.repeat(64));
   await act(async()=>button('Cancel setup work').click());
@@ -46,6 +48,8 @@ test('rendered worker/model setup uses protected credentials and durable work co
   await fill('Exact model bundle','community-1');
   await fill('New Hugging Face read token (optional)','private-fixture-token');
   await act(async()=>button('Preview model acquisition').click());
+  assert.match(document.body.textContent,/locked/);
+  assert.match(document.body.textContent,/not_checked/);
   await act(async()=>button('Acquire or reuse exact model').click());
   const protectedCall=calls.find(c=>c.operation==='protected');
   assert.equal(JSON.parse(protectedCall.input).value,'private-fixture-token');

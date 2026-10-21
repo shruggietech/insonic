@@ -140,6 +140,19 @@ func (s *Service) Publish(ctx context.Context, id, source, kind string) (catalog
 }
 
 func (s *Service) PublishTo(ctx context.Context, profile workspace.Profile, id, source, kind string) (catalog.Publication, error) {
+	return s.publishTo(ctx, profile, id, source, kind, "", 0)
+}
+
+// PublishVerified checks the stable staged snapshot against the declared output
+// before a catalog publication or managed object can be created.
+func (s *Service) PublishVerified(ctx context.Context, id, source, kind, digest string, size int64) (catalog.Publication, error) {
+	if len(digest) != 64 || size < 0 {
+		return catalog.Publication{}, contracts.Fail("invalid_request")
+	}
+	return s.publishTo(ctx, s.Workspace.Config.Profiles.Storage, id, source, kind, digest, size)
+}
+
+func (s *Service) publishTo(ctx context.Context, profile workspace.Profile, id, source, kind, expectedDigest string, expectedSize int64) (catalog.Publication, error) {
 	if !contracts.ValidID(id) || kind == "" || len(kind) > 128 {
 		return catalog.Publication{}, contracts.Fail("invalid_request")
 	}
@@ -147,8 +160,15 @@ func (s *Service) PublishTo(ctx context.Context, profile workspace.Profile, id, 
 	if e != nil {
 		return catalog.Publication{}, e
 	}
-	defer stage.Close()
-	defer s.scratch.Remove(filepath.Base(stage.Name()))
+	defer func() { stage.Close(); s.scratch.Remove(filepath.Base(stage.Name())) }()
+	if expectedDigest != "" {
+		if size != expectedSize {
+			return catalog.Publication{}, contracts.AssetFailure("asset_size", "trainer_output", "output")
+		}
+		if digest != expectedDigest {
+			return catalog.Publication{}, contracts.AssetFailure("asset_hash", "trainer_output", "output")
+		}
+	}
 	// Local per-operation locking serializes one runtime's callers; the catalog
 	// claim fences owners on other hosts and survives process crashes.
 	lock := flock.New(filepath.Join(s.scratchPath, id+".lock"))
@@ -260,7 +280,7 @@ func (s *Service) upload(ctx context.Context, p catalog.Publication, source *os.
 				var n int64
 				n, e = copyContext(work, h, source)
 				if e == nil && (n != p.Size || hex.EncodeToString(h.Sum(nil)) != p.Digest) {
-					e = contracts.Fail("conflict")
+					e = contracts.AssetFailure("asset_hash", "artifact", "staged-source")
 				}
 			}
 		}
@@ -415,7 +435,7 @@ func (s *Service) MaterializeBound(ctx context.Context, id string, maxBytes int6
 		return Materialization{}, redact(ctx, e)
 	}
 	if n != p.Size || hex.EncodeToString(h.Sum(nil)) != p.Digest {
-		return Materialization{}, contracts.Fail("conflict")
+		return Materialization{}, contracts.AssetFailure("asset_hash", "artifact", "object")
 	}
 	if e = finish(); e != nil {
 		return Materialization{}, e

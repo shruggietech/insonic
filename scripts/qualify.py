@@ -390,7 +390,10 @@ def qualify_model_references(executable, directory):
             if data is not None:
                 update_file.write_text(json.dumps(data) + '\n', encoding='utf-8')
                 argv.extend(['--input', update_file])
-            return json.loads(child([*argv, '--json']))['result']
+            # Isolated CLI regressions can outlive the previous owner's idle
+            # allowance. This journey elects detached ownership for cold starts
+            # as well as reuse; the existing final idle/image checks still join it.
+            return json.loads(child([*argv, '--json'], allow_detached=True))['result']
         source_id = '10000000-0000-4000-8000-000000000050'
         source = call('source', 'set', source_id, data={'expected_revision': 0,
                       'source': {'id': source_id, 'name': 'fixture', 'state': 'active',

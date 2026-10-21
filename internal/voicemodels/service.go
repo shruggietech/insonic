@@ -405,8 +405,14 @@ func (s *Service) publishOutput(ctx context.Context, claim catalog.Work, a Artif
 	}
 	id := models.StableID("speaker-artifact:" + claim.ID + ":" + strconv.FormatInt(claim.Generation, 10) + ":" + strconv.Itoa(index) + ":" + a.SHA256)
 	if len(a.Data) > 0 {
-		if a.Path != "" || int64(len(a.Data)) != a.Size || hash(a.Data) != a.SHA256 {
+		if a.Path != "" {
 			return catalog.Publication{}, contracts.Fail("invalid_engine_output")
+		}
+		if int64(len(a.Data)) != a.Size {
+			return catalog.Publication{}, contracts.AssetFailure("asset_size", "trainer_output", a.Role)
+		}
+		if hash(a.Data) != a.SHA256 {
+			return catalog.Publication{}, contracts.AssetFailure("asset_hash", "trainer_output", a.Role)
 		}
 		return s.publishBytes(ctx, id, a.Data, kind)
 	}
@@ -420,28 +426,38 @@ func (s *Service) publishOutput(ctx context.Context, claim catalog.Work, a Artif
 	defer root.Close()
 	f, err := root.Open(a.Path)
 	if err != nil {
-		return catalog.Publication{}, contracts.Fail("invalid_engine_output")
+		reason := "asset_unreadable"
+		if os.IsNotExist(err) {
+			reason = "asset_missing"
+		}
+		return catalog.Publication{}, contracts.AssetFailure(reason, "trainer_output", a.Role)
 	}
 	defer f.Close()
 	info, err := f.Stat()
-	if err != nil || !info.Mode().IsRegular() || info.Size() != a.Size {
-		return catalog.Publication{}, contracts.Fail("invalid_engine_output")
+	if err != nil {
+		return catalog.Publication{}, contracts.AssetFailure("asset_unreadable", "trainer_output", a.Role)
+	}
+	if !info.Mode().IsRegular() {
+		return catalog.Publication{}, contracts.AssetFailure("asset_not_regular", "trainer_output", a.Role)
+	}
+	if info.Size() != a.Size {
+		return catalog.Publication{}, contracts.AssetFailure("asset_size", "trainer_output", a.Role)
 	}
 	stage := filepath.Join(directory, "verified-"+strconv.Itoa(index))
 	out, err := os.OpenFile(stage, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
 		return catalog.Publication{}, contracts.Fail("unavailable")
 	}
+	defer os.Remove(stage)
 	_, err = io.Copy(out, io.LimitReader(&contextReader{ctx: ctx, reader: f}, a.Size+1))
 	syncErr := out.Sync()
 	closeErr := out.Close()
 	if err != nil || syncErr != nil || closeErr != nil {
 		return catalog.Publication{}, contracts.Fail("unavailable")
 	}
-	p, err := s.Artifacts.Publish(ctx, id, stage, kind)
-	if err == nil && (p.Digest != a.SHA256 || p.Size != a.Size) {
-		s.retire([]string{p.ID}, claim.ID)
-		return p, contracts.Fail("conflict")
+	p, err := s.Artifacts.PublishVerified(ctx, id, stage, kind, a.SHA256, a.Size)
+	if e := contracts.SafeError(err); err != nil && (e.Reason == "asset_size" || e.Reason == "asset_hash") {
+		return p, contracts.AssetFailure(e.Reason, "trainer_output", a.Role)
 	}
 	return p, err
 }

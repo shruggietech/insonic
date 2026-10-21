@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -159,5 +160,52 @@ func TestWorkWaitArgumentsBoundTimeout(t *testing.T) {
 		if _, _, e := parseWorkWait([]string{"work", "wait", id, "--timeout-ms", timeout}); e == nil {
 			t.Fatal("unbounded timeout accepted", timeout)
 		}
+	}
+}
+
+func TestWorkWaitReadinessPreservesIndependentFailures(t *testing.T) {
+	w := &workspace.Workspace{}
+	for _, mode := range []string{"caller-timeout", "caller-cancel", "startup-timeout", "startup-exit", "startup-launch", "ready"} {
+		t.Run(mode, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			if mode == "caller-timeout" {
+				var stop context.CancelFunc
+				ctx, stop = context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+				defer stop()
+			}
+			ensure := func(received context.Context, _ *workspace.Workspace) error {
+				if received != ctx {
+					t.Fatal("caller budget replaced")
+				}
+				switch mode {
+				case "caller-timeout", "startup-timeout":
+					return contracts.Condition("unavailable", "startup_timeout")
+				case "caller-cancel":
+					cancel()
+					return contracts.Fail("cancelled")
+				case "startup-exit":
+					cancel()
+					return contracts.Condition("unavailable", "startup_exit")
+				case "startup-launch":
+					return contracts.Condition("unavailable", "startup_launch")
+				}
+				return nil
+			}
+			err := ensureWorkWait(ctx, w, ensure)
+			if mode == "ready" {
+				if err != nil {
+					t.Fatal(err)
+				}
+				return
+			}
+			want := map[string]string{"caller-timeout": "wait_timeout", "caller-cancel": "wait_interrupted", "startup-timeout": "startup_timeout", "startup-exit": "startup_exit", "startup-launch": "startup_launch"}[mode]
+			if err == nil || contracts.SafeError(err).Reason != want {
+				t.Fatalf("want %s, got %v", want, err)
+			}
+			if mode == "caller-timeout" && (strings.Contains(err.Error(), "prerequisites") || strings.Contains(err.Error(), "continues")) {
+				t.Fatal("invented state/prerequisite diagnosis", err)
+			}
+		})
 	}
 }

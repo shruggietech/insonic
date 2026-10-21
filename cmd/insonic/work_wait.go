@@ -108,6 +108,27 @@ func waitForWork(ctx context.Context, w *workspace.Workspace, id, requestID stri
 	}
 }
 
+// Only the caller's expired wait budget can relabel a readiness timeout. A
+// concrete startup report remains a startup failure even if cancellation races.
+func ensureWorkWait(ctx context.Context, w *workspace.Workspace, ensure func(context.Context, *workspace.Workspace) error) error {
+	err := ensure(ctx, w)
+	if err == nil || ctx.Err() == nil {
+		return err
+	}
+	var typed *contracts.Error
+	budgetFailure := errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)
+	if errors.As(err, &typed) {
+		budgetFailure = typed.Reason == "startup_timeout" || typed.Code == "cancelled" && typed.Reason == ""
+	}
+	if !budgetFailure {
+		return err
+	}
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		return contracts.Condition("unavailable", "wait_timeout")
+	}
+	return contracts.Condition("cancelled", "wait_interrupted")
+}
+
 func workWaitCommand(ctx context.Context, w *workspace.Workspace, args []string, requestID string, machine bool) int {
 	id, timeout, e := parseWorkWait(args)
 	if e != nil {
@@ -115,8 +136,9 @@ func workWaitCommand(ctx context.Context, w *workspace.Workspace, args []string,
 	}
 	bounded, stop := context.WithTimeout(ctx, timeout)
 	defer stop()
-	if e = local.Ensure(bounded, w, ""); e != nil {
-		return output(nil, e, machine)
+	if e = ensureWorkWait(bounded, w, func(ctx context.Context, w *workspace.Workspace) error { return local.Ensure(ctx, w, "") }); e != nil {
+		typed := contracts.SafeError(e)
+		return output(contracts.Response{Kind: "runtime-response", Version: contracts.Version, WorkspaceID: w.Config.WorkspaceID, RequestID: requestID, Error: typed}, typed, machine)
 	}
 	observer := workProgressObserver(os.Stderr, isatty.IsTerminal(os.Stderr.Fd()), machine, operatorContext.Quiet)
 	logObserver := func(item catalog.Work) error {

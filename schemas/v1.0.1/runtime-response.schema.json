@@ -61,6 +61,30 @@
           "type": "integer",
           "minimum": 0,
           "description": "Total frozen model/acquisition entries; bounded inspection may show only the first hundred."
+        },
+        "local_assets": {
+          "$ref": "worker-resources.schema.json#/$defs/localAssets",
+          "description": "Offline-only declared local prerequisite observations."
+        },
+        "profile_download_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Nominal complete worker profile transfer size, independent of the current election."
+        },
+        "credential_state": {
+          "enum": [
+            "not_required",
+            "available",
+            "missing",
+            "locked",
+            "rejected",
+            "unavailable"
+          ],
+          "description": "Local protected credential resolvability; available does not establish upstream authorization."
+        },
+        "upstream_authorization": {
+          "const": "not_checked",
+          "description": "Preview does not contact upstream services to test authentication or gated access."
         }
       }
     },
@@ -284,9 +308,81 @@
             "output_permission",
             "output_directory",
             "output_space",
-            "output_write"
+            "output_write",
+            "asset_missing",
+            "asset_unreadable",
+            "asset_not_regular",
+            "asset_size",
+            "asset_hash",
+            "asset_tool_missing",
+            "artifact_missing",
+            "artifact_identity",
+            "artifact_range"
           ],
           "description": "Allowlisted locally generated operation condition; never external text."
+        },
+        "asset": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "role",
+            "name"
+          ],
+          "description": "Generated logical asset identity, without local paths or external output.",
+          "properties": {
+            "role": {
+              "enum": [
+                "worker_runtime",
+                "worker_installer",
+                "worker_wheel",
+                "model_file",
+                "trainer_executable",
+                "trainer_support",
+                "trainer_output",
+                "artifact"
+              ],
+              "description": "Fixed elected asset role."
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[!-~]+$",
+              "description": "ASCII slash-relative logical name. Absolute, traversal, control and Windows device names are rejected by the shared runtime.",
+              "allOf": [
+                {
+                  "not": {
+                    "pattern": "^/"
+                  }
+                },
+                {
+                  "not": {
+                    "pattern": "[\\\\:\"<>|?*]"
+                  }
+                },
+                {
+                  "not": {
+                    "pattern": "(^|/)\\.{1,2}(/|$)"
+                  }
+                },
+                {
+                  "not": {
+                    "pattern": "//"
+                  }
+                },
+                {
+                  "not": {
+                    "pattern": "\\.(/|$)"
+                  }
+                },
+                {
+                  "not": {
+                    "pattern": "(^|/)([Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(\\.|/|$)"
+                  }
+                }
+              ]
+            }
+          }
         }
       }
     }
