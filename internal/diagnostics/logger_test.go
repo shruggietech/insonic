@@ -76,3 +76,37 @@ func TestExistingOversizedLogIsRefusedBeforeRotation(t *testing.T) {
 		}
 	}
 }
+
+func TestStartupMetadataIsAllowlistedAndNumeric(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "startup.jsonl")
+	log, err := Open(path, "error")
+	if err != nil {
+		t.Fatal(err)
+	}
+	code := uint32(5)
+	for _, event := range []Event{
+		{Operation: "desktop.startup", FailureStage: "desktop-window", SystemErrorCode: &code},
+		{Operation: "work.show", FailureStage: "desktop-window", SystemErrorCode: &code},
+		{Operation: "desktop.startup", FailureStage: "private-path-secret", SystemErrorCode: &code},
+	} {
+		if err = log.Write("error", event); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err = log.Close(); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows := strings.Split(strings.TrimSpace(string(raw)), "\n")
+	if len(rows) != 3 || !strings.Contains(rows[0], `"failure_stage":"desktop-window"`) || !strings.Contains(rows[0], `"system_error_code":5`) {
+		t.Fatal(string(raw))
+	}
+	for _, row := range rows[1:] {
+		if strings.Contains(row, "failure_stage") || strings.Contains(row, "system_error_code") || strings.Contains(row, "secret") {
+			t.Fatal("untrusted startup metadata persisted", row)
+		}
+	}
+}

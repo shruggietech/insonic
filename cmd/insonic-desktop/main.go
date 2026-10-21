@@ -10,6 +10,7 @@ import (
 	"github.com/shruggietech/insonic/desktop"
 	"github.com/shruggietech/insonic/internal/assistance"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/diagnostics"
 	local "github.com/shruggietech/insonic/internal/runtime"
 	"github.com/shruggietech/insonic/internal/workspace"
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -164,13 +165,17 @@ func run() (exitCode int) {
 	if len(os.Args) == 3 && os.Args[1] == "--workspace" {
 		w, err := workspace.Open(os.Args[2])
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			reportDesktopStartupFailure(startupFailure("workspace", err), true, os.Stderr, saveDesktopStartupEvent, presentStartupFailure)
 			return 1
 		}
 		bridge.Workspace = w
 	}
 	if err := runDesktopApplicationWithProfile(bridge, startup, domReady, desktop.QualificationStartsHidden(smoke), profile); err != nil {
-		fmt.Fprintln(os.Stderr, "Desktop lifecycle failed.")
+		var record func(diagnostics.Event) (string, error) = saveDesktopStartupEvent
+		if smoke {
+			record = nil
+		}
+		reportDesktopStartupFailure(err, !smoke, os.Stderr, record, presentStartupFailure)
 		return 1
 	}
 	if smoke {

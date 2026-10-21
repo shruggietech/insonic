@@ -69,11 +69,23 @@ func runDesktopApplication(bridge *desktop.Bridge, startup, domReady func(contex
 // Disposable native qualification supplies its owned profile explicitly. Normal
 // application launches retain the persistent Wails default.
 func runDesktopApplicationWithProfile(bridge *desktop.Bridge, startup, domReady func(context.Context), hidden bool, profile string) error {
+	return runDesktopApplicationWithRunner(bridge, startup, domReady, hidden, profile, desktopApplicationRunner{
+		launch: wails.Run, playback: desktop.StartPlaybackTransport, closeError: nativeWebviewCloseError,
+	})
+}
+
+type desktopApplicationRunner struct {
+	launch     func(*options.App) error
+	playback   func(*desktop.Bridge) (func(), error)
+	closeError func() error
+}
+
+func runDesktopApplicationWithRunner(bridge *desktop.Bridge, startup, domReady func(context.Context), hidden bool, profile string, runner desktopApplicationRunner) error {
 	stopNativeMenu := configureNativeMenu(bridge, profile != "")
 	defer stopNativeMenu()
-	closePlayback, err := desktop.StartPlaybackTransport(bridge)
+	closePlayback, err := runner.playback(bridge)
 	if err != nil {
-		return err
+		return startupFailure("playback-transport", err)
 	}
 	defer func() {
 		if hidden {
@@ -84,8 +96,8 @@ func runDesktopApplicationWithProfile(bridge *desktop.Bridge, startup, domReady 
 			fmt.Fprintln(os.Stderr, "Desktop qualification cleanup: playback complete")
 		}
 	}()
-	if err := wails.Run(applicationOptions(bridge, startup, domReady, hidden, profile)); err != nil {
-		return err
+	if err := runner.launch(applicationOptions(bridge, startup, domReady, hidden, profile)); err != nil {
+		return startupFailure("desktop-window", err)
 	}
-	return nativeWebviewCloseError()
+	return startupFailure("desktop-close", runner.closeError())
 }
