@@ -5,6 +5,7 @@ package edge
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"runtime"
 	"syscall"
@@ -444,5 +445,36 @@ func TestStartupNativeCallsHoldResourcesUntilTheyReturn(t *testing.T) {
 				t.Fatal("native call lifetime failure was not returned and balanced", err)
 			}
 		})
+	}
+}
+
+func TestStartupExistingProfileFileReturnsBeforeNativeCreationAndAllowsLaterDirectory(t *testing.T) {
+	f := newStartupFixture(t, "")
+	if err := os.WriteFile(f.profile, []byte("owned blocker"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	platform := f.platform()
+	originalFactory := platform.createEnvironment
+	platform.createEnvironment = func(browser, profile string, handler *iCoreWebView2CreateCoreWebView2EnvironmentCompletedHandler, args string) error {
+		calls++
+		return originalFactory(browser, profile, handler, args)
+	}
+	err := f.view.embedWithError(f.hwnd, platform)
+	var startup *StartupError
+	if !errors.As(err, &startup) || startup.Stage != "profile-directory" || !errors.Is(err, windows.ERROR_DIRECTORY) || calls != 0 {
+		t.Fatalf("existing regular profile path reached native creation: error=%v calls=%d", err, calls)
+	}
+	if len(f.view.callbackLeases) != 0 || !f.view.shuttingDown || f.environmentRefs != 0 {
+		t.Fatal("profile refusal leaked partial startup")
+	}
+	if err := os.Remove(f.profile); err != nil {
+		t.Fatal(err)
+	}
+	next := newStartupFixture(t, "")
+	next.view.DataPath = f.profile
+	next.profile = f.profile
+	if err := next.view.embedWithError(next.hwnd, next.platform()); err != nil {
+		t.Fatal("later intended-profile launch failed", err)
 	}
 }

@@ -6,7 +6,7 @@ Optional [first-run setup](setup.md) guides workspace location, backend choice, 
 
 ## Startup failures
 
-Windows browser initialization returns synchronous loader errors and asynchronous environment/controller failures through the same desktop startup reporting path. A failed startup skips the ordinary application loop, closes its owned window and partial browser resources on the UI thread after native callbacks return, and leaves a later launch free to use the intended profile. There is no automatic retry or profile deletion.
+Windows browser initialization returns synchronous loader errors and asynchronous environment/controller failures through the same desktop startup reporting path. An existing regular file at the intended browser profile path is reported as a directory error before native initialization. A failed startup skips the ordinary application loop, closes its owned window and partial browser resources on the UI thread after native callbacks return, and leaves a later launch free to use the intended profile. There is no automatic retry or profile deletion.
 
 If workspace selection or the desktop host returns a startup error, a native error dialog shows the bounded underlying cause and a correction to check the indicated dependency or directory access. The same message goes to stderr for launches from a terminal. A returned failure releases the desktop-owned playback transport and menu observers.
 

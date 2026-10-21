@@ -263,3 +263,30 @@ test('input polling rejects a changed readiness origin rather than extending its
     clock += ms; data.jobs[0].completed_at = new Date(Date.parse(data.jobs[0].completed_at) + 1000).toISOString();
   } }), /boundary changed/);
 });
+
+test('qualification input identity failure records bounded observed fields without weakening rejection', async () => {
+  const data = metadata(); data.run.status = 'in_progress';
+  data.jobs = [data.jobs[0], data.jobs[1], { ...data.jobs[1], id: 4, name: 'docs-build' }];
+  const now = () => Date.parse(data.jobs[0].completed_at) + 5000;
+  for (const changed of [{ status: 'queued' }, { head_sha: 'c'.repeat(40) }, { run_attempt: 3 }]) {
+    await assert.rejects(waitForQualificationInputs(identity, 'test-only', {
+      request: async url => url.includes('/jobs?') ? { total_count: data.jobs.length, jobs: data.jobs } : { ...data.run, ...changed }, now,
+    }), error => {
+      assert.match(error.message, /Qualification input attempt identity differs:/);
+      const evidence = JSON.parse(error.message.split('differs: ')[1]);
+      assert.equal(evidence.expected.head, identity.head);
+      for (const [field, value] of Object.entries(changed)) assert.equal(evidence.observed[{ head_sha: 'head', run_attempt: 'attempt', status: 'status' }[field]], value);
+      return true;
+    });
+  }
+  const foreign = Array.from({ length: 12 }, (_, id) => ({ id: id + 20, run_id: 42, run_attempt: null, status: 'queued', private_input: 'never retain this' }));
+  await assert.rejects(waitForQualificationInputs(identity, 'test-only', {
+    request: async url => url.includes('/jobs?') ? { total_count: foreign.length, jobs: foreign } : data.run, now,
+  }), error => {
+    const evidence = JSON.parse(error.message.split('differs: ')[1]);
+    assert.equal(evidence.mismatched_job_count, 12); assert.equal(evidence.mismatched_jobs.length, 8);
+    assert.equal(evidence.mismatched_jobs[0].attempt, null);
+    assert.ok(!error.message.includes('private_input')); assert.ok(!error.message.includes('never retain this'));
+    return true;
+  });
+});

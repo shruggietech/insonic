@@ -54,3 +54,7 @@
 T001 -> T002 -> US1/US2 -> T012 -> T013 -> T014 -> US3 -> T021 -> T022 -> T023.
 
 US1 and US2 tests in separate files may be authored independently; shared logger edits remain sequential. T004 privacy tests can run alongside the Windows ACL reproduction once fixtures exist. The reporting/diagnostics increment is the first useful delivery and does not depend on US3. Native startup and framework changes remain in the second increment. S041 campaign bookkeeping is not a dependency of either product merge.
+
+## Phase 7: Demonstrated first-candidate corrections
+
+- [x] T024 Preserve the failed candidate, correct stale diagnostic/qualification fixtures, return an existing-file profile error before native creation, and report bounded observed CI input identity fields without weakening checks; verify regressions before a new candidate (FR-007/009/011/012).

@@ -176,7 +176,14 @@ export async function waitForQualificationInputs(identity, token, { request = re
     if (run.head_sha !== identity.head || String(run.id) !== identity.run || String(run.run_attempt) !== identity.attempt
         || run.repository?.full_name !== identity.repository || run.path !== '.github/workflows/ci.yml'
         || run.status !== 'in_progress' || jobs.some(j => String(j.run_id) !== identity.run || String(j.run_attempt) !== identity.attempt)) {
-      throw new Error('Qualification input attempt identity differs.');
+      const mismatchedJobs = jobs.filter(j => String(j.run_id) !== identity.run || String(j.run_attempt) !== identity.attempt);
+      throw new Error('Qualification input attempt identity differs: ' + JSON.stringify({
+        expected: { repository: identity.repository, run: identity.run, attempt: identity.attempt, head: identity.head },
+        observed: { repository: run.repository?.full_name ?? null, run: run.id ?? null, attempt: run.run_attempt ?? null,
+          head: run.head_sha ?? null, path: run.path ?? null, status: run.status ?? null },
+        mismatched_jobs: mismatchedJobs.slice(0, 8).map(j => ({ id: j.id ?? null, run: j.run_id ?? null,
+          attempt: j.run_attempt ?? null, status: j.status ?? null })), mismatched_job_count: mismatchedJobs.length,
+      }));
     }
     const ready = jobs.filter(j => j.name === 'prerequisite readiness');
     if (ready.length !== 1 || ready[0].status !== 'completed' || ready[0].conclusion !== 'success') throw new Error('Setup must follow successful prerequisite readiness.');

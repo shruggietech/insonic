@@ -106,6 +106,11 @@ func (e *Chromium) embedWithError(hwnd uintptr, platform startupPlatform) (err e
 		}
 		dataPath = filepath.Join(config, filepath.Base(windows.UTF16ToString(executable)))
 	}
+	// An existing non-directory cannot be a browser profile. Return this
+	// concrete path failure before handing it to native initialization.
+	if info, pathErr := os.Stat(dataPath); pathErr == nil && !info.IsDir() {
+		return e.failStartup("profile-directory", &os.PathError{Op: "open browser profile directory", Path: dataPath, Err: windows.ERROR_DIRECTORY})
+	}
 	if e.BrowserPath != "" {
 		if _, pathErr := os.Stat(e.BrowserPath); pathErr != nil {
 			return e.failStartup("browser-path", pathErr)

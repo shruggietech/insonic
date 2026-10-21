@@ -72,7 +72,7 @@
       "version": "v1.0.23",
       "manifest": "third_party/go-webview2.source.json",
       "upstream_sum": "h1:jmv8qhz1lHibCc79bMM/a/FqOnnzOGEisLav+a0b9P0=",
-      "patched_sum": "h1:Dtv+AjicMgnJ9m6ZG6Dt6FiF/qflUr6oELbzam3Hot0="
+      "patched_sum": "h1:/aL2mlzJxucGpL96QiMANuqU8vFvNkRI1XVvK1kxSjg="
     },
     "github.com/wailsapp/wails/v2": {
       "version": "v2.16.0",

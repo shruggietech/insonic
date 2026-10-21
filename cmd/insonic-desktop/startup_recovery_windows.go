@@ -37,7 +37,7 @@ type startupFailureObservation struct {
 
 func controlledStartupStage(stage string) bool {
 	switch stage {
-	case "environment-create", "environment-completion", "controller-request", "controller-completion", "browser-process":
+	case "profile-directory", "environment-create", "environment-completion", "controller-request", "controller-completion", "browser-process":
 		return true
 	}
 	return false
@@ -188,7 +188,22 @@ func qualifyStartupFailureChild(config string) int {
 	}
 	var started atomic.Bool
 	unexpected := func(ctx context.Context) { started.Store(true); wailsruntime.Quit(ctx) }
+	fmt.Fprintln(os.Stderr, "native-startup-recovery-stage=before-application")
+	finished := make(chan struct{})
+	go func() {
+		timer := time.NewTimer(12 * time.Second)
+		defer timer.Stop()
+		select {
+		case <-finished:
+		case <-timer.C:
+			fmt.Fprintln(os.Stderr, "native-startup-recovery-stage=watchdog-observation")
+			logNativeUIFunctionStacks()
+			logNativeStartupProgress()
+		}
+	}()
 	primary := runDesktopApplicationWithProfile(&desktop.Bridge{CLIExecutable: desktop.SiblingCLI()}, unexpected, unexpected, true, profile)
+	close(finished)
+	fmt.Fprintln(os.Stderr, "native-startup-recovery-stage=application-returned")
 	var native *edge.StartupError
 	if primary == nil || !errors.As(primary, &native) || !controlledStartupStage(native.Stage) || started.Load() {
 		fmt.Fprintln(os.Stderr, "controlled startup failure did not return from the expected native boundary", primary)
@@ -214,6 +229,7 @@ func qualifyStartupFailureChild(config string) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
+	fmt.Fprintln(os.Stderr, "native-startup-recovery-stage=before-apartment-cleanup")
 	if err = nativeCOMCleanup(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
