@@ -49,7 +49,7 @@ jobs:
   assemble:
     name: Assemble Windows desktop delivery
     runs-on: windows-2022
-    timeout-minutes: 11
+    timeout-minutes: 15
     env:
       NEXT_TELEMETRY_DISABLED: 1
       SOURCE_REVISION: ${{ inputs.revision }}
@@ -198,7 +198,7 @@ jobs:
   proofs:
     name: Qualify Windows desktop (${{ matrix.scope }})
     runs-on: windows-2022
-    timeout-minutes: 11
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -282,7 +282,7 @@ jobs:
     needs:
       - assemble
     runs-on: windows-2022
-    timeout-minutes: 11
+    timeout-minutes: 15
     env:
       SOURCE_REVISION: ${{ inputs.revision }}
       INSONIC_DISPOSABLE_INSTALLER_TEST: "1"

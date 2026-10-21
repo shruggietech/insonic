@@ -6,7 +6,7 @@ Acceptance input contains exact repository, revision, run, attempt, boolean elec
 
 Timing uses created_at for the first preparation start and current-attempt run_started_at for reruns, the readiness boundary, evaluation time and, for terminal audit, the latest completed_at across the complete current-attempt job inventory. All timestamps are finite, ordered and identity-bound. Preparation = readiness - preparation start; qualification = endpoint - readiness; combined = endpoint - preparation start. Initial request queue (created_at to run_started_at for attempt one) is included in preparation and combined totals and also reported separately. Jobs cannot precede the current attempt start. Queue time after attempt start belongs to its phase. Documentation-only preparation ends at the boundary too; its scope/setup overhead remains visible.
 
-The provisional aggregate records evaluation time, 660-second limit and 15-second finalization reserve. Only a completed attempt supplies final elapsed compliance. Receipts do not contain access tokens.
+The provisional aggregate records evaluation time, 660-second advisory target, 900-second hard limit, target_exceeded, target_overrun_seconds and 15-second finalization reserve. Target-only overruns produce advisories without rejection; timing accepts qualification plus reserve at most the hard limit. Only a completed attempt supplies final elapsed compliance. Receipts do not contain access tokens.
 
 ## Prepared Windows Go dependencies
 

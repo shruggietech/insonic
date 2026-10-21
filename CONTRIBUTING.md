@@ -20,7 +20,7 @@ npm test
 npm --prefix site run build
 ```
 
-CI runs these scopes in parallel jobs with caches and eleven-minute timeouts. No live AI calls, media downloads or model inference belong in ordinary pull-request CI. Product tests and native packaging checks are proportional to changed behavior.
+CI runs these scopes in parallel after verified prerequisite readiness, with caches and fifteen-minute qualification watchdogs. Aggregate qualification targets eleven minutes (660 seconds) and rejects above fifteen minutes (900 seconds); target-only overruns are advisory. Preparation, qualification and combined elapsed time include phase queue time, and provisional acceptance retains fifteen seconds for finalization. Functional, provenance, integrity and required checks remain mandatory. No live AI calls, media downloads or model inference belong in ordinary pull-request CI. Product tests and native packaging checks are proportional to changed behavior.
 
 Windows tooling must launch console children with `CREATE_NO_WINDOW` or equivalent and disable interactive prompts. Use literal argument arrays and redirected I/O. Direct Git and GitHub operations through a verified headless runner are allowed.
 

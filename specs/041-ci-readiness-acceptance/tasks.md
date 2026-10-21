@@ -68,9 +68,22 @@ Setup -> foundation -> US1 -> US2 -> verification. Different test files may be a
 - [x] T026 Reuse the existing unattended diagnostic workflow for one same-executable sequential two/ten-second twelve-case comparison with equivalent separate profiles, unchanged outer bounds and retained first failures (FR-012, SC-005).
 - [x] T027 Adopt the justified documented fixture allowance or correct the demonstrated bounded defect, separating any necessary production behavior repair into the next available dependent slice in PR #162 (FR-004/013).
 - [x] T028 Complete required root, affected Windows/product/site checks, source-authority hashes, encoding/diff self-review and Spec Kit convergence; publish the final frozen candidate without another hosted Codex review (FR-003/013, SC-006).
-- [ ] T029 Monitor final ordinary-path CI through terminal acceptance, retain exact identities/all twelve archive cases/natural release and phase/queue accounting, update PR and tracking evidence while keeping #161/#154 open and T016 pending (FR-005/007/013, SC-004/006).
+- [x] T029 Monitor final ordinary-path CI through terminal acceptance, retain exact identities/all twelve archive cases/natural release and phase/queue accounting, update PR and tracking evidence while keeping #161/#154 open and T016 pending (FR-005/007/013, SC-004/006).
 
 ## Phase 11: Convergence
 
 - [x] T030 CRITICAL Read first-attempt initial creation from the identity-verified workflow record, retain attempt-record creation separately, reject mismatched authority/invalid ordering, and verify terminal accounting against retained hosted metadata in scripts/ci-acceptance.mjs and tests/ci-acceptance.test.mjs per Constitution V, FR-007 and SC-003 (contradicts).
 - [x] T031 Use a non-expiry fixture lease for portable-history assertions in internal/catalog/backup_processing_test.go after the hosted one-second claim expired; preserve production fencing and dedicated expiry tests, and run affected/full tracked-package checks per FR-003 and SC-006 (partial).
+
+## Phase 12: Owner-authorized timing-policy correction (2026-10-21)
+
+T029 evidence: final PR head e578f3c0339d086bbb851a1bdae4522820b35773, tested merge d9c08b0a80bfe83b07350e5d1f90127a817a9033, [run 39558146331](https://github.com/shruggietech/insonic/actions/runs/39558146331), attempt 1; 251s preparation, 566s qualification, 817s combined, zero initial queue. [Existing PR evidence](https://github.com/shruggietech/insonic/pull/162#issuecomment-6310309533) completes T029. The subsequent main run 39576651956 failed under the old 660-second policy and remains failed.
+
+- [x] T032 Amend constitution, active S041 requirements and current development contracts; complete Spec Kit consistency analysis (FR-007/014-016, SC-003/007).
+- [x] T033 Add focused fake-clock, terminal/provisional boundary, fixed-deadline, Python remaining-interval and scoped watchdog regressions (FR-005/014-016, SC-002/003/007).
+- [x] T034 Implement the shared policy, advisory receipts, fixed 900-second input deadline, Python wrapper/calibration metadata and applicable workflow watchdogs without changing native/transfer/preparation/release limits (FR-003/004/007/014-016).
+- [x] T035 Run required root, affected Python and site checks; inspect final diff, encoding and policy consistency; prepare the frozen small policy PR for publication (SC-007).
+- [ ] T036 Publish and verify complete PR acceptance, squash merge under owner authorization, clean up the branch and retain exact-main terminal acceptance externally; complete T016 only from that evidence (FR-005/007, SC-004/007).
+- [ ] T037 Run the existing isolated cold campaign once and its planned full warm comparison on the final S041 revision if still needed for #161 closure; retain revision-bound results separately from later unrelated product commits (FR-001-003/009, SC-004).
+
+T032 -> T033 -> T034 -> T035 -> T036. T037 follows the final S041 revision and remains separate from acceptance of the policy correction and subsequent product work.

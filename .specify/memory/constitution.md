@@ -22,7 +22,7 @@ Defaults MUST work without requiring users to understand model servers. Credenti
 
 ### V. Efficient, truthful development
 
-Implementation MUST follow coherent Spec Kit slices with linked Issues, milestones and a GitHub Project. Controlled automated checks MUST target meaningful change risks. User observations ordinarily arrive after release as versioned issues; agents MUST NOT invent a pre-release attended verification ritual. CI qualification MUST stay within eleven minutes (660 seconds) after separately verified dependency preparation. Report preparation, qualification and combined elapsed time, including queue time within each phase. No qualification check may run before the readiness boundary and disappear from the qualification clock. Final terminal timestamps govern compliance; caches accelerate verified preparation and never establish correctness. Public status MUST distinguish specified, implemented, tested and shipped behavior.
+Implementation MUST follow coherent Spec Kit slices with linked Issues, milestones and a GitHub Project. Controlled automated checks MUST target meaningful change risks. User observations ordinarily arrive after release as versioned issues; agents MUST NOT invent a pre-release attended verification ritual. CI qualification MUST target eleven minutes (660 seconds) after separately verified dependency preparation and MUST NOT exceed fifteen minutes (900 seconds). Exceeding the target through the hard limit MUST produce an advisory and MUST NOT block otherwise valid acceptance or merge. Functional, integrity, provenance and elected required checks remain mandatory regardless of elapsed time. Report preparation, qualification and combined elapsed time, including queue time within each phase. No qualification check may run before the readiness boundary and disappear from the qualification clock. The provisional aggregate MUST retain a fifteen-second finalization reserve against the hard limit. Final terminal timestamps govern actual compliance; caches accelerate verified preparation and never establish correctness. Public status MUST distinguish specified, implemented, tested and shipped behavior.
 
 ## Repository and publication constraints
 
@@ -42,4 +42,4 @@ Specify, clarify where necessary, plan, tasks, analyze, implement and converge a
 
 Owner instructions take precedence. Amendments MUST record their changed product or process effect in the changelog and update the constitution version using semantic versioning. Reviewers compare changes against this constitution, the current system specification and the slice acceptance criteria. Exceptions MUST be concrete, justified and reported; passing unrelated checks does not resolve unmet requirements.
 
-**Version**: 3.1.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-20
+**Version**: 4.0.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-21

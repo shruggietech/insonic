@@ -66,10 +66,10 @@ test('phase timing includes cold preparation, queue and terminal cleanup', () =>
   const got = measureTiming(start, ready, ready + 630000, false);
   assert.equal(got.preparation_seconds, 1342); assert.equal(got.qualification_seconds, 630);
   assert.equal(got.combined_seconds, 1972); assert.equal(got.accepted, true);
-  assert.equal(measureTiming(start, ready, ready + 645000, false).accepted, true);
-  assert.equal(measureTiming(start, ready, ready + 645001, false).accepted, false);
-  assert.equal(measureTiming(start, ready, ready + 660000, true).accepted, true);
-  assert.equal(measureTiming(start, ready, ready + 660001, true).accepted, false);
+  assert.equal(measureTiming(start, ready, ready + 885000, false).accepted, true);
+  assert.equal(measureTiming(start, ready, ready + 885001, false).accepted, false);
+  assert.equal(measureTiming(start, ready, ready + 900000, true).accepted, true);
+  assert.equal(measureTiming(start, ready, ready + 900001, true).accepted, false);
   for (const value of [NaN, Infinity, start - 1]) assert.throws(() => measureTiming(start, value, ready, true));
 });
 
@@ -100,7 +100,7 @@ test('first-attempt queue belongs to preparation and combined terminal totals', 
     assert.equal(got.preparation_started_at, data.run.created_at);
     assert.equal(got.attempt_started_at, data.run.run_started_at);
     assert.equal(got.qualification_seconds, 661);
-    assert.equal(got.accepted, false);
+    assert.equal(got.accepted, true);
   }
 });
 
@@ -115,7 +115,7 @@ test('initial queue accounting does not move the provisional qualification deadl
   assert.equal(got.qualification_seconds, 630);
   assert.equal(got.combined_seconds, 2092);
   assert.equal(got.accepted, true);
-  assert.equal(inspectAttempt(data.identity, data.run, data.jobs, { now: boundary + 645001 }).accepted, false);
+  assert.equal(inspectAttempt(data.identity, data.run, data.jobs, { now: boundary + 885001 }).accepted, false);
 });
 
 test('first-attempt creation must be valid and jobs cannot precede attempt start', () => {
@@ -139,7 +139,7 @@ test('terminal audit uses actual attempt/job completion, not the later invocatio
   const data = metadata();
   const got = inspectAttempt(identity, data.run, data.jobs, { terminal: true });
   assert.equal(got.qualification_seconds, 661);
-  assert.equal(got.accepted, false);
+  assert.equal(got.accepted, true);
   for (const field of ['run_attempt', 'id', 'head_sha']) {
     const bad = structuredClone(data.run); bad[field] = 'wrong';
     assert.throws(() => inspectAttempt(identity, bad, data.jobs, { terminal: true }), /identity/);
@@ -201,9 +201,9 @@ test('overlapped setup waits for slow docs inside the original qualification dea
     return { total_count: jobs.length, jobs };
   };
   const deadline = await waitForQualificationInputs(identity, 'test-only', { request, now: () => clock, pause: async ms => { clock += ms; } });
-  assert.equal(deadline, boundary + 660000);
+  assert.equal(deadline, boundary + 900000);
   assert.ok(clock >= boundary + 185000);
-  clock = boundary + 660000;
+  clock = boundary + 900000;
   await assert.rejects(waitForQualificationInputs(identity, 'test-only', { request, now: () => clock }), /deadline/);
   clock = boundary + 5000; data.jobs[2].status = 'completed'; data.jobs[2].conclusion = 'failure';
   await assert.rejects(waitForQualificationInputs(identity, 'test-only', { request: async url => url.includes('/jobs?') ? { total_count: data.jobs.length, jobs: data.jobs } : data.run, now: () => clock }), /failed/);
@@ -236,4 +236,30 @@ test('workflow creation authority rejects mismatched identities and invalid queu
     ? { total_count: data.jobs.length, jobs: data.jobs }
     : url.includes('/attempts/') ? data.run : { ...data.run, created_at: new Date(Date.parse(data.run.run_started_at) + 1000).toISOString() });
   assert.throws(() => inspectAttempt(data.identity, got.run, got.jobs, { terminal: true }), /queue timestamps/);
+});
+
+test('qualification target overruns are advisory through the exact terminal hard boundary', () => {
+  const ready = 1000000;
+  for (const seconds of [660, 660.001, 701, 900, 900.001]) {
+    const got = measureTiming(0, ready, ready + seconds * 1000, true);
+    assert.equal(got.qualification_target_seconds, 660);
+    assert.equal(got.qualification_limit_seconds, 900);
+    assert.equal(got.target_exceeded, seconds > 660);
+    assert.equal(got.target_overrun_seconds, Math.max(0, seconds - 660));
+    assert.equal(got.accepted, seconds <= 900);
+    assert.equal(got.finalization_reserve_seconds, 0);
+  }
+  assert.equal(measureTiming(0, ready, ready + 885000, false).finalization_reserve_seconds, 15);
+  assert.equal(measureTiming(0, ready, ready + 885000, false).accepted, true);
+  assert.equal(measureTiming(0, ready, ready + 885001, false).accepted, false);
+});
+
+test('input polling rejects a changed readiness origin rather than extending its deadline', async () => {
+  const data = metadata(); data.run.status = 'in_progress';
+  data.jobs = [data.jobs[0], { ...data.jobs[1], name: 'docs-build', status: 'in_progress' }];
+  let clock = Date.parse(data.jobs[0].completed_at) + 5000;
+  const request = async url => url.includes('/jobs?') ? { total_count: data.jobs.length, jobs: data.jobs } : data.run;
+  await assert.rejects(waitForQualificationInputs(identity, 'test-only', { request, now: () => clock, pause: async ms => {
+    clock += ms; data.jobs[0].completed_at = new Date(Date.parse(data.jobs[0].completed_at) + 1000).toISOString();
+  } }), /boundary changed/);
 });

@@ -1,6 +1,6 @@
 # Implementation Plan: Verified CI readiness and elected acceptance
 
-**Branch**: `codex/041-ci-readiness-acceptance` | **Date**: 2026-10-20 | **Spec**: [spec.md](spec.md)
+**Branch**: `codex/041-ci-timing-policy` | **Date**: 2026-10-21 | **Spec**: [spec.md](spec.md)
 
 ## Summary
 
@@ -14,13 +14,13 @@ Use the existing verified same-run media pipeline as a separately measured prepa
 **Testing**: Actual helper virtual-clock characterization, workflow orchestration simulation, aggregate failure matrix, API identity/timing cases, existing transfer regressions and root/site checks.
 **Target Platform**: Windows and Linux hosted CI; local Windows headless verification.
 **Project Type**: Internal build and acceptance tooling.
-**Performance Goals**: Preparation reported separately; all elected qualification <=660 seconds; aggregate rejects at 645 seconds to retain 15 seconds for finalization, terminal timestamps audited afterward.
-**Constraints**: No widened cache restore, cross-run relabelling, owner desktop execution or unrelated hosted settings mutation. The 2026-10-21 convergence authorizes only two-to-ten-second per-operation fixture calibration and existing PR publication; all outer deadlines remain fixed.
+**Performance Goals**: Preparation reported separately; 660-second advisory qualification target and 900-second hard limit; provisional aggregate rejects above 885 seconds to retain 15 seconds for finalization, terminal timestamps audited afterward.
+**Constraints**: No widened cache restore, cross-run relabelling, owner desktop execution or unrelated hosted settings mutation. The current 2026-10-21 recovery authorization changes qualification-wide policy only; all native operation allowances remain fixed. Historical calibration and hosted convergence phases below retain their original contracts.
 **Scale/Scope**: #161 readiness/enforcement plus the 2026-10-21 bounded fixture calibration in #154 context. A necessary targeted native behavior repair receives a separate dependent slice in the same PR.
 
 ## Constitution Check
 
-Owner explicitly approved separate preparation/qualification timing on 2026-10-20. Constitution 3.1.0 records that change before analysis. All elected checks start after the boundary; queue time within phases is counted. Existing package/provenance checks and native deadlines remain authoritative. Source/build/toolchain observation does not claim fully pinned system packages. No product or routing changes. Pre-research and post-design gates pass.
+Owner explicitly approved separate preparation/qualification timing on 2026-10-20 and a 660-second advisory target/900-second hard limit on 2026-10-21. Constitution 4.0.0 records the current rule before analysis. All elected checks start after the boundary; queue time within phases is counted. Existing package/provenance checks and native deadlines remain authoritative. Source/build/toolchain observation does not claim fully pinned system packages. No product or routing changes. Pre-research and post-design gates pass.
 
 ## Project Structure
 
@@ -95,3 +95,11 @@ Separate commits: this planning amendment, identically instrumented observations
 The completed bounded comparison passed both arms below two seconds and is causally inconclusive. Apply the authorized ten-second per-operation fixture policy, with all existing enclosing limits and concurrent archive workload intact. Retain the private validated two/ten selection only for the exact immutable replay; ordinary application startup never reads it. No production readiness/input/release behavior defect is demonstrated, so no dependent production slice is created.
 
 First-attempt initial queue uses the identity-verified workflow creation endpoint alongside exact-attempt status/jobs; retain attempt-record creation as separate provenance. Terminal audits reject invalid ordering, incomplete or foreign records and unsuccessful elected results. Historical campaign measurements remain scoped to their original source and can be recomputed from retained timestamp authority; no product work moves into preparation and no timing limit changes. Freeze the final candidate before ordinary CI, retain terminal receipts externally, and reconcile T029 evidence through the PR/evidence channels without changing tested source merely to check its box. T016 remains unexecuted.
+
+## Recovery continuation: timing-policy correction (2026-10-21)
+
+Do not optimize the historical 41-second overrun. Amend the policy with one shared scripts/ci-timing-policy.json definition consumed by JavaScript and a small Python loader. Receipts expose 660-second target, 900-second hard limit, target excess and 15-second provisional reserve. Input waits stay anchored to original readiness plus 900 seconds; a consumer cannot reset that deadline. Align the whole-qualification Python wrapper and calibration metadata. Keep source preparation, independent release/deployment and operation/transfer limits unchanged; only CI and shared qualification watchdogs move to fifteen minutes. Explicit YAML consistency tests distinguish those scopes.
+
+Sequence: amend governance and active criteria; analyze coverage; add focused failing tests; update enforcement/workflows and current development contracts; run required root, affected Python and site checks; inspect source/encoding; publish one frozen policy PR; resolve demonstrated failures; merge with passing required checks; audit exact-main terminal acceptance. Preserve historical run 39576651956 as a failed old-policy run. T029 is reconciled from existing external evidence, not a new campaign. T016 requires fresh accepted exact-main evidence. Isolated final-S041 cold/warm campaign closure remains a separate task and cannot hold the later product slice.
+
+Decision: use a shared static JSON file, not configurable thresholds or a framework. Constitution version 4.0.0 is a major governance amendment because a formerly mandatory eleven-minute rejection becomes advisory. No product version or release changes. Publication, squash merge and cleanup are explicitly authorized; the prior PR #162 stop boundary is historical. No discretionary review campaign or owner desktop experiment is added.
