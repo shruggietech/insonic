@@ -99,7 +99,7 @@ func TestNativeWindowOperationCalibratedAllowanceJoinsActualCompletion(t *testin
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	go func() {
-		completed <- awaitNativeWindowOperation(nativeWindowJoinContext(ctx, 10), hwnd, func() { calls.Add(1) })
+		completed <- awaitNativeWindowOperation(nativeWindowJoinContext(ctx, 0), hwnd, func() { calls.Add(1) })
 	}()
 	time.Sleep(2200 * time.Millisecond)
 	if calls.Load() != 0 {

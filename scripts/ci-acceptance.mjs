@@ -113,6 +113,7 @@ export function inspectAttempt(identity, run, jobs, { terminal = false, now = Da
   const end = terminal ? Math.max(workerEnd, metadataUpdated) : now;
   if (!terminal && workerEnd > end) throw new Error('Evaluation predates job completion.');
   return { ...measureTiming(start, boundary, end, terminal), failures, attempt_started_at: run.run_started_at,
+    attempt_record_created_at: run.attempt_record_created_at ?? null,
     preparation_started_at: preparationStart, readiness_at: ready[0].completed_at, evaluated_through: new Date(end).toISOString(),
     worker_terminal_at: terminal ? new Date(workerEnd).toISOString() : null,
     metadata_updated_at: run.updated_at,
@@ -136,7 +137,20 @@ export async function attemptMetadata(identity, token, request = requestJson) {
   if (identity.repository !== 'shruggietech/insonic' || !/^[1-9]\d*$/.test(identity.run ?? '')
       || !/^[1-9]\d*$/.test(identity.attempt ?? '') || !token) throw new Error('Invalid metadata request identity.');
   const base = `https://api.github.com/repos/${identity.repository}/actions/runs/${identity.run}/attempts/${identity.attempt}`;
-  const run = await request(base, token), jobs = [];
+  let run = await request(base, token);
+  const jobs = [];
+  if (identity.attempt === '1') {
+    // The attempt record can be created after run_started_at. Initial queue
+    // belongs to the workflow event, while all jobs/status remain attempt-specific.
+    const workflow = await request(base.replace('/attempts/1', ''), token);
+    for (const record of [run, workflow]) {
+      if (String(record.id) !== identity.run || record.head_sha !== identity.head
+          || record.repository?.full_name !== identity.repository || record.path !== '.github/workflows/ci.yml') {
+        throw new Error('Workflow creation identity differs.');
+      }
+    }
+    run = { ...run, attempt_record_created_at: run.created_at, created_at: workflow.created_at };
+  }
   let total;
   for (let page = 1; page <= 4; page++) {
     const value = await request(`${base}/jobs?per_page=100&page=${page}`, token);

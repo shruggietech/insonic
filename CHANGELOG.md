@@ -6,7 +6,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
-- Windows native qualification records owned desktop/input conditions, per-operation completion timings and created-environment runtime identity separately from loader availability. An explicit bounded diagnostic compares two- and ten-second fixture joins on the same packaged executable without replacing candidate acceptance.
+- Windows native qualification records owned desktop/input conditions, completion timings and created-environment runtime identity separately from loader availability. Its show/focus join now allows ten seconds within unchanged outer deadlines, with real input and natural release still required.
+- Initial CI queue accounting reads the verified workflow creation record separately from attempt-record creation, which can occur after attempt start.
 
 - Desktop File > Exit uses the normal window shutdown lifecycle, works before library selection and preserves independently owned background work. Windows retains Alt+F, X and Alt+F4 behavior.
 

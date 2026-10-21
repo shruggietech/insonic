@@ -208,3 +208,32 @@ test('overlapped setup waits for slow docs inside the original qualification dea
   clock = boundary + 5000; data.jobs[2].status = 'completed'; data.jobs[2].conclusion = 'failure';
   await assert.rejects(waitForQualificationInputs(identity, 'test-only', { request: async url => url.includes('/jobs?') ? { total_count: data.jobs.length, jobs: data.jobs } : data.run, now: () => clock }), /failed/);
 });
+
+test('first attempt uses workflow creation while retaining later attempt-record creation', async () => {
+  const data = firstAttempt(0), calls = [];
+  const attempt = { ...data.run, created_at: new Date(Date.parse(data.run.run_started_at) + 1000).toISOString() };
+  const got = await attemptMetadata(data.identity, 'test-only', async url => {
+    calls.push(url);
+    if (url.includes('/jobs?')) return { total_count: data.jobs.length, jobs: data.jobs };
+    return url.includes('/attempts/') ? attempt : data.run;
+  });
+  assert.equal(got.run.created_at, data.run.created_at);
+  assert.equal(got.run.attempt_record_created_at, attempt.created_at);
+  assert.equal(calls.filter(url => !url.includes('/attempts/')).length, 1);
+  assert.equal(inspectAttempt(data.identity, got.run, got.jobs, { terminal: true }).initial_queue_seconds, 0);
+  assert.equal(inspectAttempt(data.identity, got.run, got.jobs, { terminal: true }).attempt_record_created_at, attempt.created_at);
+  assert.equal(inspectAttempt(data.identity, got.run, got.jobs, { terminal: true }).qualification_seconds, 661);
+});
+
+test('workflow creation authority rejects mismatched identities and invalid queue ordering', async () => {
+  const data = firstAttempt(120000);
+  for (const change of [{ id: 99 }, { head_sha: 'c'.repeat(40) }, { repository: { full_name: 'other/repo' } }, { path: 'other.yml' }]) {
+    await assert.rejects(attemptMetadata(data.identity, 'test-only', async url => url.includes('/jobs?')
+      ? { total_count: data.jobs.length, jobs: data.jobs }
+      : url.includes('/attempts/') ? data.run : { ...data.run, ...change }), /identity/);
+  }
+  const got = await attemptMetadata(data.identity, 'test-only', async url => url.includes('/jobs?')
+    ? { total_count: data.jobs.length, jobs: data.jobs }
+    : url.includes('/attempts/') ? data.run : { ...data.run, created_at: new Date(Date.parse(data.run.run_started_at) + 1000).toISOString() });
+  assert.throws(() => inspectAttempt(data.identity, got.run, got.jobs, { terminal: true }), /queue timestamps/);
+});

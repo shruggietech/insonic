@@ -9,7 +9,9 @@ import (
 	"time"
 )
 
-const defaultNativeWindowJoinSeconds = 2
+// Qualification policy: ten seconds per actual UI completion, bounded by the
+// existing watchdog and enclosing child/matrix deadlines. This is not a sleep.
+const defaultNativeWindowJoinSeconds = 10
 
 type nativeWindowJoinKey struct{}
 

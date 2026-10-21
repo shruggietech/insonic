@@ -65,7 +65,12 @@ Setup -> foundation -> US1 -> US2 -> verification. Different test files may be a
 
 - [x] T024 Amend the S041 calibration scope, preserve historical T014/T015 and pending T016, predeclare two/ten-second cohorts and pass Spec Kit consistency analysis before experiments (FR-004/010-013, SC-005/006).
 - [x] T025 Add passive archive-child desktop/input and created-environment identity observations, successful/failed monotonic UI and stage timings, retained successful child evidence, and meaningful native/parser regressions (FR-010/011).
-- [ ] T026 Reuse the existing unattended diagnostic workflow for one same-executable sequential two/ten-second twelve-case comparison with equivalent separate profiles, unchanged outer bounds and retained first failures (FR-012, SC-005).
-- [ ] T027 Adopt the justified documented fixture allowance or correct the demonstrated bounded defect, separating any necessary production behavior repair into the next available dependent slice in PR #162 (FR-004/013).
-- [ ] T028 Complete required root, affected Windows/product/site checks, source-authority hashes, encoding/diff self-review and Spec Kit convergence; publish the final frozen candidate without another hosted Codex review (FR-003/013, SC-006).
+- [x] T026 Reuse the existing unattended diagnostic workflow for one same-executable sequential two/ten-second twelve-case comparison with equivalent separate profiles, unchanged outer bounds and retained first failures (FR-012, SC-005).
+- [x] T027 Adopt the justified documented fixture allowance or correct the demonstrated bounded defect, separating any necessary production behavior repair into the next available dependent slice in PR #162 (FR-004/013).
+- [x] T028 Complete required root, affected Windows/product/site checks, source-authority hashes, encoding/diff self-review and Spec Kit convergence; publish the final frozen candidate without another hosted Codex review (FR-003/013, SC-006).
 - [ ] T029 Monitor final ordinary-path CI through terminal acceptance, retain exact identities/all twelve archive cases/natural release and phase/queue accounting, update PR and tracking evidence while keeping #161/#154 open and T016 pending (FR-005/007/013, SC-004/006).
+
+## Phase 11: Convergence
+
+- [x] T030 CRITICAL Read first-attempt initial creation from the identity-verified workflow record, retain attempt-record creation separately, reject mismatched authority/invalid ordering, and verify terminal accounting against retained hosted metadata in scripts/ci-acceptance.mjs and tests/ci-acceptance.test.mjs per Constitution V, FR-007 and SC-003 (contradicts).
+- [x] T031 Use a non-expiry fixture lease for portable-history assertions in internal/catalog/backup_processing_test.go after the hosted one-second claim expired; preserve production fencing and dedicated expiry tests, and run affected/full tracked-package checks per FR-003 and SC-006 (partial).
