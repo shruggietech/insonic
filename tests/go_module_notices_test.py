@@ -194,19 +194,20 @@ class GoModuleNoticesTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'checksum|source bytes'):
             notices.collect_notices(self.target,selected,run,'1.27.1')
 
-    def prepare_repository_patch(self):
-        source = self.root / notices.PATCH_DIRECTORY
-        shutil.copytree(ROOT / notices.PATCH_DIRECTORY, source)
-        manifest = self.root / 'third_party/go-webview2.source.json'
-        shutil.copyfile(ROOT / 'third_party/go-webview2.source.json', manifest)
+    def prepare_repository_patch(self, module=notices.PATCH_MODULE):
+        policy = notices.PATCH_POLICIES[module]
+        source = self.root / policy['directory']
+        shutil.copytree(ROOT / policy['directory'], source)
+        manifest = self.root / (policy['directory'] + '.source.json')
+        shutil.copyfile(ROOT / (policy['directory'] + '.source.json'), manifest)
         shutil.copyfile(ROOT / 'go.sum', self.root / 'go.sum')
-        logical = {'Path': notices.PATCH_MODULE, 'Version': notices.PATCH_VERSION,
-                   'Replace': {'Path': './' + notices.PATCH_DIRECTORY, 'Dir': str(source)}}
+        logical = {'Path': module, 'Version': policy['version'],
+                   'Replace': {'Path': './' + policy['directory'], 'Dir': str(source)}}
         self.infos[0]['Deps'] = [dict(logical, Replace=dict(logical['Replace'], Version='(devel)'))]
         self.selected = [logical]
         return source, logical
 
-    def test_sole_repository_patch_has_verified_bytes_and_explicit_notices(self):
+    def test_webview_repository_patch_has_verified_bytes_and_explicit_notices(self):
         source, logical = self.prepare_repository_patch()
         with patch.object(notices, 'ROOT', self.root):
             rows = self.collect()
@@ -230,6 +231,28 @@ class GoModuleNoticesTests(unittest.TestCase):
         for value in [dict(logical, Path='example.test/unapproved'), dict(logical, Version='v99.99.99'),
                       dict(logical, Replace={'Path': '../unapproved'}),
                       dict(logical, Replace=dict(logical['Replace'], Version='v1.0.22'))]:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                notices.logical_identity(value)
+
+    def test_wails_patch_has_verified_bytes_notices_and_exactly_two_approved_modules(self):
+        self.assertEqual(set(notices.PATCH_POLICIES), {'github.com/wailsapp/go-webview2', 'github.com/wailsapp/wails/v2'})
+        source, logical = self.prepare_repository_patch('github.com/wailsapp/wails/v2')
+        with patch.object(notices, 'ROOT', self.root):
+            rows = self.collect()
+            notices.verify_notices(self.target, rows, self.binary, self.fake_run, '1.27.1')
+            self.assertEqual(rows[0]['module'], logical['Path'])
+            names = {Path(name).name for name in rows[0]['notices']}
+            self.assertTrue({'LICENSE', 'LICENSE.insonic', 'NOTICE.insonic'} <= names)
+            bad = [dict(rows[0], notices=[name for name in rows[0]['notices'] if not name.endswith('/NOTICE.insonic')])]
+            with self.assertRaisesRegex(ValueError, 'patch notices'):
+                notices.verify_notices(self.target, bad, self.binary, self.fake_run, '1.27.1')
+            original = source / 'internal/app/app.go'
+            original.chmod(0o600)
+            original.write_bytes(original.read_bytes() + b'changed')
+            with self.assertRaisesRegex(ValueError, 'source bytes|checksum'):
+                self.collect()
+        for value in [dict(logical, Path='example.test/unapproved'), dict(logical, Version='v99.99.99'),
+                      dict(logical, Replace={'Path': '../unapproved-framework'})]:
             with self.subTest(value=value), self.assertRaises(ValueError):
                 notices.logical_identity(value)
 

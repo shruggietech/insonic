@@ -1,6 +1,6 @@
 # Implementation Plan: Desktop startup diagnostics and recovery
 
-**Branch**: `codex/042-startup-diagnostics` | **Date**: 2026-10-21 | **Spec**: [spec.md](spec.md)
+**Branch**: `codex/042-startup-recovery` | **Date**: 2026-10-21 | **Spec**: [spec.md](spec.md)
 
 ## Summary
 
@@ -62,3 +62,9 @@ This directory contains spec.md, plan.md, research.md, data-model.md, contracts/
 ## Complexity Tracking
 
 No constitution exception. The additional maintained module is limited to the demonstrated framework propagation boundary; its unchanged baseline is mechanically verified and the behavioral allowlist remains small. No new service, runtime, dependency version or policy framework.
+
+## Integrated first increment and active recovery (2026-10-21)
+
+Reporting/private diagnostics merged through PR #164 as b50aae1ca29751b9dfe1efca3d62ef3f206d1e6a. Exact-main run 39608806227 passed all elected checks at 253s preparation, 616s qualification and 869s combined. #115 is independently closed as fixed on main, without a release or installed-package change. The original reporting branch is removed; this branch continues the same S042 feature for the second increment. Final-S041 isolated cold/warm evidence completed T037 and closed #161 independently.
+
+Ignored scratch checks demonstrated the framework entering its loop after a returned startup error, missing explicit callback failure outcomes, and reentrant destruction releasing interfaces before a completion callback unwound. The binding now holds partial resources until callback/native-call unwinding and exposes bounded error-returning facades around the existing architecture-specific SDK implementations. A fresh native-thread COM fixture observes one owned initialization/finalization without assuming a reused Go worker has no apartment. Source integration must repeat verification without scratch overlays or alternate module files before publication.

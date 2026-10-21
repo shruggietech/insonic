@@ -66,5 +66,19 @@
     "sha256": "827e55e37cc3208f285ae435b13bd1f389d35728d3aa6974ee447c7086232cc5",
     "license": "Apache-2.0",
     "archive_decoder": "zstandard==0.25.0"
+  },
+  "maintained_sources": {
+    "github.com/wailsapp/go-webview2": {
+      "version": "v1.0.23",
+      "manifest": "third_party/go-webview2.source.json",
+      "upstream_sum": "h1:jmv8qhz1lHibCc79bMM/a/FqOnnzOGEisLav+a0b9P0=",
+      "patched_sum": "h1:8to7ZrRp6oosr2IlK8+kDAmuzS86c33t2BqSXl0Nt84="
+    },
+    "github.com/wailsapp/wails/v2": {
+      "version": "v2.16.0",
+      "manifest": "third_party/wails.source.json",
+      "upstream_sum": "h1:hLYrSHUUq6hRXl3rWT9ZXiyFIgM94nVN9Ns6iEJzxyw=",
+      "patched_sum": "h1:HcNcoA/UL/wFhlLNlppfGA0aMj8cBM+lne7IkIp4diE="
+    }
   }
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 )
 
@@ -107,6 +108,45 @@ func TestStartupMetadataIsAllowlistedAndNumeric(t *testing.T) {
 	for _, row := range rows[1:] {
 		if strings.Contains(row, "failure_stage") || strings.Contains(row, "system_error_code") || strings.Contains(row, "secret") {
 			t.Fatal("untrusted startup metadata persisted", row)
+		}
+	}
+}
+
+type stagedDiagnosticCause struct {
+	stage string
+	cause error
+}
+
+func (e *stagedDiagnosticCause) Error() string        { return "arbitrary private native details" }
+func (e *stagedDiagnosticCause) Unwrap() error        { return e.cause }
+func (e *stagedDiagnosticCause) StartupStage() string { return e.stage }
+func TestNativeStartupBoundaryIsGeneratedAndContextBound(t *testing.T) {
+	for _, c := range []struct{ outer, native, expected string }{
+		{"desktop-window", "environment-completion", "environment-completion"},
+		{"desktop-window", "private-path-secret", "desktop-window"},
+		{"playback-transport", "controller-completion", "playback-transport"},
+	} {
+		event := StartupEvent(c.outer, &stagedDiagnosticCause{stage: c.native, cause: syscall.Errno(5)})
+		if event.FailureStage != c.expected || event.SystemErrorCode == nil || *event.SystemErrorCode != 5 {
+			t.Fatal("native generated boundary or code lost", event)
+		}
+		path := filepath.Join(t.TempDir(), "event.jsonl")
+		log, err := Open(path, "error")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = log.Write("error", event); err != nil {
+			t.Fatal(err)
+		}
+		if err = log.Close(); err != nil {
+			t.Fatal(err)
+		}
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(raw), "private") || !strings.Contains(string(raw), c.expected) {
+			t.Fatal("native diagnostic metadata escaped its allowlist", string(raw))
 		}
 	}
 }

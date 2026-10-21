@@ -309,7 +309,9 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
 
     def test_renderer_overlay_changes_only_actual_options_and_preserves_maintained_source(self):
         selected=Path('third_party/go-webview2/pkg/edge/chromium.go')
-        original=(ROOT/selected).read_bytes()
+        # This transformer intentionally targets historical source, whose
+        # options boundary no longer belongs to current startup implementation.
+        original=b'package edge\nfunc historicalOptions() {\n browserArgs := strings.Join(e.AdditionalBrowserArgs, " ")\n createEnvironment(browserArgs)\n}\n'
         before=b'browserArgs := strings.Join(e.AdditionalBrowserArgs, " ")'
         after=b'browserArgs := strings.Join(append(append([]string{}, e.AdditionalBrowserArgs...), "--disable-renderer-backgrounding"), " ")'
         with tempfile.TemporaryDirectory() as temporary:

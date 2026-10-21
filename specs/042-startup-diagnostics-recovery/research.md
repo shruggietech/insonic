@@ -33,3 +33,13 @@ Reference: [WebView2 owning-thread/callback rules](https://learn.microsoft.com/e
 ## Verification boundary
 
 Use fake/injected failures and unshown windows locally. Existing unattended Windows CI supplies real browser/package acceptance and controlled failure/relaunch coverage when the recovery increment is ready. Preserve all existing operation limits and cases. No attended desktop exercise or common historical root-cause assertion.
+
+## Implemented recovery boundary (2026-10-21)
+
+The binding retains its existing architecture-specific SDK implementations behind synchronous error-returning facades. First failure wins across synchronous loader/version/bootstrap calls, callbacks and process-failure notifications during startup/configuration. Resource release waits for both callbacks and captured native frames to unwind, including owner destruction inside a native call. The existing bool Embed API remains compatible; Wails uses EmbedWithError and scoped setup errors. Runtime process-failure policy outside startup remains unchanged.
+
+The maintained Wails snapshot contains all 956 checksum-bound upstream files. Exactly app_dev.go, app_production.go and the Windows frontend change; licensing/patch notices and fake frontend lifecycle tests are the three additions. Linux platform source remains unchanged. The common application-loop guard applies to failed frontend startup on both platforms.
+
+The real Windows fixture adds one expected-failure child before the first of the unchanged twelve successful cases. Its case directory grants inheritable current-user Modify. An exclusive owned regular file obstructs the intended profile; the failed child must return a typed allowed native stage, save a matching generated private event, release its owned resources/apartment and exit normally. The parent independently requires natural owned-descendant release, verifies blocker identity and bytes, then removes only that blocker. The next existing normal child uses the same intended profile. No unchanged failure is retried. Eighteen-second child and hundred-second matrix bounds remain unchanged.
+
+The audited binding selector retains all five existing CI tests and adds every TestStartup test. Upstream TestCookieManager is excluded because it creates a visible window; real browser exercise remains the explicit unattended native/package paths.

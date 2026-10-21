@@ -65,14 +65,6 @@ func securePrivateFile(file *os.File, created bool, user *windows.SID) error {
 	// Most new files already have the selected owner. Inherited Modify access
 	// does not grant WRITE_OWNER, and no ownership change is needed in that case.
 	changeOwner := created && !owner.Equals(user)
-	selected := handle
-	if changeOwner {
-		selected, err = privateHandle(file, access|windows.WRITE_OWNER)
-		if err != nil {
-			return err
-		}
-		defer windows.CloseHandle(selected)
-	}
 	descriptor, err := windows.SecurityDescriptorFromString("D:P(A;;FA;;;" + user.String() + ")")
 	if err != nil {
 		return err
@@ -81,11 +73,25 @@ func securePrivateFile(file *os.File, created bool, user *windows.SID) error {
 	if err != nil {
 		return err
 	}
+	return securePrivateOwner(file, handle, access, changeOwner, user, dacl)
+}
+
+func securePrivateOwner(file *os.File, handle windows.Handle, access uint32, changeOwner bool, user *windows.SID, dacl *windows.ACL) error {
+	// An ordinary creator can update this new file's DACL while inherited Modify
+	// omits WRITE_OWNER. Install the required caller-only ACL before reopening
+	// for necessary owner normalization. No diagnostic data is written until both
+	// steps succeed, and existing foreign-owned files were already refused.
 	flags := windows.SECURITY_INFORMATION(windows.DACL_SECURITY_INFORMATION | windows.PROTECTED_DACL_SECURITY_INFORMATION)
-	var selectedOwner *windows.SID
-	if changeOwner {
-		flags |= windows.OWNER_SECURITY_INFORMATION
-		selectedOwner = user
+	if err := windows.SetSecurityInfo(handle, windows.SE_FILE_OBJECT, flags, nil, nil, dacl, nil); err != nil {
+		return err
 	}
-	return windows.SetSecurityInfo(selected, windows.SE_FILE_OBJECT, flags, selectedOwner, nil, dacl, nil)
+	if !changeOwner {
+		return nil
+	}
+	selected, err := privateHandle(file, access|windows.WRITE_OWNER)
+	if err != nil {
+		return err
+	}
+	defer windows.CloseHandle(selected)
+	return windows.SetSecurityInfo(selected, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION, user, nil, nil, nil)
 }

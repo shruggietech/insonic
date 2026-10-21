@@ -16,6 +16,7 @@ import (
 	"testing"
 	"unsafe"
 
+	"github.com/wailsapp/go-webview2/internal/w32"
 	"golang.org/x/sys/windows"
 )
 
@@ -321,48 +322,66 @@ func TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread(t *testing.T) {
 		runtime.KeepAlive(deferral)
 	})
 	t.Run("owned COM apartment is balanced on its original thread", func(t *testing.T) {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-		query := windows.NewLazySystemDLL("ole32.dll").NewProc("CoGetApartmentType")
-		apartment := func() uintptr {
-			var kind, qualifier uint32
-			hr, _, _ := query.Call(uintptr(unsafe.Pointer(&kind)), uintptr(unsafe.Pointer(&qualifier)))
-			return uintptr(uint32(hr))
-		}
-		if apartment() != 0x800401f0 {
-			t.Fatal("fixture needs a fresh uninitialized worker apartment")
-		}
-		ownedWindows.Lock()
-		priorThread, priorOwned, priorFinalized := ownedWindows.apartmentThread, ownedWindows.apartmentOwned, ownedWindows.apartmentFinalized
-		ownedWindows.Unlock()
-		if err := windows.CoInitializeEx(0, windows.COINIT_APARTMENTTHREADED); err != nil {
-			t.Fatal(err)
-		}
-		defer func() {
-			if apartment() == 0 {
-				windows.CoUninitialize()
+		err := runFreshCOMThread(func() error {
+			runtime.LockOSThread()
+			defer runtime.UnlockOSThread()
+			query := windows.NewLazySystemDLL("ole32.dll").NewProc("CoGetApartmentType")
+			type state struct{ result, kind, qualifier uint32 }
+			apartment := func() state {
+				var value state
+				hr, _, _ := query.Call(uintptr(unsafe.Pointer(&value.kind)), uintptr(unsafe.Pointer(&value.qualifier)))
+				value.result = uint32(hr)
+				return value
+			}
+			before := apartment()
+			// A process can expose an implicit MTA even on a new native thread.
+			if before.result != 0x800401f0 && !(before.result == 0 && before.kind == 1 && before.qualifier == 1) {
+				return fmt.Errorf("native fixture thread has an unexpected COM owner: %#v", before)
 			}
 			ownedWindows.Lock()
-			ownedWindows.apartmentThread, ownedWindows.apartmentOwned, ownedWindows.apartmentFinalized = priorThread, priorOwned, priorFinalized
+			priorThread, priorOwned, priorFinalized := ownedWindows.apartmentThread, ownedWindows.apartmentOwned, ownedWindows.apartmentFinalized
 			ownedWindows.Unlock()
-		}()
-		recordOwnedCOMApartment()
-		other := make(chan error, 1)
-		go func() { other <- FinalizeCOMApartment() }()
-		if err := <-other; err == nil {
-			t.Fatal("another thread finalized the COM apartment")
-		}
-		if err := FinalizeCOMApartment(); err != nil {
+			hr, _, _ := w32.Ole32CoInitializeEx.Call(0, uintptr(windows.COINIT_APARTMENTTHREADED))
+			if int32(hr) < 0 {
+				return fmt.Errorf("fixture COM initialization failed: 0x%08x", uint32(hr))
+			}
+			acquired := true
+			defer func() {
+				if acquired {
+					windows.CoUninitialize()
+				}
+				ownedWindows.Lock()
+				ownedWindows.apartmentThread, ownedWindows.apartmentOwned, ownedWindows.apartmentFinalized = priorThread, priorOwned, priorFinalized
+				ownedWindows.Unlock()
+			}()
+			if apartment() == before {
+				return fmt.Errorf("fixture COM reference has no observable apartment boundary")
+			}
+			recordOwnedCOMApartment()
+			other := make(chan error, 1)
+			go func() { other <- FinalizeCOMApartment() }()
+			if err := <-other; err == nil {
+				return fmt.Errorf("another thread finalized the COM apartment")
+			}
+			if err := FinalizeCOMApartment(); err != nil {
+				return err
+			}
+			acquired = false
+			if after := apartment(); after != before {
+				return fmt.Errorf("COM owner was not balanced: before=%#v after=%#v", before, after)
+			}
+			if err := FinalizeCOMApartment(); err != nil {
+				return fmt.Errorf("idempotent finalization failed: %w", err)
+			}
+			if apartment() != before {
+				return fmt.Errorf("idempotent finalization changed the prior apartment")
+			}
+			return nil
+		})
+		if err != nil {
 			t.Fatal(err)
 		}
-		if apartment() != 0x800401f0 {
-			t.Fatal("the binding's COM initialization survived finalization")
-		}
-		if err := FinalizeCOMApartment(); err != nil {
-			t.Fatal("idempotent finalization failed", err)
-		}
 	})
-
 }
 
 // Only fake WebView interfaces and a native memory stream are used here. No
@@ -1179,4 +1198,24 @@ func TestSDKConvenienceCallsReleaseOnlyTheirTemporaryInterfaces(t *testing.T) {
 			})
 		}
 	}
+}
+
+// A reused Go worker can already have a COM apartment. Create one native
+// thread so the test observes precisely the reference it owns.
+func runFreshCOMThread(check func() error) error {
+	result := make(chan error, 1)
+	callback := windows.NewCallback(func(uintptr) uintptr { result <- check(); return 0 })
+	thread, _, err := windows.NewLazySystemDLL("kernel32.dll").NewProc("CreateThread").Call(0, 0, callback, 0, 0, 0)
+	if thread == 0 {
+		return fmt.Errorf("create COM fixture thread: %w", err)
+	}
+	defer windows.CloseHandle(windows.Handle(thread))
+	status, waitErr := windows.WaitForSingleObject(windows.Handle(thread), 5000)
+	if waitErr != nil {
+		return waitErr
+	}
+	if status != windows.WAIT_OBJECT_0 {
+		return fmt.Errorf("COM fixture thread did not exit: %d", status)
+	}
+	return <-result
 }

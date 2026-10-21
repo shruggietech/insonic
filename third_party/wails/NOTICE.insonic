@@ -1,0 +1,21 @@
+insonic maintained Wails startup error and lifecycle patch
+
+Upstream: github.com/wailsapp/wails/v2 v2.16.0
+https://github.com/wailsapp/wails/tree/v2.16.0
+
+Original upstream files and MIT license are retained. The insonic patch and
+regression additions use Apache-2.0 (LICENSE.insonic). The exact pinned upstream
+and patched trees are recorded in third_party/wails.source.json. Go binary
+metadata records the repository-local relative replacement, and package notice
+qualification verifies the actual source bytes and both license/patch notices.
+
+The Windows frontend returns browser embedding and setup failures before
+publishing startup. It releases caller-owned settings and background interfaces.
+The production and development application lifecycles enter their main loop only
+after successful frontend startup, then retain ordinary window/shutdown cleanup.
+
+A complete upstream module snapshot preserves embedded assets and every other
+platform source. The maintained behavioral scope is restricted to the Windows
+frontend and the two application startup entry paths, plus focused tests.
+
+The Windows setup callback joins the maintained binding's pending embedding outcome through all settings and capability configuration, before frontend readiness. Reentrant process failure returns through the desktop error path instead of invoking the runtime fatal callback. Ordinary callbacks after successful setup retain upstream policy.

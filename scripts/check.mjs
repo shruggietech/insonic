@@ -5,7 +5,7 @@ import { dirname, extname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { verifyInstalled } from './sync-brand-kit.mjs';
 import { parseDocument } from 'yaml';
-import { verifyWebviewSource } from './webview-source.mjs';
+import { verifyWebviewSource, verifyWailsSource } from './webview-source.mjs';
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const ignoredDirectories = new Set(['.git', '.local', 'node_modules', '.next', 'out', 'offline', 'build', 'dist', 'coverage', 'test-results', 'playwright-report', '.bootstrap-spec-kit', '.brandbuilder']);
@@ -15,7 +15,7 @@ const textNames = new Set(['VERSION', 'LICENSE', 'NOTICE', '.editorconfig', '.gi
 const location = (file, line, message) => `${file}${line ? `:${line}` : ''}: ${message}`;
 
 function vendorStyle(file) {
-  return file.startsWith('third_party/go-webview2/') || file.startsWith('brand/kit/') || file.startsWith('.agents/') || (file.startsWith('.specify/') && file !== '.specify/memory/constitution.md');
+  return file.startsWith('third_party/go-webview2/') || file.startsWith('third_party/wails/') || file.startsWith('brand/kit/') || file.startsWith('.agents/') || (file.startsWith('.specify/') && file !== '.specify/memory/constitution.md');
 }
 
 export function validateText(file, bytes) {
@@ -221,6 +221,7 @@ export async function checkRepository(root = repositoryRoot, { verifyBrand = tru
   try {
     const mod = await readFile(join(root, 'go.mod'), 'utf8').catch(error => { if (error.code === 'ENOENT') return ''; throw error; });
     if (mod.includes('github.com/wailsapp/go-webview2')) await verifyWebviewSource(root);
+    if (mod.includes('github.com/wailsapp/wails/v2')) await verifyWailsSource(root);
   } catch (error) { problems.push(`third_party/go-webview2: ${error.message}`); }
   if (Number(process.versions.node.split('.')[0]) < 22) problems.push('Node.js 22 or newer is required');
   for (const { file, symlink } of await listProjectFiles(root)) {
@@ -232,7 +233,9 @@ export async function checkRepository(root = repositoryRoot, { verifyBrand = tru
     if (vendorStyle(file)) { try { text = new TextDecoder('utf-8', { fatal: true }).decode(bytes); } catch { problems.push(`${file}: Invalid JSON text encoding`); continue; } }
     else { const validation = validateText(file, bytes); problems.push(...validation.problems); text = validation.text; checked += 1; }
     if (text === null) continue;
-    if (json) { try { JSON.parse(text); } catch (error) { problems.push(`${file}: Invalid JSON (${error.message})`); } }
+    // These two checksum-verified upstream TypeScript templates contain JSON comments.
+    const upstreamJSONC = ['third_party/wails/pkg/templates/templates/svelte-ts/frontend/tsconfig.json', 'third_party/wails/pkg/templates/templates/svelte/frontend/jsconfig.json'].includes(file);
+    if (json && !upstreamJSONC) { try { JSON.parse(text); } catch (error) { problems.push(`${file}: Invalid JSON (${error.message})`); } }
     if (extension === '.yml' || extension === '.yaml') problems.push(...validateYAML(file, text));
     if (extension === '.md' && !vendorStyle(file)) { problems.push(...validateMarkdown(file, text)); problems.push(...await validateLinks(root, file, text)); }
   }

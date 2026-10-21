@@ -88,7 +88,7 @@ class StartupDiagnosticQualificationTests(unittest.TestCase):
                 qualify.desktop()
                 self.assertEqual(receipt.call_args_list[-1].args[2]['owned_browser_release'], 'passed')
                 build.assert_called_once_with(True, {})
-                self.assertEqual(len(child.call_args_list), 7)
+                self.assertEqual(len(child.call_args_list), 9)
                 binding = child.call_args_list[0].args[0]
                 self.assertEqual(binding[:4], ['go', 'test', '-timeout=15s', '-run'])
                 self.assertEqual(binding[5:], ['github.com/wailsapp/go-webview2/pkg/edge'])
@@ -99,13 +99,17 @@ class StartupDiagnosticQualificationTests(unittest.TestCase):
                              'TestBrowserDiagnosticsDisabledAddsNoNativeCalls'):
                     self.assertIsNotNone(re.fullmatch(binding[4], name), name)
                 self.assertIsNone(re.fullmatch(binding[4], 'TestCookieManager'))
-                for call in child.call_args_list[:3]:
+                for mode, call in zip(('production', 'dev'), child.call_args_list[1:3]):
+                    self.assertEqual(call.args[0], ['go', 'test', '-timeout=15s', '-tags', mode,
+                                                   '-run=Startup|FreshFrontend', 'github.com/wailsapp/wails/v2/internal/app'])
+                self.assertEqual(receipt.call_args_list[-1].args[2]['startup_recovery'], 'passed')
+                for call in child.call_args_list[:5]:
                     self.assertEqual(call.kwargs['env'], {})
                     self.assertNotIn('allow_detached', call.kwargs)
-                for call in child.call_args_list[3:]:
+                for call in child.call_args_list[5:]:
                     self.assert_probe_environment(call, {'INSONIC_PROCESS_STARTUP_DIAGNOSTICS': '1'} if ci == 'true' else {})
                     self.assertIs(call.kwargs['allow_detached'], True)
-                self.assertIsNot(child.call_args_list[0].kwargs['env'], child.call_args_list[3].kwargs['env'])
+                self.assertIsNot(child.call_args_list[0].kwargs['env'], child.call_args_list[5].kwargs['env'])
 
 
 if __name__ == '__main__':

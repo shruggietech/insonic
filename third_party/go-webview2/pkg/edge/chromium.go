@@ -8,16 +8,12 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"runtime"
-	"strings"
 	"sync/atomic"
-	"syscall"
 	"time"
 	"unsafe"
 
 	"github.com/wailsapp/go-webview2/internal/w32"
-	"github.com/wailsapp/go-webview2/webviewloader"
 	"golang.org/x/sys/windows"
 )
 
@@ -95,7 +91,12 @@ type Chromium struct {
 	// Error handling
 	globalErrorCallback func(error)
 
-	shuttingDown bool
+	startupCallbackDepth int
+	pendingControllers   []*ICoreWebView2Controller
+	callError            *error
+	startup              *startupOutcome
+	browserClosed        bool
+	shuttingDown         bool
 
 	// Resize debouncing
 	lastBounds  *w32.Rect
@@ -115,6 +116,15 @@ func (e *Chromium) ShuttingDown() {
 }
 
 func (e *Chromium) errorCallback(err error) {
+	if err == nil {
+		return
+	}
+	if e.callError != nil {
+		if *e.callError == nil {
+			*e.callError = err
+		}
+		return
+	}
 	e.globalErrorCallback(err)
 	os.Exit(1)
 }
@@ -126,61 +136,11 @@ func (e *Chromium) SetErrorCallback(callback func(error)) {
 }
 
 func (e *Chromium) Embed(hwnd uintptr) bool {
-
-	var err error
-
-	e.hwnd = hwnd
-	if err = e.attachWindowLifetime(hwnd); err != nil {
-		e.errorCallback(err)
+	err := e.EmbedWithError(hwnd)
+	if err != nil && e.globalErrorCallback != nil {
+		e.globalErrorCallback(err)
 	}
-	e.prepareOwnedCallbacks()
-
-	dataPath := e.DataPath
-	if dataPath == "" {
-		currentExePath := make([]uint16, windows.MAX_PATH)
-		_, err = windows.GetModuleFileName(windows.Handle(0), &currentExePath[0], windows.MAX_PATH)
-		if err != nil {
-			e.errorCallback(err)
-		}
-		currentExeName := filepath.Base(windows.UTF16ToString(currentExePath))
-		dataPath = filepath.Join(os.Getenv("AppData"), currentExeName)
-	}
-
-	if e.BrowserPath != "" {
-		if _, err = os.Stat(e.BrowserPath); errors.Is(err, os.ErrNotExist) {
-			e.errorCallback(fmt.Errorf("browser path '%s' does not exist", e.BrowserPath))
-		}
-	}
-
-	browserArgs := strings.Join(e.AdditionalBrowserArgs, " ")
-	if err := createCoreWebView2EnvironmentWithOptions(e.BrowserPath, dataPath, e.envCompleted, browserArgs); err != nil {
-		e.errorCallback(fmt.Errorf("error calling Webview2Loader: %s", err.Error()))
-	}
-
-	e.webview2RuntimeVersion, err = webviewloader.GetAvailableCoreWebView2BrowserVersionString(e.BrowserPath)
-	if err != nil {
-		e.errorCallback(fmt.Errorf("error getting Webview2 runtime version: %s", err.Error()))
-	}
-
-	var msg w32.Msg
-	for {
-		if atomic.LoadUintptr(&e.inited) != 0 {
-			break
-		}
-		r, _, _ := w32.User32GetMessageW.Call(
-			uintptr(unsafe.Pointer(&msg)),
-			0,
-			0,
-			0,
-		)
-		if r == 0 {
-			break
-		}
-		w32.User32TranslateMessage.Call(uintptr(unsafe.Pointer(&msg)))
-		w32.User32DispatchMessageW.Call(uintptr(unsafe.Pointer(&msg)))
-	}
-	e.Init("window.external={invoke:s=>window.chrome.webview.postMessage(s)}")
-	return true
+	return err == nil
 }
 
 func (e *Chromium) SetPadding(padding Rect) {
@@ -288,98 +248,157 @@ func (e *Chromium) Release() uintptr {
 }
 
 func (e *Chromium) EnvironmentCompleted(res uintptr, env *ICoreWebView2Environment) uintptr {
-	if e.shuttingDown {
+	if e.startup != nil && !e.startup.succeeded && !e.browserClosed {
+		e.startupCallbackDepth++
+		defer func() { e.startupCallbackDepth-- }()
+	}
+	if e.shuttingDown || e.startup != nil && e.startup.failure != nil || e.environment != nil {
 		return 0
 	}
-	if env == nil {
-		e.observeBrowserEnvironment(res, env)
-		err := syscall.Errno(res)
-		log.Printf("[WebView2] Environment creation failed with error code %v: %v\n", res, err)
-		if e.globalErrorCallback != nil {
-			e.globalErrorCallback(fmt.Errorf("failed to create WebView2 environment: %w", err))
-		}
-		return res
+	if err := startupCompletionError("environment creation", res, env == nil); err != nil {
+		e.observeBrowserEnvironment(res, nil)
+		e.failStartup("environment-completion", err)
+		return 0
 	}
-
-	log.Printf("[WebView2] Environment created successfully\n")
-
 	env.vtbl.AddRef.Call(uintptr(unsafe.Pointer(env)))
 	e.environment = env
+	if e.startupInterrupted() {
+		return 0
+	}
 	e.observeBrowserEnvironment(res, env)
-
-	err := env.CreateCoreWebView2Controller(e.hwnd, e.controllerCompleted)
-	if err != nil {
-		e.errorCallback(err)
+	if e.startupInterrupted() {
+		return 0
+	}
+	if err := env.CreateCoreWebView2Controller(e.hwnd, e.controllerCompleted); err != nil {
+		e.failStartup("controller-request", err)
 	}
 	return 0
 }
 
 func (e *Chromium) CreateCoreWebView2ControllerCompleted(res uintptr, controller *ICoreWebView2Controller) uintptr {
-	if e.shuttingDown {
-		if controller != nil {
-			if err := controller.Close(); err != nil {
+	if e.startup != nil && !e.startup.succeeded && !e.browserClosed {
+		e.startupCallbackDepth++
+		defer func() { e.startupCallbackDepth-- }()
+	}
+	if e.shuttingDown || e.startup != nil && e.startup.failure != nil || e.controller != nil {
+		if controller != nil && controller != e.controller {
+			if e.startup != nil && !e.startup.succeeded && !e.browserClosed {
+				controller.AddRef()
+				e.pendingControllers = append(e.pendingControllers, controller)
+			} else if err := controller.Close(); err != nil {
 				e.recordControllerCloseFailure(err)
 			}
 		}
 		return 0
 	}
-	if int32(res) < 0 {
-		e.errorCallback(fmt.Errorf("error creating controller with %08x: %s", res, syscall.Errno(res)))
+	if err := startupCompletionError("controller creation", res, controller == nil); err != nil {
+		if controller != nil {
+			controller.vtbl.AddRef.Call(uintptr(unsafe.Pointer(controller)))
+			e.controller = controller
+		}
+		e.failStartup("controller-completion", err)
+		return 0
 	}
 
 	var err error
 
 	controller.vtbl.AddRef.Call(uintptr(unsafe.Pointer(controller)))
 	e.controller = controller
+	if e.startupInterrupted() {
+		return 0
+	}
 
 	// Try to get ICoreWebView2Controller3 interface for better performance
 	if controller3 := e.controller.GetICoreWebView2Controller3(); controller3 != nil {
 		defer controller3.Vtbl.Release.Call(uintptr(unsafe.Pointer(controller3)))
+		if e.startupInterrupted() {
+			return 0
+		}
 		// Use raw pixels mode for better performance during resize
 		if err := controller3.PutBoundsMode(COREWEBVIEW2_BOUNDS_MODE_USE_RAW_PIXELS); err != nil {
-			e.errorCallback(err)
+			e.failStartup("controller-configuration", err)
+			return 0
 		}
 
 		// Disable monitor scale changes since we're using raw pixels
 		if err := controller3.PutShouldDetectMonitorScaleChanges(false); err != nil {
-			e.errorCallback(err)
+			e.failStartup("controller-configuration", err)
+			return 0
 		}
+	}
+	if e.startupInterrupted() {
+		return 0
 	}
 	var token _EventRegistrationToken
 	e.webview, err = e.controller.GetCoreWebView2()
+	if err == nil && e.webview == nil {
+		err = fmt.Errorf("controller returned no webview")
+	}
 	if err != nil {
-		e.errorCallback(err)
+		e.failStartup("webview", err)
+		return 0
+	}
+	if e.startupInterrupted() {
+		return 0
 	}
 
 	// GetCoreWebView2 already returns one owned COM reference.
 	err = e.webview.AddWebMessageReceived(e.webMessageReceived, &token)
 	if err != nil {
-		e.errorCallback(err)
+		e.failStartup("controller-configuration", err)
+		return 0
+	}
+	if e.startupInterrupted() {
+		return 0
 	}
 	err = e.webview.AddPermissionRequested(e.permissionRequested, &token)
 	if err != nil {
-		e.errorCallback(err)
+		e.failStartup("controller-configuration", err)
+		return 0
+	}
+	if e.startupInterrupted() {
+		return 0
 	}
 	err = e.webview.AddWebResourceRequested(e.webResourceRequested, &token)
 	if err != nil {
-		e.errorCallback(err)
+		e.failStartup("controller-configuration", err)
+		return 0
+	}
+	if e.startupInterrupted() {
+		return 0
 	}
 	err = e.webview.AddNavigationCompleted(e.navigationCompleted, &token)
 	if err != nil {
-		e.errorCallback(err)
+		e.failStartup("controller-configuration", err)
+		return 0
+	}
+	if e.startupInterrupted() {
+		return 0
 	}
 	err = e.webview.AddProcessFailed(e.processFailed, &token)
 	if err != nil {
-		e.errorCallback(err)
+		e.failStartup("controller-configuration", err)
+		return 0
+	}
+	if e.startupInterrupted() {
+		return 0
 	}
 	err = e.webview.AddContainsFullScreenElementChanged(e.containsFullScreenElementChanged, &token)
 	if err != nil {
-		e.errorCallback(err)
+		e.failStartup("controller-configuration", err)
+		return 0
+	}
+	if e.startupInterrupted() {
+		return 0
 	}
 
 	err = e.controller.AddAcceleratorKeyPressed(e.acceleratorKeyPressed, &token)
 	if err != nil {
-		e.errorCallback(err)
+		e.failStartup("controller-configuration", err)
+		return 0
+	}
+	if e.startupInterrupted() {
+		return 0
 	}
 
 	atomic.StoreUintptr(&e.inited, 1)
@@ -589,6 +608,31 @@ func (e *Chromium) NavigationCompleted(sender *ICoreWebView2, args *ICoreWebView
 }
 
 func (e *Chromium) ProcessFailed(sender *ICoreWebView2, args *ICoreWebView2ProcessFailedEventArgs) uintptr {
+	if e.shuttingDown {
+		return 0
+	}
+	pending := e.startup != nil && !e.startup.succeeded
+	if pending || e.callError != nil {
+		if pending {
+			e.startupCallbackDepth++
+			defer func() { e.startupCallbackDepth-- }()
+		}
+		cause := fmt.Errorf("browser process failed during startup without event details")
+		if args != nil {
+			kind, err := args.GetProcessFailedKind()
+			if err != nil {
+				cause = fmt.Errorf("read startup process failure: %w", err)
+			} else {
+				cause = fmt.Errorf("browser process failed during startup (kind %d)", kind)
+			}
+		}
+		if pending {
+			e.failStartup("browser-process", cause)
+		} else {
+			e.errorCallback(&StartupError{Stage: "browser-process", Err: cause})
+		}
+		return 0
+	}
 	if e.ProcessFailedCallback != nil {
 		e.ProcessFailedCallback(sender, args)
 	}

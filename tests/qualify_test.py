@@ -163,6 +163,35 @@ class QualificationArchiveTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             qualify.validate_pins(source.replace('v' + qualify.LOCK['wails'], 'v0.0.1'))
 
+    def test_windows_startup_recovery_is_required_and_binding_selection_is_noninteractive(self):
+        import re
+        source = (qualify.ROOT / 'scripts/qualify.py').read_text(encoding='utf-8')
+        selected = re.search(r"'-run', '(\^\(TestOwnedWindow[^']+)'", source).group(1)
+        for name in ['TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread',
+                     'TestBootstrapOnlyEnvironmentVersionDoesNotEnableCDPOrGateNavigation',
+                     'TestBrowserDiagnosticsEnvironmentHookKeepsNativeCreationOrder',
+                     'TestBrowserDiagnosticsVersionOwnershipBoundsAndAllowlist',
+                     'TestBrowserDiagnosticsDisabledAddsNoNativeCalls',
+                     'TestStartupFailuresCompleteAndReleaseAfterCallbackUnwinds']:
+            self.assertRegex(name, selected)
+        self.assertIsNone(re.search(selected, 'TestCookieManager'))
+        with patch.object(qualify.platform, 'system', return_value='Windows'):
+            self.assertEqual(qualify.native_exit_contract()['startup_recovery'], 'passed')
+        with patch.object(qualify.platform, 'system', return_value='Linux'):
+            self.assertNotIn('startup_recovery', qualify.native_exit_contract())
+
+    def test_maintained_source_metadata_is_exact_and_cannot_add_or_redirect_modules(self):
+        qualify.validate_maintained_sources()
+        for mode in ['checksum', 'missing', 'extra', 'redirect']:
+            selected = json.loads(json.dumps(qualify.LOCK))
+            sources = selected['maintained_sources']
+            if mode == 'checksum': sources['github.com/wailsapp/wails/v2']['patched_sum'] = 'h1:' + 'A' * 43 + '='
+            elif mode == 'missing': del sources['github.com/wailsapp/wails/v2']
+            elif mode == 'extra': sources['example.test/unapproved'] = dict(sources['github.com/wailsapp/wails/v2'])
+            else: sources['github.com/wailsapp/wails/v2']['manifest'] = '../unapproved.json'
+            with self.subTest(mode=mode), self.assertRaisesRegex(ValueError, 'maintained source'):
+                qualify.validate_maintained_sources(selected)
+
     def test_receipt_is_json_despite_native_loader_warnings(self):
         output = b'libEGL warning: no accelerated rendering\n{"native_webview":"passed","frontend_bridge_ipc":"passed","schema_version":"1.0.1"}\n'
         expected = {'native_webview': 'passed', 'frontend_bridge_ipc': 'passed', 'schema_version': '1.0.1'}

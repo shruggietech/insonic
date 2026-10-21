@@ -30,22 +30,22 @@
 
 - [x] T012 Update docs/v1.0.1/desktop.md, cli.md, development.md and CHANGELOG.md for reporting/private diagnostic behavior and dated decisions (FR-001-006/012).
 - [x] T013 Run required root, affected Go, site and file-integrity checks; record exact local evidence in specs/042-startup-diagnostics-recovery/verification.md (SC-001-003/005).
-- [ ] T014 Publish the frozen reporting/diagnostics PR, verify complete CI, squash merge and retain exact-main acceptance externally before the next increment (FR-011/012, SC-005).
+- [x] T014 Publish the frozen reporting/diagnostics PR, verify complete CI, squash merge and retain exact-main acceptance externally before the next increment (FR-011/012, SC-005).
 
 ## Phase 5: US3 concrete startup termination and recovery (P1)
 
 **Independent test**: Inject synchronous/asynchronous and partial-initialization failures; one failed outcome skips the ordinary loop, cleanup balances on the owner thread after callback unwinding, and a later valid launch succeeds.
 
-- [ ] T015 [US3] Add focused fake-COM/message-only failure, late-completion, partial-cleanup and fresh-instance regressions in third_party/go-webview2/pkg/edge startup tests (FR-007-009, SC-004).
-- [ ] T016 [US3] Add an error-returning Embed path and first-failure outcome in third_party/go-webview2/pkg/edge/chromium.go; reject failed/null outputs and interrupted initialization without success fall-through (FR-007).
-- [ ] T017 [US3] Reuse owner-thread destruction/release after callback unwinding and preserve late-callback refusal in third_party/go-webview2/pkg/edge/window_lifetime_windows.go (FR-008/009).
-- [ ] T018 [US3] Preserve a checksum-verified pinned Wails baseline and correct only startup return/setup and dev/production loop entry in third_party/wails, with focused failure/success lifecycle regressions and caller-owned settings release (FR-007/008/010).
-- [ ] T019 [US3] Extend exact maintained source, Go replacement and notice qualification to exactly the two approved modules through scripts/webview-source.mjs, scripts/check.mjs, scripts/go_module_notices.py, qualification metadata and affected tests (FR-010, SC-006).
-- [ ] T020 [US3] Add a bounded controlled failed-launch/subsequent-valid-process qualification to existing cmd/insonic-desktop native/package fixtures without changing any original case or operation allowance (FR-009/011, SC-004/005).
+- [x] T015 [US3] Add focused fake-COM/message-only failure, late-completion, partial-cleanup and fresh-instance regressions in third_party/go-webview2/pkg/edge startup tests (FR-007-009, SC-004).
+- [x] T016 [US3] Add an error-returning Embed path and first-failure outcome in third_party/go-webview2/pkg/edge/chromium.go; reject failed/null outputs and interrupted initialization without success fall-through (FR-007).
+- [x] T017 [US3] Reuse owner-thread destruction/release after callback unwinding and preserve late-callback refusal in third_party/go-webview2/pkg/edge/window_lifetime_windows.go (FR-008/009).
+- [x] T018 [US3] Preserve a checksum-verified pinned Wails baseline and correct only startup return/setup and dev/production loop entry in third_party/wails, with focused failure/success lifecycle regressions and caller-owned settings release (FR-007/008/010).
+- [x] T019 [US3] Extend exact maintained source, Go replacement and notice qualification to exactly the two approved modules through scripts/webview-source.mjs, scripts/check.mjs, scripts/go_module_notices.py, qualification metadata and affected tests (FR-010, SC-006).
+- [x] T020 [US3] Add a bounded controlled failed-launch/subsequent-valid-process qualification to existing cmd/insonic-desktop native/package fixtures without changing any original case or operation allowance (FR-009/011, SC-004/005).
 
 ## Phase 6: Recovery increment verification
 
-- [ ] T021 Update current recovery/provenance contracts and CHANGELOG.md, reconcile Spec Kit consistency, and run required affected/root/site/source-authority checks in specs/042-startup-diagnostics-recovery/verification.md (FR-007-012, SC-004-006).
+- [x] T021 Update current recovery/provenance contracts and CHANGELOG.md, reconcile Spec Kit consistency, and run required affected/root/site/source-authority checks in specs/042-startup-diagnostics-recovery/verification.md (FR-007-012, SC-004-006).
 - [ ] T022 Publish the frozen recovery PR, resolve concrete failures, qualify real Windows packages/native behavior, squash merge and retain exact-main acceptance externally (FR-011/012, SC-005/006).
 - [ ] T023 Reconcile #154/#115 criteria and milestone/project state individually, preserve unresolved historical causes and S041 revision-bound campaign evidence in specs/042-startup-diagnostics-recovery/verification.md (FR-012).
 
@@ -54,3 +54,13 @@
 T001 -> T002 -> US1/US2 -> T012 -> T013 -> T014 -> US3 -> T021 -> T022 -> T023.
 
 US1 and US2 tests in separate files may be authored independently; shared logger edits remain sequential. T004 privacy tests can run alongside the Windows ACL reproduction once fixtures exist. The reporting/diagnostics increment is the first useful delivery and does not depend on US3. Native startup and framework changes remain in the second increment. S041 campaign bookkeeping is not a dependency of either product merge.
+
+## Phase 7: Demonstrated first-candidate corrections
+
+- [x] T024 Preserve the failed candidate, correct stale diagnostic/qualification fixtures, return an existing-file profile error before native creation, and report bounded observed CI input identity fields without weakening checks; verify regressions before a new candidate (FR-007/009/011/012).
+- [x] T025 Reproduce the second candidate's queued workflow summary with matching identity and successful readiness; accept that coarse active state only alongside exact job authority, preserving running-aggregate, all-other-terminal and strict terminal-audit requirements in scripts/ci-acceptance.mjs (FR-011/012).
+- [x] T026 Retain the exact controlled-child diagnostic failure category and generated Windows access/owner-equality observations; add a hidden owned-child Modify-directory regression without weakening private-event acceptance (FR-003-006/009/012).
+- [x] T027 Reproduce and correct new-file default-owner normalization under inherited Modify: install the already-required protected current-user DACL before requesting WRITE_OWNER through an identity-validated handle, retaining existing foreign-owner refusal and all private-file regressions (FR-005/006/009/012).
+- [x] T028 Correct the controlled pre-controller failure receipt to require its exact profile-directory/ERROR_DIRECTORY cause, matching private code, zero created-controller closes and balanced final cleanup; retain one controller close for every original successful native child (FR-007-009/011/012).
+- [x] T029 Resolve normal-review R4338376564 with one pending outcome through complete framework setup and reentrant raw-settings destruction/process-failure regressions, preserving ordinary runtime callbacks after successful setup (FR-007/008/010/012).
+- [x] T030 Resolve normal-review R4338376573 by wrapping synchronous facade errors with generated native stages while retaining errors.Is HRESULT identity; verify controller, webview and bootstrap metadata boundaries (FR-001/004/007/010/012).

@@ -21,7 +21,9 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
-- Returned desktop startup failures preserve the underlying cause, show native GUI feedback and attempt bounded private events without allowing diagnostic storage failure to replace the startup error. Windows diagnostic files in ordinary inherited-Modify directories no longer require unnecessary ownership-changing access; owner, identity, reparse, rotation and writer checks remain enforced.
+- Windows browser startup returns loader, asynchronous environment/controller and scoped setup errors without fatal callback termination or success fall-through. Failed frontend setup skips the ordinary development/production application loop; owning-thread cleanup waits for native callbacks and calls to return. Qualification verifies a controlled failed launch followed by a valid launch using the same disposable profile path, retaining the original native cases and deadlines.
+
+- Returned desktop startup failures preserve the underlying cause, show native GUI feedback and attempt bounded private events without allowing diagnostic storage failure to replace the startup error. Windows diagnostic files in ordinary inherited-Modify directories no longer require unnecessary ownership-changing access. New files with a different default owner receive the required private DACL before requesting ownership normalization; owner, identity, reparse, rotation and writer checks remain enforced.
 
 - CI qualification uses an eleven-minute advisory target and fifteen-minute hard limit after verified readiness. Receipts report target overruns without rejecting otherwise valid delivery; fixed input deadlines and applicable watchdogs share the hard limit. Native operation allowances, prerequisite accounting and required integrity checks remain unchanged.
 

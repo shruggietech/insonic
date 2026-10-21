@@ -71,3 +71,5 @@ require (
 
 // The pinned Windows binding includes the audited owned-window shutdown patch.
 replace github.com/wailsapp/go-webview2 => ./third_party/go-webview2
+
+replace github.com/wailsapp/wails/v2 => ./third_party/wails
