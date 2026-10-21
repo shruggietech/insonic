@@ -407,7 +407,7 @@
     "CHANGELOG.md": "f8d9d8fd57921600e0414af60fac45d990fb8a3ffb0d6b650fd0fb965e3fc48b",
     "LICENSE": "3f10f3374cf30076196eb239667ce6063c64e4275afd2b397f6343f69676bb79",
     "LICENSE.insonic": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
-    "NOTICE.insonic": "99c288b31bbcc1f14dd8397a90a5f853761fd8b1e71cfcaa42fc1c3f57b93513",
+    "NOTICE.insonic": "7a9f4102939471c59cff5d5ee17b49c5c8f1961574b48280d6139b74254cbafb",
     "README.md": "ba63d931c3298a6739ed6631d5d0dcf31cf74a66c67db041a71a7de3db97a26e",
     "Taskfile.yml": "540c24f999784c9571d1024330dde3b1911d40540b27955c207a907f3d3b00af",
     "go.mod": "4fedf1f25fe5dc9bb6d07a6b1630cb01c379dc7130f6237d427d79e8737e0346",
@@ -484,8 +484,8 @@
     "pkg/edge/create_env_go.go": "35bd8e6f3584863a89e6d1b17450b497a110b5ea585a92c96047517dbbac2c53",
     "pkg/edge/create_env_native.go": "c49792b51436ee8f566359237ee9f6cefc24e22dad3096a1c5fde480ea3886f5",
     "pkg/edge/guid.go": "06f1900355283957ad34ffb7c72dd3278faaebf9ee88cfe036279a2696ed4a1f",
-    "pkg/edge/startup_windows.go": "6d457af8570cd3fce01c4af2cf39f97608c9a7a2850963db7eb651b6b3c4af4b",
-    "pkg/edge/startup_windows_test.go": "c52a85133cc26632aa7579222f4f9e09f06061b66cd282d66ce25709ad5045af",
+    "pkg/edge/startup_windows.go": "6e702fbe5ef33196ab9214b5913e2291d32b3cb87a126a8db702add0f818e5f1",
+    "pkg/edge/startup_windows_test.go": "743c29af7c342ce7e4e4aa0cd5bd4b7ff443546831171909ed1401f93ed298e4",
     "pkg/edge/version_map.go": "6af24de64d1095dbd04247b2417ecd698d87a8de996684cb18bac436103ba7e7",
     "pkg/edge/window_lifetime_windows.go": "06d2e0d0adc2c43a529fedbf56d8ef92fdb3bfc6d712e9488922d5c124e86270",
     "pkg/edge/window_lifetime_windows_test.go": "6befdd8a0b533678d3874128563d27a81a92f3f9093f55663231ffc09c3f659e",
@@ -812,7 +812,7 @@
     "webviewloader/x64/WebView2Loader.dll": "c4674acf95f0800793a4a6d61132adf5dfa694c218e482d86093494c4e84100a",
     "webviewloader/x86/WebView2Loader.dll": "758f4003d91b3b81951d95de28e0e03f96e23922a73d7fe0abf6f607e2a89f2b"
   },
-  "patched_sum": "h1:/aL2mlzJxucGpL96QiMANuqU8vFvNkRI1XVvK1kxSjg=",
+  "patched_sum": "h1:8to7ZrRp6oosr2IlK8+kDAmuzS86c33t2BqSXl0Nt84=",
   "modified": [
     "pkg/combridge/iunknown.go",
     "pkg/edge/ICoreWebView2Controller.go",

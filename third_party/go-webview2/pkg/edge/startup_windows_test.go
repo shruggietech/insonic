@@ -300,7 +300,7 @@ func TestStartupConfigurationReturnsNativeErrorsWithoutFatalCallbacks(t *testing
 	f.webview.vtbl.Navigate = NewComProc(func(this, url uintptr) uintptr { return 0x80070005 })
 	f.webview.vtbl.OpenDevToolsWindow = NewComProc(func(uintptr) uintptr { return 0x80070005 })
 	f.webview.vtbl.AddWebResourceRequestedFilter = NewComProc(func(this, filter, kind uintptr) uintptr { return 0x80070005 })
-	for _, operation := range []func() error{
+	for index, operation := range []func() error{
 		f.view.ResizeWithError,
 		func() error { return f.view.NavigateWithError("about:blank") },
 		func() error { return f.view.PutZoomFactorWithError(1) },
@@ -309,8 +309,17 @@ func TestStartupConfigurationReturnsNativeErrorsWithoutFatalCallbacks(t *testing
 			return f.view.AddWebResourceRequestedFilterWithError("*", COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL)
 		},
 	} {
-		if err := operation(); !errors.Is(err, syscall.Errno(0x80070005)) {
+		err := operation()
+		if !errors.Is(err, syscall.Errno(0x80070005)) {
 			t.Fatal("native setup cause lost", err)
+		}
+		stage := "controller-configuration"
+		if index == 1 {
+			stage = "webview"
+		}
+		var native *StartupError
+		if !errors.As(err, &native) || native.Stage != stage {
+			t.Fatal("native setup stage lost", err)
 		}
 		if f.view.callError != nil || notified != 0 {
 			t.Fatal("startup error escaped synchronous reporting")
@@ -321,6 +330,15 @@ func TestStartupConfigurationReturnsNativeErrorsWithoutFatalCallbacks(t *testing
 	}
 	if f.view.callError != nil || notified != 0 {
 		t.Fatal("background error escaped synchronous reporting")
+	}
+	f.webview.vtbl.AddScriptToExecuteOnDocumentCreated = NewComProc(func(this, script, callback uintptr) uintptr { return 0x80070005 })
+	var bootstrap *StartupError
+	if err := f.view.InitWithError("controlled script"); !errors.As(err, &bootstrap) || bootstrap.Stage != "bootstrap-script" || !errors.Is(err, syscall.Errno(0x80070005)) {
+		t.Fatal("bootstrap stage or cause lost", err)
+	}
+	var background *StartupError
+	if err := f.view.SetBackgroundColourWithError(0, 0, 0, 255); !errors.As(err, &background) || background.Stage != "controller-configuration" {
+		t.Fatal("background stage lost", err)
 	}
 }
 
@@ -476,5 +494,78 @@ func TestStartupExistingProfileFileReturnsBeforeNativeCreationAndAllowsLaterDire
 	next.profile = f.profile
 	if err := next.view.embedWithError(next.hwnd, next.platform()); err != nil {
 		t.Fatal("later intended-profile launch failed", err)
+	}
+}
+
+func TestStartupFrameworkSetupKeepsRawSettingsCallsPendingAndOwned(t *testing.T) {
+	for _, destroy := range []bool{false, true} {
+		t.Run(map[bool]string{false: "process-failure", true: "owner-destruction"}[destroy], func(t *testing.T) {
+			f := newStartupFixture(t, "")
+			delegated, settingsRefs := 0, 0
+			f.view.ProcessFailedCallback = func(*ICoreWebView2, *ICoreWebView2ProcessFailedEventArgs) { delegated++ }
+			settings := &ICoreWebView2Settings{vtbl: &_ICoreWebView2SettingsVtbl{_IUnknownVtbl: _IUnknownVtbl{Release: NewComProc(func(uintptr) uintptr { f.assertOwnerOutsideCallback(); settingsRefs--; return 0 })}}}
+			args := &ICoreWebView2ProcessFailedEventArgs{vtbl: &_ICoreWebView2ProcessFailedEventArgsVtbl{GetProcessFailedKind: NewComProc(func(this, kind uintptr) uintptr { return 0x80070005 })}}
+			f.webview.vtbl.GetSettings = NewComProc(func(this uintptr, out **ICoreWebView2Settings) uintptr {
+				f.callback = true
+				if destroy {
+					windows.NewLazySystemDLL("user32.dll").NewProc("DestroyWindow").Call(f.hwnd)
+				} else {
+					f.view.ProcessFailed(f.webview, args)
+				}
+				if f.closes != 0 || f.webviewRefs != 1 {
+					t.Error("framework setup released its browser inside a native call")
+				}
+				*out = settings
+				settingsRefs++
+				f.callback = false
+				return 0
+			})
+			err := f.view.embedWithConfiguration(f.hwnd, f.platform(), func() error {
+				value, err := f.view.GetSettings()
+				if value != nil {
+					defer value.Release()
+				}
+				if err != nil {
+					return err
+				}
+				return syscall.Errno(87)
+			})
+			var failure *StartupError
+			stage := "browser-process"
+			if destroy {
+				stage = "window-destroyed"
+			}
+			if !errors.As(err, &failure) || failure.Stage != stage || delegated != 0 || f.closes != 1 || settingsRefs != 0 || f.controllerRefs != 0 || f.webviewRefs != 0 || f.environmentRefs != 0 || len(f.view.callbackLeases) != 0 || f.view.startup.succeeded {
+				t.Fatal("post-embed setup escaped returned failure or cleanup", err, delegated, f.closes, settingsRefs)
+			}
+			if !destroy && !errors.Is(err, syscall.Errno(0x80070005)) {
+				t.Fatal("first native callback cause was replaced", err)
+			}
+		})
+	}
+}
+
+func TestStartupFrameworkSetupSuccessRestoresRuntimePolicyAndReturnsStagedErrors(t *testing.T) {
+	f := newStartupFixture(t, "")
+	delegated := 0
+	f.view.ProcessFailedCallback = func(*ICoreWebView2, *ICoreWebView2ProcessFailedEventArgs) { delegated++ }
+	if err := f.view.embedWithConfiguration(f.hwnd, f.platform(), func() error {
+		if f.view.startup.succeeded {
+			t.Error("setup was not pending")
+		}
+		return nil
+	}); err != nil || !f.view.startup.succeeded || f.closes != 0 {
+		t.Fatal("successful framework setup changed lifetime", err)
+	}
+	f.view.ProcessFailed(f.webview, nil)
+	if delegated != 1 {
+		t.Fatal("ordinary successful runtime callback policy changed")
+	}
+	failed := newStartupFixture(t, "")
+	cause := syscall.Errno(5)
+	err := failed.view.embedWithConfiguration(failed.hwnd, failed.platform(), func() error { return cause })
+	var failure *StartupError
+	if !errors.As(err, &failure) || failure.Stage != "controller-configuration" || !errors.Is(err, cause) || failed.closes != 1 {
+		t.Fatal("synchronous framework cause/stage or cleanup lost", err)
 	}
 }

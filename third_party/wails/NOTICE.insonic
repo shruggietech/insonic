@@ -17,3 +17,5 @@ after successful frontend startup, then retain ordinary window/shutdown cleanup.
 A complete upstream module snapshot preserves embedded assets and every other
 platform source. The maintained behavioral scope is restricted to the Windows
 frontend and the two application startup entry paths, plus focused tests.
+
+The Windows setup callback joins the maintained binding's pending embedding outcome through all settings and capability configuration, before frontend readiness. Reentrant process failure returns through the desktop error path instead of invoking the runtime fatal callback. Ordinary callbacks after successful setup retain upstream policy.

@@ -4,6 +4,7 @@
 package edge
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -58,7 +59,7 @@ func (e *Chromium) failStartup(stage string, cause error) error {
 		e.startup = &startupOutcome{}
 	}
 	if e.startup.failure == nil && !e.startup.succeeded {
-		e.startup.failure = &StartupError{Stage: stage, Err: cause}
+		e.startup.failure = wrapStartupError(stage, cause)
 	}
 	return e.startup.failure
 }
@@ -75,11 +76,20 @@ func startupCompletionError(kind string, result uintptr, missing bool) error {
 // EmbedWithError waits for controller configuration and bootstrap request acceptance.
 // Its caller owns the window and must retain its UI thread for the full lifetime.
 func (e *Chromium) EmbedWithError(hwnd uintptr) error {
+	return e.EmbedWithConfiguration(hwnd, nil)
+}
+
+// EmbedWithConfiguration keeps one pending startup outcome through the host
+// configuration, before the caller may publish frontend readiness.
+func (e *Chromium) EmbedWithConfiguration(hwnd uintptr, configure func() error) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	return e.embedWithError(hwnd, nativeStartupPlatform())
+	return e.embedWithConfiguration(hwnd, nativeStartupPlatform(), configure)
 }
-func (e *Chromium) embedWithError(hwnd uintptr, platform startupPlatform) (err error) {
+func (e *Chromium) embedWithError(hwnd uintptr, platform startupPlatform) error {
+	return e.embedWithConfiguration(hwnd, platform, nil)
+}
+func (e *Chromium) embedWithConfiguration(hwnd uintptr, platform startupPlatform, configure func() error) (err error) {
 	if e.startup != nil || e.shuttingDown {
 		return &StartupError{Stage: "window-lifetime", Err: fmt.Errorf("Chromium startup is single-use; create a fresh instance")}
 	}
@@ -160,6 +170,19 @@ func (e *Chromium) embedWithError(hwnd uintptr, platform startupPlatform) (err e
 	if e.startup.failure != nil {
 		return e.startup.failure
 	}
+	if configure != nil {
+		var configurationError error
+		callbackError := e.callWithError(func() { configurationError = configure() })
+		if e.startup.failure != nil {
+			return e.startup.failure
+		}
+		if callbackError != nil {
+			return e.failStartup("controller-configuration", callbackError)
+		}
+		if configurationError != nil {
+			return e.failStartup("controller-configuration", configurationError)
+		}
+	}
 	e.startup.succeeded = true
 	return nil
 }
@@ -179,19 +202,23 @@ func (e *Chromium) callWithError(operation func()) (err error) {
 	operation()
 	return err
 }
-func (e *Chromium) ResizeWithError() error { return e.callWithError(e.Resize) }
+func (e *Chromium) ResizeWithError() error {
+	return e.callWithStartupError("controller-configuration", e.Resize)
+}
 func (e *Chromium) NavigateWithError(url string) error {
-	return e.callWithError(func() { e.Navigate(url) })
+	return e.callWithStartupError("webview", func() { e.Navigate(url) })
 }
 func (e *Chromium) PutZoomFactorWithError(factor float64) error {
-	return e.callWithError(func() { e.PutZoomFactor(factor) })
+	return e.callWithStartupError("controller-configuration", func() { e.PutZoomFactor(factor) })
 }
-func (e *Chromium) OpenDevToolsWindowWithError() error { return e.callWithError(e.OpenDevToolsWindow) }
+func (e *Chromium) OpenDevToolsWindowWithError() error {
+	return e.callWithStartupError("controller-configuration", e.OpenDevToolsWindow)
+}
 func (e *Chromium) AddWebResourceRequestedFilterWithError(filter string, context COREWEBVIEW2_WEB_RESOURCE_CONTEXT) error {
-	return e.callWithError(func() { e.AddWebResourceRequestedFilter(filter, context) })
+	return e.callWithStartupError("controller-configuration", func() { e.AddWebResourceRequestedFilter(filter, context) })
 }
 func (e *Chromium) SetBackgroundColourWithError(r, g, b, a uint8) error {
-	return e.callWithError(func() { e.SetBackgroundColour(r, g, b, a) })
+	return e.callWithStartupError("controller-configuration", func() { e.SetBackgroundColour(r, g, b, a) })
 }
 
 func (e *Chromium) startupInterrupted() bool {
@@ -199,5 +226,20 @@ func (e *Chromium) startupInterrupted() bool {
 }
 
 func (e *Chromium) InitWithError(script string) error {
-	return e.callWithError(func() { e.Init(script) })
+	return e.callWithStartupError("bootstrap-script", func() { e.Init(script) })
+}
+
+func wrapStartupError(stage string, cause error) error {
+	var native *StartupError
+	if errors.As(cause, &native) {
+		return cause
+	}
+	return &StartupError{Stage: stage, Err: cause}
+}
+func (e *Chromium) callWithStartupError(stage string, operation func()) error {
+	err := e.callWithError(operation)
+	if err == nil {
+		return nil
+	}
+	return wrapStartupError(stage, err)
 }

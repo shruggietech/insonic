@@ -72,13 +72,13 @@
       "version": "v1.0.23",
       "manifest": "third_party/go-webview2.source.json",
       "upstream_sum": "h1:jmv8qhz1lHibCc79bMM/a/FqOnnzOGEisLav+a0b9P0=",
-      "patched_sum": "h1:/aL2mlzJxucGpL96QiMANuqU8vFvNkRI1XVvK1kxSjg="
+      "patched_sum": "h1:8to7ZrRp6oosr2IlK8+kDAmuzS86c33t2BqSXl0Nt84="
     },
     "github.com/wailsapp/wails/v2": {
       "version": "v2.16.0",
       "manifest": "third_party/wails.source.json",
       "upstream_sum": "h1:hLYrSHUUq6hRXl3rWT9ZXiyFIgM94nVN9Ns6iEJzxyw=",
-      "patched_sum": "h1:JVbF54qs65fXAXzM05LiRhbJIjls1oxUbmaM7ln6ElA="
+      "patched_sum": "h1:HcNcoA/UL/wFhlLNlppfGA0aMj8cBM+lne7IkIp4diE="
     }
   }
 }

@@ -90,3 +90,5 @@ The COM balance regression uses a fresh native thread and observes its actual
 apartment transition, including an implicit MTA, rather than assuming a reused
 Go worker thread has no apartment. Ordinary browser/document readiness and
 native qualification operation allowances remain separate and unchanged.
+
+Host configuration can join embedding through EmbedWithConfiguration. The first startup outcome remains pending through raw settings/capability calls; reentrant process failure or owner destruction returns before framework readiness, and owned cleanup waits for the configuration native frames to unwind. Error-returning SDK facades retain generated native stages and their wrapped HRESULT identity.

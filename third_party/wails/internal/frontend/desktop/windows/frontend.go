@@ -538,90 +538,89 @@ func (f *Frontend) setupChromium() error {
 		}
 	}
 
-	if err := chromium.EmbedWithError(f.mainWindow.Handle()); err != nil {
-		return fmt.Errorf("initialize WebView2: %w", err)
-	}
-	if f.frontendOptions.DragAndDrop != nil && f.frontendOptions.DragAndDrop.DisableWebViewDrop {
-		if err := chromium.AllowExternalDrag(false); err != nil {
-			f.logger.Warning("WebView failed to set AllowExternalDrag to false!")
-		}
-	}
-
-	if chromium.HasCapability(edge.SwipeNavigation) {
-		swipeGesturesEnabled := f.frontendOptions.Windows != nil && f.frontendOptions.Windows.EnableSwipeGestures
-		err := chromium.PutIsSwipeNavigationEnabled(swipeGesturesEnabled)
-		if err != nil {
-			return fmt.Errorf("configure WebView2: %w", err)
-		}
-	}
-	if err := chromium.ResizeWithError(); err != nil {
-		return fmt.Errorf("resize WebView2: %w", err)
-	}
-	settings, err := chromium.GetSettings()
-	if err != nil {
-		return fmt.Errorf("configure WebView2: %w", err)
-	}
-	if settings == nil {
-		return fmt.Errorf("WebView2 returned no settings interface")
-	}
-	defer settings.Release()
-	err = settings.PutAreDefaultContextMenusEnabled(f.debug || f.frontendOptions.EnableDefaultContextMenu)
-	if err != nil {
-		return fmt.Errorf("configure WebView2: %w", err)
-	}
-	err = settings.PutAreDevToolsEnabled(f.devtoolsEnabled)
-	if err != nil {
-		return fmt.Errorf("configure WebView2: %w", err)
-	}
-
-	if opts := f.frontendOptions.Windows; opts != nil {
-		if opts.ZoomFactor > 0.0 {
-			if err := chromium.PutZoomFactorWithError(opts.ZoomFactor); err != nil {
-				return fmt.Errorf("configure WebView2 zoom: %w", err)
+	return chromium.EmbedWithConfiguration(f.mainWindow.Handle(), func() error {
+		if f.frontendOptions.DragAndDrop != nil && f.frontendOptions.DragAndDrop.DisableWebViewDrop {
+			if err := chromium.AllowExternalDrag(false); err != nil {
+				f.logger.Warning("WebView failed to set AllowExternalDrag to false!")
 			}
 		}
-		err = settings.PutIsZoomControlEnabled(opts.IsZoomControlEnabled)
+
+		if chromium.HasCapability(edge.SwipeNavigation) {
+			swipeGesturesEnabled := f.frontendOptions.Windows != nil && f.frontendOptions.Windows.EnableSwipeGestures
+			err := chromium.PutIsSwipeNavigationEnabled(swipeGesturesEnabled)
+			if err != nil {
+				return fmt.Errorf("configure WebView2: %w", err)
+			}
+		}
+		if err := chromium.ResizeWithError(); err != nil {
+			return fmt.Errorf("resize WebView2: %w", err)
+		}
+		settings, err := chromium.GetSettings()
 		if err != nil {
 			return fmt.Errorf("configure WebView2: %w", err)
 		}
-		err = settings.PutIsPinchZoomEnabled(!opts.DisablePinchZoom)
+		if settings == nil {
+			return fmt.Errorf("WebView2 returned no settings interface")
+		}
+		defer settings.Release()
+		err = settings.PutAreDefaultContextMenusEnabled(f.debug || f.frontendOptions.EnableDefaultContextMenu)
 		if err != nil {
 			return fmt.Errorf("configure WebView2: %w", err)
 		}
-	}
-
-	err = settings.PutIsStatusBarEnabled(false)
-	if err != nil {
-		return fmt.Errorf("configure WebView2: %w", err)
-	}
-	err = settings.PutAreBrowserAcceleratorKeysEnabled(false)
-	if err != nil {
-		return fmt.Errorf("configure WebView2: %w", err)
-	}
-
-	if f.debug && f.frontendOptions.Debug.OpenInspectorOnStartup {
-		if err := chromium.OpenDevToolsWindowWithError(); err != nil {
-			return fmt.Errorf("open WebView2 inspector: %w", err)
+		err = settings.PutAreDevToolsEnabled(f.devtoolsEnabled)
+		if err != nil {
+			return fmt.Errorf("configure WebView2: %w", err)
 		}
-	}
 
-	// Setup focus event handler
-	onFocus := f.mainWindow.OnSetFocus()
-	onFocus.Bind(f.onFocus)
+		if opts := f.frontendOptions.Windows; opts != nil {
+			if opts.ZoomFactor > 0.0 {
+				if err := chromium.PutZoomFactorWithError(opts.ZoomFactor); err != nil {
+					return fmt.Errorf("configure WebView2 zoom: %w", err)
+				}
+			}
+			err = settings.PutIsZoomControlEnabled(opts.IsZoomControlEnabled)
+			if err != nil {
+				return fmt.Errorf("configure WebView2: %w", err)
+			}
+			err = settings.PutIsPinchZoomEnabled(!opts.DisablePinchZoom)
+			if err != nil {
+				return fmt.Errorf("configure WebView2: %w", err)
+			}
+		}
 
-	// Set background colour
-	if err := f.setBackgroundColour(f.frontendOptions.BackgroundColour); err != nil {
-		return fmt.Errorf("configure WebView2 background: %w", err)
-	}
+		err = settings.PutIsStatusBarEnabled(false)
+		if err != nil {
+			return fmt.Errorf("configure WebView2: %w", err)
+		}
+		err = settings.PutAreBrowserAcceleratorKeysEnabled(false)
+		if err != nil {
+			return fmt.Errorf("configure WebView2: %w", err)
+		}
 
-	chromium.SetGlobalPermission(edge.CoreWebView2PermissionStateAllow)
-	if err := chromium.AddWebResourceRequestedFilterWithError("*", edge.COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL); err != nil {
-		return fmt.Errorf("configure WebView2 resources: %w", err)
-	}
-	if err := chromium.NavigateWithError(f.startURL.String()); err != nil {
-		return fmt.Errorf("navigate WebView2: %w", err)
-	}
-	return nil
+		if f.debug && f.frontendOptions.Debug.OpenInspectorOnStartup {
+			if err := chromium.OpenDevToolsWindowWithError(); err != nil {
+				return fmt.Errorf("open WebView2 inspector: %w", err)
+			}
+		}
+
+		// Setup focus event handler
+		onFocus := f.mainWindow.OnSetFocus()
+		onFocus.Bind(f.onFocus)
+
+		// Set background colour
+		if err := f.setBackgroundColour(f.frontendOptions.BackgroundColour); err != nil {
+			return fmt.Errorf("configure WebView2 background: %w", err)
+		}
+
+		chromium.SetGlobalPermission(edge.CoreWebView2PermissionStateAllow)
+		if err := chromium.AddWebResourceRequestedFilterWithError("*", edge.COREWEBVIEW2_WEB_RESOURCE_CONTEXT_ALL); err != nil {
+			return fmt.Errorf("configure WebView2 resources: %w", err)
+		}
+		if err := chromium.NavigateWithError(f.startURL.String()); err != nil {
+			return fmt.Errorf("navigate WebView2: %w", err)
+		}
+		return nil
+	})
 }
 
 type EventNotify struct {
