@@ -20,7 +20,7 @@ import (
 )
 
 func goodStartupFailure() startupFailureObservation {
-	return startupFailureObservation{SchemaVersion: contracts.Version, ReturnedFailure: "passed", Stage: "environment-completion", PrivateStage: "environment-completion", PrivateDiagnostics: "saved", OwnedCleanup: "passed"}
+	return startupFailureObservation{SchemaVersion: contracts.Version, ReturnedFailure: "passed", Stage: "profile-directory", PrivateStage: "profile-directory", PrivateDiagnostics: "saved", OwnedCleanup: "passed"}
 }
 
 func TestStartupRecoveryWrapsFirstLaunchAndRetainsAllTwelveCases(t *testing.T) {
@@ -161,7 +161,7 @@ func TestControlledStartupFailureRequiresNaturalReleaseBeforeOwnedBlockerRemoval
 			}
 			_, stErr := os.Lstat(profile)
 			if name == "success" {
-				if err != nil || observed.Stage != "environment-completion" || !os.IsNotExist(stErr) {
+				if err != nil || observed.Stage != "profile-directory" || !os.IsNotExist(stErr) {
 					t.Fatal(observed, err, stErr)
 				}
 			} else if err == nil || stErr != nil {
@@ -223,5 +223,24 @@ func TestControlledStartupPrivateDiagnosticsWorkInModifyDirectoryAcrossOwnedChil
 	var event diagnostics.Event
 	if err != nil || json.Unmarshal(raw, &event) != nil || event.FailureStage != "profile-directory" {
 		t.Fatal("private child event missing", err)
+	}
+}
+
+func TestControlledPreControllerFailureRequiresNoControllerAndBalancedCleanup(t *testing.T) {
+	called := 0
+	if err := finishControlledStartupFailure(nil, 0, func() error { called++; return nil }); err != nil || called != 1 {
+		t.Fatal("pre-controller failure must not require a successful controller close", err, called)
+	}
+	for _, count := range []uint32{1, 2} {
+		if err := finishControlledStartupFailure(nil, count, func() error { t.Fatal("unexpected controller admitted"); return nil }); err == nil {
+			t.Fatal("unexpected controller creation was not rejected")
+		}
+	}
+	original := errors.New("original close failure")
+	if err := finishControlledStartupFailure(original, 0, func() error { t.Fatal("close failure replaced"); return nil }); !errors.Is(err, original) {
+		t.Fatal(err)
+	}
+	if err := finishControlledStartupFailure(nil, 0, func() error { return original }); !errors.Is(err, original) {
+		t.Fatal("cleanup failure lost", err)
 	}
 }

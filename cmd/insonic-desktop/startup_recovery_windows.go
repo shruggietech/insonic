@@ -37,7 +37,7 @@ type startupFailureObservation struct {
 
 func controlledStartupStage(stage string) bool {
 	switch stage {
-	case "profile-directory", "environment-create", "environment-completion", "controller-request", "controller-completion", "browser-process":
+	case "profile-directory":
 		return true
 	}
 	return false
@@ -205,7 +205,7 @@ func qualifyStartupFailureChild(config string) int {
 	close(finished)
 	fmt.Fprintln(os.Stderr, "native-startup-recovery-stage=application-returned")
 	var native *edge.StartupError
-	if primary == nil || !errors.As(primary, &native) || !controlledStartupStage(native.Stage) || started.Load() {
+	if primary == nil || !errors.As(primary, &native) || !controlledStartupStage(native.Stage) || !errors.Is(primary, windows.ERROR_DIRECTORY) || started.Load() {
 		fmt.Fprintln(os.Stderr, "controlled startup failure did not return from the expected native boundary", primary)
 		return 1
 	}
@@ -223,16 +223,12 @@ func qualifyStartupFailureChild(config string) int {
 	}
 	raw, err = os.ReadFile(path)
 	var event diagnostics.Event
-	if err != nil || json.Unmarshal(bytes.TrimSpace(raw), &event) != nil || event.Operation != "desktop.startup" || event.FailureStage != native.Stage || event.State != "failed" {
+	if err != nil || json.Unmarshal(bytes.TrimSpace(raw), &event) != nil || event.Operation != "desktop.startup" || event.FailureStage != native.Stage || event.State != "failed" || event.SystemErrorCode == nil || *event.SystemErrorCode != uint32(windows.ERROR_DIRECTORY) {
 		fmt.Fprintln(os.Stderr, "startup private diagnostic receipt invalid")
 		return 1
 	}
-	if err = nativeWebviewCloseError(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return 1
-	}
 	fmt.Fprintln(os.Stderr, "native-startup-recovery-stage=before-apartment-cleanup")
-	if err = nativeCOMCleanup(); err != nil {
+	if err = finishControlledStartupFailure(edge.WindowCloseError(), edge.ClosedControllerCount(), nativeCOMCleanup); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
@@ -282,4 +278,14 @@ func logStartupDiagnosticAccess(directory string) {
 	}
 	raw, _ := json.Marshal(map[string]any{"kind": "native-startup-diagnostic-access", "files": observations})
 	fmt.Fprintln(os.Stderr, string(raw))
+}
+
+func finishControlledStartupFailure(closeError error, closed uint32, cleanup func() error) error {
+	if closeError != nil {
+		return closeError
+	}
+	if closed != 0 {
+		return fmt.Errorf("controller was unexpectedly created before profile refusal")
+	}
+	return cleanup()
 }
