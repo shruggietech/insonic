@@ -77,7 +77,11 @@ export function inspectAttempt(identity, run, jobs, { terminal = false, now = Da
   if (ready.length !== 1 || aggregate.length !== 1) throw new Error('Missing or ambiguous phase jobs.');
   if (ready[0].status !== 'completed' || ready[0].conclusion !== 'success') throw new Error('Prerequisite readiness did not succeed.');
   if (!terminal && (run.status !== 'in_progress' || aggregate[0].status !== 'in_progress')) throw new Error('Provisional acceptance must evaluate its own running attempt.');
-  const start = timestamp(run.run_started_at), boundary = timestamp(ready[0].completed_at);
+  const attemptStart = timestamp(run.run_started_at);
+  const preparationStart = identity.attempt === '1' ? run.created_at : run.run_started_at;
+  const start = timestamp(preparationStart), boundary = timestamp(ready[0].completed_at);
+  const initialQueue = identity.attempt === '1' ? (attemptStart - start) / 1000 : null;
+  if (initialQueue !== null && initialQueue < 0) throw new Error('Invalid initial queue timestamps.');
   const completed = [], failures = [];
   for (const job of jobs) {
     if (!Number.isSafeInteger(job.id) || job.id < 1 || String(job.run_id) !== identity.run
@@ -92,7 +96,7 @@ export function inspectAttempt(identity, run, jobs, { terminal = false, now = Da
     }
     if (job.conclusion === 'skipped') continue;
     const begin = timestamp(job.started_at), end = timestamp(job.completed_at);
-    if (begin < start || end < begin) throw new Error('Invalid job timestamps.');
+    if (begin < attemptStart || end < begin) throw new Error('Invalid job timestamps.');
     if (!['scope', 'prerequisite readiness', 'Windows Go dependency preparation'].includes(job.name) && !/^media-(linux|windows)\s*\//.test(job.name) && begin < boundary) {
       throw new Error(`Qualification job ${job.name} began before readiness.`);
     }
@@ -108,10 +112,8 @@ export function inspectAttempt(identity, run, jobs, { terminal = false, now = Da
   const workerEnd = Math.max(...completed), metadataUpdated = timestamp(run.updated_at);
   const end = terminal ? Math.max(workerEnd, metadataUpdated) : now;
   if (!terminal && workerEnd > end) throw new Error('Evaluation predates job completion.');
-  const initialQueue = identity.attempt === '1' ? (start - timestamp(run.created_at)) / 1000 : null;
-  if (initialQueue !== null && initialQueue < 0) throw new Error('Invalid initial queue timestamps.');
   return { ...measureTiming(start, boundary, end, terminal), failures, attempt_started_at: run.run_started_at,
-    readiness_at: ready[0].completed_at, evaluated_through: new Date(end).toISOString(),
+    preparation_started_at: preparationStart, readiness_at: ready[0].completed_at, evaluated_through: new Date(end).toISOString(),
     worker_terminal_at: terminal ? new Date(workerEnd).toISOString() : null,
     metadata_updated_at: run.updated_at,
     initial_queue_seconds: initialQueue };

@@ -82,6 +82,59 @@ function metadata() {
 }
 const identity = { repository: 'shruggietech/insonic', run: '42', attempt: '2', head: 'a'.repeat(40), revision: 'b'.repeat(40) };
 
+function firstAttempt(queue = 120000) {
+  const data = metadata();
+  data.run.run_attempt = 1;
+  data.run.created_at = new Date(Date.parse(data.run.run_started_at) - queue).toISOString();
+  for (const job of data.jobs) job.run_attempt = 1;
+  return { ...data, identity: { ...identity, attempt: '1' } };
+}
+
+test('first-attempt queue belongs to preparation and combined terminal totals', () => {
+  for (const queue of [120000, 0]) {
+    const data = firstAttempt(queue);
+    const got = inspectAttempt(data.identity, data.run, data.jobs, { terminal: true });
+    assert.equal(got.preparation_seconds, 1342 + queue / 1000);
+    assert.equal(got.combined_seconds, 2003 + queue / 1000);
+    assert.equal(got.initial_queue_seconds, queue / 1000);
+    assert.equal(got.preparation_started_at, data.run.created_at);
+    assert.equal(got.attempt_started_at, data.run.run_started_at);
+    assert.equal(got.qualification_seconds, 661);
+    assert.equal(got.accepted, false);
+  }
+});
+
+test('initial queue accounting does not move the provisional qualification deadline', () => {
+  const data = firstAttempt();
+  data.run.status = data.jobs[2].status = 'in_progress';
+  data.run.conclusion = data.jobs[2].conclusion = null;
+  data.jobs[2].completed_at = null;
+  const boundary = Date.parse(data.jobs[0].completed_at);
+  const got = inspectAttempt(data.identity, data.run, data.jobs, { now: boundary + 630000 });
+  assert.equal(got.preparation_seconds, 1462);
+  assert.equal(got.qualification_seconds, 630);
+  assert.equal(got.combined_seconds, 2092);
+  assert.equal(got.accepted, true);
+  assert.equal(inspectAttempt(data.identity, data.run, data.jobs, { now: boundary + 645001 }).accepted, false);
+});
+
+test('first-attempt creation must be valid and jobs cannot precede attempt start', () => {
+  const data = firstAttempt();
+  for (const created of [null, 'invalid', new Date(Date.parse(data.run.run_started_at) + 1).toISOString()]) {
+    assert.throws(() => inspectAttempt(data.identity, { ...data.run, created_at: created }, data.jobs, { terminal: true }), /timestamp/);
+  }
+  const early = structuredClone(data.jobs);
+  early[0].started_at = data.run.created_at;
+  assert.throws(() => inspectAttempt(data.identity, data.run, early, { terminal: true }), /Invalid job timestamps/);
+  const retry = metadata();
+  retry.run.created_at = data.run.created_at;
+  const got = inspectAttempt(identity, retry.run, retry.jobs, { terminal: true });
+  assert.equal(got.preparation_seconds, 1342);
+  assert.equal(got.combined_seconds, 2003);
+  assert.equal(got.preparation_started_at, retry.run.run_started_at);
+  assert.equal(got.initial_queue_seconds, null);
+});
+
 test('terminal audit uses actual attempt/job completion, not the later invocation clock', () => {
   const data = metadata();
   const got = inspectAttempt(identity, data.run, data.jobs, { terminal: true });

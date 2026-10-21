@@ -40,8 +40,8 @@ Setup -> foundation -> US1 -> US2 -> verification. Different test files may be a
 
 ## Phase 6: Convergence
 
-- [ ] T014 After authorized publication, retain exact cold/warm hosted preparation, qualification and terminal timing receipts per SC-004 (partial).
-- [ ] T015 After the aggregate is published, apply/read back the existing bootstrap required check and reconcile #161 milestone/project tracking per plan: hosted enforcement (partial).
+- [x] T014 After authorized publication, retain exact cold/warm hosted preparation, qualification and terminal timing receipts per SC-004 (partial).
+- [x] T015 After the aggregate is published, apply/read back the existing bootstrap required check and reconcile #161 milestone/project tracking per plan: hosted enforcement (partial).
 - [ ] T016 Verify exact owner-authorized squash main package acceptance and terminal timing before closing #161 per plan: post-merge evidence and SC-004 (partial).
 
 ## Phase 7: Measured hosted timing repair
@@ -56,3 +56,7 @@ Setup -> foundation -> US1 -> US2 -> verification. Different test files may be a
 ## Phase 8: Convergence
 
 - [x] T022 Add an opt-in isolated compiled-media cache campaign to .github/workflows/ci.yml and .github/workflows/media-source.yml, retain cold/warm path outputs, and verify ordinary cache keys and all acceptance checks remain unchanged per SC-004 and FR-002/003/009 (missing).
+
+## Phase 9: Convergence
+
+- [x] T023 CRITICAL Include first-attempt initial queue time in preparation and combined durations in scripts/ci-acceptance.mjs, preserve the readiness-based qualification clock and per-rerun start, add regression coverage in tests/ci-acceptance.test.mjs, and update timing documentation per Constitution V, FR-007 and SC-003 (contradicts).

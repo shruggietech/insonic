@@ -4,9 +4,9 @@
 
 **Created**: 2026-10-20
 
-**Status**: Local implementation; hosted acceptance pending
+**Status**: Hosted candidate; Codex review correction; post-merge main acceptance pending
 
-**Issue**: [#161](https://github.com/shruggietech/insonic/issues/161). Existing project item retained; milestone assignment remains pending hosted tracking updates.
+**Issue**: [#161](https://github.com/shruggietech/insonic/issues/161). Milestone 25 is assigned; the existing Project 7 item remains In Progress pending post-merge acceptance.
 
 **Input**: Owner-directed Windows reliability repair, beginning with issue #161. Existing native incident #154 remains a separate outcome.
 

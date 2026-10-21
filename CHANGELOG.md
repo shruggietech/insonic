@@ -18,7 +18,7 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
-- Windows package consumers wait for explicit verified source, foundation and documentation readiness. Windows prepares dependency libraries through a verified same-attempt handoff before product builds and checks. Cold source preparation no longer races the 180-second transfer wait. Explicit cold-source campaigns isolate compiled caches without evicting ordinary CI inputs. An always-running elected acceptance aggregate rejects missing, failed, cancelled or unexpectedly skipped delivery results and over-budget qualification.
+- Windows package consumers wait for explicit verified source, foundation and documentation readiness. Windows prepares dependency libraries through a verified same-attempt handoff before product builds and checks. Cold source preparation no longer races the 180-second transfer wait. Explicit cold-source campaigns isolate compiled caches without evicting ordinary CI inputs. An always-running elected acceptance aggregate rejects missing, failed, cancelled or unexpectedly skipped delivery results and over-budget qualification. First-attempt preparation and combined totals include initial queue time while qualification remains measured from verified readiness.
 
 - Windows startup diagnostics verify live process identity through the owned process handle and precise integral UTC timestamps, rejecting failed or inconsistent observations without relying on undefined exit-time data. The private wait-query helper authenticates the inherited input pipe and its live parent executable before accepting diagnostic targets.
 
