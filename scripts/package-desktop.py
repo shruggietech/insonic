@@ -1100,8 +1100,14 @@ def _smoke(archive=None, dirname=None, receipt=None):
             if any('Warning:' not in text or items[1]['media_id'] not in text or '--originated-on' not in text or '\x1b' in text for text in [human_wait, quiet_wait]):
                 raise ValueError('Accepted partial date did not reach readable operator output')
             if len(items) != 2 or any(item.get('state') != 'admitted' or item.get('capture_state') not in ['captured', 'no-embedded-metadata'] for item in items):
-                raise ValueError('packaged import did not complete both licensed fixtures: ' + json.dumps([
-                    {key: item.get(key) for key in ['state', 'capture_state', 'subtitle_state']} for item in items]))
+                states = []
+                for item in items[:2]:
+                    state = {key: item.get(key) for key in ['state', 'capture_state', 'subtitle_state']}
+                    metadata = call('media', 'metadata', item['media_id'])
+                    state['reports'] = [{key: report.get(key) for key in ['tool', 'state', 'exit_code', 'truncated']}
+                                        for report in metadata.get('reports', [])[:2]]
+                    states.append(state)
+                raise ValueError('packaged import did not complete both licensed fixtures: ' + json.dumps(states))
             from cli_contract_qualification import qualify as qualify_contract
             contract_receipt = qualify_contract(cli, workspace, env=env, cwd=root, documentation=True,
                 artifact_identity={'scope': 'package', 'archive_sha256': receipt['archive_sha256'],
