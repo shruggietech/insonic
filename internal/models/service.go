@@ -4,8 +4,6 @@ package models
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -131,7 +129,7 @@ func (s *Service) Execute(ctx context.Context, work catalog.Work) (any, error) {
 							local, e = os.Open(source)
 						}
 						if e == nil {
-							e = verifyFile(local, f)
+							e = verifyFile(ctx, local, f)
 							local.Close()
 						}
 					} else {
@@ -142,6 +140,9 @@ func (s *Service) Execute(ctx context.Context, work catalog.Work) (any, error) {
 						})
 					}
 					if e != nil {
+						if req.LocalDirectory != "" && contracts.SafeError(e).Asset == nil && ctx.Err() == nil {
+							return nil, contracts.AssetOpenFailure(ctx, e, "model_file", f.Role)
+						}
 						return nil, e
 					}
 					if req.Destination != nil {
@@ -247,7 +248,7 @@ func (s *Service) downloadProgress(ctx context.Context, workID string, f File, p
 		return "", contracts.Fail("conflict")
 	}
 	offset := st.Size()
-	if offset == f.Size && verifyFile(file, f) == nil {
+	if offset == f.Size && verifyFile(ctx, file, f) == nil {
 		if progress != nil {
 			if e = progress(f.Size); e != nil {
 				return "", e
@@ -371,7 +372,7 @@ func (s *Service) downloadProgress(ctx context.Context, workID string, f File, p
 	if remaining != 0 || file.Sync() != nil {
 		return "", contracts.Fail("unavailable")
 	}
-	if e = verifyFile(file, f); e != nil {
+	if e = verifyFile(ctx, file, f); e != nil {
 		return "", e
 	}
 	if progress != nil {
@@ -381,19 +382,8 @@ func (s *Service) downloadProgress(ctx context.Context, workID string, f File, p
 	}
 	return filepath.Join(dir, name), nil
 }
-func verifyFile(file *os.File, f File) error {
-	if _, e := file.Seek(0, io.SeekStart); e != nil {
-		return contracts.Fail("unavailable")
-	}
-	h := sha256.New()
-	n, e := io.Copy(h, file)
-	if e != nil {
-		return contracts.Fail("unavailable")
-	}
-	if n != f.Size || hex.EncodeToString(h.Sum(nil)) != f.SHA256 {
-		return contracts.Fail("checksum_mismatch")
-	}
-	return nil
+func verifyFile(ctx context.Context, file *os.File, f File) error {
+	return contracts.VerifyAssetFile(ctx, file, "model_file", f.Role, f.SHA256, f.Size)
 }
 
 // VerifyLocal checks every declared role without modifying the selected tree.
@@ -410,14 +400,9 @@ func VerifyLocal(ctx context.Context, directory string, m Manifest) error {
 		}
 		file, e := os.Open(filepath.Join(directory, filepath.FromSlash(expected.Role)))
 		if e != nil {
-			return contracts.Fail("unavailable")
+			return contracts.AssetOpenFailure(ctx, e, "model_file", expected.Role)
 		}
-		st, e := file.Stat()
-		if e == nil && st.Mode().IsRegular() {
-			e = verifyFile(file, expected)
-		} else {
-			e = contracts.Fail("invalid_request")
-		}
+		e = verifyFile(ctx, file, expected)
 		file.Close()
 		if e != nil {
 			return e

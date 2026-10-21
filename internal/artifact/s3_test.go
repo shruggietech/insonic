@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/catalog"
+	"github.com/shruggietech/insonic/internal/contracts"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -20,6 +21,8 @@ func TestS3RangeAndSigning(t *testing.T) {
 	signed := false
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		signed = strings.Contains(r.Header.Get("Authorization"), "Credential=fixture-access/")
+		w.Header().Set("Last-Modified", "Mon, 02 Jan 2006 15:04:05 GMT")
+		w.Header().Set("ETag", `"fixture"`)
 		if r.Method == "HEAD" {
 			w.Header().Set("Content-Length", "6")
 			return
@@ -34,11 +37,32 @@ func TestS3RangeAndSigning(t *testing.T) {
 		t.Fatal(e)
 	}
 	defer s.Close()
-	if _, e = s.OpenRange(context.Background(), catalog.Publication{Key: "objects/object", Size: 6}, 1, 2); e == nil {
-		t.Fatal("provider ignored range without detection")
+	if _, e = s.OpenRange(context.Background(), catalog.Publication{Key: "objects/object", Size: 6}, 1, 2); e == nil || contracts.SafeError(e).Reason != "asset_size" {
+		t.Fatal("provider ignored range without the size diagnosis", e)
 	}
 	if !signed {
 		t.Fatal("explicit credentials not signed")
+	}
+}
+
+func TestS3WrongRangeDoesNotInventVersionMismatch(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Last-Modified", "Mon, 02 Jan 2006 15:04:05 GMT")
+		w.Header().Set("ETag", `"fixture"`)
+		w.Header().Set("Content-Length", "2")
+		w.Header().Set("Content-Range", "bytes 0-1/6")
+		w.WriteHeader(http.StatusPartialContent)
+		w.Write([]byte("ab"))
+	}))
+	defer server.Close()
+	s, e := NewS3(context.Background(), S3Config{Endpoint: server.URL, Bucket: "fixture", Region: "us-east-1", AddressingStyle: "path", Authentication: "anonymous"}, nil, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer s.Close()
+	_, e = s.OpenRange(context.Background(), catalog.Publication{Key: "objects/object", Size: 6}, 1, 2)
+	if e == nil || contracts.SafeError(e).Reason != "artifact_range" {
+		t.Fatal(e)
 	}
 }
 

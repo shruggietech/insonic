@@ -51,6 +51,9 @@ func (s *Filesystem) Stat(ctx context.Context, p catalog.Publication) (Object, e
 	}
 	f, e := s.root.Open(p.Key)
 	if e != nil {
+		if ctx.Err() == nil && os.IsNotExist(e) {
+			return Object{}, contracts.AssetFailure("artifact_missing", "artifact", "object")
+		}
 		return Object{}, redact(ctx, e)
 	}
 	defer f.Close()
@@ -72,12 +75,19 @@ func (s *Filesystem) OpenRange(ctx context.Context, p catalog.Publication, offse
 	}
 	f, e := s.root.Open(p.Key)
 	if e != nil {
+		if ctx.Err() == nil && os.IsNotExist(e) {
+			return nil, contracts.AssetFailure("artifact_missing", "artifact", "object")
+		}
 		return nil, redact(ctx, e)
 	}
 	st, e := f.Stat()
-	if e != nil || !st.Mode().IsRegular() || st.Size() != p.Size {
+	if e != nil || !st.Mode().IsRegular() {
 		f.Close()
-		return nil, contracts.Fail("conflict")
+		return nil, contracts.Fail("unavailable")
+	}
+	if st.Size() != p.Size {
+		f.Close()
+		return nil, contracts.AssetFailure("asset_size", "artifact", "object")
 	}
 	return sectionCloser{contextReader{ctx, io.NewSectionReader(f, offset, length)}, f}, nil
 }

@@ -73,8 +73,11 @@ func Verify(ctx context.Context, store Store, p catalog.Publication) error {
 	if e != nil {
 		return e
 	}
-	if stat.Size != p.Size || p.Version != "" && stat.Version != p.Version {
-		return contracts.Fail("conflict")
+	if stat.Size != p.Size {
+		return contracts.AssetFailure("asset_size", "artifact", "object")
+	}
+	if p.Version != "" && stat.Version != p.Version {
+		return contracts.AssetFailure("artifact_identity", "artifact", "object")
 	}
 	body, e := store.OpenRange(ctx, p, 0, p.Size)
 	if e != nil {
@@ -86,8 +89,11 @@ func Verify(ctx context.Context, store Store, p catalog.Publication) error {
 	if e != nil {
 		return redact(ctx, e)
 	}
-	if n != p.Size || hex.EncodeToString(h.Sum(nil)) != p.Digest {
-		return contracts.Fail("conflict")
+	if n != p.Size {
+		return contracts.AssetFailure("asset_size", "artifact", "object")
+	}
+	if hex.EncodeToString(h.Sum(nil)) != p.Digest {
+		return contracts.AssetFailure("asset_hash", "artifact", "object")
 	}
 	return nil
 }

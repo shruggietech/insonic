@@ -43,7 +43,7 @@ Commands without `--json` print readable named fields, empty states, warnings an
 
 Document and media capture metadata/facts/dates pages display readable UTF-8 text instead of base64. A byte page can start or end inside a character; human output identifies those incomplete boundary bytes and displays the complete UTF-8 interior. JSON retains every exact base64 byte and the original offsets, digest/revision and continuation authority. Binary pages and omitted document detail identify the JSON/page retrieval route. Materialized paths include publication and lease identities with release/renew commands. Registration and startup describe configured resources; they do not establish provider authentication or acoustic inference readiness.
 
-`work wait` shows changed durable state, stage and available item/file counts on an interactive human terminal. It does not invent percentages. Redirected human output and JSON contain only the final or last observed result. A timeout or interrupted wait leaves durable work running; inspect, wait or cancel the same work ID. Interrupted or failed work exposes its retry route.
+`work wait` shows changed durable state, stage and available item/file counts on an interactive human terminal. It does not invent percentages. Redirected human output and JSON contain only the final or last observed result. One caller-selected budget covers runtime readiness and polling. Its expiry returns `unavailable` with `wait_timeout`; cancellation returns `wait_interrupted`. Neither result establishes the current durable work state or cancels the work. Without a successful observation the state remains unknown. Inspect, wait or cancel the same work ID. Independently observed startup failures retain their actual reason. Interrupted or failed work exposes its retry route.
 
 Accepted media with unresolved date observations remains useful and successful unless an item actually failed. Human results identify the affected item/media, date state and inspection/correction commands. Date-only precision is not itself an error. Large results identify result paging instead of claiming omitted items have no warnings.
 
@@ -73,7 +73,7 @@ Every `--json` result uses the current `runtime-response` envelope. Help and ver
 | `unavailable` | stderr | 4 |
 | Other classified failure | stderr | 1 |
 
-A failed wait response retains both its last structured `result` and its top-level `error`. Inspecting failed work through `show` or `results` succeeds as an inspection operation; the work's own state and error remain in the result. A wait timeout reports `unavailable` and leaves durable work running. Encoding or writing output must succeed before a command reports success.
+A failed wait response retains its last structured `result`, when observed, and its top-level `error`. Inspecting failed work through `show` or `results` succeeds as an inspection operation; the work's own state and error remain in the result. A wait timeout reports `unavailable` without changing or asserting durable state. Encoding or writing output must succeed before a command reports success.
 
 ## Dates, credentials and durable failures
 

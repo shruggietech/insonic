@@ -21,6 +21,11 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Artifact corruption, truncation and missing stored objects report byte-integrity failures separately from revision conflicts. Trainer output must match its declared bytes before publication admission. Worker/model prerequisites retain bounded logical asset details through human, JSON and durable failure reporting.
+- Newly created worker directories normalize Windows default ownership before private-directory verification; existing directories retain their ownership checks.
+- Offline worker plans separate zero network transfer from nominal and verified local byte totals. Model previews check local protected-reference resolvability without contacting upstream services. Custom local trainer readiness verifies pinned files without invocation, and training-only pipelines check their elected tasks.
+- Work waiting retains one caller budget across readiness and polling. Caller expiry produces neutral continuation advice and preserves only observed work state, while independently reported startup failures retain their diagnosis.
+
 - Windows browser startup returns loader, asynchronous environment/controller and scoped setup errors without fatal callback termination or success fall-through. Failed frontend setup skips the ordinary development/production application loop; owning-thread cleanup waits for native callbacks and calls to return. Qualification verifies a controlled failed launch followed by a valid launch using the same disposable profile path, retaining the original native cases and deadlines.
 
 - Returned desktop startup failures preserve the underlying cause, show native GUI feedback and attempt bounded private events without allowing diagnostic storage failure to replace the startup error. Windows diagnostic files in ordinary inherited-Modify directories no longer require unnecessary ownership-changing access. New files with a different default owner receive the required private DACL before requesting ownership normalization; owner, identity, reparse, rotation and writer checks remain enforced.

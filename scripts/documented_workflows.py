@@ -5,6 +5,7 @@
 HTTP responses are deterministic adapter fixtures, never inference engines.
 """
 import base64
+import copy
 import csv
 from email import policy
 from email.parser import BytesParser
@@ -13,6 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 import re
+import sys
 import threading
 import uuid
 
@@ -84,7 +86,7 @@ def qualify(invoke, supplied, workspace, version):
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
             raw = self.rfile.read(int(self.headers['Content-Length']))
-            if self.path == '/train':
+            if self.path.startswith('/train'):
                 request = json.loads(raw)
                 if request['operation'] != 'train' or not request.get('uploads'):
                     self.send_error(400)
@@ -93,6 +95,12 @@ def qualify(invoke, supplied, workspace, version):
                     'consumers': ['custom'], 'supported_operations': ['custom-inference'],
                     'artifacts': [{'role': 'weights.bin', 'format': 'binary', 'size': len(weights),
                         'sha256': hashlib.sha256(weights).hexdigest(), 'data': base64.b64encode(weights).decode()}]}
+                if self.path.endswith('/wrong-hash'):
+                    output['artifacts'][0]['sha256'] = 'f' * 64
+                elif self.path.endswith('/truncated'):
+                    output['artifacts'][0]['data'] = base64.b64encode(weights[:-1]).decode()
+                elif self.path.endswith('/unknown'):
+                    output['unexpected'] = 'fixture'
             else:
                 message = BytesParser(policy=policy.default).parsebytes(
                     ('Content-Type: ' + self.headers['Content-Type'] + '\r\nMIME-Version: 1.0\r\n\r\n').encode() + raw)
@@ -207,6 +215,58 @@ def qualify(invoke, supplied, workspace, version):
         if not any(p.is_file() and p.read_bytes() == weights for p in fetched.rglob('*')):
             raise ValueError('Documented model fetch did not write exact fixture weights')
 
+        for mode in ['wrong-hash', 'truncated', 'unknown']:
+            rejected = copy.deepcopy(training)
+            rejected['adapter']['endpoint'] = endpoint + '/train/' + mode
+            work = supplied(['models', 'train'], rejected)['result']
+            failure = invoke(['work', 'wait', work['work_id']], expected=1)
+            expected_code = 'invalid_engine_output' if mode == 'unknown' else 'checksum_mismatch'
+            if failure['error']['code'] != expected_code:
+                raise ValueError('Hosted trainer output misclassified: ' + mode)
+            for action in ['show', 'results']:
+                retained = invoke(['work', action, work['work_id']])['result']
+                if retained['error'] != expected_code or retained['result']['cause']['code'] != expected_code:
+                    raise ValueError('Trainer integrity cause was not retained')
+
+        trainer = workspace / 'local trainer fixture.py'
+        trainer.write_bytes((ROOT / 'scripts/qualification-trainer.py').read_bytes())
+        local = copy.deepcopy(training)
+        local['adapter'] = {'id': 'insonic-speaker', 'contract_version': '1', 'mode': 'local',
+            'architecture': 'custom', 'output_kinds': ['weights'], 'consumers': ['custom'],
+            'supported_operations': ['custom-inference'],
+            'executable': {'path': str(Path(sys.executable).resolve()),
+                           'sha256': hashlib.sha256(Path(sys.executable).read_bytes()).hexdigest()},
+            'support_files': [{'path': str(trainer), 'sha256': hashlib.sha256(trainer.read_bytes()).hexdigest()}],
+            'arguments': [str(trainer)]}
+        training_only = str(uuid.uuid4())
+        supplied(['pipelines', 'set', training_only], {'expected_revision': 0, 'pipeline': {
+            'id': training_only, 'name': 'Synthetic local training only', 'preset': 'local',
+            'configuration': {'speaker_training': {key: local[key] for key in ['adapter', 'output_kind']}}}})
+        ready = supplied(['processing', 'readiness'], {'pipeline_id': training_only,
+                         'dataset_id': prepared['dataset']['id']})['result']
+        if not ready['pipeline_usable'] or not ready['tasks']['training']['usable']:
+            raise ValueError('Training-only pipeline required unelected recognition or diarization')
+        for mode in ['wrong-hash', 'truncated', 'unknown', 'success', 'delayed']:
+            local['adapter']['arguments'] = [str(trainer), '--mode', mode]
+            work = supplied(['models', 'train'], local)['result']
+            if mode == 'delayed':
+                short = invoke(['work', 'wait', work['work_id'], '--timeout-ms', '100'], expected=(0, 4))
+                if short.get('error') and short['error'].get('reason') != 'wait_timeout':
+                    raise ValueError('Caller wait expiry was diagnosed as startup failure')
+                human = invoke(['work', 'wait', work['work_id'], '--timeout-ms', '100'], expected=(0, 4), machine=False)
+                if 'startup deadline' in human or 'durable work continues' in human:
+                    raise ValueError('Short wait invented startup or durable state')
+            failed = mode in ['wrong-hash', 'truncated', 'unknown']
+            result = invoke(['work', 'wait', work['work_id']], expected=1 if failed else 0)
+            if failed:
+                expected_code = 'invalid_engine_output' if mode == 'unknown' else 'checksum_mismatch'
+                if result['error']['code'] != expected_code:
+                    raise ValueError('Local trainer output misclassified: ' + mode)
+                if mode != 'unknown' and result['error'].get('asset', {}).get('role') != 'trainer_output':
+                    raise ValueError('Local trainer integrity lost generated asset observation')
+            elif result['result']['state'] != 'succeeded':
+                raise ValueError('Valid local trainer failed')
+
         source = example(version, 'models', 'source-update.json')
         source_id = str(uuid.uuid4())
         source['source']['id'] = source_id
@@ -227,4 +287,5 @@ def qualify(invoke, supplied, workspace, version):
         thread.join(timeout=5)
     return {'preset_lifecycle_destination_precedence_refresh': 'passed',
             'pipeline_actual_child_supplied_bypass': 'passed', 'documented_advanced_inputs': 'passed',
-            'deterministic_training_fetch': 'passed', 'acoustic_accuracy': 'not-tested'}
+            'deterministic_training_fetch': 'passed', 'trainer_output_integrity': 'passed',
+            'training_only_readiness': 'passed', 'short_wait_budget': 'passed', 'acoustic_accuracy': 'not-tested'}

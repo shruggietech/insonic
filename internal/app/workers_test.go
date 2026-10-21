@@ -18,6 +18,7 @@ import (
 	"github.com/shruggietech/insonic/internal/subtitles"
 	"github.com/shruggietech/insonic/internal/workers"
 	"github.com/shruggietech/insonic/internal/workspace"
+	"github.com/shruggietech/insonic/schemas"
 )
 
 func workerToolsFixture(t *testing.T, a *App) ProcessingTools {
@@ -53,6 +54,99 @@ func TestReusePlanUsesReceiptBudgetInsteadOfManagedInstallationMinimum(t *testin
 	plan := out.(map[string]any)
 	if plan["required_space_bytes"] != workers.ReuseSpaceBytes || plan["download_bytes"] != 0 {
 		t.Fatal("managed capacity applied to reuse", plan)
+	}
+}
+
+func TestOfflinePlanSeparatesNetworkFromDeclaredLocalBytes(t *testing.T) {
+	a := configuredApp(t)
+	workerToolsFixture(t, a)
+	p, _ := workers.Selected("recognition")
+	raw, _ := json.Marshal(workers.Election{Role: "recognition", Mode: "managed", OfflineAssets: t.TempDir()})
+	out, e := a.workerDispatch(a.ctx, contracts.Request{Operation: "workers.plan", Data: raw})
+	if e != nil {
+		t.Fatal(e)
+	}
+	plan := out.(map[string]any)
+	if plan["download_bytes"] != 0 || plan["profile_download_bytes"] != p.DownloadBytes {
+		t.Fatalf("untruthful transfer: %v nominal: %v", plan["download_bytes"], plan["profile_download_bytes"])
+	}
+	local, ok := plan["local_assets"].(workers.LocalAssets)
+	if !ok || local.RequiredBytes != p.DownloadBytes || local.VerifiedBytes != 0 || local.MissingBytes != p.DownloadBytes || len(local.Failures) != len(p.Wheels)+2 {
+		t.Fatal(local)
+	}
+}
+
+type previewSecrets struct {
+	state       string
+	value       []byte
+	resolves    int
+	statusError error
+}
+
+func (s *previewSecrets) Status(context.Context, string) (string, error) {
+	if s.state == "available" {
+		return "configured", s.statusError
+	}
+	return s.state, s.statusError
+}
+func (s *previewSecrets) Resolve(context.Context, string) ([]byte, error) {
+	s.resolves++
+	if s.state != "available" {
+		return nil, contracts.Fail("unavailable")
+	}
+	return s.value, nil
+}
+
+func TestGatedPreviewChecksLocalResolutionAndClearsBytes(t *testing.T) {
+	a := configuredApp(t)
+	for _, state := range []string{"missing", "locked", "rejected", "unavailable", "available"} {
+		t.Run(state, func(t *testing.T) {
+			provider := &previewSecrets{state: state, value: []byte("fixture-secret")}
+			a.secrets = provider
+			raw, _ := json.Marshal(defaultModelInput{Choice: "community-1", CredentialID: contracts.ID()})
+			out, e := a.defaultModelPrepare(a.ctx, contracts.Request{Data: raw})
+			if e != nil {
+				t.Fatal(e)
+			}
+			view := out.(map[string]any)
+			if view["access_ready"] != (state == "available") || view["credential_state"] != state || view["upstream_authorization"] != "not_checked" {
+				t.Fatal(view)
+			}
+			if state == "available" {
+				if provider.resolves != 1 {
+					t.Fatal("reference was not deduplicated", provider.resolves)
+				}
+				for _, b := range provider.value {
+					if b != 0 {
+						t.Fatal("resolved bytes retained")
+					}
+				}
+			}
+		})
+	}
+	a.secrets = &previewSecrets{state: "available"}
+	raw, _ := json.Marshal(defaultModelInput{Choice: "community-1", CredentialID: contracts.ID()})
+	out, e := a.defaultModelPrepare(a.ctx, contracts.Request{Data: raw})
+	if e != nil || out.(map[string]any)["access_ready"] != false {
+		t.Fatal("empty indexed credential treated as resolvable", out, e)
+	}
+	a.secrets = &previewSecrets{state: "missing", statusError: contracts.Fail("unavailable")}
+	out, e = a.defaultModelPrepare(a.ctx, contracts.Request{Data: raw})
+	if e != nil || out.(map[string]any)["credential_state"] != "unavailable" {
+		t.Fatal("failed status probe invented a missing reference", e)
+	}
+}
+
+func TestGatedAcquisitionFailureUsesTheSharedResponseContract(t *testing.T) {
+	a := configuredApp(t)
+	raw, _ := json.Marshal(defaultModelInput{Choice: "community-1", Acquire: true})
+	out, e := a.defaultModelPrepare(a.ctx, contracts.Request{Data: raw})
+	if e == nil || contracts.SafeError(e).Reason != "model_access_required" {
+		t.Fatal("lost generated access prerequisite", e)
+	}
+	response, _ := json.Marshal(contracts.Response{Kind: "runtime-response", Version: contracts.Version, Result: out, Error: e.(*contracts.Error)})
+	if err := schemas.ValidateResponse(response); err != nil {
+		t.Fatal("gated rejection differs from the release schema", err)
 	}
 }
 func TestWorkerSetupRevisionConflictAndCancellationPreserveSettings(t *testing.T) {

@@ -73,9 +73,11 @@ def parallel_regressions(invoke, workspace, version, documentation, help_pages, 
     from cli_operator_qualification import qualify as qualify_operator
     from cli_input_qualification import qualify as qualify_inputs
     from cli_text_duration_qualification import qualify as qualify_text_duration
+    from cli_readiness_qualification import qualify as qualify_readiness
     jobs = [('operator', qualify_operator, {'media': documentation}),
             ('input', qualify_inputs, {'media': documentation}),
-            ('text_duration', qualify_text_duration, {})]
+            ('text_duration', qualify_text_duration, {}),
+            ('readiness', qualify_readiness, {'executable': executable})]
     if documentation:
         from cli_help_examples import qualify as qualify_examples
         jobs.append(('examples', qualify_examples, {}))
@@ -90,7 +92,7 @@ def parallel_regressions(invoke, workspace, version, documentation, help_pages, 
             keywords = {'executable': executable, 'environment': environment}
             if process_factory is not None:keywords['process_factory'] = process_factory
         prepared.append((name, function, args, keywords))
-    # Four independent libraries prevent credential, settings, model and
+    # Independent libraries prevent credential, settings, model and
     # revision interference. Joining all workers leaves the existing package
     # idle allowance and image-release check after every library's activity.
     with ThreadPoolExecutor(max_workers=4) as workers:
@@ -318,10 +320,10 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
             def documented_invoke(args, **kwargs):
                 return invoke(args, workspace_path=documented_workspace,
                               execution_environment=fixture_environment, **kwargs)
-            def documented_supplied(args, value):
+            def documented_supplied(args, value, **kwargs):
                 path = documented_workspace / 'documented request.json'
                 path.write_text(json.dumps(value) + '\n', encoding='utf-8', newline='\n')
-                return documented_invoke([*args, '--input', path])
+                return documented_invoke([*args, '--input', path], **kwargs)
             phase('documented-workflows')
             documented = qualify_documentation(documented_invoke, documented_supplied, documented_workspace, version)
             from cli_provider_qualification import qualify as qualify_providers
@@ -332,6 +334,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
         operator_contracts = regressions['operator'].result()
         input_contracts = regressions['input'].result()
         text_duration_contracts = regressions['text_duration'].result()
+        readiness_contracts = regressions['readiness'].result()
         if documentation:
             examples = regressions['examples'].result()
     input_file.unlink(missing_ok=True)
@@ -341,7 +344,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
             if len(logged.encode('utf-8')) > 1 << 20 or any(value in logged for value in [secret['passphrase'], secret['value'], 'wrong-fixture-passphrase', str(workspace)]):
                 raise ValueError('Diagnostic log retained protected or arbitrary input')
     phase('complete')
-    return {'operator_contracts': operator_contracts, 'input_contracts': input_contracts, 'text_duration_contracts': text_duration_contracts, 'actual_help_examples': examples, 'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
+    return {'readiness_contracts': readiness_contracts, 'operator_contracts': operator_contracts, 'input_contracts': input_contracts, 'text_duration_contracts': text_duration_contracts, 'actual_help_examples': examples, 'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
             'protected_vault_delete': 'passed', 'typed_failures': failures,
             'operator_feedback': 'passed', 'cold_startup_failure': 'passed', 'detached_owner': 'passed',
             'model_roles_leases': 'passed', 'diagnostic_redaction': 'passed'}

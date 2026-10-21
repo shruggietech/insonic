@@ -44,12 +44,18 @@ func RequiredSpace(p Profile, mode string) int64 {
 func snapshotAsset(ctx context.Context, source, destination string, asset Asset) error {
 	in, e := os.Open(source)
 	if e != nil {
-		return contracts.Fail("unavailable")
+		return contracts.AssetOpenFailure(ctx, e, assetRole(asset), asset.Name)
 	}
 	defer in.Close()
 	st, e := in.Stat()
-	if e != nil || !st.Mode().IsRegular() || st.Size() != asset.Size {
-		return contracts.Fail("checksum_mismatch")
+	if e != nil {
+		return contracts.AssetFailure("asset_unreadable", assetRole(asset), asset.Name)
+	}
+	if !st.Mode().IsRegular() {
+		return contracts.AssetFailure("asset_not_regular", assetRole(asset), asset.Name)
+	}
+	if st.Size() != asset.Size {
+		return contracts.AssetFailure("asset_size", assetRole(asset), asset.Name)
 	}
 	out, e := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if e != nil {
@@ -65,7 +71,7 @@ func snapshotAsset(ctx context.Context, source, destination string, asset Asset)
 		}
 		n, readErr := in.Read(buffer)
 		if total+int64(n) > asset.Size {
-			return contracts.Fail("checksum_mismatch")
+			return contracts.AssetFailure("asset_size", assetRole(asset), asset.Name)
 		}
 		if n > 0 {
 			if _, e = out.Write(buffer[:n]); e != nil {
@@ -78,11 +84,14 @@ func snapshotAsset(ctx context.Context, source, destination string, asset Asset)
 			break
 		}
 		if readErr != nil {
-			return contracts.Fail("unavailable")
+			return contracts.AssetFailure("asset_unreadable", assetRole(asset), asset.Name)
 		}
 	}
-	if total != asset.Size || hex.EncodeToString(h.Sum(nil)) != asset.SHA256 {
-		return contracts.Fail("checksum_mismatch")
+	if total != asset.Size {
+		return contracts.AssetFailure("asset_size", assetRole(asset), asset.Name)
+	}
+	if hex.EncodeToString(h.Sum(nil)) != asset.SHA256 {
+		return contracts.AssetFailure("asset_hash", assetRole(asset), asset.Name)
 	}
 	if out.Sync() != nil {
 		return contracts.Fail("unavailable")
@@ -96,50 +105,22 @@ func (s Service) checkpoint(phase string, data map[string]any) error {
 	}
 	return nil
 }
-func verifyAsset(ctx context.Context, source string, a Asset) error {
-	p, e := Hash(ctx, source)
-	if e != nil {
-		return e
+func assetRole(a Asset) string {
+	if a.Package != "" || strings.HasSuffix(a.Name, ".whl") {
+		return "worker_wheel"
 	}
-	st, e := os.Stat(source)
-	if e != nil || st.Size() != a.Size || p.SHA256 != a.SHA256 {
-		return contracts.Fail("checksum_mismatch")
+	if strings.HasPrefix(a.Name, "uv-") {
+		return "worker_installer"
 	}
-	return nil
+	return "worker_runtime"
 }
-func copyAsset(ctx context.Context, source, dest string) error {
-	in, e := os.Open(source)
+func verifyAsset(ctx context.Context, source string, a Asset) error {
+	file, e := os.Open(source)
 	if e != nil {
-		return contracts.Fail("unavailable")
+		return contracts.AssetOpenFailure(ctx, e, assetRole(a), a.Name)
 	}
-	defer in.Close()
-	out, e := os.OpenFile(dest, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
-	if e != nil {
-		return contracts.Fail("unavailable")
-	}
-	defer out.Close()
-	b := make([]byte, 128<<10)
-	for {
-		if ctx.Err() != nil {
-			return contracts.Fail("cancelled")
-		}
-		n, e := in.Read(b)
-		if n > 0 {
-			if _, err := out.Write(b[:n]); err != nil {
-				return contracts.Fail("unavailable")
-			}
-		}
-		if e == io.EOF {
-			break
-		}
-		if e != nil {
-			return contracts.Fail("unavailable")
-		}
-	}
-	if out.Sync() != nil {
-		return contracts.Fail("unavailable")
-	}
-	return nil
+	defer file.Close()
+	return contracts.VerifyAssetFile(ctx, file, assetRole(a), a.Name, a.SHA256, a.Size)
 }
 func (s Service) asset(ctx context.Context, a Asset, offline string) (string, error) {
 	if a.Name == "" || path.Base(a.Name) != a.Name || strings.ContainsAny(a.Name, `\:`) {
@@ -177,11 +158,18 @@ func (s Service) Prepare(ctx context.Context, election Election) (Prepared, erro
 	}
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Minute)
 	defer cancel()
-	if e = os.MkdirAll(s.Directory, 0700); e != nil {
+	if e = os.MkdirAll(filepath.Dir(s.Directory), 0700); e != nil {
 		return out, contracts.Fail("unavailable")
 	}
+	created := false
+	if e = os.Mkdir(s.Directory, 0700); e == nil {
+		created = true
+	} else if !os.IsExist(e) {
+		return out, contracts.Fail("unavailable")
+	}
+	// Only the successful creator may normalize Windows default ownership.
 	// Each attempt owns a fresh directory. Accepted environments are immutable.
-	if e = workspace.SecureDirectory(s.Directory, false); e != nil {
+	if e = workspace.SecureDirectory(s.Directory, created); e != nil {
 		return out, e
 	}
 	attempt, e := os.MkdirTemp(s.Directory, "environment-")
@@ -263,7 +251,7 @@ func (s Service) Prepare(ctx context.Context, election Election) (Prepared, erro
 			if e != nil {
 				return out, e
 			}
-			if e = copyAsset(ctx, source, filepath.Join(wheelDir, a.Name)); e != nil {
+			if e = snapshotAsset(ctx, source, filepath.Join(wheelDir, a.Name), a); e != nil {
 				return out, e
 			}
 			downloaded += a.Size
@@ -360,7 +348,7 @@ func findExecutable(dir, name string) (string, error) {
 		return nil
 	})
 	if e != nil || found == "" {
-		return "", contracts.Fail("unavailable")
+		return "", contracts.AssetFailure("asset_tool_missing", "worker_installer", "uv")
 	}
 	return found, nil
 }

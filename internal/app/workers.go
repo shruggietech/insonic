@@ -153,6 +153,17 @@ func (a *App) workerDispatch(ctx context.Context, req contracts.Request) (any, e
 			if e != nil || c.Processing.Worker.Path == "" {
 				plan["prerequisite"] = "Install the current package or configure verified Cueson/media and worker tools before publishing setup."
 			}
+			plan["profile_download_bytes"] = p.DownloadBytes
+			if input.Mode == "managed" && input.OfflineAssets != "" {
+				plan["download_bytes"] = 0
+				if plan["verified_existing_environment"] == nil {
+					local, err := workers.InspectOffline(ctx, input.OfflineAssets, p)
+					if err != nil {
+						return nil, err
+					}
+					plan["local_assets"] = local
+				}
+			}
 			return plan, nil
 		}
 		if !hashString.MatchString(input.ExpectedRevision) || input.ExpectedRevision != revision {
@@ -400,18 +411,55 @@ func (a *App) defaultModelPrepare(ctx context.Context, req contracts.Request) (a
 			}
 		}
 	}
-	accessReady := c.ID != "community-1" || download == 0
-	if !accessReady {
-		accessReady = true
+	credentialState := "not_required"
+	if c.ID == "community-1" && download > 0 {
+		credentialState = "available"
+		checked := map[string]bool{}
 		for _, file := range c.Manifest.Files {
-			accessReady = accessReady && file.CredentialID != ""
+			id := file.CredentialID
+			if id == "" {
+				credentialState = "missing"
+				break
+			}
+			if checked[id] {
+				continue
+			}
+			checked[id] = true
+			if a.secrets == nil {
+				credentialState = "missing"
+				break
+			}
+			state, err := a.secrets.Status(ctx, id)
+			if ctx.Err() != nil {
+				return nil, contracts.Fail("cancelled")
+			}
+			if err != nil || state != "configured" && state != "available" {
+				credentialState = "unavailable"
+				if err == nil && (state == "missing" || state == "locked" || state == "rejected") {
+					credentialState = state
+				}
+				break
+			}
+			value, err := a.secrets.Resolve(ctx, id)
+			usable := err == nil && len(value) > 0
+			clear(value)
+			if ctx.Err() != nil {
+				return nil, contracts.Fail("cancelled")
+			}
+			if !usable {
+				credentialState = "unavailable"
+				break
+			}
 		}
 	}
+	accessReady := credentialState == "available" || credentialState == "not_required"
+	view["credential_state"] = credentialState
+	view["upstream_authorization"] = "not_checked"
 	view["access_ready"] = accessReady
 	if !accessReady {
-		view["access_correction"] = "Accept this upstream model's access terms and register a protected Hugging Face read-token reference, or reuse a complete verified local snapshot."
+		view["access_correction"] = "Register or unlock a locally resolvable protected read-token reference, or reuse a complete verified local snapshot. Local resolution does not check upstream authorization."
 		if input.Acquire {
-			return view, &contracts.Error{Code: "unavailable", Reason: "model_access_required", Message: "This gated model download needs a protected Hugging Face credential reference. Preview and verified local reuse remain available."}
+			return view, contracts.Condition("unavailable", "model_access_required")
 		}
 	}
 	if !input.Acquire {

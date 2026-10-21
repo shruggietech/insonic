@@ -600,6 +600,42 @@
         "profile_digest",
         "inspection"
       ]
+    },
+    "localAssets": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Read-only observations of the elected offline profile files; no directory scan or network acquisition.",
+      "required": [
+        "required_bytes",
+        "verified_bytes",
+        "missing_bytes",
+        "failures"
+      ],
+      "properties": {
+        "required_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total expected byte sizes of declared local assets."
+        },
+        "verified_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Expected bytes whose exact size and SHA-256 were verified."
+        },
+        "missing_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Expected bytes of missing or unusable assets; required minus verified bytes."
+        },
+        "failures": {
+          "type": "array",
+          "maxItems": 258,
+          "description": "One generated observation per missing or unusable declared asset.",
+          "items": {
+            "$ref": "runtime-response.schema.json#/properties/error"
+          }
+        }
+      }
     }
   },
   "examples": [

@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 from collections import Counter
+from contextlib import ExitStack
+import importlib
 import importlib.util
 from pathlib import Path
 import sys
@@ -133,6 +135,39 @@ class CliReadOnlyQualificationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'original launch failure'):
                 qualification.qualify('fixed-cli.exe',Path(temporary))
             launch.assert_called_once()
+
+    def test_readiness_regression_is_isolated_and_every_worker_joins_on_failure(self):
+        names = ['operator', 'input', 'text_duration', 'readiness']
+        modules = [importlib.import_module('cli_' + name + '_qualification') for name in names]
+        barrier = threading.Barrier(4)
+        finished, roots = [], []
+        lock = threading.Lock()
+
+        def fixture(name):
+            def run(invoke, workspace, version, **options):
+                with lock:
+                    roots.append(workspace)
+                barrier.wait(timeout=2)
+                try:
+                    if name == 'readiness':
+                        self.assertEqual(options['executable'], 'fixture-cli')
+                        raise ValueError('readiness fixture failure')
+                    time.sleep(.01)
+                    return {'state': 'passed'}
+                finally:
+                    with lock:
+                        finished.append(name)
+            return run
+
+        with tempfile.TemporaryDirectory() as directory, ExitStack() as stack:
+            for name, module in zip(names, modules):
+                stack.enter_context(patch.object(module, 'qualify', side_effect=fixture(name)))
+            with self.assertRaisesRegex(ValueError, 'readiness fixture failure'):
+                with qualification.parallel_regressions(lambda *a, **k: {}, Path(directory),
+                        '1.0.1', False, {}, 'fixture-cli', {}) as checks:
+                    checks['readiness'].result()
+        self.assertEqual(set(finished), set(names))
+        self.assertEqual(len(set(roots)), 4)
 
 if __name__ == '__main__':
     unittest.main()

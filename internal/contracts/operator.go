@@ -73,6 +73,7 @@ var operatorReasons = map[string]string{
 	"model_not_acquired":             "The model is registered but its bytes are not acquired. Use models acquire with the original manifest file, or inspect/retry its existing acquisition work.",
 	"model_damaged":                  "Verified model bytes do not match their manifest. Reacquire the exact pinned bundle before using it.",
 	"model_storage_unavailable":      "Model storage is unavailable. Check the selected artifact backend before retrying verification.",
+	"model_access_required":          "This gated model download needs a locally resolvable protected read-token reference. Register, unlock or repair the reference, or reuse complete verified local bytes. Preview does not check upstream authentication.",
 	"profile_prerequisite":           "The operating-system user profile directory is unavailable. Restore the required user profile environment before runtime startup.",
 	"runtime_directory":              "The runtime control directory is unavailable or cannot be secured for this user. Check ownership and access permissions.",
 	"runtime_owner":                  "Another runtime owns this workspace. Use the live owner or wait for it to finish before exclusive maintenance.",
@@ -82,13 +83,18 @@ var operatorReasons = map[string]string{
 	"startup_exit":                   "The runtime exited before reporting readiness. Check the installed package and workspace prerequisites.",
 	"startup_report":                 "The runtime returned an invalid startup report. Use a matching complete package and retry.",
 	"startup_timeout":                "Runtime readiness exceeded the startup deadline. Inspect workspace/runtime prerequisites before retrying.",
-	"wait_timeout":                   "The selected wait limit elapsed; durable work continues. Use work show, work wait or work cancel with the same work ID.",
+	"wait_timeout":                   "The selected wait limit elapsed. Inspect the work ID with work show, work wait or work cancel; this wait result does not establish its current state.",
 	"wait_interrupted":               "Waiting stopped; durable work was not cancelled. Inspect or wait for the same work ID.",
 }
 
 // Condition retains only an allowlisted locally generated reason.
 func Condition(code, reason string) *Error {
 	e := Fail(code)
+	if rule, ok := assetReasons[reason]; ok && rule.code == e.Code {
+		e.Reason = reason
+		e.Message = "An elected local asset " + rule.message
+		return e
+	}
 	if message, ok := operatorReasons[reason]; ok {
 		e.Reason = reason
 		e.Message = message
@@ -99,6 +105,9 @@ func Condition(code, reason string) *Error {
 func SafeError(err error) *Error {
 	var e *Error
 	if errors.As(err, &e) {
+		if rule, ok := assetReasons[e.Reason]; ok && rule.code == e.Code && e.Asset != nil {
+			return AssetFailure(e.Reason, e.Asset.Role, e.Asset.Name)
+		}
 		if e.Validation != nil && inputReason(e.Reason) {
 			return InputFailure(e.Reason, *e.Validation)
 		}
@@ -110,6 +119,9 @@ func SafeError(err error) *Error {
 func OperatorReasons() []string {
 	out := make([]string, 0, len(operatorReasons))
 	for k := range operatorReasons {
+		out = append(out, k)
+	}
+	for k := range assetReasons {
 		out = append(out, k)
 	}
 	return out

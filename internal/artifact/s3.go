@@ -151,7 +151,7 @@ func (s *S3) Stat(ctx context.Context, p catalog.Publication) (Object, error) {
 	}
 	o, e := s.core.StatObject(ctx, s.bucket, k, minio.StatObjectOptions{VersionID: p.Version})
 	if e != nil {
-		return Object{}, redact(ctx, e)
+		return Object{}, physicalS3Error(ctx, e)
 	}
 	return Object{o.Size, o.VersionID, o.ETag}, nil
 }
@@ -175,13 +175,31 @@ func (s *S3) OpenRange(ctx context.Context, p catalog.Publication, offset, lengt
 	}
 	body, info, header, e := s.core.GetObject(ctx, s.bucket, k, opts)
 	if e != nil {
-		return nil, redact(ctx, e)
+		return nil, physicalS3Error(ctx, e)
 	}
-	if info.Size != length || p.Version != "" && info.VersionID != p.Version || partial && header.Get("Content-Range") != fmt.Sprintf("bytes %d-%d/%d", offset, offset+length-1, p.Size) {
+	if info.Size != length {
 		body.Close()
-		return nil, contracts.Fail("conflict")
+		return nil, contracts.AssetFailure("asset_size", "artifact", "object")
+	}
+	if p.Version != "" && info.VersionID != p.Version {
+		body.Close()
+		return nil, contracts.AssetFailure("artifact_identity", "artifact", "object")
+	}
+	if partial && header.Get("Content-Range") != fmt.Sprintf("bytes %d-%d/%d", offset, offset+length-1, p.Size) {
+		body.Close()
+		return nil, contracts.AssetFailure("artifact_range", "artifact", "object")
 	}
 	return sectionCloser{contextReader{ctx, io.LimitReader(body, length)}, body}, nil
+}
+
+func physicalS3Error(ctx context.Context, err error) error {
+	if ctx.Err() == nil {
+		switch minio.ToErrorResponse(err).Code {
+		case "NoSuchKey", "NoSuchVersion", "NotFound":
+			return contracts.AssetFailure("artifact_missing", "artifact", "object")
+		}
+	}
+	return redact(ctx, err)
 }
 func (s *S3) PublishImmutable(ctx context.Context, p catalog.Publication, source *os.File, save func(catalog.Publication) (catalog.Publication, error)) (catalog.Publication, error) {
 	key, e := s.key(p)

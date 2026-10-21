@@ -50,7 +50,13 @@ func composeTask(p []Prerequisite) TaskReadiness {
 	for _, v := range p {
 		if !v.Available {
 			r.Usable = false
-			r.State = "needs_attention"
+			if v.State == "configured_not_probed" || v.State == "unknown" {
+				if r.State != "needs_attention" {
+					r.State = "unknown"
+				}
+			} else {
+				r.State = "needs_attention"
+			}
 			if v.Correction != "" {
 				r.Actions = append(r.Actions, v.Correction)
 			}
@@ -193,7 +199,24 @@ func (a *App) readinessDefinition(ctx context.Context, input ReadinessInput, d *
 			return r, contracts.Fail("invalid_request")
 		}
 		if selected.Adapter.ID != "pyannote-profile" {
-			training = composeTask([]Prerequisite{{Name: "elected training adapter", State: "configured_not_probed", Correction: "Inspect the selected training adapter's declared executable/hosted prerequisites before electing training."}})
+			need := Prerequisite{Name: "elected training adapter", State: "configured_not_probed", Correction: "Verify the elected hosted adapter protocol and credentials; local inspection does not contact it."}
+			if selected.Adapter.Mode == "local" {
+				need.State = "file_verified"
+				need.Available = true
+				need.Correction = ""
+				if err := voicemodels.VerifyLocalAdapter(ctx, selected.Adapter); err != nil {
+					if ctx.Err() != nil {
+						return r, contracts.Fail("cancelled")
+					}
+					need.State = "file_unavailable_or_changed"
+					need.Available = false
+					need.Correction = contracts.SafeError(err).Message
+				}
+			}
+			training = composeTask([]Prerequisite{ffmpeg, storageNeed, need})
+			if selected.BaseModelID != "" {
+				training.Prerequisites = append(training.Prerequisites, a.modelPrerequisite(ctx, selected.BaseModelID, "speaker-model-training"))
+			}
 		} else if selected.BaseModelID != "" {
 			for i, p := range training.Prerequisites {
 				if p.Name == "model" {
@@ -218,8 +241,24 @@ func (a *App) readinessDefinition(ctx context.Context, input ReadinessInput, d *
 	}
 	training.Prerequisites = append(training.Prerequisites, dataset)
 	r.Tasks["training"] = composeTask(training.Prerequisites)
-	r.PipelineUsable = d != nil && pipeline.HasProcessing(*d) && r.Tasks["transcription"].Usable && r.Tasks["diarization"].Usable
+	r.PipelineUsable = electedPipelineUsable(d, r.Tasks)
 	return r, nil
+}
+
+func electedPipelineUsable(d *pipeline.Definition, tasks map[string]TaskReadiness) bool {
+	if d == nil {
+		return false
+	}
+	elected, usable := false, true
+	if pipeline.HasProcessing(*d) {
+		elected = true
+		usable = tasks["transcription"].Usable && tasks["diarization"].Usable
+	}
+	if len(d.SpeakerTraining) > 0 {
+		elected = true
+		usable = usable && tasks["training"].Usable
+	}
+	return elected && usable
 }
 func (a *App) modelPrerequisite(ctx context.Context, ref, operation string) Prerequisite {
 	r := Prerequisite{Name: "model", State: "not_selected", Correction: "Select/register a compatible exact model, then acquire/verify it through model jobs."}
