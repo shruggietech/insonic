@@ -4,6 +4,7 @@
 import base64
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+from cli_corpus import finish_server
 import threading
 import time
 from cli_media_qualification import pcm_fixture
@@ -154,9 +155,7 @@ def qualify(invoke, supplied, workspace):
         if 'materialization' not in human or 'max_bytes' not in human or 'child output' in human:
             raise ValueError('Human output did not explain the elected materialization bound')
     finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=5)
+        finish_server(server, thread)
     return {'state': 'passed', 'issues': [146, 127, 130], 'extraction_aliases': 2, 'cues': len(cues),
             'provider_failures': 9, 'operation_limits': 3, 'elapsed_seconds': round(time.monotonic() - started, 3)}
 

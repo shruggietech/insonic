@@ -811,8 +811,8 @@ def verify_archive_receipt(archive, receipt, expected_source_root=ROOT):
 
 def qualify_windows_install(extracted, temporary, env, *, process_factory=None):
     """Execute the documented copy and first-use commands in Windows PowerShell."""
-    installed = Path(temporary) / 'installed program with spaces'
-    library = Path(temporary) / 'first-use library with spaces'
+    installed = Path(temporary) / 'installed program 文 with spaces'
+    library = Path(temporary) / 'first-use library 文 with spaces'
     def literal(value):
         return "'" + str(value).replace("'", "''") + "'"
     powershell = Path(os.environ.get('SystemRoot', 'C:/Windows')) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
@@ -1050,7 +1050,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
         gui = executables / ('insonic-desktop' + suffix)
         if cli_child([cli, 'version'], directory=root, env=env).decode().strip() != VERSION:
             raise ValueError('packaged CLI version differs')
-        workspace = Path(temporary) / 'workspace with spaces'
+        workspace = Path(temporary) / 'workspace 文 with spaces'
         cli_child([cli, 'workspace', 'init', workspace, '--json'], directory=root, env=env)
         cli_child([cli, '--workspace', workspace, 'credentials', 'select', 'session', '--json'], directory=root, env=env)
         def call(*args, allow_detached=True):
@@ -1102,7 +1102,9 @@ def _smoke(archive=None, dirname=None, receipt=None):
             if len(items) != 2 or any(item.get('state') != 'admitted' or item.get('capture_state') not in ['captured', 'no-embedded-metadata'] for item in items):
                 raise ValueError('packaged import did not complete both licensed fixtures')
             from cli_contract_qualification import qualify as qualify_contract
-            contract_receipt = qualify_contract(cli, workspace, env=env, cwd=root, documentation=True, **workload_options)
+            contract_receipt = qualify_contract(cli, workspace, env=env, cwd=root, documentation=True,
+                artifact_identity={'scope': 'package', 'archive_sha256': receipt['archive_sha256'],
+                                   'inventory_sha256': receipt['inventory_sha256']}, **workload_options)
             entry = call('media', 'show', items[0]['media_id'])
             if entry['dates']['selected']['resolved'] != {'iso': '2020-01-01T00:00:00.123456789Z', 'unix_ns': 1577836800123456789}:
                 raise ValueError('Packaged timestamp or numeric fidelity differs')

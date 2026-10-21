@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+from cli_corpus import Coverage, finish_server
 import os
 from pathlib import Path
 import threading
@@ -59,10 +60,11 @@ def qualify_read_only(invoke, paths, help_workspace, missing_workspace):
 
 
 
-def isolated_invoker(invoke, workspace):
+def isolated_invoker(invoke, workspace, scenario=None):
     """Keep one helper's defaults local while preserving explicit overrides."""
     def run(args, **kwargs):
         kwargs.setdefault('workspace_path', workspace)
+        if scenario is not None:kwargs.setdefault('scenario', scenario)
         return invoke(args, **kwargs)
     return run
 
@@ -85,7 +87,7 @@ def parallel_regressions(invoke, workspace, version, documentation, help_pages, 
     for name, function, keywords in jobs:
         root = workspace / ('isolated ' + name + ' qualification')
         invoke(['workspace', 'init', root], scoped=False)
-        scoped = isolated_invoker(invoke, root)
+        scoped = isolated_invoker(invoke, root, name.replace('_', '-'))
         args = (scoped, root, version)
         if name == 'examples':
             args = (scoped, None, root, version, help_pages)
@@ -100,13 +102,16 @@ def parallel_regressions(invoke, workspace, version, documentation, help_pages, 
                    for name, function, args, keywords in prepared}
         yield futures
 
-def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, progress=None, process_factory=None):
+def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, progress=None, process_factory=None, artifact_identity=None):
     executable, workspace = Path(executable), Path(workspace)
     environment = os.environ.copy()
     environment.update(env or {})
     version = (Path(__file__).resolve().parents[1] / 'VERSION').read_text().strip()
 
-    def invoke(args, *, expected=0, input=None, scoped=True, machine=True, workspace_path=None, execution_environment=None):
+    coverage = None
+    current_scenario = 'core'
+
+    def invoke(args, *, expected=0, input=None, scoped=True, machine=True, workspace_path=None, execution_environment=None, scenario=None):
         correlation_id = str(uuid.uuid4())
         argv = [str(executable), '--request-id', correlation_id]
         if machine:
@@ -126,13 +131,19 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
             text = (stderr if code else stdout).decode("utf-8")
             if "\x1b" in text or len(text.encode("utf-8")) > 65536:
                 raise ValueError("Human display control/size contract differs")
+            if coverage is not None:
+                coverage.observe(argv[1:], code, scenario=scenario or current_scenario)
             return text
         result = json.loads(stderr if code else stdout)
         if result.get('kind') != 'runtime-response' or result.get('schema_version') != version or (result.get('request_id') != correlation_id and '--request-id' not in args):
             raise ValueError('CLI envelope/correlation differs')
+        if coverage is not None:
+            coverage.observe(argv[1:], code, scenario=scenario or current_scenario)
         return result
 
     def phase(label):
+        nonlocal current_scenario
+        current_scenario = {'media-lifecycle': 'media', 'query-contracts': 'query', 'documented-workflows': 'documented', 'provider-contracts': 'provider'}.get(label, 'core')
         if progress is not None:progress(label)
 
     phase('help')
@@ -141,6 +152,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
     help_workspace = workspace / 'isolated help workspace'
     invoke(['workspace', 'init', help_workspace], scoped=False)
     help_pages = qualify_read_only(invoke, paths, help_workspace, workspace / 'absent-help-workspace')
+    coverage = Coverage(help_pages, executable, version, artifact_identity, root_help=root_help)
 
     # Human display, clean redirected waits and elected log preflight are part
     # of the same installed CLI contract, rather than source-only rendering.
@@ -288,9 +300,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
                 if invoke(['work', action, work])['result']['error'] != cause:
                     raise ValueError('Durable cause differs across result routes')
     finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=5)
+        finish_server(server, thread)
     phase('parallel-regressions')
     process_options = {'process_factory': process_factory} if process_factory is not None else {}
     with parallel_regressions(invoke, workspace, version, documentation, help_pages, executable, environment, **process_options) as regressions:
@@ -343,8 +353,12 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
             logged = path.read_text(encoding='utf-8')
             if len(logged.encode('utf-8')) > 1 << 20 or any(value in logged for value in [secret['passphrase'], secret['value'], 'wrong-fixture-passphrase', str(workspace)]):
                 raise ValueError('Diagnostic log retained protected or arbitrary input')
+    for entry in examples.get('ledger', []):
+        coverage.assert_example(entry)
+    ledger = coverage.finish({'core': True, 'operator': True, 'input': True, 'text-duration': True, 'readiness': True,
+                              **{name: documentation for name in ['media', 'query', 'provider', 'documented', 'examples']}})
     phase('complete')
-    return {'readiness_contracts': readiness_contracts, 'operator_contracts': operator_contracts, 'input_contracts': input_contracts, 'text_duration_contracts': text_duration_contracts, 'actual_help_examples': examples, 'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
+    return {'coverage': ledger, 'readiness_contracts': readiness_contracts, 'operator_contracts': operator_contracts, 'input_contracts': input_contracts, 'text_duration_contracts': text_duration_contracts, 'actual_help_examples': examples, 'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
             'protected_vault_delete': 'passed', 'typed_failures': failures,
             'operator_feedback': 'passed', 'cold_startup_failure': 'passed', 'detached_owner': 'passed',
             'model_roles_leases': 'passed', 'diagnostic_redaction': 'passed'}

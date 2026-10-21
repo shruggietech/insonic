@@ -1,0 +1,255 @@
+{
+  "kind": "cli-qualification-corpus",
+  "version": 1,
+  "fixtures": [
+    {
+      "id": "licensed-media",
+      "owners": [
+        {
+          "path": "tests/fixtures/media/manifest.json",
+          "sha256": "17ce71702e2031fd6bad47a27eb1ee5ecde655dd466bb7c7576f0ae3c261fe22"
+        }
+      ],
+      "license": "CC-BY-3.0",
+      "provenance": "Existing licensed media manifest owns asset attribution, source renditions, hashes and clocks.",
+      "expectations": [
+        "Pinned manifest and asset integrity; measured streams and reference timings."
+      ]
+    },
+    {
+      "id": "pcm-subtitles",
+      "owners": [
+        {
+          "path": "scripts/cli_media_qualification.py",
+          "symbol": "pcm_fixture"
+        }
+      ],
+      "license": "Apache-2.0",
+      "provenance": "Constructed PCM and subtitle inputs in the maintained generator.",
+      "expectations": [
+        "One-second 16-kHz PCM; independent channels; exact imported subtitle text and timing."
+      ]
+    },
+    {
+      "id": "input-output",
+      "owners": [
+        {
+          "path": "scripts/cli_input_qualification.py",
+          "symbol": "qualify"
+        }
+      ],
+      "license": "Apache-2.0",
+      "provenance": "Constructed documents, dummy credentials and generated failure cases.",
+      "expectations": [
+        "Human/JSON/quiet/verbose/debug streams, redaction, exit causes and unchanged state."
+      ]
+    },
+    {
+      "id": "unicode-duration",
+      "owners": [
+        {
+          "path": "scripts/cli_text_duration_qualification.py",
+          "symbol": "qualify"
+        }
+      ],
+      "license": "Apache-2.0",
+      "provenance": "Constructed composed, decomposed, CJK and emoji boundary values.",
+      "expectations": [
+        "Character/byte boundaries, exact persisted/exported values and duration limits."
+      ]
+    },
+    {
+      "id": "model-transfer",
+      "owners": [
+        {
+          "path": "scripts/cli_contract_qualification.py",
+          "symbol": "qualify"
+        }
+      ],
+      "license": "Apache-2.0",
+      "provenance": "Constructed multi-role model bytes served only by owned loopback transport.",
+      "expectations": [
+        "Wrong size/hash rejection, immutable roles, materialized bytes and released leases."
+      ]
+    },
+    {
+      "id": "provider-http",
+      "owners": [
+        {
+          "path": "scripts/cli_provider_qualification.py",
+          "symbol": "qualify"
+        }
+      ],
+      "license": "Apache-2.0",
+      "provenance": "Constructed loopback provider replies and dummy authorization.",
+      "expectations": [
+        "Successful provenance and citations; authentication, timeout, malformed, oversize and redirect failures."
+      ]
+    },
+    {
+      "id": "deterministic-trainer",
+      "owners": [
+        {
+          "path": "scripts/documented_workflows.py",
+          "symbol": "qualify"
+        }
+      ],
+      "license": "Apache-2.0",
+      "provenance": "Constructed trainer bytes and outputs; qualification-trainer.py is the local adapter.",
+      "expectations": [
+        "Pinned local/hosted lifecycle, wrong hash/length/schema rejection, success, cancel/retry and short waits; no acoustic quality claim."
+      ]
+    },
+    {
+      "id": "readiness-integrity",
+      "owners": [
+        {
+          "path": "scripts/cli_readiness_qualification.py",
+          "symbol": "qualify"
+        }
+      ],
+      "license": "Apache-2.0",
+      "provenance": "Constructed missing/corrupt offline assets and disposable credential/artifact stores.",
+      "expectations": [
+        "Zero offline transfer, local budget/credential states and exact corrupt/truncated/missing artifact causes."
+      ]
+    },
+    {
+      "id": "semantic-help",
+      "owners": [
+        {
+          "path": "scripts/cli_help_examples.py",
+          "symbol": "qualify"
+        }
+      ],
+      "license": "Apache-2.0",
+      "provenance": "Examples are emitted by the current installed CLI and receive only documented substitutions.",
+      "expectations": [
+        "Every registered path, schema templates, operation/refusal distinction and owned runtime cleanup."
+      ]
+    },
+    {
+      "id": "graph-query",
+      "owners": [
+        {
+          "path": "scripts/cli_query_qualification.py",
+          "symbol": "qualify"
+        }
+      ],
+      "license": "Apache-2.0",
+      "provenance": "Constructed cue graph and query inputs.",
+      "expectations": [
+        "Cross-page relationship completeness, exact time filtering and declared read grammar."
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "core",
+      "owner": {
+        "path": "scripts/cli_contract_qualification.py",
+        "symbol": "qualify"
+      },
+      "fixtures": [
+        "model-transfer",
+        "input-output"
+      ]
+    },
+    {
+      "id": "operator",
+      "owner": {
+        "path": "scripts/cli_operator_qualification.py",
+        "symbol": "qualify"
+      },
+      "fixtures": [
+        "input-output",
+        "pcm-subtitles"
+      ]
+    },
+    {
+      "id": "input",
+      "owner": {
+        "path": "scripts/cli_input_qualification.py",
+        "symbol": "qualify"
+      },
+      "fixtures": [
+        "input-output"
+      ]
+    },
+    {
+      "id": "text-duration",
+      "owner": {
+        "path": "scripts/cli_text_duration_qualification.py",
+        "symbol": "qualify"
+      },
+      "fixtures": [
+        "unicode-duration"
+      ]
+    },
+    {
+      "id": "readiness",
+      "owner": {
+        "path": "scripts/cli_readiness_qualification.py",
+        "symbol": "qualify"
+      },
+      "fixtures": [
+        "readiness-integrity"
+      ]
+    },
+    {
+      "id": "examples",
+      "owner": {
+        "path": "scripts/cli_help_examples.py",
+        "symbol": "qualify"
+      },
+      "fixtures": [
+        "semantic-help",
+        "model-transfer",
+        "licensed-media",
+        "pcm-subtitles"
+      ]
+    },
+    {
+      "id": "media",
+      "owner": {
+        "path": "scripts/cli_media_qualification.py",
+        "symbol": "qualify"
+      },
+      "fixtures": [
+        "licensed-media",
+        "pcm-subtitles"
+      ]
+    },
+    {
+      "id": "query",
+      "owner": {
+        "path": "scripts/cli_query_qualification.py",
+        "symbol": "qualify"
+      },
+      "fixtures": [
+        "graph-query"
+      ]
+    },
+    {
+      "id": "documented",
+      "owner": {
+        "path": "scripts/documented_workflows.py",
+        "symbol": "qualify"
+      },
+      "fixtures": [
+        "deterministic-trainer",
+        "licensed-media"
+      ]
+    },
+    {
+      "id": "provider",
+      "owner": {
+        "path": "scripts/cli_provider_qualification.py",
+        "symbol": "qualify"
+      },
+      "fixtures": [
+        "provider-http"
+      ]
+    }
+  ]
+}
