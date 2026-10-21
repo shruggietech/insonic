@@ -66,9 +66,13 @@ def qualify(invoke, workspace, version, *, executable):
 
     credential = str(uuid.uuid4())
     preview_input = {'choice': 'community-1', 'credential_id': credential}
+    invoke(['credentials', 'select', 'session'])
     missing = supplied(['models', 'prepare'], preview_input)['result']
     if missing['access_ready'] or missing['credential_state'] != 'missing' or missing['upstream_authorization'] != 'not_checked':
-        raise ValueError('Nonexistent protected reference reported ready')
+        raise ValueError('Missing session credential preview differs from its local-only contract')
+    rejected = supplied(['models', 'prepare'], {**preview_input, 'acquire': True}, expected=4)
+    if rejected['error'].get('reason') != 'model_access_required':
+        raise ValueError('Acquisition lost its generated local credential prerequisite')
     invoke(['credentials', 'select', 'vault'])
     protected = {'passphrase': 'synthetic-readiness-passphrase', 'value': 'synthetic-readiness-token'}
     invoke(['credentials', 'add', credential], input=json.dumps(protected).encode())

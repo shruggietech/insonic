@@ -435,7 +435,7 @@ func (a *App) defaultModelPrepare(ctx context.Context, req contracts.Request) (a
 			}
 			if err != nil || state != "configured" && state != "available" {
 				credentialState = "unavailable"
-				if state == "missing" || state == "locked" || state == "rejected" {
+				if err == nil && (state == "missing" || state == "locked" || state == "rejected") {
 					credentialState = state
 				}
 				break
@@ -459,7 +459,7 @@ func (a *App) defaultModelPrepare(ctx context.Context, req contracts.Request) (a
 	if !accessReady {
 		view["access_correction"] = "Register or unlock a locally resolvable protected read-token reference, or reuse a complete verified local snapshot. Local resolution does not check upstream authorization."
 		if input.Acquire {
-			return view, &contracts.Error{Code: "unavailable", Reason: "model_access_required", Message: "This gated model download needs a protected Hugging Face credential reference. Preview and verified local reuse remain available."}
+			return view, contracts.Condition("unavailable", "model_access_required")
 		}
 	}
 	if !input.Acquire {

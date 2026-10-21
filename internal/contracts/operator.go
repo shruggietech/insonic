@@ -73,6 +73,7 @@ var operatorReasons = map[string]string{
 	"model_not_acquired":             "The model is registered but its bytes are not acquired. Use models acquire with the original manifest file, or inspect/retry its existing acquisition work.",
 	"model_damaged":                  "Verified model bytes do not match their manifest. Reacquire the exact pinned bundle before using it.",
 	"model_storage_unavailable":      "Model storage is unavailable. Check the selected artifact backend before retrying verification.",
+	"model_access_required":          "This gated model download needs a locally resolvable protected read-token reference. Register, unlock or repair the reference, or reuse complete verified local bytes. Preview does not check upstream authentication.",
 	"profile_prerequisite":           "The operating-system user profile directory is unavailable. Restore the required user profile environment before runtime startup.",
 	"runtime_directory":              "The runtime control directory is unavailable or cannot be secured for this user. Check ownership and access permissions.",
 	"runtime_owner":                  "Another runtime owns this workspace. Use the live owner or wait for it to finish before exclusive maintenance.",

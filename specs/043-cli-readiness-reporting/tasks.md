@@ -60,4 +60,5 @@ T001-T003 -> T004-T005 -> US1/US2/US3 -> T017-T021 -> T022-T024. T020 analysis r
 ## Phase 8: Convergence
 
 - [x] T025 Preserve elected detached runtime ownership in scripts/qualify.py model-reference calls after isolated regressions outlive the owner's idle allowance, and keep the cancellable synthetic job alive across replay/client startup; rerun the existing native source CLI journey and retain final owner/image/history checks per FR-008 (partial).
-- [ ] T026 Create the filesystem integrity fixture through the store's private-directory initialization, preserving permission checks, then rerun the Windows and hosted Linux matrix per FR-008 (partial).
+- [x] T026 Create the filesystem integrity fixture through the store's private-directory initialization, preserving permission checks, then rerun the Windows and hosted Linux matrix per FR-008 (partial).
+- [ ] T027 Elect a disposable session backend for the missing-reference CLI fixture, retain rejected/unavailable/failed-status-probe cases, and govern the generated acquisition prerequisite reason through the shared schema; rerun installed Linux/Windows paths per FR-004/007/008 (partial).

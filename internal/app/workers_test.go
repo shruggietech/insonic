@@ -18,6 +18,7 @@ import (
 	"github.com/shruggietech/insonic/internal/subtitles"
 	"github.com/shruggietech/insonic/internal/workers"
 	"github.com/shruggietech/insonic/internal/workspace"
+	"github.com/shruggietech/insonic/schemas"
 )
 
 func workerToolsFixture(t *testing.T, a *App) ProcessingTools {
@@ -76,16 +77,17 @@ func TestOfflinePlanSeparatesNetworkFromDeclaredLocalBytes(t *testing.T) {
 }
 
 type previewSecrets struct {
-	state    string
-	value    []byte
-	resolves int
+	state       string
+	value       []byte
+	resolves    int
+	statusError error
 }
 
 func (s *previewSecrets) Status(context.Context, string) (string, error) {
 	if s.state == "available" {
-		return "configured", nil
+		return "configured", s.statusError
 	}
-	return s.state, nil
+	return s.state, s.statusError
 }
 func (s *previewSecrets) Resolve(context.Context, string) ([]byte, error) {
 	s.resolves++
@@ -97,7 +99,7 @@ func (s *previewSecrets) Resolve(context.Context, string) ([]byte, error) {
 
 func TestGatedPreviewChecksLocalResolutionAndClearsBytes(t *testing.T) {
 	a := configuredApp(t)
-	for _, state := range []string{"missing", "locked", "available"} {
+	for _, state := range []string{"missing", "locked", "rejected", "unavailable", "available"} {
 		t.Run(state, func(t *testing.T) {
 			provider := &previewSecrets{state: state, value: []byte("fixture-secret")}
 			a.secrets = provider
@@ -127,6 +129,24 @@ func TestGatedPreviewChecksLocalResolutionAndClearsBytes(t *testing.T) {
 	out, e := a.defaultModelPrepare(a.ctx, contracts.Request{Data: raw})
 	if e != nil || out.(map[string]any)["access_ready"] != false {
 		t.Fatal("empty indexed credential treated as resolvable", out, e)
+	}
+	a.secrets = &previewSecrets{state: "missing", statusError: contracts.Fail("unavailable")}
+	out, e = a.defaultModelPrepare(a.ctx, contracts.Request{Data: raw})
+	if e != nil || out.(map[string]any)["credential_state"] != "unavailable" {
+		t.Fatal("failed status probe invented a missing reference", e)
+	}
+}
+
+func TestGatedAcquisitionFailureUsesTheSharedResponseContract(t *testing.T) {
+	a := configuredApp(t)
+	raw, _ := json.Marshal(defaultModelInput{Choice: "community-1", Acquire: true})
+	out, e := a.defaultModelPrepare(a.ctx, contracts.Request{Data: raw})
+	if e == nil || contracts.SafeError(e).Reason != "model_access_required" {
+		t.Fatal("lost generated access prerequisite", e)
+	}
+	response, _ := json.Marshal(contracts.Response{Kind: "runtime-response", Version: contracts.Version, Result: out, Error: e.(*contracts.Error)})
+	if err := schemas.ValidateResponse(response); err != nil {
+		t.Fatal("gated rejection differs from the release schema", err)
 	}
 }
 func TestWorkerSetupRevisionConflictAndCancellationPreserveSettings(t *testing.T) {

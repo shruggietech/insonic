@@ -317,7 +317,8 @@
             "asset_tool_missing",
             "artifact_missing",
             "artifact_identity",
-            "artifact_range"
+            "artifact_range",
+            "model_access_required"
           ],
           "description": "Allowlisted locally generated operation condition; never external text."
         },

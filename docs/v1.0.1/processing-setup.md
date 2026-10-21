@@ -62,6 +62,8 @@ Community-1 downloads require the upstream model access terms and a protected Hu
 
 Preparation previews distinguish `credential_state`: `missing`, `locked`, `rejected`, `unavailable`, locally resolvable `available`, or `not_required`. An indexed reference alone does not establish readiness. The preview resolves required protected references locally and immediately clears the returned bytes; it sends no authentication request. `access_ready` describes this local prerequisite, while `upstream_authorization: "not_checked"` keeps upstream access separate. Complete verified installed or local reuse requires no download credential.
 
+A failed local credential-status check reports `unavailable` without asserting that the reference is missing. Acquisition without its required locally resolvable credential returns `unavailable` with the generated reason `model_access_required`, before work is enqueued.
+
 Pinned Hugging Face resolve requests may follow a bounded set of official model CDN redirects. Cross-origin requests strip credentials and cookies; signed CDN URLs are transient. All model bytes still require declared sizes and hashes. Custom sources retain their original same-origin transport policy.
 
 ## Inspect task readiness and select a pipeline
