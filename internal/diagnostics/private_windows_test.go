@@ -11,6 +11,7 @@ import (
 	"testing"
 	"unsafe"
 
+	"github.com/shruggietech/insonic/internal/contracts"
 	"golang.org/x/sys/windows"
 )
 
@@ -239,8 +240,15 @@ func TestDiagnosticCreationDeniedInReadOnlyDirectory(t *testing.T) {
 		if log, err := Open(filepath.Join(directory, "denied.jsonl"), "info"); err == nil {
 			log.Close()
 			t.Fatal("read-only directory admitted")
-		} else if !strings.Contains(err.Error(), "opened or created") {
-			t.Fatal("creation guidance lost", err)
+		} else {
+			message := err.Error()
+			// Rooted native I/O and ordinary CreateFile can reject different
+			// access boundaries under elevated Windows CI tokens. Every route
+			// must refuse the log and identify a concrete corrective boundary.
+			if contracts.SafeError(err).Code != "unavailable" ||
+				!(strings.Contains(message, "opened or created") || strings.Contains(message, "could not be inspected") || strings.Contains(message, "could not be made private")) {
+				t.Fatal("actionable access guidance lost", err)
+			}
 		}
 	})
 }
@@ -272,4 +280,28 @@ func withoutFilePrivileges(t *testing.T, check func()) {
 		}
 	}()
 	check()
+}
+
+func TestReadOnlyExistingLockReportsCreationAccess(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "operator.jsonl")
+	if err := os.WriteFile(path+".lock", nil, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(path+".lock", 0400); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chmod(path+".lock", 0600); err != nil {
+			t.Error(err)
+		}
+	})
+	if log, err := Open(path, "info"); err == nil {
+		log.Close()
+		t.Fatal("read-only lock admitted")
+	} else if !strings.Contains(err.Error(), "opened or created") {
+		t.Fatal("creation/open guidance lost", err)
+	}
+	if _, err := os.Stat(path); !os.IsNotExist(err) {
+		t.Fatal("log created despite inaccessible lock", err)
+	}
 }

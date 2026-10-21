@@ -47,6 +47,7 @@ func logOpenError(stage string) error {
 	messages := map[string]string{
 		"destination": "The elected diagnostic directory is unavailable. Check that it exists and permits file creation.",
 		"creation":    "The elected diagnostic log or lock file could not be opened or created. Choose an existing writable directory.",
+		"inspection":  "The elected diagnostic path could not be inspected. Check directory traversal and file access permissions.",
 		"privacy":     "The elected diagnostic file could not be made private. Use a regular file owned by your account and check its access permissions.",
 		"locking":     "The elected diagnostic lock could not be acquired. Check its access permissions or choose a separate file.",
 		"contention":  "The elected diagnostic log is already in use. Choose a separate file for concurrent commands.",
@@ -74,7 +75,10 @@ func Open(path, level string) (*Logger, error) {
 	// Refuse links before opening; OpenRoot confines resolution to this directory.
 	for _, suffix := range []string{"", ".1", ".2", ".lock"} {
 		st, e := root.Lstat(log.name + suffix)
-		if e != nil && !os.IsNotExist(e) || e == nil && (!st.Mode().IsRegular() || st.Size() > MaxBytes || suffix == ".lock" && st.Size() != 0) {
+		if e != nil && !os.IsNotExist(e) {
+			return fail(logOpenError("inspection"))
+		}
+		if e == nil && (!st.Mode().IsRegular() || st.Size() > MaxBytes || suffix == ".lock" && st.Size() != 0) {
 			return fail(logOpenError("privacy"))
 		}
 	}
