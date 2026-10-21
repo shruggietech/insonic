@@ -15,8 +15,8 @@ Use the existing verified same-run media pipeline as a separately measured prepa
 **Target Platform**: Windows and Linux hosted CI; local Windows headless verification.
 **Project Type**: Internal build and acceptance tooling.
 **Performance Goals**: Preparation reported separately; all elected qualification <=660 seconds; aggregate rejects at 645 seconds to retain 15 seconds for finalization, terminal timestamps audited afterward.
-**Constraints**: No widened cache restore, cross-run relabelling, native deadline change, owner desktop execution, hosted settings mutation or publication in this local slice.
-**Scale/Scope**: #161 and aggregate enforcement; #154 baseline/recovery follows this slice.
+**Constraints**: No widened cache restore, cross-run relabelling, owner desktop execution or unrelated hosted settings mutation. The 2026-10-21 convergence authorizes only two-to-ten-second per-operation fixture calibration and existing PR publication; all outer deadlines remain fixed.
+**Scale/Scope**: #161 readiness/enforcement plus the 2026-10-21 bounded fixture calibration in #154 context. A necessary targeted native behavior repair receives a separate dependent slice in the same PR.
 
 ## Constitution Check
 
@@ -77,3 +77,15 @@ Campaign question: can both platform source chains compile from absent compiled 
 Stop and retain evidence on any source, identity, transfer, native, election or timing failure; repair proportionally and rerun complete attempts. Evidence includes exact branch/merge source, event, run/attempt, cache keys/misses, producer logs, toolchain inventories, artifact IDs/digests, source mode outputs, gate receipt and terminal timestamps. Post-merge main evidence and closure of #161 remain outside the authorized stop.
 
 Analysis gate: the suffix changes cache addressing only, with false preserving the ordinary key byte-for-byte. All nine functional requirements remain covered; no product, compiler, recipe, source, deadline or authorization change is introduced.
+
+## Bounded Windows fixture convergence (2026-10-21)
+
+The owner authorizes observations, one two-second baseline and one ten-second comparison, any directly justified fixture correction, final local/hosted qualification and publication on the existing branch/PR #162. Two hosted Codex rounds are already consumed. Stop before merge, release, branch deletion and issue closure. This amendment explicitly changes the previously fixed inner fixture allowance; the constitution and all outer deadlines are unchanged.
+
+Use passive Win32 desktop/session/window observations with API errors represented explicitly. Observe BrowserVersionString once in the existing owning-thread environment callback and keep it distinct from available-loader lookup. Do not enable CDP navigation gating. Record successful UI posting/entry/return/completion and child stage times as well as failures; retain capture streams on successful children without changing their machine-readable action receipt.
+
+Reuse the existing installer-invocation diagnostic workflow with one bounded window-calibration mode. Restore the exact current assembled delivery from an explicitly selected run/attempt/revision through the existing artifact-digest and package verifiers. Run the existing twelve-case packaged exit command twice sequentially on one runner and the same executable, with separate fixture roots reproducing equivalent cold/warm histories. Select only two or ten seconds through a validated qualification-only setting. Every arm retains its first failure and keeps the original 100-second matrix cap. The diagnostic never emits a candidate scope proof. Record immutable inputs, selected run/attempt, workflow/tooling source, runner image, package/executable hash, and all effective settings.
+
+The two-second arm remains a diagnostic baseline even if it fails. A ten-second pass with joins above two seconds supports calibration; two sub-two-second passes are explicitly inconclusive and permit a documented ten-second policy decision. A later deadline or functional failure remains unresolved. No fixed sleep, deadline cascade, forced-kill success, synthetic keyboard substitute, unrelated dependency/runtime change or new attended gate is permitted.
+
+Separate commits: this planning amendment, identically instrumented observations/calibration control, then any adopted allowance or demonstrated repair. Use local message-only native tests and mocked parsing/runner tests before the hosted cohort. A binding observation change is diagnostic only; a change to production readiness/input/release behavior requires the next available coherent dependent slice. Keep complete ordinary CI for the frozen final head and retain terminal receipts in artifacts/PR evidence without needless source commits. Do not repeat compiled-media campaigns unless preparation/cache/handoff/accounting or their applicable contract changes.

@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-20
 
-**Status**: Hosted candidate; Codex review correction; post-merge main acceptance pending
+**Status**: Authorized bounded Windows fixture calibration; final-head and post-merge acceptance pending
 
 **Issue**: [#161](https://github.com/shruggietech/insonic/issues/161). Milestone 25 is assigned; the existing Project 7 item remains In Progress pending post-merge acceptance.
 
@@ -61,7 +61,7 @@ A maintainer receives one required acceptance result that rejects any elected fa
 - **FR-001**: Package consumers MUST require successful verified prerequisite readiness for the current revision/run/attempt.
 - **FR-002**: Absent or invalid cache inputs MUST follow preparation or fail explicitly; cache availability MUST NOT establish correctness.
 - **FR-003**: Preserve exact recipe/compiler/source validation, archive hashes, receipt rehashing, producer success, package joins and current-run/attempt transfer checks.
-- **FR-004**: Preserve all native input, ownership, concurrent workload and product deadline requirements.
+- **FR-004**: Preserve all native input, ownership, concurrent workload and outer product deadlines. The owner-authorized 2026-10-21 convergence may calibrate only the per-operation Windows fixture UI completion join from two to ten seconds; these latency policies are explicitly different.
 - **FR-005**: One always-running aggregate MUST evaluate every elected top-level check, candidate and explicit non-election. Failures, cancellations and unexpected skips MUST reject acceptance.
 - **FR-006**: Existing bootstrap configuration MUST name the aggregate as a required check; hosted application remains a separately authorized publication operation.
 - **FR-007**: Dependency preparation and qualification MUST be reported separately with combined elapsed duration. Qualification MUST finish within 660 seconds, with final terminal timestamps authoritative and visible finalization margin.
@@ -83,12 +83,33 @@ A maintainer receives one required acceptance result that rejects any elected fa
 - **SC-003**: Qualification rejects elapsed time above 660 seconds and reports preparation and combined elapsed time without relabelling historical runs.
 - **SC-004**: Exact-candidate cold and warm hosted results retain provenance and final timestamps before issue #161 is closed.
 
+## Windows qualification convergence (2026-10-21)
+
+### User Story 3 - Qualify a measured native fixture allowance (Priority: P1)
+
+A maintainer observes the actual archive child desktop/input context and created WebView2 environment, compares two- and ten-second per-operation UI joins on the same instrumented executable, and receives complete final candidate acceptance without dropping native behavior.
+
+**Acceptance scenarios**:
+
+1. Given either arm, the original twelve-case cold/warm no-workspace/workspace sequence runs until its first failure, retaining successful and failed observations with monotonic boundaries and exact identity.
+2. Given a ten-second arm that completes later than two seconds, native input, shutdown and natural release still pass inside unchanged outer limits before a calibration conclusion is supported.
+3. Given two passing arms whose joins all finish within two seconds, the experiment is inconclusive about the earlier failure; adopting ten seconds is an explicit permitted test-policy choice, subject to complete final qualification.
+4. Given any remaining functional or outer deadline failure, the run remains failed and a proportional correction must address the observed boundary. A targeted production/binding behavior correction receives a separate next-available dependent Spec Kit slice in this PR; broader redesign is outside this authorization.
+
+- **FR-010**: Observe process session, window station flags/name, owned UI desktop/input state, foreground/visible/enabled ownership and optional API errors at preparation and before native input. Unknown optional diagnostic fields MUST NOT create product eligibility rules.
+- **FR-011**: Capture the created environment BrowserVersionString/getter HRESULT once on its owner thread, separately from available-runtime lookup and environment-creation status, without enabling navigation-gating CDP. Retain runner, executable/package and dependency identities plus successful and failed operation/stage timings.
+- **FR-012**: Run one sequential two-second baseline cohort and one ten-second comparison cohort with identical instrumentation, equivalent separate cold/warm profile histories, native input and the same assembled executable. Retain the first failure; no unchanged retry-until-green.
+- **FR-013**: Ten seconds MAY be adopted as the explicit fixture policy after the bounded comparison and complete final-head qualification. Preserve five-second window search, eight-second readiness waits, twelve-second watchdog, eighteen-second child capture/release, hundred-second exit matrix, and 660-second qualification. Preparation failure MUST prevent input. Freeze final source before acceptance; no third hosted Codex review, merge, release, branch deletion or issue closure.
+
+- **SC-005**: Retained baseline/comparison evidence identifies each effective allowance, all observed operation boundaries, desktop/runtime identity or explicit observation errors, every executed case and the first failed boundary; no diagnostic result substitutes for candidate acceptance.
+- **SC-006**: The final ordinary PR run passes all elected package/runtime/documentation/integrity checks and all twelve archive native cases with natural release, with exact-attempt terminal qualification at most 660 seconds and phase/queue accounting. Prior-head compiled-media campaigns remain scoped historical evidence; final-head cold/warm and exact-main closure evidence stay tracked before #161 closure without imposing an unconditional repeat for this fixture-only repair.
+
 ## Assumptions
 
-- This first bounded slice addresses readiness/acceptance. Native baseline, terminal startup recovery and remaining incident discrimination follow separately in the diagnosis sequence.
+- The original slice addressed readiness/acceptance. The 2026-10-21 owner amendment adds bounded fixture observations/calibration. Broader native recovery remains separate; a directly demonstrated targeted behavior correction is permitted as a distinct dependent slice within PR #162.
 - Existing verified source stages and same-run transfers provide the smallest mechanism; cross-run artifact import is unnecessary.
 - No publication, hosted experiment, merge, release or incident closure is inferred from session guidance.
 
 ## Hosted convergence clarification (2026-10-20)
 
-The owner authorized pushing S041, opening its PR, monitoring and fixing CI, stopping before merge. Separately timed preparation may compile standard and external Go library dependencies under the exact consumer environment. It must exclude every main-module package, executable and test. Optional cache warming cannot replace a verified same-run/attempt handoff. Qualification retains all original product builds, native cases and timing allowances.
+The owner authorized pushing S041, opening its PR, monitoring and fixing CI, stopping before merge. Separately timed preparation may compile standard and external Go library dependencies under the exact consumer environment. It must exclude every main-module package, executable and test. Optional cache warming cannot replace a verified same-run/attempt handoff. At that stage qualification retained all original product builds, native cases and timing allowances. The explicit 2026-10-21 amendment above supersedes only the two-second fixture join policy.
