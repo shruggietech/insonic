@@ -42,7 +42,7 @@ Setup -> foundation -> US1 -> US2 -> verification. Different test files may be a
 
 - [x] T014 After authorized publication, retain exact cold/warm hosted preparation, qualification and terminal timing receipts per SC-004 (partial).
 - [x] T015 After the aggregate is published, apply/read back the existing bootstrap required check and reconcile #161 milestone/project tracking per plan: hosted enforcement (partial).
-- [ ] T016 Verify exact owner-authorized squash main package acceptance and terminal timing before closing #161 per plan: post-merge evidence and SC-004 (partial).
+- [x] T016 Verify exact owner-authorized squash main package acceptance and terminal timing before closing #161 per plan: post-merge evidence and SC-004 (partial).
 
 ## Phase 7: Measured hosted timing repair
 
@@ -83,7 +83,7 @@ T029 evidence: final PR head e578f3c0339d086bbb851a1bdae4522820b35773, tested me
 - [x] T033 Add focused fake-clock, terminal/provisional boundary, fixed-deadline, Python remaining-interval and scoped watchdog regressions (FR-005/014-016, SC-002/003/007).
 - [x] T034 Implement the shared policy, advisory receipts, fixed 900-second input deadline, Python wrapper/calibration metadata and applicable workflow watchdogs without changing native/transfer/preparation/release limits (FR-003/004/007/014-016).
 - [x] T035 Run required root, affected Python and site checks; inspect final diff, encoding and policy consistency; prepare the frozen small policy PR for publication (SC-007).
-- [ ] T036 Publish and verify complete PR acceptance, squash merge under owner authorization, clean up the branch and retain exact-main terminal acceptance externally; complete T016 only from that evidence (FR-005/007, SC-004/007).
+- [x] T036 Publish and verify complete PR acceptance, squash merge under owner authorization, clean up the branch and retain exact-main terminal acceptance externally; complete T016 only from that evidence (FR-005/007, SC-004/007).
 - [ ] T037 Run the existing isolated cold campaign once and its planned full warm comparison on the final S041 revision if still needed for #161 closure; retain revision-bound results separately from later unrelated product commits (FR-001-003/009, SC-004).
 
 T032 -> T033 -> T034 -> T035 -> T036. T037 follows the final S041 revision and remains separate from acceptance of the policy correction and subsequent product work.

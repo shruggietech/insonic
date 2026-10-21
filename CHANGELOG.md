@@ -21,6 +21,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Returned desktop startup failures preserve the underlying cause, show native GUI feedback and attempt bounded private events without allowing diagnostic storage failure to replace the startup error. Windows diagnostic files in ordinary inherited-Modify directories no longer require unnecessary ownership-changing access; owner, identity, reparse, rotation and writer checks remain enforced.
+
 - CI qualification uses an eleven-minute advisory target and fifteen-minute hard limit after verified readiness. Receipts report target overruns without rejecting otherwise valid delivery; fixed input deadlines and applicable watchdogs share the hard limit. Native operation allowances, prerequisite accounting and required integrity checks remain unchanged.
 
 - Windows package consumers wait for explicit verified source, foundation and documentation readiness. Windows prepares dependency libraries through a verified same-attempt handoff before product builds and checks. Cold source preparation no longer races the 180-second transfer wait. Explicit cold-source campaigns isolate compiled caches without evicting ordinary CI inputs. An always-running elected acceptance aggregate rejects missing, failed, cancelled or unexpectedly skipped delivery results and over-budget qualification. First-attempt preparation and combined totals include initial queue time while qualification remains measured from verified readiness.

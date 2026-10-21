@@ -4,6 +4,12 @@ Settings provides shared managed CPU setup, existing-environment inspection, exa
 
 Optional [first-run setup](setup.md) guides workspace location, backend choice, processing, connected services and first import. Skip stages or choose Set up later without blocking normal commands; reopen from Settings with accepted configuration and work intact.
 
+## Startup failures
+
+If workspace selection or the desktop host returns a startup error, a native error dialog shows the bounded underlying cause and a correction to check the indicated dependency or directory access. The same message goes to stderr for launches from a terminal. A returned failure releases the desktop-owned playback transport and menu observers.
+
+The application attempts a private startup event under its per-user configuration directory, in `insonic/diagnostics/desktop-startup.jsonl` (on Windows, %APPDATA%\insonic\diagnostics). Events contain a timestamp, generated startup stage and an available numeric operating-system error code. They exclude arbitrary error text, paths, arguments and provider output. Each file is bounded to 1 MiB with two predecessors. The dialog reports the saved location or that diagnostics could not be saved; a storage failure never replaces the original cause. Windows uses a current-user protected ACL and Linux uses mode 0600. Explicit unattended qualification writes its controlled receipts without opening failure dialogs or writing ordinary per-user startup logs.
+
 ## Shared operations
 
 The application is CLI-first. Every core capability has an automation-ready CLI contract, and the GUI installs the CLI and wraps equivalent shared-runtime operations. Both use the same workspace IDs, job states, pipeline definitions, query parameters and errors. No core behavior lives only in GUI code. Shared capability and release matrices record which client exposes each operation.

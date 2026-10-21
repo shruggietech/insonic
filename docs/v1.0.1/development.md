@@ -125,6 +125,12 @@ The current source implementation gives native query and explain RPCs a 25-secon
 
 After a transient artifact-service failure, rerun complete qualification so all producers and consumers use one current workflow attempt. Isolated consumer reruns cannot substitute artifacts from an older attempt.
 
+## Startup error reporting
+
+Returned desktop startup errors retain their original Go error chain and a generated workspace, playback-transport, desktop-window or desktop-close stage. Ordinary GUI launches use native Windows or GTK error presentation as well as stderr. Private startup events retain only allowlisted stages and an optional unsigned numeric system error; arbitrary cause text remains outside persisted diagnostic events. Diagnostic storage and presentation failures leave the original startup error authoritative. Tests inject both sinks without showing dialogs or touching real user profiles.
+
+Private Windows log and lock creation initially requests READ_CONTROL, WRITE_DAC and FILE_READ_ATTRIBUTES. WRITE_OWNER is requested only when a newly created file actually needs owner normalization, after revalidating the original handle identity and reparse state. Existing files must already belong to the current user. Protected current-user-only ACLs, rotation and exclusive writer ownership remain required.
+
 ## Desktop control and Exit qualification
 
 The Wails host applies consumer-owned composition using the delivered interface, spacing and typography tokens. The governed kit remains byte-for-byte upstream. The checkbox glyph uses native appearance at the body token size; its associated compound label retains the minimum interaction target. Ordinary actions size to their content. No undocumented density component property or preference is required.
