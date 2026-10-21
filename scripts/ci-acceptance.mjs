@@ -80,7 +80,9 @@ export function inspectAttempt(identity, run, jobs, { terminal = false, now = Da
   const aggregate = jobs.filter(j => j.name === 'elected acceptance');
   if (ready.length !== 1 || aggregate.length !== 1) throw new Error('Missing or ambiguous phase jobs.');
   if (ready[0].status !== 'completed' || ready[0].conclusion !== 'success') throw new Error('Prerequisite readiness did not succeed.');
-  if (!terminal && (run.status !== 'in_progress' || aggregate[0].status !== 'in_progress')) throw new Error('Provisional acceptance must evaluate its own running attempt.');
+  // GitHub can retain a queued workflow summary after its bound jobs run.
+  // The unique aggregate must itself be running; terminal audit stays strict.
+  if (!terminal && (!['queued', 'in_progress'].includes(run.status) || aggregate[0].status !== 'in_progress')) throw new Error('Provisional acceptance must evaluate its own running attempt.');
   const attemptStart = timestamp(run.run_started_at);
   const preparationStart = identity.attempt === '1' ? run.created_at : run.run_started_at;
   const start = timestamp(preparationStart), boundary = timestamp(ready[0].completed_at);
@@ -175,7 +177,7 @@ export async function waitForQualificationInputs(identity, token, { request = re
     const { run, jobs } = await attemptMetadata(identity, token, request);
     if (run.head_sha !== identity.head || String(run.id) !== identity.run || String(run.run_attempt) !== identity.attempt
         || run.repository?.full_name !== identity.repository || run.path !== '.github/workflows/ci.yml'
-        || run.status !== 'in_progress' || jobs.some(j => String(j.run_id) !== identity.run || String(j.run_attempt) !== identity.attempt)) {
+        || !['queued', 'in_progress'].includes(run.status) || jobs.some(j => String(j.run_id) !== identity.run || String(j.run_attempt) !== identity.attempt)) {
       const mismatchedJobs = jobs.filter(j => String(j.run_id) !== identity.run || String(j.run_attempt) !== identity.attempt);
       throw new Error('Qualification input attempt identity differs: ' + JSON.stringify({
         expected: { repository: identity.repository, run: identity.run, attempt: identity.attempt, head: identity.head },

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/diagnostics"
 	"github.com/shruggietech/insonic/internal/process"
 )
 
@@ -186,5 +188,40 @@ func TestControlledStartupFailureNeverOverwritesExistingProfile(t *testing.T) {
 	}
 	if st, err := os.Stat(profile); err != nil || !st.IsDir() {
 		t.Fatal("existing profile removed", err)
+	}
+}
+
+func TestControlledStartupPrivateDiagnosticChild(t *testing.T) {
+	if os.Getenv("INSONIC_TEST_STARTUP_DIAGNOSTIC_CHILD") != "1" {
+		return
+	}
+	directory := os.Args[len(os.Args)-1]
+	if _, err := saveStartupEventAt(filepath.Join(directory, "startup.jsonl"), diagnostics.Event{Operation: "desktop.startup", FailureStage: "profile-directory", State: "failed"}); err != nil {
+		fmt.Fprintln(os.Stderr, "controlled diagnostic child:", err)
+		logStartupDiagnosticAccess(directory)
+		os.Exit(2)
+	}
+	os.Exit(0)
+}
+
+func TestControlledStartupPrivateDiagnosticsWorkInModifyDirectoryAcrossOwnedChild(t *testing.T) {
+	directory := t.TempDir()
+	if err := startupFixtureModifyDirectory(directory); err != nil {
+		t.Fatal(err)
+	}
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	result, err := process.Capture(ctx, process.Spec{Executable: executable, Args: []string{"-test.run=^TestControlledStartupPrivateDiagnosticChild$", "--", directory}, Env: []string{"INSONIC_TEST_STARTUP_DIAGNOSTIC_CHILD=1"}, MaxOutput: 64 << 10, WaitForDescendants: true})
+	if err != nil || result.ExitCode != 0 || result.Truncated || result.Descendants == nil || !result.Descendants.Released {
+		t.Fatalf("owned child private diagnostics failed: %v exit=%d stderr=%s", err, result.ExitCode, result.Stderr)
+	}
+	raw, err := os.ReadFile(filepath.Join(directory, "startup.jsonl"))
+	var event diagnostics.Event
+	if err != nil || json.Unmarshal(raw, &event) != nil || event.FailureStage != "profile-directory" {
+		t.Fatal("private child event missing", err)
 	}
 }

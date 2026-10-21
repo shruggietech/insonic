@@ -268,7 +268,7 @@ test('qualification input identity failure records bounded observed fields witho
   const data = metadata(); data.run.status = 'in_progress';
   data.jobs = [data.jobs[0], data.jobs[1], { ...data.jobs[1], id: 4, name: 'docs-build' }];
   const now = () => Date.parse(data.jobs[0].completed_at) + 5000;
-  for (const changed of [{ status: 'queued' }, { head_sha: 'c'.repeat(40) }, { run_attempt: 3 }]) {
+  for (const changed of [{ status: 'completed' }, { head_sha: 'c'.repeat(40) }, { run_attempt: 3 }]) {
     await assert.rejects(waitForQualificationInputs(identity, 'test-only', {
       request: async url => url.includes('/jobs?') ? { total_count: data.jobs.length, jobs: data.jobs } : { ...data.run, ...changed }, now,
     }), error => {
@@ -289,4 +289,27 @@ test('qualification input identity failure records bounded observed fields witho
     assert.ok(!error.message.includes('private_input')); assert.ok(!error.message.includes('never retain this'));
     return true;
   });
+});
+
+test('a queued workflow summary cannot invalidate matching successful prerequisite job authority', async () => {
+  const data = metadata(); data.run.status = 'queued'; data.run.conclusion = null;
+  const ready = data.jobs[0];
+  data.jobs = [ready, data.jobs[1], { ...data.jobs[1], id: 4, name: 'docs-build' }];
+  const boundary = Date.parse(ready.completed_at), now = () => boundary + 5000;
+  const request = async url => url.includes('/jobs?') ? { total_count: data.jobs.length, jobs: data.jobs } : data.run;
+  assert.equal(await waitForQualificationInputs(identity, 'test-only', { request, now }), boundary + 900000);
+  data.jobs[0].conclusion = 'failure';
+  await assert.rejects(waitForQualificationInputs(identity, 'test-only', { request, now }), /successful prerequisite/);
+});
+
+test('queued workflow summary still requires its unique running aggregate and every other terminal job', () => {
+  const data = metadata(); data.run.status = 'queued'; data.run.conclusion = null;
+  data.jobs[2].status = 'in_progress'; data.jobs[2].completed_at = null; data.jobs[2].conclusion = null;
+  const now = Date.parse(data.run.run_started_at) + 1970000;
+  assert.equal(inspectAttempt(identity, data.run, data.jobs, { now }).accepted, true);
+  assert.throws(() => inspectAttempt(identity, data.run, data.jobs, { terminal: true }), /terminal|running/);
+  data.jobs[2].status = 'queued';
+  assert.throws(() => inspectAttempt(identity, data.run, data.jobs, { now }), /running attempt/);
+  data.jobs[2].status = 'in_progress'; data.jobs[1].status = 'in_progress';
+  assert.throws(() => inspectAttempt(identity, data.run, data.jobs, { now }), /not terminal/);
 });

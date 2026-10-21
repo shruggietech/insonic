@@ -217,6 +217,8 @@ func qualifyStartupFailureChild(config string) int {
 		return saved, diagnosticErr
 	}, nil)
 	if diagnosticErr != nil {
+		fmt.Fprintln(os.Stderr, "native-startup-recovery-diagnostics-error:", diagnosticErr)
+		logStartupDiagnosticAccess(directory)
 		return 1
 	}
 	raw, err = os.ReadFile(path)
@@ -238,4 +240,46 @@ func qualifyStartupFailureChild(config string) int {
 		return 1
 	}
 	return 0
+}
+
+// Failure-only observations cover two generated files in this disposable fixture.
+// They retain access results and owner equality, never SID strings or path data.
+func logStartupDiagnosticAccess(directory string) {
+	user, userErr := windows.GetCurrentProcessToken().GetTokenUser()
+	observations := []map[string]any{}
+	for _, name := range []string{"startup.jsonl.lock", "startup.jsonl"} {
+		path := filepath.Join(directory, name)
+		stat, err := os.Lstat(path)
+		row := map[string]any{"file": name, "exists": err == nil, "regular": err == nil && stat.Mode().IsRegular(), "token_user_available": userErr == nil}
+		value, pathErr := windows.UTF16PtrFromString(path)
+		if pathErr == nil {
+			for label, access := range map[string]uint32{"read_control": windows.READ_CONTROL | windows.FILE_READ_ATTRIBUTES, "write_dacl": windows.READ_CONTROL | windows.WRITE_DAC | windows.FILE_READ_ATTRIBUTES, "write_owner": windows.READ_CONTROL | windows.WRITE_DAC | windows.WRITE_OWNER | windows.FILE_READ_ATTRIBUTES} {
+				handle, openErr := windows.CreateFile(value, access, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE|windows.FILE_SHARE_DELETE, nil, windows.OPEN_EXISTING, windows.FILE_FLAG_OPEN_REPARSE_POINT, 0)
+				code := uint32(0)
+				if openErr != nil {
+					if native, ok := openErr.(windows.Errno); ok {
+						code = uint32(native)
+					} else {
+						code = 0xffffffff
+					}
+				}
+				row[label+"_error"] = code
+				if openErr == nil {
+					if label == "read_control" && userErr == nil {
+						descriptor, e := windows.GetSecurityInfo(handle, windows.SE_FILE_OBJECT, windows.OWNER_SECURITY_INFORMATION)
+						if e == nil {
+							owner, _, e := descriptor.Owner()
+							if e == nil && owner != nil {
+								row["owner_matches_user"] = owner.Equals(user.User.Sid)
+							}
+						}
+					}
+					windows.CloseHandle(handle)
+				}
+			}
+		}
+		observations = append(observations, row)
+	}
+	raw, _ := json.Marshal(map[string]any{"kind": "native-startup-diagnostic-access", "files": observations})
+	fmt.Fprintln(os.Stderr, string(raw))
 }

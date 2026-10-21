@@ -58,3 +58,5 @@ US1 and US2 tests in separate files may be authored independently; shared logger
 ## Phase 7: Demonstrated first-candidate corrections
 
 - [x] T024 Preserve the failed candidate, correct stale diagnostic/qualification fixtures, return an existing-file profile error before native creation, and report bounded observed CI input identity fields without weakening checks; verify regressions before a new candidate (FR-007/009/011/012).
+- [x] T025 Reproduce the second candidate's queued workflow summary with matching identity and successful readiness; accept that coarse active state only alongside exact job authority, preserving running-aggregate, all-other-terminal and strict terminal-audit requirements in scripts/ci-acceptance.mjs (FR-011/012).
+- [x] T026 Retain the exact controlled-child diagnostic failure category and generated Windows access/owner-equality observations; add a hidden owned-child Modify-directory regression without weakening private-event acceptance (FR-003-006/009/012).
