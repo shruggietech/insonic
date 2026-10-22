@@ -5,6 +5,7 @@ from pathlib import Path
 import sys
 from unittest.mock import patch
 import threading
+import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -14,6 +15,23 @@ inputs = importlib.util.module_from_spec(spec); spec.loader.exec_module(inputs)
 
 
 class ParallelInputTests(unittest.TestCase):
+    def test_both_notice_installs_keep_audits_and_bounded_fetches(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            node=Path(temporary)/'selected node'/'node.exe';node.parent.mkdir()
+            npm=node.parent/'node_modules/npm/bin/npm-cli.js';npm.parent.mkdir(parents=True);npm.write_text('',encoding='utf-8')
+            with patch.object(inputs.shutil,'which',return_value=str(node)),patch.dict(inputs.os.environ,{'SOURCE_REVISION':'a'*40}),patch.object(inputs,'run',return_value='verified') as run,patch('builtins.print'):
+                inputs.main()
+            installs=[call.args[0] for call in run.call_args_list if '--prefix' in call.args[0]]
+            self.assertEqual({args[args.index('--prefix')+1] for args in installs},{'desktop/frontend','site'})
+            self.assertEqual(len(installs),2)
+            for args in installs:
+                options=dict(value[2:].split('=',1) for value in args if str(value).startswith('--') and '=' in value)
+                self.assertEqual(options.get('audit'),'true');self.assertNotIn('--no-audit',args)
+                timeout=int(options.get('fetch-timeout','300000'));retries=int(options.get('fetch-retries','2'))
+                self.assertLessEqual(timeout,15000);self.assertGreater(timeout,0);self.assertLessEqual(retries,2)
+                budget=timeout*(retries+1)+sum(min(int(options['fetch-retry-mintimeout'])*2**i,int(options['fetch-retry-maxtimeout'])) for i in range(retries))
+                self.assertLess(budget*2,180000,'bulk and fallback requests must fit inside the unchanged stage bound')
+
     def test_original_deadline_accepts_above_target_without_extending_operation_limit(self):
         for remaining in (700, 900, 12):
             with self.subTest(remaining=remaining), patch.dict(inputs.os.environ, {

@@ -49,11 +49,13 @@ def main():
     # Keep advisory auditing enabled, with bounded request/retry time inside that bound.
     npm_limits = ['--audit=true', '--fetch-timeout=15000', '--fetch-retries=2',
                   '--fetch-retry-mintimeout=1000', '--fetch-retry-maxtimeout=5000']
+    def install(prefix):
+        return run([node, npm, '--prefix', prefix, 'ci', '--ignore-scripts', *npm_limits])
     values = join_inputs([
         source,
         lambda: run([sys.executable, ROOT / 'scripts/go-dependency-transfer.py', 'restore']),
-        lambda: run([node, npm, '--prefix', 'desktop/frontend', 'ci', '--ignore-scripts', *npm_limits]),
-        lambda: run([node, npm, '--prefix', 'site', 'ci', '--ignore-scripts']),
+        lambda: install('desktop/frontend'),
+        lambda: install('site'),
     ])
     for value in values: print(value)
     print('All independent CI inputs verified/installed; product compilation follows.')
