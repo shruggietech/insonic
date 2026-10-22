@@ -55,10 +55,11 @@ class ParallelRegressionTests(unittest.TestCase):
                 roots = {name: Path(future.result()) for name, future in futures.items()}
         self.assertEqual(len(set(roots.values())), 5)
         self.assertTrue(all(root.parent == Path('/owned') for root in roots.values()))
-        for root in roots.values():
-            self.assertIn((['settings', 'show'], {'workspace_path': root}), calls)
-            self.assertIn((['settings', 'show'], {'workspace_path': root / 'explicit override'}), calls)
-            self.assertIn((['--help'], {'scoped': False, 'workspace_path': root}), calls)
+        for name, root in roots.items():
+            scenario=name.replace('_','-')
+            self.assertIn((['settings', 'show'], {'workspace_path': root, 'scenario': scenario}), calls)
+            self.assertIn((['settings', 'show'], {'workspace_path': root / 'explicit override', 'scenario': scenario}), calls)
+            self.assertIn((['--help'], {'scoped': False, 'workspace_path': root, 'scenario': scenario}), calls)
 
     def test_failure_waits_for_every_other_owned_helper(self):
         import cli_contract_qualification as runner
@@ -82,3 +83,13 @@ class ParallelRegressionTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+class TruthfulOutcomeTests(unittest.TestCase):
+    def test_immediate_receipt_is_not_semantic_success(self):
+        from cli_corpus import example_outcome
+        self.assertEqual(example_outcome({'work_id':'accepted'},None)['outcome'],'invocation-only')
+    def test_async_refusal_retains_failure_classification(self):
+        from cli_corpus import example_outcome
+        value=example_outcome({},None,completed={'result':{'state':'failed'},'error':{'code':'unavailable'}})
+        self.assertEqual(value['outcome'],'refusal-observed')
+        self.assertEqual(value['failure_code'],'unavailable')

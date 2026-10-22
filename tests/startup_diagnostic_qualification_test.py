@@ -81,6 +81,7 @@ class StartupDiagnosticQualificationTests(unittest.TestCase):
         for ci in ['true', 'false']:
             with self.subTest(ci=ci), patch.dict(os.environ, {'GITHUB_ACTIONS': ci}), \
                     patch.object(qualify, 'native_env', return_value={}), \
+                    patch('pe_resources.enable_utf8'), \
                     patch.object(qualify, 'build_cli', return_value=Path('fixture-cli')) as build, \
                     patch.object(qualify, 'child', return_value=b'') as child, \
                     patch.object(qualify, 'write_receipt') as receipt, \

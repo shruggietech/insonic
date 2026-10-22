@@ -124,6 +124,12 @@ jobs:
     name: docs-build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      npm_config_audit: "true"
+      npm_config_fetch_timeout: "15000"
+      npm_config_fetch_retries: "2"
+      npm_config_fetch_retry_mintimeout: "1000"
+      npm_config_fetch_retry_maxtimeout: "5000"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -49,6 +49,30 @@ func nativeTools(t *testing.T) Tools {
 	}
 	return tools
 }
+
+func TestNativeUnicodeMetadataCapture(t *testing.T) {
+	tools := nativeTools(t)
+	original := wavFixture(t)
+	data, err := os.ReadFile(original)
+	if err != nil {
+		t.Fatal(err)
+	}
+	filename := filepath.Join(t.TempDir(), "source 文 with spaces.wav")
+	if err = os.WriteFile(filename, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	s := &Service{Tools: tools, MaxOutput: 8 << 20}
+	result, err := s.capture(context.Background(), filename, filename, Options{})
+	if err != nil || result.Metadata.CaptureState != "captured" {
+		t.Fatalf("Unicode metadata capture state=%s error=%v", result.Metadata.CaptureState, err)
+	}
+	for _, report := range result.Metadata.Reports {
+		if report.State != "captured" || report.ExitCode != 0 {
+			t.Fatalf("%s state=%s exit=%d", report.Tool, report.State, report.ExitCode)
+		}
+	}
+}
+
 func TestNativeMediaExtractionAndCurrentReplacement(t *testing.T) {
 	tools := nativeTools(t)
 	s, db := libraryFixture(t)

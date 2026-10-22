@@ -621,7 +621,11 @@ func commandHelp(path []string) string {
 			b.WriteString("Global options:\n")
 			for _, key := range strings.Fields("--workspace --request-id --json --verbose --debug --quiet --log-level --log-file --help -h") {
 				meta := guidance.Options[key]
-				fmt.Fprintf(&b, "  %s; Meaning: %s Default: %s. Status: optional global. Repeat: once. Conditions: %s\n", key, meta.Meaning, meta.Default, meta.Conditions)
+				name := key
+				if optionDefinitions[key].Value {
+					name += " VALUE"
+				}
+				fmt.Fprintf(&b, "  %s; Meaning: %s Default: %s. Status: optional global. Repeat: once. Conditions: %s\n", name, meta.Meaning, meta.Default, meta.Conditions)
 			}
 			b.WriteString("Command options:\n")
 			for _, key := range c.Options {

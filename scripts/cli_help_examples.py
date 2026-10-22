@@ -8,6 +8,7 @@ successful semantic qualification.
 """
 import hashlib
 import json
+from cli_corpus import example_outcome, finish_server
 from pathlib import Path
 import re
 import shlex
@@ -388,7 +389,7 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
                     observed = invoke(['workspace', 'show'], workspace_path=serve)
                     if not observed.get('runtime_session_id'):
                         raise ValueError('Explicit owner has no observed session')
-                ledger.append({'command': name, 'example': actual, 'outcome': 'running-owner-observed'})
+                ledger.append({'command': name, 'example': actual, 'outcome': 'asserted-success', 'assertion': 'owned-runtime-ready'})
                 continue
             argv = substitute(actual, replacements)
             target = kwargs.pop('workspace_path', library)
@@ -399,6 +400,7 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
             if error and error['code'] not in expected.get(name, set()):
                 raise ValueError('Unreviewed semantic help example failure: ' + name + ': ' + json.dumps(error))
             result = response.get('result')
+            materialized, completed = False, None
             if error and error['code'] == 'invalid_request' and (name != 'media relocate' or not isinstance(result, dict) or 'digest' not in result or result.get('mode') != 'copy'):
                 raise ValueError('Parser/schema rejection cannot qualify an emitted example: ' + name)
             if name == 'models dataset create' and not error:
@@ -408,23 +410,28 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
             if name == 'artifacts materialize' and not error:
                 if Path(result['path']).read_bytes() != textfile.read_bytes():
                     raise ValueError('Actual artifact materialize example returned different bytes')
+                materialized = True
                 call(['artifacts', 'lease-release', ids['PUBLICATION_UUID'], result['lease']['id']])
             if name in ['models materialize', 'models base materialize'] and not error:
+                if not result['files']:
+                    raise ValueError('Model materialization returned no verified files')
+                materialized = True
                 for file in result['files']:
                     if Path(file['path']).read_bytes() != body or file['sha256'] != hashlib.sha256(body).hexdigest():
                         raise ValueError('Actual model materialize example lost immutable fixture bytes')
                     call(['artifacts', 'lease-release', file['publication_id'], file['lease_id']])
             if not error and result is None:
                 raise ValueError('Emitted example returned no established result: ' + name)
-            outcome = error['code'] if error else 'succeeded'
             if not error and isinstance(result, dict) and result.get('work_id'):
                 completed = call(['work', 'wait', result['work_id']], expected=(0, 1, 4))
                 failure = completed.get('error')
                 if failure and failure['code'] not in expected.get(name, set()):
                     raise ValueError('Unexpected emitted-example completion failure: ' + name + ': ' + json.dumps(failure))
-                outcome = 'completed' if not failure else 'accepted-then-' + failure['code']
-            entry = {'command': name, 'example': actual, 'outcome': outcome}
-            if error:
+            entry = {'command': name, 'example': actual, **example_outcome(result, error, completed=completed, materialized=materialized)}
+            if error or (completed or {}).get('error'):
+                if completed is not None:
+                    entry['observed'] = {'state': completed['result']['state']}
+
                 entry['scenario'] = {'media relocate': 'Managed canonical audio has no relocatable legacy source.',
                                      'jobs cancel': 'The bounded synthetic attempt already completed.',
                                      'jobs retry': 'A completed successful synthetic attempt is not retryable.',
@@ -460,6 +467,4 @@ def qualify(invoke, supplied, workspace, version, help_pages, *, executable=None
             raise ValueError('Actual example ledger does not cover every registered command')
         return {'state': 'passed', 'executed': len(ledger), 'elapsed_seconds': round(time.monotonic() - started, 3), 'ledger': ledger}
     finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=5)
+        finish_server(server, thread)

@@ -78,10 +78,10 @@ class PackageWorkloadAllocationTests(unittest.TestCase):
         factory = MagicMock()
         with tempfile.TemporaryDirectory() as temporary:
             location = Path(temporary)
-            installed = location / 'installed program with spaces'
+            installed = location / 'installed program 文 with spaces'
             installed.mkdir()
             (installed / 'package-inventory.json').write_text('{}')
-            library = location / 'first-use library with spaces' / '.insonic'
+            library = location / 'first-use library 文 with spaces' / '.insonic'
             library.mkdir(parents=True)
             (library / 'workspace.json').write_text('{}')
             result = {'version': package.VERSION, 'help': 'help', 'init': 'init', 'doctor': 'doctor', 'show': 'show'}

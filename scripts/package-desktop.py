@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Assemble and qualify relocated native packages without inference or release."""
 import argparse
-from contextlib import contextmanager, ExitStack
+from contextlib import contextmanager, ExitStack, closing
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 import hashlib
@@ -440,7 +440,7 @@ def media_runtime_permissions(receipt):
             'source_complete_scope': 'FFmpeg and every bundled third-party media library requiring corresponding source'}
 
 
-def collect_corresponding_sources(root, source_media, receipt, directory):
+def collect_corresponding_sources(root, source_media, receipt, directory, *, launcher_transform=None):
     if receipt.get('source_complete') is not True or receipt.get('recipe_sha256') != source_media.sha(ROOT / 'scripts/media_source_build.py'):
         raise ValueError('corresponding media source build receipt is incomplete or stale')
     target = root / 'sources'
@@ -478,18 +478,32 @@ def collect_corresponding_sources(root, source_media, receipt, directory):
         'To modify/relink a library, edit its extracted source and rerun the recorded\n'
         'library and FFmpeg build commands, retaining the same static dependency closure.\n',
         encoding='utf-8', newline='\n')
+    if launcher_transform is not None:
+        from windows_exiftool_manifest import ORIGINAL, RECEIPT, RECIPES
+        original = Path(json.loads((ROOT / 'build/native/media-tools.json').read_text(encoding='utf-8'))['exiftool']['path'])
+        shutil.copyfile(original, target / ORIGINAL)
+        for name in RECIPES: shutil.copyfile(ROOT / 'scripts' / name, target / name)
+        write_json(target / RECEIPT, launcher_transform)
+        with (target / 'REBUILD.txt').open('a', encoding='utf-8', newline='\n') as instructions:
+            instructions.write('\nWindows ExifTool process-manifest reproduction:\n'
+                '1. Keep windows_exiftool_manifest.py, pe_resources.py and the original .bin together.\n'
+                '2. Run python windows_exiftool_manifest.py exiftool-launcher.original.bin '
+                'exiftool-utf8.exe --receipt rebuilt-exiftool.json from this directory.\n'
+                '3. Compare the unsigned SHA-256 with exiftool-windows-utf8.json. '
+                'Optional later Authenticode signing changes only its declared signature envelope.\n')
     manifest = {'kind': 'corresponding-sources', 'schema_version': VERSION, 'source_complete': True,
                 'platform': receipt['platform'], 'sources': pins,
                   'redistribution_closure': media_runtime_permissions(receipt),
                 'build_receipt': 'ffmpeg-build.json', 'files': [
                     {'path': path.name, 'sha256': sha(path), 'size_bytes': path.stat().st_size}
                     for path in sorted(target.iterdir()) if path.is_file()]}
+    if launcher_transform is not None: manifest['platform_transforms'] = [RECEIPT]
     write_json(target / 'source-manifest.json', manifest)
     verify_corresponding_sources(root, manifest)
     return manifest
 
 
-def verify_corresponding_sources(root, manifest=None, expected_source_root=None):
+def verify_corresponding_sources(root, manifest=None, expected_source_root=None, *, signing=None):
     target = root / 'sources'
     if manifest is None:
         manifest = json.loads((target / 'source-manifest.json').read_text(encoding='utf-8'))
@@ -548,6 +562,15 @@ def verify_corresponding_sources(root, manifest=None, expected_source_root=None)
             raise ValueError('package corresponding source provenance requires all dependency groups')
     if not source_module().dependency_part_receipts_valid(target, receipt):
         raise ValueError('package corresponding source dependency group provenance differs')
+    transforms = manifest.get('platform_transforms', [])
+    selected_transform = suffix and expected_source_root is not None and (Path(expected_source_root) / 'scripts/windows_exiftool_manifest.py').is_file()
+    if transforms or selected_transform:
+        from windows_exiftool_manifest import RECEIPT, ORIGINAL, RECIPES, verify_package
+        if not suffix or transforms != [RECEIPT] or any(name not in entries for name in [RECEIPT, ORIGINAL, *RECIPES]):
+            raise ValueError('package platform transformation provenance differs')
+        if expected_source_root is not None and any(sha(target / name) != sha(Path(expected_source_root) / 'scripts' / name) for name in RECIPES):
+            raise ValueError('package platform transformation recipe differs from selected source')
+        verify_package(root, allow_signature=bool(signing and signing.get('configured') is True and signing.get('verified') is True))
     return manifest
 
 
@@ -602,6 +625,9 @@ def build(variant='desktop'):
     if variant == 'desktop':
         child([*args, '-o', root / ('insonic-desktop' + exe), './cmd/insonic-desktop'], env=env)
     if key.startswith('windows'):
+        from pe_resources import enable_utf8
+        enable_utf8(root / 'insonic.exe')
+        if variant == 'desktop': enable_utf8(root / 'insonic-desktop.exe', subsystem=2)
         # The PE loader resolves static imports before Go can configure search
         # directories. Place native DLLs beside the executables, without PATH.
         for library in (root / 'native').glob('*.dll'):
@@ -643,7 +669,12 @@ def build(variant='desktop'):
     for binary, digest in source_receipt['binaries'].items():
         if sha(root / 'companions/media' / binary) != digest:
             raise ValueError('packaged media binary differs from its owned source build')
-    collect_corresponding_sources(root, source_media, source_receipt, source_directory)
+    launcher_transform = None
+    if key.startswith('windows'):
+        from windows_exiftool_manifest import prepare, TARGET
+        upstream = Path(json.loads((ROOT / 'build/native/media-tools.json').read_text(encoding='utf-8'))['exiftool']['path'])
+        launcher_transform = prepare(upstream, root / TARGET)
+    collect_corresponding_sources(root, source_media, source_receipt, source_directory, launcher_transform=launcher_transform)
     signing = sign_native(root, key)
     installers(root, key, variant, signing)
     resource_root = root
@@ -798,7 +829,11 @@ def verify_archive_receipt(archive, receipt, expected_source_root=ROOT):
             for source, name in sources:
                 if sha(resources / 'companions/processing' / name) != sha(source):
                     raise ValueError('packaged worker metadata differs from elected source')
-        manifest = verify_corresponding_sources(resources, expected_source_root=expected_source_root)
+        if receipt['platform'].startswith('windows') and (expected_source_root / 'scripts/windows_exiftool_manifest.py').is_file():
+            from pe_resources import verify_utf8
+            verify_utf8(binaries / 'insonic.exe')
+            if receipt['variant'] == 'desktop': verify_utf8(binaries / 'insonic-desktop.exe', subsystem=2)
+        manifest = verify_corresponding_sources(resources, expected_source_root=expected_source_root, signing=receipt.get('signing'))
         if sha(resources / 'sources/source-manifest.json') != receipt['distribution']['source_manifest_sha256']:
             raise ValueError('package source manifest differs from receipt identity')
         if not receipt['signing']['configured']:
@@ -811,8 +846,8 @@ def verify_archive_receipt(archive, receipt, expected_source_root=ROOT):
 
 def qualify_windows_install(extracted, temporary, env, *, process_factory=None):
     """Execute the documented copy and first-use commands in Windows PowerShell."""
-    installed = Path(temporary) / 'installed program with spaces'
-    library = Path(temporary) / 'first-use library with spaces'
+    installed = Path(temporary) / 'installed program 文 with spaces'
+    library = Path(temporary) / 'first-use library 文 with spaces'
     def literal(value):
         return "'" + str(value).replace("'", "''") + "'"
     powershell = Path(os.environ.get('SystemRoot', 'C:/Windows')) / 'System32/WindowsPowerShell/v1.0/powershell.exe'
@@ -1050,7 +1085,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
         gui = executables / ('insonic-desktop' + suffix)
         if cli_child([cli, 'version'], directory=root, env=env).decode().strip() != VERSION:
             raise ValueError('packaged CLI version differs')
-        workspace = Path(temporary) / 'workspace with spaces'
+        workspace = Path(temporary) / 'workspace 文 with spaces'
         cli_child([cli, 'workspace', 'init', workspace, '--json'], directory=root, env=env)
         cli_child([cli, '--workspace', workspace, 'credentials', 'select', 'session', '--json'], directory=root, env=env)
         def call(*args, allow_detached=True):
@@ -1100,9 +1135,18 @@ def _smoke(archive=None, dirname=None, receipt=None):
             if any('Warning:' not in text or items[1]['media_id'] not in text or '--originated-on' not in text or '\x1b' in text for text in [human_wait, quiet_wait]):
                 raise ValueError('Accepted partial date did not reach readable operator output')
             if len(items) != 2 or any(item.get('state') != 'admitted' or item.get('capture_state') not in ['captured', 'no-embedded-metadata'] for item in items):
-                raise ValueError('packaged import did not complete both licensed fixtures')
+                states = []
+                for item in items[:2]:
+                    state = {key: item.get(key) for key in ['state', 'capture_state', 'subtitle_state']}
+                    metadata = call('media', 'metadata', item['media_id'])
+                    state['reports'] = [{key: report.get(key) for key in ['tool', 'state', 'exit_code', 'truncated']}
+                                        for report in metadata.get('reports', [])[:2]]
+                    states.append(state)
+                raise ValueError('packaged import did not complete both licensed fixtures: ' + json.dumps(states))
             from cli_contract_qualification import qualify as qualify_contract
-            contract_receipt = qualify_contract(cli, workspace, env=env, cwd=root, documentation=True, **workload_options)
+            contract_receipt = qualify_contract(cli, workspace, env=env, cwd=root, documentation=True,
+                artifact_identity={'scope': 'package', 'archive_sha256': receipt['archive_sha256'],
+                                   'inventory_sha256': receipt['inventory_sha256']}, **workload_options)
             entry = call('media', 'show', items[0]['media_id'])
             if entry['dates']['selected']['resolved'] != {'iso': '2020-01-01T00:00:00.123456789Z', 'unix_ns': 1577836800123456789}:
                 raise ValueError('Packaged timestamp or numeric fidelity differs')
@@ -1148,7 +1192,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
             import sqlite3
             try:
                 database=workspace/'.insonic/catalog.sqlite'
-                with sqlite3.connect(database.as_uri()+'?mode=ro',uri=True,timeout=1) as connection:
+                with closing(sqlite3.connect(database.as_uri()+'?mode=ro',uri=True,timeout=1)) as connection:
                     state={}
                     for name,query in {
                         'revision':'SELECT revision FROM workspace',

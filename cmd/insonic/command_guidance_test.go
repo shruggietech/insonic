@@ -157,3 +157,15 @@ func TestPositionalAndAdapterHelpTemplatesMeetSemanticContracts(t *testing.T) {
 		t.Fatal("schema-valid help adapter fails runtime semantics", err)
 	}
 }
+
+func TestGlobalHelpExposesValueArity(t *testing.T) {
+	page := commandHelp([]string{"media", "list"})
+	for _, flag := range []string{"--workspace", "--request-id", "--log-level", "--log-file"} {
+		if !strings.Contains(page, "  "+flag+" VALUE; Meaning:") {
+			t.Fatal("missing global value arity", flag)
+		}
+	}
+	if !strings.Contains(page, "  --json; Meaning:") || strings.Contains(page, "  --json VALUE;") {
+		t.Fatal("switch arity changed")
+	}
+}

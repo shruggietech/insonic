@@ -649,6 +649,14 @@ def ordinary_namespace_probe(stage):
     proof={'state':'passed','token':token_info(),'directories':object_namespace_diagnostic(),'mutex':installer_mutex_diagnostic()}
     (stage/'native/context.namespace-probe.json').write_text(json.dumps(proof,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
 
+def stage_worker_scripts(directory):
+    """Copy and verify the complete portable module closure for the owned actor."""
+    directory=Path(directory);directory.mkdir(parents=True,exist_ok=True)
+    for filename in ('qualify-windows-msi.py','windows_msi.py','windows_setup.py','pe_resources.py','qualify_installer_setup.py','qualify_installer_ui.py','render-installed-help.mjs'):
+        shutil.copyfile(m.ROOT/'scripts'/filename,directory/filename)
+        if m.sha(directory/filename)!=m.sha(m.ROOT/'scripts'/filename):raise RuntimeError('ordinary staged script identity differs')
+
+
 def stage_authoring_resources(stage):
     """Retain the exact governed icon for capsule authoring inside the actor."""
     m.disposable_runner();stage=Path(stage)
@@ -1500,9 +1508,7 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
         if not profile.is_dir():raise RuntimeError('native profile load did not create the observed ordinary-user directory')
         record('ordinary-profile-observed',profile=str(profile),method='owned LoadUserProfileW handle, GetUserProfileDirectoryW',privilege_scope=privilege_scope)
         record('Copy-exact-owned-worker-inputs');scripts=stage/'scripts';scripts.mkdir();(stage/'temp').mkdir();native=stage/'native';native.mkdir()
-        for filename in ('qualify-windows-msi.py','windows_msi.py','windows_setup.py','qualify_installer_setup.py','qualify_installer_ui.py','render-installed-help.mjs'):
-            shutil.copyfile(m.ROOT/'scripts'/filename,scripts/filename)
-            if m.sha(scripts/filename)!=m.sha(m.ROOT/'scripts'/filename):raise RuntimeError('ordinary staged script identity differs')
+        stage_worker_scripts(scripts)
         record('Copy-exact-owned-authoring-icon',**stage_authoring_resources(stage))
         target=stage/'fixture.msi';shutil.copyfile(installer,target)
         if m.sha(target)!=m.sha(Path(installer)):raise RuntimeError('ordinary MSI fixture copy differs')

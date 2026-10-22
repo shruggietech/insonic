@@ -6,6 +6,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Maintained CLI fixture provenance and a bounded command/option coverage ledger derived from the executed binary, with image/package identity and explicit semantic, invocation, refusal and unverified dispositions. Installed qualification exercises spaces and non-Latin library/program destinations.
+
 - Windows native qualification records owned desktop/input conditions, completion timings and created-environment runtime identity separately from loader availability. Its show/focus join now allows ten seconds within unchanged outer deadlines, with real input and natural release still required.
 - Initial CI queue accounting reads the verified workflow creation record separately from attempt-record creation, which can occur after attempt start.
 
@@ -20,6 +22,14 @@ All notable changes to this project will be documented here. The format follows 
 - Read-only public release and documentation verification compares the selected published inventory and original documentation with live pages, schemas, aliases and referenced resources, then rechecks the elected Pages deployment identity.
 
 ### Fixed
+
+- CI documentation and package-input installs retain npm advisory audits with bounded request/retry time inside existing operation limits, preventing a five-minute advisory request from exhausting a 180-second input stage.
+
+- Native Windows CLI/desktop executables declare a process-local UTF-8 code page so LadybugDB opens the selected non-Latin library path. Qualification and packaging apply the same manifest before signing, and independent current-source package verification requires it.
+
+- Windows packaged ExifTool locates its Perl runtime in non-Latin installation directories through a reproducible process-local UTF-8 manifest. Packages retain the original pinned launcher, exact unsigned transformation hashes and portable recipes for independent verification before signing.
+
+- Windows ExifTool capture sends UTF-8 filename arguments over stdin so non-Latin library paths survive system code-page conversion. Extraction retains redacted provenance and the original operation deadline. Package failure diagnostics close their SQLite connection before owned-directory cleanup.
 
 - Artifact corruption, truncation and missing stored objects report byte-integrity failures separately from revision conflicts. Trainer output must match its declared bytes before publication admission. Worker/model prerequisites retain bounded logical asset details through human, JSON and durable failure reporting.
 - Newly created worker directories normalize Windows default ownership before private-directory verification; existing directories retain their ownership checks.
@@ -141,6 +151,9 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-20: At the owner’s direction, constitution 3.1.0 separates verified source prerequisite preparation from the 660-second qualification phase, reports preparation/qualification/combined elapsed time and counts phase queue time. All elected checks start after readiness. A provisional aggregate retains fifteen seconds for finalization; terminal timestamps remain required for final timing claims. The bootstrap declares the elected acceptance check without implying live protection has already changed.
 
 - 2026-10-21: At the owner’s direction, constitution 4.0.0 changes qualification to a 660-second advisory target and 900-second hard limit, retaining verified readiness, phase/queue reporting, terminal timestamp authority, the fifteen-second provisional reserve and all mandatory elected checks. Align active qualification watchdogs and shared input validation; retain native operation and unrelated preparation/release/deployment limits. Preserve old-policy failed receipts and obtain fresh normal-workflow acceptance.
+
+- 2026-10-21: Derive CLI coverage from executed help and reuse the existing installed qualification helpers and verified package identity. Index reusable fixture owners instead of preserving ad hoc audit transcripts. Keep semantic assertions distinct from successful invocation and observed refusal; include spaces/non-Latin installed destinations without adding another test matrix or changing qualification deadlines.
+- 2026-10-22: Correct the pinned Windows ExifTool launcher's ANSI install-path handling through a deterministic packaged-copy manifest transformation before signing and inventory. Preserve upstream cached bytes, original resource contents and source reproduction evidence; retain mandatory Unicode capture checks and existing timing limits. Apply the same process-local code-page contract to native CLI/desktop executables after demonstrating the later LadybugDB parent-path failure.
 
 ## [1.0.1] - 2026-10-15
 

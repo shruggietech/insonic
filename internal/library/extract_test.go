@@ -3,8 +3,34 @@ package library
 
 import (
 	"encoding/json"
+	"io"
+	"reflect"
+	"strings"
 	"testing"
 )
+
+func TestWindowsExifFilenameUsesLosslessInputWithoutPersistingPath(t *testing.T) {
+	filename := "C:/library 文 with spaces/original.flac"
+	args := []string{"-config", "", "-json", "--", filename}
+	effective, recorded, input := extractorArguments("exiftool", args, true)
+	if strings.Contains(strings.Join(effective, " "), filename) || strings.Contains(strings.Join(recorded, " "), filename) {
+		t.Fatal("local path retained in command arguments or provenance")
+	}
+	raw, err := io.ReadAll(input)
+	if err != nil || string(raw) != "--\n"+filename+"\n" || !strings.Contains(strings.Join(effective, " "), "-charset filename=UTF8 -@ -") {
+		t.Fatal("UTF-8 input argument transport changed", string(raw), effective, err)
+	}
+	for _, name := range []string{"ffprobe", "ffmpeg"} {
+		actual, _, stream := extractorArguments(name, args, true)
+		if stream != nil || !reflect.DeepEqual(actual, args) {
+			t.Fatal("unrelated extractor transport changed")
+		}
+	}
+	actual, _, stream := extractorArguments("exiftool", args, false)
+	if stream != nil || !reflect.DeepEqual(actual, args) {
+		t.Fatal("Unix argument transport changed")
+	}
+}
 
 func TestProbeExactDurationAndSourceClocks(t *testing.T) {
 	raw := []byte(`{"format":{"format_name":"wav","duration":"1.000001"},"streams":[{"index":0,"codec_type":"audio","codec_name":"pcm_s16le","sample_rate":"48000","channels":2,"channel_layout":"stereo","time_base":"1/48000","start_pts":0,"duration_ts":48001}]}`)

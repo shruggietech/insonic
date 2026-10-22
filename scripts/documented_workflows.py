@@ -12,6 +12,7 @@ from email.parser import BytesParser
 import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+from cli_corpus import finish_server
 from pathlib import Path
 import re
 import sys
@@ -282,9 +283,7 @@ def qualify(invoke, supplied, workspace, version):
         invoke(['import-presets', 'show', preset_id], expected=1)
         invoke(['media', 'refresh', media_id, '--preset', preset_id], expected=1)
     finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=5)
+        finish_server(server, thread)
     return {'preset_lifecycle_destination_precedence_refresh': 'passed',
             'pipeline_actual_child_supplied_bypass': 'passed', 'documented_advanced_inputs': 'passed',
             'deterministic_training_fetch': 'passed', 'trainer_output_integrity': 'passed',

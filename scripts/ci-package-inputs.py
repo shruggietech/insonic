@@ -45,11 +45,17 @@ def main():
         run([sys.executable, ROOT / 'scripts/media-transfer.py', 'restore', '--stage', 'complete', '--revision', revision,
              ROOT / 'build/transfer/media-source.tar.gz'])
         return run([sys.executable, ROOT / 'scripts/media-tools.py', '--prepare-only'])
+    # npm's default five-minute request timeout exceeds this stage's 180-second bound.
+    # Keep advisory auditing enabled, with bounded request/retry time inside that bound.
+    npm_limits = ['--audit=true', '--fetch-timeout=15000', '--fetch-retries=2',
+                  '--fetch-retry-mintimeout=1000', '--fetch-retry-maxtimeout=5000']
+    def install(prefix):
+        return run([node, npm, '--prefix', prefix, 'ci', '--ignore-scripts', *npm_limits])
     values = join_inputs([
         source,
         lambda: run([sys.executable, ROOT / 'scripts/go-dependency-transfer.py', 'restore']),
-        lambda: run([node, npm, '--prefix', 'desktop/frontend', 'ci', '--ignore-scripts']),
-        lambda: run([node, npm, '--prefix', 'site', 'ci', '--ignore-scripts']),
+        lambda: install('desktop/frontend'),
+        lambda: install('site'),
     ])
     for value in values: print(value)
     print('All independent CI inputs verified/installed; product compilation follows.')
