@@ -7,47 +7,18 @@ import json
 import os
 from pathlib import Path
 import struct
-import xml.etree.ElementTree as ET
-from pe_resources import append_resources, read_resources
+from pe_resources import utf8_image
 
 UPSTREAM_SHA256 = '68c079c32fdae0d6c7130e9a5fb73f8ac9dabdf9ab8da312da4f6c549d6d3385'
 ORIGINAL = 'exiftool-launcher.original.bin'
 RECEIPT = 'exiftool-windows-utf8.json'
 RECIPES = ['windows_exiftool_manifest.py', 'pe_resources.py']
 TARGET = 'companions/media/exiftool/package/bin/exiftool.exe'
-ASM = 'urn:schemas-microsoft-com:asm.v1'
-V3 = 'urn:schemas-microsoft-com:asm.v3'
-SETTINGS = 'http://schemas.microsoft.com/SMI/2019/WindowsSettings'
-
-
-def utf8_manifest(data):
-    if not 0 < len(data) <= 65536 or b'<!DOCTYPE' in data.upper(): raise ValueError('Invalid launcher manifest bound')
-    root = ET.fromstring(data)
-    if root.tag != '{'+ASM+'}assembly' or root.get('manifestVersion') != '1.0': raise ValueError('Invalid launcher manifest root')
-    apps = root.findall('{'+V3+'}application')
-    if len(apps) != 1: raise ValueError('Ambiguous launcher application manifest')
-    settings = apps[0].findall('{'+V3+'}windowsSettings')
-    if len(settings) != 1: raise ValueError('Ambiguous launcher Windows settings')
-    pages = settings[0].findall('{'+SETTINGS+'}activeCodePage')
-    if len(pages) > 1: raise ValueError('Ambiguous launcher code page')
-    page = pages[0] if pages else ET.SubElement(settings[0], '{'+SETTINGS+'}activeCodePage')
-    page.text = 'UTF-8'
-    for prefix, uri in [('', ASM), ('asmv3', V3), ('ws2', 'http://schemas.microsoft.com/SMI/2016/WindowsSettings'), ('ws2019', SETTINGS)]: ET.register_namespace(prefix, uri)
-    return ET.tostring(root, encoding='utf-8', xml_declaration=True)
 
 
 def transform(data, *, expected_sha256=UPSTREAM_SHA256):
     if len(data) > 2 << 20 or hashlib.sha256(data).hexdigest() != expected_sha256: raise ValueError('Upstream launcher identity differs')
-    resources = read_resources(data, subsystem=3)
-    manifests = [key for key in resources if key[:2] == (24, 1)]
-    if not 1 <= len(manifests) <= 8: raise ValueError('Missing or ambiguous launcher manifests')
-    changes = []
-    for key in sorted(manifests):
-        original = resources[key]; resources[key] = utf8_manifest(original)
-        changes.append({'language': key[2], 'original_sha256': hashlib.sha256(original).hexdigest(), 'utf8_sha256': hashlib.sha256(resources[key]).hexdigest()})
-    tree = {}
-    for (kind, identity, language), value in sorted(resources.items()): tree.setdefault(kind, {}).setdefault(identity, {})[language] = value
-    result = append_resources(data, tree, subsystem=3)
+    result, changes = utf8_image(data)
     return result, {'kind': 'windows-exiftool-utf8', 'version': 1, 'upstream_sha256': expected_sha256,
                     'unsigned_sha256': hashlib.sha256(result).hexdigest(), 'manifests': changes}
 

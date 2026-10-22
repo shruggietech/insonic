@@ -23,6 +23,10 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- CI documentation and package-input installs retain npm advisory audits with bounded request/retry time inside existing operation limits, preventing a five-minute advisory request from exhausting a 180-second input stage.
+
+- Native Windows CLI/desktop executables declare a process-local UTF-8 code page so LadybugDB opens the selected non-Latin library path. Qualification and packaging apply the same manifest before signing, and independent current-source package verification requires it.
+
 - Windows packaged ExifTool locates its Perl runtime in non-Latin installation directories through a reproducible process-local UTF-8 manifest. Packages retain the original pinned launcher, exact unsigned transformation hashes and portable recipes for independent verification before signing.
 
 - Windows ExifTool capture sends UTF-8 filename arguments over stdin so non-Latin library paths survive system code-page conversion. Extraction retains redacted provenance and the original operation deadline. Package failure diagnostics close their SQLite connection before owned-directory cleanup.
@@ -149,7 +153,7 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-21: At the owner’s direction, constitution 4.0.0 changes qualification to a 660-second advisory target and 900-second hard limit, retaining verified readiness, phase/queue reporting, terminal timestamp authority, the fifteen-second provisional reserve and all mandatory elected checks. Align active qualification watchdogs and shared input validation; retain native operation and unrelated preparation/release/deployment limits. Preserve old-policy failed receipts and obtain fresh normal-workflow acceptance.
 
 - 2026-10-21: Derive CLI coverage from executed help and reuse the existing installed qualification helpers and verified package identity. Index reusable fixture owners instead of preserving ad hoc audit transcripts. Keep semantic assertions distinct from successful invocation and observed refusal; include spaces/non-Latin installed destinations without adding another test matrix or changing qualification deadlines.
-- 2026-10-22: Correct the pinned Windows ExifTool launcher's ANSI install-path handling through a deterministic packaged-copy manifest transformation before signing and inventory. Preserve upstream cached bytes, original resource contents and source reproduction evidence; retain mandatory Unicode capture checks and existing timing limits.
+- 2026-10-22: Correct the pinned Windows ExifTool launcher's ANSI install-path handling through a deterministic packaged-copy manifest transformation before signing and inventory. Preserve upstream cached bytes, original resource contents and source reproduction evidence; retain mandatory Unicode capture checks and existing timing limits. Apply the same process-local code-page contract to native CLI/desktop executables after demonstrating the later LadybugDB parent-path failure.
 
 ## [1.0.1] - 2026-10-15
 

@@ -70,8 +70,10 @@ class QualificationArchiveTests(unittest.TestCase):
 
     def test_native_cli_builder_passes_the_selected_environment(self):
         selected = {'CC': 'selected', 'INSONIC_NATIVE_LIBRARY': 'isolated'}
-        with patch.object(qualify, 'child') as build:
+        with patch.object(qualify, 'child') as build, patch('pe_resources.enable_utf8') as manifest:
             path = qualify.build_cli(True, selected)
+        if os.name == 'nt': manifest.assert_called_once_with(path)
+        else: manifest.assert_not_called()
         self.assertEqual(build.call_args.kwargs['env'], selected)
         self.assertIn('system_ladybug', build.call_args.args[0])
         self.assertEqual(path.name, 'insonic.exe' if os.name == 'nt' else 'insonic')
@@ -81,6 +83,7 @@ class QualificationArchiveTests(unittest.TestCase):
         for ci in ['false', 'true']:
             with self.subTest(ci=ci), patch.dict(os.environ, {'GITHUB_ACTIONS': ci}), \
                     patch.object(qualify, 'native_env', return_value=dict(selected_native_env)), \
+                    patch('pe_resources.enable_utf8'), \
                     patch.object(qualify, 'build_cli', side_effect=RuntimeError('stop after native sibling')) as build, \
                     patch.object(qualify, 'child') as acceptance:
                 with self.assertRaisesRegex(RuntimeError, 'native sibling'):

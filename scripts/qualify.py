@@ -302,6 +302,9 @@ def desktop():
     sys.stdout.buffer.write(output)
     executable = ROOT / ('build/insonic-desktop.exe' if os.name == 'nt' else 'build/insonic-desktop')
     child(['go', 'build', '-tags', tags, '-o', executable, './cmd/insonic-desktop'], env=env)
+    if os.name == 'nt':
+        from pe_resources import enable_utf8
+        enable_utf8(executable)
     runtime_env = dict(env)
     if os.environ.get('GITHUB_ACTIONS') == 'true':
         runtime_env['INSONIC_PROCESS_STARTUP_DIAGNOSTICS'] = '1'
@@ -453,6 +456,9 @@ def require_native_cli_graph(value):
 def build_cli(native, env=None):
     executable = ROOT / ('build/insonic.exe' if os.name == 'nt' else 'build/insonic')
     child(['go', 'build', *(['-tags', 'system_ladybug'] if native else []), '-o', executable, './cmd/insonic'], env=env)
+    if os.name == 'nt':
+        from pe_resources import enable_utf8
+        enable_utf8(executable)
     return executable
 
 

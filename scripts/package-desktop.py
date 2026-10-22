@@ -625,6 +625,9 @@ def build(variant='desktop'):
     if variant == 'desktop':
         child([*args, '-o', root / ('insonic-desktop' + exe), './cmd/insonic-desktop'], env=env)
     if key.startswith('windows'):
+        from pe_resources import enable_utf8
+        enable_utf8(root / 'insonic.exe')
+        if variant == 'desktop': enable_utf8(root / 'insonic-desktop.exe', subsystem=2)
         # The PE loader resolves static imports before Go can configure search
         # directories. Place native DLLs beside the executables, without PATH.
         for library in (root / 'native').glob('*.dll'):
@@ -826,6 +829,10 @@ def verify_archive_receipt(archive, receipt, expected_source_root=ROOT):
             for source, name in sources:
                 if sha(resources / 'companions/processing' / name) != sha(source):
                     raise ValueError('packaged worker metadata differs from elected source')
+        if receipt['platform'].startswith('windows') and (expected_source_root / 'scripts/windows_exiftool_manifest.py').is_file():
+            from pe_resources import verify_utf8
+            verify_utf8(binaries / 'insonic.exe')
+            if receipt['variant'] == 'desktop': verify_utf8(binaries / 'insonic-desktop.exe', subsystem=2)
         manifest = verify_corresponding_sources(resources, expected_source_root=expected_source_root, signing=receipt.get('signing'))
         if sha(resources / 'sources/source-manifest.json') != receipt['distribution']['source_manifest_sha256']:
             raise ValueError('package source manifest differs from receipt identity')

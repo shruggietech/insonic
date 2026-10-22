@@ -28,6 +28,7 @@ Pre-research and post-design: PASS. Owner scope, shared CLI authority, source pr
 - `tests/fixtures/cli-corpus.json`: versioned fixture families/scenarios referencing existing assertion owners and licensed media manifest.
 - `tests/cli_corpus_test.py`: meaningful malformed/drift/privacy/outcome/identity regressions.
 - Existing `scripts/cli_contract_qualification.py`, `cli_help_examples.py` and `package-desktop.py`: compose recorder, verified artifact identity and existing journeys.
+- `scripts/ci-package-inputs.py` and the shared documentation CI producer: bound npm requests/retries within existing input-stage limits while explicitly retaining advisory audits.
 - Existing provider/documented workflow cleanup: assert bounded server threads actually stop.
 - `cmd/insonic/commands.go`: expose value arity from the existing global-option registry in contextual help, with a Go regression.
 - `internal/library/extract.go`: use ExifTool's UTF-8 stdin argument transport on Windows so non-Latin library paths do not depend on the system code page; preserve redacted extraction provenance and original deadlines.
@@ -44,7 +45,7 @@ Pre-research and post-design: PASS. Owner scope, shared CLI authority, source pr
 6. Rename existing owned library/install roots to include non-Latin text while preserving spaces. Existing Unicode extraction/media and HTTP matrices already run and will be indexed, not duplicated.
 7. Reviewer-owned coverage questions remain unchecked for the requested final owner review; the built-in specification checklist passes 16/16 and autopilot supplies implementation-stage authorization.
 
-8. Record the original and transformed unsigned launcher identities and both portable recipe files in package corresponding sources. Recompute the transformation during independent archive verification; normalize only the declared Authenticode envelope when signing is explicitly verified. Transform before signing and inventory, never patch the native input cache.
+8. Record the original and transformed unsigned launcher identities and both portable recipe files in package corresponding sources. Recompute the transformation during independent archive verification; normalize only the declared Authenticode envelope when signing is explicitly verified. Transform before signing and inventory, never patch the native input cache. The shared resource helper also gives Windows CLI/desktop outputs a process-local UTF-8 manifest before native qualification and packaging, preserving other resources; current-source archive verification requires it.
 
 ## Complexity Tracking
 

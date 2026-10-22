@@ -150,3 +150,14 @@ test('cold media campaign isolates every compiled cache and keeps the namespace 
   assert.equal(media.on.workflow_call.outputs.path.value, '${{ jobs.ready.outputs.path }}');
   assert.equal(media.jobs.ready.steps.find(step => step.id === 'ready').env.MEDIA_COLD_CACHE, '${{ inputs.cold-cache }}');
 });
+
+test('documentation npm audits keep bounded request and fallback time within input limits', () => {
+  const env = workflow('ci').jobs['docs-build'].env;
+  assert.equal(env.npm_config_audit, 'true');
+  const retries = Number(env.npm_config_fetch_retries), timeout = Number(env.npm_config_fetch_timeout);
+  assert.ok(Number.isInteger(retries) && retries >= 0 && retries <= 2);
+  assert.ok(timeout > 0 && timeout <= 15000);
+  let request = timeout * (retries + 1);
+  for (let i = 0; i < retries; i++) request += Math.min(Number(env.npm_config_fetch_retry_mintimeout) * 2 ** i, Number(env.npm_config_fetch_retry_maxtimeout));
+  assert.ok(request * 2 < 180000, 'bulk and fallback requests must leave time within the unchanged input operation bound');
+});

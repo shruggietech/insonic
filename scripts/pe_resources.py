@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Deterministic bounded PE resources shared by setup and companion packaging."""
 import struct
+import hashlib
+from pathlib import Path
+import xml.etree.ElementTree as ET
 
 
 def append_resources(data, tree, *, subsystem=2):
@@ -55,7 +58,7 @@ def append_resources(data, tree, *, subsystem=2):
     return bytes(data)
 
 
-def read_resources(data, *, subsystem=2):
+def read_resources(data, *, subsystem=2, allow_empty=False):
     """Independent bounded PE resource reader (no LoadLibrary or execution)."""
     if data[:2] != b'MZ' or len(data) < 64: raise ValueError('setup PE header missing')
     pe = struct.unpack_from('<I', data, 60)[0]
@@ -66,6 +69,7 @@ def read_resources(data, *, subsystem=2):
     if struct.unpack_from('<H', data, optional)[0] != 0x20b: raise ValueError('setup requires PE32+')
     if struct.unpack_from('<H', data, optional + 68)[0] != subsystem: raise ValueError('unexpected PE subsystem')
     rva, length = struct.unpack_from('<II', data, optional + 112 + 16)
+    if allow_empty and rva == length == 0: return {}
     mappings = [struct.unpack_from('<IIII', data, optional + optional_size + i * 40 + 8) for i in range(sections)]
     def offset(address, size):
         matches = [raw + address - start for virtual, start, raw_size, raw in mappings if start <= address and address + size <= start + raw_size]
@@ -92,3 +96,63 @@ def read_resources(data, *, subsystem=2):
     return result
 
 
+
+
+ASM = 'urn:schemas-microsoft-com:asm.v1'
+V3 = 'urn:schemas-microsoft-com:asm.v3'
+SETTINGS = 'http://schemas.microsoft.com/SMI/2019/WindowsSettings'
+
+
+def utf8_manifest(data):
+    if not 0 < len(data) <= 65536 or b'<!DOCTYPE' in data.upper(): raise ValueError('Invalid launcher manifest bound')
+    root = ET.fromstring(data)
+    if root.tag != '{'+ASM+'}assembly' or root.get('manifestVersion') != '1.0': raise ValueError('Invalid launcher manifest root')
+    apps = root.findall('{'+V3+'}application')
+    if len(apps) > 1: raise ValueError('Ambiguous launcher application manifest')
+    if not apps: apps = [ET.SubElement(root, '{'+V3+'}application')]
+    settings = apps[0].findall('{'+V3+'}windowsSettings')
+    if len(settings) > 1: raise ValueError('Ambiguous launcher Windows settings')
+    if not settings: settings = [ET.SubElement(apps[0], '{'+V3+'}windowsSettings')]
+    pages = settings[0].findall('{'+SETTINGS+'}activeCodePage')
+    if len(pages) > 1: raise ValueError('Ambiguous launcher code page')
+    page = pages[0] if pages else ET.SubElement(settings[0], '{'+SETTINGS+'}activeCodePage')
+    page.text = 'UTF-8'
+    for prefix, uri in [('', ASM), ('asmv3', V3), ('ws2', 'http://schemas.microsoft.com/SMI/2016/WindowsSettings'), ('ws2019', SETTINGS)]: ET.register_namespace(prefix, uri)
+    return ET.tostring(root, encoding='utf-8', xml_declaration=True)
+
+
+def utf8_image(data, *, subsystem=3):
+    resources = read_resources(data, subsystem=subsystem, allow_empty=True)
+    manifests = [key for key in resources if key[:2] == (24, 1)]
+    changed = not manifests
+    if not manifests:
+        resources[24, 1, 1033] = ('<assembly xmlns="'+ASM+'" manifestVersion="1.0"><application xmlns="'+V3+'"><windowsSettings/></application></assembly>').encode()
+        manifests = [(24, 1, 1033)]
+    if len(manifests) > 8: raise ValueError('Ambiguous process manifests')
+    changes = []
+    for key in sorted(manifests):
+        original = resources[key]; resources[key] = utf8_manifest(original)
+        changed |= original != resources[key]
+        changes.append({'language': key[2], 'original_sha256': hashlib.sha256(original).hexdigest(), 'utf8_sha256': hashlib.sha256(resources[key]).hexdigest()})
+    if not changed: return bytes(data), changes
+    tree = {}
+    for (kind, identity, language), value in sorted(resources.items()): tree.setdefault(kind, {}).setdefault(identity, {})[language] = value
+    return append_resources(data, tree, subsystem=subsystem), changes
+
+
+def enable_utf8(executable, *, subsystem=3):
+    target = Path(executable)
+    result, _ = utf8_image(target.read_bytes(), subsystem=subsystem)
+    target.write_bytes(result)
+    verify_utf8(target, subsystem=subsystem)
+
+
+def verify_utf8(executable, *, subsystem=3):
+    resources = read_resources(Path(executable).read_bytes(), subsystem=subsystem)
+    manifests = [value for key, value in resources.items() if key[:2] == (24, 1)]
+    if not 1 <= len(manifests) <= 8: raise ValueError('Missing process UTF-8 manifest')
+    for value in manifests:
+        utf8_manifest(value)  # Validate bounded XML and reject ambiguous application/settings shapes.
+        root = ET.fromstring(value)
+        pages = root.findall('{'+V3+'}application/{'+V3+'}windowsSettings/{'+SETTINGS+'}activeCodePage')
+        if len(pages) != 1 or pages[0].text != 'UTF-8': raise ValueError('Process UTF-8 code page differs')

@@ -10,7 +10,7 @@ import sys
 import tempfile
 import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
-from pe_resources import append_resources, read_resources
+from pe_resources import append_resources, read_resources, utf8_image, enable_utf8, verify_utf8
 from windows_exiftool_manifest import transform, verify_transform, unsigned_image, prepare, verify_package, UPSTREAM_SHA256, TARGET, ORIGINAL, RECEIPT, RECIPES, main
 
 XML = b'<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0"><application xmlns="urn:schemas-microsoft-com:asm.v3"><windowsSettings><longPathAware xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">true</longPathAware></windowsSettings></application></assembly>'
@@ -38,6 +38,40 @@ class ManifestTests(unittest.TestCase):
         corrupt=bytearray(changed);corrupt[1024]^=1
         with self.assertRaises(ValueError):verify_transform(original,corrupt,receipt,expected_sha256=pin)
         with self.assertRaises(ValueError):transform(original,expected_sha256='0'*64)
+    def test_product_manifests_preserve_cli_and_desktop_resources(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            for subsystem in [2,3]:
+                original=bytearray(pe_fixture());struct.pack_into("<H",original,152+68,subsystem)
+                executable=Path(temporary)/("product-"+str(subsystem)+".exe");executable.write_bytes(original)
+                before=read_resources(original,subsystem=subsystem)
+                with self.assertRaises(ValueError):verify_utf8(executable,subsystem=subsystem)
+                enable_utf8(executable,subsystem=subsystem);verify_utf8(executable,subsystem=subsystem)
+                once=executable.read_bytes();enable_utf8(executable,subsystem=subsystem)
+                self.assertEqual(executable.read_bytes(),once)
+                after=read_resources(executable.read_bytes(),subsystem=subsystem)
+                self.assertEqual(after[16,1,1033],before[16,1,1033])
+                self.assertEqual(executable.read_bytes()[1024:1040],original[1024:1040])
+                executable.write_bytes(executable.read_bytes().replace(b"UTF-8",b"Other"))
+                with self.assertRaises(ValueError):verify_utf8(executable,subsystem=subsystem)
+
+    def test_product_manifest_is_added_to_an_image_without_resources(self):
+        original=bytearray(pe_fixture());struct.pack_into("<II",original,152+112+16,0,0)
+        self.assertEqual(read_resources(original,subsystem=3,allow_empty=True),{})
+        changed,_=utf8_image(original)
+        manifests=read_resources(changed,subsystem=3)
+        self.assertEqual(set(manifests),{(24,1,1033)})
+        self.assertIn(b"UTF-8",manifests[24,1,1033])
+        self.assertEqual(changed[1024:1040],original[1024:1040])
+
+    def test_existing_go_manifest_keeps_compatibility_without_application_settings(self):
+        data=bytearray(pe_fixture())
+        manifest=b'<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0"><compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1"><application><supportedOS Id="fixture"/></application></compatibility></assembly>'
+        original=append_resources(data,{24:{1:{1033:manifest}}},subsystem=3)
+        changed,_=utf8_image(original)
+        value=read_resources(changed,subsystem=3)[24,1,1033]
+        self.assertIn(b"supportedOS",value);self.assertIn(b"UTF-8",value)
+        self.assertEqual(changed[1024:1040],original[1024:1040])
+
     def test_normalizes_only_authenticode_header_and_certificate(self):
         original=pe_fixture();changed,receipt=transform(original,expected_sha256=hashlib.sha256(original).hexdigest())
         signed=bytearray(changed);struct.pack_into('<I',signed,152+64,123456)
