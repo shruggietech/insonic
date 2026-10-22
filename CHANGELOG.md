@@ -4,6 +4,10 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+### Changed
+
+- 2026-10-22: Refresh Playwright maintainer tooling, Windows IPC/Linux credential and S3 client dependencies, and static-documentation renderer dependencies. Capture tooling follows the root exact Playwright pin; maintained desktop source checks retain independently verified pristine upstream checksums after Go graph refresh and enforce both archive and module-file entries without conflicts.
+
 ### Added
 
 - Maintained CLI fixture provenance and a bounded command/option coverage ledger derived from the executed binary, with image/package identity and explicit semantic, invocation, refusal and unverified dispositions. Installed qualification exercises spaces and non-Latin library/program destinations.

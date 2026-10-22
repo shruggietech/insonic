@@ -3,10 +3,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import os from 'node:os';
-import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
+import {mkdtemp,mkdir,readFile,writeFile,rm} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {fixtureEnvironment,parseOptions,allowedAsset,assertReceipt,boundedOperation,sourceSnapshot,embeddedSourceIdentity,assertBinarySource,VERSION,PLAYWRIGHT_VERSION} from '../scripts/capture-application-ui.mjs';
+
+test('capture renderer authority follows the exact root package and lock pins',async()=>{
+  const manifest=JSON.parse(await readFile(new URL('../package.json',import.meta.url),'utf8'));
+  const lock=JSON.parse(await readFile(new URL('../package-lock.json',import.meta.url),'utf8'));
+  assert.match(PLAYWRIGHT_VERSION,/^\d+\.\d+\.\d+$/);
+  assert.equal(PLAYWRIGHT_VERSION,manifest.devDependencies['playwright-core']);
+  assert.equal(PLAYWRIGHT_VERSION,lock.packages[''].devDependencies['playwright-core']);
+  assert.equal(PLAYWRIGHT_VERSION,lock.packages['node_modules/playwright-core'].version);
+});
 
 test('real Git source inventory marks untracked compiled inputs dirty while ignoring build output',async t=>{
   const temporary=path.resolve(os.tmpdir());const fixture=await mkdtemp(path.join(temporary,'insonic-capture-git-'));
@@ -54,5 +63,5 @@ test('assets are an exact inventory rather than arbitrary file paths',()=>{
 test('receipt rejects false renderer, private fixtures, missing landmarks and image hashes',()=>{
   const receipt={kind:'application-ui-capture',schema_version:VERSION,renderer:{kind:'chromium-headless',playwright_version:PLAYWRIGHT_VERSION},fixture:{isolated:true,browser_profile_owned:true,private_inputs:false},source:{revision:'a'.repeat(40),tree_sha256:'b'.repeat(64),dirty:false},images:['setup-location.png','setup-backends.png','setup-processing.png','library-ready.png'].map(name=>({path:name,sha256:'c'.repeat(64),width:1440,height:1100,landmark:'Setup',caption:'Figure. Actual controls.'}))};
   assert.equal(assertReceipt(receipt),receipt);
-  for(const mutate of [r=>r.renderer.kind='native-webview',r=>r.fixture.private_inputs=true,r=>r.fixture.browser_profile_owned=false,r=>r.images[0].sha256='wrong',r=>r.images[0].landmark='',r=>r.source.tree_sha256='',r=>r.source.dirty=true,r=>delete r.source.dirty,r=>r.images[0].path='../owner.png',r=>r.images[0].height=6001]){const changed=structuredClone(receipt);mutate(changed);assert.throws(()=>assertReceipt(changed))}
+  for(const mutate of [r=>r.renderer.kind='native-webview',r=>r.renderer.playwright_version='0.0.0',r=>r.fixture.private_inputs=true,r=>r.fixture.browser_profile_owned=false,r=>r.images[0].sha256='wrong',r=>r.images[0].landmark='',r=>r.source.tree_sha256='',r=>r.source.dirty=true,r=>delete r.source.dirty,r=>r.images[0].path='../owner.png',r=>r.images[0].height=6001]){const changed=structuredClone(receipt);mutate(changed);assert.throws(()=>assertReceipt(changed))}
 });

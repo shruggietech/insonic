@@ -10,8 +10,9 @@ import {fileURLToPath} from 'node:url';
 import {runDensityMatrix} from './desktop-density-capture.mjs';
 
 export const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
-export const VERSION=JSON.parse(await readFile(path.join(ROOT,'package.json'),'utf8')).version;
-export const PLAYWRIGHT_VERSION='1.62.1';
+const packageMetadata=JSON.parse(await readFile(path.join(ROOT,'package.json'),'utf8'));
+export const VERSION=packageMetadata.version;
+export const PLAYWRIGHT_VERSION=packageMetadata.devDependencies['playwright-core'];
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 
 export function fixtureEnvironment(base,fixture,cli) {

@@ -256,4 +256,27 @@ class GoModuleNoticesTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 notices.logical_identity(value)
 
+    def test_both_repository_upstreams_reject_pruned_or_changed_sums_and_accept_restoration(self):
+        for module, policy in notices.PATCH_POLICIES.items():
+            self.prepare_repository_patch(module)
+            sums = self.root / 'go.sum'
+            original = sums.read_text(encoding='utf-8')
+            authority = json.loads((self.root / (policy['directory'] + '.source.json')).read_text(encoding='utf-8'))
+            with patch.object(notices, 'ROOT', self.root):
+                for suffix in ['/go.mod', '']:
+                    prefix = module + ' ' + policy['version'] + suffix + ' '
+                    matches = [line for line in original.splitlines() if line.startswith(prefix)]
+                    self.assertEqual(len(matches), 1)
+                    line, bad = matches[0], prefix + 'h1:' + 'A' * 43 + '='
+                    cases = ['\n'.join(value for value in original.splitlines() if value != line) + '\n',
+                             original.replace(line, bad), original + bad + '\n']
+                    for index, changed in enumerate(cases):
+                        with self.subTest(module=module, entry=suffix, changed=index):
+                            sums.write_text(changed, encoding='utf-8', newline='\n')
+                            with self.assertRaisesRegex(ValueError, 'upstream differs from go.sum'):
+                                notices.repository_patch_source(module)
+                    sums.write_text(original, encoding='utf-8', newline='\n')
+                    _, identity = notices.repository_patch_source(module)
+                    self.assertEqual(identity, (module, policy['version'], authority['patched_sum']))
+
 if __name__=='__main__': unittest.main()

@@ -61,8 +61,16 @@ def repository_patch_source(module=PATCH_MODULE):
     upstream, current = authority.get('upstream_files'), authority.get('files')
     if tree_hash(upstream) != authority.get('upstream_sum') or tree_hash(current) != authority.get('patched_sum'):
         raise ValueError('repository module tree checksum differs')
-    if f"{module} {version} {authority['upstream_sum']}" not in (ROOT / 'go.sum').read_text(encoding='utf-8').splitlines():
-        raise ValueError('repository module upstream differs from go.sum')
+    # Go's goModSum uses a single summary entry named go.mod. Its content hash
+    # is already bound by the verified pristine archive tree above.
+    if 'go.mod' not in upstream:
+        raise ValueError('repository module upstream go.mod identity is missing')
+    go_mod_sum = 'h1:' + base64.b64encode(hashlib.sha256((upstream['go.mod'] + '  go.mod\n').encode('utf-8')).digest()).decode('ascii')
+    sums = (ROOT / 'go.sum').read_text(encoding='utf-8').splitlines()
+    for selected_version, checksum in [(version, authority['upstream_sum']), (version + '/go.mod', go_mod_sum)]:
+        prefix = module + ' ' + selected_version + ' '
+        if [line for line in sums if line.startswith(prefix)] != [prefix + checksum]:
+            raise ValueError('repository module upstream differs from go.sum: ' + module + ' ' + selected_version)
     modified = sorted(name for name in upstream if current.get(name) != upstream[name])
     added = sorted(set(current) - set(upstream))
     if (not set(upstream) <= set(current) or modified != policy['modified'] or added != policy['added']
