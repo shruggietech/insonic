@@ -67,3 +67,4 @@ Inventory first, then derive accepted coverage and separate observed/asserted ou
 
 - [x] T023 Replay value-free authority-building observations, aggregate schema-owned failure categories and always check server liveness after cleanup exceptions per FR-003/FR-008 and first Codex review.
 - [x] T024 Preserve Windows Unicode extractor filenames through UTF-8 stdin, verify native extraction, and close the package failure diagnostic SQLite connection per FR-006/FR-008 and the initial hosted package failure.
+- [x] T025 Reproduce the hosted ExifTool Unicode installation failure, transform only the pinned packaged launcher's process manifest before signing, preserve portable source/receipt identity and independently verify unsigned bytes; share the existing setup PE resource writer and test unchanged resources per FR-006 and plan decision 8.

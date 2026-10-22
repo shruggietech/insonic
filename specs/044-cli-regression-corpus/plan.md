@@ -31,6 +31,7 @@ Pre-research and post-design: PASS. Owner scope, shared CLI authority, source pr
 - Existing provider/documented workflow cleanup: assert bounded server threads actually stop.
 - `cmd/insonic/commands.go`: expose value arity from the existing global-option registry in contextual help, with a Go regression.
 - `internal/library/extract.go`: use ExifTool's UTF-8 stdin argument transport on Windows so non-Latin library paths do not depend on the system code page; preserve redacted extraction provenance and original deadlines.
+- `scripts/windows_exiftool_manifest.py` and shared `pe_resources.py`: deterministically add a process-local UTF-8 code page to the exact pinned packaged launcher; preserve the upstream cache and all other resources. `windows_setup.py` reuses the extracted resource writer without changing setup resource bytes.
 - `docs/v1.0.1/development.md` and `CHANGELOG.md`: maintainer contract and change record; no numbered-plan links in public docs.
 
 ## Design decisions
@@ -42,6 +43,8 @@ Pre-research and post-design: PASS. Owner scope, shared CLI authority, source pr
 5. Bind CLI SHA-256 and platform/version to the existing package archive/inventory proof; source-only lanes explicitly retain companion-dependent gaps. Do not rescan/hash the whole package a second time.
 6. Rename existing owned library/install roots to include non-Latin text while preserving spaces. Existing Unicode extraction/media and HTTP matrices already run and will be indexed, not duplicated.
 7. Reviewer-owned coverage questions remain unchecked for the requested final owner review; the built-in specification checklist passes 16/16 and autopilot supplies implementation-stage authorization.
+
+8. Record the original and transformed unsigned launcher identities and both portable recipe files in package corresponding sources. Recompute the transformation during independent archive verification; normalize only the declared Authenticode envelope when signing is explicitly verified. Transform before signing and inventory, never patch the native input cache.
 
 ## Complexity Tracking
 

@@ -6,3 +6,5 @@
 - Ledger: versioned corpus identity, executable SHA-256, platform/product version, optional verified package archive/inventory source proof, scenario dispositions and complete dynamic command/option rows. Bounded output; source-only companion gaps remain explicit.
 
 Validation bounds: inventory at most 64 KiB, at most 100 fixtures and 32 scenarios; IDs match `[a-z][a-z0-9-]{0,63}`, expectation/provenance strings at most 512 characters. Aggregate at most 20,000 non-help observations; serialized ledger at most 1 MiB. Exceeding a bound fails qualification rather than silently truncating coverage.
+
+- Windows launcher receipt version 1: pinned upstream SHA-256, exact transformed unsigned SHA-256 and original/UTF-8 manifest hashes per language. Corresponding sources retain the original .bin and two portable Python recipe files, all included in the source inventory. Independent verification reproduces exact unsigned bytes; an explicitly verified signing receipt permits only checksum/certificate-envelope normalization. Existing unsigned verification remains exact.

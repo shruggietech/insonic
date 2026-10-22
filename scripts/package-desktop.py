@@ -440,7 +440,7 @@ def media_runtime_permissions(receipt):
             'source_complete_scope': 'FFmpeg and every bundled third-party media library requiring corresponding source'}
 
 
-def collect_corresponding_sources(root, source_media, receipt, directory):
+def collect_corresponding_sources(root, source_media, receipt, directory, *, launcher_transform=None):
     if receipt.get('source_complete') is not True or receipt.get('recipe_sha256') != source_media.sha(ROOT / 'scripts/media_source_build.py'):
         raise ValueError('corresponding media source build receipt is incomplete or stale')
     target = root / 'sources'
@@ -478,18 +478,32 @@ def collect_corresponding_sources(root, source_media, receipt, directory):
         'To modify/relink a library, edit its extracted source and rerun the recorded\n'
         'library and FFmpeg build commands, retaining the same static dependency closure.\n',
         encoding='utf-8', newline='\n')
+    if launcher_transform is not None:
+        from windows_exiftool_manifest import ORIGINAL, RECEIPT, RECIPES
+        original = Path(json.loads((ROOT / 'build/native/media-tools.json').read_text(encoding='utf-8'))['exiftool']['path'])
+        shutil.copyfile(original, target / ORIGINAL)
+        for name in RECIPES: shutil.copyfile(ROOT / 'scripts' / name, target / name)
+        write_json(target / RECEIPT, launcher_transform)
+        with (target / 'REBUILD.txt').open('a', encoding='utf-8', newline='\n') as instructions:
+            instructions.write('\nWindows ExifTool process-manifest reproduction:\n'
+                '1. Keep windows_exiftool_manifest.py, pe_resources.py and the original .bin together.\n'
+                '2. Run python windows_exiftool_manifest.py exiftool-launcher.original.bin '
+                'exiftool-utf8.exe --receipt rebuilt-exiftool.json from this directory.\n'
+                '3. Compare the unsigned SHA-256 with exiftool-windows-utf8.json. '
+                'Optional later Authenticode signing changes only its declared signature envelope.\n')
     manifest = {'kind': 'corresponding-sources', 'schema_version': VERSION, 'source_complete': True,
                 'platform': receipt['platform'], 'sources': pins,
                   'redistribution_closure': media_runtime_permissions(receipt),
                 'build_receipt': 'ffmpeg-build.json', 'files': [
                     {'path': path.name, 'sha256': sha(path), 'size_bytes': path.stat().st_size}
                     for path in sorted(target.iterdir()) if path.is_file()]}
+    if launcher_transform is not None: manifest['platform_transforms'] = [RECEIPT]
     write_json(target / 'source-manifest.json', manifest)
     verify_corresponding_sources(root, manifest)
     return manifest
 
 
-def verify_corresponding_sources(root, manifest=None, expected_source_root=None):
+def verify_corresponding_sources(root, manifest=None, expected_source_root=None, *, signing=None):
     target = root / 'sources'
     if manifest is None:
         manifest = json.loads((target / 'source-manifest.json').read_text(encoding='utf-8'))
@@ -548,6 +562,15 @@ def verify_corresponding_sources(root, manifest=None, expected_source_root=None)
             raise ValueError('package corresponding source provenance requires all dependency groups')
     if not source_module().dependency_part_receipts_valid(target, receipt):
         raise ValueError('package corresponding source dependency group provenance differs')
+    transforms = manifest.get('platform_transforms', [])
+    selected_transform = suffix and expected_source_root is not None and (Path(expected_source_root) / 'scripts/windows_exiftool_manifest.py').is_file()
+    if transforms or selected_transform:
+        from windows_exiftool_manifest import RECEIPT, ORIGINAL, RECIPES, verify_package
+        if not suffix or transforms != [RECEIPT] or any(name not in entries for name in [RECEIPT, ORIGINAL, *RECIPES]):
+            raise ValueError('package platform transformation provenance differs')
+        if expected_source_root is not None and any(sha(target / name) != sha(Path(expected_source_root) / 'scripts' / name) for name in RECIPES):
+            raise ValueError('package platform transformation recipe differs from selected source')
+        verify_package(root, allow_signature=bool(signing and signing.get('configured') is True and signing.get('verified') is True))
     return manifest
 
 
@@ -643,7 +666,12 @@ def build(variant='desktop'):
     for binary, digest in source_receipt['binaries'].items():
         if sha(root / 'companions/media' / binary) != digest:
             raise ValueError('packaged media binary differs from its owned source build')
-    collect_corresponding_sources(root, source_media, source_receipt, source_directory)
+    launcher_transform = None
+    if key.startswith('windows'):
+        from windows_exiftool_manifest import prepare, TARGET
+        upstream = Path(json.loads((ROOT / 'build/native/media-tools.json').read_text(encoding='utf-8'))['exiftool']['path'])
+        launcher_transform = prepare(upstream, root / TARGET)
+    collect_corresponding_sources(root, source_media, source_receipt, source_directory, launcher_transform=launcher_transform)
     signing = sign_native(root, key)
     installers(root, key, variant, signing)
     resource_root = root
@@ -798,7 +826,7 @@ def verify_archive_receipt(archive, receipt, expected_source_root=ROOT):
             for source, name in sources:
                 if sha(resources / 'companions/processing' / name) != sha(source):
                     raise ValueError('packaged worker metadata differs from elected source')
-        manifest = verify_corresponding_sources(resources, expected_source_root=expected_source_root)
+        manifest = verify_corresponding_sources(resources, expected_source_root=expected_source_root, signing=receipt.get('signing'))
         if sha(resources / 'sources/source-manifest.json') != receipt['distribution']['source_manifest_sha256']:
             raise ValueError('package source manifest differs from receipt identity')
         if not receipt['signing']['configured']:
