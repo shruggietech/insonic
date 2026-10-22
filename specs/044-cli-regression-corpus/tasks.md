@@ -46,10 +46,10 @@
 ## Phase 7: Authorized publication and bounded review
 
 - [x] T017 Track #114 in the S044 GitHub milestone/Project; commit and automatically push codex/044-cli-regression-corpus, open/attach an ordinary PR with #114 closure and #147 reconciliation scope.
-- [ ] T018 Monitor exact-head complete CI to terminal acceptance using the current timing policy; fix failures and preserve canonical GitHub evidence.
-- [ ] T019 Address every received Codex finding/thread; allow initial automatic plus one explicit second round, never a third; retain actual reviewed-head identities.
-- [ ] T020 Reconcile #147 coverage/defect status with verified S044 results and explicit unverified service/inference/hardware/#154 limits; keep unrelated issue/dependency scopes unchanged.
-- [ ] T021 Verify final clean head, checks, threads and Project status; delete owned scratch, leave PR unmerged and hand off for owner final review.
+- [x] T018 Monitor exact-head complete CI to terminal acceptance using the current timing policy; fix failures and preserve canonical GitHub evidence.
+- [x] T019 Address every received Codex finding/thread; allow initial automatic plus one explicit second round, never a third; retain actual reviewed-head identities.
+- [x] T020 Reconcile #147 coverage/defect status with verified S044 results and explicit unverified service/inference/hardware/#154 limits; keep unrelated issue/dependency scopes unchanged.
+- [x] T021 Verify final clean head, checks, threads and Project status; delete owned scratch, leave PR unmerged and hand off for owner final review.
 
 ## Dependencies and execution
 
