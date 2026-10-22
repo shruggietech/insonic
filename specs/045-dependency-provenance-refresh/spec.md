@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-22
 
-**Status**: Implemented; hosted qualification and bounded reviews pending
+**Status**: Implementation and two Codex rounds complete; acceptance and final-head checks recorded in PR #169
 
 **Tracking**: #168, milestone 29, Project 7.
 

@@ -36,14 +36,14 @@
 - [x] T012 [US3] Run root npm check/test, Python unittest and affected pinned Go tests/vet under plan.md verification requirements.
 - [x] T013 [P] [US3] Run site check/test/build/public-offline export for site/package.json updates.
 - [x] T014 [US3] Commit S045 changes, automatically push codex/045-dependency-provenance-refresh and publish/attach its official PR linked to #168.
-- [ ] T015 [US3] Monitor and repair complete exact-head .github/workflows/ci.yml execution; verify all native/package/backend/CLI receipts and terminal phase timing.
-- [ ] T016 [US3] Resolve every received PR review finding, complete at most two Codex rounds, and requalify the final head.
-- [ ] T017 [US3] Reconcile #168 and supersede #157-#159 only after the replacement PR represents all intended changes and passes qualification.
+- [x] T015 [US3] Monitor and repair complete exact-head .github/workflows/ci.yml execution; verify all native/package/backend/CLI receipts and terminal phase timing.
+- [x] T016 [US3] Resolve every received PR review finding, complete at most two Codex rounds, and requalify the final head.
+- [x] T017 [US3] Reconcile #168 and supersede #157-#159 only after the replacement PR represents all intended changes and passes qualification.
 
 ## Phase 6: Polish and handoff
 
-- [ ] T018 Converge specs/045-dependency-provenance-refresh/ against implementation, check UTF-8/LF/mojibake and remove owned temporary workflow files.
-- [ ] T019 Verify final Git/CI/review/tracking state and hand off the unmerged PR with evidence and remaining limits in specs/045-dependency-provenance-refresh/quickstart.md.
+- [x] T018 Converge specs/045-dependency-provenance-refresh/ against implementation, check UTF-8/LF/mojibake and remove owned temporary workflow files.
+- [x] T019 Verify final Git/CI/review/tracking state and hand off the unmerged PR with evidence and remaining limits in specs/045-dependency-provenance-refresh/quickstart.md.
 
 ## Dependencies and execution
 
