@@ -38,8 +38,15 @@ async function verifySource(root, policy) {
   if (authority.module !== module || authority.version !== version || authority.directory !== directory) throw new Error('Source authority differs from the selected maintained module');
   const upstream = names(authority.upstream_files), current = names(authority.files);
   if (treeHash(authority.upstream_files, module, version) !== authority.upstream_sum || treeHash(authority.files, module, version) !== authority.patched_sum) throw new Error('Maintained source tree checksum differs');
-  const sum = await readFile(join(root, 'go.sum'), 'utf8');
-  if (!sum.split('\n').includes(module + ' ' + version + ' ' + authority.upstream_sum)) throw new Error('Upstream source is not bound to go.sum');
+  // Go's goModSum hashes one summary entry named go.mod (without a module prefix).
+  // Its content digest is already bound by the verified pristine tree authority.
+  if (!Object.hasOwn(authority.upstream_files, 'go.mod')) throw new Error('Maintained upstream go.mod identity is absent');
+  const goModSum = 'h1:' + createHash('sha256').update(authority.upstream_files['go.mod'] + '  go.mod\n').digest('base64');
+  const sums = (await readFile(join(root, 'go.sum'), 'utf8')).split('\n');
+  for (const [selectedVersion, checksum] of [[version, authority.upstream_sum], [version + '/go.mod', goModSum]]) {
+    const prefix = module + ' ' + selectedVersion + ' ', entries = sums.filter(line => line.startsWith(prefix));
+    if (entries.length !== 1 || entries[0] !== prefix + checksum) throw new Error('Upstream source is not bound to go.sum: ' + module + ' ' + selectedVersion);
+  }
   const mod = await readFile(join(root, 'go.mod'), 'utf8');
   const declarations = mod.split(String.fromCharCode(10)).map(line => line.trim().replaceAll(String.fromCharCode(9), ' ').split(' ').filter(Boolean));
   if (!declarations.some(fields => fields[0] === module && fields[1] === version)) throw new Error('Maintained logical module pin differs');

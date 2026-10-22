@@ -85,15 +85,19 @@ for (const [directory,module,version,verify] of [
   ['go-webview2','github.com/wailsapp/go-webview2','v1.0.23',verifyWebviewSource],
   ['wails','github.com/wailsapp/wails/v2','v2.16.0',verifyWailsSource],
 ]) {
-  test(`${directory} rejects pruned or changed upstream sums and accepts exact restoration`,async()=>fixture(async repository=>{
+  test(directory+' rejects missing, changed or conflicting archive/module sums',async()=>fixture(async repository=>{
     const sumFile=join(repository,'go.sum'),original=await readFile(sumFile,'utf8');
-    const authority=await verify(repository),line=`${module} ${version} ${authority.upstream_sum}`;
-    assert.ok(original.split('\n').includes(line));
-    for(const replacement of ['',`${module} ${version} h1:${'A'.repeat(43)}=`]){
-      await writeFile(sumFile,original.split('\n').map(value=>value===line?replacement:value).filter(Boolean).join('\n')+'\n');
-      await assert.rejects(verify(repository),/bound to go.sum/);
+    const authority=await verify(repository);
+    for(const suffix of ['/go.mod','']){
+      const prefix=module+' '+version+suffix+' ',matches=original.split('\n').filter(value=>value.startsWith(prefix));
+      assert.equal(matches.length,1);
+      const line=matches[0],bad=prefix+'h1:'+'A'.repeat(43)+'=';
+      for(const changed of [original.split('\n').filter(value=>value!==line).join('\n'),original.replace(line,bad),original+bad+'\n']){
+        await writeFile(sumFile,changed);
+        await assert.rejects(verify(repository),/bound to go.sum/);
+      }
+      await writeFile(sumFile,original);
+      assert.equal((await verify(repository)).upstream_sum,authority.upstream_sum);
     }
-    await writeFile(sumFile,original);
-    assert.equal((await verify(repository)).upstream_sum,authority.upstream_sum);
   },directory));
 }

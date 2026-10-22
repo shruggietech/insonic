@@ -11,3 +11,5 @@
 No unresolved design clarification remains.
 
 Go 1.27.1 reproduced pruning of all four retained upstream entries. Explicit downloads independently returned the original Sum/GoModSum values without writing them to go.sum; exact verified entries were restored. Both verifiers reject missing/changed authority and accept restoration. The requested MinIO update also changes its declared tool/test graph; only linked product modules enter package notices. Capture pin regression failed at 1.62.1 versus 1.64.1 before deriving the authority, then passed.
+
+Initial Codex review identified unenforced module-file entries in the retained four-entry contract. Both verifiers now derive GoModSum from the already archive-bound pristine go.mod content digest using [Go’s goModSum](https://go.dev/src/cmd/go/internal/modfetch/fetch.go) and [Hash1](https://go.dev/src/cmd/vendor/golang.org/x/mod/sumdb/dirhash/hash.go). Derived values independently match pinned Go 1.27.1 download JSON for both modules. Missing, changed and conflicting archive/module-file cases failed the new regression before the repair and pass afterward. No maintained source-manifest or patched-tree bytes change.

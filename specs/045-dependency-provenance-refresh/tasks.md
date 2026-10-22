@@ -35,7 +35,7 @@
 
 - [x] T012 [US3] Run root npm check/test, Python unittest and affected pinned Go tests/vet under plan.md verification requirements.
 - [x] T013 [P] [US3] Run site check/test/build/public-offline export for site/package.json updates.
-- [ ] T014 [US3] Commit S045 changes, automatically push codex/045-dependency-provenance-refresh and publish/attach its official PR linked to #168.
+- [x] T014 [US3] Commit S045 changes, automatically push codex/045-dependency-provenance-refresh and publish/attach its official PR linked to #168.
 - [ ] T015 [US3] Monitor and repair complete exact-head .github/workflows/ci.yml execution; verify all native/package/backend/CLI receipts and terminal phase timing.
 - [ ] T016 [US3] Resolve every received PR review finding, complete at most two Codex rounds, and requalify the final head.
 - [ ] T017 [US3] Reconcile #168 and supersede #157-#159 only after the replacement PR represents all intended changes and passes qualification.
@@ -52,3 +52,7 @@ Setup -> blocking analysis -> US1 -> US2 -> local verification/publication -> fu
 ## Requirement coverage
 
 FR-001: T004-T008,T017; FR-002: T008,T010,T012-T013; FR-003: T009-T010; FR-004: T009-T010; FR-005: T012-T015; FR-006: T015,T019; FR-007: T012-T013,T018; FR-008: T001-T002,T011,T017; FR-009: T014-T016,T019; FR-010: T017,T019. SC-001: T005-T010,T017; SC-002: T009-T010; SC-003: T012-T015; SC-004: T016-T019.
+
+## Phase 7: Convergence
+
+- [x] T020 Enforce exact archive and `/go.mod` upstream checksum entries for both maintained modules in scripts/webview-source.mjs and scripts/go_module_notices.py; cover missing, changed and conflicting entries in tests/webview-source.test.mjs and tests/go_module_notices_test.py per FR-003 and SC-002 (partial).

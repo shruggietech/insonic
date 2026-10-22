@@ -30,7 +30,7 @@ After design: PASS. Local replacements and both provenance verifiers remain auth
 - Root and site package manifests/locks: requested JavaScript updates only. Desktop frontend React stays independently pinned.
 - go.mod / go.sum: recomputed elected module graph; explicit pristine Wails/WebView upstream sums restored after tidy.
 - scripts/capture-application-ui.mjs and tests/capture-application-ui.test.mjs: derive exact capture pin from root metadata and reject mismatched capture receipts.
-- tests/go_module_notices_test.py and tests/webview-source.test.mjs: both maintained modules reject missing/mismatching sums and accept exact restored identities.
+- tests/go_module_notices_test.py and tests/webview-source.test.mjs: both maintained modules reject missing/mismatching or conflicting archive and module-file sums and accept exact restored identities.
 - docs/v1.0.1/development.md: repeatable post-tidy upstream download/verification commands; CHANGELOG.md: concise maintenance note.
 - This directory: spec, requirements/provenance checklists, plan, research, data model, quickstart and tasks. No new external interface requires a contracts directory.
 
