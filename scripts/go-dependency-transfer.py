@@ -178,7 +178,8 @@ def identity(selected):
     if not re.fullmatch(r'[a-f0-9]{40}', revision) or any(not re.fullmatch(r'[1-9][0-9]*', x) for x in (run_id, attempt)):
         raise ValueError('dependency transfer identity is invalid')
     files = ['go.mod', 'go.sum', 'internal/qualification/dependencies.json', 'scripts/go-dependency-transfer.py',
-             'scripts/package-desktop.py', 'scripts/qualify.py', 'scripts/windows_setup.py']
+             'scripts/package-desktop.py', 'scripts/qualify.py', 'scripts/windows_setup.py',
+             'scripts/pe_resources.py', 'scripts/windows_exiftool_manifest.py']
     for directory in ['third_party/go-webview2', 'third_party/wails']:
         files.append(directory + '.source.json')
         files.extend(p.relative_to(ROOT).as_posix() for p in (ROOT / directory).rglob('*') if p.is_file())

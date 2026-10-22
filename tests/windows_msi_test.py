@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import struct
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -34,6 +35,17 @@ def versioned_pe_fixture():
     struct.pack_into('<IIII',data,512+72,0x1000+88,len(value),0,0);data[600:600+len(value)]=value
     return bytes(data)
 class InstallerModelTests(unittest.TestCase):
+    def test_staged_setup_worker_imports_without_the_repository_module_path(self):
+        spec=importlib.util.spec_from_file_location('qualify_staged_modules',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as temporary:
+            scripts=Path(temporary)/'scripts';module.stage_worker_scripts(scripts)
+            code="import sys;sys.path.insert(0,sys.argv[1]);import qualify_installer_setup,windows_setup,pe_resources;from pathlib import Path;assert Path(pe_resources.__file__).parent.samefile(Path(sys.argv[1]));assert Path(windows_setup.__file__).parent.samefile(Path(sys.argv[1]))"
+            result=subprocess.run([sys.executable,'-I','-c',code,str(scripts)],cwd=temporary,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0,timeout=15)
+            self.assertEqual(result.returncode,0,result.stderr.decode(errors='replace'))
+            (scripts/'pe_resources.py').unlink()
+            missing=subprocess.run([sys.executable,'-I','-c',code,str(scripts)],cwd=temporary,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0,timeout=15)
+            self.assertNotEqual(missing.returncode,0);self.assertIn(b"No module named 'pe_resources'",missing.stderr)
+
     def test_actor_authoring_resources_keep_the_governed_icon_at_its_module_path(self):
         spec=importlib.util.spec_from_file_location('qualify_staged_icon',ROOT/'scripts/qualify-windows-msi.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with tempfile.TemporaryDirectory() as temporary:

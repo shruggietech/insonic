@@ -28,6 +28,7 @@ Pre-research and post-design: PASS. Owner scope, shared CLI authority, source pr
 - `tests/fixtures/cli-corpus.json`: versioned fixture families/scenarios referencing existing assertion owners and licensed media manifest.
 - `tests/cli_corpus_test.py`: meaningful malformed/drift/privacy/outcome/identity regressions.
 - Existing `scripts/cli_contract_qualification.py`, `cli_help_examples.py` and `package-desktop.py`: compose recorder, verified artifact identity and existing journeys.
+- `scripts/qualify-windows-msi.py`: stage the complete setup-module closure, including the shared PE helper; verify importability from an isolated ordinary-worker tree. Dependency-transfer identity includes both manifest recipes.
 - `scripts/ci-package-inputs.py` and the shared documentation CI producer: bound npm requests/retries within existing input-stage limits while explicitly retaining advisory audits.
 - Existing provider/documented workflow cleanup: assert bounded server threads actually stop.
 - `cmd/insonic/commands.go`: expose value arity from the existing global-option registry in contextual help, with a Go regression.
