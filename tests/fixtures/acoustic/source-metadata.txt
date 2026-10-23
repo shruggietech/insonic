@@ -1,0 +1,34 @@
+; Some pipe(|) separated metadata about all LibriVox readers, whose work was used
+; in the corpus.
+;
+; The meaning of the fields in left-to-right order is as follows:
+;
+; reader_id: the ID of the reader in the LibriVox's database
+; gender: 'F' for female, 'M' for male
+; subset: the corpus subset to which the reader's audio is assigned
+; duration: total number of minutes of speech by the reader, included in the corpus
+; name: the name under which the reader is registered in LibriVox
+;
+;ID  |SEX| SUBSET           |MINUTES| NAME
+84   | F | dev-clean        | 8.02  | Christie Nowak
+174  | M | dev-clean        | 8.04  | Peter Eastman
+251  | M | dev-clean        | 8.04  | Mark Nelson
+; Some pipe(|) separated metadata about the audio chapters included in the corpus.
+;
+; The meaning of the fields in left-to-right order is as follows:
+;
+; chapter_id: the ID of the chapter in the LibriVox's database
+; reader_id: the ID of the reader in the LibriVox's database
+; duration: how many minutes of this chapter are used in the corpus
+; subset: the corpus subset to which this chapter is assigned
+; project_id: the LibriVox project ID
+; book_id: the Project Gutenberg's ID for the book on which the LibriVox project is based
+; chapter_title: the title of the chapter on LibriVox
+; project_title: the title of the LibriVox project
+;
+;ID    |READER|MINUTES| SUBSET           | PROJ.|BOOK ID| CH. TITLE | PROJECT TITLE
+50561  | 174  | 2.43  | dev-clean        | 4884 | 2032  | Introduction | Martin Pippin in the Apple Orchard
+84280  | 174  | 2.49  | dev-clean        | 6172 | 30340 | The Arraignment of Jealousy | Passionate Friends
+118436 | 251  | 2.49  | dev-clean        | 7692 | 42259 | 01  - Death Strikes a King | People of the Black Circle
+121123 | 84   | 2.78  | dev-clean        | 47   | 1184  | Maximilian | Count of Monte Cristo
+121550 | 84   | 5.24  | dev-clean        | 67   | 1004  | Bk 2, Purgatory: Canto XXVIII - Canto XXXIII | Divine Comedy

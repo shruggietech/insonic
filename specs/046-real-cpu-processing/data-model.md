@@ -1,0 +1,8 @@
+# Acceptance data model
+
+- **Corpus manifest** (`insonic-acoustic-reference-v1`): upstream archive URL/hashes/license, fixed selection policy, reader identities and original clips. Each clip binds original member, chapter/utterance, role, transcript, bytes/hash, sample count/rate. Enroll/evaluation source members are disjoint. Sequence components bind held-out clips and exact silence/sample offsets.
+- **Run election**: complete archive and receipt, source revision, corpus digest, exact model inputs, CPU environment roles, frozen matching settings and bounded operation/overall limits. Controlled or development-source selection cannot satisfy reference-backed real mode.
+- **Stage outcome**: logical stage, required/success state, producing durable work kind/identity, safe first cause, elapsed/resource metrics and accepted identity summaries. No raw secret or owner path is retained.
+- **Acoustic comparison**: per-clip edit components and word denominators; per-voice reference reader windows and actual decision/score/version. Mixed windows and unknown/ambiguous outcomes remain explicit; no unsupported speech-boundary metric.
+- **Restored authority**: current media/audio/document/source mapping, model/artifact/profile, query/timeline/playback source coordinates and fetched file hashes. Transient playback URLs, paths and leases are excluded from portable equality.
+- **Final receipt** (`insonic-real-cpu-acceptance-v1`): execution identity, expected stages/cases, actual comparisons, functional acceptance, acoustic counts/limits and cleanup. State moves from running to failed or accepted only after completeness and owned cleanup; first failure cannot be overwritten by a cleanup error.

@@ -141,6 +141,24 @@
       "expectations": [
         "Cross-page relationship completeness, exact time filtering and declared read grammar."
       ]
+    },
+    {
+      "id": "real-acoustic-reference",
+      "owners": [
+        {
+          "path": "tests/fixtures/acoustic/manifest.json",
+          "sha256": "5abce92ea60ff0de4639161c85af383457f4e5b36c3ff6c00cfa018631dd6ada"
+        },
+        {
+          "path": "scripts/acoustic_reference.py",
+          "symbol": "load_corpus"
+        }
+      ],
+      "license": "CC-BY-4.0",
+      "provenance": "Pinned official LibriSpeech originals and independent transcript/reader references; disjoint enrollment and held-out speech. Actual inference remains explicitly elected outside required CI.",
+      "expectations": [
+        "Original hash/sample identity, independent text, source-disjoint roles and frozen matching settings; no DER or broad acoustic accuracy claim."
+      ]
     }
   ],
   "scenarios": [

@@ -10,6 +10,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Reference-backed packaged Windows CPU qualification prepares managed workers through the normal CLI, measures real transcription and two-reader speaker-profile matching against frozen licensed references, and verifies query, timeline, playback and model recovery after source withdrawal. Compact receipts separate functional acceptance, measured quality limits, preparation and qualification; deterministic integrity and cleanup regressions run without inference in CI.
+
 - Maintained CLI fixture provenance and a bounded command/option coverage ledger derived from the executed binary, with image/package identity and explicit semantic, invocation, refusal and unverified dispositions. Installed qualification exercises spaces and non-Latin library/program destinations.
 
 - Windows native qualification records owned desktop/input conditions, completion timings and created-environment runtime identity separately from loader availability. Its show/focus join now allows ten seconds within unchanged outer deadlines, with real input and natural release still required.

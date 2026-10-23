@@ -1,0 +1,106 @@
+{
+  "format": "insonic-acoustic-reference-v1",
+  "source": {
+    "url": "https://www.openslr.org/resources/12/dev-clean.tar.gz",
+    "size_bytes": 337926286,
+    "sha256": "76f87d090650617fca0cac8f88b9416e0ebf80350acb97b343a85fa903728ab3",
+    "md5": "42e2234ba48799c1f50f24a7926300a1",
+    "license": "CC-BY-4.0",
+    "license_url": "https://creativecommons.org/licenses/by/4.0/",
+    "authors": [
+      "Vassil Panayotov",
+      "Guoguo Chen",
+      "Daniel Povey",
+      "Sanjeev Khudanpur"
+    ]
+  },
+  "selection": {
+    "enrolled_speakers": [
+      "84",
+      "174"
+    ],
+    "unseen_speaker": "251",
+    "min_samples": 96000,
+    "max_samples": 320000,
+    "policy": "ascending numeric reader/chapter/utterance; first eligible enrollment, first eligible different chapter held-out when available, otherwise next distinct utterance; frozen before inference"
+  },
+  "references": {
+    "path": "references.txt",
+    "size_bytes": 1042,
+    "sha256": "a234a28eb3b582629f8488d2299361583fd842991d801ccf38facdc26c11e699"
+  },
+  "clips": [
+    {
+      "id": "84-121123-0002",
+      "path": "84-121123-0002.flac",
+      "size_bytes": 265402,
+      "samples": 219040,
+      "sample_rate": 16000,
+      "speaker": "84",
+      "archive_member": "LibriSpeech/dev-clean/84/121123/84-121123-0002.flac",
+      "role": "enrollment",
+      "transcript": "AT THIS MOMENT THE WHOLE SOUL OF THE OLD MAN SEEMED CENTRED IN HIS EYES WHICH BECAME BLOODSHOT THE VEINS OF THE THROAT SWELLED HIS CHEEKS AND TEMPLES BECAME PURPLE AS THOUGH HE WAS STRUCK WITH EPILEPSY NOTHING WAS WANTING TO COMPLETE THIS BUT THE UTTERANCE OF A CRY",
+      "sha256": "453d47cd8fc7329ac868128a4ac919d7ced28fda9ee72303d2189f064f8d1324"
+    },
+    {
+      "id": "84-121550-0000",
+      "path": "84-121550-0000.flac",
+      "size_bytes": 162628,
+      "samples": 134960,
+      "sample_rate": 16000,
+      "speaker": "84",
+      "archive_member": "LibriSpeech/dev-clean/84/121550/84-121550-0000.flac",
+      "role": "held-out",
+      "transcript": "BUT WITH FULL RAVISHMENT THE HOURS OF PRIME SINGING RECEIVED THEY IN THE MIDST OF LEAVES THAT EVER BORE A BURDEN TO THEIR RHYMES",
+      "sha256": "dbd3048279d25cb4adaa25e246db50ffa01b7714e6f091691abe908027951daf"
+    },
+    {
+      "id": "174-50561-0001",
+      "path": "174-50561-0001.flac",
+      "size_bytes": 262549,
+      "samples": 253760,
+      "sample_rate": 16000,
+      "speaker": "174",
+      "archive_member": "LibriSpeech/dev-clean/174/50561/174-50561-0001.flac",
+      "role": "enrollment",
+      "transcript": "WORSE AND WORSE HE IS EVEN PRESUMED TO BE THE CAPTIVE'S SWEETHEART WHO WHEEDLES THE FLOWER THE RING AND THE PRISON KEY OUT OF THE STRICT VIRGINS FOR HIS OWN PURPOSES AND FLIES WITH HER AT LAST IN HIS SHALLOP ACROSS THE SEA TO LIVE WITH HER HAPPILY EVER AFTER",
+      "sha256": "cfa138f5bde8bbf55b18c670c2d08025233bda6d3b7b520f78c9ccb8a8678975"
+    },
+    {
+      "id": "174-84280-0001",
+      "path": "174-84280-0001.flac",
+      "size_bytes": 354743,
+      "samples": 293280,
+      "sample_rate": 16000,
+      "speaker": "174",
+      "archive_member": "LibriSpeech/dev-clean/174/84280/174-84280-0001.flac",
+      "role": "held-out",
+      "transcript": "IT SEEMS TO ME MORE AND MORE AS I LIVE LONGER THAT MOST POETRY AND MOST LITERATURE AND PARTICULARLY THE LITERATURE OF THE PAST IS DISCORDANT WITH THE VASTNESS AND VARIETY THE RESERVES AND RESOURCES AND RECUPERATIONS OF LIFE AS WE LIVE IT TO DAY",
+      "sha256": "2635d394037ba5efa6a8e7ea7bb45159180f8ba69c8b345648305cb212a253f4"
+    },
+    {
+      "id": "251-118436-0000",
+      "path": "251-118436-0000.flac",
+      "size_bytes": 99741,
+      "samples": 100160,
+      "sample_rate": 16000,
+      "speaker": "251",
+      "archive_member": "LibriSpeech/dev-clean/251/118436/251-118436-0000.flac",
+      "role": "unseen",
+      "transcript": "HE WAS YOUNG NO SPEAR HAD TOUCHED HIM NO POISON LURKED IN HIS WINE",
+      "sha256": "8a8a2f34930ea37432f1cc1082061cd889eceed949b3c13a79cbdc10a96f99e0"
+    }
+  ],
+  "sequence": {
+    "clips": [
+      "84-121550-0000",
+      "174-84280-0001"
+    ],
+    "gap_samples": 8000
+  },
+  "matching": {
+    "threshold": 0.75,
+    "ambiguity_margin": 0.1,
+    "min_evidence_us": 1000000
+  }
+}
