@@ -629,7 +629,7 @@ def run(journey):
         graph = journey.command("graph", "capabilities")
         if graph.get("state") != "available" or graph.get("adapter_id") != "ladybugdb":
             raise ValueError("Reference acceptance requires the installed native LadybugDB graph")
-        journey.receipt["graph"] = {key: graph.get(key) for key in ("state", "adapter_id", "version")}
+        journey.receipt["graph"] = {key: graph.get(key) for key in ("state", "adapter_id", "backend_version")}
         journey.receipt["companion_sha256"] = {
             **{name: journey.tools[name]["sha256"] for name in ("ffmpeg", "ffprobe", "exiftool")},
             "cueson": ref.sha(journey.cueson)}
