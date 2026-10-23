@@ -9,7 +9,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -126,6 +126,51 @@ class ManagedTests(unittest.TestCase):
 
 
 class OwnershipTests(unittest.TestCase):
+    def test_dirty_or_different_reference_harness_stops_before_cli_execution(self):
+        journey = load("qualify-journey")
+        args = SimpleNamespace(mode="real", package="selected", reference_corpus="selected", timeout=1800)
+        selected = (Path(sys.executable), {}, Path(sys.executable), Path(sys.executable), {"revision": "a" * 40})
+        for identity in (("b" * 40, False, "c" * 64), ("a" * 40, True, "c" * 64)):
+            with self.subTest(identity=identity), tempfile.TemporaryDirectory() as temporary:
+                with patch.object(journey, "select_package", return_value=selected), \
+                     patch.object(journey, "packaged_environment", return_value={}), \
+                     patch.object(journey, "harness_identity", return_value=identity), patch.object(journey.engine, "_child") as child:
+                    with self.assertRaisesRegex(ValueError, "clean exact"):
+                        journey.Journey(args, Path(temporary))
+                    child.assert_not_called()
+
+    def test_cleanup_failure_is_attributed_before_runtime_release(self):
+        cpu = load("journey_cpu")
+        runner = SimpleNamespace(receipt={"current_stage": "restore"},
+                                 idle_runtime=Mock(side_effect=ValueError("first release failure")),
+                                 assert_harness_unchanged=Mock())
+        with self.assertRaisesRegex(ValueError, "first release failure"):
+            cpu.finalize_runtime(runner)
+        self.assertEqual(runner.receipt["first_failure_stage"], "cleanup")
+        runner.assert_harness_unchanged.assert_not_called()
+
+    def test_reference_source_drift_cannot_retain_success(self):
+        journey = load("qualify-journey")
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary)
+            for name in ("internal", "cmd", "scripts", "schemas/v1.0.1", "tests/fixtures"):
+                (source / name).mkdir(parents=True, exist_ok=True)
+            for name, data in {"VERSION": "1.0.1\n", "go.mod": "fixture", "go.sum": "fixture",
+                               "tests/fixtures/qualification-worker.py": "fixture", "scripts/elected.py": "original"}.items():
+                (source / name).write_text(data, encoding="utf-8")
+            def git(args, *unused, **options):
+                return b"a" * 40 if "rev-parse" in args else b""
+            with patch.object(journey, "ROOT", source), patch.object(journey.engine, "_child", side_effect=git):
+                revision, dirty, digest = journey.harness_identity()
+                self.assertFalse(dirty)
+                runner = journey.Journey.__new__(journey.Journey)
+                runner.receipt = {"harness_revision": revision, "harness_inputs_sha256": digest}
+                runner.assert_harness_unchanged()
+                (source / "scripts/elected.py").write_text("changed", encoding="utf-8")
+                with self.assertRaisesRegex(ValueError, "changed"):
+                    runner.assert_harness_unchanged()
+                self.assertIs(runner.receipt["harness_unchanged"], False)
+
     def test_receipt_replacement_failure_preserves_prior_file(self):
         journey = load("qualify-journey")
         with tempfile.TemporaryDirectory() as temporary:
@@ -215,7 +260,7 @@ class ResultContracts(unittest.TestCase):
                    "cli_sha256": "7" * 64, "harness_inputs_sha256": "8" * 64,
                    "preparation_seconds": 1, "qualification_seconds": 2, "combined_seconds": 3,
                    "overall_bound_seconds": 1800,
-                   "source_revision": "a" * 40, "harness_revision": "a" * 40, "harness_dirty": False,
+                   "source_revision": "a" * 40, "harness_revision": "a" * 40, "harness_dirty": False, "harness_unchanged": True,
                    "package": {"revision": "a" * 40, "source_dirty": False, "archive_sha256": "b" * 64, "inventory_sha256": "c" * 64},
                    "stages": [{"name": s, "state": "succeeded"} for s in cpu.REQUIRED_STAGES],
                    "corpus_sha256": cpu.corpus_digest(corpus), "matching_settings": corpus["matching"], "worker_sha256": "d" * 64,
@@ -267,6 +312,7 @@ class ResultContracts(unittest.TestCase):
                 lambda r: r["speaker_cases"][0].update(missing_prediction=False),
                 lambda r: r["speaker_outcomes"].update(correct_match=4),
                 lambda r: r.update(qualification_seconds=float("nan")),
+                lambda r: r.update(harness_unchanged=False),
                 lambda r: r.update(combined_seconds=1801),
                 lambda r: r["cases"][0]["transcription"].pop("peak_rss_bytes"),
                 lambda r: r["post_restore_checks"].update(fetched_models=False),
@@ -323,7 +369,7 @@ class ResultContracts(unittest.TestCase):
             cpu.validate_acceptance({"state": "passed", "mode": "controlled"}, corpus)
         base = {"kind": "insonic-real-cpu-acceptance-v1", "mode": "real", "device": "cpu",
                 "cli_sha256": "7" * 64, "worker_sha256": "8" * 64, "harness_inputs_sha256": "9" * 64,
-                "source_revision": "a" * 40, "harness_revision": "a" * 40, "harness_dirty": False,
+                "source_revision": "a" * 40, "harness_revision": "a" * 40, "harness_dirty": False, "harness_unchanged": True,
                 "package": {"revision": "a" * 40, "source_dirty": False, "archive_sha256": "c" * 64, "inventory_sha256": "d" * 64},
                 "corpus_sha256": cpu.references().sha(ROOT / "tests/fixtures/acoustic/manifest.json"),
                 "stages": [], "cases": [], "speaker_profiles": [], "cleanup": {"runtime_released": True, "temporary_removed": True}}

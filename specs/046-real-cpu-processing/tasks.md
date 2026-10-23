@@ -57,3 +57,5 @@ No additional agent implementation is delegated. Phase 0 research agents were ex
 ## Phase 7: Demonstrated integration repair (2026-10-23)
 
 - [x] T023 Regress and repair recoverable package-smoke wait handling in tests/package_wait_test.py and scripts/package-desktop.py, retaining exact work identity, original 180-second operation bound, 30-second wait requests and unchanged CI deadlines (FR-008, FR-009, FR-011).
+- [x] T024 Regress and repair cold-bootstrap qualification timing in tests/cli_invocation_timing_test.py and scripts/cli_contract_qualification.py, recording owned launch/process wait/total independently while retaining the two-second classification limit and full hosted CI accounting (FR-009, FR-011).
+- [x] T025 Regress and enforce clean exact harness identity before execution and source stability at completion; attribute final runtime-release failures to cleanup, select only disposable session credentials and include temporary removal in qualification timing in scripts/qualify-journey.py, scripts/journey_cpu.py and tests/journey_cpu_test.py (FR-001, FR-008, FR-009).

@@ -137,6 +137,20 @@ def compare_authority(before, after):
         raise ValueError('Restored current authority differs from completed source authority')
 
 
+def harness_identity():
+    environment = engine.local_environment()
+    revision = engine._child(['git', 'rev-parse', 'HEAD'], environment, timeout=10).decode().strip()
+    dirty = bool(engine._child(['git', 'status', '--porcelain'], environment, timeout=10).strip())
+    identity = hashlib.sha256()
+    inputs = [ROOT / name for name in ('VERSION', 'go.mod', 'go.sum')]
+    for prefix in ('internal', 'cmd', 'scripts', 'schemas/v' + (ROOT / 'VERSION').read_text().strip()):
+        inputs.extend(path for path in (ROOT / prefix).rglob('*') if path.is_file() and path.suffix in ('.go', '.py', '.json'))
+    inputs.append(ROOT / 'tests/fixtures/qualification-worker.py')
+    for path in sorted(inputs):
+        identity.update(path.relative_to(ROOT).as_posix().encode() + b'\0' + bytes.fromhex(engine.sha(path)))
+    return revision, dirty, identity.hexdigest()
+
+
 class Journey:
     def __init__(self, args, base):
         self.args, self.base = args, base
@@ -170,28 +184,28 @@ class Journey:
                                 XDG_CONFIG_HOME=str(home / 'config'), TEMP=str(home / 'tmp'), TMP=str(home / 'tmp'),
                                 TMPDIR=str(home / 'tmp'), PYTHONIOENCODING='utf-8',
                                 GH_PROMPT_DISABLED='1', GIT_TERMINAL_PROMPT='0')
-        harness_environment = engine.local_environment()
-        revision = engine._child(['git', 'rev-parse', 'HEAD'], harness_environment, timeout=10).decode().strip()
-        dirty = bool(engine._child(['git', 'status', '--porcelain'], harness_environment, timeout=10).strip())
-        identity = hashlib.sha256()
-        inputs = [ROOT / name for name in ('VERSION', 'go.mod', 'go.sum')]
-        for prefix in ('internal', 'cmd', 'scripts', 'schemas/v' + (ROOT / 'VERSION').read_text().strip()):
-            inputs.extend(path for path in (ROOT / prefix).rglob('*') if path.is_file() and path.suffix in ('.go', '.py', '.json'))
-        inputs.append(ROOT / 'tests/fixtures/qualification-worker.py')
-        for path in sorted(inputs):
-            identity.update(path.relative_to(ROOT).as_posix().encode() + b'\0' + bytes.fromhex(engine.sha(path)))
+        revision, dirty, identity = harness_identity()
+        if packaged and getattr(args, 'reference_corpus', None) and (dirty or revision != package_identity['revision']):
+            raise ValueError('Reference acceptance requires a clean exact package and harness revision')
         self.receipt = {'kind': 'connected-product-qualification', 'mode': args.mode, 'required_check': False,
                         'platform': platform.system(), 'device': 'cpu', 'cli_sha256': engine.sha(self.cli),
                         'worker_sha256': engine.sha(self.worker),
                         'product_version': (ROOT / 'VERSION').read_text().strip(),
-                        'source_revision': revision, 'source_dirty': dirty, 'source_inputs_sha256': identity.hexdigest(),
+                        'source_revision': revision, 'source_dirty': dirty, 'source_inputs_sha256': identity,
                         'operation_bound_seconds': 180, 'overall_bound_seconds': args.timeout,
                         'hard_rss_limit_bytes': None, 'operations': [], 'records': []}
         if packaged:
             self.receipt.update(package=package_identity, source_revision=package_identity['revision'], source_dirty=False,
-                                harness_revision=revision, harness_dirty=dirty, harness_inputs_sha256=identity.hexdigest(),
+                                harness_revision=revision, harness_dirty=dirty, harness_inputs_sha256=identity,
                                 worker_origin='installed-package' if args.mode == 'real' else 'controlled-fixture')
             self.receipt.pop('source_inputs_sha256')
+
+    def assert_harness_unchanged(self):
+        self.receipt['harness_unchanged'] = False
+        revision, dirty, identity = harness_identity()
+        if dirty or revision != self.receipt['harness_revision'] or identity != self.receipt['harness_inputs_sha256']:
+            raise ValueError('Elected harness source changed during real acceptance')
+        self.receipt['harness_unchanged'] = True
 
     def remaining(self, maximum=180):
         remaining = self.deadline - time.monotonic()
@@ -566,9 +580,11 @@ def main(argv=None):
                 receipt['temporary_cleanup_error'] = type(error).__name__
     if receipt is None:
         receipt = {'kind': 'connected-product-qualification', 'mode': args.mode}
+    receipt['wall_seconds'] = time.monotonic() - started
     if primary is None and args.reference_corpus:
         try:
-            receipt['combined_seconds'] = time.monotonic() - started
+            receipt['combined_seconds'] = receipt['wall_seconds']
+            receipt['qualification_seconds'] = receipt['combined_seconds'] - receipt['preparation_seconds']
             receipt['cleanup'] = {'runtime_released': journey.runtime is None,
                                   'temporary_removed': not temporary_path.exists()}
             receipt['stages'].append({'name': 'cleanup', 'state': 'succeeded'})
@@ -576,7 +592,6 @@ def main(argv=None):
         except BaseException as error:
             primary = error
             receipt.setdefault('first_failure_stage', 'cleanup')
-    receipt['wall_seconds'] = time.monotonic() - started
     if primary is not None:
         receipt.update(state='failed', failure_type=type(primary).__name__)
         try:

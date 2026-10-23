@@ -119,6 +119,8 @@ The retained licensed originals freeze transcript and reader references before i
 
 Reference acceptance also checks every current cue's source positions, exact playback bytes and handle release, native queries and both fetched profiles before and after self-contained restore with the original library unavailable. Destination worker prerequisites are reported separately from recovered accepted results; fresh restored inference is not implied. All required stages, corpus cases, model/environment/package identities, quality accounting and owned runtime/temporary-directory cleanup must complete before the atomic receipt can state success. Real inference remains explicitly elected outside CI; ordinary CI exercises deterministic reference, failure, provenance and cleanup regressions.
 
+CLI qualification records owned-launch time, observed process wait and total invocation time separately for cold credential-bootstrap refusal. The two-second classification limit applies after job assignment and primary-thread resumption; the complete invocation remains inside hosted CI elapsed accounting. Reference acceptance rejects a dirty or different harness revision before execution and rechecks its source identity before final cleanup. Qualification elapsed time includes owned temporary-directory removal.
+
 ## Documentation reuse in qualification
 
 Scope classification elects preparation before the qualification phase. Only known presentation and documentation changes skip native qualification; unknown, mixed, dependency, schema, runtime, packaging and workflow changes elect the complete checks. Source compilation can begin after scope selection, but runtime, package and adapter consumers still require successful foundation checks.

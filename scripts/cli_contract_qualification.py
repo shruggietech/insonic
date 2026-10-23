@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import math
 from cli_corpus import Coverage, finish_server, failure_class
 import os
 from pathlib import Path
@@ -23,6 +24,27 @@ PARSER_REJECTIONS = [
     ['work', 'list', '--limit=0'],
     ['media', 'import', '--copy', '--reference', 'fixture.wav'],
 ]
+
+
+def capture_invocation(factory, argv, *, cwd, env, scoped, input):
+    started = time.monotonic()
+    with factory(argv, cwd=cwd, env=env, allow_detached=scoped, input_pipe=input is not None) as tree:
+        launched = time.monotonic()
+        stdout, stderr = tree.process.communicate(input=input, timeout=35)
+        finished = time.monotonic()
+        code = tree.process.returncode
+    timing = {"owned_launch_seconds": launched - started, "process_wait_seconds": finished - launched,
+              "total_seconds": time.monotonic() - started}
+    return stdout, stderr, code, timing
+
+
+def verify_cold_bootstrap(response, timing):
+    values = [timing.get(key) for key in ("owned_launch_seconds", "process_wait_seconds", "total_seconds")]
+    if (response.get('error', {}).get('code') != 'unavailable'
+            or response.get('error', {}).get('reason') != 'credential_bootstrap'
+            or any(type(value) not in (int, float) or not math.isfinite(value) or value < 0 for value in values)
+            or values[1] > 2 or values[2] < values[0] + values[1]):
+        raise ValueError('Cold bootstrap failure was not promptly classified')
 
 
 def qualify_read_only(invoke, paths, help_workspace, missing_workspace, *, observations=None):
@@ -123,7 +145,7 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
     coverage = None
     current_scenario = 'core'
 
-    def invoke(args, *, expected=0, input=None, scoped=True, machine=True, workspace_path=None, execution_environment=None, scenario=None):
+    def invoke(args, *, expected=0, input=None, scoped=True, machine=True, workspace_path=None, execution_environment=None, scenario=None, timing=None):
         correlation_id = str(uuid.uuid4())
         argv = [str(executable), '--request-id', correlation_id]
         if machine:
@@ -131,10 +153,10 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
         if scoped:
             argv += ['--workspace', str(workspace_path or workspace)]
         argv += [str(a) for a in args]
-        with (process_factory or ProcessTree)(argv, cwd=cwd or workspace, env=execution_environment if execution_environment is not None else environment,
-                         allow_detached=scoped, input_pipe=input is not None) as tree:
-            stdout, stderr = tree.process.communicate(input=input, timeout=35)
-            code = tree.process.returncode
+        stdout, stderr, code, observed = capture_invocation(process_factory or ProcessTree, argv, cwd=cwd or workspace,
+            env=execution_environment if execution_environment is not None else environment, scoped=scoped, input=input)
+        if timing is not None:
+            timing.update(observed)
         accepted = expected if isinstance(expected, tuple) else (expected,)
         if code not in accepted or (stderr if code == 0 else stdout):
             raise ValueError('CLI stream/exit contract differs: ' + ' '.join(map(str, args[:3]))
@@ -244,11 +266,10 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
     invoke(['--workspace', cold, 'credentials', 'select', 'vault'], scoped=False)
     cold_id = str(uuid.uuid4())
     invoke(['--workspace', cold, 'credentials', 'add', cold_id], scoped=False, input=json.dumps(secret).encode())
-    started = time.monotonic()
+    cold_timing = {}
     rejected = invoke(['credentials', 'unlock'], workspace_path=cold,
-                      expected=4, input=json.dumps({'passphrase': 'wrong-fixture-passphrase'}).encode())
-    if rejected['error'].get('reason') != 'credential_bootstrap' or time.monotonic() - started > 2:
-        raise ValueError('Cold bootstrap failure was not promptly classified')
+                      expected=4, input=json.dumps({'passphrase': 'wrong-fixture-passphrase'}).encode(), timing=cold_timing)
+    verify_cold_bootstrap(rejected, cold_timing)
     # scoped=True elects the existing detached job lifetime for the cold owner.
     invoke(['credentials', 'unlock'], workspace_path=cold, input=json.dumps({'passphrase': secret['passphrase']}).encode())
     first = invoke(['workspace', 'show'], workspace_path=cold)
@@ -378,5 +399,5 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
     phase('complete')
     return {'coverage': ledger, 'readiness_contracts': readiness_contracts, 'operator_contracts': operator_contracts, 'input_contracts': input_contracts, 'text_duration_contracts': text_duration_contracts, 'actual_help_examples': examples, 'provider_contracts': provider_contracts, 'media_lifecycle': lifecycle, 'query_contracts': query_contracts, 'documented_workflows': documented, 'help_paths': len(paths), 'settings': 'passed', 'initial_speaker_cursor': 'passed',
             'protected_vault_delete': 'passed', 'typed_failures': failures,
-            'operator_feedback': 'passed', 'cold_startup_failure': 'passed', 'detached_owner': 'passed',
+            'operator_feedback': 'passed', 'cold_startup_failure': 'passed', 'cold_startup_timing': cold_timing, 'detached_owner': 'passed',
             'model_roles_leases': 'passed', 'diagnostic_redaction': 'passed'}

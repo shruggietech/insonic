@@ -192,6 +192,7 @@ def validate_acceptance(receipt, corpus):
     if (not isinstance(revision, str) or not re.fullmatch("[0-9a-f]{40}", revision)
             or package.get("revision") != revision or package.get("source_dirty") is not False
             or receipt.get("harness_revision") != revision or receipt.get("harness_dirty") is not False
+            or receipt.get("harness_unchanged") is not True
             or not digest(package.get("archive_sha256")) or not digest(package.get("inventory_sha256"))):
         raise ValueError("Real acceptance source/package identity differs")
     if any(not digest(receipt.get(key)) for key in ("cli_sha256", "worker_sha256", "harness_inputs_sha256")):
@@ -403,7 +404,8 @@ def engine_observation(journey, record, role, operation, models):
         raise ValueError("Real engine provenance differs from frozen election")
     fields = ("device", "offline", "model_id", "model_manifest_sha256", "model_revision", "python_sha256", "worker_sha256",
               "packages", "threads", "wall_seconds", "cpu_seconds", "peak_rss_bytes", "sample_count", "sample_rate",
-              "speaker_count", "turn_count", "segment_count", "compute_type")
+              "speaker_count", "turn_count", "segment_count", "compute_type", "audio_sha256", "language", "beam_size",
+              "vad_filter", "condition_on_previous_text", "quality_diagnostics_enabled", "telemetry_enabled")
     return {key: provenance[key] for key in fields if key in provenance}
 
 
@@ -621,6 +623,16 @@ def require_equal(before, after, name):
         raise ValueError("Restored " + name + " differs from accepted source authority")
 
 
+def finalize_runtime(journey):
+    journey.receipt["current_stage"] = "cleanup"
+    try:
+        journey.idle_runtime()
+        journey.assert_harness_unchanged()
+    except BaseException:
+        journey.receipt.setdefault("first_failure_stage", "cleanup")
+        raise
+
+
 def run(journey):
     import json
     import uuid
@@ -633,6 +645,7 @@ def run(journey):
         if actual != journey.receipt["product_version"]:
             raise ValueError("Selected CLI version differs from current product")
         journey.command("workspace", "init", journey.workspace, workspace=False)
+        journey.command("credentials", "select", "session")
         journey.start_runtime()
         graph = journey.command("graph", "capabilities")
         if graph.get("state") != "available" or graph.get("adapter_id") != "ladybugdb":
@@ -702,7 +715,7 @@ def run(journey):
             name: {"state": task["state"], "usable": task["usable"]} for name, task in readiness["tasks"].items()}
         journey.receipt["post_restore_checks"] = {key: True for key in ("authority", "queries", "timeline", "playback", "fetched_models")}
         journey.receipt["authority_sha256"] = __import__("hashlib").sha256(json.dumps(authority, sort_keys=True).encode()).hexdigest()
-    journey.idle_runtime()
+    finalize_runtime(journey)
     journey.receipt["qualification_seconds"] = time.monotonic() - qualification_started
     journey.receipt["combined_seconds"] = time.monotonic() - journey.started
     journey.receipt["quality_limits"] = [
