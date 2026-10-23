@@ -129,6 +129,30 @@ def document_text(record):
     return " ".join(cue["payload"]["plain_text"] for cue in record["document"]["cues"])
 
 
+def quality_diagnostics(value):
+    import math
+    if not isinstance(value, list) or len(value) > 4096:
+        raise ValueError("Accepted quality diagnostic inventory differs")
+    result = []
+    for item in value:
+        code = item.get("code") if isinstance(item, dict) else None
+        if not isinstance(code, str) or not re.fullmatch(r"[A-Za-z0-9_.:-]{1,128}", code):
+            raise ValueError("Accepted quality diagnostic code differs")
+        row = {"code": code}
+        if "count" in item:
+            count = item["count"]
+            if type(count) is not int or count < 0:
+                raise ValueError("Accepted quality diagnostic count differs")
+            row["count"] = count
+        if item.get("value") is not None:
+            number = item["value"]
+            if type(number) not in (int, float) or not math.isfinite(number):
+                raise ValueError("Accepted quality diagnostic value differs")
+            row["value"] = number
+        result.append(row)
+    return result
+
+
 def voice_intervals(record, voice):
     intervals = []
     for cue in record["document"]["cues"]:
@@ -242,6 +266,8 @@ def validate_acceptance(receipt, corpus):
             raise ValueError("Real acceptance derived case identity differs")
         if not digest(case.get("document_digest")) or not digest(case.get("canonical_audio_sha256")):
             raise ValueError("Real acceptance current case authority differs")
+        if case.get("diagnostics") != quality_diagnostics(case.get("diagnostics")):
+            raise ValueError("Real acceptance quality diagnostic projection differs")
         for role, operation, field in (("recognition", "transcribe", "transcription"),
                                        ("diarization", "diarize", "diarization")):
             observation = case.get(field, {})
@@ -405,7 +431,8 @@ def engine_observation(journey, record, role, operation, models):
     fields = ("device", "offline", "model_id", "model_manifest_sha256", "model_revision", "python_sha256", "worker_sha256",
               "packages", "threads", "wall_seconds", "cpu_seconds", "peak_rss_bytes", "sample_count", "sample_rate",
               "speaker_count", "turn_count", "segment_count", "compute_type", "audio_sha256", "language", "beam_size",
-              "vad_filter", "condition_on_previous_text", "quality_diagnostics_enabled", "telemetry_enabled")
+              "vad_filter", "condition_on_previous_text", "quality_diagnostics_enabled", "telemetry_enabled",
+              "recognition_boundary_policy", "model_boundary_policy")
     return {key: provenance[key] for key in fields if key in provenance}
 
 
@@ -432,6 +459,7 @@ def process_cases(journey, cases, models):
             "fixture": case["fixture"], "role": case["role"], "original_sha256": case["original_sha256"],
             "media_id": media_id, "canonical_audio_sha256": record["source_digest"], "document_digest": record["document_digest"],
             "word_error": comparison,
+            "diagnostics": quality_diagnostics(record.get("diagnostics")),
             "transcription": engine_observation(journey, record, "transcription", "transcribe", models),
             "diarization": engine_observation(journey, record, "diarization", "diarize", models),
         })

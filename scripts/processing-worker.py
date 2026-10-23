@@ -264,10 +264,14 @@ def intersect_pyannote_media(segments, duration_us):
 
     Community-1 receptive frames can extend beyond the waveform. These are
     model windows, not audio outside the source. Diagnose each intersection;
-    excursions larger than 250 ms remain invalid, as do generic adapter turns.
+    Empty intersections are padding-only predictions and are discarded with
+    diagnostics. Overlapping excursions larger than 250 ms remain invalid,
+    as do generic adapter turns outside their decoded media.
     """
     result, diagnostics = [], []
-    for start, end, label in segments:
+    for count, (start, end, label) in enumerate(segments, 1):
+        if count > MAX_RESULTS:
+            raise WorkerError("output_limit")
         values = []
         for value in (start, end):
             try:
@@ -278,15 +282,18 @@ def intersect_pyannote_media(segments, duration_us):
             except InvalidOperation as error:
                 raise WorkerError("invalid_timing") from error
         first, last = values
-        if first >= last or first < -250000 or last > duration_us + 250000:
+        if first >= last or first < -250000:
             raise WorkerError("invalid_timing")
         bounded_first, bounded_last = max(first, 0), min(last, duration_us)
+        if bounded_first >= bounded_last:
+            diagnostics.append({"code": "model_frame_outside_decoded_media", "count": 1,
+                                "value": (max(0, -first) + max(0, last-duration_us)) / 1000000})
+            continue
+        if last > duration_us + 250000:
+            raise WorkerError("invalid_timing")
         if bounded_first != first or bounded_last != last:
             diagnostics.append({"code": "model_frame_intersected_decoded_media", "count": 1,
                                 "value": (max(0, -first) + max(0, last-duration_us)) / 1000000})
-        if bounded_first >= bounded_last:
-            diagnostics.append({"code": "model_frame_outside_decoded_media", "count": 1})
-            continue
         result.append((Decimal(bounded_first) / 1000000, Decimal(bounded_last) / 1000000, label))
     return result, diagnostics
 
@@ -458,7 +465,7 @@ def run(request):
             if embeddings is not None and not np.isfinite(embeddings).all():
                 raise WorkerError("invalid_embedding")
         result["provenance"].update(embedding_minimum_samples=minimum,
-                                     model_boundary_policy="Community-1 frame/media intersection;max250ms overhang;diagnose each change")
+                                     model_boundary_policy="Community-1 frame/media intersection;discard zero-overlap padding;max250ms overlapping overhang;diagnose each change")
     with Path(request["audio_path"]).open("rb") as source:
         audio_digest = hashlib.file_digest(source, "sha256").hexdigest()
     result["provenance"].update(packages=versions, device=device, threads=threads,

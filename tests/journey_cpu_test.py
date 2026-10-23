@@ -236,6 +236,17 @@ class DescendantTests(unittest.TestCase):
 
 
 class ResultContracts(unittest.TestCase):
+    def test_quality_diagnostics_retain_numeric_bounds_without_freeform_content(self):
+        cpu = load("journey_cpu")
+        values = [{"code": "model_frame_outside_decoded_media", "count": 1, "value": .279719,
+                   "message": "private freeform content"}]
+        self.assertEqual(cpu.quality_diagnostics(values), [
+            {"code": "model_frame_outside_decoded_media", "count": 1, "value": .279719}])
+        for invalid in (None, [{"code": "bad code"}], [{"code": "valid", "count": True}],
+                        [{"code": "valid", "value": float("nan")}], [{"code": "valid", "value": "private"}]):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                cpu.quality_diagnostics(invalid)
+
     def test_package_construction_failure_remains_identified_when_receipt_write_fails(self):
         journey = load("qualify-journey")
         arguments = ["--mode", "real", "--package", "fixture", "--package-receipt", "fixture", "--revision", "a" * 40,
@@ -287,7 +298,8 @@ class ResultContracts(unittest.TestCase):
         for clip in [*corpus["clips"], {"id": "sequence", "sha256": "4" * 64,
                     "transcript": " ".join(clips[key]["transcript"] for key in corpus["sequence"]["clips"])}]:
             case = {"fixture": clip["id"], "original_sha256": clip["sha256"], "document_digest": "5" * 64,
-                    "canonical_audio_sha256": "6" * 64, "word_error": ref.word_counts(clip["transcript"], clip["transcript"])}
+                    "canonical_audio_sha256": "6" * 64, "word_error": ref.word_counts(clip["transcript"], clip["transcript"]),
+                    "diagnostics": []}
             for op, field in (("transcribe", "transcription"), ("diarize", "diarization")):
                 case[field] = {"device": "cpu", "offline": True, "model_id": op, "model_manifest_sha256": "2" * 64,
                                "python_sha256": "f" * 64, "worker_sha256": "d" * 64, "threads": 2,

@@ -1,0 +1,54 @@
+{
+  "kind": "insonic-real-processing-failure-v1",
+  "state": "failed",
+  "canonical_source_revision": "124f0a74f6596dffe15d378535dd199968483702",
+  "package": {
+    "revision": "124f0a74f6596dffe15d378535dd199968483702",
+    "platform": "windows_amd64",
+    "variant": "cli",
+    "schema_version": "1.0.1",
+    "product_version": "1.0.1",
+    "documentation_version": "1.0.1",
+    "archive_sha256": "2ac8fc0f0a143f2438b34b9173c2469f6344dc5d290487b6d6e08783dcfd0731",
+    "inventory_sha256": "b6c442ee289a1d2f31571d81751017485894d4721be9edf807464db64249265f",
+    "source_dirty": false
+  },
+  "worker_sha256": "71ada8feda63434d19982eade94046f8405be6a19103111d7fbf4ef747204577",
+  "first_failure_stage": "processing",
+  "failure_code": "invalid_timing",
+  "failed_work": {
+    "kind": "recordings.process",
+    "state": "failed",
+    "phase": "operation-failed",
+    "error": "invalid_timing"
+  },
+  "verified_preparation_stages": [
+    "package",
+    "corpus",
+    "managed_recognition",
+    "managed_diarization",
+    "models",
+    "readiness"
+  ],
+  "diagnostic": {
+    "canonical_acceptance": false,
+    "operation": "diarize",
+    "device": "cpu",
+    "interpreter_origin": "existing external environment; separate diagnostic only",
+    "python_sha256": "553e867886f2a2672e6473d589d322133716a60dbbeb38be06266460b1037d3d",
+    "fixture": "84-121123-0002",
+    "decoded_duration_us": 13690000,
+    "valid_turn_us": [
+      30969,
+      13632219
+    ],
+    "padding_only_turn_us": [
+      13767219,
+      13969719
+    ],
+    "source_overlap_us": 0,
+    "before_repair": "invalid_timing",
+    "after_repair": "completed"
+  },
+  "repair": "Diagnose/discard empty source intersections before the unchanged overlapping 250000us overhang guard; no corpus or matching setting changes."
+}

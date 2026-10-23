@@ -326,7 +326,7 @@ class Journey:
             entry = entry.get('entry', entry)
             record = self.current_record(media_id)
             recordings[media_id] = {'media': {key: entry[key] for key in ('id', 'digest', 'asset_id', 'duration_us', 'facts', 'dates')},
-                                   'recording': {key: record[key] for key in ('id', 'document', 'document_digest', 'source_map', 'source_digest')},
+                                   'recording': {key: record[key] for key in ('id', 'document', 'document_digest', 'source_map', 'source_digest', 'provenance', 'diagnostics')},
                                    'roster': self.command('recordings', 'roster', 'show', media_id)}
         model = self.command('models', 'speaker', 'show', version_id)
         listing = self.input('models', 'speaker', 'list', value={'speaker_id': speaker_id})
