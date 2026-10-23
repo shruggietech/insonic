@@ -29,6 +29,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Reference-backed election pins the committed corpus manifest before execution. Corpus admission enforces archive size/SHA-256 under optimized Python and uses one private verified snapshot for both parsing passes. Linux qualification tracks the owned session across nested worker groups, terminates exact process identities and verifies exit before reporting cleanup.
+
 - Community-1 padding-only turns with no decoded-source overlap are discarded and diagnosed before checking overlapping boundary overhang. A padding prediction no longer rejects otherwise valid activity; the overlapping 250 ms guard and strict generic timing validation remain in place. CPU acceptance retains numeric quality diagnostics and checks their exact recovery with processing provenance.
 
 - Cold credential-bootstrap qualification separates owned-launch overhead from its two-second CLI classification check and retains both in the invocation total. Reference-backed CPU acceptance rejects source drift and includes owned cleanup in phase timing.

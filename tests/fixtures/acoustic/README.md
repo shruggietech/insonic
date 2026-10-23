@@ -6,6 +6,8 @@ The manifest pins the original archive and each retained file. Reader IDs identi
 
 Selection is frozen before inference: readers 84 and 174 enroll on the first eligible 6–20-second utterance of the first numeric chapter; held-out speech uses a different chapter when available. Reader 251 is never enrolled. The derived sequence concatenates both held-out clips with 8000 zero samples at 16 kHz. Original files are unchanged; decoded/concatenated WAVs exist only in owned runtime scratch.
 
-To reproduce, acquire the manifest-pinned official archive and run `python tests/fixtures/acoustic/admit.py ARCHIVE NEW_OUTPUT_DIRECTORY`. The generator verifies SHA-256 before reading archive members. It copies only selected regular original files and supplied references, never arbitrary archive paths.
+To reproduce, acquire the manifest-pinned official archive and run `python tests/fixtures/acoustic/admit.py ARCHIVE NEW_OUTPUT_DIRECTORY`. The generator explicitly verifies size and SHA-256 even under optimized Python, then reads both passes from one private verified snapshot. Replacing the original path cannot change admitted bytes. It copies only selected regular original files and supplied references, never arbitrary archive paths.
 
 Book-derived transcript and reader labels are independent of this run. Utterance boundaries include internal silence; they are not manually annotated speech boundaries and do not justify a diarization error-rate claim. Enrollment/evaluation source separation does not establish absence from pretrained model training data. Small clean read-speech measurements are a baseline, not broad accuracy guarantees.
+
+Real acceptance separately requires the committed manifest digest before package execution; an internally consistent substituted corpus cannot claim this provenance.

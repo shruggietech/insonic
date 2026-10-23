@@ -9,6 +9,7 @@ import stat
 import unicodedata
 
 ARCHIVE_SHA256 = "76f87d090650617fca0cac8f88b9416e0ebf80350acb97b343a85fa903728ab3"
+FROZEN_MANIFEST_SHA256 = "5abce92ea60ff0de4639161c85af383457f4e5b36c3ff6c00cfa018631dd6ada"
 NORMALIZATION = "NFC, Unicode casefold, Unicode word characters"
 
 
@@ -64,12 +65,20 @@ def flac_identity(data):
     return samples, rate
 
 
-def load_corpus(path):
-    path = Path(path)
+def load_frozen_corpus(path):
+    return load_corpus(path, frozen=True)
+
+
+def load_corpus(path, *, frozen=False):
     try:
-        if path.stat().st_size > 65536:
+        path = Path(path).resolve(strict=True)
+        with path.open("rb") as stream:
+            data = stream.read(65537)
+        if len(data) > 65536:
             raise ValueError("Reference manifest exceeds its limit")
-        corpus = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+        if frozen and hashlib.sha256(data).hexdigest() != FROZEN_MANIFEST_SHA256:
+            raise ValueError("Reference manifest differs from the pinned frozen corpus")
+        corpus = json.loads(data.decode("utf-8"), object_pairs_hook=unique_object)
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         raise ValueError("Reference manifest is unavailable or malformed") from error
     shape(corpus, "format source selection references clips sequence matching")

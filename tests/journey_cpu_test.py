@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: Apache-2.0
 """Managed real-journey orchestration tests. No engine imports or downloads."""
 import copy
+import hashlib
 import importlib.util
 import json
 import os
 from pathlib import Path
 import sys
+import shutil
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -108,12 +110,32 @@ class ManagedTests(unittest.TestCase):
 
     def test_reference_mode_is_package_only_and_has_no_external_interpreters(self):
         cpu = load("journey_cpu")
-        args = SimpleNamespace(mode="real", package="complete.zip", reference_corpus="manifest.json",
+        args = SimpleNamespace(mode="real", package="complete.zip", reference_corpus=str(ROOT / "tests/fixtures/acoustic/manifest.json"),
                                recognition_python=None, diarization_python=None, managed_offline_assets=None)
         cpu.validate_election(args)
         for change in ({"mode": "controlled"}, {"package": None}, {"recognition_python": sys.executable}):
             with self.subTest(change=change), self.assertRaisesRegex(ValueError, "reference|package|interpreter"):
                 cpu.validate_election(SimpleNamespace(**{**vars(args), **change}))
+
+    def test_self_consistent_external_references_cannot_claim_frozen_source_provenance(self):
+        cpu = load("journey_cpu")
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary) / "corpus"
+            shutil.copytree(ROOT / "tests/fixtures/acoustic", directory)
+            manifest = directory / "manifest.json"
+            args = SimpleNamespace(mode="real", package="complete.zip", reference_corpus=str(manifest),
+                                   recognition_python=None, diarization_python=None, managed_offline_assets=None)
+            cpu.validate_election(args)
+            corpus = json.loads(manifest.read_text(encoding="utf-8"))
+            corpus["clips"][0]["transcript"] += " REPLACED REFERENCE"
+            text = "".join(clip["id"] + " " + clip["transcript"] + "\n" for clip in corpus["clips"]).encode()
+            (directory / "references.txt").write_bytes(text)
+            corpus["references"].update(size_bytes=len(text), sha256=hashlib.sha256(text).hexdigest())
+            manifest.write_text(json.dumps(corpus, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            # Shape and internally consistent file hashes alone are insufficient.
+            cpu.references().load_corpus(manifest)
+            with self.assertRaisesRegex(ValueError, "frozen|pinned"):
+                cpu.validate_election(args)
 
     def test_ci_rejection_precedes_package_or_engine_creation(self):
         journey = load("qualify-journey")
@@ -250,7 +272,7 @@ class ResultContracts(unittest.TestCase):
     def test_package_construction_failure_remains_identified_when_receipt_write_fails(self):
         journey = load("qualify-journey")
         arguments = ["--mode", "real", "--package", "fixture", "--package-receipt", "fixture", "--revision", "a" * 40,
-                     "--reference-corpus", "fixture", "--recognition-model", "fixture", "--diarization-model", "fixture",
+                     "--reference-corpus", str(ROOT / "tests/fixtures/acoustic/manifest.json"), "--recognition-model", "fixture", "--diarization-model", "fixture",
                      "--output", "fixture"]
         with patch.object(journey, "require_mode"), patch.object(journey, "Journey", side_effect=ValueError("package byte identity")), \
              patch.object(journey, "write_json", side_effect=OSError("receipt unavailable")) as writer:

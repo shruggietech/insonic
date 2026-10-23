@@ -7,13 +7,65 @@ import subprocess
 import time
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from process_tree import ProcessTree, selected_executable, native_webview_environment, NATIVE_PROFILE
+import process_tree
 
 
 class SelectedChildEnvironment(unittest.TestCase):
+    def test_session_inventory_includes_nested_groups_and_excludes_other_sessions_and_zombies(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for pid, group, session, state in [(100, 100, 100, 'S'), (200, 200, 100, 'S'),
+                                                (300, 300, 300, 'S'), (400, 400, 100, 'Z')]:
+                directory = root / str(pid)
+                directory.mkdir()
+                fields = [state, '1', str(group), str(session)] + ['0'] * 15 + [str(pid + 10)]
+                (directory / 'stat').write_bytes(str(pid).encode() + b' (name with ) \xff) ' + ' '.join(fields).encode())
+            self.assertEqual(process_tree.unix_session_members(100, root), {100: 110, 200: 210})
+
+    def test_unix_pid_reuse_cannot_redirect_termination(self):
+        with patch.object(process_tree.os, 'pidfd_open', return_value=9, create=True), \
+                patch.object(process_tree, 'unix_process_identity', return_value=('S', 123, 999)), \
+                patch.object(process_tree.signal, 'pidfd_send_signal', create=True) as send, \
+                patch.object(process_tree.os, 'close') as close:
+            process_tree.kill_unix_member(456, 789, 123)
+            send.assert_not_called()
+            close.assert_called_once_with(9)
+
+    def test_unix_wait_cannot_report_empty_while_a_nested_group_is_alive(self):
+        tree = ProcessTree.__new__(ProcessTree)
+        tree.job, tree.process, tree.session_id = None, Mock(), 123
+        with patch('process_tree.unix_session_members', return_value={456: 789}, create=True):
+            self.assertFalse(tree.wait_for_descendants(.01))
+
+    @unittest.skipUnless(sys.platform.startswith('linux'), 'actual Linux nested process groups')
+    def test_unix_nested_group_is_observed_then_killed_without_touching_other_session(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            ready = root / 'ready'
+            worker = "import os,pathlib,sys,time;os.setpgid(0,0);pathlib.Path(sys.argv[1]).write_text(str(os.getpid()));time.sleep(60)"
+            parent = "import subprocess,sys;subprocess.Popen([sys.executable,'-c',sys.argv[1],sys.argv[2]],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)"
+            unrelated = subprocess.Popen([sys.executable, '-c', 'import time;time.sleep(60)'],
+                                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                         start_new_session=True)
+            try:
+                with ProcessTree([sys.executable, '-c', parent, worker, ready], cwd=root, env=dict(os.environ)) as tree:
+                    tree.process.communicate(timeout=5)
+                    deadline = time.monotonic() + 5
+                    while not ready.exists() and time.monotonic() < deadline:
+                        time.sleep(.01)
+                    self.assertTrue(ready.exists())
+                    self.assertFalse(tree.wait_for_descendants(.02))
+                    tree.kill()
+                    self.assertTrue(tree.wait_for_descendants(5))
+                    self.assertIsNone(unrelated.poll())
+            finally:
+                unrelated.kill()
+                unrelated.wait(timeout=5)
+
     def test_selected_path_owns_bare_program_and_missing_program_cannot_fall_back(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

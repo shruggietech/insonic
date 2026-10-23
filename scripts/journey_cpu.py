@@ -22,6 +22,7 @@ def validate_election(args):
     offline = getattr(args, "managed_offline_assets", None)
     if offline and not Path(offline).is_absolute():
         raise ValueError("Reference offline bundle must be an absolute selected path")
+    references().load_frozen_corpus(args.reference_corpus)
 
 
 @contextmanager
@@ -683,7 +684,7 @@ def run(journey):
             **{name: journey.tools[name]["sha256"] for name in ("ffmpeg", "ffprobe", "exiftool")},
             "cueson": ref.sha(journey.cueson)}
     with stage(journey, "corpus"):
-        corpus = ref.load_corpus(journey.args.reference_corpus)
+        corpus = ref.load_frozen_corpus(journey.args.reference_corpus)
         journey.receipt["corpus_sha256"] = corpus_digest(corpus)
         journey.receipt["matching_settings"] = corpus["matching"]
         journey.receipt["reference_normalization"] = ref.NORMALIZATION

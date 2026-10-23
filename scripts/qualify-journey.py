@@ -588,7 +588,7 @@ def main(argv=None):
             receipt['cleanup'] = {'runtime_released': journey.runtime is None,
                                   'temporary_removed': not temporary_path.exists()}
             receipt['stages'].append({'name': 'cleanup', 'state': 'succeeded'})
-            cpu.validate_acceptance(receipt, cpu.references().load_corpus(args.reference_corpus))
+            cpu.validate_acceptance(receipt, cpu.references().load_frozen_corpus(args.reference_corpus))
         except BaseException as error:
             primary = error
             receipt.setdefault('first_failure_stage', 'cleanup')

@@ -151,7 +151,7 @@
         },
         {
           "path": "scripts/acoustic_reference.py",
-          "symbol": "load_corpus"
+          "symbol": "load_frozen_corpus"
         }
       ],
       "license": "CC-BY-4.0",

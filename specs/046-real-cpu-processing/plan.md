@@ -51,3 +51,7 @@ Pre-research gate passes: owner-approved observable scope; shared CLI authority;
 ## Constitution Check after design
 
 Pass. Corpus-specific inputs remain test fixtures/internal planning, not product eligibility or public application defaults. Models are genuine pinned CPU engines; enrollment is not base-weight retraining. Statistical failures remain explicit measurements. Existing source integrity, backend support, inference-election and CI timing contracts are retained. Public docs explain the maintainer contract without numbered planning links. No merge, release or owner GUI is performed.
+
+## External review repair (2026-10-23)
+
+Review identified three integrity/cleanup gaps. Pin election to the committed raw manifest SHA-256 before any packaged command, while retaining lower-level structural tests. Admit the official archive only after explicit regular-file, size and SHA-256 validation into one private snapshot; both parsing passes use that snapshot and remain enforced under optimized Python. Linux child ownership follows the original owned session across nested process groups, signals stable pidfd identities, and observes exit before releasing scratch. Other sessions and reused process identities are excluded. This shared launcher change intentionally invalidates native source cache identity; newly verified producer evidence is required, with no receipt relabeling or deadline changes.

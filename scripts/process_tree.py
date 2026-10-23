@@ -56,10 +56,49 @@ def native_webview_environment(env):
         shutil.rmtree(root)
 
 
+def unix_process_identity(pid, proc_root=Path('/proc')):
+    try:
+        raw = (proc_root / str(pid) / 'stat').read_bytes()
+    except (FileNotFoundError, ProcessLookupError):
+        return None
+    # comm may contain spaces and parentheses. Fields after its final ')' are
+    # state, ppid, pgrp, session, ... starttime (the stable process identity).
+    fields = raw.rsplit(b')', 1)[1].split()
+    return fields[0].decode('ascii'), int(fields[3]), int(fields[19])
+
+
+def unix_session_members(session_id, proc_root=Path('/proc')):
+    if not proc_root.is_dir():
+        raise RuntimeError('Linux process inventory is unavailable for owned session cleanup')
+    result = {}
+    for path in proc_root.iterdir():
+        if path.name.isdecimal():
+            identity = unix_process_identity(int(path.name), proc_root)
+            if identity and identity[1] == session_id and identity[0] not in ('Z', 'X'):
+                result[int(path.name)] = identity[2]
+    return result
+
+
+def kill_unix_member(pid, start_time, session_id):
+    # pidfds keep PID reuse from redirecting termination to another process.
+    handle = None
+    try:
+        handle = os.pidfd_open(pid)
+        identity = unix_process_identity(pid)
+        if identity and identity[1:] == (session_id, start_time):
+            signal.pidfd_send_signal(handle, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    finally:
+        if handle is not None:
+            os.close(handle)
+
+
 class ProcessTree:
     def __init__(self, args, *, cwd, env, allow_detached=False, input_pipe=False):
         self.job = None
         self.process = None
+        self.session_id = None
         args = selected_executable(args, cwd, env)
         if os.name == 'nt':
             self._windows_job(allow_detached)
@@ -70,6 +109,8 @@ class ProcessTree:
                                             creationflags=0x08000004 if os.name == 'nt' else 0)
             if self.job:
                 self._assign_and_resume()
+            elif os.name != 'nt':
+                self.session_id = self.process.pid
         except BaseException:
             if self.process:
                 self.process.kill()
@@ -163,6 +204,15 @@ class ProcessTree:
 
     def wait_for_descendants(self, timeout):
         if not self.job:
+            if self.session_id is None:
+                return True
+            deadline = time.monotonic() + max(0, timeout)
+            while unix_session_members(self.session_id):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    return False
+                time.sleep(min(.02, remaining))
+            self.session_id = None
             return True
         c = self.ctypes
         from ctypes import wintypes
@@ -184,11 +234,17 @@ class ProcessTree:
     def kill(self):
         if self.job:
             self.api.TerminateJobObject(self.job, 1)
-        elif self.process:
-            try:
-                os.killpg(self.process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
+        elif self.session_id is not None:
+            deadline = time.monotonic() + 5
+            while members := unix_session_members(self.session_id):
+                for pid, start_time in members.items():
+                    kill_unix_member(pid, start_time, self.session_id)
+                if time.monotonic() >= deadline:
+                    if unix_session_members(self.session_id):
+                        raise RuntimeError('Owned Linux session did not exit after termination')
+                    break
+                time.sleep(.02)
+            self.session_id = None
 
     def close(self):
         if self.job:

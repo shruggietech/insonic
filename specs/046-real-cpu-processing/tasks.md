@@ -41,10 +41,10 @@
 
 - [x] T015 Document elected current-package real acceptance and statistical limits in docs/v1.0.1/development.md and CHANGELOG.md (FR-012).
 - [x] T016 Run npm check/test, full Python maintainer suite and affected Go/site checks; record only compact results in specs/046-real-cpu-processing/quickstart.md (FR-010, FR-011).
-- [x] T017 Commit implementation and build/verify a clean current complete Windows CLI archive with scripts/package-desktop.py (FR-001).
-- [x] T018 Execute the elected real managed/package journey, repair demonstrated failures with regressions, retain compact canonical evidence in specs/046-real-cpu-processing/evidence/ or the official PR, and remove owned scratch (FR-001 through FR-009, FR-011).
+- [ ] T017 Commit implementation and build/verify a clean current complete Windows CLI archive with scripts/package-desktop.py (FR-001).
+- [ ] T018 Execute the elected real managed/package journey, repair demonstrated failures with regressions, retain compact canonical evidence in specs/046-real-cpu-processing/evidence/ or the official PR, and remove owned scratch (FR-001 through FR-009, FR-011).
 - [x] T019 Converge code against specs/046-real-cpu-processing/spec.md and plan.md, resolving every buildable gap (FR-001 through FR-012).
-- [ ] T020 Commit final artifacts, automatically push codex/046-real-cpu-processing and open/attach the official PR linked to #170 (FR-012).
+- [x] T020 Commit final artifacts, automatically push codex/046-real-cpu-processing and open/attach the official PR linked to #170 (FR-012).
 - [ ] T021 Monitor exact-final-head CI to terminal acceptance, report preparation/qualification/combined timing and resolve every finding within at most two Codex rounds in the official PR (FR-010, FR-012).
 - [ ] T022 Reconcile #170/project/milestone evidence, retain #147/#154 limits, remove owned scratch and hand off the clean unmerged PR (FR-008, FR-009, FR-012).
 
@@ -60,3 +60,9 @@ No additional agent implementation is delegated. Phase 0 research agents were ex
 - [x] T024 Regress and repair cold-bootstrap qualification timing in tests/cli_invocation_timing_test.py and scripts/cli_contract_qualification.py, recording owned launch/process wait/total independently while retaining the two-second classification limit and full hosted CI accounting (FR-009, FR-011).
 - [x] T025 Regress and enforce clean exact harness identity before execution and source stability at completion; attribute final runtime-release failures to cleanup, select only disposable session credentials and include temporary removal in qualification timing in scripts/qualify-journey.py, scripts/journey_cpu.py and tests/journey_cpu_test.py (FR-001, FR-008, FR-009).
 - [x] T026 Regress and repair the observed Community-1 zero-source-overlap padding rejection in scripts/processing-worker.py and scripts/test-processing-worker.py; retain numeric diagnostics/boundary policy and compare exact restored diagnostics/provenance in scripts/journey_cpu.py, scripts/qualify-journey.py and tests/journey_cpu_test.py (FR-004, FR-007, FR-009, FR-011).
+
+## Phase 8: External review repair (2026-10-23)
+
+- [x] T027 Pin real election to the committed frozen manifest independently of caller-supplied hashes; reject self-consistent substituted references before package execution in scripts/acoustic_reference.py, scripts/journey_cpu.py and tests/journey_cpu_test.py (FR-003, FR-006, FR-009).
+- [x] T028 Replace assertion-based archive admission with explicit validation and a single verified snapshot used by both parsing passes in tests/fixtures/acoustic/admit.py; regress optimized Python and source-path replacement in tests/acoustic_admission_test.py (FR-003, FR-009).
+- [x] T029 Own and verify Linux session members across nested worker process groups in scripts/process_tree.py, with bounded termination and an actual Linux nested-group/unrelated-session regression in tests/process_tree_test.py (FR-008, FR-011).
