@@ -72,3 +72,7 @@ No additional agent implementation is delegated. Phase 0 research agents were ex
 - [x] T030 Regress and retain bounded operator reason codes and observed cleanup disposition in failed real-journey receipts without retaining freeform messages or replacing the first failure in scripts/qualify-journey.py and tests/journey_cpu_test.py (FR-008, FR-009, FR-011).
 - [x] T031 Retain the current-source timeline failure, both failed CI attempts and the classified Windows frontend/transfer limits; diagnose with controlled operations before repeating elected acceptance, preserving all CI deadlines and the two-trigger review cap (FR-009, FR-010, FR-012).
 - [x] T032 Apply the patched DOMPurify 3.4.17 Mermaid override, resolve the CI-observed critical audit finding, and verify the real documentation build/check/test without changing sanitizer behavior in site/package.json and site/package-lock.json (FR-010, FR-011, FR-012).
+
+## Phase 10: Demonstrated Windows path identity repair (2026-10-23)
+
+- [ ] T033 Regress equivalent noncanonical destination spellings and canonicalize the fetched-profile inventory root before comparing owned file paths in scripts/journey_cpu.py and tests/journey_cpu_test.py; preserve the failed 6f3bb70 receipt and repeat clean-package acceptance (FR-007, FR-008, FR-009, FR-011).

@@ -148,6 +148,25 @@ class ManagedTests(unittest.TestCase):
 
 
 class OwnershipTests(unittest.TestCase):
+    def test_fetched_inventory_uses_the_canonical_destination_identity(self):
+        cpu = load("journey_cpu")
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            (base / "alternate-spelling").mkdir()
+            destination = base / "alternate-spelling" / ".." / "fetched"
+            destination.mkdir()
+            (destination / "manifest.json").write_bytes(b"profile manifest")
+            (destination / "nested").mkdir()
+            (destination / "nested" / "embedding.bin").write_bytes(b"profile embedding")
+            journey = SimpleNamespace(command=Mock())
+            # Like an 8.3 Windows alias, this spelling resolves to the same
+            # directory but differs from owned_file's canonical returned path.
+            inventory = cpu.fetched_files(journey, "profile-version", destination)
+            self.assertEqual(inventory, {
+                "manifest.json": hashlib.sha256(b"profile manifest").hexdigest(),
+                "nested/embedding.bin": hashlib.sha256(b"profile embedding").hexdigest()})
+            journey.command.assert_called_once_with("models", "speaker", "fetch", "profile-version", "--destination", destination)
+
     def test_runtime_observation_failure_cannot_replace_original_cli_failure(self):
         module = load("qualify-journey")
         journey = module.Journey.__new__(module.Journey)

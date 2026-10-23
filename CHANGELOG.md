@@ -29,6 +29,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Fetched-profile qualification compares canonical destination and file identities, accepting equivalent Windows short/long path spellings while retaining owned-file, link, byte and digest checks.
+
 - Resolve the documentation renderer's DOMPurify advisories with a Mermaid-scoped 3.4.17 patch override, preserving rendering modes. Failed CPU qualification retains bounded operator reasons, invocation/runtime observations and cleanup disposition without retaining freeform messages or replacing its first failure.
 
 - Reference-backed election pins the committed corpus manifest before execution. Corpus admission enforces archive size/SHA-256 under optimized Python and uses one private verified snapshot for both parsing passes. Linux qualification tracks the owned session across nested worker groups, terminates exact process identities and verifies exit before reporting cleanup.

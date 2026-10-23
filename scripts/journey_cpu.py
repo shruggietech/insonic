@@ -624,6 +624,7 @@ def playback_snapshot(journey, cases):
 
 def fetched_files(journey, version_id, destination):
     journey.command("models", "speaker", "fetch", version_id, "--destination", destination)
+    destination = destination.resolve(strict=True)
     files, total = {}, 0
     for path in sorted(destination.rglob("*")):
         if path.is_symlink():
