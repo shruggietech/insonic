@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-23
 
-**Status**: Specified
+**Status**: Implemented; unmerged PR acceptance is recorded in the official PR
 
 **Input**: Owner-authorized S046 autopilot, extending the maintained packaged CLI qualification for #147 with real CPU execution, independently checked references, automatic PR publication and at most two Codex review rounds. Stop before owner merge.
 

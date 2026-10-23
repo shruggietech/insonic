@@ -1,0 +1,68 @@
+{
+  "kind": "managed-setup-diagnostic",
+  "canonical_acceptance": false,
+  "inference": "not_run",
+  "source_revision": "0e24eee2a96db2eecf225f8ec1b3cb244a1fec80",
+  "probe_instrumentation": "phase and exception type only; no freeform stderr retained",
+  "events": [
+    {
+      "phase": "runtime-acquisition"
+    },
+    {
+      "phase": "wheel-acquisition"
+    },
+    {
+      "phase": "creating-environment"
+    },
+    {
+      "child": "installer",
+      "code": "",
+      "context": "",
+      "exit_code": 0,
+      "stderr_bytes": 139,
+      "stdout_bytes": 0,
+      "truncated": false,
+      "wall_seconds": 2.7822576999999997
+    },
+    {
+      "child": "installer",
+      "code": "",
+      "context": "",
+      "exit_code": 0,
+      "stderr_bytes": 2378,
+      "stdout_bytes": 0,
+      "truncated": false,
+      "wall_seconds": 29.0924304
+    },
+    {
+      "phase": "verifying-environment"
+    },
+    {
+      "child": "probe",
+      "code": "",
+      "context": "",
+      "engine_available": true,
+      "exit_code": 0,
+      "file_count": 27571,
+      "stderr_bytes": 0,
+      "stdout_bytes": 7708824,
+      "truncated": false,
+      "wall_seconds": 51.2024767
+    },
+    {
+      "canonical_acceptance": false,
+      "compatible": true,
+      "engine_available": true,
+      "failure_code": "",
+      "inference": "not_run",
+      "profile_digest": "d797ba4637542ba62db02bf032e820b6fc9c5c8fca0b09a3a9fb11bb10e707a3",
+      "state": "passed",
+      "wall_seconds": 118.1793736
+    }
+  ],
+  "exit_code": 0,
+  "stderr_bytes": 0,
+  "cleanup": {
+    "temporary_removed": true
+  }
+}
