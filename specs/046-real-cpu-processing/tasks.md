@@ -53,3 +53,7 @@
 Setup → Foundations → US1 → US2 → US3 → Validation/publication. Pure reference/scoring tests and orchestration tests can be developed in separate files after the fixture contract is frozen; shared journey mutations stay sequential. Test groups are inference-free. US1 preparation can be validated before measurements; US2 metrics are independently testable against frozen values; US3 comparison helpers are independently testable without engines. The delivered slice includes all three stories, not only the US1 MVP.
 
 No additional agent implementation is delegated. Phase 0 research agents were explicitly required by the installed planning skill and remained read-only. Source/package/receipt revision differences must be stated truthfully; metadata-only closeout commits do not retroactively change a tested archive identity.
+
+## Phase 7: Demonstrated integration repair (2026-10-23)
+
+- [x] T023 Regress and repair recoverable package-smoke wait handling in tests/package_wait_test.py and scripts/package-desktop.py, retaining exact work identity, original 180-second operation bound, 30-second wait requests and unchanged CI deadlines (FR-008, FR-009, FR-011).

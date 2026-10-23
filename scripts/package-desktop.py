@@ -68,7 +68,13 @@ def path_inside(root, name):
     return target
 
 
-def child(args, *, directory=ROOT, env=None, timeout=180, allow_detached=False, process_factory=None):
+class PackageCLIResponseError(RuntimeError):
+    def __init__(self, response):
+        self.response = response
+        super().__init__('Packaged CLI operation failed: ' + response['error']['code'])
+
+
+def child(args, *, directory=ROOT, env=None, timeout=180, allow_detached=False, process_factory=None, cli_response=False):
     selected = os.environ.copy()
     if env:
         selected.update(env)
@@ -107,9 +113,46 @@ def child(args, *, directory=ROOT, env=None, timeout=180, allow_detached=False, 
                 pass  # Diagnostics cannot replace the actual child timeout.
             raise
         if tree.process.returncode:
+            if cli_response:
+                for raw in (output, error):
+                    try:
+                        response = json.loads(raw)
+                        code = response['error']['code']
+                        if response.get('kind') == 'runtime-response' and isinstance(code, str) and re.fullmatch('[a-z_]{1,64}', code):
+                            raise PackageCLIResponseError(response)
+                    except (KeyError, TypeError, ValueError):
+                        pass
             # Package fixtures carry controlled input and no user credentials.
             raise RuntimeError('package child failed: ' + (output + error).decode(errors='replace')[-10000:])
         return output
+
+
+def wait_for_work(request, work_id):
+    """Join durable work within the existing 180-second command bound."""
+    deadline = time.monotonic() + 180
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise RuntimeError('Packaged work exceeded its original operation bound')
+        try:
+            response = request(min(30000, max(1, int(remaining * 1000))), remaining)
+            if response.get('error'):
+                raise PackageCLIResponseError(response)
+        except PackageCLIResponseError as failure:
+            response = failure.response
+            error, current = response.get('error', {}), response.get('result', {})
+            if (error.get('code') == 'unavailable' and error.get('reason') == 'wait_timeout'
+                    and isinstance(current, dict) and current.get('id') == work_id
+                    and current.get('work_id', work_id) == work_id and current.get('state') in ('queued', 'running')):
+                continue
+            raise
+        current = response.get('result', {})
+        if (not isinstance(current, dict) or current.get('id') != work_id
+                or current.get('work_id', work_id) != work_id or current.get('state') != 'succeeded'):
+            raise RuntimeError('Packaged work returned a different or unsuccessful identity')
+        if time.monotonic() > deadline:
+            raise RuntimeError('Packaged work exceeded its original operation bound')
+        return current
 
 
 def source_module():
@@ -1093,6 +1136,12 @@ def _smoke(archive=None, dirname=None, receipt=None):
             if response.get('error'):
                 raise ValueError('packaged shared operation failed: ' + response['error']['code'])
             return response.get('result', response)
+        def wait(work_id):
+            def request(milliseconds, remaining):
+                return json.loads(cli_child([cli, '--workspace', workspace, 'work', 'wait', work_id,
+                    '--timeout-ms', str(milliseconds), '--json'], directory=root, env=env,
+                    allow_detached=True, timeout=remaining, cli_response=True))
+            return wait_for_work(request, work_id)
         media = ROOT / 'tests/fixtures/media'
         idle_started = None
         gui_future = None
@@ -1124,7 +1173,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
                  'originated_at': '2024-11-03T01:30:00', 'timezone': 'America/New_York'}]})
             accepted = call('media', 'import', '--manifest', import_input, allow_detached=True)
             job_id = accepted['work_id']
-            current = call('work', 'wait', job_id, '--timeout-ms', '30000')
+            current = wait(job_id)
             if current['state'] != 'succeeded':
                 raise ValueError('packaged real media import did not succeed')
             items = current['result']['items']
@@ -1180,7 +1229,7 @@ def _smoke(archive=None, dirname=None, receipt=None):
             call('graph', 'rebuild')
             roster = call('recordings', 'roster', 'clear', items[0]['media_id'], '--expected-revision', '0')
             replaced = call('media', 'import', media / 'speech.flac', '--record', items[0]['media_id'], '--replace-audio', '--existing-transcript', 'clear', '--existing-roster', 'retain')
-            replacement = call('work', 'wait', replaced['work_id'], '--timeout-ms', '30000')
+            replacement = wait(replaced['work_id'])
             retained = call('recordings', 'roster', 'show', items[0]['media_id'])
             recording = call('recordings', 'show', items[0]['media_id'])
             idle_started = time.monotonic()

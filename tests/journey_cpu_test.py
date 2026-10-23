@@ -214,6 +214,7 @@ class ResultContracts(unittest.TestCase):
         receipt = {"kind": "insonic-real-cpu-acceptance-v1", "mode": "real", "device": "cpu",
                    "cli_sha256": "7" * 64, "harness_inputs_sha256": "8" * 64,
                    "preparation_seconds": 1, "qualification_seconds": 2, "combined_seconds": 3,
+                   "overall_bound_seconds": 1800,
                    "source_revision": "a" * 40, "harness_revision": "a" * 40, "harness_dirty": False,
                    "package": {"revision": "a" * 40, "source_dirty": False, "archive_sha256": "b" * 64, "inventory_sha256": "c" * 64},
                    "stages": [{"name": s, "state": "succeeded"} for s in cpu.REQUIRED_STAGES],
@@ -253,7 +254,8 @@ class ResultContracts(unittest.TestCase):
         receipt["speaker_cases"] = [{"fixture": c["id"], "decisions": [], "missing_prediction": True}
                                     for c in corpus["clips"] if c["role"] != "enrollment"]
         receipt["speaker_cases"].append({"fixture": "sequence", "decisions": [], "missing_prediction": True})
-        receipt["speaker_outcomes"] = {"missing_prediction": 4}
+        receipt["speaker_outcomes"] = {**dict.fromkeys(cpu.SPEAKER_OUTCOMES, 0), "missing_prediction": 4}
+        receipt["speaker_denominators"] = {"evaluation_cases": 4, "observed_decisions": 0}
         receipt["timeline_cue_counts"] = {c["fixture"]: 1 for c in receipt["cases"]}
         receipt["playback"] = {c["fixture"]: {} for c in receipt["cases"]}
         cpu.validate_acceptance(receipt, corpus)
@@ -265,6 +267,7 @@ class ResultContracts(unittest.TestCase):
                 lambda r: r["speaker_cases"][0].update(missing_prediction=False),
                 lambda r: r["speaker_outcomes"].update(correct_match=4),
                 lambda r: r.update(qualification_seconds=float("nan")),
+                lambda r: r.update(combined_seconds=1801),
                 lambda r: r["cases"][0]["transcription"].pop("peak_rss_bytes"),
                 lambda r: r["post_restore_checks"].update(fetched_models=False),
                 lambda r: r["cleanup"].update(temporary_removed=False)):

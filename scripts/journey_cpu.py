@@ -115,6 +115,8 @@ REQUIRED_STAGES = (
     "package", "corpus", "managed_recognition", "managed_diarization", "models", "readiness",
     "processing", "enrollment", "matching", "queries", "timeline", "playback", "fetch", "restore", "cleanup",
 )
+SPEAKER_OUTCOMES = ("correct_match", "incorrect", "unknown", "correct_unknown", "ambiguous",
+                    "mixed_reference", "unreferenced_activity", "missing_prediction")
 
 
 def corpus_digest(corpus):
@@ -278,7 +280,7 @@ def validate_acceptance(receipt, corpus):
         raise ValueError("Real acceptance speaker case inventory differs")
     enrolled = {profile["reader"]: profile["speaker_id"] for profile in profiles}
     versions = {profile["speaker_id"]: profile["version_id"] for profile in profiles}
-    outcomes = Counter()
+    outcomes = Counter(dict.fromkeys(SPEAKER_OUTCOMES, 0))
     for case in evaluated:
         decisions = case.get("decisions")
         if not isinstance(decisions, list) or case.get("missing_prediction") is not (not bool(decisions)):
@@ -313,6 +315,9 @@ def validate_acceptance(receipt, corpus):
             outcomes["missing_prediction"] += 1
     if receipt.get("speaker_outcomes") != dict(outcomes):
         raise ValueError("Real acceptance speaker totals differ")
+    if receipt.get("speaker_denominators") != {"evaluation_cases": len(evaluated),
+                                               "observed_decisions": sum(len(c["decisions"]) for c in evaluated)}:
+        raise ValueError("Real acceptance speaker denominators differ")
     fixtures = set(expected) | {"sequence"}
     if (set(receipt.get("timeline_cue_counts", {})) != fixtures or set(receipt.get("playback", {})) != fixtures
             or receipt.get("query_operations") != ["media-list", "speaker-search", "model-list", "text-search"]):
@@ -321,7 +326,8 @@ def validate_acceptance(receipt, corpus):
         raise ValueError("Real acceptance owned cleanup is incomplete")
     timings = [receipt.get(key) for key in ("preparation_seconds", "qualification_seconds", "combined_seconds")]
     if (any(type(value) not in (int, float) or not math.isfinite(value) or value < 0 for value in timings)
-            or timings[2] < timings[0] + timings[1]):
+            or timings[2] < timings[0] + timings[1] or type(receipt.get("overall_bound_seconds")) is not int
+            or not 60 <= receipt["overall_bound_seconds"] <= 3600 or timings[2] > receipt["overall_bound_seconds"]):
         raise ValueError("Real acceptance phase timings differ")
     if (receipt.get("source_store") != "unavailable at original path"
             or receipt.get("post_restore_checks") != {"authority": True, "queries": True, "timeline": True, "playback": True, "fetched_models": True}):
@@ -475,7 +481,7 @@ def enroll_profiles(journey, cases, models, reader_ids):
 def match_cases(journey, cases, models, reader_ids, settings):
     from collections import Counter
     ref = references()
-    comparisons, totals = [], Counter()
+    comparisons, totals = [], Counter(dict.fromkeys(SPEAKER_OUTCOMES, 0))
     for case in cases:
         if case["role"] == "enrollment":
             continue
@@ -512,6 +518,8 @@ def match_cases(journey, cases, models, reader_ids, settings):
         comparisons.append({"fixture": case["fixture"], "decisions": rows, "missing_prediction": not bool(rows)})
     journey.receipt["speaker_cases"] = comparisons
     journey.receipt["speaker_outcomes"] = dict(totals)
+    journey.receipt["speaker_denominators"] = {"evaluation_cases": len(comparisons),
+                                               "observed_decisions": sum(len(c["decisions"]) for c in comparisons)}
 
 
 def query_snapshot(journey, search):

@@ -29,6 +29,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Packaged qualification continues a recoverable pending work wait for the same work ID within its original 180-second operation bound. It retains 30-second wait requests and refuses failed, foreign or late results without restarting the deadline.
+
 - CI documentation and package-input installs retain npm advisory audits with bounded request/retry time inside existing operation limits, preventing a five-minute advisory request from exhausting a 180-second input stage.
 
 - Native Windows CLI/desktop executables declare a process-local UTF-8 code page so LadybugDB opens the selected non-Latin library path. Qualification and packaging apply the same manifest before signing, and independent current-source package verification requires it.
