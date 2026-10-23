@@ -148,6 +148,50 @@ class ManagedTests(unittest.TestCase):
 
 
 class OwnershipTests(unittest.TestCase):
+    def test_runtime_observation_failure_cannot_replace_original_cli_failure(self):
+        module = load("qualify-journey")
+        journey = module.Journey.__new__(module.Journey)
+        journey.cli, journey.workspace = Path("fixture"), Path("fixture-library")
+        journey.environment, journey.receipt = {}, {}
+        journey.remaining = Mock(return_value=1)
+        journey.runtime = Mock()
+        journey.runtime.poll.side_effect = OSError("private observation failure")
+        failure = module.engine.CLIResponseError("unavailable", {"error": {"code": "unavailable"}})
+        with patch.object(module.engine, "_child", side_effect=failure), \
+                self.assertRaises(module.engine.CLIResponseError) as raised:
+            journey.command("recordings", "document", "fixture-id")
+        self.assertIs(raised.exception, failure)
+        self.assertEqual(journey.receipt["failure_runtime"], {"observation": "unavailable"})
+        self.assertNotIn("private", json.dumps(journey.receipt))
+
+    def test_failed_command_retains_only_bounded_operator_reason_without_private_message(self):
+        module = load("qualify-journey")
+        for reason in ("runtime_endpoint", "private/path", "x" * 65, None):
+            with self.subTest(reason=reason):
+                journey = module.Journey.__new__(module.Journey)
+                journey.cli, journey.workspace = Path("fixture"), Path("fixture-library")
+                journey.environment, journey.receipt = {}, {}
+                journey.remaining = Mock(return_value=1)
+                journey.runtime = Mock()
+                journey.runtime.pid = 123
+                journey.runtime.poll.return_value = 7 if reason == "runtime_endpoint" else None
+                journey.runtime_overflow = Mock()
+                journey.runtime_overflow.is_set.return_value = False
+                response = {"error": {"code": "unavailable", "reason": reason,
+                                      "message": "private freeform contents"}, "result": {}}
+                failure = module.engine.CLIResponseError("unavailable", response)
+                with patch.object(module.time, "monotonic", side_effect=[100.0, 107.0]), \
+                        patch.object(module.engine, "_child", side_effect=failure), \
+                        self.assertRaises(module.engine.CLIResponseError) as raised:
+                    journey.command("recordings", "document", "fixture-id")
+                self.assertIs(raised.exception, failure)
+                self.assertEqual(journey.receipt.get("failure_reason"), "runtime_endpoint" if reason == "runtime_endpoint" else None)
+                self.assertEqual(journey.receipt.get("failure_runtime"), {
+                    "started": True, "alive": reason != "runtime_endpoint",
+                    "pid": 123, "returncode": 7 if reason == "runtime_endpoint" else None, "output_overflow": False})
+                self.assertEqual(journey.receipt.get("failed_invocation_seconds"), 7.0)
+                self.assertNotIn("private", json.dumps(journey.receipt))
+
     def test_dirty_or_different_reference_harness_stops_before_cli_execution(self):
         journey = load("qualify-journey")
         args = SimpleNamespace(mode="real", package="selected", reference_corpus="selected", timeout=1800)
@@ -282,6 +326,7 @@ class ResultContracts(unittest.TestCase):
         self.assertEqual(receipt["state"], "failed")
         self.assertEqual(receipt["first_failure_stage"], "package")
         self.assertEqual(receipt["stages"], [{"name": "package", "state": "failed"}])
+        self.assertEqual(receipt["cleanup"], {"runtime_released": True, "temporary_removed": True})
 
     def test_complete_receipt_rejects_missing_cases_forged_scores_and_totals(self):
         import copy

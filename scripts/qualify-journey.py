@@ -222,11 +222,28 @@ class Journey:
             command.extend(('--workspace', self.workspace))
         command.extend(args)
         print(json.dumps({'operation': str(args[0]) + '.' + str(args[1])}), flush=True)
+        started = time.monotonic()
         try:
             raw = engine._child(command, self.environment, timeout=self.remaining(maximum), max_output=16 << 20, cli_response=True)
         except engine.CLIResponseError as error:
             result = error.response.get('result', {})
             self.receipt['failure_code'] = error.response['error']['code']
+            reason = error.response['error'].get('reason')
+            if isinstance(reason, str) and re.fullmatch(r'[a-z_]{1,64}', reason):
+                self.receipt['failure_reason'] = reason
+            try:
+                runtime = getattr(self, 'runtime', None)
+                returncode = runtime.poll() if runtime is not None else None
+                pid = getattr(runtime, 'pid', None)
+                overflow = getattr(self, 'runtime_overflow', None)
+                self.receipt['failure_runtime'] = {
+                    'started': runtime is not None, 'alive': runtime is not None and returncode is None,
+                    'pid': pid if type(pid) is int and pid > 0 else None,
+                    'returncode': returncode, 'output_overflow': bool(overflow and overflow.is_set())}
+            except Exception:
+                self.receipt['failure_runtime'] = {'observation': 'unavailable'}
+                error.add_note('Owned runtime failure observation was unavailable')
+            self.receipt['failed_invocation_seconds'] = time.monotonic() - started
             self.receipt['failed_operation'] = str(args[0]) + '.' + str(args[1])
             self.receipt['failed_work'] = {key: result.get(key) for key in ('kind', 'state', 'phase', 'error')} if isinstance(result, dict) else None
             if isinstance(result, dict) and isinstance(result.get('result'), dict):
@@ -524,6 +541,7 @@ def main(argv=None):
     temporary = tempfile.TemporaryDirectory(prefix='insonic-connected-journey-')
     temporary_path = Path(temporary.name)
     journey, receipt, primary = None, None, None
+    runtime_released, temporary_removed = True, False
     started = time.monotonic()
     try:
         journey = Journey(args, temporary_path)
@@ -536,6 +554,7 @@ def main(argv=None):
                            stages=[{'name': 'package', 'state': 'failed'}])
     finally:
         if journey is not None and journey.runtime is not None:
+            runtime_released = False
             tree = getattr(journey, 'runtime_tree', None)
             try:
                 if tree is not None and primary is not None:
@@ -553,6 +572,7 @@ def main(argv=None):
                         raise ValueError('Owned runtime required forced cleanup')
                 if tree is not None and not tree.wait_for_descendants(5):
                     raise ValueError('Owned runtime cleanup is incomplete')
+                runtime_released = tree is not None
             except BaseException as error:
                 if primary is None:
                     primary = error
@@ -569,6 +589,7 @@ def main(argv=None):
                     tree.close()
         try:
             temporary.cleanup()
+            temporary_removed = not temporary_path.exists()
         except BaseException as error:
             if primary is None:
                 primary = error
@@ -580,13 +601,13 @@ def main(argv=None):
                 receipt['temporary_cleanup_error'] = type(error).__name__
     if receipt is None:
         receipt = {'kind': 'connected-product-qualification', 'mode': args.mode}
+    if args.reference_corpus:
+        receipt['cleanup'] = {'runtime_released': runtime_released, 'temporary_removed': temporary_removed}
     receipt['wall_seconds'] = time.monotonic() - started
     if primary is None and args.reference_corpus:
         try:
             receipt['combined_seconds'] = receipt['wall_seconds']
             receipt['qualification_seconds'] = receipt['combined_seconds'] - receipt['preparation_seconds']
-            receipt['cleanup'] = {'runtime_released': journey.runtime is None,
-                                  'temporary_removed': not temporary_path.exists()}
             receipt['stages'].append({'name': 'cleanup', 'state': 'succeeded'})
             cpu.validate_acceptance(receipt, cpu.references().load_frozen_corpus(args.reference_corpus))
         except BaseException as error:

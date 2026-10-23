@@ -11,3 +11,7 @@
 7. **Strengthen existing ownership proportionally.** Reuse the existing process-tree owner for hidden children and descendant cleanup; isolate TEMP/TMP alongside profile variables, make receipt replacement atomic, validate required stages/cases/identities before success, and preserve first failures through cleanup. No owner libraries, credentials or installed state are modified.
 
 Historical S015/S025 measurements establish earlier real execution; they are not current-package evidence. S015 matching returned unknown at 0.677446 against 0.75, and dialogue diarization counts did not establish independent accuracy. Read-only corpus and harness research were dispatched under the installed Spec Kit plan instruction; no research process, inference, file mutation or public comment was delegated.
+
+## CI-observed sanitizer advisory (2026-10-23)
+
+The documentation graph resolved DOMPurify 3.4.16 and npm reported a critical finding. The frontend graph audited clean. Upstream identifies 3.4.17 as the patch for [GHSA-cg2g-xh64-v4q7](https://github.com/advisories/GHSA-cg2g-xh64-v4q7), [GHSA-mrv2-3pqr-j5jr](https://github.com/advisories/GHSA-mrv2-3pqr-j5jr) and the XHTML SMIL guard issue; the [signed release](https://github.com/cure53/DOMPurify/releases/tag/3.4.17) confirms the fixes. A Mermaid-scoped patch override changes one resolved package and the audit reports zero vulnerabilities. No sanitizer mode or product-use restriction changes, and no exploit of this application is claimed.

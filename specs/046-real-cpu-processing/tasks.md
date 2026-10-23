@@ -66,3 +66,9 @@ No additional agent implementation is delegated. Phase 0 research agents were ex
 - [x] T027 Pin real election to the committed frozen manifest independently of caller-supplied hashes; reject self-consistent substituted references before package execution in scripts/acoustic_reference.py, scripts/journey_cpu.py and tests/journey_cpu_test.py (FR-003, FR-006, FR-009).
 - [x] T028 Replace assertion-based archive admission with explicit validation and a single verified snapshot used by both parsing passes in tests/fixtures/acoustic/admit.py; regress optimized Python and source-path replacement in tests/acoustic_admission_test.py (FR-003, FR-009).
 - [x] T029 Own and verify Linux session members across nested worker process groups in scripts/process_tree.py, with bounded termination and an actual Linux nested-group/unrelated-session regression in tests/process_tree_test.py (FR-008, FR-011).
+
+## Phase 9: Demonstrated acceptance diagnosis (2026-10-23)
+
+- [x] T030 Regress and retain bounded operator reason codes and observed cleanup disposition in failed real-journey receipts without retaining freeform messages or replacing the first failure in scripts/qualify-journey.py and tests/journey_cpu_test.py (FR-008, FR-009, FR-011).
+- [x] T031 Retain the current-source timeline failure, both failed CI attempts and the classified Windows frontend/transfer limits; diagnose with controlled operations before repeating elected acceptance, preserving all CI deadlines and the two-trigger review cap (FR-009, FR-010, FR-012).
+- [x] T032 Apply the patched DOMPurify 3.4.17 Mermaid override, resolve the CI-observed critical audit finding, and verify the real documentation build/check/test without changing sanitizer behavior in site/package.json and site/package-lock.json (FR-010, FR-011, FR-012).
