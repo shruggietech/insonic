@@ -20,6 +20,10 @@ import threading
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
+_tree_spec = importlib.util.spec_from_file_location("qualification_process_tree", ROOT / "scripts/process_tree.py")
+_tree_module = importlib.util.module_from_spec(_tree_spec)
+_tree_spec.loader.exec_module(_tree_module)
+ProcessTree = _tree_module.ProcessTree
 CI_VARIABLES = ("CI", "GITHUB_ACTIONS", "TF_BUILD", "BUILD_BUILDID", "JENKINS_URL")
 
 
@@ -133,10 +137,9 @@ def child(command, *, request=None, timeout=600, max_output=16 << 20):
 
 
 def _child(command, environment, *, request=None, timeout=600, max_output=16 << 20, cli_response=False):
-    process = subprocess.Popen([str(item) for item in command], cwd=ROOT, env=environment,
-                               stdin=subprocess.PIPE if request is not None else subprocess.DEVNULL,
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                               creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+    tree = ProcessTree([str(item) for item in command], cwd=ROOT, env=environment, input_pipe=request is not None)
+    process = tree.process
+    deadline = time.monotonic() + timeout
     buffers = [bytearray(), bytearray()]
     overflow = threading.Event()
 
@@ -145,7 +148,7 @@ def _child(command, environment, *, request=None, timeout=600, max_output=16 << 
             while chunk := stream.read(65536):
                 if len(result) + len(chunk) > max_output:
                     overflow.set()
-                    process.kill()
+                    tree.kill()
                     break
                 result.extend(chunk)
         finally:
@@ -159,14 +162,27 @@ def _child(command, environment, *, request=None, timeout=600, max_output=16 << 
         if request is not None:
             process.stdin.write(json.dumps(request).encode("utf-8"))
             process.stdin.close()
-        code = process.wait(timeout=timeout)
-    except BaseException:
-        process.kill()
-        process.wait()
+        code = process.wait(timeout=max(0, deadline - time.monotonic()))
+        if not tree.wait_for_descendants(min(5, max(0, deadline - time.monotonic()))):
+            raise ValueError("Owned qualification descendants did not exit")
+    except BaseException as primary:
+        try:
+            tree.kill()
+            process.wait(timeout=5)
+            if not tree.wait_for_descendants(5):
+                primary.add_note("Owned qualification descendant cleanup did not complete")
+        except BaseException:
+            primary.add_note("Owned qualification child cleanup failed")
         raise
     finally:
         for reader in readers:
-            reader.join(timeout=10)
+            reader.join(timeout=2)
+        tree.close()
+        if any(reader.is_alive() for reader in readers):
+            primary = sys.exc_info()[1]
+            if primary is None:
+                raise ValueError("Owned qualification output reader did not exit")
+            primary.add_note("Owned qualification output reader did not exit")
     if overflow.is_set():
         raise ValueError("Qualification output exceeded bounded limit")
     if code:
@@ -179,8 +195,7 @@ def _child(command, environment, *, request=None, timeout=600, max_output=16 << 
                         raise CLIResponseError(failure_code, response)
                 except (KeyError, TypeError, json.JSONDecodeError):
                     pass
-        # Engine output may contain private paths. Only bounded explicit code
-        # objects are included, never raw traceback or arbitrary stderr.
+        # Never retain arbitrary engine stderr or a private traceback.
         try:
             failure = json.loads(bytes(buffers[1]).strip().splitlines()[-1])
         except (ValueError, UnicodeError, IndexError):

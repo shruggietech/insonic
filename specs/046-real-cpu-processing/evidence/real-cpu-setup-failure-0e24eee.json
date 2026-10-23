@@ -1,0 +1,142 @@
+{
+  "kind": "insonic-real-cpu-acceptance-v1",
+  "mode": "real",
+  "required_check": false,
+  "platform": "Windows",
+  "device": "cpu",
+  "cli_sha256": "ebeff0904cddca5fc637ceb2b0f0cf3267b84934232dfc67e1aff667a4c223cd",
+  "worker_sha256": "e6ed2219b2b77250ca6ae9f4d2c01978d6231a4df9ee3d6550c24389c084f3de",
+  "product_version": "1.0.1",
+  "source_revision": "0e24eee2a96db2eecf225f8ec1b3cb244a1fec80",
+  "source_dirty": false,
+  "operation_bound_seconds": 180,
+  "overall_bound_seconds": 2400,
+  "hard_rss_limit_bytes": null,
+  "operations": [
+    {
+      "kind": "workers.setup",
+      "state": "succeeded",
+      "phase": "complete",
+      "wait_wall_seconds": 34.54599999997299
+    }
+  ],
+  "records": [],
+  "package": {
+    "revision": "0e24eee2a96db2eecf225f8ec1b3cb244a1fec80",
+    "platform": "windows_amd64",
+    "variant": "cli",
+    "schema_version": "1.0.1",
+    "product_version": "1.0.1",
+    "documentation_version": "1.0.1",
+    "archive_sha256": "a4671b48d6ac3b19a3d643bef4953663792dfcb75da7eeb49041c6a8ace5fc5b",
+    "inventory_sha256": "f4c6ef058ee92aaa26248f40feb2cf9ce0a36a82254ae772de6f02c206908788",
+    "source_dirty": false
+  },
+  "harness_revision": "0e24eee2a96db2eecf225f8ec1b3cb244a1fec80",
+  "harness_dirty": false,
+  "harness_inputs_sha256": "ede3b0294f5716558d4996ab7bc0c08a81e07aada7b9495e52c437ef5d800c1b",
+  "worker_origin": "installed-package",
+  "state": "failed",
+  "stages": [
+    {
+      "name": "package",
+      "state": "succeeded",
+      "wall_seconds": 10.702999999979511
+    },
+    {
+      "name": "corpus",
+      "state": "succeeded",
+      "wall_seconds": 4.188000000023749
+    },
+    {
+      "name": "managed_recognition",
+      "state": "succeeded",
+      "wall_seconds": 75.25
+    },
+    {
+      "name": "managed_diarization",
+      "state": "failed",
+      "wall_seconds": 191.125
+    }
+  ],
+  "operation_bounds_seconds": {
+    "default": 180,
+    "managed_setup": 600,
+    "decode": 30
+  },
+  "child_output_bound_bytes": 16777216,
+  "current_stage": "managed_diarization",
+  "graph": {
+    "state": "available",
+    "adapter_id": "ladybugdb",
+    "backend_version": "0.21.2"
+  },
+  "companion_sha256": {
+    "ffmpeg": "6378e87cee4962b6edd6b17d07b10a666b94dfb56f76d6b1ef08bdd09c51a1d8",
+    "ffprobe": "056d361360d4b09a27a8a31fb23ac466e39a8b436820e8cc18d13868d2f7910d",
+    "exiftool": "5a5eb862de16a6fd6f095773bf099c2777a3df12722bd50eec5d86495f0c102a",
+    "cueson": "a074673e71ced8567f6d84a9537ddd3d80600cc02964bb847273d69246903d19"
+  },
+  "corpus_sha256": "5abce92ea60ff0de4639161c85af383457f4e5b36c3ff6c00cfa018631dd6ada",
+  "matching_settings": {
+    "threshold": 0.75,
+    "ambiguity_margin": 0.1,
+    "min_evidence_us": 1000000
+  },
+  "reference_normalization": "NFC, Unicode casefold, Unicode word characters",
+  "sequence": {
+    "sha256": "e54da90bde1a36afdec5bd3bf5e8d959dac2b8314f166d7ddac11f3387bd796e",
+    "sample_rate": 16000,
+    "samples": 436240,
+    "components": [
+      {
+        "fixture": "84-121550-0000",
+        "sha256": "dbd3048279d25cb4adaa25e246db50ffa01b7714e6f091691abe908027951daf",
+        "start_sample": 0,
+        "end_sample": 134960
+      },
+      {
+        "fixture": "174-84280-0001",
+        "sha256": "2635d394037ba5efa6a8e7ea7bb45159180f8ba69c8b345648305cb212a253f4",
+        "start_sample": 142960,
+        "end_sample": 436240
+      }
+    ],
+    "gap_samples": 8000
+  },
+  "environments": {
+    "recognition": {
+      "profile_digest": "48ae9bff4b479f29ead1c3627434da546dd0f31bc421290d07119f971759af39",
+      "python_sha256": "00971a1ef67279e9234086dcffa881322478f80d40366bd7d2d16f56a9f08b07",
+      "receipt_sha256": "28f1f202f70972be7cc9069df897b7725363e956d45ee1a6eb7125487a8d620d",
+      "verified_reuse": true
+    }
+  },
+  "failure_code": "engine_unavailable",
+  "failure_runtime": {
+    "started": true,
+    "alive": true,
+    "pid": 12832,
+    "returncode": null,
+    "output_overflow": false
+  },
+  "failed_invocation_seconds": 171.1720000000205,
+  "failed_operation": "work.wait",
+  "failed_work": {
+    "kind": "workers.setup",
+    "state": "failed",
+    "phase": "operation-failed",
+    "error": "engine_unavailable"
+  },
+  "failed_work_result": {
+    "state": "failed",
+    "error": "engine_unavailable"
+  },
+  "first_failure_stage": "managed_diarization",
+  "cleanup": {
+    "runtime_released": true,
+    "temporary_removed": true
+  },
+  "wall_seconds": 305.18800000002375,
+  "failure_type": "CLIResponseError"
+}

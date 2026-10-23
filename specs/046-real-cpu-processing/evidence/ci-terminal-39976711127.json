@@ -1,0 +1,84 @@
+{
+  "format": "insonic-ci-acceptance-v1",
+  "identity": {
+    "repository": "shruggietech/insonic",
+    "run": "39976711127",
+    "attempt": "1",
+    "head": "0e24eee2a96db2eecf225f8ec1b3cb244a1fec80",
+    "revision": "edd34f4c5a5a780cbfeb23b4f04f5570f46c7c7e"
+  },
+  "terminal": true,
+  "evaluation": {
+    "scope": {
+      "core": true,
+      "cli": true,
+      "native": true,
+      "adapters": true
+    },
+    "election": {
+      "scope": true,
+      "readiness": true,
+      "foundation": true,
+      "docs-build": true,
+      "docs": true,
+      "media-linux": true,
+      "media-windows": true,
+      "dependencies-windows": true,
+      "core": true,
+      "core-windows": true,
+      "qualify-linux": true,
+      "qualify-windows": true,
+      "package-linux": true,
+      "package-windows": true,
+      "adapters": true,
+      "candidate": true,
+      "live-site": false
+    },
+    "results": {
+      "scope": "success",
+      "readiness": "success",
+      "foundation": "success",
+      "docs-build": "success",
+      "docs": "success",
+      "media-linux": "success",
+      "media-windows": "success",
+      "dependencies-windows": "success",
+      "core": "success",
+      "core-windows": "success",
+      "qualify-linux": "success",
+      "qualify-windows": "success",
+      "package-linux": "success",
+      "package-windows": "success",
+      "adapters": "success",
+      "candidate": "success",
+      "live-site": "skipped"
+    }
+  },
+  "timing": {
+    "preparation_seconds": 250,
+    "qualification_seconds": 681,
+    "combined_seconds": 931,
+    "qualification_target_seconds": 660,
+    "qualification_limit_seconds": 900,
+    "target_exceeded": true,
+    "target_overrun_seconds": 21,
+    "finalization_reserve_seconds": 0,
+    "terminal": true,
+    "accepted": true,
+    "failures": [],
+    "attempt_started_at": "2026-10-23T15:15:28Z",
+    "attempt_record_created_at": "2026-10-23T15:15:28Z",
+    "preparation_started_at": "2026-10-23T15:15:28Z",
+    "readiness_at": "2026-10-23T15:19:38Z",
+    "evaluated_through": "2026-10-23T15:30:59.000Z",
+    "worker_terminal_at": "2026-10-23T15:30:57.000Z",
+    "metadata_updated_at": "2026-10-23T15:30:59Z",
+    "initial_queue_seconds": 0
+  },
+  "artifact": {
+    "id": 12511309688,
+    "size_bytes": 1016,
+    "sha256": "47ad8f5843a2906957a46647309fce0b2df26a7d225ca79d69878e95f71456ec"
+  },
+  "accepted": true
+}

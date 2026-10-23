@@ -1,0 +1,31 @@
+{
+  "format": "insonic-integration-failure-v1",
+  "run": 39956990234,
+  "attempt": 2,
+  "source_head": "e317deea06b736c55e4b08089e18c50dfeecd44d",
+  "revision": "2e58953e1925ccfe3e1830f1fd40f360d7f682e7",
+  "state": "failed",
+  "qualification_ready_at": "2026-10-23T13:39:42Z",
+  "qualification_hard_deadline": "2026-10-23T13:54:42Z",
+  "input_wait_limit_seconds": 400,
+  "input_wait_failure_at": "2026-10-23T13:47:08Z",
+  "assembly_job": 120445691163,
+  "assembly_completed_at": "2026-10-23T13:51:50Z",
+  "go_dependency_download": {
+    "artifact_id": 12506050644,
+    "size_bytes": 355355409,
+    "sha256": "18b5d4af67bcbfc4488f40bf99b475cc4d520d427bd10c1750efc36471baf47b",
+    "started_at": "2026-10-23T13:41:03.7743841Z",
+    "completed_at": "2026-10-23T13:49:12.2887597Z",
+    "observed_step_seconds": 488.5143756
+  },
+  "failed_consumer_jobs": [
+    120445690942,
+    120445690985,
+    120445691058,
+    120445691284
+  ],
+  "classification": "Input wait expired before successful assembly; this attempt did not repeat the archive frontend qualification",
+  "cause_limit": "Slow download/extract action observed; underlying host/network/storage cause not established",
+  "policy": "400-second input waits, 660-second advisory, 900-second hard limit and all required checks remain unchanged"
+}

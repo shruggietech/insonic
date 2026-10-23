@@ -126,7 +126,7 @@ class PackageWorkloadAllocationTests(unittest.TestCase):
             elif command[:2] == ['work', 'wait']:
                 if '--json' not in command:
                     return b'Warning: second --originated-on'
-                result = {'state': 'succeeded', 'result': {'partial': True, 'items': [
+                result = {'id': 'fixture-work', 'state': 'succeeded', 'result': {'partial': True, 'items': [
                     {'state': 'admitted', 'capture_state': 'captured', 'media_id': 'first'},
                     {'state': 'admitted', 'capture_state': 'captured', 'media_id': 'second', 'date_unresolved': True}]}}
             else:

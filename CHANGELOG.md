@@ -10,6 +10,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Added
 
+- Reference-backed packaged Windows CPU qualification prepares managed workers through the normal CLI, measures real transcription and two-reader speaker-profile matching against frozen licensed references, and verifies query, timeline, playback and model recovery after source withdrawal. Compact receipts separate functional acceptance, measured quality limits, preparation and qualification; deterministic integrity and cleanup regressions run without inference in CI.
+
 - Maintained CLI fixture provenance and a bounded command/option coverage ledger derived from the executed binary, with image/package identity and explicit semantic, invocation, refusal and unverified dispositions. Installed qualification exercises spaces and non-Latin library/program destinations.
 
 - Windows native qualification records owned desktop/input conditions, completion timings and created-environment runtime identity separately from loader availability. Its show/focus join now allows ten seconds within unchanged outer deadlines, with real input and natural release still required.
@@ -26,6 +28,18 @@ All notable changes to this project will be documented here. The format follows 
 - Read-only public release and documentation verification compares the selected published inventory and original documentation with live pages, schemas, aliases and referenced resources, then rechecks the elected Pages deployment identity.
 
 ### Fixed
+
+- Fetched-profile qualification compares canonical destination and file identities, accepting equivalent Windows short/long path spellings while retaining owned-file, link, byte and digest checks.
+
+- Resolve the documentation renderer's DOMPurify advisories with a Mermaid-scoped 3.4.17 patch override, preserving rendering modes. Failed CPU qualification retains bounded operator reasons, invocation/runtime observations and cleanup disposition without retaining freeform messages or replacing its first failure.
+
+- Reference-backed election pins the committed corpus manifest before execution. Corpus admission enforces archive size/SHA-256 under optimized Python and uses one private verified snapshot for both parsing passes. Linux qualification tracks the owned session across nested worker groups, terminates exact process identities and verifies exit before reporting cleanup.
+
+- Community-1 padding-only turns with no decoded-source overlap are discarded and diagnosed before checking overlapping boundary overhang. A padding prediction no longer rejects otherwise valid activity; the overlapping 250 ms guard and strict generic timing validation remain in place. CPU acceptance retains numeric quality diagnostics and checks their exact recovery with processing provenance.
+
+- Cold credential-bootstrap qualification separates owned-launch overhead from its two-second CLI classification check and retains both in the invocation total. Reference-backed CPU acceptance rejects source drift and includes owned cleanup in phase timing.
+
+- Packaged qualification continues a recoverable pending work wait for the same work ID within its original 180-second operation bound. It retains 30-second wait requests and refuses failed, foreign or late results without restarting the deadline.
 
 - CI documentation and package-input installs retain npm advisory audits with bounded request/retry time inside existing operation limits, preventing a five-minute advisory request from exhausting a 180-second input stage.
 

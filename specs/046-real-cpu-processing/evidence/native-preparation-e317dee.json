@@ -1,0 +1,22 @@
+{
+  "run": 39956990234,
+  "attempt": 1,
+  "artifact_id": 12504915344,
+  "artifact_name": "media-source-windows-2022-1",
+  "size_bytes": 69098248,
+  "sha256": "be6a825cd8dd89924cafa8138d46101a27218b3a0de8325f9646a907ebb17668",
+  "producer_revision": "2e58953e1925ccfe3e1830f1fd40f360d7f682e7",
+  "source_head": "e317deea06b736c55e4b08089e18c50dfeecd44d",
+  "producer_job_id": 120434769018,
+  "producer_conclusion": "success",
+  "producer_completed_at": "2026-10-23T13:21:41Z",
+  "platform": "windows_amd64",
+  "key": "c43ba1467cbdb2df39bdbfdeec1faa5b693d1548e6b6c852b463697d168a1089",
+  "compiler": "gcc.EXE (Rev4, Built by MSYS2 project) 16.2.0",
+  "recipe_sha256": "2c612eeb73bfb2863a643601a79ceda0149bb63662be18a83338f7b5c13bfcf0",
+  "launcher_sha256": "b6827f74c1c5c1f39827323b196af3706c07046dad0b517bcd7550027131588b",
+  "receipt_sha256": "c583562d39ac268a5805e12c4ae411cfdb7785d5de571a4748116ccf6b721bcd",
+  "provenance": "Original producer receipts preserved byte-for-byte; portable verified cache reuse, not same-run CI transfer",
+  "workflow_attempt_conclusion": "failure",
+  "workflow_failure": "Separate Windows desktop help qualification timeout; native producer completed successfully"
+}

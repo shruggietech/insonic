@@ -38,7 +38,16 @@ def require_mode(mode):
 
 def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False) + '\n', encoding='utf-8', newline='\n')
+    data = json.dumps(value, indent=2, ensure_ascii=False, allow_nan=False) + '\n'
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', newline='\n', dir=path.parent, prefix='.' + path.name + '.', delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write(data)
+        temporary.replace(path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def package_module():
@@ -79,7 +88,7 @@ def select_package(args, base):
     receipt = json.loads(Path(args.package_receipt).read_text(encoding='utf-8'))
     validate_package_election(receipt, args.revision, (ROOT / 'VERSION').read_text().strip(), package.platform_key())
     package.verify_archive_receipt(archive, receipt, expected_source_root=ROOT)
-    location = base / 'relocated installed package with spaces'
+    location = base / 'relocated installed package Ω 文 with spaces'
     location.mkdir()
     package.extract_package(archive, location)
     root = package.path_inside(location, receipt['inventory_root'])
@@ -128,6 +137,20 @@ def compare_authority(before, after):
         raise ValueError('Restored current authority differs from completed source authority')
 
 
+def harness_identity():
+    environment = engine.local_environment()
+    revision = engine._child(['git', 'rev-parse', 'HEAD'], environment, timeout=10).decode().strip()
+    dirty = bool(engine._child(['git', 'status', '--porcelain'], environment, timeout=10).strip())
+    identity = hashlib.sha256()
+    inputs = [ROOT / name for name in ('VERSION', 'go.mod', 'go.sum')]
+    for prefix in ('internal', 'cmd', 'scripts', 'schemas/v' + (ROOT / 'VERSION').read_text().strip()):
+        inputs.extend(path for path in (ROOT / prefix).rglob('*') if path.is_file() and path.suffix in ('.go', '.py', '.json'))
+    inputs.append(ROOT / 'tests/fixtures/qualification-worker.py')
+    for path in sorted(inputs):
+        identity.update(path.relative_to(ROOT).as_posix().encode() + b'\0' + bytes.fromhex(engine.sha(path)))
+    return revision, dirty, identity.hexdigest()
+
+
 class Journey:
     def __init__(self, args, base):
         self.args, self.base = args, base
@@ -147,40 +170,42 @@ class Journey:
             self.worker = ROOT / 'tests/fixtures/qualification-worker.py'
         self.sequence = 0
         self.runtime = None
+        self.runtime_tree = None
         self.environment = packaged_environment() if packaged else engine.local_environment()
         if not packaged and os.environ.get('INSONIC_NATIVE_LIBRARY'):
             self.environment['INSONIC_NATIVE_LIBRARY'] = os.environ['INSONIC_NATIVE_LIBRARY']
         home = base / 'private-user'
         home.mkdir()
         engine.secure_private_directory(str(home))
-        for name in ('roaming', 'local', 'cache', 'config'):
+        for name in ('roaming', 'local', 'cache', 'config', 'tmp'):
             (home / name).mkdir()
         self.environment.update(HOME=str(home), USERPROFILE=str(home), APPDATA=str(home / 'roaming'),
                                 LOCALAPPDATA=str(home / 'local'), XDG_CACHE_HOME=str(home / 'cache'),
-                                XDG_CONFIG_HOME=str(home / 'config'), PYTHONIOENCODING='utf-8',
+                                XDG_CONFIG_HOME=str(home / 'config'), TEMP=str(home / 'tmp'), TMP=str(home / 'tmp'),
+                                TMPDIR=str(home / 'tmp'), PYTHONIOENCODING='utf-8',
                                 GH_PROMPT_DISABLED='1', GIT_TERMINAL_PROMPT='0')
-        harness_environment = engine.local_environment()
-        revision = engine._child(['git', 'rev-parse', 'HEAD'], harness_environment, timeout=10).decode().strip()
-        dirty = bool(engine._child(['git', 'status', '--porcelain'], harness_environment, timeout=10).strip())
-        identity = hashlib.sha256()
-        inputs = [ROOT / name for name in ('VERSION', 'go.mod', 'go.sum')]
-        for prefix in ('internal', 'cmd', 'scripts', 'schemas/v' + (ROOT / 'VERSION').read_text().strip()):
-            inputs.extend(path for path in (ROOT / prefix).rglob('*') if path.is_file() and path.suffix in ('.go', '.py', '.json'))
-        inputs.append(ROOT / 'tests/fixtures/qualification-worker.py')
-        for path in sorted(inputs):
-            identity.update(path.relative_to(ROOT).as_posix().encode() + b'\0' + bytes.fromhex(engine.sha(path)))
+        revision, dirty, identity = harness_identity()
+        if packaged and getattr(args, 'reference_corpus', None) and (dirty or revision != package_identity['revision']):
+            raise ValueError('Reference acceptance requires a clean exact package and harness revision')
         self.receipt = {'kind': 'connected-product-qualification', 'mode': args.mode, 'required_check': False,
                         'platform': platform.system(), 'device': 'cpu', 'cli_sha256': engine.sha(self.cli),
                         'worker_sha256': engine.sha(self.worker),
                         'product_version': (ROOT / 'VERSION').read_text().strip(),
-                        'source_revision': revision, 'source_dirty': dirty, 'source_inputs_sha256': identity.hexdigest(),
+                        'source_revision': revision, 'source_dirty': dirty, 'source_inputs_sha256': identity,
                         'operation_bound_seconds': 180, 'overall_bound_seconds': args.timeout,
                         'hard_rss_limit_bytes': None, 'operations': [], 'records': []}
         if packaged:
             self.receipt.update(package=package_identity, source_revision=package_identity['revision'], source_dirty=False,
-                                harness_revision=revision, harness_dirty=dirty, harness_inputs_sha256=identity.hexdigest(),
+                                harness_revision=revision, harness_dirty=dirty, harness_inputs_sha256=identity,
                                 worker_origin='installed-package' if args.mode == 'real' else 'controlled-fixture')
             self.receipt.pop('source_inputs_sha256')
+
+    def assert_harness_unchanged(self):
+        self.receipt['harness_unchanged'] = False
+        revision, dirty, identity = harness_identity()
+        if dirty or revision != self.receipt['harness_revision'] or identity != self.receipt['harness_inputs_sha256']:
+            raise ValueError('Elected harness source changed during real acceptance')
+        self.receipt['harness_unchanged'] = True
 
     def remaining(self, maximum=180):
         remaining = self.deadline - time.monotonic()
@@ -188,17 +213,37 @@ class Journey:
             raise ValueError('Journey overall deadline exceeded')
         return min(maximum, remaining)
 
+    def engine_child(self, command, *, maximum=180, max_output=16 << 20):
+        return engine._child(command, self.environment, timeout=self.remaining(maximum), max_output=max_output)
+
     def command(self, *args, workspace=True, maximum=180):
         command = [self.cli, '--json']
         if workspace:
             command.extend(('--workspace', self.workspace))
         command.extend(args)
         print(json.dumps({'operation': str(args[0]) + '.' + str(args[1])}), flush=True)
+        started = time.monotonic()
         try:
             raw = engine._child(command, self.environment, timeout=self.remaining(maximum), max_output=16 << 20, cli_response=True)
         except engine.CLIResponseError as error:
             result = error.response.get('result', {})
             self.receipt['failure_code'] = error.response['error']['code']
+            reason = error.response['error'].get('reason')
+            if isinstance(reason, str) and re.fullmatch(r'[a-z_]{1,64}', reason):
+                self.receipt['failure_reason'] = reason
+            try:
+                runtime = getattr(self, 'runtime', None)
+                returncode = runtime.poll() if runtime is not None else None
+                pid = getattr(runtime, 'pid', None)
+                overflow = getattr(self, 'runtime_overflow', None)
+                self.receipt['failure_runtime'] = {
+                    'started': runtime is not None, 'alive': runtime is not None and returncode is None,
+                    'pid': pid if type(pid) is int and pid > 0 else None,
+                    'returncode': returncode, 'output_overflow': bool(overflow and overflow.is_set())}
+            except Exception:
+                self.receipt['failure_runtime'] = {'observation': 'unavailable'}
+                error.add_note('Owned runtime failure observation was unavailable')
+            self.receipt['failed_invocation_seconds'] = time.monotonic() - started
             self.receipt['failed_operation'] = str(args[0]) + '.' + str(args[1])
             self.receipt['failed_work'] = {key: result.get(key) for key in ('kind', 'state', 'phase', 'error')} if isinstance(result, dict) else None
             if isinstance(result, dict) and isinstance(result.get('result'), dict):
@@ -218,12 +263,12 @@ class Journey:
     def input(self, *args, value):
         return self.command(*args, '--input', self.payload(value))
 
-    def finish(self, queued):
+    def finish(self, queued, *, maximum=180):
         started = time.monotonic()
         work_id = queued.get('work_id', queued.get('id'))
         if not work_id:
             raise ValueError('Operation did not return durable work identity')
-        current = self.command('work', 'wait', work_id, '--timeout-ms', str(int(self.remaining() * 1000)), maximum=185)
+        current = self.command('work', 'wait', work_id, '--timeout-ms', str(min(600000, int(self.remaining(maximum) * 1000))), maximum=maximum + 5)
         if current.get('state') != 'succeeded':
             raise ValueError('Work did not reach success')
         self.receipt['operations'].append({'kind': current['kind'], 'state': current['state'], 'phase': current['phase'],
@@ -231,16 +276,45 @@ class Journey:
         return current['result']
 
     def start_runtime(self):
-        self.runtime = subprocess.Popen([str(self.cli), '--workspace', str(self.workspace), 'runtime', 'serve'],
-                                        stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                        env=self.environment, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+        self.runtime_tree = engine.ProcessTree(
+            [str(self.cli), '--workspace', str(self.workspace), 'runtime', 'serve'],
+            cwd=self.base, env=self.environment)
+        self.runtime = self.runtime_tree.process
+        self.runtime_overflow = threading.Event()
+        self.runtime_readers = []
+
+        def drain(stream):
+            count = 0
+            try:
+                while chunk := stream.read(65536):
+                    count += len(chunk)
+                    if count > 16 << 20:
+                        self.runtime_overflow.set()
+                        self.runtime_tree.kill()
+                        break
+            finally:
+                stream.close()
+        for stream in (self.runtime.stdout, self.runtime.stderr):
+            reader = threading.Thread(target=drain, args=(stream,), daemon=True)
+            reader.start()
+            self.runtime_readers.append(reader)
 
     def idle_runtime(self):
         if self.runtime is not None:
             self.runtime.wait(timeout=self.remaining(45))
-            if self.runtime.returncode:
+            if self.runtime.returncode or self.runtime_overflow.is_set():
                 raise ValueError('Owned runtime failed before maintenance')
+            if not self.runtime_tree.wait_for_descendants(self.remaining(5)):
+                raise ValueError('Owned runtime descendants did not release naturally')
+            for reader in self.runtime_readers:
+                reader.join(timeout=2)
+            if any(reader.is_alive() for reader in self.runtime_readers):
+                raise ValueError('Owned runtime output readers did not exit')
+            if self.runtime_overflow.is_set():
+                raise ValueError('Owned runtime output exceeded bounded limit')
+            self.runtime_tree.close()
             self.runtime = None
+            self.runtime_tree = None
 
     def query(self, operation, filters=None):
         result = self.input('query', 'run', value={'definition': {'mode': 'normalized', 'operation': operation,
@@ -248,6 +322,9 @@ class Journey:
         if result.get('graph_error'):
             raise ValueError('Connected query fell back from its native graph')
         return result
+
+    def withdraw_source(self):
+        return withdraw_source(self.workspace, self.base)
 
     def current_record(self, media_id):
         shown = self.command('recordings', 'show', media_id)
@@ -266,7 +343,7 @@ class Journey:
             entry = entry.get('entry', entry)
             record = self.current_record(media_id)
             recordings[media_id] = {'media': {key: entry[key] for key in ('id', 'digest', 'asset_id', 'duration_us', 'facts', 'dates')},
-                                   'recording': {key: record[key] for key in ('id', 'document', 'document_digest', 'source_map', 'source_digest')},
+                                   'recording': {key: record[key] for key in ('id', 'document', 'document_digest', 'source_map', 'source_digest', 'provenance', 'diagnostics')},
                                    'roster': self.command('recordings', 'roster', 'show', media_id)}
         model = self.command('models', 'speaker', 'show', version_id)
         listing = self.input('models', 'speaker', 'list', value={'speaker_id': speaker_id})
@@ -429,7 +506,7 @@ class Journey:
         return self.receipt
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--mode', choices=('real', 'controlled'), required=True)
     selection = parser.add_mutually_exclusive_group(required=True)
@@ -439,36 +516,114 @@ def main():
     parser.add_argument('--cueson')
     parser.add_argument('--package-receipt')
     parser.add_argument('--revision')
-    parser.add_argument('--recognition-python', required=True)
-    parser.add_argument('--diarization-python', required=True)
+    parser.add_argument('--recognition-python')
+    parser.add_argument('--diarization-python')
     parser.add_argument('--recognition-model')
     parser.add_argument('--diarization-model')
-    parser.add_argument('--timeout', type=int, default=900)
+    parser.add_argument('--reference-corpus')
+    parser.add_argument('--managed-offline-assets')
+    parser.add_argument('--timeout', type=int)
     parser.add_argument('--output', required=True)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     require_mode(args.mode)
     validate_selection(args)
+    if args.reference_corpus:
+        spec = importlib.util.spec_from_file_location('reference_cpu_journey', ROOT / 'scripts/journey_cpu.py')
+        cpu = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cpu)
+        cpu.validate_election(args)
+    elif not args.recognition_python or not args.diarization_python or args.managed_offline_assets:
+        raise ValueError('Legacy journey requires both explicit interpreters and no managed bundle override')
+    if args.timeout is None:
+        args.timeout = 1800 if args.reference_corpus else 900
     if not 60 <= args.timeout <= 3600: raise ValueError('Invalid journey bound')
     if args.mode == 'real' and (not args.recognition_model or not args.diarization_model): raise ValueError('Real mode requires exact installed models')
-    with tempfile.TemporaryDirectory(prefix='insonic-connected-journey-') as temporary:
-        journey = None
-        started = time.monotonic()
+    temporary = tempfile.TemporaryDirectory(prefix='insonic-connected-journey-')
+    temporary_path = Path(temporary.name)
+    journey, receipt, primary = None, None, None
+    runtime_released, temporary_removed = True, False
+    started = time.monotonic()
+    try:
+        journey = Journey(args, temporary_path)
+        receipt = cpu.run(journey) if args.reference_corpus else journey.run()
+    except BaseException as error:
+        primary = error
+        receipt = dict(journey.receipt) if journey else {'kind': 'connected-product-qualification', 'mode': args.mode}
+        if journey is None and args.reference_corpus:
+            receipt.update(kind='insonic-real-cpu-acceptance-v1', first_failure_stage='package',
+                           stages=[{'name': 'package', 'state': 'failed'}])
+    finally:
+        if journey is not None and journey.runtime is not None:
+            runtime_released = False
+            tree = getattr(journey, 'runtime_tree', None)
+            try:
+                if tree is not None and primary is not None:
+                    tree.kill()
+                    journey.runtime.wait(timeout=10)
+                else:
+                    try:
+                        journey.runtime.wait(timeout=40)
+                    except subprocess.TimeoutExpired:
+                        if tree is not None:
+                            tree.kill()
+                        else:
+                            journey.runtime.terminate()
+                        journey.runtime.wait(timeout=10)
+                        raise ValueError('Owned runtime required forced cleanup')
+                if tree is not None and not tree.wait_for_descendants(5):
+                    raise ValueError('Owned runtime cleanup is incomplete')
+                runtime_released = tree is not None
+            except BaseException as error:
+                if primary is None:
+                    primary = error
+                    if args.reference_corpus:
+                        receipt.setdefault('first_failure_stage', 'cleanup')
+                else:
+                    primary.add_note('Owned runtime cleanup failed')
+                if receipt is not None:
+                    receipt['cleanup_error'] = type(error).__name__
+            finally:
+                if tree is not None:
+                    for reader in journey.runtime_readers:
+                        reader.join(timeout=2)
+                    tree.close()
         try:
-            journey = Journey(args, Path(temporary))
-            receipt = journey.run()
-        except Exception as error:
-            failed = {**(journey.receipt if journey else {'kind': 'connected-product-qualification', 'mode': args.mode}),
-                      'state': 'failed', 'failure_type': type(error).__name__,
-                      'wall_seconds': time.monotonic() - (journey.started if journey else started)}
-            write_json(Path(args.output).resolve(), failed)
-            raise
-        finally:
-            if journey is not None and journey.runtime is not None:
-                try: journey.runtime.wait(timeout=40)
-                except subprocess.TimeoutExpired:
-                    journey.runtime.terminate(); journey.runtime.wait(timeout=10)
+            temporary.cleanup()
+            temporary_removed = not temporary_path.exists()
+        except BaseException as error:
+            if primary is None:
+                primary = error
+                if args.reference_corpus:
+                    receipt.setdefault('first_failure_stage', 'cleanup')
+            else:
+                primary.add_note('Owned temporary-directory cleanup failed')
+            if receipt is not None:
+                receipt['temporary_cleanup_error'] = type(error).__name__
+    if receipt is None:
+        receipt = {'kind': 'connected-product-qualification', 'mode': args.mode}
+    if args.reference_corpus:
+        receipt['cleanup'] = {'runtime_released': runtime_released, 'temporary_removed': temporary_removed}
+    receipt['wall_seconds'] = time.monotonic() - started
+    if primary is None and args.reference_corpus:
+        try:
+            receipt['combined_seconds'] = receipt['wall_seconds']
+            receipt['qualification_seconds'] = receipt['combined_seconds'] - receipt['preparation_seconds']
+            receipt['stages'].append({'name': 'cleanup', 'state': 'succeeded'})
+            cpu.validate_acceptance(receipt, cpu.references().load_frozen_corpus(args.reference_corpus))
+        except BaseException as error:
+            primary = error
+            receipt.setdefault('first_failure_stage', 'cleanup')
+    if primary is not None:
+        receipt.update(state='failed', failure_type=type(primary).__name__)
+        try:
+            write_json(Path(args.output).resolve(), receipt)
+        except BaseException as error:
+            primary.add_note('Failure receipt could not be written: ' + type(error).__name__)
+        raise primary
+    receipt['state'] = 'passed'
     write_json(Path(args.output).resolve(), receipt)
-    print(json.dumps({'state': receipt['state'], 'mode': args.mode, 'wall_seconds': receipt['wall_seconds'], 'receipt': str(Path(args.output).resolve())}))
+    print(json.dumps({'state': receipt['state'], 'mode': args.mode,
+                      'wall_seconds': receipt['wall_seconds'], 'receipt': str(Path(args.output).resolve())}))
 
 
 if __name__ == '__main__':

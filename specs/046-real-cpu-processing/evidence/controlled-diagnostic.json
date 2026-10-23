@@ -1,0 +1,24 @@
+{
+  "format": "insonic-controlled-diagnostic-v1",
+  "mode": "controlled",
+  "state": "passed",
+  "package": {
+    "revision": "e317deea06b736c55e4b08089e18c50dfeecd44d",
+    "platform": "windows_amd64",
+    "variant": "cli",
+    "schema_version": "1.0.1",
+    "product_version": "1.0.1",
+    "documentation_version": "1.0.1",
+    "archive_sha256": "31a6e54f7776af17b2b53c71cbf269cb7b28b505460675b7020432b00adc5426",
+    "inventory_sha256": "becfbbd401a96a743ce942d8436a5cf1ff90bcf9a1326a2c5779f8d9280ce95e",
+    "source_dirty": false
+  },
+  "harness_revision": "e317deea06b736c55e4b08089e18c50dfeecd44d",
+  "harness_dirty": true,
+  "wall_seconds": 505.43700000003446,
+  "source_withdrawal": "unavailable at original path",
+  "recordings": 3,
+  "repeated_document_reads": 30,
+  "inference": "not_run",
+  "conclusion": "Processing/matching/restore and repeated reads passed with the fixture worker; original real unavailable failure was not reproduced or causally repaired"
+}

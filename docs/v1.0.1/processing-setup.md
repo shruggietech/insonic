@@ -47,6 +47,8 @@ Existing explicit processing-tools configurations remain supported under Advance
 
 The product provides Whisper Tiny (MIT, 78,203,619 bytes) and Community-1 (CC BY 4.0, 32,821,421 bytes). Each choice has an immutable upstream revision and a complete named-file manifest. Inspect `insonic --workspace LIBRARY models defaults --json` for identities, license, model card and current state.
 
+Community-1 segmentation frames with no overlap against decoded audio are discarded and diagnosed as padding-only predictions. Overlapping boundary extensions retain the 250 ms limit and are intersected with the real source interval with diagnostics. Generic adapter turns remain strictly bounded by decoded audio. Accepted cues never gain source time or samples from model padding.
+
 1. Save `model-preview.json` using the input below, selecting `whisper-tiny` or `community-1`.
 2. Run `insonic --workspace LIBRARY models prepare --input model-preview.json --json`. Inspect verified reuse, download bytes, scratch space and the elected storage profile. Filesystem capacity is observed when available. Colocated scratch and artifact storage use a combined peak budget, including download and staging copies; unknown volume relationships are conservatively treated as shared. S3 capacity remains unknown.
 3. Add `"acquire": true` to that input and run the same command. Follow the returned `acquisition_work_id` through normal work commands or Jobs.

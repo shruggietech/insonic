@@ -1,0 +1,16 @@
+{
+  "kind": "insonic-maintainer-prerequisite-cache-v1",
+  "scope": "Local prerequisite reuse; not same-run hosted CI acceptance",
+  "producer_revision": "b42d682d19afb5a0a4558368dc4f3c9e62065439",
+  "producer_run": 39851642357,
+  "producer_conclusion": "success",
+  "artifact_id": 12457003587,
+  "artifact_sha256": "1d39f69fe6413d78dde8983d52a02f4157c27daaaa1bdf51800bd64937e4dd89",
+  "cache_key": "184c7940c587ee216b7291846fb23935e642636cc3e64193677f0b36f5c5bd69",
+  "receipt_sha256": "9ea0114da347bc13a9ba774483f0e496ee68b72d8e27d627860e7f43deff9ae1",
+  "recipe_sha256": "2c612eeb73bfb2863a643601a79ceda0149bb63662be18a83338f7b5c13bfcf0",
+  "launcher_sha256": "0249874c9025be7815b586734537cd20a8a1ad23b36ab60183b00d8640e4f300",
+  "compiler": "gcc.EXE (Rev4, Built by MSYS2 project) 16.2.0",
+  "producer_receipts": "Unmodified",
+  "verification": "Published artifact digest; exact current cache identity; all inventory and original source hashes; normal portable cache validation"
+}

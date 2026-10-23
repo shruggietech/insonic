@@ -1,0 +1,32 @@
+{
+  "format": "insonic-integration-failure-v1",
+  "source_head": "e317deea06b736c55e4b08089e18c50dfeecd44d",
+  "revision": "2e58953e1925ccfe3e1830f1fd40f360d7f682e7",
+  "run": 39956990234,
+  "attempt": 1,
+  "attempt_conclusion": "failure",
+  "job_id": 120437502993,
+  "job": "Windows desktop archive qualification",
+  "operation": "insonic-desktop --help-qualification",
+  "exception": "TimeoutExpired",
+  "timeout_seconds": 35,
+  "last_checkpoint": "module",
+  "observed_boundary": "Frontend QualificationStep call reached Go; no later fixtures checkpoint was observed",
+  "hresult": "not_observed",
+  "process": {
+    "poll_before_kill": null,
+    "poll_after_kill": 1,
+    "cleanup_timeout": false,
+    "stdout_bytes": 0,
+    "stderr_bytes": 36
+  },
+  "archive_sha256": "48dcfbc6b49bc85d8b42a33764e05af5f8bde2ec8a006f79a34ba37f19e4d309",
+  "inventory_sha256": "a42b0cb58bf945c9f1c0da512f08cc99a6bee0f6b6ca1ce867d0ffefc4f82d3b",
+  "artifact": {
+    "id": 12505670072,
+    "size_bytes": 336555,
+    "sha256": "789897f8b5146186204e9888a37386b0064bcabc6f8927b0db301372acb88387"
+  },
+  "response": "One controlled complete rerun of unchanged source; no deadline change and no causal fix claimed",
+  "tracking_issue": 154
+}

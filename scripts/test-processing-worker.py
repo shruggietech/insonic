@@ -214,6 +214,24 @@ class WorkerTests(unittest.TestCase):
             worker.intersect_pyannote_media([(0, 20, "speaker")], 10800000)
         self.assertEqual(worker.minimum_embedding_samples(lambda n: n >= 37, 1000), 37)
 
+    def test_padding_only_turn_cannot_reject_valid_source_activity(self):
+        worker = load("processing_empty_intersection", "processing-worker.py")
+        # Frozen numerical observation from the first independent reference
+        # clip. The second model turn contains no decoded source samples.
+        raw = [(0.03096875, 13.63221875, "voice"),
+               (13.767218750000001, 13.969718750000002, "padding")]
+        turns, diagnostics = worker.intersect_pyannote_media(raw, 13690000)
+        self.assertEqual(len(turns), 1)
+        self.assertEqual(turns[0], (Decimal("0.030969"), Decimal("13.632219"), "voice"))
+        self.assertEqual(diagnostics, [{"code": "model_frame_outside_decoded_media", "count": 1, "value": .279719}])
+        self.assertEqual(worker.diarization_result(turns, 13690000)["provenance"]["speaker_count"], 1)
+        with self.assertRaises(worker.WorkerError):
+            worker.diarization_result(raw, 13690000)
+        with self.assertRaises(worker.WorkerError):
+            worker.intersect_pyannote_media([(0, 13.969719, "overlapping")], 13690000)
+        with patch.object(worker, "MAX_RESULTS", 1), self.assertRaisesRegex(worker.WorkerError, "output_limit"):
+            worker.intersect_pyannote_media(raw, 13690000)
+
 
 if __name__ == "__main__":
     unittest.main()

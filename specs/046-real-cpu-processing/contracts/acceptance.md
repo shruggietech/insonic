@@ -1,0 +1,9 @@
+# Maintainer acceptance contract
+
+`qualify-journey.py --mode real --package ARCHIVE --package-receipt JSON --revision SHA --reference-corpus MANIFEST` elects the reference-backed managed path. It requires both exact local model snapshot arguments; it forbids development CLI/tools/Cueson and external interpreter overrides for this mode. Optional `--managed-offline-assets` elects a complete declared dependency bundle. Legacy controlled and explicit-interpreter modes retain their existing requirements. Any CI marker rejects this election before asset or engine execution.
+
+The reference manifest uses `insonic-acoustic-reference-v1`, strictly validated original-file identities and source-disjoint roles. Its SHA-256 binds the run. Source identifiers, roles, independent text and selected matching settings are frozen before invocation. Source clips use reader labels, not audiobook character identities.
+
+The final internal receipt uses `insonic-real-cpu-acceptance-v1`. It requires clean elected package/source identity, exact model/environment/corpus identities, required preparation/processing/enrollment/matching/query/timeline/playback/retrieval/restore stage outcomes, every expected case, measured quality comparisons, distinct phase timings, and observed cleanup. Functional success cannot be inferred from a model subprocess or from aggregate operation state; per-voice decisions have separate expected/observed outcomes. Failed/missing/duplicate/stale/synthetic stage or case records reject acceptance. Receipt replacement is atomic; first failure survives later cleanup errors.
+
+Metrics retain edit counts and reference word denominator. Frozen Unicode NFC, case folding and word token normalization is deterministic and tested. Speaker comparison records selected/unknown/ambiguous/incorrect outcomes and mixed-reference windows; no DER is claimed from whole-utterance windows. No model settings are changed after seeing outputs.
