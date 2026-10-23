@@ -41,9 +41,9 @@
 
 - [x] T015 Document elected current-package real acceptance and statistical limits in docs/v1.0.1/development.md and CHANGELOG.md (FR-012).
 - [x] T016 Run npm check/test, full Python maintainer suite and affected Go/site checks; record only compact results in specs/046-real-cpu-processing/quickstart.md (FR-010, FR-011).
-- [ ] T017 Commit implementation and build/verify a clean current complete Windows CLI archive with scripts/package-desktop.py (FR-001).
-- [ ] T018 Execute the elected real managed/package journey, repair demonstrated failures with regressions, retain compact canonical evidence in specs/046-real-cpu-processing/evidence/ or the official PR, and remove owned scratch (FR-001 through FR-009, FR-011).
-- [ ] T019 Converge code against specs/046-real-cpu-processing/spec.md and plan.md, resolving every buildable gap (FR-001 through FR-012).
+- [x] T017 Commit implementation and build/verify a clean current complete Windows CLI archive with scripts/package-desktop.py (FR-001).
+- [x] T018 Execute the elected real managed/package journey, repair demonstrated failures with regressions, retain compact canonical evidence in specs/046-real-cpu-processing/evidence/ or the official PR, and remove owned scratch (FR-001 through FR-009, FR-011).
+- [x] T019 Converge code against specs/046-real-cpu-processing/spec.md and plan.md, resolving every buildable gap (FR-001 through FR-012).
 - [ ] T020 Commit final artifacts, automatically push codex/046-real-cpu-processing and open/attach the official PR linked to #170 (FR-012).
 - [ ] T021 Monitor exact-final-head CI to terminal acceptance, report preparation/qualification/combined timing and resolve every finding within at most two Codex rounds in the official PR (FR-010, FR-012).
 - [ ] T022 Reconcile #170/project/milestone evidence, retain #147/#154 limits, remove owned scratch and hand off the clean unmerged PR (FR-008, FR-009, FR-012).
