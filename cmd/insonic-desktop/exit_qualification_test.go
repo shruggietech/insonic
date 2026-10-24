@@ -45,7 +45,17 @@ func TestExitFixtureRejectsAmbiguousOrUnboundedInput(t *testing.T) {
 }
 func TestExitObserverRejectsRuntimeReplacementWithoutRestart(t *testing.T) {
 	// Independent package tests must not compete to initialize one runner profile.
-	profile := t.TempDir()
+	// Keep the Linux Unix-socket path below its platform limit even when the
+	// test name and runner work directory are long.
+	profile, err := os.MkdirTemp("", "insonic-exit-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.RemoveAll(profile); err != nil {
+			t.Error(err)
+		}
+	})
 	t.Setenv("APPDATA", filepath.Join(profile, "config"))
 	t.Setenv("LOCALAPPDATA", filepath.Join(profile, "local"))
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(profile, "config"))
