@@ -24,7 +24,7 @@
   "installer_worker_seconds": 3300,
   "installer_outer_seconds": 3360,
   "artifact_source_seconds": 900,
-  "artifact_producer_seconds": 1800,
+  "artifact_producer_seconds": 3600,
   "request_seconds": 120,
   "source_build_seconds": 3600,
   "source_download_seconds": 600,

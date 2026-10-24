@@ -34,6 +34,7 @@ test('expanded test policy grants useful work plus distinct enclosing cleanup ti
   assert.ok(stage.docs_browser_seconds >= stage.docs_renderer_seconds + stage.request_seconds + stage.cleanup_seconds);
   assert.ok(stage.installer_worker_seconds >= stage.installer_ui_seconds + stage.cleanup_seconds);
   assert.ok(stage.installer_outer_seconds >= stage.installer_worker_seconds + 2 * stage.cleanup_seconds);
+  assert.ok(stage.artifact_producer_seconds >= aggregate.qualification_limit_seconds, "Producer waits must cover the original permitted phase");
   assert.ok(stage.go_test_seconds >= 1800);
   assert.ok(stage.go_test_process_seconds >= stage.go_test_seconds + stage.build_seconds);
   // Three advisory requests plus fallback and backoff must fit the npm stage.

@@ -60,14 +60,14 @@ test('healthy source and Windows joins can finish beyond their former cutoffs', 
     await scenario.wait({ ...scenario.options, now: () => elapsed, sleep: async ms => { elapsed += ms; },
       request: async url => url.includes('/jobs?') ? scenario.ready : response(elapsed > scenario.former ? scenario.value : []) });
     assert.ok(elapsed > scenario.former);
-    assert.ok(elapsed < (scenario.former === 180000 ? 900000 : 1800000));
+    assert.ok(elapsed < (scenario.former === 180000 ? 900000 : 3600000));
   }
 });
 
 test('expanded artifact waits still expire at their own limit or an earlier original phase deadline', async () => {
   for (const scenario of [
     { wait: waitForArtifact, options, limit: 900000, ready: gates },
-    { wait: waitForDesktopProofs, options: proofOptions, limit: 1800000, ready: proofGates },
+    { wait: waitForDesktopProofs, options: proofOptions, limit: 3600000, ready: proofGates },
   ]) for (const phaseDeadlineMs of [undefined, 7500]) {
     let elapsed = 0;
     await assert.rejects(scenario.wait({ ...scenario.options, phaseDeadlineMs, now: () => elapsed,
@@ -103,7 +103,7 @@ test('explicit cancellation remains earlier than the expanded artifact allowance
 test('invalid expanded overrides and shared deadlines fail before network access', async () => {
   for (const scenario of [
     { wait: waitForArtifact, options, limit: 900000 },
-    { wait: waitForDesktopProofs, options: proofOptions, limit: 1800000 },
+    { wait: waitForDesktopProofs, options: proofOptions, limit: 3600000 },
   ]) for (const override of [{ deadlineMs: scenario.limit + 1 }, { deadlineMs: NaN }, { deadlineMs: 1.5 },
     { phaseDeadlineMs: 0 }, { phaseDeadlineMs: NaN }]) {
     await assert.rejects(scenario.wait({ ...scenario.options, ...override,
@@ -147,7 +147,7 @@ test('Windows proof wait has one deadline and cannot reuse another revision or a
       sleep: async ms => { elapsed += ms; }, request: proofApi(artifacts) }), /deadline/);
     assert.equal(elapsed, 10000);
   }
-  for (const override of [{ revision: '../other' }, { attempt: '0' }, { deadlineMs: 1800001 }])
+  for (const override of [{ revision: '../other' }, { attempt: '0' }, { deadlineMs: 3600001 }])
     await assert.rejects(waitForDesktopProofs({ ...proofOptions, ...override, request: async () => { throw new Error('must not request'); } }), /identity/);
 });
 
@@ -216,7 +216,7 @@ test('desktop input cannot reuse another revision or attempt and has one bounded
       sleep: async ms => { elapsed += ms; }, request: inputApi(artifacts) }), /deadline/);
     assert.equal(elapsed, 10000);
   }
-  for (const override of [{ revision: '../other' }, { attempt: '0' }, { deadlineMs: 1800001 }]) {
+  for (const override of [{ revision: '../other' }, { attempt: '0' }, { deadlineMs: 3600001 }]) {
     await assert.rejects(waitForDesktopInput({ ...proofOptions, ...override, request: async () => { throw new Error('must not request'); } }), /identity/);
   }
 });
@@ -309,5 +309,22 @@ test('a known failed Windows producer stays primary even in a partial inventory'
     assert.equal(observations.length, 1);
     assert.equal(observations[0].scope, scenario.scope);
     assert.equal(observations[0].conclusion, 'failure');
+  }
+});
+
+test('Windows producer joins permit proofs beyond the advisory target under the original hard deadline', async () => {
+  for (const scenario of [
+    { wait: waitForDesktopProofs, artifacts: proofArtifacts, jobs: proofGates.jobs, expected: { archive: 51, interactive: 52, maintenance: 53, setup: 54 } },
+    { wait: waitForDesktopInput, artifacts: [inputArtifact], jobs: [inputGate], expected: 42 },
+    { wait: waitForWindowsPackages, artifacts: packageArtifacts, jobs: packageJobs, expected: { cli: 71, desktop: 72 } }
+  ]) {
+    let elapsed = 0;
+    const ready = await scenario.wait({ ...proofOptions, phaseDeadlineMs: 3600000, now: () => elapsed,
+      sleep: async ms => { elapsed += ms; }, request: async url => url.includes('/jobs?')
+        ? { total_count: scenario.jobs.length, jobs: scenario.jobs }
+        : response(elapsed >= 3005000 ? scenario.artifacts : []) });
+    assert.deepEqual(ready, scenario.expected);
+    assert.equal(elapsed, 3005000);
+    assert.ok(elapsed + 60000 < 3600000, 'Original finalization reserve remains available');
   }
 });

@@ -73,6 +73,8 @@ jobs:
           path: build/automation
           sparse-checkout: |
             scripts/bootstrap-actions.py
+            scripts/qualification_timing.py
+            internal/qualificationtiming/policy.json
             scripts/bootstrap-actions.lock.json
             scripts/http_read.py
           sparse-checkout-cone-mode: false
@@ -227,6 +229,8 @@ jobs:
           path: build/automation
           sparse-checkout: |
             scripts/bootstrap-actions.py
+            scripts/qualification_timing.py
+            internal/qualificationtiming/policy.json
             scripts/bootstrap-actions.lock.json
             scripts/http_read.py
           sparse-checkout-cone-mode: false
@@ -308,6 +312,8 @@ jobs:
           path: build/automation
           sparse-checkout: |
             scripts/bootstrap-actions.py
+            scripts/qualification_timing.py
+            internal/qualificationtiming/policy.json
             scripts/bootstrap-actions.lock.json
             scripts/http_read.py
           sparse-checkout-cone-mode: false

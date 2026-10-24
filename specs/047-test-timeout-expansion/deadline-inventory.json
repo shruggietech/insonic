@@ -254,6 +254,7 @@
         "internal/voicemodels/training_lifecycle_test.go",
         "site/tests/screenshots.test.mjs",
         "tests/acoustic_admission_test.py",
+        "tests/bootstrap_sparse_checkout_test.py",
         "tests/capture-application-ui.test.mjs",
         "tests/ci-acceptance.test.mjs",
         "tests/ci-artifact.test.mjs",
@@ -508,6 +509,7 @@
     "Bridge.go contains unchanged normal operation bounds as well as expanded fixture-only readiness.",
     "Every earlier absolute parent remains authoritative; stages report effective remaining allowance rather than restarting phase clocks.",
     "Checked owner coverage rejects newly introduced uncatalogued timer-bearing source files; behavioral and policy relation tests validate semantics.",
-    "Desktop backend setup exposes a private fixture duration parameter for real provision tests; public BackendSetup retains its 35-second product bound. Runtime cold-owner fixtures prepare catalog schema before the unchanged 10-second production startup clock; owner election and protected-input loading remain real."
+    "Desktop backend setup exposes a private fixture duration parameter for real provision tests; public BackendSetup retains its 35-second product bound. Runtime cold-owner fixtures prepare catalog schema before the unchanged 10-second production startup clock; owner election and protected-input loading remain real.",
+    "Codex round one: every sparse automation checkout includes the timing loader and canonical policy. Windows producer waits allow3600 seconds and retain the earlier original phase cap; the 1800-second advisory is not an inner cutoff."
   ]
 }

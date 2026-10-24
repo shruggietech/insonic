@@ -14,6 +14,8 @@
 - **Decision**: Give direct model-service fixtures a 600-second work-lease floor through a test-only catalog decorator. **Rationale**: they lack the runtime heartbeat; production five-second progress checkpoints otherwise expire during real file publication. Retain actual catalog owner/generation/cancellation fences and test those fences.
 - **Decision**: Use controlled time for true expiry tests and causal readiness barriers for real helpers. **Rationale**: a larger observation allowance must not turn deadline regressions into long real sleeps or change an original context deadline.
 
+- **Decision**: Raise Windows producer waits from the proposed 1,800 seconds to 3,600 seconds, capped by the original qualification deadline. **Rationale**: a 3,000-second installer actor must be consumable after the advisory target, with finalization reserve still enforced by acceptance. Sparse automation checkouts carry both timing dependencies and execute in isolated regression fixtures.
+
 ## Primary sources
 
 - [GitHub job/step watchdog semantics](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idtimeout-minutes).
