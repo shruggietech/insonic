@@ -87,7 +87,7 @@ class ManagedTests(unittest.TestCase):
         self.assertEqual([value["expected_revision"] for value in setups], ["0", "1"])
         self.assertTrue(all("profile_digest" in value for value in setups))
         self.assertEqual([stage["state"] for stage in journey.receipt["stages"]], ["succeeded"] * 4)
-        self.assertTrue(all(value["maximum"] == 600 for name, value in journey.calls
+        self.assertTrue(all(value["maximum"] == cpu.timing.REAL_PROCESSING_SECONDS for name, value in journey.calls
                             if name == "wait" and value["id"] in ("recognition", "diarization")))
         self.assertEqual(len([name for name, _ in journey.calls if name == "models.verify"]), 2)
 

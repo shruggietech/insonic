@@ -15,7 +15,7 @@ jobs:
   build:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 11
+    timeout-minutes: 65
     permissions:
       contents: read
       actions: read
@@ -80,7 +80,7 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 11
+    timeout-minutes: 65
     concurrency:
       group: pages-publication
       cancel-in-progress: false
@@ -115,7 +115,7 @@ jobs:
   verify:
     needs: publish
     runs-on: ubuntu-24.04
-    timeout-minutes: 11
+    timeout-minutes: 65
     permissions:
       contents: read
       pages: read

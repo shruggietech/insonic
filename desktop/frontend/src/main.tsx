@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
-import { qualifyDesktop, qualifyHelpOnly, qualificationMounted, runQualificationOnce } from './qualification';
+import { qualifyDesktop, qualifyHelpOnly, qualificationMounted, runQualificationOnce, qualificationProgress } from './qualification';
 import type { NativeBridge } from './client';
 import '../../../brand/kit/tokens/interface.css';
 import '../../../brand/kit/tokens/typography.css';
@@ -26,22 +26,29 @@ const startQualification = runQualificationOnce(async () => {
   qualifying = true;
   failedOperations.length = 0;
   try {
+    await qualificationProgress(bridge, "journey-entered");
+    await qualificationProgress(bridge, "journey-fixtures-request");
     const fixtures = await bridge.NativeQualificationData?.();
+    await qualificationProgress(bridge, "journey-fixtures-returned");
     if (fixtures?.result?.help_only) {
+      await qualificationProgress(bridge, "help-open-request");
       const response = await bridge.OpenHelp!();
+      await qualificationProgress(bridge, "help-open-returned");
       if(response.error)throw new Error(response.error.message);
       response.result = {...response.result,...await qualifyHelpOnly(String(response.result?.version),bridge)};
+      await qualificationProgress(bridge, "help-journey-complete");
+      await qualificationProgress(bridge, "complete-smoke-request");
       await bridge.CompleteSmoke(response);
       return;
     }
-    await bridge.QualificationStep?.('ready');
+    await qualificationProgress(bridge, 'ready');
     await qualificationMounted();
-    await bridge.QualificationStep?.('mounted');
+    await qualificationProgress(bridge, 'mounted');
     const response = await bridge.Show();
     if (response.error) throw new Error(response.error.message);
     const flags = await qualifyDesktop(bridge);
     response.result = { ...response.result, ...flags };
-    await bridge.QualificationStep?.('complete');
+    await qualificationProgress(bridge, 'complete');
     await bridge.CompleteSmoke(response);
   } catch (error) {
     await bridge.CompleteSmoke({
@@ -64,12 +71,12 @@ window.runtime?.EventsOn('qualification', startQualification);
 void (async () => {
   let qualificationMode = false;
   try {
-    qualificationMode = (await bridge.QualificationStep?.('module')) ?? false;
+    qualificationMode = (await qualificationProgress(bridge, 'module')) ?? false;
     if (!bridge.NativeQualificationData) return;
     const response = await bridge.NativeQualificationData();
     if (response.error) throw new Error(response.error.message);
     if (!response.result?.audio_path && !response.result?.help_only) return;
-    await bridge.QualificationStep?.('fixtures');
+    await qualificationProgress(bridge, 'fixtures');
     await startQualification();
   } catch (error) {
     if (qualificationMode)

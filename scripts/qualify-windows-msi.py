@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 """Actual native MSI lifecycle checks, exclusively on acknowledged disposable CI."""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 import argparse
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import struct
-import sys
 import time
 import uuid
 import windows_msi as m
@@ -347,11 +349,11 @@ def run_installer(args,log,expected=True,rejection_reason=None,rejection_action=
     # services and children must not prolong this worker through inherited pipes.
     with log.with_suffix('.stderr.log').open('wb') as error:
         process=subprocess.Popen([sys.executable,__file__,'--installer-worker',str(request_path)],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=error,creationflags=subprocess.CREATE_NO_WINDOW)
-        try:process.wait(timeout=90)
+        try:process.wait(timeout=timing.INSTALLER_TRANSACTION_SECONDS)
         except subprocess.TimeoutExpired:
             phase=log.with_suffix('.worker.json');observed=json.loads(phase.read_text(encoding='utf-8')) if phase.exists() else {'phase':'worker-not-initialized'}
             diagnostic={'pid':process.pid,'worker':observed,'service':service_diagnostic(),'captured_pipes':False,'log_exists':log.is_file(),'outcome':'unknown until engine rollback/completion'}
-            log.with_suffix('.timeout.json').write_text(json.dumps(diagnostic,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n');process.kill();process.wait(timeout=5)
+            log.with_suffix('.timeout.json').write_text(json.dumps(diagnostic,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n');process.kill();process.wait(timeout=timing.CLEANUP_SECONDS)
             raise RuntimeError('native Installer worker exceeded its bound; diagnostics: '+str(log.with_suffix('.timeout.json')))
     if process.returncode:raise RuntimeError('native Installer worker failed: '+log.with_suffix('.stderr.log').read_text(encoding='utf-8',errors='replace')[-3000:])
     phase=json.loads(log.with_suffix('.worker.json').read_text(encoding='utf-8'))
@@ -364,7 +366,7 @@ def run_installer(args,log,expected=True,rejection_reason=None,rejection_action=
 
 def child(args,env,cwd):
     m.disposable_runner()
-    result=subprocess.run(list(map(str,args)),cwd=cwd,env=env,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=30)
+    result=subprocess.run(list(map(str,args)),cwd=cwd,env=env,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=timing.SUBPROCESS_SECONDS)
     if result.returncode:raise RuntimeError('installed noninteractive client failed: '+result.stderr.decode(errors='replace')[-2000:])
     return result.stdout
 
@@ -518,7 +520,7 @@ def prepare_launcher_fixture(installed,directory):
     (directory/'owned-ci-fixture.json').write_bytes(b'insonic disposable launcher context fixture\n')
     source=directory/'token-recorder.go';source.write_text(LAUNCH_REPORTER_SOURCE,encoding='utf-8',newline='\n')
     env=dict(os.environ);env['CGO_ENABLED']='0'
-    compiled=subprocess.run(['go','build','-ldflags','-H windowsgui','-o',str(directory/'insonic-desktop.exe'),str(source)],cwd=m.ROOT,env=env,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=60)
+    compiled=subprocess.run(['go','build','-ldflags','-H windowsgui','-o',str(directory/'insonic-desktop.exe'),str(source)],cwd=m.ROOT,env=env,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=timing.BUILD_SECONDS)
     if compiled.returncode:raise RuntimeError('native launcher token recorder compilation failed: '+compiled.stderr.decode(errors='replace')[-3000:])
     shutil.copyfile(directory/'insonic-desktop.exe',directory/'insonic.exe')
     return {'kind':'temporary-owned-native-token-recorder','launcher_sha256':m.sha(directory/'insonic-launcher.exe'),'production_session_prefix_sha256':m.digest(session),'instrumented_session_suffix':'exit after production help/setup prefix','recorder_source_sha256':m.digest(LAUNCH_REPORTER_SOURCE.encode()),'product_payload_modified':False}
@@ -549,8 +551,8 @@ def native_recorder_probe(directory):
     shutil.copyfile(source,target)
     if m.sha(source)!=m.sha(target):raise ValueError('native diagnostic reporter bytes differ')
     with subprocess.Popen([str(target)],cwd=directory,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,creationflags=subprocess.CREATE_NO_WINDOW) as process:
-        try:code=process.wait(timeout=15)
-        except subprocess.TimeoutExpired:process.terminate();process.wait(timeout=5);raise RuntimeError('exact owned native recorder probe exceeded bound')
+        try:code=process.wait(timeout=timing.READINESS_SECONDS)
+        except subprocess.TimeoutExpired:process.terminate();process.wait(timeout=timing.CLEANUP_SECONDS);raise RuntimeError('exact owned native recorder probe exceeded bound')
         observation={'pid':process.pid,'exit_code':code,'same_gui_bytes_sha256':m.sha(source),'elected_launch_proof':False,'native_child_image':target.name}
     (Path(directory)/'native-recorder-probe.launch-attempt.json').write_text(json.dumps(observation,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     return observation
@@ -562,13 +564,13 @@ def elected_launcher_context(directory,allow_refusal=False):
     for mode,exe in [('desktop','insonic-desktop.exe'),('cli','insonic.exe')]:
         output=directory/(exe+'.token.json')
         if output.exists():output.unlink()
-        attempted=subprocess.run([str(directory/'insonic-launcher.exe'),'--'+mode],cwd=directory,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=15)
+        attempted=subprocess.run([str(directory/'insonic-launcher.exe'),'--'+mode],cwd=directory,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=timing.READINESS_SECONDS)
         (directory/(mode+'.launch-attempt.json')).write_text(json.dumps({'mode':mode,'launcher_exit':attempted.returncode,'caller_token':caller,'stderr':attempted.stderr.decode(errors='replace')[-2000:]},sort_keys=True)+'\n',encoding='utf-8',newline='\n')
         if attempted.returncode:
             message=attempted.stderr.decode(errors='replace')
             if not refusal_permitted or attempted.returncode!=1 or 'cannot launch at normal user privilege' not in message or output.exists():raise RuntimeError('elected '+mode+' launcher failed: '+message[-2000:])
             modes[mode]={'outcome':'refused-normal-launch-action','child_record_absent':True,'elevated_fallback':False};continue
-        deadline=time.monotonic()+10;observed=None
+        deadline=time.monotonic()+timing.NATURAL_RELEASE_SECONDS;observed=None
         while time.monotonic()<deadline:
             try:observed=json.loads(output.read_text(encoding='utf-8'));break
             except (FileNotFoundError,json.JSONDecodeError):time.sleep(.05)
@@ -652,9 +654,13 @@ def ordinary_namespace_probe(stage):
 def stage_worker_scripts(directory):
     """Copy and verify the complete portable module closure for the owned actor."""
     directory=Path(directory);directory.mkdir(parents=True,exist_ok=True)
-    for filename in ('qualify-windows-msi.py','windows_msi.py','windows_setup.py','pe_resources.py','qualify_installer_setup.py','qualify_installer_ui.py','render-installed-help.mjs'):
+    for filename in ('qualify-windows-msi.py','windows_msi.py','windows_setup.py','pe_resources.py','qualify_installer_setup.py','qualify_installer_ui.py','render-installed-help.mjs','qualification-timing.mjs','qualification_timing.py'):
         shutil.copyfile(m.ROOT/'scripts'/filename,directory/filename)
         if m.sha(directory/filename)!=m.sha(m.ROOT/'scripts'/filename):raise RuntimeError('ordinary staged script identity differs')
+    policy=directory.parent/'internal/qualificationtiming/policy.json'
+    policy.parent.mkdir(parents=True,exist_ok=True)
+    shutil.copyfile(timing.POLICY_PATH,policy)
+    if m.sha(policy)!=m.sha(timing.POLICY_PATH):raise RuntimeError('ordinary staged timing policy differs')
 
 
 def stage_authoring_resources(stage):
@@ -725,7 +731,7 @@ def interactive_ordinary(stage,name,sid,password,profile,desktop,record,probe_on
         if not security.CreateProcessWithLogonW(name,'.',password,0,executable,command,0x08000400,environment,str(stage),C.byref(startup),C.byref(process)):
             error=C.WinError(C.get_last_error());error.api='CreateProcessWithLogonW';raise error
         record('interactive-ordinary-created',pid=process.pid,logon_flags=0,profile_loaded_by_child=False,session_token_reassignment=False)
-        if kernel.WaitForSingleObject(process.process,30000 if probe_only else 230000)!=0:raise RuntimeError('exact owned full-UI actor exceeded its bound')
+        if kernel.WaitForSingleObject(process.process,int(timing.phase_bound(timing.READINESS_SECONDS if probe_only else timing.INSTALLER_UI_SECONDS)*1000))!=0:raise RuntimeError('exact owned full-UI actor exceeded its bound')
         code=W.DWORD()
         if not kernel.GetExitCodeProcess(process.process,C.byref(code)):
             error=C.WinError(C.get_last_error());error.api='GetExitCodeProcess-interactive';raise error
@@ -736,7 +742,7 @@ def interactive_ordinary(stage,name,sid,password,profile,desktop,record,probe_on
         record('interactive-ordinary-token-observed',pid=process.pid,token=child_observed,observation='GetTokenInformation in the exact completed ordinary worker',purpose=purpose)
         return proof
     finally:
-        if process.process and kernel.WaitForSingleObject(process.process,0)!=0:kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000)
+        if process.process and kernel.WaitForSingleObject(process.process,0)!=0:kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,timing.CLEANUP_SECONDS*1000)
         for handle in (process.thread,process.process):
             if handle:kernel.CloseHandle(handle)
 
@@ -923,14 +929,14 @@ try {
     $definition=$service.NewTask(0)
     $definition.RegistrationInfo.Description=$inputObject.description
     $definition.Principal.UserId='SYSTEM';$definition.Principal.LogonType=5;$definition.Principal.RunLevel=0
-    $definition.Settings.Enabled=$true;$definition.Settings.Hidden=$true;$definition.Settings.ExecutionTimeLimit='PT240S'
+    $definition.Settings.Enabled=$true;$definition.Settings.Hidden=$true;$definition.Settings.ExecutionTimeLimit=('PT'+[string]$inputObject.worker_seconds+'S')
     $definition.Settings.DisallowStartIfOnBatteries=$false;$definition.Settings.StopIfGoingOnBatteries=$false
     $action=$definition.Actions.Create(0);$action.Path=$inputObject.executable;$action.Arguments=$inputObject.arguments;$action.WorkingDirectory=$inputObject.directory
     $registered=$folder.RegisterTaskDefinition($inputObject.task_name,$definition,2,'SYSTEM',$null,5,$null)
     $created=$true;$result.phase='registered';$result.requested_run_level=0;$result.logon_type=5;$result.broker_role='SYSTEM';$result.target_task_profile_loaded=$false
-    $running=$registered.Run($null);$result.engine_pid=$running.EnginePID;$deadline=[DateTime]::UtcNow.AddSeconds(245)
+    $running=$registered.Run($null);$result.engine_pid=$running.EnginePID;$deadline=[DateTime]::UtcNow.AddSeconds($inputObject.worker_seconds+$inputObject.cleanup_seconds)
     $result.phase='private-pipe-connect'
-    if (-not $connection.AsyncWaitHandle.WaitOne(15000)) { throw 'owned credential pipe connection timed out' }
+    if (-not $connection.AsyncWaitHandle.WaitOne($inputObject.readiness_seconds*1000)) { throw 'owned credential pipe connection timed out' }
     $pipe.EndWaitForConnection($connection)
     $writer=[IO.StreamWriter]::new($pipe,[Text.UTF8Encoding]::new($false));$writer.AutoFlush=$true
     $writer.WriteLine((@{account=$inputObject.account;sid=$inputObject.sid;password=$inputObject.password}|ConvertTo-Json -Compress));$inputObject.password=$null;$writer.Dispose();$writer=$null;$pipe=$null
@@ -963,10 +969,10 @@ def scheduler_ordinary(stage,name,sid,password,args,record,profile):
     bootstrap=[str(args[0]),'--ordinary-broker',pipe,*list(map(str,args[2:]))]
     code='import os,runpy,sys;os.environ.clear();os.environ.update('+repr(environment)+');sys.argv='+repr(bootstrap)+';sys.path.insert(0,os.path.dirname(sys.argv[0]));runpy.run_path(sys.argv[0],run_name="__main__")'
     metadata={'task_name':task,'description':description,'sid':sid}
-    request={**metadata,'mode':'run','account':os.environ['COMPUTERNAME']+'\\'+name,'password':password,'pipe_name':pipe,'executable':sys.executable,'arguments':subprocess.list2cmdline(['-c',code]),'directory':str(stage)}
+    request={**metadata,'mode':'run','account':os.environ['COMPUTERNAME']+'\\'+name,'password':password,'pipe_name':pipe,'worker_seconds':timing.INSTALLER_WORKER_SECONDS,'cleanup_seconds':timing.CLEANUP_SECONDS,'readiness_seconds':timing.READINESS_SECONDS,'executable':sys.executable,'arguments':subprocess.list2cmdline(['-c',code]),'directory':str(stage)}
     outcome=None
     def invoke(value):
-        completed=subprocess.run(command,input=json.dumps(value).encode('utf-8'),stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=260)
+        completed=subprocess.run(command,input=json.dumps(value).encode('utf-8'),stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=timing.phase_bound(timing.INSTALLER_OUTER_SECONDS))
         if completed.returncode:raise RuntimeError('hidden ordinary scheduler bridge failed '+str(completed.returncode))
         return json.loads(completed.stdout.decode('utf-8-sig'))
     record('TaskScheduler-ordinary-before-register',task_name=task,password_published=False,requested_run_level=0,logon_type=5,broker_role='SYSTEM')
@@ -1018,7 +1024,7 @@ def stop_owned_task_engine(pid,sid,stage=None):
             stage=Path(stage);marker=json.loads((stage/'owned-ci-account.json').read_text(encoding='utf-8'));script=stage/'scripts/qualify-windows-msi.py'
             owned_python=not stage.is_symlink() and stage.resolve().parent==Path(os.environ['ProgramData']).resolve() and bool(__import__('re').fullmatch('insonic-ci-account-[0-9a-f]{32}',stage.name)) and marker.get('sid_sha256')==m.digest(sid.encode()) and bool(__import__('re').fullmatch('inso_ci_[0-9a-f]{12}',marker.get('account',''))) and script.is_file() and not script.is_symlink() and m.sha(script)==m.sha(m.ROOT/'scripts/qualify-windows-msi.py')
         if not windows_host and not owned_python:raise RuntimeError('reported task engine is not an exact owned-account Windows task host or authenticated bootstrap action; no process stopped')
-        if not kernel.TerminateProcess(process,0) or kernel.WaitForSingleObject(process,5000)!=0:raise RuntimeError('owned account task engine did not exit')
+        if not kernel.TerminateProcess(process,0) or kernel.WaitForSingleObject(process,timing.CLEANUP_SECONDS*1000)!=0:raise RuntimeError('owned account task engine did not exit')
         return {'pid':pid,'user_sid_sha256':m.digest(sid.encode()),'image':path.name,'authenticated_bootstrap_action':owned_python,'terminated':True,'shared_system_process_stopped':False}
     finally:
         if token:kernel.CloseHandle(token)
@@ -1085,8 +1091,8 @@ def ordinary_system_broker(pipe,installer,directory,output):
             with qualifier_profile_privileges(('SeAssignPrimaryTokenPrivilege','SeIncreaseQuotaPrivilege')) as privilege_scope:
                 if not security.CreateProcessAsUserW(target,executable,command,None,None,False,0x08000400,environment,str(directory.parent),C.byref(startup),C.byref(process)):raise C.WinError(C.get_last_error())
             record('target-process-created',pid=process.pid,target_token=target_observed,desktop=desktop,broker_privilege_scope=privilege_scope)
-            if kernel.WaitForSingleObject(process.process,230000)!=0:
-                kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000);raise RuntimeError('exact owned normal worker exceeded full-UI task bound')
+            if kernel.WaitForSingleObject(process.process,int(timing.phase_bound(timing.INSTALLER_WORKER_SECONDS)*1000))!=0:
+                kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,timing.CLEANUP_SECONDS*1000);raise RuntimeError('exact owned normal worker exceeded full-UI task bound')
             code=W.DWORD()
             if not kernel.GetExitCodeProcess(process.process,C.byref(code)):raise C.WinError(C.get_last_error())
             record('target-process-exited',pid=process.pid,exit_code=code.value,target_token=target_observed,desktop=desktop)
@@ -1094,7 +1100,7 @@ def ordinary_system_broker(pipe,installer,directory,output):
     finally:
         credentials['password']=None
         if process.process and kernel.WaitForSingleObject(process.process,0)!=0:
-            kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,5000)
+            kernel.TerminateProcess(process.process,1);kernel.WaitForSingleObject(process.process,timing.CLEANUP_SECONDS*1000)
         for handle in (process.thread,process.process,target):
             if handle:kernel.CloseHandle(handle)
 
@@ -1308,7 +1314,7 @@ def profile_lease_observation(sid,profile,deadline=None):
     import base64
     executable=Path(os.environ['SystemRoot'])/'System32/WindowsPowerShell/v1.0/powershell.exe'
     # Optional observations cannot consume the service-release/deletion budget.
-    bound=min(2,max(.1,deadline-time.monotonic())) if deadline is not None else 2
+    bound=min(timing.CLEANUP_SECONDS,max(.1,deadline-time.monotonic())) if deadline is not None else timing.CLEANUP_SECONDS
     try:result=subprocess.run([str(executable),'-NoLogo','-NoProfile','-NonInteractive','-EncodedCommand',base64.b64encode(PROFILE_LEASE_OBSERVER.encode('utf-16le')).decode('ascii')],input=json.dumps({'sid':sid,'profile':str(profile)}).encode('utf-8'),stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=bound)
     except subprocess.TimeoutExpired:return {'observer_timeout':True,'machine_state_modified':False}
     if result.returncode:return {'observer_exit':result.returncode,'machine_state_modified':False}
@@ -1354,7 +1360,7 @@ def delete_owned_profile_provider(sid,profile,deadline):
     remaining=deadline-time.monotonic()
     if remaining<=0:return {'complete_absence':False,'deadline_expired':True}
     executable=Path(os.environ['SystemRoot'])/'System32/WindowsPowerShell/v1.0/powershell.exe'
-    try:result=subprocess.run([str(executable),'-NoLogo','-NoProfile','-NonInteractive','-EncodedCommand',base64.b64encode(PROFILE_PROVIDER_DELETE.encode('utf-16le')).decode('ascii')],input=json.dumps({'sid':sid,'profile':str(profile)}).encode('utf-8'),stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=min(4,remaining))
+    try:result=subprocess.run([str(executable),'-NoLogo','-NoProfile','-NonInteractive','-EncodedCommand',base64.b64encode(PROFILE_PROVIDER_DELETE.encode('utf-16le')).decode('ascii')],input=json.dumps({'sid':sid,'profile':str(profile)}).encode('utf-8'),stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=min(timing.CLEANUP_SECONDS,remaining))
     except subprocess.TimeoutExpired:return {'complete_absence':False,'provider_timeout':True}
     if result.returncode:return {'complete_absence':False,'provider_exit':result.returncode}
     proof=json.loads(result.stdout.decode('utf-8-sig'))
@@ -1582,7 +1588,7 @@ def ordinary_context(installer,directory,output,model=None,service_ownership=Non
                 cleanup.append({'object':'owned account batch logon right','restored':False,'error_type':type(error).__name__})
                 if failure is None:failure=error
         if profile is not None:
-            validate_account_profile(name,profile);deleted=False;deadline=time.monotonic()+10;lease={}
+            validate_account_profile(name,profile);deleted=False;deadline=time.monotonic()+timing.NATURAL_RELEASE_SECONDS;lease={}
             before_profile_delete=profile_cleanup_observation(sid,profile);delete_errors=[]
             if profiles.DeleteProfileW(sid,str(profile),None):deleted=True
             else:delete_errors.append(C.get_last_error())
@@ -1650,7 +1656,7 @@ def cancellation_worker(installer,directory,output):
 
 def cancellation(installer,directory,output):
     m.disposable_runner()
-    completed=subprocess.run([sys.executable,__file__,'--cancel-worker',str(installer),'--context-dir',str(directory),'--output',str(output)],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=90)
+    completed=subprocess.run([sys.executable,__file__,'--cancel-worker',str(installer),'--context-dir',str(directory),'--output',str(output)],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=timing.INSTALLER_TRANSACTION_SECONDS)
     if completed.returncode:raise RuntimeError('native cancellation worker failed: '+completed.stderr.decode(errors='replace')[-3000:])
     return json.loads(output.read_text(encoding='utf-8'))
 
@@ -1689,7 +1695,7 @@ def qualify(path,receipt,lane='all'):
                 setup_identity,stub_size=windows_setup.read_payload(setup_path)
                 if setup_identity!=receipt['setup']['embedded_msi'] or stub_size>128*1024*1024:raise RuntimeError('setup fixture program source differs')
                 with setup_path.open('rb') as source,(tmp/'launcher-context-fixture/owned-setup.exe').open('wb') as target:target.write(source.read(stub_size))
-                build_barrier=subprocess.run(['go','build','-ldflags','-H windowsgui','-o',str(tmp/'launcher-context-fixture/owned-cancel-barrier.exe'),str(m.ROOT/'tests/fixtures/setup-cancel-barrier.go')],cwd=m.ROOT,env=dict(os.environ,CGO_ENABLED='0'),stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=60)
+                build_barrier=subprocess.run(['go','build','-ldflags','-H windowsgui','-o',str(tmp/'launcher-context-fixture/owned-cancel-barrier.exe'),str(m.ROOT/'tests/fixtures/setup-cancel-barrier.go')],cwd=m.ROOT,env=dict(os.environ,CGO_ENABLED='0'),stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=timing.BUILD_SECONDS)
                 if build_barrier.returncode:raise RuntimeError('owned cancellation barrier compile failed: '+build_barrier.stderr.decode(errors='replace')[-2000:])
             if lane in ('all','interactive'):
                 context_evidence=ordinary_context(old,tmp/'ordinary per-user installation',logs/'ordinary-context.json',model,service_ownership)
@@ -1752,7 +1758,7 @@ def qualify(path,receipt,lane='all'):
             assert_removal_sentinels(integration_sentinels)
             run_installer(['/x',installed],logs/'active-work-rejected.log',False,'Close insonic clients, finish/cancel jobs','Preflight')
             if active.poll() is not None:raise ValueError('MSI terminated active work')
-            installed_hashes(install,model,True);active.terminate();active.wait(timeout=5);active=None;active_path.unlink();result['active_work_preserved']='passed'
+            installed_hashes(install,model,True);active.terminate();active.wait(timeout=timing.CLEANUP_SECONDS);active=None;active_path.unlink();result['active_work_preserved']='passed'
             phase('administrator-cancellation-and-rollback')
             # Deliberately remove Desktop before upgrading to prove feature migration.
             run_installer(call(old,'Core,CLI',REMOVE='Desktop',REINSTALLMODE='omus'),logs/'cli-election.log');installed_hashes(install,model,False)
@@ -1773,7 +1779,7 @@ def qualify(path,receipt,lane='all'):
         except BaseException as error:
             phase('failed',error_type=type(error).__name__,error=str(error)[-4000:]);raise
         finally:
-            if active is not None:active.terminate();active.wait(timeout=5)
+            if active is not None:active.terminate();active.wait(timeout=timing.CLEANUP_SECONDS)
             if installed is not None:run_installer(['/x',installed],logs/'fixture-cleanup.log')
             if integration_sentinels is not None:clean_removal_sentinels(integration_sentinels)
             if collision_shortcut is not None and collision_shortcut.is_file() and collision_shortcut.read_bytes()==collision_bytes:collision_shortcut.unlink()

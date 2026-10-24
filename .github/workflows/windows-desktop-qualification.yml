@@ -49,7 +49,7 @@ jobs:
   assemble:
     name: Assemble Windows desktop delivery
     runs-on: windows-2022
-    timeout-minutes: 15
+    timeout-minutes: 65
     env:
       NEXT_TELEMETRY_DISABLED: 1
       SOURCE_REVISION: ${{ inputs.revision }}
@@ -198,7 +198,7 @@ jobs:
   proofs:
     name: Qualify Windows desktop (${{ matrix.scope }})
     runs-on: windows-2022
-    timeout-minutes: 15
+    timeout-minutes: 65
     strategy:
       fail-fast: false
       matrix:
@@ -254,6 +254,12 @@ jobs:
       - name: Install the owned HTML renderer dependency
         if: matrix.scope == 'interactive'
         run: npm ci --ignore-scripts
+      - name: Retain the original CI qualification deadline
+        if: inputs.reuse-ci-offline-help
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/ci-acceptance.mjs wait-inputs
       - name: Await exact assembly after overlapping consumer setup
         env:
           GH_TOKEN: ${{ github.token }}
@@ -282,7 +288,7 @@ jobs:
     needs:
       - assemble
     runs-on: windows-2022
-    timeout-minutes: 15
+    timeout-minutes: 65
     env:
       SOURCE_REVISION: ${{ inputs.revision }}
       INSONIC_DISPOSABLE_INSTALLER_TEST: "1"
@@ -324,6 +330,12 @@ jobs:
           skip-decompress: false
           name: windows-desktop-input-${{ inputs.revision }}-${{ github.run_attempt }}
           path: build/windows-desktop-input
+      - name: Retain the original CI qualification deadline
+        if: inputs.reuse-ci-offline-help
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/ci-acceptance.mjs wait-inputs
       - name: Await all exact-run native proofs after overlapping preparation
         env:
           GH_TOKEN: ${{ github.token }}

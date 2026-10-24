@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/shruggietech/insonic/internal/assistance"
 	"github.com/shruggietech/insonic/internal/models"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"maps"
 	"net/http"
 	"net/http/httptest"
@@ -86,18 +87,27 @@ func (b *Bridge) NativeQualificationData() contracts.Response {
 // QualificationStep emits bounded fixture-only progress, never paths or values.
 // Ordinary sessions cannot activate the diagnostic by calling the bound method.
 func (b *Bridge) QualificationStep(step string) bool {
-	b.mu.RLock()
-	active := b.qualification != nil
-	b.mu.RUnlock()
-	if !active {
-		return false
+	return b.qualificationObserver().record(step)
+}
+
+// QualificationProgress receives a separate browser monotonic clock. Ordinary
+// sessions cannot activate the observer; fixed stages carry no paths or values.
+func (b *Bridge) QualificationProgress(step string, elapsedMilliseconds float64) bool {
+	return b.qualificationObserver().recordFrontend(step, elapsedMilliseconds)
+}
+
+func (b *Bridge) qualificationObserver() *qualificationProgress {
+	b.mu.Lock()
+	if b.qualification == nil {
+		b.mu.Unlock()
+		return nil
 	}
-	switch step {
-	case "module", "fixtures", "mounted", "ready", "library-import", "audio-playback", "video-playback", "metadata-date", "assembly", "cue-seek", "terms", "speakers", "pipelines", "jobs", "settings", "keyboard-help", "explore-calendar", "explore-query", "explore-graph", "query-assistance", "rosters", "audio-replacement", "model-references", "import-presets", "complete":
-		fmt.Fprintln(os.Stderr, "Desktop qualification stage:", step)
-		return true
+	if b.qualificationProgress == nil {
+		b.qualificationProgress = newQualificationProgress("gui", os.Stderr, time.Now)
 	}
-	return false
+	progress := b.qualificationProgress
+	b.mu.Unlock()
+	return progress
 }
 
 // ConfigureQualificationTools supplies source-build companions to a disposable
@@ -177,7 +187,7 @@ func PrepareWebviewQualification(b *Bridge) error {
 	if json.Unmarshal(raw, &queued) != nil || !contracts.ValidID(queued.ID) {
 		return contracts.Fail("invalid_request")
 	}
-	deadline := time.Now().Add(45 * time.Second)
+	deadline := time.Now().Add(qualificationtiming.Duration("admission_seconds"))
 	for {
 		work := call("work.show", queued.ID, nil)
 		if work.Error != nil {
@@ -228,6 +238,7 @@ func PrepareWebviewQualification(b *Bridge) error {
 	fixtures["model_catalog_url"] = qualificationModels.server.URL + "/catalog"
 	b.mu.Lock()
 	b.qualification = fixtures
+	b.qualificationProgress = newQualificationProgress("gui", os.Stderr, time.Now)
 	b.mu.Unlock()
 	return nil
 }

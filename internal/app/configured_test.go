@@ -7,6 +7,7 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/processing"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"github.com/shruggietech/insonic/internal/subtitles"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"github.com/shruggietech/insonic/schemas"
@@ -80,7 +81,7 @@ func TestElectedWorkFreezesContextModelsAndReplay(t *testing.T) {
 	var used processing.RecognitionOptions
 	select {
 	case used = <-entered:
-	case <-time.After(8 * time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("elected stage not entered")
 	}
 	definition["recognition"].(map[string]any)["recognition"] = map[string]any{"device": "cuda"}

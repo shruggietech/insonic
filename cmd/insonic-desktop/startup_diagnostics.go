@@ -6,6 +6,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"io"
 	"net/http"
 	"os"
@@ -116,12 +117,12 @@ func (e *nativeExitTimings) emit(value map[string]any) {
 
 func (e *nativeExitTimings) watchdog(after func(time.Duration) <-chan time.Time) <-chan time.Time {
 	if e == nil {
-		return after(12 * time.Second)
+		return after(qualificationtiming.Duration("exit_watchdog_seconds"))
 	}
 	// Bracket timer creation without output between these clock reads. A delayed
 	// observer cannot silently turn its later receipt time into the arm time.
 	before := e.clock().Sub(e.origin)
-	deadline := after(12 * time.Second)
+	deadline := after(qualificationtiming.Duration("exit_watchdog_seconds"))
 	finished := e.clock().Sub(e.origin)
 	if before >= 0 && finished >= before {
 		e.emit(map[string]any{"stage": "watchdog-armed", "elapsed_ns": finished.Nanoseconds(),

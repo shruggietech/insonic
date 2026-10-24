@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 import fs from 'node:fs/promises';
-import policy from './ci-timing-policy.json' with { type: 'json' };
+import committedPolicy from './ci-timing-policy.json' with { type: 'json' };
+import { milliseconds, validateAggregatePolicy } from './qualification-timing.mjs';
+const policy = validateAggregatePolicy(committedPolicy);
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -127,7 +129,7 @@ export function inspectAttempt(identity, run, jobs, { terminal = false, now = Da
 }
 
 async function requestJson(url, token) {
-  const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(10000),
+  const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(milliseconds('request_seconds')),
     headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } });
   if (!response.ok) { await response.body?.cancel(); throw new Error(`Acceptance API failed (HTTP ${response.status}).`); }
   let length = 0; const chunks = [];

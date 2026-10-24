@@ -9,12 +9,12 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/credentialcmd"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestPostgresInitialCredentialBootstrapAndReadOnlyPreflight(t *testing.T) {
@@ -41,7 +41,7 @@ func TestPostgresInitialCredentialBootstrapAndReadOnlyPreflight(t *testing.T) {
 	secret, _ := json.Marshal(map[string]string{"username": u.User.Username(), "password": password})
 	input := &credentialcmd.Input{Session: map[string][]byte{id: secret}}
 	defer input.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), qualificationtiming.Duration("subprocess_seconds"))
 	defer cancel()
 	root := t.TempDir()
 	report, e := Preflight(ctx, root, c, Transient{Input: input})

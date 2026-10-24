@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/shruggietech/insonic/internal/process"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -53,7 +54,9 @@ func TestExitObserverRejectsRuntimeReplacementWithoutRestart(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	ready, done := make(chan struct{}), make(chan error, 1)
-	go func() { done <- local.Serve(ctx, w, local.Options{Ready: ready, Idle: 10 * time.Second}) }()
+	go func() {
+		done <- local.Serve(ctx, w, local.Options{Ready: ready, Idle: qualificationtiming.Duration("fixture_idle_seconds")})
+	}()
 	defer func() {
 		cancel()
 		if err := <-done; err != nil {
@@ -62,7 +65,7 @@ func TestExitObserverRejectsRuntimeReplacementWithoutRestart(t *testing.T) {
 	}()
 	select {
 	case <-ready:
-	case <-time.After(5 * time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("runtime did not become ready")
 	}
 	original, err := r.call("workspace.show", "", nil)
@@ -163,7 +166,7 @@ func TestExitChildFailureRetainsBothActualStreams(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := qualificationtiming.Context(context.Background(), "readiness_seconds")
 	defer cancel()
 	report, captureErr := process.Capture(ctx, process.Spec{Executable: executable, Args: []string{"-test.run=^TestExitFailureFixtureProcess$"}, Env: append(os.Environ(), "INSONIC_EXIT_FAILURE_FIXTURE=1"), MaxOutput: 65536})
 	var output bytes.Buffer

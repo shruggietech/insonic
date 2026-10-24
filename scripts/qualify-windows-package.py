@@ -11,6 +11,7 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 from process_tree import ProcessTree
 from ci_timing_policy import QUALIFICATION_LIMIT_SECONDS
 import windows_msi as m
@@ -30,10 +31,10 @@ def run_child(label, arguments):
     # Keep the existing runtime breakaway election and hidden tree ownership.
     with ProcessTree(arguments, cwd=ROOT, env=dict(os.environ), allow_detached=True) as tree:
         try:
-            output, error = tree.process.communicate(timeout=QUALIFICATION_LIMIT_SECONDS)
+            output, error = tree.process.communicate(timeout=timing.phase_bound(QUALIFICATION_LIMIT_SECONDS))
         except subprocess.TimeoutExpired:
             tree.kill()
-            output, error = tree.process.communicate(timeout=5)
+            output, error = tree.process.communicate(timeout=timing.CLEANUP_SECONDS)
             sys.stdout.buffer.write(output)
             sys.stderr.buffer.write(error)
             raise

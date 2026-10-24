@@ -5,6 +5,7 @@ import (
 	"context"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"io"
 	"os"
@@ -201,13 +202,13 @@ func TestAbortWaitsForActivePublication(t *testing.T) {
 		cancel()
 		select {
 		case <-done:
-		case <-time.After(5 * time.Second):
+		case <-time.After(qualificationtiming.Duration("cleanup_seconds")):
 			t.Error("owned publisher did not stop")
 		}
 	}()
 	// Staging and durable acceptance precede the cancellable transfer. Bound
 	// readiness separately so slow fixture I/O cannot spend Abort's own budget.
-	ready, stopReady := context.WithTimeout(context.Background(), 5*time.Second)
+	ready, stopReady := context.WithTimeout(context.Background(), qualificationtiming.Duration("readiness_seconds"))
 	defer stopReady()
 	select {
 	case <-blocked.started:
@@ -215,7 +216,7 @@ func TestAbortWaitsForActivePublication(t *testing.T) {
 		t.Fatal("publisher did not start")
 	}
 	stopReady()
-	abort, stopAbort := context.WithTimeout(context.Background(), 5*time.Second)
+	abort, stopAbort := context.WithTimeout(context.Background(), qualificationtiming.Duration("readiness_seconds"))
 	defer stopAbort()
 	if p, e := s.Abort(abort, id); e != nil || p.State != "aborted" {
 		t.Fatalf("abort %+v %v", p, e)
@@ -225,7 +226,7 @@ func TestAbortWaitsForActivePublication(t *testing.T) {
 		if e == nil {
 			t.Fatal("cancelled publisher succeeded")
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(qualificationtiming.Duration("cleanup_seconds")):
 		t.Fatal("cancelled publisher did not return")
 	}
 }

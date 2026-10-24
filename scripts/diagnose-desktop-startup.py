@@ -17,6 +17,7 @@ import tempfile
 import time
 
 sys.path.insert(0,str(Path(__file__).resolve().parent))
+import qualification_timing as bounds
 import windows_package_pipeline as pipeline
 from process_tree import ProcessTree, native_webview_environment, native_webview_probe
 
@@ -115,7 +116,7 @@ def capture(args,directory,env,timeout,*,require_release=False,startup_hide=Fals
                         cleanup_elapsed=round(time.monotonic()-resource_origin,6)
                         timing['cleanup_elapsed_seconds']=cleanup_elapsed
                     tree.kill()
-                    try:tree.process.wait(timeout=5)
+                    try:tree.process.wait(timeout=bounds.CLEANUP_SECONDS)
                     except subprocess.TimeoutExpired:pass
                 members=job_processes(tree)
                 code=tree.process.poll()
@@ -142,7 +143,7 @@ def capture(args,directory,env,timeout,*,require_release=False,startup_hide=Fals
 
     finally:
         # Closing the owned job/group releases inherited pipe handles too.
-        for reader in readers:reader.join(timeout=5)
+        for reader in readers:reader.join(timeout=bounds.CLEANUP_SECONDS)
     incomplete=any(reader.is_alive() for reader in readers) or output.failed or error.failed
     result={'feature_qualification':False,'exit_code':code if code is not None else -1,'timed_out':timed_out,
             'elapsed_seconds':round(time.monotonic()-started,3),
@@ -386,7 +387,7 @@ class LoadTimeline:
 
     def wait_gate(self):
         if not self._gate_enabled:raise ValueError('load gate was not elected')
-        if not self._gate_event.wait(90):raise RuntimeError('load phase gate deadline')
+        if not self._gate_event.wait(bounds.CAPTURE_SECONDS):raise RuntimeError('load phase gate deadline')
         with self._lock:
             if self._gate_signaled is None:raise RuntimeError('load worker ended before the phase gate')
             if self._state!='running' or self._phase!='media-lifecycle':raise RuntimeError('load phase gate expired')
@@ -612,7 +613,7 @@ class PredecessorFailure(RuntimeError):
 
 
 def observe_predecessors(gui,root,env,evidence,label):
-    for flag,timeout in [('--qualification',30),('--help-qualification',35),('--webview-qualification',90)]:
+    for flag,timeout in [('--qualification',bounds.READINESS_SECONDS),('--help-qualification',bounds.HELP_SECONDS),('--webview-qualification',bounds.GUI_SECONDS)]:
         with native_webview_environment(env) as profile_env:
             observation=capture([gui,flag],root,profile_env,timeout)
             if observation['exit_code'] or observation['timed_out'] or observation['truncated']:

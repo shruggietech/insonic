@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/graph"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 )
 
 func TestBackendBootstrapParityAndFailurePreservesSelection(t *testing.T) {
@@ -48,7 +48,7 @@ func TestBackendBootstrapParityAndFailurePreservesSelection(t *testing.T) {
 	if conflict.Error == nil || b.Workspace.Config.WorkspaceID != old.Config.WorkspaceID {
 		t.Fatal("failed provision changed selection")
 	}
-	success := b.BackendSetup("provision", target, string(raw), "{}", "native", contracts.ID())
+	success := b.backendSetupWithTimeout("provision", target, string(raw), "{}", "native", contracts.ID(), qualificationtiming.Duration("subprocess_seconds"))
 	if success.Error != nil || b.Workspace.Config.WorkspaceID != out.Configuration.WorkspaceID {
 		t.Fatal(success.Error)
 	}
@@ -56,7 +56,7 @@ func TestBackendBootstrapParityAndFailurePreservesSelection(t *testing.T) {
 func TestOperationCancellationOwnsUnderlyingContext(t *testing.T) {
 	b := &Bridge{}
 	id := contracts.ID()
-	ctx, finish, e := b.beginOperation(id, time.Second)
+	ctx, finish, e := b.beginOperation(id, qualificationtiming.Duration("readiness_seconds"))
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -67,7 +67,7 @@ func TestOperationCancellationOwnsUnderlyingContext(t *testing.T) {
 	if ctx.Err() != context.Canceled {
 		t.Fatal("context not cancelled")
 	}
-	if _, _, e = b.beginOperation(id, time.Second); e == nil {
+	if _, _, e = b.beginOperation(id, qualificationtiming.Duration("readiness_seconds")); e == nil {
 		t.Fatal("duplicate ownership")
 	}
 }

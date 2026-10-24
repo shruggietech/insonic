@@ -4,6 +4,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -67,7 +68,7 @@ func TestDependencyGateLeavesFourConsumersOutsideWorkerCapacity(t *testing.T) {
 	a.recoverWork()
 	select {
 	case <-started:
-	case <-time.After(5 * time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("waiting consumers starved acquisition")
 	}
 	a.workMu.Lock()
@@ -169,7 +170,7 @@ func TestExplicitAcquisitionRequestsShareBytesAndCancelIndependently(t *testing.
 	}
 	select {
 	case <-started:
-	case <-time.After(5 * time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("download never started")
 	}
 	changed := m
@@ -279,7 +280,7 @@ func TestProcessingAliasRetargetRestartAndRetryPreserveElection(t *testing.T) {
 	id := queued["work_id"].(string)
 	select {
 	case <-started:
-	case <-time.After(5 * time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("automatic acquisition did not begin")
 	}
 	if calls.Load() != 0 {

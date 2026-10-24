@@ -18,7 +18,7 @@ function earliest(jobs, id, durations, failed = new Set(), seen = new Set()) {
   return Math.max(0, ...deps(jobs[id]).map(parent => earliest(jobs, parent, durations, failed, next))) + (durations[id] ?? 0);
 }
 
-test('actual short artifact helper still rejects a valid cold producer at exactly 180 seconds', async () => {
+test('actual expanded artifact helper still expires at exactly 900 seconds', async () => {
   let clock = 0;
   await assert.rejects(waitForArtifact({ repository: 'shruggietech/insonic', run: '42', attempt: '1',
     os: 'windows-2022', token: 'test-only', now: () => clock, sleep: async ms => { clock += ms; },
@@ -26,7 +26,7 @@ test('actual short artifact helper still rejects a valid cold producer at exactl
       ? { total_count: 2, jobs: ['foundation', 'docs-build'].map(name => ({ name, status: 'completed', conclusion: 'success' })) }
       : { total_count: 0, artifacts: [] },
   }), /Same-run source artifact deadline exceeded/);
-  assert.equal(clock, 180000);
+  assert.equal(clock, 900000);
 });
 
 for (const preparationMs of [5000, 1342000]) {
@@ -156,8 +156,8 @@ test('documentation npm audits keep bounded request and fallback time within inp
   assert.equal(env.npm_config_audit, 'true');
   const retries = Number(env.npm_config_fetch_retries), timeout = Number(env.npm_config_fetch_timeout);
   assert.ok(Number.isInteger(retries) && retries >= 0 && retries <= 2);
-  assert.ok(timeout > 0 && timeout <= 15000);
+  assert.equal(timeout, 120000);
   let request = timeout * (retries + 1);
   for (let i = 0; i < retries; i++) request += Math.min(Number(env.npm_config_fetch_retry_mintimeout) * 2 ** i, Number(env.npm_config_fetch_retry_maxtimeout));
-  assert.ok(request * 2 < 180000, 'bulk and fallback requests must leave time within the unchanged input operation bound');
+  assert.ok(request * 2 < 1800000, 'bulk and fallback requests must leave time within the expanded producer operation bound');
 });

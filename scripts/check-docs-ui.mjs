@@ -8,6 +8,7 @@ import os from 'node:os';
 import http from 'node:http';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright-core';
+import { milliseconds, qualificationTiming } from './qualification-timing.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const mime = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.woff': 'font/woff' };
@@ -159,20 +160,20 @@ async function verifyWebSocketIsolation(browser, contexts, network, deadline) {
     await configureBrowserNetwork(context, { ...network, externalRequests: [], webSocketAttempts: result.attempts });
     const page = await context.newPage();
     const url = `ws://127.0.0.1:${server.address().port}/owned-isolation-probe?credential=fixture-only`;
-    result.browser = await bounded('owned WebSocket isolation probe', () => page.evaluate(url => new Promise(resolve => {
+    result.browser = await bounded('owned WebSocket isolation probe', () => page.evaluate(({url,waitMs}) => new Promise(resolve => {
       const socket = new WebSocket(url);
-      const timer = setTimeout(() => { socket.close(); resolve({ closed: false }); }, 1500);
+      const timer = setTimeout(() => { socket.close(); resolve({ closed: false }); }, waitMs);
       socket.onopen = () => socket.send('owned-isolation-probe');
       socket.onclose = event => { clearTimeout(timer); resolve({ closed: true, code: event.code }); };
       socket.onerror = () => {}; // The explicit close result is checked below.
-    }), url), Math.min(5000, deadline - Date.now()));
-    await bounded('owned WebSocket probe completion', () => context.close(), Math.min(8000, deadline - Date.now()));
+    }), {url,waitMs:milliseconds('readiness_seconds')}), Math.min(milliseconds('frontend_seconds'), deadline - Date.now()));
+    await bounded('owned WebSocket probe completion', () => context.close(), Math.min(milliseconds('cleanup_seconds'), deadline - Date.now()));
     assert(result.attempts.length === 1 && result.attempts[0] === sanitizedRequestURL(url) && result.browser.closed && result.browser.code === 1008, 'WebSocket isolation probe must record and close its attempted connection.');
     assert(result.connections === 0 && result.upgrades === 0 && result.received_bytes === 0, 'WebSocket isolation probe reached its owned loopback server.');
     result.passed = true;
     return result;
   } finally {
-    if (context) await bounded('owned WebSocket probe context cleanup', () => context.close(), 8000);
+    if (context) await bounded('owned WebSocket probe context cleanup', () => context.close(), milliseconds('cleanup_seconds'));
     for (const socket of sockets) socket.destroy();
     await new Promise(resolve => server.close(resolve));
   }
@@ -229,10 +230,10 @@ async function bounded(phase, operation, timeout) {
 }
 
 async function ready(page, url, deadline, { scripts = true } = {}) {
-  assert(Date.now() < deadline, 'Documentation browser qualification exceeded its180second limit.');
-  await page.goto(url, { waitUntil: 'load', timeout: Math.min(20000, deadline - Date.now()) });
-  await bounded('font readiness', () => page.evaluate(() => document.fonts.ready), Math.min(5000, deadline - Date.now()));
-  if (scripts) await page.waitForFunction(() => [...document.querySelectorAll('.mermaid')].every(element => element.dataset.processed === 'true' || element.parentElement.querySelector('.diagram-error')), null, { timeout: Math.min(10000, deadline - Date.now()) });
+  assert(Date.now() < deadline, `Documentation browser qualification exceeded its ${qualificationTiming.docs_browser_seconds}-second limit.`);
+  await page.goto(url, { waitUntil: 'load', timeout: Math.min(milliseconds('frontend_seconds'), deadline - Date.now()) });
+  await bounded('font readiness', () => page.evaluate(() => document.fonts.ready), Math.min(milliseconds('frontend_seconds'), deadline - Date.now()));
+  if (scripts) await page.waitForFunction(() => [...document.querySelectorAll('.mermaid')].every(element => element.dataset.processed === 'true' || element.parentElement.querySelector('.diagram-error')), null, { timeout: Math.min(milliseconds('frontend_seconds'), deadline - Date.now()) });
 }
 
 export async function inspectReadability(page) {
@@ -417,9 +418,9 @@ async function checkLanding({ page, browser, contexts, configure, navigate, repo
 
 export async function checkDocumentationUI(options = parseOptions([])) {
   const started = Date.now();
-  const deadline = started + 180000;
+  const deadline = started + milliseconds('docs_browser_seconds');
   const navigate = (page, url, settings) => ready(page, url, deadline, settings);
-  const report = { kind: 'documentation-ui-verification', qualification_limit_seconds: 180, viewport_widths: [320, 360, 390, 768, 1440], themes: ['light', 'dark'], browser: null, isolated_profile: true, public_pages: 0, offline_pages: 0, cases: [], readability: [], screenshots: [], external_requests: [], external_websockets: [], browser_errors: [], cleanup: {}, limitations: ['Automated Chromium checks and captured visual inspection do not certify screen-reader behavior, other browser engines, every assistive technology, or complete WCAG conformance. Contrast checks sample body, link, muted, navigation, syntax and diagram-label text on computed solid surfaces; arbitrary raster-image text and gradients are not certified.'] };
+  const report = { kind: 'documentation-ui-verification', qualification_limit_seconds: qualificationTiming.docs_browser_seconds, viewport_widths: [320, 360, 390, 768, 1440], themes: ['light', 'dark'], browser: null, isolated_profile: true, public_pages: 0, offline_pages: 0, cases: [], readability: [], screenshots: [], external_requests: [], external_websockets: [], browser_errors: [], cleanup: {}, limitations: ['Automated Chromium checks and captured visual inspection do not certify screen-reader behavior, other browser engines, every assistive technology, or complete WCAG conformance. Contrast checks sample body, link, muted, navigation, syntax and diagram-label text on computed solid surfaces; arbitrary raster-image text and gradients are not certified.'] };
   await mkdir(options.output, { recursive: true });
   const fixtureBase = os.platform() === 'win32' ? path.parse(os.tmpdir()).root : os.tmpdir();
   const fixture = await mkdtemp(path.join(fixtureBase, 'insonic-docs-ui-'));
@@ -441,11 +442,13 @@ export async function checkDocumentationUI(options = parseOptions([])) {
     const env = browserEnvironment(fixture, options.browser);
     for (const directory of [env.APPDATA, env.LOCALAPPDATA, env.XDG_CONFIG_HOME, env.XDG_CACHE_HOME]) await mkdir(directory, { recursive: true });
     context = await chromium.launchPersistentContext(path.join(fixture, 'browser-profile'), {
-      headless: true, timeout: 25000, ...(options.browser ? { executablePath: options.browser } : {}),
+      headless: true, timeout: milliseconds('frontend_seconds'), ...(options.browser ? { executablePath: options.browser } : {}),
       env, args: ['--disable-background-networking', '--disable-extensions', '--no-first-run', '--no-default-browser-check'],
       viewport: { width: 320, height: 900 }, deviceScaleFactor: 1, locale: 'en-US', colorScheme: 'light', reducedMotion: 'reduce', serviceWorkers: 'block',
     });
     contexts.push(context);
+    context.setDefaultTimeout(milliseconds('frontend_seconds'));
+    context.setDefaultNavigationTimeout(milliseconds('frontend_seconds'));
     const browser = context.browser();
     report.browser = browser.version();
     const manifest = JSON.parse(await readFile(path.join(options.out, 'documentation-manifest.json'), 'utf8'));
@@ -520,7 +523,7 @@ export async function checkDocumentationUI(options = parseOptions([])) {
       try { await stat(path.join(options.out, relative)); } catch { continue; }
       await navigate(page, `${report.origin}/public/${relative}`);
       await page.keyboard.press('Tab'); await page.keyboard.press('Enter');
-      await page.waitForFunction(() => document.activeElement.id === 'main', null, { timeout: Math.min(5000, deadline - Date.now()) });
+      await page.waitForFunction(() => document.activeElement.id === 'main', null, { timeout: Math.min(milliseconds('frontend_seconds'), deadline - Date.now()) });
     }
     report.cases.push({ name: 'Archive and unavailable-page skip links reach their main landmark', passed: true });
 
@@ -566,14 +569,14 @@ export async function checkDocumentationUI(options = parseOptions([])) {
     await navigate(page, `${report.origin}/public/docs/v${version}/index/index.html`);
     assertPage(await inspectPage(page), 'Forced colors and reduced motion');
     report.cases.push({ name: 'Forced colors and reduced motion retain reachable navigation', passed: true });
-    assert(!deadlineExpired && Date.now() <= deadline, 'Documentation browser qualification exceeded its180second limit.');
+    assert(!deadlineExpired && Date.now() <= deadline, `Documentation browser qualification exceeded its ${qualificationTiming.docs_browser_seconds}-second limit.`);
     assert(report.external_requests.length === 0 && report.external_websockets.length === 0 && report.browser_errors.length === 0, `Browser errors or external asset requests: ${JSON.stringify({ requests: report.external_requests, websockets: report.external_websockets, errors: report.browser_errors })}`);
   } catch (error) { failure = error; report.failure = error.message; }
   finally {
     clearTimeout(qualificationGuard);
     report.qualification_elapsed_seconds = Math.round((Date.now() - started) / 100) / 10;
     for (const current of contexts.reverse()) {
-      try { await bounded('owned browser cleanup', () => current.close(), 8000); } catch (error) { report.cleanup.browser_error = error.message; }
+      try { await bounded('owned browser cleanup', () => current.close(), milliseconds('cleanup_seconds')); } catch (error) { report.cleanup.browser_error = error.message; }
     }
     report.cleanup.browser_contexts_closed = contexts.length > 0 && !report.cleanup.browser_error;
     if (server) await new Promise(resolve => { server.closeAllConnections(); server.close(resolve); });
@@ -586,6 +589,7 @@ export async function checkDocumentationUI(options = parseOptions([])) {
       } catch (error) { report.cleanup.fixture_error = error.message; }
     }
     report.elapsed_seconds = Math.round((Date.now() - started) / 100) / 10;
+    if(Date.now()>deadline){failure??=new Error('Documentation browser including owned cleanup exceeded its allowance.');report.failure=failure.message;}
     delete report.origin;
     report.passed = !failure && report.cleanup.browser_contexts_closed && report.cleanup.server_closed && report.cleanup.owned_fixture_removed;
     await writeFile(path.join(options.output, 'report.json'), JSON.stringify(report, null, 2) + '\n', 'utf8');

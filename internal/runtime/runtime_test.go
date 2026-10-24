@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
+	qt "github.com/shruggietech/insonic/internal/qualificationtiming"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"strings"
 	"testing"
@@ -20,10 +21,10 @@ func TestOwnerProtocolAndDisconnectedWork(t *testing.T) {
 	defer cancel()
 	ready := make(chan struct{})
 	done := make(chan error, 1)
-	go func() { done <- Serve(ctx, w, Options{Idle: time.Second, Ready: ready}) }()
+	go func() { done <- Serve(ctx, w, Options{Idle: qt.Duration("fixture_idle_seconds"), Ready: ready}) }()
 	select {
 	case <-ready:
-	case <-time.After(3 * time.Second):
+	case <-time.After(qt.Duration("readiness_seconds")):
 		t.Fatal("startup")
 	}
 	request := func(op string) contracts.Request {
@@ -73,7 +74,7 @@ func TestOwnerProtocolAndDisconnectedWork(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-	case <-time.After(time.Second):
+	case <-time.After(qt.Duration("cleanup_seconds")):
 		t.Fatal("shutdown")
 	}
 	lock, err := w.Lock()
@@ -99,13 +100,13 @@ func TestIdleExit(t *testing.T) {
 		cancel()
 		select {
 		case <-done:
-		case <-time.After(3 * time.Second):
+		case <-time.After(qt.Duration("cleanup_seconds")):
 			t.Error("owner did not stop after cancellation")
 		}
 	}()
 	select {
 	case <-ready:
-	case <-time.After(3 * time.Second):
+	case <-time.After(qt.Duration("readiness_seconds")):
 		t.Fatal("owner did not become ready")
 	}
 	// Startup opens and recovers the catalog; the idle interval starts at readiness.
@@ -114,7 +115,7 @@ func TestIdleExit(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-	case <-time.After(time.Second):
+	case <-time.After(qt.Duration("cleanup_seconds")):
 		t.Fatal("idle owner stayed alive after readiness")
 	}
 	lock, err := w.Lock()

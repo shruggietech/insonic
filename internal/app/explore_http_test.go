@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/evidence"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"github.com/shruggietech/insonic/schemas"
 	"net/http"
 	"net/http/httptest"
@@ -48,7 +49,7 @@ func TestExploreHTTPExtractionUsesElectedProtocol(t *testing.T) {
 				t.Fatal(r.Error)
 			}
 			id := r.Result.(map[string]any)["work_id"].(string)
-			deadline := time.Now().Add(4 * time.Second)
+			deadline := time.Now().Add(qualificationtiming.Duration("durable_work_seconds"))
 			for {
 				work, e := a.Catalog.Work(a.ctx, id)
 				if e != nil {

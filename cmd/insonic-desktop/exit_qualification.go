@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -60,7 +61,7 @@ func readExitFixture(path string) (exitFixture, error) {
 	if decoder.Decode(&extra) != io.EOF || fixture.Action != "menu" && fixture.Action != "close" && (fixture.Action != "alt-f4" || runtime.GOOS != "windows") {
 		return fixture, fmt.Errorf("invalid Exit action")
 	}
-	if fixture.WindowJoinSeconds != 0 && (runtime.GOOS != "windows" || fixture.WindowJoinSeconds != 2 && fixture.WindowJoinSeconds != 10) {
+	if fixture.WindowJoinSeconds != 0 && (runtime.GOOS != "windows" || fixture.WindowJoinSeconds != 2 && fixture.WindowJoinSeconds != 10 && fixture.WindowJoinSeconds != qualificationtiming.Seconds("native_ui_seconds")) {
 		return fixture, fmt.Errorf("invalid native UI join allowance")
 	}
 	if fixture.Workspace != "" && (!filepath.IsAbs(fixture.Workspace) || !contracts.ValidID(fixture.MediaID) || fixture.Revision < 1) || fixture.Workspace == "" && (fixture.MediaID != "" || fixture.Revision != 0) {
@@ -85,6 +86,7 @@ func qualifyNativeExitChild(path string) int {
 		}
 	}
 	stage := nativeExitStageTimings(os.Getenv("INSONIC_STARTUP_LIVE") == "true" || os.Getenv("INSONIC_PROCESS_STARTUP_DIAGNOSTICS") == "1", os.Stderr, time.Now)
+	expires := time.Now().Add(qualificationtiming.Duration("exit_watchdog_seconds"))
 	ready, finished := make(chan struct{}), make(chan struct{})
 	activated := make(chan error, 1)
 	var timedOut atomic.Bool
@@ -92,6 +94,8 @@ func qualifyNativeExitChild(path string) int {
 	var verify func() error
 	var playbackID string
 	startup := func(ctx context.Context) {
+		ctx, stop := context.WithDeadline(ctx, expires)
+		defer stop()
 		stage.record("startup-entered")
 		if bridge.Workspace != nil {
 			playbackID, verify, prepareErr = desktop.ObserveExitPlaybackQualification(bridge, fixture.MediaID, fixture.Revision)
@@ -118,12 +122,14 @@ func qualifyNativeExitChild(path string) int {
 		close(ready)
 	}
 	domReady := func(ctx context.Context) {
+		ctx, stop := context.WithDeadline(ctx, expires)
 		stage.record("dom-ready")
 		fmt.Fprintln(os.Stderr, "native-exit-stage=dom-ready")
 		go func() {
+			defer stop()
 			select {
 			case <-ready:
-			case <-time.After(8 * time.Second):
+			case <-ctx.Done():
 				activated <- fmt.Errorf("startup did not become ready")
 				wailsruntime.Quit(ctx)
 				return
@@ -133,7 +139,7 @@ func qualifyNativeExitChild(path string) int {
 				wailsruntime.Quit(ctx)
 				return
 			}
-			menuReady, stopMenuReady := context.WithTimeout(ctx, 8*time.Second)
+			menuReady, stopMenuReady := qualificationtiming.Context(ctx, "readiness_seconds")
 			menuErr := waitNativeMenuReady(menuReady, bridge)
 			stopMenuReady()
 			if menuErr != nil {
@@ -158,7 +164,7 @@ func qualifyNativeExitChild(path string) int {
 			}
 			stage.record("native-action")
 			fmt.Fprintln(os.Stderr, "native-exit-stage=native-action")
-			err := activateNativeExit(fixture.Action)
+			err := activateNativeExit(ctx, fixture.Action)
 			activated <- err
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
@@ -173,6 +179,11 @@ func qualifyNativeExitChild(path string) int {
 	stage.record("shutdown")
 	fmt.Fprintln(os.Stderr, "native-exit-stage=shutdown")
 	close(finished)
+	// The original child expiry remains authoritative even if its watchdog
+	// goroutine was scheduled after the application returned.
+	if !time.Now().Before(expires) {
+		timedOut.Store(true)
+	}
 	if timedOut.Load() {
 		fmt.Fprintln(os.Stderr, "native-exit-stage=watchdog-timeout")
 	}
@@ -182,7 +193,7 @@ func qualifyNativeExitChild(path string) int {
 	}
 	select {
 	case err = <-activated:
-	case <-time.After(time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		err = fmt.Errorf("native action was not observed")
 	}
 	if err != nil {
@@ -219,7 +230,7 @@ func (r *exitRuntime) call(operation, item string, data any) (contracts.Response
 			return contracts.Response{}, err
 		}
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := qualificationtiming.Context(context.Background(), "request_seconds")
 	defer cancel()
 	response, err := local.Call(ctx, r.workspace, contracts.Request{Kind: "runtime-request", Version: contracts.Version, WorkspaceID: r.workspace.Config.WorkspaceID, RequestID: contracts.ID(), Operation: operation, ItemID: item, Data: raw})
 	if err == nil && (!contracts.ValidID(response.SessionID) || r.session != "" && r.session != response.SessionID) {
@@ -245,7 +256,7 @@ func (r *exitRuntime) result(operation, item string, data any, target any) error
 	return json.Unmarshal(raw, target)
 }
 func (r *exitRuntime) waitWork(id string) error {
-	deadline := time.Now().Add(20 * time.Second)
+	deadline := time.Now().Add(qualificationtiming.Duration("durable_work_seconds"))
 	for time.Now().Before(deadline) {
 		var work struct {
 			State string "json:\"state\""
@@ -321,7 +332,9 @@ func runExitQualificationWith(runChild func(exitFixture, string) (exitObservatio
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	ready, done := make(chan struct{}), make(chan error, 1)
-	go func() { done <- local.Serve(ctx, w, local.Options{Ready: ready, Idle: 90 * time.Second}) }()
+	go func() {
+		done <- local.Serve(ctx, w, local.Options{Ready: ready, Idle: qualificationtiming.Duration("fixture_idle_seconds")})
+	}()
 	select {
 	case <-ready:
 	case err = <-done:
@@ -330,7 +343,7 @@ func runExitQualificationWith(runChild func(exitFixture, string) (exitObservatio
 			err = fmt.Errorf("runtime exited before readiness")
 		}
 		return err
-	case <-time.After(5 * time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		cancel()
 		<-done
 		return fmt.Errorf("runtime readiness timed out")
@@ -414,7 +427,7 @@ func runExitQualificationWith(runChild func(exitFixture, string) (exitObservatio
 	}
 	select {
 	case <-entered:
-	case <-time.After(5 * time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		return fmt.Errorf("acquisition did not reach barrier")
 	}
 	if err = r.assertHeld(acquired.ID, acquired.Acquisitions[0]); err != nil {
@@ -562,7 +575,7 @@ func runExitGUIChild(fixture exitFixture, config string) (exitObservation, error
 	if err != nil {
 		return exitObservation{}, err
 	}
-	ctx, stop := context.WithTimeout(context.Background(), 18*time.Second)
+	ctx, stop := qualificationtiming.Context(context.Background(), "exit_child_seconds")
 	defer stop()
 	report, err := process.Capture(ctx, process.Spec{Executable: executable, Args: []string{"--exit-qualification-child", config}, MaxOutput: 64 << 10, WaitForDescendants: runtime.GOOS == "windows"})
 	if report.Descendants != nil {

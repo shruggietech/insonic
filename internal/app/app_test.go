@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"testing"
 	"time"
@@ -40,7 +41,7 @@ func TestCloseCancelsInFlightCatalogCall(t *testing.T) {
 	go func() { a.Close(); close(closed) }()
 	select {
 	case <-closed:
-	case <-time.After(time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		a.cancel()
 		<-returned
 		<-closed
@@ -119,7 +120,7 @@ func TestDisconnectedClientDoesNotOwnWork(t *testing.T) {
 	}
 	// Completion includes a durable catalog write, whose latency is independent
 	// of the worker's 20 ms timer. Wait for authority rather than scheduler speed.
-	deadline := time.NewTimer(5 * time.Second)
+	deadline := time.NewTimer(qualificationtiming.Duration("durable_work_seconds"))
 	defer deadline.Stop()
 	poll := time.NewTicker(10 * time.Millisecond)
 	defer poll.Stop()

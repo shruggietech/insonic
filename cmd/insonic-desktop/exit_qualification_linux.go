@@ -48,9 +48,9 @@ static gboolean insonic_exit_tick(gpointer data) {
  if (g_get_monotonic_time()>probe->deadline || count>1) {g_atomic_int_set(&probe->state,-1);return G_SOURCE_REMOVE;}
  return G_SOURCE_CONTINUE;
 }
-static InsonicExitProbe *insonic_exit_start(int close_window) {
+static InsonicExitProbe *insonic_exit_start(int close_window, gint64 allowance) {
  InsonicExitProbe *probe=g_new0(InsonicExitProbe,1);probe->close_window=close_window;
- probe->deadline=g_get_monotonic_time()+5000000;
+ probe->deadline=g_get_monotonic_time()+allowance;
  g_timeout_add(20,insonic_exit_tick,probe);return probe;
 }
 static int insonic_exit_state(InsonicExitProbe *probe) {return g_atomic_int_get(&probe->state);}
@@ -61,10 +61,11 @@ import "C"
 import (
 	"context"
 	"fmt"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"time"
 )
 
-func activateNativeExit(action string) error {
+func activateNativeExit(ctx context.Context, action string) error {
 	if action != "menu" && action != "close" {
 		return fmt.Errorf("unknown native Exit action")
 	}
@@ -72,9 +73,11 @@ func activateNativeExit(action string) error {
 	if action == "close" {
 		closeWindow = 1
 	}
-	probe := C.insonic_exit_start(closeWindow)
-	deadline := time.Now().Add(6 * time.Second)
-	for time.Now().Before(deadline) {
+	actionCtx, stop := qualificationtiming.Context(ctx, "native_action_seconds")
+	defer stop()
+	deadline, _ := actionCtx.Deadline()
+	probe := C.insonic_exit_start(closeWindow, C.gint64(max(int64(1), time.Until(deadline).Microseconds())))
+	for actionCtx.Err() == nil {
 		state := C.insonic_exit_state(probe)
 		if state != 0 {
 			C.insonic_exit_free(probe)

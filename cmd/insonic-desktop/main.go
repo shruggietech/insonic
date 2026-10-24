@@ -11,6 +11,7 @@ import (
 	"github.com/shruggietech/insonic/internal/assistance"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/diagnostics"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	local "github.com/shruggietech/insonic/internal/runtime"
 	"github.com/shruggietech/insonic/internal/workspace"
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
@@ -60,6 +61,7 @@ func run() (exitCode int) {
 		}
 	}
 	var smokePassed atomic.Bool
+	var smokeTimedOut atomic.Bool
 	if smoke {
 		// Register first: success is emitted only after every later cleanup has
 		// returned, including runtime cancellation and fixture removal.
@@ -83,6 +85,9 @@ func run() (exitCode int) {
 		return 0
 	}
 	bridge := &desktop.Bridge{CLIExecutable: desktop.SiblingCLI()}
+	if smoke {
+		defer func() { desktop.RecordQualificationTerminal(bridge, exitCode == 0 && smokePassed.Load()) }()
+	}
 	var startup func(context.Context)
 	var domReady func(context.Context)
 	var smokeContext context.Context
@@ -113,7 +118,7 @@ func run() (exitCode int) {
 		ready := make(chan struct{})
 		done := make(chan error, 1)
 		go func() {
-			done <- local.Serve(ctx, w, local.Options{Idle: 90 * time.Second, Ready: ready, AssistanceFixture: func(context.Context, assistance.Request, assistance.Config) (assistance.Proposal, error) {
+			done <- local.Serve(ctx, w, local.Options{Idle: qualificationtiming.Duration("fixture_idle_seconds"), Ready: ready, AssistanceFixture: func(context.Context, assistance.Request, assistance.Config) (assistance.Proposal, error) {
 				return assistance.Proposal{ContractVersion: "1", Explanation: "Deterministic current media suggestion", Query: contracts.QueryInput{Title: "Qualification assistance", Definition: contracts.QueryDefinition{Mode: "normalized", Operation: "media-list", Pagination: &contracts.QueryPagination{Limit: 5}}}}, nil
 			}})
 		}()
@@ -121,7 +126,7 @@ func run() (exitCode int) {
 		case <-ready:
 		case <-done:
 			return 1
-		case <-time.After(5 * time.Second):
+		case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 			cancel()
 			<-done
 			return 1
@@ -144,7 +149,9 @@ func run() (exitCode int) {
 			go func() {
 				select {
 				case <-ctx.Done():
-				case <-time.After(80 * time.Second):
+				case <-time.After(qualificationtiming.Duration("gui_watchdog_seconds")):
+					smokeTimedOut.Store(true)
+					bridge.QualificationStep("watchdog-timeout")
 					wailsruntime.Quit(ctx)
 				}
 			}()
@@ -161,7 +168,7 @@ func run() (exitCode int) {
 			for _, name := range []string{"ui_library_import", "ui_metadata_date", "ui_current_assembly", "ui_audio_playback", "ui_video_source_audio_playback", "ui_cue_seek", "ui_terms", "ui_speakers", "ui_pipelines", "ui_jobs", "ui_settings", "ui_model_references", "ui_keyboard_help", "ui_offline_help_activation", "ui_explore_calendar", "ui_explore_query", "ui_explore_graph", "ui_query_assistance", "ui_compact_density"} {
 				passed = passed && result[name] == "passed"
 			}
-			smokePassed.Store(passed)
+			smokePassed.Store(passed && !smokeTimedOut.Load())
 			wailsruntime.Quit(smokeContext)
 		}
 	}

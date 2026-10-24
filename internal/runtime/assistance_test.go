@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/assistance"
 	"github.com/shruggietech/insonic/internal/contracts"
+	qt "github.com/shruggietech/insonic/internal/qualificationtiming"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"testing"
 	"time"
@@ -28,10 +29,12 @@ func TestAssistanceWireCancellation(t *testing.T) {
 		stopped <- struct{}{}
 		return assistance.Proposal{}, contracts.Fail("cancelled")
 	}
-	go func() { done <- Serve(ctx, w, Options{Ready: ready, AssistanceFixture: fixture}) }()
+	go func() {
+		done <- Serve(ctx, w, Options{Ready: ready, Idle: qt.Duration("fixture_idle_seconds"), AssistanceFixture: fixture})
+	}()
 	select {
 	case <-ready:
-	case <-time.After(3 * time.Second):
+	case <-time.After(qt.Duration("readiness_seconds")):
 		t.Fatal("startup")
 	}
 	req := func(op string, data any) contracts.Request {
@@ -51,18 +54,18 @@ func TestAssistanceWireCancellation(t *testing.T) {
 	go func() { Call(callctx, w, req("query.assist", map[string]any{"prompt": "List media"})); close(called) }()
 	select {
 	case <-started:
-	case <-time.After(time.Second):
+	case <-time.After(qt.Duration("cleanup_seconds")):
 		t.Fatal("wire did not invoke assistance")
 	}
 	stop()
 	select {
 	case <-called:
-	case <-time.After(time.Second):
+	case <-time.After(qt.Duration("cleanup_seconds")):
 		t.Fatal("client cancellation did not close connection")
 	}
 	select {
 	case <-stopped:
-	case <-time.After(time.Second):
+	case <-time.After(qt.Duration("cleanup_seconds")):
 		t.Fatal("disconnect did not cancel provider")
 	}
 	if OperationTimeout("query.assist", time.Second) != 90*time.Second {
@@ -74,7 +77,7 @@ func TestAssistanceWireCancellation(t *testing.T) {
 		if e != nil {
 			t.Fatal(e)
 		}
-	case <-time.After(time.Second):
+	case <-time.After(qt.Duration("cleanup_seconds")):
 		t.Fatal("shutdown")
 	}
 }

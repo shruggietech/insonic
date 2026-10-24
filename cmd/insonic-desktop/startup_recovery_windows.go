@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"io"
 	"os"
 	"path/filepath"
@@ -131,7 +132,7 @@ func probeStartupFailureWith(config, executable string, capture func(context.Con
 	if err = errors.Join(writeErr, statErr, closeErr); err != nil {
 		return observation, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 18*time.Second)
+	ctx, cancel := qualificationtiming.Context(context.Background(), "exit_child_seconds")
 	defer cancel()
 	report, captureErr := capture(ctx, process.Spec{Executable: executable, Args: []string{"--startup-failure-qualification-child", config}, MaxOutput: 64 << 10, WaitForDescendants: true})
 	raw, _ := json.Marshal(map[string]any{"kind": "native-startup-failure-owned-lifecycle", "descendants": report.Descendants, "stdout": string(report.Stdout[:min(len(report.Stdout), 65536)]), "stderr": string(report.Stderr[:min(len(report.Stderr), 65536)]), "exit_code": report.ExitCode, "truncated": report.Truncated, "timed_out": ctx.Err() == context.DeadlineExceeded})
@@ -191,7 +192,7 @@ func qualifyStartupFailureChild(config string) int {
 	fmt.Fprintln(os.Stderr, "native-startup-recovery-stage=before-application")
 	finished := make(chan struct{})
 	go func() {
-		timer := time.NewTimer(12 * time.Second)
+		timer := time.NewTimer(qualificationtiming.Duration("exit_watchdog_seconds"))
 		defer timer.Stop()
 		select {
 		case <-finished:

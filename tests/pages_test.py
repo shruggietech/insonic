@@ -226,7 +226,7 @@ class PagesTransportTests(unittest.TestCase):
 
     def test_queued_build_has_a_bounded_deadline(self):
         destination, files = self.prepared(); self.api.results = [{'status': 'queued', 'commit': NEW}]
-        times = iter((0, 0, 301))
+        times = iter((0, 0, pages.timing.ARTIFACT_PRODUCER_SECONDS + 1))
         with self.assertRaisesRegex(ValueError, 'deadline'):
             pages.promote_tree(self.api, REPO, destination, files, '1.0.1', REVISION, sleep=lambda _: None, clock=lambda: next(times))
 

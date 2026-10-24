@@ -17,6 +17,9 @@ import tempfile
 import time
 from urllib.parse import urlsplit
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
+
 
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = 'shruggietech/insonic'
@@ -56,7 +59,7 @@ class API:
         headers = {'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'insonic-website'}
         if self.token: headers['Authorization'] = 'Bearer ' + self.token
         for attempt in range(3 if method == 'GET' else 1):
-            connection = http.client.HTTPSConnection('api.github.com', timeout=15)
+            connection = http.client.HTTPSConnection('api.github.com', timeout=timing.REQUEST_SECONDS)
             try:
                 connection.request(method, '/' + endpoint, body=json.dumps(value) if value is not None else None, headers=headers)
                 response = connection.getresponse(); data = response.read((4 << 20) + 1)
@@ -112,7 +115,7 @@ def package_response(url, *, head=False, limit=1 << 20):
     package_url(url, initial=True)
     for index in range(5):
         p = package_url(url, initial=index == 0)
-        connection = http.client.HTTPSConnection(p.hostname, timeout=15)
+        connection = http.client.HTTPSConnection(p.hostname, timeout=timing.REQUEST_SECONDS)
         try:
             connection.request('HEAD' if head else 'GET', p.path + ('?' + p.query if p.query else ''), headers={'User-Agent': 'insonic-website', 'Accept-Encoding': 'identity'})
             response = connection.getresponse()
@@ -212,9 +215,9 @@ def git(args, cwd, env=None):
     selected = dict(os.environ if env is None else env)
     selected.update(GIT_TERMINAL_PROMPT='0', GCM_INTERACTIVE='Never', GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull)
     with processes.ProcessTree(['git', '-c', 'core.hooksPath=' + os.devnull, '-c', 'commit.gpgsign=false', *args], cwd=cwd, env=selected) as owned:
-        try: out, err = owned.process.communicate(timeout=90)
+        try: out, err = owned.process.communicate(timeout=timing.SUBPROCESS_SECONDS)
         except subprocess.TimeoutExpired:
-            owned.kill(); owned.process.communicate(); raise TimeoutError('owned website Git deadline exceeded') from None
+            owned.kill(); owned.process.communicate(timeout=timing.CLEANUP_SECONDS); raise TimeoutError('owned website Git deadline exceeded') from None
         if owned.process.returncode: raise ValueError('owned website Git operation failed')
         if len(out) > 4 << 20 or len(err) > 4 << 20: raise ValueError('owned website Git output exceeds bound')
         return out.decode('utf-8').strip()
@@ -270,7 +273,7 @@ def publish(archive, receipt, output, api, token):
     green_main(api, receipt['site_revision'])
     try: api.call('POST', ENDPOINT + '/pages/builds')
     except (OSError, ValueError): pass
-    deadline = time.monotonic() + 300
+    deadline = time.monotonic() + timing.ARTIFACT_PRODUCER_SECONDS
     while time.monotonic() < deadline:
         ref = api.call('GET', ENDPOINT + '/git/ref/heads/gh-pages')
         if not ref or ref.get('object', {}).get('sha') != staged: raise ValueError('Pages publication conflict')
@@ -335,9 +338,9 @@ def main():
     if not args.worker:
         # Includes DNS, API, Git and all descendants in an aggregate owned deadline.
         with processes.ProcessTree([sys.executable, str(Path(__file__).resolve()), *sys.argv[1:], '--worker'], cwd=ROOT, env=dict(os.environ)) as owned:
-            try: out, err = owned.process.communicate(timeout=540)
+            try: out, err = owned.process.communicate(timeout=timing.ARTIFACT_PRODUCER_SECONDS + 3 * timing.SUBPROCESS_SECONDS + timing.CLEANUP_SECONDS)
             except subprocess.TimeoutExpired:
-                owned.kill(); owned.process.communicate(); raise TimeoutError('website phase aggregate deadline exceeded') from None
+                owned.kill(); owned.process.communicate(timeout=timing.CLEANUP_SECONDS); raise TimeoutError('website phase aggregate deadline exceeded') from None
             sys.stdout.buffer.write(out); sys.stderr.buffer.write(err)
             return owned.process.returncode
     api = API(os.environ.get('GH_TOKEN', os.environ.get('GITHUB_TOKEN', '')), args.command == 'publish')

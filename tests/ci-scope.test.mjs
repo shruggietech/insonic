@@ -105,7 +105,7 @@ test('Windows delivery joins every isolated scope before exposing candidate arti
  assert.ok(finalize.steps[wait].run.includes("'${{ inputs.revision }}'"));
  for (const job of [assemble, proofs, finalize]) {
   assert.equal(job['runs-on'], 'windows-2022');
-  assert.equal(job['timeout-minutes'], 15);
+  assert.equal(job['timeout-minutes'], 65);
   assert.equal(job.env.SOURCE_REVISION, '${{ inputs.revision }}');
   assert.equal(job.steps[0].with.ref, '${{ inputs.revision }}');
  }
@@ -168,7 +168,7 @@ test('cold source dependency formats and FFmpeg transfer independently verified 
  assert.ok(ffmpeg.includes('media-transfer.py pack --stage complete --revision "$SOURCE_REVISION"'));
  assert.ok(media.jobs.ffmpeg.steps.some(step => step.with?.name === 'media-formats-${{ inputs.os }}-${{ github.run_attempt }}'));
  for (const job of Object.values(media.jobs)) {
-  assert.equal(job['timeout-minutes'], 11);
+  assert.equal(job['timeout-minutes'], 60);
   assert.equal(job.env.SOURCE_REVISION, '${{ inputs.revision }}');
   assert.equal(job.steps.find(step => step.uses?.startsWith('actions/checkout@')).with.ref, job === media.jobs.ready ? '${{ job.workflow_sha }}' : '${{ inputs.revision }}');
  }
@@ -215,14 +215,14 @@ test('full workflow attempts preserve old artifacts and consume only their match
 
 test('qualification watchdogs agree with the shared policy while unrelated limits remain scoped', () => {
  const policy=JSON.parse(readFileSync(new URL('../scripts/ci-timing-policy.json',import.meta.url),'utf8'));
- assert.deepEqual(policy,{qualification_target_seconds:660,qualification_limit_seconds:900,finalization_reserve_seconds:15});
- for (const name of ['ci','native-qualification','windows-desktop-qualification','media-source','release']) {
+ assert.deepEqual(policy,{qualification_target_seconds:1800,qualification_limit_seconds:3600,finalization_reserve_seconds:60});
+ for (const name of ['ci','native-qualification','windows-desktop-qualification','media-source','release','website','installer-invocation-diagnostic']) {
   const workflow=parse(readFileSync(new URL('../.github/workflows/'+name+'.yml',import.meta.url),'utf8'));
   for(const [id,job] of Object.entries(workflow.jobs)){
    if(job.uses)continue;
    const preparation=name==='media-source'||(name==='ci'&&['scope','dependencies-windows','readiness'].includes(id));
-   const independentRelease=name==='release';
-   assert.equal(job['timeout-minutes'],preparation||independentRelease?11:policy.qualification_limit_seconds/60,name+'/'+id);
+   // Preparation and independent release watchdogs are explicit policy scopes.
+   assert.equal(job['timeout-minutes'],preparation?60:65,name+'/'+id);
   }
  }
 });
@@ -290,7 +290,7 @@ test('focused native source diagnosis keeps production compiler and decoder prer
  assert.ok(steps.findIndex(step=>step.uses?.startsWith('msys2/setup-msys2@'))<prepare);
  assert.ok(steps.some(step=>step.run==='npm --prefix desktop/frontend ci --ignore-scripts'));
  assert.equal(workflow.permissions.actions,'read');
- assert.match(workflow.jobs.invocation['timeout-minutes'],/11 \|\| 5/);
+ assert.equal(workflow.jobs.invocation['timeout-minutes'],65);
 });
 
 test('candidate tools and Linux/docs downloads overlap the explicit Windows package gate', () => {
@@ -309,4 +309,19 @@ test('candidate tools and Linux/docs downloads overlap the explicit Windows pack
  assert.ok(windows>wait&&collect>windows);
  assert.equal(steps[wait].env.GH_TOKEN,'${{ github.token }}');
  for(const index of [linux,docs,windows])assert.equal(steps[index].with['digest-mismatch'],'error');
+});
+
+test('downstream CI joins inherit the original qualification deadline before waiting for artifacts', () => {
+ for(const [name,ids] of [['windows-desktop-qualification',['assemble','proofs','finalize']],['ci',['candidate']]]){
+  const workflow=parse(readFileSync(new URL('../.github/workflows/'+name+'.yml',import.meta.url),'utf8'));
+  for(const id of ids){
+   const steps=workflow.jobs[id].steps;
+   const gate=steps.findIndex(step=>step.run==='node scripts/ci-acceptance.mjs wait-inputs');
+   const wait=steps.findIndex(step=>step.run?.includes('wait-ci-artifact.mjs'));
+   assert.ok(gate>=0&&gate<wait,name+'/'+id+' must retain the original readiness boundary');
+   assert.ok(steps[gate].env.EXPECTED_HEAD.includes('github.event.pull_request.head.sha'));
+  }
+ }
+ const administrative=parse(readFileSync(new URL('../.github/workflows/issue-classification.yml',import.meta.url),'utf8'));
+ assert.equal(administrative.jobs.classify['timeout-minutes'],2);
 });

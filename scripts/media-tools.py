@@ -16,6 +16,10 @@ import urllib.request
 import importlib.util
 
 from process_tree import ProcessTree
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 
 ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / 'build/native/media'
@@ -36,7 +40,7 @@ def fetch(name, url, digest, integrity=None):
         temporary = path.with_suffix(path.suffix + '.download')
         try:
             request = urllib.request.Request(url, headers={'User-Agent': 'insonic-media-qualification'})
-            with urllib.request.urlopen(request, timeout=90) as source, temporary.open('wb') as output:
+            with urllib.request.urlopen(request, timeout=timing.SOURCE_DOWNLOAD_SECONDS) as source, temporary.open('wb') as output:
                 shutil.copyfileobj(source, output)
             if sha(temporary) != digest:
                 raise ValueError('media archive checksum mismatch: ' + name)
@@ -79,7 +83,7 @@ def extract(archive, target):
                 raise ValueError('archive contains a link or device')
 
 
-def child(args, env=None, timeout=180):
+def child(args, env=None, timeout=timing.SUBPROCESS_SECONDS):
     selected = os.environ.copy()
     selected.update({'PERL5OPT': '', 'PERL5LIB': '', 'PERLLIB': '', 'EXIFTOOL_HOME': '', 'LC_ALL': 'C', 'LANG': 'C'})
     if env:
@@ -89,7 +93,7 @@ def child(args, env=None, timeout=180):
             stdout, stderr = tree.process.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
             tree.kill()
-            tree.process.communicate(timeout=5)
+            tree.process.communicate(timeout=timing.CLEANUP_SECONDS)
             raise
         if tree.process.returncode:
             raise RuntimeError('media qualification child failed: ' + (stdout + stderr).decode(errors='replace'))

@@ -14,6 +14,9 @@ import uuid
 from process_tree import ProcessTree
 import windows_native_resources as resources
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as bounds
+
 
 LIMIT=65536
 FIXTURE="""import json,os,threading,time,sys
@@ -141,7 +144,7 @@ class Scheduler:
         try:
             self.stage='preflight-child'
             origin=time.monotonic();start=resources.clock_anchor(origin);header=[];ready=Event()
-            deadline=time.monotonic()+5
+            deadline=time.monotonic()+bounds.READINESS_SECONDS
             with ProcessTree([sys.executable,'-c',STRESS_FIXTURE if stress else FIXTURE],cwd=self.root,env=self.env,input_pipe=True) as tree:
                 def read_header():
                     try:header.append(tree.process.stdout.readline(1024))

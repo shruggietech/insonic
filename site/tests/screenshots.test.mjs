@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import { milliseconds } from '../../scripts/qualification-timing.mjs';
 import { prepareScreenshots } from '../lib/screenshots.mjs';
 import { copyOfflineFiles } from '../scripts/offline.mjs';
 import { renderDocument } from '../lib/docs.mjs';
@@ -52,7 +53,7 @@ test('documentation images use bounded versioned routes and require alternative 
 test('frozen captures verify exact ancestral source while later implementation changes', async t => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(),'insonic-capture-history-'));
   t.after(() => fs.rm(root,{recursive:true,force:true}));
-  const git = args => execFileSync('git',args,{cwd:root,encoding:'utf8',windowsHide:true,timeout:10000,stdio:['ignore','pipe','pipe']}).trim();
+  const git = args => execFileSync('git',args,{cwd:root,encoding:'utf8',windowsHide:true,timeout:milliseconds('git_seconds'),stdio:['ignore','pipe','pipe']}).trim();
   git(['init','--quiet']);
   await fs.writeFile(path.join(root,'VERSION'),'1.0.1\n');
   const implementation=Buffer.from('captured implementation');
@@ -83,7 +84,7 @@ test('squashed CI capture sources require one coherent historical version and un
   const root=await fs.mkdtemp(path.join(os.tmpdir(),'insonic-capture-squash-'));
   assert.equal(path.dirname(root),path.resolve(os.tmpdir()));
   t.after(()=>fs.rm(root,{recursive:true,force:true}));
-  const git=args=>execFileSync('git',args,{cwd:root,encoding:'utf8',windowsHide:true,timeout:10000,stdio:['ignore','pipe','pipe']}).trim();
+  const git=args=>execFileSync('git',args,{cwd:root,encoding:'utf8',windowsHide:true,timeout:milliseconds('git_seconds'),stdio:['ignore','pipe','pipe']}).trim();
   const commit=message=>git(['-c','user.name=Fixture','-c','user.email=fixture@example.test','-c','commit.gpgsign=false','commit','--quiet','-am',message]);
   git(['init','--quiet']);
   await fs.writeFile(path.join(root,'VERSION'),'1.0.1\n');
@@ -110,7 +111,7 @@ test('squashed CI capture sources require one coherent historical version and un
 test('squashed captures find coherent ancestors whose anchor was unchanged, beyond four matching anchors', async t => {
   const root=await fs.mkdtemp(path.join(os.tmpdir(),'insonic-capture-stable-anchor-'));
   t.after(()=>fs.rm(root,{recursive:true,force:true}));
-  const git=args=>execFileSync('git',args,{cwd:root,encoding:'utf8',windowsHide:true,timeout:10000,stdio:['ignore','pipe','pipe']}).trim();
+  const git=args=>execFileSync('git',args,{cwd:root,encoding:'utf8',windowsHide:true,timeout:milliseconds('git_seconds'),stdio:['ignore','pipe','pipe']}).trim();
   const commit=message=>git(['-c','user.name=Fixture','-c','user.email=fixture@example.test','-c','commit.gpgsign=false','commit','--quiet','-am',message]);
   git(['init','--quiet']);
   const implementation=Buffer.from('captured implementation'),secondary=Buffer.from('captured secondary');

@@ -40,10 +40,10 @@ class InstallerModelTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             scripts=Path(temporary)/'scripts';module.stage_worker_scripts(scripts)
             code="import sys;sys.path.insert(0,sys.argv[1]);import qualify_installer_setup,windows_setup,pe_resources;from pathlib import Path;assert Path(pe_resources.__file__).parent.samefile(Path(sys.argv[1]));assert Path(windows_setup.__file__).parent.samefile(Path(sys.argv[1]))"
-            result=subprocess.run([sys.executable,'-I','-c',code,str(scripts)],cwd=temporary,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0,timeout=15)
+            result=subprocess.run([sys.executable,'-I','-c',code,str(scripts)],cwd=temporary,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0,timeout=module.timing.READINESS_SECONDS)
             self.assertEqual(result.returncode,0,result.stderr.decode(errors='replace'))
             (scripts/'pe_resources.py').unlink()
-            missing=subprocess.run([sys.executable,'-I','-c',code,str(scripts)],cwd=temporary,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0,timeout=15)
+            missing=subprocess.run([sys.executable,'-I','-c',code,str(scripts)],cwd=temporary,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0,timeout=module.timing.READINESS_SECONDS)
             self.assertNotEqual(missing.returncode,0);self.assertIn(b"No module named 'pe_resources'",missing.stderr)
 
     def test_actor_authoring_resources_keep_the_governed_icon_at_its_module_path(self):
@@ -447,8 +447,8 @@ class InstallerModelTests(unittest.TestCase):
         (stage/'owned-ci-account.json').write_text(json.dumps({'account':name,'sid_sha256':m.digest(sid.encode())}),encoding='utf-8');calls=[];records=[]
         def bridge(command,**options):
             self.assertNotIn(password,repr(command));self.assertNotIn(password,repr(options.get('env')))
-            self.assertEqual(options['creationflags'],0x08000000);self.assertEqual(options['timeout'],260)
-            script=base64.b64decode(command[-1]).decode('utf-16le');self.assertIn("ExecutionTimeLimit='PT240S'",script);self.assertIn('RegisterTaskDefinition($inputObject.task_name,$definition,2,',script);self.assertIn("$definition.Principal.UserId='SYSTEM';$definition.Principal.LogonType=5;",script);self.assertIn("'SYSTEM',$null,5,$null)",script);self.assertIn('$result.logon_type=5',script)
+            self.assertEqual(options['creationflags'],0x08000000);self.assertEqual(options['timeout'],module.timing.INSTALLER_OUTER_SECONDS)
+            script=base64.b64decode(command[-1]).decode('utf-16le');self.assertIn("ExecutionTimeLimit=('PT'+[string]$inputObject.worker_seconds+'S')",script);self.assertIn('RegisterTaskDefinition($inputObject.task_name,$definition,2,',script);self.assertIn("$definition.Principal.UserId='SYSTEM';$definition.Principal.LogonType=5;",script);self.assertIn("'SYSTEM',$null,5,$null)",script);self.assertIn('$result.logon_type=5',script)
             request=json.loads(options['input']);calls.append(request)
             if request['mode']=='run':
                 self.assertEqual(request['password'],password);self.assertNotIn('provider-secret',request['arguments']);self.assertNotIn('owner-private',request['arguments']);self.assertIn('os.environ.clear()',request['arguments'])

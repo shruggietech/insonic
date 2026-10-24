@@ -6,16 +6,21 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
+import { milliseconds } from './qualification-timing.mjs';
 import { assertPage, inspectPage, inspectReadability, landingGeometry, landingInventory, assertLandingGeometry, browserEnvironment } from './check-docs-ui.mjs';
 
 const assert = (ok, message) => { if (!ok) throw new Error(message); };
-export async function closeOwnedBrowser(server, timeout = 8000) {
+export async function closeOwnedBrowser(server, timeout = milliseconds('natural_release_seconds')) {
   let timer;
   try {
     await Promise.race([server.close(), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Owned browser close deadline exceeded.')), timeout); })]);
   } catch {
     // The server handle owns this exact browser process group, never an image-name search.
-    await server.kill();
+    clearTimeout(timer);
+    await Promise.race([server.kill(), new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('Owned browser forced cleanup deadline exceeded.')), milliseconds('cleanup_seconds'));
+    })]);
+    throw new Error('Owned browser required forced cleanup after its natural close deadline.');
   } finally { clearTimeout(timer); }
 }
 export function liveInventory(receipt) {
@@ -68,7 +73,7 @@ export async function checkLiveSite({ receipt, output, executable = '/usr/bin/go
   const selected = liveInventory(receipt), cache = new Map();
   const started = Date.now(), controller = new AbortController();
   let bytes = 0, context, server, fixture, failure;
-  const guard = setTimeout(() => { controller.abort(); if (server) void server.kill().catch(() => {}); }, 180000);
+  const guard = setTimeout(() => { controller.abort(); if (server) void server.kill().catch(() => {}); }, milliseconds('docs_browser_seconds'));
   const report = { kind: 'live-website-browser-verification', method: 'bounded-live-response-rendering',
     site_revision: receipt.revision, release_revision: receipt.release_revision, pages_commit: receipt.pages_commit,
     version: receipt.version, cases: [], resources: [], blocked_requests: 0, cleanup: {}, passed: false };
@@ -94,11 +99,11 @@ export async function checkLiveSite({ receipt, output, executable = '/usr/bin/go
     await mkdir(output, { recursive: true });
     fixture = await mkdtemp(path.join(os.tmpdir(), 'insonic-live-ui-'));
     server = await chromium.launchServer({ executablePath: executable, headless: true, host: '127.0.0.1',
-      env: browserEnvironment(fixture, executable), downloadsPath: path.join(fixture, 'downloads'), timeout: 20000,
+      env: browserEnvironment(fixture, executable), downloadsPath: path.join(fixture, 'downloads'), timeout: milliseconds('frontend_seconds'),
       args: ['--disable-background-networking', '--disable-component-update', '--disable-sync', '--no-first-run'] });
-    const browser = await chromium.connect(server.wsEndpoint(), { timeout: 10000 });
+    const browser = await chromium.connect(server.wsEndpoint(), { timeout: milliseconds('frontend_seconds') });
     context = await browser.newContext({ acceptDownloads: false, serviceWorkers: 'block' });
-    context.setDefaultTimeout(15000);
+    context.setDefaultTimeout(milliseconds('frontend_seconds'));
     await context.addInitScript(() => { localStorage.setItem('insonic-theme', matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); });
     await context.routeWebSocket('**', route => { report.blocked_requests++; route.close(); });
     await context.route('**/*', async route => {
@@ -114,7 +119,7 @@ export async function checkLiveSite({ receipt, output, executable = '/usr/bin/go
       assert(!controller.signal.aborted, 'Live browser aggregate deadline exceeded.');
       await page.setViewportSize({ width, height: 1000 });
       await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
-      await page.goto('https://insonic.io/', { waitUntil: 'networkidle', timeout: Math.min(20000, Math.max(1, 180000 - (Date.now() - started))) });
+      await page.goto('https://insonic.io/', { waitUntil: 'networkidle', timeout: Math.min(milliseconds('frontend_seconds'), Math.max(1, milliseconds('docs_browser_seconds') - (Date.now() - started))) });
       await page.evaluate(() => document.fonts.ready);
       const item = { width, theme, image: `${width}-${theme}.png`, passed: false };
       report.cases.push(item);
@@ -132,10 +137,11 @@ export async function checkLiveSite({ receipt, output, executable = '/usr/bin/go
         for (const pack of receipt.packages ?? []) assert(hrefs.has(pack.url), 'Live package link differs.');
         assert(item.actual_theme === theme, 'Actual theme differs.');
         item.passed = true;
-      } finally { await page.screenshot({ path: path.join(output, item.image), fullPage: true, timeout: 10000 }); }
+      } finally { await page.screenshot({ path: path.join(output, item.image), fullPage: true, timeout: milliseconds('frontend_seconds') }); }
     }
     if (failure) throw failure;
     assert(report.cases.length === 8 && report.cases.every(item => item.passed), 'Incomplete live browser matrix.');
+    assert(!controller.signal.aborted, 'Live browser aggregate deadline exceeded.');
     report.passed = true;
   } catch (error) { failure = error; report.failure = error.message; }
   finally {
@@ -148,6 +154,7 @@ export async function checkLiveSite({ receipt, output, executable = '/usr/bin/go
       await rm(fixture, { recursive: true, force: true, maxRetries: 5 }); report.cleanup.owned_profile_removed = true;
     }
     report.elapsed_seconds = (Date.now() - started) / 1000;
+    if(Date.now()-started>milliseconds('docs_browser_seconds')){failure??=new Error('Live browser including owned cleanup exceeded its allowance.');report.failure=failure.message;report.passed=false;}
     await mkdir(output, { recursive: true });
     await writeFile(path.join(output, 'report.json'), JSON.stringify(report, null, 2) + '\n', 'utf8');
   }

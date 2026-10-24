@@ -6,6 +6,10 @@ Both modes require maintainer election outside CI. Controlled mode runs no
 acoustic models. Real mode uses already installed pinned offline models only.
 No product release, deployment or operator workspace is modified.
 """
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 import argparse
 import base64
 import hashlib
@@ -13,11 +17,9 @@ import http.server
 import importlib.util
 import json
 import os
-from pathlib import Path
 import platform
 import re
 import subprocess
-import sys
 import tempfile
 import threading
 import time
@@ -139,8 +141,8 @@ def compare_authority(before, after):
 
 def harness_identity():
     environment = engine.local_environment()
-    revision = engine._child(['git', 'rev-parse', 'HEAD'], environment, timeout=10).decode().strip()
-    dirty = bool(engine._child(['git', 'status', '--porcelain'], environment, timeout=10).strip())
+    revision = engine._child(['git', 'rev-parse', 'HEAD'], environment, timeout=timing.GIT_SECONDS).decode().strip()
+    dirty = bool(engine._child(['git', 'status', '--porcelain'], environment, timeout=timing.GIT_SECONDS).strip())
     identity = hashlib.sha256()
     inputs = [ROOT / name for name in ('VERSION', 'go.mod', 'go.sum')]
     for prefix in ('internal', 'cmd', 'scripts', 'schemas/v' + (ROOT / 'VERSION').read_text().strip()):
@@ -192,7 +194,7 @@ class Journey:
                         'worker_sha256': engine.sha(self.worker),
                         'product_version': (ROOT / 'VERSION').read_text().strip(),
                         'source_revision': revision, 'source_dirty': dirty, 'source_inputs_sha256': identity,
-                        'operation_bound_seconds': 180, 'overall_bound_seconds': args.timeout,
+                        'operation_bound_seconds': timing.SUBPROCESS_SECONDS, 'overall_bound_seconds': args.timeout,
                         'hard_rss_limit_bytes': None, 'operations': [], 'records': []}
         if packaged:
             self.receipt.update(package=package_identity, source_revision=package_identity['revision'], source_dirty=False,
@@ -207,16 +209,16 @@ class Journey:
             raise ValueError('Elected harness source changed during real acceptance')
         self.receipt['harness_unchanged'] = True
 
-    def remaining(self, maximum=180):
+    def remaining(self, maximum=timing.SUBPROCESS_SECONDS):
         remaining = self.deadline - time.monotonic()
         if remaining <= 0:
             raise ValueError('Journey overall deadline exceeded')
         return min(maximum, remaining)
 
-    def engine_child(self, command, *, maximum=180, max_output=16 << 20):
+    def engine_child(self, command, *, maximum=timing.SUBPROCESS_SECONDS, max_output=16 << 20):
         return engine._child(command, self.environment, timeout=self.remaining(maximum), max_output=max_output)
 
-    def command(self, *args, workspace=True, maximum=180):
+    def command(self, *args, workspace=True, maximum=timing.SUBPROCESS_SECONDS, pending_work_id=None):
         command = [self.cli, '--json']
         if workspace:
             command.extend(('--workspace', self.workspace))
@@ -227,6 +229,12 @@ class Journey:
             raw = engine._child(command, self.environment, timeout=self.remaining(maximum), max_output=16 << 20, cli_response=True)
         except engine.CLIResponseError as error:
             result = error.response.get('result', {})
+            failure = error.response.get('error', {})
+            if (pending_work_id is not None and failure.get('code') == 'unavailable'
+                    and failure.get('reason') == 'wait_timeout' and isinstance(result, dict)
+                    and result.get('id') == pending_work_id and result.get('work_id', pending_work_id) == pending_work_id
+                    and result.get('state') in ('queued', 'running')):
+                return result
             self.receipt['failure_code'] = error.response['error']['code']
             reason = error.response['error'].get('reason')
             if isinstance(reason, str) and re.fullmatch(r'[a-z_]{1,64}', reason):
@@ -263,14 +271,24 @@ class Journey:
     def input(self, *args, value):
         return self.command(*args, '--input', self.payload(value))
 
-    def finish(self, queued, *, maximum=180):
+    def finish(self, queued, *, maximum=timing.SUBPROCESS_SECONDS):
         started = time.monotonic()
         work_id = queued.get('work_id', queued.get('id'))
         if not work_id:
             raise ValueError('Operation did not return durable work identity')
-        current = self.command('work', 'wait', work_id, '--timeout-ms', str(min(600000, int(self.remaining(maximum) * 1000))), maximum=maximum + 5)
-        if current.get('state') != 'succeeded':
-            raise ValueError('Work did not reach success')
+        deadline = min(self.deadline, started + maximum)
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0: raise ValueError('Work exceeded its original operation deadline')
+            query_seconds = min(600, remaining)  # The ordinary CLI API retains its ten-minute per-query maximum.
+            current = self.command('work', 'wait', work_id, '--timeout-ms', str(max(1, int(query_seconds * 1000))),
+                                   maximum=query_seconds + timing.CLEANUP_SECONDS, pending_work_id=work_id)
+            if current.get('state') in ('queued', 'running'):
+                continue
+            if (current.get('state') != 'succeeded' or current.get('id') != work_id
+                    or current.get('work_id', work_id) != work_id or time.monotonic() > deadline):
+                raise ValueError('Work did not reach matching success within its original operation deadline')
+            break
         self.receipt['operations'].append({'kind': current['kind'], 'state': current['state'], 'phase': current['phase'],
                                            'wait_wall_seconds': time.monotonic() - started})
         return current['result']
@@ -301,13 +319,13 @@ class Journey:
 
     def idle_runtime(self):
         if self.runtime is not None:
-            self.runtime.wait(timeout=self.remaining(45))
+            self.runtime.wait(timeout=self.remaining(timing.SERVICE_SECONDS))
             if self.runtime.returncode or self.runtime_overflow.is_set():
                 raise ValueError('Owned runtime failed before maintenance')
-            if not self.runtime_tree.wait_for_descendants(self.remaining(5)):
+            if not self.runtime_tree.wait_for_descendants(self.remaining(timing.NATURAL_RELEASE_SECONDS)):
                 raise ValueError('Owned runtime descendants did not release naturally')
             for reader in self.runtime_readers:
-                reader.join(timeout=2)
+                reader.join(timeout=timing.CLEANUP_SECONDS)
             if any(reader.is_alive() for reader in self.runtime_readers):
                 raise ValueError('Owned runtime output readers did not exit')
             if self.runtime_overflow.is_set():
@@ -350,7 +368,7 @@ class Journey:
         return {'recordings': recordings, 'model': model, 'profile': listing.get('profile')}
 
     def run(self):
-        actual_version = engine._child([self.cli, 'version'], self.environment, timeout=10).decode().strip()
+        actual_version = engine._child([self.cli, 'version'], self.environment, timeout=timing.GIT_SECONDS).decode().strip()
         if actual_version != self.receipt['product_version']:
             raise ValueError('Selected CLI version differs from current source')
         self.command('workspace', 'init', self.workspace, workspace=False)
@@ -369,7 +387,7 @@ class Journey:
         self.receipt['python_executable_sha256'] = {operation: engine.sha(path) for operation, path in pythons.items()}
         self.receipt['companion_sha256'] = {**{name: tools[name]['sha256'] for name in ('ffmpeg', 'ffprobe', 'exiftool')},
                                            'cueson': engine.sha(cueson)}
-        processing = {'threads': 2, 'timeout_ms': 120000, 'max_duration_us': 60000000, 'max_input_bytes': 67108864,
+        processing = {'threads': 2, 'timeout_ms': timing.REAL_PROCESSING_SECONDS * 1000, 'max_duration_us': 60000000, 'max_input_bytes': 67108864,
                       'worker': {'path': str(worker), 'sha256': engine.sha(worker)}}
         for operation, field in (('transcribe', 'recognition_python'), ('diarize', 'diarization_python')):
             processing[field] = {'path': str(pythons[operation]), 'sha256': engine.sha(pythons[operation])}
@@ -424,7 +442,7 @@ class Journey:
                     raise ValueError('Exact loopback model acquisition did not verify')
                 model_ids[operation] = acquired['model_id']
         finally:
-            server.shutdown(); server.server_close(); thread.join(timeout=5)
+            server.shutdown(); server.server_close(); thread.join(timeout=timing.CLEANUP_SECONDS)
 
         ffmpeg = tools['ffmpeg']
         if engine.sha(ffmpeg['path']) != ffmpeg['sha256']:
@@ -432,7 +450,7 @@ class Journey:
         crop = self.base / 'cross-clip.wav'
         source = ROOT / 'tests/fixtures/media/speech.flac'
         engine._child([ffmpeg['path'], '-nostdin', '-hide_banner', '-loglevel', 'error', '-ss', '1', '-i', source,
-                       '-t', '8', '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', crop], self.environment, timeout=30)
+                       '-t', '8', '-ac', '1', '-ar', '16000', '-c:a', 'pcm_s16le', crop], self.environment, timeout=timing.SUBPROCESS_SECONDS)
         ids = []
         for name, source, channel in (('speech', source, None), ('cross-clip', crop, None),
                                       ('sintel-dialogue', ROOT / 'tests/fixtures/media/sintel-dialogue.mkv', 2)):
@@ -535,7 +553,7 @@ def main(argv=None):
     elif not args.recognition_python or not args.diarization_python or args.managed_offline_assets:
         raise ValueError('Legacy journey requires both explicit interpreters and no managed bundle override')
     if args.timeout is None:
-        args.timeout = 1800 if args.reference_corpus else 900
+        args.timeout = timing.JOURNEY_SECONDS
     if not 60 <= args.timeout <= 3600: raise ValueError('Invalid journey bound')
     if args.mode == 'real' and (not args.recognition_model or not args.diarization_model): raise ValueError('Real mode requires exact installed models')
     temporary = tempfile.TemporaryDirectory(prefix='insonic-connected-journey-')
@@ -559,18 +577,18 @@ def main(argv=None):
             try:
                 if tree is not None and primary is not None:
                     tree.kill()
-                    journey.runtime.wait(timeout=10)
+                    journey.runtime.wait(timeout=timing.CLEANUP_SECONDS)
                 else:
                     try:
-                        journey.runtime.wait(timeout=40)
+                        journey.runtime.wait(timeout=timing.SERVICE_SECONDS)
                     except subprocess.TimeoutExpired:
                         if tree is not None:
                             tree.kill()
                         else:
                             journey.runtime.terminate()
-                        journey.runtime.wait(timeout=10)
+                        journey.runtime.wait(timeout=timing.CLEANUP_SECONDS)
                         raise ValueError('Owned runtime required forced cleanup')
-                if tree is not None and not tree.wait_for_descendants(5):
+                if tree is not None and not tree.wait_for_descendants(timing.NATURAL_RELEASE_SECONDS):
                     raise ValueError('Owned runtime cleanup is incomplete')
                 runtime_released = tree is not None
             except BaseException as error:
@@ -585,7 +603,7 @@ def main(argv=None):
             finally:
                 if tree is not None:
                     for reader in journey.runtime_readers:
-                        reader.join(timeout=2)
+                        reader.join(timeout=timing.CLEANUP_SECONDS)
                     tree.close()
         try:
             temporary.cleanup()

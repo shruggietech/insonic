@@ -4,6 +4,7 @@ package backendsetup
 import (
 	"context"
 	"encoding/json"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -11,7 +12,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/credentialcmd"
@@ -22,7 +22,7 @@ func TestProvisionRequiresS3BucketAccess(t *testing.T) {
 	for _, phase := range []string{"present", "absent", "denied", "unreachable", "cancelled"} {
 		t.Run(phase, func(t *testing.T) {
 			var hits atomic.Int32
-			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), qualificationtiming.Duration("subprocess_seconds"))
 			defer cancel()
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				hits.Add(1)

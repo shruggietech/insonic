@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"golang.org/x/sys/windows"
 	"runtime"
 	"sync/atomic"
@@ -43,7 +44,7 @@ func TestNativeWindowOperationWaitsForItsOwnedUIDispatch(t *testing.T) {
 	var pin runtime.Pinner
 	pin.Pin(title)
 	defer pin.Unpin()
-	ctx, stop := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, stop := qualificationtiming.Context(context.Background(), "native_ui_seconds")
 	defer stop()
 	done := make(chan error, 1)
 	uiThread := windows.GetCurrentThreadId()
@@ -54,7 +55,7 @@ func TestNativeWindowOperationWaitsForItsOwnedUIDispatch(t *testing.T) {
 			exitWinCall("SetWindowTextW", hwnd, uintptr(unsafe.Pointer(title)))
 		})
 	}()
-	deadline := time.Now().Add(4 * time.Second)
+	deadline := time.Now().Add(qualificationtiming.Duration("native_ui_seconds") + qualificationtiming.Duration("cleanup_seconds"))
 	for time.Now().Before(deadline) {
 		select {
 		case err := <-done:
@@ -96,7 +97,7 @@ func TestNativeWindowOperationCalibratedAllowanceJoinsActualCompletion(t *testin
 	defer exitWinCall("DestroyWindow", hwnd)
 	completed := make(chan error, 1)
 	var calls atomic.Int32
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := qualificationtiming.Context(context.Background(), "frontend_seconds")
 	defer cancel()
 	go func() {
 		completed <- awaitNativeWindowOperation(nativeWindowJoinContext(ctx, 0), hwnd, func() { calls.Add(1) })
@@ -105,7 +106,7 @@ func TestNativeWindowOperationCalibratedAllowanceJoinsActualCompletion(t *testin
 	if calls.Load() != 0 {
 		t.Fatal("queued work ran without the owning thread pump")
 	}
-	deadline := time.Now().Add(2 * time.Second)
+	deadline := time.Now().Add(qualificationtiming.Duration("native_ui_seconds"))
 	for time.Now().Before(deadline) {
 		select {
 		case err := <-completed:

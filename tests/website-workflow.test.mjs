@@ -23,7 +23,7 @@ test('website publishing qualifies source with trusted main before executing sel
   assert.deepEqual(original.jobs['promote-pages'].concurrency, publish.concurrency);
   const serialized = JSON.stringify(workflow);
   for (const forbidden of ['release.py publish', 'tag --force', 'git push --force', 'secrets.']) assert.ok(!serialized.includes(forbidden));
-  for (const job of Object.values(workflow.jobs)) assert.equal(job['timeout-minutes'],11);
+  for (const job of Object.values(workflow.jobs)) assert.equal(job['timeout-minutes'],65);
   assert.equal(workflow.jobs.verify.permissions.contents, 'read');
   assert.ok(workflow.jobs.verify.steps.some(s => s.run?.includes('check-live-site-ui.mjs')));
   assert.ok(workflow.jobs.verify.steps.some(s => s.run?.includes('website.py deployment')));

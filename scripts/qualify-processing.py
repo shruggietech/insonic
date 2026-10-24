@@ -19,6 +19,9 @@ import tempfile
 import threading
 import time
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
+
 ROOT = Path(__file__).resolve().parents[1]
 _tree_spec = importlib.util.spec_from_file_location("qualification_process_tree", ROOT / "scripts/process_tree.py")
 _tree_module = importlib.util.module_from_spec(_tree_spec)
@@ -126,7 +129,7 @@ def secure_private_directory(directory):
         kernel.CloseHandle(token)
 
 
-def child(command, *, request=None, timeout=600, max_output=16 << 20):
+def child(command, *, request=None, timeout=timing.REAL_PROCESSING_SECONDS, max_output=16 << 20):
     require_election(True)
     with tempfile.TemporaryDirectory(prefix="insonic-private-worker-home-") as home:
         secure_private_directory(home)
@@ -136,7 +139,8 @@ def child(command, *, request=None, timeout=600, max_output=16 << 20):
         return _child(command, environment, request=request, timeout=timeout, max_output=max_output)
 
 
-def _child(command, environment, *, request=None, timeout=600, max_output=16 << 20, cli_response=False):
+def _child(command, environment, *, request=None, timeout=timing.REAL_PROCESSING_SECONDS, max_output=16 << 20, cli_response=False):
+    timeout = timing.phase_bound(timeout)
     tree = ProcessTree([str(item) for item in command], cwd=ROOT, env=environment, input_pipe=request is not None)
     process = tree.process
     deadline = time.monotonic() + timeout
@@ -163,20 +167,20 @@ def _child(command, environment, *, request=None, timeout=600, max_output=16 << 
             process.stdin.write(json.dumps(request).encode("utf-8"))
             process.stdin.close()
         code = process.wait(timeout=max(0, deadline - time.monotonic()))
-        if not tree.wait_for_descendants(min(5, max(0, deadline - time.monotonic()))):
+        if not tree.wait_for_descendants(min(timing.NATURAL_RELEASE_SECONDS, max(0, deadline - time.monotonic()))):
             raise ValueError("Owned qualification descendants did not exit")
     except BaseException as primary:
         try:
             tree.kill()
-            process.wait(timeout=5)
-            if not tree.wait_for_descendants(5):
+            process.wait(timeout=timing.CLEANUP_SECONDS)
+            if not tree.wait_for_descendants(timing.CLEANUP_SECONDS):
                 primary.add_note("Owned qualification descendant cleanup did not complete")
         except BaseException:
             primary.add_note("Owned qualification child cleanup failed")
         raise
     finally:
         for reader in readers:
-            reader.join(timeout=2)
+            reader.join(timeout=timing.CLEANUP_SECONDS)
         tree.close()
         if any(reader.is_alive() for reader in readers):
             primary = sys.exc_info()[1]
@@ -235,7 +239,7 @@ def qualify(args):
     ffmpeg = tools["ffmpeg"]
     if sha(ffmpeg["path"]) != ffmpeg["sha256"]:
         raise ValueError("FFmpeg byte identity mismatch")
-    version = child([ffmpeg["path"], "-version"], timeout=10).decode().splitlines()[0].split()[2]
+    version = child([ffmpeg["path"], "-version"], timeout=timing.READINESS_SECONDS).decode().splitlines()[0].split()[2]
     if version != ffmpeg["version"]:
         raise ValueError("FFmpeg version mismatch")
     models = {"transcribe": verify_model("transcribe", args.recognition_model),
@@ -263,7 +267,7 @@ def qualify(args):
             if channel is not None:
                 command.extend(("-af", f"pan=mono|c0=c{channel}"))
             command.extend(("-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", "-t", "61", "-fs", "3000000", "-f", "wav", mapped))
-            child(command, timeout=30)
+            child(command, timeout=timing.SUBPROCESS_SECONDS)
             item = {"id": fixture["id"], "source_sha256": fixture["sha256"], "mapped_sha256": sha(mapped), "stream": stream, "channel": channel}
             for operation in ("transcribe", "diarize"):
                 request = {"operation": operation, "audio_path": str(mapped), "model_path": str(models[operation]),
@@ -303,7 +307,7 @@ def main():
     parser.add_argument("--diarization-model", required=True)
     parser.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     parser.add_argument("--threads", type=int, default=2)
-    parser.add_argument("--timeout", type=int, default=600)
+    parser.add_argument("--timeout", type=int, default=timing.REAL_PROCESSING_SECONDS)
     parser.add_argument("--output", default=str(ROOT / "build/native/processing-qualification.json"))
     args = parser.parse_args()
     require_election(args.run_real_engines)

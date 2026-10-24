@@ -54,7 +54,7 @@ class QualificationArchiveTests(unittest.TestCase):
                         patch.object(qualify.platform, 'machine', return_value='x86_64'), \
                         patch('urllib.request.urlopen', side_effect=[result]) as download, \
                         patch.object(qualify.time, 'sleep'), \
-                        patch.object(qualify.time, 'monotonic', side_effect=[0, 0, 61] if mode == 'expired-budget' else [0] * 10), \
+                        patch.object(qualify.time, 'monotonic', side_effect=[0, 0, 601] if mode == 'expired-budget' else [0] * 10), \
                         patch.object(qualify, 'extract') as extract:
                     expected = ValueError if mode == 'wrong-checksum' else RuntimeError
                     with self.assertRaises(expected) as caught:
@@ -63,7 +63,7 @@ class QualificationArchiveTests(unittest.TestCase):
                         self.assertIsInstance(caught.exception.__cause__, urllib.error.HTTPError)
                         self.assertEqual(caught.exception.__cause__.code, 404)
                     self.assertEqual(download.call_count, 1)
-                    self.assertLessEqual(download.call_args.kwargs['timeout'], 20)
+                    self.assertLessEqual(download.call_args.kwargs['timeout'], qualify.timing.REQUEST_SECONDS)
                     extract.assert_not_called()
                     self.assertFalse((Path(directory) / 'fixture.zip').exists())
                     self.assertFalse((Path(directory) / 'fixture.download').exists())
@@ -114,7 +114,7 @@ class QualificationArchiveTests(unittest.TestCase):
                 self.assertEqual({arg for arg in args if arg.startswith('./')}, expected)
                 self.assertEqual(args[args.index('-tags') + 1], 'native_ladybug,system_ladybug')
                 self.assertIs(call.kwargs['env'], selected)
-                self.assertNotIn('timeout', call.kwargs, 'retain the default bounded child allowance')
+                self.assertEqual(call.kwargs['timeout'], qualify.timing.GO_TEST_PROCESS_SECONDS)
             self.assertTrue((Path(directory) / 'native-receipt.json').is_file())
 
     def test_failed_native_compilation_cannot_publish_an_acceptance_receipt(self):

@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"os"
 	"sync/atomic"
 	"time"
@@ -22,7 +23,7 @@ import (
 
 // This fixture has no workspace, runtime, provider or model configuration. Its
 // help document is subject to the production local-assets-only response policy.
-func qualifyHelpOnly() int {
+func qualifyHelpOnly() (exitCode int) {
 	profile, err := qualificationWebviewProfile()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -30,7 +31,9 @@ func qualifyHelpOnly() int {
 	}
 	bridge := &desktop.Bridge{}
 	desktop.ConfigureHelpQualification(bridge)
+	defer func() { desktop.RecordQualificationTerminal(bridge, exitCode == 0) }()
 	var passed atomic.Bool
+	var timedOut atomic.Bool
 	var current context.Context
 	bridge.SmokeResult = func(response contracts.Response) {
 		raw, _ := json.Marshal(response.Result)
@@ -48,7 +51,9 @@ func qualifyHelpOnly() int {
 			go func() {
 				select {
 				case <-ctx.Done():
-				case <-time.After(25 * time.Second):
+				case <-time.After(qualificationtiming.Duration("help_watchdog_seconds")):
+					timedOut.Store(true)
+					bridge.QualificationStep("watchdog-timeout")
 					wailsruntime.Quit(ctx)
 				}
 			}()
@@ -62,7 +67,7 @@ func qualifyHelpOnly() int {
 	if err == nil {
 		err = nativeWebviewCloseError()
 	}
-	if err != nil || !passed.Load() {
+	if err != nil || timedOut.Load() || !passed.Load() {
 		fmt.Fprintln(os.Stderr, "Installed help qualification failed.")
 		return 1
 	}
