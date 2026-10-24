@@ -52,7 +52,7 @@
 - [x] T023 Commit, automatically push `codex/047-test-timeout-expansion` and open official PR closing#172; attach PR and update GitHub Project (FR-013).
 - [ ] T024 Monitor exact-head CI and automatic review, repair failures, answer/resolve every actionable thread in the PR (FR-010/013).
 - [ ] T025 Dispatch isolated cold CI and full same-run warm rerun on stable implementation source; independently validate each terminal attempt/artifact (FR-012).
-- [ ] T026 Trigger at most a second Codex round if needed and resolve all findings; do not request a third (FR-013).
+- [x] T026 Trigger at most a second Codex round if needed and resolve all findings; do not request a third (FR-013).
 - [ ] T027 Complete final exact-head/check/review/clean-state verification and compact external evidence; stop before merge (FR-012/013).
 
 ## Dependencies and parallel execution
@@ -69,3 +69,7 @@ Deliver expanded healthy execution with intact failures first, then complete con
 - [x] T029 Expand cmd/insonic and internal/runtime test observation/context allowances while retaining explicit cancellation fixtures per FR-001/FR-011 (partial).
 - [x] T030 Diagnose models/backendsetup fixture failures and expand healthy test contexts/lease fixture headroom without changing production contracts per FR-001/FR-010 (partial).
 - [x] T031 Audit remaining internal Go test timers, include all internal owners in deadline-inventory.json, and rerun full Go verification per FR-001/SC-001 (partial).
+
+## Phase 8: Convergence
+
+- [ ] T032 Diagnose and repair Linux successful-exit help receipt rejection, retain bounded stream identity/progress, and rerun affected hosted acceptance per FR-008/FR-010 (partial).

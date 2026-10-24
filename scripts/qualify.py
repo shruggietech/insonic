@@ -326,7 +326,14 @@ def write_receipt(path, output, expected, *, observation=None):
         except (json.JSONDecodeError, UnicodeDecodeError):
             continue
     if len(values) != 1 or not isinstance(values[0], dict) or any(values[0].get(key) != value for key, value in expected.items()):
-        raise ValueError('missing, ambiguous or failed qualification receipt')
+        raise ValueError('missing, ambiguous or failed qualification receipt: ' + json.dumps({
+            'json_records': len(values), 'stdout_bytes': len(output),
+            'expected_matches': sum(isinstance(value, dict) and all(value.get(key) == wanted for key, wanted in expected.items()) for value in values),
+            'stdout_sha256': hashlib.sha256(output).hexdigest(),
+            'stdout_tail': output[-4096:].decode('utf-8', errors='replace'),
+            'observation': {key: observation[key] for key in ('outcome', 'natural_release', 'owned_process_seconds', 'capture_bound_seconds') if key in (observation or {})},
+            'progress_tail': (observation or {}).get('progress', [])[-4:],
+        }, ensure_ascii=True))
     if observation is not None:
         terminal = observation.get('progress', [])[-1:]
         if (not terminal or terminal[0].get('stage') != 'terminal' or not terminal[0].get('passed')

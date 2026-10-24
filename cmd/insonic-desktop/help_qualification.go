@@ -71,6 +71,9 @@ func qualifyHelpOnly() (exitCode int) {
 		fmt.Fprintln(os.Stderr, "Installed help qualification failed.")
 		return 1
 	}
-	json.NewEncoder(os.Stdout).Encode(map[string]any{"schema_version": contracts.Version, "offline_help_activation": "passed", "workspace": "not-selected", "network_policy": "local-assets-only"})
+	if err := json.NewEncoder(os.Stdout).Encode(map[string]any{"schema_version": contracts.Version, "offline_help_activation": "passed", "workspace": "not-selected", "network_policy": "local-assets-only"}); err != nil {
+		fmt.Fprintln(os.Stderr, "Installed help qualification receipt could not be written.")
+		return 1
+	}
 	return 0
 }

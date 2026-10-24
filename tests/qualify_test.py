@@ -17,6 +17,23 @@ qualify = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(qualify)
 
 class QualificationArchiveTests(unittest.TestCase):
+    def test_receipt_rejection_preserves_bounded_stream_identity_without_acceptance(self):
+        from hashlib import sha256
+        from unittest.mock import Mock
+        target = Mock()
+        for output, count in [(b'', 0), (b'{"passed":true}\n{"passed":true}\n', 2),
+                              (b'{"passed":false}\n', 1), (b'controlled-warning' * 1000, 0)]:
+            with self.subTest(size=len(output)), self.assertRaises(ValueError) as failure:
+                qualify.write_receipt(target, output, {'passed': True})
+            prefix = 'missing, ambiguous or failed qualification receipt: '
+            self.assertTrue(str(failure.exception).startswith(prefix))
+            details = json.loads(str(failure.exception)[len(prefix):])
+            self.assertEqual(details['json_records'], count)
+            self.assertEqual(details['stdout_bytes'], len(output))
+            self.assertEqual(details['stdout_sha256'], sha256(output).hexdigest())
+            self.assertEqual(details['stdout_tail'], output[-4096:].decode('utf-8', 'replace'))
+            target.write_text.assert_not_called()
+
     def test_prepare_retries_transient_asset_failure_before_extracting_verified_bytes(self):
         payload = b'controlled pinned native archive'
         import hashlib

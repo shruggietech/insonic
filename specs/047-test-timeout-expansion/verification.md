@@ -16,8 +16,16 @@ The initial full Go run exposed short healthy fixture clocks under concurrent co
 
 ## Hosted acceptance
 
-Exact-head CI, the isolated cold/full warm comparison and external review remain pending publication. No merge, release, installation or owner-desktop GUI/input operation has occurred. A finite passing campaign will not establish a causal closure of #154.
+PR #173 is published. PR CI 40127126725 on 3a079e4 failed Linux source and packaged help receipt admission after successful child exits; Windows archive help released naturally in 11.156 seconds. Its independent audit recorded 1,495 seconds preparation, 707 seconds qualification and 2,202 seconds combined. Timing acceptance does not satisfy functional acceptance. The isolated cold run 40127360673 also exposed a Windows runtime-directory fixture failure. Corrected-head CI and an isolated passing cold/full warm comparison remain pending. No merge, release, installation or owner-desktop GUI/input operation has occurred. A finite passing campaign will not establish a causal closure of #154.
 
 ## Codex round one
 
 Both P1 findings reproduced before repair. Twelve actual sparse workflow layouts failed to import the timing loader; all twelve now start using isolated Python with only their declared files. The controlled Windows proof join expired at 1,800 seconds; it now accepts an exact valid proof at 3,005 seconds under the unchanged original 3,600-second phase deadline, with finalization reserve remaining. The root suite, integrity check and Go policy tests passed after repair.
+
+## Codex round two
+
+The second and final authorized round completed on 3a079e4 without major findings (review receipt 6388798075). Both individual first-round threads are resolved. No additional Codex review trigger is authorized; subsequent CI repairs remain subject to final owner review.
+
+## Hosted receipt diagnostics
+
+Strict receipt admission now reports bounded stdout identity, record counts and available progress when rejecting a successful child exit. Empty, duplicate, mismatching and oversized streams remain rejected. Receipt encoding failures now return a failed native qualification exit. These changes expose the Linux failure; they do not establish its cause or constitute functional acceptance.
