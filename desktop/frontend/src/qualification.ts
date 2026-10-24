@@ -2,6 +2,48 @@
 import { result, type NativeBridge, type Obj } from './client';
 import { flushSync } from 'react-dom';
 import {desktopDensityGeometry} from './density';
+import timing from '../../../internal/qualificationtiming/policy.json';
+
+const qualificationOrigins = new WeakMap<object, number>();
+export async function qualificationProgress(
+  bridge: NativeBridge,
+  stage: string,
+  clock: () => number = () => performance.now(),
+): Promise<boolean> {
+  const observed = clock();
+  let origin = qualificationOrigins.get(bridge);
+  if (origin === undefined) { origin = observed; qualificationOrigins.set(bridge, origin); }
+  if (bridge.QualificationProgress)
+    return bridge.QualificationProgress(stage, Math.max(0, observed - origin));
+  return (await bridge.QualificationStep?.(stage)) ?? false;
+}
+
+// Explicit qualification only. Production operations keep their own configured
+// deadlines. Inject clocks/turns in regressions without waiting for wall time.
+export async function qualificationWait(
+  condition: () => boolean | Promise<boolean>,
+  message: string | (() => string),
+  timeout = timing.frontend_seconds * 1000,
+  options: { clock?: () => number; turn?: () => Promise<void>; signal?: AbortSignal } = {},
+): Promise<void> {
+  const clock = options.clock ?? (() => performance.now());
+  const turn = options.turn ?? (() => new Promise<void>((resolve) => setTimeout(resolve, 40)));
+  const deadline = clock() + timeout;
+  while (true) {
+    options.signal?.throwIfAborted();
+    const completed = await condition();
+    options.signal?.throwIfAborted();
+    const observed = clock();
+    if (completed && observed <= deadline) return;
+    if (observed >= deadline)
+      throw new Error(typeof message === 'function' ? message() : message);
+    await turn();
+  }
+}
+
+async function helpStage(bridge: NativeBridge, stage: string): Promise<void> {
+  await qualificationProgress(bridge, stage);
+}
 export function runQualificationOnce(
   run: () => Promise<void>,
 ): () => Promise<void> {
@@ -36,14 +78,10 @@ export function qualificationAction(action: () => void): void {
 export async function qualificationValue(
   control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement,
   value: string,
-  timeout = 25000,
+  timeout = timing.frontend_seconds * 1000,
 ): Promise<void> {
   if (control instanceof HTMLSelectElement) {
-    const deadline = Date.now() + timeout;
-    while (![...control.options].some((option) => option.value === value)) {
-      if (Date.now() >= deadline) throw new Error('Requested select option did not load.');
-      await new Promise((resolve) => setTimeout(resolve, 40));
-    }
+    await qualificationWait(() => [...control.options].some((option) => option.value === value), 'Requested select option did not load.', timeout);
   }
   const prototype = control instanceof HTMLSelectElement ? HTMLSelectElement.prototype
     : control instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
@@ -56,17 +94,14 @@ export async function qualificationValue(
 }
 // Mounting includes the asynchronous workspace Show call. Cold runner startup
 // uses the same bounded readiness window as the rest of the native journey.
-export async function qualificationMounted(timeout = 25000): Promise<void> {
+export async function qualificationMounted(timeout = timing.frontend_seconds * 1000): Promise<void> {
   const ready = () => !!document.querySelector('[data-bb-host="wails"]') &&
     !!document.querySelector('form') && !!document.querySelector('[aria-label="Library controls"]');
-  const until = Date.now() + timeout;
-  while (!ready() && Date.now() < until)
-    await new Promise((resolve) => setTimeout(resolve, 20));
-  if (!ready()) throw new Error('Desktop screens did not mount.');
+  await qualificationWait(ready, 'Desktop screens did not mount.', timeout, { turn: () => new Promise<void>((resolve) => setTimeout(resolve, 20)) });
 }
 // A webview may leave play() pending while media is outside its viewport.
 // Bound startup separately so failed decode produces diagnostics before quit.
-export async function qualificationPlay(media: HTMLMediaElement, timeout = 8000): Promise<void> {
+export async function qualificationPlay(media: HTMLMediaElement, timeout = timing.playback_seconds * 1000): Promise<void> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     await Promise.race([media.play(), new Promise<never>((_, reject) => {
@@ -115,14 +150,9 @@ async function qualifyJourney(
   const wait = async (
     condition: () => boolean | Promise<boolean>,
     message: string | (() => string),
-    timeout = 25000,
+    timeout = timing.frontend_seconds * 1000,
   ) => {
-    const deadline = Date.now() + timeout;
-    while (Date.now() < deadline) {
-      if (await condition()) return;
-      await new Promise((resolve) => setTimeout(resolve, 40));
-    }
-    throw new Error(typeof message === 'function' ? message() : message);
+    await qualificationWait(condition, message, timeout);
   };
   const idle = async () => {
     await qualificationTurn();
@@ -176,7 +206,7 @@ async function qualifyJourney(
   const initialJobs=await call('work.list','',{limit:100});const initialImportIDs=new Set(initialJobs.items.filter((j:Obj)=>j.kind==='media.import').map((j:Obj)=>j.work_id??j.id));
   stage('Wait for mounted Library initialization');
   await idle();
-  await bridge.QualificationStep?.('import-presets');
+  await qualificationProgress(bridge, 'import-presets');
   await click('Import presets');await fill('Preset name','Qualification import');await fill('Preset timezone','UTC');await click('Create preset');
   const savedPresets=await call('import-presets.list','',{limit:100});const savedPreset=savedPresets.items.find((p:Obj)=>p.name==='Qualification import');
   if(!savedPreset?.id)throw new Error('Mounted preset did not persist.');
@@ -198,7 +228,7 @@ async function qualifyJourney(
     ['audio', fixtures.audio_path],
     ['video', fixtures.video_path],
   ]) {
-    await bridge.QualificationStep?.('library-import');
+    await qualificationProgress(bridge, 'library-import');
     await fill('Media path or URL', path);
     await fill('Title', `Desktop qualification ${kind}`);
     await fill(
@@ -224,7 +254,7 @@ async function qualifyJourney(
     await click('Refresh library');
     await click(`Open Desktop qualification ${kind}`);
     desktopDensityGeometry();
-    await bridge.QualificationStep?.(`${kind}-playback`);
+    await qualificationProgress(bridge, `${kind}-playback`);
     await click('Play recording audio');
     stage(`Wait for ${kind} playback metadata`);
     const playbackElement = () =>
@@ -262,12 +292,12 @@ async function qualifyJourney(
       () => element.currentTime > before + 0.05,
       () =>
         `${kind} decoding/playback did not advance: ${mediaDiagnostics(element)}.`,
-      8000,
+      timing.playback_seconds * 1000,
     );
     element.pause();
     flags[`ui_${kind==='video'?'video_source_audio':kind}_playback`] = 'passed';
     if (kind === 'audio') {
-      await bridge.QualificationStep?.('metadata-date');
+      await qualificationProgress(bridge, 'metadata-date');
       await click('Inspect raw metadata and dates');
       if (!document.querySelector('details[open]'))
         throw new Error('Metadata details did not render.');
@@ -275,7 +305,7 @@ async function qualifyJourney(
       await click('Save date correction');
       if(document.body.textContent?.includes('Verify identity and reconnect')) throw new Error('Canonical audio exposed reference relocation.');
       flags.ui_metadata_date = 'passed';
-      await bridge.QualificationStep?.('assembly');
+      await qualificationProgress(bridge, 'assembly');
       await fill('Turn label', 'Qualification voice');
       await fill('Turn start milliseconds', '2500');
       await fill('Turn end milliseconds', '2600');
@@ -287,7 +317,7 @@ async function qualifyJourney(
       )
         throw new Error('Current cues unavailable.');
       flags.ui_current_assembly = 'passed';
-      await bridge.QualificationStep?.('cue-seek');
+      await qualificationProgress(bridge, 'cue-seek');
       const seek = [...document.querySelectorAll('button')].find(
         (b) =>
           b.textContent?.startsWith('Seek ') && b.textContent?.endsWith(' ms'),
@@ -325,7 +355,7 @@ async function qualifyJourney(
   const importJobs=await call('work.list','',{limit:100});for(const j of importJobs.items.filter((j:Obj)=>j.kind==='media.import'&&!initialImportIDs.has(j.work_id??j.id))){const shown=await call('work.show',j.id??j.work_id);if(!shown.result?.items?.every((i:Obj)=>i.selection?.preset_id===savedPreset.id&&i.selection.options.timezone==='Europe/London'))throw new Error('Mounted import preset selection missing: '+JSON.stringify({work:j.work_id??j.id,keys:Object.keys(shown),result:shown.result,expected:savedPreset.id}));}
   await click('Import presets');await click('Edit Qualification import');await click('Delete preset');const remaining=await call('import-presets.list','',{limit:100});if(remaining.items.some((p:Obj)=>p.id===savedPreset.id))throw new Error('Mounted preset deletion failed.');
   await click('Library');
-  await bridge.QualificationStep?.('terms');
+  await qualificationProgress(bridge, 'terms');
   await click('Terms');
   await fill('Canonical term', 'Qualification terminology');
   await fill('Term variants', 'Fixture spelling');
@@ -337,7 +367,7 @@ async function qualifyJourney(
   )
     throw new Error('Term did not persist.');
   flags.ui_terms = 'passed';
-  await bridge.QualificationStep?.('speakers');
+  await qualificationProgress(bridge, 'speakers');
   await click('Speakers');
   await fill('Speaker name', 'Qualification person');
   await fill('Aliases', 'Fixture alias');
@@ -380,7 +410,7 @@ async function qualifyJourney(
   )
     throw new Error('Persisted aliases did not populate the speaker editor.');
   flags.ui_speakers = 'passed';
-  await bridge.QualificationStep?.('rosters');
+  await qualificationProgress(bridge, 'rosters');
   await click('Library');await click('Refresh library');await click('Open Desktop qualification video');
   await fill('Roster speaker references',person.speaker.id);await click('Apply roster edit');
   if(!document.body.textContent?.includes('Qualification person'))throw new Error('Declared roster identity missing.');
@@ -392,7 +422,7 @@ async function qualifyJourney(
   if(!document.body.textContent?.includes('Explicitly empty roster'))throw new Error('Explicit empty roster missing.');
   flags.ui_rosters='passed';
   const clearedRoster=await call('recordings.roster.show',target.id);
-  await bridge.QualificationStep?.('audio-replacement');
+  await qualificationProgress(bridge, 'audio-replacement');
   const targetLabel=[...document.querySelectorAll('label')].find(l=>l.textContent==='Target existing recording audio');
   const targetControl=targetLabel&&document.getElementById(targetLabel.htmlFor);if(!(targetControl instanceof HTMLInputElement))throw new Error('Target audio control missing.');targetControl.click();await idle();
   await fill('Existing recording ID or exact title',target.id);await fill('Media path or URL',fixtures.video_path);
@@ -403,7 +433,7 @@ async function qualifyJourney(
   const replaced=await call('recordings.show',target.id);const retained=await call('recordings.roster.show',target.id);
   if(replaced.recording?.state!=='untranscribed'||retained.revision!==clearedRoster.revision||retained.members.length!==0)throw new Error('Replacement/roster current authority missing.');
   flags.ui_audio_replacement='passed';
-  await bridge.QualificationStep?.('pipelines');
+  await qualificationProgress(bridge, 'pipelines');
   await click('Pipelines');
   await fill('Pipeline name', 'Qualification connected route');
   await fill('Preset', 'connected');
@@ -416,7 +446,7 @@ async function qualifyJourney(
   if (!document.body.textContent?.includes('not-probed'))
     throw new Error('Pipeline inspection missing.');
   flags.ui_pipelines = 'passed';
-  await bridge.QualificationStep?.('jobs');
+  await qualificationProgress(bridge, 'jobs');
   await click('Jobs');
   await click('Refresh jobs');
   const inspect = [...document.querySelectorAll('button')].find(
@@ -427,14 +457,14 @@ async function qualifyJourney(
   stage('Inspect durable job');
   await idle();
   flags.ui_jobs = 'passed';
-  await bridge.QualificationStep?.('explore-calendar');
+  await qualificationProgress(bridge, 'explore-calendar');
   await click('Explore');
   await fill('Calendar from','1900-01-01');
   await fill('Calendar through','2100-12-31');
   await click('Apply calendar viewport');
   if(!document.querySelector('[aria-label^="Recording calendar"]'))throw new Error('Whole-library calendar missing.');
   flags.ui_explore_calendar='passed';
-  await bridge.QualificationStep?.('explore-query');
+  await qualificationProgress(bridge, 'explore-query');
   await click('Query');
   await fill('Search operation','text-search');
   await click('Run current query');
@@ -442,7 +472,7 @@ async function qualifyJourney(
   await fill('Saved query title','Qualification current evidence');
   await click('Save query version');
   flags.ui_explore_query='passed';
-  await bridge.QualificationStep?.('query-assistance');
+  await qualificationProgress(bridge, 'query-assistance');
   await fill('Assistance prompt','List current recordings');
   await click('Suggest query');
   if(!document.body.textContent?.includes('Deterministic current media suggestion')||!document.querySelector('[aria-label="Complete proposed query"]'))throw new Error('Complete assistance suggestion missing.');
@@ -453,20 +483,20 @@ async function qualifyJourney(
   if(!document.body.textContent?.includes('Executed current query.'))throw new Error('Elected assistance execution missing.');
   await click('Save query version');
   flags.ui_query_assistance='passed';
-  await bridge.QualificationStep?.('explore-graph');
+  await qualificationProgress(bridge, 'explore-graph');
   await click('Graph');
   await click('Run current query');
   if(!document.querySelector('[aria-label^="Evidence graph"]')||!document.body.textContent?.includes('Accessible graph nodes'))throw new Error('Graph and accessible table missing.');
   await click('Save graph layout');
   flags.ui_explore_graph='passed';
-  await bridge.QualificationStep?.('settings');
+  await qualificationProgress(bridge, 'settings');
   await click('Settings');
   await fill('Theme preference', 'light');
   await click('Save appearance');
   if (!document.documentElement.classList.contains('bb-light'))
     throw new Error('Theme preference not applied.');
   flags.ui_settings = 'passed';
-  await bridge.QualificationStep?.('model-references');
+  await qualificationProgress(bridge, 'model-references');
   const manifest=fixtures.model_manifest;
   if(!manifest||!fixtures.model_id||!fixtures.model_catalog_url)throw new Error('Synthetic model fixtures unavailable.');
   for(const [label,value] of [['Model name',manifest.name],['Model version',manifest.model_version],['Upstream revision',manifest.upstream_revision],['Model license',manifest.license],['Model capability','transcription']])await fill(label,value);
@@ -523,7 +553,7 @@ async function qualifyJourney(
   await observeCompact();
   await click('Set up later');
   flags.ui_compact_density='passed';
-  await bridge.QualificationStep?.('keyboard-help');
+  await qualificationProgress(bridge, 'keyboard-help');
   for (const field of document.querySelectorAll('input,select,textarea'))
     if (
       ![...document.querySelectorAll('label')].some(
@@ -547,36 +577,43 @@ export async function qualifyOfflineHelp(click:(label:string)=>Promise<void>,wai
   await click('Offline help');
   const frame=()=>document.querySelector('iframe[title="Installed offline documentation"]') as HTMLIFrameElement|null;
   await wait(()=>frame()?.contentDocument?.readyState==='complete'&&!!frame()?.contentDocument?.querySelector('h1'),'Installed help did not render in the native view.');
+  await helpStage(bridge, 'help-frame-ready');
   const doc=frame()!.contentDocument!;
   if(!doc.querySelector('h1')?.textContent?.includes('insonic v'+version))throw new Error('Installed documentation heading missing.');
   if(!doc.styleSheets.length)throw new Error('Installed help has no local styles.');
   if([...doc.images].some(image=>!image.complete||image.naturalWidth===0))throw new Error('Installed help image failed.');
   await doc.fonts?.ready;
+  await helpStage(bridge, "help-fonts-ready");
   const view=frame()!.contentWindow!;
   let blocked=false;
   const violation=(event:SecurityPolicyViolationEvent)=>{if(event.effectiveDirective==='connect-src')blocked=true;};
   doc.addEventListener('securitypolicyviolation',violation);
   try{await view.fetch('https://offline.invalid/help-probe');}catch{}
   await wait(()=>blocked,'Help did not enforce its network-unavailable policy.');
+  await helpStage(bridge, 'help-network-blocked');
   doc.removeEventListener('securitypolicyviolation',violation);
   const external=doc.createElement('a');external.href='https://offline.invalid/help-reference';external.textContent='Qualification explicit web reference';doc.body.append(external);
   external.click();
   await wait(async()=>result(await bridge.NativeQualificationData!()).help_reference===external.href,'Explicit help reference did not reach the native dispatcher.');
+  await helpStage(bridge, "help-reference-dispatched");
   external.remove();
   if(!frame()?.contentDocument?.URL.includes('/assets/help/'))throw new Error('External reference navigated the offline frame.');
   const link=[...doc.querySelectorAll('a')].find(a=>a.textContent?.trim()==='CLI invocation and results');
   if(!link||!link.href.includes('/assets/help/'))throw new Error('Installed help local navigation missing.');
   link.click();
   await wait(()=>frame()?.contentDocument?.querySelector('h1')?.textContent?.includes('CLI invocation and results')??false,'Installed help local navigation failed.');
+  await helpStage(bridge, 'help-navigation-complete');
   await click('Close documentation');
   if(document.activeElement!==button('Offline help'))throw new Error('Help close lost keyboard focus.');
+  await helpStage(bridge, 'help-closed');
 }
 
 export async function qualifyHelpOnly(version:string,bridge:NativeBridge){
- const wait=async(condition:()=>boolean|Promise<boolean>,message:string,timeout=15000)=>{const end=Date.now()+timeout;while(!await condition()){if(Date.now()>end)throw new Error(message);await qualificationTurn();}};
+ const wait=async(condition:()=>boolean|Promise<boolean>,message:string,timeout=timing.native_ui_seconds*1000)=>qualificationWait(condition,message,timeout,{turn:qualificationTurn});
  const button=(label:string)=>{const found=[...document.querySelectorAll("button")].find(b=>b.textContent?.trim()===label);if(!found)throw new Error("Missing help button.");return found;};
  const click=async(label:string)=>{qualificationAction(()=>button(label).click());await qualificationTurn();};
  await wait(()=>!!document.querySelector(".help-action button"),"Help control did not mount.");
+ await helpStage(bridge, 'help-control-ready');
  const control=button("Offline help"),rect=control.getBoundingClientRect();
  control.focus();
  if(document.activeElement!==control||rect.width>=300||control.tabIndex<0||control.closest("a"))throw new Error("Help control is not compact and keyboard focusable.");

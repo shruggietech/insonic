@@ -19,6 +19,9 @@ import threading
 import time
 import zlib
 import windows_msi as m
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 PAGES=[('Welcome','installer-01-welcome.png','Install insonic'),('License','installer-02-license.png','Apache License 2.0'),('Choices','installer-03-choices.png','Select clients and shortcuts'),('Location','installer-04-location.png','Choose program directory'),('Ready','installer-05-ready.png','Ready to install'),('Maintenance','installer-06-maintenance.png','Change, repair or remove'),('Finish','installer-07-finish.png','insonic installed')]
 FIXTURE_DIRECTORY=r'C:\Users\InstallerExample\AppData\Local\Programs\insonic'
 FIXTURE_PROPERTIES={'INSTALLDIR':FIXTURE_DIRECTORY,'CLIENT_DESKTOP':'1','CLIENT_CLI':'1','START_MENU':'1','DESKTOP_SHORTCUT':'1','LAUNCH':'1'}
@@ -100,8 +103,8 @@ def worker(path,output,page):
         if not u.SendMessageTimeoutW(hwnd,0x00f0,0,0,2,1000,C.byref(value)):raise RuntimeError('owned checkbox state read timed out')
         return value.value==1
     try:
-        if not ready.wait(timeout=15):raise RuntimeError('native session initialization exceeded its bound')
-        deadline=time.monotonic()+10;found=[]
+        if not ready.wait(timeout=timing.READINESS_SECONDS):raise RuntimeError('native session initialization exceeded its bound')
+        deadline=time.monotonic()+timing.FRONTEND_SECONDS;found=[]
         while time.monotonic()<deadline:
             if 'error' in state:raise RuntimeError(state['error'])
             found=[]
@@ -158,7 +161,7 @@ def source_identity(receipt):
     m.disposable_runner()
     if receipt.get('source_dirty') is not False or not __import__('re').fullmatch('[0-9a-f]{40}',receipt.get('revision','')):raise ValueError('native capture requires exact clean source identity')
     def git(*args):
-        completed=subprocess.run(['git',*args],cwd=m.ROOT,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=15)
+        completed=subprocess.run(['git',*args],cwd=m.ROOT,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=timing.GIT_SECONDS)
         if completed.returncode:raise RuntimeError('native capture source verification failed')
         return completed.stdout.decode('utf-8').strip()
     if git('rev-parse','HEAD')!=receipt['revision'] or git('status','--porcelain','--untracked-files=normal'):raise ValueError('native capture checkout differs from exact clean source')
@@ -173,7 +176,7 @@ def capture(path,receipt,output=None):
     model=m.installer_model(receipt['payload_inventory'],receipt['payload_receipt']['inventory_sha256'],(m.ROOT/'LICENSE').read_text(encoding='utf-8'));m.verify_model_bytes(path,model)
     images=[]
     for page,_,_ in PAGES:
-        result=subprocess.run([sys.executable,__file__,'--worker',str(path),'--page',page,'--output',str(output)],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=35)
+        result=subprocess.run([sys.executable,__file__,'--worker',str(path),'--page',page,'--output',str(output)],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=timing.CAPTURE_SECONDS)
         if result.returncode:raise RuntimeError('native authored capture failed: '+result.stderr.decode(errors='replace')[-4000:])
         images.append(json.loads(result.stdout))
     if m.sha(path)!=receipt['artifact_sha256']:raise ValueError('native capture changed the exact MSI artifact')

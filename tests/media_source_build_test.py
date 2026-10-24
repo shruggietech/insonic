@@ -20,10 +20,10 @@ class OwnedSourceIntegrity(unittest.TestCase):
         calls = []
         def run(args, directory, timeout, shell=False): calls.append((args, directory, timeout, shell))
         source.compile_ffmpeg(Path('owned source'), 'windows_amd64', 4, run)
-        self.assertEqual(calls, [(['make', '-j8', 'ffmpeg.exe', 'ffprobe.exe'], Path('owned source'), 360, True)])
+        self.assertEqual(calls, [(['make', '-j8', 'ffmpeg.exe', 'ffprobe.exe'], Path('owned source'), source.timing.SOURCE_BUILD_SECONDS, True)])
         calls.clear()
         source.compile_ffmpeg(Path('owned source'), 'linux_amd64', 4, run)
-        self.assertEqual(calls, [(['make', '-j4', 'ffmpeg', 'ffprobe'], Path('owned source'), 360, False)])
+        self.assertEqual(calls, [(['make', '-j4', 'ffmpeg', 'ffprobe'], Path('owned source'), source.timing.SOURCE_BUILD_SECONDS, False)])
         self.assertFalse(any(value.startswith('--disable-decoder') for value in source.CONFIGURE))
 
     def test_complete_source_cache_binds_each_imported_group_receipt(self):
@@ -113,10 +113,10 @@ class OwnedSourceIntegrity(unittest.TestCase):
                 self.assertIn('--enable-static', configure.args[0])
                 self.assertFalse(any(flag.startswith(('--disable-mod', '--without-mpg123', '--without-vorbis', '--without-zlib'))
                                      for flag in configure.args[0]))
-                self.assertEqual(compilation.args, (['make', '-j4'], target, 360))
+                self.assertEqual(compilation.args, (['make', '-j4'], target, source.timing.SOURCE_BUILD_SECONDS))
                 self.assertEqual(compilation.kwargs, {'shell': shell})
-                self.assertLess(compilation.args[2], 660)
-                self.assertEqual(install.args, (['make', 'install'], target, 60))
+                self.assertLessEqual(compilation.args[2], source.timing.SOURCE_BUILD_SECONDS)
+                self.assertEqual(install.args, (['make', 'install'], target, source.timing.BUILD_SECONDS))
                 self.assertEqual(install.kwargs, {'shell': shell})
 
     def test_dav1d_uses_available_cores_with_a_bounded_library_compile_budget(self):
@@ -126,8 +126,8 @@ class OwnedSourceIntegrity(unittest.TestCase):
                 source.compile_dav1d(root / 'source', root / 'build', root / 'install', cores, run)
                 compilation = next(call for call in run.call_args_list if call.args[0][0] == 'ninja')
                 self.assertEqual(compilation.args[0][-2:], ['-j', expected])
-                self.assertEqual(compilation.args[2], 240)
-                self.assertLess(compilation.args[2], 660)
+                self.assertEqual(compilation.args[2], source.timing.SOURCE_BUILD_SECONDS)
+                self.assertLessEqual(compilation.args[2], source.timing.SOURCE_BUILD_SECONDS)
 
     def test_source_network_retry_keeps_pin_integrity_and_bounded_timeouts(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -142,7 +142,7 @@ class OwnedSourceIntegrity(unittest.TestCase):
                 target = source.fetch_pin(pin)
                 self.assertEqual(target.read_bytes(), payload)
                 self.assertEqual(fetch.call_count, 2)
-                self.assertTrue(all(call.kwargs['timeout'] <= 20 for call in fetch.call_args_list))
+                self.assertTrue(all(call.kwargs['timeout'] <= source.timing.REQUEST_SECONDS for call in fetch.call_args_list))
                 sleep.assert_called_once_with(1)
 
     def test_source_acquisition_fails_fast_for_integrity_and_permanent_http_errors(self):

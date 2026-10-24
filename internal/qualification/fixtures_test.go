@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"io"
 	"net/http"
 	"os"
@@ -18,7 +19,7 @@ import (
 )
 
 func TestPostgreSQLTransactionFeasibility(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), qualificationtiming.Duration("service_seconds"))
 	defer cancel()
 	conn, err := pgx.Connect(ctx, os.Getenv("INSONIC_FIXTURE_POSTGRES"))
 	if err != nil {
@@ -62,7 +63,7 @@ func TestPostgreSQLTransactionFeasibility(t *testing.T) {
 }
 
 func TestGenericS3FixtureFeasibility(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), qualificationtiming.Duration("service_seconds"))
 	defer cancel()
 	client, err := minio.New(os.Getenv("INSONIC_FIXTURE_S3"), &minio.Options{Creds: credentials.NewStaticV4("fixture", "fixture", ""), Secure: false, Region: "us-east-1", BucketLookup: minio.BucketLookupPath})
 	if err != nil {
@@ -112,7 +113,7 @@ func TestGenericS3FixtureFeasibility(t *testing.T) {
 }
 
 func TestArcadeNativeDialectAndTransactions(t *testing.T) {
-	client := &http.Client{Timeout: 10 * time.Second}
+	client := &http.Client{Timeout: qualificationtiming.Duration("request_seconds")}
 	database := fmt.Sprintf("insonic%d", time.Now().UnixNano())
 	call := func(route string, body any, session string) (map[string]any, string, error) {
 		data, _ := json.Marshal(body)

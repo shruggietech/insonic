@@ -160,7 +160,7 @@ class OutcomeCleanupTests(unittest.TestCase):
         with self.assertRaises(ValueError):example_outcome({},None,completed={'result':{'state':'running'}})
     def test_thread_cleanup_must_finish_even_after_shutdown_error(self):
         server=Mock();thread=Mock();thread.is_alive.return_value=False
-        finish_server(server,thread);thread.join.assert_called_once_with(timeout=5)
+        finish_server(server,thread);thread.join.assert_called_once_with(timeout=30)
         thread.is_alive.return_value=True
         with self.assertRaises(ValueError):finish_server(server,thread)
         server.shutdown.side_effect=RuntimeError('primary')

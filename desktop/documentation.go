@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // HelpAssetPolicy keeps bundled help independent of network availability. It
@@ -86,4 +87,5 @@ func ConfigureHelpQualification(b *Bridge) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.qualification = map[string]any{"help_only": true}
+	b.qualificationProgress = newQualificationProgress("help", os.Stderr, time.Now)
 }

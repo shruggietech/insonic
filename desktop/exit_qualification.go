@@ -4,6 +4,7 @@ package desktop
 import (
 	"context"
 	"fmt"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"io"
 	"net"
 	"net/http"
@@ -34,14 +35,14 @@ func ObserveExitPlaybackQualification(b *Bridge, media string, revision int64) (
 	if !found || ticket.Context.Err() != nil {
 		return "", nil, fmt.Errorf("playback ticket unavailable")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := qualificationtiming.Context(context.Background(), "readiness_seconds")
 	defer cancel()
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, address, nil)
 	if err != nil {
 		return "", nil, err
 	}
 	request.Header.Set("Range", "bytes=0-15")
-	client := &http.Client{Timeout: 3 * time.Second, Transport: &http.Transport{Proxy: nil}}
+	client := &http.Client{Timeout: qualificationtiming.Duration("readiness_seconds"), Transport: &http.Transport{Proxy: nil}}
 	defer client.CloseIdleConnections()
 	served, err := client.Do(request)
 	if err != nil {

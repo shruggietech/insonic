@@ -15,6 +15,9 @@ import unittest
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
+import sys
+sys.path.insert(0, str(ROOT / "scripts"))
+import qualification_timing as test_timing
 CORPUS = ROOT / "tests/fixtures/acoustic"
 ADMIT = CORPUS / "admit.py"
 
@@ -51,7 +54,7 @@ class AdmissionTests(unittest.TestCase):
             fixture_archive(archive)
             result = subprocess.run([sys.executable, "-B", "-O", str(ADMIT), str(archive), str(output)],
                                     stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                    timeout=20, creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
+                                    timeout=test_timing.READINESS_SECONDS, creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
             self.assertNotEqual(result.returncode, 0, result.stdout.decode())
             self.assertFalse(output.exists())
 

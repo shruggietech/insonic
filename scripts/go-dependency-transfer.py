@@ -13,6 +13,10 @@ import subprocess
 import tarfile
 
 import qualify
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 
 toolchain_spec = importlib.util.spec_from_file_location('dependency_toolchain', Path(__file__).with_name('source-toolchain.py'))
 toolchain = importlib.util.module_from_spec(toolchain_spec); toolchain_spec.loader.exec_module(toolchain)
@@ -28,7 +32,7 @@ def run(args, env):
     result = subprocess.run(args, cwd=ROOT, env={**os.environ, **env, 'GIT_TERMINAL_PROMPT': '0', 'GOTOOLCHAIN': 'local'},
                             stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0,
-                            timeout=300, check=False)
+                            timeout=timing.SOURCE_TRANSFER_SECONDS, check=False)
     if len(result.stdout) > 32 << 20: raise ValueError('dependency tool output exceeds bound')
     if result.returncode:
         raise ValueError('dependency tool failed: ' + result.stderr.decode('utf-8', errors='replace')[-8000:])

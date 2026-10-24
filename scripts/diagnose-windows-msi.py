@@ -10,6 +10,10 @@ import subprocess
 import tempfile
 import uuid
 import windows_msi as m
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 
 def load(name,filename):
     spec=importlib.util.spec_from_file_location(name,m.ROOT/'scripts'/filename);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
@@ -17,7 +21,7 @@ def load(name,filename):
 def git_identity(root):
     values=[]
     for args in [('rev-parse','HEAD'),('status','--porcelain','--untracked-files=normal')]:
-        completed=subprocess.run(['git',*args],cwd=root,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=15)
+        completed=subprocess.run(['git',*args],cwd=root,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=timing.GIT_SECONDS)
         if completed.returncode:raise RuntimeError('diagnostic source identity lookup failed')
         values.append(completed.stdout.decode('utf-8').strip())
     return {'revision':values[0],'dirty':bool(values[1])}

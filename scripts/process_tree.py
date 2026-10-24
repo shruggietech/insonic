@@ -1,8 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 """Hidden qualification children with descendant lifetime ownership."""
 from contextlib import contextmanager
-import os
+import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
+import os
 import shutil
 import tempfile
 import time
@@ -111,11 +114,14 @@ class ProcessTree:
                 self._assign_and_resume()
             elif os.name != 'nt':
                 self.session_id = self.process.pid
-        except BaseException:
-            if self.process:
-                self.process.kill()
-                self.process.communicate()
-            self.close()
+        except BaseException as primary:
+            try:
+                if self.process:
+                    self.process.kill()
+                    self.process.communicate(timeout=timing.CLEANUP_SECONDS)
+                self.close()
+            except BaseException:
+                primary.add_note("Owned process creation cleanup did not complete")
             raise
 
     def _windows_job(self, allow_detached):
@@ -235,7 +241,7 @@ class ProcessTree:
         if self.job:
             self.api.TerminateJobObject(self.job, 1)
         elif self.session_id is not None:
-            deadline = time.monotonic() + 5
+            deadline = time.monotonic() + timing.CLEANUP_SECONDS
             while members := unix_session_members(self.session_id):
                 for pid, start_time in members.items():
                     kill_unix_member(pid, start_time, self.session_id)
@@ -256,5 +262,9 @@ class ProcessTree:
     def __enter__(self):
         return self
 
-    def __exit__(self, *ignored):
-        self.close()
+    def __exit__(self, kind, primary, traceback):
+        try:
+            self.close()
+        except BaseException:
+            if primary is None: raise
+            primary.add_note("Owned process tree cleanup did not complete")

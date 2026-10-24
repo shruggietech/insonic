@@ -4,6 +4,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"os"
 	"path/filepath"
 	"testing"
@@ -101,7 +102,7 @@ func TestNativeRefreshDeferredCleanupRecoversOnRuntimeRestart(t *testing.T) {
 	}
 	// Startup schedules recovery independently of application readiness. Observe
 	// its result without calling the sweeper or relying on a fixed delay.
-	deadline := time.Now().Add(3 * time.Second)
+	deadline := time.Now().Add(qualificationtiming.Duration("readiness_seconds"))
 	for time.Now().Before(deadline) {
 		pub, err = a.Catalog.Publication(ctx, ids[0])
 		if err != nil || pub.State == "retired" {

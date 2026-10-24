@@ -6,13 +6,13 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/shruggietech/insonic/internal/contracts"
 )
@@ -71,7 +71,7 @@ func TestLocalModelReusePublishesVerifiedBytesWithoutNetwork(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	w, e = db.ClaimWork(context.Background(), w.ID, contracts.ID(), time.Minute)
+	w, e = db.ClaimWork(context.Background(), w.ID, contracts.ID(), qualificationtiming.Duration("subprocess_seconds"))
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -99,7 +99,7 @@ func TestAcquisitionKeepsFrozenDestinationAfterWorkspaceChange(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	w, e = db.ClaimWork(context.Background(), w.ID, contracts.ID(), time.Minute)
+	w, e = db.ClaimWork(context.Background(), w.ID, contracts.ID(), qualificationtiming.Duration("subprocess_seconds"))
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -162,7 +162,7 @@ func TestLocalLinkedSnapshotReusesManifestBytes(t *testing.T) {
 	raw, _ := json.Marshal(Request{Manifest: model, LocalDirectory: dir})
 	w, e := db.EnqueueWork(context.Background(), contracts.ID(), "models.acquire", raw)
 	if e == nil {
-		w, e = db.ClaimWork(context.Background(), w.ID, contracts.ID(), time.Minute)
+		w, e = db.ClaimWork(context.Background(), w.ID, contracts.ID(), qualificationtiming.Duration("subprocess_seconds"))
 	}
 	if e != nil {
 		t.Fatal(e)

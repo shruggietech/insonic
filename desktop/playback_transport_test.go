@@ -2,11 +2,11 @@
 package desktop
 
 import (
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestLoopbackPlaybackStreamsRangesAndRejectsForeignAuthority(t *testing.T) {
@@ -17,7 +17,7 @@ func TestLoopbackPlaybackStreamsRangesAndRejectsForeignAuthority(t *testing.T) {
 	}
 	defer stop()
 	address := b.playbackOrigin + path
-	client := &http.Client{Timeout: 5 * time.Second}
+	client := &http.Client{Timeout: qualificationtiming.Duration("readiness_seconds")}
 	request, _ := http.NewRequest(http.MethodGet, address, nil)
 	request.Header.Set("Range", "bytes=2-4")
 	response, err := client.Do(request)

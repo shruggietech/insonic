@@ -43,7 +43,7 @@ class StartupDiagnosticQualificationTests(unittest.TestCase):
                 self.assert_probe_environment(call, expected)
                 self.assertIsNot(call.kwargs['env'], original)
                 self.assertIs(call.kwargs['allow_detached'], True)
-            self.assertEqual([call.kwargs['timeout'] for call in child.call_args_list], [30, 35, 90, 100])
+            self.assertEqual([call.kwargs['timeout'] for call in child.call_args_list], [qualify.timing.READINESS_SECONDS, qualify.timing.HELP_SECONDS, qualify.timing.GUI_SECONDS, qualify.timing.EXIT_MATRIX_SECONDS])
             self.assertEqual(receipt.call_count, 4)
             self.assertIn('--exit-qualification', child.call_args_list[-1].args[0])
             required = receipt.call_args_list[-1].args[2]
@@ -71,11 +71,11 @@ class StartupDiagnosticQualificationTests(unittest.TestCase):
                 patch.object(qualify.sys, 'stdout', SimpleNamespace(buffer=io.BytesIO())):
             qualify.native()
             call = child.call_args_list[-1]
-            self.assertEqual(call.args[0], ['go', 'test', '-json', '-v', '-tags', 'native_ladybug,system_ladybug',
+            self.assertEqual(call.args[0], ['go', 'test', '-timeout=' + str(qualify.timing.GO_TEST_SECONDS) + 's', '-json', '-v', '-tags', 'native_ladybug,system_ladybug',
                                            './internal/qualification', './internal/backendsetup', './internal/subtitles',
                                            './internal/graph', './internal/app', './internal/backup'])
-            self.assertEqual(call.kwargs, {'env': {'CGO_ENABLED': '1'}})
-        self.assertEqual(qualify.child.__kwdefaults__['timeout'], 180)
+            self.assertEqual(call.kwargs, {'env': {'CGO_ENABLED': '1'}, 'timeout': qualify.timing.GO_TEST_PROCESS_SECONDS})
+        self.assertEqual(qualify.child.__kwdefaults__['timeout'], qualify.timing.SUBPROCESS_SECONDS)
 
     def test_only_github_ci_desktop_children_elect_sanitized_startup_evidence(self):
         for ci in ['true', 'false']:
@@ -91,7 +91,7 @@ class StartupDiagnosticQualificationTests(unittest.TestCase):
                 build.assert_called_once_with(True, {})
                 self.assertEqual(len(child.call_args_list), 9)
                 binding = child.call_args_list[0].args[0]
-                self.assertEqual(binding[:4], ['go', 'test', '-timeout=15s', '-run'])
+                self.assertEqual(binding[:4], ['go', 'test', '-timeout=' + str(qualify.timing.GO_TEST_SECONDS) + 's', '-run'])
                 self.assertEqual(binding[5:], ['github.com/wailsapp/go-webview2/pkg/edge'])
                 for name in ('TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread',
                              'TestBootstrapOnlyEnvironmentVersionDoesNotEnableCDPOrGateNavigation',
@@ -101,7 +101,7 @@ class StartupDiagnosticQualificationTests(unittest.TestCase):
                     self.assertIsNotNone(re.fullmatch(binding[4], name), name)
                 self.assertIsNone(re.fullmatch(binding[4], 'TestCookieManager'))
                 for mode, call in zip(('production', 'dev'), child.call_args_list[1:3]):
-                    self.assertEqual(call.args[0], ['go', 'test', '-timeout=15s', '-tags', mode,
+                    self.assertEqual(call.args[0], ['go', 'test', '-timeout=' + str(qualify.timing.GO_TEST_SECONDS) + 's', '-tags', mode,
                                                    '-run=Startup|FreshFrontend', 'github.com/wailsapp/wails/v2/internal/app'])
                 self.assertEqual(receipt.call_args_list[-1].args[2]['startup_recovery'], 'passed')
                 for call in child.call_args_list[:5]:

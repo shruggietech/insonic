@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	qt "github.com/shruggietech/insonic/internal/qualificationtiming"
 	"os"
 	"testing"
 	"time"
@@ -50,7 +51,7 @@ func TestCredentialColdBootstrapRejectsWrongModeOrMissingInput(t *testing.T) {
 			if code := credentialCommand(context.Background(), w, []string{fixture.action}, true); code != 2 {
 				t.Fatal("invalid bootstrap was not rejected", code)
 			}
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			ctx, cancel := qt.Context(context.Background(), "readiness_seconds")
 			defer cancel()
 			_, e = local.Call(ctx, w, contracts.Request{Operation: "workspace.show"})
 			if e == nil {
@@ -80,13 +81,15 @@ func TestCredentialVaultUnlockRetainsUnlockedRuntimeManager(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	ready := make(chan struct{})
 	done := make(chan error, 1)
-	go func() { done <- local.Serve(ctx, w, local.Options{Ready: ready}) }()
+	go func() {
+		done <- local.Serve(ctx, w, local.Options{Ready: ready, Idle: qt.Duration("fixture_idle_seconds")})
+	}()
 	select {
 	case <-ready:
 	case e = <-done:
 		cancel()
 		t.Fatal(e)
-	case <-time.After(5 * time.Second):
+	case <-time.After(qt.Duration("readiness_seconds")):
 		cancel()
 		t.Fatal("runtime startup timeout")
 	}

@@ -28,12 +28,12 @@ class ParallelInputTests(unittest.TestCase):
                 options=dict(value[2:].split('=',1) for value in args if str(value).startswith('--') and '=' in value)
                 self.assertEqual(options.get('audit'),'true');self.assertNotIn('--no-audit',args)
                 timeout=int(options.get('fetch-timeout','300000'));retries=int(options.get('fetch-retries','2'))
-                self.assertLessEqual(timeout,15000);self.assertGreater(timeout,0);self.assertLessEqual(retries,2)
+                self.assertLessEqual(timeout,inputs.timing.REQUEST_SECONDS*1000);self.assertGreater(timeout,0);self.assertLessEqual(retries,2)
                 budget=timeout*(retries+1)+sum(min(int(options['fetch-retry-mintimeout'])*2**i,int(options['fetch-retry-maxtimeout'])) for i in range(retries))
-                self.assertLess(budget*2,180000,'bulk and fallback requests must fit inside the unchanged stage bound')
+                self.assertLess(budget*2,inputs.timing.DEPENDENCY_INSTALL_SECONDS*1000,'bulk and fallback requests must fit inside the expanded stage bound')
 
     def test_original_deadline_accepts_above_target_without_extending_operation_limit(self):
-        for remaining in (700, 900, 12):
+        for remaining in (1900, inputs.QUALIFICATION_LIMIT_SECONDS, 12):
             with self.subTest(remaining=remaining), patch.dict(inputs.os.environ, {
                     'INSONIC_QUALIFICATION_DEADLINE': str((1000 + remaining) * 1000)}), \
                     patch.object(inputs.time, 'time', return_value=1000), \
@@ -42,10 +42,10 @@ class ParallelInputTests(unittest.TestCase):
                 child.process.communicate.return_value = (b'verified', b'')
                 child.process.returncode = 0
                 self.assertEqual(inputs.run(['fake-verifier']), 'verified')
-                child.process.communicate.assert_called_once_with(timeout=min(180, remaining))
+                child.process.communicate.assert_called_once_with(timeout=min(inputs.timing.SUBPROCESS_SECONDS, remaining))
 
     def test_expired_or_above_hard_limit_deadline_never_starts_child(self):
-        for remaining in (0, -1, 900.001):
+        for remaining in (0, -1, inputs.QUALIFICATION_LIMIT_SECONDS + .001):
             with self.subTest(remaining=remaining), patch.dict(inputs.os.environ, {
                     'INSONIC_QUALIFICATION_DEADLINE': str(round((1000 + remaining) * 1000))}), \
                     patch.object(inputs.time, 'time', return_value=1000), \

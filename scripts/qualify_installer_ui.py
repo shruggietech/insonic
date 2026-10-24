@@ -5,11 +5,14 @@ The ordinary actor uses the disposable CI Default desktop and its private regist
 product family here is fixture-owned. Native clicks drive the authored dialogs; external MSI
 callbacks only observe messages and never substitute an outcome or cancellation.
 """
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 import ctypes as C
 import ctypes.wintypes as W
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import threading
@@ -231,7 +234,7 @@ class NativeUI:
         hwnd=self.button(controls,label)
         if (self.send(hwnd,0xf0)==1)!=value:
             self.click(controls,label)
-            deadline=time.monotonic()+2
+            deadline=time.monotonic()+timing.NATIVE_ACTION_SECONDS
             while (self.send(hwnd,0xf0)==1)!=value:
                 if time.monotonic()>deadline:raise RuntimeError('native checkbox did not retain election: '+label)
                 time.sleep(.01)
@@ -288,7 +291,7 @@ class NativeUI:
                 if native_process:
                     process=(launch_setup_probe if setup_process else launch_standalone_diagnostic if standalone_process else launch_msiexec_diagnostic)(msi,directory,self.output.parent/('context.ui-'+name+'.log'))
                     self.actor_pid=process.pid;state['native_engine']={'kind':'production setup full UI' if setup_process else 'external coordinator full UI' if standalone_process else 'msiexec.exe full UI','pid':process.pid,'feature_qualification':bool(setup_process and (Path(msi).parent/'setup-qualification.json').is_file()),'progress_source':'native controls and private passive MSI event receipt' if setup_process else 'native controls, no in-process API observer'}
-                    stdout,stderr=process.communicate(timeout=75)
+                    stdout,stderr=process.communicate(timeout=timing.INSTALLER_TRANSACTION_SECONDS)
                     state['code']=process.returncode;state['native_engine'].update(stdout=stdout.decode(errors='replace')[-4000:],stderr=stderr.decode(errors='replace')[-4000:])
                     if setup_process:
                         trace=json.loads((Path(os.environ['LOCALAPPDATA'])/'insonic-setup/setup-events.json').read_text(encoding='utf-8'))
@@ -317,7 +320,7 @@ class NativeUI:
                     if initialized:ole.CoUninitialize()
                 finally:done.set()
         thread=threading.Thread(target=install,name='owned-native-full-ui',daemon=True);thread.start()
-        deadline=time.monotonic()+60;last=None;cancel_sent=False;terminal_closed=False;navigation=0
+        deadline=time.monotonic()+timing.phase_bound(timing.INSTALLER_TRANSACTION_SECONDS);last=None;cancel_sent=False;terminal_closed=False;navigation=0
         try:
             while not done.is_set():
                 if time.monotonic()>deadline:raise RuntimeError('full-UI transaction exceeded bound: '+name)
@@ -436,7 +439,7 @@ class NativeUI:
                         else:self.click(controls,'Finish' if page=='Finish' else 'Close')
                         terminal_closed=True
                 time.sleep(.01)
-            thread.join(1)
+            thread.join(timing.CLEANUP_SECONDS)
             if state.get('error'):raise RuntimeError(state['error'])
             if state.get('code')!=expected or not terminal_closed:raise RuntimeError('native UI/outcome mismatch: '+json.dumps(state))
             want='Cancelled' if expected==1602 else 'FatalError' if expected else 'Finish'
@@ -448,7 +451,7 @@ class NativeUI:
             state['driver_error']=str(error);progress_seen.set()
             # Ask the exact owned UI to cancel and finish its native rollback.
             # Never terminate Windows Installer or replace the original failure.
-            cleanup_deadline=time.monotonic()+15
+            cleanup_deadline=time.monotonic()+timing.CLEANUP_SECONDS
             try:
                 while not done.is_set() and time.monotonic()<cleanup_deadline:
                     for hwnd in self.windows(directory/'insonic-launcher.exe'):
@@ -460,7 +463,7 @@ class NativeUI:
                             buttons=[control for control in controls if self.klass(control).casefold()=='button' and self.text(control).replace('&','')=='Cancel' and self.u.IsWindowEnabled(control)]
                             if buttons:self.click(controls,'Cancel')
                     time.sleep(.025)
-                thread.join(.5);state['failed_driver_native_call_settled']=done.is_set()
+                thread.join(timing.CLEANUP_SECONDS);state['failed_driver_native_call_settled']=done.is_set()
             except BaseException as cleanup_error:state['failed_driver_cleanup_error']=str(cleanup_error)
             raise
         finally:
@@ -500,7 +503,7 @@ def qualify(stage,exact_installer,exact_directory,output,token,quiet_install):
                     (directory.parent/'documentation-handler.json').write_text(json.dumps(renderer),encoding='utf-8',newline='\n')
                     results.append(ui.run(old,directory,name,selection=selection,launch=launch,docs=docs))
                     states(results[-1],{config['old_product']:5})
-                    deadline=time.monotonic()+25
+                    deadline=time.monotonic()+timing.FRONTEND_SECONDS
                     client=directory/('insonic.exe.token.json' if selection=='cli' else 'insonic-desktop.exe.token.json')
                     while (launch and not client.is_file()) or (docs and not receipt.is_file()):
                         if time.monotonic()>deadline:raise RuntimeError('elected completion did not finish: '+name)
@@ -687,7 +690,7 @@ def export_captures(output,logs,interactive,receipt):
         if m.digest(raw)!=item['sha256'] or raw[:8]!=b'\x89PNG\r\n\x1a\n' or struct.unpack_from('>II',raw,16)!=(item['width'],item['height']):raise RuntimeError('retained native transaction pixels differ')
         name='installer-'+str(number).zfill(2)+'-'+suffix+'-'+operation+'.png';(output/name).write_bytes(raw)
         images.append({**item,'path':name,'landmark':title,'caption':'Native full-UI '+row['operation']+' transaction on the owned disposable ordinary-user desktop; '+('engine-driven execution progress.' if suffix=='progress' else 'final outcome, native return code '+str(row['code'])+'.'),'fixture_msi_sha256':row['fixture_msi_sha256']})
-    sources=['scripts/windows_msi.py','scripts/qualify-windows-msi.py','scripts/qualify_installer_ui.py','LICENSE',m.ICON]
+    sources=['scripts/windows_msi.py','scripts/qualify-windows-msi.py','scripts/qualify_installer_ui.py','scripts/qualification_timing.py','internal/qualificationtiming/policy.json','LICENSE',m.ICON]
     evidence={'kind':'installer-transactions-ui-capture','schema_version':receipt['schema_version'],'source':{'revision':receipt['revision'],'dirty':False,'files':[{'path':p,'sha256':m.sha(m.ROOT/p)} for p in sources]},'parent_artifact_sha256':receipt['artifact_sha256'],'renderer':{'kind':'windows-installer-full-ui','windows_build':str(__import__('sys').getwindowsversion().build)},'fixture':{'isolated':True,'private_inputs':False,'transaction_proven':True,'native_return_codes':[0,1602,1603],'kind':'unique owned package families, exact payload install/removal plus instrumented native client reporters for bounded maintenance/elections','production_msi_authoring':True,'separate_ordinary_user':True,'private_nonvisible_desktop':False,'disposable_ci_default_desktop':True},'locale':'en-US','images':images}
     (output/'installer-transactions-capture.json').write_text(json.dumps(evidence,indent=2,sort_keys=True)+'\n',encoding='utf-8',newline='\n')
     return evidence

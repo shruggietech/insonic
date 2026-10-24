@@ -9,6 +9,10 @@ from pathlib import Path
 import re
 import time
 from urllib.parse import quote, unquote, urljoin, urlsplit
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 
 
 def sibling(name):
@@ -156,7 +160,7 @@ def verify(archive, version, revision, site, *, package_urls, api=None,
     files = pages.archive_files(archive)
     requests = inventory(files, version, revision, site, package_urls)
     if pages_commit is not None: deployment(api, pages_commit)
-    deadline = clock() + 120
+    deadline = clock() + timing.SUBPROCESS_SECONDS
     checked = []
     if reader is None:
         results = http.read_many([{'url': url} for url, _ in requests], deadline=deadline)

@@ -6,12 +6,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/library"
@@ -135,7 +135,7 @@ func TestDesktopSettingsResetInstalledPackageDefaults(t *testing.T) {
 	if e = os.WriteFile(filepath.Join(dir, packageenv.ManifestName), raw, 0600); e != nil {
 		t.Fatal(e)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), qualificationtiming.Duration("request_seconds"))
 	defer cancel()
 	result, e := process.Capture(ctx, process.Spec{Executable: copy, Args: []string{"-test.run=^TestDesktopSettingsResetInstalledPackageDefaults$", "-test.v"},
 		CleanEnv: true, Env: append(process.LocalEnvironment(), "INSONIC_TEST_PACKAGE_SETTINGS_RESET=1"), MaxOutput: 64 << 10})

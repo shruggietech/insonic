@@ -4,6 +4,7 @@
 package artifact
 
 import (
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"golang.org/x/sys/unix"
 	"path/filepath"
 	"testing"
@@ -28,7 +29,7 @@ func TestSourceFIFORefusedWithoutWaitingForWriter(t *testing.T) {
 		if !refused {
 			t.Fatal("FIFO admitted")
 		}
-	case <-time.After(time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("FIFO open waited for a writer")
 	}
 }

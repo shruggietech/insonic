@@ -9,6 +9,9 @@ from pathlib import Path
 import sys
 import qualify
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
+
 ROOT = Path(__file__).resolve().parents[1]
 
 def main():
@@ -27,7 +30,7 @@ def main():
     spec.loader.exec_module(renderer)
     browser = renderer.browser_executable()
     values['INSONIC_CAPTURE_NATIVE_PATH'] = os.pathsep.join(str(ROOT / p) for p in ['build/native/ladybug', 'build/native/openssl'])
-    output = qualify.child(['node', ROOT / 'scripts/capture-application-ui.mjs', '--cli', cli, '--bridge', helper, '--browser', browser, '--output', options.output], env=values, timeout=150)
+    output = qualify.child(['node', ROOT / 'scripts/capture-application-ui.mjs', '--cli', cli, '--bridge', helper, '--browser', browser, '--output', options.output], env=values, timeout=timing.CAPTURE_SECONDS + 2 * timing.CLEANUP_SECONDS)
     print(output.decode('utf-8'))
     receipt = json.loads((options.output / 'application-capture.json').read_text(encoding='utf-8'))
     density = json.loads((options.output / 'density-capture.json').read_text(encoding='utf-8'))

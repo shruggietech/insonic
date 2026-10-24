@@ -10,6 +10,10 @@ import subprocess
 import tempfile
 
 from process_tree import ProcessTree
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -55,7 +59,7 @@ def browser_executable():
 PROBE = r"""
 const result = document.createElement('output');
 result.id = 'insonic-renderer-result'; document.body.append(result);
-const deadline = performance.now() + 25000;
+const deadline = performance.now() + __RENDER_TIMEOUT_MS__;
 function waitFor(test) {
   return new Promise((resolve, reject) => {
     const check = () => {
@@ -103,19 +107,19 @@ def qualify_export(export, browser):
         content = '<!doctype html><html data-theme="light"><head><meta charset="utf-8">'
         content += ''.join('<link rel="stylesheet" href="' + path.as_uri() + '">' for path in styles)
         content += '</head><body>' + ''.join('<figure class="diagram"><div class="mermaid">' + html.escape(source) + '</div></figure>' for source in sources)
-        content += '<script src="' + runtime.as_uri() + '"></script><script>' + PROBE + '</script></body></html>'
+        content += '<script src="' + runtime.as_uri() + '"></script><script>' + PROBE.replace('__RENDER_TIMEOUT_MS__', str(timing.DOCS_RENDERER_SECONDS * 1000)) + '</script></body></html>'
         fixture.write_text(content, encoding='utf-8', newline='\n')
         args = [browser, '--headless=new', '--disable-gpu', '--disable-background-networking',
                 '--disable-extensions', '--no-first-run', '--no-default-browser-check',
                 '--allow-file-access-from-files', '--host-resolver-rules=MAP * ~NOTFOUND',
-                '--user-data-dir=' + str(location / 'profile'), '--virtual-time-budget=30000',
+                '--user-data-dir=' + str(location / 'profile'), '--virtual-time-budget=' + str(timing.DOCS_RENDERER_SECONDS * 1000),
                 '--dump-dom', fixture.as_uri()]
         with ProcessTree(args, cwd=ROOT, env=os.environ.copy()) as tree:
             try:
-                stdout, stderr = tree.process.communicate(timeout=60)
+                stdout, stderr = tree.process.communicate(timeout=timing.DOCS_BROWSER_SECONDS)
             except subprocess.TimeoutExpired:
                 tree.kill()
-                tree.process.communicate(timeout=5)
+                tree.process.communicate(timeout=timing.CLEANUP_SECONDS)
                 raise ValueError('bounded documentation browser timed out') from None
             if tree.process.returncode:
                 raise ValueError('headless documentation browser failed: ' + stderr.decode('utf-8', errors='replace')[-2000:])

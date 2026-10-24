@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
+import { milliseconds } from '../../scripts/qualification-timing.mjs';
 
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 function capturedSources(repositoryRoot, receipt, changed) {
@@ -12,7 +13,7 @@ function capturedSources(repositoryRoot, receipt, changed) {
   const options = {cwd:repositoryRoot,env,windowsHide:true,shell:false,maxBuffer:64 << 20};
   // All history observations share one deadline, rather than permitting each
   // of up to 64 candidates to consume a separate command timeout.
-  const deadline=Date.now()+15000;
+  const deadline=Date.now()+milliseconds('git_seconds');
   function observe(args,input) {
     const timeout=deadline-Date.now();
     if(timeout<1)throw new Error('Screenshot source differs; captured-history verification exceeded its time bound.');

@@ -10,6 +10,9 @@ import shutil
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
+import sys
+sys.path.insert(0, str(ROOT / "scripts"))
+import qualification_timing as test_timing
 spec = importlib.util.spec_from_file_location('go_module_notices', ROOT / 'scripts/go_module_notices.py')
 notices = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(notices)
@@ -159,7 +162,7 @@ class GoModuleNoticesTests(unittest.TestCase):
         from process_tree import ProcessTree
         go_version=json.loads((ROOT/'internal/qualification/dependencies.json').read_text(encoding='utf-8'))['go']
         with ProcessTree(['go','env','GOROOT'],cwd=ROOT,env=os.environ.copy()) as tree:
-            compiler_root,error=tree.process.communicate(timeout=60)
+            compiler_root,error=tree.process.communicate(timeout=test_timing.BUILD_SECONDS)
             if tree.process.returncode: raise RuntimeError(error.decode('utf-8'))
         go=Path(compiler_root.decode('utf-8').strip())/'bin'/('go.exe' if os.name=='nt' else 'go')
         application=self.root/'application'; application.mkdir()
@@ -177,7 +180,7 @@ class GoModuleNoticesTests(unittest.TestCase):
                      'GOWORK':'off','GOTOOLCHAIN':'local','GOMODCACHE':str(self.cache),'GOFLAGS':'-modcacherw'}
         def run(args):
             with ProcessTree([str(go),*args[1:]],cwd=application,env=environment) as tree:
-                output,error=tree.process.communicate(timeout=60)
+                output,error=tree.process.communicate(timeout=test_timing.BUILD_SECONDS)
                 if tree.process.returncode: raise RuntimeError(error.decode('utf-8'))
                 return output
         run(['go','mod','download','example.test/library'])

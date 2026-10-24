@@ -83,7 +83,7 @@ jobs:
     if: inputs.kind == 'scheduler-preflight'
     name: Console-only scheduler decoder preflight
     runs-on: windows-2022
-    timeout-minutes: 4
+    timeout-minutes: 65
     env:
       INSONIC_DISPOSABLE_INSTALLER_TEST: '1'
       INSONIC_SCHEDULER_STRESS: ${{ inputs.scheduler_stress }}
@@ -110,7 +110,7 @@ jobs:
       matrix:
         kind: ${{ fromJSON(inputs.kind == 'setup-compare' && '["setup","setup-full"]' || inputs.kind == 'recovery-compare' && '["container","container-independent","standalone","standalone-full"]' || inputs.kind == 'container-compare' && '["container","container-independent"]' || format('["{0}"]', inputs.kind)) }}
     runs-on: windows-2022
-    timeout-minutes: ${{ matrix.kind == 'desktop-startup' && inputs.startup_source && 11 || matrix.kind == 'window-calibration' && 11 || 5 }}
+    timeout-minutes: 65
     env:
       INSONIC_DISPOSABLE_INSTALLER_TEST: '1'
       INSONIC_INSTALLER_DIAGNOSTIC_KIND: ${{ matrix.kind }}

@@ -6,6 +6,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -122,7 +123,7 @@ func TestNativeExitWatchdogArmsOriginalDeadlineBeforeObservation(t *testing.T) {
 	clock := func() time.Time { calls++; return time.Unix(0, int64(calls)*int64(time.Millisecond)) }
 	record := nativeExitStageTimings(true, writer, clock)
 	got := record.watchdog(func(duration time.Duration) <-chan time.Time {
-		if duration != 12*time.Second {
+		if duration != qualificationtiming.Duration("exit_watchdog_seconds") {
 			t.Fatal("native deadline changed", duration)
 		}
 		armed = true
@@ -145,7 +146,7 @@ func TestNativeExitWatchdogArmsOriginalDeadlineBeforeObservation(t *testing.T) {
 	calls = 0
 	disabled := nativeExitStageTimings(false, &out, clock)
 	disabled.watchdog(func(duration time.Duration) <-chan time.Time {
-		if duration != 12*time.Second {
+		if duration != qualificationtiming.Duration("exit_watchdog_seconds") {
 			t.Fatal("disabled deadline changed")
 		}
 		return fired

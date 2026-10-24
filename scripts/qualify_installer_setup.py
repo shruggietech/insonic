@@ -8,6 +8,10 @@ import shutil
 import subprocess
 import windows_msi as m
 import windows_setup
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 
 def qualifier():
     spec=importlib.util.spec_from_file_location('owned_setup_qualifier',Path(__file__).with_name('qualify-windows-msi.py'))
@@ -35,7 +39,7 @@ def exercise(stage,token,quiet_install,*,full,qualification=False):
     result={'kind':'windows-setup-recovery','feature_qualification':qualification,'token':token,'transactions':[],'cleanup':[]}
     def run(name,args,expected):
         command=[str(stage/('ui-'+name+'-setup.exe')),*args]
-        done=subprocess.run(command,cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=75)
+        done=subprocess.run(command,cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=timing.INSTALLER_TRANSACTION_SECONDS)
         row={'name':name,'actual_code':done.returncode,'stdout':done.stdout.decode(errors='replace')[-4000:],'stderr':done.stderr.decode(errors='replace')[-4000:]};result['transactions'].append(row)
         for source in root.glob('*'):
             if source.is_file() and source.suffix in ('.json','.log') and source.stat().st_size<=8*1024*1024:shutil.copyfile(source,stage/'native'/('context.setup-'+name+'-'+source.name))

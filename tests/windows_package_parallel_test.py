@@ -105,7 +105,7 @@ class ParallelPackageFixture:
         class Child:
             returncode = 0
             def communicate(self, timeout):
-                if timeout != 900:
+                if timeout != parallel.QUALIFICATION_LIMIT_SECONDS:
                     raise AssertionError('unexpected outer qualification bound')
                 fixture.barrier.wait(timeout=2)
                 if role == 'archive':

@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"os"
 	"path/filepath"
 	"strings"
@@ -99,7 +100,7 @@ func TestControlledStartupFailureRequiresNaturalReleaseBeforeOwnedBlockerRemoval
 			emitted := 0
 			observed, err := probeStartupFailureWith(config, filepath.Join(directory, "desktop.exe"), func(ctx context.Context, spec process.Spec) (process.CaptureResult, error) {
 				deadline, ok := ctx.Deadline()
-				if !ok || time.Until(deadline) > 18*time.Second || time.Until(deadline) < 17*time.Second || !spec.WaitForDescendants || spec.MaxOutput != 64<<10 || len(spec.Args) != 2 || spec.Args[0] != "--startup-failure-qualification-child" || spec.Args[1] != config {
+				if !ok || time.Until(deadline) > qualificationtiming.Duration("exit_child_seconds") || time.Until(deadline) < qualificationtiming.Duration("exit_child_seconds")-time.Second || !spec.WaitForDescendants || spec.MaxOutput != 64<<10 || len(spec.Args) != 2 || spec.Args[0] != "--startup-failure-qualification-child" || spec.Args[1] != config {
 					t.Fatal("child contract changed", spec)
 				}
 				contents, e := os.ReadFile(profile)
@@ -213,7 +214,7 @@ func TestControlledStartupPrivateDiagnosticsWorkInModifyDirectoryAcrossOwnedChil
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), qualificationtiming.Duration("readiness_seconds"))
 	defer cancel()
 	result, err := process.Capture(ctx, process.Spec{Executable: executable, Args: []string{"-test.run=^TestControlledStartupPrivateDiagnosticChild$", "--", directory}, Env: []string{"INSONIC_TEST_STARTUP_DIAGNOSTIC_CHILD=1"}, MaxOutput: 64 << 10, WaitForDescendants: true})
 	if err != nil || result.ExitCode != 0 || result.Truncated || result.Descendants == nil || !result.Descendants.Released {

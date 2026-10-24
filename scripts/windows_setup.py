@@ -19,6 +19,7 @@ import tempfile
 import threading
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 from pe_resources import append_resources, read_resources as pe_resources
 import windows_msi as m
 
@@ -147,10 +148,10 @@ def run_compiler(arguments, source_root, environment):
     # alternate toolchain or inherited toolexec/build flags. Never run setup.
     from process_tree import ProcessTree
     with ProcessTree(arguments, cwd=source_root, env=environment) as tree:
-        try: output, error = tree.process.communicate(timeout=180)
+        try: output, error = tree.process.communicate(timeout=timing.BUILD_SECONDS)
         except subprocess.TimeoutExpired as expired:
             tree.kill()
-            try: tree.process.communicate(timeout=5)
+            try: tree.process.communicate(timeout=timing.CLEANUP_SECONDS)
             except subprocess.TimeoutExpired: pass
             raise RuntimeError('setup source rebuild exceeded its bound') from expired
         if tree.process.returncode: raise RuntimeError('setup source rebuild failed: ' + error.decode(errors='replace')[-4000:])

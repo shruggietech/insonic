@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 """Deterministic worker/maintainer guard tests. Never import inference engines."""
+import qualification_timing as timing
 import importlib.util
 import io
 import json
@@ -56,7 +57,7 @@ class WorkerTests(unittest.TestCase):
                         PYTHONPATH="fake-python-path", HOME="fake-ambient-home", USERPROFILE="fake-ambient-home", LANG="C")
         with patch.dict(os.environ, selected):
             actual = json.loads(qualifier.child([sys.executable, "-I", "-B", "-c",
-                "import os,json;print(json.dumps({'keys':list(os.environ),'home_is_directory':os.path.isdir(os.environ.get('HOME','')),**{name:os.environ.get(name) for name in ('HOME','USERPROFILE','LANG','HF_HUB_OFFLINE','TRANSFORMERS_OFFLINE','TOKENIZERS_PARALLELISM')}}))"], timeout=10))
+                "import os,json;print(json.dumps({'keys':list(os.environ),'home_is_directory':os.path.isdir(os.environ.get('HOME','')),**{name:os.environ.get(name) for name in ('HOME','USERPROFILE','LANG','HF_HUB_OFFLINE','TRANSFORMERS_OFFLINE','TOKENIZERS_PARALLELISM')}}))"], timeout=timing.READINESS_SECONDS))
         for name in ("INSONIC_SESSION_CREDENTIALS", "OPENAI_API_KEY", "ARBITRARY_PROVIDER_TOKEN", "HF_TOKEN", "PYTHONPATH"):
             self.assertFalse(name in actual["keys"], "Unexpected inherited credential/configuration key: " + name)
         self.assertEqual(actual["LANG"], "C")
@@ -79,7 +80,7 @@ class WorkerTests(unittest.TestCase):
             return temporary
         with patch.dict(os.environ, {name:"" for name in qualifier.CI_VARIABLES}), patch.object(qualifier.tempfile, "TemporaryDirectory", tracked):
             with self.assertRaisesRegex(ValueError, "engine_failed"):
-                qualifier.child([sys.executable, "-I", "-B", "-c", "raise SystemExit(1)"], timeout=10)
+                qualifier.child([sys.executable, "-I", "-B", "-c", "raise SystemExit(1)"], timeout=timing.READINESS_SECONDS)
             with self.assertRaises(qualifier.subprocess.TimeoutExpired):
                 qualifier.child([sys.executable, "-I", "-B", "-c", "import time;time.sleep(30)"], timeout=0.1)
         self.assertEqual(len(allocated), 2)

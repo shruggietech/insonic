@@ -11,6 +11,9 @@ import urllib.error
 import urllib.request
 import zipfile
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
+
 ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / 'build/native'
 SELECTED = {'Library/bin/libssl-3-x64.dll': 'libssl-3-x64.dll',
@@ -20,7 +23,7 @@ SELECTED = {'Library/bin/libssl-3-x64.dll': 'libssl-3-x64.dll',
 def fetch_archive(pin, archive):
     if archive.is_file() and hashlib.sha256(archive.read_bytes()).hexdigest() == pin['sha256']:
         return
-    deadline = time.monotonic() + 60
+    deadline = time.monotonic() + timing.SOURCE_DOWNLOAD_SECONDS
     temporary = archive.with_suffix('.download')
     try:
         for attempt in range(3):
@@ -29,7 +32,7 @@ def fetch_archive(pin, archive):
                 raise TimeoutError('OpenSSL acquisition budget exceeded')
             try:
                 request = urllib.request.Request(pin['url'], headers={'User-Agent': 'insonic-native-qualification'})
-                with urllib.request.urlopen(request, timeout=min(20, remaining)) as source, temporary.open('wb') as output:
+                with urllib.request.urlopen(request, timeout=min(timing.REQUEST_SECONDS, remaining)) as source, temporary.open('wb') as output:
                     size = 0
                     while True:
                         if time.monotonic() >= deadline:

@@ -11,12 +11,12 @@ import (
 	"github.com/shruggietech/insonic/internal/artifact"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestS3ModelAcquisitionMissingByteRecovery(t *testing.T) {
@@ -60,7 +60,7 @@ func TestS3ModelAcquisitionMissingByteRecovery(t *testing.T) {
 		t.Fatal(e)
 	}
 	defer a.Close()
-	service := NewService(a, db, nil)
+	service := modelFixtureService(a, db, nil)
 	body := []byte("S3 synthetic model bundle")
 	server := httptest.NewServer(http.HandlerFunc(func(out http.ResponseWriter, r *http.Request) { out.Write(body) }))
 	defer server.Close()
@@ -83,14 +83,14 @@ func TestS3ModelAcquisitionMissingByteRecovery(t *testing.T) {
 	if service.Verify(ctx, id) == nil {
 		t.Fatal("missing S3 bytes accepted")
 	}
-	if _, e = db.CheckpointWork(ctx, claim, "complete", "succeeded", json.RawMessage(`{"state":"available"}`), time.Minute); e != nil {
+	if _, e = db.CheckpointWork(ctx, claim, "complete", "succeeded", json.RawMessage(`{"state":"available"}`), qualificationtiming.Duration("subprocess_seconds")); e != nil {
 		t.Fatal(e)
 	}
 	retry, e := db.RetryWork(ctx, contracts.ID(), claim.ID)
 	if e != nil {
 		t.Fatal(e)
 	}
-	retry, e = db.ClaimWork(ctx, retry.ID, contracts.ID(), time.Minute)
+	retry, e = db.ClaimWork(ctx, retry.ID, contracts.ID(), qualificationtiming.Duration("subprocess_seconds"))
 	if e != nil {
 		t.Fatal(e)
 	}

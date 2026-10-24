@@ -43,7 +43,13 @@ func (b *Bridge) CancelOperation(id string) bool {
 
 // BackendSetup is the shared pre-owner bootstrap contract. Protected input is separate from the nonsecret plan.
 func (b *Bridge) BackendSetup(action, path, plan, protected, mode, id string) contracts.Response {
-	ctx, finish, e := b.beginOperation(id, 35*time.Second)
+	return b.backendSetupWithTimeout(action, path, plan, protected, mode, id, 35*time.Second)
+}
+
+// backendSetupWithTimeout lets disposable real-filesystem fixtures provide
+// execution headroom without changing the ordinary bridge operation deadline.
+func (b *Bridge) backendSetupWithTimeout(action, path, plan, protected, mode, id string, timeout time.Duration) contracts.Response {
+	ctx, finish, e := b.beginOperation(id, timeout)
 	if e != nil {
 		return b.failed(e)
 	}

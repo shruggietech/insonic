@@ -6,6 +6,7 @@ import os from 'node:os';
 import {mkdtemp,mkdir,readFile,writeFile,rm} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
+import {milliseconds} from '../scripts/qualification-timing.mjs';
 import {fixtureEnvironment,parseOptions,allowedAsset,assertReceipt,boundedOperation,sourceSnapshot,embeddedSourceIdentity,assertBinarySource,VERSION,PLAYWRIGHT_VERSION} from '../scripts/capture-application-ui.mjs';
 
 test('capture renderer authority follows the exact root package and lock pins',async()=>{
@@ -20,7 +21,7 @@ test('capture renderer authority follows the exact root package and lock pins',a
 test('real Git source inventory marks untracked compiled inputs dirty while ignoring build output',async t=>{
   const temporary=path.resolve(os.tmpdir());const fixture=await mkdtemp(path.join(temporary,'insonic-capture-git-'));
   t.after(async()=>{assert.equal(path.dirname(fixture),temporary);assert.ok(path.basename(fixture).startsWith('insonic-capture-git-'));await rm(fixture,{recursive:true,force:true})});
-  const git=async args=>new Promise((resolve,reject)=>{const child=spawn('git',args,{cwd:fixture,windowsHide:true,stdio:['pipe','pipe','pipe'],env:{...process.env,GIT_CONFIG_NOSYSTEM:'1',GIT_CONFIG_GLOBAL:path.join(fixture,'empty-config'),GIT_TERMINAL_PROMPT:'0'}});let message='';child.stdout.on('data',chunk=>message+=chunk);child.stderr.on('data',chunk=>message+=chunk);child.once('error',reject);child.once('exit',code=>code===0?resolve():reject(Error(message)));child.stdin.end()});
+  const git=async args=>new Promise((resolve,reject)=>{const child=spawn('git',args,{cwd:fixture,windowsHide:true,timeout:milliseconds('git_seconds'),stdio:['pipe','pipe','pipe'],env:{...process.env,GIT_CONFIG_NOSYSTEM:'1',GIT_CONFIG_GLOBAL:path.join(fixture,'empty-config'),GIT_TERMINAL_PROMPT:'0'}});let message='';child.stdout.on('data',chunk=>message+=chunk);child.stderr.on('data',chunk=>message+=chunk);child.once('error',reject);child.once('exit',code=>code===0?resolve():reject(Error(message)));child.stdin.end()});
   await mkdir(path.join(fixture,'cmd','insonic'),{recursive:true});
   await writeFile(path.join(fixture,'cmd','insonic','main.go'),'package main\nfunc main() {}\n');
   await writeFile(path.join(fixture,'.gitignore'),'build/\nempty-config\n');await writeFile(path.join(fixture,'empty-config'),'');
@@ -64,4 +65,19 @@ test('receipt rejects false renderer, private fixtures, missing landmarks and im
   const receipt={kind:'application-ui-capture',schema_version:VERSION,renderer:{kind:'chromium-headless',playwright_version:PLAYWRIGHT_VERSION},fixture:{isolated:true,browser_profile_owned:true,private_inputs:false},source:{revision:'a'.repeat(40),tree_sha256:'b'.repeat(64),dirty:false},images:['setup-location.png','setup-backends.png','setup-processing.png','library-ready.png'].map(name=>({path:name,sha256:'c'.repeat(64),width:1440,height:1100,landmark:'Setup',caption:'Figure. Actual controls.'}))};
   assert.equal(assertReceipt(receipt),receipt);
   for(const mutate of [r=>r.renderer.kind='native-webview',r=>r.renderer.playwright_version='0.0.0',r=>r.fixture.private_inputs=true,r=>r.fixture.browser_profile_owned=false,r=>r.images[0].sha256='wrong',r=>r.images[0].landmark='',r=>r.source.tree_sha256='',r=>r.source.dirty=true,r=>delete r.source.dirty,r=>r.images[0].path='../owner.png',r=>r.images[0].height=6001]){const changed=structuredClone(receipt);mutate(changed);assert.throws(()=>assertReceipt(changed))}
+});
+
+test('capture phase allows healthy completion beyond the former twenty-second cutoff', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const result = boundedOperation('browser.slow', () => new Promise(resolve => setTimeout(() => resolve('ready'), 21000)));
+  await Promise.resolve();
+  t.mock.timers.tick(21000);
+  assert.equal(await result, 'ready');
+});
+
+test('capture phase retains classified expiry under the expanded default without a real sleep', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const result = boundedOperation('browser.stalled', () => new Promise(() => {}));
+  t.mock.timers.tick(milliseconds('capture_phase_seconds'));
+  await assert.rejects(result, error => error.code === 'capture_timeout' && error.phase === 'browser.stalled');
 });

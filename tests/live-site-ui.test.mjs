@@ -20,9 +20,9 @@ test('live browser inventory only admits bounded exact production URLs and SHA25
   assert.equal(aliases.has('https://insonic.io/docs/v0.0.0/'),false);
 });
 
-test('a stalled graceful close kills only the retained owned browser server', async () => {
+test('a stalled graceful close fails after killing only the retained owned browser server', async () => {
   let killed = 0;
-  await closeOwnedBrowser({close:()=>new Promise(()=>{}),kill:async()=>{killed++;}}, 5);
+  await assert.rejects(closeOwnedBrowser({close:()=>new Promise(()=>{}),kill:async()=>{killed++;}}, 5), /forced cleanup/);
   assert.equal(killed,1);
   await closeOwnedBrowser({close:async()=>{},kill:async()=>{throw new Error('unexpected kill');}},5);
 });

@@ -16,6 +16,10 @@ import time
 import uuid
 
 from process_tree import ProcessTree
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as bounds
 
 
 PARSER_REJECTIONS = [
@@ -30,7 +34,7 @@ def capture_invocation(factory, argv, *, cwd, env, scoped, input):
     started = time.monotonic()
     with factory(argv, cwd=cwd, env=env, allow_detached=scoped, input_pipe=input is not None) as tree:
         launched = time.monotonic()
-        stdout, stderr = tree.process.communicate(input=input, timeout=35)
+        stdout, stderr = tree.process.communicate(input=input, timeout=bounds.SUBPROCESS_SECONDS)
         finished = time.monotonic()
         code = tree.process.returncode
     timing = {"owned_launch_seconds": launched - started, "process_wait_seconds": finished - launched,
@@ -43,7 +47,7 @@ def verify_cold_bootstrap(response, timing):
     if (response.get('error', {}).get('code') != 'unavailable'
             or response.get('error', {}).get('reason') != 'credential_bootstrap'
             or any(type(value) not in (int, float) or not math.isfinite(value) or value < 0 for value in values)
-            or values[1] > 2 or values[2] < values[0] + values[1]):
+            or values[1] > bounds.READINESS_SECONDS or values[2] < values[0] + values[1]):
         raise ValueError('Cold bootstrap failure was not promptly classified')
 
 
@@ -153,6 +157,8 @@ def qualify(executable, workspace, *, env=None, cwd=None, documentation=False, p
         if scoped:
             argv += ['--workspace', str(workspace_path or workspace)]
         argv += [str(a) for a in args]
+        if list(args[:2]) == ['work', 'wait'] and not any(str(a).startswith('--timeout-ms') for a in args):
+            argv += ['--timeout-ms', str(bounds.DURABLE_WORK_SECONDS * 1000)]
         stdout, stderr, code, observed = capture_invocation(process_factory or ProcessTree, argv, cwd=cwd or workspace,
             env=execution_environment if execution_environment is not None else environment, scoped=scoped, input=input)
         if timing is not None:

@@ -11,6 +11,10 @@ import time
 
 import windows_package_pipeline as pipeline
 from process_tree import ProcessTree
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 
 ROOT = pipeline.ROOT
 EVIDENCE = ROOT / 'build/window-calibration/evidence'
@@ -94,18 +98,18 @@ def run_arm(package, gui, directory, base_env, seconds, label):
     timed_out = False
     with ProcessTree([str(gui), '--exit-qualification'], cwd=directory, env=env, allow_detached=True) as tree:
         try:
-            output, error = tree.process.communicate(timeout=100)
+            output, error = tree.process.communicate(timeout=timing.GUI_SECONDS)
         except subprocess.TimeoutExpired:
             timed_out = True
             tree.kill()  # Failed-arm cleanup is never natural-release acceptance.
-            output, error = tree.process.communicate(timeout=5)
+            output, error = tree.process.communicate(timeout=timing.CLEANUP_SECONDS)
         code = tree.process.returncode
         remaining = max(0, 100 - (time.monotonic() - started))
         natural_tree_release = code == 0 and not timed_out and tree.wait_for_descendants(remaining)
         quiesced = True
         if not natural_tree_release:
             tree.kill()
-            quiesced = tree.wait_for_descendants(5)
+            quiesced = tree.wait_for_descendants(timing.CLEANUP_SECONDS)
     (evidence / 'stdout.log').write_bytes(output)
     (evidence / 'stderr.log').write_bytes(error)
     import shutil

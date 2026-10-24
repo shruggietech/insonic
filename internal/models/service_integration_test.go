@@ -11,6 +11,7 @@ import (
 	"github.com/shruggietech/insonic/internal/artifact"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"net/http"
 	"net/http/httptest"
@@ -22,6 +23,27 @@ import (
 	"testing"
 	"time"
 )
+
+// These direct service tests have no runtime owner heartbeat. Keep fixture
+// claims alive while real filesystem publication runs; the embedded catalog
+// still enforces cancellation, owner identity and generation fencing.
+type modelFixtureCatalog struct{ catalog.Catalog }
+
+func modelFixtureLease(ttl time.Duration) time.Duration {
+	return max(ttl, qualificationtiming.Duration("subprocess_seconds"))
+}
+func (c modelFixtureCatalog) RenewWork(ctx context.Context, claim catalog.Work, ttl time.Duration) (catalog.Work, error) {
+	return c.Catalog.RenewWork(ctx, claim, modelFixtureLease(ttl))
+}
+func (c modelFixtureCatalog) CheckpointWork(ctx context.Context, claim catalog.Work, phase, state string, result json.RawMessage, ttl time.Duration) (catalog.Work, error) {
+	return c.Catalog.CheckpointWork(ctx, claim, phase, state, result, modelFixtureLease(ttl))
+}
+func modelFixtureService(a *artifact.Service, db catalog.Catalog, provider contracts.SecretProvider) *Service {
+	a.TTL = qualificationtiming.Duration("subprocess_seconds")
+	s := NewService(a, modelFixtureCatalog{db}, provider)
+	s.Client.Timeout = qualificationtiming.Duration("real_processing_seconds")
+	return s
+}
 
 func modelServiceFixture(t *testing.T) (*Service, *catalog.Store) {
 	t.Helper()
@@ -42,7 +64,7 @@ func modelServiceFixture(t *testing.T) (*Service, *catalog.Store) {
 		t.Fatal(e)
 	}
 	t.Cleanup(func() { a.Close(); db.Close() })
-	return NewService(a, db, nil), db
+	return modelFixtureService(a, db, nil), db
 }
 func modelWork(t *testing.T, db catalog.Catalog, kind string, m Manifest) catalog.Work {
 	t.Helper()
@@ -51,7 +73,7 @@ func modelWork(t *testing.T, db catalog.Catalog, kind string, m Manifest) catalo
 	if e != nil {
 		t.Fatal(e)
 	}
-	w, e = db.ClaimWork(context.Background(), w.ID, contracts.ID(), time.Minute)
+	w, e = db.ClaimWork(context.Background(), w.ID, contracts.ID(), qualificationtiming.Duration("subprocess_seconds"))
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -190,8 +212,8 @@ func TestModelPartialDownloadResumesAcrossRestart(t *testing.T) {
 		t.Fatal(e)
 	}
 	t.Cleanup(func() { a.Close(); reopened.Close() })
-	next := NewService(a, reopened, nil)
-	claim, e := reopened.ClaimWork(ctx, work.ID, contracts.ID(), time.Minute)
+	next := modelFixtureService(a, reopened, nil)
+	claim, e := reopened.ClaimWork(ctx, work.ID, contracts.ID(), qualificationtiming.Duration("subprocess_seconds"))
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -241,7 +263,7 @@ func TestCancelledModelClaimCannotPublishInstallation(t *testing.T) {
 	go func() { _, e := s.Execute(ctx, work); done <- e }()
 	select {
 	case <-started:
-	case <-time.After(5 * time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("download did not start")
 	}
 	if _, e := db.CancelWork(ctx, contracts.ID(), work.ID); e != nil {
@@ -401,14 +423,14 @@ func TestModelAcquireRetryRecoversCorruptAndMissingBytes(t *testing.T) {
 			if s.Verify(ctx, id) == nil {
 				t.Fatal("corruption accepted")
 			}
-			if _, e = db.CheckpointWork(ctx, work, "complete", "succeeded", json.RawMessage(`{"state":"available"}`), time.Minute); e != nil {
+			if _, e = db.CheckpointWork(ctx, work, "complete", "succeeded", json.RawMessage(`{"state":"available"}`), qualificationtiming.Duration("subprocess_seconds")); e != nil {
 				t.Fatal(e)
 			}
 			retry, e := db.RetryWork(ctx, contracts.ID(), work.ID)
 			if e != nil {
 				t.Fatal(e)
 			}
-			claim, e := db.ClaimWork(ctx, retry.ID, contracts.ID(), time.Minute)
+			claim, e := db.ClaimWork(ctx, retry.ID, contracts.ID(), qualificationtiming.Duration("subprocess_seconds"))
 			if e != nil {
 				t.Fatal(e)
 			}
@@ -486,5 +508,30 @@ func TestModelAcquisitionDeadlineRetainsSpecificCause(t *testing.T) {
 	var typed *contracts.Error
 	if !errors.As(e, &typed) || typed.Code != "acquisition_timeout" {
 		t.Fatal("deadline classification", e)
+	}
+}
+
+func TestModelFixtureCheckpointKeepsExecutionHeadroomAndFencing(t *testing.T) {
+	s, db := modelServiceFixture(t)
+	ctx := context.Background()
+	claim := modelWork(t, db, "models.acquire", fixtureManifest())
+	before := time.Now()
+	current, err := s.Catalog.CheckpointWork(ctx, claim, "downloading", "running", json.RawMessage("{}"), 5*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if current.LeaseUntil < before.Add(qualificationtiming.Duration("subprocess_seconds")).UnixNano() {
+		t.Fatal("the model's short checkpoint shortened the direct fixture claim")
+	}
+	stale := claim
+	stale.Generation++
+	if _, err = s.Catalog.RenewWork(ctx, stale, 30*time.Second); err == nil {
+		t.Fatal("fixture allowance bypassed generation fencing")
+	}
+	if _, err = db.CancelWork(ctx, contracts.ID(), claim.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.Catalog.RenewWork(ctx, claim, 30*time.Second); err == nil {
+		t.Fatal("fixture allowance renewed a cancelled claim")
 	}
 }

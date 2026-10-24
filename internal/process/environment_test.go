@@ -2,7 +2,6 @@
 package process
 
 import (
-	"context"
 	"encoding/json"
 	"os"
 	"runtime"
@@ -39,10 +38,10 @@ func TestChildEnvironmentIsolation(t *testing.T) {
 			spec := Spec{Executable: executable, Args: []string{"-test.run=^TestEnvironmentHelper$", "--", "--environment-helper"}, Env: append(LocalEnvironment(), "LANG=C", "HF_HUB_OFFLINE=1", "INSONIC_EXPLICIT_FLAG=selected"), CleanEnv: true, MaxOutput: 1 << 20}
 			var output []byte
 			if launch == "Capture" {
-				result, e := Capture(context.Background(), spec)
+				result, e := Capture(processTestContext(t), spec)
 				err, output = e, result.Stdout
 			} else {
-				result, e := Run(context.Background(), spec)
+				result, e := Run(processTestContext(t), spec)
 				err, output = e, result.Output
 			}
 			if err != nil {
@@ -64,10 +63,10 @@ func TestChildEnvironmentIsolation(t *testing.T) {
 			// otherwise Go silently restores the complete parent environment.
 			spec.Env = nil
 			if launch == "Capture" {
-				result, e := Capture(context.Background(), spec)
+				result, e := Capture(processTestContext(t), spec)
 				err, output = e, result.Stdout
 			} else {
-				result, e := Run(context.Background(), spec)
+				result, e := Run(processTestContext(t), spec)
 				err, output = e, result.Output
 			}
 			values = nil
@@ -85,10 +84,10 @@ func TestChildEnvironmentIsolation(t *testing.T) {
 			// Existing process callers keep their default inherited environment.
 			spec.CleanEnv = false
 			if launch == "Capture" {
-				result, e := Capture(context.Background(), spec)
+				result, e := Capture(processTestContext(t), spec)
 				err, output = e, result.Stdout
 			} else {
-				result, e := Run(context.Background(), spec)
+				result, e := Run(processTestContext(t), spec)
 				err, output = e, result.Output
 			}
 			values = nil

@@ -53,7 +53,7 @@ jobs:
       matrix:
         runtime_lane: ${{ inputs.native && fromJSON('["engine","desktop"]') || fromJSON('["engine"]') }}
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 15
+    timeout-minutes: 65
     env:
       NEXT_TELEMETRY_DISABLED: 1
       SOURCE_REVISION: ${{ inputs.revision }}
@@ -73,6 +73,8 @@ jobs:
           path: build/automation
           sparse-checkout: |
             scripts/bootstrap-actions.py
+            scripts/qualification_timing.py
+            internal/qualificationtiming/policy.json
             scripts/bootstrap-actions.lock.json
             scripts/http_read.py
           sparse-checkout-cone-mode: false
@@ -230,7 +232,7 @@ jobs:
       - runtime_checks
     name: native (${{ inputs.os }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 65
     steps:
       - name: Require every elected runtime lane
         env:
@@ -244,7 +246,7 @@ jobs:
       matrix:
         variant: ${{ inputs.os == 'windows-2022' && fromJSON('["cli"]') || fromJSON('["cli","desktop"]') }}
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 15
+    timeout-minutes: 65
     permissions:
       contents: read
       actions: read
@@ -270,6 +272,8 @@ jobs:
           path: build/automation
           sparse-checkout: |
             scripts/bootstrap-actions.py
+            scripts/qualification_timing.py
+            internal/qualificationtiming/policy.json
             scripts/bootstrap-actions.lock.json
             scripts/http_read.py
           sparse-checkout-cone-mode: false

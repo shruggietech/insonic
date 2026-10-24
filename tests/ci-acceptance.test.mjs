@@ -1,9 +1,21 @@
 // SPDX-License-Identifier: Apache-2.0
 import test from 'node:test';
+import { validateAggregatePolicy } from '../scripts/qualification-timing.mjs';
+
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { parse } from 'yaml';
 import { sourceReadiness, evaluateResults, measureTiming, inspectAttempt, attemptMetadata, waitForQualificationInputs } from '../scripts/ci-acceptance.mjs';
+
+test('aggregate policy rejects invalid units, unordered limits and invalid finalization reserves', () => {
+  const policy = { qualification_target_seconds: 1800, qualification_limit_seconds: 3600, finalization_reserve_seconds: 60 };
+  assert.deepEqual(validateAggregatePolicy(policy), policy);
+  for (const changed of [null, [], {}, { ...policy, extra: 1 }, { ...policy, qualification_target_seconds: 0 },
+    { ...policy, qualification_limit_seconds: '3600' }, { ...policy, qualification_target_seconds: 3601 },
+    { ...policy, finalization_reserve_seconds: 3600 }, { ...policy, finalization_reserve_seconds: 1.5 }]) {
+    assert.throws(() => validateAggregatePolicy(changed), /Invalid aggregate/);
+  }
+});
 
 const flags = value => Object.fromEntries(['core', 'cli', 'native', 'adapters'].map(k => [k, String(value)]));
 function results(full = true, smoke = false) {
@@ -66,10 +78,10 @@ test('phase timing includes cold preparation, queue and terminal cleanup', () =>
   const got = measureTiming(start, ready, ready + 630000, false);
   assert.equal(got.preparation_seconds, 1342); assert.equal(got.qualification_seconds, 630);
   assert.equal(got.combined_seconds, 1972); assert.equal(got.accepted, true);
-  assert.equal(measureTiming(start, ready, ready + 885000, false).accepted, true);
-  assert.equal(measureTiming(start, ready, ready + 885001, false).accepted, false);
-  assert.equal(measureTiming(start, ready, ready + 900000, true).accepted, true);
-  assert.equal(measureTiming(start, ready, ready + 900001, true).accepted, false);
+  assert.equal(measureTiming(start, ready, ready + 3540000, false).accepted, true);
+  assert.equal(measureTiming(start, ready, ready + 3540001, false).accepted, false);
+  assert.equal(measureTiming(start, ready, ready + 3600000, true).accepted, true);
+  assert.equal(measureTiming(start, ready, ready + 3600001, true).accepted, false);
   for (const value of [NaN, Infinity, start - 1]) assert.throws(() => measureTiming(start, value, ready, true));
 });
 
@@ -115,7 +127,7 @@ test('initial queue accounting does not move the provisional qualification deadl
   assert.equal(got.qualification_seconds, 630);
   assert.equal(got.combined_seconds, 2092);
   assert.equal(got.accepted, true);
-  assert.equal(inspectAttempt(data.identity, data.run, data.jobs, { now: boundary + 885001 }).accepted, false);
+  assert.equal(inspectAttempt(data.identity, data.run, data.jobs, { now: boundary + 3540001 }).accepted, false);
 });
 
 test('first-attempt creation must be valid and jobs cannot precede attempt start', () => {
@@ -201,9 +213,9 @@ test('overlapped setup waits for slow docs inside the original qualification dea
     return { total_count: jobs.length, jobs };
   };
   const deadline = await waitForQualificationInputs(identity, 'test-only', { request, now: () => clock, pause: async ms => { clock += ms; } });
-  assert.equal(deadline, boundary + 900000);
+  assert.equal(deadline, boundary + 3600000);
   assert.ok(clock >= boundary + 185000);
-  clock = boundary + 900000;
+  clock = boundary + 3600000;
   await assert.rejects(waitForQualificationInputs(identity, 'test-only', { request, now: () => clock }), /deadline/);
   clock = boundary + 5000; data.jobs[2].status = 'completed'; data.jobs[2].conclusion = 'failure';
   await assert.rejects(waitForQualificationInputs(identity, 'test-only', { request: async url => url.includes('/jobs?') ? { total_count: data.jobs.length, jobs: data.jobs } : data.run, now: () => clock }), /failed/);
@@ -240,18 +252,18 @@ test('workflow creation authority rejects mismatched identities and invalid queu
 
 test('qualification target overruns are advisory through the exact terminal hard boundary', () => {
   const ready = 1000000;
-  for (const seconds of [660, 660.001, 701, 900, 900.001]) {
+  for (const seconds of [1800, 1800.001, 2400, 3600, 3600.001]) {
     const got = measureTiming(0, ready, ready + seconds * 1000, true);
-    assert.equal(got.qualification_target_seconds, 660);
-    assert.equal(got.qualification_limit_seconds, 900);
-    assert.equal(got.target_exceeded, seconds > 660);
-    assert.equal(got.target_overrun_seconds, Math.max(0, seconds - 660));
-    assert.equal(got.accepted, seconds <= 900);
+    assert.equal(got.qualification_target_seconds, 1800);
+    assert.equal(got.qualification_limit_seconds, 3600);
+    assert.equal(got.target_exceeded, seconds > 1800);
+    assert.equal(got.target_overrun_seconds, Math.max(0, seconds - 1800));
+    assert.equal(got.accepted, seconds <= 3600);
     assert.equal(got.finalization_reserve_seconds, 0);
   }
-  assert.equal(measureTiming(0, ready, ready + 885000, false).finalization_reserve_seconds, 15);
-  assert.equal(measureTiming(0, ready, ready + 885000, false).accepted, true);
-  assert.equal(measureTiming(0, ready, ready + 885001, false).accepted, false);
+  assert.equal(measureTiming(0, ready, ready + 3540000, false).finalization_reserve_seconds, 60);
+  assert.equal(measureTiming(0, ready, ready + 3540000, false).accepted, true);
+  assert.equal(measureTiming(0, ready, ready + 3540001, false).accepted, false);
 });
 
 test('input polling rejects a changed readiness origin rather than extending its deadline', async () => {
@@ -297,7 +309,7 @@ test('a queued workflow summary cannot invalidate matching successful prerequisi
   data.jobs = [ready, data.jobs[1], { ...data.jobs[1], id: 4, name: 'docs-build' }];
   const boundary = Date.parse(ready.completed_at), now = () => boundary + 5000;
   const request = async url => url.includes('/jobs?') ? { total_count: data.jobs.length, jobs: data.jobs } : data.run;
-  assert.equal(await waitForQualificationInputs(identity, 'test-only', { request, now }), boundary + 900000);
+  assert.equal(await waitForQualificationInputs(identity, 'test-only', { request, now }), boundary + 3600000);
   data.jobs[0].conclusion = 'failure';
   await assert.rejects(waitForQualificationInputs(identity, 'test-only', { request, now }), /successful prerequisite/);
 });

@@ -5,6 +5,7 @@ import argparse
 from contextlib import contextmanager
 import hashlib
 import json
+import math
 import os
 from pathlib import Path, PurePosixPath
 import platform
@@ -18,6 +19,7 @@ import time
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 from process_tree import ProcessTree, native_webview_environment, native_webview_probe
 from go_module_notices import PATCH_POLICIES, repository_patch_source
 
@@ -51,7 +53,16 @@ def validate_maintained_sources(selected=None):
     if selected.get('maintained_sources') != expected:
         raise ValueError('qualification maintained source identities differ')
 
-def child(args, *, env=None, timeout=180, allow_detached=False):
+def xvfb_command(args, *, runner='/usr/bin/xvfb-run'):
+    # Ubuntu's xvfb-run merges the client's stderr into stdout. Preserve the
+    # original stderr on fd 9, then restore it in the client before exec. Fixed
+    # shell programs receive every executable/argument separately, never as code.
+    return ['/bin/sh', '-c', 'exec "$@" 9>&2', 'insonic-xvfb', str(runner), '-a',
+            '/bin/sh', '-c', 'exec "$@" 2>&9 9>&-', 'insonic-xvfb-child', *args]
+
+
+def child(args, *, env=None, timeout=timing.SUBPROCESS_SECONDS, allow_detached=False):
+    timeout = timing.phase_bound(timeout)
     merged = os.environ.copy()
     if env:
         merged.update(env)
@@ -64,7 +75,7 @@ def child(args, *, env=None, timeout=180, allow_detached=False):
                     raise subprocess.TimeoutExpired(args, timeout)
         except subprocess.TimeoutExpired:
             tree.kill()
-            stdout, stderr = tree.process.communicate(timeout=5)
+            stdout, stderr = tree.process.communicate(timeout=timing.CLEANUP_SECONDS)
             # Keep controlled compiler/test checkpoints when a bounded child
             # times out, so the failed stage remains diagnosable.
             sys.stdout.buffer.write(stdout)
@@ -222,10 +233,10 @@ def cueson_probe(env):
         strict = directory / 'strict.srt'
         with ProcessTree([str(arg) for arg in [exe, 'render', '--strict', '--to', 'srt', '--output', strict, document]], cwd=ROOT, env=os.environ.copy()) as tree:
             try:
-                stdout, stderr = tree.process.communicate(timeout=30)
+                stdout, stderr = tree.process.communicate(timeout=timing.READINESS_SECONDS)
             except subprocess.TimeoutExpired:
                 tree.kill()
-                tree.process.communicate(timeout=5)
+                tree.process.communicate(timeout=timing.CLEANUP_SECONDS)
                 raise
             if tree.process.returncode != 1 or strict.exists() or stdout or b'strict' not in stderr:
                 raise ValueError('strict annotated export did not refuse before publication')
@@ -243,12 +254,17 @@ def native():
     tags = 'native_ladybug,system_ladybug'
     # Cold compilation and actual acceptance each retain the bounded child
     # allowance. The second invocation runs every test, without a -run filter.
-    sys.stdout.buffer.write(child(['go', 'test', '-run', '^$', '-tags', tags, *packages], env=env))
+    sys.stdout.buffer.write(go_tests([ '-run', '^$', '-tags', tags, *packages], env=env))
     # JSON emits package/test start events immediately; verbose text can buffer
     # an entire unfinished package and hide its active test on an outer timeout.
-    output = child(['go', 'test', '-json', '-v', '-tags', tags, *packages], env=env)
+    output = go_tests([ '-json', '-v', '-tags', tags, *packages], env=env)
     sys.stdout.buffer.write(output)
     (BUILD / 'native-receipt.json').write_text(json.dumps({'cueson': cueson, 'native_pair': 'passed'}, indent=2) + '\n', encoding='utf-8')
+
+def go_tests(arguments, *, env=None):
+    return child(['go', 'test', '-timeout=' + str(timing.GO_TEST_SECONDS) + 's', *arguments],
+                 env=env, timeout=timing.GO_TEST_PROCESS_SECONDS)
+
 
 def assets():
     help_dir = ROOT / 'site/offline'
@@ -263,7 +279,53 @@ def assets():
     for font in ['Geist-Regular.woff2', 'SpaceGrotesk-Medium.woff2', 'GeistMono-Regular.woff2']:
         shutil.copyfile(ROOT / 'brand/kit/fonts/woff2' / font, target / 'fonts' / font)
 
-def write_receipt(path, output, expected):
+QUALIFICATION_STAGES = frozenset(('module fixtures mounted ready library-import audio-playback video-playback metadata-date assembly cue-seek terms speakers pipelines jobs settings keyboard-help explore-calendar explore-query explore-graph query-assistance rosters audio-replacement model-references import-presets complete journey-entered journey-fixtures-request journey-fixtures-returned help-open-request help-open-returned help-control-ready help-frame-ready help-fonts-ready help-network-blocked help-reference-dispatched help-navigation-complete help-closed help-journey-complete complete-smoke-request watchdog-timeout terminal').split())
+
+
+def record_progress(observation, stderr):
+    if observation is None:
+        return
+    records = []
+    last = -1
+    frontend_last = -1
+    for line in stderr[-65536:].splitlines():
+        if len(line) > 4096:
+            continue
+        try:
+            value = json.loads(line)
+        except (ValueError, UnicodeDecodeError):
+            continue
+        if not isinstance(value, dict) or value.get('kind') != 'desktop-qualification-progress':
+            continue
+        elapsed = value.get('elapsed_ns')
+        if (value.get('stage') not in QUALIFICATION_STAGES or value.get('mode') not in ('help', 'gui')
+                or value.get('observation') != 'native-receipt' or type(elapsed) is not int
+                or not 0 <= elapsed < 2**63 or elapsed < last or len(records) >= 129):
+            raise ValueError('Invalid bounded native qualification progress')
+        row = {key: value[key] for key in ('kind', 'mode', 'observation', 'elapsed_ns', 'stage')}
+        if 'frontend_elapsed_ms' in value or 'frontend_origin' in value:
+            frontend = value.get('frontend_elapsed_ms')
+            if (value.get('frontend_origin') != 'first-reported-stage' or type(frontend) not in (int, float)
+                    or not math.isfinite(frontend) or not 0 <= frontend <= 86400000 or frontend < frontend_last):
+                raise ValueError('Invalid bounded frontend qualification progress')
+            row.update(frontend_elapsed_ms=frontend, frontend_origin='first-reported-stage')
+            frontend_last = frontend
+        if value['stage'] == 'terminal':
+            if (value.get('scope') != 'application-return' or type(value.get('passed')) is not bool
+                    or value.get('classification') not in ('failed', 'passed-within-former-bound', 'passed-after-former-bound')
+                    or any(type(value.get(key)) is not int or value[key] <= 0 for key in ('effective_bound_seconds', 'capture_bound_seconds', 'former_bound_seconds'))):
+                raise ValueError('Invalid native qualification terminal observation')
+            former = 35 if value['mode'] == 'help' else 90
+            expected = 'failed' if not value['passed'] else ('passed-after-former-bound' if elapsed > former * 1000000000 else 'passed-within-former-bound')
+            if value['former_bound_seconds'] != former or value['classification'] != expected or value['effective_bound_seconds'] >= value['capture_bound_seconds']:
+                raise ValueError('Native terminal classification differs from its monotonic observation')
+            row.update({key: value[key] for key in ('scope', 'passed', 'classification', 'effective_bound_seconds', 'capture_bound_seconds', 'former_bound_seconds')})
+        records.append(row)
+        last = elapsed
+    observation['progress'] = records
+
+
+def write_receipt(path, output, expected, *, observation=None):
     # Native loaders can print warnings alongside the compact qualification result.
     values = []
     for line in output.splitlines():
@@ -272,7 +334,20 @@ def write_receipt(path, output, expected):
         except (json.JSONDecodeError, UnicodeDecodeError):
             continue
     if len(values) != 1 or not isinstance(values[0], dict) or any(values[0].get(key) != value for key, value in expected.items()):
-        raise ValueError('missing, ambiguous or failed qualification receipt')
+        raise ValueError('missing, ambiguous or failed qualification receipt: ' + json.dumps({
+            'json_records': len(values), 'stdout_bytes': len(output),
+            'expected_matches': sum(isinstance(value, dict) and all(value.get(key) == wanted for key, wanted in expected.items()) for value in values),
+            'stdout_sha256': hashlib.sha256(output).hexdigest(),
+            'stdout_tail': output[-4096:].decode('utf-8', errors='replace'),
+            'observation': {key: observation[key] for key in ('outcome', 'natural_release', 'owned_process_seconds', 'capture_bound_seconds') if key in (observation or {})},
+            'progress_tail': (observation or {}).get('progress', [])[-4:],
+        }, ensure_ascii=True))
+    if observation is not None:
+        terminal = observation.get('progress', [])[-1:]
+        if (not terminal or terminal[0].get('stage') != 'terminal' or not terminal[0].get('passed')
+                or observation.get('outcome') != 'completed' or not observation.get('natural_release')):
+            raise ValueError('Missing completed natural-release qualification observation')
+        values[0]['qualification_observation'] = observation
     path.write_text(json.dumps(values[0], sort_keys=True) + '\n', encoding='utf-8')
 
 
@@ -292,13 +367,13 @@ def desktop():
     if platform.system() == 'Linux':
         tags += ',webkit2_41'
     if platform.system() == 'Windows':
-        child(['go', 'test', '-timeout=15s', '-run', '^(TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread|TestBootstrapOnlyEnvironmentVersionDoesNotEnableCDPOrGateNavigation|TestBrowserDiagnosticsEnvironmentHookKeepsNativeCreationOrder|TestBrowserDiagnosticsVersionOwnershipBoundsAndAllowlist|TestBrowserDiagnosticsDisabledAddsNoNativeCalls|TestStartup[^/]*)$',
+        go_tests([ '-run', '^(TestOwnedWindowDestructionClosesControllerOnceOnItsUIThread|TestBootstrapOnlyEnvironmentVersionDoesNotEnableCDPOrGateNavigation|TestBrowserDiagnosticsEnvironmentHookKeepsNativeCreationOrder|TestBrowserDiagnosticsVersionOwnershipBoundsAndAllowlist|TestBrowserDiagnosticsDisabledAddsNoNativeCalls|TestStartup[^/]*)$',
                'github.com/wailsapp/go-webview2/pkg/edge'], env=env)
     for mode in ['production', 'dev']:
         framework_tags = mode + (',webkit2_41' if platform.system() == 'Linux' else '')
-        child(['go', 'test', '-timeout=15s', '-tags', framework_tags,
+        go_tests([ '-tags', framework_tags,
                '-run=Startup|FreshFrontend', 'github.com/wailsapp/wails/v2/internal/app'], env=env)
-    output = child(['go', 'test', '-v', '-tags', tags, './desktop', './cmd/insonic-desktop'], env=env)
+    output = go_tests([ '-v', '-tags', tags, './desktop', './cmd/insonic-desktop'], env=env)
     sys.stdout.buffer.write(output)
     executable = ROOT / ('build/insonic-desktop.exe' if os.name == 'nt' else 'build/insonic-desktop')
     child(['go', 'build', '-tags', tags, '-o', executable, './cmd/insonic-desktop'], env=env)
@@ -313,22 +388,22 @@ def desktop():
                   {'desktop_bridge': 'passed', 'offline_help': 'packaged', 'schema_version': VERSION})
     help_args = [executable, '--help-qualification']
     if platform.system() == 'Linux':
-        help_args = ['xvfb-run', '-a', *help_args]
+        help_args = xvfb_command(help_args)
     with native_webview_environment(runtime_env) as profile_env:
-        help_output = child(help_args, env=profile_env, timeout=35, allow_detached=True)
+        help_output = child(help_args, env=profile_env, timeout=timing.HELP_SECONDS, allow_detached=True)
     write_receipt(BUILD / 'help-webview-receipt.json', help_output,
                   {'offline_help_activation': 'passed', 'workspace': 'not-selected', 'network_policy': 'local-assets-only', 'schema_version': VERSION})
     args = [executable, '--webview-qualification']
     if platform.system() == 'Linux':
-        args = ['xvfb-run', '-a', *args]
+        args = xvfb_command(args)
     with native_webview_environment(runtime_env) as profile_env:
-        output = child(args, env=profile_env, timeout=90, allow_detached=True)
+        output = child(args, env=profile_env, timeout=timing.GUI_SECONDS, allow_detached=True)
     write_receipt(BUILD / 'webview-receipt.json', output,
                   {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'ui_compact_density': 'passed', 'schema_version': VERSION})
     exit_args = [executable, '--exit-qualification']
     if platform.system() == 'Linux':
-        exit_args = ['xvfb-run', '-a', *exit_args]
-    exit_output = child(exit_args, env=runtime_env, timeout=100, allow_detached=True)
+        exit_args = xvfb_command(exit_args)
+    exit_output = child(exit_args, env=runtime_env, timeout=timing.EXIT_MATRIX_SECONDS, allow_detached=True)
     write_receipt(BUILD / 'exit-receipt.json', exit_output, native_exit_contract())
 
 
@@ -336,10 +411,10 @@ def secrets():
     BUILD.mkdir(parents=True, exist_ok=True)
     executable = ROOT / ('build/insonic-secret-lifecycle.exe' if os.name == 'nt' else 'build/insonic-secret-lifecycle')
     child(['go', 'build', '-o', executable, './cmd/insonic-secret-lifecycle'])
-    output = child([executable], timeout=30)
+    output = child([executable], timeout=timing.READINESS_SECONDS)
     write_receipt(BUILD / 'secret-service-receipt.json', output,
                   {'native_credential_lifecycle': 'passed', 'cross_process_restart': 'passed', 'credential_values': 'not-returned', 'schema_version': VERSION})
-    child(['go', 'test', './internal/secrets', './internal/credentialcmd'])
+    go_tests([ './internal/secrets', './internal/credentialcmd'])
     sys.stdout.buffer.write(output)
 
 @contextmanager
@@ -408,7 +483,7 @@ def qualify_model_references(executable, directory):
         manifest_path.write_text(json.dumps(manifest) + '\n', encoding='utf-8')
         registered = call('register', manifest_path)
         completed = json.loads(child([executable, '--workspace', directory, 'work', 'wait', registered['work_id'],
-                                      '--timeout-ms', '30000', '--json']))['result']
+                                      '--timeout-ms', str(timing.DURABLE_WORK_SECONDS * 1000), '--json']))['result']
         model_id = completed['result']['model_id']
         alias_id = '10000000-0000-4000-8000-000000000051'
         alias = call('alias', 'set', alias_id, data={'expected_revision': 0,
@@ -419,7 +494,7 @@ def qualify_model_references(executable, directory):
             raise ValueError('CLI alias exact resolution differs')
         acquired = call('acquire', manifest_path)
         accepted = json.loads(child([executable, '--workspace', directory, 'work', 'wait', acquired['work_id'],
-                                     '--timeout-ms', '30000', '--json']))['result']
+                                     '--timeout-ms', str(timing.DURABLE_WORK_SECONDS * 1000), '--json']))['result']
         if accepted['state'] != 'succeeded' or not call('verify', model_id)['verified']:
             raise ValueError('CLI synthetic model acquisition failed')
         replay = call('acquire', manifest_path)
@@ -434,7 +509,7 @@ def qualify_model_references(executable, directory):
     finally:
         server.shutdown()
         server.server_close()
-        thread.join(timeout=5)
+        thread.join(timeout=timing.CLEANUP_SECONDS)
 
 
 def cli(native=False):
@@ -558,7 +633,7 @@ def qualify_cli(native):
             raise ValueError('artifact cache release')
         child([executable, '--workspace', directory, 'media', 'tools', BUILD / 'media-tools.json', '--json'])
         imported = json.loads(child([executable, '--workspace', directory, 'media', 'import', ROOT / 'tests/fixtures/media/speech.flac', '--known-speaker', speaker_id, '--originated-at', '2020-01-01T00:00:00.123456789Z', '--json']))['result']
-        accepted_media = json.loads(child([executable, '--workspace', directory, 'work', 'wait', imported['work_id'], '--timeout-ms', '30000', '--json']))['result']
+        accepted_media = json.loads(child([executable, '--workspace', directory, 'work', 'wait', imported['work_id'], '--timeout-ms', str(timing.DURABLE_WORK_SECONDS * 1000), '--json']))['result']
         if accepted_media['state'] != 'succeeded':
             raise ValueError('CLI roster media admission failed')
         recording_id = accepted_media['result']['items'][0]['media_id']
@@ -571,7 +646,7 @@ def qualify_cli(native):
         if len(roster['members']) != 1 or roster['members'][0]['id'] != speaker_id:
             raise ValueError('CLI initial roster missing')
         replaced = json.loads(child([executable, '--workspace', directory, 'media', 'import', ROOT / 'tests/fixtures/media/speech.flac', '--record', recording_id, '--replace-audio', '--existing-transcript', 'clear', '--existing-roster', 'retain', '--json']))['result']
-        replacement = json.loads(child([executable, '--workspace', directory, 'work', 'wait', replaced['work_id'], '--timeout-ms', '30000', '--json']))['result']
+        replacement = json.loads(child([executable, '--workspace', directory, 'work', 'wait', replaced['work_id'], '--timeout-ms', str(timing.DURABLE_WORK_SECONDS * 1000), '--json']))['result']
         retained = json.loads(child(roster_args))['result']
         if replacement['state'] != 'succeeded' or replacement['result']['items'][0]['media_id'] != recording_id or retained['revision'] != roster['revision']:
             raise ValueError('CLI replacement/roster authority changed')

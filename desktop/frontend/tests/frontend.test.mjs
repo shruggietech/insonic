@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { readFileSync } from 'node:fs';
 import { validateNativeRequest } from './contracts.mjs';
+const testTiming = JSON.parse(readFileSync(new URL("../../../internal/qualificationtiming/policy.json", import.meta.url), "utf8"));
 const dom = new JSDOM(
   '<!doctype html><html><body><div id="root"></div></body></html>',
   { url: 'http://wails.localhost' },
@@ -293,6 +294,41 @@ test('fixture readiness and DOM event start exactly one qualification journey', 
   await Promise.all([fixturesReady, domReady]);
   await start();
   assert.equal(runs, 1);
+});
+
+test('qualification waiting crosses the former deadline but retains expiry and earlier cancellation', async () => {
+  const { qualificationWait } = await import('../.test-build/qualification.js');
+  let elapsed = 0;
+  const clock = () => elapsed;
+  const turn = async () => { elapsed += 40000; };
+  await qualificationWait(() => elapsed >= 40000, 'slow healthy operation', 120000, { clock, turn });
+  assert.equal(elapsed, 40000);
+  elapsed = 0;
+  await assert.rejects(qualificationWait(() => false, 'new bound expired', 120000, { clock, turn }), /new bound expired/);
+  assert.equal(elapsed, 120000);
+  elapsed = 0;
+  const cancellation = new AbortController();
+  await assert.rejects(qualificationWait(() => false, 'deadline', 120000, {
+    clock, signal: cancellation.signal,
+    turn: async () => { elapsed = 1000; cancellation.abort(new Error('earlier cancellation')); },
+  }), /earlier cancellation/);
+  assert.equal(elapsed, 1000);
+  elapsed = 0;
+  await qualificationWait(() => true, 'immediate completion', 120000, { clock, turn });
+  assert.equal(elapsed, 0);
+});
+
+test('qualification observations use a distinct monotonic frontend clock and do not log inputs', async () => {
+  const { qualificationProgress } = await import('../.test-build/qualification.js');
+  const calls = [];
+  const bridge = { QualificationProgress: async (...args) => { calls.push(args); return true; } };
+  let elapsed = 100;
+  assert.equal(await qualificationProgress(bridge, 'module', () => elapsed), true);
+  elapsed += 36000;
+  await qualificationProgress(bridge, 'help-open-returned', () => elapsed);
+  assert.deepEqual(calls, [['module', 0], ['help-open-returned', 36000]]);
+  const legacy = { QualificationStep: async (stage) => stage === 'fixtures' };
+  assert.equal(await qualificationProgress(legacy, 'fixtures', () => elapsed), true);
 });
 test('qualification media diagnostics distinguish transport and decode states without URLs or browser error text', () => {
   const diagnostic = mediaDiagnostics({
@@ -1663,7 +1699,7 @@ test('six backend forms use shared bootstrap and keep initial credentials out of
  await fill('storage backend','filesystem');await fill('catalog backend','sqlite');await fill('graph backend','ladybugdb');await click('Prepare backend plan');const local=bootstrap.filter(x=>x.action==='plan').at(-1);assert.deepEqual(Object.values(local.draft.profiles).map(x=>x.adapter_id),['filesystem','sqlite','ladybugdb']);await unmount();
 });
 
-test('qualification event-loop turn yields to pending work without hidden-window timer sleeps', {timeout:2000}, async () => {
+test('qualification event-loop turn yields to pending work without hidden-window timer sleeps', {timeout:testTiming.frontend_seconds*1000}, async () => {
   const {qualificationTurn}=await import('../.test-build/qualification.js');
   const original=globalThis.setTimeout;
   let timerCalls=0;
@@ -1679,7 +1715,7 @@ test('qualification event-loop turn yields to pending work without hidden-window
   } finally {globalThis.setTimeout=original;}
 });
 
-test('qualification waits for an asynchronously populated select instead of silently choosing the empty value', {timeout:2000}, async()=>{
+test('qualification waits for an asynchronously populated select instead of silently choosing the empty value', {timeout:testTiming.frontend_seconds*1000}, async()=>{
  const {qualificationValue,qualificationTurn}=await import('../.test-build/qualification.js');
  const select=document.createElement('select');select.add(new window.Option('Explicit choices',''));document.body.append(select);
  let selected='';select.addEventListener('change',()=>{selected=select.value;});

@@ -137,4 +137,4 @@ class JourneyGuardTests(unittest.TestCase):
             value = journey.json.loads(output.read_text())
             self.assertEqual(value['state'], 'failed')
             self.assertNotIn('private failure detail', output.read_text())
-            runtime.wait.assert_called_once_with(timeout=40)
+            runtime.wait.assert_called_once_with(timeout=journey.timing.SERVICE_SECONDS)

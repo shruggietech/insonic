@@ -25,6 +25,7 @@ import uuid
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 from process_tree import ProcessTree, native_webview_environment, native_webview_probe
 from windows_workload_affinity import WorkloadAffinity
 import qualify
@@ -74,27 +75,35 @@ class PackageCLIResponseError(RuntimeError):
         super().__init__('Packaged CLI operation failed: ' + response['error']['code'])
 
 
-def child(args, *, directory=ROOT, env=None, timeout=180, allow_detached=False, process_factory=None, cli_response=False):
+def child(args, *, directory=ROOT, env=None, timeout=timing.SUBPROCESS_SECONDS, allow_detached=False, process_factory=None, cli_response=False, observation=None):
+    timeout = timing.phase_bound(timeout)
     selected = os.environ.copy()
     if env:
         selected.update(env)
     factory = ProcessTree if process_factory is None else process_factory
     with factory([str(arg) for arg in args], cwd=directory, env=selected, allow_detached=allow_detached) as tree:
         started = time.monotonic()
+        if observation is not None:
+            observation.update(capture_bound_seconds=timeout, natural_release=False)
         try:
             output, error = tree.process.communicate(timeout=timeout)
-            if tree.process.returncode == 0 and native_webview_probe(args, selected):
+            if tree.process.returncode == 0 and (native_webview_probe(args, selected) or observation is not None):
                 if not tree.wait_for_descendants(timeout - (time.monotonic() - started)):
                     raise subprocess.TimeoutExpired(args, timeout)
+                if observation is not None: observation['natural_release'] = True
         except subprocess.TimeoutExpired as expired:
             before = tree.process.poll()
             tree.kill()
             cleanup_timeout = False
             try:
-                output, error = tree.process.communicate(timeout=5)
+                output, error = tree.process.communicate(timeout=timing.CLEANUP_SECONDS)
             except subprocess.TimeoutExpired as cleanup:
                 cleanup_timeout = True
                 output, error = cleanup.output or expired.output or b'', cleanup.stderr or expired.stderr or b''
+            if observation is not None:
+                observation.update(outcome="timeout", forced_cleanup=True, owned_process_seconds=time.monotonic() - started)
+                try: qualify.record_progress(observation, error)
+                except ValueError: observation["progress_invalid"] = True
             # Native qualification already emits fixed fixture checkpoints. Keep
             # their bounded tail when a deadline expires, before fixture cleanup.
             sys.stdout.buffer.write(output[-65536:])
@@ -102,16 +111,20 @@ def child(args, *, directory=ROOT, env=None, timeout=180, allow_detached=False, 
             try:
                 write_json(ROOT / ('build/native/package-child-timeout-' + str(tree.process.pid) + '-receipt.json'), {
                     'kind': 'package-child-timeout',
-                    'stage': 'native-webview' if '--webview-qualification' in args else 'package-tool',
+                    'stage': 'native-webview' if '--webview-qualification' in args else 'native-help' if '--help-qualification' in args else 'package-tool',
                     'pid': tree.process.pid, 'timeout_seconds': timeout,
                     'poll_before_kill': before, 'poll_after_kill': tree.process.poll(),
                     'cleanup_timeout': cleanup_timeout,
                     'stdout_bytes': len(output), 'stderr_bytes': len(error),
                     'retained_tail_bytes_per_stream': 65536,
+                    **({'qualification_observation': observation} if observation is not None else {}),
                 })
             except OSError:
                 pass  # Diagnostics cannot replace the actual child timeout.
             raise
+        if observation is not None:
+            observation.update(outcome="completed" if tree.process.returncode == 0 else "failed", owned_process_seconds=time.monotonic() - started)
+            qualify.record_progress(observation, error)
         if tree.process.returncode:
             if cli_response:
                 for raw in (output, error):
@@ -128,14 +141,14 @@ def child(args, *, directory=ROOT, env=None, timeout=180, allow_detached=False, 
 
 
 def wait_for_work(request, work_id):
-    """Join durable work within the existing 180-second command bound."""
-    deadline = time.monotonic() + 180
+    """Join durable work under one original operation deadline from policy."""
+    deadline = time.monotonic() + timing.SUBPROCESS_SECONDS
     while True:
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise RuntimeError('Packaged work exceeded its original operation bound')
         try:
-            response = request(min(30000, max(1, int(remaining * 1000))), remaining)
+            response = request(min(timing.DURABLE_WORK_SECONDS * 1000, max(1, int(remaining * 1000))), remaining)
             if response.get('error'):
                 raise PackageCLIResponseError(response)
         except PackageCLIResponseError as failure:
@@ -216,7 +229,7 @@ def fetch_license():
     target = ROOT / 'build/package-pins/ladybug-LICENSE'
     target.parent.mkdir(parents=True, exist_ok=True)
     if not target.is_file() or sha(target) != LADYBUG_LICENSE_SHA:
-        with urllib.request.urlopen(LADYBUG_LICENSE_URL, timeout=45) as source, target.open('wb') as output:
+        with urllib.request.urlopen(LADYBUG_LICENSE_URL, timeout=timing.REQUEST_SECONDS) as source, target.open('wb') as output:
             shutil.copyfileobj(source, output)
     if sha(target) != LADYBUG_LICENSE_SHA:
         raise ValueError('Ladybug license identity mismatch')
@@ -906,7 +919,7 @@ def qualify_windows_install(extracted, temporary, env, *, process_factory=None):
         "$firstProcess = [Diagnostics.Process]::new(); $firstProcess.StartInfo = $startInfo; "
         "try { if (-not $firstProcess.Start()) { throw 'first-use start failed' }; $firstProcess.StandardInput.Close(); "
         "$outputTask = $firstProcess.StandardOutput.ReadToEndAsync(); $errorTask = $firstProcess.StandardError.ReadToEndAsync(); "
-        "if (-not $firstProcess.WaitForExit(30000)) { $firstProcess.Kill(); throw 'first-use timeout' }; "
+        "if (-not $firstProcess.WaitForExit(" + str(timing.FIRST_USE_COMMAND_SECONDS * 1000) + ")) { $firstProcess.Kill(); throw 'first-use timeout' }; "
         "if ($firstProcess.ExitCode -ne 0) { throw ('first-use CLI failed: ' + $errorTask.Result) }; return $outputTask.Result.TrimEnd([char[]]@([char]13,[char]10)); "
         "} finally { $firstProcess.Dispose() } }; "
         "$version = Invoke-FixtureCli 'version'; $help = Invoke-FixtureCli '--help'; "
@@ -917,7 +930,7 @@ def qualify_windows_install(extracted, temporary, env, *, process_factory=None):
     )
     options = {} if process_factory is None else {'process_factory': process_factory}
     output = child([powershell, '-NoProfile', '-NonInteractive', '-Command', script],
-                   directory=extracted, env=env, timeout=60, allow_detached=True, **options)
+                   directory=extracted, env=env, timeout=timing.FIRST_USE_SECONDS, allow_detached=True, **options)
     # The helper emits one operator status line before the final JSON object.
     first_use = json.loads(output.decode('utf-8-sig').splitlines()[-1])
     if first_use.get('version') != VERSION or any(not first_use.get(key) for key in ['help', 'init', 'doctor', 'show']):
@@ -935,27 +948,28 @@ def qualify_package_gui(gui, directory, env):
         runtime_env['INSONIC_PROCESS_STARTUP_DIAGNOSTICS'] = '1'
     # The shared runtime can legitimately restart as its own idle-exit owner.
     # Permit its explicit Windows breakaway, retaining this GUI's owned job.
-    qualification_output = child([gui, '--qualification'], directory=directory, env=runtime_env, timeout=30, allow_detached=True)
+    qualification_output = child([gui, '--qualification'], directory=directory, env=runtime_env, timeout=timing.READINESS_SECONDS, allow_detached=True)
     qualify.write_receipt(ROOT / 'build/native/package-desktop-bridge-receipt.json', qualification_output,
                           {'desktop_bridge': 'passed', 'offline_help': 'packaged', 'schema_version': VERSION})
     help_args = [gui, '--help-qualification']
     if platform.system() == 'Linux':
-        help_args = ['/usr/bin/xvfb-run', '-a', *help_args]
+        help_args = qualify.xvfb_command(help_args)
+    help_observation = {}
     with native_webview_environment(runtime_env) as profile_env:
-        help_output = child(help_args, directory=directory, env=profile_env, timeout=35, allow_detached=True)
+        help_output = child(help_args, directory=directory, env=profile_env, timeout=timing.HELP_SECONDS, allow_detached=True, observation=help_observation)
     qualify.write_receipt(ROOT / 'build/native/package-help-receipt.json', help_output,
-                          {'offline_help_activation': 'passed', 'workspace': 'not-selected', 'network_policy': 'local-assets-only', 'schema_version': VERSION})
+                          {'offline_help_activation': 'passed', 'workspace': 'not-selected', 'network_policy': 'local-assets-only', 'schema_version': VERSION}, observation=help_observation)
     args = [gui, '--webview-qualification']
     if platform.system() == 'Linux':
-        args = ['/usr/bin/xvfb-run', '-a', *args]
+        args = qualify.xvfb_command(args)
     with native_webview_environment(runtime_env) as profile_env:
-        qualification_output = child(args, directory=directory, env=profile_env, timeout=90, allow_detached=True)
+        qualification_output = child(args, directory=directory, env=profile_env, timeout=timing.GUI_SECONDS, allow_detached=True)
     qualify.write_receipt(ROOT / 'build/native/package-webview-receipt.json', qualification_output,
                           {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'ui_compact_density': 'passed', 'schema_version': VERSION})
     exit_args = [gui, '--exit-qualification']
     if platform.system() == 'Linux':
-        exit_args = ['/usr/bin/xvfb-run', '-a', *exit_args]
-    exit_output = child(exit_args, directory=directory, env=runtime_env, timeout=100, allow_detached=True)
+        exit_args = qualify.xvfb_command(exit_args)
+    exit_output = child(exit_args, directory=directory, env=runtime_env, timeout=timing.EXIT_MATRIX_SECONDS, allow_detached=True)
     qualify.write_receipt(ROOT / 'build/native/package-exit-receipt.json', exit_output, qualify.native_exit_contract())
 
 
@@ -1046,7 +1060,7 @@ def wait_for_detached_idle(last_completed_at=None, executable=None):
     if remaining:
         time.sleep(remaining)
     if executable is not None and platform.system() == 'Windows':
-        deadline = time.monotonic() + 10
+        deadline = time.monotonic() + timing.NATURAL_RELEASE_SECONDS
         while not windows_image_released(executable):
             remaining = deadline - time.monotonic()
             if remaining <= 0:

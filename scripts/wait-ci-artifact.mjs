@@ -3,6 +3,17 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import { milliseconds, effectiveDeadline } from './qualification-timing.mjs';
+
+function requireTime(deadline, now, signal) {
+  signal?.throwIfAborted();
+  if (now() >= deadline) throw new Error('Original qualification or artifact deadline exceeded.');
+}
+
+function requestSignal(deadline, now, signal) {
+  const timer = AbortSignal.timeout(Math.max(1, Math.min(milliseconds('request_seconds'), deadline - now())));
+  return signal ? AbortSignal.any([signal, timer]) : timer;
+}
 
 async function inventory(url, token, signal) {
   const response = await fetch(url, { signal, redirect: 'error', headers: {
@@ -18,16 +29,19 @@ async function inventory(url, token, signal) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 
-export async function waitForArtifact({ repository, run, attempt, os, token, deadlineMs = 180000,
-  now = Date.now, sleep: pause = sleep, request = inventory }) {
+export async function waitForArtifact({ repository, run, attempt, os, token, deadlineMs = milliseconds('artifact_source_seconds'),
+  phaseDeadlineMs, signal, now = Date.now, sleep: pause = sleep, request = inventory }) {
   if (repository !== 'shruggietech/insonic' || !/^[1-9][0-9]*$/.test(run ?? '') || !/^[1-9][0-9]*$/.test(attempt ?? '')
-      || !['windows-2022', 'ubuntu-24.04'].includes(os) || !token || deadlineMs < 1 || deadlineMs > 180000) throw new Error('Invalid source artifact identity.');
-  const deadline = now() + deadlineMs, name = `media-source-${os}-${attempt}`;
+      || !['windows-2022', 'ubuntu-24.04'].includes(os) || !token || !Number.isSafeInteger(deadlineMs)
+      || deadlineMs < 1 || deadlineMs > milliseconds('artifact_source_seconds')) throw new Error('Invalid source artifact identity.');
+  const deadline = effectiveDeadline(now(), deadlineMs, phaseDeadlineMs), name = `media-source-${os}-${attempt}`;
   const url = `https://api.github.com/repos/${repository}/actions/runs/${run}/artifacts?per_page=100`;
   const jobsUrl = `https://api.github.com/repos/${repository}/actions/runs/${run}/attempts/${attempt}/jobs?per_page=100`;
   while (now() < deadline) {
-    const signal = AbortSignal.timeout(Math.max(1, Math.min(15000, deadline - now())));
-    const [value, gates] = await Promise.all([request(url, token, signal), request(jobsUrl, token, signal)]);
+    requireTime(deadline, now, signal);
+    const boundedSignal = requestSignal(deadline, now, signal);
+    const [value, gates] = await Promise.all([request(url, token, boundedSignal), request(jobsUrl, token, boundedSignal)]);
+    requireTime(deadline, now, signal);
     if (!Array.isArray(gates?.jobs) || gates.total_count !== gates.jobs.length || gates.total_count > 100) throw new Error('Incomplete qualification gate inventory.');
     let ready = true;
     for (const name of ['foundation', 'docs-build']) {
@@ -46,7 +60,7 @@ export async function waitForArtifact({ repository, run, attempt, os, token, dea
           || !/^sha256:[a-f0-9]{64}$/.test(item.digest ?? '')) throw new Error('Invalid source artifact authority.');
       if (ready) return item.id;
     }
-    await pause(Math.max(0, Math.min(5000, deadline - now())));
+    await pause(Math.max(0, Math.min(5000, deadline - now())), undefined, { signal });
   }
   throw new Error('Same-run source artifact deadline exceeded.');
 }
@@ -75,17 +89,20 @@ function windowsProducers(role, revision, attempt) {
     jobName: `Qualify Windows desktop (${scope})`, name: `windows-desktop-proof-${scope}-${revision}-${attempt}` }));
 }
 
-async function waitForWindowsProducers({ role, repository, run, attempt, revision, token, deadlineMs = 400000,
-  now = Date.now, sleep: pause = sleep, request = inventory, observeFailure = async () => {} }) {
+async function waitForWindowsProducers({ role, repository, run, attempt, revision, token, deadlineMs = milliseconds('artifact_producer_seconds'),
+  phaseDeadlineMs, signal, now = Date.now, sleep: pause = sleep, request = inventory, observeFailure = async () => {} }) {
   if (repository !== 'shruggietech/insonic' || !/^[1-9][0-9]*$/.test(run ?? '') || !/^[1-9][0-9]*$/.test(attempt ?? '')
-      || !['input', 'proof', 'packages'].includes(role) || !/^[a-f0-9]{40}$/.test(revision ?? '') || !token || deadlineMs < 1 || deadlineMs > 400000) throw new Error(`Invalid Windows ${role} identity.`);
-  const producers = windowsProducers(role, revision, attempt), deadline = now() + deadlineMs;
+      || !['input', 'proof', 'packages'].includes(role) || !/^[a-f0-9]{40}$/.test(revision ?? '') || !token
+      || !Number.isSafeInteger(deadlineMs) || deadlineMs < 1 || deadlineMs > milliseconds('artifact_producer_seconds')) throw new Error(`Invalid Windows ${role} identity.`);
+  const producers = windowsProducers(role, revision, attempt), deadline = effectiveDeadline(now(), deadlineMs, phaseDeadlineMs);
   const url = `https://api.github.com/repos/${repository}/actions/runs/${run}/artifacts?per_page=100`;
   const jobsUrl = `https://api.github.com/repos/${repository}/actions/runs/${run}/attempts/${attempt}/jobs?per_page=100`;
   let lastIncomplete = '';
   while (now() < deadline) {
-    const signal = AbortSignal.timeout(Math.max(1, Math.min(15000, deadline - now())));
-    const [value, gates] = await Promise.all([request(url, token, signal), request(jobsUrl, token, signal)]);
+    requireTime(deadline, now, signal);
+    const boundedSignal = requestSignal(deadline, now, signal);
+    const [value, gates] = await Promise.all([request(url, token, boundedSignal), request(jobsUrl, token, boundedSignal)]);
+    requireTime(deadline, now, signal);
     for (const [items, count] of [[value?.artifacts, value?.total_count], [gates?.jobs, gates?.total_count]]) {
       if (!Array.isArray(items) || items.length > 100 || !Number.isSafeInteger(count) || count < 0 || count > 100) {
         throw new Error(`Incomplete Windows ${role} inventory.`);
@@ -114,14 +131,16 @@ async function waitForWindowsProducers({ role, repository, run, attempt, revisio
       if (item && job?.status === 'completed' && job.conclusion === 'success') ready[scope] = item.id;
     }
     if (complete && Object.keys(ready).length === producers.length) return ready;
-    await pause(Math.max(0, Math.min(5000, deadline - now())));
+    await pause(Math.max(0, Math.min(5000, deadline - now())), undefined, { signal });
   }
   throw new Error(`Same-run Windows ${role} deadline exceeded${lastIncomplete}.`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const identity = { repository: process.env.GITHUB_REPOSITORY, run: process.env.GITHUB_RUN_ID,
-    attempt: process.env.GITHUB_RUN_ATTEMPT, token: process.env.GH_TOKEN };
+    attempt: process.env.GITHUB_RUN_ATTEMPT, token: process.env.GH_TOKEN,
+    phaseDeadlineMs: process.env.INSONIC_QUALIFICATION_DEADLINE === undefined ? undefined
+      : Number(process.env.INSONIC_QUALIFICATION_DEADLINE) };
   if (process.argv[2] === 'windows-packages') {
     await waitForWindowsPackages({ ...identity, revision: process.argv[3], observeFailure: async observation => {
       const directory = path.resolve('build/native');

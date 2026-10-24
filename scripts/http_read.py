@@ -16,6 +16,9 @@ import threading
 import time
 from urllib.parse import urljoin, urlsplit
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
+
 TRANSIENT = {429, 500, 502, 503, 504}
 MAX_PATHS = 10000
 
@@ -39,7 +42,7 @@ def request(url, limit, deadline, clock):
     hostname, port = origin(url)
     remaining = deadline - clock()
     if remaining <= 0: raise TimeoutError('public request deadline exceeded')
-    connection = http.client.HTTPSConnection(hostname, port, timeout=min(15, remaining), context=ssl.create_default_context())
+    connection = http.client.HTTPSConnection(hostname, port, timeout=min(timing.REQUEST_SECONDS, remaining), context=ssl.create_default_context())
     response = None
     def expire():
         # A peer can trickle headers often enough to avoid a socket's inactivity
@@ -78,7 +81,7 @@ def request(url, limit, deadline, clock):
             if response.isclosed(): break
             # HTTPResponse owns the socket after a Connection: close response.
             # Set each read's timeout against the aggregate deadline as well.
-            response.fp.raw._sock.settimeout(min(15, remaining))
+            response.fp.raw._sock.settimeout(min(timing.REQUEST_SECONDS, remaining))
             chunk = response.read1(min(65536, limit + 1 - len(data)))
             if not chunk: break
             data.extend(chunk)

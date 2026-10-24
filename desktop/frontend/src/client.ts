@@ -36,6 +36,7 @@ export interface NativeBridge {
   CompleteSmoke(response: Response): Promise<void>;
   NativeQualificationData?(): Promise<Response>;
   QualificationStep?(stage: string): Promise<boolean>;
+  QualificationProgress?(stage: string, elapsedMilliseconds: number): Promise<boolean>;
 }
 declare global {
   interface Window {
