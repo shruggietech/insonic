@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-24
 
-**Status**: Implemented; hosted acceptance and review pending
+**Status**: Implemented and qualified; owner review and merge pending
 
 **Input**: S047 for [#172](https://github.com/shruggietech/insonic/issues/172). Expand all maintained test allowances, automatically publish the PR, complete CI and at most two Codex review rounds, and stop before merge.
 

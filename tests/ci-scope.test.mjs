@@ -174,7 +174,7 @@ test('cold source dependency formats and FFmpeg transfer independently verified 
  }
 });
 
-test('full workflow attempts preserve old artifacts and consume only their matching producers', () => {
+test('workflow attempts avoid artifact-name collisions and consume only matching producers', () => {
  const workflow = name => parse(readFileSync(new URL(`../.github/workflows/${name}.yml`, import.meta.url), 'utf8'));
  const transfers = documents => documents.flatMap(document => Object.values(document.jobs).flatMap(job => job.steps ?? []))
   .filter(step => /actions\/(?:upload|download)-artifact@/.test(step.uses ?? ''));
@@ -187,7 +187,7 @@ test('full workflow attempts preserve old artifacts and consume only their match
   const steps = transfers(documents).filter(step => documents[0].name === 'CI' || !step.if?.includes('inputs.reuse-ci-go-dependencies'));
   for (const step of steps) {
    assert.ok((step.with.name ?? step.with.pattern).endsWith('-${{ github.run_attempt }}'));
-   if (step.uses.includes('/upload-')) assert.ok(!step.with.overwrite); // Keep earlier attempt evidence immutable.
+   if (step.uses.includes('/upload-')) assert.ok(!step.with.overwrite); // Workflow naming cannot guarantee platform retention.
   }
   const platforms = ['ubuntu-24.04', 'windows-2022', 'macos-15'];
   const variants = ['cli', 'desktop'], groups = ['compression', 'audio', 'av1'];

@@ -2,42 +2,52 @@
 
 ## Local checks (2026-10-24)
 
-- Root `npm run check`: passed (1,604 text files; 25 schemas, 22 contracts, 30 examples; version 1.0.1).
-- Root `npm test`: 194 passed after review repairs.
-- Python discovery: 583 tests passed, one existing platform skip, 412.522 seconds. Used the pinned Go 1.27.1 compiler and Windows-supported C locale; no test assertion was skipped to repair the earlier locale failure.
-- Frontend: 108 tests passed; TypeScript and build passed.
-- Site: 17 tests passed; production build and 111-page link/anchor checks passed.
-- Focused native policy/progress/frontend-clock cases passed. Full model/backend suites and desktop provisioning/cancellation cases passed after fixture repairs.
-- Go vet passed. Complete `go test -p=2 -count=1 -timeout=30m ./...` passed. The final controlled-clock process fixture split also passed its complete package suite in 4.971 seconds.
+- Root integrity/schema checks passed: 1,605 text files, 25 schemas, 22 contracts, 30 examples, version 1.0.1. Root Node tests passed 194/194.
+- Initial full Python discovery ran 583 cases with one existing platform skip in 412.522 seconds, using pinned Go 1.27.1 and the Windows-supported C locale. After repairs, qualification ran 22 cases (one POSIX-only Windows skip), package tests passed 28/28 and the runtime replacement fixture passed 20 Windows repetitions.
+- Complete Go tests and vet passed. Final controlled-clock process fixtures passed their full package suite in 4.971 seconds; production clocks and cancellation/generation fences remain intact.
+- Frontend: 108 tests, TypeScript and build passed. Site: 17 tests, production build and 111-page link/anchor checks passed.
+- Current hosted core Python discovery ran 587 cases per platform: Windows 584 passed / 3 skipped, Linux 554 passed / 33 skipped. Platform/environment skips are explicit; Linux executed the new physical-descriptor regression.
 
-## Observed failures and repairs
+## Repairs and review
 
-The initial full Go run exposed short healthy fixture clocks under concurrent compilation and real filesystem work. Runtime owner fixtures now separate catalog prerequisites from the unchanged product startup clock. Direct model fixtures retain lease headroom without bypassing generation or cancellation fencing. Remaining process-containment fixtures use explicit readiness barriers and controlled expiry clocks. These are test harness repairs; ordinary product operation budgets remain unchanged.
+The initial full Go run exposed short healthy fixture clocks. Runtime owner fixtures now prepare catalog prerequisites before the unchanged product startup clock. Direct model fixtures retain lease headroom and generation/cancellation fencing. Process-containment fixtures use actual readiness barriers and controlled expiry clocks.
 
-## Hosted acceptance
+Codex round one found two P1 gaps. All 12 sparse workflow layouts now include the timing loader and policy, with isolated execution regressions. Windows producer waits now allow 3,600 seconds under the original phase deadline; controlled joins accept exact valid proofs at 3,005 seconds with reserve remaining. Both individual threads are resolved. The second and final authorized round reported no major issues on 3a079e4. Later CI repairs are included for owner review; no third trigger was sent.
 
-PR #173 is published. PR CI 40127126725 on 3a079e4 failed Linux source and packaged help receipt admission after successful child exits; Windows archive help released naturally in 11.156 seconds. Its independent audit recorded 1,495 seconds preparation, 707 seconds qualification and 2,202 seconds combined. Timing acceptance does not satisfy functional acceptance. The isolated cold run 40127360673 also exposed a Windows runtime-directory fixture failure. Corrected-head CI and an isolated passing cold/full warm comparison remain pending. No merge, release, installation or owner-desktop GUI/input operation has occurred. A finite passing campaign will not establish a causal closure of #154.
+PR CI 40127126725 and isolated cold run 40127360673 on 3a079e4 failed functional gates despite valid timing accounting (1,495 + 707 = 2,202 seconds and 1,656 + 792 = 2,448 seconds). Linux source/package help rejected ambiguous receipts after successful child exits. The cold Windows runtime fixture also failed directory initialization. No shared cause or historical HRESULT is inferred.
 
-## Codex round one
+Diagnostic 6c45102 exposed 17 progress JSON records plus the valid receipt on stdout. Ubuntu xvfb-run merged client stderr into stdout. A fixed argument-preserving wrapper now restores the original stderr before all six source/package help, GUI and Exit clients. Strict cardinality remains enforced. Empty, duplicate, mismatching and oversized outputs still reject; receipt encoding errors now fail the child.
 
-Both P1 findings reproduced before repair. Twelve actual sparse workflow layouts failed to import the timing loader; all twelve now start using isolated Python with only their declared files. The controlled Windows proof join expired at 1,800 seconds; it now accepts an exact valid proof at 3,005 seconds under the unchanged original 3,600-second phase deadline, with finalization reserve remaining. The root suite, integrity check and Go policy tests passed after repair.
+The runtime replacement fixture now owns an isolated profile and observes early Serve failure immediately. Its first long test-named profile hit Linux's existing 100-byte endpoint guard; 46d9265 uses a short owned temporary profile with cleanup. Existing-directory permissions, product initialization and endpoint limits are unchanged. The shared elevated-profile creation window is consistent with the original cold error but remains unproven as its cause.
 
-## Codex round two
+## Accepted stable implementation
 
-The second and final authorized round completed on 3a079e4 without major findings (review receipt 6388798075). Both individual first-round threads are resolved. No additional Codex review trigger is authorized; subsequent CI repairs remain subject to final owner review.
+All rows use head 46d926577fb37777a108fc98aedf46aef1f9bf93. The PR run tested merge revision fbb9cf8b202376f1b8835b9f525a73bc5f6149d3. Terminal metadata was fetched independently; artifact size and SHA-256 were verified before bounded ZIP parsing. Required functional and timing evaluations passed.
 
-## Hosted receipt diagnostics
+| Run / attempt | Source paths | Preparation seconds | Qualification seconds | Combined seconds | Windows help owned seconds |
+| --- | --- | ---: | ---: | ---: | ---: |
+| PR 40132111337 / 1 | warm / warm | 445 | 643 | 1088 | 8.187 |
+| Campaign 40132110240 / 1 | cold / cold | 1705 | 739 | 2444 | 18.015 |
+| Campaign 40132110240 / 2 | warm / warm | 263 | 694 | 957 | 8.140 |
 
-Strict receipt admission now reports bounded stdout identity, record counts and available progress when rejecting a successful child exit. Empty, duplicate, mismatching and oversized streams remain rejected. Receipt encoding failures now return a failed native qualification exit. These changes expose the Linux failure; they do not establish its cause or constitute functional acceptance.
+The campaign reran every job on the same run ID, source and isolated compiled-cache namespace. Cold had 41 successful / 11 intentionally skipped jobs; warm had 30 successful / 18 intentionally skipped jobs. Help retained all 17 monotonic progress records, natural owned-process release and application-return classification within the former 35-second bound. This is finite acceptance evidence, not a causal closure of #154.
 
-## Cold runtime fixture isolation
+Acceptance artifact identities:
 
-The replacement-session fixture now uses a private test profile and observes runtime termination during startup. Twenty repeated executions passed on Windows without GUI activation. The shared elevated-profile creation window is consistent with the cold error but is not established as its cause; existing-directory ownership checks and product initialization behavior remain unchanged.
+- PR: 12576061396, 986 bytes, SHA-256 fefbd54fa0fa5b9a496a99587f4f91814d1770f59da6f3baf2de8c3318583149.
+- Cold: 12576960746, 958 bytes, SHA-256 40acfdb241904130bef5314b116bb1dc6c2c5e9496da5e2d3778cb416b8cf590.
+- Warm: 12576554820, 952 bytes, SHA-256 2bb3ef92acfc2b72f480d7bd574ca53a62ddeb46426c71e441704b98ae4e429d.
 
-## Linux stream repair
+## Evidence retention and limits
 
-Run 40130302739 exposed 18 JSON stdout records: 17 progress records and one valid help receipt. The application completed in 6.552 seconds. Ubuntu xvfb-run merges client stderr into stdout; qualification now preserves the original stderr descriptor and restores it before executing each source/package help, GUI and exit client. Strict receipt cardinality is unchanged. The POSIX regression executes a merging virtual-display stub and checks literal arguments, distinct physical streams, validated progress and strict rejection of recombined output. Hosted POSIX execution remains required.
+After warm rerun began, cold artifact IDs returned HTTP 404 and the run artifact list contained attempt 2 only. The successful independent cold audit had completed beforehand. Its complete decoded help receipt, all progress, source/run/attempt identity, artifact sizes/digests and terminal timings are retained in the [cold receipt](https://github.com/shruggietech/insonic/pull/173#issuecomment-6389944708). Original cold ZIP bytes are unavailable and are not represented as retained.
 
-Repair checks: root integrity/schema checks passed; root tests 194/194 passed with normal filesystem access. Affected qualification tests ran 22 cases (one POSIX-only skip on Windows); package tests passed 28/28. The Windows replacement fixture passed 20 repetitions. The restricted filesystem run was not used as acceptance.
+The completed cold candidate job also retains its [package manifest and input identities](https://github.com/shruggietech/insonic/pull/173#issuecomment-6389966814): release-manifest.json is 7,429,982 bytes, SHA-256 3d607ccdf6f736d135b151183f1f1e2362f0dea6dc7dae1f9da62f4aa691cf24, binding four packages and eight assets. These are job-reported identities, distinct from independently downloaded proof bytes.
 
-The first isolated profile used Go's long test-named temporary path and hit Linux's existing 100-byte endpoint guard in PR run 40131380247. The fixture now uses a short owned temporary profile with cleanup; the product endpoint bound is unchanged. Twenty repeated Windows executions passed after correction. The Linux physical-stream regression had passed in that attempt's core lane.
+The [warm receipt](https://github.com/shruggietech/insonic/pull/173#issuecomment-6390049943) retains its separate audit and three-asset byte identity. Its archive proof 12576594460 is 2,895,112 bytes, SHA-256 73a01ede78bafa7ee9fe2d996734e94824dad4602193eedeeeac77dfcc138254. The internal proof file inventory and archive/MSI/setup bindings were independently checked. Agent/quickstart guidance now places compact receipt retention before rerun; the naming regression claims collision avoidance, not platform retention.
+
+## Convergence and handoff
+
+Final Spec Kit convergence checked 13 functional requirements, five success criteria, ten acceptance scenarios, eight design decisions and the five core constitution principles plus relevant repository constraints. No remaining implementation finding was identified; the assessment appended no empty phase. All repair tasks are complete.
+
+The verification-record commit updates internal planning, agent retention guidance and a test description/comment only. Stable implementation qualification above remains identified by its actual source. That final PR head receives its own full CI and terminal audit before owner handoff; its receipt is retained in the PR discussion. No merge, release, installation or owner-desktop GUI/input operation occurred. Merged-main acceptance remains a later owner-approved step; #154 and #147 retain their separate scopes.

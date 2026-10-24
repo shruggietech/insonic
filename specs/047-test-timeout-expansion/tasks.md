@@ -48,12 +48,12 @@
 ## Phase 6: Verification and publication
 
 - [x] T021 Run root `npm run check`, `npm test` and affected Python/Go/frontend/site suites; retain compact results in `verification.md` (FR-007/010).
-- [ ] T022 Converge against all S047 requirements in `specs/047-test-timeout-expansion/` and repair findings (FR-001 through FR-013).
+- [x] T022 Converge against all S047 requirements in `specs/047-test-timeout-expansion/` and repair findings (FR-001 through FR-013).
 - [x] T023 Commit, automatically push `codex/047-test-timeout-expansion` and open official PR closing#172; attach PR and update GitHub Project (FR-013).
-- [ ] T024 Monitor exact-head CI and automatic review, repair failures, answer/resolve every actionable thread in the PR (FR-010/013).
-- [ ] T025 Dispatch isolated cold CI and full same-run warm rerun on stable implementation source; independently validate each terminal attempt/artifact (FR-012).
+- [x] T024 Monitor exact-head CI and automatic review, repair failures, answer/resolve every actionable thread in the PR (FR-010/013).
+- [x] T025 Dispatch isolated cold CI and full same-run warm rerun on stable implementation source; independently validate each terminal attempt/artifact (FR-012).
 - [x] T026 Trigger at most a second Codex round if needed and resolve all findings; do not request a third (FR-013).
-- [ ] T027 Complete final exact-head/check/review/clean-state verification and compact external evidence; stop before merge (FR-012/013).
+- [x] T027 Complete final exact-head/check/review/clean-state verification and compact external evidence; stop before merge (FR-012/013).
 
 ## Dependencies and parallel execution
 
@@ -72,6 +72,8 @@ Deliver expanded healthy execution with intact failures first, then complete con
 
 ## Phase 8: Convergence
 
-- [ ] T032 Diagnose and repair Linux successful-exit help receipt rejection, retain bounded stream identity/progress, and rerun affected hosted acceptance per FR-008/FR-010 (partial).
+- [x] T032 Diagnose and repair Linux successful-exit help receipt rejection, retain bounded stream identity/progress, and rerun affected hosted acceptance per FR-008/FR-010 (partial).
 
-- [ ] T033 Verify the isolated runtime replacement fixture on hosted Windows and retain cold-run failure attribution without claiming a product permission repair per FR-006/FR-010/FR-011 (partial).
+- [x] T033 Verify the isolated runtime replacement fixture on hosted Windows and retain cold-run failure attribution without claiming a product permission repair per FR-006/FR-010/FR-011 (partial).
+
+- [x] T034 Retain the pre-rerun cold audit and decoded progress receipt in the PR discussion, document artifact availability limits in AGENTS.md and quickstart.md, and correct the naming regression's unsupported platform-retention claim per FR-010/FR-012 (partial).
