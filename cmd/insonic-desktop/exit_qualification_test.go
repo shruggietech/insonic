@@ -44,6 +44,13 @@ func TestExitFixtureRejectsAmbiguousOrUnboundedInput(t *testing.T) {
 	}
 }
 func TestExitObserverRejectsRuntimeReplacementWithoutRestart(t *testing.T) {
+	// Independent package tests must not compete to initialize one runner profile.
+	profile := t.TempDir()
+	t.Setenv("APPDATA", filepath.Join(profile, "config"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(profile, "local"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(profile, "config"))
+	t.Setenv("XDG_DATA_HOME", filepath.Join(profile, "data"))
+	t.Setenv("XDG_CACHE_HOME", filepath.Join(profile, "cache"))
 	w, err := workspace.Init(t.TempDir(), "Exit observer")
 	if err != nil {
 		t.Fatal(err)
@@ -57,14 +64,20 @@ func TestExitObserverRejectsRuntimeReplacementWithoutRestart(t *testing.T) {
 	go func() {
 		done <- local.Serve(ctx, w, local.Options{Ready: ready, Idle: qualificationtiming.Duration("fixture_idle_seconds")})
 	}()
+	stopped := false
 	defer func() {
 		cancel()
-		if err := <-done; err != nil {
-			t.Error(err)
+		if !stopped {
+			if err := <-done; err != nil {
+				t.Error(err)
+			}
 		}
 	}()
 	select {
 	case <-ready:
+	case err := <-done:
+		stopped = true
+		t.Fatalf("runtime stopped before readiness: %v", err)
 	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("runtime did not become ready")
 	}

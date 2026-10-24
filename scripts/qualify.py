@@ -53,6 +53,14 @@ def validate_maintained_sources(selected=None):
     if selected.get('maintained_sources') != expected:
         raise ValueError('qualification maintained source identities differ')
 
+def xvfb_command(args, *, runner='/usr/bin/xvfb-run'):
+    # Ubuntu's xvfb-run merges the client's stderr into stdout. Preserve the
+    # original stderr on fd 9, then restore it in the client before exec. Fixed
+    # shell programs receive every executable/argument separately, never as code.
+    return ['/bin/sh', '-c', 'exec "$@" 9>&2', 'insonic-xvfb', str(runner), '-a',
+            '/bin/sh', '-c', 'exec "$@" 2>&9 9>&-', 'insonic-xvfb-child', *args]
+
+
 def child(args, *, env=None, timeout=timing.SUBPROCESS_SECONDS, allow_detached=False):
     timeout = timing.phase_bound(timeout)
     merged = os.environ.copy()
@@ -380,21 +388,21 @@ def desktop():
                   {'desktop_bridge': 'passed', 'offline_help': 'packaged', 'schema_version': VERSION})
     help_args = [executable, '--help-qualification']
     if platform.system() == 'Linux':
-        help_args = ['xvfb-run', '-a', *help_args]
+        help_args = xvfb_command(help_args)
     with native_webview_environment(runtime_env) as profile_env:
         help_output = child(help_args, env=profile_env, timeout=timing.HELP_SECONDS, allow_detached=True)
     write_receipt(BUILD / 'help-webview-receipt.json', help_output,
                   {'offline_help_activation': 'passed', 'workspace': 'not-selected', 'network_policy': 'local-assets-only', 'schema_version': VERSION})
     args = [executable, '--webview-qualification']
     if platform.system() == 'Linux':
-        args = ['xvfb-run', '-a', *args]
+        args = xvfb_command(args)
     with native_webview_environment(runtime_env) as profile_env:
         output = child(args, env=profile_env, timeout=timing.GUI_SECONDS, allow_detached=True)
     write_receipt(BUILD / 'webview-receipt.json', output,
                   {'frontend_bridge_ipc': 'passed', 'native_webview': 'passed', 'ui_model_references': 'passed', 'ui_compact_density': 'passed', 'schema_version': VERSION})
     exit_args = [executable, '--exit-qualification']
     if platform.system() == 'Linux':
-        exit_args = ['xvfb-run', '-a', *exit_args]
+        exit_args = xvfb_command(exit_args)
     exit_output = child(exit_args, env=runtime_env, timeout=timing.EXIT_MATRIX_SECONDS, allow_detached=True)
     write_receipt(BUILD / 'exit-receipt.json', exit_output, native_exit_contract())
 

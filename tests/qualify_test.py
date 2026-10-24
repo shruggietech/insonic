@@ -17,6 +17,42 @@ qualify = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(qualify)
 
 class QualificationArchiveTests(unittest.TestCase):
+    def test_virtual_display_wrapper_preserves_literal_arguments(self):
+        args = ['/private program/desktop', '--help-qualification', 'quote\'"$(); text']
+        command = qualify.xvfb_command(args)
+        self.assertEqual(command[-len(args):], args)
+        self.assertEqual(command[0], '/bin/sh')
+        self.assertIn('/usr/bin/xvfb-run', command)
+
+    @unittest.skipUnless(os.name == 'posix', 'POSIX descriptor inheritance requires a POSIX host')
+    def test_virtual_display_restores_stderr_before_strict_receipt_admission(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            runner = root / 'controlled xvfb-run'
+            runner.write_text('#!/bin/sh\n[ "$1" = "-a" ] || exit 98\nshift\nexec 3>/dev/null\n"$@" 2>&1\n', encoding='utf-8')
+            runner.chmod(0o700)
+            progress = {'kind': 'desktop-qualification-progress', 'mode': 'help',
+                        'observation': 'native-receipt', 'stage': 'module', 'elapsed_ns': 1}
+            receipt = {'offline_help_activation': 'passed'}
+            program = ('import json,sys; '
+                       'print(json.dumps(' + repr(progress) + '), file=sys.stderr); '
+                       'print(json.dumps(' + repr(receipt) + ')); '
+                       'assert sys.argv[1:] == ["literal $(); argument"]')
+            command = qualify.xvfb_command([sys.executable, '-c', program, 'literal $(); argument'], runner=runner)
+            with qualify.ProcessTree(command, cwd=root, env=os.environ.copy()) as tree:
+                output, error = tree.process.communicate(timeout=qualify.timing.READINESS_SECONDS)
+                self.assertEqual(tree.process.returncode, 0)
+            self.assertEqual(json.loads(output), receipt)
+            self.assertEqual(json.loads(error), progress)
+            observation = {}
+            qualify.record_progress(observation, error)
+            self.assertEqual(observation['progress'], [progress])
+            target = root / 'receipt.json'
+            qualify.write_receipt(target, output, receipt)
+            self.assertEqual(json.loads(target.read_text(encoding='utf-8')), receipt)
+            with self.assertRaises(ValueError):
+                qualify.write_receipt(target, output + error, receipt)
+
     def test_receipt_rejection_preserves_bounded_stream_identity_without_acceptance(self):
         from hashlib import sha256
         from unittest.mock import Mock

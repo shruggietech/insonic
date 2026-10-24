@@ -29,3 +29,13 @@ The second and final authorized round completed on 3a079e4 without major finding
 ## Hosted receipt diagnostics
 
 Strict receipt admission now reports bounded stdout identity, record counts and available progress when rejecting a successful child exit. Empty, duplicate, mismatching and oversized streams remain rejected. Receipt encoding failures now return a failed native qualification exit. These changes expose the Linux failure; they do not establish its cause or constitute functional acceptance.
+
+## Cold runtime fixture isolation
+
+The replacement-session fixture now uses a private test profile and observes runtime termination during startup. Twenty repeated executions passed on Windows without GUI activation. The shared elevated-profile creation window is consistent with the cold error but is not established as its cause; existing-directory ownership checks and product initialization behavior remain unchanged.
+
+## Linux stream repair
+
+Run 40130302739 exposed 18 JSON stdout records: 17 progress records and one valid help receipt. The application completed in 6.552 seconds. Ubuntu xvfb-run merges client stderr into stdout; qualification now preserves the original stderr descriptor and restores it before executing each source/package help, GUI and exit client. Strict receipt cardinality is unchanged. The POSIX regression executes a merging virtual-display stub and checks literal arguments, distinct physical streams, validated progress and strict rejection of recombined output. Hosted POSIX execution remains required.
+
+Repair checks: root integrity/schema checks passed; root tests 194/194 passed with normal filesystem access. Affected qualification tests ran 22 cases (one POSIX-only skip on Windows); package tests passed 28/28. The Windows replacement fixture passed 20 repetitions. The restricted filesystem run was not used as acceptance.

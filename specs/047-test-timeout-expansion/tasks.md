@@ -73,3 +73,5 @@ Deliver expanded healthy execution with intact failures first, then complete con
 ## Phase 8: Convergence
 
 - [ ] T032 Diagnose and repair Linux successful-exit help receipt rejection, retain bounded stream identity/progress, and rerun affected hosted acceptance per FR-008/FR-010 (partial).
+
+- [ ] T033 Verify the isolated runtime replacement fixture on hosted Windows and retain cold-run failure attribution without claiming a product permission repair per FR-006/FR-010/FR-011 (partial).
