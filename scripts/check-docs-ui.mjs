@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Browser checks own a fresh headless profile. They never attach to a desktop browser.
-import { readFile, writeFile, readdir, mkdir, mkdtemp, rm, stat, lstat, realpath, open } from 'node:fs/promises';
+import { readFile, writeFile, readdir, mkdir, stat, lstat, realpath, open } from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
@@ -8,6 +8,7 @@ import os from 'node:os';
 import http from 'node:http';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium } from 'playwright-core';
+import {createOwnedFixture} from './owned-ui-fixture.mjs';
 import { milliseconds, qualificationTiming } from './qualification-timing.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -416,14 +417,22 @@ async function checkLanding({ page, browser, contexts, configure, navigate, repo
   report.cases.push({ name: 'Whole landing: real snapshot and same-source released state, all links, geometry, full-page light/dark captures, enlargement, keyboard/pointer/touch activation', passed: true });
 }
 
+export async function createDocumentationFixture(options={}) {
+  return createOwnedFixture('insonic-docs-ui-',{...options,markerName:'docs-ui-owner.json',kind:'insonic-docs-ui',initialize:async(directory,filesystem)=>{
+    const env=browserEnvironment(directory,options.browser);
+    for(const name of ['APPDATA','LOCALAPPDATA','XDG_CONFIG_HOME','XDG_CACHE_HOME'])await filesystem.mkdir(env[name],{recursive:true});
+  }});
+}
+
 export async function checkDocumentationUI(options = parseOptions([])) {
   const started = Date.now();
   const deadline = started + milliseconds('docs_browser_seconds');
   const navigate = (page, url, settings) => ready(page, url, deadline, settings);
   const report = { kind: 'documentation-ui-verification', qualification_limit_seconds: qualificationTiming.docs_browser_seconds, viewport_widths: [320, 360, 390, 768, 1440], themes: ['light', 'dark'], browser: null, isolated_profile: true, public_pages: 0, offline_pages: 0, cases: [], readability: [], screenshots: [], external_requests: [], external_websockets: [], browser_errors: [], cleanup: {}, limitations: ['Automated Chromium checks and captured visual inspection do not certify screen-reader behavior, other browser engines, every assistive technology, or complete WCAG conformance. Contrast checks sample body, link, muted, navigation, syntax and diagram-label text on computed solid surfaces; arbitrary raster-image text and gradients are not certified.'] };
   await mkdir(options.output, { recursive: true });
-  const fixtureBase = os.platform() === 'win32' ? path.parse(os.tmpdir()).root : os.tmpdir();
-  const fixture = await mkdtemp(path.join(fixtureBase, 'insonic-docs-ui-'));
+  const ownedFixture = await createDocumentationFixture({parent:options.fixtureParent,browser:options.browser});
+  const fixture = ownedFixture.directory;
+  report.fixture = ownedFixture.evidence;
   let context;
   const contexts = [];
   let server;
@@ -440,13 +449,13 @@ export async function checkDocumentationUI(options = parseOptions([])) {
     const offlineFiles = await htmlFiles(options.offline);
     ({ server, origin: report.origin } = await serve({ public: options.out, offline: options.offline }));
     const env = browserEnvironment(fixture, options.browser);
-    for (const directory of [env.APPDATA, env.LOCALAPPDATA, env.XDG_CONFIG_HOME, env.XDG_CACHE_HOME]) await mkdir(directory, { recursive: true });
     context = await chromium.launchPersistentContext(path.join(fixture, 'browser-profile'), {
       headless: true, timeout: milliseconds('frontend_seconds'), ...(options.browser ? { executablePath: options.browser } : {}),
       env, args: ['--disable-background-networking', '--disable-extensions', '--no-first-run', '--no-default-browser-check'],
       viewport: { width: 320, height: 900 }, deviceScaleFactor: 1, locale: 'en-US', colorScheme: 'light', reducedMotion: 'reduce', serviceWorkers: 'block',
     });
     contexts.push(context);
+    assert(!deadlineExpired, 'Documentation browser deadline expired during launch.');
     context.setDefaultTimeout(milliseconds('frontend_seconds'));
     context.setDefaultNavigationTimeout(milliseconds('frontend_seconds'));
     const browser = context.browser();
@@ -581,13 +590,11 @@ export async function checkDocumentationUI(options = parseOptions([])) {
     report.cleanup.browser_contexts_closed = contexts.length > 0 && !report.cleanup.browser_error;
     if (server) await new Promise(resolve => { server.closeAllConnections(); server.close(resolve); });
     report.cleanup.server_closed = !server?.listening;
-    if (report.cleanup.browser_contexts_closed || !context) {
-      assert(path.dirname(fixture) === fixtureBase && path.basename(fixture).startsWith('insonic-docs-ui-'), 'Unexpected owned fixture path.');
-      try {
-        await rm(fixture, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
-        report.cleanup.owned_fixture_removed = true;
-      } catch (error) { report.cleanup.fixture_error = error.message; }
-    }
+    try {
+      assert(report.cleanup.browser_contexts_closed || !context, 'Owned browser cleanup failed; fixture remains at '+fixture);
+      await ownedFixture.cleanup();
+      report.cleanup.owned_fixture_removed = true;
+    } catch (error) { report.cleanup.fixture_error = error.message; report.cleanup.residual = fixture; }
     report.elapsed_seconds = Math.round((Date.now() - started) / 100) / 10;
     if(Date.now()>deadline){failure??=new Error('Documentation browser including owned cleanup exceeded its allowance.');report.failure=failure.message;}
     delete report.origin;
@@ -595,7 +602,7 @@ export async function checkDocumentationUI(options = parseOptions([])) {
     await writeFile(path.join(options.output, 'report.json'), JSON.stringify(report, null, 2) + '\n', 'utf8');
   }
   if (failure) throw failure;
-  assert(report.passed, 'Documentation browser cleanup did not complete.');
+  assert(report.passed, 'Documentation browser cleanup did not complete: '+(report.cleanup.fixture_error||report.cleanup.browser_error||'unknown cleanup failure'));
   console.log(`Documentation UI checked: ${report.public_pages} public and ${report.offline_pages} offline pages, ${report.cases.length} cases, ${report.elapsed_seconds}s; ${options.output}`);
   return report;
 }

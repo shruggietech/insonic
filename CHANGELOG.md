@@ -179,6 +179,10 @@ All notable changes to this project will be documented here. The format follows 
 - 2026-10-21: Derive CLI coverage from executed help and reuse the existing installed qualification helpers and verified package identity. Index reusable fixture owners instead of preserving ad hoc audit transcripts. Keep semantic assertions distinct from successful invocation and observed refusal; include spaces/non-Latin installed destinations without adding another test matrix or changing qualification deadlines.
 - 2026-10-22: Correct the pinned Windows ExifTool launcher's ANSI install-path handling through a deterministic packaged-copy manifest transformation before signing and inventory. Preserve upstream cached bytes, original resource contents and source reproduction evidence; retain mandatory Unicode capture checks and existing timing limits. Apply the same process-local code-page contract to native CLI/desktop executables after demonstrating the later LadybugDB parent-path failure.
 
+### Fixed
+
+- 2026-10-25: Confine application-capture and documentation-browser fixtures beneath the actual temporary directory on Windows and Linux. Reject volume/share roots and root aliases, retain cleanup responsibility through marker/profile initialization failures, verify allocation identity before removal, and report residual locations when child release or removal fails. Browser qualification now exercises both tools on both supported platforms with retained location and post-run absence evidence.
+
 ## [1.0.1] - 2026-10-15
 
 - Resolve contextual CLI help before effects and preserve literal arguments, atomic option values, scalar/Boolean arity, repeatable speaker selectors and early invalid-command diagnostics. Include operation-specific JSON-file templates and contracts.

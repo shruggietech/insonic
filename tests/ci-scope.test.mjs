@@ -325,3 +325,21 @@ test('downstream CI joins inherit the original qualification deadline before wai
  const administrative=parse(readFileSync(new URL('../.github/workflows/issue-classification.yml',import.meta.url),'utf8'));
  assert.equal(administrative.jobs.classify['timeout-minutes'],2);
 });
+
+
+test('both UI tools have actual Windows and Linux qualification with retained fixture diagnostics',()=>{
+ const qualification=parse(readFileSync(new URL('../.github/workflows/native-qualification.yml',import.meta.url),'utf8'));
+ const steps=qualification.jobs.runtime_checks.steps;
+ const capture=steps.find(step=>step.name==='Qualify unattended application screenshots');
+ assert.equal(capture.if,"inputs.native && matrix.runtime_lane == 'desktop'");
+ const artifact=steps.find(step=>step.with?.name?.startsWith('application-ui-capture-'));
+ assert.ok(artifact.with.name.includes('${{ inputs.os }}'));assert.equal(artifact.if,"success() && inputs.native && matrix.runtime_lane == 'desktop'");
+ const docs=steps.findIndex(step=>step.run?.includes('python scripts/qualify-docs-ui.py'));
+ assert.ok(docs>steps.findIndex(step=>step.name==='Restore verified same-run offline help'));
+ assert.ok(docs>steps.findIndex(step=>step.name==='Qualify unattended application screenshots'));
+ assert.equal(steps[docs].if,"inputs.native && matrix.runtime_lane == 'desktop' && runner.os == 'Windows'");
+ const receipts=steps.find(step=>step.with?.name?.startsWith('native-receipts-'));
+ assert.ok(receipts.if.includes('always()'));assert.ok(receipts.with.path.includes('build/docs-ui'));
+ const ci=parse(readFileSync(new URL('../.github/workflows/ci.yml',import.meta.url),'utf8'));
+ assert.ok(Object.values(ci.jobs).some(job=>job.steps?.some(step=>step.run?.includes('node scripts/check-docs-ui.mjs'))));
+});

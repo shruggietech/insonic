@@ -7,6 +7,8 @@ import {mkdtemp,mkdir,readFile,writeFile,rm} from 'node:fs/promises';
 import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {milliseconds} from '../scripts/qualification-timing.mjs';
+import * as fixtureFS from 'node:fs/promises';
+import * as captureTool from '../scripts/capture-application-ui.mjs';
 import {fixtureEnvironment,parseOptions,allowedAsset,assertReceipt,boundedOperation,sourceSnapshot,embeddedSourceIdentity,assertBinarySource,VERSION,PLAYWRIGHT_VERSION} from '../scripts/capture-application-ui.mjs';
 
 test('capture renderer authority follows the exact root package and lock pins',async()=>{
@@ -80,4 +82,57 @@ test('capture phase retains classified expiry under the expanded default without
   const result = boundedOperation('browser.stalled', () => new Promise(() => {}));
   t.mock.timers.tick(milliseconds('capture_phase_seconds'));
   await assert.rejects(result, error => error.code === 'capture_timeout' && error.phase === 'browser.stalled');
+});
+
+
+test('capture fixture uses the actual nested temporary parent and verifies removal',async t=>{
+  const sandbox=await mkdtemp(path.join(os.tmpdir(),'insonic-capture-policy-'));
+  t.after(()=>rm(sandbox,{recursive:true,force:true}));
+  const parent=path.join(sandbox,'nested spaces café');await mkdir(parent);
+  const owned=await captureTool.createCaptureFixture({parent});
+  assert.equal(path.dirname(owned.directory),await fixtureFS.realpath(parent));
+  assert.ok((await fixtureFS.stat(path.join(owned.directory,'profile','AppData','Local'))).isDirectory());
+  await owned.cleanup();await assert.rejects(fixtureFS.lstat(owned.directory),{code:'ENOENT'});
+  assert.equal(owned.evidence.removed,true);
+  await mkdir(owned.directory);await writeFile(path.join(owned.directory,'unrelated.txt'),'keep');
+  await owned.cleanup();assert.equal(await readFile(path.join(owned.directory,'unrelated.txt'),'utf8'),'keep');
+});
+
+test('capture marker and profile initialization failures clean the actual allocated directory',async t=>{
+  const parent=await mkdtemp(path.join(os.tmpdir(),'insonic-capture-failures-'));
+  t.after(()=>rm(parent,{recursive:true,force:true}));
+  for(const stage of ['marker','profile']){
+    let allocated;
+    const filesystem={...fixtureFS,mkdtemp:async prefix=>allocated=await mkdtemp(prefix),
+      writeFile:async(...args)=>{if(stage==='marker'){await writeFile(args[0],'partial');throw Object.assign(Error('marker denied'),{code:'EACCES'})}return writeFile(...args)},
+      mkdir:async(...args)=>{if(stage==='profile')throw Object.assign(Error('profile denied'),{code:'EACCES'});return mkdir(...args)}};
+    await assert.rejects(captureTool.createCaptureFixture({parent,filesystem}),/denied/);
+    assert.ok(allocated);await assert.rejects(fixtureFS.lstat(allocated),{code:'ENOENT'});
+  }
+});
+
+test('capture cleanup refuses replacements and reports locked or falsely removed residuals',async t=>{
+  const parent=await mkdtemp(path.join(os.tmpdir(),'insonic-capture-ownership-'));
+  t.after(()=>rm(parent,{recursive:true,force:true}));
+  const owned=await captureTool.createCaptureFixture({parent});
+  const moved=owned.directory+'-original';await fixtureFS.rename(owned.directory,moved);await mkdir(owned.directory);
+  await writeFile(path.join(owned.directory,'unrelated.txt'),'keep');
+  await assert.rejects(owned.cleanup(),error=>error.code==='fixture_cleanup_failed'&&error.message.includes(owned.directory));
+  assert.equal(await readFile(path.join(owned.directory,'unrelated.txt'),'utf8'),'keep');assert.ok(await fixtureFS.stat(moved));
+  for(const operation of ['locked','noop']){
+    const fixture=await captureTool.createCaptureFixture({parent,filesystem:{...fixtureFS,rm:async()=>{if(operation==='locked')throw Object.assign(Error('locked'),{code:'EBUSY'})}}});
+    await assert.rejects(fixture.cleanup(),error=>error.code==='fixture_cleanup_failed'&&error.message.includes(fixture.directory)&&error.message.includes(operation==='locked'?'EBUSY':'still exists'));
+    assert.equal(fixture.evidence.removed,false);assert.ok(await fixtureFS.stat(fixture.directory));
+  }
+});
+
+
+test('capture reports an unverified allocation identity without deleting it',async t=>{
+  const parent=await mkdtemp(path.join(os.tmpdir(),'insonic-capture-identity-'));t.after(()=>rm(parent,{recursive:true,force:true}));
+  let allocated,removals=0;
+  const filesystem={...fixtureFS,mkdtemp:async prefix=>allocated=await mkdtemp(prefix),
+    lstat:async(filename,...args)=>{if(filename===allocated)throw Object.assign(Error('identity unavailable'),{code:'EACCES'});return fixtureFS.lstat(filename,...args)},
+    rm:async()=>{removals++}};
+  await assert.rejects(captureTool.createCaptureFixture({parent,filesystem}),error=>error.code==='fixture_cleanup_failed'&&error.message.includes(allocated)&&error.message.includes('EACCES'));
+  assert.equal(removals,0);assert.ok(await fixtureFS.stat(allocated));
 });
