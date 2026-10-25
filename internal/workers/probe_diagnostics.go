@@ -123,7 +123,7 @@ func (p *ProbeProgress) valid(mode string, terminal bool) bool {
 	return (p.Reason != "success" || len(p.Checkpoints) == len(expected)) && last.ElapsedMS == p.ElapsedMS && last.Stage == p.Stage && p.Files == files && p.HashedFiles == hashed && p.HashedBytes == size
 }
 func (p *Probe) valid() bool {
-	return p != nil && (p.Mode == "inspect" || p.Mode == "snapshot") && validProbeStage(p.Stage) && validProbeReason(p.Reason) && (p.Reason != "success" || p.Stage == "complete" && p.Child != nil) && p.ElapsedMS >= 0 && p.ElapsedMS <= probeMaximumMS && p.BudgetMS >= 0 && p.BudgetMS <= 60000 && (p.Child == nil || p.Child.valid(p.Mode, p.Reason == "success"))
+	return p != nil && (p.Mode == "inspect" || p.Mode == "snapshot") && validProbeStage(p.Stage) && validProbeReason(p.Reason) && (p.Reason != "success" || p.Stage == "complete" && p.Child != nil && p.Child.Reason == "success") && p.ElapsedMS >= 0 && p.ElapsedMS <= probeMaximumMS && p.BudgetMS >= 0 && p.BudgetMS <= 60000 && (p.Child == nil || p.Child.valid(p.Mode, p.Reason == "success"))
 }
 func probeContextError(ctx context.Context) error {
 	if ctx.Err() == context.Canceled {

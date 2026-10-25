@@ -219,3 +219,47 @@ func TestPrepareCancelledBeforeFallbackMakesNoAttempt(t *testing.T) {
 		t.Fatalf("cancelled fallback created work: %d %v %v", calls, entries, err)
 	}
 }
+
+func TestReceiptProbeSuccessRequiresSuccessfulChild(t *testing.T) {
+	dir := t.TempDir()
+	python := filepath.Join(dir, "python")
+	if err := os.WriteFile(python, []byte("fixture"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	pin, err := Hash(context.Background(), python)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, contradictory := range []bool{false, true} {
+		p := &Probe{Mode: "snapshot", Stage: "complete", Reason: "success", Child: fixtureProbeProgress("snapshot")}
+		if contradictory {
+			p.Child.Checkpoints = p.Child.Checkpoints[:2]
+			p.Child.Stage = "library_import"
+			p.Child.Reason = "import_failed"
+		}
+		receipt := Receipt{Kind: "worker-environment", Version: contracts.Version, Inspection: Inspection{Role: "recognition", Python: pin, Compatible: true, EngineAvailable: true, Files: []library.PinnedFile{pin}, Probe: p}}
+		raw, err := json.Marshal(receipt)
+		if err != nil {
+			t.Fatal(err)
+		}
+		name := filepath.Join(dir, "receipt.json")
+		if err := os.WriteFile(name, raw, 0600); err != nil {
+			t.Fatal(err)
+		}
+		bound, err := Hash(context.Background(), name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = VerifyReceipt(context.Background(), bound, pin)
+		if contradictory && err == nil {
+			t.Fatal("native success accepted a failed child")
+		}
+		if !contradictory && err != nil {
+			t.Fatal("valid receipt refused", err)
+		}
+	}
+	p := &Probe{Mode: "snapshot", Stage: "receipt_verification", Reason: "inventory_unreadable", Child: fixtureProbeProgress("snapshot")}
+	if !p.Valid() {
+		t.Fatal("native failure after child success must remain representable")
+	}
+}

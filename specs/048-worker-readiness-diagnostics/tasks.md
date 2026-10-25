@@ -27,10 +27,10 @@
 
 **Independent acceptance**: Earlier expiry/cancellation never becomes integrity mismatch or fresh preparation; already observed roles remain distinguishable.
 
-- [x] T010 [US2] Reproduce canceled hash/receipt/reuse and exhausted role budgets in internal/workers/probe_diagnostics_test.go and internal/app/workers_test.go (FR-003, FR-004, FR-005, FR-008).
+- [x] T010 [US2] Reproduce canceled hash/receipt/reuse and exhausted role budgets in internal/workers/probe_diagnostics_test.go and internal/app/worker_diagnostics_test.go (FR-003, FR-004, FR-005, FR-008).
 - [x] T011 [US2] Preserve deadline/cancellation through internal/workers/types.go, probe.go, setup.go and internal/app/workers.go (FR-003, FR-005).
 - [x] T012 [US2] Preserve partial readiness and mark unattempted role prerequisites unknown with fixed actions in internal/app/worker_readiness.go (FR-003, FR-004).
-- [x] T013 [US2] Add actual ephemeral IPC disconnect/cancellation regressions in internal/runtime/runtime_test.go; fix scoped cancellation in runtime.go and desktop/bridge.go without canceling durable setup (FR-003, FR-006, FR-008).
+- [x] T013 [US2] Add actual ephemeral IPC disconnect/cancellation regressions in internal/runtime/worker_disconnect_test.go; fix scoped cancellation in runtime.go and desktop/bridge.go without canceling durable setup (FR-003, FR-006, FR-008).
 - [x] T014 [US2] Verify healthy readiness, genuine integrity failure and cancellation fencing across workers/app/runtime/desktop suites (FR-003, FR-004, FR-005, FR-006).
 
 ## Phase 5: US3 Source-bound managed CPU acceptance
@@ -64,3 +64,7 @@ Setup -> contract -> US1 -> US2 -> US3 -> final delivery. US1/US2 have independe
 ## Phase 9: Convergence
 
 - [ ] T025 Wait for the existing correlated owned-runtime startup report before issuing qualification commands; retain bounded ready/failure facts, honor the original readiness/overall deadline and prove gating, invalid-report refusal and expiry in tests/journey_cpu_test.py before rerunning source-bound CPU acceptance per FR-003/FR-009 (partial).
+
+## Phase 10: Convergence
+
+- [ ] T026 Reject an optional native success diagnostic whose validated child records failure, while retaining valid native receipt-verification failure after child success; reproduce through the real receipt validator in internal/workers/probe_diagnostics_test.go, repair probe_diagnostics.go and rerun acceptance per FR-005/FR-007 (partial).
