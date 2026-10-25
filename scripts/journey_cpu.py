@@ -110,6 +110,46 @@ def probe_measurement(value, mode, *, success=True):
     return result
 
 
+def startup_report(raw, correlation, workspace, version):
+    """Validate only the native fixed startup vocabulary and correlated IDs."""
+    import json
+    import uuid
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            if key in result:
+                raise ValueError("duplicate startup field")
+            result[key] = value
+        return result
+    try:
+        if (not isinstance(correlation, str) or not isinstance(workspace, str) or not isinstance(version, str)
+                or version != (Path(__file__).resolve().parents[1] / "VERSION").read_text(encoding="utf-8").strip()
+                or not isinstance(raw, bytes) or len(raw) > 4096 or not raw.endswith(b"\n")
+                or str(uuid.UUID(correlation)) != correlation or str(uuid.UUID(workspace)) != workspace):
+            raise ValueError()
+        report = json.loads(raw.decode("utf-8"), object_pairs_hook=pairs)
+        allowed = {"kind", "schema_version", "startup_id", "workspace_id", "state", "stage", "code", "reason"}
+        if (not isinstance(report, dict) or set(report) - allowed
+                or report.get("kind") != "runtime-startup" or report.get("schema_version") != version
+                or report.get("startup_id") != correlation):
+            raise ValueError()
+        if report.get("state") == "ready":
+            if (report.get("stage") != "ready" or report.get("workspace_id") != workspace
+                    or report.get("code", "") != "" or report.get("reason", "") != ""):
+                raise ValueError()
+            return {key: report[key] for key in ("kind", "schema_version", "startup_id", "workspace_id", "state", "stage")}
+        if report.get("state") != "failed" or report.get("stage") != "startup" or report.get("workspace_id", "") not in ("", workspace):
+            raise ValueError()
+        schema = json.loads((Path(__file__).resolve().parents[1] / "schemas" / ("v" + version) /
+                             "runtime-response.schema.json").read_text(encoding="utf-8"))
+        error = schema["properties"]["error"]["properties"]
+        if report.get("code") not in error["code"]["enum"] or report.get("reason") not in error["reason"]["enum"]:
+            raise ValueError()
+        return {key: report[key] for key in ("kind", "schema_version", "startup_id", "workspace_id", "state", "stage", "code", "reason") if key in report}
+    except (ValueError, TypeError, KeyError, OSError):
+        raise ValueError("Owned runtime startup report is invalid") from None
+
+
 def prepare_managed(journey):
     journey.receipt["environments"] = {}
     for role in ("recognition", "diarization"):
@@ -301,6 +341,26 @@ def validate_acceptance(receipt, corpus):
     if (not isinstance(cases, list) or len(cases) != len(expected) + 1
             or {c.get("fixture") for c in cases} != set(expected) | {"sequence"}):
         raise ValueError("Real acceptance case inventory differs")
+    startups = receipt.get("runtime_startups")
+    native_keys = {"kind", "schema_version", "startup_id", "workspace_id", "state", "stage"}
+    if not isinstance(startups, list) or len(startups) != 2:
+        raise ValueError("Real acceptance owned runtime startup inventory differs")
+    correlations = set()
+    for observed in startups:
+        if (not isinstance(observed, dict) or set(observed) != native_keys | {"reported", "elapsed_seconds", "budget_seconds"}
+                or observed["reported"] is not True
+                or any(type(observed[key]) not in (int, float) or not math.isfinite(observed[key])
+                       for key in ("elapsed_seconds", "budget_seconds"))
+                or not 0 <= observed["elapsed_seconds"] <= observed["budget_seconds"] <= timing.READINESS_SECONDS
+                or observed["budget_seconds"] <= 0):
+            raise ValueError("Real acceptance runtime startup bounds differ")
+        native = {key: observed[key] for key in native_keys}
+        import json
+        report = startup_report((json.dumps(native) + "\n").encode(), native["startup_id"], native["workspace_id"],
+                                receipt.get("product_version"))
+        if report["state"] != "ready" or report["startup_id"] in correlations:
+            raise ValueError("Real acceptance runtime readiness differs")
+        correlations.add(report["startup_id"])
     if receipt.get("corpus_sha256") != corpus_digest(corpus):
         raise ValueError("Real acceptance corpus identity differs")
     if receipt.get("matching_settings") != corpus["matching"]:

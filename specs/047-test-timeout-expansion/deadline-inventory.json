@@ -525,6 +525,16 @@
         2.5
       ],
       "reason": "Real Capture and original combined deadline run under virtual time; controlled actual helper readiness and release are observed separately. Expiry remains short without scheduler-speed assumptions or deadline resets."
+    },
+    {
+      "file": "internal/graph/arcade_test.go",
+      "symbol": "virtual production20s control, fixture21s completion, earlier1s caller",
+      "seconds": [
+        20,
+        21,
+        1
+      ],
+      "reason": "Virtual HTTP time proves the ordinary production cutoff remains unchanged while functional fixture requests use the maintained request allowance and earlier caller cancellation still wins."
     }
   ],
   "notes": [

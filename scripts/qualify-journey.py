@@ -310,28 +310,93 @@ class Journey:
         return current['result']
 
     def start_runtime(self):
+        import queue
+        from journey_cpu import startup_report
+        started = time.monotonic()
+        deadline = min(self.deadline, started + timing.READINESS_SECONDS)
+        correlation = str(uuid.uuid4())
+        workspace = ''
+        entries = self.receipt.setdefault('runtime_startups', [])
+        if len(entries) >= 8:
+            raise ValueError('Owned runtime startup inventory exceeds its bound')
+        def expired_before_launch():
+            entries.append({'kind': 'runtime-startup', 'schema_version': self.receipt['product_version'],
+                'startup_id': correlation, 'workspace_id': workspace, 'state': 'failed', 'stage': 'startup',
+                'code': 'unavailable', 'reason': 'startup_timeout', 'reported': False,
+                'elapsed_seconds': max(0, time.monotonic() - started), 'budget_seconds': max(0, deadline - started)})
+            raise ValueError('Owned runtime startup original budget has expired')
+        if deadline <= started:
+            expired_before_launch()
+        configuration = json.loads((self.workspace / '.insonic/workspace.json').read_text(encoding='utf-8'))
+        workspace = configuration['workspace_id']
+        if time.monotonic() >= deadline:
+            expired_before_launch()
         self.runtime_tree = engine.ProcessTree(
-            [str(self.cli), '--workspace', str(self.workspace), 'runtime', 'serve'],
+            [str(self.cli), '--workspace', str(self.workspace), 'runtime', 'serve', '--startup-id', correlation],
             cwd=self.base, env=self.environment)
         self.runtime = self.runtime_tree.process
         self.runtime_overflow = threading.Event()
         self.runtime_readers = []
+        ready = queue.Queue(maxsize=1)
 
-        def drain(stream):
-            count = 0
+        def drain(stream, startup=False):
+            count, reported = 0, False
             try:
+                if startup:
+                    raw = stream.readline(4097)
+                    count = len(raw)
+                    ready.put_nowait((raw, time.monotonic()))
+                    reported = True
                 while chunk := stream.read(65536):
                     count += len(chunk)
                     if count > 16 << 20:
                         self.runtime_overflow.set()
                         self.runtime_tree.kill()
                         break
+            except (OSError, ValueError):
+                if startup and not reported:
+                    ready.put_nowait((b'', time.monotonic()))
             finally:
                 stream.close()
-        for stream in (self.runtime.stdout, self.runtime.stderr):
-            reader = threading.Thread(target=drain, args=(stream,), daemon=True)
+        for stream, startup in ((self.runtime.stdout, True), (self.runtime.stderr, False)):
+            reader = threading.Thread(target=drain, args=(stream, startup), daemon=True)
             reader.start()
             self.runtime_readers.append(reader)
+        report, reason = None, 'startup_report'
+        try:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise queue.Empty()
+            raw, observed = ready.get(timeout=remaining)
+            if observed > deadline or time.monotonic() > deadline:
+                raise queue.Empty()
+            if not raw and self.runtime.poll() is not None:
+                reason = 'startup_exit'
+                raise ValueError()
+            report = startup_report(raw, correlation, workspace, self.receipt['product_version'])
+            if report['state'] != 'ready':
+                reason = report['reason']
+                raise ValueError()
+            if self.runtime.poll() is not None or self.runtime_overflow.is_set():
+                reason = 'startup_exit'
+                raise ValueError()
+            completed = time.monotonic()
+            if completed > deadline:
+                raise queue.Empty()
+        except (queue.Empty, ValueError) as failure:
+            if isinstance(failure, queue.Empty):
+                reason = 'startup_timeout'
+            native = report is not None and report['state'] == 'failed'
+            failed = report if native else {
+                'kind': 'runtime-startup', 'schema_version': self.receipt['product_version'],
+                'startup_id': correlation, 'workspace_id': workspace, 'state': 'failed',
+                'stage': 'startup', 'code': 'unavailable', 'reason': reason}
+            entries.append({**failed, 'reported': native, 'elapsed_seconds': max(0, time.monotonic() - started),
+                            'budget_seconds': max(0, deadline - started)})
+            self.runtime_tree.kill()
+            raise ValueError('Owned runtime did not report readiness within its original budget') from None
+        entries.append({**report, 'reported': True, 'elapsed_seconds': completed - started,
+                        'budget_seconds': deadline - started})
 
     def idle_runtime(self):
         if self.runtime is not None:

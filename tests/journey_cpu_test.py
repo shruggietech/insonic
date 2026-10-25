@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import time
 import shutil
 import tempfile
 from types import SimpleNamespace
@@ -451,8 +452,17 @@ class ResultContracts(unittest.TestCase):
         receipt["speaker_denominators"] = {"evaluation_cases": 4, "observed_decisions": 0}
         receipt["timeline_cue_counts"] = {c["fixture"]: 1 for c in receipt["cases"]}
         receipt["playback"] = {c["fixture"]: {} for c in receipt["cases"]}
+        receipt["product_version"] = "1.0.1"
+        receipt["runtime_startups"] = [{"kind": "runtime-startup", "schema_version": "1.0.1",
+            "startup_id": digit * 8 + "-" + digit * 4 + "-4" + digit * 3 + "-8" + digit * 3 + "-" + digit * 12,
+            "workspace_id": "11111111-1111-4111-8111-111111111111", "state": "ready", "stage": "ready",
+            "reported": True, "elapsed_seconds": .01, "budget_seconds": 60} for digit in ("2", "3")]
         cpu.validate_acceptance(receipt, corpus)
         for mutation in (
+                lambda r: r["runtime_startups"].pop(),
+                lambda r: r["runtime_startups"][0].update(reported=False),
+                lambda r: r["runtime_startups"][0].update(elapsed_seconds=61),
+                lambda r: r["runtime_startups"][0].update(message="PRIVATE_MARKER"),
                 lambda r: r["cases"].pop(),
                 lambda r: r["cases"][0]["word_error"].update(word_error_rate=1),
                 lambda r: r["recognition_totals"].update(insertions=1),
@@ -528,6 +538,154 @@ class ResultContracts(unittest.TestCase):
             cpu.validate_acceptance(complete_stages, corpus)
         with self.assertRaisesRegex(ValueError, "identity"):
             cpu.validate_acceptance({**complete_stages, "source_revision": "b" * 40}, corpus)
+
+
+
+
+class StartupTests(unittest.TestCase):
+    def fixture(self, directory):
+        module = load("qualify-journey")
+        runner = module.Journey.__new__(module.Journey)
+        runner.cli, runner.base, runner.workspace = Path("fixture"), Path(directory), Path(directory) / "workspace"
+        runner.workspace.mkdir()
+        (runner.workspace / ".insonic").mkdir()
+        workspace_id = "11111111-1111-4111-8111-111111111111"
+        (runner.workspace / ".insonic/workspace.json").write_text(json.dumps({"workspace_id": workspace_id}), encoding="utf-8")
+        runner.environment, runner.receipt = {}, {"product_version": "1.0.1"}
+        runner.deadline = time.monotonic() + 60
+        return module, runner, workspace_id
+
+    def test_owned_runtime_cannot_return_before_correlated_ready_report(self):
+        import io
+        import threading
+        with tempfile.TemporaryDirectory() as directory:
+            module, runner, workspace_id = self.fixture(directory)
+            entered, release, returned = threading.Event(), threading.Event(), threading.Event()
+            errors, selected = [], {}
+            class Gated:
+                def __init__(self, frame): self.frame = frame
+                def readline(self, limit=-1):
+                    entered.set()
+                    release.wait(5)
+                    frame, self.frame = self.frame, b""
+                    return frame[:limit] if limit >= 0 else frame
+                def read(self, count=-1): return self.readline(count)
+                def close(self): pass
+            def tree(arguments, **kwargs):
+                selected["arguments"] = arguments
+                correlation = arguments[arguments.index("--startup-id") + 1] if "--startup-id" in arguments else "22222222-2222-4222-8222-222222222222"
+                frame = {"kind": "runtime-startup", "schema_version": "1.0.1", "startup_id": correlation,
+                         "workspace_id": workspace_id, "state": "ready", "stage": "ready"}
+                return SimpleNamespace(process=SimpleNamespace(stdout=Gated((json.dumps(frame) + "\n").encode()),
+                    stderr=io.BytesIO(), poll=lambda: None), kill=Mock())
+            def start():
+                try: runner.start_runtime()
+                except BaseException as error: errors.append(error)
+                finally: returned.set()
+            with patch.object(module.engine, "ProcessTree", side_effect=tree):
+                thread = threading.Thread(target=start)
+                thread.start()
+                try:
+                    self.assertTrue(entered.wait(5))
+                    self.assertFalse(returned.wait(.1), "runtime start returned before its owned readiness report")
+                finally:
+                    release.set()
+                    thread.join(5)
+            self.assertFalse(thread.is_alive())
+            if errors: raise errors[0]
+            self.assertIn("--startup-id", selected["arguments"])
+            self.assertEqual(runner.receipt["runtime_startups"][0]["state"], "ready")
+
+    def test_startup_report_rejects_forged_identity_and_raw_fields(self):
+        cpu = load("journey_cpu")
+        correlation = "22222222-2222-4222-8222-222222222222"
+        workspace = "11111111-1111-4111-8111-111111111111"
+        good = {"kind": "runtime-startup", "schema_version": "1.0.1", "startup_id": correlation,
+                "workspace_id": workspace, "state": "ready", "stage": "ready"}
+        encode = lambda value: (json.dumps(value) + "\n").encode()
+        self.assertEqual(cpu.startup_report(encode(good), correlation, workspace, "1.0.1"), good)
+        for changed in ({"workspace_id": correlation}, {"startup_id": workspace}, {"schema_version": "1.0.0"},
+                        {"message": "PRIVATE_MARKER"}, {"state": "ready", "reason": "PRIVATE_MARKER"}):
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                cpu.startup_report(encode({**good, **changed}), correlation, workspace, "1.0.1")
+        for raw in (b"x" * 4097, encode(good).replace(b'"kind":', b'"kind":"duplicate","kind":'), b"\xff\n"):
+            with self.assertRaises(ValueError):
+                cpu.startup_report(raw, correlation, workspace, "1.0.1")
+
+
+    def test_native_startup_failure_is_retained_without_accepting_readiness(self):
+        import io
+        for reason in ("runtime_catalog", "PRIVATE_MARKER"):
+            with self.subTest(reason=reason), tempfile.TemporaryDirectory() as directory:
+                module, runner, workspace = self.fixture(directory)
+                selected = {}
+                def factory(arguments, **kwargs):
+                    correlation = arguments[arguments.index("--startup-id") + 1]
+                    frame = {"kind": "runtime-startup", "schema_version": "1.0.1", "startup_id": correlation,
+                             "workspace_id": workspace, "state": "failed", "stage": "startup",
+                             "code": "unavailable", "reason": reason}
+                    tree = SimpleNamespace(process=SimpleNamespace(stdout=io.BytesIO((json.dumps(frame) + "\n").encode()),
+                        stderr=io.BytesIO(), poll=lambda: None), kill=Mock())
+                    selected["tree"] = tree
+                    return tree
+                with patch.object(module.engine, "ProcessTree", side_effect=factory), self.assertRaises(ValueError):
+                    runner.start_runtime()
+                selected["tree"].kill.assert_called_once()
+                observed = runner.receipt["runtime_startups"][0]
+                self.assertEqual(observed["reason"], "runtime_catalog" if reason == "runtime_catalog" else "startup_report")
+                self.assertEqual(observed["reported"], reason == "runtime_catalog")
+                self.assertNotIn("PRIVATE_MARKER", json.dumps(runner.receipt))
+
+
+    def test_expired_runtime_startup_never_launches_a_child(self):
+        with tempfile.TemporaryDirectory() as directory:
+            module, runner, _ = self.fixture(directory)
+            runner.deadline = 99
+            with patch.object(module.time, "monotonic", return_value=100), \
+                 patch.object(module.engine, "ProcessTree", side_effect=AssertionError("expired work launched")) as launch:
+                with self.assertRaisesRegex(ValueError, "runtime"):
+                    runner.start_runtime()
+            launch.assert_not_called()
+
+    def test_ready_report_after_the_original_deadline_is_refused(self):
+        import io
+        with tempfile.TemporaryDirectory() as directory:
+            module, runner, workspace = self.fixture(directory)
+            runner.deadline = 103
+            selected = {}
+            def factory(arguments, **kwargs):
+                correlation = arguments[arguments.index("--startup-id") + 1]
+                selected["frame"] = (json.dumps({"kind": "runtime-startup", "schema_version": "1.0.1",
+                    "startup_id": correlation, "workspace_id": workspace, "state": "ready", "stage": "ready"}) + "\n").encode()
+                selected["tree"] = SimpleNamespace(process=SimpleNamespace(stdout=io.BytesIO(), stderr=io.BytesIO(),
+                    poll=lambda: None), kill=Mock())
+                return selected["tree"]
+            mailbox = Mock()
+            mailbox.get.side_effect = lambda **kwargs: (selected["frame"], 104)
+            with patch.object(module.time, "monotonic", return_value=100), \
+                 patch.object(module.engine, "ProcessTree", side_effect=factory), \
+                 patch("queue.Queue", return_value=mailbox), self.assertRaises(ValueError):
+                runner.start_runtime()
+            selected["tree"].kill.assert_called_once()
+            self.assertEqual(runner.receipt["runtime_startups"][0]["reason"], "startup_timeout")
+
+    def test_runtime_startup_uses_earlier_original_budget(self):
+        import io
+        import queue
+        with tempfile.TemporaryDirectory() as directory:
+            module, runner, _ = self.fixture(directory)
+            runner.deadline = 103
+            tree = SimpleNamespace(process=SimpleNamespace(stdout=io.BytesIO(), stderr=io.BytesIO(), poll=lambda: None),
+                                   kill=Mock())
+            mailbox = Mock()
+            mailbox.get.side_effect = queue.Empty
+            with patch.object(module.time, "monotonic", return_value=100), \
+                 patch.object(module.engine, "ProcessTree", return_value=tree), \
+                 patch("queue.Queue", return_value=mailbox), self.assertRaisesRegex(ValueError, "runtime"):
+                runner.start_runtime()
+            self.assertLessEqual(mailbox.get.call_args.kwargs["timeout"], 3)
+            tree.kill.assert_called_once()
+            self.assertEqual(runner.receipt["runtime_startups"][0]["reason"], "startup_timeout")
 
 
 if __name__ == "__main__":

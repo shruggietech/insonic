@@ -6,11 +6,11 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Changed
 
-- 2026-10-25: Keep the existing sixty-second worker/readiness deadlines and record fixed bounded progress inside each private probe directory. Native and child clocks remain separate, receipt observations are optional for backward compatibility, and only ephemeral worker observation requests gain disconnect cancellation. Diagnostic additions do not relax environment hashes, version checks or real processing acceptance. The bounded durable history uses `checkpoints`, preserving the catalog prohibition on raw `observations` payloads.
-
 - 2026-10-22: Refresh Playwright maintainer tooling, Windows IPC/Linux credential and S3 client dependencies, and static-documentation renderer dependencies. Capture tooling follows the root exact Playwright pin; maintained desktop source checks retain independently verified pristine upstream checksums after Go graph refresh and enforce both archive and module-file entries without conflicts.
 
 - 2026-10-24: Expand maintained test and qualification allowances through native/frontend, package/installer, CLI, source preparation, browser, release and diagnostic paths. Qualification now targets thirty minutes with a sixty-minute hard limit after verified readiness and a sixty-second provisional finalization reserve; outer job watchdogs retain cleanup headroom. Constitution 5.0.0 explicitly redefines the previous timing policy. Required functional/security/provenance checks, ordinary product deadlines and intentionally short failure fixtures retain their meanings. Help qualification records bounded monotonic progress for delayed-completion diagnosis.
+
+- 2026-10-25: Keep the existing sixty-second worker/readiness deadlines and record fixed bounded progress inside each private probe directory. Native and child clocks remain separate, receipt observations are optional for backward compatibility, and only ephemeral worker observation requests gain disconnect cancellation. Diagnostic additions do not relax environment hashes, version checks or real processing acceptance. The bounded durable history uses `checkpoints`, preserving the catalog prohibition on raw `observations` payloads. Real Arcade functional qualification uses the maintained test request allowance while keeping the production transport cutoff and earlier caller cancellation unchanged. Maintained connected qualification waits for correlated owned-runtime readiness before issuing commands and retains bounded startup receipts.
 
 ### Added
 

@@ -43,3 +43,7 @@ Write failing controlled regressions before implementation. Run focused workers/
 ## Convergence decision (2026-10-25)
 
 D009: Name the fixed validated child history `checkpoints`. The generic catalog privacy contract rejects raw `observations` at any depth; preserve that guard without exceptions. The real managed campaign exposed the collision, and an actual catalog setup checkpoint/publication regression reproduces it before repair.
+
+D010 (2026-10-25): The hosted real Arcade functional fixture failed after 25 seconds while using the production 20-second HTTP client. Apply the maintained request allowance only to that fixture client; retain production defaults, actual ordered-reference assertions and earlier caller cancellation. A virtual HTTP regression contrasts production expiry, delayed fixture success and earlier caller expiry.
+
+D011 (2026-10-25): Qualification must await the existing correlated owned-runtime startup report before observation commands. Validate its fixed fields and workspace/startup IDs, keep the original readiness/overall budget, retain bounded startup receipts, and reject malformed, failed or late reports. This addresses a reproduced missing join; it does not establish the underlying failed-launch OS error or historical cause.
