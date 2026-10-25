@@ -38,16 +38,16 @@
 **Independent acceptance**: Fresh snapshot and repeated same-mode measurements are labeled accurately, and actual CPU processing uses the exact clean candidate.
 
 - [x] T015 [US3] Extend maintained scripts/journey_cpu.py measurement/receipt projection and relevant harness tests for bounded probe facts (FR-002, FR-009).
-- [ ] T016 [US3] Run an isolated source-bound complete-package managed CPU journey, retain fresh snapshot/repeated inspect observations and actual processing outcomes on the PR, then verify owned cleanup (FR-009, FR-010).
+- [x] T016 [US3] Run an isolated source-bound complete-package managed CPU journey, retain fresh snapshot/repeated inspect observations and actual processing outcomes on the PR, then verify owned cleanup (FR-009, FR-010).
 
 ## Phase 6: Qualification and delivery
 
 - [x] T017 Document fixed probe reasons, clock origins, partial readiness and deadline/cancellation behavior in docs/v1.0.1/processing-setup.md and CHANGELOG.md (FR-001, FR-003, FR-006).
 - [x] T018 Run root check/test, focused/full affected Go/Python/frontend/site checks and encoding checks; record compact outcomes in specs/048-worker-readiness-diagnostics/verification.md (SC-001, SC-002, SC-003).
-- [ ] T019 Converge current implementation against every FR/SC/scenario/design/constitution obligation; append only concrete remaining work to this tasks.md.
+- [x] T019 Converge current implementation against every FR/SC/scenario/design/constitution obligation; append only concrete remaining work to this tasks.md.
 - [x] T020 Commit clean source, automatically push and publish official PR for #174/#147; keep #147 open and retain exact-head CI evidence on GitHub (SC-004/FR-010).
-- [ ] T021 Resolve every individual comment from at most two Codex rounds and verify terminal applicable checks after repairs; retain earlier failures separately (SC-004).
-- [ ] T022 Complete source/evidence/tracking/cleanup audit and hand off unmerged for owner review in specs/048-worker-readiness-diagnostics/verification.md (SC-004/FR-010).
+- [x] T021 Resolve every individual comment from at most two Codex rounds and verify terminal applicable checks after repairs; retain earlier failures separately (SC-004).
+- [x] T022 Complete source/evidence/tracking/cleanup audit and hand off unmerged for owner review in specs/048-worker-readiness-diagnostics/verification.md (SC-004/FR-010).
 
 ## Dependencies and execution
 
@@ -55,16 +55,16 @@ Setup -> contract -> US1 -> US2 -> US3 -> final delivery. US1/US2 have independe
 
 ## Phase 7: Convergence
 
-- [ ] T023 CRITICAL: Make bounded probe history compatible with the existing durable-result privacy contract, preserve the raw-observations rejection, and prove healthy setup checkpoint/publication through the real catalog in internal/app/worker_diagnostics_test.go; rerun real CPU acceptance and applicable CI per FR-006/SC-003 (contradicts).
+- [x] T023 CRITICAL: Make bounded probe history compatible with the existing durable-result privacy contract, preserve the raw-observations rejection, and prove healthy setup checkpoint/publication through the real catalog in internal/app/worker_diagnostics_test.go; rerun real CPU acceptance and applicable CI per FR-006/SC-003 (contradicts).
 
 ## Phase 8: Convergence
 
-- [ ] T024 Give the real Arcade functional fixture the maintained request allowance without changing its production client default; prove delayed completion and earlier caller cancellation with virtual time in internal/graph/arcade_test.go, then rerun all elected CI checks per SC-004 (partial).
+- [x] T024 Give the real Arcade functional fixture the maintained request allowance without changing its production client default; prove delayed completion and earlier caller cancellation with virtual time in internal/graph/arcade_test.go, then rerun all elected CI checks per SC-004 (partial).
 
 ## Phase 9: Convergence
 
-- [ ] T025 Wait for the existing correlated owned-runtime startup report before issuing qualification commands; retain bounded ready/failure facts, honor the original readiness/overall deadline and prove gating, invalid-report refusal and expiry in tests/journey_cpu_test.py before rerunning source-bound CPU acceptance per FR-003/FR-009 (partial).
+- [x] T025 Wait for the existing correlated owned-runtime startup report before issuing qualification commands; retain bounded ready/failure facts, honor the original readiness/overall deadline and prove gating, invalid-report refusal and expiry in tests/journey_cpu_test.py before rerunning source-bound CPU acceptance per FR-003/FR-009 (partial).
 
 ## Phase 10: Convergence
 
-- [ ] T026 Reject an optional native success diagnostic whose validated child records failure, while retaining valid native receipt-verification failure after child success; reproduce through the real receipt validator in internal/workers/probe_diagnostics_test.go, repair probe_diagnostics.go and rerun acceptance per FR-005/FR-007 (partial).
+- [x] T026 Reject an optional native success diagnostic whose validated child records failure, while retaining valid native receipt-verification failure after child success; reproduce through the real receipt validator in internal/workers/probe_diagnostics_test.go, repair probe_diagnostics.go and rerun acceptance per FR-005/FR-007 (partial).

@@ -3,7 +3,7 @@
 **Slice**: S048
 **Feature Branch**: `codex/048-worker-readiness-diagnostics`
 **Created**: 2026-10-25
-**Status**: Specified
+**Status**: Implemented and qualified; unmerged for owner final review
 **Tracking**: #174, bounded increment of #147; milestone 32. The broader audit stays open.
 
 **Input**: Explain worker setup/readiness failures, measure cold and warm probe stages, and make nested verification respect an explicit enclosing budget. Deliver through a green reviewed PR; the owner performs the merge.
