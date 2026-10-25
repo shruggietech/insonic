@@ -53,6 +53,103 @@ def digest(value):
     return isinstance(value, str) and re.fullmatch("[0-9a-f]{64}", value)
 
 
+PROBE_STAGES = ("package_versions", "library_import", "cpu_prerequisites", "cuda_prerequisites",
+                "dependency_inventory", "dependency_hashing", "complete")
+
+
+def probe_measurement(value, mode, *, success=True):
+    """Fixed protocol projection only; never retain paths or child output."""
+    stages = PROBE_STAGES if mode == "snapshot" else PROBE_STAGES[:4] + ("complete",)
+    reasons = {"success", "interpreter_missing", "interpreter_unreadable", "home_unavailable",
+               "launch_failed", "process_failed", "deadline", "cancelled", "output_invalid",
+               "output_limit", "package_missing", "version_mismatch", "import_failed",
+               "cpu_unavailable", "inventory_limit", "inventory_unreadable", "checkpoint_invalid"}
+    native_stages = set(PROBE_STAGES) | {"interpreter_hash", "private_home", "process_start",
+                                       "output_validation", "receipt_verification", "not_started"}
+
+    def integer(item, key, maximum):
+        number = item.get(key)
+        if type(number) is not int or not 0 <= number <= maximum:
+            raise ValueError("Worker probe measurement bounds differ")
+        return number
+
+    if (not isinstance(value, dict) or value.get("mode") != mode or value.get("stage") not in native_stages
+            or value.get("reason") not in reasons or (success and value["reason"] != "success")):
+        raise ValueError("Worker probe measurement outcome differs")
+    result = {key: value[key] for key in ("mode", "stage", "reason")}
+    result.update(elapsed_ms=integer(value, "elapsed_ms", 3600000),
+                  budget_ms=integer(value, "budget_ms", 60000))
+    child = value.get("child")
+    if child is not None:
+        if (not isinstance(child, dict) or child.get("mode") != mode or child.get("stage") not in stages
+                or child.get("reason") not in reasons | {"running"}):
+            raise ValueError("Worker child probe measurement differs")
+        observations = child.get("checkpoints")
+        if not isinstance(observations, list) or not 1 <= len(observations) <= len(stages):
+            raise ValueError("Worker probe observation inventory differs")
+        rows, previous = [], [0, 0, 0, 0]
+        for index, item in enumerate(observations):
+            if not isinstance(item, dict) or item.get("stage") != stages[index]:
+                raise ValueError("Worker probe observation order differs")
+            numbers = [integer(item, key, bound) for key, bound in
+                       (("elapsed_ms", 3600000), ("files", 30000), ("hashed_files", 30000),
+                        ("hashed_bytes", 9007199254740991))]
+            if any(now < before for now, before in zip(numbers, previous)) or numbers[2] > numbers[1]:
+                raise ValueError("Worker probe observation counts differ")
+            rows.append({"stage": item["stage"], **dict(zip(
+                ("elapsed_ms", "files", "hashed_files", "hashed_bytes"), numbers))})
+            previous = numbers
+        if any(child.get(key) != rows[-1][key] for key in rows[-1]):
+            raise ValueError("Worker probe final observation differs")
+        result["child"] = {key: child[key] for key in ("mode", "stage", "reason")}
+        result["child"].update(rows[-1])
+        result["child"]["checkpoints"] = rows
+    if success and (result["stage"] != "complete" or child is None or child.get("reason") != "success"
+                    or child.get("stage") != "complete" or len(child["checkpoints"]) != len(stages)):
+        raise ValueError("Worker probe success lacks complete observations")
+    return result
+
+
+def startup_report(raw, correlation, workspace, version):
+    """Validate only the native fixed startup vocabulary and correlated IDs."""
+    import json
+    import uuid
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            if key in result:
+                raise ValueError("duplicate startup field")
+            result[key] = value
+        return result
+    try:
+        if (not isinstance(correlation, str) or not isinstance(workspace, str) or not isinstance(version, str)
+                or version != (Path(__file__).resolve().parents[1] / "VERSION").read_text(encoding="utf-8").strip()
+                or not isinstance(raw, bytes) or len(raw) > 4096 or not raw.endswith(b"\n")
+                or str(uuid.UUID(correlation)) != correlation or str(uuid.UUID(workspace)) != workspace):
+            raise ValueError()
+        report = json.loads(raw.decode("utf-8"), object_pairs_hook=pairs)
+        allowed = {"kind", "schema_version", "startup_id", "workspace_id", "state", "stage", "code", "reason"}
+        if (not isinstance(report, dict) or set(report) - allowed
+                or report.get("kind") != "runtime-startup" or report.get("schema_version") != version
+                or report.get("startup_id") != correlation):
+            raise ValueError()
+        if report.get("state") == "ready":
+            if (report.get("stage") != "ready" or report.get("workspace_id") != workspace
+                    or report.get("code", "") != "" or report.get("reason", "") != ""):
+                raise ValueError()
+            return {key: report[key] for key in ("kind", "schema_version", "startup_id", "workspace_id", "state", "stage")}
+        if report.get("state") != "failed" or report.get("stage") != "startup" or report.get("workspace_id", "") not in ("", workspace):
+            raise ValueError()
+        schema = json.loads((Path(__file__).resolve().parents[1] / "schemas" / ("v" + version) /
+                             "runtime-response.schema.json").read_text(encoding="utf-8"))
+        error = schema["properties"]["error"]["properties"]
+        if report.get("code") not in error["code"]["enum"] or report.get("reason") not in error["reason"]["enum"]:
+            raise ValueError()
+        return {key: report[key] for key in ("kind", "schema_version", "startup_id", "workspace_id", "state", "stage", "code", "reason") if key in report}
+    except (ValueError, TypeError, KeyError, OSError):
+        raise ValueError("Owned runtime startup report is invalid") from None
+
+
 def prepare_managed(journey):
     journey.receipt["environments"] = {}
     for role in ("recognition", "diarization"):
@@ -71,6 +168,15 @@ def prepare_managed(journey):
                     or not digest(prepared.get("python", {}).get("sha256"))
                     or not digest(prepared.get("environment_receipt", {}).get("sha256"))):
                 raise ValueError("Managed setup identity differs")
+            snapshot = probe_measurement(prepared.get("probe"), "snapshot")
+            inspections = []
+            for _ in range(2):
+                observed = journey.input("workers", "inspect", value={"role": role})
+                if (observed.get("role") != role or observed.get("compatible") is not True
+                        or observed.get("engine_available") is not True
+                        or observed.get("python", {}).get("sha256") != prepared["python"]["sha256"]):
+                    raise ValueError("Repeated worker inspection identity differs")
+                inspections.append(probe_measurement(observed.get("probe"), "inspect"))
             reuse = journey.input("workers", "plan", value=election)
             if not reuse.get("verified_existing_environment") or reuse.get("download_bytes", 0) != 0:
                 raise ValueError("Managed environment reuse did not verify")
@@ -78,7 +184,7 @@ def prepare_managed(journey):
                 "profile_digest": selected["profile_digest"],
                 "python_sha256": prepared["python"]["sha256"],
                 "receipt_sha256": prepared["environment_receipt"]["sha256"],
-                "verified_reuse": True,
+                "verified_reuse": True, "snapshot_probe": snapshot, "inspect_probes": inspections,
             }
     model_ids = {}
     with stage(journey, "models"):
@@ -235,6 +341,26 @@ def validate_acceptance(receipt, corpus):
     if (not isinstance(cases, list) or len(cases) != len(expected) + 1
             or {c.get("fixture") for c in cases} != set(expected) | {"sequence"}):
         raise ValueError("Real acceptance case inventory differs")
+    startups = receipt.get("runtime_startups")
+    native_keys = {"kind", "schema_version", "startup_id", "workspace_id", "state", "stage"}
+    if not isinstance(startups, list) or len(startups) != 2:
+        raise ValueError("Real acceptance owned runtime startup inventory differs")
+    correlations = set()
+    for observed in startups:
+        if (not isinstance(observed, dict) or set(observed) != native_keys | {"reported", "elapsed_seconds", "budget_seconds"}
+                or observed["reported"] is not True
+                or any(type(observed[key]) not in (int, float) or not math.isfinite(observed[key])
+                       for key in ("elapsed_seconds", "budget_seconds"))
+                or not 0 <= observed["elapsed_seconds"] <= observed["budget_seconds"] <= timing.READINESS_SECONDS
+                or observed["budget_seconds"] <= 0):
+            raise ValueError("Real acceptance runtime startup bounds differ")
+        native = {key: observed[key] for key in native_keys}
+        import json
+        report = startup_report((json.dumps(native) + "\n").encode(), native["startup_id"], native["workspace_id"],
+                                receipt.get("product_version"))
+        if report["state"] != "ready" or report["startup_id"] in correlations:
+            raise ValueError("Real acceptance runtime readiness differs")
+        correlations.add(report["startup_id"])
     if receipt.get("corpus_sha256") != corpus_digest(corpus):
         raise ValueError("Real acceptance corpus identity differs")
     if receipt.get("matching_settings") != corpus["matching"]:
@@ -258,6 +384,12 @@ def validate_acceptance(receipt, corpus):
         if (not digest(environment.get("profile_digest")) or not digest(environment.get("python_sha256"))
                 or not digest(environment.get("receipt_sha256")) or environment.get("verified_reuse") is not True):
             raise ValueError("Real acceptance managed environment identity differs")
+        probe_measurement(environment.get("snapshot_probe"), "snapshot")
+        repeated = environment.get("inspect_probes")
+        if not isinstance(repeated, list) or len(repeated) != 2:
+            raise ValueError("Real acceptance repeated probe inventory differs")
+        for observed in repeated:
+            probe_measurement(observed, "inspect")
         model = models.get(operation, {})
         if not model.get("model_id") or not digest(model.get("manifest_sha256")) or model.get("local_verified_reuse") is not True:
             raise ValueError("Real acceptance model identity differs")

@@ -289,7 +289,13 @@ func (a *App) executeWork(ctx context.Context, worker *realWorker, claim catalog
 			code = typed.Code
 		}
 		cause = code
-		result = map[string]any{"state": "failed", "error": code, "cause": contracts.SafeError(e)}
+		failure := map[string]any{"state": "failed", "error": code, "cause": contracts.SafeError(e)}
+		if claim.Kind == "workers.setup" {
+			if facts := workerProbeFailureFacts(result); facts != nil {
+				failure["worker_probe"] = facts
+			}
+		}
+		result = failure
 	}
 	raw, _ := json.Marshal(result)
 	if state == "failed" {

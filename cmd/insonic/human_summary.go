@@ -9,6 +9,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/workers"
 )
 
 var humanIdentityKeys = []string{"id", "work_id", "job_id", "media_id", "recording_id", "model_id", "pipeline_id", "dataset_id", "speaker_id", "publication_id", "name", "model_name", "model_version", "version", "upstream_revision", "revision", "pipeline_revision", "mapping_revision", "manifest_digest", "document_digest", "digest", "sha256", "state", "registry_state", "readiness", "verification"}
@@ -64,6 +65,14 @@ func humanSummary(b *humanBuffer, value any, depth int) {
 	fields, ok := value.(map[string]any)
 	if !ok {
 		return
+	}
+	humanWorkerProbe(b, fields)
+	if environments, ok := fields["environments"].(map[string]any); ok {
+		for _, role := range []string{"recognition", "diarization"} {
+			if inspection, ok := environments[role].(map[string]any); ok {
+				humanWorkerProbe(b, inspection)
+			}
+		}
 	}
 	for _, key := range humanIdentityKeys {
 		if v, exists := fields[key]; exists && v != nil {
@@ -130,7 +139,7 @@ func humanSummary(b *humanBuffer, value any, depth int) {
 			}
 		}
 	}
-	for _, key := range []string{"recording", "dataset", "result", "readiness", "processing_readiness"} {
+	for _, key := range []string{"recording", "dataset", "result", "readiness", "processing_readiness", "worker_probe"} {
 		if nested, ok := fields[key].(map[string]any); ok {
 			humanSummary(b, nested, depth+1)
 		}
@@ -358,5 +367,28 @@ func humanOrdinaryPaging(b *humanBuffer, root map[string]any) {
 	}
 	if next, ok := root["next_cursor"].(string); ok && next != "" && (op == "speakers select" || op == "speakers diagnostics") {
 		humanInputContinuation(b, op, "cursor", next, nil)
+	}
+}
+
+func humanWorkerProbe(b *humanBuffer, fields map[string]any) {
+	raw, ok := fields["probe"]
+	if !ok {
+		return
+	}
+	encoded, err := json.Marshal(raw)
+	if err != nil {
+		return
+	}
+	var p workers.Probe
+	if json.Unmarshal(encoded, &p) != nil || !p.Valid() {
+		return
+	}
+	role, _ := fields["role"].(string)
+	if role != "recognition" && role != "diarization" {
+		role = "environment"
+	}
+	b.line("Worker %s probe: %s at %s; native %d ms of %d ms.", role, p.Reason, p.Stage, p.ElapsedMS, p.BudgetMS)
+	if p.Child != nil {
+		b.line("Python probe: %d ms; hashed %d/%d files (%d bytes).", p.Child.ElapsedMS, p.Child.HashedFiles, p.Child.Files, p.Child.HashedBytes)
 	}
 }

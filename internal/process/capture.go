@@ -13,6 +13,7 @@ import (
 // CaptureResult retains partial reports even when the extractor fails. Callers
 // decide capture state and persist diagnostics separately from machine output.
 type CaptureResult struct {
+	Started     bool // The owned process was created; exit code alone cannot prove launch.
 	Stdout      []byte
 	Stderr      []byte
 	ExitCode    int
@@ -75,6 +76,7 @@ func Capture(ctx context.Context, spec Spec) (CaptureResult, error) {
 	if err != nil {
 		return result, contracts.Fail("operation_failed")
 	}
+	result.Started = true
 	launched := time.Now()
 	defer tree.Close()
 	finished, supervised := make(chan struct{}), make(chan struct{})

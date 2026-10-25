@@ -411,6 +411,28 @@
       ],
       "platform": "maintainer host",
       "callers": "maintainer repository administration"
+    },
+    {
+      "id": "worker-probe-diagnostics",
+      "disposition": "unchanged-product-contract-and-failure-fixtures",
+      "previous": "60s production probe and caller deadlines",
+      "effective": "60s probe maximum;60s shared readiness;3600000ms diagnostic representation bound;5s blocked-child cancellation observation",
+      "origin": "native probe monotonic start; separate Python child monotonic start; original caller deadline",
+      "parent": "earlier caller cancellation or deadline; expanded test runner watchdog for fixtures",
+      "reason": "Diagnostic numeric bounds and reason labels add no testing cutoff. Expired-context and virtual-time cases intentionally exercise failure. Actual disconnect observes prompt termination of a deliberately blocked child.",
+      "files": [
+        "cmd/insonic/worker_probe_human_test.go",
+        "desktop/frontend/src/worker-forms.ts",
+        "desktop/frontend/tests/workers.test.mjs",
+        "internal/app/worker_diagnostics_test.go",
+        "internal/runtime/worker_diagnostics_test.go",
+        "internal/runtime/worker_disconnect_test.go",
+        "internal/workers/probe_diagnostics.go",
+        "internal/workers/probe_diagnostics_test.go",
+        "scripts/journey_cpu.py"
+      ],
+      "platform": "Windows and Linux; real CPU campaign outside CI",
+      "callers": "worker inspection/setup/readiness and maintained real CPU acceptance"
     }
   ],
   "workflow_owners": {
@@ -503,6 +525,16 @@
         2.5
       ],
       "reason": "Real Capture and original combined deadline run under virtual time; controlled actual helper readiness and release are observed separately. Expiry remains short without scheduler-speed assumptions or deadline resets."
+    },
+    {
+      "file": "internal/graph/arcade_test.go",
+      "symbol": "virtual production20s control, fixture21s completion, earlier1s caller",
+      "seconds": [
+        20,
+        21,
+        1
+      ],
+      "reason": "Virtual HTTP time proves the ordinary production cutoff remains unchanged while functional fixture requests use the maintained request allowance and earlier caller cancellation still wins."
     }
   ],
   "notes": [

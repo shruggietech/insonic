@@ -68,6 +68,9 @@ func (p Profile) Digest() string { data, _ := json.Marshal(p); return Digest(dat
 func Digest(data []byte) string  { h := sha256.Sum256(data); return hex.EncodeToString(h[:]) }
 func Hash(ctx context.Context, path string) (library.PinnedFile, error) {
 	out := library.PinnedFile{Path: path}
+	if err := probeContextError(ctx); err != nil {
+		return out, err
+	}
 	if !filepath.IsAbs(path) {
 		return out, contracts.Fail("invalid_request")
 	}
@@ -84,7 +87,7 @@ func Hash(ctx context.Context, path string) (library.PinnedFile, error) {
 	b := make([]byte, 128<<10)
 	for {
 		if ctx.Err() != nil {
-			return out, contracts.Fail("cancelled")
+			return out, probeContextError(ctx)
 		}
 		n, e := f.Read(b)
 		h.Write(b[:n])
@@ -94,6 +97,9 @@ func Hash(ctx context.Context, path string) (library.PinnedFile, error) {
 		if e != nil {
 			return out, contracts.Fail("unavailable")
 		}
+	}
+	if err := probeContextError(ctx); err != nil {
+		return out, err
 	}
 	out.SHA256 = hex.EncodeToString(h.Sum(nil))
 	return out, nil
@@ -106,6 +112,7 @@ type Device struct {
 	Correction      string `json:"correction,omitempty"`
 }
 type Inspection struct {
+	Probe           *Probe               `json:"probe,omitempty"`
 	Role            string               `json:"role"`
 	Python          library.PinnedFile   `json:"python"`
 	PythonVersion   string               `json:"python_version"`

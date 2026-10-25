@@ -71,11 +71,19 @@ func checkedPin(ctx context.Context, name string, p library.PinnedFile) Prerequi
 	}
 	r.State = "configured"
 	r.Identity = p
+	if ctx.Err() != nil {
+		r.State = "unknown"
+		r.Correction = "Verification exhausted its enclosing budget or was cancelled; inspect readiness again."
+		return r
+	}
 	actual, e := workers.Hash(ctx, p.Path)
 	if e == nil && actual.SHA256 == p.SHA256 {
 		r.State = "file_verified"
 		r.Available = true
 		r.Correction = ""
+	} else if ctx.Err() != nil {
+		r.State = "unknown"
+		r.Correction = "Verification exhausted its enclosing budget or was cancelled; inspect readiness again."
 	} else {
 		r.State = "file_unavailable_or_changed"
 	}
@@ -166,29 +174,61 @@ func (a *App) readinessDefinition(ctx context.Context, input ReadinessInput, d *
 		if device == "" {
 			device = "cpu"
 		}
-		inspection, e := a.workerService().Inspect(ctx, role, python.Path, false)
-		if e != nil {
-			return r, e
+		var inspection workers.Inspection
+		if ctx.Err() != nil {
+			inspection = workers.UnattemptedInspection(ctx, role)
+		} else {
+			var e error
+			inspection, e = a.workerService().Inspect(ctx, role, python.Path, false)
+			if e != nil {
+				return r, e
+			}
 		}
 		r.Environments[role] = inspection
 		engine := Prerequisite{Name: role + " engine", State: "engine_unavailable", Available: inspection.Compatible && inspection.EngineAvailable, Correction: "Use workers plan/setup to prepare or reuse a compatible " + role + " environment."}
+		if inspection.Correction != "" {
+			engine.Correction = inspection.Correction
+		}
+		if inspection.Probe != nil && (inspection.Probe.Reason == "deadline" || inspection.Probe.Reason == "cancelled") {
+			engine.State = "unknown"
+		}
 		if engine.Available {
 			engine.State = "engine_available"
 			engine.Correction = ""
 		}
 		identity := checkedPin(ctx, role+" interpreter", python)
-		if receipt.Path != "" && workers.VerifyReceipt(ctx, receipt, python) != nil {
-			identity.State = "environment_changed"
-			identity.Available = false
-			identity.Correction = "Reinspect and explicitly prepare/reconfigure this changed environment for future work."
+		if receipt.Path != "" {
+			if verifyErr := workers.VerifyReceipt(ctx, receipt, python); verifyErr != nil {
+				identity.Available = false
+				identity.State = "environment_unavailable"
+				identity.Correction = "Inspect the environment receipt and dependency access before preparing future work."
+				if ctx.Err() != nil {
+					identity.State = "unknown"
+					identity.Correction = "Environment verification exhausted its enclosing budget or was cancelled; retry readiness."
+				} else if contracts.SafeError(verifyErr).Code == "checksum_mismatch" {
+					identity.State = "environment_changed"
+					identity.Correction = "Reinspect and explicitly prepare/reconfigure this changed environment for future work."
+				}
+			}
 		}
 		dev := inspection.Devices[device]
 		deviceNeed := Prerequisite{Name: device + " device", State: dev.DependencyState, Available: dev.Available, Correction: dev.Correction}
 		if !dev.Available && deviceNeed.Correction == "" {
 			deviceNeed.Correction = "Prepare compatible CPU dependencies, or explicitly select a supported device."
 		}
-		model := a.modelPrerequisite(ctx, ref, task)
+		model := Prerequisite{Name: "model", State: "unknown", Correction: "The enclosing readiness budget expired before model verification; retry readiness."}
+		if ctx.Err() == nil {
+			model = a.modelPrerequisite(ctx, ref, task)
+		}
+		if engine.State == "unknown" {
+			deviceNeed.State = "unknown"
+			deviceNeed.Correction = engine.Correction
+		}
 		r.Tasks[task] = composeTask([]Prerequisite{ffmpeg, cueson, worker, identity, engine, model, deviceNeed, storageNeed})
+	}
+	if ctx.Err() != nil {
+		r.Tasks["training"] = composeTask([]Prerequisite{{Name: "training verification", State: "unknown", Correction: "Readiness exhausted its enclosing budget or was cancelled; retry readiness."}})
+		return r, nil
 	}
 	training := r.Tasks["diarization"]
 	training.Prerequisites = append([]Prerequisite{}, training.Prerequisites...)
@@ -262,10 +302,21 @@ func electedPipelineUsable(d *pipeline.Definition, tasks map[string]TaskReadines
 }
 func (a *App) modelPrerequisite(ctx context.Context, ref, operation string) Prerequisite {
 	r := Prerequisite{Name: "model", State: "not_selected", Correction: "Select/register a compatible exact model, then acquire/verify it through model jobs."}
+	interrupted := func() Prerequisite {
+		r.State, r.Available = "unknown", false
+		r.Correction = "Model verification exhausted its enclosing budget or was cancelled; retry readiness."
+		return r
+	}
+	if ctx.Err() != nil {
+		return interrupted()
+	}
 	if ref == "" {
 		return r
 	}
 	selection, e := models.NewResolver(a.Catalog, a.secrets).Resolve(ctx, ref, operation)
+	if ctx.Err() != nil {
+		return interrupted()
+	}
 	if e != nil || selection.Target.Kind != "base" || !selection.Compatible {
 		r.State = "missing_or_incompatible"
 		return r
@@ -277,7 +328,11 @@ func (a *App) modelPrerequisite(ctx context.Context, ref, operation string) Prer
 		r.State = "storage_unavailable"
 		return r
 	}
-	if e = service.Verify(ctx, selection.Target.ID); e == nil {
+	e = service.Verify(ctx, selection.Target.ID)
+	if ctx.Err() != nil {
+		return interrupted()
+	}
+	if e == nil {
 		r.Available = true
 		r.State = "model_verified"
 		r.Correction = ""

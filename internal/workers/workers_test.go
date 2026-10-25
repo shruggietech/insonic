@@ -147,7 +147,7 @@ func TestInspectionDoesNotInheritSecretsOrLoadWeights(t *testing.T) {
 		if !spec.CleanEnv || strings.Contains(strings.Join(spec.Env, "\n"), "must-not-cross") || len(spec.Args) < 5 || strings.Contains(strings.Join(spec.Args, " "), "model_path") {
 			t.Fatal("unsafe probe", spec.Args)
 		}
-		b, _ := json.Marshal(map[string]any{"python_version": "3.12.15", "cpus": 8, "packages": map[string]string{"faster-whisper": "1.2.1", "ctranslate2": "4.8.2", "av": "18.1.0"}, "engine_available": true, "devices": map[string]any{"cpu": map[string]any{"available": true, "dependency_state": "available"}, "cuda": map[string]any{"available": false, "hardware_count": 1, "dependency_state": "missing_libraries"}}})
+		b, _ := json.Marshal(map[string]any{"python_version": "3.12.15", "cpus": 8, "packages": map[string]string{"faster-whisper": "1.2.1", "ctranslate2": "4.8.2", "av": "18.1.0"}, "engine_available": true, "probe": fixtureProbeProgress("inspect"), "devices": map[string]any{"cpu": map[string]any{"available": true, "dependency_state": "available"}, "cuda": map[string]any{"available": false, "hardware_count": 1, "dependency_state": "missing_libraries"}}})
 		return process.CaptureResult{Stdout: b}, nil
 	}}
 	r, e := s.Inspect(context.Background(), "recognition", exe, false)
