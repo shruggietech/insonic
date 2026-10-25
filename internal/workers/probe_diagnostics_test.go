@@ -101,7 +101,7 @@ func fixtureProbeProgress(mode string) *ProbeProgress {
 	stages = append(stages, "complete")
 	p := &ProbeProgress{Mode: mode, Stage: "complete", Reason: "success"}
 	for _, stage := range stages {
-		p.Observations = append(p.Observations, ProbeObservation{Stage: stage})
+		p.Checkpoints = append(p.Checkpoints, ProbeCheckpoint{Stage: stage})
 	}
 	return p
 }
@@ -109,11 +109,11 @@ func fixtureProbeProgress(mode string) *ProbeProgress {
 func TestProbeRejectsMalformedAndReorderedProgress(t *testing.T) {
 	cases := map[string]func(*ProbeProgress){
 		"unknown-stage":    func(p *ProbeProgress) { p.Stage = "secret-token" },
-		"missing-stage":    func(p *ProbeProgress) { p.Observations = p.Observations[1:] },
-		"reordered":        func(p *ProbeProgress) { p.Observations[0], p.Observations[1] = p.Observations[1], p.Observations[0] },
-		"reversed-time":    func(p *ProbeProgress) { p.Observations[0].ElapsedMS = 2; p.ElapsedMS = 1 },
-		"negative-files":   func(p *ProbeProgress) { p.Files = -1; p.Observations[len(p.Observations)-1].Files = -1 },
-		"overflow-files":   func(p *ProbeProgress) { p.Files = 30001; p.Observations[len(p.Observations)-1].Files = 30001 },
+		"missing-stage":    func(p *ProbeProgress) { p.Checkpoints = p.Checkpoints[1:] },
+		"reordered":        func(p *ProbeProgress) { p.Checkpoints[0], p.Checkpoints[1] = p.Checkpoints[1], p.Checkpoints[0] },
+		"reversed-time":    func(p *ProbeProgress) { p.Checkpoints[0].ElapsedMS = 2; p.ElapsedMS = 1 },
+		"negative-files":   func(p *ProbeProgress) { p.Files = -1; p.Checkpoints[len(p.Checkpoints)-1].Files = -1 },
+		"overflow-files":   func(p *ProbeProgress) { p.Files = 30001; p.Checkpoints[len(p.Checkpoints)-1].Files = 30001 },
 		"unknown-reason":   func(p *ProbeProgress) { p.Reason = "secret-token" },
 		"running-terminal": func(p *ProbeProgress) { p.Reason = "running" },
 		"invalid-mode":     func(p *ProbeProgress) { p.Mode = "secret-token" },
@@ -160,7 +160,7 @@ func TestTimedOutProbeRetainsValidatedLastStage(t *testing.T) {
 	os.WriteFile(python, []byte("fixture"), 0600)
 	synctest.Test(t, func(t *testing.T) {
 		s := Service{Directory: dir, Run: func(ctx context.Context, spec process.Spec) (process.CaptureResult, error) {
-			p := &ProbeProgress{Mode: "inspect", Stage: "library_import", Reason: "running", ElapsedMS: 1, Observations: []ProbeObservation{{Stage: "package_versions"}, {Stage: "library_import", ElapsedMS: 1}}}
+			p := &ProbeProgress{Mode: "inspect", Stage: "library_import", Reason: "running", ElapsedMS: 1, Checkpoints: []ProbeCheckpoint{{Stage: "package_versions"}, {Stage: "library_import", ElapsedMS: 1}}}
 			raw, _ := json.Marshal(p)
 			if err := os.WriteFile(filepath.Join(spec.Directory, probeCheckpoint), raw, 0600); err != nil {
 				t.Fatal(err)

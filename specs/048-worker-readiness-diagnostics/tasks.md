@@ -52,3 +52,7 @@
 ## Dependencies and execution
 
 Setup -> contract -> US1 -> US2 -> US3 -> final delivery. US1/US2 have independent injected failure fixtures; US3 uses the completed shared contract. Python fixture tests and Go validation tests may execute concurrently after setup; schema/human/frontend changes touch separate files but stay on the same authoritative contract. No implementation agent delegation is required. Deliver all three stories before handoff; a partial MVP is not completion.
+
+## Phase 7: Convergence
+
+- [ ] T023 CRITICAL: Make bounded probe history compatible with the existing durable-result privacy contract, preserve the raw-observations rejection, and prove healthy setup checkpoint/publication through the real catalog in internal/app/worker_diagnostics_test.go; rerun real CPU acceptance and applicable CI per FR-006/SC-003 (contradicts).

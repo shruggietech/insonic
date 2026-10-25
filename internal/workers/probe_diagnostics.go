@@ -28,16 +28,16 @@ type Probe struct {
 	Child     *ProbeProgress `json:"child,omitempty"`
 }
 type ProbeProgress struct {
-	Mode         string             `json:"mode"`
-	Stage        string             `json:"stage"`
-	Reason       string             `json:"reason"`
-	ElapsedMS    int64              `json:"elapsed_ms"`
-	Files        int64              `json:"files"`
-	HashedFiles  int64              `json:"hashed_files"`
-	HashedBytes  int64              `json:"hashed_bytes"`
-	Observations []ProbeObservation `json:"observations"`
+	Mode        string            `json:"mode"`
+	Stage       string            `json:"stage"`
+	Reason      string            `json:"reason"`
+	ElapsedMS   int64             `json:"elapsed_ms"`
+	Files       int64             `json:"files"`
+	HashedFiles int64             `json:"hashed_files"`
+	HashedBytes int64             `json:"hashed_bytes"`
+	Checkpoints []ProbeCheckpoint `json:"checkpoints"`
 }
-type ProbeObservation struct {
+type ProbeCheckpoint struct {
 	Stage       string `json:"stage"`
 	ElapsedMS   int64  `json:"elapsed_ms"`
 	Files       int64  `json:"files"`
@@ -86,7 +86,7 @@ func validProbeStage(stage string) bool {
 }
 func validProbeReason(reason string) bool { _, ok := probeMessages[reason]; return ok }
 func (p *ProbeProgress) valid(mode string, terminal bool) bool {
-	if p == nil || p.Mode != mode || probeStageIndex(p.Stage) < 0 || p.ElapsedMS < 0 || p.ElapsedMS > probeMaximumMS || len(p.Observations) < 1 || len(p.Observations) > 16 {
+	if p == nil || p.Mode != mode || probeStageIndex(p.Stage) < 0 || p.ElapsedMS < 0 || p.ElapsedMS > probeMaximumMS || len(p.Checkpoints) < 1 || len(p.Checkpoints) > 16 {
 		return false
 	}
 	if p.Reason == "running" {
@@ -104,12 +104,12 @@ func (p *ProbeProgress) valid(mode string, terminal bool) bool {
 		expected = append(expected, "dependency_inventory", "dependency_hashing")
 	}
 	expected = append(expected, "complete")
-	if len(p.Observations) > len(expected) {
+	if len(p.Checkpoints) > len(expected) {
 		return false
 	}
 	lastIndex := -1
 	var elapsed, files, hashed, size int64
-	for i, o := range p.Observations {
+	for i, o := range p.Checkpoints {
 		if o.Stage != expected[i] {
 			return false
 		}
@@ -119,8 +119,8 @@ func (p *ProbeProgress) valid(mode string, terminal bool) bool {
 		}
 		lastIndex, elapsed, files, hashed, size = index, o.ElapsedMS, o.Files, o.HashedFiles, o.HashedBytes
 	}
-	last := p.Observations[len(p.Observations)-1]
-	return (p.Reason != "success" || len(p.Observations) == len(expected)) && last.ElapsedMS == p.ElapsedMS && last.Stage == p.Stage && p.Files == files && p.HashedFiles == hashed && p.HashedBytes == size
+	last := p.Checkpoints[len(p.Checkpoints)-1]
+	return (p.Reason != "success" || len(p.Checkpoints) == len(expected)) && last.ElapsedMS == p.ElapsedMS && last.Stage == p.Stage && p.Files == files && p.HashedFiles == hashed && p.HashedBytes == size
 }
 func (p *Probe) valid() bool {
 	return p != nil && (p.Mode == "inspect" || p.Mode == "snapshot") && validProbeStage(p.Stage) && validProbeReason(p.Reason) && (p.Reason != "success" || p.Stage == "complete" && p.Child != nil) && p.ElapsedMS >= 0 && p.ElapsedMS <= probeMaximumMS && p.BudgetMS >= 0 && p.BudgetMS <= 60000 && (p.Child == nil || p.Child.valid(p.Mode, p.Reason == "success"))

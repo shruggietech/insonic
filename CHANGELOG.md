@@ -6,7 +6,7 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Changed
 
-- 2026-10-25: Keep the existing sixty-second worker/readiness deadlines and record fixed bounded progress inside each private probe directory. Native and child clocks remain separate, receipt observations are optional for backward compatibility, and only ephemeral worker observation requests gain disconnect cancellation. Diagnostic additions do not relax environment hashes, version checks or real processing acceptance.
+- 2026-10-25: Keep the existing sixty-second worker/readiness deadlines and record fixed bounded progress inside each private probe directory. Native and child clocks remain separate, receipt observations are optional for backward compatibility, and only ephemeral worker observation requests gain disconnect cancellation. Diagnostic additions do not relax environment hashes, version checks or real processing acceptance. The bounded durable history uses `checkpoints`, preserving the catalog prohibition on raw `observations` payloads.
 
 - 2026-10-22: Refresh Playwright maintainer tooling, Windows IPC/Linux credential and S3 client dependencies, and static-documentation renderer dependencies. Capture tooling follows the root exact Playwright pin; maintained desktop source checks retain independently verified pristine upstream checksums after Go graph refresh and enforce both archive and module-file entries without conflicts.
 

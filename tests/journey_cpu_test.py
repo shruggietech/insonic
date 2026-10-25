@@ -31,7 +31,7 @@ def probe(mode):
     rows = [{"stage": stage, "elapsed_ms": index, "files": 1 if mode == "snapshot" else 0,
              "hashed_files": 0, "hashed_bytes": 0} for index, stage in enumerate(stages)]
     return {"mode": mode, "stage": "complete", "reason": "success", "elapsed_ms": 20, "budget_ms": 60000,
-            "child": {"mode": mode, "reason": "success", **rows[-1], "observations": rows}}
+            "child": {"mode": mode, "reason": "success", **rows[-1], "checkpoints": rows}}
 
 
 class FakeJourney:
@@ -117,7 +117,7 @@ class ManagedTests(unittest.TestCase):
             with self.subTest(invalid=invalid), self.assertRaises(ValueError):
                 cpu.probe_measurement(invalid, "inspect")
         invalid = probe("inspect")
-        invalid["child"]["observations"][1]["elapsed_ms"] = -1
+        invalid["child"]["checkpoints"][1]["elapsed_ms"] = -1
         with self.assertRaises(ValueError):
             cpu.probe_measurement(invalid, "inspect")
         source = {**probe("inspect"), "private_path": "SECRET"}

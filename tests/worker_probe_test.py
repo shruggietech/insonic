@@ -100,7 +100,7 @@ class WorkerProbeDiagnostics(unittest.TestCase):
             self.assertLessEqual(len(raw), 16384)
             self.assertEqual(json.loads(raw), result["probe"])
             self.assertEqual(result["probe"]["reason"], "success")
-            self.assertEqual([p["stage"] for p in result["probe"]["observations"]],
+            self.assertEqual([p["stage"] for p in result["probe"]["checkpoints"]],
                              ["package_versions", "library_import", "cpu_prerequisites", "cuda_prerequisites", "complete"])
             self.assertFalse(target.with_name(target.name + ".tmp").exists())
             self.assertNotIn(directory, json.dumps(result["probe"]))

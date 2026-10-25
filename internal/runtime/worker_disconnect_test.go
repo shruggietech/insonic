@@ -24,7 +24,7 @@ func init() {
 	point := func(stage string) map[string]any {
 		return map[string]any{"stage": stage, "elapsed_ms": 0, "files": 0, "hashed_files": 0, "hashed_bytes": 0}
 	}
-	raw, _ := json.Marshal(map[string]any{"mode": "inspect", "stage": "library_import", "reason": "running", "elapsed_ms": 0, "files": 0, "hashed_files": 0, "hashed_bytes": 0, "observations": []any{point("package_versions"), point("library_import")}})
+	raw, _ := json.Marshal(map[string]any{"mode": "inspect", "stage": "library_import", "reason": "running", "elapsed_ms": 0, "files": 0, "hashed_files": 0, "hashed_bytes": 0, "checkpoints": []any{point("package_versions"), point("library_import")}})
 	if os.WriteFile(os.Args[7], raw, 0600) != nil {
 		os.Exit(97)
 	}

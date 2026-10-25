@@ -7,3 +7,5 @@ Fixed reasons distinguish success; unavailable interpreter/home; process launch/
 All numeric bounds and clock origins follow [data-model.md](../data-model.md). A private checkpoint carries generated fixed facts only, is atomically replaced and removed with the probe home. Malformed progress cannot authorize compatibility or reuse. Safe fixed operator reasons survive failed setup/work inspection. Genuine mismatched bytes remain an integrity failure; interrupted verification does not claim changed bytes.
 
 The original caller expiry remains authoritative. Client disconnect stops ephemeral inspection/readiness, while enqueued setup remains durable until explicit work cancellation. Partial readiness retains already observed facts and labels unattempted work unknown with a corrective action.
+
+The serialized history field is `checkpoints`; the catalog continues to refuse raw `observations` in durable results.

@@ -84,7 +84,7 @@ def probe_measurement(value, mode, *, success=True):
         if (not isinstance(child, dict) or child.get("mode") != mode or child.get("stage") not in stages
                 or child.get("reason") not in reasons | {"running"}):
             raise ValueError("Worker child probe measurement differs")
-        observations = child.get("observations")
+        observations = child.get("checkpoints")
         if not isinstance(observations, list) or not 1 <= len(observations) <= len(stages):
             raise ValueError("Worker probe observation inventory differs")
         rows, previous = [], [0, 0, 0, 0]
@@ -103,9 +103,9 @@ def probe_measurement(value, mode, *, success=True):
             raise ValueError("Worker probe final observation differs")
         result["child"] = {key: child[key] for key in ("mode", "stage", "reason")}
         result["child"].update(rows[-1])
-        result["child"]["observations"] = rows
+        result["child"]["checkpoints"] = rows
     if success and (result["stage"] != "complete" or child is None or child.get("reason") != "success"
-                    or child.get("stage") != "complete" or len(child["observations"]) != len(stages)):
+                    or child.get("stage") != "complete" or len(child["checkpoints"]) != len(stages)):
         raise ValueError("Worker probe success lacks complete observations")
     return result
 

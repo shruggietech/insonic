@@ -47,7 +47,7 @@ Existing explicit processing-tools configurations remain supported under Advance
 
 Run `insonic --workspace LIBRARY workers inspect --input inspection.json --json` with `{"role":"recognition"}` or `{"role":"diarization"}`. Omit `python_path` to inspect the configured interpreter. Inspection imports the selected engine and checks CPU/CUDA prerequisites without loading a model. Setup additionally inventories and hashes the environment before publishing its receipt.
 
-The optional `probe` reports a fixed `mode`, `stage`, `reason`, native `elapsed_ms` and effective `budget_ms`. Its optional `child` contains bounded stage observations and file/hash counts. Native elapsed time begins before interpreter hashing. Child elapsed time begins inside the isolated interpreter; these clocks have different origins and must not be subtracted or added as stage durations. Observations are cumulative checkpoints, rather than independent phase durations. A failed or stopped interpreter may leave its last completed checkpoint; it does not prove later stages ran.
+The optional `probe` reports a fixed `mode`, `stage`, `reason`, native `elapsed_ms` and effective `budget_ms`. Its optional `child` contains an ordered `checkpoints` list and bounded file/hash counts. Native elapsed time begins before interpreter hashing. Child elapsed time begins inside the isolated interpreter; these clocks have different origins and must not be subtracted or added as stage durations. Observations are cumulative checkpoints, rather than independent phase durations. A failed or stopped interpreter may leave its last completed checkpoint; it does not prove later stages ran.
 
 | Reason | Meaning and correction |
 | --- | --- |

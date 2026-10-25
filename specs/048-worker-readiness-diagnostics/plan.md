@@ -39,3 +39,7 @@ Pre-research and post-design gates pass: owner-approved bounded scope; CLI-first
 ## Delivery and Verification
 
 Write failing controlled regressions before implementation. Run focused workers/app/runtime/CLI/bridge tests, Python probe fixtures, schemas, frontend checks/tests/build, root check/test and affected site checks. Inspect real child timeout/cancellation and malformed progress. Verify legacy receipts and genuine changed bytes. Commit clean implementation, publish official PR automatically, qualify current source and run the isolated real CPU campaign. Address at most two Codex rounds, all individual comments and final exact-head CI. Stop before merge.
+
+## Convergence decision (2026-10-25)
+
+D009: Name the fixed validated child history `checkpoints`. The generic catalog privacy contract rejects raw `observations` at any depth; preserve that guard without exceptions. The real managed campaign exposed the collision, and an actual catalog setup checkpoint/publication regression reproduces it before repair.

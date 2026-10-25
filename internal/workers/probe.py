@@ -25,16 +25,16 @@ class Observation:
         self.write_failed = False
         self.value = {"mode": "snapshot" if snapshot else "inspect", "stage": "package_versions",
                       "reason": "running", "elapsed_ms": 0, "files": 0, "hashed_files": 0,
-                      "hashed_bytes": 0, "observations": []}
+                      "hashed_bytes": 0, "checkpoints": []}
 
     def record(self, stage, reason="running"):
         value = self.value
         value.update(stage=stage, reason=reason, elapsed_ms=max(0, (time.monotonic_ns() - self.started) // 1_000_000))
         point = {key: value[key] for key in ("stage", "elapsed_ms", "files", "hashed_files", "hashed_bytes")}
-        if value["observations"] and value["observations"][-1]["stage"] == stage:
-            value["observations"][-1] = point
+        if value["checkpoints"] and value["checkpoints"][-1]["stage"] == stage:
+            value["checkpoints"][-1] = point
         else:
-            value["observations"].append(point)
+            value["checkpoints"].append(point)
         if self.target:
             temporary = self.target + ".tmp"
             try:
