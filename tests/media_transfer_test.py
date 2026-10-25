@@ -147,8 +147,8 @@ class MediaTransferTests(unittest.TestCase):
         def run(args, cwd, timeout, shell=False):
             calls.append((args, timeout, shell))
         source.resume_codec(self.directory, receipt, 'windows_amd64', 4, run)
-        self.assertEqual(calls, [(['make', '-q', source.CODEC_TARGET], 60, True),
-                                 (['make', '-j8', 'ffmpeg.exe', 'ffprobe.exe'], 360, True)])
+        self.assertEqual(calls, [(['make', '-q', source.CODEC_TARGET], source.timing.BUILD_SECONDS, True),
+                                 (['make', '-j8', 'ffmpeg.exe', 'ffprobe.exe'], source.timing.SOURCE_BUILD_SECONDS, True)])
         def rebuild(args, cwd, timeout, shell=False):
             if '-q' not in args:
                 path = cwd / 'libavcodec/fixture.o'

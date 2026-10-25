@@ -6,6 +6,10 @@ import os
 from pathlib import Path
 import platform
 import subprocess
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 
 
 def inventory():
@@ -18,7 +22,7 @@ def inventory():
     else:
         command = ['dpkg-query', '-W', '-f=${Package}\t${Version}\n']
     result = subprocess.run(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE, check=True, timeout=30,
+                            stderr=subprocess.PIPE, check=True, timeout=timing.READINESS_SECONDS,
                             creationflags=subprocess.CREATE_NO_WINDOW if windows else 0)
     if len(result.stdout) > 4 * 1024 * 1024:
         raise ValueError('toolchain package inventory exceeds bound')

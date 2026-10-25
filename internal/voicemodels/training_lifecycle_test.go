@@ -7,6 +7,7 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/processing"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -130,7 +131,7 @@ func TestHostedCancellationUsesOnlySelectedEndpointAndWorkIdentity(t *testing.T)
 	go func() { _, err := s.ExecuteTrain(ctx, claim); done <- err }()
 	select {
 	case <-started:
-	case <-time.After(5 * time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("training endpoint never started")
 	}
 	cancel()
@@ -139,12 +140,12 @@ func TestHostedCancellationUsesOnlySelectedEndpointAndWorkIdentity(t *testing.T)
 		if err == nil {
 			t.Fatal("cancel reported success")
 		}
-	case <-time.After(8 * time.Second):
+	case <-time.After(qualificationtiming.Duration("cleanup_seconds")):
 		t.Fatal("cancel did not terminate work")
 	}
 	select {
 	case <-cancelled:
-	case <-time.After(time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("declared provider cancel unsupported")
 	}
 	if calls.Load() != 1 {

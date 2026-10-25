@@ -5,8 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"testing"
-	"time"
 
 	"github.com/shruggietech/insonic/internal/contracts"
 )
@@ -40,7 +40,7 @@ func TestSingleRowReadDoesNotReserveSQLiteWriter(t *testing.T) {
 	if _, err = writer.ExecContext(ctx, "UPDATE "+domainNamed("Works").name+" SET phase=? WHERE workspace_id=? AND id=?", "uncommitted", s.workspace, w.ID); err != nil {
 		t.Fatal(err)
 	}
-	readCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	readCtx, cancel := context.WithTimeout(ctx, qualificationtiming.Duration("request_seconds"))
 	defer cancel()
 	got, err := s.Work(readCtx, w.ID)
 	if err != nil || got.ID != w.ID || got.State != "pending" || got.Phase != "" {
@@ -75,7 +75,7 @@ func TestWorkListReadDoesNotReserveSQLiteWriter(t *testing.T) {
 	if _, err = writer.ExecContext(ctx, "UPDATE "+domainNamed("Works").name+" SET phase=? WHERE workspace_id=? AND id=?", "uncommitted", s.workspace, w.ID); err != nil {
 		t.Fatal(err)
 	}
-	readCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	readCtx, cancel := context.WithTimeout(ctx, qualificationtiming.Duration("request_seconds"))
 	defer cancel()
 	got, err := s.Works(readCtx)
 	if err != nil || len(got) != 1 || got[0].ID != w.ID || got[0].Phase != "" {
@@ -145,7 +145,7 @@ func TestModelReferenceNameReadDoesNotReserveSQLiteWriter(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	readCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	readCtx, cancel := context.WithTimeout(ctx, qualificationtiming.Duration("request_seconds"))
 	defer cancel()
 	gotSource, err := s.ModelSource(readCtx, source.Name)
 	if err != nil || gotSource.ID != source.ID || gotSource.State != "active" || gotSource.Revision != source.Revision {

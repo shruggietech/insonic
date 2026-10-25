@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/shruggietech/insonic/desktop"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"github.com/wailsapp/go-webview2/pkg/edge"
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"golang.org/x/sys/windows"
@@ -37,7 +38,7 @@ func exitWinLabel(handle uintptr, index uintptr) string {
 func exitOwnedWindow() (uintptr, error) { return findNativeExitWindow(true) }
 
 func prepareNativeExitWindow(ctx context.Context) error {
-	hwnd, err := findNativeExitWindow(false)
+	hwnd, err := findNativeExitWindowContext(ctx, false)
 	if err != nil {
 		return err
 	}
@@ -98,7 +99,7 @@ func awaitNativeWindowOperation(ctx context.Context, hwnd uintptr, operation fun
 		if err != nil {
 			outcome = "failed"
 		}
-		raw, _ := json.Marshal(map[string]any{"kind": "native-ui-join", "operation": operationID, "origin_unix_micros": started.UnixMicro(), "budget_ns": nativeWindowJoinBudget(ctx).Nanoseconds(), "post_begin_ns": postBegin.Load(), "post_returned_ns": postReturned.Load(), "entered_ns": entered.Load(), "returned_ns": returned.Load(), "observed_ns": time.Since(started).Nanoseconds(), "result": outcome})
+		raw, _ := json.Marshal(map[string]any{"kind": "native-ui-join", "operation": operationID, "origin_unix_micros": started.UnixMicro(), "budget_ns": nativeWindowJoinBudget(ctx).Nanoseconds(), "effective_budget_ns": func() int64 { at, _ := deadline.Deadline(); return max(int64(0), at.Sub(started).Nanoseconds()) }(), "post_begin_ns": postBegin.Load(), "post_returned_ns": postReturned.Load(), "entered_ns": entered.Load(), "returned_ns": returned.Load(), "observed_ns": time.Since(started).Nanoseconds(), "result": outcome})
 		fmt.Fprintln(os.Stderr, string(raw))
 		if err != nil {
 			at, _ := deadline.Deadline()
@@ -155,7 +156,16 @@ func awaitNativeWindowOperation(ctx context.Context, hwnd uintptr, operation fun
 }
 
 func findNativeExitWindow(requireVisible bool) (uintptr, error) {
-	deadline := time.Now().Add(5 * time.Second)
+	// Failure-only menu observation/dismissal must fit the outer cleanup reserve.
+	// Healthy qualification uses the expanded parent-bounded path below directly.
+	ctx, stop := context.WithTimeout(context.Background(), 5*time.Second)
+	defer stop()
+	return findNativeExitWindowContext(ctx, requireVisible)
+}
+
+func findNativeExitWindowContext(parent context.Context, requireVisible bool) (uintptr, error) {
+	ctx, stop := qualificationtiming.Context(parent, "readiness_seconds")
+	defer stop()
 	var handles []uintptr
 	var owned, visible, active int
 	callback := syscall.NewCallback(func(hwnd, unused uintptr) uintptr {
@@ -182,7 +192,7 @@ func findNativeExitWindow(requireVisible bool) (uintptr, error) {
 		}
 		return 1
 	})
-	for time.Now().Before(deadline) {
+	for ctx.Err() == nil {
 		handles = nil
 		owned, visible, active = 0, 0, 0
 		exitWinCall("EnumWindows", callback, 0)

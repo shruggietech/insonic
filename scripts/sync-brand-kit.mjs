@@ -6,6 +6,7 @@ import { mkdir, readFile, readdir, rename, rm, writeFile, lstat } from 'node:fs/
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inflateRawSync } from 'node:zlib';
+import { milliseconds } from './qualification-timing.mjs';
 
 export const upstream = 'shruggietech/shruggie-brand';
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -145,7 +146,7 @@ export function verifyKit(files, candidate) {
 }
 
 async function requestBytes(url, maximum, fetchImplementation = fetch) {
-  const response = await fetchImplementation(url, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'insonic-brand-maintenance' }, signal: AbortSignal.timeout(60000) });
+  const response = await fetchImplementation(url, { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'insonic-brand-maintenance' }, signal: AbortSignal.timeout(milliseconds('request_seconds')) });
   if (!response.ok) throw new Error(`Upstream request returned ${response.status}: ${url}`);
   if (Number(response.headers.get('content-length') || 0) > maximum) throw new Error(`Download exceeds size limit: ${url}`);
   const chunks = []; let length = 0;

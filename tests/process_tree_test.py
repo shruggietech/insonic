@@ -10,6 +10,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
+import qualification_timing as test_timing
 from process_tree import ProcessTree, selected_executable, native_webview_environment, NATIVE_PROFILE
 import process_tree
 
@@ -53,18 +54,18 @@ class SelectedChildEnvironment(unittest.TestCase):
                                          start_new_session=True)
             try:
                 with ProcessTree([sys.executable, '-c', parent, worker, ready], cwd=root, env=dict(os.environ)) as tree:
-                    tree.process.communicate(timeout=5)
-                    deadline = time.monotonic() + 5
+                    tree.process.communicate(timeout=test_timing.READINESS_SECONDS)
+                    deadline = time.monotonic() + test_timing.READINESS_SECONDS
                     while not ready.exists() and time.monotonic() < deadline:
                         time.sleep(.01)
                     self.assertTrue(ready.exists())
                     self.assertFalse(tree.wait_for_descendants(.02))
                     tree.kill()
-                    self.assertTrue(tree.wait_for_descendants(5))
+                    self.assertTrue(tree.wait_for_descendants(test_timing.NATURAL_RELEASE_SECONDS))
                     self.assertIsNone(unrelated.poll())
             finally:
                 unrelated.kill()
-                unrelated.wait(timeout=5)
+                unrelated.wait(timeout=test_timing.CLEANUP_SECONDS)
 
     def test_selected_path_owns_bare_program_and_missing_program_cannot_fall_back(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -89,7 +90,7 @@ class SelectedChildEnvironment(unittest.TestCase):
             shutil.copyfile(sys.executable, executable)
             environment = dict(os.environ, PATH=str(selected) + os.pathsep + os.environ.get('PATH', ''))
             with ProcessTree(['selected-python', '-c', 'import sys; print(sys.executable)'], cwd=temporary, env=environment) as tree:
-                output, error = tree.process.communicate(timeout=15)
+                output, error = tree.process.communicate(timeout=test_timing.READINESS_SECONDS)
                 self.assertEqual(tree.process.returncode, 0, error.decode(errors='replace'))
                 self.assertEqual(Path(output.decode().strip()).resolve(), executable.resolve())
 
@@ -101,11 +102,11 @@ class SelectedChildEnvironment(unittest.TestCase):
             worker = "import pathlib,sys,time; p=pathlib.Path(sys.argv[1]); deadline=time.monotonic()+10\nwhile not p.exists() and time.monotonic()<deadline:time.sleep(.02)\nif p.exists():p.write_text('natural')"
             parent = "import subprocess,sys;subprocess.Popen([sys.executable,'-c',sys.argv[1],sys.argv[2]],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,creationflags=subprocess.CREATE_NO_WINDOW)"
             with ProcessTree([sys.executable, '-c', parent, worker, marker], cwd=temporary, env=dict(os.environ)) as tree:
-                tree.process.communicate(timeout=5)
+                tree.process.communicate(timeout=test_timing.READINESS_SECONDS)
                 self.assertEqual(tree.process.returncode, 0)
                 self.assertFalse(tree.wait_for_descendants(.02))
                 marker.write_text('release')
-                self.assertTrue(tree.wait_for_descendants(5))
+                self.assertTrue(tree.wait_for_descendants(test_timing.NATURAL_RELEASE_SECONDS))
                 self.assertEqual(marker.read_text(), 'natural')
 
     @unittest.skipUnless(os.name == 'nt', 'actual Windows qualification profile')

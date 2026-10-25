@@ -81,7 +81,7 @@ class NativePackageIntegrityTests(unittest.TestCase):
                     with self.assertRaises(subprocess.TimeoutExpired) as failure:
                         package.child(['private/executable', '--webview-qualification'], timeout=90)
                 self.assertIs(failure.exception, expired)
-                self.assertEqual(tree.calls, [90, 5]); self.assertTrue(tree.killed)
+                self.assertEqual(tree.calls, [90, package.timing.CLEANUP_SECONDS]); self.assertTrue(tree.killed)
                 self.assertEqual(stdout.getvalue(), output[-65536:])
                 self.assertEqual(stderr.getvalue(), error[-65536:])
                 receipt = json.loads((root / 'build/native/package-child-timeout-1234-receipt.json').read_text())
@@ -114,7 +114,7 @@ class NativePackageIntegrityTests(unittest.TestCase):
             self.assertEqual(released.call_count, 3)
             self.assertEqual(slept.call_args_list, [unittest.mock.call(0.1), unittest.mock.call(0.1)])
         with patch.object(package.platform, 'system', return_value='Windows'), \
-                patch.object(package.time, 'monotonic', side_effect=[145, 145, 155]), \
+                patch.object(package.time, 'monotonic', side_effect=[145, 145, 145 + package.timing.NATURAL_RELEASE_SECONDS]), \
                 patch.object(package, 'windows_image_released', return_value=False), \
                 patch.object(package, 'retain_busy_image_diagnostic') as diagnostic:
             with self.assertRaisesRegex(TimeoutError, 'image remained busy'):

@@ -25,7 +25,7 @@ func TestHelper(t *testing.T) {
 
 func TestLimitsCancellationAndNoOutputInErrors(t *testing.T) {
 	exe, _ := os.Executable()
-	_, err := Run(context.Background(), Spec{Executable: exe, Args: []string{"-test.run=TestHelper"}, Env: []string{"INSONIC_PROCESS_HELPER=1"}, MaxOutput: 32})
+	_, err := Run(processTestContext(t), Spec{Executable: exe, Args: []string{"-test.run=TestHelper"}, Env: []string{"INSONIC_PROCESS_HELPER=1"}, MaxOutput: 32})
 	if err == nil || strings.Contains(err.Error(), "test-secret") {
 		t.Fatalf("limit/redaction: %v", err)
 	}
@@ -35,7 +35,7 @@ func TestLimitsCancellationAndNoOutputInErrors(t *testing.T) {
 	if err == nil || ctx.Err() == nil {
 		t.Fatal("cancellation failed")
 	}
-	_, err = Run(context.Background(), Spec{Executable: "relative-command", MaxOutput: 32})
+	_, err = Run(processTestContext(t), Spec{Executable: "relative-command", MaxOutput: 32})
 	if err == nil {
 		t.Fatal("relative executable accepted")
 	}

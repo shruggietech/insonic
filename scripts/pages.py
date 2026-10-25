@@ -8,6 +8,11 @@ from pathlib import PurePosixPath
 import re
 import tarfile
 import time
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 
 DOMAIN = 'insonic.io'
 BRANCH = 'gh-pages'
@@ -178,7 +183,7 @@ def promote_tree(api, repository, destination, files, version, revision, *, slee
     requested = api.call('POST', endpoint + '/pages/builds')
     if not requested: raise ValueError('Pages build request was not accepted')
     while True:
-        if clock() - started >= 300: raise ValueError('Pages build deadline exceeded')
+        if clock() - started >= timing.ARTIFACT_PRODUCER_SECONDS: raise ValueError('Pages build deadline exceeded')
         build = api.call('GET', endpoint + '/pages/builds/latest')
         if not build: raise ValueError('Pages build result is unavailable')
         if build.get('status') == 'built':
@@ -191,6 +196,6 @@ def promote_tree(api, repository, destination, files, version, revision, *, slee
         else:
             if build.get('status') not in ('queued', 'building'): raise ValueError('Pages build failed')
             if build.get('commit') not in (None, staged): raise ValueError('Pages pending build differs from staged commit')
-        remaining = 300 - (clock() - started)
+        remaining = timing.ARTIFACT_PRODUCER_SECONDS - (clock() - started)
         if remaining <= 0: raise ValueError('Pages build deadline exceeded')
         sleep(min(5, remaining))

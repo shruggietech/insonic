@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/shruggietech/insonic/internal/library"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -114,7 +115,7 @@ func TestHostedPrivateTimeoutSendsFreshBoundedCancellation(t *testing.T) {
 			}
 			select {
 			case <-cancelled:
-			case <-time.After(time.Second):
+			case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 				t.Fatal("remote task survives timeout without declared cancel")
 			}
 		})

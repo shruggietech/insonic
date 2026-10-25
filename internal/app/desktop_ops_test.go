@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"os"
 	"path/filepath"
 	"strings"
@@ -169,14 +170,14 @@ func TestDesktopPlaybackPreparationRenewsLeaseWithoutBlockingRegistry(t *testing
 		finishPreview()
 		select {
 		case <-completed:
-		case <-time.After(5 * time.Second):
+		case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 			t.Error("playback preparation cleanup did not finish")
 		}
 	})
 	var prepared preparation
 	select {
 	case prepared = <-entered:
-	case <-time.After(5 * time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("preparation did not start")
 	}
 	active := make(chan int, 1)
@@ -186,13 +187,13 @@ func TestDesktopPlaybackPreparationRenewsLeaseWithoutBlockingRegistry(t *testing
 		if n < 1 {
 			t.Fatal("preparation lost runtime activity")
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("preparation blocked runtime admission")
 	}
 	var renewed catalog.MaterializationLease
 	select {
 	case renewed = <-observer.renewed:
-	case <-time.After(5 * time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("preparation did not renew its actual catalog lease")
 	}
 	publication, err := observer.Catalog.Publication(a.ctx, prepared.descriptor.PublicationID)
@@ -220,7 +221,7 @@ func TestDesktopPlaybackPreparationRenewsLeaseWithoutBlockingRegistry(t *testing
 		if _, retained := publication.Leases[descriptor.LeaseID]; err != nil || retained {
 			t.Fatal("closed preparation retained its materialization lease", err)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("preparation did not finish")
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/graph"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"net/http"
 	"os"
 	"testing"
@@ -22,7 +23,7 @@ func TestExploreRealArcadeCurrentQueries(t *testing.T) {
 		t.Skip("explicit fixture required")
 	}
 	db := fmt.Sprintf("insonicexplore%d", time.Now().UnixNano())
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: qualificationtiming.Duration("request_seconds")}
 	call := func(command string) {
 		raw, _ := json.Marshal(map[string]any{"command": command})
 		req, _ := http.NewRequest("POST", endpoint+"/api/v1/server", bytes.NewReader(raw))

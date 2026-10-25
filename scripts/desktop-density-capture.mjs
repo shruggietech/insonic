@@ -4,6 +4,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright-core';
+import {milliseconds,withinAllowance} from './qualification-timing.mjs';
 const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 
 // This small renderer probe uses the real shared components and delivered CSS.
@@ -18,11 +19,13 @@ export async function probeControls(browserPath){
   const bundle=await build({stdin:{contents:`import React,{useState} from 'react';import{createRoot}from'react-dom/client';import{Button,Check,Input,Table}from'./src/components';import{AppFrame}from'../../brand/kit/web/react/server';function Fixture(){const[value,setValue]=useState(false);return <AppFrame host="wails" layout="full-bleed" header={<header className="app-header"><strong>Desktop controls</strong></header>}><div className="desktop-content"><section><Button>Apply</Button><Check label="Compact selection" value={value} onChange={setValue}/><Input label="Readable field" value="Current selection" onChange={()=>{}}/><Table caption="Controlled records" heads={['Name']}><tr><td>Fixture</td></tr></Table></section></div></AppFrame>}createRoot(document.getElementById('root')).render(<Fixture/>);`,resolveDir:path.join(ROOT,'desktop/frontend'),sourcefile:'density-probe.tsx',loader:'tsx'},bundle:true,write:false,format:'iife',jsx:'automatic',nodePaths:[path.join(ROOT,'desktop/frontend/node_modules')],define:{'process.env.NODE_ENV':'"production"'}});
   let css=(await Promise.all(['brand/kit/tokens/interface.css','brand/kit/tokens/typography.css','brand/kit/tokens/spacing.css','brand/kit/web/components.css','desktop/frontend/src/app.css'].map(p=>readFile(path.join(ROOT,p),'utf8')))).join('\n');
   for(const name of ['Geist-Regular.woff2','SpaceGrotesk-Medium.woff2','GeistMono-Regular.woff2'])css=css.replaceAll('/assets/fonts/'+name,'data:font/woff2;base64,'+(await readFile(path.join(ROOT,'desktop/assets/fonts',name))).toString('base64'));
-  browser=await chromium.launch({executablePath:browserPath,headless:true,timeout:20000,args:['--disable-background-networking','--disable-extensions','--no-first-run']});
+  browser=await chromium.launch({executablePath:browserPath,headless:true,timeout:milliseconds('frontend_seconds'),args:['--disable-background-networking','--disable-extensions','--no-first-run']});
   const context=await browser.newContext({viewport:{width:1200,height:800},reducedMotion:'reduce'});
+  context.setDefaultTimeout(milliseconds('frontend_seconds'));
+  context.setDefaultNavigationTimeout(milliseconds('frontend_seconds'));
   await context.route('**/*',route=>route.abort());
   const page=await context.newPage();await page.setContent('<!doctype html><html><head><meta charset="utf-8"><style>'+css+'</style></head><body><div id="root"></div><script>'+bundle.outputFiles[0].text+'</script></body></html>');
-  await page.getByRole('button',{name:'Apply',exact:true}).waitFor();await page.evaluate(()=>document.fonts.ready);
+  await page.getByRole('button',{name:'Apply',exact:true}).waitFor();await withinAllowance(()=>page.evaluate(()=>document.fonts.ready),milliseconds('frontend_seconds'));
   const input=page.getByLabel('Compact selection',{exact:true});const glyph=await input.boundingBox();
   assert.ok(glyph&&Math.abs(glyph.width-glyph.height)<=1,'selection glyph must be square: '+JSON.stringify(glyph));
   assert.ok(glyph.width<44,'visual glyph must be smaller than its activation target');
@@ -46,7 +49,7 @@ export async function probeControls(browserPath){
   const narrow=await input.boundingBox();assert.ok(Math.abs(narrow.width-glyph.width)<=1&&Math.abs(narrow.height-glyph.height)<=1,'glyph does not expand with the container');
   return {state:'passed',glyph:{width:glyph.width,height:glyph.height},target:{width:target.width,height:target.height},action_width:action.width,keyboard:'passed',label_padding:'passed'};
  }finally{
-  if(browser)await browser.close();
+  if(browser)await withinAllowance(()=>browser.close(),milliseconds('natural_release_seconds'));
   if(path.dirname(path.resolve(temporary))!==path.resolve(buildRoot)||!path.basename(temporary).startsWith('density-probe-'))throw Error('Probe cleanup identity mismatch');
   await rm(temporary,{recursive:true,force:true});
  }
@@ -106,7 +109,7 @@ export async function runDensityMatrix(page, context, {checkpoint, image}) {
           if (scale === 1 && ((width === 1200 && text === 1) || (width === 720 && text === 2 && view === 'Settings')))
             await image('desktop-' + view.toLowerCase() + (width === 720 ? '-enlarged' : '') + '.png', view,
               'Compact ' + view + ' controls at ' + width + ' by ' + height + (text === 2 ? ' with 200% text.' : '.'));
-        }, 20000);
+        }, milliseconds('capture_phase_seconds'));
       }
     }
   } finally {

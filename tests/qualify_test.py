@@ -17,6 +17,59 @@ qualify = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(qualify)
 
 class QualificationArchiveTests(unittest.TestCase):
+    def test_virtual_display_wrapper_preserves_literal_arguments(self):
+        args = ['/private program/desktop', '--help-qualification', 'quote\'"$(); text']
+        command = qualify.xvfb_command(args)
+        self.assertEqual(command[-len(args):], args)
+        self.assertEqual(command[0], '/bin/sh')
+        self.assertIn('/usr/bin/xvfb-run', command)
+
+    @unittest.skipUnless(os.name == 'posix', 'POSIX descriptor inheritance requires a POSIX host')
+    def test_virtual_display_restores_stderr_before_strict_receipt_admission(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            runner = root / 'controlled xvfb-run'
+            runner.write_text('#!/bin/sh\n[ "$1" = "-a" ] || exit 98\nshift\nexec 3>/dev/null\n"$@" 2>&1\n', encoding='utf-8')
+            runner.chmod(0o700)
+            progress = {'kind': 'desktop-qualification-progress', 'mode': 'help',
+                        'observation': 'native-receipt', 'stage': 'module', 'elapsed_ns': 1}
+            receipt = {'offline_help_activation': 'passed'}
+            program = ('import json,sys; '
+                       'print(json.dumps(' + repr(progress) + '), file=sys.stderr); '
+                       'print(json.dumps(' + repr(receipt) + ')); '
+                       'assert sys.argv[1:] == ["literal $(); argument"]')
+            command = qualify.xvfb_command([sys.executable, '-c', program, 'literal $(); argument'], runner=runner)
+            with qualify.ProcessTree(command, cwd=root, env=os.environ.copy()) as tree:
+                output, error = tree.process.communicate(timeout=qualify.timing.READINESS_SECONDS)
+                self.assertEqual(tree.process.returncode, 0)
+            self.assertEqual(json.loads(output), receipt)
+            self.assertEqual(json.loads(error), progress)
+            observation = {}
+            qualify.record_progress(observation, error)
+            self.assertEqual(observation['progress'], [progress])
+            target = root / 'receipt.json'
+            qualify.write_receipt(target, output, receipt)
+            self.assertEqual(json.loads(target.read_text(encoding='utf-8')), receipt)
+            with self.assertRaises(ValueError):
+                qualify.write_receipt(target, output + error, receipt)
+
+    def test_receipt_rejection_preserves_bounded_stream_identity_without_acceptance(self):
+        from hashlib import sha256
+        from unittest.mock import Mock
+        target = Mock()
+        for output, count in [(b'', 0), (b'{"passed":true}\n{"passed":true}\n', 2),
+                              (b'{"passed":false}\n', 1), (b'controlled-warning' * 1000, 0)]:
+            with self.subTest(size=len(output)), self.assertRaises(ValueError) as failure:
+                qualify.write_receipt(target, output, {'passed': True})
+            prefix = 'missing, ambiguous or failed qualification receipt: '
+            self.assertTrue(str(failure.exception).startswith(prefix))
+            details = json.loads(str(failure.exception)[len(prefix):])
+            self.assertEqual(details['json_records'], count)
+            self.assertEqual(details['stdout_bytes'], len(output))
+            self.assertEqual(details['stdout_sha256'], sha256(output).hexdigest())
+            self.assertEqual(details['stdout_tail'], output[-4096:].decode('utf-8', 'replace'))
+            target.write_text.assert_not_called()
+
     def test_prepare_retries_transient_asset_failure_before_extracting_verified_bytes(self):
         payload = b'controlled pinned native archive'
         import hashlib
@@ -54,7 +107,7 @@ class QualificationArchiveTests(unittest.TestCase):
                         patch.object(qualify.platform, 'machine', return_value='x86_64'), \
                         patch('urllib.request.urlopen', side_effect=[result]) as download, \
                         patch.object(qualify.time, 'sleep'), \
-                        patch.object(qualify.time, 'monotonic', side_effect=[0, 0, 61] if mode == 'expired-budget' else [0] * 10), \
+                        patch.object(qualify.time, 'monotonic', side_effect=[0, 0, 601] if mode == 'expired-budget' else [0] * 10), \
                         patch.object(qualify, 'extract') as extract:
                     expected = ValueError if mode == 'wrong-checksum' else RuntimeError
                     with self.assertRaises(expected) as caught:
@@ -63,7 +116,7 @@ class QualificationArchiveTests(unittest.TestCase):
                         self.assertIsInstance(caught.exception.__cause__, urllib.error.HTTPError)
                         self.assertEqual(caught.exception.__cause__.code, 404)
                     self.assertEqual(download.call_count, 1)
-                    self.assertLessEqual(download.call_args.kwargs['timeout'], 20)
+                    self.assertLessEqual(download.call_args.kwargs['timeout'], qualify.timing.REQUEST_SECONDS)
                     extract.assert_not_called()
                     self.assertFalse((Path(directory) / 'fixture.zip').exists())
                     self.assertFalse((Path(directory) / 'fixture.download').exists())
@@ -114,7 +167,7 @@ class QualificationArchiveTests(unittest.TestCase):
                 self.assertEqual({arg for arg in args if arg.startswith('./')}, expected)
                 self.assertEqual(args[args.index('-tags') + 1], 'native_ladybug,system_ladybug')
                 self.assertIs(call.kwargs['env'], selected)
-                self.assertNotIn('timeout', call.kwargs, 'retain the default bounded child allowance')
+                self.assertEqual(call.kwargs['timeout'], qualify.timing.GO_TEST_PROCESS_SECONDS)
             self.assertTrue((Path(directory) / 'native-receipt.json').is_file())
 
     def test_failed_native_compilation_cannot_publish_an_acceptance_receipt(self):

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 """Exercise exact installed HTTP contracts with owned, non-inference fixtures."""
+import qualification_timing as timing
 import base64
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -126,7 +127,7 @@ def qualify(invoke, supplied, workspace):
 
         configuration = {'enabled': True, 'adapter': 'insonic-http', 'contract_version': '1',
                          'endpoint': endpoint + '/query', 'model': 'deterministic-fixture',
-                         'limits': {'max_response_bytes': 1024, 'timeout_ms': 1000}}
+                         'limits': {'max_response_bytes': 1024, 'timeout_ms': timing.READINESS_SECONDS * 1000}}
         request = {'prompt': 'private-source-secret', 'configuration': configuration}
         mode = 'valid'
         supplied(['query', 'assist'], request)
@@ -135,7 +136,7 @@ def qualify(invoke, supplied, workspace):
                 ('503', 'unavailable', 'provider_busy'), ('302', 'unavailable', 'provider_redirect'),
                 ('malformed', 'operation_failed', 'provider_protocol'), ('oversize', 'output_limit', 'provider_response_limit'),
                 ('timeout', 'unavailable', 'provider_timeout')]:
-            configuration['limits']['timeout_ms'] = 30 if mode == 'timeout' else 1000
+            configuration['limits']['timeout_ms'] = 30 if mode == 'timeout' else timing.READINESS_SECONDS * 1000
             path = directory / 'assistance.json'
             path.write_text(json.dumps(request) + '\n', encoding='utf-8', newline='\n')
             error = invoke(['query', 'assist', '--input', path], expected=4 if code == 'unavailable' else 1)['error']

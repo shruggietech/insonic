@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -70,7 +71,7 @@ func TestProviderStrictOutputRedirectTimeoutAndCI(t *testing.T) {
 	}
 	c.Endpoint = s.URL + "/slow"
 	start := time.Now()
-	if _, e := (HTTPAdapter{Client: s.Client()}).Propose(context.Background(), Request{}, c); e == nil || time.Since(start) > time.Second {
+	if _, e := (HTTPAdapter{Client: s.Client()}).Propose(context.Background(), Request{}, c); e == nil || time.Since(start) > qualificationtiming.Duration("cleanup_seconds") {
 		t.Fatal(e)
 	}
 	t.Setenv("CI", "true")

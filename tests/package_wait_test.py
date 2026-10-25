@@ -34,12 +34,12 @@ class DurablePackageWaitTests(unittest.TestCase):
                                    {"result": {"id": "work", "state": "succeeded"}}])
         with patch.object(package.time, "monotonic", side_effect=[1000, 1000, 1031, 1061]):
             self.assertEqual(package.wait_for_work(request, "work")["state"], "succeeded")
-        self.assertEqual(request.call_args_list[0].args, (30000, 180))
-        self.assertEqual(request.call_args_list[1].args, (30000, 149))
+        self.assertEqual(request.call_args_list[0].args, (package.timing.DURABLE_WORK_SECONDS * 1000, package.timing.SUBPROCESS_SECONDS))
+        self.assertEqual(request.call_args_list[1].args, (package.timing.DURABLE_WORK_SECONDS * 1000, package.timing.SUBPROCESS_SECONDS - 31))
 
     def test_repeated_pending_results_cannot_restart_the_bound(self):
         request = Mock(side_effect=package.PackageCLIResponseError(response()))
-        with patch.object(package.time, "monotonic", side_effect=[0, 0, 31, 180]):
+        with patch.object(package.time, "monotonic", side_effect=[0, 0, 31, package.timing.SUBPROCESS_SECONDS]):
             with self.assertRaisesRegex(RuntimeError, "operation bound"):
                 package.wait_for_work(request, "work")
         self.assertEqual(request.call_count, 2)
@@ -56,7 +56,7 @@ class DurablePackageWaitTests(unittest.TestCase):
                 self.assertEqual(request.call_count, 1)
 
     def test_late_or_mismatched_success_cannot_qualify(self):
-        for result, clock in (({"id": "work", "state": "succeeded"}, [0, 0, 181]),
+        for result, clock in (({"id": "work", "state": "succeeded"}, [0, 0, package.timing.SUBPROCESS_SECONDS + 1]),
                               ({"id": "foreign", "state": "succeeded"}, [0, 0]),
                               ({"id": "work", "state": "running"}, [0, 0])):
             with self.subTest(result=result), patch.object(package.time, "monotonic", side_effect=clock):

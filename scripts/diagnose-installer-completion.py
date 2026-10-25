@@ -12,6 +12,9 @@ import sys
 import time
 import windows_msi as m
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
+
 CONTAINER_MODES=("rollback-container","rollback-container-independent")
 COORDINATOR_MODES=(*CONTAINER_MODES,"rollback-standalone","rollback-standalone-full")
 
@@ -41,7 +44,7 @@ def observe_invocation(stage,token,quiet_install):
         with fixture_html_registration(stage,token,prog.value,handler):
             shell=C.WinDLL('shell32');shell.SHChangeNotify(0x08000000,0,None,None)
             result['transaction']=NativeUI(stage/'native/context.json').run(installer,directory,'invocation-trace',selection='desktop',docs=True,before_finish=instrument)
-            target=directory/'insonic-launcher.exe.invocation.json';deadline=time.monotonic()+20
+            target=directory/'insonic-launcher.exe.invocation.json';deadline=time.monotonic()+timing.FRONTEND_SECONDS
             while time.monotonic()<deadline:
                 if target.is_file():
                     result['invocation']=json.loads(target.read_text(encoding='utf-8'))
@@ -134,7 +137,7 @@ def rollback_case(stage,name):
         if page!='FatalError':raise RuntimeError('recovery experiment requires the actual failed terminal page')
         product=json.loads((stage/'ui-model.json').read_text(encoding='utf-8'))['old_product'];source=stage/'ui-old.msi';hidden=stage/'owned-old-source.offline'
         def attempt(phase):
-            done=subprocess.run([str(Path(sys.executable).with_name('python.exe')),str(Path(__file__)),'--recover-registration',str(stage),product,phase],cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=25)
+            done=subprocess.run([str(Path(sys.executable).with_name('python.exe')),str(Path(__file__)),'--recover-registration',str(stage),product,phase],cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=timing.INSTALLER_TRANSACTION_SECONDS)
             (stage/'native'/('context.recovery-'+phase+'-stream.log')).write_bytes(done.stdout+done.stderr)
             if done.returncode:raise RuntimeError('owned recovery diagnostic child failed '+str(done.returncode))
             return json.loads((stage/'native'/('context.recovery-'+phase+'.json')).read_text(encoding='utf-8'))
@@ -146,7 +149,7 @@ def rollback_case(stage,name):
         row=NativeUI(stage/'native/context.json').run(installer,stage/'UI program é & spaces','rollback-'+name,selection='cli',operation='upgrade',expected=1603,native_process=True,standalone_process=True,execution_required=False)
     elif mode=='rollback-standalone' and name=='failed-upgrade':
         with (stage/'native/context.standalone-stream.log').open('wb') as stream:
-            done=subprocess.run([str(stage/'launcher-context-fixture/owned-coordinator.exe'),'--standalone',str(stage)],cwd=stage,stdin=subprocess.DEVNULL,stdout=stream,stderr=stream,creationflags=subprocess.CREATE_NO_WINDOW,timeout=75)
+            done=subprocess.run([str(stage/'launcher-context-fixture/owned-coordinator.exe'),'--standalone',str(stage)],cwd=stage,stdin=subprocess.DEVNULL,stdout=stream,stderr=stream,creationflags=subprocess.CREATE_NO_WINDOW,timeout=timing.INSTALLER_TRANSACTION_SECONDS)
         row={'name':'rollback-'+name,'code':done.returncode,'native_engine':'standalone coordinator NONE','feature_qualification':False}
         if done.returncode!=1603:raise RuntimeError('standalone coordinator did not retain native1603: '+str(done.returncode))
     elif mode=='rollback-exit-quiet' or mode in COORDINATOR_MODES:
@@ -240,7 +243,7 @@ def observe_rollback(stage,token,quiet_install):
         for name in ('install','failed-upgrade'):
             if isolated:
                 command=[str(Path(sys.executable).with_name('python.exe')),str(Path(__file__)), '--rollback-case',str(stage),name]
-                done=subprocess.run(command,cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=75)
+                done=subprocess.run(command,cwd=stage,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=timing.INSTALLER_TRANSACTION_SECONDS)
                 (stage/'native'/('context.rollback-'+name+'-stream.log')).write_bytes(done.stdout+done.stderr)
                 if done.returncode:raise RuntimeError('isolated rollback diagnostic child failed '+str(done.returncode))
                 row=json.loads((stage/'native'/('context.rollback-'+name+'.json')).read_text(encoding='utf-8'))
@@ -291,7 +294,7 @@ WRAPPER=r''' if filepath.Base(exe)=="insonic-launcher.exe" {
    trace["window_station"]=objectName(station);trace["desktop"]=objectName(desktop)
   }
   trace["stage"]="before-production-delegate";writeTrace()
-  context,cancel:=context.WithTimeout(context.Background(),15*time.Second);defer cancel()
+  context,cancel:=context.WithTimeout(context.Background(),__DELEGATE_SECONDS__*time.Second);defer cancel()
   command:=exec.CommandContext(context,filepath.Join(directory,"insonic-launcher-real.exe"),os.Args[1:]...)
   command.SysProcAttr=&syscall.SysProcAttr{HideWindow:true,CreationFlags:0x08000000}
   var stdout,stderr bytes.Buffer;command.Stdout=&stdout;command.Stderr=&stderr
@@ -299,7 +302,7 @@ WRAPPER=r''' if filepath.Base(exe)=="insonic-launcher.exe" {
   code:=0;if err!=nil {code=1;if exit,ok:=err.(*exec.ExitError);ok {code=exit.ExitCode()};trace["error"]=err.Error()}
   trace["exit_code"]=code;trace["stage"]="production-delegate-finished";writeTrace();os.Exit(code)
  }
-'''
+'''.replace('__DELEGATE_SECONDS__', str(timing.READINESS_SECONDS))
 
 
 def observe_setup(stage,token,quiet_install):
@@ -314,7 +317,7 @@ def main():
     fixture=work/'launcher-context-fixture';fixture.mkdir();evidence=work/'evidence';evidence.mkdir()
     env=dict(os.environ,CGO_ENABLED='0')
     def build(target,source):
-        done=subprocess.run(['go','build','-ldflags','-H windowsgui','-o',str(target),source],cwd=m.ROOT,env=env,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=60)
+        done=subprocess.run(['go','build','-ldflags','-H windowsgui','-o',str(target),source],cwd=m.ROOT,env=env,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=timing.BUILD_SECONDS)
         if done.returncode:raise RuntimeError(done.stderr.decode(errors='replace')[-4000:])
     build(fixture/'insonic-launcher.exe','./cmd/insonic-launcher')
     build(fixture/'owned-coordinator.exe','tests/fixtures/msi-recovery-coordinator.go')

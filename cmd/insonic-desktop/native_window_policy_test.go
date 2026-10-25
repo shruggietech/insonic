@@ -16,7 +16,7 @@ func TestNativeWindowCalibrationSelectionAndFixtureValidation(t *testing.T) {
 	for _, sample := range []struct {
 		input   string
 		seconds int
-	}{{"2", 2}, {"10", 10}} {
+	}{{"", 60}, {"2", 2}, {"10", 10}, {"60", 60}} {
 		got, err := selectedNativeWindowJoinSeconds(sample.input)
 		if err != nil || got != sample.seconds {
 			t.Fatal("declared calibration selection rejected", sample, got, err)

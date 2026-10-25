@@ -1,5 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 """Owned source-complete media companions on the qualified native platforms."""
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 import hashlib
 from concurrent.futures import ThreadPoolExecutor
 import json
@@ -11,7 +15,6 @@ import shlex
 import shutil
 import stat
 import subprocess
-import sys
 import tarfile
 import tempfile
 import time
@@ -57,7 +60,7 @@ def fetch_pin(pin, *, cache=None):
     target = cache / pin['name']
     if not target.is_file() or sha(target) != pin['sha256']:
         temporary = target.with_suffix('.download')
-        deadline = time.monotonic() + 60
+        deadline = time.monotonic() + timing.SOURCE_DOWNLOAD_SECONDS
         try:
             request = urllib.request.Request(pin['url'], headers={'User-Agent': 'insonic-source-build'})
             host = urllib.parse.urlsplit(pin['url']).hostname
@@ -66,7 +69,7 @@ def fetch_pin(pin, *, cache=None):
                 if remaining <= 0:
                     raise RuntimeError('media source acquisition budget exceeded: ' + pin['name'] + ' from ' + host)
                 try:
-                    with urllib.request.urlopen(request, timeout=min(20, remaining)) as source, temporary.open('wb') as output:
+                    with urllib.request.urlopen(request, timeout=min(timing.REQUEST_SECONDS, remaining)) as source, temporary.open('wb') as output:
                         while True:
                             if time.monotonic() >= deadline:
                                 raise TimeoutError('source acquisition deadline reached')
@@ -182,7 +185,8 @@ def validate_build_tools(platform_id, env):
                 raise ValueError('configured MSYS2 source tool is missing: ' + str(msys / relative))
 
 
-def child(args, directory, timeout=360, *, env=None, commands=None, shell=False):
+def child(args, directory, timeout=timing.SOURCE_BUILD_SECONDS, *, env=None, commands=None, shell=False):
+    timeout = timing.phase_bound(timeout)
     args = [str(arg) for arg in args]
     selected = env or os.environ.copy()
     command = {'directory': str(directory.relative_to(BUILD)) if directory.is_relative_to(BUILD) else str(directory),
@@ -204,7 +208,7 @@ def child(args, directory, timeout=360, *, env=None, commands=None, shell=False)
                 output, error = tree.process.communicate(timeout=timeout)
             except subprocess.TimeoutExpired as error:
                 tree.kill()
-                output, error_output = tree.process.communicate(timeout=5)
+                output, error_output = tree.process.communicate(timeout=timing.CLEANUP_SECONDS)
                 raise RuntimeError('source media build timed out after ' + str(timeout) + ' seconds: '
                                    + shlex.join(args) + '\n' + (output + error_output).decode(errors='replace')[-8000:]) from error
             if tree.process.returncode:
@@ -397,7 +401,7 @@ def cache_identity():
     compiler = child([tool_env['CC'], '--version'], ROOT, env=tool_env).decode().splitlines()[0]
     recipe_sha = sha(Path(__file__))
     key = hashlib.sha256(json.dumps({'pin': PIN, 'recipe_sha256': recipe_sha,
-                                    'launcher_sha256': sha(ROOT / 'scripts/process_tree.py'), 'compiler': compiler,
+                                    'launcher_sha256': sha(ROOT / 'scripts/process_tree.py'), 'timing': timing.source_identity(), 'compiler': compiler,
                                     'platform': platform_id, 'version_policy': VERSION_POLICY}, sort_keys=True).encode()).hexdigest()
     return platform_id, names, key, compiler, recipe_sha
 
@@ -408,8 +412,8 @@ def compile_dav1d(target, build, prefix, parallel_jobs, run):
          '-Denable_tools=false', '-Denable_examples=false', '-Denable_tests=false', '-Denable_docs=false'], build.parent)
     # Assembly-heavy AV1 compilation can outlive the other independent builds.
     # Use the available cores rather than a permanently divided worker count.
-    run(['ninja', '-C', build, '-j', str(max(1, min(parallel_jobs, 8)))], build.parent, 240)
-    run([sys.executable, '-m', 'mesonbuild.mesonmain', 'install', '-C', build], build.parent, 60)
+    run(['ninja', '-C', build, '-j', str(max(1, min(parallel_jobs, 8)))], build.parent, timing.SOURCE_BUILD_SECONDS)
+    run([sys.executable, '-m', 'mesonbuild.mesonmain', 'install', '-C', build], build.parent, timing.BUILD_SECONDS)
 
 
 def compile_openmpt(target, prefix, platform_id, parallel_jobs, run):
@@ -420,8 +424,8 @@ def compile_openmpt(target, prefix, platform_id, parallel_jobs, run):
         target, shell=True)
     # The C++ module decoders took over four minutes on a slower Windows CI
     # runner. Keep their full build bounded within the eleven-minute formats job.
-    run(['make', '-j' + str(parallel_jobs)], target, 360, shell=platform_id.startswith('windows'))
-    run(['make', 'install'], target, 60, shell=platform_id.startswith('windows'))
+    run(['make', '-j' + str(parallel_jobs)], target, timing.SOURCE_BUILD_SECONDS, shell=platform_id.startswith('windows'))
+    run(['make', 'install'], target, timing.BUILD_SECONDS, shell=platform_id.startswith('windows'))
 
 
 def xml2_options(prefix):
@@ -443,7 +447,7 @@ def compile_ffmpeg(directory, platform_id, parallel_jobs, run):
     # changing codec configuration, optimization or the existing compile bound.
     jobs = min(16, max(1, parallel_jobs) * 2) if platform_id.startswith('windows') else max(1, parallel_jobs)
     suffix = '.exe' if platform_id.startswith('windows') else ''
-    run(['make', '-j' + str(jobs), 'ffmpeg' + suffix, 'ffprobe' + suffix], directory, 360, shell=platform_id.startswith('windows'))
+    run(['make', '-j' + str(jobs), 'ffmpeg' + suffix, 'ffprobe' + suffix], directory, timing.SOURCE_BUILD_SECONDS, shell=platform_id.startswith('windows'))
 
 
 def ffmpeg_configuration(prefix, platform_id):
@@ -456,7 +460,7 @@ def codec_identity(key, platform_id, compiler, recipe):
     directory = BUILD / key
     return {'kind': 'media-codec-build', 'target': CODEC_TARGET, 'key': key,
             'platform': platform_id, 'compiler': compiler, 'recipe_sha256': recipe,
-            'launcher_sha256': sha(ROOT / 'scripts/process_tree.py'), 'sources': source_pins(),
+            'launcher_sha256': sha(ROOT / 'scripts/process_tree.py'), 'timing': timing.source_identity(), 'sources': source_pins(),
             'source_prefix': str(directory / 'ffmpeg-source'), 'install_prefix': str(directory / 'install'),
             'configure': ffmpeg_configuration(directory / 'install', platform_id),
             'version_override': {'file': 'VERSION', 'value': VERSION, 'policy': VERSION_POLICY}}
@@ -527,7 +531,7 @@ def resume_codec(directory, receipt, platform_id, parallel_jobs, run):
     """Require Make's dependency graph to reuse the verified codec archive."""
     objects = {name: item for name, item in receipt['files'].items()
                if name.startswith('ffmpeg-source/') and (name.endswith('.o') or name == 'ffmpeg-source/' + CODEC_TARGET)}
-    run(['make', '-q', CODEC_TARGET], directory / 'ffmpeg-source', 60, shell=platform_id.startswith('windows'))
+    run(['make', '-q', CODEC_TARGET], directory / 'ffmpeg-source', timing.BUILD_SECONDS, shell=platform_id.startswith('windows'))
     compile_ffmpeg(directory / 'ffmpeg-source', platform_id, parallel_jobs, run)
     for name, expected in objects.items():
         path = directory / name
@@ -587,22 +591,22 @@ def prepare(stage='complete'):
     prefix.mkdir(exist_ok=True)
     parallel_jobs = min(os.cpu_count() or 2, 8)
     jobs = str(max(1, parallel_jobs // 3))
-    def run(args, cwd, timeout=180, shell=False):
+    def run(args, cwd, timeout=timing.BUILD_SECONDS, shell=False):
         return child(args, cwd, timeout, env=env, commands=commands, shell=shell)
     def autotools(name, flags):
         target = source_directories[name]
         host = 'x86_64-w64-mingw32' if platform_id.startswith('windows') else 'x86_64-pc-linux-gnu'
         run(['./configure', '--prefix=' + prefix.as_posix(), '--host=' + host, '--disable-shared', '--enable-static', *flags], target, shell=True)
-        run(['make', '-j' + jobs], target, 240, shell=platform_id.startswith('windows'))
-        run(['make', 'install'], target, 60, shell=platform_id.startswith('windows'))
+        run(['make', '-j' + jobs], target, timing.SOURCE_BUILD_SECONDS, shell=platform_id.startswith('windows'))
+        run(['make', 'install'], target, timing.BUILD_SECONDS, shell=platform_id.startswith('windows'))
     def cmake(name, flags):
         target, build = source_directories[name], directory / (name + '-build')
         run(['cmake', '-S', target, '-B', build, '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release',
              '-DCMAKE_POLICY_VERSION_MINIMUM=3.5', '-DCMAKE_INSTALL_PREFIX=' + prefix.as_posix(),
              '-DCMAKE_INSTALL_LIBDIR=lib', '-DCMAKE_POSITION_INDEPENDENT_CODE=ON',
              '-DBUILD_SHARED_LIBS=OFF', '-DCMAKE_PREFIX_PATH=' + prefix.as_posix(), *flags], directory)
-        run(['cmake', '--build', build, '--parallel', jobs], directory, 180)
-        run(['cmake', '--install', build], directory, 60)
+        run(['cmake', '--build', build, '--parallel', jobs], directory, timing.SOURCE_BUILD_SECONDS)
+        run(['cmake', '--install', build], directory, timing.BUILD_SECONDS)
     (prefix / 'lib').mkdir(exist_ok=True); (prefix / 'include').mkdir(exist_ok=True)
     def build_zlib():
         run(['./configure', '--static', '--prefix=' + prefix.as_posix()], source_directories['zlib'], shell=True)
@@ -638,7 +642,7 @@ def prepare(stage='complete'):
             aliases = normalize_prefix_aliases(prefix)
             part = {'kind': 'media-dependency-part-build', 'group': stage, 'key': key, 'sources': pins,
                     'platform': platform_id, 'compiler': compiler, 'recipe_sha256': recipe_sha,
-                    'launcher_sha256': sha(ROOT / 'scripts/process_tree.py'), 'install_prefix': str(prefix),
+                    'launcher_sha256': sha(ROOT / 'scripts/process_tree.py'), 'timing': timing.source_identity(), 'install_prefix': str(prefix),
                     'commands': commands, 'normalized_aliases': aliases,
                     'files': {path.relative_to(directory).as_posix(): sha(path)
                               for path in sorted(prefix.rglob('*')) if path.is_file()},
@@ -669,7 +673,7 @@ def prepare(stage='complete'):
         normalized_aliases += normalize_prefix_aliases(prefix)
         dependency_receipt = {'kind': 'media-dependency-build', 'key': key, 'sources': pins,
                               'platform': platform_id, 'compiler': compiler, 'recipe_sha256': recipe_sha,
-                              'launcher_sha256': sha(ROOT / 'scripts/process_tree.py'),
+                              'launcher_sha256': sha(ROOT / 'scripts/process_tree.py'), 'timing': timing.source_identity(),
                               'install_prefix': str(prefix), 'commands': commands,
                               'normalized_aliases': normalized_aliases,
                               'files': {path.relative_to(directory).as_posix(): sha(path)
@@ -694,7 +698,7 @@ def prepare(stage='complete'):
         run(['./configure', *effective_configure], ffmpeg, shell=True)
     if stage == 'codec':
         count = min(16, max(1, parallel_jobs) * 2) if platform_id.startswith('windows') else max(1, parallel_jobs)
-        run(['make', '-j' + str(count), CODEC_TARGET], ffmpeg, 360, shell=platform_id.startswith('windows'))
+        run(['make', '-j' + str(count), CODEC_TARGET], ffmpeg, timing.SOURCE_BUILD_SECONDS, shell=platform_id.startswith('windows'))
         codec = make_codec_receipt(directory, key, platform_id, compiler, recipe_sha, commands,
                                    round(time.monotonic() - started, 3))
         if not codec_cache_valid(directory, codec, key, platform_id, compiler, recipe_sha):
@@ -709,7 +713,7 @@ def prepare(stage='complete'):
     for name in names:
         shutil.copyfile(ffmpeg / name, directory / name)
         (directory / name).chmod(0o755)
-        output = child([directory / name, '-version'], directory, 10, env=env).decode()
+        output = child([directory / name, '-version'], directory, timing.READINESS_SECONDS, env=env).decode()
         if '--enable-nonfree' in output or '--enable-gpl' in output:
             raise ValueError('source media companion enabled incompatible distribution flags')
         versions[name.removesuffix('.exe')] = output.splitlines()[0].split()[2]
@@ -717,7 +721,7 @@ def prepare(stage='complete'):
             raise ValueError('source media companion reports a different release version')
         configurations[name] = output
     for category, required in PIN['required_capabilities'].items():
-        output = child([directory / names[0], '-hide_banner', '-' + category], directory, 10, env=env).decode()
+        output = child([directory / names[0], '-hide_banner', '-' + category], directory, timing.READINESS_SECONDS, env=env).decode()
         capabilities[category] = validate_capabilities(output, required, category)
     libraries = [{'path': path.relative_to(directory).as_posix(), 'sha256': sha(path)} for path in sorted((prefix / 'lib').glob('*.a'))]
     if len(libraries) < len(PIN['libraries']) + 1:
@@ -738,7 +742,7 @@ def prepare(stage='complete'):
     receipt = {'key': key, 'source_commit': COMMIT, 'source_sha256': SOURCE_SHA256, 'source_url': SOURCE_URL,
                'configure': effective_configure, 'platform': platform_id, 'compiler': compiler,
                'recipe_sha256': recipe_sha, 'sources': pins, 'source_complete': True, 'commands': commands,
-               'launcher_sha256': sha(ROOT / 'scripts/process_tree.py'),
+               'launcher_sha256': sha(ROOT / 'scripts/process_tree.py'), 'timing': timing.source_identity(),
                'binaries': {name: sha(directory / name) for name in names}, 'versions': versions,
                'configuration_output': configurations, 'capabilities': capabilities, 'static_libraries': libraries,
                'runtime_notices': runtime_notices,

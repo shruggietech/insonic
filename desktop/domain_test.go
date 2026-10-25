@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	local "github.com/shruggietech/insonic/internal/runtime"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"testing"
@@ -74,7 +75,7 @@ func TestCredentialBridgeReusesLiveOwnerAndIgnoresStatusInput(t *testing.T) {
 	case e := <-done:
 		cancel()
 		t.Fatal("owner startup", e)
-	case <-time.After(5 * time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		cancel()
 		t.Fatal("owner timeout")
 	}

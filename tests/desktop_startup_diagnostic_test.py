@@ -161,7 +161,7 @@ class DesktopStartupDiagnosticTests(unittest.TestCase):
         pending=diagnostic.LoadTimeline(gate=True)
         with patch.object(pending._gate_event,'wait',return_value=False) as wait:
             with self.assertRaisesRegex(RuntimeError,'gate deadline'):pending.wait_gate()
-        wait.assert_called_once_with(90)
+        wait.assert_called_once_with(diagnostic.bounds.CAPTURE_SECONDS)
         with self.assertRaisesRegex(ValueError,'not elected'):diagnostic.LoadTimeline().wait_gate()
 
     def test_load_gate_rejects_unbound_asset_control_before_acquisition(self):

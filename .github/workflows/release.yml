@@ -33,7 +33,7 @@ jobs:
   docs:
     if: inputs.publish || !inputs.promote_docs
     runs-on: ubuntu-24.04
-    timeout-minutes: 11
+    timeout-minutes: 65
     env:
       SOURCE_REVISION: ${{ inputs.revision }}
       INSONIC_DOCUMENTATION_TARGET: release
@@ -53,6 +53,8 @@ jobs:
           path: build/automation
           sparse-checkout: |
             scripts/bootstrap-actions.py
+            scripts/qualification_timing.py
+            internal/qualificationtiming/policy.json
             scripts/bootstrap-actions.lock.json
             scripts/http_read.py
           sparse-checkout-cone-mode: false
@@ -172,7 +174,7 @@ jobs:
       - qualify-windows
       - package-windows
     runs-on: ubuntu-24.04
-    timeout-minutes: 11
+    timeout-minutes: 65
     env:
       SOURCE_REVISION: ${{ inputs.revision }}
     steps:
@@ -201,6 +203,8 @@ jobs:
           path: build/automation
           sparse-checkout: |
             scripts/bootstrap-actions.py
+            scripts/qualification_timing.py
+            internal/qualificationtiming/policy.json
             scripts/bootstrap-actions.lock.json
             scripts/http_read.py
           sparse-checkout-cone-mode: false
@@ -225,7 +229,7 @@ jobs:
   deployment-preflight:
     if: inputs.promote_docs && inputs.documentation-transport == 'generic' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 11
+    timeout-minutes: 65
     environment: documentation-deployment
     permissions:
       contents: read
@@ -252,7 +256,7 @@ jobs:
       - deployment-preflight
       - pages-preflight
     runs-on: ubuntu-24.04
-    timeout-minutes: 11
+    timeout-minutes: 65
     permissions:
       contents: write
       checks: read
@@ -299,7 +303,7 @@ jobs:
       - publish
       - deployment-preflight
     runs-on: ubuntu-24.04
-    timeout-minutes: 11
+    timeout-minutes: 65
     environment: documentation-deployment
     permissions:
       contents: read
@@ -333,7 +337,7 @@ jobs:
   pages-preflight:
     if: inputs.promote_docs && inputs.documentation-transport == 'pages' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
-    timeout-minutes: 11
+    timeout-minutes: 65
     permissions:
       contents: read
       pages: read
@@ -360,7 +364,7 @@ jobs:
       - publish
       - pages-preflight
     runs-on: ubuntu-24.04
-    timeout-minutes: 11
+    timeout-minutes: 65
     permissions:
       contents: write
       pages: write

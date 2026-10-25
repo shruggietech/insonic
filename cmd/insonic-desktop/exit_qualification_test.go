@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/shruggietech/insonic/internal/process"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -43,6 +44,23 @@ func TestExitFixtureRejectsAmbiguousOrUnboundedInput(t *testing.T) {
 	}
 }
 func TestExitObserverRejectsRuntimeReplacementWithoutRestart(t *testing.T) {
+	// Independent package tests must not compete to initialize one runner profile.
+	// Keep the Linux Unix-socket path below its platform limit even when the
+	// test name and runner work directory are long.
+	profile, err := os.MkdirTemp("", "insonic-exit-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.RemoveAll(profile); err != nil {
+			t.Error(err)
+		}
+	})
+	t.Setenv("APPDATA", filepath.Join(profile, "config"))
+	t.Setenv("LOCALAPPDATA", filepath.Join(profile, "local"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(profile, "config"))
+	t.Setenv("XDG_DATA_HOME", filepath.Join(profile, "data"))
+	t.Setenv("XDG_CACHE_HOME", filepath.Join(profile, "cache"))
 	w, err := workspace.Init(t.TempDir(), "Exit observer")
 	if err != nil {
 		t.Fatal(err)
@@ -53,16 +71,24 @@ func TestExitObserverRejectsRuntimeReplacementWithoutRestart(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	ready, done := make(chan struct{}), make(chan error, 1)
-	go func() { done <- local.Serve(ctx, w, local.Options{Ready: ready, Idle: 10 * time.Second}) }()
+	go func() {
+		done <- local.Serve(ctx, w, local.Options{Ready: ready, Idle: qualificationtiming.Duration("fixture_idle_seconds")})
+	}()
+	stopped := false
 	defer func() {
 		cancel()
-		if err := <-done; err != nil {
-			t.Error(err)
+		if !stopped {
+			if err := <-done; err != nil {
+				t.Error(err)
+			}
 		}
 	}()
 	select {
 	case <-ready:
-	case <-time.After(5 * time.Second):
+	case err := <-done:
+		stopped = true
+		t.Fatalf("runtime stopped before readiness: %v", err)
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("runtime did not become ready")
 	}
 	original, err := r.call("workspace.show", "", nil)
@@ -163,7 +189,7 @@ func TestExitChildFailureRetainsBothActualStreams(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := qualificationtiming.Context(context.Background(), "readiness_seconds")
 	defer cancel()
 	report, captureErr := process.Capture(ctx, process.Spec{Executable: executable, Args: []string{"-test.run=^TestExitFailureFixtureProcess$"}, Env: append(os.Environ(), "INSONIC_EXIT_FAILURE_FIXTURE=1"), MaxOutput: 65536})
 	var output bytes.Buffer

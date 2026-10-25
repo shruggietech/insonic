@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/evidence"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"github.com/shruggietech/insonic/schemas"
 	"os"
 	"strings"
@@ -26,7 +27,7 @@ func TestExploreExtractionDurableReplacementAndSavedDefinitions(t *testing.T) {
 		t.Fatal(response.Error)
 	}
 	job := response.Result.(map[string]any)["work_id"].(string)
-	deadline := time.Now().Add(4 * time.Second)
+	deadline := time.Now().Add(qualificationtiming.Duration("durable_work_seconds"))
 	for {
 		work, e := a.Catalog.Work(a.ctx, job)
 		if e != nil {

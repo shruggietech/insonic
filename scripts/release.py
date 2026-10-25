@@ -25,6 +25,9 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
+
 ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY = 'shruggietech/insonic'
 PLATFORMS = ('windows_amd64', 'linux_amd64')
@@ -54,7 +57,7 @@ def sha(path):
 
 def child(args, root=ROOT, environment=None):
     result = subprocess.run([str(a) for a in args], cwd=root, stdin=subprocess.DEVNULL,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=120,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timing.SUBPROCESS_SECONDS,
                             creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0,
                             env={**(os.environ if environment is None else environment), 'GH_PROMPT_DISABLED': '1', 'GIT_TERMINAL_PROMPT': '0'})
     if result.returncode:
@@ -518,7 +521,7 @@ class GitHub:
         if self.token: headers['Authorization'] = 'Bearer ' + self.token
         if path:
             headers['Content-Length'] = str(path.stat().st_size)
-            connection = http.client.HTTPSConnection(parsed.hostname, timeout=120)
+            connection = http.client.HTTPSConnection(parsed.hostname, timeout=timing.SUBPROCESS_SECONDS)
             try:
                 with path.open('rb') as source:
                     connection.request(method, parsed.path + ('?' + parsed.query if parsed.query else ''), body=source, headers=headers)
@@ -527,7 +530,7 @@ class GitHub:
                     return json.load(response)
             finally: connection.close()
         try:
-            with self.opener.open(urllib.request.Request(url, data=body, headers=headers, method=method), timeout=120) as response: return json.load(response)
+            with self.opener.open(urllib.request.Request(url, data=body, headers=headers, method=method), timeout=timing.SUBPROCESS_SECONDS) as response: return json.load(response)
         except urllib.error.HTTPError as error:
             if error.code == 404: return None
             raise ValueError(f'GitHub publication operation failed ({error.code})') from None
@@ -543,7 +546,7 @@ class GitHub:
         try:
             for attempt in range(4):
                 try:
-                    response = self.opener.open(urllib.request.Request(url, headers=headers), timeout=30)
+                    response = self.opener.open(urllib.request.Request(url, headers=headers), timeout=timing.REQUEST_SECONDS)
                     break
                 except urllib.error.HTTPError as error:
                     if error.code not in (301, 302, 303, 307, 308):

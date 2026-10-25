@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 )
 
 func TestTreeHelper(t *testing.T) {
@@ -19,6 +21,7 @@ func TestTreeHelper(t *testing.T) {
 	args := os.Args
 	for i, arg := range args {
 		if arg == "--worker" {
+			_ = os.WriteFile(args[i+1]+".pid", []byte(strconv.Itoa(os.Getpid())), 0600)
 			for n := 0; ; n++ {
 				_ = os.WriteFile(args[i+1], []byte(strconv.Itoa(n)), 0600)
 				time.Sleep(20 * time.Millisecond)
@@ -33,16 +36,13 @@ func TestTreeHelper(t *testing.T) {
 	if err := worker.Start(); err != nil {
 		os.Exit(2)
 	}
-	for {
-		if _, err := os.Stat(file); err == nil {
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
+	if !helperProcessFixture(file) {
+		os.Exit(3)
 	}
 	if strings.Contains(strings.Join(args, " "), "--overflow") {
 		fmt.Print(strings.Repeat("fixture-secret", 1000))
 	}
-	time.Sleep(time.Minute)
+	time.Sleep(qualificationtiming.Duration("readiness_seconds") + qualificationtiming.Duration("cleanup_seconds"))
 	os.Exit(0)
 }
 
@@ -51,9 +51,28 @@ func TestCancellationAndOutputLimitTerminateDescendants(t *testing.T) {
 		t.Run(mode, func(t *testing.T) {
 			file := filepath.Join(t.TempDir(), "heartbeat")
 			exe, _ := os.Executable()
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			ctx, cancel := context.WithCancel(processTestContext(t))
 			defer cancel()
-			_, err := Run(ctx, Spec{Executable: exe, Args: []string{"-test.run=^TestTreeHelper$", "--", mode, file}, Env: []string{"INSONIC_TREE_HELPER=1"}, MaxOutput: 64})
+			done, finished := make(chan error, 1), make(chan struct{})
+			go func() {
+				_, err := Run(ctx, Spec{Executable: exe, Args: []string{"-test.run=^TestTreeHelper$", "--", mode, file}, Env: []string{"INSONIC_TREE_HELPER=1"}, MaxOutput: 64})
+				done <- err
+				close(finished)
+			}()
+			t.Cleanup(func() {
+				cancel()
+				select {
+				case <-finished:
+				case <-time.After(qualificationtiming.Duration("cleanup_seconds")):
+					t.Error("owned tree supervision did not finish")
+				}
+			})
+			requireProcessFixture(t, ctx, file)
+			pid := requireProcessFixture(t, ctx, file+".pid")
+			if mode == "--wait" {
+				cancel()
+			}
+			err := <-done
 			if err == nil || strings.Contains(err.Error(), "fixture-secret") {
 				t.Fatal("supervision/redaction", err)
 			}
@@ -61,7 +80,7 @@ func TestCancellationAndOutputLimitTerminateDescendants(t *testing.T) {
 			if err != nil {
 				t.Fatal("descendant did not start", err)
 			}
-			time.Sleep(120 * time.Millisecond)
+			requireFixtureProcessStopped(t, processTestContext(t), pid)
 			after, err := os.ReadFile(file)
 			if err != nil || string(before) != string(after) {
 				t.Fatal("descendant survived supervision")

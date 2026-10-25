@@ -5,12 +5,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"math"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/library"
@@ -69,7 +69,7 @@ func TestNativeDirectPlaybackNonzeroSourceClock(t *testing.T) {
 	if json.Unmarshal(raw, &tools) != nil {
 		t.Fatal("selected tool config")
 	}
-	ctx, stop := context.WithTimeout(context.Background(), time.Minute)
+	ctx, stop := context.WithTimeout(context.Background(), qualificationtiming.Duration("request_seconds"))
 	defer stop()
 	if e = processing.VerifyFFmpeg(ctx, tools.FFmpeg); e != nil {
 		t.Fatal(e)

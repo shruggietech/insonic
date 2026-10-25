@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { build } from 'esbuild';
 import { spawnSync } from 'node:child_process';
+import { milliseconds } from '../../scripts/qualification-timing.mjs';
 import { root, getManifest, getRepositoryReferences } from '../lib/docs.mjs';
 import { loadSchemaCatalog } from '../../scripts/schema-catalog.mjs';
 import { prepareScreenshots } from '../lib/screenshots.mjs';
@@ -34,7 +35,7 @@ export async function prepare() {
   await fs.writeFile(path.join(site, 'public', 'brand', 'theme.css'), `${styles.join('\n')}\n`, 'utf8');
   await fs.writeFile(path.join(site, 'public', 'documentation-manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
   const git = args => {
-    const result = spawnSync('git', args, { cwd: root, windowsHide: true, shell: false, encoding: 'utf8', timeout: 30000, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } });
+    const result = spawnSync('git', args, { cwd: root, windowsHide: true, shell: false, encoding: 'utf8', timeout: milliseconds('git_seconds'), env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } });
     if (result.status !== 0) throw new Error('Documentation source identity could not be read.');
     return result.stdout.trim();
   };

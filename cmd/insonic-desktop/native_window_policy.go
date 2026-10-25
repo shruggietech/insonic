@@ -6,12 +6,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
+	"strconv"
 	"time"
 )
 
-// Qualification policy: ten seconds per actual UI completion, bounded by the
+// Qualification policy: sixty seconds per actual UI completion, bounded by the
 // existing watchdog and enclosing child/matrix deadlines. This is not a sleep.
-const defaultNativeWindowJoinSeconds = 10
+var defaultNativeWindowJoinSeconds = qualificationtiming.Seconds("native_ui_seconds")
 
 type nativeWindowJoinKey struct{}
 
@@ -23,8 +25,10 @@ func selectedNativeWindowJoinSeconds(value string) (int, error) {
 		return 2, nil
 	case "10":
 		return 10, nil
+	case strconv.Itoa(defaultNativeWindowJoinSeconds):
+		return defaultNativeWindowJoinSeconds, nil
 	default:
-		return 0, fmt.Errorf("native qualification join allowance must be 2 or 10 seconds")
+		return 0, fmt.Errorf("native qualification join allowance must be 2, 10 or %d seconds", defaultNativeWindowJoinSeconds)
 	}
 }
 

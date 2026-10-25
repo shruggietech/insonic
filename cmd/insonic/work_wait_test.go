@@ -5,9 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	qt "github.com/shruggietech/insonic/internal/qualificationtiming"
 	"os"
 	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/mattn/go-isatty"
@@ -52,7 +54,7 @@ func TestWorkWaitUsesExistingReadContractAndPreservesTerminalFailures(t *testing
 				calls++
 				return contracts.Response{Result: catalog.Work{ID: id, State: state}}, nil
 			}
-			ctx, stop := context.WithTimeout(context.Background(), time.Second)
+			ctx, stop := qt.Context(context.Background(), "readiness_seconds")
 			defer stop()
 			response, e := waitForWork(ctx, w, id, contracts.ID(), time.Millisecond, call)
 			if calls != 3 || response.Result.(catalog.Work).State != terminal || (e == nil) != (terminal == "succeeded") {
@@ -63,28 +65,31 @@ func TestWorkWaitUsesExistingReadContractAndPreservesTerminalFailures(t *testing
 }
 
 func TestWorkWaitTimeoutAndCancellationKeepLastObservedState(t *testing.T) {
-	w := &workspace.Workspace{}
-	w.Config.WorkspaceID = contracts.ID()
-	id := contracts.ID()
-	call := func(_ context.Context, _ *workspace.Workspace, _ contracts.Request) (contracts.Response, error) {
-		return contracts.Response{Result: catalog.Work{ID: id, State: "running"}}, nil
-	}
-	ctx, stop := context.WithTimeout(context.Background(), 10*time.Millisecond)
-	defer stop()
-	response, e := waitForWork(ctx, w, id, contracts.ID(), time.Millisecond, call)
-	var typed *contracts.Error
-	if !errors.As(e, &typed) || typed.Code != "unavailable" || response.Result.(catalog.Work).State != "running" {
-		t.Fatal("timeout hid last state", response, e)
-	}
-	cancelled, cancel := context.WithCancel(context.Background())
-	cancel()
-	if _, e = waitForWork(cancelled, w, id, contracts.ID(), time.Millisecond, call); !errors.As(e, &typed) || typed.Code != "cancelled" {
-		t.Fatal("cancellation ignored", e)
-	}
+	// Fake time advances only while the wait is blocked, after its first observation.
+	synctest.Test(t, func(t *testing.T) {
+		w := &workspace.Workspace{}
+		w.Config.WorkspaceID = contracts.ID()
+		id := contracts.ID()
+		call := func(_ context.Context, _ *workspace.Workspace, _ contracts.Request) (contracts.Response, error) {
+			return contracts.Response{Result: catalog.Work{ID: id, State: "running"}}, nil
+		}
+		ctx, stop := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		defer stop()
+		response, e := waitForWork(ctx, w, id, contracts.ID(), time.Millisecond, call)
+		var typed *contracts.Error
+		if !errors.As(e, &typed) || typed.Code != "unavailable" || response.Result.(catalog.Work).State != "running" {
+			t.Fatal("timeout hid last state", response, e)
+		}
+		cancelled, cancel := context.WithCancel(context.Background())
+		cancel()
+		if _, e = waitForWork(cancelled, w, id, contracts.ID(), time.Millisecond, call); !errors.As(e, &typed) || typed.Code != "cancelled" {
+			t.Fatal("cancellation ignored", e)
+		}
+	})
 }
 
 func TestWorkWaitReadsPendingAndTerminalThroughActualRuntime(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := qt.Context(context.Background(), "durable_work_seconds")
 	defer cancel()
 	w, e := workspace.Init(t.TempDir(), "Work wait runtime fixture")
 	if e != nil {
@@ -103,7 +108,9 @@ func TestWorkWaitReadsPendingAndTerminalThroughActualRuntime(t *testing.T) {
 	}
 	ready := make(chan struct{})
 	done := make(chan error, 1)
-	go func() { done <- local.Serve(ctx, w, local.Options{Ready: ready}) }()
+	go func() {
+		done <- local.Serve(ctx, w, local.Options{Ready: ready, Idle: qt.Duration("fixture_idle_seconds")})
+	}()
 	select {
 	case <-ready:
 	case e = <-done:

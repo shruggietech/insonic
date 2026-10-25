@@ -8,6 +8,7 @@ import (
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/library"
 	"github.com/shruggietech/insonic/internal/processing"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"github.com/shruggietech/insonic/internal/subtitles"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"os"
@@ -210,7 +211,7 @@ func TestRecordingCancellationAndExplicitNoSpeech(t *testing.T) {
 	workID := r.Result.(map[string]any)["work_id"].(string)
 	select {
 	case <-entered:
-	case <-time.After(5 * time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("adapter not started")
 	}
 	if r = realRequest(a, "work.cancel", workID, nil); r.Error != nil {

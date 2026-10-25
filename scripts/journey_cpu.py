@@ -1,8 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 """Reference-backed stages for the maintained connected CLI journey."""
 from contextlib import contextmanager
-import importlib.util
+import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
+import importlib.util
 import re
 import time
 
@@ -63,7 +66,7 @@ def prepare_managed(journey):
             selected = plan["election"]
             if selected.get("role") != role or selected.get("mode") != "managed" or not digest(selected.get("profile_digest")):
                 raise ValueError("Managed plan election identity differs")
-            prepared = journey.finish(journey.input("workers", "setup", value=selected), maximum=600)
+            prepared = journey.finish(journey.input("workers", "setup", value=selected), maximum=timing.REAL_PROCESSING_SECONDS)
             if (prepared.get("role") != role or prepared.get("inference") != "not_run"
                     or not digest(prepared.get("python", {}).get("sha256"))
                     or not digest(prepared.get("environment_receipt", {}).get("sha256"))):
@@ -396,7 +399,7 @@ def build_cases(journey, corpus):
             raw = journey.engine_child(
                 [decoder["path"], "-nostdin", "-hide_banner", "-loglevel", "error", "-i", case["path"],
                  "-map", "0:a:0", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", "-f", "s16le", "-"],
-                maximum=30, max_output=case["samples"] * 2 + 1)
+                maximum=timing.SUBPROCESS_SECONDS, max_output=case["samples"] * 2 + 1)
             if len(raw) != case["samples"] * 2:
                 raise ValueError("Reference decoded sample identity differs")
             output.writeframes(raw)
@@ -668,10 +671,10 @@ def run(journey):
     import uuid
     ref = references()
     journey.receipt.update(kind="insonic-real-cpu-acceptance-v1", state="running", stages=[],
-                           operation_bounds_seconds={"default": 180, "managed_setup": 600, "decode": 30},
+                           operation_bounds_seconds={"default": timing.SUBPROCESS_SECONDS, "managed_setup": timing.REAL_PROCESSING_SECONDS, "decode": timing.SUBPROCESS_SECONDS},
                            child_output_bound_bytes=16 << 20)
     with stage(journey, "package"):
-        actual = journey.engine_child([journey.cli, "version"], maximum=10).decode().strip()
+        actual = journey.engine_child([journey.cli, "version"], maximum=timing.READINESS_SECONDS).decode().strip()
         if actual != journey.receipt["product_version"]:
             raise ValueError("Selected CLI version differs from current product")
         journey.command("workspace", "init", journey.workspace, workspace=False)

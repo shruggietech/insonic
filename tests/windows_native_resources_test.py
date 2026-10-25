@@ -12,6 +12,7 @@ from threading import Event
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'scripts'))
+import qualification_timing as test_timing
 spec=importlib.util.spec_from_file_location('native_resources',ROOT/'scripts/windows_native_resources.py')
 resources=importlib.util.module_from_spec(spec);spec.loader.exec_module(resources)
 
@@ -211,7 +212,7 @@ class NativeResourcesTests(unittest.TestCase):
                 self.assertIn(tree.process.pid,[item['pid'] for item in row['owned']['processes']])
                 self.assertTrue(all(item['owned'] and item['priority']['available'] for item in row['owned']['processes']))
             finally:
-                tree.kill();tree.process.communicate(timeout=5)
+                tree.kill();tree.process.communicate(timeout=test_timing.CLEANUP_SECONDS)
 
     @unittest.skipUnless(os.name=='nt','actual Windows API endpoint')
     def test_actual_system_counter_endpoints_without_gui(self):
@@ -240,7 +241,7 @@ class NativeResourcesTests(unittest.TestCase):
                 self.assertTrue(identity['available'],identity)
                 self.assertLessEqual(identity['created_unix_micros'],identity['query_begin_unix_micros'])
                 self.assertLessEqual(identity['query_begin_unix_micros'],identity['query_end_unix_micros'])
-        finally:tree.process.communicate(timeout=5)
+        finally:tree.process.communicate(timeout=test_timing.CLEANUP_SECONDS)
 
 
 if __name__=='__main__':unittest.main()

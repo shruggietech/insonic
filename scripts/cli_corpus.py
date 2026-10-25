@@ -9,6 +9,10 @@ from pathlib import Path, PurePosixPath
 import platform
 import re
 from threading import Lock
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG = Path('tests/fixtures/cli-corpus.json')
@@ -139,7 +143,7 @@ def example_outcome(result, error, *, completed=None, materialized=False):
 
 def finish_server(server, thread):
     primary = None
-    for cleanup in [server.shutdown, server.server_close, lambda: thread.join(timeout=5)]:
+    for cleanup in [server.shutdown, server.server_close, lambda: thread.join(timeout=timing.CLEANUP_SECONDS)]:
         try: cleanup()
         except BaseException as error:
             if primary is None: primary = error

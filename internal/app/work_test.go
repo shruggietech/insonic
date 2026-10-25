@@ -7,6 +7,7 @@ import (
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/library"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"os"
 	"path/filepath"
@@ -23,7 +24,7 @@ func realRequest(a *App, op, id string, data any) contracts.Response {
 }
 func awaitWork(t *testing.T, a *App, id string) catalog.Work {
 	t.Helper()
-	deadline := time.Now().Add(12 * time.Second)
+	deadline := time.Now().Add(qualificationtiming.Duration("durable_work_seconds"))
 	for time.Now().Before(deadline) {
 		w, e := a.Catalog.Work(context.Background(), id)
 		if e != nil {

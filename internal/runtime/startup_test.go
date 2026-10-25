@@ -5,8 +5,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
 	"github.com/shruggietech/insonic/internal/credentialcmd"
+	qt "github.com/shruggietech/insonic/internal/qualificationtiming"
 	"github.com/shruggietech/insonic/internal/secrets"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"strings"
@@ -59,16 +61,38 @@ func TestStartupReportValidationAndImmediateFailure(t *testing.T) {
 		if mode == "failed" {
 			want = "runtime_catalog"
 		}
-		if !ok || typed.Reason != want || time.Since(begin) > time.Second || strings.Contains(err.Error(), "fixture-secret") {
+		if !ok || typed.Reason != want || time.Since(begin) > qt.Duration("readiness_seconds") || strings.Contains(err.Error(), "fixture-secret") {
 			t.Fatal(mode, err)
 		}
 	}
 }
+
+// Prepare fixture schema outside the fixed product startup clock. The runtime
+// owner is still absent, and startup must load the elected protected input.
+func prepareOwnerStartupCatalog(t *testing.T, w *workspace.Workspace) {
+	t.Helper()
+	ctx, cancel := qt.Context(context.Background(), "subprocess_seconds")
+	defer cancel()
+	store, err := catalog.OpenWorkspace(ctx, w, nil, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = store.Close(); err != nil {
+		t.Fatal(err)
+	}
+	lock, err := w.Lock()
+	if err != nil {
+		t.Fatal("schema preparation started a runtime owner", err)
+	}
+	lock.Unlock()
+}
+
 func TestConcurrentColdStartupLoadsProtectedInputIntoOneOwner(t *testing.T) {
 	w, err := workspace.Init(t.TempDir(), "Concurrent startup")
 	if err != nil {
 		t.Fatal(err)
 	}
+	prepareOwnerStartupCatalog(t, w)
 	if err = secrets.Select(w, "session"); err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +115,7 @@ func TestConcurrentColdStartupLoadsProtectedInputIntoOneOwner(t *testing.T) {
 		go func() {
 			defer owners.Done()
 			defer input.Close()
-			err := Serve(ownerCtx, w, Options{Input: input, ReportReady: func() { reports <- report }})
+			err := Serve(ownerCtx, w, Options{Input: input, Idle: qt.Duration("fixture_idle_seconds"), ReportReady: func() { reports <- report }})
 			if err != nil {
 				safe := contracts.SafeError(err)
 				report.State, report.Stage, report.Code, report.Reason = "failed", "startup", safe.Code, safe.Reason
@@ -154,7 +178,7 @@ func TestStartupInputDeadlineIsBounded(t *testing.T) {
 		<-ctx.Done()
 		return nil, contracts.Condition("unavailable", "startup_timeout")
 	})
-	if time.Since(begin) > time.Second || err == nil || err.(*contracts.Error).Reason != "startup_timeout" {
+	if time.Since(begin) > qt.Duration("readiness_seconds") || err == nil || err.(*contracts.Error).Reason != "startup_timeout" {
 		t.Fatal(err)
 	}
 	if err = ensureInput(context.Background(), w, "fixture", make([]byte, credentialcmd.MaxInputBytes+1), nil); err == nil || err.(*contracts.Error).Reason != "input_invalid" {
@@ -167,6 +191,7 @@ func TestStartupRetriesAfterCompetingOwnerFinishesShutdown(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	prepareOwnerStartupCatalog(t, w)
 	lock, err := w.Lock()
 	if err != nil {
 		t.Fatal(err)
@@ -180,11 +205,15 @@ func TestStartupRetriesAfterCompetingOwnerFinishesShutdown(t *testing.T) {
 		launches++
 		report := contracts.StartupReport{Kind: "runtime-startup", Version: contracts.Version, StartupID: startupID(args), WorkspaceID: w.Config.WorkspaceID, State: "failed", Stage: "startup", Code: "conflict", Reason: "runtime_owner"}
 		if launches == 1 {
-			go func() { time.Sleep(50 * time.Millisecond); lock.Unlock() }()
+			// Release the competing owner only after its conflict was observed.
+			raw, _ := json.Marshal(report)
+			err := validate(raw)
+			lock.Unlock()
+			return raw, err
 		} else {
 			report.State, report.Stage, report.Code, report.Reason = "ready", "ready", "", ""
 			ready := make(chan struct{})
-			go func() { done <- Serve(ownerCtx, w, Options{Ready: ready}) }()
+			go func() { done <- Serve(ownerCtx, w, Options{Ready: ready, Idle: qt.Duration("fixture_idle_seconds")}) }()
 			select {
 			case <-ready:
 			case <-ctx.Done():
@@ -194,14 +223,14 @@ func TestStartupRetriesAfterCompetingOwnerFinishesShutdown(t *testing.T) {
 		raw, _ := json.Marshal(report)
 		return raw, validate(raw)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := qt.Context(context.Background(), "readiness_seconds")
 	defer cancel()
 	err = ensureInput(ctx, w, "fixture", nil, start)
 	stop()
 	if launches > 1 {
 		select {
 		case <-done:
-		case <-time.After(time.Second):
+		case <-time.After(qt.Duration("cleanup_seconds")):
 			t.Fatal("replacement owner did not stop")
 		}
 	}

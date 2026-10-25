@@ -4,6 +4,7 @@ package runtime
 import (
 	"context"
 	"encoding/json"
+	qt "github.com/shruggietech/insonic/internal/qualificationtiming"
 	"strings"
 	"testing"
 	"time"
@@ -22,10 +23,10 @@ func TestLargeNormalizedManifestReachesDurableRuntime(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	ready, done := make(chan struct{}), make(chan error, 1)
-	go func() { done <- Serve(ctx, w, Options{Idle: time.Minute, Ready: ready}) }()
+	go func() { done <- Serve(ctx, w, Options{Idle: qt.Duration("fixture_idle_seconds"), Ready: ready}) }()
 	select {
 	case <-ready:
-	case <-time.After(3 * time.Second):
+	case <-time.After(qt.Duration("readiness_seconds")):
 		t.Fatal("startup")
 	}
 	input := library.ImportRequest{Kind: "import-manifest", Version: contracts.Version, Defaults: library.Options{Timezone: "UTC"}}
@@ -51,7 +52,7 @@ func TestLargeNormalizedManifestReachesDurableRuntime(t *testing.T) {
 		if e != nil {
 			t.Fatal(e)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(qt.Duration("cleanup_seconds")):
 		t.Fatal("shutdown")
 	}
 	db, e := catalog.OpenWorkspace(context.Background(), w, nil, false)

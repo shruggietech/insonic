@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import MagicMock,patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
+import qualification_timing as test_timing
 from windows_workload_affinity import WorkloadAffinity,selected_mask,AffinityProcessTree,_AffinityAssignment
 
 
@@ -125,17 +126,17 @@ def current_mask():
         parent=common+"\nimport subprocess,sys\nrows={'root':current_mask()}\n"
         parent+=f"probe={probe!r}\n"
         parent+="for name,flags in [('normal',0x08000000),('breakaway',0x09000000)]:\n"
-        parent+="    result=subprocess.run([sys.executable,'-c',probe],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=flags,timeout=5,check=True)\n    rows[name]=json.loads(result.stdout)\n"
+        parent+="    result=subprocess.run([sys.executable,'-c',probe],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=flags,timeout="+str(test_timing.READINESS_SECONDS)+",check=True)\n    rows[name]=json.loads(result.stdout)\n"
         # A fresh nested job without its own affinity must preserve inheritance.
         parent+=f"sys.path.insert(0,{str(Path(__file__).resolve().parents[1]/'scripts')!r})\nfrom process_tree import ProcessTree\n"
-        parent+="with ProcessTree([sys.executable,'-c',probe],cwd='.',env=dict(__import__('os').environ)) as nested:\n    output,error=nested.process.communicate(timeout=5)\n    assert nested.process.returncode==0,error\n    rows['nested_job']=json.loads(output)\nprint(json.dumps(rows))\n"
+        parent+="with ProcessTree([sys.executable,'-c',probe],cwd='.',env=dict(__import__('os').environ)) as nested:\n    output,error=nested.process.communicate(timeout="+str(test_timing.READINESS_SECONDS)+")\n    assert nested.process.returncode==0,error\n    rows['nested_job']=json.loads(output)\nprint(json.dumps(rows))\n"
         with AffinityProcessTree([sys.executable,'-c',parent],cwd=Path(__file__).resolve().parents[1],env=dict(os.environ),
                          allow_detached=True,cpu_affinity=mask) as tree:
             self.assertEqual(tree.cpu_affinity_verified,mask)
-            output,error=tree.process.communicate(timeout=15)
+            output,error=tree.process.communicate(timeout=test_timing.SUBPROCESS_SECONDS)
             self.assertEqual(tree.process.returncode,0,error.decode(errors='replace'))
             self.assertEqual(json.loads(output),dict.fromkeys(['root','normal','breakaway','nested_job'],mask))
-            self.assertTrue(tree.wait_for_descendants(5))
+            self.assertTrue(tree.wait_for_descendants(test_timing.NATURAL_RELEASE_SECONDS))
         after,system=ctypes.c_size_t(),ctypes.c_size_t()
         self.assertTrue(api.GetProcessAffinityMask(api.GetCurrentProcess(),ctypes.byref(after),ctypes.byref(system)))
         self.assertEqual(after.value,before.value)

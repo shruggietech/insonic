@@ -29,11 +29,11 @@ class InvocationTimingTests(unittest.TestCase):
         self.assertTrue(factory.call_args.kwargs["input_pipe"])
         self.assertTrue(factory.call_args.kwargs["allow_detached"])
 
-    def test_correct_classification_keeps_two_second_process_limit(self):
+    def test_correct_classification_keeps_expanded_readiness_limit(self):
         response = {"error": {"code": "unavailable", "reason": "credential_bootstrap"}}
         timing = {"owned_launch_seconds": 3, "process_wait_seconds": 1, "total_seconds": 4.1}
         cli.verify_cold_bootstrap(response, timing)
-        for changed in ({**timing, "process_wait_seconds": 2.01, "total_seconds": 5.1},
+        for changed in ({**timing, "process_wait_seconds": cli.bounds.READINESS_SECONDS + .01, "total_seconds": cli.bounds.READINESS_SECONDS + 3.1},
                         {**timing, "total_seconds": .5}, {**timing, "owned_launch_seconds": float("nan")}):
             with self.subTest(timing=changed), self.assertRaises(ValueError):
                 cli.verify_cold_bootstrap(response, changed)

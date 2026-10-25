@@ -11,6 +11,10 @@ import re
 import tarfile
 import tempfile
 import time
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 
 MAX_COMPRESSED = 10 << 20
 MAX_EXPANDED = 32 << 20
@@ -35,7 +39,7 @@ def acquire(name, output, lock, *, reader=http.read, clock=time.monotonic):
     revision = lock['revision']
     attempts = [1]
     data = reader(f'https://codeload.github.com/actions/{name}/tar.gz/{revision}',
-                  max_bytes=MAX_COMPRESSED, deadline=started + 60, retry_404=True,
+                  max_bytes=MAX_COMPRESSED, deadline=started + timing.SOURCE_DOWNLOAD_SECONDS, retry_404=True,
                   on_attempt=lambda value: attempts.__setitem__(0, value))
     if len(data) > MAX_COMPRESSED: raise ValueError('action compressed size exceeds limit')
     if hashlib.sha256(data).hexdigest() != lock['sha256']:
@@ -48,7 +52,7 @@ def acquire(name, output, lock, *, reader=http.read, clock=time.monotonic):
             prefix = f'{name}-{revision}'
             with tarfile.open(fileobj=io.BytesIO(data), mode='r:gz') as archive:
                 for member in archive:
-                    if clock() > started + 60: raise TimeoutError('action bootstrap deadline exceeded')
+                    if clock() > started + timing.SOURCE_DOWNLOAD_SECONDS: raise TimeoutError('action bootstrap deadline exceeded')
                     count += 1
                     raw = member.name.removesuffix('/') if member.isdir() else member.name
                     path = PurePosixPath(raw)
@@ -74,7 +78,7 @@ def acquire(name, output, lock, *, reader=http.read, clock=time.monotonic):
                     destination.write_bytes(payload)
                     destination.chmod(0o755 if member.mode & 0o111 else 0o644)
             if not (stage / 'action.yml').is_file(): raise ValueError('action manifest is missing')
-            if clock() > started + 60: raise TimeoutError('action bootstrap deadline exceeded')
+            if clock() > started + timing.SOURCE_DOWNLOAD_SECONDS: raise TimeoutError('action bootstrap deadline exceeded')
             if output.exists() or output.is_symlink(): raise ValueError('action output must be new')
             stage.rename(output)
     except (tarfile.TarError, EOFError) as error:

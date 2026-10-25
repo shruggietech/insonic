@@ -3,6 +3,7 @@ package library
 
 import (
 	"context"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -107,7 +108,7 @@ func TestAcquisitionTimeoutAndCancellationRemovePartialBytes(t *testing.T) {
 			destination := filepath.Join(t.TempDir(), "media")
 			begin := time.Now()
 			_, e := (httpAcquisition{}).Acquire(ctx, server.URL, "", destination, Options{AcquisitionTimeoutMS: &timeout})
-			if e == nil || time.Since(begin) > time.Second {
+			if e == nil || time.Since(begin) > qualificationtiming.Duration("cleanup_seconds") {
 				t.Fatal("stream not bounded by cancellation/deadline")
 			}
 			if _, e = os.Stat(destination); !os.IsNotExist(e) {

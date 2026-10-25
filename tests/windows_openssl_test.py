@@ -22,7 +22,7 @@ class OpenSSLArchiveTests(unittest.TestCase):
                 module.fetch_archive(pin, target)
                 self.assertEqual(target.read_bytes(), payload)
                 self.assertEqual(fetch.call_count, 2)
-                self.assertTrue(all(0 < call.kwargs['timeout'] <= 20 for call in fetch.call_args_list))
+                self.assertTrue(all(0 < call.kwargs['timeout'] <= module.timing.REQUEST_SECONDS for call in fetch.call_args_list))
             with patch.object(module.urllib.request, 'urlopen', side_effect=AssertionError('verified cache requires no network')):
                 module.fetch_archive(pin, target)
             self.assertFalse(target.with_suffix('.download').exists())
@@ -52,7 +52,7 @@ class OpenSSLArchiveTests(unittest.TestCase):
     def test_total_acquisition_budget_stops_further_network_attempts(self):
         pin = {'url': 'https://example.invalid/openssl', 'sha256': '0' * 64}
         with tempfile.TemporaryDirectory() as temporary:
-            with patch.object(module.time, 'monotonic', side_effect=[0, 61]), patch.object(module.urllib.request, 'urlopen') as fetch:
+            with patch.object(module.time, 'monotonic', side_effect=[0, module.timing.SOURCE_DOWNLOAD_SECONDS + 1]), patch.object(module.urllib.request, 'urlopen') as fetch:
                 with self.assertRaisesRegex(TimeoutError, 'budget exceeded'):
                     module.fetch_archive(pin, Path(temporary) / 'openssl.conda')
                 fetch.assert_not_called()

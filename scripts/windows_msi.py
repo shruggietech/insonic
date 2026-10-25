@@ -16,6 +16,10 @@ import subprocess
 import tempfile
 import uuid
 import zlib
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 ROOT=Path(__file__).resolve().parent.parent
 NAMESPACE=uuid.UUID('7cb51873-d4e8-4b86-92de-69fb9a53dc78')
 ICON='brand/kit/icons/windows/classic/app.ico'
@@ -329,7 +333,7 @@ def author(path,payload_root,model,fixture_failure=False):
             directives.append('"'+str(p)+'" '+entry['file_id'])
         ddf=temp/'payload.ddf';ddf.write_text('\n'.join(directives)+'\n',encoding='utf-8',newline='\n')
         makecab=Path(os.environ.get('SystemRoot','C:/Windows'))/'System32/makecab.exe'
-        completed=subprocess.run([str(makecab),'/F',str(ddf)],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=180)
+        completed=subprocess.run([str(makecab),'/F',str(ddf)],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,creationflags=subprocess.CREATE_NO_WINDOW,timeout=timing.BUILD_SECONDS)
         if completed.returncode:raise RuntimeError('makecab failed: '+completed.stderr.decode(errors='replace')[-3000:]+completed.stdout.decode(errors='replace')[-3000:])
         db=NativeDatabase(path,create=True)
         try:

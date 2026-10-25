@@ -7,6 +7,7 @@ import (
 	"github.com/shruggietech/insonic/internal/assistance"
 	"github.com/shruggietech/insonic/internal/catalog"
 	"github.com/shruggietech/insonic/internal/contracts"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"github.com/shruggietech/insonic/internal/workspace"
 	"os"
 	"testing"
@@ -107,7 +108,7 @@ func TestAssistanceRejectsUnsupportedAndStaleBeforeExecution(t *testing.T) {
 		if r.Error == nil || r.Error.Code != "conflict" {
 			t.Fatal(r)
 		}
-	case <-time.After(time.Second):
+	case <-time.After(qualificationtiming.Duration("readiness_seconds")):
 		t.Fatal("blocked assistance")
 	}
 }

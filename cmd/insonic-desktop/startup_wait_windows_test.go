@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"io"
 	"os"
 	"path/filepath"
@@ -222,7 +223,7 @@ func TestNativeWaitDefaultHelperRejectsUnownedTargets(t *testing.T) {
 }
 
 func TestNativeWaitInheritedInputIdentifiesActualParent(t *testing.T) {
-	ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, stop := qualificationtiming.Context(context.Background(), "readiness_seconds")
 	defer stop()
 	report, err := nativeWaitTestCapture("channel")(ctx, []byte("[]"))
 	var row struct {
@@ -294,7 +295,7 @@ func TestNativeWaitRejectsCopiedExecutableEvenWithAnInheritedPipe(t *testing.T) 
 	if copyErr != nil || closeErr != nil {
 		t.Fatal(copyErr, closeErr)
 	}
-	ctx, stop := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, stop := qualificationtiming.Context(context.Background(), "readiness_seconds")
 	defer stop()
 	report, err := process.Capture(ctx, process.Spec{Executable: copied, Args: []string{"-test.run=^TestNativeWaitObserverHelperProcess$"}, Env: append(os.Environ(), "INSONIC_NATIVE_WAIT_HELPER_MODE=normal"), Input: strings.NewReader(`[{"role":"host","thread":42}]`), MaxOutput: nativeWaitOutputLimit})
 	if ctx.Err() != nil || report.ExitCode != 1 || len(report.Stdout) != 0 {

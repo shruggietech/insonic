@@ -12,6 +12,10 @@ import subprocess
 import tempfile
 
 from process_tree import ProcessTree
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / 'tests/fixtures/media'
@@ -121,10 +125,10 @@ def validate(manifest=None):
 def child(args):
     with ProcessTree([str(arg) for arg in args], cwd=ROOT, env=os.environ.copy()) as tree:
         try:
-            output, errors = tree.process.communicate(timeout=60)
+            output, errors = tree.process.communicate(timeout=timing.SUBPROCESS_SECONDS)
         except subprocess.TimeoutExpired:
             tree.kill()
-            tree.process.communicate(timeout=5)
+            tree.process.communicate(timeout=timing.CLEANUP_SECONDS)
             raise
         if tree.process.returncode:
             raise RuntimeError('bounded media fixture child failed: ' + errors.decode(errors='replace')[:4000])

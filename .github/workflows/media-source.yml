@@ -26,7 +26,7 @@ permissions:
 jobs:
   probe:
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 11
+    timeout-minutes: 60
     outputs:
       complete: ${{ steps.ready.outputs.ready }}
     env:
@@ -49,6 +49,8 @@ jobs:
           path: build/automation
           sparse-checkout: |
             scripts/source-toolchain.py
+            scripts/qualification_timing.py
+            internal/qualificationtiming/policy.json
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - if: runner.os == 'Linux'
@@ -103,7 +105,8 @@ jobs:
           pin = json.loads(Path('internal/qualification/media-tools.json').read_text(encoding='utf-8'))['source_build']['libraries']['zlib']
           try:
               request = urllib.request.Request(pin['url'], headers={'User-Agent': 'insonic-source-build'})
-              with urllib.request.urlopen(request, timeout=20) as response:
+              timing = json.loads(Path('internal/qualificationtiming/policy.json').read_text(encoding='utf-8'))
+              with urllib.request.urlopen(request, timeout=timing['request_seconds']) as response:
                   body = response.read(pin['size_bytes'] + 1)
                   final = urllib.parse.urlsplit(response.url)
                   print(json.dumps({'read_only': True, 'pin': pin['name'], 'status': response.status,
@@ -151,7 +154,7 @@ jobs:
     needs: probe
     if: needs.probe.outputs.complete != 'true'
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 11
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -176,6 +179,8 @@ jobs:
           path: build/automation
           sparse-checkout: |
             scripts/source-toolchain.py
+            scripts/qualification_timing.py
+            internal/qualificationtiming/policy.json
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - if: runner.os == 'Linux'
@@ -244,7 +249,7 @@ jobs:
       - groups
     if: needs.probe.outputs.complete != 'true'
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 11
+    timeout-minutes: 60
     env:
       SOURCE_REVISION: ${{ inputs.revision }}
     steps:
@@ -260,6 +265,8 @@ jobs:
           path: build/automation
           sparse-checkout: |
             scripts/source-toolchain.py
+            scripts/qualification_timing.py
+            internal/qualificationtiming/policy.json
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - if: runner.os == 'Linux'
@@ -344,7 +351,7 @@ jobs:
       - formats
     if: needs.probe.outputs.complete != 'true' && inputs.os == 'windows-2022'
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 11
+    timeout-minutes: 60
     env:
       SOURCE_REVISION: ${{ inputs.revision }}
     steps:
@@ -360,6 +367,8 @@ jobs:
           path: build/automation
           sparse-checkout: |
             scripts/source-toolchain.py
+            scripts/qualification_timing.py
+            internal/qualificationtiming/policy.json
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - if: runner.os == 'Linux'
@@ -431,7 +440,7 @@ jobs:
       - codec
     if: always() && !cancelled() && needs.probe.result == 'success' && needs.probe.outputs.complete != 'true' && needs.formats.result == 'success' && (inputs.os != 'windows-2022' || needs.codec.result == 'success')
     runs-on: ${{ inputs.os }}
-    timeout-minutes: 11
+    timeout-minutes: 60
     env:
       SOURCE_REVISION: ${{ inputs.revision }}
     steps:
@@ -447,6 +456,8 @@ jobs:
           path: build/automation
           sparse-checkout: |
             scripts/source-toolchain.py
+            scripts/qualification_timing.py
+            internal/qualificationtiming/policy.json
           sparse-checkout-cone-mode: false
           persist-credentials: false
       - if: runner.os == 'Linux'
@@ -571,7 +582,7 @@ jobs:
     needs: [probe, groups, formats, codec, ffmpeg]
     if: always()
     runs-on: ubuntu-24.04
-    timeout-minutes: 11
+    timeout-minutes: 60
     outputs:
       ready: ${{ steps.ready.outputs.ready }}
       path: ${{ steps.ready.outputs.path }}

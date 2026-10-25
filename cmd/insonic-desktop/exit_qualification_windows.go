@@ -4,8 +4,10 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/shruggietech/insonic/internal/qualificationtiming"
 	"os"
 	"runtime"
 	"syscall"
@@ -13,8 +15,8 @@ import (
 	"unsafe"
 )
 
-func activateNativeExit(action string) error {
-	hwnd, err := exitOwnedWindow()
+func activateNativeExit(ctx context.Context, action string) error {
+	hwnd, err := findNativeExitWindowContext(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -40,16 +42,17 @@ func activateNativeExit(action string) error {
 	case "alt-f4":
 		return sendNativeAltF4(hwnd)
 	case "menu":
-		if err := openNativeExitMenu(hwnd, root); err != nil {
+		if err := openNativeExitMenu(ctx, hwnd, root); err != nil {
 			return err
 		}
 		// Cancellation must return input to the browser before another native menu.
 		if err := sendNativeKeyboard(hwnd, "File menu cancellation", []exitKeyboardInput{{Kind: 1, Key: 0x1b}, {Kind: 1, Key: 0x1b, Flags: 2}, {Kind: 1, Key: 0x1b}, {Kind: 1, Key: 0x1b, Flags: 2}}); err != nil {
 			return err
 		}
-		deadline := time.Now().Add(2 * time.Second)
+		actionCtx, stop := qualificationtiming.Context(ctx, "native_action_seconds")
+		defer stop()
 		restored := false
-		for time.Now().Before(deadline) {
+		for actionCtx.Err() == nil {
 			state := observeExitMenu(hwnd, root, threadID)
 			if state.queried && state.flags&4 == 0 && !state.owner && state.focus != 0 && exitWinCall("IsChild", hwnd, state.focus) != 0 {
 				restored = true
@@ -61,7 +64,7 @@ func activateNativeExit(action string) error {
 			return fmt.Errorf("native menu cancellation did not restore browser focus")
 		}
 		fmt.Fprintln(os.Stderr, "native-exit-stage=menu-cancel-restored")
-		if err := openNativeExitMenu(hwnd, root); err != nil {
+		if err := openNativeExitMenu(ctx, hwnd, root); err != nil {
 			return err
 		}
 		if err := sendNativeKeyboard(hwnd, "File/Exit X", []exitKeyboardInput{{Kind: 1, Key: 0x58}, {Kind: 1, Key: 0x58, Flags: 2}}); err != nil {
@@ -73,15 +76,16 @@ func activateNativeExit(action string) error {
 	return fmt.Errorf("unknown native Exit action")
 }
 
-func openNativeExitMenu(hwnd, root uintptr) error {
+func openNativeExitMenu(ctx context.Context, hwnd, root uintptr) error {
 	nativeSystemMenuRequested.Store(false)
 	if err := sendNativeKeyboard(hwnd, "Alt+F", []exitKeyboardInput{{Kind: 1, Key: 0x12}, {Kind: 1, Key: 0x46}, {Kind: 1, Key: 0x46, Flags: 2}, {Kind: 1, Key: 0x12, Flags: 2}}); err != nil {
 		return err
 	}
 	thread := exitWinCall("GetWindowThreadProcessId", hwnd, 0)
-	deadline := time.Now().Add(2 * time.Second)
+	actionCtx, stop := qualificationtiming.Context(ctx, "native_action_seconds")
+	defer stop()
 	var state exitMenuState
-	for time.Now().Before(deadline) {
+	for actionCtx.Err() == nil {
 		state = observeExitMenu(hwnd, root, thread)
 		if state.ready() && state.focus == hwnd {
 			if err := verifyNativeMenuRoute("menu"); err != nil {

@@ -16,6 +16,10 @@ import time
 import wave
 
 from process_tree import ProcessTree
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import qualification_timing as timing
 
 
 def pcm_fixture(destination, channels):
@@ -38,7 +42,7 @@ def qualify(invoke, supplied, workspace, executable, environment, version, *, pr
 
     def tool(exe, *args):
         with (process_factory or ProcessTree)([exe, *args], cwd=directory, env=environment) as tree:
-            stdout, stderr = tree.process.communicate(timeout=20)
+            stdout, stderr = tree.process.communicate(timeout=timing.SUBPROCESS_SECONDS)
             if tree.process.returncode or len(stdout) > 1 << 20 or len(stderr) > 65536:
                 raise ValueError('Installed media lifecycle companion failed')
             return stdout
@@ -200,7 +204,7 @@ def qualify(invoke, supplied, workspace, executable, environment, version, *, pr
     finally:
         server.shutdown()
         server.server_close()
-        thread.join(timeout=5)
+        thread.join(timeout=timing.CLEANUP_SECONDS)
         if thread.is_alive():
             raise ValueError('Owned transcript fixture server did not stop')
     return {'issues': [140, 141, 142, 143, 145], 'state': 'passed', 'playback_cases': 3,
