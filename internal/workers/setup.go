@@ -140,6 +140,10 @@ func (s Service) asset(ctx context.Context, a Asset, offline string) (string, er
 	return p, verifyAsset(ctx, p, a)
 }
 func (s Service) Prepare(ctx context.Context, election Election) (Prepared, error) {
+	if err := probeContextError(ctx); err != nil {
+		return Prepared{}, err
+	}
+
 	var out Prepared
 	if e := election.Validate(); e != nil {
 		return out, e
@@ -288,21 +292,33 @@ func (s Service) Prepare(ctx context.Context, election Election) (Prepared, erro
 		return out, e
 	}
 	inspection, e := s.Inspect(ctx, election.Role, python, true)
-	if e != nil {
-		return out, e
-	}
-	if !inspection.Compatible || !inspection.EngineAvailable || len(inspection.Files) == 0 {
-		return out, contracts.Fail("engine_unavailable")
-	}
-	if election.Mode == "managed" {
-		if inspection.PythonVersion != p.Python {
-			return out, contracts.Fail("incompatible_version")
+	if e == nil && inspection.Compatible && inspection.EngineAvailable && election.Mode == "managed" {
+		matches := inspection.PythonVersion == p.Python
+		for name, version := range p.Engines {
+			matches = matches && inspection.Packages[name] == version
 		}
-		for name, v := range p.Engines {
-			if inspection.Packages[name] != v {
-				return out, contracts.Fail("incompatible_version")
+		if !matches {
+			inspection.Compatible, inspection.EngineAvailable = false, false
+			inspection.Error, inspection.Correction = "version_mismatch", probeMessages["version_mismatch"]
+			if inspection.Probe != nil {
+				inspection.Probe.Stage, inspection.Probe.Reason = "receipt_verification", "version_mismatch"
 			}
+			e = probeFailure("version_mismatch")
 		}
+	}
+	if e != nil || !inspection.Compatible || !inspection.EngineAvailable || len(inspection.Files) == 0 {
+		inspection.Files = nil
+		out.Inspection = inspection
+		if checkpointErr := s.checkpoint("verifying-environment", map[string]any{"role": election.Role, "probe": inspection.Probe}); checkpointErr != nil {
+			return out, checkpointErr
+		}
+		if e != nil {
+			return out, e
+		}
+		if inspection.Probe != nil {
+			return out, probeFailure(inspection.Probe.Reason)
+		}
+		return out, contracts.Fail("engine_unavailable")
 	}
 	r := Receipt{Kind: "worker-environment", Version: contracts.Version, Mode: election.Mode, ProfileDigest: p.Digest(), Inspection: inspection}
 	raw, _ := json.Marshal(r)

@@ -287,6 +287,17 @@ class Journey:
                 continue
             if (current.get('state') != 'succeeded' or current.get('id') != work_id
                     or current.get('work_id', work_id) != work_id or time.monotonic() > deadline):
+                facts = current.get('result', {}).get('worker_probe')
+                if isinstance(facts, dict) and facts.get('role') in ('recognition', 'diarization'):
+                    from journey_cpu import probe_measurement
+                    probe = facts.get('probe')
+                    try:
+                        mode = probe.get('mode') if isinstance(probe, dict) else None
+                        if mode in ('inspect', 'snapshot'):
+                            self.receipt['worker_probe_failure'] = {
+                                'role': facts['role'], 'probe': probe_measurement(probe, mode, success=False)}
+                    except ValueError:
+                        pass  # Invalid diagnostics cannot enter the acceptance receipt.
                 raise ValueError('Work did not reach matching success within its original operation deadline')
             break
         self.receipt['operations'].append({'kind': current['kind'], 'state': current['state'], 'phase': current['phase'],

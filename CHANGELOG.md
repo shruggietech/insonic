@@ -6,11 +6,15 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Changed
 
+- 2026-10-25: Keep the existing sixty-second worker/readiness deadlines and record fixed bounded progress inside each private probe directory. Native and child clocks remain separate, receipt observations are optional for backward compatibility, and only ephemeral worker observation requests gain disconnect cancellation. Diagnostic additions do not relax environment hashes, version checks or real processing acceptance.
+
 - 2026-10-22: Refresh Playwright maintainer tooling, Windows IPC/Linux credential and S3 client dependencies, and static-documentation renderer dependencies. Capture tooling follows the root exact Playwright pin; maintained desktop source checks retain independently verified pristine upstream checksums after Go graph refresh and enforce both archive and module-file entries without conflicts.
 
 - 2026-10-24: Expand maintained test and qualification allowances through native/frontend, package/installer, CLI, source preparation, browser, release and diagnostic paths. Qualification now targets thirty minutes with a sixty-minute hard limit after verified readiness and a sixty-second provisional finalization reserve; outer job watchdogs retain cleanup headroom. Constitution 5.0.0 explicitly redefines the previous timing policy. Required functional/security/provenance checks, ordinary product deadlines and intentionally short failure fixtures retain their meanings. Help qualification records bounded monotonic progress for delayed-completion diagnosis.
 
 ### Added
+
+- Worker inspection and failed setup now expose bounded stage, reason and timing facts through shared JSON, CLI and desktop summaries. Readiness retains observed role facts when its enclosing budget expires, and interrupted hashing preserves cancellation or deadline identity. Ephemeral inspection disconnects stop owned probes; managed receipts retain their original integrity checks. Maintained CPU qualification records fresh snapshot and repeated inspection measurements separately.
 
 - Reference-backed packaged Windows CPU qualification prepares managed workers through the normal CLI, measures real transcription and two-reader speaker-profile matching against frozen licensed references, and verifies query, timeline, playback and model recovery after source withdrawal. Compact receipts separate functional acceptance, measured quality limits, preparation and qualification; deterministic integrity and cleanup regressions run without inference in CI.
 

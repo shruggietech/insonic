@@ -23,6 +23,17 @@ def load(name):
     return module
 
 
+def probe(mode):
+    stages = ["package_versions", "library_import", "cpu_prerequisites", "cuda_prerequisites"]
+    if mode == "snapshot":
+        stages += ["dependency_inventory", "dependency_hashing"]
+    stages += ["complete"]
+    rows = [{"stage": stage, "elapsed_ms": index, "files": 1 if mode == "snapshot" else 0,
+             "hashed_files": 0, "hashed_bytes": 0} for index, stage in enumerate(stages)]
+    return {"mode": mode, "stage": "complete", "reason": "success", "elapsed_ms": 20, "budget_ms": 60000,
+            "child": {"mode": mode, "reason": "success", **rows[-1], "observations": rows}}
+
+
 class FakeJourney:
     def __init__(self):
         self.args = SimpleNamespace(recognition_model=str(ROOT / "recognition"),
@@ -44,6 +55,9 @@ class FakeJourney:
                                 "profile_digest": ("1" if role == "recognition" else "2") * 64},
                     **({"prerequisite": "unavailable"} if self.prerequisite else {}),
                     **({"verified_existing_environment": {"mode": "managed"}} if role in self.prepared else {})}
+        if args == ("workers", "inspect"):
+            return {"role": value["role"], "compatible": True, "engine_available": True,
+                    "python": {"sha256": "4" * 64}, "probe": probe("inspect")}
         if args == ("workers", "setup"):
             self.asserted_election = value
             return {"work_id": value["role"]}
@@ -66,7 +80,7 @@ class FakeJourney:
             self.prepared.add(role)
             self.revision += 1
             return {"role": role, "python": {"sha256": "4" * 64}, "environment_receipt": {"sha256": "5" * 64},
-                    "verification": "dependency_bytes_and_library_probe", "inference": "not_run"}
+                    "verification": "dependency_bytes_and_library_probe", "inference": "not_run", "probe": probe("snapshot")}
         return {"model_id": "base:" + role}
 
     def command(self, *args, **kwargs):
@@ -90,6 +104,24 @@ class ManagedTests(unittest.TestCase):
         self.assertTrue(all(value["maximum"] == cpu.timing.REAL_PROCESSING_SECONDS for name, value in journey.calls
                             if name == "wait" and value["id"] in ("recognition", "diarization")))
         self.assertEqual(len([name for name, _ in journey.calls if name == "models.verify"]), 2)
+
+    def test_probe_measurements_separate_modes_and_reject_forged_progress(self):
+        cpu = load("journey_cpu")
+        journey = FakeJourney()
+        cpu.prepare_managed(journey)
+        for environment in journey.receipt["environments"].values():
+            self.assertEqual(environment["snapshot_probe"]["mode"], "snapshot")
+            self.assertEqual([p["mode"] for p in environment["inspect_probes"]], ["inspect", "inspect"])
+        for invalid in (None, {**probe("inspect"), "reason": "private exception"},
+                        {**probe("inspect"), "budget_ms": True}, probe("snapshot")):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                cpu.probe_measurement(invalid, "inspect")
+        invalid = probe("inspect")
+        invalid["child"]["observations"][1]["elapsed_ms"] = -1
+        with self.assertRaises(ValueError):
+            cpu.probe_measurement(invalid, "inspect")
+        source = {**probe("inspect"), "private_path": "SECRET"}
+        self.assertNotIn("SECRET", json.dumps(cpu.probe_measurement(source, "inspect")))
 
     def test_unmet_prerequisite_cannot_enqueue_or_become_success(self):
         cpu = load("journey_cpu")
@@ -362,7 +394,8 @@ class ResultContracts(unittest.TestCase):
                    "stages": [{"name": s, "state": "succeeded"} for s in cpu.REQUIRED_STAGES],
                    "corpus_sha256": cpu.corpus_digest(corpus), "matching_settings": corpus["matching"], "worker_sha256": "d" * 64,
                    "environments": {role: {"profile_digest": "e" * 64, "python_sha256": "f" * 64, "receipt_sha256": "1" * 64,
-                                           "verified_reuse": True} for role in ("recognition", "diarization")},
+                                           "verified_reuse": True, "snapshot_probe": probe("snapshot"),
+                                           "inspect_probes": [probe("inspect"), probe("inspect")]} for role in ("recognition", "diarization")},
                    "model_inputs": {op: {"model_id": op, "manifest_sha256": "2" * 64, "local_verified_reuse": True}
                                     for op in ("transcribe", "diarize")},
                    "speaker_profiles": [{"reader": r, "speaker_id": "speaker-" + r, "version_id": "version-" + r,

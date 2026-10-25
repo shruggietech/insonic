@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {validateNativeRequest} from './contracts.mjs';
-import {workerElection,setupElection,defaultModelElection,workerDevices} from '../.test-build/worker-forms.js';
+import {workerElection,setupElection,defaultModelElection,workerDevices,workerProbeSummary} from '../.test-build/worker-forms.js';
 const wid='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 function valid(operation,data){return validateNativeRequest({operation,workspace_id:wid,request_id:wid,...(data?{data}:{})})}
 test('managed/reused worker forms produce precise shared requests with automatic revision pins',()=>{
@@ -27,3 +27,5 @@ test('offered devices match executable worker elections, without silent auto fal
   assert.deepEqual(workerDevices,['cpu','cuda']);
   assert.equal(valid('processing.readiness',{recognition_device:'auto'}).valid,false);
 });
+
+test("worker probe summaries distinguish budget expiry and keep native and child clocks separate",()=>{const summary=workerProbeSummary({role:"diarization",probe:{mode:"snapshot",stage:"dependency_hashing",reason:"deadline",elapsed_ms:60000,budget_ms:60000,child:{elapsed_ms:51000,files:27571,hashed_files:12000,hashed_bytes:42000}}});assert.equal(summary.outcome,"Verification deadline reached");assert.equal(summary.stage,"Dependency verification");assert.equal(summary.native_elapsed_ms,60000);assert.equal(summary.python_elapsed_ms,51000);assert.equal(summary.verified_files,12000);assert.equal(workerProbeSummary({}),undefined);assert.equal(workerProbeSummary({probe:{mode:"inspect",stage:"secret-token",reason:"deadline",elapsed_ms:1,budget_ms:1}}),undefined);});

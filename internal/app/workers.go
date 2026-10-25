@@ -153,6 +153,9 @@ func (a *App) workerDispatch(ctx context.Context, req contracts.Request) (any, e
 			if e != nil || c.Processing.Worker.Path == "" {
 				plan["prerequisite"] = "Install the current package or configure verified Cueson/media and worker tools before publishing setup."
 			}
+			if err := workers.ContextError(ctx); err != nil {
+				return nil, err
+			}
 			plan["profile_download_bytes"] = p.DownloadBytes
 			if input.Mode == "managed" && input.OfflineAssets != "" {
 				plan["download_bytes"] = 0
@@ -226,11 +229,14 @@ func (a *App) executeWorkerSetup(ctx context.Context, claim catalog.Work) (any, 
 			prepared = existing
 		}
 	}
+	if err := workers.ContextError(ctx); err != nil {
+		return nil, err
+	}
 	if prepared.Python.Path == "" {
 		prepared, e = s.Prepare(ctx, payload.Election)
 	}
 	if e != nil {
-		return nil, e
+		return workerSetupProbeFailure{Role: payload.Election.Role, Probe: prepared.Inspection.Probe}, e
 	}
 	raw, _ := json.Marshal(prepared)
 	if _, e = a.Catalog.CheckpointWork(ctx, claim, "environment-prepared", "running", raw, leaseTTL); e != nil {
@@ -272,6 +278,9 @@ func (a *App) publishWorkerSetup(ctx context.Context, claim catalog.Work, payloa
 		return nil, e
 	}
 	out := map[string]any{"role": payload.Election.Role, "python": prepared.Python, "environment_receipt": prepared.Receipt, "processing_tools_revision": result.(map[string]any)["revision"], "verification": "dependency_bytes_and_library_probe", "inference": "not_run"}
+	if prepared.Inspection.Probe != nil && prepared.Inspection.Probe.Valid() {
+		out["probe"] = prepared.Inspection.Probe
+	}
 	raw, _ := json.Marshal(out)
 	_, e = a.Catalog.CheckpointWork(ctx, claim, "complete", "succeeded", raw, leaseTTL)
 	return out, e
@@ -522,4 +531,18 @@ func modelCapacityBudget(scratch, download, storage int64, shared bool) (int64, 
 		return control + storage, control + storage
 	}
 	return control, storage
+}
+
+// Only locally generated, validated probe facts may survive terminal setup failure.
+type workerSetupProbeFailure struct {
+	Role  string
+	Probe *workers.Probe
+}
+
+func workerProbeFailureFacts(value any) any {
+	v, ok := value.(workerSetupProbeFailure)
+	if !ok || (v.Role != "recognition" && v.Role != "diarization") || v.Probe == nil || !v.Probe.Valid() {
+		return nil
+	}
+	return map[string]any{"role": v.Role, "probe": v.Probe}
 }

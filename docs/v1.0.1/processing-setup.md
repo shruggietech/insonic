@@ -43,6 +43,25 @@ Worker and model file errors distinguish missing, unreadable, nonregular, wrong-
 
 Existing explicit processing-tools configurations remain supported under Advanced. Accepted work freezes its interpreter, worker and environment receipt. Package-derived companion defaults are resolved from the current complete installation for future work, preserving relocation; accepted work keeps its original bytes.
 
+## Diagnose worker inspection
+
+Run `insonic --workspace LIBRARY workers inspect --input inspection.json --json` with `{"role":"recognition"}` or `{"role":"diarization"}`. Omit `python_path` to inspect the configured interpreter. Inspection imports the selected engine and checks CPU/CUDA prerequisites without loading a model. Setup additionally inventories and hashes the environment before publishing its receipt.
+
+The optional `probe` reports a fixed `mode`, `stage`, `reason`, native `elapsed_ms` and effective `budget_ms`. Its optional `child` contains bounded stage observations and file/hash counts. Native elapsed time begins before interpreter hashing. Child elapsed time begins inside the isolated interpreter; these clocks have different origins and must not be subtracted or added as stage durations. Observations are cumulative checkpoints, rather than independent phase durations. A failed or stopped interpreter may leave its last completed checkpoint; it does not prove later stages ran.
+
+| Reason | Meaning and correction |
+| --- | --- |
+| `interpreter_missing`, `interpreter_unreadable` | Select an existing readable interpreter or prepare the managed role. |
+| `home_unavailable`, `launch_failed`, `process_failed` | Check local workspace access and the selected runtime, then retry the role. |
+| `package_missing`, `version_mismatch`, `import_failed`, `cpu_unavailable` | Prepare the supported environment or correct its required libraries. |
+| `inventory_limit`, `inventory_unreadable` | Use a bounded readable environment; setup does not accept an incomplete snapshot. |
+| `output_invalid`, `output_limit`, `checkpoint_invalid` | Retry a supported runtime; malformed or excessive diagnostics cannot establish readiness. |
+| `deadline`, `cancelled` | The enclosing time allowance expired or the request was canceled. Retry with an available enclosing allowance. |
+
+The standalone probe retains its sixty-second maximum and inherits any earlier caller deadline. Readiness shares one sixty-second allowance across its prerequisites. It retains already observed role facts and labels unattempted or interrupted prerequisites `unknown`; an exhausted allowance does not assert an import failure or changed dependency bytes. Hash verification also distinguishes an interrupted check from an actual checksum mismatch. Disconnecting an ephemeral inspection cancels its owned child. Durable setup retains its work identity and ordinary work cancellation behavior.
+
+Human CLI output and desktop setup show the same bounded summary. Failed setup retains `worker_probe` facts in the durable work result and removes its fresh failed environment without publishing settings. Diagnostics exclude raw exceptions, tool output and host paths. Existing receipts without optional probe facts remain valid after their original byte and compatibility checks. Neither a successful diagnostic nor a warm import replaces receipt hashing, model verification or actual processing acceptance.
+
 ## Acquire exact model bundles
 
 The product provides Whisper Tiny (MIT, 78,203,619 bytes) and Community-1 (CC BY 4.0, 32,821,421 bytes). Each choice has an immutable upstream revision and a complete named-file manifest. Inspect `insonic --workspace LIBRARY models defaults --json` for identities, license, model card and current state.

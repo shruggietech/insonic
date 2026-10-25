@@ -111,7 +111,7 @@ func (b *Bridge) operateContext(ctx context.Context, request contracts.Request) 
 	}
 	response, err := local.Call(ctx, b.Workspace, request)
 	if err != nil {
-		return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Error: contracts.Fail("unavailable")}
+		return contracts.Response{Kind: "runtime-response", Version: contracts.Version, Error: contracts.SafeError(err)}
 	}
 	return response
 }

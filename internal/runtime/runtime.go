@@ -165,7 +165,7 @@ func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
 			} else {
 				conn.SetDeadline(time.Now().Add(OperationTimeout(request.Operation, 5*time.Second)))
 				operationCtx, finish := context.WithTimeout(ctx, OperationTimeout(request.Operation, 5*time.Second))
-				if request.Operation == "query.assist" || request.Operation == "query.services" || request.Operation == "query.assistance-test" {
+				if request.Operation == "query.assist" || request.Operation == "query.services" || request.Operation == "query.assistance-test" || workerObservationOperation(request.Operation) {
 					// One request per connection. Any further input or disconnect cancels this ephemeral operation.
 					go func() { var extra [1]byte; conn.Read(extra[:]); finish() }()
 				}
@@ -186,8 +186,14 @@ func Serve(ctx context.Context, w *workspace.Workspace, options Options) error {
 }
 
 func Call(ctx context.Context, w *workspace.Workspace, request contracts.Request) (contracts.Response, error) {
+	if err := workerCallContextError(ctx, request.Operation); err != nil {
+		return contracts.Response{Kind: "runtime-response"}, err
+	}
 	conn, err := dial(ctx, w)
 	if err != nil {
+		if contextErr := workerCallContextError(ctx, request.Operation); contextErr != nil {
+			return contracts.Response{Kind: "runtime-response"}, contextErr
+		}
 		return contracts.Response{Kind: "runtime-response"}, contracts.Fail("unavailable")
 	}
 	defer conn.Close()
@@ -203,12 +209,15 @@ func Call(ctx context.Context, w *workspace.Workspace, request contracts.Request
 		return contracts.Response{Kind: "runtime-response"}, contracts.Fail("invalid_request")
 	}
 	if _, err := conn.Write(append(data, '\n')); err != nil {
+		if contextErr := workerCallContextError(ctx, request.Operation); contextErr != nil {
+			return contracts.Response{Kind: "runtime-response"}, contextErr
+		}
 		return contracts.Response{Kind: "runtime-response"}, contracts.Fail("unavailable")
 	}
 	data, err = frame(conn)
 	if err != nil {
 		if ctx.Err() != nil {
-			return contracts.Response{Kind: "runtime-response"}, contracts.Fail("cancelled")
+			return contracts.Response{Kind: "runtime-response"}, workerCallContextError(ctx, request.Operation)
 		}
 		return contracts.Response{Kind: "runtime-response"}, err
 	}
@@ -336,4 +345,21 @@ func ensureInput(ctx context.Context, w *workspace.Workspace, executable string,
 			}
 		}
 	}
+}
+
+func workerObservationOperation(op string) bool {
+	switch op {
+	case "workers.inspect", "workers.plan", "processing.readiness", "setup.readiness", "doctor", "pipelines.inspect":
+		return true
+	}
+	return false
+}
+func workerCallContextError(ctx context.Context, op string) error {
+	if ctx.Err() == nil {
+		return nil
+	}
+	if ctx.Err() == context.DeadlineExceeded && workerObservationOperation(op) {
+		return contracts.Condition("engine_unavailable", "worker_probe_deadline")
+	}
+	return contracts.Fail("cancelled")
 }

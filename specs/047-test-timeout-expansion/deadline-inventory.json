@@ -411,6 +411,28 @@
       ],
       "platform": "maintainer host",
       "callers": "maintainer repository administration"
+    },
+    {
+      "id": "worker-probe-diagnostics",
+      "disposition": "unchanged-product-contract-and-failure-fixtures",
+      "previous": "60s production probe and caller deadlines",
+      "effective": "60s probe maximum;60s shared readiness;3600000ms diagnostic representation bound;5s blocked-child cancellation observation",
+      "origin": "native probe monotonic start; separate Python child monotonic start; original caller deadline",
+      "parent": "earlier caller cancellation or deadline; expanded test runner watchdog for fixtures",
+      "reason": "Diagnostic numeric bounds and reason labels add no testing cutoff. Expired-context and virtual-time cases intentionally exercise failure. Actual disconnect observes prompt termination of a deliberately blocked child.",
+      "files": [
+        "cmd/insonic/worker_probe_human_test.go",
+        "desktop/frontend/src/worker-forms.ts",
+        "desktop/frontend/tests/workers.test.mjs",
+        "internal/app/worker_diagnostics_test.go",
+        "internal/runtime/worker_diagnostics_test.go",
+        "internal/runtime/worker_disconnect_test.go",
+        "internal/workers/probe_diagnostics.go",
+        "internal/workers/probe_diagnostics_test.go",
+        "scripts/journey_cpu.py"
+      ],
+      "platform": "Windows and Linux; real CPU campaign outside CI",
+      "callers": "worker inspection/setup/readiness and maintained real CPU acceptance"
     }
   ],
   "workflow_owners": {
