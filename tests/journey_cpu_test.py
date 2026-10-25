@@ -215,6 +215,23 @@ class OwnershipTests(unittest.TestCase):
         self.assertEqual(journey.receipt["failure_runtime"], {"observation": "unavailable"})
         self.assertNotIn("private", json.dumps(journey.receipt))
 
+    def test_failed_work_json_retains_probe_before_nonzero_cli_exit(self):
+        module = load("qualify-journey")
+        journey = module.Journey.__new__(module.Journey)
+        journey.cli, journey.workspace = Path("fixture"), Path("fixture-library")
+        journey.environment, journey.receipt = {}, {}
+        journey.remaining = Mock(return_value=1)
+        facts = {"role": "diarization", "probe": {**probe("snapshot"), "reason": "deadline"}}
+        facts["probe"]["private_path"] = "PRIVATE_MARKER"
+        response = {"error": {"code": "engine_unavailable", "reason": "worker_probe_deadline"},
+                    "result": {"kind": "workers.setup", "state": "failed", "phase": "verifying-environment",
+                               "result": {"worker_probe": facts}}}
+        failure = module.engine.CLIResponseError("engine_unavailable", response)
+        with patch.object(module.engine, "_child", side_effect=failure), self.assertRaises(module.engine.CLIResponseError):
+            journey.command("work", "wait", "fixture-work")
+        self.assertEqual(journey.receipt["worker_probe_failure"]["probe"]["reason"], "deadline")
+        self.assertNotIn("PRIVATE_MARKER", json.dumps(journey.receipt))
+
     def test_failed_command_retains_only_bounded_operator_reason_without_private_message(self):
         module = load("qualify-journey")
         for reason in ("runtime_endpoint", "private/path", "x" * 65, None):

@@ -218,6 +218,20 @@ class Journey:
     def engine_child(self, command, *, maximum=timing.SUBPROCESS_SECONDS, max_output=16 << 20):
         return engine._child(command, self.environment, timeout=self.remaining(maximum), max_output=max_output)
 
+    def retain_worker_probe(self, result):
+        facts = result.get('worker_probe') if isinstance(result, dict) else None
+        if not isinstance(facts, dict) or facts.get('role') not in ('recognition', 'diarization'):
+            return
+        from journey_cpu import probe_measurement
+        probe = facts.get('probe')
+        try:
+            mode = probe.get('mode') if isinstance(probe, dict) else None
+            if mode in ('inspect', 'snapshot'):
+                self.receipt['worker_probe_failure'] = {
+                    'role': facts['role'], 'probe': probe_measurement(probe, mode, success=False)}
+        except ValueError:
+            pass  # Invalid diagnostics cannot enter the acceptance receipt.
+
     def command(self, *args, workspace=True, maximum=timing.SUBPROCESS_SECONDS, pending_work_id=None):
         command = [self.cli, '--json']
         if workspace:
@@ -256,6 +270,7 @@ class Journey:
             self.receipt['failed_work'] = {key: result.get(key) for key in ('kind', 'state', 'phase', 'error')} if isinstance(result, dict) else None
             if isinstance(result, dict) and isinstance(result.get('result'), dict):
                 self.receipt['failed_work_result'] = {key: result['result'].get(key) for key in ('state', 'error')}
+                self.retain_worker_probe(result['result'])
             raise
         response = json.loads(raw)
         if response.get('error'):
@@ -287,17 +302,7 @@ class Journey:
                 continue
             if (current.get('state') != 'succeeded' or current.get('id') != work_id
                     or current.get('work_id', work_id) != work_id or time.monotonic() > deadline):
-                facts = current.get('result', {}).get('worker_probe')
-                if isinstance(facts, dict) and facts.get('role') in ('recognition', 'diarization'):
-                    from journey_cpu import probe_measurement
-                    probe = facts.get('probe')
-                    try:
-                        mode = probe.get('mode') if isinstance(probe, dict) else None
-                        if mode in ('inspect', 'snapshot'):
-                            self.receipt['worker_probe_failure'] = {
-                                'role': facts['role'], 'probe': probe_measurement(probe, mode, success=False)}
-                    except ValueError:
-                        pass  # Invalid diagnostics cannot enter the acceptance receipt.
+                self.retain_worker_probe(current.get('result'))
                 raise ValueError('Work did not reach matching success within its original operation deadline')
             break
         self.receipt['operations'].append({'kind': current['kind'], 'state': current['state'], 'phase': current['phase'],
