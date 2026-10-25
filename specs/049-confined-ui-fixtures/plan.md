@@ -12,7 +12,7 @@ S049 repairs #176 with a small shared owned-fixture allocator used by applicatio
 
 **Primary Dependencies**: Existing filesystem APIs, Playwright Core and Chromium, hidden Python process-tree runner; no new dependencies.
 
-**Storage**: Unique disposable directories strictly beneath a canonical designated parent: ignored repository build/ui-fixtures for public application captures, actual system temporary directory for documentation profiles. Both use the same allocation/ownership validation.
+**Storage**: Unique disposable directories strictly beneath a canonical designated parent: actual system temp when outside home/program directories, otherwise ignored repository .local/build/ui-fixtures when outside those boundaries for public application captures; actual system temporary directory for documentation profiles. Both use the same allocation/ownership validation.
 
 **Testing**: Node test runner, existing repository checks, actual source-bound application capture and documentation UI checks on Windows and Linux in CI.
 

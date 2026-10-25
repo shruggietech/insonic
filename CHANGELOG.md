@@ -181,7 +181,7 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
-- 2026-10-25: Confine application-capture and documentation-browser fixtures beneath designated temporary or ignored build parents on Windows and Linux. Public application captures use repository scratch to keep owner-profile paths out of screenshots. Reject volume/share roots and root aliases, retain cleanup responsibility through marker/profile initialization failures, verify allocation identity before removal, and report residual locations when child release or removal fails. Browser qualification now exercises both tools on both supported platforms with retained location and post-run absence evidence.
+- 2026-10-25: Confine application-capture and documentation-browser fixtures beneath designated temporary or ignored build parents on Windows and Linux. Public application captures choose scratch outside both home and program directories, resolving aliases before selecting actual temp or ignored repository build scratch. Reject volume/share roots and root aliases, retain cleanup responsibility through marker/profile initialization failures, verify allocation identity before removal, and report residual locations when child release or removal fails. Browser qualification now exercises both tools on both supported platforms with retained location and post-run absence evidence.
 
 ## [1.0.1] - 2026-10-15
 

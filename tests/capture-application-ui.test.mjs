@@ -138,11 +138,19 @@ test('capture reports an unverified allocation identity without deleting it',asy
 });
 
 
-test('public capture defaults to ignored repository scratch rather than an owner-profile temp path',async()=>{
+test('capture chooses scratch outside home and installed binaries without a root fallback',()=>{
+  const choose=captureTool.captureParentSelection;
+  assert.deepEqual(choose({temporary:'/tmp',repository:'/home/runner/work/insonic',home:'/home/runner',programDirectories:['/home/runner/work/insonic/build']},path.posix),{parent:'/tmp',policy:'system-temporary'});
+  assert.deepEqual(choose({temporary:'C:\\Users\\runner\\Temp',repository:'D:\\a\\insonic',home:'C:\\Users\\runner',programDirectories:['D:\\a\\insonic\\build']},path.win32),{parent:'D:\\a\\insonic\\.local\\build\\ui-fixtures',policy:'repository-build'});
+  assert.throws(()=>choose({temporary:'C:\\Users\\owner\\Temp',repository:'C:\\Users\\owner\\code',home:'C:\\Users\\owner'},path.win32),/INSONIC_CAPTURE_FIXTURE_PARENT/);
+  assert.throws(()=>choose({temporary:'C:\\',repository:'D:\\code',home:'C:\\Users\\owner'},path.win32),/temporary parent/);
+  for(const configured of ['/home/owner/scratch','/program/scratch'])assert.throws(()=>choose({configured,home:'/home/owner',programDirectories:['/program']},path.posix),/outside home and program/);
+  assert.deepEqual(choose({configured:'/scratch/café',home:'/home/owner',programDirectories:['/program']},path.posix),{parent:'/scratch/café',policy:'configured-temporary'});
+});
+
+test('default capture allocation satisfies its selected non-home parent and removes its fixture',async()=>{
+  const selected=captureTool.captureParentSelection({temporary:await fixtureFS.realpath(os.tmpdir()),repository:await fixtureFS.realpath(captureTool.ROOT),home:await fixtureFS.realpath(os.homedir())});
   const owned=await captureTool.createCaptureFixture();
-  try{
-    assert.equal(path.dirname(owned.directory),await fixtureFS.realpath(path.join(captureTool.ROOT,'build','ui-fixtures')));
-    assert.equal(owned.evidence.parent_policy,'repository-build');
-  }finally{await owned.cleanup()}
+  try{assert.equal(path.dirname(owned.directory),await fixtureFS.realpath(selected.parent));assert.equal(owned.evidence.parent_policy,selected.policy)}finally{await owned.cleanup()}
   await assert.rejects(fixtureFS.lstat(owned.directory),{code:'ENOENT'});
 });

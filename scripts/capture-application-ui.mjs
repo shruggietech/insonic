@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Maintainer capture tooling. The production frontend and Go desktop bridge stay unchanged.
-import {readFile,writeFile,readdir,mkdir,stat} from 'node:fs/promises';
+import {readFile,writeFile,readdir,mkdir,stat,realpath} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import http from 'node:http';
@@ -8,7 +8,7 @@ import {spawn} from 'node:child_process';
 import {createHash,randomBytes} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {runDensityMatrix} from './desktop-density-capture.mjs';
-import {createOwnedFixture} from './owned-ui-fixture.mjs';
+import {createOwnedFixture,validateTemporaryParent} from './owned-ui-fixture.mjs';
 import {milliseconds} from './qualification-timing.mjs';
 
 export const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -105,11 +105,32 @@ export function assertReceipt(receipt) {
   return receipt;
 }
 
+const outside=(candidate,boundary,paths=path)=>{const relative=paths.relative(boundary,candidate);return relative==='..'||relative.startsWith('..'+paths.sep)||paths.isAbsolute(relative)};
+export function captureParentSelection({temporary=os.tmpdir(),repository=ROOT,home=os.homedir(),programDirectories=[],configured}={},paths=path) {
+  const acceptable=candidate=>outside(candidate,home,paths)&&programDirectories.every(directory=>outside(candidate,directory,paths));
+  if(configured!==undefined){
+    const parent=validateTemporaryParent(configured,paths);
+    if(!acceptable(parent))throw Error('Capture scratch parent must be outside home and program directories.');
+    return {parent,policy:'configured-temporary'};
+  }
+  const temporaryParent=validateTemporaryParent(temporary,paths);
+  if(acceptable(temporaryParent))return {parent:temporaryParent,policy:'system-temporary'};
+  const parent=paths.join(repository,'.local','build','ui-fixtures');
+  if(acceptable(parent))return {parent,policy:'repository-build'};
+  throw Error('Set INSONIC_CAPTURE_FIXTURE_PARENT to a writable absolute non-root scratch parent outside home and program directories.');
+}
+
 export async function createCaptureFixture(options={}) {
-  // Public screenshots must not display an owner-profile path from os.tmpdir().
-  const parent=options.parent??path.join(ROOT,'build','ui-fixtures');
-  if(options.parent===undefined)await mkdir(parent,{recursive:true});
-  return createOwnedFixture('insonic-capture-',{...options,parent,parentPolicy:options.parent===undefined?'repository-build':'configured-temporary',markerName:'capture-owner.json',kind:'insonic-ui-capture',initialize:async(directory,filesystem)=>{
+  let boundaries,selection;
+  if(options.parent===undefined){
+    const configured=process.env.INSONIC_CAPTURE_FIXTURE_PARENT;
+    if(configured!==undefined)validateTemporaryParent(configured);
+    else validateTemporaryParent(os.tmpdir());
+    boundaries={temporary:await realpath(os.tmpdir()),repository:await realpath(ROOT),home:await realpath(os.homedir()),programDirectories:await Promise.all([options.cli,options.bridge].filter(Boolean).map(filename=>realpath(path.dirname(filename)))),...(configured===undefined?{}:{configured:await realpath(configured)})};
+    selection=captureParentSelection(boundaries);
+  }else selection={parent:options.parent,policy:'configured-temporary'};
+  if(selection.policy==='repository-build')await mkdir(selection.parent,{recursive:true});
+  return createOwnedFixture('insonic-capture-',{...options,parent:selection.parent,parentPolicy:selection.policy,markerName:'capture-owner.json',kind:'insonic-ui-capture',validateParent:options.parent===undefined?canonical=>captureParentSelection({...boundaries,configured:canonical}):undefined,initialize:async(directory,filesystem)=>{
     const env=fixtureEnvironment(process.env,directory,options.cli||process.execPath);
     for(const name of ['APPDATA','LOCALAPPDATA','XDG_CONFIG_HOME'])await filesystem.mkdir(env[name],{recursive:true});
   }});
@@ -142,7 +163,7 @@ export async function capture(options) {
   const cliBytes=await readFile(options.cli),bridgeBytes=await readFile(options.bridge);
   const cliSource=assertBinarySource(cliBytes,source.revision),bridgeSource=assertBinarySource(bridgeBytes,source.revision);
   await checkpoint('frontend.build',()=>run(process.execPath,[path.join(ROOT,'desktop/frontend/build.mjs'),'--tests'],{allowanceMs:milliseconds('build_seconds')}),milliseconds('build_seconds'));
-  const ownedFixture=await createCaptureFixture({cli:options.cli});
+  const ownedFixture=await createCaptureFixture({cli:options.cli,bridge:options.bridge});
   const fixture=ownedFixture.directory,fixtureID=ownedFixture.id;
   fixtureEvidence=ownedFixture.evidence;
   const library=path.join(fixture,'My voice archive');

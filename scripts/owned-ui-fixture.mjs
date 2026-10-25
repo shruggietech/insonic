@@ -22,10 +22,11 @@ function residual(directory,error) {
   return Object.assign(Error('Owned UI fixture remains at '+directory+': '+(error.code?error.code+': ':'')+error.message,{cause:error}),{code:'fixture_cleanup_failed',residual:directory});
 }
 
-export async function createOwnedFixture(prefix,{parent=os.tmpdir(),markerName,kind,parentPolicy='system-temporary',initialize=async()=>{},filesystem=fs}={}) {
+export async function createOwnedFixture(prefix,{parent=os.tmpdir(),markerName,kind,parentPolicy='system-temporary',validateParent=()=>{},initialize=async()=>{},filesystem=fs}={}) {
   if(!/^insonic-[a-z-]+-$/.test(prefix)||!/^[-a-z]+\.json$/.test(markerName||''))throw Error('Invalid internal UI fixture policy.');
   const selected=validateTemporaryParent(parent);
   const canonical=validateTemporaryParent(await filesystem.realpath(selected));
+  await validateParent(canonical);
   const parentIdentity=await filesystem.lstat(canonical,{bigint:true});
   if(!parentIdentity.isDirectory()||parentIdentity.isSymbolicLink())throw Error('UI temporary parent is not a real directory.');
   const id=randomBytes(16).toString('hex');
