@@ -133,6 +133,16 @@ test('capture reports an unverified allocation identity without deleting it',asy
   const filesystem={...fixtureFS,mkdtemp:async prefix=>allocated=await mkdtemp(prefix),
     lstat:async(filename,...args)=>{if(filename===allocated)throw Object.assign(Error('identity unavailable'),{code:'EACCES'});return fixtureFS.lstat(filename,...args)},
     rm:async()=>{removals++}};
-  await assert.rejects(captureTool.createCaptureFixture({parent,filesystem}),error=>error.code==='fixture_cleanup_failed'&&error.message.includes(allocated)&&error.message.includes('EACCES'));
+  await assert.rejects(captureTool.createCaptureFixture({parent,filesystem}),error=>{const report=captureTool.captureFailureDiagnostic(error);assert.equal(report.code,'fixture_cleanup_failed');assert.equal(report.residual,allocated);assert.match(report.message,/EACCES/);return true});
   assert.equal(removals,0);assert.ok(await fixtureFS.stat(allocated));
+});
+
+
+test('public capture defaults to ignored repository scratch rather than an owner-profile temp path',async()=>{
+  const owned=await captureTool.createCaptureFixture();
+  try{
+    assert.equal(path.dirname(owned.directory),await fixtureFS.realpath(path.join(captureTool.ROOT,'build','ui-fixtures')));
+    assert.equal(owned.evidence.parent_policy,'repository-build');
+  }finally{await owned.cleanup()}
+  await assert.rejects(fixtureFS.lstat(owned.directory),{code:'ENOENT'});
 });

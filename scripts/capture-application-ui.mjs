@@ -106,7 +106,10 @@ export function assertReceipt(receipt) {
 }
 
 export async function createCaptureFixture(options={}) {
-  return createOwnedFixture('insonic-capture-',{...options,markerName:'capture-owner.json',kind:'insonic-ui-capture',initialize:async(directory,filesystem)=>{
+  // Public screenshots must not display an owner-profile path from os.tmpdir().
+  const parent=options.parent??path.join(ROOT,'build','ui-fixtures');
+  if(options.parent===undefined)await mkdir(parent,{recursive:true});
+  return createOwnedFixture('insonic-capture-',{...options,parent,parentPolicy:options.parent===undefined?'repository-build':'configured-temporary',markerName:'capture-owner.json',kind:'insonic-ui-capture',initialize:async(directory,filesystem)=>{
     const env=fixtureEnvironment(process.env,directory,options.cli||process.execPath);
     for(const name of ['APPDATA','LOCALAPPDATA','XDG_CONFIG_HOME'])await filesystem.mkdir(env[name],{recursive:true});
   }});
@@ -202,7 +205,7 @@ export async function capture(options) {
       await boundedOperation('screen.fonts',()=>page.evaluate(()=>document.fonts.ready),milliseconds('frontend_seconds'));
       if(!await page.evaluate(()=>document.fonts.check('16px Geist')&&document.fonts.check('16px "Space Grotesk"')&&document.fonts.check('16px "Geist Mono"')))throw Error('Production fonts did not load.');
       const text=await page.locator('body').innerText();
-      const owner=os.homedir();if(text.includes(owner)||/password|secret_key|access_key|passphrase|bearer token/i.test(await page.locator('input').evaluateAll(nodes=>nodes.map(n=>n.value).join('\n'))))throw Error('Private input appeared in the capture.');
+      const owner=os.homedir();if(text.includes(owner)||/password|secret_key|access_key|passphrase|bearer token/i.test(await page.locator('input').evaluateAll(nodes=>nodes.map(n=>n.value).join('\n'))))throw Object.assign(Error('Private input appeared in the capture.'),{code:'capture_private_input'});
       const surface=page.locator(landmark==='Library'?'section[aria-label="Library controls"]':'section[aria-label="First-run setup"]');
       const bounds=await surface.boundingBox();if(!bounds||bounds.height>6000)throw Error('Capture surface exceeds its bounded screenshot size.');
       const geometry=await surface.evaluate(node=>{const heading=node.querySelector('h2'),paragraph=heading?.nextElementSibling;return {heading_to_text_gap:heading&&paragraph?paragraph.getBoundingClientRect().top-heading.getBoundingClientRect().bottom:null}});
@@ -285,11 +288,15 @@ export async function capture(options) {
   return capturedReceipt;
 }
 
+export function captureFailureDiagnostic(error) {
+  return {phase:error.phase||'capture',event:'failed',code:error.code==='capture_timeout'?'capture_timeout':error.code==='fixture_cleanup_failed'?'fixture_cleanup_failed':error.code==='capture_private_input'?'capture_private_input':'capture_failed',...(error.residual?{residual:error.residual,message:error.message}:{})};
+}
+
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
   // The qualification runner owns this process and its descendants. This final
   // guard leaves one cleanup allowance before the parent's two-allowance reserve.
   const deadline=setTimeout(()=>{console.error(JSON.stringify({time:new Date().toISOString(),phase:'capture.total',event:'timed_out'}));process.exit(1)},milliseconds('capture_seconds')+milliseconds('cleanup_seconds'));
   try{const receipt=await capture(parseOptions(process.argv.slice(2)));console.log(JSON.stringify({kind:receipt.kind,source:receipt.source.revision,images:receipt.images.map(x=>x.path),renderer:receipt.renderer}));}
-  catch(error){console.error(JSON.stringify({phase:error.phase||'capture',event:'failed',code:error.code==='capture_timeout'?'capture_timeout':'capture_failed'}));process.exitCode=1;setTimeout(()=>process.exit(1),milliseconds('cleanup_seconds')).unref()}
+  catch(error){console.error(JSON.stringify(captureFailureDiagnostic(error)));process.exitCode=1;setTimeout(()=>process.exit(1),milliseconds('cleanup_seconds')).unref()}
   finally{clearTimeout(deadline)}
 }

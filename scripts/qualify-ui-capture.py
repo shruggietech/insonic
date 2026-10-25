@@ -7,7 +7,6 @@ import json
 import os
 from pathlib import Path
 import sys
-import tempfile
 import qualify
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -38,7 +37,7 @@ def main():
     fixture = diagnostic.get('fixture', {})
     allocated = Path(fixture.get('path', ''))
     if (not fixture.get('removed') or not fixture.get('non_root')
-            or allocated.parent != Path(tempfile.gettempdir()).resolve()
+            or allocated.parent != (ROOT / 'build/ui-fixtures').resolve() or fixture.get('parent_policy') != 'repository-build'
             or not allocated.name.startswith('insonic-capture-') or allocated.exists() or allocated.is_symlink()
             or receipt.get('fixture', {}).get('allocation', {}).get('removed') is not True):
         raise ValueError('Application fixture confinement or post-run absence was not verified')

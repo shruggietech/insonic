@@ -8,3 +8,7 @@
 - Audit: live-site UI uses actual os.tmpdir(); density capture uses ignored buildRoot; renderer uses Python TemporaryDirectory. Neither repeats the root-extraction defect. Existing test fixtures also use actual temp parents. No unrelated cleanup or framework migration is warranted.
 
 Spec Kit Phase 0 used two read-only research agents for lifecycle/ownership and platform qualification. All implementation unknowns are resolved; pre/post-design constitution gates pass.
+
+## Windows CI follow-up
+
+The initial Windows run allocated beneath the real user-profile temp directory, reached the first screenshot and failed while cleanup succeeded. That location would expose an owner-profile path to the unchanged screenshot privacy guard. Application capture therefore explicitly selects ignored repository build/ui-fixtures, which #176 permits; documentation profiles retain actual system temp storage. Both use identical canonical-parent validation and allocation-identity cleanup. This is not a root fallback or a weakened privacy check. The next exact-head browser run must verify the correction; the original Windows failure remains separately attributed.
