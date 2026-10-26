@@ -48,3 +48,7 @@ This is internal maintainer evidence; no new public interface contract directory
 ## Delivery
 
 Run test-first negative cases, implement, complete local checks and convergence, then commit/push/open official PR. Obtain its clean exact-source CLI package for actual CPU qualification. Retain compact audited receipts outside runs before a full rerun. Resolve every individual review thread within two Codex rounds; final-head CI and real campaign both must pass before owner handoff.
+
+## 2026-10-26 demonstrated preparation repair
+
+The first real package campaign failed its source diarization snapshot before inference; import/prerequisite observations consumed about25s and inventory a further32s within the unchanged60s product allowance. T011 adds canonical parent grouping with directory enumeration and original full resolution for leaf links/reparse/short-name exceptions, exact complete hashes with one reusable Python buffer, and one native buffer per receipt verification pass. Every native publication/reuse verification remains. Tests compare actual inventories/digests, aliases, links, missing/unreadable entries, bounds and cancellation. This is a proportional repair required to finish FR-002/SC-001, not a new product contract or a conclusion about historical S046 causes. Corrected source requires its own clean package and campaign.

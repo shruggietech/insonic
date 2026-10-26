@@ -11,3 +11,10 @@
 ## Pending delivery evidence
 
 Complete exact-source Windows CLI package real CPU acceptance, independent source/destination receipt audit, final-head elected CI, individual review resolution within two Codex rounds and owner handoff remain required. Destination preparation remains inside the original qualification clock. Broad #147 remains open; no installed-product, release or merge claim is made.
+
+## 2026-10-26 first actual CPU attempt and repair
+
+- Exact package/harness24acb81 failed source managed diarization setup with worker_probe_deadline at60011ms. Import/prerequisite checkpoints reached25187ms, inventory57500ms, then hashing4096/27571 files133387985bytes at59140ms. Qualification never began; total243.750s and runtime/temp cleanup passed. [Compact failed receipt](https://github.com/shruggietech/insonic/pull/179#issuecomment-6409951263) is retained before rerun; full receipt SHA2569b82c0d37e6d4848da32c166d06bc24b6202a1cbf21f75493ba183e9c5f5cb1a. This does not establish historical S046 causality.
+- Convergence appended T011. Test-first canonical inventory/hash helpers were missing before repair. Actual ordinary files, duplicate/missing entries, Unicode paths and file/directory symlinks now match the former canonical inventory; hashing tests cover empty/small/multi-buffer files, independent hashes, changed bytes and one buffer per inventory. Native buffers are reused only within each full verification pass; no hashes, files or trust-boundary checks are skipped. Existing60s ordinary deadline remains unchanged. Corrected package campaign and final checks remain pending.
+
+- Repaired-source local checks: full Python613 cases/two declared skips; final focused worker probe13/13 additionally executes actual Windows8.3 leaf aliases. App/worker Go suites50.069s/0.548s and affected vet pass. Root integrity/schema checks and updated public/offline111-page build/export pass. Root205 and site17 tests passed earlier with their implementation inputs unchanged. Corrected-source CI and real campaign remain pending.

@@ -39,3 +39,7 @@ Independent test: receipt mutations reject absent/contradictory destination evid
 ## Dependencies and execution
 
 T001 -> T002 -> T003 -> T004 -> T005 -> T006 -> local-check portion of T008 -> initial commit/push/PR portion of T009 -> T007 -> final convergence portion of T008 -> terminal CI/review portion of T009 -> T010. T006's mutations begin at T002 and final validation follows all code changes. T007 uses the clean committed exact-source package produced by initial PR CI; final CI follows any campaign-driven repair. T007 may overlap independent CI jobs; inference never runs inside CI. No parallel edits to shared harness/test files. Existing independent Go negative suites may run alongside root/site checks after implementation. US1 is the MVP, but all tasks are required for the authorized handoff.
+
+## Phase 7: Convergence (2026-10-26 actual campaign)
+
+- [ ] T011 Optimize demonstrated worker inventory/path and hash-buffer overhead in internal/workers/probe.py, types.go and probe.go; first add exact inventory/hash/link/failure regressions in tests/worker_probe_test.py and preserve native integrity/cancellation tests per FR-002, FR-006, SC-001 (partial, HIGH). The first real campaign exhausted its unchanged 60-second source diarization snapshot: imports about25s, inventory about32s, hashing incomplete. Retain full coverage, receipt semantics and deadline; rerun affected checks and exact-source campaign after repair. Existing T007-T010 still govern actual acceptance and delivery.

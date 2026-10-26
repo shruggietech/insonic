@@ -37,6 +37,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ### Fixed
 
+- Worker environment snapshots resolve and enumerate declared dependency directories once, preserving file-link/reparse and Windows alias handling, full inventories and complete SHA-256 checks. Snapshot hashing and native receipt verification reuse bounded buffers across files. This removes repeated path work and buffer allocation exposed during managed diarization preparation while preserving the sixty-second probe deadline and all verification boundaries.
+
 - Fetched-profile qualification compares canonical destination and file identities, accepting equivalent Windows short/long path spellings while retaining owned-file, link, byte and digest checks.
 
 - Resolve the documentation renderer's DOMPurify advisories with a Mermaid-scoped 3.4.17 patch override, preserving rendering modes. Failed CPU qualification retains bounded operator reasons, invocation/runtime observations and cleanup disposition without retaining freeform messages or replacing its first failure.

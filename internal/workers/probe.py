@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import platform
+import stat
 import sys
 import time
 
@@ -62,6 +63,69 @@ class Observation:
             reason = "checkpoint_invalid"
         self.record("complete" if reason == "success" else self.value["stage"], reason)
         return self.value
+
+
+def inventory_distributions(files, distributions, observation):
+    """Canonicalize directories once; preserve leaf links and Windows aliases."""
+    parents = {}
+    for dist in distributions:
+        for item in dist.files or ():
+            target = Path(dist.locate_file(item))
+            parents.setdefault(target.parent, set()).add(target.name)
+    canonical = {}
+    for parent, names in parents.items():
+        try:
+            resolved = parent.resolve(strict=True)
+        except (FileNotFoundError, NotADirectoryError):
+            continue  # Missing RECORD entries were never part of the inventory.
+        canonical.setdefault(resolved, set()).update(names)
+
+    def add(target):
+        files.add(str(target))
+        observation.inventory_count(len(files))
+        if len(files) > 30000:
+            raise ProbeFailure("inventory_limit")
+
+    for parent, names in canonical.items():
+        remaining = {os.path.normcase(name): name for name in names}
+        try:
+            with os.scandir(parent) as entries:
+                for entry in entries:
+                    if remaining.pop(os.path.normcase(entry.name), None) is None:
+                        continue
+                    redirected = entry.is_symlink() or (os.name == "nt" and
+                        entry.stat(follow_symlinks=False).st_file_attributes & stat.FILE_ATTRIBUTE_REPARSE_POINT)
+                    if redirected:
+                        target = Path(entry.path).resolve()
+                        if target.is_file():
+                            add(target)
+                    elif entry.is_file(follow_symlinks=False):
+                        add(parent / entry.name)
+        except (FileNotFoundError, NotADirectoryError):
+            continue
+        # A Windows short leaf name need not equal its directory-entry spelling.
+        # Resolve exceptional or newly appeared entries with the original rules.
+        for name in remaining.values():
+            target = (parent / name).resolve()
+            if target.is_file():
+                add(target)
+
+
+def hash_inventory(files, observation):
+    result = []
+    buffer = bytearray(256 << 10)
+    view = memoryview(buffer)
+    for name in sorted(files):
+        digest = hashlib.sha256()
+        with open(name, "rb") as stream:
+            while count := stream.readinto(buffer):
+                digest.update(view[:count])
+                observation.value["hashed_bytes"] += count
+        result.append({"path": name, "sha256": digest.hexdigest()})
+        observation.value["hashed_files"] += 1
+        if observation.value["hashed_files"] % 128 == 0:
+            observation.record("dependency_hashing")
+    return result
 
 
 def inspect(role, snapshot, progress_path=None):
@@ -129,14 +193,7 @@ def inspect(role, snapshot, progress_path=None):
         if snapshot:
             observation.record("dependency_inventory")
             files = {str(Path(sys.executable).resolve())}
-            for dist in metadata.distributions():
-                for item in dist.files or ():
-                    target = Path(dist.locate_file(item)).resolve()
-                    if target.is_file():
-                        files.add(str(target))
-                        observation.inventory_count(len(files))
-                    if len(files) > 30000:
-                        raise ProbeFailure("inventory_limit")
+            inventory_distributions(files, metadata.distributions(), observation)
             # Include interpreter configuration/native runtime identity too.
             for base in (Path(sys.prefix), Path(sys.base_prefix)):
                 for name in ("pyvenv.cfg", "python312.dll", "python3.dll"):
@@ -160,15 +217,7 @@ def inspect(role, snapshot, progress_path=None):
                             raise ProbeFailure("inventory_limit")
             observation.value["files"] = len(files)
             observation.record("dependency_hashing")
-            result["files"] = []
-            for name in sorted(files):
-                with open(name, "rb") as stream:
-                    digest = hashlib.file_digest(stream, "sha256").hexdigest()
-                    observation.value["hashed_bytes"] += stream.tell()
-                result["files"].append({"path": name, "sha256": digest})
-                observation.value["hashed_files"] += 1
-                if observation.value["hashed_files"] % 128 == 0:
-                    observation.record("dependency_hashing")
+            result["files"] = hash_inventory(files, observation)
     except metadata.PackageNotFoundError:
         reason = "package_missing"
     except ProbeFailure as failure:
