@@ -306,7 +306,7 @@ class Journey:
                 raise ValueError('Work did not reach matching success within its original operation deadline')
             break
         self.receipt['operations'].append({'kind': current['kind'], 'state': current['state'], 'phase': current['phase'],
-                                           'wait_wall_seconds': time.monotonic() - started})
+                                           'work_id': work_id, 'wait_wall_seconds': time.monotonic() - started})
         return current['result']
 
     def start_runtime(self):
@@ -649,7 +649,7 @@ def main(argv=None):
         primary = error
         receipt = dict(journey.receipt) if journey else {'kind': 'connected-product-qualification', 'mode': args.mode}
         if journey is None and args.reference_corpus:
-            receipt.update(kind='insonic-real-cpu-acceptance-v1', first_failure_stage='package',
+            receipt.update(kind='insonic-real-cpu-acceptance-v2', first_failure_stage='package',
                            stages=[{'name': 'package', 'state': 'failed'}])
     finally:
         if journey is not None and journey.runtime is not None:
