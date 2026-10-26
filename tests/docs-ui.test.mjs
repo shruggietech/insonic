@@ -5,6 +5,8 @@ import path from 'node:path';
 import vm from 'node:vm';
 import os from 'node:os';
 import { readFile, writeFile, mkdir, mkdtemp, rm, symlink } from 'node:fs/promises';
+import * as fixtureFS from 'node:fs/promises';
+import * as docsTool from '../scripts/check-docs-ui.mjs';
 import { boundedPath, parseOptions, readExportAsset, serve, configureBrowserNetwork, sanitizedRequestURL, assertLandingGeometry, captureLandingActivation } from '../scripts/check-docs-ui.mjs';
 
 test('documentation server confines public assets to its selected export', () => {
@@ -140,4 +142,59 @@ test('activation probe cancels only native link navigation and records exact tru
   assert.equal(recordedWindow.__landingActivations[0].href,'https://github.com/example/package.zip');
   assert.equal(recordedWindow.__landingActivations[0].trusted,true);
   handler({target:{closest:()=>null},preventDefault(){assert.fail('non-link blocked');}});
+});
+
+
+test('documentation fixture confines actual profiles and handles marker/profile initialization failure',async t=>{
+  const sandbox=await mkdtemp(path.join(os.tmpdir(),'insonic-docs-fixture-'));
+  t.after(()=>rm(sandbox,{recursive:true,force:true}));
+  const parent=path.join(sandbox,'nested spaces café');await mkdir(parent);
+  const owned=await docsTool.createDocumentationFixture({parent});
+  assert.equal(path.dirname(owned.directory),await fixtureFS.realpath(parent));
+  assert.ok((await fixtureFS.stat(path.join(owned.directory,'home','cache'))).isDirectory());
+  await owned.cleanup();await assert.rejects(fixtureFS.lstat(owned.directory),{code:'ENOENT'});assert.equal(owned.evidence.removed,true);
+  for(const stage of ['marker','profile']){
+    let allocated;
+    const filesystem={...fixtureFS,mkdtemp:async prefix=>allocated=await mkdtemp(prefix),
+      writeFile:async(...args)=>{if(stage==='marker')throw Object.assign(Error('marker denied'),{code:'EACCES'});return writeFile(...args)},
+      mkdir:async(...args)=>{if(stage==='profile')throw Object.assign(Error('profile denied'),{code:'EACCES'});return mkdir(...args)}};
+    await assert.rejects(docsTool.createDocumentationFixture({parent,filesystem}),/denied/);
+    await assert.rejects(fixtureFS.lstat(allocated),{code:'ENOENT'});
+  }
+});
+
+test('temporary parent policy rejects Windows roots and aliases without allocating there',async t=>{
+  const {validateTemporaryParent}=await import('../scripts/owned-ui-fixture.mjs');
+  for(const value of ['C:\\','C:/','C:\\Temp\\..','\\\\server\\share\\','\\\\?\\C:\\','\\\\?\\UNC\\server\\share\\','C:temp','\\temp',''])assert.throws(()=>validateTemporaryParent(value,path.win32),/temporary parent/);
+  for(const value of ['C:\\Temp\\nested spaces café','\\\\server\\share\\temp café'])assert.equal(validateTemporaryParent(value,path.win32),path.win32.normalize(value));
+  const parent=await mkdtemp(path.join(os.tmpdir(),'insonic-docs-policy-'));t.after(()=>rm(parent,{recursive:true,force:true}));
+  const file=path.join(parent,'not-directory');await writeFile(file,'keep');
+  let allocations=0;
+  for(const candidate of [path.parse(parent).root,file,path.join(parent,'missing')])await assert.rejects(docsTool.createDocumentationFixture({parent:candidate,filesystem:{...fixtureFS,mkdtemp:async()=>{allocations++;throw Error('must not allocate')}}}));
+  assert.equal(allocations,0);
+  const alias=path.join(parent,'root-alias');await symlink(path.parse(parent).root,alias,process.platform==='win32'?'junction':'dir');
+  await assert.rejects(docsTool.createDocumentationFixture({parent:alias}),/temporary parent/);
+  const owned=await docsTool.createDocumentationFixture({parent});
+  await writeFile(path.join(owned.directory,'docs-ui-owner.json'),'{}');
+  await assert.rejects(owned.cleanup(),error=>error.message.includes(owned.directory)&&error.message.includes('ownership'));
+});
+
+test('documentation handled export failure removes its fixture and retains cleanup evidence',async t=>{
+  const parent=await mkdtemp(path.join(os.tmpdir(),'insonic-docs-handled-'));t.after(()=>rm(parent,{recursive:true,force:true}));
+  const output=path.join(parent,'report');
+  await assert.rejects(docsTool.checkDocumentationUI({out:path.join(parent,'missing-export'),offline:path.join(parent,'missing-offline'),output,fixtureParent:parent}));
+  const report=JSON.parse(await readFile(path.join(output,'report.json'),'utf8'));
+  assert.equal(report.cleanup.owned_fixture_removed,true);assert.equal(path.dirname(report.fixture.path),await fixtureFS.realpath(parent));
+  await assert.rejects(fixtureFS.lstat(report.fixture.path),{code:'ENOENT'});assert.equal(report.passed,false);
+});
+
+
+test('documentation browser launch failure closes its server and removes the owned profile',async t=>{
+  const parent=await mkdtemp(path.join(os.tmpdir(),'insonic-docs-launch-'));t.after(()=>rm(parent,{recursive:true,force:true}));
+  const exported=path.join(parent,'export');await mkdir(exported);
+  const output=path.join(parent,'report');
+  await assert.rejects(docsTool.checkDocumentationUI({out:exported,offline:exported,output,browser:path.join(parent,'missing-browser'),fixtureParent:parent}),/executable|launch/i);
+  const report=JSON.parse(await readFile(path.join(output,'report.json'),'utf8'));
+  assert.equal(report.cleanup.server_closed,true);assert.equal(report.cleanup.owned_fixture_removed,true);
+  await assert.rejects(fixtureFS.lstat(report.fixture.path),{code:'ENOENT'});assert.equal(report.passed,false);
 });

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // Maintainer capture tooling. The production frontend and Go desktop bridge stay unchanged.
-import {readFile,writeFile,readdir,mkdir,mkdtemp,rm,stat} from 'node:fs/promises';
+import {readFile,writeFile,readdir,mkdir,stat,realpath} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import http from 'node:http';
@@ -8,6 +8,7 @@ import {spawn} from 'node:child_process';
 import {createHash,randomBytes} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {runDensityMatrix} from './desktop-density-capture.mjs';
+import {createOwnedFixture,validateTemporaryParent} from './owned-ui-fixture.mjs';
 import {milliseconds} from './qualification-timing.mjs';
 
 export const ROOT=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
@@ -20,7 +21,7 @@ export function fixtureEnvironment(base,fixture,cli) {
   // No owner profile, credential/provider variables or network routes are inherited.
   const out={};
   for(const name of ['SystemRoot','WINDIR','SystemDrive','COMSPEC'])if(base[name])out[name]=base[name];
-  out.PATH=[path.dirname(cli),base.SystemRoot?path.join(base.SystemRoot,'System32'):'',...(base.INSONIC_CAPTURE_NATIVE_PATH??'').split(path.delimiter)].filter(Boolean).join(path.delimiter);
+  out.PATH=[path.dirname(cli),base.SystemRoot?path.join(base.SystemRoot,'System32'):'/usr/bin:/bin',...(base.INSONIC_CAPTURE_NATIVE_PATH??'').split(path.delimiter)].filter(Boolean).join(path.delimiter);
   // Windows Known Folder registry entries commonly expand USERPROFILE rather
   // than using APPDATA directly; preserve its conventional isolated hierarchy.
   Object.assign(out,{TEMP:fixture,TMP:fixture,TMPDIR:fixture,HOME:path.join(fixture,'profile'),USERPROFILE:path.join(fixture,'profile'),APPDATA:path.join(fixture,'profile','AppData','Roaming'),LOCALAPPDATA:path.join(fixture,'profile','AppData','Local'),XDG_CONFIG_HOME:path.join(fixture,'profile','Config')});
@@ -68,7 +69,7 @@ async function run(executable,args,options={}) {
   });
 }
 
-const captureInputs=['desktop','cmd/insonic','cmd/insonic-capture-bridge','internal','schemas','brand','go.mod','go.sum','package.json','package-lock.json','scripts/capture-application-ui.mjs','scripts/desktop-density-capture.mjs','scripts/qualification-timing.mjs'];
+const captureInputs=['desktop','cmd/insonic','cmd/insonic-capture-bridge','internal','schemas','brand','go.mod','go.sum','package.json','package-lock.json','scripts/capture-application-ui.mjs','scripts/desktop-density-capture.mjs','scripts/qualification-timing.mjs','scripts/owned-ui-fixture.mjs'];
 export async function sourceSnapshot(repository=ROOT) {
   const revision=(await run('git',['rev-parse','HEAD'],{cwd:repository})).trim();
   const files=[...new Set((await run('git',['ls-files','--cached','--others','--exclude-standard','-z',...captureInputs],{cwd:repository})).split('\0').filter(Boolean))].sort();
@@ -104,16 +105,47 @@ export function assertReceipt(receipt) {
   return receipt;
 }
 
+const outside=(candidate,boundary,paths=path)=>{const relative=paths.relative(boundary,candidate);return relative==='..'||relative.startsWith('..'+paths.sep)||paths.isAbsolute(relative)};
+export function captureParentSelection({temporary=os.tmpdir(),repository=ROOT,home=os.homedir(),programDirectories=[],configured}={},paths=path) {
+  const acceptable=candidate=>outside(candidate,home,paths)&&programDirectories.every(directory=>outside(candidate,directory,paths));
+  if(configured!==undefined){
+    const parent=validateTemporaryParent(configured,paths);
+    if(!acceptable(parent))throw Error('Capture scratch parent must be outside home and program directories.');
+    return {parent,policy:'configured-temporary'};
+  }
+  const temporaryParent=validateTemporaryParent(temporary,paths);
+  if(acceptable(temporaryParent))return {parent:temporaryParent,policy:'system-temporary'};
+  const parent=paths.join(repository,'.local','build','ui-fixtures');
+  if(acceptable(parent))return {parent,policy:'repository-build'};
+  throw Error('Set INSONIC_CAPTURE_FIXTURE_PARENT to a writable absolute non-root scratch parent outside home and program directories.');
+}
+
+export async function createCaptureFixture(options={}) {
+  let boundaries,selection;
+  if(options.parent===undefined){
+    const configured=process.env.INSONIC_CAPTURE_FIXTURE_PARENT;
+    if(configured!==undefined)validateTemporaryParent(configured);
+    else validateTemporaryParent(os.tmpdir());
+    boundaries={temporary:await realpath(os.tmpdir()),repository:await realpath(ROOT),home:await realpath(os.homedir()),programDirectories:await Promise.all([options.cli,options.bridge].filter(Boolean).map(filename=>realpath(path.dirname(filename)))),...(configured===undefined?{}:{configured:await realpath(configured)})};
+    selection=captureParentSelection(boundaries);
+  }else selection={parent:options.parent,policy:'configured-temporary'};
+  if(selection.policy==='repository-build')await mkdir(selection.parent,{recursive:true});
+  return createOwnedFixture('insonic-capture-',{...options,parent:selection.parent,parentPolicy:selection.policy,markerName:'capture-owner.json',kind:'insonic-ui-capture',validateParent:options.parent===undefined?canonical=>captureParentSelection({...boundaries,configured:canonical}):undefined,initialize:async(directory,filesystem)=>{
+    const env=fixtureEnvironment(process.env,directory,options.cli||process.execPath);
+    for(const name of ['APPDATA','LOCALAPPDATA','XDG_CONFIG_HOME'])await filesystem.mkdir(env[name],{recursive:true});
+  }});
+}
+
 export async function capture(options) {
   const started=Date.now(),events=[],partialImages=[],diagnosticRunID=randomBytes(16).toString('hex');
   const totalDeadline=started+milliseconds('capture_seconds');
   const cleanupReserve=2*milliseconds('natural_release_seconds')+4*milliseconds('cleanup_seconds');
   const actionDeadline=totalDeadline-cleanupReserve;
-  let diagnosticWrites=Promise.resolve(),diagnosticSource=null;
+  let diagnosticWrites=Promise.resolve(),diagnosticSource=null,fixtureEvidence=null;
   const relative=path.relative(path.join(ROOT,'build'),options.output);
   const diagnosticsDirectory=!relative.startsWith('..')&&!path.isAbsolute(relative)?options.output:path.join(ROOT,'build','ui-capture');
   await mkdir(diagnosticsDirectory,{recursive:true});
-  const progress=async(phase,event='started')=>{const entry={time:new Date().toISOString(),elapsed_ms:Date.now()-started,phase,event};events.push(entry);if(events.length>160)events.shift();process.stderr.write(JSON.stringify(entry)+'\n');const snapshot=JSON.stringify({kind:'application-ui-capture-diagnostics',schema_version:VERSION,run_id:diagnosticRunID,source_revision:diagnosticSource,partial_images:partialImages,events},null,2)+'\n';diagnosticWrites=diagnosticWrites.then(()=>writeFile(path.join(diagnosticsDirectory,'capture-diagnostics.json'),snapshot,'utf8'));await diagnosticWrites};
+  const progress=async(phase,event='started')=>{const entry={time:new Date().toISOString(),elapsed_ms:Date.now()-started,phase,event};events.push(entry);if(events.length>160)events.shift();process.stderr.write(JSON.stringify(entry)+'\n');const snapshot=JSON.stringify({kind:'application-ui-capture-diagnostics',schema_version:VERSION,run_id:diagnosticRunID,source_revision:diagnosticSource,fixture:fixtureEvidence,partial_images:partialImages,events},null,2)+'\n';diagnosticWrites=diagnosticWrites.then(()=>writeFile(path.join(diagnosticsDirectory,'capture-diagnostics.json'),snapshot,'utf8'));await diagnosticWrites};
   const checkpoint=async(phase,operation,timeout=milliseconds('capture_phase_seconds'))=>{
     await progress(phase);
     const finalizing=phase.startsWith('cleanup.')||phase==='publish';
@@ -131,17 +163,16 @@ export async function capture(options) {
   const cliBytes=await readFile(options.cli),bridgeBytes=await readFile(options.bridge);
   const cliSource=assertBinarySource(cliBytes,source.revision),bridgeSource=assertBinarySource(bridgeBytes,source.revision);
   await checkpoint('frontend.build',()=>run(process.execPath,[path.join(ROOT,'desktop/frontend/build.mjs'),'--tests'],{allowanceMs:milliseconds('build_seconds')}),milliseconds('build_seconds'));
-  const fixtureBase=os.platform()==='win32'?path.parse(os.tmpdir()).root:os.tmpdir();
-  const fixture=await mkdtemp(path.join(fixtureBase,'insonic-capture-'));
+  const ownedFixture=await createCaptureFixture({cli:options.cli,bridge:options.bridge});
+  const fixture=ownedFixture.directory,fixtureID=ownedFixture.id;
+  fixtureEvidence=ownedFixture.evidence;
   const library=path.join(fixture,'My voice archive');
-  const fixtureID=randomBytes(16).toString('hex');
-  await writeFile(path.join(fixture,'capture-owner.json'),JSON.stringify({fixture_id:fixtureID,kind:'insonic-ui-capture'}));
   const env=fixtureEnvironment(process.env,fixture,options.cli);
-  for(const dir of [env.APPDATA,env.LOCALAPPDATA,env.XDG_CONFIG_HOME])await mkdir(dir,{recursive:true});
-  let helper,browser,server,endpoint,helperToken,exitPromise,helperStderr='',failure,capturedReceipt;
+  let helper,browser,context,launchPromise,launchSettled=false,server,endpoint,helperToken,exitPromise,helperStderr='',failure,capturedReceipt;
   const capturedImages=new Map();
   const densityImages=[];let densityResult;
   try {
+    await progress('fixture.allocated','completed');
     await progress('helper.start');
     helper=spawn(options.bridge,['--library',library,'--cli',options.cli],{cwd:fixture,env,windowsHide:true,stdio:['pipe','pipe','pipe']});helper.stdin.end();
     exitPromise=new Promise((resolve,reject)=>{helper.once('error',reject);helper.once('exit',code=>resolve(code))});
@@ -178,7 +209,7 @@ export async function capture(options) {
     if(actualVersion!==PLAYWRIGHT_VERSION)throw Error('Playwright toolchain version mismatch.');
     const viewport={width:1440,height:1100,device_scale_factor:1};
     const browserProfile=path.join(fixture,'browser-profile');await mkdir(browserProfile,{recursive:true});
-    const context=await checkpoint('browser.launch',()=>chromium.launchPersistentContext(browserProfile,{headless:true,timeout:milliseconds('frontend_seconds'),env,...(options.browser?{executablePath:options.browser}:{}),args:['--disable-background-networking','--disable-extensions','--no-first-run','--no-default-browser-check'],viewport:{width:viewport.width,height:viewport.height},deviceScaleFactor:1,locale:'en-US',colorScheme:'light',reducedMotion:'reduce',serviceWorkers:'block',extraHTTPHeaders:{'X-Capture-Token':token}}),milliseconds('capture_phase_seconds'));
+    context=await checkpoint('browser.launch',()=>launchPromise=chromium.launchPersistentContext(browserProfile,{headless:true,timeout:Math.max(1,Math.min(milliseconds('frontend_seconds'),actionDeadline-Date.now())),env,...(options.browser?{executablePath:options.browser}:{}),args:['--disable-background-networking','--disable-extensions','--no-first-run','--no-default-browser-check'],viewport:{width:viewport.width,height:viewport.height},deviceScaleFactor:1,locale:'en-US',colorScheme:'light',reducedMotion:'reduce',serviceWorkers:'block',extraHTTPHeaders:{'X-Capture-Token':token}}).then(value=>{context=value;return value}).finally(()=>{launchSettled=true}),milliseconds('capture_phase_seconds'));
     browser=context.browser();if(!browser)throw Error('The owned Chromium profile has no browser process.');
     const page=await checkpoint('browser.page',()=>context.newPage());page.setDefaultTimeout(milliseconds('frontend_seconds'));page.setDefaultNavigationTimeout(milliseconds('frontend_seconds'));
     const errors=[],blocked=[];page.on('pageerror',e=>errors.push(String(e)));
@@ -195,7 +226,7 @@ export async function capture(options) {
       await boundedOperation('screen.fonts',()=>page.evaluate(()=>document.fonts.ready),milliseconds('frontend_seconds'));
       if(!await page.evaluate(()=>document.fonts.check('16px Geist')&&document.fonts.check('16px "Space Grotesk"')&&document.fonts.check('16px "Geist Mono"')))throw Error('Production fonts did not load.');
       const text=await page.locator('body').innerText();
-      const owner=os.homedir();if(text.includes(owner)||/password|secret_key|access_key|passphrase|bearer token/i.test(await page.locator('input').evaluateAll(nodes=>nodes.map(n=>n.value).join('\n'))))throw Error('Private input appeared in the capture.');
+      const owner=os.homedir();if(text.includes(owner)||/password|secret_key|access_key|passphrase|bearer token/i.test(await page.locator('input').evaluateAll(nodes=>nodes.map(n=>n.value).join('\n'))))throw Object.assign(Error('Private input appeared in the capture.'),{code:'capture_private_input'});
       const surface=page.locator(landmark==='Library'?'section[aria-label="Library controls"]':'section[aria-label="First-run setup"]');
       const bounds=await surface.boundingBox();if(!bounds||bounds.height>6000)throw Error('Capture surface exceeds its bounded screenshot size.');
       const geometry=await surface.evaluate(node=>{const heading=node.querySelector('h2'),paragraph=heading?.nextElementSibling;return {heading_to_text_gap:heading&&paragraph?paragraph.getBoundingClientRect().top-heading.getBoundingClientRect().bottom:null}});
@@ -244,21 +275,42 @@ export async function capture(options) {
     failure=error;await progress('capture','failed');throw error;
   } finally {
     const cleanupErrors=[];
-    const cleanup=async(name,operation,timeout=milliseconds('cleanup_seconds'))=>{try{return await checkpoint('cleanup.'+name,operation,timeout)}catch(error){cleanupErrors.push(error.code||'cleanup_failed');console.error(JSON.stringify({phase:'cleanup.'+name,event:'error',code:error.code||'cleanup_failed'}));return null}};
-    if(browser)await cleanup('browser',()=>browser.close(),milliseconds('natural_release_seconds'));
+    const cleanup=async(name,operation,timeout=milliseconds('cleanup_seconds'))=>{
+      // A failed diagnostics write must never prevent owned resource release.
+      await progress('cleanup.'+name).catch(()=>{});
+      try{
+        const result=await boundedOperation('cleanup.'+name,operation,Math.min(timeout,Math.max(1,totalDeadline-Date.now())));
+        await progress('cleanup.'+name,'completed').catch(()=>{});return result;
+      }catch(error){
+        cleanupErrors.push(error.code||'cleanup_failed');
+        console.error(JSON.stringify({phase:'cleanup.'+name,event:'error',code:error.code||'cleanup_failed',message:error.message,residual:fixture}));
+        await progress('cleanup.'+name,'failed').catch(()=>{});return null;
+      }
+    };
+    if(launchPromise&&!context)context=await cleanup('browser.launch',()=>launchPromise,milliseconds('natural_release_seconds'));
+    const browserReleased=(!launchPromise||launchSettled)&&(!context||await cleanup('browser',async()=>{await context.close();return true},milliseconds('natural_release_seconds'))===true);
     if(server)await cleanup('server',()=>new Promise(resolve=>{server.closeAllConnections();server.close(resolve)}));
-    if(endpoint&&helperToken)try{await checkpoint('cleanup.helper.shutdown',()=>fetch(endpoint+'/shutdown',{method:'POST',headers:{'X-Capture-Token':helperToken,Origin:endpoint},signal:AbortSignal.timeout(milliseconds('cleanup_seconds'))}),milliseconds('cleanup_seconds'))}catch{await progress('cleanup.helper.shutdown','connection_closed')}
-    if(helper){const code=await cleanup('helper.exit',()=>exitPromise,milliseconds('natural_release_seconds'));if(code===null){helper.kill();await cleanup('helper.kill',()=>exitPromise,milliseconds('cleanup_seconds'))}else if(code!==0)cleanupErrors.push('helper_failed')}
-    await cleanup('fixture',async()=>{const identity=JSON.parse(await readFile(path.join(fixture,'capture-owner.json'),'utf8'));if(identity.fixture_id!==fixtureID||!path.basename(fixture).startsWith('insonic-capture-'))throw Error('Fixture cleanup identity mismatch.');await rm(fixture,{recursive:true,force:true,maxRetries:1,retryDelay:100})},milliseconds('cleanup_seconds'));
-    await progress('cleanup',cleanupErrors.length?'failed':'completed');
+    if(endpoint&&helperToken)try{await boundedOperation('cleanup.helper.shutdown',()=>fetch(endpoint+'/shutdown',{method:'POST',headers:{'X-Capture-Token':helperToken,Origin:endpoint},signal:AbortSignal.timeout(milliseconds('cleanup_seconds'))}),milliseconds('cleanup_seconds'))}catch{await progress('cleanup.helper.shutdown','connection_closed').catch(()=>{})}
+    let helperReleased=!helper;
+    if(helper){const code=await cleanup('helper.exit',()=>exitPromise,milliseconds('natural_release_seconds'));if(code===null){helper.kill();helperReleased=await cleanup('helper.kill',async()=>{await exitPromise;return true},milliseconds('cleanup_seconds'))===true}else{helperReleased=true;if(code!==0)cleanupErrors.push('helper_failed')}}
+    await cleanup('fixture',async()=>{
+      if(!browserReleased||!helperReleased)throw Error('Owned children were not released; fixture remains at '+fixture);
+      await ownedFixture.cleanup();
+    },milliseconds('cleanup_seconds'));
+    await progress('cleanup',cleanupErrors.length?'failed':'completed').catch(()=>{});
     if(!failure&&cleanupErrors.length)throw Error('Capture cleanup did not complete within its bounds.');
   }
   if(Date.now()>totalDeadline)throw Object.assign(Error('Capture including owned cleanup exceeded its allowance.'),{code:'capture_timeout',phase:'capture.total'});
   capturedReceipt.verification.cleanup_complete=true;
+  capturedReceipt.fixture.allocation={parent_policy:fixtureEvidence.parent_policy,non_root:fixtureEvidence.non_root,directory_name:path.basename(fixture),removed:fixtureEvidence.removed};
   const densityReceipt={...capturedReceipt,kind:'desktop-density-capture',images:densityImages,viewport:{matrix:true},verification:{...capturedReceipt.verification,compact_density:densityResult}};
   if(densityImages.length!==7||densityResult?.state!=='passed')throw Error('Density capture is incomplete.');
   await checkpoint('publish',async()=>{await mkdir(options.output,{recursive:true});for(const image of [...capturedReceipt.images,...densityImages])await writeFile(path.join(options.output,image.path),capturedImages.get(image.path));await writeFile(path.join(options.output,'application-capture.json'),JSON.stringify(capturedReceipt,null,2)+'\n','utf8');await writeFile(path.join(options.output,'density-capture.json'),JSON.stringify(densityReceipt,null,2)+'\n','utf8')});
   return capturedReceipt;
+}
+
+export function captureFailureDiagnostic(error) {
+  return {phase:error.phase||'capture',event:'failed',code:error.code==='capture_timeout'?'capture_timeout':error.code==='fixture_cleanup_failed'?'fixture_cleanup_failed':error.code==='capture_private_input'?'capture_private_input':'capture_failed',...(error.residual?{residual:error.residual,message:error.message}:{})};
 }
 
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
@@ -266,6 +318,6 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
   // guard leaves one cleanup allowance before the parent's two-allowance reserve.
   const deadline=setTimeout(()=>{console.error(JSON.stringify({time:new Date().toISOString(),phase:'capture.total',event:'timed_out'}));process.exit(1)},milliseconds('capture_seconds')+milliseconds('cleanup_seconds'));
   try{const receipt=await capture(parseOptions(process.argv.slice(2)));console.log(JSON.stringify({kind:receipt.kind,source:receipt.source.revision,images:receipt.images.map(x=>x.path),renderer:receipt.renderer}));}
-  catch(error){console.error(JSON.stringify({phase:error.phase||'capture',event:'failed',code:error.code==='capture_timeout'?'capture_timeout':'capture_failed'}));process.exitCode=1;setTimeout(()=>process.exit(1),milliseconds('cleanup_seconds')).unref()}
+  catch(error){console.error(JSON.stringify(captureFailureDiagnostic(error)));process.exitCode=1;setTimeout(()=>process.exit(1),milliseconds('cleanup_seconds')).unref()}
   finally{clearTimeout(deadline)}
 }

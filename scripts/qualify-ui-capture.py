@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import sys
+import tempfile
 import qualify
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -33,6 +34,18 @@ def main():
     output = qualify.child(['node', ROOT / 'scripts/capture-application-ui.mjs', '--cli', cli, '--bridge', helper, '--browser', browser, '--output', options.output], env=values, timeout=timing.CAPTURE_SECONDS + 2 * timing.CLEANUP_SECONDS)
     print(output.decode('utf-8'))
     receipt = json.loads((options.output / 'application-capture.json').read_text(encoding='utf-8'))
+    diagnostic = json.loads((options.output / 'capture-diagnostics.json').read_text(encoding='utf-8'))
+    fixture = diagnostic.get('fixture', {})
+    allocated = Path(fixture.get('path', ''))
+    policy_parents = {'system-temporary': Path(tempfile.gettempdir()).resolve(),
+                      'repository-build': (ROOT / '.local/build/ui-fixtures').resolve()}
+    if 'INSONIC_CAPTURE_FIXTURE_PARENT' in os.environ:
+        policy_parents['configured-temporary'] = Path(os.environ['INSONIC_CAPTURE_FIXTURE_PARENT']).resolve()
+    if (not fixture.get('removed') or not fixture.get('non_root')
+            or allocated.parent != policy_parents.get(fixture.get('parent_policy'))
+            or not allocated.name.startswith('insonic-capture-') or allocated.exists() or allocated.is_symlink()
+            or receipt.get('fixture', {}).get('allocation', {}).get('removed') is not True):
+        raise ValueError('Application fixture confinement or post-run absence was not verified')
     density = json.loads((options.output / 'density-capture.json').read_text(encoding='utf-8'))
     matrix = density.get('verification', {}).get('compact_density', {})
     scenarios = matrix.get('scenarios', [])

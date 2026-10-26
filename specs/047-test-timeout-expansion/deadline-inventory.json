@@ -92,6 +92,7 @@
         "scripts/public-verification.py",
         "scripts/qualification_timing.py",
         "scripts/qualify-docs-renderer.py",
+        "scripts/qualify-docs-ui.py",
         "scripts/qualify-journey.py",
         "scripts/qualify-processing.py",
         "scripts/qualify-ui-capture.py",
