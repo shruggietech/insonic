@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-25
 
-**Status**: Specified
+**Status**: Implemented (owner merge pending)
 
 **Input**: S049 for [#176](https://github.com/shruggietech/insonic/issues/176), maintainer UI fixtures must never write to the Windows drive root.
 

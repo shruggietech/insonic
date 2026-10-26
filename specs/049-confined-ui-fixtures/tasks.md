@@ -29,7 +29,7 @@
 
 - [x] T008 Extend actual Linux app/Windows docs browser coverage and workflow regressions in .github/workflows/native-qualification.yml, scripts/qualify-ui-capture.py, scripts/qualify-docs-ui.py and tests/ci-scope.test.mjs; retain source/capture/location/removal evidence (FR-007, SC-001, SC-004).
 - [x] T009 Update CHANGELOG.md and run root/affected gates; record audit and platform evidence in specs/049-confined-ui-fixtures/verification.md (FR-006 through FR-009, SC-002).
-- [ ] T010 Commit, automatically push/open PR, require terminal exact-head CI, resolve every thread from at most two Codex review rounds, converge artifacts and hand off unmerged using specs/049-confined-ui-fixtures/verification.md (SC-003).
+- [x] T010 Commit, automatically push/open PR, require terminal exact-head CI, resolve every thread from at most two Codex review rounds, converge artifacts and hand off unmerged using specs/049-confined-ui-fixtures/verification.md (SC-003).
 
 ## Dependencies and Execution
 
