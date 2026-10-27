@@ -4,6 +4,8 @@ All notable changes to this project will be documented here. The format follows 
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-27
+
 ### Changed
 
 - 2026-10-27: Maintained source and extracted-package CLI qualification now uses owned headless Windows/Linux terminals for progress and Ctrl+C, with an independent durable runtime, bounded capture and explicit cleanup. Release qualification requires the nested terminal receipt to match its package and executable identity. Ordinary product deadlines and wait/cancel semantics are unchanged.
@@ -40,6 +42,12 @@ All notable changes to this project will be documented here. The format follows 
 - Read-only public release and documentation verification compares the selected published inventory and original documentation with live pages, schemas, aliases and referenced resources, then rechecks the elected Pages deployment identity.
 
 ### Fixed
+
+- Terminal qualification drains final buffered output when child termination races the reader snapshot, retaining bounded exit/output diagnostics for a genuine missing observation or incorrect outcome. Required progress, exit semantics, natural cleanup and existing deadlines remain unchanged.
+
+- Update the maintained JSON Schema URI parser to fast-uri 3.1.9 in root and desktop tooling to resolve URI normalization and host/scheme confusion advisories.
+
+- Release preparation retains v1.0.1 workspace, model, preset, setup-draft and verified worker-receipt authority across the v1.0.2 upgrade. Current IPC and installed package identities remain exact, and retained documents keep field, credential and complete hash validation. The embedded worker catalog envelope advances without changing its resource pins or independently versioned licensed-media provenance.
 
 - Restored CPU acceptance requires explicit canonical recording identities unique across all source cases and positive integer source revisions. Missing authority, duplicate enrollment identities and malformed revisions are refused without inventing a baseline; existing destination lineage checks and historical source-only receipt behavior remain intact.
 
@@ -425,7 +433,7 @@ All notable changes to this project will be documented here. The format follows 
 - Preserve closed GitHub Projects when rerunning repository setup.
 - Cover root schema-validation dependencies in grouped Dependabot updates and correct contributor installation guidance.
 
-[Unreleased]: https://github.com/shruggietech/insonic/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/shruggietech/insonic/compare/v1.0.2...HEAD
 
 ## Decisions (2026-10-08)
 
@@ -442,3 +450,5 @@ All notable changes to this project will be documented here. The format follows 
 [1.0.0]: https://github.com/shruggietech/insonic/compare/v0.0.0...v1.0.0
 
 [1.0.1]: https://github.com/shruggietech/insonic/compare/v1.0.0...v1.0.1
+
+[1.0.2]: https://github.com/shruggietech/insonic/compare/v1.0.1...v1.0.2

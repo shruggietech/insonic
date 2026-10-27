@@ -260,7 +260,13 @@ class Terminal:
     def wait_for(self, token):
         while token not in self.text():
             if self.owner.process.poll() is not None:
-                raise ValueError('Terminal client exited before expected observation: ' + token)
+                # Process exit can precede the reader's last buffered bytes.
+                # Join/drain the owned transport before deciding observation failed.
+                result = self.finish()
+                if token in result['text']:
+                    return
+                raise ValueError('Terminal client exited before expected observation: ' + token
+                                 + f" (exit {result['exit_code']}, output {result['text'][:2048]!r})")
             with self.condition:
                 self.condition.wait(min(.02, self.remaining()))
 

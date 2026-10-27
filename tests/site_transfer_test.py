@@ -18,19 +18,19 @@ class SiteTransferTest(unittest.TestCase):
     def fixture(self, directory):
         for name in ('documentation', 'offline-help'):
             files = {'index.html': b'complete export',
-                     'documentation-build.json': json.dumps({'version': '1.0.1', 'revision': REV, 'source_dirty': False, 'documentation_target': 'snapshot'}).encode(),
-                     'release-documentation.json': json.dumps({'version': '1.0.1', 'revision': REV, 'kind': name}).encode()}
+                     'documentation-build.json': json.dumps({'version': '1.0.2', 'revision': REV, 'source_dirty': False, 'documentation_target': 'snapshot'}).encode(),
+                     'release-documentation.json': json.dumps({'version': '1.0.2', 'revision': REV, 'kind': name}).encode()}
             with tarfile.open(directory / (name + '.tar.gz'), 'w:gz') as archive:
                 for path, data in files.items():
                     item = tarfile.TarInfo(path); item.size = len(data)
                     archive.addfile(item, io.BytesIO(data))
-        return transfer.pack(directory, REV, '1.0.1', '123', '2')
+        return transfer.pack(directory, REV, '1.0.2', '123', '2')
 
     def test_roundtrip_restores_both_exact_exports(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary); data = base / 'data'; data.mkdir()
             self.fixture(data)
-            transfer.restore(data, base / 'site', REV, '1.0.1', '123', '2')
+            transfer.restore(data, base / 'site', REV, '1.0.2', '123', '2')
             for name in ('out', 'offline'):
                 self.assertEqual((base / 'site' / name / 'index.html').read_bytes(), b'complete export')
 
@@ -40,19 +40,19 @@ class SiteTransferTest(unittest.TestCase):
                 base = Path(temporary); data = base / 'data'; data.mkdir(); receipt = self.fixture(data)
                 receipt[field] = wrong
                 (data / 'transfer.json').write_text(json.dumps(receipt), encoding='utf-8')
-                with self.assertRaises(ValueError): transfer.restore(data, base / 'site', REV, '1.0.1', '123', '2')
+                with self.assertRaises(ValueError): transfer.restore(data, base / 'site', REV, '1.0.2', '123', '2')
                 self.assertFalse((base / 'site').exists())
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary); data = base / 'data'; data.mkdir(); self.fixture(data)
             with (data / 'offline-help.tar.gz').open('ab') as stream: stream.write(b'changed')
-            with self.assertRaises(ValueError): transfer.restore(data, base / 'site', REV, '1.0.1', '123', '2')
+            with self.assertRaises(ValueError): transfer.restore(data, base / 'site', REV, '1.0.2', '123', '2')
             self.assertFalse((base / 'site').exists())
 
     def test_existing_output_is_never_merged_or_deleted(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary); data = base / 'data'; data.mkdir(); self.fixture(data)
             (base / 'site/offline').mkdir(parents=True); keep = base / 'site/offline/keep'; keep.write_bytes(b'owner')
-            with self.assertRaises(ValueError): transfer.restore(data, base / 'site', REV, '1.0.1', '123', '2')
+            with self.assertRaises(ValueError): transfer.restore(data, base / 'site', REV, '1.0.2', '123', '2')
             self.assertEqual(keep.read_bytes(), b'owner')
 
 

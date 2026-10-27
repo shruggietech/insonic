@@ -51,6 +51,31 @@ class TerminalTransportTests(unittest.TestCase):
             self.assertEqual(owner.process.returncode, 0, error.decode(errors='replace'))
             self.assertTrue(owner.wait_for_descendants(test_timing.CLEANUP_SECONDS))
 
+    def test_final_output_is_drained_when_exit_races_the_first_snapshot(self):
+        with Terminal([sys.executable, '-c', "print('FINAL_OBSERVATION',flush=True)"], cwd=Path.cwd(), env=os.environ.copy()) as terminal:
+            deadline = time.monotonic() + test_timing.READINESS_SECONDS
+            while terminal.owner.process.poll() is None:
+                if time.monotonic() >= deadline: self.fail('controlled child did not exit')
+                time.sleep(.01)
+            actual_text = terminal.text
+            stale = True
+            def snapshot(*, final=False):
+                nonlocal stale
+                if stale and not final:
+                    stale = False
+                    return ''
+                return actual_text(final=final)
+            with patch.object(terminal, 'text', side_effect=snapshot):
+                terminal.wait_for('FINAL_OBSERVATION')
+            self.assertTrue(terminal.cleaned)
+
+    def test_early_exit_keeps_a_bounded_final_diagnostic(self):
+        with self.assertRaisesRegex(ValueError, r'exit 7.*CONTROLLED_FAILURE') as caught:
+            with Terminal([sys.executable, '-c', "import sys;print('CONTROLLED_FAILURE'+'x'*3000,flush=True);sys.exit(7)"], cwd=Path.cwd(), env=os.environ.copy()) as terminal:
+                terminal.wait_for('MISSING_OBSERVATION')
+        self.assertLess(len(str(caught.exception)), 2300)
+        self.assertTrue(terminal.cleaned)
+
     def test_output_overflow_is_failure_even_after_natural_exit(self):
         with self.assertRaisesRegex(ValueError, 'capture bound'):
             with Terminal([sys.executable, '-c', "print('x'*200000)"], cwd=Path.cwd(), env=os.environ.copy()) as terminal:

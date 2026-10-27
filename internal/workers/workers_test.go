@@ -265,3 +265,32 @@ func TestOfflineSetupCreatesPrivateWorkerDirectoryBeforeAssetVerification(t *tes
 		})
 	}
 }
+
+func TestPreviousReleaseWorkerReceiptRetainsIntegrityChecks(t *testing.T) {
+	directory := t.TempDir()
+	python := filepath.Join(directory, "python")
+	if err := os.WriteFile(python, []byte("pinned fixture"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	pin, _ := Hash(context.Background(), python)
+	receipt := Receipt{Kind: "worker-environment", Version: "1.0.1", Inspection: Inspection{Role: "recognition", Python: pin, Compatible: true, EngineAvailable: true, Files: []library.PinnedFile{pin}}}
+	file := filepath.Join(directory, "receipt.json")
+	raw, _ := json.Marshal(receipt)
+	if err := os.WriteFile(file, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	bound, _ := Hash(context.Background(), file)
+	if err := VerifyReceipt(context.Background(), bound, pin); err != nil {
+		t.Fatal("previous receipt rejected", err)
+	}
+	after, _ := os.ReadFile(file)
+	if string(after) != string(raw) {
+		t.Fatal("verification rewrote original receipt")
+	}
+	if err := os.WriteFile(python, []byte("changed"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if VerifyReceipt(context.Background(), bound, pin) == nil {
+		t.Fatal("old version bypassed full environment hashes")
+	}
+}

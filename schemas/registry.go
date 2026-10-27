@@ -63,7 +63,7 @@ func validateDocument(current *jsonschema.Schema, filename string, data []byte) 
 		if err := compiler.AddResource(subtitles.SchemaID, upstream); err != nil {
 			return err
 		}
-		if err := addReleaseResources(compiler, header.Version); err != nil {
+		if err := addSupportedReleaseResources(compiler); err != nil {
 			return err
 		}
 		schema, err = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + header.Version + "/schemas/v" + header.Version + "/" + filename)
@@ -96,6 +96,23 @@ func addReleaseResources(compiler *jsonschema.Compiler, version string) error {
 	return nil
 }
 
+// Load only explicitly supported immutable contracts, including cross-version
+// model references retained by a current portable catalog snapshot.
+func addSupportedReleaseResources(compiler *jsonschema.Compiler) error {
+	entries, err := registry.ReadDir(".")
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() && strings.HasPrefix(entry.Name(), "v") && contracts.SupportedDocumentVersion(strings.TrimPrefix(entry.Name(), "v")) {
+			if err := addReleaseResources(compiler, strings.TrimPrefix(entry.Name(), "v")); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 type offlineLoader struct{}
 
 func (offlineLoader) Load(string) (any, error) {
@@ -116,11 +133,9 @@ func initialize() {
 			compileErr = err
 			return
 		}
-		for _, version := range []string{"1.0.0", contracts.Version} {
-			if err := addReleaseResources(compiler, version); err != nil {
-				compileErr = err
-				return
-			}
+		if err := addSupportedReleaseResources(compiler); err != nil {
+			compileErr = err
+			return
 		}
 		compiled, compileErr = compiler.Compile("https://raw.githubusercontent.com/shruggietech/insonic/v" + contracts.Version + "/schemas/v" + contracts.Version + "/workspace-config.schema.json")
 		if compileErr == nil {

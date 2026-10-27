@@ -72,7 +72,7 @@ class TerminalReceiptTests(unittest.TestCase):
             return {}
         with tempfile.TemporaryDirectory() as root, patch.object(campaign, 'ProcessTree', side_effect=RuntimeError('owned launch refused')):
             with self.assertRaisesRegex(RuntimeError, 'owned launch refused'):
-                qualify(invoke, root, '1.0.1', executable=sys.executable, environment={})
+                qualify(invoke, root, '1.0.2', executable=sys.executable, environment={})
             self.assertEqual(list(Path(root).iterdir()), [])
         self.assertFalse(Path(environments[0]['HOME']).exists())
         if sys.platform == 'linux':
@@ -86,13 +86,13 @@ class TerminalReceiptTests(unittest.TestCase):
             sentinel = directory / 'owner.txt'
             sentinel.write_text('unchanged', encoding='utf-8')
             with self.assertRaises(FileExistsError):
-                qualify(lambda *_a, **_k: {}, root, '1.0.1', executable=sys.executable, environment={})
+                qualify(lambda *_a, **_k: {}, root, '1.0.2', executable=sys.executable, environment={})
             self.assertEqual(sentinel.read_text(encoding='utf-8'), 'unchanged')
 
     def test_elected_process_policy_cannot_silently_fall_back_for_terminals(self):
         with tempfile.TemporaryDirectory() as root:
             with self.assertRaisesRegex(ValueError, 'does not support owned terminals'):
-                qualify(lambda *_a, **_k: {}, root, '1.0.1', executable=sys.executable,
+                qualify(lambda *_a, **_k: {}, root, '1.0.2', executable=sys.executable,
                         environment={}, process_factory=object())
             self.assertEqual(list(Path(root).iterdir()), [])
 

@@ -1,0 +1,13 @@
+# S053 validation and post-merge guide
+
+1. Run npm run check, npm test, the full Python unittest discovery and npm --prefix site test through verified hidden launchers.
+2. Build public/offline documentation with npm --prefix site run build; validate all current1.0.2 image-bearing pages and preserved historical routes/contracts.
+3. Require exact final-source Windows/Linux core/native/package/installer/candidate/elected CI and inspect the genuine capture artifacts. Retain authenticated terminal timing and audited receipt identities outside workflow expiry.
+4. Check both bounded Codex rounds and every review thread, issue/Project state, clean final head and unmerged PR. No official tag, release or Pages deployment occurs in this phase.
+
+## After owner merge
+
+1. Confirm reviewed main and completed exact-main CI. Select that full revision, not a PR merge artifact.
+2. Dispatch the maintained Release candidate and publication workflow from main with revision set to that full SHA, publish=false and promote_docs=false. Retain its complete verified publication-target candidate, manifests, receipts and original asset bytes outside workflow expiry. Elect scripts/qualify-journey.py with --mode real, --package (the exact Windows CLI archive), --package-receipt (its original receipt), --revision (the same SHA), --reference-corpus tests/fixtures/acoustic/manifest.json, verified --recognition-model/--diarization-model inputs, --timeout 3600 and an owned --output. Add --managed-offline-assets only for a complete verified bundle. Require fresh destination processing/matching after restore, original-path withdrawal, complete integrity/provenance and successful cleanup. Report preparation, qualification and combined timing separately.
+3. After successful exact-candidate acceptance and publication authorization, create the immutable v1.0.2 tag at that reviewed revision. From clean trusted main, use scripts/release.py publish --candidate (the retained accepted candidate directory) --source-root (the exact reviewed source checkout) --highlights specs/053-v102-release/highlights.md. Publish those verified original bytes; rebuilding a second candidate can produce different archive bytes and does not inherit the first candidate’s CPU acceptance.
+4. Run scripts/release.py pages-promote with --candidate and --source-root selecting those same verified identities, then scripts/release.py verify-public with --candidate, --source-root, --pages-commit (the actual returned Pages commit) and --output (an owned receipt). Verify published asset hashes/downloads, exact Pages commit and live bytes. Record versioned post-release observations under #147 without rewriting the historical installed audit.

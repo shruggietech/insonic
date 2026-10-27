@@ -90,8 +90,8 @@ def complete_receipt():
     receipt["speaker_denominators"] = {"evaluation_cases": 4, "observed_decisions": 0}
     receipt["timeline_cue_counts"] = {c["fixture"]: 1 for c in receipt["cases"]}
     receipt["playback"] = {c["fixture"]: {} for c in receipt["cases"]}
-    receipt["product_version"] = "1.0.1"
-    receipt["runtime_startups"] = [{"kind": "runtime-startup", "schema_version": "1.0.1",
+    receipt["product_version"] = "1.0.2"
+    receipt["runtime_startups"] = [{"kind": "runtime-startup", "schema_version": "1.0.2",
         "startup_id": digit * 8 + "-" + digit * 4 + "-4" + digit * 3 + "-8" + digit * 3 + "-" + digit * 12,
         "workspace_id": "11111111-1111-4111-8111-111111111111", "state": "ready", "stage": "ready",
         "reported": True, "elapsed_seconds": .01, "budget_seconds": 60} for digit in ("2", "3")]
@@ -557,7 +557,7 @@ class StartupTests(unittest.TestCase):
         (runner.workspace / ".insonic").mkdir()
         workspace_id = "11111111-1111-4111-8111-111111111111"
         (runner.workspace / ".insonic/workspace.json").write_text(json.dumps({"workspace_id": workspace_id}), encoding="utf-8")
-        runner.environment, runner.receipt = {}, {"product_version": "1.0.1"}
+        runner.environment, runner.receipt = {}, {"product_version": "1.0.2"}
         runner.deadline = time.monotonic() + 60
         return module, runner, workspace_id
 
@@ -580,7 +580,7 @@ class StartupTests(unittest.TestCase):
             def tree(arguments, **kwargs):
                 selected["arguments"] = arguments
                 correlation = arguments[arguments.index("--startup-id") + 1] if "--startup-id" in arguments else "22222222-2222-4222-8222-222222222222"
-                frame = {"kind": "runtime-startup", "schema_version": "1.0.1", "startup_id": correlation,
+                frame = {"kind": "runtime-startup", "schema_version": "1.0.2", "startup_id": correlation,
                          "workspace_id": workspace_id, "state": "ready", "stage": "ready"}
                 return SimpleNamespace(process=SimpleNamespace(stdout=Gated((json.dumps(frame) + "\n").encode()),
                     stderr=io.BytesIO(), poll=lambda: None), kill=Mock())
@@ -606,17 +606,17 @@ class StartupTests(unittest.TestCase):
         cpu = load("journey_cpu")
         correlation = "22222222-2222-4222-8222-222222222222"
         workspace = "11111111-1111-4111-8111-111111111111"
-        good = {"kind": "runtime-startup", "schema_version": "1.0.1", "startup_id": correlation,
+        good = {"kind": "runtime-startup", "schema_version": "1.0.2", "startup_id": correlation,
                 "workspace_id": workspace, "state": "ready", "stage": "ready"}
         encode = lambda value: (json.dumps(value) + "\n").encode()
-        self.assertEqual(cpu.startup_report(encode(good), correlation, workspace, "1.0.1"), good)
+        self.assertEqual(cpu.startup_report(encode(good), correlation, workspace, "1.0.2"), good)
         for changed in ({"workspace_id": correlation}, {"startup_id": workspace}, {"schema_version": "1.0.0"},
                         {"message": "PRIVATE_MARKER"}, {"state": "ready", "reason": "PRIVATE_MARKER"}):
             with self.subTest(changed=changed), self.assertRaises(ValueError):
-                cpu.startup_report(encode({**good, **changed}), correlation, workspace, "1.0.1")
+                cpu.startup_report(encode({**good, **changed}), correlation, workspace, "1.0.2")
         for raw in (b"x" * 4097, encode(good).replace(b'"kind":', b'"kind":"duplicate","kind":'), b"\xff\n"):
             with self.assertRaises(ValueError):
-                cpu.startup_report(raw, correlation, workspace, "1.0.1")
+                cpu.startup_report(raw, correlation, workspace, "1.0.2")
 
 
     def test_native_startup_failure_is_retained_without_accepting_readiness(self):
@@ -627,7 +627,7 @@ class StartupTests(unittest.TestCase):
                 selected = {}
                 def factory(arguments, **kwargs):
                     correlation = arguments[arguments.index("--startup-id") + 1]
-                    frame = {"kind": "runtime-startup", "schema_version": "1.0.1", "startup_id": correlation,
+                    frame = {"kind": "runtime-startup", "schema_version": "1.0.2", "startup_id": correlation,
                              "workspace_id": workspace, "state": "failed", "stage": "startup",
                              "code": "unavailable", "reason": reason}
                     tree = SimpleNamespace(process=SimpleNamespace(stdout=io.BytesIO((json.dumps(frame) + "\n").encode()),
@@ -661,7 +661,7 @@ class StartupTests(unittest.TestCase):
             selected = {}
             def factory(arguments, **kwargs):
                 correlation = arguments[arguments.index("--startup-id") + 1]
-                selected["frame"] = (json.dumps({"kind": "runtime-startup", "schema_version": "1.0.1",
+                selected["frame"] = (json.dumps({"kind": "runtime-startup", "schema_version": "1.0.2",
                     "startup_id": correlation, "workspace_id": workspace, "state": "ready", "stage": "ready"}) + "\n").encode()
                 selected["tree"] = SimpleNamespace(process=SimpleNamespace(stdout=io.BytesIO(), stderr=io.BytesIO(),
                     poll=lambda: None), kill=Mock())

@@ -86,11 +86,24 @@ func importPresetSuite(t *testing.T, create func(*testing.T, string) *Store) {
 func TestImportPresetIncompatibleRegistry(t *testing.T) {
 	for _, raw := range []string{
 		`{"kind":"import-preset-registry","schema_version":"99.0.0","items":[]}`,
-		`{"kind":"import-preset-registry","schema_version":"1.0.1","items":[{"kind":"import-preset","schema_version":"99.0.0","id":"ed34901a-ed3c-4a60-aef4-aed07a0759f4","revision":1,"name":"Future","state":"active","options":{}}]}`,
+		`{"kind":"import-preset-registry","schema_version":"1.0.2","items":[{"kind":"import-preset","schema_version":"99.0.0","id":"ed34901a-ed3c-4a60-aef4-aed07a0759f4","revision":1,"name":"Future","state":"active","options":{}}]}`,
 	} {
 		_, err := decodeImportPresets([]byte(raw), 1)
 		if err == nil || contracts.SafeError(err).Code != "incompatible_version" {
 			t.Fatalf("incompatible registry: %v", err)
 		}
+	}
+}
+
+func TestPreviousReleaseImportPresetsKeepTheirAuthority(t *testing.T) {
+	preset := ImportPreset{Kind: "import-preset", Version: "1.0.1", ID: contracts.ID(), Revision: 1, Name: "Existing", State: "active", Options: json.RawMessage(`{"timezone":"UTC"}`)}
+	raw, _ := json.Marshal(importPresetRegistry{Kind: "import-preset-registry", Version: "1.0.1", Items: []ImportPreset{preset}})
+	registry, err := decodeImportPresets(raw, 1)
+	if err != nil || len(registry.Items) != 1 || registry.Items[0].ID != preset.ID || registry.Items[0].Version != "1.0.1" {
+		t.Fatalf("existing preset rejected: %+v %v", registry, err)
+	}
+	preset.Options = json.RawMessage(`{"password":"fixture-secret"}`)
+	if validateImportPreset(preset) == nil {
+		t.Fatal("old version bypassed option validation")
 	}
 }

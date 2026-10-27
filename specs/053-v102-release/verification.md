@@ -1,0 +1,29 @@
+# S053 verification
+
+## Scope and planning
+
+Spec Kit specify/clarify/plan/tasks/analyze/implement/converge used the matching S053 branch, selector, directory, issue #184, milestone 37 and Project 7. The built-in requirements checklist passed 16/16. Analysis covered 8 functional requirements, 3 success criteria, 18 tasks and all 5 constitution principles with no critical/high findings or uncovered requirements. No extension hooks are configured. Final convergence assessed all 11 requirements/success criteria, 6 acceptance scenarios, 8 plan decisions and 5 principles; no unbuilt implementation gap or additional task was found.
+
+## Resulting behavior
+
+- Software, owned current schemas, package manifests/locks, documentation and the dated changelog identify unpublished v1.0.2. Current IPC and installed-package identity remain exact.
+- Original published v1.0.1 docs/schemas were restored from source 136f5c0307a6fce00ba8240ef69c907a944cd8c0 after current corrections seeded v1.0.2. Historical navigation identifies the confirmed release. Tags/assets are untouched. Original-package revalidation remains a separate existing limitation under #185, not a claimed S053 result.
+- v1.0.1 workspace/profile/model/preset/setup-draft/worker authority remains admissible without changing its original bytes or hashes. Unsupported versions, malformed fields, credential-bearing payloads and changed worker files remain rejected. Future preparation retains previous model authority, advances the worker catalog envelope and preserves independent resource/media provenance.
+- Six current product-download assets and two supported hosts are described consistently. Root/desktop tooling uses patched fast-uri 3.1.9; both scoped dependency audits reported zero vulnerabilities.
+- All 20 current visual placements use 25 unchanged genuine PNGs and 4 source-bound receipts from disposable CI. Original ZIP/image/proof hashes were checked; capture-import.json records provenance. Native installers and desktop test windows did not run on the owner desktop.
+- The headless terminal transport drains final output when process exit races the reader snapshot. Genuine missing/incorrect outcomes retain bounded diagnostics. No product/test clock or mandatory outcome/cleanup requirement was relaxed.
+
+## Checks and chronological CI outcomes (2026-10-27)
+
+1. Root integrity/schema checks and complete root tests passed. Full local Go tests and vet passed; full Python discovery passed 639 tests with 2 platform skips before later focused additions. The affected release suite passed 66 tests. Desktop TypeScript and all 109 frontend tests passed. Site tests passed 17/17; the complete image-bearing public/offline build and 140-page export passed. Real Windows terminal tests passed 10/10; all 8 actual source-terminal scenarios passed in an isolated debug run with natural image release.
+2. Initial run 40522021862 at caf91ce failed retained-document qualification and encountered an HTTP 502 in Windows archive-input setup. Terminal audit: preparation 266 s, qualification 740 s, total 1006 s. It remains rejected. [Retained audit](https://github.com/shruggietech/insonic/pull/186#issuecomment-6445236122).
+3. Run 40525976329 at 41872ab passed every other elected lane but failed Windows desktop archive terminal observation, then its join/candidate/aggregate. Preparation 280 s, qualification 584 s, total 864 s. Its original error omitted exit/output details, so that exact exit cause remains unconfirmed. A deterministic real-terminal regression exposed the exit/reader race; both new tests failed before the transport repair and pass afterward. [Retained failure audit](https://github.com/shruggietech/insonic/pull/186#issuecomment-6446037000).
+4. Run 40531096213 at implementation head 1f8a4e6e428f3572c0b9fb0f6ca1e4d337f6314a, tested merge revision b098f7610a7789343c543bd1ced8071629032b54, completed successfully: 30 successful jobs, 18 intentionally unelected workflow branches. The maintained terminal auditor accepted preparation 248 s (4m08s), qualification 681 s (11m21s), total 929 s (15m29s), including phase queue time. Seven receipt ZIPs matched GitHub digests. Independent validation accepted 6 mandatory source/package terminal receipts and all 48 cases, including natural exits, continued durable work and owned cleanup. [Durable acceptance and terminal audit](https://github.com/shruggietech/insonic/pull/186#issuecomment-6446552921). Internal JSON audits retain both rejected attempts and this accepted implementation.
+
+The final records-only commit receives its own exact-head CI check. Its terminal audit and final source/review state are retained on PR #186 after that check, without rewriting this qualified implementation or implying that an earlier revision is the latest tested head.
+
+## Reviews and owner boundary
+
+Round 1 automatically reviewed caf91ce and found one P1 retained-version defect; the fix in 41872ab was replied to and its thread resolved. Round 2 reviewed 41872ab and [completed with no findings](https://github.com/shruggietech/insonic/pull/186#issuecomment-6445349670). No third round was requested. The later qualification-only terminal correction has separate real regressions and complete CI validation; it is not represented as reviewed by the earlier bot receipt. No security-bot finding arrived.
+
+Issue #184 and PR #186 are In review; the issue/milestone stay open for owner merge. Owned transfer/debug scratch was removed after verified receipt readback; final verification scratch is removed before handoff. No merge, tag, official release or Pages deployment is performed in this phase. Installed-user upgrade coverage and fresh exact-main acoustic CPU/restore acceptance/publication are not inferred from PR/source checks. Follow [quickstart.md](quickstart.md) after owner merge to qualify and publish the exact accepted candidate bytes. Broad #147 and historical verifier follow-up #185 remain separate.

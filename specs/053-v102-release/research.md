@@ -1,0 +1,8 @@
+# S053 research (2026-10-27)
+
+- Decision: retain maintained version migration and explicitly reconcile original published history. Rationale: current1.0.1 source includes post-publication changes and candidate navigation; original tag136f5c0 is independently confirmed by official release metadata. Alternatives: relabel current history (incorrect authority), replace migration tooling (unnecessary expansion).
+- Decision: fresh CI captures after a temporary image-free new-version bootstrap. Rationale: renderDocument requires matching capture version, while capture jobs depend on built help. Existing native/application capture artifacts provide source-bound PNG/receipts. Alternatives: relabel receipts (false evidence), relax renderer history rules (unrequested contract change), launch native installer on owner desktop (prohibited).
+- Decision: correct only demonstrated current release surfaces and version compatibility. Rationale: current outputs include six product download assets and Windows/Linux, while prose still says five/three. Historical contracts remain version-specific.
+- Decision: stop at the owner's explicit pre-merge boundary. Rationale: exact-main candidate/CPU/publication cannot be established before owner merge; the tracked handoff preserves those future operations without claiming completion.
+
+- Existing limitation: current release.py and windows_msi.py apply later terminal/setup/MSI-model requirements to the original v1.0.1 publication. A complete repair needs a trusted historical MSI profile and the full exact historical source. S053 preserves published documentation/schema authority without claiming historical package revalidation. Current v1.0.2 checks remain mandatory.

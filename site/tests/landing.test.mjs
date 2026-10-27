@@ -1,18 +1,20 @@
 // SPDX-License-Identifier: Apache-2.0
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
+const currentVersion = readFileSync(new URL('../../VERSION', import.meta.url), 'utf8').trim();
 import { landingRenderer, replaceLanding } from '../scripts/landing-fixture.mjs';
 import { releaseDownloads } from '../lib/release-status.mjs';
 
 const render = await landingRenderer();
 const anchors = html => [...html.matchAll(/<a\b([^>]*)href="([^"]+)"([^>]*)>([\s\S]*?)<\/a>/g)].map(([, before, href, after, body]) => ({ href, label: body.replace(/<span[^>]*aria-hidden="true"[^>]*>[\s\S]*?<\/span>/g, '').replace(/<[^>]+>/g, '').trim(), attributes: before + after }));
-const released = render({ version: '1.0.1', status: 'released' });
+const released = render({ version: currentVersion, status: 'released' });
 
 test('released landing preserves exactly six versioned OS/client/format choices', () => {
   const links = anchors(released);
   const downloads = links.filter(link => link.href.includes('/releases/download/'));
   assert.equal(downloads.length, 6);
-  const expected = releaseDownloads('1.0.1').flatMap(item => [item.setup, item.installer, item.desktop, item.cli].filter(Boolean));
+  const expected = releaseDownloads(currentVersion).flatMap(item => [item.setup, item.installer, item.desktop, item.cli].filter(Boolean));
   assert.deepEqual(downloads.map(link => link.href).sort(), expected.sort());
   assert.deepEqual(downloads.map(link => link.label), ['Download Windows setup EXE', 'Download raw MSI', 'Download Windows Desktop + CLI ZIP', 'Download Windows CLI-only ZIP', 'Download Linux Desktop + CLI tar.gz', 'Download Linux CLI-only tar.gz']);
   assert.match(released, /Desktop, CLI or both/);
@@ -25,7 +27,7 @@ test('released landing preserves exactly six versioned OS/client/format choices'
 
 test('unpublished landing never emits premature package destinations', () => {
   for (const status of ['candidate', 'specification']) {
-    const html = render({ version: '1.0.1', status });
+    const html = render({ version: currentVersion, status });
     assert.doesNotMatch(html, /releases\/download\//);
     assert.match(html, /official product downloads have not been published/i);
     assert.match(html, /Windows download pending/);
@@ -53,7 +55,7 @@ test('rendered landing gives one primary hero jump and truthful distinct guidanc
 });
 
 test('same-source fixture replaces only the real landing frame and rejects ambiguous input', () => {
-  const frame = '<html><head><link href="style.css"/></head><body><header>chrome</header>' + render({version:'1.0.1',status:'candidate'}) + '<footer>company</footer></body></html>';
+  const frame = '<html><head><link href="style.css"/></head><body><header>chrome</header>' + render({version:currentVersion,status:'candidate'}) + '<footer>company</footer></body></html>';
   const result = replaceLanding(frame, released);
   assert.ok(result.startsWith('<html><head>'));
   assert.match(result, /<header>chrome<\/header>/);

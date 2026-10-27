@@ -1,0 +1,80 @@
+{
+  "format": "insonic-ci-acceptance-v1",
+  "identity": {
+    "repository": "shruggietech/insonic",
+    "run": "40531096213",
+    "attempt": "1",
+    "head": "1f8a4e6e428f3572c0b9fb0f6ca1e4d337f6314a",
+    "revision": "b098f7610a7789343c543bd1ced8071629032b54"
+  },
+  "terminal": true,
+  "accepted": true,
+  "evaluation": {
+    "scope": {
+      "core": true,
+      "cli": true,
+      "native": true,
+      "adapters": true
+    },
+    "election": {
+      "scope": true,
+      "readiness": true,
+      "foundation": true,
+      "docs-build": true,
+      "docs": true,
+      "media-linux": true,
+      "media-windows": true,
+      "dependencies-windows": true,
+      "core": true,
+      "core-windows": true,
+      "qualify-linux": true,
+      "qualify-windows": true,
+      "package-linux": true,
+      "package-windows": true,
+      "adapters": true,
+      "candidate": true,
+      "live-site": false
+    },
+    "results": {
+      "scope": "success",
+      "readiness": "success",
+      "foundation": "success",
+      "docs-build": "success",
+      "docs": "success",
+      "media-linux": "success",
+      "media-windows": "success",
+      "dependencies-windows": "success",
+      "core": "success",
+      "core-windows": "success",
+      "qualify-linux": "success",
+      "qualify-windows": "success",
+      "package-linux": "success",
+      "package-windows": "success",
+      "adapters": "success",
+      "candidate": "success",
+      "live-site": "skipped"
+    }
+  },
+  "timing": {
+    "preparation_seconds": 248,
+    "qualification_seconds": 681,
+    "combined_seconds": 929,
+    "qualification_target_seconds": 1800,
+    "qualification_limit_seconds": 3600,
+    "target_exceeded": false,
+    "target_overrun_seconds": 0,
+    "finalization_reserve_seconds": 0,
+    "terminal": true,
+    "accepted": true,
+    "failures": [],
+    "attempt_started_at": "2026-10-27T15:27:05Z",
+    "attempt_record_created_at": "2026-10-27T15:27:05Z",
+    "preparation_started_at": "2026-10-27T15:27:05Z",
+    "readiness_at": "2026-10-27T15:31:13Z",
+    "evaluated_through": "2026-10-27T15:42:34.000Z",
+    "worker_terminal_at": "2026-10-27T15:42:33.000Z",
+    "metadata_updated_at": "2026-10-27T15:42:34Z",
+    "initial_queue_seconds": 0
+  },
+  "failures": []
+}

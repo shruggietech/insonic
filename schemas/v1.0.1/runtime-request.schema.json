@@ -182,7 +182,7 @@
     "duration_ms": {
       "type": "integer",
       "minimum": 1,
-      "maximum": 600000,
+      "maximum": 60000,
       "description": "Bounded qualification attempt duration in integer milliseconds."
     },
     "publication_id": {
@@ -1765,7 +1765,7 @@
             "properties": {
               "after_id": {
                 "$ref": "common.schema.json#/$defs/uuid",
-                "description": "Exclusive mapping-row UUID cursor. Reuse the preceding mapping page next_id, not a local speaker identity."
+                "description": "Exclusive local speaker identity cursor."
               },
               "limit": {
                 "type": "integer",
@@ -3518,10 +3518,9 @@
                   "adapter": {
                     "enum": [
                       "cue-statement",
-                      "insonic-http",
                       "http"
                     ],
-                    "description": "Literal source-reference extraction, or canonical insonic-http assertion adapter (legacy http alias accepted)."
+                    "description": "Literal source-reference extraction, or elected HTTP assertion adapter."
                   },
                   "contract_version": {
                     "const": "1",
@@ -4094,27 +4093,8 @@
                 "description": "Expected current revision, or zero when creating."
               },
               "query": {
-                "allOf": [
-                  {
-                    "$ref": "#/$defs/exploreQuery"
-                  },
-                  {
-                    "type": "object",
-                    "required": [
-                      "title"
-                    ],
-                    "properties": {
-                      "title": {
-                        "type": "string",
-                        "minLength": 1,
-                        "maxLength": 512,
-                        "pattern": "[^\t-\r    -     　]",
-                        "description": "Required title with at least one non-whitespace character."
-                      }
-                    }
-                  }
-                ],
-                "description": "Saved-query definition with a required nonblank title."
+                "$ref": "#/$defs/exploreQuery",
+                "description": "New immutable definition."
               }
             },
             "required": [
@@ -7330,12 +7310,12 @@
           "id": "pyannote-profile",
           "contract_version": "1",
           "mode": "local",
-          "architecture": "pyannote",
+          "architecture": "speaker-embedding",
           "output_kinds": [
-            "voice-embedding"
+            "speaker-profile"
           ],
           "consumers": [
-            "voice-matching"
+            "pyannote"
           ]
         }
       ]

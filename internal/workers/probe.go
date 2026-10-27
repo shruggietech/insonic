@@ -201,7 +201,7 @@ func VerifyReceipt(ctx context.Context, pin, python library.PinnedFile) error {
 	var r Receipt
 	d := json.NewDecoder(bytes.NewReader(b))
 	d.DisallowUnknownFields()
-	if d.Decode(&r) != nil || d.Decode(new(any)) != io.EOF || r.Kind != "worker-environment" || r.Version != contracts.Version || !r.Inspection.EngineAvailable || !r.Inspection.Compatible || r.Inspection.Python.SHA256 != python.SHA256 || !strings.EqualFold(filepath.Clean(r.Inspection.Python.Path), filepath.Clean(python.Path)) || len(r.Inspection.Files) < 1 || len(r.Inspection.Files) > 30000 || r.Inspection.Probe != nil && (!r.Inspection.Probe.valid() || r.Inspection.Probe.Reason != "success") {
+	if d.Decode(&r) != nil || d.Decode(new(any)) != io.EOF || r.Kind != "worker-environment" || !contracts.SupportedDocumentVersion(r.Version) || !r.Inspection.EngineAvailable || !r.Inspection.Compatible || r.Inspection.Python.SHA256 != python.SHA256 || !strings.EqualFold(filepath.Clean(r.Inspection.Python.Path), filepath.Clean(python.Path)) || len(r.Inspection.Files) < 1 || len(r.Inspection.Files) > 30000 || r.Inspection.Probe != nil && (!r.Inspection.Probe.valid() || r.Inspection.Probe.Reason != "success") {
 		return contracts.Fail("invalid_request")
 	}
 	seen := map[string]bool{}

@@ -31,7 +31,7 @@ type importPresetRegistry struct {
 }
 
 func validateImportPreset(p ImportPreset) error {
-	if p.Kind != "import-preset" || p.Version != contracts.Version {
+	if p.Kind != "import-preset" || !contracts.SupportedDocumentVersion(p.Version) {
 		return contracts.Fail("incompatible_version")
 	}
 	if !contracts.ValidID(p.ID) || !utf8.ValidString(p.Name) || strings.TrimSpace(p.Name) != p.Name || utf8.RuneCountInString(p.Name) < 1 || utf8.RuneCountInString(p.Name) > 128 || strings.IndexFunc(p.Name, unicode.IsControl) >= 0 || p.Revision < 0 || p.State != "" && p.State != "active" && p.State != "deleted" || !nonsecret(p.Options) {
@@ -68,7 +68,7 @@ func decodeImportPresets(raw []byte, maxRevision int64) (importPresetRegistry, e
 	if len(raw) > 1<<20 || strict(raw, &r) != nil || len(r.Items) > 1000 {
 		return r, contracts.Fail("invalid_request")
 	}
-	if r.Kind != "import-preset-registry" || r.Version != contracts.Version {
+	if r.Kind != "import-preset-registry" || !contracts.SupportedDocumentVersion(r.Version) {
 		return r, contracts.Fail("incompatible_version")
 	}
 	ids, names := map[string]bool{}, map[string]bool{}

@@ -1,0 +1,43 @@
+{
+  "version": "1.0.2",
+  "run": 40522021862,
+  "attempt": 1,
+  "source_revision": "938c81de723b939d4a731f981a2cf81fe644af7e",
+  "application_artifact": {
+    "id": 12743280752,
+    "sha256": "93d1dee8bf4d2c5c4eb76f23061281c0ef1adb8e690235c542082605ce946833"
+  },
+  "receipts": [
+    {
+      "path": "application-capture.json",
+      "sha256": "ec32928e2dc9e87fb4f5594fd4e03bd7758d97aa2831f46c40b49c38a5b4527a",
+      "images": 4
+    },
+    {
+      "path": "density-capture.json",
+      "sha256": "663ac639ed440599cb13d11eea788fe4aed08c84f6f183b40ca3798ed1676ad4",
+      "images": 7
+    },
+    {
+      "path": "installer-capture.json",
+      "sha256": "ecd1ecc0089d1b069a5aad28c66357a1c16f0968443b8db89336a7b49b6dbaa8",
+      "images": 7
+    },
+    {
+      "path": "installer-transactions-capture.json",
+      "sha256": "1dfd8e5e2c5df634df207a4eb3d39c75ea59a5e9ce7380d0d9b77be04d301581",
+      "images": 7
+    }
+  ],
+  "installer_artifact": {
+    "id": 12742508085,
+    "sha256": "19efd91921b80415df9abaddba773ef116e3dec094d5282acf363bcd4bc8e946",
+    "scope": "interactive",
+    "checks": {
+      "documentation_completion": "passed",
+      "interactive_transactions": "passed",
+      "native_ui_capture": "passed",
+      "user_context": "passed"
+    }
+  }
+}

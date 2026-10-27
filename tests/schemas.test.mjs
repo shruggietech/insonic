@@ -119,7 +119,7 @@ test('model catalog and compatibility contracts retain complete pinned bundle me
   manifest.compatibility.channels=[0];assert.equal(master(manifest),false);
   manifest.compatibility.channels=[1,1];assert.equal(master(manifest),false);
   manifest.compatibility.channels=[1];
-  const source={kind:'model-catalog',schema_version:'1.0.1',entries:[{selector:'release-1',manifest}]};
+  const source={kind:'model-catalog',schema_version:'1.0.2',entries:[{selector:'release-1',manifest}]};
   assert.equal(master(source),true);
   assert.equal(master({...source,entries:Array.from({length:129},()=>source.entries[0])}),false);
   const snapshot=example('catalog-snapshot');snapshot.catalog_schema=8;snapshot.records.model_aliases=[{id:'22222222-2222-4222-8222-222222222222',name:'speech',revision:1,state:'deleted',target:{kind:'base',id:'33333333-3333-4333-8333-333333333333',operation:'transcription'}}];
@@ -130,7 +130,7 @@ test('model catalog and compatibility contracts retain complete pinned bundle me
 test('work model summaries distinguish operation-neutral acquisition from missing consumer selections',()=>{
   const id='33333333-3333-4333-8333-333333333333';
   const resolution={reference:'base:'+id,target:{kind:'base',id,operation:''},manifest_digest:'a'.repeat(64),upstream_revision:'immutable-1',state:'registered',compatible:true,diagnostics:[]};
-  const response=selection=>({kind:'runtime-response',schema_version:'1.0.1',result:{model_selections:[selection]}});
+  const response=selection=>({kind:'runtime-response',schema_version:'1.0.2',result:{model_selections:[selection]}});
   assert.equal(master(response(resolution)),true,'explicit acquisition does not elect an inference operation');
   for(const change of [{target:{kind:'speaker',id,operation:''}},{target:{kind:'base',id,operation:'invented'}},{target:{kind:'base',id,operation:'',adapter:'faster-whisper'}},{state:'missing'},{manifest_digest:''}])
     assert.equal(master(response({...resolution,...change})),false,'neutral acquisition cannot weaken execution or immutable identity');
@@ -210,7 +210,7 @@ test('release master rejects unknown kinds, version drift and undeclared core fi
   const value = example('import-manifest');
   value.kind = 'unregistered'; assert.equal(master(value), false);
   value.kind = 'import-manifest'; value.schema_version = '0.0.1'; assert.equal(master(value), false);
-  value.schema_version = '1.0.1'; value.unrecognised_core_field = true; assert.equal(master(value), false);
+  value.schema_version = '1.0.2'; value.unrecognised_core_field = true; assert.equal(master(value), false);
 });
 
 test('an import cannot silently supply both a timestamp and a date at either scope', () => {
@@ -312,7 +312,7 @@ test('published reference derives field descriptions and complete examples from 
   const contract = catalog.contracts.find(item => item.schema.properties.kind.const === 'import-manifest');
   assert.ok(reference.includes(contract.schema.properties.items.description));
   assert.ok(reference.includes(JSON.stringify(contract.schema.examples[0], null, 2)));
-  assert.ok(reference.includes('/schemas/v1.0.1/master.schema.json'));
+  assert.ok(reference.includes('/schemas/v1.0.2/master.schema.json'));
 });
 
 test('published reference explains alternative backend and query fields, typed parameters and shared timestamps', () => {
@@ -426,6 +426,21 @@ test('current portable snapshots retain strict immutable historical model docume
   base.schema_version = '1.0.0';
   speaker.token = 'fixture-secret';
   assert.equal(master(snapshot), false, 'historical manifests retain strict credential and field constraints');
+});
+
+test('current portable snapshots retain original v1.0.1 model authority', () => {
+  const historical = name => JSON.parse(readFileSync(new URL('../schemas/v1.0.1/' + name + '.schema.json', import.meta.url), 'utf8')).examples[0];
+  const base = historical('base-model-manifest');
+  const speaker = historical('speaker-model');
+  const snapshot = example('catalog-snapshot');
+  snapshot.catalog_schema = 9;
+  snapshot.records.base_models = [{id:'33333333-3333-4333-8333-333333333333',name:base.name,version:base.model_version,digest:'a'.repeat(64),manifest:base,publication_ids:[],state:'registered',revision:1}];
+  snapshot.records.speaker_outputs = [{id:speaker.model_version_id,model_id:speaker.model_family_id,speaker_id:speaker.originating_speaker_id,dataset_id:speaker.training.dataset.dataset_snapshot_id,work_id:speaker.training.job_id,kind:speaker.compatibility.model_kind,name:speaker.display_name,metadata:speaker,publication_ids:[speaker.model_version_id]}];
+  const original = JSON.stringify({base, speaker});
+  assert.equal(master(snapshot), true, 'original published model documents must remain admissible');
+  assert.equal(JSON.stringify({base, speaker}), original);
+  speaker.token = 'fixture-secret';
+  assert.equal(master(snapshot), false, 'historical documents retain field and credential constraints');
 });
 
 test('managed worker closure validates and publishes both document alternatives',()=>{
