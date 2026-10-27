@@ -46,3 +46,5 @@ T001 -> T002 -> T003 -> T004 -> T005 -> T006 -> T007 -> T008 -> T009 -> T010 -> 
 - [x] T012 Preserve the elected Windows archive CLI workload allocation for terminal roots and the independent runtime in scripts/windows_workload_affinity.py, scripts/terminal_transport.py and shared qualification; add actual mask/parent-invariance and no-fallback regressions (Constitution V, FR-005/007; partial).
 
 - [x] T013 Correct the Linux fixture-only host-cache placement and add cleanup/socket-bound regression in scripts/cli_terminal_qualification.py and tests/cli_terminal_qualification_test.py; preserve deep Unicode library paths and the product endpoint bound (FR-005/007; partial).
+
+- [ ] T014 Replace the transport test's single long native sleep with a signal-dispatch cadence and verify the unchanged actual terminal-byte interrupt, natural exit7 and cleanup assertions on Windows/Linux (FR-002/007; partial).

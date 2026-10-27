@@ -13,7 +13,12 @@ from terminal_transport import Terminal, normalize_terminal
 
 class TerminalTransportTests(unittest.TestCase):
     def test_actual_terminal_interrupt_and_natural_release(self):
-        program = "import os,signal,sys,time; signal.signal(signal.SIGINT,lambda *_:(print('INTERRUPTED',flush=True),sys.exit(7))); print('TTY:'+str(all(os.isatty(i) for i in (0,1,2))),flush=True); time.sleep(600)"
+        # Keep returning to Python so a pending SIGINT cannot remain hidden in a
+        # single long native sleep. Only the terminal input byte delivers it.
+        program = ("import os,signal,sys,time\n"
+                   "signal.signal(signal.SIGINT,lambda *_:(print('INTERRUPTED',flush=True),sys.exit(7)))\n"
+                   "print('TTY:'+str(all(os.isatty(i) for i in (0,1,2))),flush=True)\n"
+                   "while True: time.sleep(.02)\n")
         with Terminal([sys.executable, '-c', program], cwd=Path.cwd(), env=os.environ.copy()) as terminal:
             terminal.wait_for('TTY:True')
             terminal.interrupt()
